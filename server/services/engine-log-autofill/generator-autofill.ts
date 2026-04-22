@@ -22,25 +22,39 @@ async function getOrCreateDailyLog(
   orgId: string
 ): Promise<EngineLogDaily | null> {
   let dailyLog = await engineLogStorage.getEngineLogDailyByDate(vesselId, logDate, orgId);
-  if (dailyLog) { return dailyLog; }
+  if (dailyLog) {
+    return dailyLog;
+  }
 
   try {
-    return await engineLogStorage.createEngineLogDaily({ orgId, vesselId, logDate, status: 'open' });
+    return await engineLogStorage.createEngineLogDaily({
+      orgId,
+      vesselId,
+      logDate,
+      status: "open",
+    });
   } catch (error: unknown) {
-    const errorCode = error instanceof Error && 'code' in error ? (error as { code: string }).code : undefined;
-    if (errorCode !== '23505') { throw error; }
+    const errorCode =
+      error instanceof Error && "code" in error ? (error as { code: string }).code : undefined;
+    if (errorCode !== "23505") {
+      throw error;
+    }
     dailyLog = await engineLogStorage.getEngineLogDailyByDate(vesselId, logDate, orgId);
     if (!dailyLog) {
-      throw new Error('Failed to retrieve existing daily log after duplicate key error');
+      throw new Error("Failed to retrieve existing daily log after duplicate key error");
     }
     return dailyLog;
   }
 }
 
-function groupTelemetryByEquipment(telemetry: EquipmentTelemetry[]): Map<string, EquipmentTelemetry[]> {
+function groupTelemetryByEquipment(
+  telemetry: EquipmentTelemetry[]
+): Map<string, EquipmentTelemetry[]> {
   const telemetryByEquipment = new Map<string, EquipmentTelemetry[]>();
   for (const reading of telemetry) {
-    if (!reading.equipmentId) { continue; }
+    if (!reading.equipmentId) {
+      continue;
+    }
     if (!telemetryByEquipment.has(reading.equipmentId)) {
       telemetryByEquipment.set(reading.equipmentId, []);
     }
@@ -56,15 +70,22 @@ function processAggregates(
   hour: number,
   genNum: number
 ): { generatorEntry: Partial<InsertEngineLogGenerator>; hasData: boolean; anomalyCount: number } {
-  const generatorEntry: Partial<InsertEngineLogGenerator> = { orgId, dailyLogId, hour, generatorNumber: genNum };
+  const generatorEntry: Partial<InsertEngineLogGenerator> = {
+    orgId,
+    dailyLogId,
+    hour,
+    generatorNumber: genNum,
+  };
   let hasData = false;
   let anomalyCount = 0;
 
   for (const [sensorType, aggregate] of aggregates) {
     const targetField = GENERATOR_TELEMETRY_MAPPING[sensorType];
-    if (!targetField) { continue; }
+    if (!targetField) {
+      continue;
+    }
 
-    const integerFields = ['rpm', 'hour', 'generatorNumber'];
+    const integerFields = ["rpm", "hour", "generatorNumber"];
     const value = integerFields.includes(targetField) ? Math.round(aggregate.avg) : aggregate.avg;
     (generatorEntry as Record<string, unknown>)[targetField] = value;
     hasData = true;
@@ -91,10 +112,16 @@ async function processGeneratorHours(
 
   for (const hour of hoursToProcess) {
     const aggregates = aggregateTelemetryByHour(readings, hour);
-    if (aggregates.size === 0) { continue; }
+    if (aggregates.size === 0) {
+      continue;
+    }
 
     const { generatorEntry, hasData, anomalyCount } = processAggregates(
-      aggregates, orgId, dailyLog.id, hour, genNum
+      aggregates,
+      orgId,
+      dailyLog.id,
+      hour,
+      genNum
     );
 
     if (hasData && !dryRun) {
@@ -114,9 +141,14 @@ export async function autoFillGeneratorsFromTelemetry(
   options: GeneratorAutoFillOptions = {}
 ): Promise<{ hoursProcessed: number; generatorsProcessed: number; anomalies: number }> {
   const { hours, generatorNumbers = [1, 2, 3], overwriteManual = false, dryRun = false } = options;
-  const ctx: LogContext = { orgId, vesselId, logDate, operation: 'autoFillGeneratorsFromTelemetry' };
+  const ctx: LogContext = {
+    orgId,
+    vesselId,
+    logDate,
+    operation: "autoFillGeneratorsFromTelemetry",
+  };
 
-  log('info', 'Starting generator auto-fill', { ...ctx, dryRun, overwriteManual });
+  log("info", "Starting generator auto-fill", { ...ctx, dryRun, overwriteManual });
 
   const dailyLog = await getOrCreateDailyLog(vesselId, logDate, orgId);
   if (!dailyLog || dailyLog.lockedAt) {
@@ -125,17 +157,22 @@ export async function autoFillGeneratorsFromTelemetry(
 
   const vesselEquipment = await dbEquipmentStorage.getEquipmentByVessel(vesselId, orgId);
   const generators = vesselEquipment.filter(
-    (e) => e.type?.toLowerCase().includes('generator') || e.type?.toLowerCase().includes('dg')
+    (e) => e.type?.toLowerCase().includes("generator") || e.type?.toLowerCase().includes("dg")
   );
 
   if (generators.length === 0) {
-    log('info', 'No generators found for vessel', ctx);
+    log("info", "No generators found for vessel", ctx);
     return { hoursProcessed: 0, generatorsProcessed: 0, anomalies: 0 };
   }
 
   const startDate = new Date(`${logDate}T00:00:00Z`);
   const endDate = new Date(`${logDate}T23:59:59Z`);
-  const allTelemetry = await batchFetchTelemetry(generators.map((g) => g.id), startDate, endDate, orgId);
+  const allTelemetry = await batchFetchTelemetry(
+    generators.map((g) => g.id),
+    startDate,
+    endDate,
+    orgId
+  );
   const telemetryByEquipment = groupTelemetryByEquipment(allTelemetry);
 
   let hoursProcessed = 0;
@@ -146,16 +183,25 @@ export async function autoFillGeneratorsFromTelemetry(
   for (const generator of generators) {
     const genNumMatch = generator.name?.match(/(\d+)/);
     const genNum = genNumMatch ? Number.parseInt(genNumMatch[1]) : 1;
-    if (!generatorNumbers.includes(genNum)) { continue; }
+    if (!generatorNumbers.includes(genNum)) {
+      continue;
+    }
 
     try {
       const readings = telemetryByEquipment.get(generator.id) ?? [];
-      const result = await processGeneratorHours(readings, hoursToProcess, dailyLog, orgId, genNum, dryRun);
+      const result = await processGeneratorHours(
+        readings,
+        hoursToProcess,
+        dailyLog,
+        orgId,
+        genNum,
+        dryRun
+      );
       hoursProcessed += result.hoursProcessed;
       anomaliesFound += result.anomaliesFound;
       generatorsProcessed++;
     } catch (error) {
-      log('warn', 'Failed to process generator', {
+      log("warn", "Failed to process generator", {
         ...ctx,
         generatorName: generator.name,
         error: error instanceof Error ? error.message : String(error),
@@ -163,6 +209,11 @@ export async function autoFillGeneratorsFromTelemetry(
     }
   }
 
-  log('info', 'Completed generator auto-fill', { ...ctx, hoursProcessed, generatorsProcessed, anomalies: anomaliesFound });
+  log("info", "Completed generator auto-fill", {
+    ...ctx,
+    hoursProcessed,
+    generatorsProcessed,
+    anomalies: anomaliesFound,
+  });
   return { hoursProcessed, generatorsProcessed, anomalies: anomaliesFound };
 }

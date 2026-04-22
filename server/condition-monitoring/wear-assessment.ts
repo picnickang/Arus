@@ -15,11 +15,15 @@ interface WearState {
 }
 
 function assessPqIndex(pqIndex: number, state: WearState): number {
-  if (pqIndex <= 50) {return 100;}
+  if (pqIndex <= 50) {
+    return 100;
+  }
 
   const severityScore = Math.max(0, 100 - (pqIndex - 50) * 2);
   if (pqIndex > 100) {
-    state.recommendations.push("High wear particle concentration - immediate investigation required");
+    state.recommendations.push(
+      "High wear particle concentration - immediate investigation required"
+    );
     state.inspectionRequired = true;
   }
   return severityScore;
@@ -71,14 +75,25 @@ function assessComponentWear(wearAnalysis: WearParticleAnalysis, state: WearStat
 }
 
 function calculateWearSeverity(overallScore: number): "normal" | "moderate" | "high" | "severe" {
-  if (overallScore >= 85) {return "normal";}
-  if (overallScore >= 70) {return "moderate";}
-  if (overallScore >= 50) {return "high";}
+  if (overallScore >= 85) {
+    return "normal";
+  }
+  if (overallScore >= 70) {
+    return "moderate";
+  }
+  if (overallScore >= 50) {
+    return "high";
+  }
   return "severe";
 }
 
 function calculateEstimatedLife(wearSeverity: "normal" | "moderate" | "high" | "severe"): number {
-  const lifeMap: Record<string, number> = { severe: 180, high: 365, moderate: 2 * 365, normal: 5 * 365 };
+  const lifeMap: Record<string, number> = {
+    severe: 180,
+    high: 365,
+    moderate: 2 * 365,
+    normal: 5 * 365,
+  };
   return lifeMap[wearSeverity];
 }
 

@@ -14,7 +14,7 @@ export type {
   RegulatoryFramework,
   CompliancePDFOptions,
   CompliancePDFResult,
-} from './compliance-pdf/types';
+} from "./compliance-pdf/types";
 
-export { FRAMEWORK_STANDARDS } from './compliance-pdf/types';
-export { CompliancePDFGenerator } from './compliance-pdf/index';
+export { FRAMEWORK_STANDARDS } from "./compliance-pdf/types";
+export { CompliancePDFGenerator } from "./compliance-pdf/index";

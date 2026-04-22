@@ -3,20 +3,20 @@
  * Generates crew certification and compliance report
  */
 
-import { vesselService, dbCrewStorage, dbCrewExtensionsStorage } from '../../../repositories';
-import type { ICrewComplianceGenerator } from '../domain/ports.js';
+import { vesselService, dbCrewStorage, dbCrewExtensionsStorage } from "../../../repositories";
+import type { ICrewComplianceGenerator } from "../domain/ports.js";
 import type {
   CrewComplianceData,
   CertificationAlert,
   HoRViolation,
   CrewChange,
-} from '../domain/types.js';
-import { logger } from '../../../utils/logger.js';
+} from "../domain/types.js";
+import { logger } from "../../../utils/logger.js";
 
-const LOG_CTX = 'CrewComplianceGenerator';
+const LOG_CTX = "CrewComplianceGenerator";
 
 export class CrewComplianceGenerator implements ICrewComplianceGenerator {
-  readonly reportType = 'crew_compliance' as const;
+  readonly reportType = "crew_compliance" as const;
 
   async generate(orgId: string, vesselIds: string[] | null): Promise<CrewComplianceData> {
     logger.info(LOG_CTX, `Generating crew compliance report for org ${orgId}`);
@@ -37,7 +37,7 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
         complianceScore,
       };
     } catch (error) {
-      logger.error(LOG_CTX, 'Failed to generate crew compliance report', String(error));
+      logger.error(LOG_CTX, "Failed to generate crew compliance report", String(error));
       return {
         expiringCertifications: [],
         hoursOfRestViolations: [],
@@ -65,7 +65,10 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
         const crew = await dbCrewStorage.getCrew(orgId, vessel.id);
 
         for (const member of crew) {
-          const certifications = await dbCrewExtensionsStorage.getCrewCertifications(member.id, orgId);
+          const certifications = await dbCrewExtensionsStorage.getCrewCertifications(
+            member.id,
+            orgId
+          );
 
           for (const cert of certifications) {
             const expiryDate = (cert as any).expiryDate ? new Date((cert as any).expiryDate) : null;
@@ -79,7 +82,8 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
                 crewId: member.id,
                 crewName: `${member.firstName} ${member.lastName}`,
                 vesselName: vessel.name,
-                certificationName: (cert as any).certificateName || (cert as any).type || 'Certificate',
+                certificationName:
+                  (cert as any).certificateName || (cert as any).type || "Certificate",
                 expiryDate,
                 daysUntilExpiry,
               });
@@ -90,7 +94,7 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
 
       return alerts.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
     } catch (error) {
-      logger.error(LOG_CTX, 'Failed to get expiring certifications', String(error));
+      logger.error(LOG_CTX, "Failed to get expiring certifications", String(error));
       return [];
     }
   }
@@ -111,10 +115,7 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
     return [];
   }
 
-  private calculateComplianceScore(
-    expiringCerts: number,
-    horViolations: number
-  ): number {
+  private calculateComplianceScore(expiringCerts: number, horViolations: number): number {
     let score = 100;
     score -= expiringCerts * 2;
     score -= horViolations * 5;

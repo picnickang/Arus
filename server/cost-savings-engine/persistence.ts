@@ -26,7 +26,8 @@ export async function saveCostSavings(
     laborSavings: calculation.laborSavings,
     partsSavings: calculation.partsSavings,
     downtimeSavings: calculation.downtimeSavings,
-    estimatedDowntimePrevented: calculation.emergencyDowntimeHours - calculation.actualDowntimeHours,
+    estimatedDowntimePrevented:
+      calculation.emergencyDowntimeHours - calculation.actualDowntimeHours,
     downtimeCostPerHour: calculation.downtimeCostPerHour,
     triggeredBy: calculation.triggeredBy,
     confidenceScore: calculation.confidenceScore,
@@ -78,11 +79,13 @@ export async function voidSavingsForWorkOrder(
       validationChangedBy: changedBy ?? "system",
       validationChangedAt: new Date(),
     })
-    .where(and(
-      eq(costSavings.workOrderId, workOrderId),
-      eq(costSavings.orgId, orgId),
-      ne(costSavings.validationStatus, "voided")
-    ))
+    .where(
+      and(
+        eq(costSavings.workOrderId, workOrderId),
+        eq(costSavings.orgId, orgId),
+        ne(costSavings.validationStatus, "voided")
+      )
+    )
     .returning({ id: costSavings.id });
 
   return result.length;

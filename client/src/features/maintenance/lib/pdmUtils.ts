@@ -44,16 +44,18 @@ export const bearingFormSchema = z.object({
 
 export type BearingFormData = z.infer<typeof bearingFormSchema>;
 
-export const pumpFormSchema = z.object({
-  vesselName: z.string().min(1, "Vessel name is required"),
-  assetId: z.string().min(1, "Asset ID is required"),
-  flow: z.string().optional(),
-  pressure: z.string().optional(),
-  current: z.string().optional(),
-  autoBaseline: z.boolean(),
-}).refine((data) => data.flow || data.pressure || data.current, {
-  message: "At least one data source is required",
-});
+export const pumpFormSchema = z
+  .object({
+    vesselName: z.string().min(1, "Vessel name is required"),
+    assetId: z.string().min(1, "Asset ID is required"),
+    flow: z.string().optional(),
+    pressure: z.string().optional(),
+    current: z.string().optional(),
+    autoBaseline: z.boolean(),
+  })
+  .refine((data) => data.flow || data.pressure || data.current, {
+    message: "At least one data source is required",
+  });
 
 export type PumpFormData = z.infer<typeof pumpFormSchema>;
 
@@ -90,7 +92,9 @@ export function getSeverityColor(severity: "info" | "warn" | "high"): string {
   }
 }
 
-export function getSeverityBadgeVariant(severity: "info" | "warn" | "high"): "destructive" | "default" | "secondary" {
+export function getSeverityBadgeVariant(
+  severity: "info" | "warn" | "high"
+): "destructive" | "default" | "secondary" {
   switch (severity) {
     case "high":
       return "destructive";
@@ -120,6 +124,6 @@ export function getZScoreInterpretation(z: number): string {
 export function parseDataSeries(input: string): number[] {
   return input
     .split(/[,\s]+/)
-    .map(v => Number.parseFloat(v.trim()))
-    .filter(v => !Number.isNaN(v));
+    .map((v) => Number.parseFloat(v.trim()))
+    .filter((v) => !Number.isNaN(v));
 }

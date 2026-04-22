@@ -1,15 +1,8 @@
-import type {
-  Equipment,
-  EquipmentDecommissionEvent,
-  DecommissionStatus,
-} from "@shared/schema";
+import type { Equipment, EquipmentDecommissionEvent, DecommissionStatus } from "@shared/schema";
 import { equipmentLifecycleRepository } from "./lifecycle-repository";
 import { recordAndPublish } from "../../../sync-events";
 import { logger } from "../../../utils/logger.js";
-import type {
-  DecommissionEquipmentInput,
-  ReinstateEquipmentInput,
-} from "./lifecycle-validation";
+import type { DecommissionEquipmentInput, ReinstateEquipmentInput } from "./lifecycle-validation";
 
 export class EquipmentLifecycleService {
   async decommissionEquipment(
@@ -72,7 +65,10 @@ export class EquipmentLifecycleService {
     input: ReinstateEquipmentInput,
     userId?: string
   ): Promise<Equipment> {
-    const existingEquipment = await equipmentLifecycleRepository.findDecommissionedEquipmentById(id, orgId);
+    const existingEquipment = await equipmentLifecycleRepository.findDecommissionedEquipmentById(
+      id,
+      orgId
+    );
     if (!existingEquipment) {
       throw new Error(`Decommissioned equipment not found: ${id}`);
     }

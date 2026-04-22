@@ -1,7 +1,19 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building2, Mail, Phone, Star, Clock, Edit, Trash2, ShoppingCart, Wrench, MapPin, Award } from "lucide-react";
+import {
+  Building2,
+  Mail,
+  Phone,
+  Star,
+  Clock,
+  Edit,
+  Trash2,
+  ShoppingCart,
+  Wrench,
+  MapPin,
+  Award,
+} from "lucide-react";
 import type { SupplierWithStats, VendorType } from "../types";
 
 interface SupplierCardProps {
@@ -15,9 +27,17 @@ function getTypeBadge(type: VendorType) {
     case "supplier":
       return <Badge variant="secondary">Supplier</Badge>;
     case "service_provider":
-      return <Badge variant="outline" className="border-blue-500 text-blue-600 dark:text-blue-400">Service Provider</Badge>;
+      return (
+        <Badge variant="outline" className="border-blue-500 text-blue-600 dark:text-blue-400">
+          Service Provider
+        </Badge>
+      );
     case "both":
-      return <Badge variant="outline" className="border-purple-500 text-purple-600 dark:text-purple-400">Supplier & Service</Badge>;
+      return (
+        <Badge variant="outline" className="border-purple-500 text-purple-600 dark:text-purple-400">
+          Supplier & Service
+        </Badge>
+      );
     default:
       return null;
   }
@@ -28,11 +48,18 @@ export function SupplierCard({ supplier, onEdit, onDelete }: SupplierCardProps) 
   const isSupplier = supplier.type === "supplier" || supplier.type === "both";
 
   return (
-    <Card className="hover:shadow-md transition-shadow" data-testid={`supplier-card-${supplier.id}`}>
+    <Card
+      className="hover:shadow-md transition-shadow"
+      data-testid={`supplier-card-${supplier.id}`}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            {isServiceProvider ? <Wrench className="h-5 w-5 text-muted-foreground shrink-0" /> : <Building2 className="h-5 w-5 text-muted-foreground shrink-0" />}
+            {isServiceProvider ? (
+              <Wrench className="h-5 w-5 text-muted-foreground shrink-0" />
+            ) : (
+              <Building2 className="h-5 w-5 text-muted-foreground shrink-0" />
+            )}
             <CardTitle className="text-lg truncate">{supplier.name}</CardTitle>
           </div>
           <div className="flex gap-1 flex-wrap justify-end shrink-0">
@@ -107,7 +134,12 @@ export function SupplierCard({ supplier, onEdit, onDelete }: SupplierCardProps) 
             {supplier.certifications && supplier.certifications.length > 0 && (
               <div className="flex items-center gap-1">
                 <Award className="h-4 w-4 text-muted-foreground" />
-                <span className="truncate">{supplier.certifications.slice(0, 2).join(", ")}{supplier.certifications.length > 2 ? ` +${supplier.certifications.length - 2}` : ""}</span>
+                <span className="truncate">
+                  {supplier.certifications.slice(0, 2).join(", ")}
+                  {supplier.certifications.length > 2
+                    ? ` +${supplier.certifications.length - 2}`
+                    : ""}
+                </span>
               </div>
             )}
           </div>
@@ -121,13 +153,24 @@ export function SupplierCard({ supplier, onEdit, onDelete }: SupplierCardProps) 
         {(onEdit || onDelete) && (
           <div className="flex gap-2 pt-2 border-t">
             {onEdit && (
-              <Button variant="outline" size="sm" onClick={() => onEdit(supplier)} data-testid={`edit-supplier-${supplier.id}`}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEdit(supplier)}
+                data-testid={`edit-supplier-${supplier.id}`}
+              >
                 <Edit className="h-4 w-4 mr-1" />
                 Edit
               </Button>
             )}
             {onDelete && (
-              <Button variant="outline" size="sm" onClick={() => onDelete(supplier)} className="text-destructive" data-testid={`delete-supplier-${supplier.id}`}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onDelete(supplier)}
+                className="text-destructive"
+                data-testid={`delete-supplier-${supplier.id}`}
+              >
                 <Trash2 className="h-4 w-4 mr-1" />
                 Delete
               </Button>

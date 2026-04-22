@@ -1,76 +1,76 @@
-import Database from 'better-sqlite3';
-import { CursorStore } from './cursorStore';
-import { SqliteRawFrameSource } from './sqliteRawFrameSource';
-import { BridgeProcessor } from './bridgeProcessor';
-import { type BridgeConfig } from './config';
-import { telemetryBatchWriter, type TelemetryReading } from '../../telemetry-batch-writer';
-import { logger } from '../../utils/logger';
-import client from 'prom-client';
-import { CircuitBreaker } from '../circuit-breaker/circuitBreaker';
-import { DeadLetterQueue } from '../dead-letter-queue';
-import { circuitBreakerHealthCollector } from '../telemetry-health';
+import Database from "better-sqlite3";
+import { CursorStore } from "./cursorStore";
+import { SqliteRawFrameSource } from "./sqliteRawFrameSource";
+import { BridgeProcessor } from "./bridgeProcessor";
+import { type BridgeConfig } from "./config";
+import { telemetryBatchWriter, type TelemetryReading } from "../../telemetry-batch-writer";
+import { logger } from "../../utils/logger";
+import client from "prom-client";
+import { CircuitBreaker } from "../circuit-breaker/circuitBreaker";
+import { DeadLetterQueue } from "../dead-letter-queue";
+import { circuitBreakerHealthCollector } from "../telemetry-health";
 
 const bridgeBatchCommitted = new client.Counter({
-  name: 'arus_bridge_batch_committed_total',
-  help: 'Total readings committed by bridge',
+  name: "arus_bridge_batch_committed_total",
+  help: "Total readings committed by bridge",
 });
 
 const bridgeFramesProcessed = new client.Counter({
-  name: 'arus_bridge_frames_processed_total',
-  help: 'Total raw frames fetched from SQLite',
+  name: "arus_bridge_frames_processed_total",
+  help: "Total raw frames fetched from SQLite",
 });
 
 const bridgeReadingsDecoded = new client.Counter({
-  name: 'arus_bridge_readings_decoded_total',
-  help: 'Total readings decoded from frames',
+  name: "arus_bridge_readings_decoded_total",
+  help: "Total readings decoded from frames",
 });
 
 const bridgeBacklogGauge = new client.Gauge({
-  name: 'arus_bridge_backlog_frames',
-  help: 'Current backlog of frames waiting to be processed',
+  name: "arus_bridge_backlog_frames",
+  help: "Current backlog of frames waiting to be processed",
 });
 
 const bridgeLastSuccessGauge = new client.Gauge({
-  name: 'arus_bridge_last_success_unix_ms',
-  help: 'Unix timestamp of last successful commit',
+  name: "arus_bridge_last_success_unix_ms",
+  help: "Unix timestamp of last successful commit",
 });
 
 const bridgeCommitLatencyHistogram = new client.Histogram({
-  name: 'arus_bridge_commit_latency_ms',
-  help: 'PostgreSQL commit latency in milliseconds',
+  name: "arus_bridge_commit_latency_ms",
+  help: "PostgreSQL commit latency in milliseconds",
   buckets: [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000],
 });
 
 const bridgeEndToEndLagHistogram = new client.Histogram({
-  name: 'arus_bridge_e2e_lag_ms',
-  help: 'End-to-end lag from frame creation to PG commit in milliseconds',
+  name: "arus_bridge_e2e_lag_ms",
+  help: "End-to-end lag from frame creation to PG commit in milliseconds",
   buckets: [50, 100, 250, 500, 1000, 2500, 5000, 10000, 30000],
 });
 
 const bridgeBackoffGauge = new client.Gauge({
-  name: 'arus_bridge_backoff_ms',
-  help: 'Current retry backoff in milliseconds',
+  name: "arus_bridge_backoff_ms",
+  help: "Current retry backoff in milliseconds",
 });
 
 const bridgeFramesPerSecondGauge = new client.Gauge({
-  name: 'arus_bridge_frames_per_second',
-  help: 'Current frames processed per second (rolling average)',
+  name: "arus_bridge_frames_per_second",
+  help: "Current frames processed per second (rolling average)",
 });
 
 const bridgeDecodedPerSecondGauge = new client.Gauge({
-  name: 'arus_bridge_decoded_per_second',
-  help: 'Current readings decoded per second (rolling average)',
+  name: "arus_bridge_decoded_per_second",
+  help: "Current readings decoded per second (rolling average)",
 });
 
 const bridgeBackoffDurationHistogram = new client.Histogram({
-  name: 'arus_bridge_backoff_duration_ms',
-  help: 'Duration of backoff delays applied during PG failures',
+  name: "arus_bridge_backoff_duration_ms",
+  help: "Duration of backoff delays applied during PG failures",
   buckets: [500, 1000, 2000, 4000, 8000, 16000, 30000],
 });
 
 const bridgeRetriesTotalCounter = new client.Counter({
-  name: 'arus_bridge_retries_total',
-  help: 'Total retry attempts for PG write failures',
+  name: "arus_bridge_retries_total",
+  help: "Total retry attempts for PG write failures",
 });
 
 let bridgeState = {
@@ -83,13 +83,13 @@ let bridgeState = {
 };
 
 const bridgeCircuitBreaker = new CircuitBreaker({
-  name: 'sqlite-bridge-pg',
+  name: "sqlite-bridge-pg",
   failureThreshold: 5,
   resetTimeoutMs: 30000,
   halfOpenMaxAttempts: 3,
 });
 
-circuitBreakerHealthCollector.registerCircuitBreaker('sqlite-bridge-pg', bridgeCircuitBreaker);
+circuitBreakerHealthCollector.registerCircuitBreaker("sqlite-bridge-pg", bridgeCircuitBreaker);
 
 interface BridgeDLQPayload {
   readings: TelemetryReading[];
@@ -98,7 +98,7 @@ interface BridgeDLQPayload {
 }
 
 const bridgeDeadLetterQueue = new DeadLetterQueue<BridgeDLQPayload>({
-  name: 'sqlite-bridge',
+  name: "sqlite-bridge",
   maxEntries: 5000,
   retentionDays: 7,
 });
@@ -113,14 +113,16 @@ export function getBridgeDeadLetterQueue(): DeadLetterQueue<BridgeDLQPayload> {
 
 bridgeDeadLetterQueue.setReplayHandler(async (entry) => {
   if (bridgeCircuitBreaker.isOpen()) {
-    throw new Error('Circuit breaker still open - cannot replay');
+    throw new Error("Circuit breaker still open - cannot replay");
   }
-  
+
   await bridgeCircuitBreaker.execute(async () => {
-    await telemetryBatchWriter.writeBatch(entry.payload.readings, { source: 'sqlite-bridge-dlq-replay' });
+    await telemetryBatchWriter.writeBatch(entry.payload.readings, {
+      source: "sqlite-bridge-dlq-replay",
+    });
   });
-  
-  logger.info('SqliteBridge', 'DLQ entry replayed successfully', {
+
+  logger.info("SqliteBridge", "DLQ entry replayed successfully", {
     entryId: entry.id,
     readingsCount: entry.payload.readings.length,
   });
@@ -152,22 +154,22 @@ export function calculateBackoff(retryCount: number): number {
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function runSqliteBridge(config: BridgeConfig): Promise<void> {
   const db = new Database(config.sqlitePath, { readonly: false });
-  
-  db.pragma('journal_mode = WAL');
-  db.pragma('busy_timeout = 5000');
-  db.pragma('synchronous = NORMAL');
-  db.pragma('temp_store = MEMORY');
+
+  db.pragma("journal_mode = WAL");
+  db.pragma("busy_timeout = 5000");
+  db.pragma("synchronous = NORMAL");
+  db.pragma("temp_store = MEMORY");
 
   const cursor = new CursorStore(db);
   const source = new SqliteRawFrameSource(db);
   const processor = new BridgeProcessor({
-    defaultEquipmentId: 'e2e-test-engine',
-    defaultOrgId: 'default-org-id',
+    defaultEquipmentId: "e2e-test-engine",
+    defaultOrgId: "default-org-id",
   });
 
   let backoffMs = 2000;
@@ -180,13 +182,16 @@ export async function runSqliteBridge(config: BridgeConfig): Promise<void> {
 
   bridgeState.isRunning = true;
   bridgeBackoffGauge.set(backoffMs);
-  logger.info('SqliteBridge', 'Started', { sqlitePath: config.sqlitePath });
+  logger.info("SqliteBridge", "Started", { sqlitePath: config.sqlitePath });
 
   while (bridgeState.isRunning) {
     try {
       const queueDepth = telemetryBatchWriter.getBufferSize();
       if (queueDepth > config.maxQueueDepth) {
-        logger.debug('SqliteBridge', 'Backpressure - waiting', { queueDepth, max: config.maxQueueDepth });
+        logger.debug("SqliteBridge", "Backpressure - waiting", {
+          queueDepth,
+          max: config.maxQueueDepth,
+        });
         await sleep(100);
         continue;
       }
@@ -223,17 +228,17 @@ export async function runSqliteBridge(config: BridgeConfig): Promise<void> {
       if (readings.length > 0) {
         const oldestFrameTs = frames[0].ts;
         const commitStart = Date.now();
-        const frameIds = frames.map(f => f.id);
-        
+        const frameIds = frames.map((f) => f.id);
+
         if (bridgeCircuitBreaker.isOpen()) {
-          logger.warn('SqliteBridge', 'Circuit breaker OPEN, sending to DLQ', {
+          logger.warn("SqliteBridge", "Circuit breaker OPEN, sending to DLQ", {
             readingsCount: readings.length,
             framesCount: frames.length,
           });
           bridgeDeadLetterQueue.add(
-            { readings, frameIds, source: 'sqlite-bridge' },
-            'Circuit breaker open - PostgreSQL unavailable',
-            'sqlite-bridge'
+            { readings, frameIds, source: "sqlite-bridge" },
+            "Circuit breaker open - PostgreSQL unavailable",
+            "sqlite-bridge"
           );
           const maxId = frames[frames.length - 1].id;
           const maxTs = frames[frames.length - 1].ts;
@@ -241,34 +246,34 @@ export async function runSqliteBridge(config: BridgeConfig): Promise<void> {
           await sleep(backoffMs);
           continue;
         }
-        
+
         try {
           await bridgeCircuitBreaker.execute(async () => {
-            await telemetryBatchWriter.writeBatch(readings, { source: 'sqlite-bridge' });
+            await telemetryBatchWriter.writeBatch(readings, { source: "sqlite-bridge" });
           });
-          
+
           const commitEnd = Date.now();
           const commitLatency = commitEnd - commitStart;
           bridgeCommitLatencyHistogram.observe(commitLatency);
-          
+
           let oldestTs: number;
-          if (typeof oldestFrameTs === 'number') {
+          if (typeof oldestFrameTs === "number") {
             oldestTs = oldestFrameTs;
           } else if (oldestFrameTs instanceof Date) {
             oldestTs = oldestFrameTs.getTime();
-          } else if (typeof oldestFrameTs === 'string') {
+          } else if (typeof oldestFrameTs === "string") {
             oldestTs = Date.parse(oldestFrameTs);
           } else {
             oldestTs = commitEnd;
           }
           const e2eLag = isNaN(oldestTs) ? 0 : commitEnd - oldestTs;
           bridgeEndToEndLagHistogram.observe(e2eLag);
-          
+
           bridgeBatchCommitted.inc(readings.length);
           bridgeState.lastSuccessAt = Date.now();
           bridgeState.pgOffline = false;
           bridgeLastSuccessGauge.set(bridgeState.lastSuccessAt);
-          
+
           backoffMs = 2000;
           bridgeState.retryBackoffMs = backoffMs;
           bridgeBackoffGauge.set(backoffMs);
@@ -278,30 +283,30 @@ export async function runSqliteBridge(config: BridgeConfig): Promise<void> {
           bridgeBackoffGauge.set(backoffMs);
           bridgeBackoffDurationHistogram.observe(backoffMs);
           bridgeRetriesTotalCounter.inc();
-          
+
           const errorMsg = err instanceof Error ? err.message : String(err);
-          
+
           if (bridgeCircuitBreaker.isOpen()) {
-            logger.warn('SqliteBridge', 'Circuit breaker tripped, sending batch to DLQ', {
+            logger.warn("SqliteBridge", "Circuit breaker tripped, sending batch to DLQ", {
               error: errorMsg,
               readingsCount: readings.length,
             });
             bridgeDeadLetterQueue.add(
-              { readings, frameIds, source: 'sqlite-bridge' },
+              { readings, frameIds, source: "sqlite-bridge" },
               errorMsg,
-              'sqlite-bridge'
+              "sqlite-bridge"
             );
             const maxId = frames[frames.length - 1].id;
             const maxTs = frames[frames.length - 1].ts;
             cursor.setCursor(maxId, maxTs);
           } else {
-            logger.warn('SqliteBridge', 'Postgres write failed, will retry', { 
+            logger.warn("SqliteBridge", "Postgres write failed, will retry", {
               error: err,
               backoffMs,
               framesCount: frames.length,
             });
           }
-          
+
           await sleep(backoffMs);
           backoffMs = Math.min(backoffMs * 2, maxBackoffMs);
           continue;
@@ -311,22 +316,21 @@ export async function runSqliteBridge(config: BridgeConfig): Promise<void> {
       const maxId = frames[frames.length - 1].id;
       const maxTs = frames[frames.length - 1].ts;
       cursor.setCursor(maxId, maxTs);
-
     } catch (err) {
-      logger.error('SqliteBridge', 'Unexpected error in bridge loop', { error: err });
+      logger.error("SqliteBridge", "Unexpected error in bridge loop", { error: err });
       await sleep(2000);
     }
   }
 
   db.close();
-  logger.info('SqliteBridge', 'Stopped');
+  logger.info("SqliteBridge", "Stopped");
 }
 
 export function stopBridge(): void {
   bridgeState.isRunning = false;
 }
 
-export { loadBridgeConfig, loadBridgeConfigSafe } from './config';
-export { CursorStore } from './cursorStore';
-export { SqliteRawFrameSource } from './sqliteRawFrameSource';
-export { BridgeProcessor } from './bridgeProcessor';
+export { loadBridgeConfig, loadBridgeConfigSafe } from "./config";
+export { CursorStore } from "./cursorStore";
+export { SqliteRawFrameSource } from "./sqliteRawFrameSource";
+export { BridgeProcessor } from "./bridgeProcessor";

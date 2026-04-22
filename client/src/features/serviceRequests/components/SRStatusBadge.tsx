@@ -7,7 +7,10 @@ interface SRStatusBadgeProps {
 
 export function SRStatusBadge({ status }: SRStatusBadgeProps) {
   return (
-    <Badge className={SR_STATUS_COLORS[status] || "bg-gray-100 text-gray-700"} data-testid={`badge-sr-status-${status}`}>
+    <Badge
+      className={SR_STATUS_COLORS[status] || "bg-gray-100 text-gray-700"}
+      data-testid={`badge-sr-status-${status}`}
+    >
       {SR_STATUS_LABELS[status] || status}
     </Badge>
   );

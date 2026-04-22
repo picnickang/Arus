@@ -20,9 +20,9 @@ async function getAdminEmailIfEnabled(orgId: string): Promise<string | null> {
     const alertSettings = await alertSettingsService.getSettings(orgId);
     return alertSettings?.defaultToEmail || null;
   } catch (error) {
-    log("warn", "Failed to get admin email for crew alerts", { 
-      orgId, 
-      error: error instanceof Error ? error.message : String(error) 
+    log("warn", "Failed to get admin email for crew alerts", {
+      orgId,
+      error: error instanceof Error ? error.message : String(error),
     });
     return null;
   }

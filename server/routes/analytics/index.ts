@@ -19,8 +19,16 @@ export function mountAnalyticsRoutes(app: Express) {
   app.use("/api/analytics", router);
   console.log("[Analytics Routes] Mounted with Redis caching support");
   console.log("[Analytics Routes] Data reconciliation endpoints registered");
-  if (cacheConfig.analyticsEnabled) { console.log("[Analytics Routes] Redis caching ENABLED (5min default TTL)"); }
-  else { console.log("[Analytics Routes] Redis caching DISABLED (direct queries)"); }
+  if (cacheConfig.analyticsEnabled) {
+    console.log("[Analytics Routes] Redis caching ENABLED (5min default TTL)");
+  } else {
+    console.log("[Analytics Routes] Redis caching DISABLED (direct queries)");
+  }
 }
 
-export { getOrgId, sendValidatedResponse, handleError, toFailurePredictionUuid } from "./helpers.js";
+export {
+  getOrgId,
+  sendValidatedResponse,
+  handleError,
+  toFailurePredictionUuid,
+} from "./helpers.js";

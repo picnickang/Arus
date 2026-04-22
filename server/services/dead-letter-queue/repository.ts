@@ -1,5 +1,5 @@
-import { randomUUID } from 'node:crypto';
-import type { DeadLetterEntry, DeadLetterQueueMetrics } from './types';
+import { randomUUID } from "node:crypto";
+import type { DeadLetterEntry, DeadLetterQueueMetrics } from "./types";
 
 const inMemoryStore: Map<string, DeadLetterEntry[]> = new Map();
 
@@ -34,12 +34,12 @@ export function addEntry<T>(
 
 export function getEntry(queueName: string, id: string): DeadLetterEntry | undefined {
   const queue = getQueue(queueName);
-  return queue.find(e => e.id === id);
+  return queue.find((e) => e.id === id);
 }
 
 export function removeEntry(queueName: string, id: string): boolean {
   const queue = getQueue(queueName);
-  const index = queue.findIndex(e => e.id === id);
+  const index = queue.findIndex((e) => e.id === id);
   if (index >= 0) {
     queue.splice(index, 1);
     return true;
@@ -60,14 +60,14 @@ export function listEntries(
   options: { limit?: number; offset?: number; source?: string } = {}
 ): DeadLetterEntry[] {
   let queue = getQueue(queueName);
-  
+
   if (options.source) {
-    queue = queue.filter(e => e.source === options.source);
+    queue = queue.filter((e) => e.source === options.source);
   }
-  
+
   const start = options.offset ?? 0;
   const end = options.limit ? start + options.limit : queue.length;
-  
+
   return queue.slice(start, end);
 }
 
@@ -75,24 +75,24 @@ export function getMetrics(queueName: string): DeadLetterQueueMetrics {
   const queue = getQueue(queueName);
   const now = new Date();
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  
-  const entriesLast24h = queue.filter(e => e.createdAt >= oneDayAgo).length;
-  
-  const oldest = queue.reduce((min, e) => 
-    !min || e.createdAt < min.createdAt ? e : min, 
+
+  const entriesLast24h = queue.filter((e) => e.createdAt >= oneDayAgo).length;
+
+  const oldest = queue.reduce(
+    (min, e) => (!min || e.createdAt < min.createdAt ? e : min),
     null as DeadLetterEntry | null
   );
-  
+
   const errorCounts = new Map<string, number>();
   for (const entry of queue) {
     errorCounts.set(entry.error, (errorCounts.get(entry.error) ?? 0) + 1);
   }
-  
+
   const topErrors = Array.from(errorCounts.entries())
     .map(([error, count]) => ({ error, count }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
-  
+
   return {
     totalEntries: queue.length,
     entriesLast24h,
@@ -104,11 +104,11 @@ export function getMetrics(queueName: string): DeadLetterQueueMetrics {
 export function clearOldEntries(queueName: string, retentionDays: number): number {
   const queue = getQueue(queueName);
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
-  
+
   const originalLength = queue.length;
-  const filtered = queue.filter(e => e.createdAt >= cutoff);
+  const filtered = queue.filter((e) => e.createdAt >= cutoff);
   inMemoryStore.set(queueName, filtered);
-  
+
   return originalLength - filtered.length;
 }
 

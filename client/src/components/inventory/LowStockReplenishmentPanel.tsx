@@ -1,7 +1,11 @@
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -71,7 +75,12 @@ export function LowStockReplenishmentPanel({
 
   const fallbackQuery = useQuery<{
     total: number;
-    suggestions: Array<Omit<SmartReplenishmentSuggestion, "upcomingWOCount" | "upcomingWOIds" | "upcomingWONumbers" | "urgencyScore">>;
+    suggestions: Array<
+      Omit<
+        SmartReplenishmentSuggestion,
+        "upcomingWOCount" | "upcomingWOIds" | "upcomingWONumbers" | "urgencyScore"
+      >
+    >;
     estimatedTotalCost: number;
   }>({
     queryKey: ["/api/parts-inventory/low-stock-suggestions"],
@@ -80,8 +89,12 @@ export function LowStockReplenishmentPanel({
   });
 
   const data = React.useMemo(() => {
-    if (smartQuery.data) {return smartQuery.data;}
-    if (!fallbackQuery.data) {return undefined;}
+    if (smartQuery.data) {
+      return smartQuery.data;
+    }
+    if (!fallbackQuery.data) {
+      return undefined;
+    }
     return {
       ...fallbackQuery.data,
       suggestions: fallbackQuery.data.suggestions.map((s) => ({
@@ -98,7 +111,9 @@ export function LowStockReplenishmentPanel({
   React.useEffect(() => {
     if (data?.suggestions) {
       const criticalIds = data.suggestions
-        .filter((s) => s.criticality === "critical" || s.criticality === "high" || s.upcomingWOCount > 0)
+        .filter(
+          (s) => s.criticality === "critical" || s.criticality === "high" || s.upcomingWOCount > 0
+        )
         .map((s) => s.partId);
       setSelected(new Set(criticalIds));
     }
@@ -112,9 +127,8 @@ export function LowStockReplenishmentPanel({
       });
 
       for (const part of selectedParts) {
-        const woContext = part.upcomingWOCount > 0
-          ? ` | Needed for ${part.upcomingWOCount} WO(s)`
-          : "";
+        const woContext =
+          part.upcomingWOCount > 0 ? ` | Needed for ${part.upcomingWOCount} WO(s)` : "";
         await apiRequest("POST", `/api/purchase-requests/${pr.id}/items`, {
           partId: part.partId,
           supplierId: part.supplierId,
@@ -156,8 +170,11 @@ export function LowStockReplenishmentPanel({
 
   const toggle = (partId: string) => {
     const next = new Set(selected);
-    if (next.has(partId)) {next.delete(partId);}
-    else {next.add(partId);}
+    if (next.has(partId)) {
+      next.delete(partId);
+    } else {
+      next.add(partId);
+    }
     setSelected(next);
   };
 
@@ -185,13 +202,18 @@ export function LowStockReplenishmentPanel({
           ) : !data?.suggestions.length ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
               <CheckCircle2 className="h-12 w-12 text-emerald-500" />
-              <p className="font-medium" data-testid="text-no-suggestions">All stock levels are adequate</p>
+              <p className="font-medium" data-testid="text-no-suggestions">
+                All stock levels are adequate
+              </p>
               <p className="text-sm">No replenishment needed at this time.</p>
             </div>
           ) : (
             <>
               <div className="flex items-center justify-between pb-2 border-b">
-                <label className="flex items-center gap-2 cursor-pointer text-sm" data-testid="checkbox-select-all">
+                <label
+                  className="flex items-center gap-2 cursor-pointer text-sm"
+                  data-testid="checkbox-select-all"
+                >
                   <Checkbox
                     checked={selected.size === data.suggestions.length}
                     onCheckedChange={toggleAll}
@@ -210,7 +232,7 @@ export function LowStockReplenishmentPanel({
                     "flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer",
                     selected.has(s.partId)
                       ? "border-primary bg-primary/5"
-                      : "border-border hover:bg-muted/50",
+                      : "border-border hover:bg-muted/50"
                   )}
                   onClick={() => toggle(s.partId)}
                   data-testid={`card-suggestion-${s.partId}`}
@@ -224,7 +246,12 @@ export function LowStockReplenishmentPanel({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="text-sm font-medium truncate" data-testid={`text-part-name-${s.partId}`}>{s.partName}</p>
+                        <p
+                          className="text-sm font-medium truncate"
+                          data-testid={`text-part-name-${s.partId}`}
+                        >
+                          {s.partName}
+                        </p>
                         <p className="text-xs text-muted-foreground font-mono">{s.partNumber}</p>
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -233,19 +260,30 @@ export function LowStockReplenishmentPanel({
                             variant="secondary"
                             className="text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
                             data-testid={`badge-wo-demand-${s.partId}`}
-                            title={(s.upcomingWONumbers ?? []).filter(Boolean).join(", ") || s.upcomingWOIds.join(", ")}
+                            title={
+                              (s.upcomingWONumbers ?? []).filter(Boolean).join(", ") ||
+                              s.upcomingWOIds.join(", ")
+                            }
                           >
                             <Wrench className="h-2.5 w-2.5 mr-0.5" />
                             Needed for {s.upcomingWOCount} WO{s.upcomingWOCount !== 1 ? "s" : ""}
                             {(() => {
                               const refs = (s.upcomingWONumbers ?? []).filter(Boolean) as string[];
-                              if (refs.length === 0) {return null;}
-                              const display = refs.length <= 2 ? refs.join(", ") : `${refs[0]}, +${refs.length - 1} more`;
+                              if (refs.length === 0) {
+                                return null;
+                              }
+                              const display =
+                                refs.length <= 2
+                                  ? refs.join(", ")
+                                  : `${refs[0]}, +${refs.length - 1} more`;
                               return <span className="ml-0.5 opacity-75">({display})</span>;
                             })()}
                           </Badge>
                         )}
-                        <Badge className={cn("text-[10px]", CRITICALITY_COLOR[s.criticality])} data-testid={`badge-criticality-${s.partId}`}>
+                        <Badge
+                          className={cn("text-[10px]", CRITICALITY_COLOR[s.criticality])}
+                          data-testid={`badge-criticality-${s.partId}`}
+                        >
                           {s.criticality}
                         </Badge>
                       </div>
@@ -253,10 +291,18 @@ export function LowStockReplenishmentPanel({
                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Package className="h-3 w-3" />
-                        On hand: <span className={s.quantityOnHand === 0 ? "text-destructive font-medium" : ""} data-testid={`text-stock-${s.partId}`}>{s.quantityOnHand}</span>
+                        On hand:{" "}
+                        <span
+                          className={s.quantityOnHand === 0 ? "text-destructive font-medium" : ""}
+                          data-testid={`text-stock-${s.partId}`}
+                        >
+                          {s.quantityOnHand}
+                        </span>
                         &nbsp;/ min {s.minStockLevel}
                       </span>
-                      <span data-testid={`text-order-qty-${s.partId}`}>Order: <strong className="text-foreground">{s.suggestedOrderQty}</strong></span>
+                      <span data-testid={`text-order-qty-${s.partId}`}>
+                        Order: <strong className="text-foreground">{s.suggestedOrderQty}</strong>
+                      </span>
                       {s.supplierName && s.supplierId ? (
                         <SupplierSelectOption
                           supplierId={s.supplierId}
@@ -284,7 +330,9 @@ export function LowStockReplenishmentPanel({
           <div className="border-t p-4 space-y-3">
             {selected.size > 0 && (
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{selected.size} part{selected.size !== 1 ? "s" : ""} selected</span>
+                <span className="text-muted-foreground">
+                  {selected.size} part{selected.size !== 1 ? "s" : ""} selected
+                </span>
                 <span className="font-medium">{formatCurrency(selectedCost)} estimated</span>
               </div>
             )}

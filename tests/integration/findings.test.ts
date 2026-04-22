@@ -12,8 +12,7 @@ describe("Agent Findings API", () => {
     app = await createTestApp();
   }, 60000);
 
-  afterAll(async () => {
-  });
+  afterAll(async () => {});
 
   describe("GET /api/agent/findings", () => {
     it("should return findings list with items and total", async () => {
@@ -178,14 +177,8 @@ describe("Agent Findings API", () => {
   describe("Findings consistency", () => {
     it("should have consistent counts between findings list and summary", async () => {
       const [findingsRes, summaryRes] = await Promise.all([
-        request(app)
-          .get("/api/agent/findings?limit=200")
-          .set("x-org-id", TEST_ORG_ID)
-          .expect(200),
-        request(app)
-          .get("/api/agent/findings/summary")
-          .set("x-org-id", TEST_ORG_ID)
-          .expect(200),
+        request(app).get("/api/agent/findings?limit=200").set("x-org-id", TEST_ORG_ID).expect(200),
+        request(app).get("/api/agent/findings/summary").set("x-org-id", TEST_ORG_ID).expect(200),
       ]);
 
       expect(findingsRes.body.total).toBe(summaryRes.body.totalFindings);

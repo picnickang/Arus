@@ -1,4 +1,4 @@
-import Database from 'better-sqlite3';
+import Database from "better-sqlite3";
 
 export interface CursorState {
   lastId: number;
@@ -15,11 +15,11 @@ export class CursorStore {
   constructor(db: Database.Database) {
     this.db = db;
     this.tableExists = this.ensureTable();
-    
+
     this.getCursorStmt = db.prepare(
       `SELECT last_id, last_ts, updated_at FROM ingest_cursor WHERE key = 'raw_frames'`
     );
-    
+
     this.advanceCursorStmt = db.prepare(
       `UPDATE ingest_cursor 
        SET last_id = ?, last_ts = ?, updated_at = ? 
@@ -41,7 +41,7 @@ export class CursorStore {
       `);
       return true;
     } catch (err) {
-      console.error('[CursorStore] Failed to ensure cursor table:', err);
+      console.error("[CursorStore] Failed to ensure cursor table:", err);
       return false;
     }
   }
@@ -56,8 +56,10 @@ export class CursorStore {
     }
 
     try {
-      const row = this.getCursorStmt.get() as { last_id: number; last_ts: number; updated_at: number } | undefined;
-      
+      const row = this.getCursorStmt.get() as
+        | { last_id: number; last_ts: number; updated_at: number }
+        | undefined;
+
       if (!row) {
         return { lastId: 0, lastTs: 0, updatedAt: 0 };
       }
@@ -68,14 +70,14 @@ export class CursorStore {
         updatedAt: row.updated_at,
       };
     } catch (err) {
-      console.error('[CursorStore] Failed to get cursor:', err);
+      console.error("[CursorStore] Failed to get cursor:", err);
       return { lastId: 0, lastTs: 0, updatedAt: 0 };
     }
   }
 
   setCursor(lastId: number, lastTs: number): boolean {
     if (!this.tableExists) {
-      console.warn('[CursorStore] Cannot set cursor - table does not exist');
+      console.warn("[CursorStore] Cannot set cursor - table does not exist");
       return false;
     }
 
@@ -83,19 +85,21 @@ export class CursorStore {
 
     try {
       const result = this.advanceCursorStmt.run(lastId, lastTs, updatedAt, lastId);
-      
+
       if (result.changes === 0) {
         const current = this.getCursor();
         if (current.lastId >= lastId) {
           return true;
         }
-        console.warn(`[CursorStore] Cursor not advanced: current=${current.lastId}, attempted=${lastId}`);
+        console.warn(
+          `[CursorStore] Cursor not advanced: current=${current.lastId}, attempted=${lastId}`
+        );
         return false;
       }
-      
+
       return true;
     } catch (err) {
-      console.error('[CursorStore] Failed to set cursor:', err);
+      console.error("[CursorStore] Failed to set cursor:", err);
       return false;
     }
   }

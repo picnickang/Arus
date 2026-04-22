@@ -18,55 +18,98 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 
 interface ServiceOrderSummary {
-  id:                   string;
-  soNumber:             string;
-  status:               string;
-  scheduledStartDate:   string | Date | null;
-  scheduledEndDate:     string | Date | null;
+  id: string;
+  soNumber: string;
+  status: string;
+  scheduledStartDate: string | Date | null;
+  scheduledEndDate: string | Date | null;
   serviceProviderName?: string;
-  vesselName?:          string;
-  equipmentName?:       string;
+  vesselName?: string;
+  equipmentName?: string;
   estimatedDurationHours?: number;
 }
 
 interface ServiceOrderCalendarProps {
   serviceOrders: ServiceOrderSummary[];
-  onSelect?:     (so: ServiceOrderSummary) => void;
-  className?:    string;
+  onSelect?: (so: ServiceOrderSummary) => void;
+  className?: string;
 }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  draft:       { bg: "bg-slate-100 dark:bg-slate-800",   text: "text-slate-700 dark:text-slate-300",   border: "border-slate-300" },
-  sent:        { bg: "bg-blue-100 dark:bg-blue-900",     text: "text-blue-700 dark:text-blue-300",     border: "border-blue-300" },
-  confirmed:   { bg: "bg-violet-100 dark:bg-violet-900", text: "text-violet-700 dark:text-violet-300", border: "border-violet-300" },
-  in_progress: { bg: "bg-amber-100 dark:bg-amber-900",   text: "text-amber-700 dark:text-amber-300",   border: "border-amber-300" },
-  completed:   { bg: "bg-emerald-100 dark:bg-emerald-900",text:"text-emerald-700 dark:text-emerald-300",border: "border-emerald-300" },
-  cancelled:   { bg: "bg-red-100 dark:bg-red-900",       text: "text-red-700 dark:text-red-300",       border: "border-red-300" },
+  draft: {
+    bg: "bg-slate-100 dark:bg-slate-800",
+    text: "text-slate-700 dark:text-slate-300",
+    border: "border-slate-300",
+  },
+  sent: {
+    bg: "bg-blue-100 dark:bg-blue-900",
+    text: "text-blue-700 dark:text-blue-300",
+    border: "border-blue-300",
+  },
+  confirmed: {
+    bg: "bg-violet-100 dark:bg-violet-900",
+    text: "text-violet-700 dark:text-violet-300",
+    border: "border-violet-300",
+  },
+  in_progress: {
+    bg: "bg-amber-100 dark:bg-amber-900",
+    text: "text-amber-700 dark:text-amber-300",
+    border: "border-amber-300",
+  },
+  completed: {
+    bg: "bg-emerald-100 dark:bg-emerald-900",
+    text: "text-emerald-700 dark:text-emerald-300",
+    border: "border-emerald-300",
+  },
+  cancelled: {
+    bg: "bg-red-100 dark:bg-red-900",
+    text: "text-red-700 dark:text-red-300",
+    border: "border-red-300",
+  },
 };
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 const MONTH_LABELS = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ] as const;
 
 function toLocalMidnight(dateInput: string | Date | null): Date | null {
-  if (!dateInput) {return null;}
+  if (!dateInput) {
+    return null;
+  }
   const d = typeof dateInput === "string" ? new Date(`${dateInput}T00:00:00`) : dateInput;
   return isNaN(d.getTime()) ? null : d;
 }
 
 function isSameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() &&
-         a.getMonth()    === b.getMonth()    &&
-         a.getDate()     === b.getDate();
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
 
 function isInRange(day: Date, start: Date | null, end: Date | null): boolean {
-  if (!start) {return false;}
-  const s = new Date(start); s.setHours(0,0,0,0);
-  const e = end ? new Date(end) : new Date(start); e.setHours(23,59,59,999);
-  const d = new Date(day); d.setHours(12,0,0,0);
+  if (!start) {
+    return false;
+  }
+  const s = new Date(start);
+  s.setHours(0, 0, 0, 0);
+  const e = end ? new Date(end) : new Date(start);
+  e.setHours(23, 59, 59, 999);
+  const d = new Date(day);
+  d.setHours(12, 0, 0, 0);
   return d >= s && d <= e;
 }
 
@@ -76,28 +119,38 @@ export function ServiceOrderCalendar({
   className,
 }: ServiceOrderCalendarProps) {
   const today = new Date();
-  const [viewYear,  setViewYear]  = React.useState(today.getFullYear());
+  const [viewYear, setViewYear] = React.useState(today.getFullYear());
   const [viewMonth, setViewMonth] = React.useState(today.getMonth());
 
   const prevMonth = () => {
-    if (viewMonth === 0) { setViewYear((y) => y - 1); setViewMonth(11); }
-    else {setViewMonth((m) => m - 1);}
+    if (viewMonth === 0) {
+      setViewYear((y) => y - 1);
+      setViewMonth(11);
+    } else {
+      setViewMonth((m) => m - 1);
+    }
   };
   const nextMonth = () => {
-    if (viewMonth === 11) { setViewYear((y) => y + 1); setViewMonth(0); }
-    else {setViewMonth((m) => m + 1);}
+    if (viewMonth === 11) {
+      setViewYear((y) => y + 1);
+      setViewMonth(0);
+    } else {
+      setViewMonth((m) => m + 1);
+    }
   };
 
   // Build calendar grid
-  const firstDay   = new Date(viewYear, viewMonth, 1);
-  const lastDay    = new Date(viewYear, viewMonth + 1, 0);
-  const startPad   = firstDay.getDay(); // 0=Sun
+  const firstDay = new Date(viewYear, viewMonth, 1);
+  const lastDay = new Date(viewYear, viewMonth + 1, 0);
+  const startPad = firstDay.getDay(); // 0=Sun
   const totalCells = startPad + lastDay.getDate();
-  const rows       = Math.ceil(totalCells / 7);
+  const rows = Math.ceil(totalCells / 7);
 
   const days: (Date | null)[] = Array.from({ length: rows * 7 }, (_, i) => {
     const dayNum = i - startPad + 1;
-    if (dayNum < 1 || dayNum > lastDay.getDate()) {return null;}
+    if (dayNum < 1 || dayNum > lastDay.getDate()) {
+      return null;
+    }
     return new Date(viewYear, viewMonth, dayNum);
   });
 
@@ -110,7 +163,7 @@ export function ServiceOrderCalendar({
   function getSosForDay(day: Date): ServiceOrderSummary[] {
     return serviceOrders.filter((so) => {
       const start = toLocalMidnight(so.scheduledStartDate);
-      const end   = toLocalMidnight(so.scheduledEndDate);
+      const end = toLocalMidnight(so.scheduledEndDate);
       return isInRange(day, start, end);
     });
   }
@@ -140,7 +193,9 @@ export function ServiceOrderCalendar({
         <div className="flex flex-wrap gap-2 mt-2">
           {Object.entries(STATUS_COLORS).map(([status, colors]) => (
             <span key={status} className="flex items-center gap-1 text-xs">
-              <span className={cn("inline-block w-3 h-3 rounded-sm border", colors.bg, colors.border)} />
+              <span
+                className={cn("inline-block w-3 h-3 rounded-sm border", colors.bg, colors.border)}
+              />
               <span className="text-muted-foreground capitalize">{status.replace("_", " ")}</span>
             </span>
           ))}
@@ -169,17 +224,17 @@ export function ServiceOrderCalendar({
                 className={cn(
                   "bg-background min-h-[80px] p-1 text-xs",
                   !day && "bg-muted/30",
-                  isToday && "ring-1 ring-inset ring-primary",
+                  isToday && "ring-1 ring-inset ring-primary"
                 )}
               >
                 {day && (
                   <>
-                    <span className={cn(
-                      "inline-flex items-center justify-center w-6 h-6 rounded-full text-xs mb-1",
-                      isToday
-                        ? "bg-primary text-primary-foreground font-bold"
-                        : "text-foreground",
-                    )}>
+                    <span
+                      className={cn(
+                        "inline-flex items-center justify-center w-6 h-6 rounded-full text-xs mb-1",
+                        isToday ? "bg-primary text-primary-foreground font-bold" : "text-foreground"
+                      )}
+                    >
                       {day.getDate()}
                     </span>
                     <div className="space-y-0.5">
@@ -194,7 +249,9 @@ export function ServiceOrderCalendar({
                                   className={cn(
                                     "w-full text-left px-1 py-0.5 rounded text-[10px] truncate border",
                                     "hover:opacity-80 transition-opacity cursor-pointer",
-                                    colors.bg, colors.text, colors.border,
+                                    colors.bg,
+                                    colors.text,
+                                    colors.border
                                   )}
                                 >
                                   {so.soNumber}
@@ -202,9 +259,11 @@ export function ServiceOrderCalendar({
                               </TooltipTrigger>
                               <TooltipContent side="right" className="max-w-xs text-xs space-y-1">
                                 <p className="font-semibold">{so.soNumber}</p>
-                                {so.vesselName     && <p>Vessel: {so.vesselName}</p>}
-                                {so.equipmentName  && <p>Equipment: {so.equipmentName}</p>}
-                                {so.serviceProviderName && <p>Provider: {so.serviceProviderName}</p>}
+                                {so.vesselName && <p>Vessel: {so.vesselName}</p>}
+                                {so.equipmentName && <p>Equipment: {so.equipmentName}</p>}
+                                {so.serviceProviderName && (
+                                  <p>Provider: {so.serviceProviderName}</p>
+                                )}
                                 <Badge variant="outline" className="capitalize text-[10px]">
                                   {so.status.replace("_", " ")}
                                 </Badge>

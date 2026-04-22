@@ -1,6 +1,6 @@
 /**
  * Data Transforms
- * 
+ *
  * Pure functions for transforming data during import:
  * - Date conversion
  * - Org ID remapping
@@ -16,17 +16,17 @@ import type { IdMappings } from "./types";
 export function convertDates(record: any): any {
   for (const field of DATE_FIELDS) {
     const value = record[field];
-    
-    if (value === null || value === undefined || value === '') {
+
+    if (value === null || value === undefined || value === "") {
       record[field] = null;
       continue;
     }
-    
+
     if (value instanceof Date) {
       continue;
     }
-    
-    if (typeof value === 'string') {
+
+    if (typeof value === "string") {
       try {
         const date = new Date(value);
         if (!Number.isNaN(date.getTime())) {
@@ -47,7 +47,9 @@ export function convertDates(record: any): any {
  * Remap orgId from source to target organization
  */
 export function remapOrgId(record: any, sourceOrgId: string, targetOrgId: string): any {
-  if (sourceOrgId === targetOrgId) { return record; }
+  if (sourceOrgId === targetOrgId) {
+    return record;
+  }
 
   if (record.orgId === sourceOrgId) {
     record.orgId = targetOrgId;
@@ -63,13 +65,11 @@ export function remapOrgId(record: any, sourceOrgId: string, targetOrgId: string
 /**
  * Remap foreign key references using ID mappings from previously imported entities
  */
-export function remapForeignKeys(
-  entityName: string,
-  record: any,
-  idMappings: IdMappings
-): any {
+export function remapForeignKeys(entityName: string, record: any, idMappings: IdMappings): any {
   const entityFks = FK_MAPPINGS[entityName];
-  if (!entityFks) { return record; }
+  if (!entityFks) {
+    return record;
+  }
 
   for (const [fieldName, mappingSource] of Object.entries(entityFks)) {
     const oldId = record[fieldName];
@@ -79,9 +79,11 @@ export function remapForeignKeys(
         console.log(`[DataImport] FK remap ${entityName}.${fieldName}: ${oldId} → ${newId}`);
         record[fieldName] = newId;
       } else {
-        console.log(`[DataImport] FK remap ${entityName}.${fieldName}: ${oldId} → NULL (not in export)`);
+        console.log(
+          `[DataImport] FK remap ${entityName}.${fieldName}: ${oldId} → NULL (not in export)`
+        );
         record[fieldName] = null;
-        if (fieldName === 'vesselId') {
+        if (fieldName === "vesselId") {
           record.vesselName = null;
         }
       }

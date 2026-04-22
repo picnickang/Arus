@@ -1,6 +1,6 @@
 /**
  * Enhanced LLM - Cost Tracking
- * 
+ *
  * LLM usage cost calculation and database logging.
  */
 

@@ -11,7 +11,7 @@ export interface DocumentMetadata {
   [key: string]: any;
 }
 
-export type SupportedFileType = 'pdf' | 'png' | 'jpg' | 'jpeg' | 'docx' | 'xlsx' | 'txt' | 'md';
+export type SupportedFileType = "pdf" | "png" | "jpg" | "jpeg" | "docx" | "xlsx" | "txt" | "md";
 
 export interface IngestDocumentParams {
   orgId: string;

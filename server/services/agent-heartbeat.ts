@@ -1,5 +1,5 @@
-import fs from 'fs';
-import { logger } from '../utils/logger';
+import fs from "fs";
+import { logger } from "../utils/logger";
 
 export interface Heartbeat {
   unixTimeMs: number;
@@ -16,17 +16,17 @@ export function readHeartbeat(path: string): Heartbeat | null {
       return null;
     }
 
-    const content = fs.readFileSync(path, 'utf-8');
+    const content = fs.readFileSync(path, "utf-8");
     const heartbeat = JSON.parse(content) as Heartbeat;
 
-    if (typeof heartbeat.unixTimeMs !== 'number') {
-      logger.warn('AgentHeartbeat', 'Invalid heartbeat format', { path });
+    if (typeof heartbeat.unixTimeMs !== "number") {
+      logger.warn("AgentHeartbeat", "Invalid heartbeat format", { path });
       return null;
     }
 
     return heartbeat;
   } catch (err) {
-    logger.warn('AgentHeartbeat', 'Failed to read heartbeat', { path, error: err });
+    logger.warn("AgentHeartbeat", "Failed to read heartbeat", { path, error: err });
     return null;
   }
 }
@@ -39,7 +39,7 @@ export function isAgentAlive(heartbeat: Heartbeat | null, maxAgeMs = 5000): bool
   const now = Date.now();
   const age = now - heartbeat.unixTimeMs;
 
-  return age <= maxAgeMs && heartbeat.status === 'running';
+  return age <= maxAgeMs && heartbeat.status === "running";
 }
 
 export function getHeartbeatAge(heartbeat: Heartbeat | null): number | null {

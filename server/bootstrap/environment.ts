@@ -21,7 +21,13 @@ function generateEmbeddedSessionSecret(): string {
   return randomBytes(32).toString("hex");
 }
 
-function detectEnvironment(): { isReplit: boolean; isDevelopment: boolean; isProduction: boolean; localMode: boolean; isEmbedded: boolean } {
+function detectEnvironment(): {
+  isReplit: boolean;
+  isDevelopment: boolean;
+  isProduction: boolean;
+  localMode: boolean;
+  isEmbedded: boolean;
+} {
   return {
     isReplit: !!(process.env.REPL_ID || process.env.REPL_SLUG || process.env.REPLIT_DB_URL),
     isDevelopment: !process.env.NODE_ENV || process.env.NODE_ENV === "development",
@@ -64,8 +70,7 @@ function validateExistingSecret(
       const message = "SESSION_SECRET is set to a known default value - SECURITY RISK!";
       console.error(`✗ Security: ${message}`);
       errors.push(message);
-    }
-    else {
+    } else {
       warnings.push("SESSION_SECRET is using default value (acceptable for development)");
     }
     return;
@@ -76,8 +81,7 @@ function validateExistingSecret(
     if (isProduction && !isEmbedded) {
       console.error(`✗ Security: ${message}`);
       errors.push(message);
-    }
-    else {
+    } else {
       warnings.push(message);
     }
     return;
@@ -122,7 +126,9 @@ function validateSessionSecret(
 }
 
 function validateSyncConfig(localMode: boolean, isEmbedded: boolean, warnings: string[]): void {
-  if (!localMode && !isEmbedded) { return; }
+  if (!localMode && !isEmbedded) {
+    return;
+  }
 
   if (process.env.TURSO_SYNC_URL && process.env.TURSO_AUTH_TOKEN) {
     console.log("✓ Sync: Turso cloud sync enabled");
@@ -141,20 +147,23 @@ function validateSyncConfig(localMode: boolean, isEmbedded: boolean, warnings: s
 function logOptionalServices(isReplit: boolean): void {
   if (isReplit) {
     console.log("✓ Object Storage: Replit GCS available");
-  }
-  else {
+  } else {
     console.log("ℹ Object Storage: Disabled (not in Replit environment)");
   }
 
   if (process.env.OPENAI_API_KEY) {
     console.log("✓ AI Features: OpenAI API configured");
-  }
-  else {
+  } else {
     console.log("ℹ AI Features: OpenAI API key not set (AI reports disabled)");
   }
 }
 
-function outputResults(warnings: string[], errors: string[], isEmbedded: boolean, localMode: boolean): void {
+function outputResults(
+  warnings: string[],
+  errors: string[],
+  isEmbedded: boolean,
+  localMode: boolean
+): void {
   console.log("======================================");
 
   if (warnings.length > 0) {
@@ -180,7 +189,9 @@ export function validateEnvironment(): EnvironmentConfig {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  console.log(`Environment: ${isReplit ? "Replit" : isEmbedded ? "Embedded (iOS/macOS)" : "External/Self-hosted"}`);
+  console.log(
+    `Environment: ${isReplit ? "Replit" : isEmbedded ? "Embedded (iOS/macOS)" : "External/Self-hosted"}`
+  );
   console.log(`Node Environment: ${process.env.NODE_ENV || "development"}`);
   console.log(`Deployment Mode: ${localMode ? "VESSEL (Offline-First)" : "CLOUD (Online)"}`);
 

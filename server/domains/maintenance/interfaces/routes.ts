@@ -1,12 +1,20 @@
 import type { Express, Request, Response } from "express";
-import { insertMaintenanceScheduleSchema, insertMaintenanceTemplateSchema } from "@shared/schema-runtime";
+import {
+  insertMaintenanceScheduleSchema,
+  insertMaintenanceTemplateSchema,
+} from "@shared/schema-runtime";
 import { maintenanceService } from "../service";
 import {
   requireOrgId,
   requireOrgIdAndValidateBody,
   AuthenticatedRequest,
 } from "../../../middleware/auth";
-import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../../lib/route-utils";
+import {
+  withErrorHandling,
+  sendNotFound,
+  sendCreated,
+  sendDeleted,
+} from "../../../lib/route-utils";
 
 /**
  * Maintenance Routes (Interfaces Layer)
@@ -25,7 +33,9 @@ export function registerMaintenanceRoutes(
   // ========== Maintenance Schedules ==========
 
   // GET /api/maintenance-schedules
-  app.get("/api/maintenance-schedules", generalApiRateLimit,
+  app.get(
+    "/api/maintenance-schedules",
+    generalApiRateLimit,
     withErrorHandling("fetch maintenance schedules", async (req: Request, res: Response) => {
       const { equipmentId, status } = req.query;
       const schedules = await maintenanceService.listSchedules(
@@ -41,17 +51,23 @@ export function registerMaintenanceRoutes(
     "/api/maintenance-schedules/upcoming",
     requireOrgId,
     generalApiRateLimit,
-    withErrorHandling("fetch upcoming maintenance schedules", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
-      const daysAhead = req.query.daysAhead ? Number.parseInt(req.query.daysAhead as string) : 30;
+    withErrorHandling(
+      "fetch upcoming maintenance schedules",
+      async (req: Request, res: Response) => {
+        const orgId = (req as AuthenticatedRequest).orgId;
+        const daysAhead = req.query.daysAhead ? Number.parseInt(req.query.daysAhead as string) : 30;
 
-      const schedules = await maintenanceService.getUpcomingSchedules(orgId, daysAhead);
-      res.json(schedules);
-    })
+        const schedules = await maintenanceService.getUpcomingSchedules(orgId, daysAhead);
+        res.json(schedules);
+      }
+    )
   );
 
   // GET /api/maintenance-schedules/:id
-  app.get("/api/maintenance-schedules/:id", requireOrgId, generalApiRateLimit,
+  app.get(
+    "/api/maintenance-schedules/:id",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("fetch maintenance schedule", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const schedule = await maintenanceService.getScheduleById(req.params.id, orgId);
@@ -71,7 +87,10 @@ export function registerMaintenanceRoutes(
     writeOperationRateLimit,
     withErrorHandling("create maintenance schedule", async (req: Request, res: Response) => {
       const scheduleData = insertMaintenanceScheduleSchema.parse(req.body);
-      const schedule = await maintenanceService.createSchedule(scheduleData, (req as AuthenticatedRequest).user?.id);
+      const schedule = await maintenanceService.createSchedule(
+        scheduleData,
+        (req as AuthenticatedRequest).user?.id
+      );
 
       sendCreated(res, schedule);
     })
@@ -103,7 +122,11 @@ export function registerMaintenanceRoutes(
     criticalOperationRateLimit,
     withErrorHandling("delete maintenance schedule", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      await maintenanceService.deleteSchedule(req.params.id, orgId, (req as AuthenticatedRequest).user?.id);
+      await maintenanceService.deleteSchedule(
+        req.params.id,
+        orgId,
+        (req as AuthenticatedRequest).user?.id
+      );
       sendDeleted(res);
     })
   );
@@ -142,7 +165,10 @@ export function registerMaintenanceRoutes(
   // ========== Maintenance Templates ==========
 
   // GET /api/maintenance-templates
-  app.get("/api/maintenance-templates", requireOrgId, generalApiRateLimit,
+  app.get(
+    "/api/maintenance-templates",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("fetch maintenance templates", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { equipmentType, isActive } = req.query;
@@ -157,7 +183,10 @@ export function registerMaintenanceRoutes(
   );
 
   // GET /api/maintenance-templates/:id
-  app.get("/api/maintenance-templates/:id", requireOrgId, generalApiRateLimit,
+  app.get(
+    "/api/maintenance-templates/:id",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("fetch maintenance template", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const template = await maintenanceService.getTemplateById(req.params.id, orgId);
@@ -177,7 +206,10 @@ export function registerMaintenanceRoutes(
     writeOperationRateLimit,
     withErrorHandling("create maintenance template", async (req: Request, res: Response) => {
       const templateData = insertMaintenanceTemplateSchema.parse(req.body);
-      const template = await maintenanceService.createTemplate(templateData, (req as AuthenticatedRequest).user?.id);
+      const template = await maintenanceService.createTemplate(
+        templateData,
+        (req as AuthenticatedRequest).user?.id
+      );
 
       sendCreated(res, template);
     })
@@ -211,7 +243,11 @@ export function registerMaintenanceRoutes(
     withErrorHandling("delete maintenance template", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
 
-      await maintenanceService.deleteTemplate(req.params.id, orgId, (req as AuthenticatedRequest).user?.id);
+      await maintenanceService.deleteTemplate(
+        req.params.id,
+        orgId,
+        (req as AuthenticatedRequest).user?.id
+      );
       sendDeleted(res);
     })
   );

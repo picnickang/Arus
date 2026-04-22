@@ -17,5 +17,13 @@ import "./task-finding-tools";
 import { registerListAvailableToolsMeta } from "./registry";
 registerListAvailableToolsMeta();
 
-export { getTool, getAllTools, getToolOpenAIDefinitions, getToolSummaries, getRegisteredToolNames, getToolsByCategory, getToolCategorySummary } from "./registry";
+export {
+  getTool,
+  getAllTools,
+  getToolOpenAIDefinitions,
+  getToolSummaries,
+  getRegisteredToolNames,
+  getToolsByCategory,
+  getToolCategorySummary,
+} from "./registry";
 export type { ToolDefinition, ToolContext, ToolCategory } from "../domain/types";

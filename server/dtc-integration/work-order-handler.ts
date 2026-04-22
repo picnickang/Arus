@@ -6,23 +6,41 @@ import { dbEquipmentStorage, workOrderService } from "../repositories";
 import type { DtcWithDefinition } from "./types";
 import type { InsertWorkOrder } from "@shared/schema";
 
-export async function hasRelatedOpenWorkOrder(equipmentId: string, priority: number, excludeReason?: string): Promise<boolean> {
+export async function hasRelatedOpenWorkOrder(
+  equipmentId: string,
+  priority: number,
+  excludeReason?: string
+): Promise<boolean> {
   const existingOrders = await workOrderService.getWorkOrdersWithDetails(equipmentId);
-  return !!existingOrders.find((wo) =>
-    wo.status === "open" && wo.priority && wo.priority <= priority && (!excludeReason || !wo.reason?.includes(excludeReason))
+  return !!existingOrders.find(
+    (wo) =>
+      wo.status === "open" &&
+      wo.priority &&
+      wo.priority <= priority &&
+      (!excludeReason || !wo.reason?.includes(excludeReason))
   );
 }
 
-export async function createWorkOrderFromDtc(dtc: DtcWithDefinition, orgId: string): Promise<any | null> {
-  if (!dtc.definition || dtc.definition.severity > 2) { return null; }
+export async function createWorkOrderFromDtc(
+  dtc: DtcWithDefinition,
+  orgId: string
+): Promise<any | null> {
+  if (!dtc.definition || dtc.definition.severity > 2) {
+    return null;
+  }
 
   const existingOrders = await workOrderService.getWorkOrdersWithDetails(dtc.equipmentId);
-  const dtcWorkOrder = existingOrders.find((wo) =>
-    wo.status === "open" && wo.reason?.includes(`SPN ${dtc.spn}`) && wo.reason?.includes(`FMI ${dtc.fmi}`)
+  const dtcWorkOrder = existingOrders.find(
+    (wo) =>
+      wo.status === "open" &&
+      wo.reason?.includes(`SPN ${dtc.spn}`) &&
+      wo.reason?.includes(`FMI ${dtc.fmi}`)
   );
 
   if (dtcWorkOrder) {
-    console.log(`[DTC Integration] Work order already exists for DTC SPN ${dtc.spn} FMI ${dtc.fmi}`);
+    console.log(
+      `[DTC Integration] Work order already exists for DTC SPN ${dtc.spn} FMI ${dtc.fmi}`
+    );
     return null;
   }
 
@@ -50,6 +68,8 @@ export async function createWorkOrderFromDtc(dtc: DtcWithDefinition, orgId: stri
   };
 
   const newWorkOrder = await workOrderService.createWorkOrder(workOrderData);
-  console.log(`[DTC Integration] Created work order ${newWorkOrder.woNumber || newWorkOrder.id} for DTC SPN ${dtc.spn} FMI ${dtc.fmi}`);
+  console.log(
+    `[DTC Integration] Created work order ${newWorkOrder.woNumber || newWorkOrder.id} for DTC SPN ${dtc.spn} FMI ${dtc.fmi}`
+  );
   return newWorkOrder;
 }

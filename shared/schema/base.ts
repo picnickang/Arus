@@ -1,6 +1,6 @@
 /**
  * Schema Base - Common imports, helpers, and shared types
- * 
+ *
  * This module provides the foundation for all schema modules,
  * including Drizzle ORM imports and Zod utilities.
  */
@@ -49,10 +49,10 @@ export const uuidDefault = () => sql`gen_random_uuid()`;
 
 /**
  * Common Column Builders
- * 
+ *
  * These functions create reusable column definitions to reduce duplication.
  * Per SonarQube Extract Method pattern: repeated column patterns are centralized here.
- * 
+ *
  * Usage in table definitions:
  *   const myTable = pgTable("my_table", {
  *     ...uuidPrimaryKey(),
@@ -69,7 +69,9 @@ export const uuidDefault = () => sql`gen_random_uuid()`;
 export function uuidPrimaryKey(options?: { name?: string }) {
   const name = options?.name ?? "id";
   return {
-    id: varchar(name).primaryKey().default(sql`gen_random_uuid()`),
+    id: varchar(name)
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
   };
 }
 

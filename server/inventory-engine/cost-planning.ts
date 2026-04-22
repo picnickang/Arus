@@ -1,6 +1,6 @@
 /**
  * Inventory Engine - Cost Planning
- * 
+ *
  * Maintenance cost planning and recommendations.
  */
 

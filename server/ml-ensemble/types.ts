@@ -1,6 +1,6 @@
 /**
  * ML Ensemble Types
- * 
+ *
  * Type definitions for ensemble prediction system.
  */
 

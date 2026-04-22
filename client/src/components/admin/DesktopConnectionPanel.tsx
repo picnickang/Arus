@@ -51,7 +51,9 @@ export function DesktopConnectionPanel() {
   }
 
   function handleSave() {
-    if (!lastTestedUrl) {return;}
+    if (!lastTestedUrl) {
+      return;
+    }
     setBackendUrl(lastTestedUrl);
     setActiveUrl(lastTestedUrl);
     setSaved(true);
@@ -87,7 +89,9 @@ export function DesktopConnectionPanel() {
               value={url}
               onChange={(e) => {
                 setUrl(e.target.value);
-                if (status !== "idle") {setStatus("idle");}
+                if (status !== "idle") {
+                  setStatus("idle");
+                }
                 setValidationError("");
                 setSaved(false);
                 setLastTestedUrl("");
@@ -126,7 +130,8 @@ export function DesktopConnectionPanel() {
         {isInsecure && status === "success" && (
           <div className="flex items-center gap-2 text-sm p-3 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400">
             <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-            This connection uses HTTP. Passwords will be sent in plaintext over the network. Use HTTPS for non-localhost connections.
+            This connection uses HTTP. Passwords will be sent in plaintext over the network. Use
+            HTTPS for non-localhost connections.
           </div>
         )}
 

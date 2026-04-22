@@ -13,12 +13,7 @@ const telemetryWriter = {
 };
 
 export function registerSimulationRoutes(app: Express, deps: SystemAdminDependencies): void {
-  const {
-    generalApiRateLimit,
-    writeOperationRateLimit,
-    requireAdminAuth,
-    auditAdminAction,
-  } = deps;
+  const { generalApiRateLimit, writeOperationRateLimit, requireAdminAuth, auditAdminAction } = deps;
 
   app.post(
     "/api/admin/simulate-telemetry",
@@ -60,7 +55,10 @@ export function registerSimulationRoutes(app: Express, deps: SystemAdminDependen
 
       const config = simulationConfigSchema.parse(req.body);
 
-      logger.info("AdminSimulation", `Generating simulated telemetry for ${config.vesselType} (${config.durationMinutes} min)`);
+      logger.info(
+        "AdminSimulation",
+        `Generating simulated telemetry for ${config.vesselType} (${config.durationMinutes} min)`
+      );
 
       const { getVesselSimulator } = await import("../../../vessel-simulator.js");
       const simulator = getVesselSimulator();
@@ -111,7 +109,10 @@ export function registerSimulationRoutes(app: Express, deps: SystemAdminDependen
 
       const config = stressTestSchema.parse(req.body);
 
-      logger.info("AdminSimulation", `Starting telemetry stress test: ${config.messagesPerSecond} msg/sec for ${config.durationSeconds}s`);
+      logger.info(
+        "AdminSimulation",
+        `Starting telemetry stress test: ${config.messagesPerSecond} msg/sec for ${config.durationSeconds}s`
+      );
 
       const { TelemetryStressTest } = await import("../../../vessel-simulator.js");
       const stressTest = new TelemetryStressTest(telemetryWriter);
@@ -144,9 +145,14 @@ export function registerSimulationRoutes(app: Express, deps: SystemAdminDependen
       const totalSensors = config.vesselCount * config.sensorsPerVessel;
       const targetMsgPerSec = totalSensors * config.messagesPerSecondPerSensor;
 
-      logger.info("AdminSimulation", `Starting fleet stress test: ${config.vesselCount} vessels, ${config.sensorsPerVessel} sensors each (${totalSensors} total), target ${targetMsgPerSec} msg/sec for ${config.durationSeconds}s`);
+      logger.info(
+        "AdminSimulation",
+        `Starting fleet stress test: ${config.vesselCount} vessels, ${config.sensorsPerVessel} sensors each (${totalSensors} total), target ${targetMsgPerSec} msg/sec for ${config.durationSeconds}s`
+      );
 
-      const { initFleetStressTest, getFleetStressTest } = await import("../../../vessel-simulator.js");
+      const { initFleetStressTest, getFleetStressTest } = await import(
+        "../../../vessel-simulator.js"
+      );
       let fleetStressTest;
       try {
         fleetStressTest = getFleetStressTest();
@@ -164,7 +170,7 @@ export function registerSimulationRoutes(app: Express, deps: SystemAdminDependen
           totalMessages: result.totalMessages,
           actualMsgPerSec: result.actualMsgPerSec,
           targetMsgPerSec: result.targetMsgPerSec,
-          efficiency: `${Math.round(result.actualMsgPerSec / result.targetMsgPerSec * 100)}%`,
+          efficiency: `${Math.round((result.actualMsgPerSec / result.targetMsgPerSec) * 100)}%`,
           errors: result.errors,
           dropped: result.dropped,
           memoryUsageMB: result.memoryUsageMB,

@@ -17,42 +17,54 @@ export interface PredictionExplanationQuery {
 export class PredictionEngineService implements PredictionExplanationQuery {
   constructor(private runner: InferenceRunnerPort) {}
 
-  async predict(orgId: string, equipmentId: string, modelVersionId?: string): Promise<InferenceResult> {
+  async predict(
+    orgId: string,
+    equipmentId: string,
+    modelVersionId?: string
+  ): Promise<InferenceResult> {
     const startTime = Date.now();
 
-    const resolvedVersionId = modelVersionId ?? await this.resolveActiveVersion(orgId);
+    const resolvedVersionId = modelVersionId ?? (await this.resolveActiveVersion(orgId));
 
-    const [run] = await db.insert(inferenceRuns).values({
-      orgId,
-      equipmentId,
-      modelVersionId: resolvedVersionId ?? null,
-      status: "running",
-    }).returning();
+    const [run] = await db
+      .insert(inferenceRuns)
+      .values({
+        orgId,
+        equipmentId,
+        modelVersionId: resolvedVersionId ?? null,
+        status: "running",
+      })
+      .returning();
 
     try {
       const features = await this.fetchLatestFeatures(orgId, equipmentId);
       const prediction = this.computePrediction(features);
       const recommendations = this.generateRecommendations(prediction.failureProbability, features);
 
-      const [predictionRecord] = await db.insert(failurePredictions).values({
-        orgId,
-        equipmentId,
-        failureProbability: prediction.failureProbability,
-        remainingUsefulLife: prediction.rul,
-        riskLevel: prediction.riskLevel,
-        predictedFailureDate: new Date(Date.now() + prediction.rul * 24 * 60 * 60 * 1000),
-        maintenanceRecommendations: recommendations,
-        inputFeatures: features ? {
-          meanTemp: features.meanTemp,
-          meanVibration: features.meanVibration,
-          rmsVibration: features.rmsVibration,
-          meanPressure: features.meanPressure,
-          kurtosis: features.kurtosis,
-        } : null,
-        modelVersionId: resolvedVersionId ?? null,
-        featureSetVersion: features?.windowMinutes ? `v1.window${features.windowMinutes}m` : "v1",
-        featureSnapshotId: features?.id ?? null,
-      }).returning();
+      const [predictionRecord] = await db
+        .insert(failurePredictions)
+        .values({
+          orgId,
+          equipmentId,
+          failureProbability: prediction.failureProbability,
+          remainingUsefulLife: prediction.rul,
+          riskLevel: prediction.riskLevel,
+          predictedFailureDate: new Date(Date.now() + prediction.rul * 24 * 60 * 60 * 1000),
+          maintenanceRecommendations: recommendations,
+          inputFeatures: features
+            ? {
+                meanTemp: features.meanTemp,
+                meanVibration: features.meanVibration,
+                rmsVibration: features.rmsVibration,
+                meanPressure: features.meanPressure,
+                kurtosis: features.kurtosis,
+              }
+            : null,
+          modelVersionId: resolvedVersionId ?? null,
+          featureSetVersion: features?.windowMinutes ? `v1.window${features.windowMinutes}m` : "v1",
+          featureSnapshotId: features?.id ?? null,
+        })
+        .returning();
 
       const explanationRows = this.generateExplanations(predictionRecord.id, run.id, features);
       if (explanationRows.length > 0) {
@@ -60,13 +72,22 @@ export class PredictionEngineService implements PredictionExplanationQuery {
       }
 
       const latencyMs = Date.now() - startTime;
-      const [updatedRun] = await db.update(inferenceRuns)
-        .set({ status: "completed", finishedAt: new Date(), latencyMs, predictionId: predictionRecord.id })
+      const [updatedRun] = await db
+        .update(inferenceRuns)
+        .set({
+          status: "completed",
+          finishedAt: new Date(),
+          latencyMs,
+          predictionId: predictionRecord.id,
+        })
         .where(eq(inferenceRuns.id, run.id))
         .returning();
 
       logger.info("[PredictionEngine] Inference completed", {
-        orgId, equipmentId, latencyMs, riskLevel: prediction.riskLevel,
+        orgId,
+        equipmentId,
+        latencyMs,
+        riskLevel: prediction.riskLevel,
         hasFeatures: !!features,
       });
 
@@ -81,22 +102,32 @@ export class PredictionEngineService implements PredictionExplanationQuery {
         explanations: explanationRows,
       };
     } catch (error: any) {
-      await db.update(inferenceRuns)
-        .set({ status: "failed", finishedAt: new Date(), latencyMs: Date.now() - startTime, errorMessage: error.message })
+      await db
+        .update(inferenceRuns)
+        .set({
+          status: "failed",
+          finishedAt: new Date(),
+          latencyMs: Date.now() - startTime,
+          errorMessage: error.message,
+        })
         .where(eq(inferenceRuns.id, run.id));
       throw error;
     }
   }
 
   async getExplanations(orgId: string, predictionId: number): Promise<any[]> {
-    const [prediction] = await db.select({ orgId: failurePredictions.orgId })
+    const [prediction] = await db
+      .select({ orgId: failurePredictions.orgId })
       .from(failurePredictions)
       .where(and(eq(failurePredictions.id, predictionId), eq(failurePredictions.orgId, orgId)))
       .limit(1);
 
-    if (!prediction) {return [];}
+    if (!prediction) {
+      return [];
+    }
 
-    return db.select()
+    return db
+      .select()
       .from(predictionExplanations)
       .where(eq(predictionExplanations.predictionId, predictionId))
       .orderBy(desc(predictionExplanations.importance));
@@ -106,7 +137,10 @@ export class PredictionEngineService implements PredictionExplanationQuery {
    * Full prediction lineage: links a prediction back to the exact feature snapshot
    * and model version used to produce it. Enables reproducibility and audit.
    */
-  async getLineage(orgId: string, predictionId: number): Promise<{
+  async getLineage(
+    orgId: string,
+    predictionId: number
+  ): Promise<{
     prediction: {
       id: number;
       predictionTimestamp: Date | null;
@@ -123,21 +157,27 @@ export class PredictionEngineService implements PredictionExplanationQuery {
       values: Record<string, number | null>;
     } | null;
   } | null> {
-    const [prediction] = await db.select()
+    const [prediction] = await db
+      .select()
       .from(failurePredictions)
       .where(and(eq(failurePredictions.id, predictionId), eq(failurePredictions.orgId, orgId)))
       .limit(1);
 
-    if (!prediction) {return null;}
+    if (!prediction) {
+      return null;
+    }
 
     let featureSnapshot = null;
     if (prediction.featureSnapshotId) {
-      const [snap] = await db.select()
+      const [snap] = await db
+        .select()
         .from(equipmentFeatures)
-        .where(and(
-          eq(equipmentFeatures.id, prediction.featureSnapshotId),
-          eq(equipmentFeatures.orgId, orgId),
-        ))
+        .where(
+          and(
+            eq(equipmentFeatures.id, prediction.featureSnapshotId),
+            eq(equipmentFeatures.orgId, orgId)
+          )
+        )
         .limit(1);
       if (snap) {
         featureSnapshot = {
@@ -175,17 +215,24 @@ export class PredictionEngineService implements PredictionExplanationQuery {
   }
 
   private async resolveActiveVersion(orgId: string): Promise<string | undefined> {
-    const [deployment] = await db.select().from(modelDeployments)
-      .where(and(eq(modelDeployments.orgId, orgId), eq(modelDeployments.deploymentStatus, "active")))
+    const [deployment] = await db
+      .select()
+      .from(modelDeployments)
+      .where(
+        and(eq(modelDeployments.orgId, orgId), eq(modelDeployments.deploymentStatus, "active"))
+      )
       .orderBy(desc(modelDeployments.deployedOn))
       .limit(1);
     return deployment?.modelVersionId ?? undefined;
   }
 
   private async fetchLatestFeatures(orgId: string, equipmentId: string) {
-    const [features] = await db.select()
+    const [features] = await db
+      .select()
       .from(equipmentFeatures)
-      .where(and(eq(equipmentFeatures.orgId, orgId), eq(equipmentFeatures.equipmentId, equipmentId)))
+      .where(
+        and(eq(equipmentFeatures.orgId, orgId), eq(equipmentFeatures.equipmentId, equipmentId))
+      )
       .orderBy(desc(equipmentFeatures.timestamp))
       .limit(1);
     return features ?? null;
@@ -202,53 +249,89 @@ export class PredictionEngineService implements PredictionExplanationQuery {
     const meanPress = features.meanPressure ?? 0;
     const kurtosis = features.kurtosis ?? 3;
 
-    if (meanTemp > 80) {score += 0.25;}
-    else if (meanTemp > 65) {score += 0.1;}
+    if (meanTemp > 80) {
+      score += 0.25;
+    } else if (meanTemp > 65) {
+      score += 0.1;
+    }
 
-    if (rmsVib > 5) {score += 0.3;}
-    else if (rmsVib > 3) {score += 0.15;}
-    else if (rmsVib > 1.5) {score += 0.05;}
+    if (rmsVib > 5) {
+      score += 0.3;
+    } else if (rmsVib > 3) {
+      score += 0.15;
+    } else if (rmsVib > 1.5) {
+      score += 0.05;
+    }
 
-    if (meanPress < 80 || meanPress > 280) {score += 0.2;}
-    else if (meanPress < 120 || meanPress > 250) {score += 0.1;}
+    if (meanPress < 80 || meanPress > 280) {
+      score += 0.2;
+    } else if (meanPress < 120 || meanPress > 250) {
+      score += 0.1;
+    }
 
-    if (kurtosis > 5) {score += 0.15;}
-    else if (kurtosis > 4) {score += 0.05;}
+    if (kurtosis > 5) {
+      score += 0.15;
+    } else if (kurtosis > 4) {
+      score += 0.05;
+    }
 
     const failureProbability = Math.min(Math.round(score * 100) / 100, 0.99);
     const rul = Math.max(Math.floor(365 * (1 - failureProbability)), 7);
-    const riskLevel = failureProbability > 0.7 ? "critical" : failureProbability > 0.4 ? "high" : failureProbability > 0.2 ? "medium" : "low";
+    const riskLevel =
+      failureProbability > 0.7
+        ? "critical"
+        : failureProbability > 0.4
+          ? "high"
+          : failureProbability > 0.2
+            ? "medium"
+            : "low";
 
     return { failureProbability, rul, riskLevel };
   }
 
   private generateRecommendations(failureProbability: number, features: any): string[] {
     const recs: string[] = [];
-    if (failureProbability > 0.5) {recs.push("Schedule preventive maintenance within 2 weeks");}
-    if (failureProbability > 0.3) {recs.push("Increase monitoring frequency");}
-    if (features?.rmsVibration && features.rmsVibration > 4) {recs.push("Inspect vibration isolation mounts");}
-    if (features?.meanTemp && features.meanTemp > 75) {recs.push("Check cooling system efficiency");}
-    if (features?.meanPressure && (features.meanPressure < 100 || features.meanPressure > 260)) {recs.push("Investigate pressure anomaly");}
-    if (features?.kurtosis && features.kurtosis > 5) {recs.push("Vibration pattern suggests bearing wear — schedule ultrasonic inspection");}
-    if (recs.length === 0) {recs.push("Continue normal monitoring schedule");}
+    if (failureProbability > 0.5) {
+      recs.push("Schedule preventive maintenance within 2 weeks");
+    }
+    if (failureProbability > 0.3) {
+      recs.push("Increase monitoring frequency");
+    }
+    if (features?.rmsVibration && features.rmsVibration > 4) {
+      recs.push("Inspect vibration isolation mounts");
+    }
+    if (features?.meanTemp && features.meanTemp > 75) {
+      recs.push("Check cooling system efficiency");
+    }
+    if (features?.meanPressure && (features.meanPressure < 100 || features.meanPressure > 260)) {
+      recs.push("Investigate pressure anomaly");
+    }
+    if (features?.kurtosis && features.kurtosis > 5) {
+      recs.push("Vibration pattern suggests bearing wear — schedule ultrasonic inspection");
+    }
+    if (recs.length === 0) {
+      recs.push("Continue normal monitoring schedule");
+    }
     return recs;
   }
 
   private generateExplanations(predictionId: number, inferenceRunId: string, features: any) {
-    if (!features) {return [];}
+    if (!features) {
+      return [];
+    }
 
     const contributions = [
-      { featureName: "rmsVibration", value: features.rmsVibration, baseline: 2.0, weight: 0.30 },
+      { featureName: "rmsVibration", value: features.rmsVibration, baseline: 2.0, weight: 0.3 },
       { featureName: "meanTemp", value: features.meanTemp, baseline: 55, weight: 0.25 },
-      { featureName: "meanPressure", value: features.meanPressure, baseline: 200, weight: 0.20 },
+      { featureName: "meanPressure", value: features.meanPressure, baseline: 200, weight: 0.2 },
       { featureName: "kurtosis", value: features.kurtosis, baseline: 3.0, weight: 0.15 },
-      { featureName: "peakToPeak", value: features.peakToPeak, baseline: 5.0, weight: 0.10 },
+      { featureName: "peakToPeak", value: features.peakToPeak, baseline: 5.0, weight: 0.1 },
     ];
 
-    const valid = contributions.filter(c => c.value != null);
+    const valid = contributions.filter((c) => c.value != null);
     const totalWeight = valid.reduce((sum, c) => sum + c.weight, 0);
 
-    return valid.map(c => {
+    return valid.map((c) => {
       const normalizedImportance = totalWeight > 0 ? c.weight / totalWeight : 0;
       const deviation = c.value - c.baseline;
       return {

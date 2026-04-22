@@ -30,7 +30,7 @@ import { fulfillItem } from "./fulfillment-service";
 
 const router = Router();
 const generalLimit = createRateLimiter("general");
-const writeLimit   = createRateLimiter("write");
+const writeLimit = createRateLimiter("write");
 
 function getOrgId(req: any): string {
   return (req as AuthenticatedRequest).orgId as string;
@@ -38,42 +38,52 @@ function getOrgId(req: any): string {
 
 function parseIntSafe(val: string | undefined, def: number, max?: number): number {
   const n = Number.parseInt(val ?? "", 10);
-  if (Number.isNaN(n) || n < 0) {return def;}
+  if (Number.isNaN(n) || n < 0) {
+    return def;
+  }
   return max !== undefined ? Math.min(n, max) : n;
 }
 
 // ── GET /purchase-orders ───────────────────────────────────────────────────────
 router.get("/", requireOrgId, generalLimit, async (req, res) => {
   try {
-    const orgId      = getOrgId(req);
-    const status     = req.query.status as string | undefined;
+    const orgId = getOrgId(req);
+    const status = req.query.status as string | undefined;
     const supplierId = req.query.supplierId as string | undefined;
-    const limit      = parseIntSafe(req.query.limit as string, 50, 100);
-    const offset     = parseIntSafe(req.query.offset as string, 0);
+    const limit = parseIntSafe(req.query.limit as string, 50, 100);
+    const offset = parseIntSafe(req.query.offset as string, 0);
 
     const conditions: any[] = [eq(purchaseOrders.orgId, orgId)];
-    if (status)     {conditions.push(eq(purchaseOrders.status, status));}
-    if (supplierId) {conditions.push(eq(purchaseOrders.supplierId, supplierId));}
+    if (status) {
+      conditions.push(eq(purchaseOrders.status, status));
+    }
+    if (supplierId) {
+      conditions.push(eq(purchaseOrders.supplierId, supplierId));
+    }
 
     const results = await db
       .select({
-        id:           purchaseOrders.id,
-        orgId:        purchaseOrders.orgId,
-        supplierId:   purchaseOrders.supplierId,
-        orderNumber:  purchaseOrders.orderNumber,
+        id: purchaseOrders.id,
+        orgId: purchaseOrders.orgId,
+        supplierId: purchaseOrders.supplierId,
+        orderNumber: purchaseOrders.orderNumber,
         expectedDate: purchaseOrders.expectedDate,
-        totalAmount:  purchaseOrders.totalAmount,
-        currency:     purchaseOrders.currency,
-        status:       purchaseOrders.status,
-        notes:        purchaseOrders.notes,
-        createdBy:    purchaseOrders.createdBy,
-        createdAt:    purchaseOrders.createdAt,
-        updatedAt:    purchaseOrders.updatedAt,
+        totalAmount: purchaseOrders.totalAmount,
+        currency: purchaseOrders.currency,
+        status: purchaseOrders.status,
+        notes: purchaseOrders.notes,
+        createdBy: purchaseOrders.createdBy,
+        createdAt: purchaseOrders.createdAt,
+        updatedAt: purchaseOrders.updatedAt,
         supplierName: suppliers.name,
         supplierCode: suppliers.code,
-        totalQty:     sql<number>`COALESCE(SUM(${purchaseOrderItems.quantity}), 0)`.as("totalQty"),
-        receivedQty:  sql<number>`COALESCE(SUM(${purchaseOrderItems.receivedQuantity}), 0)`.as("receivedQty"),
-        rejectedQty:  sql<number>`COALESCE(SUM(${purchaseOrderItems.rejectedQuantity}), 0)`.as("rejectedQty"),
+        totalQty: sql<number>`COALESCE(SUM(${purchaseOrderItems.quantity}), 0)`.as("totalQty"),
+        receivedQty: sql<number>`COALESCE(SUM(${purchaseOrderItems.receivedQuantity}), 0)`.as(
+          "receivedQty"
+        ),
+        rejectedQty: sql<number>`COALESCE(SUM(${purchaseOrderItems.rejectedQuantity}), 0)`.as(
+          "rejectedQty"
+        ),
       })
       .from(purchaseOrders)
       .leftJoin(suppliers, eq(purchaseOrders.supplierId, suppliers.id))
@@ -87,9 +97,8 @@ router.get("/", requireOrgId, generalLimit, async (req, res) => {
     const enriched = results.map((po) => ({
       ...po,
       // Improvement #15: progress included in list response for frontend progress bar
-      progress: po.totalQty > 0
-        ? Math.round(((po.receivedQty - po.rejectedQty) / po.totalQty) * 100)
-        : 0,
+      progress:
+        po.totalQty > 0 ? Math.round(((po.receivedQty - po.rejectedQty) / po.totalQty) * 100) : 0,
     }));
 
     res.json(enriched);
@@ -107,42 +116,44 @@ router.get("/:id", requireOrgId, generalLimit, async (req, res) => {
 
     const [po] = await db
       .select({
-        id:            purchaseOrders.id,
-        orgId:         purchaseOrders.orgId,
-        supplierId:    purchaseOrders.supplierId,
-        orderNumber:   purchaseOrders.orderNumber,
-        expectedDate:  purchaseOrders.expectedDate,
-        totalAmount:   purchaseOrders.totalAmount,
-        currency:      purchaseOrders.currency,
-        status:        purchaseOrders.status,
-        notes:         purchaseOrders.notes,
-        createdBy:     purchaseOrders.createdBy,
-        createdAt:     purchaseOrders.createdAt,
-        updatedAt:     purchaseOrders.updatedAt,
-        supplierName:  suppliers.name,
-        supplierCode:  suppliers.code,
+        id: purchaseOrders.id,
+        orgId: purchaseOrders.orgId,
+        supplierId: purchaseOrders.supplierId,
+        orderNumber: purchaseOrders.orderNumber,
+        expectedDate: purchaseOrders.expectedDate,
+        totalAmount: purchaseOrders.totalAmount,
+        currency: purchaseOrders.currency,
+        status: purchaseOrders.status,
+        notes: purchaseOrders.notes,
+        createdBy: purchaseOrders.createdBy,
+        createdAt: purchaseOrders.createdAt,
+        updatedAt: purchaseOrders.updatedAt,
+        supplierName: suppliers.name,
+        supplierCode: suppliers.code,
         supplierEmail: suppliers.email,
       })
       .from(purchaseOrders)
       .leftJoin(suppliers, eq(purchaseOrders.supplierId, suppliers.id))
       .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
 
-    if (!po) {return res.status(404).json({ error: "Purchase order not found" });}
+    if (!po) {
+      return res.status(404).json({ error: "Purchase order not found" });
+    }
 
     const items = await db
       .select({
-        id:               purchaseOrderItems.id,
-        poId:             purchaseOrderItems.poId,
-        partId:           purchaseOrderItems.partId,
-        quantity:         purchaseOrderItems.quantity,
-        unitPrice:        purchaseOrderItems.unitPrice,
-        totalPrice:       purchaseOrderItems.totalPrice,
+        id: purchaseOrderItems.id,
+        poId: purchaseOrderItems.poId,
+        partId: purchaseOrderItems.partId,
+        quantity: purchaseOrderItems.quantity,
+        unitPrice: purchaseOrderItems.unitPrice,
+        totalPrice: purchaseOrderItems.totalPrice,
         receivedQuantity: purchaseOrderItems.receivedQuantity,
         rejectedQuantity: purchaseOrderItems.rejectedQuantity,
-        rejectionReason:  purchaseOrderItems.rejectionReason,
-        notes:            purchaseOrderItems.notes,
-        partName:         parts.name,
-        partNumber:       parts.partNumber,
+        rejectionReason: purchaseOrderItems.rejectionReason,
+        notes: purchaseOrderItems.notes,
+        partName: parts.name,
+        partNumber: parts.partNumber,
       })
       .from(purchaseOrderItems)
       .leftJoin(parts, eq(purchaseOrderItems.partId, parts.id))
@@ -162,22 +173,28 @@ router.post("/:id/receive", requireOrgId, writeLimit, async (req, res) => {
     const { id } = req.params;
 
     const schema = z.object({
-      items: z.array(z.object({
-        itemId:           z.string(),
-        receivedQuantity: z.number().min(0),
-      })),
+      items: z.array(
+        z.object({
+          itemId: z.string(),
+          receivedQuantity: z.number().min(0),
+        })
+      ),
       userId: z.string().optional(),
     });
 
     const parsed = schema.safeParse(req.body);
-    if (!parsed.success) {return res.status(400).json({ error: parsed.error.message });}
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.message });
+    }
 
     const [po] = await db
       .select()
       .from(purchaseOrders)
       .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
 
-    if (!po) {return res.status(404).json({ error: "Purchase order not found" });}
+    if (!po) {
+      return res.status(404).json({ error: "Purchase order not found" });
+    }
     if (po.status === "cancelled" || po.status === "received") {
       return res.status(400).json({ error: "Cannot update received/cancelled PO" });
     }
@@ -191,7 +208,9 @@ router.post("/:id/receive", requireOrgId, writeLimit, async (req, res) => {
 
     for (const item of parsed.data.items) {
       const existing = itemMap.get(item.itemId);
-      if (!existing) {continue;}
+      if (!existing) {
+        continue;
+      }
       const clampedQty = Math.min(item.receivedQuantity, existing.quantity);
       await db
         .update(purchaseOrderItems)
@@ -200,7 +219,9 @@ router.post("/:id/receive", requireOrgId, writeLimit, async (req, res) => {
     }
 
     await db.insert(purchaseOrderEvents).values({
-      orgId, poId: id, eventType: "qty_updated",
+      orgId,
+      poId: id,
+      eventType: "qty_updated",
       userId: parsed.data.userId,
       details: { items: parsed.data.items },
     });
@@ -215,7 +236,11 @@ router.post("/:id/receive", requireOrgId, writeLimit, async (req, res) => {
         .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
 
       await db.insert(purchaseOrderEvents).values({
-        orgId, poId: id, eventType: "received", userId: parsed.data.userId, details: {},
+        orgId,
+        poId: id,
+        eventType: "received",
+        userId: parsed.data.userId,
+        details: {},
       });
     }
 
@@ -238,23 +263,29 @@ router.post("/:id/reject-items", requireOrgId, writeLimit, async (req, res) => {
     const { id } = req.params;
 
     const schema = z.object({
-      items: z.array(z.object({
-        itemId:          z.string(),
-        rejectedQuantity: z.number().min(1),
-        rejectionReason:  z.string().min(1, "Rejection reason is required"),
-      })),
+      items: z.array(
+        z.object({
+          itemId: z.string(),
+          rejectedQuantity: z.number().min(1),
+          rejectionReason: z.string().min(1, "Rejection reason is required"),
+        })
+      ),
       userId: z.string().optional(),
     });
 
     const parsed = schema.safeParse(req.body);
-    if (!parsed.success) {return res.status(400).json({ error: parsed.error.flatten() });}
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten() });
+    }
 
     const [po] = await db
       .select()
       .from(purchaseOrders)
       .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
 
-    if (!po) {return res.status(404).json({ error: "Purchase order not found" });}
+    if (!po) {
+      return res.status(404).json({ error: "Purchase order not found" });
+    }
     if (po.status === "cancelled") {
       return res.status(400).json({ error: "Cannot reject items on a cancelled PO" });
     }
@@ -267,17 +298,19 @@ router.post("/:id/reject-items", requireOrgId, writeLimit, async (req, res) => {
         .from(purchaseOrderItems)
         .where(and(eq(purchaseOrderItems.id, item.itemId), eq(purchaseOrderItems.poId, id)));
 
-      if (!existing) {continue;}
+      if (!existing) {
+        continue;
+      }
 
       // Cannot reject more than was received
       const maxRejectable = existing.receivedQuantity || 0;
-      const clampedQty    = Math.min(item.rejectedQuantity, maxRejectable);
+      const clampedQty = Math.min(item.rejectedQuantity, maxRejectable);
 
       await db
         .update(purchaseOrderItems)
         .set({
           rejectedQuantity: clampedQty,
-          rejectionReason:  item.rejectionReason,
+          rejectionReason: item.rejectionReason,
         })
         .where(and(eq(purchaseOrderItems.id, item.itemId), eq(purchaseOrderItems.poId, id)));
 
@@ -285,7 +318,9 @@ router.post("/:id/reject-items", requireOrgId, writeLimit, async (req, res) => {
     }
 
     await db.insert(purchaseOrderEvents).values({
-      orgId, poId: id, eventType: "items_rejected",
+      orgId,
+      poId: id,
+      eventType: "items_rejected",
       userId: parsed.data.userId,
       details: { rejections: parsed.data.items },
     });
@@ -309,18 +344,22 @@ router.patch("/:id/items/:itemId", requireOrgId, writeLimit, async (req, res) =>
 
     const schema = z.object({
       unitPrice: z.number().min(0, "Unit price must be non-negative"),
-      notes:     z.string().optional(),
+      notes: z.string().optional(),
     });
 
     const parsed = schema.safeParse(req.body);
-    if (!parsed.success) {return res.status(400).json({ error: parsed.error.flatten() });}
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten() });
+    }
 
     const [po] = await db
       .select()
       .from(purchaseOrders)
       .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
 
-    if (!po) {return res.status(404).json({ error: "Purchase order not found" });}
+    if (!po) {
+      return res.status(404).json({ error: "Purchase order not found" });
+    }
     if (po.status !== "sent") {
       return res.status(400).json({
         error: `Can only update item prices on sent POs. Current status: ${po.status}`,
@@ -332,16 +371,18 @@ router.patch("/:id/items/:itemId", requireOrgId, writeLimit, async (req, res) =>
       .from(purchaseOrderItems)
       .where(and(eq(purchaseOrderItems.id, itemId), eq(purchaseOrderItems.poId, id)));
 
-    if (!existing) {return res.status(404).json({ error: "PO item not found" });}
+    if (!existing) {
+      return res.status(404).json({ error: "PO item not found" });
+    }
 
     const newTotalPrice = (existing.quantity || 0) * parsed.data.unitPrice;
 
     const [updated] = await db
       .update(purchaseOrderItems)
       .set({
-        unitPrice:  parsed.data.unitPrice,
+        unitPrice: parsed.data.unitPrice,
         totalPrice: newTotalPrice,
-        notes:      parsed.data.notes ?? existing.notes,
+        notes: parsed.data.notes ?? existing.notes,
       })
       .where(and(eq(purchaseOrderItems.id, itemId), eq(purchaseOrderItems.poId, id)))
       .returning();
@@ -359,7 +400,9 @@ router.patch("/:id/items/:itemId", requireOrgId, writeLimit, async (req, res) =>
       .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
 
     await db.insert(purchaseOrderEvents).values({
-      orgId, poId: id, eventType: "price_updated",
+      orgId,
+      poId: id,
+      eventType: "price_updated",
       userId: (req as AuthenticatedRequest).user?.id,
       details: { itemId, oldUnitPrice: existing.unitPrice, newUnitPrice: parsed.data.unitPrice },
     });
@@ -381,7 +424,7 @@ router.patch("/:id/items/:itemId", requireOrgId, writeLimit, async (req, res) =>
  */
 router.post("/:id/fulfill-pr", requireOrgId, writeLimit, async (req, res) => {
   try {
-    const orgId  = getOrgId(req);
+    const orgId = getOrgId(req);
     const { id } = req.params;
     const userId = (req as AuthenticatedRequest).user?.id;
 
@@ -390,7 +433,9 @@ router.post("/:id/fulfill-pr", requireOrgId, writeLimit, async (req, res) => {
       .from(purchaseOrders)
       .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
 
-    if (!po) {return res.status(404).json({ error: "Purchase order not found" });}
+    if (!po) {
+      return res.status(404).json({ error: "Purchase order not found" });
+    }
     if (po.status !== "received") {
       return res.status(400).json({ error: "Can only fulfill PR from a received PO" });
     }
@@ -399,11 +444,13 @@ router.post("/:id/fulfill-pr", requireOrgId, writeLimit, async (req, res) => {
     const [creationEvent] = await db
       .select()
       .from(purchaseOrderEvents)
-      .where(and(
-        eq(purchaseOrderEvents.poId, id),
-        eq(purchaseOrderEvents.eventType, "created"),
-        eq(purchaseOrderEvents.orgId, orgId)
-      ))
+      .where(
+        and(
+          eq(purchaseOrderEvents.poId, id),
+          eq(purchaseOrderEvents.eventType, "created"),
+          eq(purchaseOrderEvents.orgId, orgId)
+        )
+      )
       .orderBy(sql`${purchaseOrderEvents.createdAt} ASC`)
       .limit(1);
 
@@ -426,36 +473,50 @@ router.post("/:id/fulfill-pr", requireOrgId, writeLimit, async (req, res) => {
 
     for (const poItem of poItems) {
       const receivedQty = (poItem.receivedQuantity || 0) - (poItem.rejectedQuantity || 0);
-      if (receivedQty <= 0) {continue;}
+      if (receivedQty <= 0) {
+        continue;
+      }
 
       // Find the matching PR item
       const [prItem] = await db
         .select()
         .from(purchaseRequestItems)
-        .where(and(
-          eq(purchaseRequestItems.prId, prId),
-          eq(purchaseRequestItems.partId, poItem.partId),
-          eq(purchaseRequestItems.orgId, orgId)
-        ))
+        .where(
+          and(
+            eq(purchaseRequestItems.prId, prId),
+            eq(purchaseRequestItems.partId, poItem.partId),
+            eq(purchaseRequestItems.orgId, orgId)
+          )
+        )
         .limit(1);
 
       if (!prItem) {
-        results.push({ partId: poItem.partId, receivedQty, fulfilled: false, error: "No matching PR item" });
+        results.push({
+          partId: poItem.partId,
+          receivedQty,
+          fulfilled: false,
+          error: "No matching PR item",
+        });
         continue;
       }
 
       try {
         await fulfillItem({
           prId,
-          itemId:           prItem.id,
+          itemId: prItem.id,
           orgId,
-          quantityToFulfill: Math.min(receivedQty, prItem.quantity - (prItem.quantityFulfilled ?? 0)),
-          fulfilledBy:      userId || "system",
+          quantityToFulfill: Math.min(
+            receivedQty,
+            prItem.quantity - (prItem.quantityFulfilled ?? 0)
+          ),
+          fulfilledBy: userId || "system",
         });
         results.push({ partId: poItem.partId, receivedQty, fulfilled: true });
       } catch (err) {
         results.push({
-          partId: poItem.partId, receivedQty, fulfilled: false,
+          partId: poItem.partId,
+          receivedQty,
+          fulfilled: false,
           error: err instanceof Error ? err.message : String(err),
         });
       }

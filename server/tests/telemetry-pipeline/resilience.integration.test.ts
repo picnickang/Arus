@@ -1,6 +1,6 @@
 /**
  * Telemetry Pipeline Resilience Tests
- * 
+ *
  * Tests for circuit breaker behavior, dead-letter queue,
  * and error recovery scenarios.
  */
@@ -40,14 +40,13 @@ describe("Circuit Breaker Resilience", () => {
 
     it("should open after failure threshold is reached via execute", async () => {
       const failingFn = () => Promise.reject(new Error("Test failure"));
-      
+
       for (let i = 0; i < 3; i++) {
         try {
           await circuitBreaker.execute(failingFn);
-        } catch {
-        }
+        } catch {}
       }
-      
+
       expect(circuitBreaker.getState()).toBe("OPEN");
     });
 
@@ -57,75 +56,71 @@ describe("Circuit Breaker Resilience", () => {
 
     it("should block requests when open", async () => {
       const failingFn = () => Promise.reject(new Error("Test failure"));
-      
+
       for (let i = 0; i < 3; i++) {
         try {
           await circuitBreaker.execute(failingFn);
-        } catch {
-        }
+        } catch {}
       }
-      
+
       expect(circuitBreaker.isOpen()).toBe(true);
-      
-      await expect(circuitBreaker.execute(() => Promise.resolve("test")))
-        .rejects.toThrow("Circuit breaker 'test-telemetry-cb' is OPEN");
+
+      await expect(circuitBreaker.execute(() => Promise.resolve("test"))).rejects.toThrow(
+        "Circuit breaker 'test-telemetry-cb' is OPEN"
+      );
     });
 
     it("should transition to half-open after timeout", async () => {
       const failingFn = () => Promise.reject(new Error("Test failure"));
-      
+
       for (let i = 0; i < 3; i++) {
         try {
           await circuitBreaker.execute(failingFn);
-        } catch {
-        }
+        } catch {}
       }
-      
+
       expect(circuitBreaker.getState()).toBe("OPEN");
-      
-      await new Promise(resolve => setTimeout(resolve, 1100));
-      
+
+      await new Promise((resolve) => setTimeout(resolve, 1100));
+
       expect(circuitBreaker.getState()).toBe("HALF_OPEN");
     });
 
     it("should close after success threshold in half-open", async () => {
       const failingFn = () => Promise.reject(new Error("Test failure"));
-      
+
       for (let i = 0; i < 3; i++) {
         try {
           await circuitBreaker.execute(failingFn);
-        } catch {
-        }
+        } catch {}
       }
-      
-      await new Promise(resolve => setTimeout(resolve, 1100));
-      
+
+      await new Promise((resolve) => setTimeout(resolve, 1100));
+
       for (let i = 0; i < 3; i++) {
         await circuitBreaker.execute(() => Promise.resolve("success"));
       }
-      
+
       expect(circuitBreaker.getState()).toBe("CLOSED");
     });
 
     it("should re-open on failure in half-open state", async () => {
       const failingFn = () => Promise.reject(new Error("Test failure"));
-      
+
       for (let i = 0; i < 3; i++) {
         try {
           await circuitBreaker.execute(failingFn);
-        } catch {
-        }
+        } catch {}
       }
-      
-      await new Promise(resolve => setTimeout(resolve, 1100));
-      
+
+      await new Promise((resolve) => setTimeout(resolve, 1100));
+
       expect(circuitBreaker.getState()).toBe("HALF_OPEN");
-      
+
       try {
         await circuitBreaker.execute(failingFn);
-      } catch {
-      }
-      
+      } catch {}
+
       expect(circuitBreaker.getState()).toBe("OPEN");
     });
   });
@@ -133,14 +128,13 @@ describe("Circuit Breaker Resilience", () => {
   describe("Metrics", () => {
     it("should track failure count", async () => {
       const failingFn = () => Promise.reject(new Error("Test failure"));
-      
+
       for (let i = 0; i < 2; i++) {
         try {
           await circuitBreaker.execute(failingFn);
-        } catch {
-        }
+        } catch {}
       }
-      
+
       const metrics = circuitBreaker.getMetrics();
       expect(metrics.failureCount).toBe(2);
       expect(metrics.totalFailures).toBe(2);
@@ -148,14 +142,13 @@ describe("Circuit Breaker Resilience", () => {
 
     it("should reset failure count on success", async () => {
       const failingFn = () => Promise.reject(new Error("Test failure"));
-      
+
       try {
         await circuitBreaker.execute(failingFn);
-      } catch {
-      }
-      
+      } catch {}
+
       await circuitBreaker.execute(() => Promise.resolve("success"));
-      
+
       const metrics = circuitBreaker.getMetrics();
       expect(metrics.failureCount).toBe(0);
     });
@@ -163,7 +156,7 @@ describe("Circuit Breaker Resilience", () => {
     it("should track total requests", async () => {
       await circuitBreaker.execute(() => Promise.resolve("test"));
       await circuitBreaker.execute(() => Promise.resolve("test"));
-      
+
       const metrics = circuitBreaker.getMetrics();
       expect(metrics.totalRequests).toBe(2);
     });
@@ -172,18 +165,17 @@ describe("Circuit Breaker Resilience", () => {
   describe("Reset Functionality", () => {
     it("should reset circuit to closed state", async () => {
       const failingFn = () => Promise.reject(new Error("Test failure"));
-      
+
       for (let i = 0; i < 3; i++) {
         try {
           await circuitBreaker.execute(failingFn);
-        } catch {
-        }
+        } catch {}
       }
-      
+
       expect(circuitBreaker.getState()).toBe("OPEN");
-      
+
       circuitBreaker.reset();
-      
+
       expect(circuitBreaker.getState()).toBe("CLOSED");
       expect(circuitBreaker.getMetrics().failureCount).toBe(0);
     });
@@ -216,7 +208,7 @@ describe("Dead Letter Queue", () => {
       };
 
       const entry = dlq.add(reading, "DB connection failed", "telemetry-writer");
-      
+
       expect(entry.id).toBeDefined();
       expect(entry.error).toBe("DB connection failed");
     });
@@ -232,7 +224,7 @@ describe("Dead Letter Queue", () => {
       };
 
       dlq.add(reading, "Test error", "telemetry-writer");
-      
+
       const entries = dlq.list({ limit: 1 });
       expect(entries.length).toBe(1);
       expect(entries[0].payload.equipmentId).toBe(TEST_EQUIPMENT_ID);
@@ -249,7 +241,7 @@ describe("Dead Letter Queue", () => {
       };
 
       dlq.add(reading, "Connection timeout", "telemetry-writer");
-      
+
       const entries = dlq.list({ limit: 1 });
       expect(entries[0].error).toBe("Connection timeout");
     });
@@ -263,7 +255,7 @@ describe("Dead Letter Queue", () => {
       };
 
       dlq.add(reading, "Error", "batch-writer");
-      
+
       const entries = dlq.list({ limit: 1 });
       expect(entries[0].source).toBe("batch-writer");
     });
@@ -284,7 +276,7 @@ describe("Dead Letter Queue", () => {
 
       const entry = dlq.add(reading, "Test error", "telemetry-writer");
       const retrieved = dlq.get(entry.id);
-      
+
       expect(retrieved).toBeDefined();
       expect(retrieved?.id).toBe(entry.id);
     });
@@ -345,7 +337,7 @@ describe("Dead Letter Queue", () => {
 
       const entries = smallDlq.list();
       expect(entries.length).toBeLessThanOrEqual(5);
-      
+
       smallDlq.clear();
     });
   });
@@ -396,7 +388,14 @@ describe("Error Recovery Scenarios", () => {
     it("should continue processing valid frames after invalid ones", () => {
       const frames = [
         createJ1939EngineSpeedFrame(1, 1500),
-        { id: 2, ts: Date.now(), source: "CAN0", protocol: "UNKNOWN", payload: Buffer.alloc(1), payloadFormatVersion: 1 },
+        {
+          id: 2,
+          ts: Date.now(),
+          source: "CAN0",
+          protocol: "UNKNOWN",
+          payload: Buffer.alloc(1),
+          payloadFormatVersion: 1,
+        },
         createJ1939EngineSpeedFrame(3, 1700),
       ];
 
@@ -406,7 +405,7 @@ describe("Error Recovery Scenarios", () => {
 
     it("should process partial batches on decode errors", () => {
       const frames = createBatchOfFrames(100, 10);
-      
+
       frames[3].payload = Buffer.alloc(2);
       frames[7].payloadFormatVersion = 99;
 
@@ -418,14 +417,21 @@ describe("Error Recovery Scenarios", () => {
   describe("Recovery After Failures", () => {
     it("should process normally after handling corrupted frames", () => {
       const corruptedFrames = [
-        { id: 200, ts: 0, source: "", protocol: "", payload: Buffer.alloc(0), payloadFormatVersion: 0 },
+        {
+          id: 200,
+          ts: 0,
+          source: "",
+          protocol: "",
+          payload: Buffer.alloc(0),
+          payloadFormatVersion: 0,
+        },
       ];
-      
+
       processor.process(corruptedFrames);
 
       const validFrames = createBatchOfFrames(300, 5);
       const readings = processor.process(validFrames);
-      
+
       expect(readings.length).toBe(5);
     });
 
@@ -440,8 +446,8 @@ describe("Error Recovery Scenarios", () => {
       expect(readings2.length).toBe(50);
 
       const allKeys = new Set([
-        ...readings1.map(r => r.metadata?.idempotencyKey),
-        ...readings2.map(r => r.metadata?.idempotencyKey),
+        ...readings1.map((r) => r.metadata?.idempotencyKey),
+        ...readings2.map((r) => r.metadata?.idempotencyKey),
       ]);
       expect(allKeys.size).toBe(100);
     });
@@ -453,7 +459,7 @@ describe("Error Recovery Scenarios", () => {
       const readings = processor.process(frames);
 
       expect(readings.length).toBe(20);
-      
+
       for (const reading of readings) {
         expect(reading.equipmentId).toBe(TEST_EQUIPMENT_ID);
         expect(reading.orgId).toBe(TEST_ORG_ID);

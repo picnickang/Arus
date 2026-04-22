@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import type { AnalyticsDashboard, FailurePrediction, AnomalyDetection, ThresholdOptimization, TrendPeriod } from "../types";
+import type {
+  AnalyticsDashboard,
+  FailurePrediction,
+  AnomalyDetection,
+  ThresholdOptimization,
+  TrendPeriod,
+} from "../types";
 
 export const analyticsKeys = {
   all: ["/api/analytics"] as const,
@@ -8,7 +14,8 @@ export const analyticsKeys = {
   predictions: () => [...analyticsKeys.all, "predictions"] as const,
   anomalies: () => [...analyticsKeys.all, "anomalies"] as const,
   thresholds: () => [...analyticsKeys.all, "thresholds"] as const,
-  trends: (equipmentId: string, period: TrendPeriod) => [...analyticsKeys.all, "trends", equipmentId, period] as const,
+  trends: (equipmentId: string, period: TrendPeriod) =>
+    [...analyticsKeys.all, "trends", equipmentId, period] as const,
   mlModels: () => ["/api/analytics/ml-models"] as const,
 };
 
@@ -23,27 +30,40 @@ export function useAnalyticsDashboard(period: TrendPeriod = "30d") {
 export function useFailurePredictions(equipmentId?: string) {
   return useQuery<FailurePrediction[]>({
     queryKey: [...analyticsKeys.predictions(), equipmentId],
-    queryFn: () => apiRequest("GET", `/api/analytics/failure-predictions${equipmentId ? `?equipmentId=${equipmentId}` : ""}`),
+    queryFn: () =>
+      apiRequest(
+        "GET",
+        `/api/analytics/failure-predictions${equipmentId ? `?equipmentId=${equipmentId}` : ""}`
+      ),
   });
 }
 
 export function useAnomalyDetections(filters?: { equipmentId?: string; isAcknowledged?: boolean }) {
   const params = new URLSearchParams();
-  if (filters?.equipmentId) {params.append("equipmentId", filters.equipmentId);}
-  if (filters?.isAcknowledged !== undefined) {params.append("isAcknowledged", String(filters.isAcknowledged));}
+  if (filters?.equipmentId) {
+    params.append("equipmentId", filters.equipmentId);
+  }
+  if (filters?.isAcknowledged !== undefined) {
+    params.append("isAcknowledged", String(filters.isAcknowledged));
+  }
   const queryString = params.toString();
   const filterKey = `${filters?.equipmentId ?? "all"}_${filters?.isAcknowledged ?? "all"}`;
-  
+
   return useQuery<AnomalyDetection[]>({
     queryKey: [...analyticsKeys.anomalies(), filterKey],
-    queryFn: () => apiRequest("GET", `/api/analytics/anomaly-detections${queryString ? `?${queryString}` : ""}`),
+    queryFn: () =>
+      apiRequest("GET", `/api/analytics/anomaly-detections${queryString ? `?${queryString}` : ""}`),
   });
 }
 
 export function useThresholdOptimizations(status?: string) {
   return useQuery<ThresholdOptimization[]>({
     queryKey: [...analyticsKeys.thresholds(), status ?? "all"],
-    queryFn: () => apiRequest("GET", `/api/analytics/threshold-optimizations${status ? `?status=${status}` : ""}`),
+    queryFn: () =>
+      apiRequest(
+        "GET",
+        `/api/analytics/threshold-optimizations${status ? `?status=${status}` : ""}`
+      ),
   });
 }
 
@@ -64,7 +84,7 @@ export function useMLModels(orgId?: string) {
 
 export function useRunFailurePrediction() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (equipmentId: string) => {
       return apiRequest("POST", "/api/ml/predict/failure", { equipmentId });
@@ -77,7 +97,7 @@ export function useRunFailurePrediction() {
 
 export function useAcknowledgeAnomaly() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, notes }: { id: string; notes?: string }) => {
       return apiRequest("PATCH", `/api/analytics/anomaly-detections/${id}/acknowledge`, { notes });
@@ -90,7 +110,7 @@ export function useAcknowledgeAnomaly() {
 
 export function useApplyThresholdOptimization() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, orgId }: { id: string; orgId: string }) => {
       return apiRequest("PATCH", `/api/analytics/threshold-optimizations/${id}/apply`, { orgId });
@@ -103,7 +123,7 @@ export function useApplyThresholdOptimization() {
 
 export function useRejectThresholdOptimization() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
       return apiRequest("PATCH", `/api/analytics/threshold-optimizations/${id}/reject`, { reason });

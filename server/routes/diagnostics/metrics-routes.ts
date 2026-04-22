@@ -24,8 +24,12 @@ export function registerMetricsRoutes(router: Router) {
       };
       res.json(metrics);
     } catch (error) {
-      logger.error('Diagnostics', 'Metrics collection failed', error instanceof Error ? error : new Error(String(error)));
-      res.status(500).json({ error: 'Failed to collect metrics' });
+      logger.error(
+        "Diagnostics",
+        "Metrics collection failed",
+        error instanceof Error ? error : new Error(String(error))
+      );
+      res.status(500).json({ error: "Failed to collect metrics" });
     }
   });
 
@@ -36,15 +40,28 @@ export function registerMetricsRoutes(router: Router) {
       res.json({
         batchWriter: stats,
         health: {
-          bufferUtilization: stats.bufferSize > 0 ? Math.round((stats.currentBufferSize / stats.bufferSize) * 100) : 0,
-          evictionRate: stats.totalQueued > 0 ? Math.round((stats.totalEvicted / stats.totalQueued) * 10000) / 100 : 0,
-          writeSuccessRate: stats.totalQueued > 0 ? Math.round((stats.totalWritten / stats.totalQueued) * 10000) / 100 : 100,
+          bufferUtilization:
+            stats.bufferSize > 0
+              ? Math.round((stats.currentBufferSize / stats.bufferSize) * 100)
+              : 0,
+          evictionRate:
+            stats.totalQueued > 0
+              ? Math.round((stats.totalEvicted / stats.totalQueued) * 10000) / 100
+              : 0,
+          writeSuccessRate:
+            stats.totalQueued > 0
+              ? Math.round((stats.totalWritten / stats.totalQueued) * 10000) / 100
+              : 100,
         },
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      logger.error('Diagnostics', 'Telemetry stats collection failed', error instanceof Error ? error : new Error(String(error)));
-      res.status(500).json({ error: 'Failed to collect telemetry stats' });
+      logger.error(
+        "Diagnostics",
+        "Telemetry stats collection failed",
+        error instanceof Error ? error : new Error(String(error))
+      );
+      res.status(500).json({ error: "Failed to collect telemetry stats" });
     }
   });
 }

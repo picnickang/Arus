@@ -14,7 +14,14 @@ interface PageHeaderProps {
   action?: ReactNode;
 }
 
-export function PageHeader({ title, subtitle, showBack = true, showHome = true, onBack, action }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  subtitle,
+  showBack = true,
+  showHome = true,
+  onBack,
+  action,
+}: PageHeaderProps) {
   const [, setLocation] = useLocation();
 
   const handleBack = () => {
@@ -33,18 +40,13 @@ export function PageHeader({ title, subtitle, showBack = true, showHome = true, 
         <div className="flex items-center gap-2">
           {showHome && (
             <Link href="/">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9"
-                data-testid="button-home"
-              >
+              <Button variant="ghost" size="icon" className="h-9 w-9" data-testid="button-home">
                 <Home className="h-5 w-5" />
                 <span className="sr-only">Home</span>
               </Button>
             </Link>
           )}
-          
+
           {showBack && (
             <Button
               variant="ghost"

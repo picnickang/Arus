@@ -74,7 +74,11 @@ export interface AgentSuggestionPort {
   listResolved(orgId: string, since: Date): Promise<AgentSuggestion[]>;
   update(id: string, data: Partial<AgentSuggestion>): Promise<AgentSuggestion>;
   getPreferences(orgId: string, userId?: string): Promise<SuggestionPreferences | null>;
-  savePreferences(orgId: string, prefs: Partial<SuggestionPreferences>, userId?: string): Promise<SuggestionPreferences>;
+  savePreferences(
+    orgId: string,
+    prefs: Partial<SuggestionPreferences>,
+    userId?: string
+  ): Promise<SuggestionPreferences>;
 }
 
 export interface AgentSchedulePort {
@@ -152,7 +156,11 @@ export interface KnowledgeBasePort {
    * Search the KB with a natural-language query and return an AI-generated answer with citations.
    * On error the returned result has `error` set instead of throwing.
    */
-  search(orgId: string, query: string, options?: { maxSources?: number; threshold?: number }): Promise<KnowledgeBaseSearchResult>;
+  search(
+    orgId: string,
+    query: string,
+    options?: { maxSources?: number; threshold?: number }
+  ): Promise<KnowledgeBaseSearchResult>;
 
   /** List all documents ingested into the org's KB, ordered by creation date. */
   listDocuments(orgId: string): Promise<KnowledgeBaseDocSummary[]>;
@@ -164,7 +172,13 @@ export interface KnowledgeBasePort {
    * Ingest a document into the KB. The file is chunked, embedded, and indexed.
    * @throws if the file type is unsupported or ingestion fails.
    */
-  ingestDocument(orgId: string, fileName: string, fileBuffer: Buffer, fileType: string, uploadedBy?: string): Promise<KnowledgeBaseIngestResult>;
+  ingestDocument(
+    orgId: string,
+    fileName: string,
+    fileBuffer: Buffer,
+    fileType: string,
+    uploadedBy?: string
+  ): Promise<KnowledgeBaseIngestResult>;
 }
 
 export interface AgentRepositoryPort {
@@ -186,7 +200,7 @@ export const OUTCOME_CATEGORIES = [
   "false_alarm",
 ] as const;
 
-export type OutcomeCategory = typeof OUTCOME_CATEGORIES[number];
+export type OutcomeCategory = (typeof OUTCOME_CATEGORIES)[number];
 
 export interface OutcomeRecordInput {
   suggestionId: string;
@@ -222,11 +236,21 @@ export interface PredictionFeedbackPort {
 }
 
 export interface OutcomeRecordPort {
-  recordOutcome(input: OutcomeRecordInput, newStatus: "acted" | "dismissed" | "deferred"): Promise<import("@shared/schema").AgentSuggestion>;
+  recordOutcome(
+    input: OutcomeRecordInput,
+    newStatus: "acted" | "dismissed" | "deferred"
+  ): Promise<import("@shared/schema").AgentSuggestion>;
   getEffectiveness(orgId: string, days?: number): Promise<EffectivenessSummary>;
 }
 
-export type { FindingsAggregatorPort, UnifiedFindingItem, FindingsSummary, FindingsFilter, FindingsPagination, FindingsResponse } from "./findings-types";
+export type {
+  FindingsAggregatorPort,
+  UnifiedFindingItem,
+  FindingsSummary,
+  FindingsFilter,
+  FindingsPagination,
+  FindingsResponse,
+} from "./findings-types";
 
 export type {
   ActivityPort,
@@ -260,11 +284,7 @@ export type {
   FindingStatus as AgentFindingStatus,
 } from "./finding-domain-types";
 
-export {
-  FINDING_TYPES,
-  FINDING_SEVERITIES,
-  FINDING_STATUSES,
-} from "./finding-domain-types";
+export { FINDING_TYPES, FINDING_SEVERITIES, FINDING_STATUSES } from "./finding-domain-types";
 
 export type {
   BriefingRepositoryPort,
@@ -277,4 +297,3 @@ export type {
   ExpiringCertRecord,
   LowStockRecord,
 } from "./briefing-types";
-

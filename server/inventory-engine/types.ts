@@ -1,6 +1,6 @@
 /**
  * Inventory Engine - Types
- * 
+ *
  * Type definitions for inventory management operations.
  */
 

@@ -31,5 +31,11 @@ export interface TrainedLSTMModel {
   config: LSTMConfig;
   featureNames: string[];
   normalizationParams: { mean: number[]; std: number[] };
-  trainingMetrics: { loss: number; accuracy: number; precision: number; recall: number; f1Score: number };
+  trainingMetrics: {
+    loss: number;
+    accuracy: number;
+    precision: number;
+    recall: number;
+    f1Score: number;
+  };
 }

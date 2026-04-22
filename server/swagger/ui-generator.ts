@@ -1,6 +1,6 @@
 /**
  * Swagger UI Generator
- * 
+ *
  * Generates the Swagger UI HTML for API documentation.
  */
 

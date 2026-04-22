@@ -7,9 +7,21 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  AlertTriangle, CheckCircle, Wrench, Shield, Package, Activity,
-  Calendar, RefreshCw, ChevronDown, ChevronUp, ExternalLink, FileText,
-  Loader2, ArrowLeft, ArrowRight,
+  AlertTriangle,
+  CheckCircle,
+  Wrench,
+  Shield,
+  Package,
+  Activity,
+  Calendar,
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  FileText,
+  Loader2,
+  ArrowLeft,
+  ArrowRight,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -55,12 +67,16 @@ const SECTION_ICONS: Record<string, typeof AlertTriangle> = {
 };
 
 function getSectionIcon(iconName?: string) {
-  if (!iconName) {return FileText;}
+  if (!iconName) {
+    return FileText;
+  }
   return SECTION_ICONS[iconName] || FileText;
 }
 
 function SeverityBadge({ severity }: { severity?: string }) {
-  if (!severity || severity === "info") {return null;}
+  if (!severity || severity === "info") {
+    return null;
+  }
   return (
     <Badge
       variant={severity === "critical" ? "destructive" : "secondary"}
@@ -75,7 +91,7 @@ function SeverityBadge({ severity }: { severity?: string }) {
 function BriefingSectionCard({ section }: { section: BriefingSection }) {
   const [expanded, setExpanded] = useState(section.items.length <= 5);
   const Icon = getSectionIcon(section.icon);
-  const criticalCount = section.items.filter(i => i.severity === "critical").length;
+  const criticalCount = section.items.filter((i) => i.severity === "critical").length;
 
   return (
     <Card data-testid={`section-${section.key}`}>
@@ -103,7 +119,10 @@ function BriefingSectionCard({ section }: { section: BriefingSection }) {
       {expanded && (
         <CardContent className="pt-0" data-testid={`section-content-${section.key}`}>
           {section.items.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic" data-testid={`section-empty-${section.key}`}>
+            <p
+              className="text-sm text-muted-foreground italic"
+              data-testid={`section-empty-${section.key}`}
+            >
               {section.emptyMessage || "No items."}
             </p>
           ) : (
@@ -123,7 +142,12 @@ function BriefingSectionCard({ section }: { section: BriefingSection }) {
                   </div>
                   {item.linkTo && (
                     <Link href={item.linkTo}>
-                      <Button variant="ghost" size="sm" className="shrink-0" data-testid={`link-${item.id}`}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="shrink-0"
+                        data-testid={`link-${item.id}`}
+                      >
                         <ExternalLink className="h-3.5 w-3.5" />
                       </Button>
                     </Link>
@@ -166,7 +190,10 @@ export default function BriefingPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/briefings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/agent/briefings/latest"] });
-      toast({ title: "Briefing generated", description: "Your daily operations briefing is ready." });
+      toast({
+        title: "Briefing generated",
+        description: "Your daily operations briefing is ready.",
+      });
     },
     onError: (err: Error) => {
       toast({ title: "Generation failed", description: err.message, variant: "destructive" });
@@ -192,20 +219,29 @@ export default function BriefingPage() {
   };
 
   const sections: BriefingSection[] = briefing?.sections
-    ? (Array.isArray(briefing.sections) ? briefing.sections : [])
+    ? Array.isArray(briefing.sections)
+      ? briefing.sections
+      : []
     : [];
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-4xl" data-testid="page-briefing">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold" data-testid="text-page-title">Daily Operations Briefing</h1>
+          <h1 className="text-2xl font-bold" data-testid="text-page-title">
+            Daily Operations Briefing
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Shift handover summary — what happened and what needs attention
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => changeDate(-1)} data-testid="button-prev-day">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => changeDate(-1)}
+            data-testid="button-prev-day"
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center gap-1.5">
@@ -275,24 +311,34 @@ export default function BriefingPage() {
                     Executive Summary
                   </CardTitle>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs" data-testid="badge-briefing-status">
+                    <Badge
+                      variant="outline"
+                      className="text-xs"
+                      data-testid="badge-briefing-status"
+                    >
                       {briefing.status}
                     </Badge>
-                    <span className="text-xs text-muted-foreground" data-testid="text-generated-time">
+                    <span
+                      className="text-xs text-muted-foreground"
+                      data-testid="text-generated-time"
+                    >
                       {new Date(briefing.generatedAt).toLocaleTimeString()}
                     </span>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-sm leading-relaxed" data-testid="text-ai-summary">{briefing.aiSummary}</p>
+                <p className="text-sm leading-relaxed" data-testid="text-ai-summary">
+                  {briefing.aiSummary}
+                </p>
               </CardContent>
             </Card>
           )}
 
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground" data-testid="text-period">
-              Period: {new Date(briefing.periodStart).toLocaleString()} — {new Date(briefing.periodEnd).toLocaleString()}
+              Period: {new Date(briefing.periodStart).toLocaleString()} —{" "}
+              {new Date(briefing.periodEnd).toLocaleString()}
             </p>
             {isToday && (
               <Button

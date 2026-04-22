@@ -1,6 +1,6 @@
 /**
  * ML Analytics - Complete ML/PDM Export Route
- * 
+ *
  * Comprehensive export of all ML/PDM data in industry-standard format.
  */
 
@@ -54,7 +54,9 @@ export function registerExportCompleteRoutes(app: Express, config: MlAnalyticsCo
 
       const enrichedModels = mlModels.map((model) => {
         const hyperparams = (model.hyperparameters ?? {}) as Record<string, unknown>;
-        if (hyperparams.dataQualityTier) {return model;}
+        if (hyperparams.dataQualityTier) {
+          return model;
+        }
         if (hyperparams.lookbackDays) {
           const { tier, confidenceMultiplier } =
             adaptiveTrainingWindow.calculateTierFromLookbackDays(hyperparams.lookbackDays);
@@ -109,7 +111,9 @@ export function registerExportCompleteRoutes(app: Express, config: MlAnalyticsCo
 
       if (format === "csv") {
         const escapeCsv = (value: unknown) => {
-          if (value === null || value === undefined) {return "";}
+          if (value === null || value === undefined) {
+            return "";
+          }
           const str = String(value);
           if (str.includes(",") || str.includes('"') || str.includes("\n")) {
             return `"${str.replaceAll('"', '""')}"`;
@@ -119,32 +123,64 @@ export function registerExportCompleteRoutes(app: Express, config: MlAnalyticsCo
 
         const csvRows = [
           [
-            "ModelID", "ModelName", "ModelType", "EquipmentType", "Status", "Version",
-            "Accuracy", "Precision", "Recall", "F1Score", "DataQualityTier",
-            "ConfidenceMultiplier", "LookbackDays", "IsLegacyEnriched", "DeployedAt", "CreatedAt",
+            "ModelID",
+            "ModelName",
+            "ModelType",
+            "EquipmentType",
+            "Status",
+            "Version",
+            "Accuracy",
+            "Precision",
+            "Recall",
+            "F1Score",
+            "DataQualityTier",
+            "ConfidenceMultiplier",
+            "LookbackDays",
+            "IsLegacyEnriched",
+            "DeployedAt",
+            "CreatedAt",
           ].join(","),
           ...enrichedModels.map((m) => {
             const perf = (m.performanceMetrics ?? {}) as Record<string, unknown>;
             const hyper = (m.hyperparameters ?? {}) as Record<string, unknown>;
             return [
-              escapeCsv(m.id), escapeCsv(m.name), escapeCsv(m.modelType),
-              escapeCsv(m.equipmentType || "all"), escapeCsv(m.status), escapeCsv(m.version),
-              escapeCsv(perf.accuracy), escapeCsv(perf.precision), escapeCsv(perf.recall),
-              escapeCsv(perf.f1Score), escapeCsv(hyper.dataQualityTier),
-              escapeCsv(hyper.confidenceMultiplier), escapeCsv(hyper.lookbackDays),
-              escapeCsv(hyper.isLegacyEnriched), escapeCsv(m.deployedOn), escapeCsv(m.createdAt),
+              escapeCsv(m.id),
+              escapeCsv(m.name),
+              escapeCsv(m.modelType),
+              escapeCsv(m.equipmentType || "all"),
+              escapeCsv(m.status),
+              escapeCsv(m.version),
+              escapeCsv(perf.accuracy),
+              escapeCsv(perf.precision),
+              escapeCsv(perf.recall),
+              escapeCsv(perf.f1Score),
+              escapeCsv(hyper.dataQualityTier),
+              escapeCsv(hyper.confidenceMultiplier),
+              escapeCsv(hyper.lookbackDays),
+              escapeCsv(hyper.isLegacyEnriched),
+              escapeCsv(m.deployedOn),
+              escapeCsv(m.createdAt),
             ].join(",");
           }),
         ].join("\n");
 
         res.setHeader("Content-Type", "text/csv; charset=utf-8");
-        res.setHeader("Content-Disposition", `attachment; filename="arus-ml-models-export-${Date.now()}.csv"`);
-        res.setHeader("X-Export-Note", "CSV contains ML models only. Use JSON format for complete multi-dataset export.");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="arus-ml-models-export-${Date.now()}.csv"`
+        );
+        res.setHeader(
+          "X-Export-Note",
+          "CSV contains ML models only. Use JSON format for complete multi-dataset export."
+        );
         return res.send(csvRows);
       }
 
       res.setHeader("Content-Type", "application/json");
-      res.setHeader("Content-Disposition", `attachment; filename="ml-pdm-export-${Date.now()}.json"`);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="ml-pdm-export-${Date.now()}.json"`
+      );
       res.json(exportData);
     } catch (error) {
       logger.error("ExportComplete", "Failed to export ML/PDM data", error);

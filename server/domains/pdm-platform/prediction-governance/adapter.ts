@@ -2,7 +2,11 @@ import { eq, and, desc, lte, sql } from "drizzle-orm";
 import { db } from "../../../db";
 import { failurePredictions, modelVersions } from "@shared/schema";
 import type { FailurePrediction } from "@shared/schema";
-import type { IPredictionGovernanceStorage, GovernanceListOptions, GovernanceDetails } from "./ports";
+import type {
+  IPredictionGovernanceStorage,
+  GovernanceListOptions,
+  GovernanceDetails,
+} from "./ports";
 
 export class PredictionGovernanceAdapter implements IPredictionGovernanceStorage {
   async listByGovernanceStatus(options: GovernanceListOptions): Promise<FailurePrediction[]> {
@@ -29,7 +33,9 @@ export class PredictionGovernanceAdapter implements IPredictionGovernanceStorage
       .where(and(eq(failurePredictions.id, id), eq(failurePredictions.orgId, orgId)))
       .limit(1);
 
-    if (!prediction) {return null;}
+    if (!prediction) {
+      return null;
+    }
 
     let modelVersionInfo = null;
     if (prediction.modelVersionId) {

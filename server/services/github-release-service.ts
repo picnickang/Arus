@@ -345,8 +345,12 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
       const v1 = v1Parts[i] ?? 0;
       const v2 = v2Parts[i] ?? 0;
 
-      if (v1 > v2) { return true; }
-      if (v1 < v2) { return false; }
+      if (v1 > v2) {
+        return true;
+      }
+      if (v1 < v2) {
+        return false;
+      }
     }
 
     return false; // Equal versions
@@ -381,7 +385,11 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
       lines.push("");
     }
 
-    lines.push("---", `📦 Download the patch from the assets below.`, `🔒 SHA256: \`${manifest.checksumSha256}\``);
+    lines.push(
+      "---",
+      `📦 Download the patch from the assets below.`,
+      `🔒 SHA256: \`${manifest.checksumSha256}\``
+    );
 
     return lines.join("\n");
   }

@@ -1,6 +1,6 @@
 /**
  * MQTT Reliable Sync - Publishing
- * 
+ *
  * Handles message publishing with dual-topic architecture.
  */
 
@@ -9,10 +9,7 @@ import type { MqttMessage, MqttMetrics, PublishOptions, DataChangeOperation } fr
 import { getTopicForEntity } from "./config.js";
 import { enqueueMessage } from "./message-queue.js";
 import { nextSeq } from "../repos/sequenceRepo";
-import {
-  incrementMqttMessagesPublished,
-  incrementMqttPublishFailures,
-} from "../observability";
+import { incrementMqttMessagesPublished, incrementMqttPublishFailures } from "../observability";
 import { logger } from "../utils/logger.js";
 
 interface PublishContext {
@@ -96,42 +93,43 @@ export async function publishDataChange(
   if (ctx.isConnected && ctx.client) {
     // Publish event (not retained, sequenced for replay)
     const eventPublish = new Promise<void>((resolve, reject) => {
-      ctx.client?.publish(
-        eventTopic,
-        eventPayload,
-        { qos, retain: false },
-        (error) => {
-          if (error) {
-            logger.error("MqttReliableSync", `Failed to publish event ${operation} for ${entityType}`, error);
-            reject(error);
-          } else {
-            resolve();
-          }
+      ctx.client?.publish(eventTopic, eventPayload, { qos, retain: false }, (error) => {
+        if (error) {
+          logger.error(
+            "MqttReliableSync",
+            `Failed to publish event ${operation} for ${entityType}`,
+            error
+          );
+          reject(error);
+        } else {
+          resolve();
         }
-      );
+      });
     });
 
     // Publish state (retained, latest snapshot)
     const statePublish = new Promise<void>((resolve, reject) => {
-      ctx.client?.publish(
-        stateTopic,
-        statePayload,
-        { qos, retain: true },
-        (error) => {
-          if (error) {
-            logger.error("MqttReliableSync", `Failed to publish state ${operation} for ${entityType}`, error);
-            reject(error);
-          } else {
-            resolve();
-          }
+      ctx.client?.publish(stateTopic, statePayload, { qos, retain: true }, (error) => {
+        if (error) {
+          logger.error(
+            "MqttReliableSync",
+            `Failed to publish state ${operation} for ${entityType}`,
+            error
+          );
+          reject(error);
+        } else {
+          resolve();
         }
-      );
+      });
     });
 
     // Both must succeed
     try {
       await Promise.all([eventPublish, statePublish]);
-      logger.info("MqttReliableSync", `Published ${operation} for ${entityType} seq=${seq} (QoS ${qos})`);
+      logger.info(
+        "MqttReliableSync",
+        `Published ${operation} for ${entityType} seq=${seq} (QoS ${qos})`
+      );
       ctx.metrics.messagesPublished++;
       incrementMqttMessagesPublished(entityType, operation, qos);
       ctx.emit("message_published", {
@@ -146,15 +144,46 @@ export async function publishDataChange(
       ctx.metrics.publishFailures++;
       incrementMqttPublishFailures();
       // Queue both messages for retry
-      enqueueMessage(ctx.messageQueue, { topic: eventTopic, payload: eventMessage, qos, retain: false }, ctx.maxQueueSize, ctx.metrics, ctx.queueDir, ctx.emit);
-      enqueueMessage(ctx.messageQueue, { topic: stateTopic, payload: stateMessage, qos, retain: true }, ctx.maxQueueSize, ctx.metrics, ctx.queueDir, ctx.emit);
+      enqueueMessage(
+        ctx.messageQueue,
+        { topic: eventTopic, payload: eventMessage, qos, retain: false },
+        ctx.maxQueueSize,
+        ctx.metrics,
+        ctx.queueDir,
+        ctx.emit
+      );
+      enqueueMessage(
+        ctx.messageQueue,
+        { topic: stateTopic, payload: stateMessage, qos, retain: true },
+        ctx.maxQueueSize,
+        ctx.metrics,
+        ctx.queueDir,
+        ctx.emit
+      );
       throw error;
     }
   } else {
     // Queue both messages for delivery when connection restored
-    enqueueMessage(ctx.messageQueue, { topic: eventTopic, payload: eventMessage, qos, retain: false }, ctx.maxQueueSize, ctx.metrics, ctx.queueDir, ctx.emit);
-    enqueueMessage(ctx.messageQueue, { topic: stateTopic, payload: stateMessage, qos, retain: true }, ctx.maxQueueSize, ctx.metrics, ctx.queueDir, ctx.emit);
-    logger.debug("MqttReliableSync", `Queued ${operation} for ${entityType} seq=${seq} (offline, queue size: ${ctx.messageQueue.length})`);
+    enqueueMessage(
+      ctx.messageQueue,
+      { topic: eventTopic, payload: eventMessage, qos, retain: false },
+      ctx.maxQueueSize,
+      ctx.metrics,
+      ctx.queueDir,
+      ctx.emit
+    );
+    enqueueMessage(
+      ctx.messageQueue,
+      { topic: stateTopic, payload: stateMessage, qos, retain: true },
+      ctx.maxQueueSize,
+      ctx.metrics,
+      ctx.queueDir,
+      ctx.emit
+    );
+    logger.debug(
+      "MqttReliableSync",
+      `Queued ${operation} for ${entityType} seq=${seq} (offline, queue size: ${ctx.messageQueue.length})`
+    );
     ctx.emit("message_queued", { eventTopic, stateTopic, eventMessage, stateMessage, seq, qos });
   }
 }

@@ -1,6 +1,6 @@
 /**
  * Telemetry Pipeline Test Fixtures
- * 
+ *
  * Sample J1939/J1587 protocol frames and expected decoded readings
  * for end-to-end integration testing.
  */
@@ -18,15 +18,15 @@ export function createJ1939EngineSpeedFrame(
   timestampMs: number = Date.now(),
   source: string = "CAN0"
 ): RawFrame {
-  const canId = 0x18F00400;
+  const canId = 0x18f00400;
   const payload = Buffer.alloc(13);
-  
+
   payload.writeUInt32LE(canId, 0);
   payload.writeUInt8(8, 4);
-  
+
   const rawRpm = Math.round(rpm / 0.125);
   payload.writeUInt16LE(rawRpm, 8);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -44,15 +44,15 @@ export function createJ1939CoolantTempFrame(
   timestampMs: number = Date.now(),
   source: string = "CAN0"
 ): RawFrame {
-  const canId = 0x18FEEE00;
+  const canId = 0x18feee00;
   const payload = Buffer.alloc(9);
-  
+
   payload.writeUInt32LE(canId, 0);
   payload.writeUInt8(8, 4);
-  
+
   const rawTemp = tempC + 40;
   payload.writeUInt8(Math.max(0, Math.min(255, rawTemp)), 5);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -70,15 +70,15 @@ export function createJ1939OilPressureFrame(
   timestampMs: number = Date.now(),
   source: string = "CAN0"
 ): RawFrame {
-  const canId = 0x18FEEF00;
+  const canId = 0x18feef00;
   const payload = Buffer.alloc(9);
-  
+
   payload.writeUInt32LE(canId, 0);
   payload.writeUInt8(8, 4);
-  
+
   const rawPressure = Math.round(pressureKpa / 0.5);
   payload.writeUInt16LE(rawPressure, 7);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -97,14 +97,14 @@ export function createJ1587EngineSpeedFrame(
   source: string = "J1708"
 ): RawFrame {
   const payload = Buffer.alloc(6);
-  
+
   payload.writeUInt8(190, 0);
-  
+
   const rawRpm = Math.round(rpm / 0.25);
   payload.writeUInt16LE(Math.min(rawRpm, 65535), 1);
-  
+
   payload.writeUInt8(0, 3);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -123,12 +123,12 @@ export function createJ1587CoolantTempFrame(
   source: string = "J1708"
 ): RawFrame {
   const payload = Buffer.alloc(4);
-  
+
   payload.writeUInt8(110, 0);
-  
+
   const rawTemp = tempC + 40;
   payload.writeUInt8(Math.max(0, Math.min(255, rawTemp)), 1);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -147,12 +147,12 @@ export function createJ1587OilPressureFrame(
   source: string = "J1708"
 ): RawFrame {
   const payload = Buffer.alloc(4);
-  
+
   payload.writeUInt8(100, 0);
-  
+
   const rawPressure = Math.round(pressureKpa / 4);
   payload.writeUInt8(Math.min(rawPressure, 255), 1);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -170,15 +170,15 @@ export function createJ1939FuelRateFrame(
   timestampMs: number = Date.now(),
   source: string = "CAN0"
 ): RawFrame {
-  const canId = 0x18FEE900;
+  const canId = 0x18fee900;
   const payload = Buffer.alloc(7);
-  
+
   payload.writeUInt32LE(canId, 0);
   payload.writeUInt8(8, 4);
-  
+
   const raw = Math.round(literPerHour / 0.05);
   payload.writeUInt16LE(raw, 5);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -196,15 +196,15 @@ export function createJ1939EngineHoursFrame(
   timestampMs: number = Date.now(),
   source: string = "CAN0"
 ): RawFrame {
-  const canId = 0x18FEE500;
+  const canId = 0x18fee500;
   const payload = Buffer.alloc(9);
-  
+
   payload.writeUInt32LE(canId, 0);
   payload.writeUInt8(8, 4);
-  
+
   const raw = Math.round(hours / 0.05);
   payload.writeUInt32LE(raw, 5);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -222,15 +222,15 @@ export function createJ1939BatteryVoltageFrame(
   timestampMs: number = Date.now(),
   source: string = "CAN0"
 ): RawFrame {
-  const canId = 0x18FEF700;
+  const canId = 0x18fef700;
   const payload = Buffer.alloc(7);
-  
+
   payload.writeUInt32LE(canId, 0);
   payload.writeUInt8(8, 4);
-  
+
   const raw = Math.round(volts / 0.05);
   payload.writeUInt16LE(raw, 5);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -248,15 +248,15 @@ export function createJ1939TransmissionTempFrame(
   timestampMs: number = Date.now(),
   source: string = "CAN0"
 ): RawFrame {
-  const canId = 0x18FEBD00;
+  const canId = 0x18febd00;
   const payload = Buffer.alloc(7);
-  
+
   payload.writeUInt32LE(canId, 0);
   payload.writeUInt8(8, 4);
-  
+
   const raw = Math.round((tempC + 273) / 0.03125);
   payload.writeUInt16LE(raw, 5);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -274,15 +274,15 @@ export function createJ1939EngineLoadFrame(
   timestampMs: number = Date.now(),
   source: string = "CAN0"
 ): RawFrame {
-  const canId = 0x18F00300;
+  const canId = 0x18f00300;
   const payload = Buffer.alloc(8);
-  
+
   payload.writeUInt32LE(canId, 0);
   payload.writeUInt8(8, 4);
-  
+
   const raw = Math.round(loadPercent / 0.4);
   payload.writeUInt8(Math.min(raw, 255), 7);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -300,15 +300,15 @@ export function createJ1939BoostPressureFrame(
   timestampMs: number = Date.now(),
   source: string = "CAN0"
 ): RawFrame {
-  const canId = 0x18FEE600;
+  const canId = 0x18fee600;
   const payload = Buffer.alloc(13);
-  
+
   payload.writeUInt32LE(canId, 0);
   payload.writeUInt8(8, 4);
-  
+
   const raw = Math.round(kpa / 2);
   payload.writeUInt8(Math.min(raw, 255), 5);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -326,15 +326,15 @@ export function createJ1939ExhaustTempFrame(
   timestampMs: number = Date.now(),
   source: string = "CAN0"
 ): RawFrame {
-  const canId = 0x18FED900;
+  const canId = 0x18fed900;
   const payload = Buffer.alloc(13);
-  
+
   payload.writeUInt32LE(canId, 0);
   payload.writeUInt8(8, 4);
-  
+
   const raw = Math.round((tempC + 273) / 0.03125);
   payload.writeUInt16LE(raw, 5);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -352,15 +352,15 @@ export function createJ1939IntakeTempFrame(
   timestampMs: number = Date.now(),
   source: string = "CAN0"
 ): RawFrame {
-  const canId = 0x18FEF600;
+  const canId = 0x18fef600;
   const payload = Buffer.alloc(13);
-  
+
   payload.writeUInt32LE(canId, 0);
   payload.writeUInt8(8, 4);
-  
+
   const raw = tempC + 40;
   payload.writeUInt8(Math.max(0, Math.min(255, raw)), 5);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -382,7 +382,7 @@ export function createJ1587FuelRateFrame(
   payload.writeUInt8(182, 0);
   const raw = Math.round(literPerHour / 0.05);
   payload.writeUInt16LE(raw, 1);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -404,7 +404,7 @@ export function createJ1587EngineHoursFrame(
   payload.writeUInt8(247, 0);
   const raw = Math.round(hours / 0.05);
   payload.writeUInt32LE(raw, 1);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -426,7 +426,7 @@ export function createJ1587BatteryVoltageFrame(
   payload.writeUInt8(168, 0);
   const raw = Math.round(volts / 0.05);
   payload.writeUInt16LE(raw, 1);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -448,7 +448,7 @@ export function createJ1587TransmissionTempFrame(
   payload.writeUInt8(177, 0);
   const raw = tempC + 40;
   payload.writeUInt8(Math.max(0, Math.min(255, raw)), 1);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -470,7 +470,7 @@ export function createJ1587BoostPressureFrame(
   payload.writeUInt8(102, 0);
   const raw = Math.round(kpa / 2);
   payload.writeUInt8(Math.min(raw, 255), 1);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -492,7 +492,7 @@ export function createJ1587EngineLoadFrame(
   payload.writeUInt8(92, 0);
   const raw = Math.round(loadPercent / 0.5);
   payload.writeUInt8(Math.min(raw, 255), 1);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -514,7 +514,7 @@ export function createJ1587ExhaustTempFrame(
   payload.writeUInt8(173, 0);
   const raw = Math.round((tempC + 273) / 0.03125);
   payload.writeUInt16LE(raw, 1);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -536,7 +536,7 @@ export function createJ1587IntakeTempFrame(
   payload.writeUInt8(105, 0);
   const raw = tempC + 40;
   payload.writeUInt8(Math.max(0, Math.min(255, raw)), 1);
-  
+
   return {
     id,
     ts: timestampMs,
@@ -561,19 +561,11 @@ export function createInvalidFrame(id: number): RawFrame {
 }
 
 export function createFutureTimestampFrame(id: number): RawFrame {
-  return createJ1939EngineSpeedFrame(
-    id,
-    1500,
-    Date.now() + 10 * 60 * 1000
-  );
+  return createJ1939EngineSpeedFrame(id, 1500, Date.now() + 10 * 60 * 1000);
 }
 
 export function createAncientTimestampFrame(id: number): RawFrame {
-  return createJ1939EngineSpeedFrame(
-    id,
-    1500,
-    new Date("1990-01-01").getTime()
-  );
+  return createJ1939EngineSpeedFrame(id, 1500, new Date("1990-01-01").getTime());
 }
 
 export function createInvalidPayloadVersionFrame(id: number): RawFrame {
@@ -589,18 +581,14 @@ export function createBatchOfFrames(
 ): RawFrame[] {
   const frames: RawFrame[] = [];
   const maxRpm = 8000;
-  
+
   for (let i = 0; i < count; i++) {
-    const rpm = 1000 + ((i % 700) * 10);
+    const rpm = 1000 + (i % 700) * 10;
     frames.push(
-      createJ1939EngineSpeedFrame(
-        startId + i,
-        Math.min(rpm, maxRpm),
-        baseTimestamp + (i * 100)
-      )
+      createJ1939EngineSpeedFrame(startId + i, Math.min(rpm, maxRpm), baseTimestamp + i * 100)
     );
   }
-  
+
   return frames;
 }
 
@@ -625,14 +613,14 @@ export function createIntegrityTestBatch(startId: number): {
   const timestamp = Date.now();
   const frames: RawFrame[] = [];
   const checksums = new Map<number, string>();
-  
+
   for (let i = 0; i < 10; i++) {
     const frame = createJ1939EngineSpeedFrame(startId + i, 1000 + i * 100, timestamp + i * 1000);
     frames.push(frame);
-    
+
     checksums.set(frame.id, computeFrameChecksum(frame));
   }
-  
+
   return {
     frames,
     expectedReadings: 10,
@@ -645,7 +633,7 @@ export function computeFrameChecksum(frame: RawFrame): string {
   let hash = 0;
   for (let i = 0; i < data.length; i++) {
     const char = data.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash;
   }
   return hash.toString(16);
@@ -656,25 +644,25 @@ export function verifyReadingIntegrity(
   expectedEquipmentId: string
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
-  
+
   if (!reading.equipmentId) {
     errors.push("Missing equipmentId");
   } else if (reading.equipmentId !== expectedEquipmentId) {
     errors.push(`Unexpected equipmentId: ${reading.equipmentId}`);
   }
-  
+
   if (!Number.isFinite(reading.value)) {
     errors.push(`Invalid value: ${reading.value}`);
   }
-  
+
   if (!(reading.timestamp instanceof Date) || isNaN(reading.timestamp.getTime())) {
     errors.push(`Invalid timestamp: ${reading.timestamp}`);
   }
-  
+
   if (!reading.sensorType) {
     errors.push("Missing sensorType");
   }
-  
+
   return {
     valid: errors.length === 0,
     errors,
@@ -689,7 +677,7 @@ export interface DeduplicationTestCase {
 
 export function createDeduplicationTestCases(startId: number): DeduplicationTestCase[] {
   const timestamp = Date.now();
-  
+
   return [
     {
       name: "No duplicates",
@@ -723,7 +711,7 @@ export interface OrderingTestCase {
 
 export function createOrderingTestCases(startId: number): OrderingTestCase[] {
   const timestamp = Date.now();
-  
+
   return [
     {
       name: "Already ordered",

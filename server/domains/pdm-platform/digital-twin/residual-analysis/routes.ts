@@ -13,8 +13,9 @@ router.post("/compute", async (req: Request, res: Response) => {
   try {
     const orgId = req.headers["x-org-id"] as string;
     const parsed = computeSchema.safeParse(req.body);
-    if (!parsed.success)
-      {return res.status(400).json({ error: parsed.error.flatten().fieldErrors });}
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+    }
     const result = await service.computeResiduals(orgId, parsed.data.twinId);
     res.json(result);
   } catch (error: any) {
@@ -34,11 +35,7 @@ router.get("/twin/:twinId", async (req: Request, res: Response) => {
     const orgId = req.headers["x-org-id"] as string;
     const parsed = limitSchema.safeParse(req.query);
     const limit = parsed.success ? parsed.data.limit : undefined;
-    const result = await service.getResidualsByTwin(
-      orgId,
-      req.params.twinId,
-      limit
-    );
+    const result = await service.getResidualsByTwin(orgId, req.params.twinId, limit);
     res.json(result);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

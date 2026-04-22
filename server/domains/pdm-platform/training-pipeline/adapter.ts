@@ -34,7 +34,9 @@ export class TrainingDatasetAdapter implements ITrainingDatasetStorage {
 
   async list(orgId: string, status?: string): Promise<TrainingDataset[]> {
     const conditions = [eq(trainingDatasets.orgId, orgId)];
-    if (status) {conditions.push(eq(trainingDatasets.status, status));}
+    if (status) {
+      conditions.push(eq(trainingDatasets.status, status));
+    }
     return db
       .select()
       .from(trainingDatasets)
@@ -66,10 +68,17 @@ export class TrainingRunAdapter implements ITrainingRunStorage {
     return result ?? null;
   }
 
-  async list(orgId: string, filters?: { status?: string; datasetId?: string }): Promise<TrainingRun[]> {
+  async list(
+    orgId: string,
+    filters?: { status?: string; datasetId?: string }
+  ): Promise<TrainingRun[]> {
     const conditions = [eq(trainingRuns.orgId, orgId)];
-    if (filters?.status) {conditions.push(eq(trainingRuns.status, filters.status));}
-    if (filters?.datasetId) {conditions.push(eq(trainingRuns.datasetId, filters.datasetId));}
+    if (filters?.status) {
+      conditions.push(eq(trainingRuns.status, filters.status));
+    }
+    if (filters?.datasetId) {
+      conditions.push(eq(trainingRuns.datasetId, filters.datasetId));
+    }
     return db
       .select()
       .from(trainingRuns)
@@ -105,11 +114,17 @@ export class ModelArtifactAdapter implements IModelArtifactStorage {
     return db
       .select()
       .from(modelArtifacts)
-      .where(and(eq(modelArtifacts.orgId, orgId), eq(modelArtifacts.modelVersionId, modelVersionId)))
+      .where(
+        and(eq(modelArtifacts.orgId, orgId), eq(modelArtifacts.modelVersionId, modelVersionId))
+      )
       .orderBy(desc(modelArtifacts.createdAt));
   }
 
-  async linkToModelVersion(orgId: string, artifactId: string, modelVersionId: string): Promise<void> {
+  async linkToModelVersion(
+    orgId: string,
+    artifactId: string,
+    modelVersionId: string
+  ): Promise<void> {
     await db
       .update(modelArtifacts)
       .set({ modelVersionId })
@@ -132,7 +147,7 @@ export class StubTrainingRunner implements ITrainingRunnerPort {
       metrics: {
         accuracy: 0.85 + Math.random() * 0.1,
         precision: 0.82 + Math.random() * 0.1,
-        recall: 0.80 + Math.random() * 0.1,
+        recall: 0.8 + Math.random() * 0.1,
         f1Score: 0.81 + Math.random() * 0.1,
         loss: 0.3 - Math.random() * 0.15,
         trainingDurationMs: 500 + Math.floor(Math.random() * 2000),

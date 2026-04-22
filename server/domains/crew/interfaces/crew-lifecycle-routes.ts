@@ -143,7 +143,11 @@ router.delete(
     const userId = authReq.user?.id;
 
     const validated = bulkDeleteCrewSchema.parse(req.body);
-    const deletedCount = await crewLifecycleService.bulkDeleteFormerCrew(validated.ids, orgId, userId);
+    const deletedCount = await crewLifecycleService.bulkDeleteFormerCrew(
+      validated.ids,
+      orgId,
+      userId
+    );
 
     logger.info("CrewLifecycleRoutes", `${deletedCount} former crew members deleted`);
     res.json({ deletedCount });

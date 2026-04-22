@@ -74,12 +74,22 @@ for (const line of lines) {
   const nsRefs = line.matchAll(/(\w+)\.\w+/g);
   for (const nsRef of nsRefs) {
     const ns = nsRef[1];
-    if (ns === "undefined" || ns === "console" || ns === "process" || ns === "JSON" || ns === "Math") continue;
-    if (ns === "IS_POSTGRES" || ns === "IS_SQLITE" || ns === "isLocalMode" || ns === "isEmbedded") continue;
+    if (
+      ns === "undefined" ||
+      ns === "console" ||
+      ns === "process" ||
+      ns === "JSON" ||
+      ns === "Math"
+    )
+      continue;
+    if (ns === "IS_POSTGRES" || ns === "IS_SQLITE" || ns === "isLocalMode" || ns === "isEmbedded")
+      continue;
     if (ns.match(/^[a-z]/) && !VALID_NAMESPACES.has(ns) && ns !== "pgSchema") {
       const isImportedNs = runtimeSrc.includes(`import * as ${ns}`);
       if (!isImportedNs && line.includes(`${ns}.`)) {
-        errors.push(`Layer 1 — Invalid namespace '${ns}' in export '${name}': not imported in schema-runtime.ts`);
+        errors.push(
+          `Layer 1 — Invalid namespace '${ns}' in export '${name}': not imported in schema-runtime.ts`
+        );
       }
     }
   }
@@ -93,10 +103,7 @@ while ((m = exportLineRe.exec(runtimeSrc)) !== null) {
 }
 
 const unguarded = allExports.filter(
-  (name) =>
-    !guardedNames.has(name) &&
-    !name.startsWith("insert") &&
-    !name.startsWith("select")
+  (name) => !guardedNames.has(name) && !name.startsWith("insert") && !name.startsWith("select")
 );
 
 if (unguarded.length > 0) {
@@ -107,17 +114,30 @@ if (unguarded.length > 0) {
 // Layer 2 — Column parity check for switched tables
 // ============================================================================
 
-const PG_TYPES = "text|varchar|integer|boolean|timestamp|real|numeric|serial|uuid|jsonb|json|bigint|smallint|doublePrecision|char|decimal|date|time|interval|blob|customType";
+const PG_TYPES =
+  "text|varchar|integer|boolean|timestamp|real|numeric|serial|uuid|jsonb|json|bigint|smallint|doublePrecision|char|decimal|date|time|interval|blob|customType";
 const SQLITE_TYPES = "text|integer|real|blob|numeric";
 const ALL_TYPES = [...new Set([...PG_TYPES.split("|"), ...SQLITE_TYPES.split("|")])].join("|");
 
 const PG_TO_NORMALIZED = {
-  varchar: "text", text: "text", char: "text",
-  integer: "integer", serial: "integer", bigint: "integer", smallint: "integer",
+  varchar: "text",
+  text: "text",
+  char: "text",
+  integer: "integer",
+  serial: "integer",
+  bigint: "integer",
+  smallint: "integer",
   boolean: "integer",
-  real: "real", numeric: "real", decimal: "real", doublePrecision: "real",
-  timestamp: "text", date: "text", time: "text", interval: "text",
-  json: "text", jsonb: "text",
+  real: "real",
+  numeric: "real",
+  decimal: "real",
+  doublePrecision: "real",
+  timestamp: "text",
+  date: "text",
+  time: "text",
+  interval: "text",
+  json: "text",
+  jsonb: "text",
   uuid: "text",
   blob: "blob",
   customType: "text",
@@ -152,7 +172,7 @@ function extractColumnsFromSource(src) {
 function scanSchemaDir(dir) {
   const result = {};
   if (!existsSync(dir)) return result;
-  const entries = readdirSync(dir).filter(f => f.endsWith(".ts") && !f.endsWith(".d.ts"));
+  const entries = readdirSync(dir).filter((f) => f.endsWith(".ts") && !f.endsWith(".d.ts"));
   for (const file of entries) {
     const filePath = join(dir, file);
     const src = readFileSync(filePath, "utf8");
@@ -168,9 +188,7 @@ const sqliteDir = resolve(root, "shared/sqlite-schema");
 const pgTables = scanSchemaDir(pgDir);
 const sqliteTables = scanSchemaDir(sqliteDir);
 
-const COLUMN_PARITY_ALLOWLIST = new Set([
-  "createdAt", "updatedAt", "deletedAt",
-]);
+const COLUMN_PARITY_ALLOWLIST = new Set(["createdAt", "updatedAt", "deletedAt"]);
 
 const baselinePath = resolve(__dirname, "drift-baseline.json");
 const baseline = JSON.parse(readFileSync(baselinePath, "utf8"));
@@ -185,9 +203,9 @@ function isBaselineDrift(tableName, pgOnly, sqliteOnly, typeDriftCols) {
   const baselineSqliteOnly = new Set(entry.sqliteOnly || []);
   const baselineTypeDrift = new Set(entry.typeDrift || []);
 
-  const newPgOnly = pgOnly.filter(c => !baselinePgOnly.has(c));
-  const newSqliteOnly = sqliteOnly.filter(c => !baselineSqliteOnly.has(c));
-  const newTypeDrift = typeDriftCols.filter(c => !baselineTypeDrift.has(c));
+  const newPgOnly = pgOnly.filter((c) => !baselinePgOnly.has(c));
+  const newSqliteOnly = sqliteOnly.filter((c) => !baselineSqliteOnly.has(c));
+  const newTypeDrift = typeDriftCols.filter((c) => !baselineTypeDrift.has(c));
 
   return newPgOnly.length === 0 && newSqliteOnly.length === 0 && newTypeDrift.length === 0;
 }
@@ -205,14 +223,18 @@ for (const pair of switchedPairs) {
   if (pgDef && !sqliteDef) {
     if (!baselineMissing.has(pair.name)) {
       missingTableCount++;
-      errors.push(`Layer 3 — MISSING SQLite table for ${pair.name}: PG has ${pair.pgExport} but no SQLite ${pair.sqliteExport} found`);
+      errors.push(
+        `Layer 3 — MISSING SQLite table for ${pair.name}: PG has ${pair.pgExport} but no SQLite ${pair.sqliteExport} found`
+      );
     }
     continue;
   }
   if (!pgDef && sqliteDef) {
     if (!baselineMissing.has(pair.name)) {
       missingTableCount++;
-      errors.push(`Layer 3 — MISSING PG table for ${pair.name}: SQLite has ${pair.sqliteExport} but no PG ${pair.pgExport} found`);
+      errors.push(
+        `Layer 3 — MISSING PG table for ${pair.name}: SQLite has ${pair.sqliteExport} but no PG ${pair.pgExport} found`
+      );
     }
     continue;
   }
@@ -222,8 +244,12 @@ for (const pair of switchedPairs) {
   pairsChecked++;
   const pgColNames = new Set(pgDef.columns.keys());
   const sqliteColNames = new Set(sqliteDef.columns.keys());
-  const pgOnly = [...pgColNames].filter(c => !sqliteColNames.has(c) && !COLUMN_PARITY_ALLOWLIST.has(c));
-  const sqliteOnly = [...sqliteColNames].filter(c => !pgColNames.has(c) && !COLUMN_PARITY_ALLOWLIST.has(c));
+  const pgOnly = [...pgColNames].filter(
+    (c) => !sqliteColNames.has(c) && !COLUMN_PARITY_ALLOWLIST.has(c)
+  );
+  const sqliteOnly = [...sqliteColNames].filter(
+    (c) => !pgColNames.has(c) && !COLUMN_PARITY_ALLOWLIST.has(c)
+  );
 
   const typeDriftCols = [];
   const typeDriftDetails = [];
@@ -235,7 +261,9 @@ for (const pair of switchedPairs) {
     const sqliteNorm = normalizeType(sqliteType);
     if (pgNorm !== sqliteNorm) {
       typeDriftCols.push(col);
-      typeDriftDetails.push(`${col}: PG=${pgType}(→${pgNorm}) vs SQLite=${sqliteType}(→${sqliteNorm})`);
+      typeDriftDetails.push(
+        `${col}: PG=${pgType}(→${pgNorm}) vs SQLite=${sqliteType}(→${sqliteNorm})`
+      );
     }
   }
 
@@ -244,9 +272,11 @@ for (const pair of switchedPairs) {
       knownDriftCount++;
     } else {
       newDriftCount++;
-      const newPgOnly = pgOnly.filter(c => !(baselineDrift[pair.name]?.pgOnly || []).includes(c));
-      const newSqliteOnly = sqliteOnly.filter(c => !(baselineDrift[pair.name]?.sqliteOnly || []).includes(c));
-      const newTypeDrift = typeDriftDetails.filter(d => {
+      const newPgOnly = pgOnly.filter((c) => !(baselineDrift[pair.name]?.pgOnly || []).includes(c));
+      const newSqliteOnly = sqliteOnly.filter(
+        (c) => !(baselineDrift[pair.name]?.sqliteOnly || []).includes(c)
+      );
+      const newTypeDrift = typeDriftDetails.filter((d) => {
         const col = d.split(":")[0];
         return !(baselineDrift[pair.name]?.typeDrift || []).includes(col);
       });
@@ -257,9 +287,12 @@ for (const pair of switchedPairs) {
       if (!details.length) {
         if (pgOnly.length) details.push(`PG-only cols: ${pgOnly.join(", ")}`);
         if (sqliteOnly.length) details.push(`SQLite-only cols: ${sqliteOnly.join(", ")}`);
-        if (typeDriftDetails.length) details.push(`Type mismatches: ${typeDriftDetails.join("; ")}`);
+        if (typeDriftDetails.length)
+          details.push(`Type mismatches: ${typeDriftDetails.join("; ")}`);
       }
-      errors.push(`Layer 2 — NEW drift in ${pair.name} (${pgDef.tableName}): ${details.join("; ")}`);
+      errors.push(
+        `Layer 2 — NEW drift in ${pair.name} (${pgDef.tableName}): ${details.join("; ")}`
+      );
     }
   }
 }

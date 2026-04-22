@@ -4,16 +4,37 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Building2, ExternalLink, Plus, Loader2, Calendar,
-  CheckCircle2, Clock, AlertTriangle, XCircle, TrendingUp, TrendingDown,
-  FileText, ArrowRight,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Building2,
+  ExternalLink,
+  Plus,
+  Loader2,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  XCircle,
+  TrendingUp,
+  TrendingDown,
+  FileText,
+  ArrowRight,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -31,11 +52,18 @@ import { cn } from "@/lib/utils";
 
 function soStatusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
   switch (status) {
-    case "completed": return "default";
-    case "in_progress": return "secondary";
-    case "cancelled": return "destructive";
-    case "draft": case "sent": case "confirmed": return "outline";
-    default: return "outline";
+    case "completed":
+      return "default";
+    case "in_progress":
+      return "secondary";
+    case "cancelled":
+      return "destructive";
+    case "draft":
+    case "sent":
+    case "confirmed":
+      return "outline";
+    default:
+      return "outline";
   }
 }
 
@@ -60,17 +88,28 @@ const TIMELINE_STEPS = [
 ] as const;
 
 function getTimelineIndex(status: string): number {
-  const map: Record<string, number> = { draft: 0, sent: 1, confirmed: 2, in_progress: 3, completed: 4 };
+  const map: Record<string, number> = {
+    draft: 0,
+    sent: 1,
+    confirmed: 2,
+    in_progress: 3,
+    completed: 4,
+  };
   return map[status] ?? -1;
 }
 
 function getTimestampForStep(so: LinkedServiceOrder, stepKey: string): string | null {
   switch (stepKey) {
-    case "created": return so.createdAt;
-    case "sent": return so.sentAt;
-    case "confirmed": return so.confirmedAt;
-    case "completed": return so.completedAt;
-    default: return null;
+    case "created":
+      return so.createdAt;
+    case "sent":
+      return so.sentAt;
+    case "confirmed":
+      return so.confirmedAt;
+    case "completed":
+      return so.completedAt;
+    default:
+      return null;
   }
 }
 
@@ -80,7 +119,10 @@ function MiniTimeline({ so }: { so: LinkedServiceOrder }) {
 
   if (isCancelled) {
     return (
-      <div className="flex items-center gap-1.5 text-xs text-destructive" data-testid={`timeline-cancelled-${so.id}`}>
+      <div
+        className="flex items-center gap-1.5 text-xs text-destructive"
+        data-testid={`timeline-cancelled-${so.id}`}
+      >
         <XCircle className="h-3.5 w-3.5" />
         <span>Cancelled{so.cancellationReason ? `: ${so.cancellationReason}` : ""}</span>
       </div>
@@ -100,13 +142,20 @@ function MiniTimeline({ so }: { so: LinkedServiceOrder }) {
                 className={cn(
                   "h-2 w-2 rounded-full border transition-colors",
                   isDone
-                    ? isCurrent ? "bg-primary border-primary" : "bg-primary/60 border-primary/60"
+                    ? isCurrent
+                      ? "bg-primary border-primary"
+                      : "bg-primary/60 border-primary/60"
                     : "bg-muted border-muted-foreground/30"
                 )}
                 title={ts ? `${step.label}: ${new Date(ts).toLocaleDateString()}` : step.label}
               />
               {i < TIMELINE_STEPS.length - 1 && (
-                <div className={cn("h-0.5 w-3 transition-colors", i < currentIdx ? "bg-primary/60" : "bg-muted-foreground/20")} />
+                <div
+                  className={cn(
+                    "h-0.5 w-3 transition-colors",
+                    i < currentIdx ? "bg-primary/60" : "bg-muted-foreground/20"
+                  )}
+                />
               )}
             </div>
           );
@@ -117,9 +166,30 @@ function MiniTimeline({ so }: { so: LinkedServiceOrder }) {
       </div>
       {(so.sentAt || so.confirmedAt || so.completedAt) && (
         <div className="flex gap-3 text-[10px] text-muted-foreground">
-          {so.sentAt && <span>Sent: {new Date(so.sentAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
-          {so.confirmedAt && <span>Confirmed: {new Date(so.confirmedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
-          {so.completedAt && <span>Completed: {new Date(so.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
+          {so.sentAt && (
+            <span>
+              Sent:{" "}
+              {new Date(so.sentAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            </span>
+          )}
+          {so.confirmedAt && (
+            <span>
+              Confirmed:{" "}
+              {new Date(so.confirmedAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              })}
+            </span>
+          )}
+          {so.completedAt && (
+            <span>
+              Completed:{" "}
+              {new Date(so.completedAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              })}
+            </span>
+          )}
         </div>
       )}
     </div>
@@ -127,9 +197,13 @@ function MiniTimeline({ so }: { so: LinkedServiceOrder }) {
 }
 
 function OnTrackIndicator({ so }: { so: LinkedServiceOrder }) {
-  if (so.status === "completed" || so.status === "cancelled" || so.status === "draft") {return null;}
+  if (so.status === "completed" || so.status === "cancelled" || so.status === "draft") {
+    return null;
+  }
   const scheduledEnd = so.scheduledEndDate ? new Date(so.scheduledEndDate) : null;
-  if (!scheduledEnd) {return null;}
+  if (!scheduledEnd) {
+    return null;
+  }
 
   const now = new Date();
   const daysLeft = Math.ceil((scheduledEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
@@ -137,20 +211,29 @@ function OnTrackIndicator({ so }: { so: LinkedServiceOrder }) {
 
   if (isOverdue) {
     return (
-      <div className="flex items-center gap-1 text-[10px] text-destructive font-medium" data-testid={`indicator-overdue-${so.id}`}>
+      <div
+        className="flex items-center gap-1 text-[10px] text-destructive font-medium"
+        data-testid={`indicator-overdue-${so.id}`}
+      >
         <AlertTriangle className="h-3 w-3" /> {Math.abs(daysLeft)}d overdue
       </div>
     );
   }
   if (daysLeft <= 3) {
     return (
-      <div className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 font-medium" data-testid={`indicator-due-soon-${so.id}`}>
+      <div
+        className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 font-medium"
+        data-testid={`indicator-due-soon-${so.id}`}
+      >
         <Clock className="h-3 w-3" /> {daysLeft}d left
       </div>
     );
   }
   return (
-    <div className="flex items-center gap-1 text-[10px] text-green-600 dark:text-green-400" data-testid={`indicator-on-track-${so.id}`}>
+    <div
+      className="flex items-center gap-1 text-[10px] text-green-600 dark:text-green-400"
+      data-testid={`indicator-on-track-${so.id}`}
+    >
       <CheckCircle2 className="h-3 w-3" /> On track
     </div>
   );
@@ -160,7 +243,9 @@ function CostVariance({ so }: { so: LinkedServiceOrder }) {
   const quoted = so.quotedAmount;
   const actual = so.actualAmount;
   const currency = so.currency || "USD";
-  if (quoted == null && actual == null) {return null;}
+  if (quoted == null && actual == null) {
+    return null;
+  }
 
   const fmt = (v: number) => {
     try {
@@ -181,9 +266,16 @@ function CostVariance({ so }: { so: LinkedServiceOrder }) {
           <span>Actual: {fmt(actual)}</span>
         </div>
         {variance !== 0 && (
-          <div className={cn("flex items-center gap-1 text-[10px] font-medium", isOver ? "text-destructive" : "text-green-600 dark:text-green-400")}>
+          <div
+            className={cn(
+              "flex items-center gap-1 text-[10px] font-medium",
+              isOver ? "text-destructive" : "text-green-600 dark:text-green-400"
+            )}
+          >
             {isOver ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-            {isOver ? "+" : ""}{fmt(variance)} ({isOver ? "+" : ""}{pct}%)
+            {isOver ? "+" : ""}
+            {fmt(variance)} ({isOver ? "+" : ""}
+            {pct}%)
           </div>
         )}
       </div>
@@ -198,9 +290,20 @@ function CostVariance({ so }: { so: LinkedServiceOrder }) {
   );
 }
 
-function DateRange({ label, start, end }: { label: string; start: string | null; end: string | null }) {
-  if (!start && !end) {return null;}
-  const fmtDate = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+function DateRange({
+  label,
+  start,
+  end,
+}: {
+  label: string;
+  start: string | null;
+  end: string | null;
+}) {
+  if (!start && !end) {
+    return null;
+  }
+  const fmtDate = (d: string) =>
+    new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   return (
     <div className="flex items-center gap-1 text-xs text-muted-foreground">
       <Calendar className="h-3 w-3 flex-shrink-0" />
@@ -226,7 +329,11 @@ function ServiceRequestCard({ sr }: { sr: ServiceRequest }) {
           <SRPriorityBadge priority={sr.urgency} />
         </div>
         {sr.serviceOrderId && (
-          <Link href={`/service-orders?id=${sr.serviceOrderId}`} className="text-xs text-primary hover:underline flex items-center gap-1" data-testid={`link-sr-so-${sr.id}`}>
+          <Link
+            href={`/service-orders?id=${sr.serviceOrderId}`}
+            className="text-xs text-primary hover:underline flex items-center gap-1"
+            data-testid={`link-sr-so-${sr.id}`}
+          >
             <ArrowRight className="h-3 w-3" /> View SO
           </Link>
         )}
@@ -274,7 +381,10 @@ function CreateServiceRequestDialog({
           estimatedCost: form.estimatedCost ? parseFloat(form.estimatedCost) : undefined,
         },
       });
-      toast({ title: "Service request submitted", description: `Linked to ${workOrderNumber}. Procurement will review.` });
+      toast({
+        title: "Service request submitted",
+        description: `Linked to ${workOrderNumber}. Procurement will review.`,
+      });
       onClose();
       setForm({ title: "", description: "", urgency: "medium", estimatedCost: "" });
     } catch (err) {
@@ -292,7 +402,8 @@ function CreateServiceRequestDialog({
         <DialogHeader>
           <DialogTitle>Request External Service</DialogTitle>
           <DialogDescription>
-            Submit a service request for {workOrderNumber}. Procurement will review and convert it to a formal Service Order if approved.
+            Submit a service request for {workOrderNumber}. Procurement will review and convert it
+            to a formal Service Order if approved.
           </DialogDescription>
         </DialogHeader>
 
@@ -321,8 +432,13 @@ function CreateServiceRequestDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Urgency</Label>
-              <Select value={form.urgency} onValueChange={(v) => setForm((p) => ({ ...p, urgency: v }))}>
-                <SelectTrigger data-testid="select-sr-urgency"><SelectValue /></SelectTrigger>
+              <Select
+                value={form.urgency}
+                onValueChange={(v) => setForm((p) => ({ ...p, urgency: v }))}
+              >
+                <SelectTrigger data-testid="select-sr-urgency">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">Low</SelectItem>
                   <SelectItem value="medium">Medium</SelectItem>
@@ -346,13 +462,19 @@ function CreateServiceRequestDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
           <Button
             onClick={handleSubmit}
             disabled={createMutation.isPending || !form.title.trim()}
             data-testid="button-submit-service-request"
           >
-            {createMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+            {createMutation.isPending ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4 mr-2" />
+            )}
             Submit Request
           </Button>
         </DialogFooter>
@@ -378,8 +500,12 @@ export function LinkedServiceOrdersPanel({
 
   const serviceOrders = soData?.serviceOrders || [];
   const serviceRequests = srData?.serviceRequests || [];
-  const hasActiveServiceOrders = serviceOrders.some((so) => !["completed", "cancelled"].includes(so.status));
-  const hasPendingRequests = serviceRequests.some((sr) => ["pending_review", "under_review", "approved"].includes(sr.status));
+  const hasActiveServiceOrders = serviceOrders.some(
+    (so) => !["completed", "cancelled"].includes(so.status)
+  );
+  const hasPendingRequests = serviceRequests.some((sr) =>
+    ["pending_review", "under_review", "approved"].includes(sr.status)
+  );
   const isLoading = soLoading || srLoading;
 
   return (
@@ -408,7 +534,10 @@ export function LinkedServiceOrdersPanel({
       </div>
 
       {(workOrderStatus === "awaiting_service" || hasActiveServiceOrders || hasPendingRequests) && (
-        <div className="p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600 dark:text-amber-400 mb-3" data-testid="awaiting-service-banner">
+        <div
+          className="p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600 dark:text-amber-400 mb-3"
+          data-testid="awaiting-service-banner"
+        >
           {hasPendingRequests && !hasActiveServiceOrders
             ? "Service request submitted — awaiting procurement review."
             : "This work order is awaiting external service completion."}
@@ -421,16 +550,23 @@ export function LinkedServiceOrdersPanel({
           <Skeleton className="h-16" />
         </div>
       ) : serviceRequests.length === 0 && serviceOrders.length === 0 ? (
-        <div className="text-center py-4 text-muted-foreground text-xs border rounded-lg" data-testid="no-linked-sos">
+        <div
+          className="text-center py-4 text-muted-foreground text-xs border rounded-lg"
+          data-testid="no-linked-sos"
+        >
           No service requests or orders linked.
           <br />
-          <span className="text-[11px]">Click "Request Service" to submit a request to procurement.</span>
+          <span className="text-[11px]">
+            Click "Request Service" to submit a request to procurement.
+          </span>
         </div>
       ) : (
         <div className="space-y-3">
           {serviceRequests.length > 0 && (
             <div className="space-y-2">
-              <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Service Requests</div>
+              <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                Service Requests
+              </div>
               {serviceRequests.map((sr) => (
                 <ServiceRequestCard key={sr.id} sr={sr} />
               ))}
@@ -440,7 +576,9 @@ export function LinkedServiceOrdersPanel({
           {serviceOrders.length > 0 && (
             <div className="space-y-2">
               {serviceRequests.length > 0 && (
-                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mt-3">Service Orders</div>
+                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mt-3">
+                  Service Orders
+                </div>
               )}
               {serviceOrders.map((so) => (
                 <div
@@ -456,7 +594,11 @@ export function LinkedServiceOrdersPanel({
                       </Badge>
                       <OnTrackIndicator so={so} />
                     </div>
-                    <Link href={`/service-orders?id=${so.id}`} className="text-xs text-primary hover:underline flex items-center gap-1" data-testid={`link-so-${so.id}`}>
+                    <Link
+                      href={`/service-orders?id=${so.id}`}
+                      className="text-xs text-primary hover:underline flex items-center gap-1"
+                      data-testid={`link-so-${so.id}`}
+                    >
                       Open <ExternalLink className="h-3 w-3" />
                     </Link>
                   </div>
@@ -486,7 +628,11 @@ export function LinkedServiceOrdersPanel({
                   )}
 
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                    <DateRange label="Scheduled" start={so.scheduledStartDate} end={so.scheduledEndDate} />
+                    <DateRange
+                      label="Scheduled"
+                      start={so.scheduledStartDate}
+                      end={so.scheduledEndDate}
+                    />
                     {(so.actualStartDate || so.actualEndDate) && (
                       <DateRange label="Actual" start={so.actualStartDate} end={so.actualEndDate} />
                     )}
@@ -499,14 +645,21 @@ export function LinkedServiceOrdersPanel({
                   )}
 
                   {so.serviceDetails && (
-                    <div className="text-xs text-muted-foreground" data-testid={`so-service-details-${so.id}`}>
+                    <div
+                      className="text-xs text-muted-foreground"
+                      data-testid={`so-service-details-${so.id}`}
+                    >
                       <span className="font-medium">Details:</span> {so.serviceDetails}
                     </div>
                   )}
 
                   {so.specialRequirements && (
-                    <div className="text-xs text-amber-600 dark:text-amber-400" data-testid={`so-special-req-${so.id}`}>
-                      <span className="font-medium">Special Requirements:</span> {so.specialRequirements}
+                    <div
+                      className="text-xs text-amber-600 dark:text-amber-400"
+                      data-testid={`so-special-req-${so.id}`}
+                    >
+                      <span className="font-medium">Special Requirements:</span>{" "}
+                      {so.specialRequirements}
                     </div>
                   )}
 
@@ -518,11 +671,22 @@ export function LinkedServiceOrdersPanel({
 
                   {(so.estimatedDurationHours != null || so.actualDurationHours != null) && (
                     <div className="flex gap-3 text-xs text-muted-foreground">
-                      {so.estimatedDurationHours != null && <span>Est. Duration: {so.estimatedDurationHours}h</span>}
-                      {so.actualDurationHours != null && <span>Actual: {so.actualDurationHours}h</span>}
+                      {so.estimatedDurationHours != null && (
+                        <span>Est. Duration: {so.estimatedDurationHours}h</span>
+                      )}
+                      {so.actualDurationHours != null && (
+                        <span>Actual: {so.actualDurationHours}h</span>
+                      )}
                       {so.estimatedDurationHours != null && so.actualDurationHours != null && (
-                        <span className={so.actualDurationHours > so.estimatedDurationHours ? "text-destructive" : "text-green-600 dark:text-green-400"}>
-                          ({so.actualDurationHours > so.estimatedDurationHours ? "+" : ""}{(so.actualDurationHours - so.estimatedDurationHours).toFixed(1)}h)
+                        <span
+                          className={
+                            so.actualDurationHours > so.estimatedDurationHours
+                              ? "text-destructive"
+                              : "text-green-600 dark:text-green-400"
+                          }
+                        >
+                          ({so.actualDurationHours > so.estimatedDurationHours ? "+" : ""}
+                          {(so.actualDurationHours - so.estimatedDurationHours).toFixed(1)}h)
                         </span>
                       )}
                     </div>

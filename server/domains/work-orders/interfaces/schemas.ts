@@ -29,17 +29,19 @@ export const isoDateString = z.string().refine(
   { message: "Date must be in ISO 8601 format (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ssZ)" }
 );
 
-export const cloneWorkOrderSchema = z.object({
-  plannedStartDate: isoDateString.optional().nullable(),
-  plannedEndDate: isoDateString.optional().nullable(),
-  includeTasks: z.boolean().optional(),
-  includeParts: z.boolean().optional(),
-}).refine(
-  (data) => {
-    if (data.plannedStartDate && data.plannedEndDate) {
-      return new Date(data.plannedEndDate) >= new Date(data.plannedStartDate);
-    }
-    return true;
-  },
-  { message: "End date must be after start date", path: ["plannedEndDate"] }
-);
+export const cloneWorkOrderSchema = z
+  .object({
+    plannedStartDate: isoDateString.optional().nullable(),
+    plannedEndDate: isoDateString.optional().nullable(),
+    includeTasks: z.boolean().optional(),
+    includeParts: z.boolean().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.plannedStartDate && data.plannedEndDate) {
+        return new Date(data.plannedEndDate) >= new Date(data.plannedStartDate);
+      }
+      return true;
+    },
+    { message: "End date must be after start date", path: ["plannedEndDate"] }
+  );

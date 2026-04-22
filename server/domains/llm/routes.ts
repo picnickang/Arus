@@ -1,9 +1,9 @@
 /**
  * LLM Routes - Backward Compatibility Shim
- * 
+ *
  * This file delegates to the modularized routes/ directory.
  * All functionality has been preserved in focused, maintainable modules.
- * 
+ *
  * @see server/domains/llm/routes/index.ts for the modular implementation
  */
 

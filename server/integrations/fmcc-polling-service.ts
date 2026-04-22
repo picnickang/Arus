@@ -1,8 +1,8 @@
-import { EventEmitter } from 'node:events';
-import { trackLogService, Position } from '../services/track-log-service';
-import { dbTelemetryStorage } from '../repositories';
-import { getFMCCService } from './index';
-import type { FmccSnapshot, FmccPollingConfig, FmccHealthStatus } from './fmcc-types';
+import { EventEmitter } from "node:events";
+import { trackLogService, Position } from "../services/track-log-service";
+import { dbTelemetryStorage } from "../repositories";
+import { getFMCCService } from "./index";
+import type { FmccSnapshot, FmccPollingConfig, FmccHealthStatus } from "./fmcc-types";
 
 export class FmccPollingService extends EventEmitter {
   private config: FmccPollingConfig;
@@ -12,12 +12,12 @@ export class FmccPollingService extends EventEmitter {
 
   constructor(config: Partial<FmccPollingConfig> = {}) {
     super();
-    
+
     this.config = {
-      enabled: process.env.FMCC_ENABLED === 'true',
-      vesselId: config.vesselId || process.env.FMCC_VESSEL_ID || 'default-vessel',
-      orgId: config.orgId || process.env.FMCC_ORG_ID || 'default-org-id',
-      pollIntervalMs: Number.parseInt(process.env.FMCC_POLLING_INTERVAL_MS || '60000', 10),
+      enabled: process.env.FMCC_ENABLED === "true",
+      vesselId: config.vesselId || process.env.FMCC_VESSEL_ID || "default-vessel",
+      orgId: config.orgId || process.env.FMCC_ORG_ID || "default-org-id",
+      pollIntervalMs: Number.parseInt(process.env.FMCC_POLLING_INTERVAL_MS || "60000", 10),
       enableTrackLogging: config.enableTrackLogging ?? true,
       enableTelemetryLogging: config.enableTelemetryLogging ?? true,
       minPositionChangeNm: config.minPositionChangeNm ?? 0.05,
@@ -37,18 +37,18 @@ export class FmccPollingService extends EventEmitter {
     };
 
     if (!this.config.enabled) {
-      console.log('[FMCC Polling] Service disabled (FMCC_ENABLED != true)');
+      console.log("[FMCC Polling] Service disabled (FMCC_ENABLED != true)");
     }
   }
 
   start(): void {
     if (!this.config.enabled) {
-      console.log('[FMCC Polling] Not starting - FMCC is disabled');
+      console.log("[FMCC Polling] Not starting - FMCC is disabled");
       return;
     }
 
     if (this.pollingInterval) {
-      console.warn('[FMCC Polling] Already running, ignoring start request');
+      console.warn("[FMCC Polling] Already running, ignoring start request");
       return;
     }
 
@@ -58,48 +58,49 @@ export class FmccPollingService extends EventEmitter {
     console.log(`[FMCC Polling] Telemetry logging: ${this.config.enableTelemetryLogging}`);
 
     this.pollingInterval = setInterval(
-      () => this.poll().catch(err => this.handlePollError(err)),
+      () => this.poll().catch((err) => this.handlePollError(err)),
       this.config.pollIntervalMs
     );
 
-    this.poll().catch(err => this.handlePollError(err));
+    this.poll().catch((err) => this.handlePollError(err));
   }
 
   stop(): void {
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
-      console.log('[FMCC Polling] Stopped');
+      console.log("[FMCC Polling] Stopped");
     }
   }
 
   async poll(): Promise<FmccSnapshot | null> {
-    if (!this.config.enabled) { return null; }
+    if (!this.config.enabled) {
+      return null;
+    }
 
     const startTime = Date.now();
     const fmccService = getFMCCService();
 
     if (!fmccService.isReady()) {
-      console.log('[FMCC Polling] Service not ready, skipping poll');
+      console.log("[FMCC Polling] Service not ready, skipping poll");
       return null;
     }
 
     try {
       const result = await fmccService.getInstantFuelFlow(this.config.vesselId);
-      
+
       if (!result.success || !result.data) {
-        throw new Error(result.error || 'Failed to get FMCC data');
+        throw new Error(result.error || "Failed to get FMCC data");
       }
 
       const snapshot = this.buildSnapshot(result.data);
-      
+
       await this.routeToSubsystems(snapshot);
 
       this.updateHealthSuccess(Date.now() - startTime);
-      this.emit('poll_success', snapshot);
-      
-      return snapshot;
+      this.emit("poll_success", snapshot);
 
+      return snapshot;
     } catch (error) {
       this.handlePollError(error);
       return null;
@@ -111,18 +112,24 @@ export class FmccPollingService extends EventEmitter {
       vesselId: this.config.vesselId,
       orgId: this.config.orgId,
       timestamp: new Date().toISOString(),
-      source: 'fmcc',
+      source: "fmcc",
       fuel: {},
     };
 
     const fuelData = data.fuel ?? data;
-    const hasFuelData = fuelData.foFlowKgPerH !== undefined || fuelData.foNetFlowKgPerH !== undefined ||
-      fuelData.totalFlowKgPerH !== undefined || fuelData.mainEngineFlowKgPerH !== undefined ||
-      fuelData.bunkerFlowKgPerH !== undefined || fuelData.doFlowKgPerH !== undefined ||
-      fuelData.boilerFlowKgPerH !== undefined || fuelData.foDensity !== undefined;
+    const hasFuelData =
+      fuelData.foFlowKgPerH !== undefined ||
+      fuelData.foNetFlowKgPerH !== undefined ||
+      fuelData.totalFlowKgPerH !== undefined ||
+      fuelData.mainEngineFlowKgPerH !== undefined ||
+      fuelData.bunkerFlowKgPerH !== undefined ||
+      fuelData.doFlowKgPerH !== undefined ||
+      fuelData.boilerFlowKgPerH !== undefined ||
+      fuelData.foDensity !== undefined;
     if (hasFuelData) {
       snapshot.fuel = {
-        totalFlowKgPerH: fuelData.totalFlowKgPerH ?? fuelData.foNetFlowKgPerH ?? fuelData.foFlowKgPerH,
+        totalFlowKgPerH:
+          fuelData.totalFlowKgPerH ?? fuelData.foNetFlowKgPerH ?? fuelData.foFlowKgPerH,
         mainEngineFlowKgPerH: fuelData.mainEngineFlowKgPerH ?? fuelData.foFlowKgPerH,
         generatorFlowKgPerH: fuelData.generatorFlowKgPerH ?? fuelData.doFlowKgPerH,
         portEngineFlowKgPerH: fuelData.portEngineFlowKgPerH,
@@ -194,26 +201,32 @@ export class FmccPollingService extends EventEmitter {
     }
 
     if (this.config.enableTelemetryLogging) {
-      const hasFuel = snapshot.fuel && Object.values(snapshot.fuel).some(v => v !== undefined);
+      const hasFuel = snapshot.fuel && Object.values(snapshot.fuel).some((v) => v !== undefined);
       if (hasFuel) {
-        promises.push(this.routeToTelemetry(snapshot, 'fuel'));
+        promises.push(this.routeToTelemetry(snapshot, "fuel"));
       }
 
-      const hasEngine = snapshot.engine && Object.values(snapshot.engine).some(v => v !== undefined);
+      const hasEngine =
+        snapshot.engine && Object.values(snapshot.engine).some((v) => v !== undefined);
       if (hasEngine) {
-        promises.push(this.routeToTelemetry(snapshot, 'engine'));
+        promises.push(this.routeToTelemetry(snapshot, "engine"));
       }
 
       if (snapshot.tanks) {
-        promises.push(this.routeToTelemetry(snapshot, 'tanks'));
+        promises.push(this.routeToTelemetry(snapshot, "tanks"));
       }
 
-      if (snapshot.shaft && (snapshot.shaft.powerKw !== undefined || snapshot.shaft.torqueNm !== undefined || snapshot.shaft.rpmShaft !== undefined)) {
-        promises.push(this.routeToTelemetry(snapshot, 'shaft'));
+      if (
+        snapshot.shaft &&
+        (snapshot.shaft.powerKw !== undefined ||
+          snapshot.shaft.torqueNm !== undefined ||
+          snapshot.shaft.rpmShaft !== undefined)
+      ) {
+        promises.push(this.routeToTelemetry(snapshot, "shaft"));
       }
 
       if (snapshot.fuel.bunkerFlowKgPerH !== undefined) {
-        promises.push(this.routeToTelemetry(snapshot, 'bunker'));
+        promises.push(this.routeToTelemetry(snapshot, "bunker"));
       }
     }
 
@@ -221,7 +234,9 @@ export class FmccPollingService extends EventEmitter {
   }
 
   private async routeToTrackLog(snapshot: FmccSnapshot): Promise<void> {
-    if (!snapshot.navigation?.latDeg || !snapshot.navigation?.lonDeg) { return; }
+    if (!snapshot.navigation?.latDeg || !snapshot.navigation?.lonDeg) {
+      return;
+    }
 
     const position: Position = {
       latitude: snapshot.navigation.latDeg,
@@ -230,23 +245,21 @@ export class FmccPollingService extends EventEmitter {
       sog: snapshot.navigation.speedOverGround,
       cog: snapshot.navigation.courseOverGround,
       heading: snapshot.navigation.heading,
-      source: 'fmcc',
+      source: "fmcc",
     };
 
     if (!this.isValidPosition(position.latitude, position.longitude)) {
-      console.warn('[FMCC Polling] Invalid position coordinates, skipping track log');
+      console.warn("[FMCC Polling] Invalid position coordinates, skipping track log");
       return;
     }
 
     try {
-      const logId = await trackLogService.logPosition(
-        snapshot.orgId,
-        snapshot.vesselId,
-        position
-      );
+      const logId = await trackLogService.logPosition(snapshot.orgId, snapshot.vesselId, position);
 
       if (logId) {
-        console.log(`[FMCC Polling] Track point logged: ${logId} (${position.latitude.toFixed(4)}, ${position.longitude.toFixed(4)})`);
+        console.log(
+          `[FMCC Polling] Track point logged: ${logId} (${position.latitude.toFixed(4)}, ${position.longitude.toFixed(4)})`
+        );
         this.lastPosition = {
           lat: position.latitude,
           lon: position.longitude,
@@ -254,29 +267,32 @@ export class FmccPollingService extends EventEmitter {
         };
       }
     } catch (error) {
-      console.error('[FMCC Polling] Failed to log track point:', error);
+      console.error("[FMCC Polling] Failed to log track point:", error);
     }
   }
 
-  private async routeToTelemetry(snapshot: FmccSnapshot, type: 'fuel' | 'engine' | 'tanks' | 'shaft' | 'bunker'): Promise<void> {
+  private async routeToTelemetry(
+    snapshot: FmccSnapshot,
+    type: "fuel" | "engine" | "tanks" | "shaft" | "bunker"
+  ): Promise<void> {
     try {
       const timestamp = new Date(snapshot.timestamp);
 
-      if (type === 'fuel') {
+      if (type === "fuel") {
         if (snapshot.fuel.totalFlowKgPerH !== undefined) {
           await dbTelemetryStorage.createTelemetryReading({
             equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
-            sensorType: 'fuel_consumption',
+            sensorType: "fuel_consumption",
             value: snapshot.fuel.totalFlowKgPerH,
             timestamp,
             metadata: {
-              source: 'fmcc',
+              source: "fmcc",
               vesselId: snapshot.vesselId,
               foDensity: snapshot.fuel.foDensity,
               foTemperature: snapshot.fuel.foTemperature,
               doDensity: snapshot.fuel.doDensity,
               doTemperature: snapshot.fuel.doTemperature,
-              unit: 'kg/h',
+              unit: "kg/h",
             },
           });
         }
@@ -284,32 +300,32 @@ export class FmccPollingService extends EventEmitter {
         if (snapshot.fuel.foDensity !== undefined) {
           await dbTelemetryStorage.createTelemetryReading({
             equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
-            sensorType: 'fuel_density',
+            sensorType: "fuel_density",
             value: snapshot.fuel.foDensity,
             timestamp,
-            metadata: { source: 'fmcc', vesselId: snapshot.vesselId, unit: 'kg/m³' },
+            metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kg/m³" },
           });
         }
 
         if (snapshot.fuel.foTemperature !== undefined) {
           await dbTelemetryStorage.createTelemetryReading({
             equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
-            sensorType: 'fuel_temperature',
+            sensorType: "fuel_temperature",
             value: snapshot.fuel.foTemperature,
             timestamp,
-            metadata: { source: 'fmcc', vesselId: snapshot.vesselId, unit: '°C' },
+            metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "°C" },
           });
         }
 
         const perEngineFlows: Array<[string, number | undefined]> = [
-          ['main_engine_flow', snapshot.fuel.mainEngineFlowKgPerH],
-          ['port_engine_flow', snapshot.fuel.portEngineFlowKgPerH],
-          ['stbd_engine_flow', snapshot.fuel.stbdEngineFlowKgPerH],
-          ['generator_flow', snapshot.fuel.generatorFlowKgPerH],
-          ['boiler_flow', snapshot.fuel.boilerFlowKgPerH],
-          ['do_flow', snapshot.fuel.doFlowKgPerH],
-          ['aux_engine_1_flow', snapshot.fuel.auxEngine1FlowKgPerH],
-          ['aux_engine_2_flow', snapshot.fuel.auxEngine2FlowKgPerH],
+          ["main_engine_flow", snapshot.fuel.mainEngineFlowKgPerH],
+          ["port_engine_flow", snapshot.fuel.portEngineFlowKgPerH],
+          ["stbd_engine_flow", snapshot.fuel.stbdEngineFlowKgPerH],
+          ["generator_flow", snapshot.fuel.generatorFlowKgPerH],
+          ["boiler_flow", snapshot.fuel.boilerFlowKgPerH],
+          ["do_flow", snapshot.fuel.doFlowKgPerH],
+          ["aux_engine_1_flow", snapshot.fuel.auxEngine1FlowKgPerH],
+          ["aux_engine_2_flow", snapshot.fuel.auxEngine2FlowKgPerH],
         ];
         for (const [sensorType, value] of perEngineFlows) {
           if (value !== undefined) {
@@ -318,59 +334,59 @@ export class FmccPollingService extends EventEmitter {
               sensorType,
               value,
               timestamp,
-              metadata: { source: 'fmcc', vesselId: snapshot.vesselId, unit: 'kg/h' },
+              metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kg/h" },
             });
           }
         }
       }
 
-      if (type === 'engine' && snapshot.engine) {
+      if (type === "engine" && snapshot.engine) {
         if (snapshot.engine.rpm !== undefined) {
           await dbTelemetryStorage.createTelemetryReading({
             equipmentId: `fmcc-engine-${snapshot.vesselId}`,
-            sensorType: 'rpm',
+            sensorType: "rpm",
             value: snapshot.engine.rpm,
             timestamp,
-            metadata: { source: 'fmcc', vesselId: snapshot.vesselId, unit: 'rpm' },
+            metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "rpm" },
           });
         }
         if (snapshot.engine.loadPercent !== undefined) {
           await dbTelemetryStorage.createTelemetryReading({
             equipmentId: `fmcc-engine-${snapshot.vesselId}`,
-            sensorType: 'engine_load',
+            sensorType: "engine_load",
             value: snapshot.engine.loadPercent,
             timestamp,
-            metadata: { source: 'fmcc', vesselId: snapshot.vesselId, unit: '%' },
+            metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "%" },
           });
         }
 
         if (snapshot.engine.powerKw !== undefined) {
           await dbTelemetryStorage.createTelemetryReading({
             equipmentId: `fmcc-engine-${snapshot.vesselId}`,
-            sensorType: 'power_output',
+            sensorType: "power_output",
             value: snapshot.engine.powerKw,
             timestamp,
-            metadata: { source: 'fmcc', vesselId: snapshot.vesselId, unit: 'kW' },
+            metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kW" },
           });
         }
 
         if (snapshot.engine.runningHours !== undefined) {
           await dbTelemetryStorage.createTelemetryReading({
             equipmentId: `fmcc-engine-${snapshot.vesselId}`,
-            sensorType: 'running_hours',
+            sensorType: "running_hours",
             value: snapshot.engine.runningHours,
             timestamp,
-            metadata: { source: 'fmcc', vesselId: snapshot.vesselId, unit: 'hours' },
+            metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "hours" },
           });
         }
       }
 
-      if (type === 'tanks' && snapshot.tanks) {
+      if (type === "tanks" && snapshot.tanks) {
         const tankEntries: Array<[string, number | undefined]> = [
-          ['tank_fo_service', snapshot.tanks.foServiceLevelPct],
-          ['tank_fo_settling', snapshot.tanks.foSettlingLevelPct],
-          ['tank_do_service', snapshot.tanks.doServiceLevelPct],
-          ['tank_do_settling', snapshot.tanks.doSettlingLevelPct],
+          ["tank_fo_service", snapshot.tanks.foServiceLevelPct],
+          ["tank_fo_settling", snapshot.tanks.foSettlingLevelPct],
+          ["tank_do_service", snapshot.tanks.doServiceLevelPct],
+          ["tank_do_settling", snapshot.tanks.doSettlingLevelPct],
         ];
         for (const [sensorType, value] of tankEntries) {
           if (value !== undefined) {
@@ -379,18 +395,18 @@ export class FmccPollingService extends EventEmitter {
               sensorType,
               value,
               timestamp,
-              metadata: { source: 'fmcc', vesselId: snapshot.vesselId, unit: '%' },
+              metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "%" },
             });
           }
         }
       }
 
-      if (type === 'shaft' && snapshot.shaft) {
+      if (type === "shaft" && snapshot.shaft) {
         const shaftEntries: Array<[string, number | undefined, string]> = [
-          ['shaft_power', snapshot.shaft.powerKw, 'kW'],
-          ['shaft_torque', snapshot.shaft.torqueNm, 'Nm'],
-          ['shaft_rpm', snapshot.shaft.rpmShaft, 'RPM'],
-          ['shaft_generator', snapshot.shaft.shaftGeneratorKw, 'kW'],
+          ["shaft_power", snapshot.shaft.powerKw, "kW"],
+          ["shaft_torque", snapshot.shaft.torqueNm, "Nm"],
+          ["shaft_rpm", snapshot.shaft.rpmShaft, "RPM"],
+          ["shaft_generator", snapshot.shaft.shaftGeneratorKw, "kW"],
         ];
         for (const [sensorType, value, unit] of shaftEntries) {
           if (value !== undefined) {
@@ -399,19 +415,19 @@ export class FmccPollingService extends EventEmitter {
               sensorType,
               value,
               timestamp,
-              metadata: { source: 'fmcc', vesselId: snapshot.vesselId, unit },
+              metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit },
             });
           }
         }
       }
 
-      if (type === 'bunker' && snapshot.fuel.bunkerFlowKgPerH !== undefined) {
+      if (type === "bunker" && snapshot.fuel.bunkerFlowKgPerH !== undefined) {
         await dbTelemetryStorage.createTelemetryReading({
           equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
-          sensorType: 'bunker_flow',
+          sensorType: "bunker_flow",
           value: snapshot.fuel.bunkerFlowKgPerH,
           timestamp,
-          metadata: { source: 'fmcc', vesselId: snapshot.vesselId, unit: 'kg/h' },
+          metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kg/h" },
         });
       }
     } catch (error) {
@@ -432,12 +448,21 @@ export class FmccPollingService extends EventEmitter {
     this.health.connected = false;
 
     if (this.health.consecutiveFailures <= 3) {
-      console.warn(`[FMCC Polling] Poll failed (attempt ${this.health.consecutiveFailures}):`, message);
+      console.warn(
+        `[FMCC Polling] Poll failed (attempt ${this.health.consecutiveFailures}):`,
+        message
+      );
     } else if (this.health.consecutiveFailures % 10 === 0) {
-      console.error(`[FMCC Polling] ${this.health.consecutiveFailures} consecutive failures:`, message);
+      console.error(
+        `[FMCC Polling] ${this.health.consecutiveFailures} consecutive failures:`,
+        message
+      );
     }
 
-    this.emit('poll_error', { error: message, consecutiveFailures: this.health.consecutiveFailures });
+    this.emit("poll_error", {
+      error: message,
+      consecutiveFailures: this.health.consecutiveFailures,
+    });
   }
 
   private updateHealthSuccess(responseTimeMs: number): void {
@@ -447,8 +472,8 @@ export class FmccPollingService extends EventEmitter {
     this.health.totalPollsSuccess++;
 
     const totalPolls = this.health.totalPollsSuccess;
-    this.health.averageResponseTimeMs = 
-      ((this.health.averageResponseTimeMs * (totalPolls - 1)) + responseTimeMs) / totalPolls;
+    this.health.averageResponseTimeMs =
+      (this.health.averageResponseTimeMs * (totalPolls - 1) + responseTimeMs) / totalPolls;
   }
 
   getHealth(): FmccHealthStatus {
@@ -476,21 +501,21 @@ export function getFmccPollingService(): FmccPollingService {
 export function initializeFmccPolling(): void {
   const service = getFmccPollingService();
 
-  service.on('poll_success', async (snapshot: FmccSnapshot) => {
+  service.on("poll_success", async (snapshot: FmccSnapshot) => {
     try {
-      const { bunkeringDetector } = await import('../services/rms/bunkering-detector');
-      const { rmsAlertService } = await import('../services/rms/alert-service');
+      const { bunkeringDetector } = await import("../services/rms/bunkering-detector");
+      const { rmsAlertService } = await import("../services/rms/alert-service");
       const results = await Promise.allSettled([
         bunkeringDetector.processSnapshot(snapshot),
         rmsAlertService.processSnapshot(snapshot),
       ]);
       for (const r of results) {
-        if (r.status === 'rejected') {
-          console.error('[FMCC→RMS] Processor error:', r.reason);
+        if (r.status === "rejected") {
+          console.error("[FMCC→RMS] Processor error:", r.reason);
         }
       }
     } catch (err) {
-      console.error('[FMCC→RMS] Integration error:', err);
+      console.error("[FMCC→RMS] Integration error:", err);
     }
   });
 

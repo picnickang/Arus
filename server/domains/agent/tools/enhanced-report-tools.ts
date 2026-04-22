@@ -25,7 +25,9 @@ const reportArtifactRegistry = new Map<string, ReportArtifactMeta>();
 let registryLoaded = false;
 
 async function loadRegistry(): Promise<void> {
-  if (registryLoaded) {return;}
+  if (registryLoaded) {
+    return;
+  }
   registryLoaded = true;
   try {
     const { readFile } = await import("node:fs/promises");
@@ -83,7 +85,10 @@ const REPORT_TYPE_LABELS: Record<string, string> = {
 };
 
 function resolveAudience(userRole?: string, requestedAudience?: string): Audience {
-  if (requestedAudience && ["executive", "technical", "maintenance", "compliance"].includes(requestedAudience)) {
+  if (
+    requestedAudience &&
+    ["executive", "technical", "maintenance", "compliance"].includes(requestedAudience)
+  ) {
     return requestedAudience as Audience;
   }
   if (userRole) {
@@ -93,7 +98,9 @@ function resolveAudience(userRole?: string, requestedAudience?: string): Audienc
 }
 
 function resolveTimeframeDays(timeRange?: string): number {
-  if (!timeRange) {return 30;}
+  if (!timeRange) {
+    return 30;
+  }
   return TIME_RANGE_DAYS[timeRange] || 30;
 }
 
@@ -111,7 +118,9 @@ function formatReportAsText(
   lines.push(`${"=".repeat(60)}`);
   lines.push(`Generated: ${new Date().toISOString()}`);
   lines.push(`Audience: ${audience}`);
-  if (vesselId) {lines.push(`Vessel: ${vesselId}`);}
+  if (vesselId) {
+    lines.push(`Vessel: ${vesselId}`);
+  }
   lines.push(`Confidence: ${((result.confidence as number) * 100).toFixed(0)}%`);
   lines.push(`${"=".repeat(60)}\n`);
   lines.push(analysis);
@@ -120,18 +129,30 @@ function formatReportAsText(
     lines.push(`\n${"─".repeat(40)}`);
     lines.push("SCENARIO ANALYSIS");
     lines.push(`${"─".repeat(40)}`);
-    for (const s of result.scenarios as Array<{ scenario: string; probability: number; impact: string; recommendations: string[] }>) {
+    for (const s of result.scenarios as Array<{
+      scenario: string;
+      probability: number;
+      impact: string;
+      recommendations: string[];
+    }>) {
       lines.push(`\n▸ ${s.scenario}`);
       lines.push(`  Probability: ${(s.probability * 100).toFixed(0)}% | Impact: ${s.impact}`);
       if (s.recommendations?.length) {
         lines.push(`  Recommendations:`);
-        for (const r of s.recommendations) {lines.push(`    • ${r}`);}
+        for (const r of s.recommendations) {
+          lines.push(`    • ${r}`);
+        }
       }
     }
   }
 
   if (result.roi) {
-    const roi = result.roi as { estimatedSavings: number; investmentRequired: number; paybackPeriod: number; riskReduction: number };
+    const roi = result.roi as {
+      estimatedSavings: number;
+      investmentRequired: number;
+      paybackPeriod: number;
+      riskReduction: number;
+    };
     lines.push(`\n${"─".repeat(40)}`);
     lines.push("ROI ANALYSIS");
     lines.push(`${"─".repeat(40)}`);
@@ -141,11 +162,20 @@ function formatReportAsText(
     lines.push(`  Risk Reduction: ${(roi.riskReduction * 100).toFixed(0)}%`);
   }
 
-  if (result.referenceDocuments && Array.isArray(result.referenceDocuments) && result.referenceDocuments.length > 0) {
+  if (
+    result.referenceDocuments &&
+    Array.isArray(result.referenceDocuments) &&
+    result.referenceDocuments.length > 0
+  ) {
     lines.push(`\n${"─".repeat(40)}`);
     lines.push("REFERENCE DOCUMENTS");
     lines.push(`${"─".repeat(40)}`);
-    for (const ref of result.referenceDocuments as Array<{ ref: string; document: string; relevance: string; excerpt: string }>) {
+    for (const ref of result.referenceDocuments as Array<{
+      ref: string;
+      document: string;
+      relevance: string;
+      excerpt: string;
+    }>) {
       lines.push(`\n${ref.ref} ${ref.document} (relevance: ${ref.relevance})`);
       lines.push(`   ${ref.excerpt}`);
     }
@@ -176,11 +206,18 @@ async function generatePdfBuffer(
     doc.fontSize(10).font("Helvetica").fillColor("#666666");
     doc.text(`Generated: ${new Date().toISOString()}`, { align: "center" });
     doc.text(`Audience: ${audience}`, { align: "center" });
-    if (vesselId) {doc.text(`Vessel: ${vesselId}`, { align: "center" });}
-    doc.text(`Confidence: ${((result.confidence as number) * 100).toFixed(0)}%`, { align: "center" });
+    if (vesselId) {
+      doc.text(`Vessel: ${vesselId}`, { align: "center" });
+    }
+    doc.text(`Confidence: ${((result.confidence as number) * 100).toFixed(0)}%`, {
+      align: "center",
+    });
 
     doc.moveDown(1);
-    doc.moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).stroke("#cccccc");
+    doc
+      .moveTo(50, doc.y)
+      .lineTo(doc.page.width - 50, doc.y)
+      .stroke("#cccccc");
     doc.moveDown(1);
 
     doc.fontSize(11).font("Helvetica").fillColor("#000000");
@@ -196,18 +233,33 @@ async function generatePdfBuffer(
       doc.moveDown(1);
       doc.fontSize(14).font("Helvetica-Bold").text("Scenario Analysis");
       doc.moveDown(0.5);
-      for (const s of result.scenarios as Array<{ scenario: string; probability: number; impact: string; recommendations: string[] }>) {
+      for (const s of result.scenarios as Array<{
+        scenario: string;
+        probability: number;
+        impact: string;
+        recommendations: string[];
+      }>) {
         doc.fontSize(11).font("Helvetica-Bold").text(`▸ ${s.scenario}`);
-        doc.fontSize(10).font("Helvetica").text(`  Probability: ${(s.probability * 100).toFixed(0)}% | Impact: ${s.impact}`);
+        doc
+          .fontSize(10)
+          .font("Helvetica")
+          .text(`  Probability: ${(s.probability * 100).toFixed(0)}% | Impact: ${s.impact}`);
         if (s.recommendations?.length) {
-          for (const r of s.recommendations) {doc.text(`    • ${r}`);}
+          for (const r of s.recommendations) {
+            doc.text(`    • ${r}`);
+          }
         }
         doc.moveDown(0.5);
       }
     }
 
     if (result.roi) {
-      const roi = result.roi as { estimatedSavings: number; investmentRequired: number; paybackPeriod: number; riskReduction: number };
+      const roi = result.roi as {
+        estimatedSavings: number;
+        investmentRequired: number;
+        paybackPeriod: number;
+        riskReduction: number;
+      };
       doc.moveDown(1);
       doc.fontSize(14).font("Helvetica-Bold").text("ROI Analysis");
       doc.moveDown(0.5);
@@ -218,12 +270,24 @@ async function generatePdfBuffer(
       doc.text(`Risk Reduction: ${(roi.riskReduction * 100).toFixed(0)}%`);
     }
 
-    if (result.referenceDocuments && Array.isArray(result.referenceDocuments) && result.referenceDocuments.length > 0) {
+    if (
+      result.referenceDocuments &&
+      Array.isArray(result.referenceDocuments) &&
+      result.referenceDocuments.length > 0
+    ) {
       doc.moveDown(1);
       doc.fontSize(14).font("Helvetica-Bold").text("Reference Documents");
       doc.moveDown(0.5);
-      for (const ref of result.referenceDocuments as Array<{ ref: string; document: string; relevance: string; excerpt: string }>) {
-        doc.fontSize(11).font("Helvetica-Bold").text(`${ref.ref} ${ref.document} (relevance: ${ref.relevance})`);
+      for (const ref of result.referenceDocuments as Array<{
+        ref: string;
+        document: string;
+        relevance: string;
+        excerpt: string;
+      }>) {
+        doc
+          .fontSize(11)
+          .font("Helvetica-Bold")
+          .text(`${ref.ref} ${ref.document} (relevance: ${ref.relevance})`);
         doc.fontSize(10).font("Helvetica").text(`   ${ref.excerpt}`);
         doc.moveDown(0.3);
       }
@@ -240,7 +304,9 @@ function convertToCSV(data: Record<string, unknown>): string {
   rows.push(`Audience,${data.audience || ""}`);
   rows.push(`Generated At,${data.generatedAt || ""}`);
   rows.push(`Confidence,${data.confidence || ""}`);
-  if (data.vesselId) {rows.push(`Vessel ID,${data.vesselId}`);}
+  if (data.vesselId) {
+    rows.push(`Vessel ID,${data.vesselId}`);
+  }
   rows.push("");
   rows.push("Section,Content");
   const analysis = String(data.analysis || "");
@@ -306,7 +372,8 @@ registerTool({
   name: "generateReport",
   category: "analytics",
   riskLevel: "read",
-  description: "Generate a comprehensive AI-powered report. Supports report types: health (vessel health), fleet_summary (fleet-wide overview), maintenance (maintenance analysis), compliance (regulatory compliance), cost_summary (cost and ROI analysis). Reports are audience-aware and include a download link. Use the shareReport tool if the user wants to email or share the report externally.",
+  description:
+    "Generate a comprehensive AI-powered report. Supports report types: health (vessel health), fleet_summary (fleet-wide overview), maintenance (maintenance analysis), compliance (regulatory compliance), cost_summary (cost and ROI analysis). Reports are audience-aware and include a download link. Use the shareReport tool if the user wants to email or share the report externally.",
   parameters: {
     type: "object",
     properties: {
@@ -317,7 +384,8 @@ registerTool({
       },
       vesselId: {
         type: "string",
-        description: "Vessel ID to scope the report. Required for 'health' reports, optional for 'maintenance' and 'compliance', not used for 'fleet_summary' or 'cost_summary'.",
+        description:
+          "Vessel ID to scope the report. Required for 'health' reports, optional for 'maintenance' and 'compliance', not used for 'fleet_summary' or 'cost_summary'.",
       },
       timeRange: {
         type: "string",
@@ -327,12 +395,14 @@ registerTool({
       audience: {
         type: "string",
         enum: ["executive", "technical", "maintenance", "compliance"],
-        description: "Target audience for the report. If not specified, automatically determined from user role.",
+        description:
+          "Target audience for the report. If not specified, automatically determined from user role.",
       },
       outputFormat: {
         type: "string",
         enum: ["inline", "pdf", "json", "csv"],
-        description: "Output format. 'inline' shows the report in chat (default). 'pdf', 'json', and 'csv' generate downloadable files.",
+        description:
+          "Output format. 'inline' shows the report in chat (default). 'pdf', 'json', and 'csv' generate downloadable files.",
       },
       includeScenarios: {
         type: "boolean",
@@ -340,7 +410,8 @@ registerTool({
       },
       includeROI: {
         type: "boolean",
-        description: "Include ROI/cost-benefit analysis (default false, always true for cost_summary)",
+        description:
+          "Include ROI/cost-benefit analysis (default false, always true for cost_summary)",
       },
     },
     required: ["reportType"],
@@ -380,7 +451,7 @@ registerTool({
     const isCostSummary = reportType === "cost_summary";
     const options = {
       includeScenarios: includeScenarios || false,
-      includeROI: isCostSummary ? true : (includeROI || false),
+      includeROI: isCostSummary ? true : includeROI || false,
       timeframeDays,
     };
 
@@ -391,14 +462,20 @@ registerTool({
       switch (effectiveReportType) {
         case "health": {
           if (!vesselId) {
-            return { error: "vesselId is required for health reports. Please specify which vessel to generate the report for." };
+            return {
+              error:
+                "vesselId is required for health reports. Please specify which vessel to generate the report for.",
+            };
           }
           result = await enhancedLLM.generateVesselHealthReport(vesselId, audience, options);
           break;
         }
         case "fleet_summary": {
           const costAudience = requestedAudience ? audience : "executive";
-          result = await enhancedLLM.generateFleetSummaryReport(isCostSummary ? costAudience : audience, options);
+          result = await enhancedLLM.generateFleetSummaryReport(
+            isCostSummary ? costAudience : audience,
+            options
+          );
           break;
         }
         case "maintenance": {
@@ -445,30 +522,52 @@ registerTool({
 
       if (ctx.knowledgeBase) {
         try {
-          const kbQuery = `${reportType} ${vesselId ? `vessel ${  vesselId}` : "fleet"} reference documentation`;
+          const kbQuery = `${reportType} ${vesselId ? `vessel ${vesselId}` : "fleet"} reference documentation`;
           const kbResult = await ctx.knowledgeBase.search(ctx.orgId, kbQuery, { maxSources: 3 });
           if (!kbResult.error && kbResult.citations.length > 0) {
             response.referenceDocuments = kbResult.citations.map((c, i) => ({
               ref: `[${i + 1}]`,
               document: c.docName,
               relevance: `${(c.relevance * 100).toFixed(0)}%`,
-              excerpt: c.text.length > 150 ? `${c.text.slice(0, 150)  }...` : c.text,
+              excerpt: c.text.length > 150 ? `${c.text.slice(0, 150)}...` : c.text,
             }));
           }
         } catch (err) {
-          console.warn("[Agent] KB enrichment query failed:", err instanceof Error ? err.message : "unknown");
+          console.warn(
+            "[Agent] KB enrichment query failed:",
+            err instanceof Error ? err.message : "unknown"
+          );
         }
       }
 
       try {
-        const textContent = formatReportAsText(reportType, audience, result.analysis, response, vesselId);
+        const textContent = formatReportAsText(
+          reportType,
+          audience,
+          result.analysis,
+          response,
+          vesselId
+        );
         const artifactFormat = outputFormat === "inline" ? "pdf" : outputFormat;
         let pdfBuffer: Buffer | undefined;
         if (artifactFormat === "pdf") {
-          pdfBuffer = await generatePdfBuffer(reportType, audience, result.analysis, response, vesselId);
+          pdfBuffer = await generatePdfBuffer(
+            reportType,
+            audience,
+            result.analysis,
+            response,
+            vesselId
+          );
         }
         const artifact = await storeReportArtifact(
-          reportId, ctx.orgId, ctx.userId, reportType, textContent, response, artifactFormat, pdfBuffer
+          reportId,
+          ctx.orgId,
+          ctx.userId,
+          reportType,
+          textContent,
+          response,
+          artifactFormat,
+          pdfBuffer
         );
         response.artifact = {
           fileName: artifact.fileName,
@@ -477,7 +576,8 @@ registerTool({
         };
         response.downloadAvailable = true;
       } catch (artifactErr) {
-        response.artifactError = "Report generated successfully but file export failed. The report content is available inline above.";
+        response.artifactError =
+          "Report generated successfully but file export failed. The report content is available inline above.";
       }
 
       response.previewCard = {
@@ -508,7 +608,8 @@ registerTool({
       if (message.includes("No data") || message.includes("no telemetry")) {
         return {
           error: `Insufficient data to generate ${reportType} report${vesselId ? ` for vessel ${vesselId}` : ""}.`,
-          suggestion: "Ensure the vessel has recent telemetry or maintenance data before requesting a report.",
+          suggestion:
+            "Ensure the vessel has recent telemetry or maintenance data before requesting a report.",
         };
       }
       return { error: `Report generation failed: ${message}` };
@@ -520,7 +621,8 @@ registerTool({
   name: "shareReport",
   category: "analytics",
   riskLevel: "low-write",
-  description: "Share or email a previously generated report to external recipients. This creates a draft that requires human approval before the report is sent. Use generateReport first to create the report, then use this tool with the reportId to share it.",
+  description:
+    "Share or email a previously generated report to external recipients. This creates a draft that requires human approval before the report is sent. Use generateReport first to create the report, then use this tool with the reportId to share it.",
   parameters: {
     type: "object",
     properties: {
@@ -561,7 +663,10 @@ registerTool({
 
     const artifact = reportArtifactRegistry.get(reportId);
     if (!artifact) {
-      return { error: "Report not found. Please generate a report first using the generateReport tool before sharing it." };
+      return {
+        error:
+          "Report not found. Please generate a report first using the generateReport tool before sharing it.",
+      };
     }
     if (artifact.orgId !== ctx.orgId) {
       return { error: "Report not found or access denied." };

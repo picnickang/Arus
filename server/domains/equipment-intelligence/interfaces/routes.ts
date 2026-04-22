@@ -16,7 +16,10 @@ const equipmentIdSchema = z.object({
   equipmentId: z.string().min(1).max(255),
 });
 
-function resolveOrgId(req: import("express").Request, res: import("express").Response): string | null {
+function resolveOrgId(
+  req: import("express").Request,
+  res: import("express").Response
+): string | null {
   const orgId = req.orgId;
   if (!orgId) {
     res.status(403).json({ error: "Organization ID is required" });
@@ -30,7 +33,9 @@ const router = Router();
 router.get("/overview", async (req, res) => {
   try {
     const orgId = resolveOrgId(req, res);
-    if (!orgId) {return;}
+    if (!orgId) {
+      return;
+    }
     const data = await useCase.getOverview(orgId);
     res.json(data);
   } catch (error) {
@@ -42,7 +47,9 @@ router.get("/overview", async (req, res) => {
 router.get("/system-details", createAdminMiddleware(), async (req, res) => {
   try {
     const orgId = resolveOrgId(req, res);
-    if (!orgId) {return;}
+    if (!orgId) {
+      return;
+    }
     const systemDetails = await repository.getSystemDetails(orgId);
     res.json(systemDetails);
   } catch (error) {
@@ -54,7 +61,9 @@ router.get("/system-details", createAdminMiddleware(), async (req, res) => {
 router.get("/detail/:equipmentId", async (req, res) => {
   try {
     const orgId = resolveOrgId(req, res);
-    if (!orgId) {return;}
+    if (!orgId) {
+      return;
+    }
     const parseResult = equipmentIdSchema.safeParse(req.params);
     if (!parseResult.success) {
       return res.status(400).json({ error: "Invalid equipment ID" });
@@ -78,7 +87,9 @@ const analysisTypeSchema = z.object({
 router.get("/hub/:equipmentId", async (req, res) => {
   try {
     const orgId = resolveOrgId(req, res);
-    if (!orgId) {return;}
+    if (!orgId) {
+      return;
+    }
     const parseResult = equipmentIdSchema.safeParse(req.params);
     if (!parseResult.success) {
       return res.status(400).json({ error: "Invalid equipment ID" });
@@ -91,7 +102,10 @@ router.get("/hub/:equipmentId", async (req, res) => {
     res.json(data);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    logger.error(`Error fetching equipment hub: ${  message}`, error instanceof Error ? error.stack : undefined);
+    logger.error(
+      `Error fetching equipment hub: ${message}`,
+      error instanceof Error ? error.stack : undefined
+    );
     res.status(500).json({ error: "Failed to fetch equipment hub data" });
   }
 });
@@ -99,14 +113,18 @@ router.get("/hub/:equipmentId", async (req, res) => {
 router.post("/diagnostics/:equipmentId/run", async (req, res) => {
   try {
     const orgId = resolveOrgId(req, res);
-    if (!orgId) {return;}
+    if (!orgId) {
+      return;
+    }
     const parseResult = equipmentIdSchema.safeParse(req.params);
     if (!parseResult.success) {
       return res.status(400).json({ error: "Invalid equipment ID" });
     }
     const bodyResult = analysisTypeSchema.safeParse(req.body);
     if (!bodyResult.success) {
-      return res.status(400).json({ error: "Invalid analysis type. Must be 'bearing', 'pump', or 'general'." });
+      return res
+        .status(400)
+        .json({ error: "Invalid analysis type. Must be 'bearing', 'pump', or 'general'." });
     }
     const { equipmentId } = parseResult.data;
     const { analysisType } = bodyResult.data;

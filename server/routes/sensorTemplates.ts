@@ -342,15 +342,12 @@ router.post("/:id/copy", async (req, res) => {
       const existing = await db
         .select()
         .from(sensorTemplates)
-        .where(
-          and(
-            eq(sensorTemplates.orgId, orgId),
-            eq(sensorTemplates.templateId, newTemplateId)
-          )
-        )
+        .where(and(eq(sensorTemplates.orgId, orgId), eq(sensorTemplates.templateId, newTemplateId)))
         .limit(1);
 
-      if (existing.length === 0) { break; }
+      if (existing.length === 0) {
+        break;
+      }
 
       suffix++;
       newTemplateId = `${sourceTemplate.templateId}-copy-${suffix}`;

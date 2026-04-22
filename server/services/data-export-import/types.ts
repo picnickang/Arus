@@ -1,10 +1,14 @@
 /**
  * Data Export/Import Types
- * 
+ *
  * All interfaces and types for the data export/import service.
  */
 
-import type { AnonymizationConfig, AnonymizationLevel, AnonymizationResult } from "../../compliance/data-anonymization.service";
+import type {
+  AnonymizationConfig,
+  AnonymizationLevel,
+  AnonymizationResult,
+} from "../../compliance/data-anonymization.service";
 
 export interface ExportManifest {
   exportVersion: number;

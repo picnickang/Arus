@@ -42,12 +42,7 @@ export async function getWorkOrderProcurementCosts(
         serviceProviderId: serviceOrders.serviceProviderId,
       })
       .from(serviceOrders)
-      .where(
-        and(
-          eq(serviceOrders.workOrderId, workOrderId),
-          eq(serviceOrders.orgId, orgId)
-        )
-      );
+      .where(and(eq(serviceOrders.workOrderId, workOrderId), eq(serviceOrders.orgId, orgId)));
 
     result.serviceOrderDetails = sos.map((so) => ({
       id: so.id,
@@ -59,7 +54,9 @@ export async function getWorkOrderProcurementCosts(
     }));
 
     result.serviceOrderCosts = sos.reduce((total, so) => {
-      if (!FINALIZED_SO_STATUSES.includes(so.status)) {return total;}
+      if (!FINALIZED_SO_STATUSES.includes(so.status)) {
+        return total;
+      }
       return total + (so.actualAmount ?? 0);
     }, 0);
   }
@@ -87,10 +84,11 @@ export async function getWorkOrderProcurementCosts(
       .where(and(eq(costModel.orgId, orgId), eq(costModel.isActive, true)))
       .limit(1);
 
-    result.resolvedDowntimeCostPerHour = workOrder.downtimeCostPerHour
-      ?? equipmentRow?.downtimeCostPerHour
-      ?? activeCostModel?.downtimePerHour
-      ?? 1000;
+    result.resolvedDowntimeCostPerHour =
+      workOrder.downtimeCostPerHour ??
+      equipmentRow?.downtimeCostPerHour ??
+      activeCostModel?.downtimePerHour ??
+      1000;
   }
 
   result.totalProcurementCost = result.serviceOrderCosts;
@@ -133,7 +131,7 @@ export async function aggregateProcurementCostsToWorkOrder(
   const totalCost =
     (workOrder.totalLaborCost ?? 0) +
     updatedTotalPartsCost +
-    ((workOrder.actualDowntimeHours ?? 0) * costs.resolvedDowntimeCostPerHour);
+    (workOrder.actualDowntimeHours ?? 0) * costs.resolvedDowntimeCostPerHour;
 
   await db
     .update(workOrders)

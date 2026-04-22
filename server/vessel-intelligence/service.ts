@@ -1,6 +1,6 @@
 /**
  * Vessel Intelligence Service
- * 
+ *
  * Main service class orchestrating vessel intelligence operations.
  */
 

@@ -16,36 +16,52 @@ export function getSeverityFromMinSeverity(minSeverity?: string): "info" | "warn
   return minSeverity ? (severityMap[minSeverity] ?? "info") : "info";
 }
 
-export async function getCertificationsNearExpiry(orgId: string, vesselId: string | undefined, now: Date, maxDays: number) {
+export async function getCertificationsNearExpiry(
+  orgId: string,
+  vesselId: string | undefined,
+  now: Date,
+  maxDays: number
+) {
   const cutoffDate = addDays(now, maxDays);
   const crew = await dbCrewStorage.getCrew(orgId, vesselId);
   const crewIds = crew.map((c: any) => c.id);
-  
-  if (crewIds.length === 0) { return []; }
-  
-  const allCerts = await Promise.all(crewIds.map((id: string) => dbCrewStorage.getCrewCertifications(id, orgId)));
+
+  if (crewIds.length === 0) {
+    return [];
+  }
+
+  const allCerts = await Promise.all(
+    crewIds.map((id: string) => dbCrewStorage.getCrewCertifications(id, orgId))
+  );
   const certs = allCerts.flat();
   return certs.filter((cert: any) => {
-    if (!cert.expiresAt) { return false; }
+    if (!cert.expiresAt) {
+      return false;
+    }
     const expiryDate = new Date(cert.expiresAt);
     return expiryDate <= cutoffDate;
   });
 }
 
-export async function getUnsignedLogbooks(orgId: string, vesselId: string | undefined, graceHours: number, now: Date) {
+export async function getUnsignedLogbooks(
+  orgId: string,
+  vesselId: string | undefined,
+  graceHours: number,
+  now: Date
+) {
   const graceDate = new Date(now.getTime() - graceHours * 60 * 60 * 1000);
   const deckLogs = await deckLogStorage.getDeckLogDaily(orgId, { vesselId, status: "draft" });
   const engineLogs = await engineLogStorage.getEngineLogDaily(orgId, { vesselId, status: "draft" });
-  
+
   const unsignedDeck = deckLogs.filter((log: any) => {
     const logDate = new Date(log.logDate);
     return logDate < graceDate && !log.signedAt;
   });
-  
+
   const unsignedEngine = engineLogs.filter((log: any) => {
     const logDate = new Date(log.logDate);
     return logDate < graceDate && !log.signedAt;
   });
-  
+
   return { deck: unsignedDeck, engine: unsignedEngine };
 }

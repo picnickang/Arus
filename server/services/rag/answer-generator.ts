@@ -1,6 +1,6 @@
 /**
  * RAG Answer Generator Service
- * 
+ *
  * Generates answers to user queries using retrieved context from the knowledge base.
  * Features:
  * - OpenAI integration with model fallback
@@ -9,17 +9,17 @@
  * - Prometheus metrics integration
  */
 
-import OpenAI from 'openai';
-import { createOpenAIClient, analyzeErrorType } from '../../openai/client';
-import { searchKnowledgeBase, type SearchResult } from '../../vector-search-service';
+import OpenAI from "openai";
+import { createOpenAIClient, analyzeErrorType } from "../../openai/client";
+import { searchKnowledgeBase, type SearchResult } from "../../vector-search-service";
 import type {
   RagAnswerRequest,
   RagAnswerResponse,
   Citation,
   ContextChunk,
   RagServiceConfig,
-} from './types';
-import { logger } from '../../utils/logger';
+} from "./types";
+import { logger } from "../../utils/logger";
 
 const SYSTEM_PROMPT_TEMPLATE = `You are a knowledgeable assistant for a marine fleet management system called ARUS. 
 Your role is to answer questions about equipment maintenance, vessel operations, compliance, and related topics.
@@ -53,8 +53,8 @@ export class AnswerGenerator {
 
   constructor(config: Partial<RagServiceConfig> = {}) {
     this.config = {
-      defaultModel: config.defaultModel || 'gpt-4o',
-      fallbackModel: config.fallbackModel || 'gpt-4o-mini',
+      defaultModel: config.defaultModel || "gpt-4o",
+      fallbackModel: config.fallbackModel || "gpt-4o-mini",
       maxTokens: config.maxTokens || 2048,
       temperature: config.temperature || 0.3,
       maxSources: config.maxSources || 5,
@@ -79,7 +79,9 @@ export class AnswerGenerator {
       modelOverride,
     } = request;
 
-    logger.info(`[AnswerGenerator] Processing query for org ${orgId}: "${query.substring(0, 50)}..."`);
+    logger.info(
+      `[AnswerGenerator] Processing query for org ${orgId}: "${query.substring(0, 50)}..."`
+    );
 
     const searchResults = await searchKnowledgeBase({
       orgId,
@@ -94,7 +96,7 @@ export class AnswerGenerator {
         answer: NO_CONTEXT_RESPONSE,
         citations: [],
         sourceChunkIds: [],
-        modelUsed: 'none',
+        modelUsed: "none",
         latencyMs: Date.now() - startTime,
         cached: false,
       };
@@ -102,11 +104,14 @@ export class AnswerGenerator {
 
     const contextChunks = this.prepareContextChunks(searchResults);
     const contextText = this.formatContextForPrompt(contextChunks);
-    const effectiveSystemPrompt = (systemPrompt || SYSTEM_PROMPT_TEMPLATE).replace('{context}', contextText);
+    const effectiveSystemPrompt = (systemPrompt || SYSTEM_PROMPT_TEMPLATE).replace(
+      "{context}",
+      contextText
+    );
 
     const openai = await createOpenAIClient();
     if (!openai) {
-      throw new Error('OpenAI client unavailable - please configure API key');
+      throw new Error("OpenAI client unavailable - please configure API key");
     }
 
     let model = modelOverride || this.config.defaultModel;
@@ -119,18 +124,20 @@ export class AnswerGenerator {
         response = await openai.chat.completions.create({
           model,
           messages: [
-            { role: 'system', content: effectiveSystemPrompt },
-            { role: 'user', content: query },
+            { role: "system", content: effectiveSystemPrompt },
+            { role: "user", content: query },
           ],
           temperature,
           max_tokens: maxTokens,
         });
 
-        const answer = response.choices[0]?.message?.content || '';
+        const answer = response.choices[0]?.message?.content || "";
         const citations = this.extractCitationsFromAnswer(answer, contextChunks);
-        const usedChunkIds = citations.map(c => c.chunkId);
+        const usedChunkIds = citations.map((c) => c.chunkId);
 
-        logger.info(`[AnswerGenerator] Generated answer with ${citations.length} citations using ${model}`);
+        logger.info(
+          `[AnswerGenerator] Generated answer with ${citations.length} citations using ${model}`
+        );
 
         return {
           answer,
@@ -151,7 +158,9 @@ export class AnswerGenerator {
         }
 
         if (analysis.fallbackModel && model !== analysis.fallbackModel) {
-          logger.warn(`[AnswerGenerator] Falling back to ${analysis.fallbackModel}: ${analysis.recommendation}`);
+          logger.warn(
+            `[AnswerGenerator] Falling back to ${analysis.fallbackModel}: ${analysis.recommendation}`
+          );
           model = analysis.fallbackModel;
         }
 
@@ -161,7 +170,7 @@ export class AnswerGenerator {
       }
     }
 
-    throw new Error('Failed to generate answer after maximum attempts');
+    throw new Error("Failed to generate answer after maximum attempts");
   }
 
   private prepareContextChunks(searchResults: SearchResult[]): ContextChunk[] {
@@ -173,11 +182,11 @@ export class AnswerGenerator {
 
   private formatContextForPrompt(chunks: ContextChunk[]): string {
     return chunks
-      .map(chunk => {
+      .map((chunk) => {
         const header = `[${chunk.citationIndex}] From "${chunk.docName}" (relevance: ${(chunk.similarity * 100).toFixed(1)}%):`;
         return `${header}\n${chunk.text}\n`;
       })
-      .join('\n---\n');
+      .join("\n---\n");
   }
 
   private extractCitationsFromAnswer(answer: string, chunks: ContextChunk[]): Citation[] {
@@ -196,7 +205,7 @@ export class AnswerGenerator {
           docId: chunk.docId,
           docName: chunk.docName,
           chunkId: chunk.chunkId,
-          text: chunk.text.substring(0, 200) + (chunk.text.length > 200 ? '...' : ''),
+          text: chunk.text.substring(0, 200) + (chunk.text.length > 200 ? "..." : ""),
           relevance: chunk.similarity,
           ord: chunk.ord,
         });
@@ -210,7 +219,7 @@ export class AnswerGenerator {
           docId: chunk.docId,
           docName: chunk.docName,
           chunkId: chunk.chunkId,
-          text: chunk.text.substring(0, 200) + (chunk.text.length > 200 ? '...' : ''),
+          text: chunk.text.substring(0, 200) + (chunk.text.length > 200 ? "..." : ""),
           relevance: chunk.similarity,
           ord: chunk.ord,
         });
@@ -221,7 +230,7 @@ export class AnswerGenerator {
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 

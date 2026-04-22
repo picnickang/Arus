@@ -3,14 +3,25 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { useDashboardData } from "@/features/analytics";
 
 function MetricCard({
-  label, value, icon: Icon, status, href, testId,
+  label,
+  value,
+  icon: Icon,
+  status,
+  href,
+  testId,
 }: {
   label: string;
   value: string | number;
@@ -36,7 +47,10 @@ function MetricCard({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs text-muted-foreground font-medium">{label}</p>
-            <p className={`text-2xl font-bold mt-1 ${status ? textColors[status] : "text-foreground"}`} data-testid={testId}>
+            <p
+              className={`text-2xl font-bold mt-1 ${status ? textColors[status] : "text-foreground"}`}
+              data-testid={testId}
+            >
               {value}
             </p>
           </div>
@@ -47,7 +61,11 @@ function MetricCard({
   );
 
   if (href) {
-    return <Link href={href} className="no-underline">{content}</Link>;
+    return (
+      <Link href={href} className="no-underline">
+        {content}
+      </Link>
+    );
   }
   return content;
 }
@@ -125,7 +143,10 @@ function NeedsAttentionStrip({
 
   if (items.length === 0) {
     return (
-      <div className="p-6 text-center text-muted-foreground border rounded-lg bg-green-500/5 border-green-500/20" data-testid="all-clear">
+      <div
+        className="p-6 text-center text-muted-foreground border rounded-lg bg-green-500/5 border-green-500/20"
+        data-testid="all-clear"
+      >
         <p className="font-medium text-green-600 dark:text-green-400">All Systems Nominal</p>
         <p className="text-xs mt-1">No critical issues requiring immediate attention.</p>
       </div>
@@ -133,9 +154,21 @@ function NeedsAttentionStrip({
   }
 
   const severityColors = {
-    critical: { border: "border-red-500/30", bg: "bg-red-500/5", text: "text-red-600 dark:text-red-400" },
-    high: { border: "border-orange-500/30", bg: "bg-orange-500/5", text: "text-orange-600 dark:text-orange-400" },
-    warning: { border: "border-yellow-500/20", bg: "bg-yellow-500/5", text: "text-yellow-600 dark:text-yellow-400" },
+    critical: {
+      border: "border-red-500/30",
+      bg: "bg-red-500/5",
+      text: "text-red-600 dark:text-red-400",
+    },
+    high: {
+      border: "border-orange-500/30",
+      bg: "bg-orange-500/5",
+      text: "text-orange-600 dark:text-orange-400",
+    },
+    warning: {
+      border: "border-yellow-500/20",
+      bg: "bg-yellow-500/5",
+      text: "text-yellow-600 dark:text-yellow-400",
+    },
   };
 
   const typeIcons = {
@@ -151,10 +184,16 @@ function NeedsAttentionStrip({
         <AlertTriangle className="h-4 w-4 text-red-500" />
         <h2 className="text-sm font-semibold">
           Needs Attention
-          <Badge variant="destructive" className="ml-2 text-[10px]">{items.length}</Badge>
+          <Badge variant="destructive" className="ml-2 text-[10px]">
+            {items.length}
+          </Badge>
         </h2>
         <div className="flex-1" />
-        <Link href="/equipment-intelligence" className="text-xs text-primary hover:underline" data-testid="link-view-all-issues">
+        <Link
+          href="/equipment-intelligence"
+          className="text-xs text-primary hover:underline"
+          data-testid="link-view-all-issues"
+        >
           View all →
         </Link>
       </div>
@@ -175,7 +214,13 @@ function NeedsAttentionStrip({
                   <Icon className={`h-4 w-4 mt-0.5 ${colors.text} shrink-0`} />
                   <div className="flex-1 min-w-0">
                     <Badge
-                      variant={item.severity === "critical" ? "destructive" : item.severity === "high" ? "default" : "secondary"}
+                      variant={
+                        item.severity === "critical"
+                          ? "destructive"
+                          : item.severity === "high"
+                            ? "default"
+                            : "secondary"
+                      }
                       className="text-[9px] px-1 py-0 mb-1"
                     >
                       {item.severity}
@@ -231,7 +276,9 @@ function AISummary({
   if (insightsSnapshot?.summary) {
     parts.push(insightsSnapshot.summary);
   } else if (insightsSnapshot?.criticalCount > 0) {
-    parts.push(`${insightsSnapshot.criticalCount} critical insight${insightsSnapshot.criticalCount > 1 ? "s" : ""} flagged by AI analysis.`);
+    parts.push(
+      `${insightsSnapshot.criticalCount} critical insight${insightsSnapshot.criticalCount > 1 ? "s" : ""} flagged by AI analysis.`
+    );
   }
 
   if (parts.length <= 2) {
@@ -246,7 +293,11 @@ function AISummary({
           <p className="text-sm text-foreground leading-relaxed" data-testid="ai-summary-text">
             {parts.join(" ")}
           </p>
-          <Link href="/equipment-intelligence" className="text-xs text-sky-600 dark:text-sky-400 hover:underline mt-2 inline-flex items-center gap-1" data-testid="link-ai-details">
+          <Link
+            href="/equipment-intelligence"
+            className="text-xs text-sky-600 dark:text-sky-400 hover:underline mt-2 inline-flex items-center gap-1"
+            data-testid="link-ai-details"
+          >
             View Equipment Intelligence <ExternalLink className="h-3 w-3" />
           </Link>
         </CardContent>
@@ -335,12 +386,18 @@ function ActivityFeed({
       ) : (
         <div className="space-y-0">
           {items.slice(0, 12).map((item) => (
-            <div key={item.id} className="flex items-start gap-3 py-2.5 border-b border-border/40 last:border-0" data-testid={`activity-${item.id}`}>
+            <div
+              key={item.id}
+              className="flex items-start gap-3 py-2.5 border-b border-border/40 last:border-0"
+              data-testid={`activity-${item.id}`}
+            >
               <div className="flex flex-col items-center mt-1.5">
                 <div className={`w-2 h-2 rounded-full ${typeColors[item.type]} shrink-0`} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className={`text-sm ${item.severity ? severityTextColors[item.severity] : "text-foreground"}`}>
+                <p
+                  className={`text-sm ${item.severity ? severityTextColors[item.severity] : "text-foreground"}`}
+                >
                   {item.message}
                 </p>
               </div>
@@ -365,7 +422,9 @@ function DashboardSkeleton() {
   return (
     <div className="p-4 lg:p-6 space-y-6">
       <div className="grid grid-cols-3 gap-4">
-        {[1, 2, 3].map((i) => <Skeleton key={i} className="h-20" />)}
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-20" />
+        ))}
       </div>
       <Skeleton className="h-32" />
       <Skeleton className="h-24" />
@@ -411,7 +470,10 @@ export default function BridgeDashboard() {
   return (
     <div className="min-h-screen" data-testid="bridge-dashboard">
       {summaryError && (
-        <div className="mx-4 lg:mx-6 mt-4 p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10" data-testid="error-banner">
+        <div
+          className="mx-4 lg:mx-6 mt-4 p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10"
+          data-testid="error-banner"
+        >
           <div className="flex items-start gap-3">
             <WifiOff className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -424,8 +486,14 @@ export default function BridgeDashboard() {
                   : "The server may be temporarily unavailable."}
               </p>
             </div>
-            <Button variant="outline" size="sm" onClick={refreshData} data-testid="button-retry-dashboard">
-              <RefreshCw className="h-3 w-3 mr-1" />Retry
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refreshData}
+              data-testid="button-retry-dashboard"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Retry
             </Button>
           </div>
         </div>
@@ -444,12 +512,18 @@ export default function BridgeDashboard() {
               <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" />
               <div>
                 <p className="font-semibold text-sm">
-                  {alertBanner.alertType?.toUpperCase()} — {getEquipmentName(alertBanner.equipmentId)}
+                  {alertBanner.alertType?.toUpperCase()} —{" "}
+                  {getEquipmentName(alertBanner.equipmentId)}
                 </p>
                 <p className="text-sm opacity-90">{alertBanner.message}</p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={dismissAlert} data-testid="button-dismiss-alert">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={dismissAlert}
+              data-testid="button-dismiss-alert"
+            >
               ✕
             </Button>
           </div>
@@ -466,7 +540,9 @@ export default function BridgeDashboard() {
             <SelectContent>
               <SelectItem value="all">All Vessels</SelectItem>
               {allVessels?.map((vessel: any) => (
-                <SelectItem key={vessel.id} value={vessel.id}>{vessel.name}</SelectItem>
+                <SelectItem key={vessel.id} value={vessel.id}>
+                  {vessel.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -476,7 +552,9 @@ export default function BridgeDashboard() {
         </div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <div className="flex items-center gap-1.5">
-            <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`} />
+            <div
+              className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`}
+            />
             <span data-testid="text-ws-status">{isConnected ? "Live" : "Offline"}</span>
           </div>
         </div>

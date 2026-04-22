@@ -2,13 +2,30 @@
  * Session Management - Main Service Class
  */
 
-import type { UserSession, LoginEvent } from '@shared/schema';
-import type { SessionConfig, TokenPair, SessionValidationResult, LoginEventInput, CreateSessionOptions, SuspiciousActivityResult } from './types.js';
-import { DEFAULT_SESSION_CONFIG } from './types.js';
-import { hashToken } from './token-utils.js';
-import { createSession, validateSession, revokeSession, revokeAllUserSessions, enforceMaxSessions } from './session-ops.js';
-import { cleanupExpiredSessions, getUserSessions, getSessionByRefreshToken } from './session-queries.js';
-import { logLoginEvent, getLoginEvents, detectSuspiciousActivity } from './login-events.js';
+import type { UserSession, LoginEvent } from "@shared/schema";
+import type {
+  SessionConfig,
+  TokenPair,
+  SessionValidationResult,
+  LoginEventInput,
+  CreateSessionOptions,
+  SuspiciousActivityResult,
+} from "./types.js";
+import { DEFAULT_SESSION_CONFIG } from "./types.js";
+import { hashToken } from "./token-utils.js";
+import {
+  createSession,
+  validateSession,
+  revokeSession,
+  revokeAllUserSessions,
+  enforceMaxSessions,
+} from "./session-ops.js";
+import {
+  cleanupExpiredSessions,
+  getUserSessions,
+  getSessionByRefreshToken,
+} from "./session-queries.js";
+import { logLoginEvent, getLoginEvents, detectSuspiciousActivity } from "./login-events.js";
 
 class SessionManagementService {
   private static instance: SessionManagementService;
@@ -27,16 +44,25 @@ class SessionManagementService {
     Object.assign(this.config, config);
   }
 
-  async createSession(orgId: string, userId: string, options?: CreateSessionOptions): Promise<{ session: UserSession; tokens: TokenPair }> {
+  async createSession(
+    orgId: string,
+    userId: string,
+    options?: CreateSessionOptions
+  ): Promise<{ session: UserSession; tokens: TokenPair }> {
     await enforceMaxSessions(orgId, userId, this.config, this.revokeSession.bind(this));
     return createSession(orgId, userId, this.config, options);
   }
 
-  async validateSession(sessionToken: string, options?: { updateActivity?: boolean; orgId?: string }): Promise<SessionValidationResult> {
+  async validateSession(
+    sessionToken: string,
+    options?: { updateActivity?: boolean; orgId?: string }
+  ): Promise<SessionValidationResult> {
     return validateSession(sessionToken, this.config, options);
   }
 
-  async refreshSession(refreshToken: string): Promise<{ session: UserSession; tokens: TokenPair } | null> {
+  async refreshSession(
+    refreshToken: string
+  ): Promise<{ session: UserSession; tokens: TokenPair } | null> {
     const hashedToken = hashToken(refreshToken);
     const oldSession = await getSessionByRefreshToken(hashedToken);
     if (!oldSession || oldSession.isRevoked) {
@@ -47,7 +73,7 @@ class SessionManagementService {
       return null;
     }
 
-    await this.revokeSession(oldSession.id, 'system', 'Token rotation');
+    await this.revokeSession(oldSession.id, "system", "Token rotation");
     return this.createSession(oldSession.orgId, oldSession.userId, {
       ipAddress: oldSession.ipAddress ?? undefined,
       userAgent: oldSession.userAgent ?? undefined,
@@ -61,7 +87,12 @@ class SessionManagementService {
     return revokeSession(sessionId, revokedBy, reason);
   }
 
-  async revokeAllUserSessions(orgId: string, userId: string, revokedBy: string, reason: string): Promise<number> {
+  async revokeAllUserSessions(
+    orgId: string,
+    userId: string,
+    revokedBy: string,
+    reason: string
+  ): Promise<number> {
     return revokeAllUserSessions(orgId, userId, revokedBy, reason);
   }
 
@@ -77,11 +108,24 @@ class SessionManagementService {
     return logLoginEvent(input);
   }
 
-  async getLoginEvents(orgId: string, options?: { userId?: string; outcome?: string; startDate?: Date; endDate?: Date; limit?: number; offset?: number }): Promise<LoginEvent[]> {
+  async getLoginEvents(
+    orgId: string,
+    options?: {
+      userId?: string;
+      outcome?: string;
+      startDate?: Date;
+      endDate?: Date;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<LoginEvent[]> {
     return getLoginEvents(orgId, options);
   }
 
-  async detectSuspiciousActivity(ipAddress: string, minutes?: number): Promise<SuspiciousActivityResult> {
+  async detectSuspiciousActivity(
+    ipAddress: string,
+    minutes?: number
+  ): Promise<SuspiciousActivityResult> {
     return detectSuspiciousActivity(ipAddress, minutes);
   }
 }

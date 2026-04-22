@@ -1,6 +1,6 @@
 /**
  * Fleet Technician Insights
- * 
+ *
  * Generate insights for all equipment across the fleet.
  */
 

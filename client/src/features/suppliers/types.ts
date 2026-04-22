@@ -76,7 +76,7 @@ export const PAYMENT_TERMS = [
   "Letter of Credit",
 ] as const;
 
-export type PaymentTerm = typeof PAYMENT_TERMS[number];
+export type PaymentTerm = (typeof PAYMENT_TERMS)[number];
 
 export const SERVICE_CAPABILITIES = [
   "Engine Overhaul",

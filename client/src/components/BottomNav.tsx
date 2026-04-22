@@ -15,7 +15,11 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
 function getBottomNavItems(roleId: string | null): string[] {
   const stored = localStorage.getItem("arus-bottom-nav-items");
   if (stored) {
-    try { return JSON.parse(stored); } catch { /* fall through */ }
+    try {
+      return JSON.parse(stored);
+    } catch {
+      /* fall through */
+    }
   }
   return ROLE_DEFAULTS[roleId || "default"] || ROLE_DEFAULTS.default;
 }
@@ -27,9 +31,7 @@ export function BottomNav() {
   const roleId = localStorage.getItem("arus-user-role");
   const visibleCategoryIds = getBottomNavItems(roleId);
 
-  const visibleCategories = visibleCategoryIds
-    .map((id) => getCategoryById(id))
-    .filter(Boolean);
+  const visibleCategories = visibleCategoryIds.map((id) => getCategoryById(id)).filter(Boolean);
 
   const isActive = (hubRoute: string) =>
     location === hubRoute || (hubRoute !== "/" && location.startsWith(hubRoute));
@@ -64,7 +66,9 @@ export function BottomNav() {
                       onClick={() => setShowMore(false)}
                       className={cn(
                         "flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors cursor-pointer",
-                        active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
+                        active
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:bg-muted"
                       )}
                       data-testid={`link-category-${cat.id}`}
                     >
@@ -102,7 +106,9 @@ export function BottomNav() {
           </Link>
 
           {visibleCategories.map((cat) => {
-            if (!cat) {return null;}
+            if (!cat) {
+              return null;
+            }
             const Icon = cat.icon;
             const active = isActive(cat.hubRoute);
             return (

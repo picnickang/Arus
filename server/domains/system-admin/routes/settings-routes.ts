@@ -4,7 +4,12 @@
  */
 
 import { Express, Request, Response, z, SystemAdminDependencies } from "./types.js";
-import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../../lib/route-utils.js";
+import {
+  withErrorHandling,
+  sendNotFound,
+  sendCreated,
+  sendDeleted,
+} from "../../../lib/route-utils.js";
 import { logger } from "../../../utils/logger.js";
 import { dbSystemAdminStorage } from "../../../db/system-admin/index.js";
 
@@ -26,7 +31,10 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
     auditAdminAction("VIEW_SYSTEM_SETTINGS"),
     withErrorHandling("fetch admin system settings", async (req: Request, res: Response) => {
       const { orgId, category } = req.query;
-      const settings = await dbSystemAdminStorage.getAdminSystemSettings(orgId as string, category as string);
+      const settings = await dbSystemAdminStorage.getAdminSystemSettings(
+        orgId as string,
+        category as string
+      );
       res.json(settings);
     })
   );
@@ -113,7 +121,10 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
         return;
       }
 
-      logger.info("AdminSettings", `Calibrating threshold for equipment ${equipmentId} (org: ${orgId})`);
+      logger.info(
+        "AdminSettings",
+        `Calibrating threshold for equipment ${equipmentId} (org: ${orgId})`
+      );
 
       const result = await thresholdCalibrator.calibrateForEquipment(orgId, equipmentId);
 

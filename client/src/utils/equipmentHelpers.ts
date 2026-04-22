@@ -55,14 +55,14 @@ export function filterEquipment(allEquipment: Equipment[], filters: EquipmentFil
  * Format location string from snake_case to Title Case
  */
 export function formatLocation(location: string): string {
-  return location.replaceAll('_', " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  return location.replaceAll("_", " ").replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
 /**
  * Format equipment type from snake_case to Title Case
  */
 export function formatType(type: string): string {
-  return type.replaceAll('_', " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  return type.replaceAll("_", " ").replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
 /**

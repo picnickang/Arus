@@ -1,6 +1,6 @@
 /**
  * Schema Core - Organizations, Users, and System Settings
- * 
+ *
  * These are the foundational tables referenced by most other modules.
  */
 
@@ -110,7 +110,7 @@ export const EMAIL_PROVIDERS = {
   OUTLOOK: "outlook",
 } as const;
 
-export type EmailProvider = typeof EMAIL_PROVIDERS[keyof typeof EMAIL_PROVIDERS];
+export type EmailProvider = (typeof EMAIL_PROVIDERS)[keyof typeof EMAIL_PROVIDERS];
 
 export const SMTP_PRESETS: Record<string, { host: string; port: number; secure: boolean }> = {
   gmail: { host: "smtp.gmail.com", port: 587, secure: false },
@@ -153,19 +153,38 @@ export const insertOrganizationSchema = createInsertSchema(organizations)
   .omit({ id: true, createdAt: true, updatedAt: true })
   .extend({
     subscriptionTier: z.enum(["basic", "pro", "enterprise"]).default("basic"),
-    slug: z.string().min(2).max(50).regex(/^[a-z0-9-]+$/),
+    slug: z
+      .string()
+      .min(2)
+      .max(50)
+      .regex(/^[a-z0-9-]+$/),
     name: z.string().min(2).max(100),
     maxUsers: z.number().min(1).max(10000).default(50),
     maxEquipment: z.number().min(1).max(100000).default(1000),
   });
 
 export const insertUserSchema = createInsertSchema(users)
-  .omit({ id: true, createdAt: true, updatedAt: true, lastLoginAt: true, passwordHash: true, passwordResetToken: true, passwordResetExpires: true, passwordUpdatedAt: true })
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+    lastLoginAt: true,
+    passwordHash: true,
+    passwordResetToken: true,
+    passwordResetExpires: true,
+    passwordUpdatedAt: true,
+  })
   .extend({
     role: z.enum(["admin", "manager", "technician", "viewer"]).default("viewer"),
     email: z.string().email(),
     name: z.string().min(2).max(100),
-    username: z.string().min(3).max(50).regex(/^[a-zA-Z0-9_-]+$/).optional().nullable(),
+    username: z
+      .string()
+      .min(3)
+      .max(50)
+      .regex(/^[a-zA-Z0-9_-]+$/)
+      .optional()
+      .nullable(),
     password: z.string().min(8).max(100).optional(),
     jobTitle: z.string().max(100).optional().nullable(),
     phone: z.string().max(30).optional().nullable(),

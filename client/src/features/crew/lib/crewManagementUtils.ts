@@ -57,13 +57,17 @@ const RANK_DISPLAY_MAP: Record<string, string> = {
 };
 
 export function formatRank(rank: string): string {
-  if (!rank) {return "Unassigned";}
+  if (!rank) {
+    return "Unassigned";
+  }
   const mapped = RANK_DISPLAY_MAP[rank.toLowerCase()];
-  if (mapped) {return mapped;}
-  if (MARITIME_RANKS.includes(rank as any)) {return rank;}
-  return rank
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  if (mapped) {
+    return mapped;
+  }
+  if (MARITIME_RANKS.includes(rank as any)) {
+    return rank;
+  }
+  return rank.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export const MARITIME_RANKS = [
@@ -156,7 +160,9 @@ export function capitalizeNames(name: string): string {
   return name
     .split(" ")
     .map((word) => {
-      if (word.length === 0) { return ""; }
+      if (word.length === 0) {
+        return "";
+      }
       return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
     })
     .join(" ");
@@ -194,10 +200,7 @@ export interface CrewFilterOptions {
   selectedSkill: string;
 }
 
-export function filterCrew(
-  crew: CrewListItem[],
-  filters: CrewFilterOptions
-): CrewListItem[] {
+export function filterCrew(crew: CrewListItem[], filters: CrewFilterOptions): CrewListItem[] {
   let filtered = [...crew];
 
   if (filters.searchTerm) {
@@ -215,7 +218,11 @@ export function filterCrew(
   }
 
   if (filters.selectedRank !== "all") {
-    filtered = filtered.filter((c) => c.rank.toLowerCase() === filters.selectedRank.toLowerCase() || formatRank(c.rank) === filters.selectedRank);
+    filtered = filtered.filter(
+      (c) =>
+        c.rank.toLowerCase() === filters.selectedRank.toLowerCase() ||
+        formatRank(c.rank) === filters.selectedRank
+    );
   }
 
   if (filters.selectedStatus !== "all") {
@@ -272,19 +279,33 @@ export function sortCrew(
         return 0;
     }
 
-    if (compareA < compareB) { return sortDirection === "asc" ? -1 : 1; }
-    if (compareA > compareB) { return sortDirection === "asc" ? 1 : -1; }
+    if (compareA < compareB) {
+      return sortDirection === "asc" ? -1 : 1;
+    }
+    if (compareA > compareB) {
+      return sortDirection === "asc" ? 1 : -1;
+    }
     return 0;
   });
 }
 
 export function countActiveFilters(filters: CrewFilterOptions): number {
   let count = 0;
-  if (filters.searchTerm) { count++; }
-  if (filters.selectedVessel !== "all") { count++; }
-  if (filters.selectedRank !== "all") { count++; }
-  if (filters.selectedStatus !== "all") { count++; }
-  if (filters.selectedSkill !== "all") { count++; }
+  if (filters.searchTerm) {
+    count++;
+  }
+  if (filters.selectedVessel !== "all") {
+    count++;
+  }
+  if (filters.selectedRank !== "all") {
+    count++;
+  }
+  if (filters.selectedStatus !== "all") {
+    count++;
+  }
+  if (filters.selectedSkill !== "all") {
+    count++;
+  }
   return count;
 }
 

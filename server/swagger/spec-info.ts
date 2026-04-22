@@ -1,6 +1,6 @@
 /**
  * OpenAPI Spec - Info, Servers, and Tags
- * 
+ *
  * Core OpenAPI configuration and metadata.
  */
 
@@ -44,18 +44,18 @@ Admin endpoints additionally require the \`x-admin-token\` header.
     version: "1.0",
     contact: {
       name: "ARUS Support",
-      email: "support@arus.marine"
+      email: "support@arus.marine",
     },
     license: {
       name: "Proprietary",
-      url: "https://arus.marine/license"
-    }
+      url: "https://arus.marine/license",
+    },
   },
   servers: [
     {
       url: "/api",
-      description: "Current server"
-    }
+      description: "Current server",
+    },
   ],
   tags: [
     { name: "Health", description: "System health and readiness endpoints" },
@@ -70,6 +70,6 @@ Admin endpoints additionally require the \`x-admin-token\` header.
     { name: "Organizations", description: "Organization and user management" },
     { name: "Sync", description: "Cloud/offline synchronization" },
     { name: "Analytics", description: "Analytics and reporting" },
-    { name: "Admin", description: "Administrative operations (requires admin token)" }
-  ]
+    { name: "Admin", description: "Administrative operations (requires admin token)" },
+  ],
 };

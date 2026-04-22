@@ -1,4 +1,11 @@
-import { calculateSummaryStats, calculateKurtosis, calculateSkewness, detectIQRAnomalies, percentile, calculateStd } from "../../server/utils/statistics";
+import {
+  calculateSummaryStats,
+  calculateKurtosis,
+  calculateSkewness,
+  detectIQRAnomalies,
+  percentile,
+  calculateStd,
+} from "../../server/utils/statistics";
 
 describe("Statistical Utilities", () => {
   describe("calculateSummaryStats", () => {

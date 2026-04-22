@@ -48,19 +48,36 @@ export class FleetRegistryService {
   async createVessel(data: InsertVessel, userId?: string): Promise<Vessel> {
     const vessel = await this.vesselRepo.create(data);
     incrementVesselOperation("create", vessel.id);
-    await this.eventPublisher.publish("vessel", vessel.id, "create", { ...vessel } as unknown as Record<string, unknown>, userId);
+    await this.eventPublisher.publish(
+      "vessel",
+      vessel.id,
+      "create",
+      { ...vessel } as unknown as Record<string, unknown>,
+      userId
+    );
     this.eventPublisher.publishVesselMqtt("create", vessel);
     return vessel;
   }
 
   async updateVessel(id: string, data: Partial<InsertVessel>, userId?: string): Promise<Vessel> {
     const vessel = await this.vesselRepo.update(id, data);
-    await this.eventPublisher.publish("vessel", vessel.id, "update", { ...vessel } as unknown as Record<string, unknown>, userId);
+    await this.eventPublisher.publish(
+      "vessel",
+      vessel.id,
+      "update",
+      { ...vessel } as unknown as Record<string, unknown>,
+      userId
+    );
     this.eventPublisher.publishVesselMqtt("update", vessel);
     return vessel;
   }
 
-  async deleteVessel(id: string, _deleteEquipment: boolean, orgId: string, userId?: string): Promise<void> {
+  async deleteVessel(
+    id: string,
+    _deleteEquipment: boolean,
+    orgId: string,
+    userId?: string
+  ): Promise<void> {
     await this.vesselRepo.delete(id, orgId);
     await this.eventPublisher.publish("vessel", id, "delete", { id }, userId);
     this.eventPublisher.publishVesselMqtt("delete", { id });
@@ -70,10 +87,20 @@ export class FleetRegistryService {
     return this.vesselOps.exportVessel(id, orgId);
   }
 
-  async importVessel(data: Record<string, unknown>, orgId: string, userId?: string): Promise<VesselImportResult> {
+  async importVessel(
+    data: Record<string, unknown>,
+    orgId: string,
+    userId?: string
+  ): Promise<VesselImportResult> {
     const result = await this.vesselOps.importVessel(data, orgId);
     if (result.vessel) {
-      await this.eventPublisher.publish("vessel", result.vessel.id, "create", result.vessel as Record<string, unknown>, userId);
+      await this.eventPublisher.publish(
+        "vessel",
+        result.vessel.id,
+        "create",
+        result.vessel as Record<string, unknown>,
+        userId
+      );
     }
     return result;
   }
@@ -100,15 +127,37 @@ export class FleetRegistryService {
     return this.vesselOps.getVesselEquipment(vesselId, orgId);
   }
 
-  async assignEquipment(vesselId: string, equipmentId: string, orgId: string, userId?: string): Promise<SelectVessel> {
+  async assignEquipment(
+    vesselId: string,
+    equipmentId: string,
+    orgId: string,
+    userId?: string
+  ): Promise<SelectVessel> {
     const result = await this.vesselOps.assignEquipment(vesselId, equipmentId, orgId);
-    await this.eventPublisher.publish("equipment", equipmentId, "update", { id: equipmentId, vesselId }, userId);
+    await this.eventPublisher.publish(
+      "equipment",
+      equipmentId,
+      "update",
+      { id: equipmentId, vesselId },
+      userId
+    );
     return result;
   }
 
-  async unassignEquipment(vesselId: string, equipmentId: string, orgId: string, userId?: string): Promise<SelectVessel> {
+  async unassignEquipment(
+    vesselId: string,
+    equipmentId: string,
+    orgId: string,
+    userId?: string
+  ): Promise<SelectVessel> {
     const result = await this.vesselOps.unassignEquipment(vesselId, equipmentId, orgId);
-    await this.eventPublisher.publish("equipment", equipmentId, "update", { id: equipmentId, vesselId: null }, userId);
+    await this.eventPublisher.publish(
+      "equipment",
+      equipmentId,
+      "update",
+      { id: equipmentId, vesselId: null },
+      userId
+    );
     return result;
   }
 
@@ -120,7 +169,11 @@ export class FleetRegistryService {
     return this.portCallRepo.create(data);
   }
 
-  async updatePortCall(id: string, updates: Partial<InsertPortCall>, orgId: string): Promise<PortCall> {
+  async updatePortCall(
+    id: string,
+    updates: Partial<InsertPortCall>,
+    orgId: string
+  ): Promise<PortCall> {
     return this.portCallRepo.update(id, updates, orgId);
   }
 
@@ -136,7 +189,11 @@ export class FleetRegistryService {
     return this.drydockRepo.create(data);
   }
 
-  async updateDrydockWindow(id: string, updates: Partial<InsertDrydockWindow>, orgId: string): Promise<DrydockWindow> {
+  async updateDrydockWindow(
+    id: string,
+    updates: Partial<InsertDrydockWindow>,
+    orgId: string
+  ): Promise<DrydockWindow> {
     return this.drydockRepo.update(id, updates, orgId);
   }
 

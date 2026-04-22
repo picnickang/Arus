@@ -1,6 +1,6 @@
 /**
  * Insights Tab
- * 
+ *
  * Vessel intelligence, feedback loop, and prediction feedback.
  */
 
@@ -9,14 +9,39 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Brain, Loader2, ChevronDown, RefreshCw, TrendingUp, AlertTriangle, CheckCircle2, Clock, ThumbsUp, ThumbsDown, MessageSquare } from "lucide-react";
+import {
+  Brain,
+  Loader2,
+  ChevronDown,
+  RefreshCw,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  ThumbsUp,
+  ThumbsDown,
+  MessageSquare,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
 import { useFeedbackLoopData } from "@/features/analytics";
@@ -34,7 +59,10 @@ export default function InsightsTab() {
 
   return (
     <div className="space-y-6">
-      <Collapsible open={expandedSections.vesselIntelligence} onOpenChange={() => toggleSection("vesselIntelligence")}>
+      <Collapsible
+        open={expandedSections.vesselIntelligence}
+        onOpenChange={() => toggleSection("vesselIntelligence")}
+      >
         <Card>
           <CollapsibleTrigger asChild>
             <CardHeader className="cursor-pointer">
@@ -43,7 +71,9 @@ export default function InsightsTab() {
                   <Brain className="h-4 w-4" />
                   Vessel Intelligence
                 </CardTitle>
-                <ChevronDown className={`h-4 w-4 transition-transform ${expandedSections.vesselIntelligence ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${expandedSections.vesselIntelligence ? "rotate-180" : ""}`}
+                />
               </div>
               <CardDescription>AI-powered pattern analysis for each vessel</CardDescription>
             </CardHeader>
@@ -56,7 +86,10 @@ export default function InsightsTab() {
         </Card>
       </Collapsible>
 
-      <Collapsible open={expandedSections.feedbackLoop} onOpenChange={() => toggleSection("feedbackLoop")}>
+      <Collapsible
+        open={expandedSections.feedbackLoop}
+        onOpenChange={() => toggleSection("feedbackLoop")}
+      >
         <Card>
           <CollapsibleTrigger asChild>
             <CardHeader className="cursor-pointer">
@@ -65,7 +98,9 @@ export default function InsightsTab() {
                   <RefreshCw className="h-4 w-4" />
                   Feedback Loop Intelligence
                 </CardTitle>
-                <ChevronDown className={`h-4 w-4 transition-transform ${expandedSections.feedbackLoop ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${expandedSections.feedbackLoop ? "rotate-180" : ""}`}
+                />
               </div>
               <CardDescription>How operator feedback improves AI accuracy</CardDescription>
             </CardHeader>
@@ -78,7 +113,10 @@ export default function InsightsTab() {
         </Card>
       </Collapsible>
 
-      <Collapsible open={expandedSections.predictionFeedback} onOpenChange={() => toggleSection("predictionFeedback")}>
+      <Collapsible
+        open={expandedSections.predictionFeedback}
+        onOpenChange={() => toggleSection("predictionFeedback")}
+      >
         <Card>
           <CollapsibleTrigger asChild>
             <CardHeader className="cursor-pointer">
@@ -87,7 +125,9 @@ export default function InsightsTab() {
                   <MessageSquare className="h-4 w-4" />
                   Prediction Feedback
                 </CardTitle>
-                <ChevronDown className={`h-4 w-4 transition-transform ${expandedSections.predictionFeedback ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${expandedSections.predictionFeedback ? "rotate-180" : ""}`}
+                />
               </div>
               <CardDescription>Operator ratings and corrections for predictions</CardDescription>
             </CardHeader>
@@ -113,7 +153,9 @@ function VesselIntelligenceSection() {
   });
 
   const loadVesselIntelligence = async () => {
-    if (!selectedVessel) {return;}
+    if (!selectedVessel) {
+      return;
+    }
     setIsLoadingIntelligence(true);
     try {
       const response = await fetch(`/api/analytics/vessel-intelligence/${selectedVessel}`);
@@ -130,10 +172,14 @@ function VesselIntelligenceSection() {
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case "critical": return "text-red-500";
-      case "high": return "text-orange-500";
-      case "medium": return "text-yellow-500";
-      default: return "text-blue-500";
+      case "critical":
+        return "text-red-500";
+      case "high":
+        return "text-orange-500";
+      case "medium":
+        return "text-yellow-500";
+      default:
+        return "text-blue-500";
     }
   };
 
@@ -148,13 +194,29 @@ function VesselIntelligenceSection() {
             </SelectTrigger>
             <SelectContent>
               {vessels.map((vessel) => (
-                <SelectItem key={vessel.id} value={vessel.id}>{vessel.name}</SelectItem>
+                <SelectItem key={vessel.id} value={vessel.id}>
+                  {vessel.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={loadVesselIntelligence} disabled={isLoadingIntelligence || !selectedVessel} data-testid="button-load-intelligence">
-          {isLoadingIntelligence ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Analyzing...</> : <><Brain className="mr-2 h-4 w-4" />Analyze Vessel</>}
+        <Button
+          onClick={loadVesselIntelligence}
+          disabled={isLoadingIntelligence || !selectedVessel}
+          data-testid="button-load-intelligence"
+        >
+          {isLoadingIntelligence ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Analyzing...
+            </>
+          ) : (
+            <>
+              <Brain className="mr-2 h-4 w-4" />
+              Analyze Vessel
+            </>
+          )}
         </Button>
       </div>
 
@@ -209,7 +271,9 @@ function VesselIntelligenceSection() {
                         </Badge>
                         <div>
                           <p className="font-medium text-sm">{insight.title}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{insight.description}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {insight.description}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -241,7 +305,18 @@ function VesselIntelligenceSection() {
 }
 
 function FeedbackLoopSection() {
-  const { retrainingQueue, queueLoading, modelImprovements, improvementsLoading, correctionPatterns, patternsLoading, highPriorityCount, hasHighPriorityRetraining, getPriorityBadge, getImprovementBadge } = useFeedbackLoopData();
+  const {
+    retrainingQueue,
+    queueLoading,
+    modelImprovements,
+    improvementsLoading,
+    correctionPatterns,
+    patternsLoading,
+    highPriorityCount,
+    hasHighPriorityRetraining,
+    getPriorityBadge,
+    getImprovementBadge,
+  } = useFeedbackLoopData();
 
   return (
     <div className="space-y-4">
@@ -249,16 +324,22 @@ function FeedbackLoopSection() {
         <RefreshCw className="h-4 w-4 text-blue-600 dark:text-blue-400" />
         <AlertTitle className="text-blue-900 dark:text-blue-100">How This Works</AlertTitle>
         <AlertDescription className="text-blue-800 dark:text-blue-200">
-          When operators rate predictions or report inaccuracies, the system automatically queues models for retraining.
+          When operators rate predictions or report inaccuracies, the system automatically queues
+          models for retraining.
         </AlertDescription>
       </Alert>
 
       {hasHighPriorityRetraining && (
         <Alert className="bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
           <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-          <AlertTitle className="text-amber-900 dark:text-amber-100">High Priority Retraining Needed</AlertTitle>
+          <AlertTitle className="text-amber-900 dark:text-amber-100">
+            High Priority Retraining Needed
+          </AlertTitle>
           <AlertDescription className="text-amber-800 dark:text-amber-200">
-            <strong>{highPriorityCount} model{highPriorityCount > 1 ? "s are" : " is"}</strong> waiting for high-priority retraining.
+            <strong>
+              {highPriorityCount} model{highPriorityCount > 1 ? "s are" : " is"}
+            </strong>{" "}
+            waiting for high-priority retraining.
           </AlertDescription>
         </Alert>
       )}
@@ -273,7 +354,11 @@ function FeedbackLoopSection() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {queueLoading ? <Skeleton className="h-8 w-16" /> : <p className="text-3xl font-bold">{retrainingQueue?.totalPending ?? 0}</p>}
+            {queueLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <p className="text-3xl font-bold">{retrainingQueue?.totalPending ?? 0}</p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -284,7 +369,11 @@ function FeedbackLoopSection() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {improvementsLoading ? <Skeleton className="h-8 w-16" /> : <p className="text-3xl font-bold">{modelImprovements?.length ?? 0}</p>}
+            {improvementsLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <p className="text-3xl font-bold">{modelImprovements?.length ?? 0}</p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -295,7 +384,11 @@ function FeedbackLoopSection() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {patternsLoading ? <Skeleton className="h-8 w-16" /> : <p className="text-3xl font-bold">{correctionPatterns?.inaccuracyCount ?? 0}</p>}
+            {patternsLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <p className="text-3xl font-bold">{correctionPatterns?.inaccuracyCount ?? 0}</p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -320,9 +413,13 @@ function FeedbackLoopSection() {
                   {retrainingQueue.queue.slice(0, 5).map((item, idx) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.modelName}</TableCell>
-                      <TableCell><Badge variant="outline">{item.triggerType.replaceAll("_", " ")}</Badge></TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{item.triggerType.replaceAll("_", " ")}</Badge>
+                      </TableCell>
                       <TableCell>{getPriorityBadge(item.priority)}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -352,9 +449,13 @@ function FeedbackLoopSection() {
                   {modelImprovements.slice(0, 5).map((model) => (
                     <TableRow key={model.modelId}>
                       <TableCell className="font-medium">{model.modelName}</TableCell>
-                      <TableCell><Badge>{model.currentVersion}</Badge></TableCell>
+                      <TableCell>
+                        <Badge>{model.currentVersion}</Badge>
+                      </TableCell>
                       <TableCell className="text-right">
-                        {model.currentAccuracy === null ? "—" : `${(model.currentAccuracy * 100).toFixed(1)}%`}
+                        {model.currentAccuracy === null
+                          ? "—"
+                          : `${(model.currentAccuracy * 100).toFixed(1)}%`}
                       </TableCell>
                       <TableCell>{getImprovementBadge(model.improvementStatus)}</TableCell>
                     </TableRow>
@@ -408,10 +509,14 @@ function PredictionFeedbackSection() {
 
   const getFeedbackTypeBadge = (type: string) => {
     switch (type) {
-      case "correction": return <Badge className="bg-blue-500">Correction</Badge>;
-      case "rating": return <Badge className="bg-purple-500">Rating</Badge>;
-      case "flag": return <Badge variant="destructive">Flagged</Badge>;
-      default: return <Badge variant="secondary">{type}</Badge>;
+      case "correction":
+        return <Badge className="bg-blue-500">Correction</Badge>;
+      case "rating":
+        return <Badge className="bg-purple-500">Rating</Badge>;
+      case "flag":
+        return <Badge variant="destructive">Flagged</Badge>;
+      default:
+        return <Badge variant="secondary">{type}</Badge>;
     }
   };
 
@@ -482,7 +587,9 @@ function PredictionFeedbackSection() {
                 <TableBody>
                   {feedback.slice(0, 10).map((item) => (
                     <TableRow key={item.feedback.id}>
-                      <TableCell className="font-medium">{item.equipmentName || item.feedback.equipmentId}</TableCell>
+                      <TableCell className="font-medium">
+                        {item.equipmentName || item.feedback.equipmentId}
+                      </TableCell>
                       <TableCell>{getFeedbackTypeBadge(item.feedback.feedbackType)}</TableCell>
                       <TableCell>
                         {item.feedback.isAccurate === true ? (
@@ -494,12 +601,18 @@ function PredictionFeedbackSection() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={item.feedback.feedbackStatus === "approved" ? "default" : "secondary"}>
+                        <Badge
+                          variant={
+                            item.feedback.feedbackStatus === "approved" ? "default" : "secondary"
+                          }
+                        >
                           {item.feedback.feedbackStatus}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(item.feedback.createdAt), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(item.feedback.createdAt), {
+                          addSuffix: true,
+                        })}
                       </TableCell>
                     </TableRow>
                   ))}

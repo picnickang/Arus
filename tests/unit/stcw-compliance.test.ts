@@ -13,7 +13,11 @@
 
 import { describe, it, expect } from "@jest/globals";
 import { checkMonthCompliance } from "../../server/stcw-compliance/compliance-checker";
-import { chunksFromDay, normalizeRestDays, countRestHours } from "../../server/stcw-compliance/rest-utils";
+import {
+  chunksFromDay,
+  normalizeRestDays,
+  countRestHours,
+} from "../../server/stcw-compliance/rest-utils";
 import type { RestDay } from "../../server/stcw-compliance/types";
 import { STCW_MIN_REST_24, STCW_MIN_REST_7D } from "../../server/stcw-compliance/types";
 
@@ -31,7 +35,7 @@ function makeDay(date: string, hours: number[]): RestDay {
 /** Standard watch pattern: 4-on/8-off (common for deck officers) */
 function makeStandardWatchDay(date: string): RestDay {
   // 0000-0400 watch (work), 0400-1200 rest, 1200-1600 watch, 1600-2400 rest
-  const hours = [0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0, 1,1,1,1,1,1,1,1];
+  const hours = [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1];
   return makeDay(date, hours);
 }
 
@@ -43,14 +47,14 @@ function makeFullRestDay(date: string): RestDay {
 /** Overworked day: only 6 hours rest (below STCW minimum of 10) */
 function makeOverworkedDay(date: string): RestDay {
   // Work 18 hours, rest 6 (0200-0800)
-  const hours = [0,0, 1,1,1,1,1,1, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+  const hours = [0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   return makeDay(date, hours);
 }
 
 /** Three-split day: rest split into 3 periods (violates STCW) */
 function makeThreeSplitDay(date: string): RestDay {
   // Rest: 01-04, 09-12, 18-21 (3 periods — illegal even if total ≥ 10)
-  const hours = [0, 1,1,1, 0,0,0,0,0, 1,1,1, 0,0,0,0,0,0, 1,1,1, 0,0,0];
+  const hours = [0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0];
   return makeDay(date, hours);
 }
 
@@ -59,7 +63,10 @@ function makeThreeSplitDay(date: string): RestDay {
 describe("STCW rest-utils", () => {
   describe("chunksFromDay", () => {
     it("identifies a single continuous rest block", () => {
-      const day = makeDay("2025-01-01", [0,0,0,0,0,0, 1,1,1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0]);
+      const day = makeDay(
+        "2025-01-01",
+        [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]
+      );
       const chunks = chunksFromDay(day);
       expect(chunks).toHaveLength(1);
       expect(chunks[0]).toEqual({ start: 6, end: 16 });
@@ -138,9 +145,9 @@ describe("STCW checkMonthCompliance", () => {
       makeStandardWatchDay(`2025-01-${String(i + 1).padStart(2, "0")}`)
     );
     const result = checkMonthCompliance(days);
-    expect(result.days.every(d => d.rest_total)).toBe(true);
-    expect(result.days.every(d => d.rest_total >= STCW_MIN_REST_24)).toBe(true);
-    expect(result.days.every(d => d.split_ok)).toBe(true);
+    expect(result.days.every((d) => d.rest_total)).toBe(true);
+    expect(result.days.every((d) => d.rest_total >= STCW_MIN_REST_24)).toBe(true);
+    expect(result.days.every((d) => d.split_ok)).toBe(true);
     const last7d = result.rolling7d[result.rolling7d.length - 1];
     expect(last7d.rest_7d).toBeGreaterThanOrEqual(STCW_MIN_REST_7D);
   });
@@ -192,8 +199,8 @@ describe("STCW checkMonthCompliance", () => {
     const result = checkMonthCompliance(days);
     expect(result.days).toHaveLength(31);
     expect(result.rolling7d).toHaveLength(31);
-    expect(result.days.every(d => d.rest_total >= STCW_MIN_REST_24)).toBe(true);
-    expect(result.days.every(d => d.split_ok)).toBe(true);
+    expect(result.days.every((d) => d.rest_total >= STCW_MIN_REST_24)).toBe(true);
+    expect(result.days.every((d) => d.split_ok)).toBe(true);
     const last7d = result.rolling7d[result.rolling7d.length - 1];
     expect(last7d.rest_7d).toBeGreaterThanOrEqual(STCW_MIN_REST_7D);
   });

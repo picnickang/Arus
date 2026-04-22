@@ -2,7 +2,16 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ExternalLink, Trash2, Loader2, User, Calendar, Package, CheckCircle, Pencil } from "lucide-react";
+import {
+  ExternalLink,
+  Trash2,
+  Loader2,
+  User,
+  Calendar,
+  Package,
+  CheckCircle,
+  Pencil,
+} from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import {
   AlertDialog,
@@ -102,7 +111,9 @@ function FulfillmentDialog({
   const items = purchaseRequest.items || [];
   const canFulfill = ["approved", "ordered", "received"].includes(purchaseRequest.status);
 
-  if (!canFulfill || items.length === 0) {return null;}
+  if (!canFulfill || items.length === 0) {
+    return null;
+  }
 
   const handleFulfill = (itemId: string) => {
     const qty = quantities[itemId];
@@ -115,14 +126,21 @@ function FulfillmentDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="h-7 text-xs" data-testid={`btn-fulfill-pr-${purchaseRequest.id}`}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs"
+          data-testid={`btn-fulfill-pr-${purchaseRequest.id}`}
+        >
           <CheckCircle className="h-3 w-3 mr-1" />
           Fulfill Items
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Fulfill Items - {purchaseRequest.requestNumber || purchaseRequest.prNumber}</DialogTitle>
+          <DialogTitle>
+            Fulfill Items - {purchaseRequest.requestNumber || purchaseRequest.prNumber}
+          </DialogTitle>
           <DialogDescription>
             Enter quantities to fulfill from inventory. Stock will be automatically decremented.
           </DialogDescription>
@@ -135,15 +153,26 @@ function FulfillmentDialog({
             const isFulfilledComplete = item.fulfillmentStatus === "fulfilled";
 
             return (
-              <div key={item.id} className="p-3 border rounded-lg space-y-2" data-testid={`fulfill-item-${item.id}`}>
+              <div
+                key={item.id}
+                className="p-3 border rounded-lg space-y-2"
+                data-testid={`fulfill-item-${item.id}`}
+              >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm truncate">
                       {item.partName || item.description || item.partNumber || "Unknown Part"}
                     </div>
-                    {item.partNumber && <div className="text-xs text-muted-foreground">{item.partNumber}</div>}
+                    {item.partNumber && (
+                      <div className="text-xs text-muted-foreground">{item.partNumber}</div>
+                    )}
                   </div>
-                  <Badge className={FULFILLMENT_STATUS_COLORS[item.fulfillmentStatus || "pending"] || "bg-gray-100"}>
+                  <Badge
+                    className={
+                      FULFILLMENT_STATUS_COLORS[item.fulfillmentStatus || "pending"] ||
+                      "bg-gray-100"
+                    }
+                  >
                     {item.fulfillmentStatus || "pending"}
                   </Badge>
                 </div>
@@ -166,14 +195,24 @@ function FulfillmentDialog({
                       max={remaining}
                       placeholder={`Max ${remaining}`}
                       value={quantities[item.id] || ""}
-                      onChange={(e) => setQuantities((prev) => ({ ...prev, [item.id]: parseInt(e.target.value) || 0 }))}
+                      onChange={(e) =>
+                        setQuantities((prev) => ({
+                          ...prev,
+                          [item.id]: parseInt(e.target.value) || 0,
+                        }))
+                      }
                       className="h-8 w-24 text-sm"
                       data-testid={`input-fulfill-qty-${item.id}`}
                     />
                     <Button
                       size="sm"
                       className="h-8"
-                      disabled={!quantities[item.id] || quantities[item.id] <= 0 || quantities[item.id] > remaining || isFulfilling}
+                      disabled={
+                        !quantities[item.id] ||
+                        quantities[item.id] <= 0 ||
+                        quantities[item.id] > remaining ||
+                        isFulfilling
+                      }
                       onClick={() => handleFulfill(item.id)}
                       data-testid={`btn-fulfill-item-${item.id}`}
                     >
@@ -210,19 +249,29 @@ export function PartsRequestCard({
   const canEditRecord = isDraft ? canEditPermission : canApprove;
   const itemCount = purchaseRequest.itemCount || purchaseRequest.items?.length || 0;
 
-  const fulfilledCount = purchaseRequest.items?.filter((i) => i.fulfillmentStatus === "fulfilled").length || 0;
+  const fulfilledCount =
+    purchaseRequest.items?.filter((i) => i.fulfillmentStatus === "fulfilled").length || 0;
   const hasFulfillmentProgress = purchaseRequest.items && purchaseRequest.items.length > 0;
   const nextStatus = NEXT_STATUS[purchaseRequest.status];
-  const canAdvanceStatus = nextStatus && !isReadOnly && onUpdateStatus && (isDraftOrCancelled ? canEditPermission : canApprove);
+  const canAdvanceStatus =
+    nextStatus &&
+    !isReadOnly &&
+    onUpdateStatus &&
+    (isDraftOrCancelled ? canEditPermission : canApprove);
   const canFulfill = !isDraftOrCancelled && canApprove;
 
   return (
-    <div className="p-4 rounded-lg border bg-muted/30" data-testid={`pr-item-${purchaseRequest.id}`}>
+    <div
+      className="p-4 rounded-lg border bg-muted/30"
+      data-testid={`pr-item-${purchaseRequest.id}`}
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-sm">{requestNumber}</span>
-            <Badge className={STATUS_COLORS[purchaseRequest.status] || "bg-gray-100"}>{purchaseRequest.status}</Badge>
+            <Badge className={STATUS_COLORS[purchaseRequest.status] || "bg-gray-100"}>
+              {purchaseRequest.status}
+            </Badge>
             {hasFulfillmentProgress && purchaseRequest.status !== "draft" && (
               <span className="text-xs text-muted-foreground">
                 ({fulfilledCount}/{purchaseRequest.items?.length} fulfilled)
@@ -230,7 +279,9 @@ export function PartsRequestCard({
             )}
           </div>
 
-          {purchaseRequest.notes && <p className="text-sm text-foreground line-clamp-2">{purchaseRequest.notes}</p>}
+          {purchaseRequest.notes && (
+            <p className="text-sm text-foreground line-clamp-2">{purchaseRequest.notes}</p>
+          )}
 
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
             {itemCount > 0 && (
@@ -252,13 +303,22 @@ export function PartsRequestCard({
               </span>
             )}
             {purchaseRequest.createdAt && (
-              <span>Created {formatDistanceToNow(new Date(purchaseRequest.createdAt), { addSuffix: true })}</span>
+              <span>
+                Created{" "}
+                {formatDistanceToNow(new Date(purchaseRequest.createdAt), { addSuffix: true })}
+              </span>
             )}
           </div>
 
           {!isReadOnly && (
             <div className="flex flex-wrap gap-2 pt-1">
-              {canFulfill && <FulfillmentDialog purchaseRequest={purchaseRequest} onFulfillItem={onFulfillItem} isFulfilling={isFulfilling} />}
+              {canFulfill && (
+                <FulfillmentDialog
+                  purchaseRequest={purchaseRequest}
+                  onFulfillItem={onFulfillItem}
+                  isFulfilling={isFulfilling}
+                />
+              )}
               {canAdvanceStatus && (
                 <Button
                   variant="outline"
@@ -298,26 +358,40 @@ export function PartsRequestCard({
                   disabled={isDeleting}
                   data-testid={`btn-delete-pr-${purchaseRequest.id}`}
                 >
-                  {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  {isDeleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete Purchase Request?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently delete purchase request {requestNumber}. This action cannot be undone.
+                    This will permanently delete purchase request {requestNumber}. This action
+                    cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => onDelete(purchaseRequest.id)} className="bg-destructive text-destructive-foreground">
+                  <AlertDialogAction
+                    onClick={() => onDelete(purchaseRequest.id)}
+                    className="bg-destructive text-destructive-foreground"
+                  >
                     Delete
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           )}
-          <Button variant="ghost" size="icon" className="h-8 w-8" asChild data-testid={`btn-view-pr-${purchaseRequest.id}`}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            asChild
+            data-testid={`btn-view-pr-${purchaseRequest.id}`}
+          >
             <a href={`/purchase-requests/${purchaseRequest.id}`}>
               <ExternalLink className="h-4 w-4" />
             </a>

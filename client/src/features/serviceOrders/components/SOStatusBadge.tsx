@@ -8,7 +8,10 @@ interface SOStatusBadgeProps {
 
 export function SOStatusBadge({ status, className = "" }: SOStatusBadgeProps) {
   return (
-    <Badge className={`${SO_STATUS_COLORS[status]} ${className}`} data-testid={`badge-so-status-${status}`}>
+    <Badge
+      className={`${SO_STATUS_COLORS[status]} ${className}`}
+      data-testid={`badge-so-status-${status}`}
+    >
       {SO_STATUS_LABELS[status]}
     </Badge>
   );

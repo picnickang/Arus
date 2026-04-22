@@ -10,7 +10,10 @@ import { SafetyService } from "./safety-service";
 import { executeDraftAction } from "./draft-executor";
 import { auditAction } from "../../../utils/audit-helpers";
 import { registerFile, listConversationFiles } from "../infrastructure/file-registry";
-import { ingestFilesToKB, buildIngestionSystemMessage } from "../infrastructure/kb-ingestion-helper";
+import {
+  ingestFilesToKB,
+  buildIngestionSystemMessage,
+} from "../infrastructure/kb-ingestion-helper";
 import {
   buildCompactedMessages,
   compactToolOutput,
@@ -79,7 +82,10 @@ export class AgentOrchestrator {
   private safety: SafetyService;
   private knowledgeBase?: KnowledgeBasePort;
 
-  constructor(private repo: AgentRepositoryPort, knowledgeBase?: KnowledgeBasePort) {
+  constructor(
+    private repo: AgentRepositoryPort,
+    knowledgeBase?: KnowledgeBasePort
+  ) {
     this.safety = new SafetyService(repo);
     this.knowledgeBase = knowledgeBase;
   }
@@ -92,7 +98,7 @@ export class AgentOrchestrator {
     conversationId: string | undefined,
     userMessage: string,
     userRole?: string,
-    options?: { toolAllowlist?: string[] | null; maxTokenBudget?: number },
+    options?: { toolAllowlist?: string[] | null; maxTokenBudget?: number }
   ): Promise<AgentRunResult> {
     const ctx = await this.initRun(orgId, userId, conversationId, userMessage, userRole);
 
@@ -139,14 +145,9 @@ export class AgentOrchestrator {
 
   async processSignal(signal: AgentSignal): Promise<AgentRunResult> {
     const prompt = this.buildSignalPrompt(signal);
-    const result = await this.run(
-      signal.orgId,
-      undefined,
-      undefined,
-      prompt,
-      "admin",
-      { maxTokenBudget: 4000 },
-    );
+    const result = await this.run(signal.orgId, undefined, undefined, prompt, "admin", {
+      maxTokenBudget: 4000,
+    });
 
     if (signal.suggestionId) {
       try {
@@ -181,24 +182,30 @@ export class AgentOrchestrator {
     }
 
     try {
-      await auditAction("agent_signal", result.conversationId, "create", {
-        lifecycle: "signal_triggered",
-        triggerType: "prediction_signal",
-        triggerId: String(signal.predictionId),
-        signalType: signal.type,
-        equipmentId: signal.equipmentId,
-        failureProbability: signal.failureProbability,
-        riskLevel: signal.riskLevel,
-        modelId: signal.modelId ?? null,
-        autoTriggered: true,
-      }, { orgId: signal.orgId });
+      await auditAction(
+        "agent_signal",
+        result.conversationId,
+        "create",
+        {
+          lifecycle: "signal_triggered",
+          triggerType: "prediction_signal",
+          triggerId: String(signal.predictionId),
+          signalType: signal.type,
+          equipmentId: signal.equipmentId,
+          failureProbability: signal.failureProbability,
+          riskLevel: signal.riskLevel,
+          modelId: signal.modelId ?? null,
+          autoTriggered: true,
+        },
+        { orgId: signal.orgId }
+      );
     } catch {
       // Non-critical
     }
 
     console.log(
       `[AgentOrchestrator] Signal processed: ${signal.type} for equipment ${signal.equipmentId} ` +
-      `(prediction #${signal.predictionId}, probability: ${signal.failureProbability}) → conversation ${result.conversationId}`,
+        `(prediction #${signal.predictionId}, probability: ${signal.failureProbability}) → conversation ${result.conversationId}`
     );
 
     return result;
@@ -212,9 +219,14 @@ export class AgentOrchestrator {
 
     let costContext = "";
     if (signal.costImpact) {
-      const ci = signal.costImpact as { estimatedRepairCost?: number; revenueImpact?: number; estimatedDowntime?: number };
+      const ci = signal.costImpact as {
+        estimatedRepairCost?: number;
+        revenueImpact?: number;
+        estimatedDowntime?: number;
+      };
       if (ci.estimatedRepairCost || ci.revenueImpact) {
-        const fmt = (v: number) => v >= 1000 ? `~$${(v / 1000).toFixed(0)}K` : `~$${v.toFixed(0)}`;
+        const fmt = (v: number) =>
+          v >= 1000 ? `~$${(v / 1000).toFixed(0)}K` : `~$${v.toFixed(0)}`;
         costContext = ` Estimated repair cost: ${fmt(ci.estimatedRepairCost ?? 0)}. Estimated failure impact: ${fmt(ci.revenueImpact ?? 0)}.`;
         costContext += ` When drafting a work order, include a costJustification summarizing these costs and the prediction confidence.`;
       }
@@ -236,7 +248,7 @@ export class AgentOrchestrator {
     conversationId: string | undefined,
     userMessage: string,
     attachments: FileAttachment[],
-    userRole?: string,
+    userRole?: string
   ): Promise<AgentRunResult> {
     // Multimodal defaults to gpt-4o for vision support
     const ctx = await this.initRun(orgId, userId, conversationId, userMessage, userRole, "gpt-4o");
@@ -250,7 +262,11 @@ export class AgentOrchestrator {
 
     // Build multipart content & register files / ingest to KB
     const { contentParts, displayContent, kbIngested } = await this.processAttachments(
-      ctx.conversation.id, orgId, userId, ctx.sanitizedMessage, attachments,
+      ctx.conversation.id,
+      orgId,
+      userId,
+      ctx.sanitizedMessage,
+      attachments
     );
 
     // Persist user message (with file descriptions)
@@ -304,7 +320,7 @@ export class AgentOrchestrator {
     conversationId: string | undefined,
     userMessage: string,
     onChunk: (chunk: string) => void,
-    userRole?: string,
+    userRole?: string
   ): Promise<AgentRunResult> {
     const ctx = await this.initRun(orgId, userId, conversationId, userMessage, userRole);
 
@@ -339,7 +355,7 @@ export class AgentOrchestrator {
 
       await this.completeRun(ctx, result, runStartTime, orgId, userId, "stream");
 
-      onChunk(`${JSON.stringify({ type: "done", conversationId: ctx.conversation.id })  }\n`);
+      onChunk(`${JSON.stringify({ type: "done", conversationId: ctx.conversation.id })}\n`);
 
       return {
         conversationId: ctx.conversation.id,
@@ -371,10 +387,12 @@ export class AgentOrchestrator {
     conversationId: string | undefined,
     userMessage: string,
     userRole?: string,
-    modelOverride?: string,
+    modelOverride?: string
   ): Promise<RunContext> {
     const client = await createOpenAIClient();
-    if (!client) {throw new Error("OpenAI is not configured. Please set up your API key.");}
+    if (!client) {
+      throw new Error("OpenAI is not configured. Please set up your API key.");
+    }
 
     const config = await this.repo.config.get(orgId);
     const model = modelOverride || config?.defaultModel || "gpt-4o-mini";
@@ -385,10 +403,14 @@ export class AgentOrchestrator {
     let conversation: AgentConversation;
     if (conversationId) {
       const existing = await this.repo.conversations.get(conversationId, orgId);
-      if (!existing) {throw new Error("Conversation not found");}
+      if (!existing) {
+        throw new Error("Conversation not found");
+      }
       conversation = existing;
       const budgetCheck = await this.safety.checkTokenBudget(orgId, conversationId, config || {});
-      if (!budgetCheck.allowed) {throw new Error(budgetCheck.reason);}
+      if (!budgetCheck.allowed) {
+        throw new Error(budgetCheck.reason);
+      }
     } else {
       conversation = await this.repo.conversations.create({
         orgId,
@@ -429,18 +451,24 @@ export class AgentOrchestrator {
    * Load history, apply compaction, and produce the OpenAI message array.
    */
   private async buildContext(
-    ctx: RunContext,
+    ctx: RunContext
   ): Promise<OpenAI.Chat.Completions.ChatCompletionMessageParam[]> {
     const contextSummary = await this.maybeSummarize(
-      ctx.client, ctx.conversation, ctx.compactionCfg, ctx.model,
+      ctx.client,
+      ctx.conversation,
+      ctx.compactionCfg,
+      ctx.model
     );
 
     const history = ctx.compactionCfg.enabled
       ? await this.repo.messages.listRecent(
           ctx.conversation.id,
           contextSummary
-            ? Math.max(20, (ctx.conversation.messageCount || 50) - (ctx.conversation.summarizedUpTo || 0))
-            : 100,
+            ? Math.max(
+                20,
+                (ctx.conversation.messageCount || 50) - (ctx.conversation.summarizedUpTo || 0)
+              )
+            : 100
         )
       : await this.repo.messages.list(ctx.conversation.id, 50);
 
@@ -453,13 +481,15 @@ export class AgentOrchestrator {
   private async appendFileContext(
     conversationId: string,
     orgId: string,
-    messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+    messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[]
   ): Promise<void> {
     const convFiles = await listConversationFiles(conversationId, orgId);
-    if (convFiles.length === 0) {return;}
+    if (convFiles.length === 0) {
+      return;
+    }
 
     const fileRefContext = convFiles
-      .map(f => `- fileId: "${f.id}" | ${f.filename} (${f.mimetype}, ${f.size} bytes)`)
+      .map((f) => `- fileId: "${f.id}" | ${f.filename} (${f.mimetype}, ${f.size} bytes)`)
       .join("\n");
 
     messages.push({
@@ -481,7 +511,7 @@ export class AgentOrchestrator {
   private async executeLoop(
     ctx: RunContext,
     openaiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-    opts: LoopOptions,
+    opts: LoopOptions
   ): Promise<LoopResult> {
     const { mode, onChunk, maxTokenBudget, runtimeAllowlist, contentParts } = opts;
 
@@ -559,12 +589,19 @@ export class AgentOrchestrator {
           const parsedInput = this.parseJson(tc.function.arguments);
 
           if (mode === "stream" && onChunk) {
-            onChunk(`${JSON.stringify({ type: "tool_call", toolName: tc.function.name, input: parsedInput })  }\n`);
+            onChunk(
+              `${JSON.stringify({ type: "tool_call", toolName: tc.function.name, input: parsedInput })}\n`
+            );
           }
 
           const { toolResult, toolStatus, toolError, durationMs } = await this.executeTool(
-            tc, ctx.toolContext, ctx.toolContext.orgId, ctx.toolContext.userId,
-            ctx.conversation.id, ctx.config, runtimeAllowlist ?? ctx.enabledTools,
+            tc,
+            ctx.toolContext,
+            ctx.toolContext.orgId,
+            ctx.toolContext.userId,
+            ctx.conversation.id,
+            ctx.config,
+            runtimeAllowlist ?? ctx.enabledTools
           );
           toolCallCount++;
 
@@ -590,11 +627,18 @@ export class AgentOrchestrator {
 
           // Expand activated tools from discovery
           if (toolLoadingMode === "light" && tc.function.name === "listAvailableTools") {
-            this.expandActivatedToolsFromDiscovery(toolResult, activatedTools, parsedInput, ctx.enabledTools);
+            this.expandActivatedToolsFromDiscovery(
+              toolResult,
+              activatedTools,
+              parsedInput,
+              ctx.enabledTools
+            );
           }
 
           if (mode === "stream" && onChunk) {
-            onChunk(`${JSON.stringify({ type: "tool_result", toolName: tc.function.name, result: toolResult })  }\n`);
+            onChunk(
+              `${JSON.stringify({ type: "tool_result", toolName: tc.function.name, result: toolResult })}\n`
+            );
           }
 
           const toolMsgContent = JSON.stringify(toolResult);
@@ -641,7 +685,7 @@ export class AgentOrchestrator {
       if (mode === "stream") {
         // Stream mode: emit the text and break; caller persists
         if (onChunk) {
-          onChunk(`${JSON.stringify({ type: "text", content: finalResponse })  }\n`);
+          onChunk(`${JSON.stringify({ type: "text", content: finalResponse })}\n`);
         }
       } else {
         // Sync mode: persist inside the loop
@@ -662,7 +706,14 @@ export class AgentOrchestrator {
       await this.persistActivatedTools(ctx.conversation, [...activatedTools]);
     }
 
-    return { finalResponse, toolCallTraces, totalTokens, promptTokens, completionTokens, toolCallCount };
+    return {
+      finalResponse,
+      toolCallTraces,
+      totalTokens,
+      promptTokens,
+      completionTokens,
+      toolCallCount,
+    };
   }
 
   // ===== POST-RUN CLEANUP =====
@@ -676,13 +727,14 @@ export class AgentOrchestrator {
     runStartTime: number,
     orgId: string,
     userId: string | undefined,
-    mode?: string,
+    mode?: string
   ): Promise<void> {
     // Auto-title
     if (!ctx.conversation.title || ctx.conversation.title === ctx.sanitizedMessage.slice(0, 100)) {
-      const title = ctx.sanitizedMessage.length > 60
-        ? `${ctx.sanitizedMessage.slice(0, 57)  }...`
-        : ctx.sanitizedMessage;
+      const title =
+        ctx.sanitizedMessage.length > 60
+          ? `${ctx.sanitizedMessage.slice(0, 57)}...`
+          : ctx.sanitizedMessage;
       await this.repo.conversations.update(ctx.conversation.id, { title });
     }
 
@@ -694,7 +746,7 @@ export class AgentOrchestrator {
       toolCallCount: result.toolCallCount,
       durationMs: Date.now() - runStartTime,
       ...(mode ? { mode } : {}),
-      toolsUsed: result.toolCallTraces.map(t => t.toolName),
+      toolsUsed: result.toolCallTraces.map((t) => t.toolName),
     });
   }
 
@@ -705,7 +757,7 @@ export class AgentOrchestrator {
     orgId: string,
     userId: string | undefined,
     sanitizedMessage: string,
-    attachments: FileAttachment[],
+    attachments: FileAttachment[]
   ): Promise<{
     contentParts: OpenAI.Chat.Completions.ChatCompletionContentPart[];
     displayContent: string;
@@ -736,27 +788,36 @@ export class AgentOrchestrator {
           });
           fileDescriptions.push(`[PDF: ${att.filename}, ${pdfData.numpages} pages]`);
         } catch (err) {
-          console.warn(`[Agent] Failed to parse PDF ${att.filename}:`, err instanceof Error ? err.message : "unknown");
+          console.warn(
+            `[Agent] Failed to parse PDF ${att.filename}:`,
+            err instanceof Error ? err.message : "unknown"
+          );
           fileDescriptions.push(`[PDF: ${att.filename} (could not extract text)]`);
         }
       } else if (att.mimetype === "text/csv" || att.filename.endsWith(".csv")) {
         try {
           const csvText = fs.readFileSync(att.path, "utf-8");
           const Papa = (await import("papaparse")).default;
-          const parsed = Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
+          const parsed = Papa.parse(csvText, {
+            header: true,
+            dynamicTyping: true,
+            skipEmptyLines: true,
+          });
           const rows = parsed.data as Record<string, unknown>[];
           const headers = parsed.meta.fields || [];
           const rowCount = rows.length;
 
-          const numericCols = headers.filter(h => rows.some(r => typeof r[h] === "number"));
+          const numericCols = headers.filter((h) => rows.some((r) => typeof r[h] === "number"));
           const stats: string[] = [`Rows: ${rowCount}`, `Columns: ${headers.join(", ")}`];
           for (const col of numericCols.slice(0, 10)) {
-            const vals = rows.map(r => r[col]).filter((v): v is number => typeof v === "number");
+            const vals = rows.map((r) => r[col]).filter((v): v is number => typeof v === "number");
             if (vals.length > 0) {
               const min = Math.min(...vals);
               const max = Math.max(...vals);
               const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-              stats.push(`  ${col}: min=${min}, max=${max}, avg=${avg.toFixed(2)}, count=${vals.length}`);
+              stats.push(
+                `  ${col}: min=${min}, max=${max}, avg=${avg.toFixed(2)}, count=${vals.length}`
+              );
             }
           }
 
@@ -767,7 +828,10 @@ export class AgentOrchestrator {
           });
           fileDescriptions.push(`[CSV: ${att.filename}, ${rowCount} rows]`);
         } catch (err) {
-          console.warn(`[Agent] Failed to parse CSV ${att.filename}:`, err instanceof Error ? err.message : "unknown");
+          console.warn(
+            `[Agent] Failed to parse CSV ${att.filename}:`,
+            err instanceof Error ? err.message : "unknown"
+          );
           const fallback = fs.readFileSync(att.path, "utf-8").slice(0, 10000);
           contentParts.push({
             type: "text",
@@ -784,7 +848,10 @@ export class AgentOrchestrator {
           });
           fileDescriptions.push(`[File: ${att.filename}]`);
         } catch (err) {
-          console.warn(`[Agent] Failed to read attachment ${att.filename}:`, err instanceof Error ? err.message : "unknown");
+          console.warn(
+            `[Agent] Failed to read attachment ${att.filename}:`,
+            err instanceof Error ? err.message : "unknown"
+          );
           fileDescriptions.push(`[File: ${att.filename} (could not read)]`);
         }
       }
@@ -806,8 +873,12 @@ export class AgentOrchestrator {
       const results = await ingestFilesToKB(
         this.knowledgeBase,
         orgId,
-        attachments.map(att => ({ path: att.path, filename: att.filename, mimetype: att.mimetype })),
-        userId,
+        attachments.map((att) => ({
+          path: att.path,
+          filename: att.filename,
+          mimetype: att.mimetype,
+        })),
+        userId
       );
       for (const r of results) {
         kbIngested.push(r);
@@ -819,7 +890,7 @@ export class AgentOrchestrator {
     const convFiles = await listConversationFiles(conversationId, orgId);
     if (convFiles.length > 0) {
       const fileRefContext = convFiles
-        .map(f => `- fileId: "${f.id}" | ${f.filename} (${f.mimetype}, ${f.size} bytes)`)
+        .map((f) => `- fileId: "${f.id}" | ${f.filename} (${f.mimetype}, ${f.size} bytes)`)
         .join("\n");
       contentParts.push({
         type: "text",
@@ -827,7 +898,7 @@ export class AgentOrchestrator {
       });
     }
 
-    const displayContent = `${sanitizedMessage}${fileDescriptions.length > 0 ? `\n${  fileDescriptions.join(" ")}` : ""}`;
+    const displayContent = `${sanitizedMessage}${fileDescriptions.length > 0 ? `\n${fileDescriptions.join(" ")}` : ""}`;
 
     return { contentParts, displayContent, kbIngested };
   }
@@ -841,7 +912,10 @@ export class AgentOrchestrator {
 
   // ===== CONFIG HELPERS =====
 
-  private getCompactionConfig(config: AgentConfigType | null | undefined, model: string): CompactionConfig {
+  private getCompactionConfig(
+    config: AgentConfigType | null | undefined,
+    model: string
+  ): CompactionConfig {
     return {
       enabled: config?.contextCompaction ?? DEFAULT_CONFIG.contextCompaction,
       threshold: config?.compactionThreshold ?? DEFAULT_CONFIG.compactionThreshold,
@@ -862,7 +936,10 @@ export class AgentOrchestrator {
     return [];
   }
 
-  private async persistActivatedTools(conversation: AgentConversation, activatedTools: string[]): Promise<void> {
+  private async persistActivatedTools(
+    conversation: AgentConversation,
+    activatedTools: string[]
+  ): Promise<void> {
     try {
       const meta = (conversation.metadata as Record<string, unknown>) || {};
       const existing = Array.isArray(meta.activatedTools) ? (meta.activatedTools as string[]) : [];
@@ -879,18 +956,27 @@ export class AgentOrchestrator {
     toolResult: Record<string, unknown>,
     activatedTools: Set<string>,
     input: Record<string, unknown>,
-    enabledTools?: string[] | null,
+    enabledTools?: string[] | null
   ): void {
     const categories = toolResult.categories as Record<string, { name: string }[]> | undefined;
-    if (!categories) {return;}
+    if (!categories) {
+      return;
+    }
 
-    const enabledSet = Array.isArray(enabledTools) && enabledTools.length > 0 ? new Set(enabledTools) : null;
+    const enabledSet =
+      Array.isArray(enabledTools) && enabledTools.length > 0 ? new Set(enabledTools) : null;
     const requestedCategory = input.category as string | undefined;
     for (const [cat, tools] of Object.entries(categories)) {
-      if (requestedCategory && cat !== requestedCategory) {continue;}
+      if (requestedCategory && cat !== requestedCategory) {
+        continue;
+      }
       for (const t of tools) {
-        if (!t.name) {continue;}
-        if (enabledSet && !enabledSet.has(t.name)) {continue;}
+        if (!t.name) {
+          continue;
+        }
+        if (enabledSet && !enabledSet.has(t.name)) {
+          continue;
+        }
         activatedTools.add(t.name);
       }
     }
@@ -898,8 +984,10 @@ export class AgentOrchestrator {
     if (enabledSet) {
       const filtered: Record<string, { name: string }[]> = {};
       for (const [cat, tools] of Object.entries(categories)) {
-        const allowed = tools.filter(t => enabledSet.has(t.name));
-        if (allowed.length > 0) {filtered[cat] = allowed;}
+        const allowed = tools.filter((t) => enabledSet.has(t.name));
+        if (allowed.length > 0) {
+          filtered[cat] = allowed;
+        }
       }
       toolResult.categories = filtered;
       toolResult.totalTools = Object.values(filtered).reduce((sum, arr) => sum + arr.length, 0);
@@ -907,16 +995,32 @@ export class AgentOrchestrator {
   }
 
   private looksLikeFallbackNeeded(response: string): boolean {
-    if (!response) {return true;}
+    if (!response) {
+      return true;
+    }
     const lower = response.toLowerCase();
     const refusalPhrases = [
-      "i can't", "i cannot", "i don't have", "i'm unable", "i am unable",
-      "i'm not able", "i am not able", "i don't have access", "no tools",
-      "outside my capabilities", "beyond my capabilities",
-      "don't have the ability", "not equipped", "no way to",
+      "i can't",
+      "i cannot",
+      "i don't have",
+      "i'm unable",
+      "i am unable",
+      "i'm not able",
+      "i am not able",
+      "i don't have access",
+      "no tools",
+      "outside my capabilities",
+      "beyond my capabilities",
+      "don't have the ability",
+      "not equipped",
+      "no way to",
     ];
-    if (refusalPhrases.some(p => lower.includes(p))) {return true;}
-    if (response.length < 40 && /\?/.test(response)) {return true;}
+    if (refusalPhrases.some((p) => lower.includes(p))) {
+      return true;
+    }
+    if (response.length < 40 && /\?/.test(response)) {
+      return true;
+    }
     return false;
   }
 
@@ -926,9 +1030,11 @@ export class AgentOrchestrator {
     client: OpenAI,
     conversation: AgentConversation,
     compactionCfg: CompactionConfig,
-    _model: string,
+    _model: string
   ): Promise<string | null | undefined> {
-    if (!compactionCfg.enabled) {return conversation.contextSummary;}
+    if (!compactionCfg.enabled) {
+      return conversation.contextSummary;
+    }
 
     const summarizedUpTo = conversation.summarizedUpTo || 0;
     if (!shouldSummarize(conversation.messageCount, summarizedUpTo, compactionCfg.threshold)) {
@@ -939,13 +1045,21 @@ export class AgentOrchestrator {
     const keepRecent = 10;
     const messagesToSummarize = allMessages.slice(
       summarizedUpTo,
-      Math.max(summarizedUpTo, allMessages.length - keepRecent),
+      Math.max(summarizedUpTo, allMessages.length - keepRecent)
     );
 
-    if (messagesToSummarize.length < 5) {return conversation.contextSummary;}
+    if (messagesToSummarize.length < 5) {
+      return conversation.contextSummary;
+    }
 
-    const summary = await generateProgressiveSummary(client, messagesToSummarize, conversation.contextSummary);
-    if (!summary) {return conversation.contextSummary;}
+    const summary = await generateProgressiveSummary(
+      client,
+      messagesToSummarize,
+      conversation.contextSummary
+    );
+    if (!summary) {
+      return conversation.contextSummary;
+    }
 
     const newSummarizedUpTo = Math.max(0, allMessages.length - keepRecent);
     await this.repo.conversations.update(conversation.id, {
@@ -964,13 +1078,19 @@ export class AgentOrchestrator {
     conversationId: string,
     orgId: string,
     userId: string | undefined,
-    details: Record<string, unknown>,
+    details: Record<string, unknown>
   ) {
     try {
-      await auditAction("agent_run", conversationId, action === "run_start" ? "create" : "update", {
-        lifecycle: action,
-        ...details,
-      }, { orgId, userId });
+      await auditAction(
+        "agent_run",
+        conversationId,
+        action === "run_start" ? "create" : "update",
+        {
+          lifecycle: action,
+          ...details,
+        },
+        { orgId, userId }
+      );
     } catch {
       // Non-critical
     }
@@ -985,7 +1105,7 @@ export class AgentOrchestrator {
     userId: string | undefined,
     conversationId: string,
     config: AgentConfigType | null | undefined,
-    runtimeAllowedTools?: string[] | null,
+    runtimeAllowedTools?: string[] | null
   ) {
     const toolName = tc.function.name;
     const toolInput = this.parseJson(tc.function.arguments);
@@ -994,7 +1114,11 @@ export class AgentOrchestrator {
     let toolStatus = "success";
     let toolError: string | undefined;
 
-    if (runtimeAllowedTools && toolName !== "listAvailableTools" && !runtimeAllowedTools.includes(toolName)) {
+    if (
+      runtimeAllowedTools &&
+      toolName !== "listAvailableTools" &&
+      !runtimeAllowedTools.includes(toolName)
+    ) {
       return {
         toolResult: { error: `Tool ${toolName} is not in the schedule allowlist` },
         toolStatus: "error",
@@ -1004,7 +1128,11 @@ export class AgentOrchestrator {
     }
 
     const enabledTools = config?.enabledTools as string[] | null | undefined;
-    if (enabledTools && toolName !== "listAvailableTools" && !this.safety.validateToolAccess(toolName, enabledTools)) {
+    if (
+      enabledTools &&
+      toolName !== "listAvailableTools" &&
+      !this.safety.validateToolAccess(toolName, enabledTools)
+    ) {
       return {
         toolResult: { error: `Tool ${toolName} is disabled` },
         toolStatus: "error",
@@ -1016,7 +1144,9 @@ export class AgentOrchestrator {
     const userRole = toolContext.userRole;
     if (!this.safety.checkWriteToolAccess(toolName, userRole)) {
       return {
-        toolResult: { error: `Insufficient permissions: ${toolName} requires a maintenance role (chief engineer, captain, or admin)` },
+        toolResult: {
+          error: `Insufficient permissions: ${toolName} requires a maintenance role (chief engineer, captain, or admin)`,
+        },
         toolStatus: "error",
         toolError: "RBAC denied",
         durationMs: 0,
@@ -1036,8 +1166,13 @@ export class AgentOrchestrator {
     if (tool.inputSchema) {
       const validation = tool.inputSchema.safeParse(toolInput);
       if (!validation.success) {
-        const errMsg = `Invalid input for ${toolName}: ${validation.error.issues.map(i => i.message).join(", ")}`;
-        return { toolResult: { error: errMsg }, toolStatus: "error", toolError: errMsg, durationMs: 0 };
+        const errMsg = `Invalid input for ${toolName}: ${validation.error.issues.map((i) => i.message).join(", ")}`;
+        return {
+          toolResult: { error: errMsg },
+          toolStatus: "error",
+          toolError: errMsg,
+          durationMs: 0,
+        };
       }
     }
 
@@ -1046,7 +1181,13 @@ export class AgentOrchestrator {
 
       if (tool.requiresApproval && (toolResult as Record<string, unknown>).requiresApproval) {
         toolResult = await this.handleDraftApproval(
-          tool, toolResult, config, userRole, orgId, userId, conversationId,
+          tool,
+          toolResult,
+          config,
+          userRole,
+          orgId,
+          userId,
+          conversationId
         );
       }
     } catch (err: unknown) {
@@ -1058,13 +1199,22 @@ export class AgentOrchestrator {
 
     const durationMs = Date.now() - startTime;
 
-    auditAction("agent_tool_call", conversationId, "create", {
-      toolName,
-      status: toolStatus,
-      durationMs,
-      error: toolError,
-    }, { orgId, userId }).catch((err) => {
-      console.warn("[Agent] Audit logging failed for tool call:", err instanceof Error ? err.message : "unknown");
+    auditAction(
+      "agent_tool_call",
+      conversationId,
+      "create",
+      {
+        toolName,
+        status: toolStatus,
+        durationMs,
+        error: toolError,
+      },
+      { orgId, userId }
+    ).catch((err) => {
+      console.warn(
+        "[Agent] Audit logging failed for tool call:",
+        err instanceof Error ? err.message : "unknown"
+      );
     });
 
     return { toolResult, toolStatus, toolError, durationMs };
@@ -1080,9 +1230,10 @@ export class AgentOrchestrator {
     userRole: string | undefined,
     orgId: string,
     userId: string | undefined,
-    conversationId: string,
+    conversationId: string
   ): Promise<Record<string, unknown>> {
-    const permissionTier = ((config?.permissionTier as string) || "strict") as import("../domain/types").PermissionTier;
+    const permissionTier = ((config?.permissionTier as string) ||
+      "strict") as import("../domain/types").PermissionTier;
     const autoApprove = this.safety.shouldAutoApprove(tool.riskLevel, permissionTier, userRole);
 
     const resultData = toolResult;
@@ -1134,14 +1285,20 @@ export class AgentOrchestrator {
         reviewNote: `Auto-approved (tier: ${permissionTier}, risk: ${tool.riskLevel})`,
         resultId: execResult.resultId,
       });
-      auditAction("agent_draft", draft.id, "update", {
-        action: "auto_approved",
-        draftType,
-        permissionTier,
-        riskLevel: tool.riskLevel,
-        approvalMode: "auto",
-        resultId: execResult.resultId,
-      }, { orgId, userId });
+      auditAction(
+        "agent_draft",
+        draft.id,
+        "update",
+        {
+          action: "auto_approved",
+          draftType,
+          permissionTier,
+          riskLevel: tool.riskLevel,
+          approvalMode: "auto",
+          resultId: execResult.resultId,
+        },
+        { orgId, userId }
+      );
       return {
         ...toolResult,
         draftId: draft.id,
@@ -1170,7 +1327,7 @@ export class AgentOrchestrator {
     client: OpenAI,
     model: string,
     messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-    toolDefs?: ReturnType<typeof getToolOpenAIDefinitions>,
+    toolDefs?: ReturnType<typeof getToolOpenAIDefinitions>
   ): Promise<OpenAI.Chat.Completions.ChatCompletion> {
     const maxRetries = 2;
     let lastError: Error | null = null;
@@ -1189,20 +1346,31 @@ export class AgentOrchestrator {
         const statusCode = (err as { status?: number })?.status || 0;
         const errorCode = (err as { code?: string })?.code || "";
         const isRetryable =
-          statusCode === 429 || statusCode === 500 || statusCode === 503 || statusCode === 502 ||
-          errorCode === "ECONNRESET" || errorCode === "ETIMEDOUT" || errorCode === "ENOTFOUND" ||
-          lastError.message.includes("timeout") || lastError.message.includes("network");
+          statusCode === 429 ||
+          statusCode === 500 ||
+          statusCode === 503 ||
+          statusCode === 502 ||
+          errorCode === "ECONNRESET" ||
+          errorCode === "ETIMEDOUT" ||
+          errorCode === "ENOTFOUND" ||
+          lastError.message.includes("timeout") ||
+          lastError.message.includes("network");
 
-        if (!isRetryable || attempt === maxRetries) {break;}
+        if (!isRetryable || attempt === maxRetries) {
+          break;
+        }
 
         const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
-        console.warn(`[Agent] OpenAI attempt ${attempt + 1} failed, retrying in ${delay}ms:`, lastError.message);
-        await new Promise(r => setTimeout(r, delay));
+        console.warn(
+          `[Agent] OpenAI attempt ${attempt + 1} failed, retrying in ${delay}ms:`,
+          lastError.message
+        );
+        await new Promise((r) => setTimeout(r, delay));
       }
     }
 
     throw new Error(
-      `AI service is temporarily unavailable. Please try again in a moment. (${lastError?.message || "unknown error"})`,
+      `AI service is temporarily unavailable. Please try again in a moment. (${lastError?.message || "unknown error"})`
     );
   }
 

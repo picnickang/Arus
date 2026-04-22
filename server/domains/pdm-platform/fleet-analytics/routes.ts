@@ -13,7 +13,9 @@ router.post("/baselines/compute", async (req: Request, res: Response) => {
   try {
     const orgId = req.headers["x-org-id"] as string;
     const parsed = computeBaselinesSchema.safeParse(req.body);
-    if (!parsed.success) {return res.status(400).json({ error: parsed.error.flatten().fieldErrors });}
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+    }
     const { equipmentType } = parsed.data;
     const result = await fleetAnalytics.computeBaselines(orgId, equipmentType);
     res.json(result);
@@ -26,7 +28,9 @@ router.get("/baselines", async (req: Request, res: Response) => {
   try {
     const orgId = req.headers["x-org-id"] as string;
     const equipmentType = req.query.equipmentType as string;
-    if (!equipmentType) {return res.status(400).json({ error: "equipmentType query param required" });}
+    if (!equipmentType) {
+      return res.status(400).json({ error: "equipmentType query param required" });
+    }
     const result = await fleetAnalytics.getBaselines(orgId, equipmentType);
     res.json(result);
   } catch (error: any) {
@@ -39,7 +43,9 @@ router.get("/compare", async (req: Request, res: Response) => {
     const orgId = req.headers["x-org-id"] as string;
     const equipmentId = req.query.equipmentId as string;
     const equipmentType = req.query.equipmentType as string;
-    if (!equipmentId || !equipmentType) {return res.status(400).json({ error: "equipmentId and equipmentType required" });}
+    if (!equipmentId || !equipmentType) {
+      return res.status(400).json({ error: "equipmentId and equipmentType required" });
+    }
     const result = await fleetAnalytics.compareToFleet(orgId, equipmentId, equipmentType);
     res.json(result);
   } catch (error: any) {

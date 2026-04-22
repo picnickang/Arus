@@ -1,6 +1,6 @@
 /**
  * User Permissions Hook
- * 
+ *
  * Fetches and caches the current user's permissions from the backend.
  * Provides helper functions to check if user can perform specific actions.
  */
@@ -22,7 +22,9 @@ export function useUserPermissions() {
   });
 
   const hasPermission = (resource: string, action: string): boolean => {
-    if (!data?.permissions) {return false;}
+    if (!data?.permissions) {
+      return false;
+    }
     return data.permissions[resource]?.[action] === true;
   };
 

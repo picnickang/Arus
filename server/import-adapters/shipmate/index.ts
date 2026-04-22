@@ -24,7 +24,11 @@
  */
 
 export { shipmateImportRouter } from "./routes";
-export { shipmateImport, type ShipmateImportOptions, type ShipmateImportResult } from "./import-service";
+export {
+  shipmateImport,
+  type ShipmateImportOptions,
+  type ShipmateImportResult,
+} from "./import-service";
 export {
   getShipmateMapping,
   normalizeShipmateHeaders,

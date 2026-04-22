@@ -47,24 +47,28 @@ export const EMAIL_TEMPLATE_TYPES = {
   PURCHASE_ORDER: "purchase_order",
 } as const;
 
-export type EmailTemplateType = typeof EMAIL_TEMPLATE_TYPES[keyof typeof EMAIL_TEMPLATE_TYPES];
+export type EmailTemplateType = (typeof EMAIL_TEMPLATE_TYPES)[keyof typeof EMAIL_TEMPLATE_TYPES];
 
-export const emailTemplateVariables = pgTable("email_template_variables", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id")
-    .notNull()
-    .references(() => organizations.id),
-  name: varchar("name").notNull(),
-  value: text("value").notNull(),
-  description: text("description"),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
-}, (table) => ({
-  orgIdx: index("idx_email_template_variables_org").on(table.orgId),
-  nameOrgIdx: index("idx_email_template_variables_name_org").on(table.orgId, table.name),
-}));
+export const emailTemplateVariables = pgTable(
+  "email_template_variables",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    name: varchar("name").notNull(),
+    value: text("value").notNull(),
+    description: text("description"),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
+  },
+  (table) => ({
+    orgIdx: index("idx_email_template_variables_org").on(table.orgId),
+    nameOrgIdx: index("idx_email_template_variables_name_org").on(table.orgId, table.name),
+  })
+);
 
 export const insertEmailTemplateVariableSchema = createInsertSchema(emailTemplateVariables).omit({
   id: true,
@@ -75,7 +79,10 @@ export const insertEmailTemplateVariableSchema = createInsertSchema(emailTemplat
 export type InsertEmailTemplateVariable = z.infer<typeof insertEmailTemplateVariableSchema>;
 export type EmailTemplateVariable = typeof emailTemplateVariables.$inferSelect;
 
-export const DEFAULT_EMAIL_TEMPLATES: Record<EmailTemplateType, { subject: string; body: string; variables: string[] }> = {
+export const DEFAULT_EMAIL_TEMPLATES: Record<
+  EmailTemplateType,
+  { subject: string; body: string; variables: string[] }
+> = {
   service_order: {
     subject: "Service Request - {{equipment.name}} - {{vessel.name}}",
     body: `Dear {{serviceProvider.name}},
@@ -114,11 +121,20 @@ Please confirm availability and provide a quotation.
 Best regards,
 {{organization.name}}`,
     variables: [
-      "equipment.name", "equipment.type", "equipment.manufacturer", "equipment.model",
-      "equipment.serialNumber", "equipment.location", "vessel.name",
-      "serviceProvider.name", "serviceOrder.scope", "serviceOrder.serviceDetails",
-      "serviceOrder.specialRequirements", "serviceOrder.scheduledStartDate",
-      "serviceOrder.estimatedDurationHours", "organization.name"
+      "equipment.name",
+      "equipment.type",
+      "equipment.manufacturer",
+      "equipment.model",
+      "equipment.serialNumber",
+      "equipment.location",
+      "vessel.name",
+      "serviceProvider.name",
+      "serviceOrder.scope",
+      "serviceOrder.serviceDetails",
+      "serviceOrder.specialRequirements",
+      "serviceOrder.scheduledStartDate",
+      "serviceOrder.estimatedDurationHours",
+      "organization.name",
     ],
   },
   replacement_quote: {
@@ -161,13 +177,26 @@ Response requested by: {{serviceOrder.responseDeadline}}
 Best regards,
 {{organization.name}}`,
     variables: [
-      "equipment.name", "equipment.type", "equipment.manufacturer", "equipment.model",
-      "equipment.serialNumber", "equipment.location", "equipment.purchaseDate",
-      "equipment.purchaseValue", "equipment.purchaseCurrency", "vessel.name",
-      "serviceProvider.name", "serviceOrder.justification", "serviceOrder.urgency",
-      "serviceOrder.downtimeWindowStart", "serviceOrder.downtimeWindowEnd",
-      "serviceOrder.budgetMin", "serviceOrder.budgetMax", "serviceOrder.currency",
-      "serviceOrder.responseDeadline", "organization.name"
+      "equipment.name",
+      "equipment.type",
+      "equipment.manufacturer",
+      "equipment.model",
+      "equipment.serialNumber",
+      "equipment.location",
+      "equipment.purchaseDate",
+      "equipment.purchaseValue",
+      "equipment.purchaseCurrency",
+      "vessel.name",
+      "serviceProvider.name",
+      "serviceOrder.justification",
+      "serviceOrder.urgency",
+      "serviceOrder.downtimeWindowStart",
+      "serviceOrder.downtimeWindowEnd",
+      "serviceOrder.budgetMin",
+      "serviceOrder.budgetMax",
+      "serviceOrder.currency",
+      "serviceOrder.responseDeadline",
+      "organization.name",
     ],
   },
   purchase_order: {
@@ -199,9 +228,14 @@ Please confirm receipt and provide expected delivery date.
 Best regards,
 {{organization.name}}`,
     variables: [
-      "supplier.name", "purchaseOrder.poNumber", "purchaseOrder.orderDate",
-      "purchaseOrder.requestedDeliveryDate", "purchaseOrder.items",
-      "purchaseOrder.paymentTerms", "organization.name", "organization.address"
+      "supplier.name",
+      "purchaseOrder.poNumber",
+      "purchaseOrder.orderDate",
+      "purchaseOrder.requestedDeliveryDate",
+      "purchaseOrder.items",
+      "purchaseOrder.paymentTerms",
+      "organization.name",
+      "organization.address",
     ],
   },
 };

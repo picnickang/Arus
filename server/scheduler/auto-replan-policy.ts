@@ -20,8 +20,7 @@ export function initializeAutoReplanPolicy(): void {
   domainEventBus.on("pdm.rul.updated", async (event) => {
     const { vesselId, equipmentId, remainingDays, riskLevel } = event.payload;
     const shouldReplan =
-      remainingDays <= RUL_DAYS_CRITICAL ||
-      riskToRank(riskLevel) >= riskToRank(RISK_REPLAN_LEVEL);
+      remainingDays <= RUL_DAYS_CRITICAL || riskToRank(riskLevel) >= riskToRank(RISK_REPLAN_LEVEL);
 
     if (shouldReplan) {
       console.log(
@@ -51,9 +50,7 @@ export function initializeAutoReplanPolicy(): void {
   domainEventBus.on("pdm.anomaly.created", async (event) => {
     const { vesselId, equipmentId, severity, anomalyType } = event.payload;
     if (severity === "high" || severity === "critical") {
-      console.log(
-        `[Auto-Replan] Anomaly trigger: vessel=${vesselId}, severity=${severity}`
-      );
+      console.log(`[Auto-Replan] Anomaly trigger: vessel=${vesselId}, severity=${severity}`);
       schedAutoReplanTriggers.labels(event.orgId, "anomaly_detected").inc();
 
       try {

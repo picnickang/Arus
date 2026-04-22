@@ -1,9 +1,9 @@
 /**
  * ARUS Insights Engine - Backward Compatibility Shim
- * 
+ *
  * This file re-exports all functions from the modularized insights-engine/ directory.
  * All functionality has been preserved in focused, maintainable modules.
- * 
+ *
  * @see server/insights-engine/index.ts for the modular implementation
  */
 

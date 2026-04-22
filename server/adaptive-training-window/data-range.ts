@@ -46,7 +46,12 @@ export async function getEquipmentDataRange(
     const result = await db
       .select({ oldestTimestamp: sql<Date>`MIN(${equipmentTelemetry.ts})` })
       .from(equipmentTelemetry)
-      .where(and(inArray(equipmentTelemetry.equipmentId, equipmentIds), eq(equipmentTelemetry.orgId, orgId)))
+      .where(
+        and(
+          inArray(equipmentTelemetry.equipmentId, equipmentIds),
+          eq(equipmentTelemetry.orgId, orgId)
+        )
+      )
       .execute();
 
     if (result.length > 0 && result[0].oldestTimestamp) {

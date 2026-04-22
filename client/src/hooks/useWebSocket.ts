@@ -40,7 +40,12 @@ interface AlertData {
 
 interface UpdateNotificationData {
   id: string;
-  type: "update_available" | "update_started" | "update_completed" | "update_failed" | "update_rollback";
+  type:
+    | "update_available"
+    | "update_started"
+    | "update_completed"
+    | "update_failed"
+    | "update_rollback";
   deviceId?: string;
   version?: string;
   previousVersion?: string;

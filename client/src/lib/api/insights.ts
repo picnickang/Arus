@@ -2,8 +2,12 @@ import { apiRequest } from "../queryClient";
 
 export async function fetchInsightSnapshots(orgId?: string, scope?: string) {
   const params = new URLSearchParams();
-  if (orgId) {params.append("orgId", orgId);}
-  if (scope) {params.append("scope", scope);}
+  if (orgId) {
+    params.append("orgId", orgId);
+  }
+  if (scope) {
+    params.append("scope", scope);
+  }
   const url = `/api/insights/snapshots${params.toString() ? `?${params.toString()}` : ""}`;
   return apiRequest("GET", url);
 }
@@ -19,8 +23,12 @@ export async function triggerInsightsGeneration(orgId = "default-org-id", scope 
 
 export async function fetchInsightReports(orgId?: string, scope?: string) {
   const params = new URLSearchParams();
-  if (orgId) {params.append("orgId", orgId);}
-  if (scope) {params.append("scope", scope);}
+  if (orgId) {
+    params.append("orgId", orgId);
+  }
+  if (scope) {
+    params.append("scope", scope);
+  }
   const url = `/api/insights/reports${params.toString() ? `?${params.toString()}` : ""}`;
   return apiRequest("GET", url);
 }

@@ -1,21 +1,21 @@
 /**
  * Work Order History Hash Chain Service
- * 
+ *
  * Provides tamper-evident hash chaining for work order history records.
  * Each entry includes a SHA-256 hash of the previous entry, creating an
  * immutable chain that can be verified for data integrity.
- * 
+ *
  * Architecture:
  * - Uses PostgreSQL advisory locks or SQLite BEGIN IMMEDIATE for concurrency protection
- * - Hash includes: previous_hash + org_id + work_order_id + event_type + field_name + 
+ * - Hash includes: previous_hash + org_id + work_order_id + event_type + field_name +
  *   previous_value + new_value + description + performed_by + metadata + created_at
  * - Sequence numbers are scoped to org_id + work_order_id for efficient verification
  */
 
-import crypto from 'node:crypto';
-import { db } from '../db';
-import { workOrderHistory } from '@shared/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import crypto from "node:crypto";
+import { db } from "../db";
+import { workOrderHistory } from "@shared/schema";
+import { eq, and, sql } from "drizzle-orm";
 
 interface HashChainEntry {
   orgId: string;
@@ -59,13 +59,9 @@ class WorkOrderHistoryHashService {
   /**
    * Compute SHA-256 hash for a work order history entry
    */
-  private computeHash(
-    previousHash: string | null,
-    entry: HashChainEntry,
-    createdAt: Date
-  ): string {
+  private computeHash(previousHash: string | null, entry: HashChainEntry, createdAt: Date): string {
     const payload = JSON.stringify({
-      previousHash: previousHash || 'GENESIS',
+      previousHash: previousHash || "GENESIS",
       orgId: entry.orgId,
       workOrderId: entry.workOrderId,
       eventType: entry.eventType,
@@ -79,7 +75,7 @@ class WorkOrderHistoryHashService {
       createdAt: createdAt.toISOString(),
     });
 
-    return crypto.createHash('sha256').update(payload).digest('hex');
+    return crypto.createHash("sha256").update(payload).digest("hex");
   }
 
   /**
@@ -97,9 +93,7 @@ class WorkOrderHistoryHashService {
    */
   private computeLockKey(orgId: string, workOrderId: string): number {
     // NOSONAR: S4790 - MD5 used only for numeric lock key generation, not for security
-    const hash = crypto.createHash('md5')
-      .update(`wo_history:${orgId}:${workOrderId}`)
-      .digest();
+    const hash = crypto.createHash("md5").update(`wo_history:${orgId}:${workOrderId}`).digest();
     // Use first 4 bytes as int32, offset by 1 billion to avoid audit trail locks
     return hash.readInt32BE(0) + 1000000000;
   }
@@ -107,7 +101,7 @@ class WorkOrderHistoryHashService {
   /**
    * Create a new hash-chained work order history entry
    * This method uses createEntryWithTransaction internally for safety
-   * 
+   *
    * CRITICAL: Hash is computed using the PERSISTED timestamp from the database,
    * not an in-memory timestamp, to ensure deterministic verification.
    */
@@ -124,7 +118,7 @@ class WorkOrderHistoryHashService {
   /**
    * Create a hash-chained entry within a transaction wrapper
    * This ensures proper locking and rollback on failure
-   * 
+   *
    * CRITICAL: Hash is computed using the PERSISTED timestamp from the database,
    * not an in-memory timestamp, to ensure deterministic verification.
    */
@@ -190,17 +184,14 @@ class WorkOrderHistoryHashService {
 
       const persistedCreatedAt = insertedEntries[0]?.createdAt;
       if (!persistedCreatedAt) {
-        throw new Error('Failed to retrieve persisted created_at timestamp');
+        throw new Error("Failed to retrieve persisted created_at timestamp");
       }
 
       // STEP 3: Compute hash using the PERSISTED timestamp
       const entryHash = this.computeHash(previousHash, entry, persistedCreatedAt);
 
       // STEP 4: Update the entry with the computed hash
-      await tx
-        .update(workOrderHistory)
-        .set({ entryHash })
-        .where(eq(workOrderHistory.id, id));
+      await tx.update(workOrderHistory).set({ entryHash }).where(eq(workOrderHistory.id, id));
 
       console.log(
         `[WorkOrderHistoryHash] Created entry (tx): org=${entry.orgId}, wo=${entry.workOrderId}, seq=${sequenceNumber}`
@@ -217,12 +208,7 @@ class WorkOrderHistoryHashService {
     const entries = await db
       .select()
       .from(workOrderHistory)
-      .where(
-        and(
-          eq(workOrderHistory.orgId, orgId),
-          eq(workOrderHistory.workOrderId, workOrderId)
-        )
-      )
+      .where(and(eq(workOrderHistory.orgId, orgId), eq(workOrderHistory.workOrderId, workOrderId)))
       .orderBy(workOrderHistory.sequenceNumber);
 
     if (entries.length === 0) {
@@ -252,8 +238,8 @@ class WorkOrderHistoryHashService {
           firstInvalidEntry: {
             id: entry.id,
             sequenceNumber: entry.sequenceNumber ?? 0,
-            expectedHash: expectedPreviousHash ?? 'GENESIS',
-            actualHash: entry.previousHash ?? 'null',
+            expectedHash: expectedPreviousHash ?? "GENESIS",
+            actualHash: entry.previousHash ?? "null",
           },
           chainStartDate: entries[0].createdAt ?? undefined,
           chainEndDate: entries[entries.length - 1].createdAt ?? undefined,
@@ -354,7 +340,10 @@ class WorkOrderHistoryHashService {
   /**
    * Get chain statistics for a work order
    */
-  async getChainStats(orgId: string, workOrderId: string): Promise<{
+  async getChainStats(
+    orgId: string,
+    workOrderId: string
+  ): Promise<{
     entryCount: number;
     hasHashChain: boolean;
     firstEntry?: Date;
@@ -370,12 +359,7 @@ class WorkOrderHistoryHashService {
         latestSequence: sql<number>`max(sequence_number)`,
       })
       .from(workOrderHistory)
-      .where(
-        and(
-          eq(workOrderHistory.orgId, orgId),
-          eq(workOrderHistory.workOrderId, workOrderId)
-        )
-      );
+      .where(and(eq(workOrderHistory.orgId, orgId), eq(workOrderHistory.workOrderId, workOrderId)));
 
     const stats = entries[0];
     return {

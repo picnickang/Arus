@@ -15,15 +15,17 @@ const LOG_CTX = "OutcomeTrackingService";
 export class OutcomeTrackingService implements OutcomeRecordPort {
   constructor(
     private repo: AgentRepositoryPort,
-    private predictionFeedback?: PredictionFeedbackPort,
+    private predictionFeedback?: PredictionFeedbackPort
   ) {}
 
   async recordOutcome(
     input: OutcomeRecordInput,
-    newStatus: "acted" | "dismissed" | "deferred",
+    newStatus: "acted" | "dismissed" | "deferred"
   ): Promise<AgentSuggestion> {
     if (input.outcome !== null && !OUTCOME_CATEGORIES.includes(input.outcome as OutcomeCategory)) {
-      throw new Error(`Invalid outcome category: ${input.outcome}. Valid values: ${OUTCOME_CATEGORIES.join(", ")}`);
+      throw new Error(
+        `Invalid outcome category: ${input.outcome}. Valid values: ${OUTCOME_CATEGORIES.join(", ")}`
+      );
     }
 
     const existing = await this.repo.suggestions.getById(input.suggestionId);
@@ -36,7 +38,9 @@ export class OutcomeTrackingService implements OutcomeRecordPort {
 
     const ALLOWED_FROM = ["pending", "new"];
     if (!ALLOWED_FROM.includes(existing.status)) {
-      throw new Error(`Cannot transition from '${existing.status}' to '${newStatus}'. Only pending/new suggestions can be acted on.`);
+      throw new Error(
+        `Cannot transition from '${existing.status}' to '${newStatus}'. Only pending/new suggestions can be acted on.`
+      );
     }
 
     const updateData: Partial<AgentSuggestion> = {
@@ -72,17 +76,23 @@ export class OutcomeTrackingService implements OutcomeRecordPort {
   private async linkPredictionFeedback(
     suggestion: AgentSuggestion,
     input: OutcomeRecordInput,
-    status: "acted" | "dismissed" | "deferred",
+    status: "acted" | "dismissed" | "deferred"
   ): Promise<void> {
-    if (!this.predictionFeedback) {return;}
+    if (!this.predictionFeedback) {
+      return;
+    }
 
     const ctx = suggestion.context as Record<string, unknown> | null;
     const prediction = (ctx?.prediction as Record<string, unknown>) || {};
     const predictionId = prediction.id ? parseInt(String(prediction.id), 10) : 0;
-    if (!predictionId || isNaN(predictionId)) {return;}
+    if (!predictionId || isNaN(predictionId)) {
+      return;
+    }
 
     const equipmentId = (suggestion.entityId || prediction.equipmentId || "") as string;
-    if (!equipmentId) {return;}
+    if (!equipmentId) {
+      return;
+    }
 
     const isAccurate = status === "acted" && input.outcome === "useful";
 
@@ -108,18 +118,14 @@ export class OutcomeTrackingService implements OutcomeRecordPort {
     const deferredCount = resolved.filter((s) => s.status === "deferred").length;
     const totalResolved = resolved.length;
 
-    const acceptanceRate =
-      totalResolved > 0 ? Math.round((actedCount / totalResolved) * 100) : 0;
+    const acceptanceRate = totalResolved > 0 ? Math.round((actedCount / totalResolved) * 100) : 0;
     const dismissalRate =
       totalResolved > 0 ? Math.round((dismissedCount / totalResolved) * 100) : 0;
 
     const reasonCounts = new Map<string, number>();
     for (const s of resolved) {
       if (s.status === "dismissed" && s.outcomeReason) {
-        reasonCounts.set(
-          s.outcomeReason,
-          (reasonCounts.get(s.outcomeReason) || 0) + 1,
-        );
+        reasonCounts.set(s.outcomeReason, (reasonCounts.get(s.outcomeReason) || 0) + 1);
       }
     }
     const topDismissalReasons = Array.from(reasonCounts.entries())

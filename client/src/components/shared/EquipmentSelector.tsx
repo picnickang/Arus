@@ -14,8 +14,14 @@ interface Equipment {
   type?: string;
   vesselId?: string;
 }
-interface EquipmentHealthItem { id: string; name?: string; }
-interface Vessel { id: string; name: string; }
+interface EquipmentHealthItem {
+  id: string;
+  name?: string;
+}
+interface Vessel {
+  id: string;
+  name: string;
+}
 
 interface EquipmentSelectorProps {
   value: string;
@@ -49,7 +55,9 @@ export function EquipmentSelector({
   });
 
   const getVesselName = (vId?: string): string | null => {
-    if (!vId) {return null;}
+    if (!vId) {
+      return null;
+    }
     const v = vessels?.find((vessel) => vessel.id === vId);
     return v?.name || null;
   };
@@ -62,9 +70,7 @@ export function EquipmentSelector({
   };
 
   const filteredEquipment =
-    filterByVessel && vesselId
-      ? equipment.filter((eq) => eq.vesselId === vesselId)
-      : equipment;
+    filterByVessel && vesselId ? equipment.filter((eq) => eq.vesselId === vesselId) : equipment;
 
   const validEquipment = filteredEquipment.filter((eq) => eq.id && eq.id.trim() !== "");
 

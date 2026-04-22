@@ -56,7 +56,9 @@ const DB_VERSION = 1;
 let dbInstance: IDBPDatabase<OfflineSyncDB> | null = null;
 
 async function getDB(): Promise<IDBPDatabase<OfflineSyncDB>> {
-  if (dbInstance) {return dbInstance;}
+  if (dbInstance) {
+    return dbInstance;
+  }
 
   dbInstance = await openDB<OfflineSyncDB>(DB_NAME, DB_VERSION, {
     upgrade(db) {
@@ -97,15 +99,12 @@ export async function queueOperation(
 ): Promise<string> {
   const db = await getDB();
 
-  const existingOps = await db.getAllFromIndex(
-    "pendingOperations",
-    "by-entity",
-    [entityType, entityId]
-  );
+  const existingOps = await db.getAllFromIndex("pendingOperations", "by-entity", [
+    entityType,
+    entityId,
+  ]);
 
-  const existingOp = existingOps.find(
-    (op) => op.operationType === operationType
-  );
+  const existingOp = existingOps.find((op) => op.operationType === operationType);
   if (existingOp) {
     const updatedOp: PendingOperation = {
       ...existingOp,
@@ -141,16 +140,10 @@ export async function getPendingOperationsByEntity(
   entityId: string
 ): Promise<PendingOperation[]> {
   const db = await getDB();
-  return db.getAllFromIndex("pendingOperations", "by-entity", [
-    entityType,
-    entityId,
-  ]);
+  return db.getAllFromIndex("pendingOperations", "by-entity", [entityType, entityId]);
 }
 
-export async function markOperationFailed(
-  operationId: string,
-  error: string
-): Promise<void> {
+export async function markOperationFailed(operationId: string, error: string): Promise<void> {
   const db = await getDB();
   const op = await db.get("pendingOperations", operationId);
   if (op) {
@@ -208,7 +201,9 @@ export async function resolveConflict(
 ): Promise<void> {
   const db = await getDB();
   const conflict = await db.get("conflicts", operationId);
-  if (!conflict) {return;}
+  if (!conflict) {
+    return;
+  }
 
   conflict.resolution = resolution;
   conflict.resolvedAt = new Date().toISOString();
@@ -236,10 +231,7 @@ export async function clearResolvedConflicts(): Promise<void> {
   }
 }
 
-export async function setSyncMetadata(
-  key: string,
-  value: unknown
-): Promise<void> {
+export async function setSyncMetadata(key: string, value: unknown): Promise<void> {
   const db = await getDB();
   await db.put("syncMetadata", { key, value });
 }
@@ -266,9 +258,7 @@ export function isOnline(): boolean {
 export type OnlineStatusCallback = (online: boolean) => void;
 const onlineStatusListeners: Set<OnlineStatusCallback> = new Set();
 
-export function subscribeToOnlineStatus(
-  callback: OnlineStatusCallback
-): () => void {
+export function subscribeToOnlineStatus(callback: OnlineStatusCallback): () => void {
   onlineStatusListeners.add(callback);
 
   const handleOnline = () => {
@@ -325,21 +315,14 @@ export async function syncPendingOperations(
         await removeOperation(op.id);
         synced++;
       } else if (result.serverVersion) {
-        await addConflict(
-          op.id,
-          op.entityType,
-          op.entityId,
-          op.payload,
-          result.serverVersion
-        );
+        await addConflict(op.id, op.entityType, op.entityId, op.payload, result.serverVersion);
         conflicts++;
       } else {
         await markOperationFailed(op.id, "Sync failed without conflict");
         failed++;
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       await markOperationFailed(op.id, errorMessage);
       failed++;
     }

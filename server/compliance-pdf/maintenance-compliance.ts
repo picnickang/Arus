@@ -5,7 +5,7 @@
 import type { WorkOrder } from "@shared/schema";
 import type { EquipmentHealth } from "../db/equipment/types.js";
 
-import type { ComplianceDeps, ReportingPeriod, MaintenanceComplianceOptions } from './types';
+import type { ComplianceDeps, ReportingPeriod, MaintenanceComplianceOptions } from "./types";
 import {
   createPDFContext,
   formatDate,
@@ -15,7 +15,7 @@ import {
   drawText,
   addSpacing,
   COLORS,
-} from './utils';
+} from "./utils";
 
 export async function generateMaintenanceCompliancePDF(
   storage: ComplianceDeps,
@@ -24,9 +24,7 @@ export async function generateMaintenanceCompliancePDF(
   period: ReportingPeriod,
   options: MaintenanceComplianceOptions
 ): Promise<Uint8Array> {
-  console.log(
-    `[Compliance PDF] Generating maintenance compliance report for vessel: ${vesselId}`
-  );
+  console.log(`[Compliance PDF] Generating maintenance compliance report for vessel: ${vesselId}`);
 
   const workOrders = await storage.getWorkOrders(undefined, orgId);
   const equipmentHealth = await storage.getEquipmentHealth(orgId);
@@ -56,7 +54,7 @@ async function renderMaintenanceCompliancePDF(
 ): Promise<Uint8Array> {
   const ctx = await createPDFContext();
 
-  drawTitle(ctx, 'MAINTENANCE COMPLIANCE REPORT');
+  drawTitle(ctx, "MAINTENANCE COMPLIANCE REPORT");
 
   drawText(ctx, `Vessel: ${options.vesselName}`, { size: 12 });
   drawText(ctx, `Period: ${formatDate(period.startDate)} - ${formatDate(period.endDate)}`, {
@@ -66,12 +64,12 @@ async function renderMaintenanceCompliancePDF(
   addSpacing(ctx);
 
   if (options.includeWorkOrders) {
-    const completedOrders = workOrders.filter((wo) => wo.status === 'completed').length;
+    const completedOrders = workOrders.filter((wo) => wo.status === "completed").length;
     const totalOrders = workOrders.length;
     const completionRate =
-      totalOrders > 0 ? ((completedOrders / totalOrders) * 100).toFixed(1) : '0';
+      totalOrders > 0 ? ((completedOrders / totalOrders) * 100).toFixed(1) : "0";
 
-    drawSectionHeader(ctx, 'MAINTENANCE ACTIVITIES');
+    drawSectionHeader(ctx, "MAINTENANCE ACTIVITIES");
 
     drawText(ctx, `Total Work Orders: ${totalOrders}`, { size: 11 });
 
@@ -90,7 +88,7 @@ async function renderMaintenanceCompliancePDF(
     const avgHealth =
       equipmentHealth.reduce((sum, eq) => sum + (eq.healthIndex ?? 0), 0) / equipmentHealth.length;
 
-    drawSectionHeader(ctx, 'EQUIPMENT HEALTH');
+    drawSectionHeader(ctx, "EQUIPMENT HEALTH");
 
     drawText(ctx, `Equipment Units: ${equipmentHealth.length}`, { size: 11 });
 

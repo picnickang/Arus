@@ -8,7 +8,8 @@ registerTool({
   name: "getEquipmentSummary",
   category: "fleet",
   riskLevel: "read",
-  description: "Get detailed information about a specific piece of equipment including its current status, type, and vessel assignment.",
+  description:
+    "Get detailed information about a specific piece of equipment including its current status, type, and vessel assignment.",
   parameters: {
     type: "object",
     properties: {
@@ -19,9 +20,13 @@ registerTool({
   inputSchema: z.object({ equipmentId: z.string().min(1) }),
   requiresApproval: false,
   async execute(input: { equipmentId: string }, ctx) {
-    const [item] = await db.select().from(equipment)
+    const [item] = await db
+      .select()
+      .from(equipment)
       .where(and(eq(equipment.id, input.equipmentId), eq(equipment.orgId, ctx.orgId)));
-    if (!item) {return { error: "Equipment not found" };}
+    if (!item) {
+      return { error: "Equipment not found" };
+    }
     return {
       id: item.id,
       name: item.name,
@@ -44,11 +49,15 @@ registerTool({
   name: "getVesselOverview",
   category: "fleet",
   riskLevel: "read",
-  description: "Get overview information about a vessel or list all vessels. Use when asking about a specific ship or the entire fleet.",
+  description:
+    "Get overview information about a vessel or list all vessels. Use when asking about a specific ship or the entire fleet.",
   parameters: {
     type: "object",
     properties: {
-      vesselId: { type: "string", description: "Optional vessel ID. If not provided, returns all vessels." },
+      vesselId: {
+        type: "string",
+        description: "Optional vessel ID. If not provided, returns all vessels.",
+      },
     },
     required: [],
   },
@@ -56,22 +65,38 @@ registerTool({
   requiresApproval: false,
   async execute(input: { vesselId?: string }, ctx) {
     if (input.vesselId) {
-      const [vessel] = await db.select().from(vessels)
+      const [vessel] = await db
+        .select()
+        .from(vessels)
         .where(and(eq(vessels.id, input.vesselId), eq(vessels.orgId, ctx.orgId)));
-      if (!vessel) {return { error: "Vessel not found" };}
-      const equip = await db.select({ id: equipment.id }).from(equipment)
+      if (!vessel) {
+        return { error: "Vessel not found" };
+      }
+      const equip = await db
+        .select({ id: equipment.id })
+        .from(equipment)
         .where(and(eq(equipment.vesselId, input.vesselId), eq(equipment.orgId, ctx.orgId)));
       return {
-        id: vessel.id, name: vessel.name, type: vessel.vesselType,
-        imo: vessel.imo, active: vessel.active, equipmentCount: equip.length,
+        id: vessel.id,
+        name: vessel.name,
+        type: vessel.vesselType,
+        imo: vessel.imo,
+        active: vessel.active,
+        equipmentCount: equip.length,
       };
     }
-    const allVessels = await db.select().from(vessels)
+    const allVessels = await db
+      .select()
+      .from(vessels)
       .where(eq(vessels.orgId, ctx.orgId))
       .orderBy(vessels.name);
     return {
-      vessels: allVessels.map(v => ({
-        id: v.id, name: v.name, type: v.vesselType, imo: v.imo, active: v.active,
+      vessels: allVessels.map((v) => ({
+        id: v.id,
+        name: v.name,
+        type: v.vesselType,
+        imo: v.imo,
+        active: v.active,
       })),
     };
   },
@@ -81,7 +106,8 @@ registerTool({
   name: "getRiskiestEquipment",
   category: "fleet",
   riskLevel: "read",
-  description: "Find equipment across the fleet ranked by risk. Uses criticality level and active alerts to assess risk.",
+  description:
+    "Find equipment across the fleet ranked by risk. Uses criticality level and active alerts to assess risk.",
   parameters: {
     type: "object",
     properties: {
@@ -94,19 +120,29 @@ registerTool({
   requiresApproval: false,
   async execute(input: { limit?: number; vesselId?: string }, ctx) {
     const conditions = [eq(equipment.orgId, ctx.orgId)];
-    if (input.vesselId) {conditions.push(eq(equipment.vesselId, input.vesselId));}
+    if (input.vesselId) {
+      conditions.push(eq(equipment.vesselId, input.vesselId));
+    }
 
-    const equip = await db.select().from(equipment)
+    const equip = await db
+      .select()
+      .from(equipment)
       .where(and(...conditions))
       .orderBy(equipment.name);
 
     const criticalityScore: Record<string, number> = {
-      critical: 4, high: 3, medium: 2, low: 1,
+      critical: 4,
+      high: 3,
+      medium: 2,
+      low: 1,
     };
 
-    const scored = equip.map(e => ({
-      id: e.id, name: e.name, type: e.type,
-      vesselId: e.vesselId, vesselName: e.vesselName,
+    const scored = equip.map((e) => ({
+      id: e.id,
+      name: e.name,
+      type: e.type,
+      vesselId: e.vesselId,
+      vesselName: e.vesselName,
       criticalityLevel: e.criticalityLevel,
       riskScore: criticalityScore[e.criticalityLevel || "medium"] || 2,
       isActive: e.isActive,

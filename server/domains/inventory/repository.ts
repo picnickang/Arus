@@ -1,9 +1,4 @@
-import type {
-  Part,
-  PartsInventory,
-  InsertPartsInventory,
-  Equipment,
-} from "@shared/schema";
+import type { Part, PartsInventory, InsertPartsInventory, Equipment } from "@shared/schema";
 import { dbInventoryStorage, dbEquipmentStorage, dbAnalyticsStorage } from "../../repositories";
 
 export class InventoryRepository {
@@ -12,7 +7,9 @@ export class InventoryRepository {
   }
 
   async findPartByNumber(partNo: string, orgId?: string): Promise<Part | undefined> {
-    return orgId ? dbInventoryStorage.getPartByPartNumber(partNo, orgId) : Promise.resolve(undefined);
+    return orgId
+      ? dbInventoryStorage.getPartByPartNumber(partNo, orgId)
+      : Promise.resolve(undefined);
   }
 
   async deletePart(id: string): Promise<void> {
@@ -53,7 +50,7 @@ export class InventoryRepository {
     partId: string,
     updateData: { unitCost: number; supplier: string }
   ): Promise<PartsInventory> {
-    return dbAnalyticsStorage.updatePartCost(partId, updateData, 'default-org-id');
+    return dbAnalyticsStorage.updatePartCost(partId, updateData, "default-org-id");
   }
 
   async updatePartStock(
@@ -65,7 +62,7 @@ export class InventoryRepository {
       maxStockLevel?: number;
     }
   ): Promise<PartsInventory> {
-    return dbAnalyticsStorage.updatePartStockQuantities(partId, updateData, 'default-org-id');
+    return dbAnalyticsStorage.updatePartStockQuantities(partId, updateData, "default-org-id");
   }
 
   async checkAvailability(
@@ -82,7 +79,11 @@ export class InventoryRepository {
 
   async findCompatibleEquipment(partId: string, orgId: string): Promise<Equipment[]> {
     const eqs: any[] = await dbEquipmentStorage.getEquipmentRegistry(orgId);
-    return eqs.filter((e: any) => ('compatibleParts' in e && Array.isArray(e.compatibleParts)) ? e.compatibleParts.includes(partId) : false);
+    return eqs.filter((e: any) =>
+      "compatibleParts" in e && Array.isArray(e.compatibleParts)
+        ? e.compatibleParts.includes(partId)
+        : false
+    );
   }
 
   async updateCompatibility(partId: string, equipmentIds: string[], orgId: string): Promise<Part> {

@@ -1,47 +1,47 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import express from 'express';
-import bcrypt from 'bcryptjs';
+import { Router, Request, Response, NextFunction } from "express";
+import express from "express";
+import bcrypt from "bcryptjs";
 
 const router = Router();
 
 router.use(express.json());
 
 function localOnlyGuard(req: Request, res: Response, next: NextFunction) {
-  const ip = req.ip || req.socket.remoteAddress || '';
-  const isLocal = ['127.0.0.1', '::1', '::ffff:127.0.0.1', 'localhost'].some(
-    addr => ip.includes(addr)
+  const ip = req.ip || req.socket.remoteAddress || "";
+  const isLocal = ["127.0.0.1", "::1", "::ffff:127.0.0.1", "localhost"].some((addr) =>
+    ip.includes(addr)
   );
-  const isTauri = req.headers['user-agent']?.includes('Tauri') || false;
+  const isTauri = req.headers["user-agent"]?.includes("Tauri") || false;
   const isReplit = !!process.env.REPL_ID;
 
   if (!isLocal && !isTauri && !isReplit) {
-    return res.status(403).json({ error: 'Setup is only available from localhost' });
+    return res.status(403).json({ error: "Setup is only available from localhost" });
   }
   next();
 }
 
-router.post('/complete', localOnlyGuard, async (req: Request, res: Response) => {
+router.post("/complete", localOnlyGuard, async (req: Request, res: Response) => {
   const { mode, vesselId, adminPassword } = req.body as {
-    mode:          'vessel' | 'cloud';
-    vesselId?:     string;
+    mode: "vessel" | "cloud";
+    vesselId?: string;
     adminPassword: string;
   };
 
-  if (!adminPassword || typeof adminPassword !== 'string') {
-    return res.status(400).json({ error: 'adminPassword is required' });
+  if (!adminPassword || typeof adminPassword !== "string") {
+    return res.status(400).json({ error: "adminPassword is required" });
   }
   if (adminPassword.length < 8) {
-    return res.status(400).json({ error: 'adminPassword must be at least 8 characters' });
+    return res.status(400).json({ error: "adminPassword must be at least 8 characters" });
   }
-  if (!['vessel', 'cloud'].includes(mode)) {
-    return res.status(400).json({ error: 'mode must be vessel or cloud' });
+  if (!["vessel", "cloud"].includes(mode)) {
+    return res.status(400).json({ error: "mode must be vessel or cloud" });
   }
 
   try {
     const alreadyDone = await isSetupComplete();
     if (alreadyDone) {
       return res.status(409).json({
-        error: 'Setup has already been completed. Use the admin panel to change settings.',
+        error: "Setup has already been completed. Use the admin panel to change settings.",
       });
     }
 
@@ -54,21 +54,20 @@ router.post('/complete', localOnlyGuard, async (req: Request, res: Response) => 
     }
 
     if (mode) {
-      await saveSetting('deployment', 'mode', mode);
+      await saveSetting("deployment", "mode", mode);
     }
 
-    await saveSetting('setup', 'completed', 'true');
-    await saveSetting('setup', 'completed_at', new Date().toISOString());
+    await saveSetting("setup", "completed", "true");
+    await saveSetting("setup", "completed_at", new Date().toISOString());
 
     return res.status(200).json({ ok: true });
-
   } catch (err: any) {
-    console.error('[ARUS] /api/setup/complete error:', err);
-    return res.status(500).json({ error: 'Setup failed. Check server logs.' });
+    console.error("[ARUS] /api/setup/complete error:", err);
+    return res.status(500).json({ error: "Setup failed. Check server logs." });
   }
 });
 
-router.get('/status', async (_req: Request, res: Response) => {
+router.get("/status", async (_req: Request, res: Response) => {
   try {
     const complete = await isSetupComplete();
     return res.status(200).json({ complete });
@@ -78,19 +77,19 @@ router.get('/status', async (_req: Request, res: Response) => {
 });
 
 async function getDbClient() {
-  const { createClient } = await import('@libsql/client');
+  const { createClient } = await import("@libsql/client");
 
-  const isVessel =
-    process.env.DEPLOYMENT_MODE === 'VESSEL' ||
-    process.env.LOCAL_MODE === 'true';
+  const isVessel = process.env.DEPLOYMENT_MODE === "VESSEL" || process.env.LOCAL_MODE === "true";
 
   if (isVessel) {
-    const dbPath = process.env.DATABASE_PATH ?? 'data/vessel-local.db';
+    const dbPath = process.env.DATABASE_PATH ?? "data/vessel-local.db";
     return createClient({ url: `file:${dbPath}` });
   }
 
   const url = process.env.TURSO_DB_URL ?? process.env.DATABASE_URL;
-  if (!url) {throw new Error('DATABASE_URL or TURSO_DB_URL is required in cloud mode');}
+  if (!url) {
+    throw new Error("DATABASE_URL or TURSO_DB_URL is required in cloud mode");
+  }
   const authToken = process.env.TURSO_AUTH_TOKEN;
   return createClient({ url, authToken });
 }
@@ -106,7 +105,7 @@ async function isSetupComplete(): Promise<boolean> {
             LIMIT 1`,
       args: [],
     });
-    return result.rows.length > 0 && result.rows[0].value === 'true';
+    return result.rows.length > 0 && result.rows[0].value === "true";
   } catch {
     return false;
   } finally {
@@ -159,11 +158,7 @@ async function saveVesselId(vesselId: string): Promise<void> {
   }
 }
 
-async function saveSetting(
-  category: string,
-  key: string,
-  value: string,
-): Promise<void> {
+async function saveSetting(category: string, key: string, value: string): Promise<void> {
   const client = await getDbClient();
   try {
     await client.execute({

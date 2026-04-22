@@ -134,7 +134,9 @@ class PWAManager {
 
     // Check for Android TWA
     if ("getInstalledRelatedApps" in navigator) {
-      const navWithApps = navigator as Navigator & { getInstalledRelatedApps: () => Promise<Array<{ id?: string; platform?: string }>> };
+      const navWithApps = navigator as Navigator & {
+        getInstalledRelatedApps: () => Promise<Array<{ id?: string; platform?: string }>>;
+      };
       navWithApps.getInstalledRelatedApps().then((apps) => {
         if (apps.length > 0) {
           this.isInstalled = true;

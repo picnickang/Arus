@@ -4,16 +4,16 @@
  * Provides typed discriminated unions for event-driven architecture
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
-export type DomainEventCategory = 
-  | 'maintenance'
-  | 'crew'
-  | 'inventory'
-  | 'telemetry'
-  | 'work-order'
-  | 'compliance'
-  | 'alerts';
+export type DomainEventCategory =
+  | "maintenance"
+  | "crew"
+  | "inventory"
+  | "telemetry"
+  | "work-order"
+  | "compliance"
+  | "alerts";
 
 export interface BaseDomainEvent<T extends string = string> {
   eventId: string;
@@ -28,7 +28,7 @@ export interface BaseDomainEvent<T extends string = string> {
   causationId?: string;
 }
 
-export interface WorkOrderCreatedEvent extends BaseDomainEvent<'WorkOrderCreated'> {
+export interface WorkOrderCreatedEvent extends BaseDomainEvent<"WorkOrderCreated"> {
   payload: {
     equipmentId: string;
     workOrderNumber: string;
@@ -38,7 +38,7 @@ export interface WorkOrderCreatedEvent extends BaseDomainEvent<'WorkOrderCreated
   };
 }
 
-export interface WorkOrderCompletedEvent extends BaseDomainEvent<'WorkOrderCompleted'> {
+export interface WorkOrderCompletedEvent extends BaseDomainEvent<"WorkOrderCompleted"> {
   payload: {
     completedAt: Date;
     completedBy: string;
@@ -47,19 +47,19 @@ export interface WorkOrderCompletedEvent extends BaseDomainEvent<'WorkOrderCompl
   };
 }
 
-export interface TelemetryAnomalyDetectedEvent extends BaseDomainEvent<'TelemetryAnomalyDetected'> {
+export interface TelemetryAnomalyDetectedEvent extends BaseDomainEvent<"TelemetryAnomalyDetected"> {
   payload: {
     equipmentId: string;
     sensorId: string;
     anomalyType: string;
-    severity: 'low' | 'medium' | 'high' | 'critical';
+    severity: "low" | "medium" | "high" | "critical";
     value: number;
     threshold: number;
     detectedAt: Date;
   };
 }
 
-export interface TelemetryBatchIngestedEvent extends BaseDomainEvent<'TelemetryBatchIngested'> {
+export interface TelemetryBatchIngestedEvent extends BaseDomainEvent<"TelemetryBatchIngested"> {
   payload: {
     equipmentId: string;
     readingCount: number;
@@ -69,18 +69,18 @@ export interface TelemetryBatchIngestedEvent extends BaseDomainEvent<'TelemetryB
   };
 }
 
-export interface MaintenanceScheduledEvent extends BaseDomainEvent<'MaintenanceScheduled'> {
+export interface MaintenanceScheduledEvent extends BaseDomainEvent<"MaintenanceScheduled"> {
   payload: {
     equipmentId: string;
     scheduledDate: Date;
     maintenanceType: string;
     priority: string;
     estimatedDuration: number;
-    triggeredBy: 'manual' | 'pdm' | 'interval' | 'condition';
+    triggeredBy: "manual" | "pdm" | "interval" | "condition";
   };
 }
 
-export interface MaintenanceCompletedEvent extends BaseDomainEvent<'MaintenanceCompleted'> {
+export interface MaintenanceCompletedEvent extends BaseDomainEvent<"MaintenanceCompleted"> {
   payload: {
     equipmentId: string;
     completedAt: Date;
@@ -90,10 +90,11 @@ export interface MaintenanceCompletedEvent extends BaseDomainEvent<'MaintenanceC
   };
 }
 
-export interface PredictiveMaintenanceAlertEvent extends BaseDomainEvent<'PredictiveMaintenanceAlert'> {
+export interface PredictiveMaintenanceAlertEvent
+  extends BaseDomainEvent<"PredictiveMaintenanceAlert"> {
   payload: {
     equipmentId: string;
-    predictionType: 'failure' | 'degradation' | 'anomaly';
+    predictionType: "failure" | "degradation" | "anomaly";
     confidence: number;
     estimatedTimeToFailure: number;
     recommendedAction: string;
@@ -101,7 +102,7 @@ export interface PredictiveMaintenanceAlertEvent extends BaseDomainEvent<'Predic
   };
 }
 
-export interface CrewAssignmentCreatedEvent extends BaseDomainEvent<'CrewAssignmentCreated'> {
+export interface CrewAssignmentCreatedEvent extends BaseDomainEvent<"CrewAssignmentCreated"> {
   payload: {
     crewId: string;
     vesselId: string;
@@ -111,7 +112,8 @@ export interface CrewAssignmentCreatedEvent extends BaseDomainEvent<'CrewAssignm
   };
 }
 
-export interface CrewCertificationExpiringEvent extends BaseDomainEvent<'CrewCertificationExpiring'> {
+export interface CrewCertificationExpiringEvent
+  extends BaseDomainEvent<"CrewCertificationExpiring"> {
   payload: {
     crewId: string;
     certificationId: string;
@@ -121,7 +123,7 @@ export interface CrewCertificationExpiringEvent extends BaseDomainEvent<'CrewCer
   };
 }
 
-export interface InventoryLowStockEvent extends BaseDomainEvent<'InventoryLowStock'> {
+export interface InventoryLowStockEvent extends BaseDomainEvent<"InventoryLowStock"> {
   payload: {
     partId: string;
     partNo: string;
@@ -132,10 +134,10 @@ export interface InventoryLowStockEvent extends BaseDomainEvent<'InventoryLowSto
   };
 }
 
-export interface InventoryMovementEvent extends BaseDomainEvent<'InventoryMovement'> {
+export interface InventoryMovementEvent extends BaseDomainEvent<"InventoryMovement"> {
   payload: {
     partId: string;
-    movementType: 'in' | 'out' | 'transfer' | 'adjustment';
+    movementType: "in" | "out" | "transfer" | "adjustment";
     quantity: number;
     previousQuantity: number;
     newQuantity: number;
@@ -144,21 +146,22 @@ export interface InventoryMovementEvent extends BaseDomainEvent<'InventoryMoveme
   };
 }
 
-export interface ComplianceViolationDetectedEvent extends BaseDomainEvent<'ComplianceViolationDetected'> {
+export interface ComplianceViolationDetectedEvent
+  extends BaseDomainEvent<"ComplianceViolationDetected"> {
   payload: {
     ruleId: string;
     ruleName: string;
-    severity: 'minor' | 'major' | 'critical';
+    severity: "minor" | "major" | "critical";
     entityType: string;
     entityId: string;
     details: string;
   };
 }
 
-export interface AlertTriggeredEvent extends BaseDomainEvent<'AlertTriggered'> {
+export interface AlertTriggeredEvent extends BaseDomainEvent<"AlertTriggered"> {
   payload: {
     alertType: string;
-    severity: 'info' | 'warning' | 'error' | 'critical';
+    severity: "info" | "warning" | "error" | "critical";
     source: string;
     message: string;
     metadata: Record<string, unknown>;
@@ -180,7 +183,7 @@ export type DomainEvent =
   | ComplianceViolationDetectedEvent
   | AlertTriggeredEvent;
 
-export type DomainEventType = DomainEvent['eventType'];
+export type DomainEventType = DomainEvent["eventType"];
 
 export function createEventId(): string {
   return uuidv4();
@@ -197,7 +200,7 @@ export function createBaseEvent<T extends DomainEventType>(
   orgId: string,
   userId?: string,
   correlationId?: string
-): Omit<BaseDomainEvent<T>, 'payload'> & { eventType: T } {
+): Omit<BaseDomainEvent<T>, "payload"> & { eventType: T } {
   return {
     eventId: createEventId(),
     eventType,

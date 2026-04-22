@@ -31,12 +31,18 @@ const JUST_SELECTED_KEY = "arus-role-just-selected";
  *   - Role was just selected this session (let them see the home page first)
  */
 export function getBriefingRedirect(): string | null {
-  if (typeof window === "undefined") {return null;}
+  if (typeof window === "undefined") {
+    return null;
+  }
 
-  if (localStorage.getItem(REDIRECT_DISABLED_KEY) === "true") {return null;}
+  if (localStorage.getItem(REDIRECT_DISABLED_KEY) === "true") {
+    return null;
+  }
 
   const role = localStorage.getItem(STORAGE_KEY);
-  if (!role || role === "default") {return null;}
+  if (!role || role === "default") {
+    return null;
+  }
 
   // Don't redirect if the user just picked this role — let them see the home page
   if (sessionStorage.getItem(JUST_SELECTED_KEY) === "true") {

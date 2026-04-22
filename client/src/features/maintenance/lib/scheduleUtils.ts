@@ -44,7 +44,9 @@ export function getPriorityLabel(priority: number): string {
   }
 }
 
-export function getStatusBadgeVariant(status: string): "default" | "destructive" | "secondary" | "outline" {
+export function getStatusBadgeVariant(
+  status: string
+): "default" | "destructive" | "secondary" | "outline" {
   switch (status) {
     case "overdue":
       return "destructive";
@@ -88,17 +90,15 @@ export function calculateScheduleStatus(scheduledDate: Date): "overdue" | "due" 
   return "upcoming";
 }
 
-export function filterSchedules<T extends { 
-  equipmentId: string; 
-  status?: string; 
-  priority?: number;
-  title?: string;
-  description?: string;
-}>(
-  schedules: T[],
-  filters: ScheduleFilters,
-  getEquipmentName: (id: string) => string
-): T[] {
+export function filterSchedules<
+  T extends {
+    equipmentId: string;
+    status?: string;
+    priority?: number;
+    title?: string;
+    description?: string;
+  },
+>(schedules: T[], filters: ScheduleFilters, getEquipmentName: (id: string) => string): T[] {
   return schedules.filter((schedule) => {
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();

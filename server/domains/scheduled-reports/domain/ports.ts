@@ -15,12 +15,20 @@ import type {
   CrewComplianceData,
   CostSummaryData,
   MaintenanceItem,
-} from './types.js';
-import type { ScheduledReportEvent } from './events.js';
+} from "./types.js";
+import type { ScheduledReportEvent } from "./events.js";
 
 export interface IReportScheduleRepository {
-  create(orgId: string, input: ReportScheduleInput, createdBy: string): Promise<ReportScheduleConfig>;
-  update(id: string, orgId: string, input: Partial<ReportScheduleInput>): Promise<ReportScheduleConfig>;
+  create(
+    orgId: string,
+    input: ReportScheduleInput,
+    createdBy: string
+  ): Promise<ReportScheduleConfig>;
+  update(
+    id: string,
+    orgId: string,
+    input: Partial<ReportScheduleInput>
+  ): Promise<ReportScheduleConfig>;
   delete(id: string, orgId: string): Promise<void>;
   findById(id: string, orgId: string): Promise<ReportScheduleConfig | null>;
   findByOrg(orgId: string): Promise<ReportScheduleConfig[]>;
@@ -29,7 +37,7 @@ export interface IReportScheduleRepository {
 }
 
 export interface IGeneratedReportRepository {
-  create(report: Omit<GeneratedReport, 'id'>): Promise<GeneratedReport>;
+  create(report: Omit<GeneratedReport, "id">): Promise<GeneratedReport>;
   update(id: string, updates: Partial<GeneratedReport>): Promise<GeneratedReport>;
   findById(id: string, orgId: string): Promise<GeneratedReport | null>;
   findBySchedule(scheduleId: string, orgId: string, limit?: number): Promise<GeneratedReport[]>;
@@ -43,23 +51,23 @@ export interface IReportGenerator<T = unknown> {
 }
 
 export interface IFleetHealthGenerator extends IReportGenerator<FleetHealthData> {
-  readonly reportType: 'fleet_health';
+  readonly reportType: "fleet_health";
 }
 
 export interface IMaintenanceDueGenerator extends IReportGenerator<MaintenanceItem[]> {
-  readonly reportType: 'maintenance_due';
+  readonly reportType: "maintenance_due";
 }
 
 export interface IInventoryStatusGenerator extends IReportGenerator<InventoryStatusData> {
-  readonly reportType: 'inventory_status';
+  readonly reportType: "inventory_status";
 }
 
 export interface ICrewComplianceGenerator extends IReportGenerator<CrewComplianceData> {
-  readonly reportType: 'crew_compliance';
+  readonly reportType: "crew_compliance";
 }
 
 export interface ICostSummaryGenerator extends IReportGenerator<CostSummaryData> {
-  readonly reportType: 'cost_summary';
+  readonly reportType: "cost_summary";
 }
 
 export interface IPdfGeneratorAdapter {

@@ -12,9 +12,7 @@ import {
   isoDateString,
   cloneWorkOrderSchema,
 } from "../../server/domains/work-orders/interfaces/schemas";
-import {
-  mapOutcomeToValidation,
-} from "../../server/domains/work-orders/domain/workflow-types";
+import { mapOutcomeToValidation } from "../../server/domains/work-orders/domain/workflow-types";
 
 describe("Work Order Schemas", () => {
   describe("createTaskSchema", () => {

@@ -187,17 +187,21 @@ export const logbookEntrySchema = z.object({
   timestamp: z.coerce.date(),
   shift: z.enum(["morning", "afternoon", "night"]).optional(),
   content: z.string().min(1),
-  weather: z.object({
-    windSpeed: z.number().optional(),
-    windDirection: z.string().optional(),
-    seaState: z.string().optional(),
-    visibility: z.string().optional(),
-    temperature: z.number().optional(),
-  }).optional(),
-  position: z.object({
-    latitude: z.number().min(-90).max(90),
-    longitude: z.number().min(-180).max(180),
-  }).optional(),
+  weather: z
+    .object({
+      windSpeed: z.number().optional(),
+      windDirection: z.string().optional(),
+      seaState: z.string().optional(),
+      visibility: z.string().optional(),
+      temperature: z.number().optional(),
+    })
+    .optional(),
+  position: z
+    .object({
+      latitude: z.number().min(-90).max(90),
+      longitude: z.number().min(-180).max(180),
+    })
+    .optional(),
 });
 
 export const multiFieldFilterSchema = z.object({
@@ -208,26 +212,42 @@ export const multiFieldFilterSchema = z.object({
 
 export const advancedQuerySchema = z.object({
   filters: z.array(multiFieldFilterSchema).optional(),
-  sort: z.array(z.object({
-    field: z.string(),
-    order: z.enum(["asc", "desc"]),
-  })).optional(),
+  sort: z
+    .array(
+      z.object({
+        field: z.string(),
+        order: z.enum(["asc", "desc"]),
+      })
+    )
+    .optional(),
   ...paginationSchema.shape,
 });
 
 type DatePresetCalculator = (now: Date, endDate: Date) => { startDate: Date; endDate: Date };
 
 const datePresetCalculators: Record<string, DatePresetCalculator> = {
-  today: (now, endDate) => ({ startDate: new Date(now.getFullYear(), now.getMonth(), now.getDate()), endDate }),
+  today: (now, endDate) => ({
+    startDate: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+    endDate,
+  }),
   yesterday: (now) => {
     const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
     const endDate = new Date(now);
     endDate.setDate(endDate.getDate() - 1);
     return { startDate, endDate };
   },
-  last7days: (now, endDate) => ({ startDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000), endDate }),
-  last30days: (now, endDate) => ({ startDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), endDate }),
-  thisMonth: (now, endDate) => ({ startDate: new Date(now.getFullYear(), now.getMonth(), 1), endDate }),
+  last7days: (now, endDate) => ({
+    startDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+    endDate,
+  }),
+  last30days: (now, endDate) => ({
+    startDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+    endDate,
+  }),
+  thisMonth: (now, endDate) => ({
+    startDate: new Date(now.getFullYear(), now.getMonth(), 1),
+    endDate,
+  }),
   lastMonth: (now) => {
     const startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const endDate = new Date(now);
@@ -253,22 +273,41 @@ export const compoundCursorSchema = z.object({
 });
 
 export const multiDimensionalPaginationSchema = z.object({
-  cursor: z.object({
-    primary: z.string(),
-    secondary: z.string().optional(),
-  }).optional(),
+  cursor: z
+    .object({
+      primary: z.string(),
+      secondary: z.string().optional(),
+    })
+    .optional(),
   limit: z.coerce.number().min(1).max(100).default(20),
   direction: z.enum(["forward", "backward"]).default("forward"),
-  sortFields: z.array(z.object({
-    field: z.string(),
-    order: z.enum(["asc", "desc"]),
-  })).optional(),
+  sortFields: z
+    .array(
+      z.object({
+        field: z.string(),
+        order: z.enum(["asc", "desc"]),
+      })
+    )
+    .optional(),
 });
 
 export const alertSeverityEnum = z.enum(["critical", "warning", "info"]);
-export const alertTypeEnum = z.enum(["threshold", "rate_of_change", "pattern", "anomaly", "predictive"]);
+export const alertTypeEnum = z.enum([
+  "threshold",
+  "rate_of_change",
+  "pattern",
+  "anomaly",
+  "predictive",
+]);
 export const telemetryModeEnum = z.enum(["realtime", "batch", "simulation", "replay"]);
-export const operatingModeEnum = z.enum(["underway", "maneuvering", "anchored", "moored", "standby", "off"]);
+export const operatingModeEnum = z.enum([
+  "underway",
+  "maneuvering",
+  "anchored",
+  "moored",
+  "standby",
+  "off",
+]);
 
 export const mlThresholdPayloadSchema = z.object({
   equipmentId: uuidSchema,
@@ -290,11 +329,15 @@ export const mlThresholdPayloadSchema = z.object({
 export const stcwRestDaySchema = z.object({
   crewId: uuidSchema,
   date: z.coerce.date(),
-  hours: z.array(z.object({
-    start: z.number().min(0).max(23),
-    end: z.number().min(1).max(24),
-    type: z.enum(["work", "rest"]),
-  })).min(1),
+  hours: z
+    .array(
+      z.object({
+        start: z.number().min(0).max(23),
+        end: z.number().min(1).max(24),
+        type: z.enum(["work", "rest"]),
+      })
+    )
+    .min(1),
   notes: z.string().optional(),
 });
 
@@ -375,11 +418,11 @@ export function createValidatedHandler<TBody, TQuery, TParams>(
   querySchema?: z.ZodSchema<TQuery>,
   paramsSchema?: z.ZodSchema<TParams>
 ) {
-  return function validateRequest(req: {
-    body?: unknown;
-    query?: unknown;
-    params?: unknown;
-  }): { body?: TBody; query?: TQuery; params?: TParams } {
+  return function validateRequest(req: { body?: unknown; query?: unknown; params?: unknown }): {
+    body?: TBody;
+    query?: TQuery;
+    params?: TParams;
+  } {
     return {
       body: bodySchema ? bodySchema.parse(req.body) : undefined,
       query: querySchema ? querySchema.parse(req.query) : undefined,

@@ -80,8 +80,8 @@ router.get("/consumption/hourly/:vesselId", requireOrgId, async (req: Request, r
 
     const vesselId = req.params.vesselId;
     const orgId = getOrgId(req);
-    const fuelEquipmentId = `fmcc-fuel-${  vesselId}`;
-    const engineEquipmentId = `fmcc-engine-${  vesselId}`;
+    const fuelEquipmentId = `fmcc-fuel-${vesselId}`;
+    const engineEquipmentId = `fmcc-engine-${vesselId}`;
 
     const result = await db.execute(sql`
       SELECT
@@ -128,8 +128,8 @@ router.get("/consumption/daily/:vesselId", requireOrgId, async (req: Request, re
 
     const vesselId = req.params.vesselId;
     const orgId = getOrgId(req);
-    const fuelEquipmentId = `fmcc-fuel-${  vesselId}`;
-    const engineEquipmentId = `fmcc-engine-${  vesselId}`;
+    const fuelEquipmentId = `fmcc-fuel-${vesselId}`;
+    const engineEquipmentId = `fmcc-engine-${vesselId}`;
 
     const result = await db.execute(sql`
       SELECT
@@ -200,7 +200,9 @@ router.get("/bunkering", requireOrgId, async (req: Request, res: Response) => {
       LEFT JOIN vessels v ON be.vessel_id = v.id
       WHERE be.org_id = ${getOrgId(req)} AND be.started_at >= ${since}
     `;
-    if (vesselId) {q = sql`${q} AND be.vessel_id = ${vesselId as string}`;}
+    if (vesselId) {
+      q = sql`${q} AND be.vessel_id = ${vesselId as string}`;
+    }
     q = sql`${q} ORDER BY be.started_at DESC LIMIT 200`;
 
     const result = await db.execute(q);
@@ -217,7 +219,7 @@ router.get("/tanks/:vesselId", requireOrgId, async (req: Request, res: Response)
       SELECT DISTINCT ON (sensor_type)
         sensor_type, value, ts as timestamp
       FROM equipment_telemetry
-      WHERE equipment_id LIKE ${`fmcc-fuel-${  req.params.vesselId}`}
+      WHERE equipment_id LIKE ${`fmcc-fuel-${req.params.vesselId}`}
         AND org_id = ${getOrgId(req)}
         AND sensor_type LIKE 'tank_%'
       ORDER BY sensor_type, ts DESC
@@ -237,7 +239,7 @@ router.get("/rob/:vesselId", requireOrgId, async (req: Request, res: Response) =
       SELECT DISTINCT ON (sensor_type)
         sensor_type, value, ts as timestamp
       FROM equipment_telemetry
-      WHERE equipment_id LIKE ${`fmcc-fuel-${  req.params.vesselId}`}
+      WHERE equipment_id LIKE ${`fmcc-fuel-${req.params.vesselId}`}
         AND org_id = ${orgId}
         AND sensor_type LIKE 'tank_%'
       ORDER BY sensor_type, ts DESC
@@ -246,7 +248,7 @@ router.get("/rob/:vesselId", requireOrgId, async (req: Request, res: Response) =
     const consumptionResult = await db.execute(sql`
       SELECT AVG(value) as avg_consumption_kg_per_h
       FROM equipment_telemetry
-      WHERE equipment_id = ${`fmcc-fuel-${  req.params.vesselId}`}
+      WHERE equipment_id = ${`fmcc-fuel-${req.params.vesselId}`}
         AND org_id = ${orgId}
         AND sensor_type = 'fuel_consumption'
         AND ts >= ${new Date(Date.now() - 24 * 60 * 60 * 1000)}
@@ -285,7 +287,9 @@ router.get("/alerts/configs", requireOrgId, async (req: Request, res: Response) 
       LEFT JOIN vessels v ON ac.vessel_id = v.id
       WHERE ac.org_id = ${getOrgId(req)}
     `;
-    if (vesselId) {q = sql`${q} AND ac.vessel_id = ${vesselId as string}`;}
+    if (vesselId) {
+      q = sql`${q} AND ac.vessel_id = ${vesselId as string}`;
+    }
     q = sql`${q} ORDER BY ac.name`;
 
     const result = await db.execute(q);
@@ -308,7 +312,9 @@ router.post("/alerts/configs", requireOrgId, async (req: Request, res: Response)
     `);
     res.status(201).json(getFirstRow(result));
   } catch (err) {
-    if (err instanceof z.ZodError) {return res.status(400).json({ error: "Validation failed", details: err.flatten() });}
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation failed", details: err.flatten() });
+    }
     res.status(500).json({ error: "Failed to create alert config" });
   }
 });
@@ -318,7 +324,9 @@ router.patch("/alerts/configs/:id", requireOrgId, async (req: Request, res: Resp
     const existing = await db.execute(sql`
       SELECT id FROM rms_alert_configs WHERE id = ${req.params.id} AND org_id = ${getOrgId(req)}
     `);
-    if (!getFirstRow(existing)) {return res.status(404).json({ error: "Alert config not found" });}
+    if (!getFirstRow(existing)) {
+      return res.status(404).json({ error: "Alert config not found" });
+    }
 
     const { name, config, enabled, notifyEmail, notifyInApp, cooldownMinutes } = req.body;
 
@@ -347,7 +355,9 @@ router.delete("/alerts/configs/:id", requireOrgId, async (req: Request, res: Res
       DELETE FROM rms_alert_configs WHERE id = ${req.params.id} AND org_id = ${getOrgId(req)} RETURNING id
     `);
     const deleted = getFirstRow(result);
-    if (!deleted) {return res.status(404).json({ error: "Alert config not found" });}
+    if (!deleted) {
+      return res.status(404).json({ error: "Alert config not found" });
+    }
     res.json({ success: true, deletedId: deleted.id });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete alert config" });
@@ -367,9 +377,15 @@ router.get("/alerts", requireOrgId, async (req: Request, res: Response) => {
       LEFT JOIN vessels v ON al.vessel_id = v.id
       WHERE al.org_id = ${getOrgId(req)} AND al.created_at >= ${since}
     `;
-    if (vesselId) {q = sql`${q} AND al.vessel_id = ${vesselId as string}`;}
-    if (acknowledged === 'false') {q = sql`${q} AND al.acknowledged = false`;}
-    if (acknowledged === 'true') {q = sql`${q} AND al.acknowledged = true`;}
+    if (vesselId) {
+      q = sql`${q} AND al.vessel_id = ${vesselId as string}`;
+    }
+    if (acknowledged === "false") {
+      q = sql`${q} AND al.acknowledged = false`;
+    }
+    if (acknowledged === "true") {
+      q = sql`${q} AND al.acknowledged = true`;
+    }
     q = sql`${q} ORDER BY al.created_at DESC LIMIT 200`;
 
     const result = await db.execute(q);
@@ -385,13 +401,15 @@ router.patch("/alerts/:id/acknowledge", requireOrgId, async (req: Request, res: 
     const result = await db.execute(sql`
       UPDATE rms_alert_log SET
         acknowledged = true,
-        acknowledged_by = ${acknowledgedBy || 'system'},
+        acknowledged_by = ${acknowledgedBy || "system"},
         acknowledged_at = NOW()
       WHERE id = ${req.params.id} AND org_id = ${getOrgId(req)}
       RETURNING *
     `);
     const row = getFirstRow(result);
-    if (!row) {return res.status(404).json({ error: "Alert not found" });}
+    if (!row) {
+      return res.status(404).json({ error: "Alert not found" });
+    }
     res.json(row);
   } catch (err) {
     res.status(500).json({ error: "Failed to acknowledge alert" });

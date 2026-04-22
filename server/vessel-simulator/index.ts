@@ -1,6 +1,6 @@
 /**
  * Vessel Simulator Module
- * 
+ *
  * Re-exports public API for vessel telemetry simulation.
  */
 

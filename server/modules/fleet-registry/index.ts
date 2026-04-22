@@ -24,10 +24,7 @@ export const fleetRegistryService = new FleetRegistryService(
   eventPublisher
 );
 
-export function registerFleetRegistryRoutes(
-  app: Express,
-  rateLimiters: RateLimiters
-) {
+export function registerFleetRegistryRoutes(app: Express, rateLimiters: RateLimiters) {
   registerFleetRegistryVesselRoutes(app, fleetRegistryService, rateLimiters);
   console.log("[FleetRegistry] Hexagonal module routes registered");
 }

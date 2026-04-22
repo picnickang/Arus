@@ -3,19 +3,24 @@
  * Orchestrates report scheduling, execution, and delivery
  */
 
-import cron from 'node-cron';
-import { isCloudMode, canUseCloudFeature } from '../../../config/runtimeEnv.js';
+import cron from "node-cron";
+import { isCloudMode, canUseCloudFeature } from "../../../config/runtimeEnv.js";
 import type {
   IReportScheduleRepository,
   IGeneratedReportRepository,
   IEventPublisher,
-} from '../domain/ports.js';
-import type { ReportScheduleConfig, ReportScheduleInput } from '../domain/types.js';
-import { createEvent, type ReportScheduleCreatedEvent, type ReportScheduleUpdatedEvent, type ReportScheduleDeletedEvent } from '../domain/events.js';
-import { ReportGenerationService } from './report-generation-service.js';
-import { logger } from '../../../utils/logger.js';
+} from "../domain/ports.js";
+import type { ReportScheduleConfig, ReportScheduleInput } from "../domain/types.js";
+import {
+  createEvent,
+  type ReportScheduleCreatedEvent,
+  type ReportScheduleUpdatedEvent,
+  type ReportScheduleDeletedEvent,
+} from "../domain/events.js";
+import { ReportGenerationService } from "./report-generation-service.js";
+import { logger } from "../../../utils/logger.js";
 
-const LOG_CTX = 'ReportSchedulerService';
+const LOG_CTX = "ReportSchedulerService";
 
 export class ReportSchedulerService {
   private cronJobs: Map<string, cron.ScheduledTask> = new Map();
@@ -33,29 +38,29 @@ export class ReportSchedulerService {
       return;
     }
 
-    if (!isCloudMode || !canUseCloudFeature('scheduledReports')) {
-      logger.info(LOG_CTX, 'Scheduled reports disabled in vessel mode');
+    if (!isCloudMode || !canUseCloudFeature("scheduledReports")) {
+      logger.info(LOG_CTX, "Scheduled reports disabled in vessel mode");
       return;
     }
 
-    logger.info(LOG_CTX, 'Initializing scheduled reports service');
+    logger.info(LOG_CTX, "Initializing scheduled reports service");
 
     await this.cleanupExpiredReports();
     await this.loadSchedules();
     this.startCleanupJob();
 
     this.isInitialized = true;
-    logger.info(LOG_CTX, 'Scheduled reports service initialized');
+    logger.info(LOG_CTX, "Scheduled reports service initialized");
   }
 
   async shutdown(): Promise<void> {
-    logger.info(LOG_CTX, 'Shutting down scheduled reports service');
-    
+    logger.info(LOG_CTX, "Shutting down scheduled reports service");
+
     for (const [id, job] of this.cronJobs) {
       job.stop();
       logger.info(LOG_CTX, `Stopped cron job for schedule ${id}`);
     }
-    
+
     this.cronJobs.clear();
     this.isInitialized = false;
   }
@@ -66,22 +71,26 @@ export class ReportSchedulerService {
     createdBy: string
   ): Promise<ReportScheduleConfig> {
     const cronExpr = input.cronExpression || this.frequencyToCron(input.frequency);
-    
+
     if (!cron.validate(cronExpr)) {
       throw new Error(`Invalid cron expression: ${cronExpr}`);
     }
 
-    const schedule = await this.scheduleRepository.create(orgId, {
-      ...input,
-      cronExpression: cronExpr,
-    }, createdBy);
+    const schedule = await this.scheduleRepository.create(
+      orgId,
+      {
+        ...input,
+        cronExpression: cronExpr,
+      },
+      createdBy
+    );
 
     if (schedule.enabled) {
       this.scheduleJob(schedule);
     }
 
     await this.eventPublisher.publish(
-      createEvent<ReportScheduleCreatedEvent>('ReportScheduleCreated', orgId, {
+      createEvent<ReportScheduleCreatedEvent>("ReportScheduleCreated", orgId, {
         scheduleId: schedule.id,
         reportType: schedule.reportType,
         name: schedule.name,
@@ -106,13 +115,13 @@ export class ReportSchedulerService {
     const schedule = await this.scheduleRepository.update(id, orgId, input);
 
     this.unscheduleJob(id);
-    
+
     if (schedule.enabled) {
       this.scheduleJob(schedule);
     }
 
     await this.eventPublisher.publish(
-      createEvent<ReportScheduleUpdatedEvent>('ReportScheduleUpdated', orgId, {
+      createEvent<ReportScheduleUpdatedEvent>("ReportScheduleUpdated", orgId, {
         scheduleId: id,
         changes: input,
         updatedBy,
@@ -127,7 +136,7 @@ export class ReportSchedulerService {
     await this.scheduleRepository.delete(id, orgId);
 
     await this.eventPublisher.publish(
-      createEvent<ReportScheduleDeletedEvent>('ReportScheduleDeleted', orgId, {
+      createEvent<ReportScheduleDeletedEvent>("ReportScheduleDeleted", orgId, {
         scheduleId: id,
         deletedBy,
       })
@@ -184,12 +193,15 @@ export class ReportSchedulerService {
         await this.executeSchedule(schedule);
       },
       {
-        timezone: schedule.timezone || 'UTC',
+        timezone: schedule.timezone || "UTC",
       }
     );
 
     this.cronJobs.set(schedule.id, job);
-    logger.info(LOG_CTX, `Scheduled job for ${schedule.name} (${schedule.id}): ${schedule.cronExpression}`);
+    logger.info(
+      LOG_CTX,
+      `Scheduled job for ${schedule.name} (${schedule.id}): ${schedule.cronExpression}`
+    );
   }
 
   private unscheduleJob(scheduleId: string): void {
@@ -224,26 +236,26 @@ export class ReportSchedulerService {
         logger.info(LOG_CTX, `Cleaned up ${deleted} expired reports`);
       }
     } catch (error) {
-      logger.error(LOG_CTX, 'Failed to cleanup expired reports', String(error));
+      logger.error(LOG_CTX, "Failed to cleanup expired reports", String(error));
     }
   }
 
   private startCleanupJob(): void {
-    cron.schedule('0 3 * * *', async () => {
+    cron.schedule("0 3 * * *", async () => {
       await this.cleanupExpiredReports();
     });
   }
 
   private frequencyToCron(frequency: string): string {
     switch (frequency) {
-      case 'daily':
-        return '0 8 * * *';
-      case 'weekly':
-        return '0 8 * * 1';
-      case 'monthly':
-        return '0 8 1 * *';
+      case "daily":
+        return "0 8 * * *";
+      case "weekly":
+        return "0 8 * * 1";
+      case "monthly":
+        return "0 8 1 * *";
       default:
-        return '0 8 * * *';
+        return "0 8 * * *";
     }
   }
 

@@ -18,9 +18,7 @@ export interface InferenceSemaphore {
 
 function createSemaphore(maxConcurrent: number): InferenceSemaphore {
   if (!Number.isFinite(maxConcurrent) || maxConcurrent < 1) {
-    throw new Error(
-      `ml-semaphore: maxConcurrent must be >= 1, got ${maxConcurrent}`,
-    );
+    throw new Error(`ml-semaphore: maxConcurrent must be >= 1, got ${maxConcurrent}`);
   }
 
   let active = 0;
@@ -42,7 +40,9 @@ function createSemaphore(maxConcurrent: number): InferenceSemaphore {
   const release = (): void => {
     active -= 1;
     const next = waiters.shift();
-    if (next) {next();}
+    if (next) {
+      next();
+    }
   };
 
   return {
@@ -63,11 +63,7 @@ function createSemaphore(maxConcurrent: number): InferenceSemaphore {
   };
 }
 
-const parsedLimit = Number.parseInt(
-  process.env.ML_INFERENCE_CONCURRENCY ?? "4",
-  10,
-);
-const concurrency =
-  Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 4;
+const parsedLimit = Number.parseInt(process.env.ML_INFERENCE_CONCURRENCY ?? "4", 10);
+const concurrency = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 4;
 
 export const inferenceSemaphore: InferenceSemaphore = createSemaphore(concurrency);

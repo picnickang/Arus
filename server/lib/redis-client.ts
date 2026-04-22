@@ -43,7 +43,9 @@ class RedisClientFactory {
   }
 
   isCircuitOpen(): boolean {
-    if (this.status !== "circuit_open") {return false;}
+    if (this.status !== "circuit_open") {
+      return false;
+    }
     const now = Date.now();
     if (now - this.lastFailure >= this.circuitBreakerCooldownMs) {
       this.status = "disconnected";
@@ -139,8 +141,7 @@ class RedisClientFactory {
     if (this.client) {
       try {
         this.client.disconnect();
-      } catch {
-      }
+      } catch {}
       this.client = null;
     }
   }
@@ -148,7 +149,9 @@ class RedisClientFactory {
   async ping(): Promise<boolean> {
     try {
       const client = await this.getClient();
-      if (!client) {return false;}
+      if (!client) {
+        return false;
+      }
       const result = await client.ping();
       return result === "PONG";
     } catch {
@@ -157,7 +160,9 @@ class RedisClientFactory {
   }
 
   getStatus(): RedisStatus {
-    if (this.isCircuitOpen()) {return "circuit_open";}
+    if (this.isCircuitOpen()) {
+      return "circuit_open";
+    }
     return this.status;
   }
 

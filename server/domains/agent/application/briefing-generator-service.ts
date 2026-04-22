@@ -1,6 +1,8 @@
 import type { AgentBriefing } from "@shared/schema";
 import type {
-  BriefingRepositoryPort, BriefingSection, BriefingSectionItem,
+  BriefingRepositoryPort,
+  BriefingSection,
+  BriefingSectionItem,
   BriefingDataPort,
 } from "../domain/briefing-types";
 import type { AgentRepositoryPort } from "../domain/ports";
@@ -12,7 +14,7 @@ export class BriefingGeneratorService {
   constructor(
     private briefingRepo: BriefingRepositoryPort,
     private agentRepo: AgentRepositoryPort,
-    private dataPort: BriefingDataPort,
+    private dataPort: BriefingDataPort
   ) {}
 
   async generate(orgId: string, scheduleRunId?: string): Promise<AgentBriefing> {
@@ -65,7 +67,11 @@ export class BriefingGeneratorService {
     return this.briefingRepo.listByDate(orgId, date);
   }
 
-  private async collectSections(orgId: string, periodStart: Date, periodEnd: Date): Promise<BriefingSection[]> {
+  private async collectSections(
+    orgId: string,
+    periodStart: Date,
+    periodEnd: Date
+  ): Promise<BriefingSection[]> {
     const [
       overnightAlerts,
       pendingApprovals,
@@ -82,10 +88,21 @@ export class BriefingGeneratorService {
       this.collectEquipmentHealth(orgId, periodStart),
     ]);
 
-    return [overnightAlerts, pendingApprovals, maintenanceDue, expiringCerts, lowStock, equipmentHealth];
+    return [
+      overnightAlerts,
+      pendingApprovals,
+      maintenanceDue,
+      expiringCerts,
+      lowStock,
+      equipmentHealth,
+    ];
   }
 
-  private async collectOvernightAlerts(orgId: string, periodStart: Date, periodEnd: Date): Promise<BriefingSection> {
+  private async collectOvernightAlerts(
+    orgId: string,
+    periodStart: Date,
+    periodEnd: Date
+  ): Promise<BriefingSection> {
     const items: BriefingSectionItem[] = [];
     try {
       const alerts = await this.dataPort.getOvernightAlerts(orgId, periodStart, periodEnd);
@@ -93,15 +110,21 @@ export class BriefingGeneratorService {
         items.push({
           id: String(alert.id),
           title: `${alert.alertType} alert on ${alert.equipmentId}`,
-          description: alert.message || `Sensor ${alert.sensorType}: ${alert.value} (threshold: ${alert.threshold})`,
-          severity: alert.alertType === "critical" || alert.alertType === "danger" ? "critical" : "warning",
+          description:
+            alert.message ||
+            `Sensor ${alert.sensorType}: ${alert.value} (threshold: ${alert.threshold})`,
+          severity:
+            alert.alertType === "critical" || alert.alertType === "danger" ? "critical" : "warning",
           entityType: "equipment",
           entityId: alert.equipmentId,
           linkTo: `/fleet?equipment=${alert.equipmentId}`,
         });
       }
     } catch (err) {
-      logger.warn(LOG_CTX, `Failed to collect overnight alerts: ${err instanceof Error ? err.message : "unknown"}`);
+      logger.warn(
+        LOG_CTX,
+        `Failed to collect overnight alerts: ${err instanceof Error ? err.message : "unknown"}`
+      );
     }
     return {
       key: "overnight_alerts",
@@ -141,7 +164,10 @@ export class BriefingGeneratorService {
         });
       }
     } catch (err) {
-      logger.warn(LOG_CTX, `Failed to collect pending approvals: ${err instanceof Error ? err.message : "unknown"}`);
+      logger.warn(
+        LOG_CTX,
+        `Failed to collect pending approvals: ${err instanceof Error ? err.message : "unknown"}`
+      );
     }
     return {
       key: "pending_approvals",
@@ -163,7 +189,9 @@ export class BriefingGeneratorService {
         items.push({
           id: maint.id,
           title: `${maint.maintenanceType} — ${maint.equipmentId}`,
-          description: maint.description || `Scheduled for ${new Date(maint.scheduledDate).toLocaleDateString()}`,
+          description:
+            maint.description ||
+            `Scheduled for ${new Date(maint.scheduledDate).toLocaleDateString()}`,
           severity: isOverdue ? "critical" : "warning",
           entityType: "maintenance_schedule",
           entityId: maint.id,
@@ -172,7 +200,10 @@ export class BriefingGeneratorService {
         });
       }
     } catch (err) {
-      logger.warn(LOG_CTX, `Failed to collect maintenance due: ${err instanceof Error ? err.message : "unknown"}`);
+      logger.warn(
+        LOG_CTX,
+        `Failed to collect maintenance due: ${err instanceof Error ? err.message : "unknown"}`
+      );
     }
     return {
       key: "maintenance_due",
@@ -188,7 +219,9 @@ export class BriefingGeneratorService {
     try {
       const certs = await this.dataPort.getExpiringCertifications(orgId, 30);
       for (const cert of certs) {
-        const daysUntil = Math.ceil((new Date(cert.expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+        const daysUntil = Math.ceil(
+          (new Date(cert.expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)
+        );
         items.push({
           id: String(cert.certId),
           title: `${cert.cert} — ${cert.crewName}`,
@@ -201,7 +234,10 @@ export class BriefingGeneratorService {
         });
       }
     } catch (err) {
-      logger.warn(LOG_CTX, `Failed to collect expiring certs: ${err instanceof Error ? err.message : "unknown"}`);
+      logger.warn(
+        LOG_CTX,
+        `Failed to collect expiring certs: ${err instanceof Error ? err.message : "unknown"}`
+      );
     }
     return {
       key: "expiring_certifications",
@@ -228,7 +264,10 @@ export class BriefingGeneratorService {
         });
       }
     } catch (err) {
-      logger.warn(LOG_CTX, `Failed to collect low stock: ${err instanceof Error ? err.message : "unknown"}`);
+      logger.warn(
+        LOG_CTX,
+        `Failed to collect low stock: ${err instanceof Error ? err.message : "unknown"}`
+      );
     }
     return {
       key: "low_stock",
@@ -243,10 +282,14 @@ export class BriefingGeneratorService {
     const items: BriefingSectionItem[] = [];
     try {
       const recentSuggestions = await this.agentRepo.suggestions.list(orgId, undefined, 50);
-      const healthRelated = recentSuggestions.filter(s =>
-        s.createdAt && new Date(s.createdAt) >= since &&
-        (s.triggerType === "high_risk_prediction" || s.triggerType === "critical_alert")
-      ).slice(0, 10);
+      const healthRelated = recentSuggestions
+        .filter(
+          (s) =>
+            s.createdAt &&
+            new Date(s.createdAt) >= since &&
+            (s.triggerType === "high_risk_prediction" || s.triggerType === "critical_alert")
+        )
+        .slice(0, 10);
 
       for (const sug of healthRelated) {
         items.push({
@@ -256,13 +299,17 @@ export class BriefingGeneratorService {
           severity: (sug.severity as "info" | "warning" | "critical") || "warning",
           entityType: sug.entityType || "equipment",
           entityId: sug.entityId || sug.id,
-          linkTo: sug.entityType === "equipment" && sug.entityId
-            ? `/fleet?equipment=${sug.entityId}`
-            : `/findings?id=${sug.id}`,
+          linkTo:
+            sug.entityType === "equipment" && sug.entityId
+              ? `/fleet?equipment=${sug.entityId}`
+              : `/findings?id=${sug.id}`,
         });
       }
     } catch (err) {
-      logger.warn(LOG_CTX, `Failed to collect equipment health: ${err instanceof Error ? err.message : "unknown"}`);
+      logger.warn(
+        LOG_CTX,
+        `Failed to collect equipment health: ${err instanceof Error ? err.message : "unknown"}`
+      );
     }
     return {
       key: "equipment_health",
@@ -283,13 +330,18 @@ export class BriefingGeneratorService {
       const { default: OpenAI } = await import("openai");
       const openai = new OpenAI();
 
-      const sectionSummaries = sections.map(s => {
-        if (s.items.length === 0) {return `${s.title}: None`;}
-        const itemLines = s.items.slice(0, 5).map(i =>
-          `  - [${i.severity?.toUpperCase() || "INFO"}] ${i.title}: ${i.description}`
-        ).join("\n");
-        return `${s.title} (${s.items.length} items):\n${itemLines}`;
-      }).join("\n\n");
+      const sectionSummaries = sections
+        .map((s) => {
+          if (s.items.length === 0) {
+            return `${s.title}: None`;
+          }
+          const itemLines = s.items
+            .slice(0, 5)
+            .map((i) => `  - [${i.severity?.toUpperCase() || "INFO"}] ${i.title}: ${i.description}`)
+            .join("\n");
+          return `${s.title} (${s.items.length} items):\n${itemLines}`;
+        })
+        .join("\n\n");
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -297,7 +349,8 @@ export class BriefingGeneratorService {
         messages: [
           {
             role: "system",
-            content: "You are the ARUS marine operations briefing system. Write a concise executive summary paragraph (3-5 sentences) for the shift handover. Highlight critical items first, then notable warnings, and close with overall status. Use professional marine operations language. Do not use bullet points or headers — write a single flowing paragraph.",
+            content:
+              "You are the ARUS marine operations briefing system. Write a concise executive summary paragraph (3-5 sentences) for the shift handover. Highlight critical items first, then notable warnings, and close with overall status. Use professional marine operations language. Do not use bullet points or headers — write a single flowing paragraph.",
           },
           {
             role: "user",
@@ -308,16 +361,27 @@ export class BriefingGeneratorService {
 
       return response.choices[0]?.message?.content || this.buildFallbackSummary(sections);
     } catch (err) {
-      logger.warn(LOG_CTX, `AI summary generation failed, using fallback: ${err instanceof Error ? err.message : "unknown"}`);
+      logger.warn(
+        LOG_CTX,
+        `AI summary generation failed, using fallback: ${err instanceof Error ? err.message : "unknown"}`
+      );
       return this.buildFallbackSummary(sections);
     }
   }
 
   private buildFallbackSummary(sections: BriefingSection[]): string {
-    const counts = sections.map(s => `${s.items.length} ${s.title.toLowerCase()}`).filter(s => !s.startsWith("0"));
-    if (counts.length === 0) {return "All clear — no items requiring attention.";}
-    const criticalCount = sections.reduce((sum, s) => sum + s.items.filter(i => i.severity === "critical").length, 0);
-    const prefix = criticalCount > 0 ? `${criticalCount} critical item(s) require immediate attention. ` : "";
+    const counts = sections
+      .map((s) => `${s.items.length} ${s.title.toLowerCase()}`)
+      .filter((s) => !s.startsWith("0"));
+    if (counts.length === 0) {
+      return "All clear — no items requiring attention.";
+    }
+    const criticalCount = sections.reduce(
+      (sum, s) => sum + s.items.filter((i) => i.severity === "critical").length,
+      0
+    );
+    const prefix =
+      criticalCount > 0 ? `${criticalCount} critical item(s) require immediate attention. ` : "";
     return `${prefix}Today's briefing includes: ${counts.join(", ")}.`;
   }
 }

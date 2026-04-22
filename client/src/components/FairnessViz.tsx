@@ -23,10 +23,12 @@ interface FairnessVizProps {
 }
 
 export default function FairnessViz({ scheduled, crew }: FairnessVizProps) {
-  const crewShiftCounts = crew.map((member) => {
-    const count = scheduled.filter((s) => s.crewId === member.id).length;
-    return { ...member, shiftCount: count };
-  }).sort((a, b) => b.shiftCount - a.shiftCount);
+  const crewShiftCounts = crew
+    .map((member) => {
+      const count = scheduled.filter((s) => s.crewId === member.id).length;
+      return { ...member, shiftCount: count };
+    })
+    .sort((a, b) => b.shiftCount - a.shiftCount);
 
   const maxShifts = Math.max(...crewShiftCounts.map((c) => c.shiftCount), 1);
 
@@ -41,7 +43,11 @@ export default function FairnessViz({ scheduled, crew }: FairnessVizProps) {
       <CardContent>
         <div className="space-y-2">
           {crewShiftCounts.map((member) => (
-            <div key={member.id} className="flex items-center gap-3" data-testid={`fairness-row-${member.id}`}>
+            <div
+              key={member.id}
+              className="flex items-center gap-3"
+              data-testid={`fairness-row-${member.id}`}
+            >
               <span className="text-sm w-32 truncate">{member.name}</span>
               <div className="flex-1 h-4 bg-muted rounded-full overflow-hidden">
                 <div
@@ -55,7 +61,9 @@ export default function FairnessViz({ scheduled, crew }: FairnessVizProps) {
             </div>
           ))}
           {crewShiftCounts.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">No assignments to display</p>
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No assignments to display
+            </p>
           )}
         </div>
       </CardContent>

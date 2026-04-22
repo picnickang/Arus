@@ -71,13 +71,10 @@ async function fetchPSCHistory(imoNumber: string): Promise<PSCRecord[]> {
     throw new Error("MARITIME_REGULATORY_API_URL/KEY not configured");
   }
 
-  const response = await fetch(
-    `${REGULATORY_API_BASE}/psc/history?imo=${imoNumber}`,
-    {
-      headers: { Authorization: `Bearer ${REGULATORY_API_KEY}` },
-      signal: AbortSignal.timeout(15000),
-    },
-  );
+  const response = await fetch(`${REGULATORY_API_BASE}/psc/history?imo=${imoNumber}`, {
+    headers: { Authorization: `Bearer ${REGULATORY_API_KEY}` },
+    signal: AbortSignal.timeout(15000),
+  });
 
   if (!response.ok) {
     throw new Error(`Regulatory API returned ${response.status}`);
@@ -89,25 +86,26 @@ async function fetchPSCHistory(imoNumber: string): Promise<PSCRecord[]> {
 
 async function fetchRegulatoryNotices(
   flagState?: string,
-  vesselType?: string,
+  vesselType?: string
 ): Promise<RegulatoryNotice[]> {
   if (!REGULATORY_API_BASE || !REGULATORY_API_KEY) {
     throw new Error("MARITIME_REGULATORY_API_URL/KEY not configured");
   }
 
   const params = new URLSearchParams();
-  if (flagState) {params.set("flag", flagState);}
-  if (vesselType) {params.set("vesselType", vesselType);}
+  if (flagState) {
+    params.set("flag", flagState);
+  }
+  if (vesselType) {
+    params.set("vesselType", vesselType);
+  }
   params.set("limit", "20");
   params.set("recent", "true");
 
-  const response = await fetch(
-    `${REGULATORY_API_BASE}/notices?${params}`,
-    {
-      headers: { Authorization: `Bearer ${REGULATORY_API_KEY}` },
-      signal: AbortSignal.timeout(15000),
-    },
-  );
+  const response = await fetch(`${REGULATORY_API_BASE}/notices?${params}`, {
+    headers: { Authorization: `Bearer ${REGULATORY_API_KEY}` },
+    signal: AbortSignal.timeout(15000),
+  });
 
   if (!response.ok) {
     throw new Error(`Regulatory API returned ${response.status}`);
@@ -144,12 +142,17 @@ registerTool({
     },
     required: [],
   },
-  inputSchema: z.object({
-    imoNumber: z.string().regex(/^\d{7}$/).optional(),
-    vesselId: z.string().optional(),
-  }).refine(data => data.imoNumber || data.vesselId, {
-    message: "Either imoNumber or vesselId is required",
-  }),
+  inputSchema: z
+    .object({
+      imoNumber: z
+        .string()
+        .regex(/^\d{7}$/)
+        .optional(),
+      vesselId: z.string().optional(),
+    })
+    .refine((data) => data.imoNumber || data.vesselId, {
+      message: "Either imoNumber or vesselId is required",
+    }),
   requiresApproval: false,
   async execute(input, ctx) {
     let imoNumber = input.imoNumber as string | undefined;
@@ -166,8 +169,12 @@ registerTool({
         .from(vessels)
         .where(and(eq(vessels.id, input.vesselId as string), eq(vessels.orgId, ctx.orgId)));
 
-      if (!vessel) {return { error: `Vessel ${input.vesselId} not found` };}
-      if (!vessel.imo) {return { error: `No IMO number recorded for vessel ${vessel.name}` };}
+      if (!vessel) {
+        return { error: `Vessel ${input.vesselId} not found` };
+      }
+      if (!vessel.imo) {
+        return { error: `No IMO number recorded for vessel ${vessel.name}` };
+      }
 
       imoNumber = vessel.imo;
       vesselName = vessel.name;
@@ -182,10 +189,13 @@ registerTool({
       "psc",
       imoNumber,
       () => fetchPSCHistory(imoNumber!),
-      REGULATORY_CACHE_TTL_SEC,
+      REGULATORY_CACHE_TTL_SEC
     );
 
-    if ((result.data as Record<string, unknown>)?.error || (result.data as Record<string, unknown>)?.offline) {
+    if (
+      (result.data as Record<string, unknown>)?.error ||
+      (result.data as Record<string, unknown>)?.offline
+    ) {
       const isNotConfigured = result.fetchError?.includes("not configured");
       return {
         imoNumber,
@@ -205,7 +215,7 @@ registerTool({
 
     const inspections = Array.isArray(result.data) ? result.data : [];
     const totalDeficiencies = inspections.reduce((sum, r) => sum + r.deficiencyCount, 0);
-    const detentions = inspections.filter(r => r.result === "detention");
+    const detentions = inspections.filter((r) => r.result === "detention");
 
     // Common deficiency categories
     const categoryCounts: Record<string, number> = {};
@@ -227,11 +237,12 @@ registerTool({
       detentionCount: detentions.length,
       topDeficiencyCategories: topCategories,
       recentInspections: inspections.slice(0, 10),
-      riskIndicator: detentions.length > 0
-        ? "high"
-        : totalDeficiencies > inspections.length * 2
-          ? "elevated"
-          : "standard",
+      riskIndicator:
+        detentions.length > 0
+          ? "high"
+          : totalDeficiencies > inspections.length * 2
+            ? "elevated"
+            : "standard",
       _meta: {
         fromCache: result.fromCache,
         stale: result.stale,
@@ -255,15 +266,18 @@ registerTool({
     properties: {
       flagState: {
         type: "string",
-        description: "ISO country code of the flag state (e.g., 'PA' for Panama, 'LR' for Liberia, 'MH' for Marshall Islands)",
+        description:
+          "ISO country code of the flag state (e.g., 'PA' for Panama, 'LR' for Liberia, 'MH' for Marshall Islands)",
       },
       vesselType: {
         type: "string",
-        description: "Vessel type filter (e.g., 'bulk_carrier', 'tanker', 'container', 'general_cargo')",
+        description:
+          "Vessel type filter (e.g., 'bulk_carrier', 'tanker', 'container', 'general_cargo')",
       },
       vesselId: {
         type: "string",
-        description: "Optional ARUS vessel ID — will look up the flag state and type from the vessel record",
+        description:
+          "Optional ARUS vessel ID — will look up the flag state and type from the vessel record",
       },
     },
     required: [],
@@ -290,8 +304,12 @@ registerTool({
         .where(and(eq(vessels.id, input.vesselId as string), eq(vessels.orgId, ctx.orgId)));
 
       if (vessel) {
-        if (!flagState && vessel.flag) {flagState = vessel.flag;}
-        if (!vesselType && vessel.vesselType) {vesselType = vessel.vesselType;}
+        if (!flagState && vessel.flag) {
+          flagState = vessel.flag;
+        }
+        if (!vesselType && vessel.vesselType) {
+          vesselType = vessel.vesselType;
+        }
       }
     }
 
@@ -302,10 +320,13 @@ registerTool({
       "regulatory_notices",
       cacheKey,
       () => fetchRegulatoryNotices(flagState, vesselType),
-      REGULATORY_CACHE_TTL_SEC,
+      REGULATORY_CACHE_TTL_SEC
     );
 
-    if ((result.data as Record<string, unknown>)?.error || (result.data as Record<string, unknown>)?.offline) {
+    if (
+      (result.data as Record<string, unknown>)?.error ||
+      (result.data as Record<string, unknown>)?.offline
+    ) {
       const isNotConfigured = result.fetchError?.includes("not configured");
       return {
         error: isNotConfigured
@@ -328,7 +349,9 @@ registerTool({
     const byCategory: Record<string, RegulatoryNotice[]> = {};
     for (const notice of notices) {
       const cat = notice.category || "general";
-      if (!byCategory[cat]) {byCategory[cat] = [];}
+      if (!byCategory[cat]) {
+        byCategory[cat] = [];
+      }
       byCategory[cat].push(notice);
     }
 

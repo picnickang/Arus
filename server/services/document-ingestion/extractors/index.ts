@@ -1,9 +1,9 @@
-import { pdfExtractor } from './pdf';
-import { imageExtractor } from './image';
-import { txtExtractor } from './txt';
-import { docxExtractor } from './docx';
-import { xlsxExtractor } from './xlsx';
-import type { TextExtractor, SupportedFileType } from '../types';
+import { pdfExtractor } from "./pdf";
+import { imageExtractor } from "./image";
+import { txtExtractor } from "./txt";
+import { docxExtractor } from "./docx";
+import { xlsxExtractor } from "./xlsx";
+import type { TextExtractor, SupportedFileType } from "../types";
 
 const extractorRegistry: Map<SupportedFileType, TextExtractor> = new Map();
 

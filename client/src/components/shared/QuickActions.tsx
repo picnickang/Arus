@@ -26,7 +26,9 @@ interface QuickActionsProps {
 export function QuickActions({ actions, className }: QuickActionsProps) {
   const [, setLocation] = useLocation();
 
-  if (actions.length === 0) {return null;}
+  if (actions.length === 0) {
+    return null;
+  }
 
   return (
     <div className={cn("", className)}>
@@ -38,7 +40,7 @@ export function QuickActions({ actions, className }: QuickActionsProps) {
             <button
               key={action.href}
               onClick={() => setLocation(action.href)}
-              data-testid={`button-quick-action-${action.href.replace(/[/?=&]/g, '-').replace(/^-/, '')}`}
+              data-testid={`button-quick-action-${action.href.replace(/[/?=&]/g, "-").replace(/^-/, "")}`}
               className={cn(
                 "flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-xl border transition-all",
                 "touch-target cursor-pointer min-w-[160px] md:min-w-0",

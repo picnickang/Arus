@@ -21,13 +21,16 @@ import { safeSql } from "../utils/safeSql";
  */
 export async function nextSeq(vesselId: string, entity: string): Promise<number> {
   try {
-    const result = await safeSql(db, sql`
+    const result = await safeSql(
+      db,
+      sql`
       INSERT INTO entity_offsets (vessel_id, entity, seq)
       VALUES (${vesselId}, ${entity}, 1)
       ON CONFLICT (vessel_id, entity)
       DO UPDATE SET seq = entity_offsets.seq + 1
       RETURNING seq;
-    `);
+    `
+    );
 
     // Extract sequence from result
     const row = Array.isArray((result as any)?.rows) ? (result as any).rows[0] : (result as any)[0];
@@ -52,10 +55,13 @@ export async function nextSeq(vesselId: string, entity: string): Promise<number>
  */
 export async function getCurrentSeq(vesselId: string, entity: string): Promise<number> {
   try {
-    const result = await safeSql(db, sql`
+    const result = await safeSql(
+      db,
+      sql`
       SELECT seq FROM entity_offsets
       WHERE vessel_id = ${vesselId} AND entity = ${entity};
-    `);
+    `
+    );
 
     const row = Array.isArray((result as any)?.rows) ? (result as any).rows[0] : (result as any)[0];
 
@@ -78,12 +84,15 @@ export async function getCurrentSeq(vesselId: string, entity: string): Promise<n
  */
 export async function resetSeq(vesselId: string, entity: string, value: number): Promise<void> {
   try {
-    await safeSql(db, sql`
+    await safeSql(
+      db,
+      sql`
       INSERT INTO entity_offsets (vessel_id, entity, seq)
       VALUES (${vesselId}, ${entity}, ${value})
       ON CONFLICT (vessel_id, entity)
       DO UPDATE SET seq = ${value};
-    `);
+    `
+    );
 
     console.warn(`[SequenceRepo] RESET sequence for ${vesselId}:${entity} to ${value}`);
   } catch (error) {

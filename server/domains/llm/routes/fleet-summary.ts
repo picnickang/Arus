@@ -1,6 +1,6 @@
 /**
  * Fleet Summary Report Routes
- * 
+ *
  * Fleet summary report generation endpoint.
  */
 
@@ -9,7 +9,12 @@ import { RateLimitRequestHandler } from "express-rate-limit";
 import { analyzeFleetHealth } from "../../../openai";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { logger } from "../../../utils/logger.js";
-import { dbEquipmentStorage, dbTelemetryStorage, dbDevicesStorage, workOrderService } from "../../../repositories";
+import {
+  dbEquipmentStorage,
+  dbTelemetryStorage,
+  dbDevicesStorage,
+  workOrderService,
+} from "../../../repositories";
 
 export function registerFleetSummaryRoutes(
   app: Express,
@@ -19,7 +24,9 @@ export function registerFleetSummaryRoutes(
 ) {
   const { generalApiRateLimit } = rateLimiters;
 
-  app.post("/api/report/fleet-summary", generalApiRateLimit,
+  app.post(
+    "/api/report/fleet-summary",
+    generalApiRateLimit,
     withErrorHandling("generate fleet summary", async (req, res) => {
       const { lookbackHours = 168 } = req.body;
 

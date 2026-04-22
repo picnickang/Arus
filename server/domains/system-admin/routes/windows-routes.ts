@@ -4,7 +4,12 @@
  */
 
 import { Express, Request, Response, SystemAdminDependencies } from "./types.js";
-import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../../lib/route-utils.js";
+import {
+  withErrorHandling,
+  sendNotFound,
+  sendCreated,
+  sendDeleted,
+} from "../../../lib/route-utils.js";
 import { dbSystemAdminStorage } from "../../../db/system-admin/index.js";
 
 export function registerWindowsRoutes(app: Express, deps: SystemAdminDependencies): void {
@@ -24,7 +29,10 @@ export function registerWindowsRoutes(app: Express, deps: SystemAdminDependencie
     auditAdminAction("VIEW_MAINTENANCE_WINDOWS"),
     withErrorHandling("fetch maintenance windows", async (req: Request, res: Response) => {
       const { orgId, status } = req.query;
-      const windows = await dbSystemAdminStorage.getMaintenanceWindows(orgId as string, status as string);
+      const windows = await dbSystemAdminStorage.getMaintenanceWindows(
+        orgId as string,
+        status as string
+      );
       res.json(windows);
     })
   );

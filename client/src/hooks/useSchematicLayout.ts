@@ -30,16 +30,51 @@ export function getDefaultLayout(): SchematicLayout {
       { zoneId: "tank-cargo", label: "Tank / Cargo", order: 4, slotIds: ["fuel", "pump1", "elec"] },
     ],
     slots: [
-      { slotId: "me", label: "Main Engine", category: "propulsion", typeMatch: ["engine", "main engine", "propulsion"] },
+      {
+        slotId: "me",
+        label: "Main Engine",
+        category: "propulsion",
+        typeMatch: ["engine", "main engine", "propulsion"],
+      },
       { slotId: "gen1", label: "Generator #1", category: "power", typeMatch: ["generator"] },
       { slotId: "gen2", label: "Generator #2", category: "power", typeMatch: ["generator"] },
       { slotId: "pump1", label: "Cargo Pump", category: "cargo", typeMatch: ["pump"] },
-      { slotId: "bow", label: "Bow Thruster", category: "thrusters", typeMatch: ["thruster", "bow thruster"] },
-      { slotId: "crane", label: "Deck Crane", category: "deck", typeMatch: ["crane", "deck crane"] },
-      { slotId: "dp", label: "DP System", category: "navigation", typeMatch: ["navigation", "dp", "dynamic positioning"] },
-      { slotId: "fuel", label: "Fuel System", category: "fuel", typeMatch: ["tank", "fuel", "boiler"] },
-      { slotId: "comp", label: "Compressor", category: "aux", typeMatch: ["compressor", "air compressor"] },
-      { slotId: "elec", label: "Switchboard", category: "electrical", typeMatch: ["electrical", "switchboard", "transformer"] },
+      {
+        slotId: "bow",
+        label: "Bow Thruster",
+        category: "thrusters",
+        typeMatch: ["thruster", "bow thruster"],
+      },
+      {
+        slotId: "crane",
+        label: "Deck Crane",
+        category: "deck",
+        typeMatch: ["crane", "deck crane"],
+      },
+      {
+        slotId: "dp",
+        label: "DP System",
+        category: "navigation",
+        typeMatch: ["navigation", "dp", "dynamic positioning"],
+      },
+      {
+        slotId: "fuel",
+        label: "Fuel System",
+        category: "fuel",
+        typeMatch: ["tank", "fuel", "boiler"],
+      },
+      {
+        slotId: "comp",
+        label: "Compressor",
+        category: "aux",
+        typeMatch: ["compressor", "air compressor"],
+      },
+      {
+        slotId: "elec",
+        label: "Switchboard",
+        category: "electrical",
+        typeMatch: ["electrical", "switchboard", "transformer"],
+      },
     ],
   };
 }
@@ -89,8 +124,15 @@ export function useSchematicLayout(vesselId: string | undefined) {
   });
 
   const updateSlot = useMutation({
-    mutationFn: ({ slotId, ...body }: { slotId: string; label?: string; category?: string; typeMatch?: string[] }) =>
-      apiRequest("PUT", `/api/vessels/${vesselId}/schematic-layout/slots/${slotId}`, body),
+    mutationFn: ({
+      slotId,
+      ...body
+    }: {
+      slotId: string;
+      label?: string;
+      category?: string;
+      typeMatch?: string[];
+    }) => apiRequest("PUT", `/api/vessels/${vesselId}/schematic-layout/slots/${slotId}`, body),
     onSuccess: invalidate,
   });
 
@@ -102,13 +144,14 @@ export function useSchematicLayout(vesselId: string | undefined) {
 
   const moveSlot = useMutation({
     mutationFn: ({ slotId, targetZoneId }: { slotId: string; targetZoneId: string }) =>
-      apiRequest("PUT", `/api/vessels/${vesselId}/schematic-layout/slots/${slotId}/move`, { targetZoneId }),
+      apiRequest("PUT", `/api/vessels/${vesselId}/schematic-layout/slots/${slotId}/move`, {
+        targetZoneId,
+      }),
     onSuccess: invalidate,
   });
 
   const resetLayout = useMutation({
-    mutationFn: () =>
-      apiRequest("POST", `/api/vessels/${vesselId}/schematic-layout/reset`),
+    mutationFn: () => apiRequest("POST", `/api/vessels/${vesselId}/schematic-layout/reset`),
     onSuccess: invalidate,
   });
 

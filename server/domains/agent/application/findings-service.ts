@@ -12,7 +12,7 @@ export class FindingsAggregatorService {
   async getFindings(
     orgId: string,
     filter?: FindingsFilter,
-    pagination?: FindingsPagination,
+    pagination?: FindingsPagination
   ): Promise<{ items: UnifiedFindingItem[]; total: number }> {
     return this.adapter.getFindings(orgId, filter, pagination);
   }

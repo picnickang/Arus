@@ -24,7 +24,10 @@ export function registerDeviceRoutes(
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimit;
 
   // GET /api/devices
-  app.get("/api/devices", requireOrgId, generalApiRateLimit,
+  app.get(
+    "/api/devices",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("fetch devices", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
 
@@ -39,7 +42,10 @@ export function registerDeviceRoutes(
   );
 
   // GET /api/devices/:id
-  app.get("/api/devices/:id", requireOrgId, generalApiRateLimit,
+  app.get(
+    "/api/devices/:id",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("fetch device", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const device = await deviceService.getDeviceById(req.params.id, orgId);
@@ -53,7 +59,10 @@ export function registerDeviceRoutes(
   );
 
   // POST /api/devices
-  app.post("/api/devices", requireOrgIdAndValidateBody, writeOperationRateLimit,
+  app.post(
+    "/api/devices",
+    requireOrgIdAndValidateBody,
+    writeOperationRateLimit,
     withErrorHandling("create device", async (req, res) => {
       const deviceData = insertDeviceSchema.parse(req.body);
       const device = await deviceService.createDevice(deviceData, req.user?.id);
@@ -63,7 +72,10 @@ export function registerDeviceRoutes(
   );
 
   // PUT /api/devices/:id
-  app.put("/api/devices/:id", requireOrgIdAndValidateBody, writeOperationRateLimit,
+  app.put(
+    "/api/devices/:id",
+    requireOrgIdAndValidateBody,
+    writeOperationRateLimit,
     withErrorHandling("update device", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const deviceData = insertDeviceSchema.partial().parse(req.body);
@@ -79,7 +91,10 @@ export function registerDeviceRoutes(
   );
 
   // DELETE /api/devices/:id
-  app.delete("/api/devices/:id", requireOrgId, criticalOperationRateLimit,
+  app.delete(
+    "/api/devices/:id",
+    requireOrgId,
+    criticalOperationRateLimit,
     withErrorHandling("delete device", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       await deviceService.deleteDevice(req.params.id, orgId, req.user?.id);

@@ -2,10 +2,7 @@ import type { Express, RequestHandler, Request } from "express";
 import type { FleetRegistryService } from "../application/fleet-registry.service";
 import { insertVesselSchema } from "@shared/schema-runtime";
 import { requireAdminAuth, auditAdminAction } from "../../../security";
-import {
-  requireOrgId,
-  requireOrgIdAndValidateBody,
-} from "../../../middleware/auth";
+import { requireOrgId, requireOrgIdAndValidateBody } from "../../../middleware/auth";
 import {
   withErrorHandling,
   handleApiError,

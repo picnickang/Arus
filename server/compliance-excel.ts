@@ -12,7 +12,7 @@ export type {
   EquipmentComplianceOptions,
   MaintenanceComplianceOptions,
   RegulatoryFramework,
-} from './compliance-excel/types';
+} from "./compliance-excel/types";
 
-export { FRAMEWORK_STANDARDS } from './compliance-excel/types';
-export { ComplianceExcelGenerator } from './compliance-excel/index';
+export { FRAMEWORK_STANDARDS } from "./compliance-excel/types";
+export { ComplianceExcelGenerator } from "./compliance-excel/index";

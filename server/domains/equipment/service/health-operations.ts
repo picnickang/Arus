@@ -4,32 +4,41 @@
 
 import type { Equipment } from "@shared/schema";
 import type { EquipmentHealth } from "../../../db/equipment/types.js";
-import { equipmentRepository } from '../repository';
-import { recordPdmScore, updateEquipmentHealthStatus } from '../../../observability';
-import { DualWriteAdapter } from '../../../infrastructure/DualWriteAdapter';
-import { TenantRepositoryFactory } from '../../../infrastructure/TenantScopedRepository';
+import { equipmentRepository } from "../repository";
+import { recordPdmScore, updateEquipmentHealthStatus } from "../../../observability";
+import { DualWriteAdapter } from "../../../infrastructure/DualWriteAdapter";
+import { TenantRepositoryFactory } from "../../../infrastructure/TenantScopedRepository";
 
-function transformHealthMetrics(metrics: Array<{ equipment: Equipment; latestScore: any }>): EquipmentHealth[] {
+function transformHealthMetrics(
+  metrics: Array<{ equipment: Equipment; latestScore: any }>
+): EquipmentHealth[] {
   return metrics.map(({ equipment, latestScore }) => {
     const healthIndex = latestScore?.score ?? equipment.healthIndex ?? 0;
-    const status = healthIndex >= 75 ? 'healthy' : healthIndex >= 50 ? 'warning' : 'critical';
+    const status = healthIndex >= 75 ? "healthy" : healthIndex >= 50 ? "warning" : "critical";
 
     return {
       id: equipment.id,
-      vessel: equipment.vesselId ?? 'unknown',
+      vessel: equipment.vesselId ?? "unknown",
       vesselId: equipment.vesselId ?? undefined,
       name: equipment.name,
       type: equipment.type,
       healthIndex,
-      predictedDueDays: latestScore?.failureProbability ? Math.round((1 - latestScore.failureProbability) * 30) : 30,
+      predictedDueDays: latestScore?.failureProbability
+        ? Math.round((1 - latestScore.failureProbability) * 30)
+        : 30,
       status,
     };
   });
 }
 
-export async function getEquipmentHealth(adapter: DualWriteAdapter, orgId: string, vesselId?: string, equipmentId?: string): Promise<EquipmentHealth[]> {
+export async function getEquipmentHealth(
+  adapter: DualWriteAdapter,
+  orgId: string,
+  vesselId?: string,
+  equipmentId?: string
+): Promise<EquipmentHealth[]> {
   const health = await adapter.execute<EquipmentHealth[]>({
-    operation: 'getHealth',
+    operation: "getHealth",
     repositoryFn: async () => {
       const repo = TenantRepositoryFactory.equipment(orgId);
       const metrics = await repo.getHealthMetrics(vesselId, equipmentId);
@@ -41,26 +50,36 @@ export async function getEquipmentHealth(adapter: DualWriteAdapter, orgId: strin
   const vesselHealthCounts: Record<string, Record<string, number>> = {};
 
   health.forEach((equipment) => {
-    const vesselIdKey = equipment.vessel || 'unknown';
-    const status = equipment.healthIndex >= 75 ? 'healthy' : equipment.healthIndex >= 50 ? 'warning' : 'critical';
+    const vesselIdKey = equipment.vessel || "unknown";
+    const status =
+      equipment.healthIndex >= 75
+        ? "healthy"
+        : equipment.healthIndex >= 50
+          ? "warning"
+          : "critical";
 
-    if (!vesselHealthCounts[vesselIdKey]) { vesselHealthCounts[vesselIdKey] = { healthy: 0, warning: 0, critical: 0 }; }
+    if (!vesselHealthCounts[vesselIdKey]) {
+      vesselHealthCounts[vesselIdKey] = { healthy: 0, warning: 0, critical: 0 };
+    }
     vesselHealthCounts[vesselIdKey][status]++;
     recordPdmScore(equipment.id, equipment.vessel, equipment.healthIndex);
   });
 
   Object.entries(vesselHealthCounts).forEach(([vesselId, counts]) => {
-    updateEquipmentHealthStatus('healthy', counts.healthy, vesselId);
-    updateEquipmentHealthStatus('warning', counts.warning, vesselId);
-    updateEquipmentHealthStatus('critical', counts.critical, vesselId);
+    updateEquipmentHealthStatus("healthy", counts.healthy, vesselId);
+    updateEquipmentHealthStatus("warning", counts.warning, vesselId);
+    updateEquipmentHealthStatus("critical", counts.critical, vesselId);
   });
 
   return health;
 }
 
-export async function getEquipmentWithSensorIssues(adapter: DualWriteAdapter, orgId: string): Promise<Equipment[]> {
+export async function getEquipmentWithSensorIssues(
+  adapter: DualWriteAdapter,
+  orgId: string
+): Promise<Equipment[]> {
   return adapter.execute({
-    operation: 'getEquipmentWithSensorIssues',
+    operation: "getEquipmentWithSensorIssues",
     repositoryFn: async () => {
       const repo = TenantRepositoryFactory.equipment(orgId);
       const sensorRepo = TenantRepositoryFactory.sensorConfiguration(orgId);
@@ -70,10 +89,12 @@ export async function getEquipmentWithSensorIssues(adapter: DualWriteAdapter, or
       for (const equipment of allEquipment) {
         const sensors = await sensorRepo.getAll({ equipmentId: equipment.id });
         const hasSensors = sensors.length > 0;
-        const allDisabled = sensors.every(s => !s.enabled);
-        const criticalDisabled = sensors.some(s => s.isCritical && !s.enabled);
+        const allDisabled = sensors.every((s) => !s.enabled);
+        const criticalDisabled = sensors.some((s) => s.isCritical && !s.enabled);
 
-        if (!hasSensors || allDisabled || criticalDisabled) { equipmentWithIssues.push(equipment); }
+        if (!hasSensors || allDisabled || criticalDisabled) {
+          equipmentWithIssues.push(equipment);
+        }
       }
       return equipmentWithIssues;
     },

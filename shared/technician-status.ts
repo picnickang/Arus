@@ -213,7 +213,8 @@ export function formatConfidence(confidence: number): string {
   const pct = (confidence * 100).toFixed(0);
   if (confidence > 0.8) {
     return `High confidence (${pct}%)`;
-  } if (confidence > 0.6) {
+  }
+  if (confidence > 0.6) {
     return `Moderate confidence (${pct}%)`;
   }
   return `Low confidence (${pct}%)`;
@@ -226,9 +227,11 @@ export function formatFailureProbability(probability: number): string {
   const pct = (probability * 100).toFixed(1);
   if (probability > 0.7) {
     return `High risk (${pct}%)`;
-  } if (probability > 0.5) {
+  }
+  if (probability > 0.5) {
     return `Moderate risk (${pct}%)`;
-  } if (probability > 0.3) {
+  }
+  if (probability > 0.3) {
     return `Low risk (${pct}%)`;
   }
   return `Very low risk (${pct}%)`;

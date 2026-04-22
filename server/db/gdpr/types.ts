@@ -2,4 +2,9 @@
  * GDPR - Types
  */
 
-export type { DataSubjectRequest, InsertDataSubjectRequest, MlEngineerOverride, InsertMlEngineerOverride } from "@shared/schema-runtime";
+export type {
+  DataSubjectRequest,
+  InsertDataSubjectRequest,
+  MlEngineerOverride,
+  InsertMlEngineerOverride,
+} from "@shared/schema-runtime";

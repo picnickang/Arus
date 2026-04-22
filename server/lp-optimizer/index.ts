@@ -1,8 +1,8 @@
 /**
  * LP Optimizer - Index
- * 
+ *
  * Modularized Linear Programming Maintenance Optimizer
- * 
+ *
  * Original: 926 lines
  * Modularized into 7 files:
  * - types.ts (~75 lines): Type definitions
@@ -16,11 +16,7 @@
 
 export { LinearProgrammingOptimizer } from "./optimizer.js";
 
-export type {
-  OptimizationConstraints,
-  MaintenanceJob,
-  OptimizationResult,
-} from "./types.js";
+export type { OptimizationConstraints, MaintenanceJob, OptimizationResult } from "./types.js";
 
 export {
   getPriorityCost,
@@ -32,24 +28,10 @@ export {
   createEmptyResult,
 } from "./estimation-helpers.js";
 
-export {
-  recordOptimizationMetrics,
-  recordEmptyRun,
-  recordErrorRun,
-} from "./metrics-recorder.js";
+export { recordOptimizationMetrics, recordEmptyRun, recordErrorRun } from "./metrics-recorder.js";
 
-export {
-  persistOptimizationResults,
-  getOptimizationResults,
-} from "./persistence.js";
+export { persistOptimizationResults, getOptimizationResults } from "./persistence.js";
 
-export {
-  formulateLinearProgram,
-  relaxConstraints,
-  processSolution,
-} from "./lp-formulation.js";
+export { formulateLinearProgram, relaxConstraints, processSolution } from "./lp-formulation.js";
 
-export {
-  getPendingMaintenanceJobs,
-  getPartsAvailability,
-} from "./job-loader.js";
+export { getPendingMaintenanceJobs, getPartsAvailability } from "./job-loader.js";

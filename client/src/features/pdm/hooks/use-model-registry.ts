@@ -8,7 +8,9 @@ export function useModels() {
     queryKey: ["/api/pdm/models", currentOrgId],
     queryFn: async () => {
       const res = await fetch("/api/pdm/models", { headers: { "x-org-id": currentOrgId } });
-      if (!res.ok) {throw new Error("Failed to fetch models");}
+      if (!res.ok) {
+        throw new Error("Failed to fetch models");
+      }
       return res.json();
     },
     enabled: !!currentOrgId,
@@ -20,8 +22,12 @@ export function useModelVersions(modelId: string) {
   return useQuery({
     queryKey: ["/api/pdm/models", modelId, "versions", currentOrgId],
     queryFn: async () => {
-      const res = await fetch(`/api/pdm/models/${modelId}/versions`, { headers: { "x-org-id": currentOrgId } });
-      if (!res.ok) {throw new Error("Failed to fetch versions");}
+      const res = await fetch(`/api/pdm/models/${modelId}/versions`, {
+        headers: { "x-org-id": currentOrgId },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to fetch versions");
+      }
       return res.json();
     },
     enabled: !!modelId && !!currentOrgId,
@@ -33,8 +39,12 @@ export function useActiveDeployment(modelId: string) {
   return useQuery({
     queryKey: ["/api/pdm/models", modelId, "deployment", currentOrgId],
     queryFn: async () => {
-      const res = await fetch(`/api/pdm/models/${modelId}/deployment`, { headers: { "x-org-id": currentOrgId } });
-      if (!res.ok) {throw new Error("Failed to fetch deployment");}
+      const res = await fetch(`/api/pdm/models/${modelId}/deployment`, {
+        headers: { "x-org-id": currentOrgId },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to fetch deployment");
+      }
       return res.json();
     },
     enabled: !!modelId && !!currentOrgId,
@@ -43,7 +53,15 @@ export function useActiveDeployment(modelId: string) {
 
 export function useDeployModel() {
   return useMutation({
-    mutationFn: async ({ modelId, modelVersionId, target }: { modelId: string; modelVersionId: string; target?: string }) => {
+    mutationFn: async ({
+      modelId,
+      modelVersionId,
+      target,
+    }: {
+      modelId: string;
+      modelVersionId: string;
+      target?: string;
+    }) => {
       return apiRequest("POST", `/api/pdm/models/${modelId}/deploy`, { modelVersionId, target });
     },
     onSuccess: () => {
@@ -54,7 +72,15 @@ export function useDeployModel() {
 
 export function useCreateVersion() {
   return useMutation({
-    mutationFn: async ({ modelId, ...data }: { modelId: string; version: string; artifactPath?: string; changelog?: string }) => {
+    mutationFn: async ({
+      modelId,
+      ...data
+    }: {
+      modelId: string;
+      version: string;
+      artifactPath?: string;
+      changelog?: string;
+    }) => {
       return apiRequest("POST", `/api/pdm/models/${modelId}/versions`, data);
     },
     onSuccess: () => {

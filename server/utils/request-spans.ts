@@ -2,7 +2,7 @@
  * Request-Scoped Span Tracking
  * Lightweight tracing for individual operations within a request lifecycle
  * with Prometheus metrics integration
- * 
+ *
  * Usage:
  *   const span = startSpan("db_query", "getCrewRestRange");
  *   try {
@@ -13,7 +13,7 @@
  *     span.end({ error: true });
  *     throw error;
  *   }
- * 
+ *
  * Or use the wrapper:
  *   const result = await withSpan("db_query", "getCrewRestRange", async () => {
  *     return query();
@@ -82,18 +82,22 @@ function safeDecActiveSpans(category: string): void {
   activeSpansGauge.set({ category }, newCount);
 }
 
-export function startSpan(category: string, name: string, metadata?: Record<string, any>): {
+export function startSpan(
+  category: string,
+  name: string,
+  metadata?: Record<string, any>
+): {
   span: Span;
   end: (result?: { error?: boolean; metadata?: Record<string, any> }) => void;
 } {
   const requestId = getCorrelationId();
-  
+
   let context = requestSpans.get(requestId);
   if (!context) {
     context = { requestId, spans: [] };
     requestSpans.set(requestId, context);
   }
-  
+
   const span: Span = {
     id: generateSpanId(),
     category,
@@ -102,21 +106,23 @@ export function startSpan(category: string, name: string, metadata?: Record<stri
     parentSpanId: context.currentSpanId,
     metadata,
   };
-  
+
   context.spans.push(span);
   const previousSpanId = context.currentSpanId;
   context.currentSpanId = span.id;
-  
+
   safeIncActiveSpans(category);
-  
+
   let ended = false;
-  
+
   return {
     span,
     end: (result?: { error?: boolean; metadata?: Record<string, any> }) => {
-      if (ended) { return; }
+      if (ended) {
+        return;
+      }
       ended = true;
-      
+
       span.endTime = Date.now();
       span.durationMs = span.endTime - span.startTime;
       span.error = result?.error;
@@ -124,7 +130,7 @@ export function startSpan(category: string, name: string, metadata?: Record<stri
         span.metadata = { ...span.metadata, ...result.metadata };
       }
       context!.currentSpanId = previousSpanId;
-      
+
       const status = span.error ? "error" : "success";
       spanDurationHistogram.observe({ category, operation: name, status }, span.durationMs / 1000);
       spanCounter.inc({ category, operation: name, status });
@@ -145,7 +151,10 @@ export async function withSpan<T>(
     end();
     return result;
   } catch (err) {
-    end({ error: true, metadata: { errorMessage: err instanceof Error ? err.message : "Unknown error" } });
+    end({
+      error: true,
+      metadata: { errorMessage: err instanceof Error ? err.message : "Unknown error" },
+    });
     throw err;
   }
 }
@@ -180,21 +189,23 @@ export function getRequestSpanSummary(requestId?: string): {
   errorSpans: Span[];
 } {
   const spans = getRequestSpans(requestId);
-  
+
   const byCategory: Record<string, { count: number; totalMs: number; maxMs: number }> = {};
   const slowSpans: Span[] = [];
   const errorSpans: Span[] = [];
-  
+
   for (const span of spans) {
-    if (!span.durationMs) { continue; }
-    
+    if (!span.durationMs) {
+      continue;
+    }
+
     if (!byCategory[span.category]) {
       byCategory[span.category] = { count: 0, totalMs: 0, maxMs: 0 };
     }
     byCategory[span.category].count++;
     byCategory[span.category].totalMs += span.durationMs;
     byCategory[span.category].maxMs = Math.max(byCategory[span.category].maxMs, span.durationMs);
-    
+
     if (span.durationMs > 50) {
       slowSpans.push(span);
     }
@@ -203,9 +214,9 @@ export function getRequestSpanSummary(requestId?: string): {
       errorSpans.push(span);
     }
   }
-  
+
   slowSpans.sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0));
-  
+
   return {
     totalSpans: spans.length,
     byCategory,
@@ -225,18 +236,18 @@ const SPAN_MAX_REQUESTS = 1000;
 export function cleanupOldSpans(): void {
   const cutoff = Date.now() - SPAN_RETENTION_MS;
   const toDelete: string[] = [];
-  
+
   for (const [requestId, context] of requestSpans) {
     const lastSpan = context.spans[context.spans.length - 1];
     if (lastSpan && (lastSpan.endTime || lastSpan.startTime) < cutoff) {
       toDelete.push(requestId);
     }
   }
-  
+
   for (const requestId of toDelete) {
     requestSpans.delete(requestId);
   }
-  
+
   if (requestSpans.size > SPAN_MAX_REQUESTS) {
     const entries = Array.from(requestSpans.entries());
     entries.sort((a, b) => {
@@ -244,7 +255,7 @@ export function cleanupOldSpans(): void {
       const bTime = b[1].spans[0]?.startTime ?? 0;
       return aTime - bTime;
     });
-    
+
     const excess = requestSpans.size - SPAN_MAX_REQUESTS;
     for (let i = 0; i < excess; i++) {
       requestSpans.delete(entries[i][0]);
@@ -268,31 +279,35 @@ export function getRecentSlowRequests(thresholdMs: number = 200): Array<{
     slowestCategory: string;
     path?: string;
   }> = [];
-  
+
   for (const [requestId, context] of requestSpans) {
-    if (context.spans.length === 0) { continue; }
-    
+    if (context.spans.length === 0) {
+      continue;
+    }
+
     const firstSpan = context.spans[0];
     const lastSpan = context.spans[context.spans.length - 1];
     const totalDuration = (lastSpan.endTime || Date.now()) - firstSpan.startTime;
-    
+
     if (totalDuration > thresholdMs) {
       let slowestCategory = "";
       let maxCategoryTime = 0;
-      
+
       const categoryTotals: Record<string, number> = {};
       for (const span of context.spans) {
-        if (!span.durationMs) { continue; }
+        if (!span.durationMs) {
+          continue;
+        }
         categoryTotals[span.category] = (categoryTotals[span.category] ?? 0) + span.durationMs;
       }
-      
+
       for (const [cat, time] of Object.entries(categoryTotals)) {
         if (time > maxCategoryTime) {
           maxCategoryTime = time;
           slowestCategory = cat;
         }
       }
-      
+
       results.push({
         requestId,
         totalDurationMs: totalDuration,
@@ -301,7 +316,7 @@ export function getRecentSlowRequests(thresholdMs: number = 200): Array<{
       });
     }
   }
-  
+
   results.sort((a, b) => b.totalDurationMs - a.totalDurationMs);
   return results.slice(0, 20);
 }

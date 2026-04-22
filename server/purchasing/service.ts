@@ -12,11 +12,7 @@ export {
   removeItemFromPR,
 } from "./pr-draft-service";
 
-export {
-  sendPR,
-  cancelPR,
-  closePR,
-} from "./pr-send-service";
+export { sendPR, cancelPR, closePR } from "./pr-send-service";
 
 export {
   linkSupplierToPart,

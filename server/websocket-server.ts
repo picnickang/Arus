@@ -1,6 +1,6 @@
 /**
  * WebSocket Server Singleton
- * 
+ *
  * This module breaks the circular dependency between storage.ts and routes.ts
  * by providing a shared place to store the WebSocket server instance.
  */

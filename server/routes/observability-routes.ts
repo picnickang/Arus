@@ -52,10 +52,12 @@ export function registerObservabilityRoutes(app: Express): void {
   // Request span statistics endpoint - shows detailed request tracing (no auth for ops)
   app.get("/api/performance/spans", async (req: Request, res: Response) => {
     try {
-      const { getRecentSlowRequests, getRequestSpans, getRequestSpanSummary } = await import("../utils/request-spans");
+      const { getRecentSlowRequests, getRequestSpans, getRequestSpanSummary } = await import(
+        "../utils/request-spans"
+      );
       const thresholdMs = Number.parseInt(req.query.thresholdMs as string) || 200;
       const requestId = req.query.requestId as string | undefined;
-      
+
       if (requestId) {
         const spans = getRequestSpans(requestId);
         const summary = getRequestSpanSummary(requestId);
@@ -84,7 +86,7 @@ export function registerObservabilityRoutes(app: Express): void {
     try {
       const { getSLOStatus } = await import("../utils/slo-alerts");
       const status = getSLOStatus();
-      
+
       res.json({
         ...status,
         timestamp: new Date().toISOString(),
@@ -94,5 +96,7 @@ export function registerObservabilityRoutes(app: Express): void {
     }
   });
 
-  console.log("[Observability Routes] Registered (healthz, readyz, metrics, error-health, performance, spans, slo, db-indexes)");
+  console.log(
+    "[Observability Routes] Registered (healthz, readyz, metrics, error-health, performance, spans, slo, db-indexes)"
+  );
 }

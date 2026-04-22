@@ -1,10 +1,18 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { format, addDays, differenceInDays, parseISO, isWithinInterval, startOfWeek, endOfWeek } from 'date-fns';
-import { useLocation, useSearch } from 'wouter';
-import { 
-  Calendar, 
-  AlertTriangle, 
-  Clock, 
+import { useState, useCallback, useEffect, useMemo } from "react";
+import {
+  format,
+  addDays,
+  differenceInDays,
+  parseISO,
+  isWithinInterval,
+  startOfWeek,
+  endOfWeek,
+} from "date-fns";
+import { useLocation, useSearch } from "wouter";
+import {
+  Calendar,
+  AlertTriangle,
+  Clock,
   CheckCircle2,
   XCircle,
   ChevronRight,
@@ -21,45 +29,70 @@ import {
   RefreshCw,
   MoveHorizontal,
   ExternalLink,
-  WifiOff
-} from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Progress } from '@/components/ui/progress';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { usePdmSchedule, useCreateWorkOrderFromRisk, usePdmFilterOptions } from '@/features/pdm';
-import type { PdmScheduledTask, ScheduleKpis, BlockReason, RiskLevel, ScheduleFilters } from '@/features/pdm';
+  WifiOff,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { usePdmSchedule, useCreateWorkOrderFromRisk, usePdmFilterOptions } from "@/features/pdm";
+import type {
+  PdmScheduledTask,
+  ScheduleKpis,
+  BlockReason,
+  RiskLevel,
+  ScheduleFilters,
+} from "@/features/pdm";
 
 const BLOCK_REASON_LABELS: Record<BlockReason, string> = {
-  capacity: 'Capacity Limit',
-  parts_lead_time: 'Parts Lead Time',
-  vessel_unavailable: 'Vessel Unavailable',
-  telemetry_stale: 'Stale Telemetry',
-  insufficient_confidence: 'Low Confidence',
-  scheduling_conflict: 'Schedule Conflict',
+  capacity: "Capacity Limit",
+  parts_lead_time: "Parts Lead Time",
+  vessel_unavailable: "Vessel Unavailable",
+  telemetry_stale: "Stale Telemetry",
+  insufficient_confidence: "Low Confidence",
+  scheduling_conflict: "Schedule Conflict",
 };
 
 const SEVERITY_COLORS: Record<RiskLevel, string> = {
-  critical: 'bg-red-500 dark:bg-red-600',
-  high: 'bg-orange-500 dark:bg-orange-600',
-  medium: 'bg-yellow-500 dark:bg-yellow-600',
-  low: 'bg-green-500 dark:bg-green-600',
+  critical: "bg-red-500 dark:bg-red-600",
+  high: "bg-orange-500 dark:bg-orange-600",
+  medium: "bg-yellow-500 dark:bg-yellow-600",
+  low: "bg-green-500 dark:bg-green-600",
 };
 
-const SEVERITY_BADGE_VARIANTS: Record<RiskLevel, 'destructive' | 'secondary' | 'outline'> = {
-  critical: 'destructive',
-  high: 'destructive',
-  medium: 'secondary',
-  low: 'outline',
+const SEVERITY_BADGE_VARIANTS: Record<RiskLevel, "destructive" | "secondary" | "outline"> = {
+  critical: "destructive",
+  high: "destructive",
+  medium: "secondary",
+  low: "outline",
 };
 
 function getWeekDateRange(weekOffset: number = 0) {
@@ -70,11 +103,17 @@ function getWeekDateRange(weekOffset: number = 0) {
 }
 
 function formatWeekLabel(weekOffset: number): string {
-  if (weekOffset === 0) {return 'This Week';}
-  if (weekOffset === 1) {return 'Next Week';}
-  if (weekOffset === -1) {return 'Last Week';}
+  if (weekOffset === 0) {
+    return "This Week";
+  }
+  if (weekOffset === 1) {
+    return "Next Week";
+  }
+  if (weekOffset === -1) {
+    return "Last Week";
+  }
   const { start, end } = getWeekDateRange(weekOffset);
-  return `${format(start, 'MMM d')} - ${format(end, 'MMM d')}`;
+  return `${format(start, "MMM d")} - ${format(end, "MMM d")}`;
 }
 
 interface ScheduleKPIStripProps {
@@ -84,7 +123,12 @@ interface ScheduleKPIStripProps {
   onUnassignedClick?: () => void;
 }
 
-function ScheduleKPIStrip({ kpis, isLoading, onScheduledClick, onUnassignedClick }: ScheduleKPIStripProps) {
+function ScheduleKPIStrip({
+  kpis,
+  isLoading,
+  onScheduledClick,
+  onUnassignedClick,
+}: ScheduleKPIStripProps) {
   if (isLoading) {
     return (
       <div className="flex gap-3 overflow-x-auto pb-2">
@@ -97,38 +141,38 @@ function ScheduleKPIStrip({ kpis, isLoading, onScheduledClick, onUnassignedClick
 
   const cards = [
     {
-      title: 'Scheduled This Week',
+      title: "Scheduled This Week",
       value: kpis?.tasksScheduledThisWeek ?? 0,
-      subtitle: kpis?.scheduledDateRange ?? '',
+      subtitle: kpis?.scheduledDateRange ?? "",
       icon: Calendar,
-      color: 'bg-blue-600 dark:bg-blue-700',
+      color: "bg-blue-600 dark:bg-blue-700",
       onClick: onScheduledClick,
-      testId: 'kpi-scheduled',
+      testId: "kpi-scheduled",
     },
     {
-      title: 'Unassigned High-Risk',
+      title: "Unassigned High-Risk",
       value: kpis?.unassignedHighRiskCount ?? 0,
-      subtitle: kpis?.unassignedUrgency ?? '',
+      subtitle: kpis?.unassignedUrgency ?? "",
       icon: AlertTriangle,
-      color: 'bg-red-600 dark:bg-red-700',
+      color: "bg-red-600 dark:bg-red-700",
       onClick: onUnassignedClick,
-      testId: 'kpi-unassigned',
+      testId: "kpi-unassigned",
     },
     {
-      title: 'Expected Downtime',
+      title: "Expected Downtime",
       value: `${kpis?.expectedDowntimeForecastHours ?? 0} hrs`,
-      subtitle: `$${((kpis?.expectedDowntimeForecastCost ?? 0) / 1000).toFixed(0)}k ${kpis?.forecastPeriod ?? ''}`,
+      subtitle: `$${((kpis?.expectedDowntimeForecastCost ?? 0) / 1000).toFixed(0)}k ${kpis?.forecastPeriod ?? ""}`,
       icon: Clock,
-      color: 'bg-yellow-500 dark:bg-yellow-600',
-      testId: 'kpi-downtime',
+      color: "bg-yellow-500 dark:bg-yellow-600",
+      testId: "kpi-downtime",
     },
     {
-      title: 'Avoided Downtime',
+      title: "Avoided Downtime",
       value: `${kpis?.avoidedDowntimeHours ?? 0} hrs`,
-      subtitle: `$${((kpis?.avoidedDowntimeCost ?? 0) / 1000).toFixed(0)}k ${kpis?.avoidedPeriod ?? ''}`,
+      subtitle: `$${((kpis?.avoidedDowntimeCost ?? 0) / 1000).toFixed(0)}k ${kpis?.avoidedPeriod ?? ""}`,
       icon: CheckCircle2,
-      color: 'bg-green-600 dark:bg-green-700',
-      testId: 'kpi-avoided',
+      color: "bg-green-600 dark:bg-green-700",
+      testId: "kpi-avoided",
     },
   ];
 
@@ -136,11 +180,11 @@ function ScheduleKPIStrip({ kpis, isLoading, onScheduledClick, onUnassignedClick
     <ScrollArea className="w-full">
       <div className="flex gap-3 pb-2">
         {cards.map((card, idx) => (
-          <button 
-            key={idx} 
+          <button
+            key={idx}
             onClick={card.onClick}
             disabled={!card.onClick}
-            className={`${card.color} text-white rounded-lg p-3 min-w-[170px] flex-shrink-0 text-left ${card.onClick ? 'cursor-pointer hover-elevate active-elevate-2' : ''}`}
+            className={`${card.color} text-white rounded-lg p-3 min-w-[170px] flex-shrink-0 text-left ${card.onClick ? "cursor-pointer hover-elevate active-elevate-2" : ""}`}
             data-testid={card.testId}
           >
             <div className="flex items-start justify-between gap-2">
@@ -162,12 +206,18 @@ function RulGauge({ p10, p50, p90 }: { p10: number; p50: number; p90: number }) 
   const p10Pct = (p10 / maxDays) * 100;
   const p50Pct = (p50 / maxDays) * 100;
   const p90Pct = (p90 / maxDays) * 100;
-  
+
   const getColor = (days: number) => {
-    if (days <= 7) {return 'bg-red-500';}
-    if (days <= 14) {return 'bg-orange-500';}
-    if (days <= 21) {return 'bg-yellow-500';}
-    return 'bg-green-500';
+    if (days <= 7) {
+      return "bg-red-500";
+    }
+    if (days <= 14) {
+      return "bg-orange-500";
+    }
+    if (days <= 21) {
+      return "bg-yellow-500";
+    }
+    return "bg-green-500";
   };
 
   return (
@@ -178,26 +228,24 @@ function RulGauge({ p10, p50, p90 }: { p10: number; p50: number; p90: number }) 
         <span>P90: {p90}d</span>
       </div>
       <div className="relative h-4 bg-muted rounded-full overflow-hidden">
-        <div 
+        <div
           className="absolute h-full bg-red-200 dark:bg-red-900/50"
           style={{ left: `${p10Pct}%`, width: `${p90Pct - p10Pct}%` }}
         />
-        <div 
+        <div
           className={`absolute h-full w-1 ${getColor(p50)}`}
-          style={{ left: `${p50Pct}%`, transform: 'translateX(-50%)' }}
+          style={{ left: `${p50Pct}%`, transform: "translateX(-50%)" }}
         />
-        <div 
+        <div
           className="absolute h-full w-0.5 bg-muted-foreground/50"
           style={{ left: `${p10Pct}%` }}
         />
-        <div 
+        <div
           className="absolute h-full w-0.5 bg-muted-foreground/50"
           style={{ left: `${p90Pct}%` }}
         />
       </div>
-      <div className="text-xs text-center text-muted-foreground">
-        RUL Confidence Bands (days)
-      </div>
+      <div className="text-xs text-center text-muted-foreground">RUL Confidence Bands (days)</div>
     </div>
   );
 }
@@ -236,9 +284,9 @@ function FilterBar({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-        <Button 
-          size="icon" 
-          variant="ghost" 
+        <Button
+          size="icon"
+          variant="ghost"
           onClick={() => onWeekChange(weekOffset - 1)}
           data-testid="btn-prev-week"
         >
@@ -247,9 +295,9 @@ function FilterBar({
         <span className="px-2 text-sm font-medium min-w-[100px] text-center">
           {formatWeekLabel(weekOffset)}
         </span>
-        <Button 
-          size="icon" 
-          variant="ghost" 
+        <Button
+          size="icon"
+          variant="ghost"
           onClick={() => onWeekChange(weekOffset + 1)}
           data-testid="btn-next-week"
         >
@@ -264,8 +312,10 @@ function FilterBar({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Vessels</SelectItem>
-          {vessels.map(v => (
-            <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+          {vessels.map((v) => (
+            <SelectItem key={v.id} value={v.id}>
+              {v.name}
+            </SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -277,8 +327,10 @@ function FilterBar({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Equipment</SelectItem>
-          {equipmentTypes.map(t => (
-            <SelectItem key={t} value={t}>{t}</SelectItem>
+          {equipmentTypes.map((t) => (
+            <SelectItem key={t} value={t}>
+              {t}
+            </SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -296,7 +348,9 @@ function FilterBar({
           className="w-20"
           data-testid="slider-max-tasks"
         />
-        <span className="text-sm font-medium w-4 text-center" data-testid="text-max-tasks-value">{maxTasksPerDay}</span>
+        <span className="text-sm font-medium w-4 text-center" data-testid="text-max-tasks-value">
+          {maxTasksPerDay}
+        </span>
       </div>
 
       <div className="flex items-center gap-2 bg-muted rounded-lg px-3 py-1.5">
@@ -316,13 +370,16 @@ function FilterBar({
 }
 
 function TelemetryStaleWarning({ count }: { count: number }) {
-  if (count === 0) {return null;}
-  
+  if (count === 0) {
+    return null;
+  }
+
   return (
     <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg text-yellow-800 dark:text-yellow-200">
       <WifiOff className="h-4 w-4 flex-shrink-0" />
       <span className="text-sm">
-        Telemetry delayed on {count} vessel{count > 1 ? 's' : ''}; schedule confidence may be reduced.
+        Telemetry delayed on {count} vessel{count > 1 ? "s" : ""}; schedule confidence may be
+        reduced.
       </span>
     </div>
   );
@@ -333,27 +390,26 @@ function EmptyScheduleState({ hasBlockedTasks }: { hasBlockedTasks: boolean }) {
     <div className="flex flex-col items-center justify-center p-8 text-center bg-muted/30 rounded-lg">
       <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
       <h3 className="font-medium text-lg mb-2">
-        {hasBlockedTasks ? 'No Tasks Scheduled' : 'No PdM Tasks'}
+        {hasBlockedTasks ? "No Tasks Scheduled" : "No PdM Tasks"}
       </h3>
       <p className="text-sm text-muted-foreground max-w-md">
-        {hasBlockedTasks 
-          ? 'Tasks exist but none could be scheduled for this period. Check the blocked tasks section below for details.'
-          : 'No predictive maintenance tasks found for the current filters and date range.'
-        }
+        {hasBlockedTasks
+          ? "Tasks exist but none could be scheduled for this period. Check the blocked tasks section below for details."
+          : "No predictive maintenance tasks found for the current filters and date range."}
       </p>
     </div>
   );
 }
 
-function GanttScheduleView({ 
-  tasks, 
-  vessels, 
-  dateRange, 
+function GanttScheduleView({
+  tasks,
+  vessels,
+  dateRange,
   onSelectTask,
-  isLoading 
-}: { 
-  tasks: PdmScheduledTask[]; 
-  vessels: Array<{ id: string; name: string }>; 
+  isLoading,
+}: {
+  tasks: PdmScheduledTask[];
+  vessels: Array<{ id: string; name: string }>;
   dateRange: { start: string | Date; end: string | Date };
   onSelectTask: (task: PdmScheduledTask) => void;
   isLoading: boolean;
@@ -362,16 +418,17 @@ function GanttScheduleView({
     return <Skeleton className="h-64 w-full" />;
   }
 
-  const startDate = typeof dateRange.start === 'string' ? parseISO(dateRange.start) : dateRange.start;
-  const endDate = typeof dateRange.end === 'string' ? parseISO(dateRange.end) : dateRange.end;
+  const startDate =
+    typeof dateRange.start === "string" ? parseISO(dateRange.start) : dateRange.start;
+  const endDate = typeof dateRange.end === "string" ? parseISO(dateRange.end) : dateRange.end;
   const totalDays = differenceInDays(endDate, startDate) + 1;
   const dates = Array.from({ length: totalDays }, (_, i) => addDays(startDate, i));
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const vesselIds = new Set(tasks.map(t => t.vesselId));
-  const displayVessels = vessels.filter(v => vesselIds.has(v.id));
+  const vesselIds = new Set(tasks.map((t) => t.vesselId));
+  const displayVessels = vessels.filter((v) => vesselIds.has(v.id));
 
   if (displayVessels.length === 0 && tasks.length === 0) {
     return null;
@@ -396,12 +453,12 @@ function GanttScheduleView({
                 {dates.map((date, idx) => {
                   const isToday = date.getTime() === today.getTime();
                   return (
-                    <div 
-                      key={idx} 
-                      className={`flex-1 min-w-[60px] p-1 text-center text-xs border-r ${isToday ? 'bg-primary/10 font-medium' : ''}`}
+                    <div
+                      key={idx}
+                      className={`flex-1 min-w-[60px] p-1 text-center text-xs border-r ${isToday ? "bg-primary/10 font-medium" : ""}`}
                     >
-                      <div className="text-muted-foreground">{format(date, 'EEE')}</div>
-                      <div className={isToday ? 'text-primary' : ''}>{format(date, 'd MMM')}</div>
+                      <div className="text-muted-foreground">{format(date, "EEE")}</div>
+                      <div className={isToday ? "text-primary" : ""}>{format(date, "d MMM")}</div>
                     </div>
                   );
                 })}
@@ -414,29 +471,43 @@ function GanttScheduleView({
               </div>
             ) : (
               displayVessels.map((vessel) => {
-                const vesselTasks = tasks.filter(t => t.vesselId === vessel.id);
-                
+                const vesselTasks = tasks.filter((t) => t.vesselId === vessel.id);
+
                 const tasksByDate = new Map<string, PdmScheduledTask[]>();
-                vesselTasks.forEach(task => {
-                  const taskDate = task.nextScheduledDate 
-                    ? (typeof task.nextScheduledDate === 'string' ? parseISO(task.nextScheduledDate) : task.nextScheduledDate)
-                    : (typeof task.schedulingWindow.preferredDate === 'string' 
-                        ? parseISO(task.schedulingWindow.preferredDate) 
-                        : task.schedulingWindow.preferredDate);
-                  const dateKey = format(taskDate, 'yyyy-MM-dd');
+                vesselTasks.forEach((task) => {
+                  const taskDate = task.nextScheduledDate
+                    ? typeof task.nextScheduledDate === "string"
+                      ? parseISO(task.nextScheduledDate)
+                      : task.nextScheduledDate
+                    : typeof task.schedulingWindow.preferredDate === "string"
+                      ? parseISO(task.schedulingWindow.preferredDate)
+                      : task.schedulingWindow.preferredDate;
+                  const dateKey = format(taskDate, "yyyy-MM-dd");
                   const existing = tasksByDate.get(dateKey) || [];
                   existing.push(task);
                   tasksByDate.set(dateKey, existing);
                 });
-                
-                const maxTasksPerDay = Math.max(1, ...Array.from(tasksByDate.values()).map(t => t.length));
+
+                const maxTasksPerDay = Math.max(
+                  1,
+                  ...Array.from(tasksByDate.values()).map((t) => t.length)
+                );
                 const TASK_BAR_HEIGHT = 28;
                 const TASK_BAR_GAP = 4;
                 const ROW_PADDING = 8;
-                const rowHeight = Math.max(56, (maxTasksPerDay * TASK_BAR_HEIGHT) + ((maxTasksPerDay - 1) * TASK_BAR_GAP) + ROW_PADDING);
-                
+                const rowHeight = Math.max(
+                  56,
+                  maxTasksPerDay * TASK_BAR_HEIGHT +
+                    (maxTasksPerDay - 1) * TASK_BAR_GAP +
+                    ROW_PADDING
+                );
+
                 return (
-                  <div key={vessel.id} className="flex border-b last:border-b-0" style={{ minHeight: `${rowHeight}px` }}>
+                  <div
+                    key={vessel.id}
+                    className="flex border-b last:border-b-0"
+                    style={{ minHeight: `${rowHeight}px` }}
+                  >
                     <div className="w-36 flex-shrink-0 p-2 border-r bg-muted/50 flex items-center gap-2">
                       <Ship className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm truncate">{vessel.name}</span>
@@ -445,29 +516,32 @@ function GanttScheduleView({
                       {dates.map((date, idx) => {
                         const isToday = date.getTime() === today.getTime();
                         return (
-                          <div 
+                          <div
                             key={idx}
-                            className={`flex-1 min-w-[60px] border-r relative ${isToday ? 'bg-primary/5' : ''}`}
+                            className={`flex-1 min-w-[60px] border-r relative ${isToday ? "bg-primary/5" : ""}`}
                           />
                         );
                       })}
-                      
+
                       {vesselTasks.map((task) => {
-                        const taskDate = task.nextScheduledDate 
-                          ? (typeof task.nextScheduledDate === 'string' ? parseISO(task.nextScheduledDate) : task.nextScheduledDate)
-                          : (typeof task.schedulingWindow.preferredDate === 'string' 
-                              ? parseISO(task.schedulingWindow.preferredDate) 
-                              : task.schedulingWindow.preferredDate);
-                        
+                        const taskDate = task.nextScheduledDate
+                          ? typeof task.nextScheduledDate === "string"
+                            ? parseISO(task.nextScheduledDate)
+                            : task.nextScheduledDate
+                          : typeof task.schedulingWindow.preferredDate === "string"
+                            ? parseISO(task.schedulingWindow.preferredDate)
+                            : task.schedulingWindow.preferredDate;
+
                         if (!isWithinInterval(taskDate, { start: startDate, end: endDate })) {
                           return null;
                         }
 
-                        const dateKey = format(taskDate, 'yyyy-MM-dd');
+                        const dateKey = format(taskDate, "yyyy-MM-dd");
                         const tasksOnDate = tasksByDate.get(dateKey) || [];
-                        const taskIndex = tasksOnDate.findIndex(t => t.id === task.id);
-                        const topOffset = ROW_PADDING / 2 + (taskIndex * (TASK_BAR_HEIGHT + TASK_BAR_GAP));
-                        
+                        const taskIndex = tasksOnDate.findIndex((t) => t.id === task.id);
+                        const topOffset =
+                          ROW_PADDING / 2 + taskIndex * (TASK_BAR_HEIGHT + TASK_BAR_GAP);
+
                         const dayOffset = differenceInDays(taskDate, startDate);
                         const leftPct = (dayOffset / totalDays) * 100;
                         const widthPct = Math.max(8, (1 / totalDays) * 100);
@@ -477,18 +551,22 @@ function GanttScheduleView({
                             key={task.id}
                             onClick={() => onSelectTask(task)}
                             className={`absolute ${SEVERITY_COLORS[task.severity]} text-white text-xs rounded-md px-2 py-0.5 truncate hover-elevate active-elevate-2 cursor-pointer z-10`}
-                            style={{ 
-                              left: `${leftPct}%`, 
+                            style={{
+                              left: `${leftPct}%`,
                               width: `${widthPct}%`,
                               top: `${topOffset}px`,
                               height: `${TASK_BAR_HEIGHT}px`,
-                              minWidth: '50px',
-                              maxWidth: '150px'
+                              minWidth: "50px",
+                              maxWidth: "150px",
                             }}
                             data-testid={`task-chip-${task.id}`}
                           >
-                            <div className="font-medium truncate leading-tight">{task.failureMode}</div>
-                            <div className="opacity-80 truncate text-[10px] leading-tight">{task.estimatedDowntimeHours}h</div>
+                            <div className="font-medium truncate leading-tight">
+                              {task.failureMode}
+                            </div>
+                            <div className="opacity-80 truncate text-[10px] leading-tight">
+                              {task.estimatedDowntimeHours}h
+                            </div>
                           </button>
                         );
                       })}
@@ -513,12 +591,12 @@ interface BlockedTasksSectionProps {
   onExpandChange: (expanded: boolean) => void;
 }
 
-function BlockedTasksSection({ 
-  tasks, 
+function BlockedTasksSection({
+  tasks,
   onSelectTask,
   isLoading,
   isExpanded,
-  onExpandChange
+  onExpandChange,
 }: BlockedTasksSectionProps) {
   if (isLoading) {
     return <Skeleton className="h-48 w-full" />;
@@ -533,7 +611,10 @@ function BlockedTasksSection({
       <Collapsible open={isExpanded} onOpenChange={onExpandChange}>
         <CardHeader className="pb-2">
           <CollapsibleTrigger asChild>
-            <button className="flex items-center justify-between w-full text-left hover-elevate rounded-lg -m-2 p-2" data-testid="toggle-blocked-tasks">
+            <button
+              className="flex items-center justify-between w-full text-left hover-elevate rounded-lg -m-2 p-2"
+              data-testid="toggle-blocked-tasks"
+            >
               <CardTitle className="text-base flex items-center gap-2">
                 <XCircle className="h-4 w-4 text-red-500" />
                 Blocked / Unassigned Tasks ({tasks.length})
@@ -547,10 +628,11 @@ function BlockedTasksSection({
             <ScrollArea className="max-h-64">
               <div className="divide-y">
                 {tasks.map((task) => {
-                  const latestFinish = typeof task.schedulingWindow.latestFinish === 'string' 
-                    ? parseISO(task.schedulingWindow.latestFinish) 
-                    : task.schedulingWindow.latestFinish;
-                  
+                  const latestFinish =
+                    typeof task.schedulingWindow.latestFinish === "string"
+                      ? parseISO(task.schedulingWindow.latestFinish)
+                      : task.schedulingWindow.latestFinish;
+
                   return (
                     <button
                       key={task.id}
@@ -559,14 +641,16 @@ function BlockedTasksSection({
                       data-testid={`blocked-task-${task.id}`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className={`w-2 h-10 rounded-full ${SEVERITY_COLORS[task.severity]}`} />
+                        <div
+                          className={`w-2 h-10 rounded-full ${SEVERITY_COLORS[task.severity]}`}
+                        />
                         <div className="min-w-0">
                           <div className="font-medium text-sm truncate">{task.equipmentName}</div>
                           <div className="text-xs text-muted-foreground truncate">
                             {task.vesselName} - {task.failureMode}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            Must finish by: {format(latestFinish, 'MMM d, yyyy')}
+                            Must finish by: {format(latestFinish, "MMM d, yyyy")}
                           </div>
                         </div>
                       </div>
@@ -575,7 +659,7 @@ function BlockedTasksSection({
                           {task.severity.toUpperCase()}
                         </Badge>
                         <Badge variant="secondary" className="text-xs">
-                          {task.blockReason ? BLOCK_REASON_LABELS[task.blockReason] : 'Blocked'}
+                          {task.blockReason ? BLOCK_REASON_LABELS[task.blockReason] : "Blocked"}
                         </Badge>
                         <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       </div>
@@ -599,27 +683,32 @@ interface MoveTaskDialogProps {
 }
 
 function MoveTaskDialog({ task, isOpen, onClose, onConfirm }: MoveTaskDialogProps) {
-  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>("");
   const [isOverride, setIsOverride] = useState(false);
-  
+
   useEffect(() => {
     if (task && isOpen) {
-      const preferredDate = typeof task.schedulingWindow.preferredDate === 'string'
-        ? task.schedulingWindow.preferredDate
-        : task.schedulingWindow.preferredDate.toISOString().split('T')[0];
+      const preferredDate =
+        typeof task.schedulingWindow.preferredDate === "string"
+          ? task.schedulingWindow.preferredDate
+          : task.schedulingWindow.preferredDate.toISOString().split("T")[0];
       setSelectedDate(preferredDate);
       setIsOverride(false);
     }
   }, [task, isOpen]);
 
-  if (!task) {return null;}
+  if (!task) {
+    return null;
+  }
 
-  const earliestStart = typeof task.schedulingWindow.earliestStart === 'string'
-    ? parseISO(task.schedulingWindow.earliestStart)
-    : task.schedulingWindow.earliestStart;
-  const latestFinish = typeof task.schedulingWindow.latestFinish === 'string'
-    ? parseISO(task.schedulingWindow.latestFinish)
-    : task.schedulingWindow.latestFinish;
+  const earliestStart =
+    typeof task.schedulingWindow.earliestStart === "string"
+      ? parseISO(task.schedulingWindow.earliestStart)
+      : task.schedulingWindow.earliestStart;
+  const latestFinish =
+    typeof task.schedulingWindow.latestFinish === "string"
+      ? parseISO(task.schedulingWindow.latestFinish)
+      : task.schedulingWindow.latestFinish;
 
   const handleDateChange = (dateStr: string) => {
     setSelectedDate(dateStr);
@@ -644,7 +733,7 @@ function MoveTaskDialog({ task, isOpen, onClose, onConfirm }: MoveTaskDialogProp
             {task.equipmentName} - {task.failureMode}
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           <div className="p-3 bg-muted rounded-lg text-sm space-y-1">
             <div className="flex justify-between">
@@ -652,11 +741,11 @@ function MoveTaskDialog({ task, isOpen, onClose, onConfirm }: MoveTaskDialogProp
             </div>
             <div className="flex justify-between">
               <span>Earliest:</span>
-              <span>{format(earliestStart, 'MMM d, yyyy')}</span>
+              <span>{format(earliestStart, "MMM d, yyyy")}</span>
             </div>
             <div className="flex justify-between font-medium">
               <span>Latest:</span>
-              <span>{format(latestFinish, 'MMM d, yyyy')}</span>
+              <span>{format(latestFinish, "MMM d, yyyy")}</span>
             </div>
           </div>
 
@@ -681,9 +770,11 @@ function MoveTaskDialog({ task, isOpen, onClose, onConfirm }: MoveTaskDialogProp
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
           <Button onClick={handleConfirm} data-testid="btn-confirm-move">
-            {isOverride ? 'Move with Override' : 'Move Task'}
+            {isOverride ? "Move with Override" : "Move Task"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -698,15 +789,12 @@ interface TaskDetailPanelProps {
   onMoveTask: (task: PdmScheduledTask) => void;
 }
 
-function TaskDetailPanel({ 
-  task, 
-  isOpen, 
-  onClose,
-  onMoveTask
-}: TaskDetailPanelProps) {
+function TaskDetailPanel({ task, isOpen, onClose, onMoveTask }: TaskDetailPanelProps) {
   const createWoMutation = useCreateWorkOrderFromRisk();
 
-  if (!task) {return null;}
+  if (!task) {
+    return null;
+  }
 
   const handleCreateWorkOrder = async () => {
     await createWoMutation.mutateAsync(task.alertId);
@@ -731,8 +819,8 @@ function TaskDetailPanel({
             <Badge variant={SEVERITY_BADGE_VARIANTS[task.severity]}>
               {task.severity.toUpperCase()}
             </Badge>
-            <Badge variant={task.status === 'blocked' ? 'destructive' : 'secondary'}>
-              {task.status.replace('_', ' ').toUpperCase()}
+            <Badge variant={task.status === "blocked" ? "destructive" : "secondary"}>
+              {task.status.replace("_", " ").toUpperCase()}
             </Badge>
             {task.workOrderId && (
               <Badge variant="outline" className="gap-1">
@@ -784,21 +872,47 @@ function TaskDetailPanel({
             <div className="text-sm space-y-1">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Earliest Start:</span>
-                <span>{format(typeof task.schedulingWindow.earliestStart === 'string' ? parseISO(task.schedulingWindow.earliestStart) : task.schedulingWindow.earliestStart, 'MMM d, yyyy')}</span>
+                <span>
+                  {format(
+                    typeof task.schedulingWindow.earliestStart === "string"
+                      ? parseISO(task.schedulingWindow.earliestStart)
+                      : task.schedulingWindow.earliestStart,
+                    "MMM d, yyyy"
+                  )}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Preferred Date:</span>
-                <span className="font-medium">{format(typeof task.schedulingWindow.preferredDate === 'string' ? parseISO(task.schedulingWindow.preferredDate) : task.schedulingWindow.preferredDate, 'MMM d, yyyy')}</span>
+                <span className="font-medium">
+                  {format(
+                    typeof task.schedulingWindow.preferredDate === "string"
+                      ? parseISO(task.schedulingWindow.preferredDate)
+                      : task.schedulingWindow.preferredDate,
+                    "MMM d, yyyy"
+                  )}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Latest Finish:</span>
-                <span>{format(typeof task.schedulingWindow.latestFinish === 'string' ? parseISO(task.schedulingWindow.latestFinish) : task.schedulingWindow.latestFinish, 'MMM d, yyyy')}</span>
+                <span>
+                  {format(
+                    typeof task.schedulingWindow.latestFinish === "string"
+                      ? parseISO(task.schedulingWindow.latestFinish)
+                      : task.schedulingWindow.latestFinish,
+                    "MMM d, yyyy"
+                  )}
+                </span>
               </div>
               {task.nextScheduledDate && (
                 <div className="flex justify-between pt-2 border-t">
                   <span className="text-muted-foreground">Scheduled:</span>
                   <span className="font-medium text-primary">
-                    {format(typeof task.nextScheduledDate === 'string' ? parseISO(task.nextScheduledDate) : task.nextScheduledDate, 'MMM d, yyyy')}
+                    {format(
+                      typeof task.nextScheduledDate === "string"
+                        ? parseISO(task.nextScheduledDate)
+                        : task.nextScheduledDate,
+                      "MMM d, yyyy"
+                    )}
                   </span>
                 </div>
               )}
@@ -832,20 +946,20 @@ function TaskDetailPanel({
           )}
 
           <div className="flex flex-col gap-2 pt-4 border-t">
-            {task.status !== 'wo_created' && (
-              <Button 
+            {task.status !== "wo_created" && (
+              <Button
                 onClick={handleCreateWorkOrder}
                 disabled={createWoMutation.isPending}
                 className="w-full"
                 data-testid="btn-create-wo"
               >
                 <Wrench className="h-4 w-4 mr-2" />
-                {createWoMutation.isPending ? 'Creating...' : 'Create Work Order'}
+                {createWoMutation.isPending ? "Creating..." : "Create Work Order"}
               </Button>
             )}
-            {task.status !== 'blocked' && (
-              <Button 
-                variant="outline" 
+            {task.status !== "blocked" && (
+              <Button
+                variant="outline"
                 onClick={() => onMoveTask(task)}
                 className="w-full"
                 data-testid="btn-move-task"
@@ -854,11 +968,7 @@ function TaskDetailPanel({
                 Move Task
               </Button>
             )}
-            <Button 
-              variant="ghost"
-              asChild
-              className="w-full"
-            >
+            <Button variant="ghost" asChild className="w-full">
               <a href={`/pdm/equipment/${task.equipmentId}`} data-testid="link-view-alert">
                 <ExternalLink className="h-4 w-4 mr-2" />
                 View PdM Alert
@@ -890,17 +1000,17 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 export function ScheduleView() {
   const search = useSearch();
   const [, setLocation] = useLocation();
-  
-  const params = useMemo(() => new URLSearchParams(search), [search]);
-  const initialWeekOffset = parseInt(params.get('week') || '0', 10);
-  const initialVesselId = params.get('vesselId') || 'all';
-  const initialEquipmentType = params.get('equipmentType') || 'all';
-  const initialTaskId = params.get('taskId') || null;
 
-  const initialMaxTasks = parseInt(params.get('maxTasks') || '3', 10);
-  
-  const initialAutoPopulate = params.get('autoPopulate') !== 'false';
-  
+  const params = useMemo(() => new URLSearchParams(search), [search]);
+  const initialWeekOffset = parseInt(params.get("week") || "0", 10);
+  const initialVesselId = params.get("vesselId") || "all";
+  const initialEquipmentType = params.get("equipmentType") || "all";
+  const initialTaskId = params.get("taskId") || null;
+
+  const initialMaxTasks = parseInt(params.get("maxTasks") || "3", 10);
+
+  const initialAutoPopulate = params.get("autoPopulate") !== "false";
+
   const [weekOffset, setWeekOffset] = useState(initialWeekOffset);
   const [vesselId, setVesselId] = useState(initialVesselId);
   const [equipmentType, setEquipmentType] = useState(initialEquipmentType);
@@ -911,58 +1021,97 @@ export function ScheduleView() {
   const [blockedPanelExpanded, setBlockedPanelExpanded] = useState(true);
 
   const { start, end } = getWeekDateRange(weekOffset);
-  
-  const filters: ScheduleFilters = useMemo(() => ({
-    vesselIds: vesselId !== 'all' ? [vesselId] : undefined,
-    equipmentTypes: equipmentType !== 'all' ? [equipmentType] : undefined,
-    startDate: format(start, 'yyyy-MM-dd'),
-    endDate: format(end, 'yyyy-MM-dd'),
-    maxTasksPerVesselPerDay: maxTasksPerDay,
-    autoPopulate,
-  }), [vesselId, equipmentType, start, end, maxTasksPerDay, autoPopulate]);
+
+  const filters: ScheduleFilters = useMemo(
+    () => ({
+      vesselIds: vesselId !== "all" ? [vesselId] : undefined,
+      equipmentTypes: equipmentType !== "all" ? [equipmentType] : undefined,
+      startDate: format(start, "yyyy-MM-dd"),
+      endDate: format(end, "yyyy-MM-dd"),
+      maxTasksPerVesselPerDay: maxTasksPerDay,
+      autoPopulate,
+    }),
+    [vesselId, equipmentType, start, end, maxTasksPerDay, autoPopulate]
+  );
 
   const { data, isLoading, isError, refetch } = usePdmSchedule(filters);
   const { data: filterOptions, isLoading: filterOptionsLoading } = usePdmFilterOptions();
 
-  const updateUrl = useCallback((newWeek: number, newVessel: string, newEquipType: string, newMaxTasks: number, newAutoPopulate: boolean) => {
-    const newParams = new URLSearchParams();
-    if (newWeek !== 0) {newParams.set('week', newWeek.toString());}
-    if (newVessel !== 'all') {newParams.set('vesselId', newVessel);}
-    if (newEquipType !== 'all') {newParams.set('equipmentType', newEquipType);}
-    if (newMaxTasks !== 3) {newParams.set('maxTasks', newMaxTasks.toString());}
-    if (!newAutoPopulate) {newParams.set('autoPopulate', 'false');}
-    const queryString = newParams.toString();
-    setLocation(queryString ? `?${queryString}` : '', { replace: true });
-  }, [setLocation]);
+  const updateUrl = useCallback(
+    (
+      newWeek: number,
+      newVessel: string,
+      newEquipType: string,
+      newMaxTasks: number,
+      newAutoPopulate: boolean
+    ) => {
+      const newParams = new URLSearchParams();
+      if (newWeek !== 0) {
+        newParams.set("week", newWeek.toString());
+      }
+      if (newVessel !== "all") {
+        newParams.set("vesselId", newVessel);
+      }
+      if (newEquipType !== "all") {
+        newParams.set("equipmentType", newEquipType);
+      }
+      if (newMaxTasks !== 3) {
+        newParams.set("maxTasks", newMaxTasks.toString());
+      }
+      if (!newAutoPopulate) {
+        newParams.set("autoPopulate", "false");
+      }
+      const queryString = newParams.toString();
+      setLocation(queryString ? `?${queryString}` : "", { replace: true });
+    },
+    [setLocation]
+  );
 
-  const handleWeekChange = useCallback((offset: number) => {
-    setWeekOffset(offset);
-    updateUrl(offset, vesselId, equipmentType, maxTasksPerDay, autoPopulate);
-  }, [vesselId, equipmentType, maxTasksPerDay, autoPopulate, updateUrl]);
+  const handleWeekChange = useCallback(
+    (offset: number) => {
+      setWeekOffset(offset);
+      updateUrl(offset, vesselId, equipmentType, maxTasksPerDay, autoPopulate);
+    },
+    [vesselId, equipmentType, maxTasksPerDay, autoPopulate, updateUrl]
+  );
 
-  const handleVesselChange = useCallback((id: string) => {
-    setVesselId(id);
-    updateUrl(weekOffset, id, equipmentType, maxTasksPerDay, autoPopulate);
-  }, [weekOffset, equipmentType, maxTasksPerDay, autoPopulate, updateUrl]);
+  const handleVesselChange = useCallback(
+    (id: string) => {
+      setVesselId(id);
+      updateUrl(weekOffset, id, equipmentType, maxTasksPerDay, autoPopulate);
+    },
+    [weekOffset, equipmentType, maxTasksPerDay, autoPopulate, updateUrl]
+  );
 
-  const handleEquipmentTypeChange = useCallback((type: string) => {
-    setEquipmentType(type);
-    updateUrl(weekOffset, vesselId, type, maxTasksPerDay, autoPopulate);
-  }, [weekOffset, vesselId, maxTasksPerDay, autoPopulate, updateUrl]);
+  const handleEquipmentTypeChange = useCallback(
+    (type: string) => {
+      setEquipmentType(type);
+      updateUrl(weekOffset, vesselId, type, maxTasksPerDay, autoPopulate);
+    },
+    [weekOffset, vesselId, maxTasksPerDay, autoPopulate, updateUrl]
+  );
 
-  const handleMaxTasksChange = useCallback((value: number) => {
-    setMaxTasksPerDay(value);
-    updateUrl(weekOffset, vesselId, equipmentType, value, autoPopulate);
-  }, [weekOffset, vesselId, equipmentType, autoPopulate, updateUrl]);
+  const handleMaxTasksChange = useCallback(
+    (value: number) => {
+      setMaxTasksPerDay(value);
+      updateUrl(weekOffset, vesselId, equipmentType, value, autoPopulate);
+    },
+    [weekOffset, vesselId, equipmentType, autoPopulate, updateUrl]
+  );
 
-  const handleAutoPopulateChange = useCallback((enabled: boolean) => {
-    setAutoPopulate(enabled);
-    updateUrl(weekOffset, vesselId, equipmentType, maxTasksPerDay, enabled);
-  }, [weekOffset, vesselId, equipmentType, maxTasksPerDay, updateUrl]);
+  const handleAutoPopulateChange = useCallback(
+    (enabled: boolean) => {
+      setAutoPopulate(enabled);
+      updateUrl(weekOffset, vesselId, equipmentType, maxTasksPerDay, enabled);
+    },
+    [weekOffset, vesselId, equipmentType, maxTasksPerDay, updateUrl]
+  );
 
   useEffect(() => {
     if (initialTaskId && data) {
-      const task = [...(data.scheduledTasks || []), ...(data.blockedTasks || [])].find(t => t.id === initialTaskId);
+      const task = [...(data.scheduledTasks || []), ...(data.blockedTasks || [])].find(
+        (t) => t.id === initialTaskId
+      );
       if (task) {
         setSelectedTask(task);
       }
@@ -972,28 +1121,38 @@ export function ScheduleView() {
   const handleExportCsv = async () => {
     try {
       const exportParams = new URLSearchParams();
-      exportParams.set('format', 'csv');
-      if (filters.vesselIds?.length) {exportParams.set('vesselIds', filters.vesselIds.join(','));}
-      if (filters.equipmentTypes?.length) {exportParams.set('equipmentTypes', filters.equipmentTypes.join(','));}
-      if (filters.startDate) {exportParams.set('startDate', filters.startDate);}
-      if (filters.endDate) {exportParams.set('endDate', filters.endDate);}
+      exportParams.set("format", "csv");
+      if (filters.vesselIds?.length) {
+        exportParams.set("vesselIds", filters.vesselIds.join(","));
+      }
+      if (filters.equipmentTypes?.length) {
+        exportParams.set("equipmentTypes", filters.equipmentTypes.join(","));
+      }
+      if (filters.startDate) {
+        exportParams.set("startDate", filters.startDate);
+      }
+      if (filters.endDate) {
+        exportParams.set("endDate", filters.endDate);
+      }
 
       const response = await fetch(`/api/pdm/export/schedule?${exportParams.toString()}`, {
-        credentials: 'same-origin',
-        headers: { 'Accept': 'text/csv' },
+        credentials: "same-origin",
+        headers: { Accept: "text/csv" },
       });
-      if (!response.ok) {throw new Error('Export failed');}
+      if (!response.ok) {
+        throw new Error("Export failed");
+      }
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = `pdm-schedule-${format(start, 'yyyy-MM-dd')}.csv`;
+      link.download = `pdm-schedule-${format(start, "yyyy-MM-dd")}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to export schedule:', error);
+      console.error("Failed to export schedule:", error);
     }
   };
 
@@ -1013,7 +1172,7 @@ export function ScheduleView() {
   }, []);
 
   const telemetryStaleCount = useMemo(() => {
-    return (data?.blockedTasks || []).filter(t => t.blockReason === 'telemetry_stale').length;
+    return (data?.blockedTasks || []).filter((t) => t.blockReason === "telemetry_stale").length;
   }, [data?.blockedTasks]);
 
   const hasScheduledTasks = (data?.scheduledTasks?.length ?? 0) > 0;
@@ -1041,9 +1200,9 @@ export function ScheduleView() {
           equipmentTypes={filterOptions?.equipmentTypes ?? []}
           isLoading={filterOptionsLoading}
         />
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={handleExportCsv}
           className="flex-shrink-0"
           data-testid="btn-export-schedule"
@@ -1055,13 +1214,13 @@ export function ScheduleView() {
 
       <TelemetryStaleWarning count={telemetryStaleCount} />
 
-      <ScheduleKPIStrip 
-        kpis={data?.kpis} 
-        isLoading={isLoading} 
+      <ScheduleKPIStrip
+        kpis={data?.kpis}
+        isLoading={isLoading}
         onScheduledClick={hasScheduledTasks ? handleKpiScheduledClick : undefined}
         onUnassignedClick={hasBlockedTasks ? handleKpiUnassignedClick : undefined}
       />
-      
+
       {!isLoading && !hasScheduledTasks ? (
         <EmptyScheduleState hasBlockedTasks={hasBlockedTasks} />
       ) : (

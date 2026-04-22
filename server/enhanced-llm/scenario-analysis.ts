@@ -1,6 +1,6 @@
 /**
  * Enhanced LLM - Scenario Analysis
- * 
+ *
  * Scenario generation and ROI calculation.
  */
 
@@ -16,9 +16,8 @@ export async function generateScenarios(
 ): Promise<EnhancedAnalysisOutput["scenarios"]> {
   const scenarios: EnhancedAnalysisOutput["scenarios"] = [];
 
-  const criticalItems = (
-    context.data.workOrders?.filter((wo) => wo.priority === "critical") ?? []
-  ).length;
+  const criticalItems = (context.data.workOrders?.filter((wo) => wo.priority === "critical") ?? [])
+    .length;
   const urgentItems = (context.data.workOrders?.filter((wo) => wo.priority === "urgent") ?? [])
     .length;
 
@@ -97,10 +96,18 @@ export async function calculateROI(
 export function calculateConfidence(context: ReportContext, analysis: string): number {
   let confidence = 0.5;
 
-  if (context.data.telemetry && context.data.telemetry.length > 100) { confidence += 0.15; }
-  if (context.data.workOrders && context.data.workOrders.length > 10) { confidence += 0.15; }
-  if (context.intelligence?.vesselLearnings) { confidence += 0.1; }
-  if (context.intelligence?.historicalContext) { confidence += 0.1; }
+  if (context.data.telemetry && context.data.telemetry.length > 100) {
+    confidence += 0.15;
+  }
+  if (context.data.workOrders && context.data.workOrders.length > 10) {
+    confidence += 0.15;
+  }
+  if (context.intelligence?.vesselLearnings) {
+    confidence += 0.1;
+  }
+  if (context.intelligence?.historicalContext) {
+    confidence += 0.1;
+  }
 
   return Math.min(0.95, Math.round(confidence * 100) / 100);
 }
@@ -115,7 +122,12 @@ export function generateFallbackAnalysis(context: ReportContext): string {
     const critical = context.data.workOrders.filter((wo) => wo.priority === "critical").length;
     const urgent = context.data.workOrders.filter((wo) => wo.priority === "urgent").length;
 
-    parts.push(`## Work Orders Summary`, `- Critical: ${critical}`, `- Urgent: ${urgent}`, `- Total: ${context.data.workOrders.length}\n`);
+    parts.push(
+      `## Work Orders Summary`,
+      `- Critical: ${critical}`,
+      `- Urgent: ${urgent}`,
+      `- Total: ${context.data.workOrders.length}\n`
+    );
   }
 
   parts.push("Note: Advanced AI analysis unavailable. This is a basic statistical summary.");

@@ -34,38 +34,58 @@ import type { FieldMapping } from "../amos/field-mapping";
 // ============================================================================
 
 const MONTH_MAP: Record<string, string> = {
-  jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
-  jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
+  jan: "01",
+  feb: "02",
+  mar: "03",
+  apr: "04",
+  may: "05",
+  jun: "06",
+  jul: "07",
+  aug: "08",
+  sep: "09",
+  oct: "10",
+  nov: "11",
+  dec: "12",
 };
 
 /**
  * Parse SHIPMATE dates: DD-MMM-YYYY, DD/MM/YYYY, YYYY-MM-DD
  */
 const parseShipmateDate = (v: string): Date | null => {
-  if (!v || v === "" || v.toLowerCase() === "n/a") {return null;}
+  if (!v || v === "" || v.toLowerCase() === "n/a") {
+    return null;
+  }
   const trimmed = v.trim();
 
   // DD-MMM-YYYY (e.g., "15-Jan-2024")
   const dmy = trimmed.match(/^(\d{1,2})-(\w{3})-(\d{4})$/);
   if (dmy) {
     const month = MONTH_MAP[dmy[2].toLowerCase()];
-    if (month) {return new Date(`${dmy[3]}-${month}-${dmy[1].padStart(2, "0")}`);}
+    if (month) {
+      return new Date(`${dmy[3]}-${month}-${dmy[1].padStart(2, "0")}`);
+    }
   }
 
   // DD/MM/YYYY
   const slash = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (slash) {return new Date(`${slash[3]}-${slash[2].padStart(2, "0")}-${slash[1].padStart(2, "0")}`);}
+  if (slash) {
+    return new Date(`${slash[3]}-${slash[2].padStart(2, "0")}-${slash[1].padStart(2, "0")}`);
+  }
 
   // ISO YYYY-MM-DD
   const iso = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (iso) {return new Date(trimmed);}
+  if (iso) {
+    return new Date(trimmed);
+  }
 
   const d = new Date(trimmed);
   return isNaN(d.getTime()) ? null : d;
 };
 
 const parseNum = (v: string): number | null => {
-  if (!v || v === "" || v.toLowerCase() === "n/a") {return null;}
+  if (!v || v === "" || v.toLowerCase() === "n/a") {
+    return null;
+  }
   const n = Number(v.replace(/,/g, ""));
   return isNaN(n) ? null : n;
 };
@@ -75,7 +95,9 @@ const parseBool = (v: string): boolean => {
 };
 
 const clean = (v: string): string | null => {
-  if (!v || v.trim() === "" || v.toLowerCase() === "n/a") {return null;}
+  if (!v || v.trim() === "" || v.toLowerCase() === "n/a") {
+    return null;
+  }
   return v.trim();
 };
 
@@ -91,8 +113,14 @@ const mapCriticality = (v: string): string => {
     general: "low",
     "class critical": "critical",
     "class essential": "high",
-    a: "critical", b: "high", c: "medium", d: "low",
-    "1": "critical", "2": "high", "3": "medium", "4": "low",
+    a: "critical",
+    b: "high",
+    c: "medium",
+    d: "low",
+    "1": "critical",
+    "2": "high",
+    "3": "medium",
+    "4": "low",
   };
   return map[v.toLowerCase().trim()] || "medium";
 };
@@ -146,9 +174,13 @@ const mapMaintType = (v: string): string => {
  * Extract the parent by removing the last segment
  */
 const extractParentComponentNo = (v: string): string | null => {
-  if (!v || !v.includes(".")) {return null;}
+  if (!v || !v.includes(".")) {
+    return null;
+  }
   const parts = v.split(".");
-  if (parts.length <= 1) {return null;}
+  if (parts.length <= 1) {
+    return null;
+  }
   return parts.slice(0, -1).join(".");
 };
 
@@ -164,20 +196,28 @@ export const SHIPMATE_EQUIPMENT_MAP: FieldMapping[] = [
   { amosField: "Description", arusField: "description", transform: clean },
 
   // Hierarchy (dot notation: parent of "1.2.3" is "1.2")
-  { amosField: "Component No", arusField: "parentEquipmentId",
-    transform: (v) => extractParentComponentNo(v) },
-  { amosField: "Component Number", arusField: "parentEquipmentId",
-    transform: (v) => extractParentComponentNo(v) },
+  {
+    amosField: "Component No",
+    arusField: "parentEquipmentId",
+    transform: (v) => extractParentComponentNo(v),
+  },
+  {
+    amosField: "Component Number",
+    arusField: "parentEquipmentId",
+    transform: (v) => extractParentComponentNo(v),
+  },
 
   // Classification
   { amosField: "System", arusField: "systemType", transform: clean },
   { amosField: "System Name", arusField: "systemType", transform: clean },
   { amosField: "Equipment Type", arusField: "type", transform: clean },
   { amosField: "Component Type", arusField: "componentType", transform: clean },
-  { amosField: "Criticality", arusField: "criticalityLevel",
-    transform: (v) => mapCriticality(v) },
-  { amosField: "Class Criticality", arusField: "criticalityLevel",
-    transform: (v) => mapCriticality(v) },
+  { amosField: "Criticality", arusField: "criticalityLevel", transform: (v) => mapCriticality(v) },
+  {
+    amosField: "Class Criticality",
+    arusField: "criticalityLevel",
+    transform: (v) => mapCriticality(v),
+  },
 
   // Vessel / location
   { amosField: "Vessel", arusField: "_vesselName", transform: clean },
@@ -195,37 +235,47 @@ export const SHIPMATE_EQUIPMENT_MAP: FieldMapping[] = [
   { amosField: "Serial Number", arusField: "serialNumber", transform: clean },
 
   // Dates
-  { amosField: "Install Date", arusField: "installDate",
-    transform: (v) => parseShipmateDate(v) },
-  { amosField: "Installation Date", arusField: "installDate",
-    transform: (v) => parseShipmateDate(v) },
-  { amosField: "Last Maintenance Date", arusField: "lastMaintenanceDate",
-    transform: (v) => parseShipmateDate(v) },
-  { amosField: "Last Done Date", arusField: "lastMaintenanceDate",
-    transform: (v) => parseShipmateDate(v) },
+  { amosField: "Install Date", arusField: "installDate", transform: (v) => parseShipmateDate(v) },
+  {
+    amosField: "Installation Date",
+    arusField: "installDate",
+    transform: (v) => parseShipmateDate(v),
+  },
+  {
+    amosField: "Last Maintenance Date",
+    arusField: "lastMaintenanceDate",
+    transform: (v) => parseShipmateDate(v),
+  },
+  {
+    amosField: "Last Done Date",
+    arusField: "lastMaintenanceDate",
+    transform: (v) => parseShipmateDate(v),
+  },
 
   // Running hours
-  { amosField: "Running Hours", arusField: "runningHours",
-    transform: (v) => parseNum(v) },
-  { amosField: "Current Hours", arusField: "runningHours",
-    transform: (v) => parseNum(v) },
-  { amosField: "Total Running Hours", arusField: "runningHours",
-    transform: (v) => parseNum(v) },
+  { amosField: "Running Hours", arusField: "runningHours", transform: (v) => parseNum(v) },
+  { amosField: "Current Hours", arusField: "runningHours", transform: (v) => parseNum(v) },
+  { amosField: "Total Running Hours", arusField: "runningHours", transform: (v) => parseNum(v) },
 
   // Status
-  { amosField: "Status", arusField: "isActive",
-    transform: (v) => parseBool(v), defaultValue: true },
-  { amosField: "Active", arusField: "isActive",
-    transform: (v) => parseBool(v), defaultValue: true },
+  {
+    amosField: "Status",
+    arusField: "isActive",
+    transform: (v) => parseBool(v),
+    defaultValue: true,
+  },
+  {
+    amosField: "Active",
+    arusField: "isActive",
+    transform: (v) => parseBool(v),
+    defaultValue: true,
+  },
 
   // Specs (packed into JSONB)
-  { amosField: "Power (kW)", arusField: "_spec_powerKw",
-    transform: (v) => parseNum(v) },
-  { amosField: "Rated RPM", arusField: "_spec_ratedRpm",
-    transform: (v) => parseNum(v) },
+  { amosField: "Power (kW)", arusField: "_spec_powerKw", transform: (v) => parseNum(v) },
+  { amosField: "Rated RPM", arusField: "_spec_ratedRpm", transform: (v) => parseNum(v) },
   { amosField: "Capacity", arusField: "_spec_capacity", transform: clean },
-  { amosField: "Weight (kg)", arusField: "_spec_weightKg",
-    transform: (v) => parseNum(v) },
+  { amosField: "Weight (kg)", arusField: "_spec_weightKg", transform: (v) => parseNum(v) },
   { amosField: "Class No", arusField: "_spec_classNo", transform: clean },
   { amosField: "Drawing No", arusField: "_spec_drawingNo", transform: clean },
 ];
@@ -247,50 +297,40 @@ export const SHIPMATE_JOB_MAP: FieldMapping[] = [
   { amosField: "Component Name", arusField: "_equipmentName", transform: clean },
 
   // Classification
-  { amosField: "Job Type", arusField: "maintenanceType",
-    transform: (v) => mapMaintType(v) },
-  { amosField: "Maintenance Type", arusField: "maintenanceType",
-    transform: (v) => mapMaintType(v) },
-  { amosField: "Job Status", arusField: "status",
-    transform: (v) => mapJobStatus(v) },
-  { amosField: "Status", arusField: "status",
-    transform: (v) => mapJobStatus(v) },
-  { amosField: "Priority", arusField: "priority",
-    transform: (v) => parseNum(v) ?? 3 },
+  { amosField: "Job Type", arusField: "maintenanceType", transform: (v) => mapMaintType(v) },
+  {
+    amosField: "Maintenance Type",
+    arusField: "maintenanceType",
+    transform: (v) => mapMaintType(v),
+  },
+  { amosField: "Job Status", arusField: "status", transform: (v) => mapJobStatus(v) },
+  { amosField: "Status", arusField: "status", transform: (v) => mapJobStatus(v) },
+  { amosField: "Priority", arusField: "priority", transform: (v) => parseNum(v) ?? 3 },
 
   // Dates
-  { amosField: "Planned Date", arusField: "plannedStartDate",
-    transform: (v) => parseShipmateDate(v) },
-  { amosField: "Due Date", arusField: "dueDate",
-    transform: (v) => parseShipmateDate(v) },
-  { amosField: "Next Due Date", arusField: "dueDate",
-    transform: (v) => parseShipmateDate(v) },
-  { amosField: "Done Date", arusField: "completedAt",
-    transform: (v) => parseShipmateDate(v) },
-  { amosField: "Completed Date", arusField: "completedAt",
-    transform: (v) => parseShipmateDate(v) },
-  { amosField: "Created Date", arusField: "createdAt",
-    transform: (v) => parseShipmateDate(v) },
+  {
+    amosField: "Planned Date",
+    arusField: "plannedStartDate",
+    transform: (v) => parseShipmateDate(v),
+  },
+  { amosField: "Due Date", arusField: "dueDate", transform: (v) => parseShipmateDate(v) },
+  { amosField: "Next Due Date", arusField: "dueDate", transform: (v) => parseShipmateDate(v) },
+  { amosField: "Done Date", arusField: "completedAt", transform: (v) => parseShipmateDate(v) },
+  { amosField: "Completed Date", arusField: "completedAt", transform: (v) => parseShipmateDate(v) },
+  { amosField: "Created Date", arusField: "createdAt", transform: (v) => parseShipmateDate(v) },
 
   // Hours
-  { amosField: "Estimated Hours", arusField: "estimatedHours",
-    transform: (v) => parseNum(v) },
-  { amosField: "Actual Hours", arusField: "actualHours",
-    transform: (v) => parseNum(v) },
-  { amosField: "Man Hours", arusField: "actualHours",
-    transform: (v) => parseNum(v) },
+  { amosField: "Estimated Hours", arusField: "estimatedHours", transform: (v) => parseNum(v) },
+  { amosField: "Actual Hours", arusField: "actualHours", transform: (v) => parseNum(v) },
+  { amosField: "Man Hours", arusField: "actualHours", transform: (v) => parseNum(v) },
 
   // Running hours at time of job
-  { amosField: "Running Hours", arusField: "_runningHoursAtJob",
-    transform: (v) => parseNum(v) },
-  { amosField: "Done At Hours", arusField: "_runningHoursAtJob",
-    transform: (v) => parseNum(v) },
+  { amosField: "Running Hours", arusField: "_runningHoursAtJob", transform: (v) => parseNum(v) },
+  { amosField: "Done At Hours", arusField: "_runningHoursAtJob", transform: (v) => parseNum(v) },
 
   // Interval (for recurring jobs)
-  { amosField: "Interval (Days)", arusField: "_intervalDays",
-    transform: (v) => parseNum(v) },
-  { amosField: "Interval (Hours)", arusField: "_intervalHours",
-    transform: (v) => parseNum(v) },
+  { amosField: "Interval (Days)", arusField: "_intervalDays", transform: (v) => parseNum(v) },
+  { amosField: "Interval (Hours)", arusField: "_intervalHours", transform: (v) => parseNum(v) },
   { amosField: "Frequency", arusField: "_frequency", transform: clean },
 
   // Personnel
@@ -333,32 +373,33 @@ export const SHIPMATE_STORES_MAP: FieldMapping[] = [
   { amosField: "Drawing No", arusField: "_drawingNo", transform: clean },
 
   // Stock & cost
-  { amosField: "ROB", arusField: "_stock_quantityOnHand",
-    transform: (v) => parseNum(v) ?? 0 },
-  { amosField: "Remaining On Board", arusField: "_stock_quantityOnHand",
-    transform: (v) => parseNum(v) ?? 0 },
-  { amosField: "Qty On Hand", arusField: "_stock_quantityOnHand",
-    transform: (v) => parseNum(v) ?? 0 },
-  { amosField: "Min Stock", arusField: "minStockQty",
-    transform: (v) => parseNum(v) ?? 0 },
-  { amosField: "Minimum Stock", arusField: "minStockQty",
-    transform: (v) => parseNum(v) ?? 0 },
-  { amosField: "Max Stock", arusField: "maxStockQty",
-    transform: (v) => parseNum(v) ?? 0 },
-  { amosField: "Unit Price", arusField: "_stock_unitCost",
-    transform: (v) => parseNum(v) ?? 0 },
-  { amosField: "Cost", arusField: "standardCost",
-    transform: (v) => parseNum(v) ?? 0 },
-  { amosField: "Lead Time", arusField: "leadTimeDays",
-    transform: (v) => parseNum(v) ?? 7 },
-  { amosField: "Lead Time (Days)", arusField: "leadTimeDays",
-    transform: (v) => parseNum(v) ?? 7 },
+  { amosField: "ROB", arusField: "_stock_quantityOnHand", transform: (v) => parseNum(v) ?? 0 },
+  {
+    amosField: "Remaining On Board",
+    arusField: "_stock_quantityOnHand",
+    transform: (v) => parseNum(v) ?? 0,
+  },
+  {
+    amosField: "Qty On Hand",
+    arusField: "_stock_quantityOnHand",
+    transform: (v) => parseNum(v) ?? 0,
+  },
+  { amosField: "Min Stock", arusField: "minStockQty", transform: (v) => parseNum(v) ?? 0 },
+  { amosField: "Minimum Stock", arusField: "minStockQty", transform: (v) => parseNum(v) ?? 0 },
+  { amosField: "Max Stock", arusField: "maxStockQty", transform: (v) => parseNum(v) ?? 0 },
+  { amosField: "Unit Price", arusField: "_stock_unitCost", transform: (v) => parseNum(v) ?? 0 },
+  { amosField: "Cost", arusField: "standardCost", transform: (v) => parseNum(v) ?? 0 },
+  { amosField: "Lead Time", arusField: "leadTimeDays", transform: (v) => parseNum(v) ?? 7 },
+  { amosField: "Lead Time (Days)", arusField: "leadTimeDays", transform: (v) => parseNum(v) ?? 7 },
 
   // Location
-  { amosField: "Location", arusField: "_stock_location",
-    transform: clean, defaultValue: "MAIN" },
-  { amosField: "Store Location", arusField: "_stock_location",
-    transform: clean, defaultValue: "MAIN" },
+  { amosField: "Location", arusField: "_stock_location", transform: clean, defaultValue: "MAIN" },
+  {
+    amosField: "Store Location",
+    arusField: "_stock_location",
+    transform: clean,
+    defaultValue: "MAIN",
+  },
   { amosField: "Bin", arusField: "_stock_binLocation", transform: clean },
   { amosField: "Bin Location", arusField: "_stock_binLocation", transform: clean },
 
@@ -367,8 +408,7 @@ export const SHIPMATE_STORES_MAP: FieldMapping[] = [
   { amosField: "Component Number", arusField: "_equipmentId", transform: clean },
 
   // Criticality
-  { amosField: "Criticality", arusField: "criticality",
-    transform: (v) => mapCriticality(v) },
+  { amosField: "Criticality", arusField: "criticality", transform: (v) => mapCriticality(v) },
 
   // Supplier
   { amosField: "Supplier", arusField: "_supplier_name", transform: clean },
@@ -377,8 +417,12 @@ export const SHIPMATE_STORES_MAP: FieldMapping[] = [
   // Hazmat (SHIPMATE may include these)
   { amosField: "IMDG Class", arusField: "imoDgClass", transform: clean },
   { amosField: "UN Number", arusField: "unNumber", transform: clean },
-  { amosField: "Hazmat", arusField: "isHazmat",
-    transform: (v) => parseBool(v), defaultValue: false },
+  {
+    amosField: "Hazmat",
+    arusField: "isHazmat",
+    transform: (v) => parseBool(v),
+    defaultValue: false,
+  },
 
   // Vessel
   { amosField: "Vessel", arusField: "_vesselName", transform: clean },
@@ -398,10 +442,8 @@ export const SHIPMATE_CREW_CERT_MAP: FieldMapping[] = [
   { amosField: "Certificate Type", arusField: "certificateType", transform: clean },
   { amosField: "Certificate No", arusField: "certificateNumber", transform: clean },
   { amosField: "Issuing Authority", arusField: "issuingAuthority", transform: clean },
-  { amosField: "Issue Date", arusField: "issueDate",
-    transform: (v) => parseShipmateDate(v) },
-  { amosField: "Expiry Date", arusField: "expiryDate",
-    transform: (v) => parseShipmateDate(v) },
+  { amosField: "Issue Date", arusField: "issueDate", transform: (v) => parseShipmateDate(v) },
+  { amosField: "Expiry Date", arusField: "expiryDate", transform: (v) => parseShipmateDate(v) },
   { amosField: "Vessel", arusField: "_vesselName", transform: clean },
 ];
 
@@ -413,14 +455,15 @@ export const SHIPMATE_REST_HOURS_MAP: FieldMapping[] = [
   { amosField: "Employee No", arusField: "employeeId", required: true },
   { amosField: "Name", arusField: "employeeName", required: true },
   { amosField: "Rank", arusField: "rank", transform: clean },
-  { amosField: "Date", arusField: "date",
-    transform: (v) => parseShipmateDate(v), required: true },
-  { amosField: "Work Hours", arusField: "workHours",
-    transform: (v) => parseNum(v) },
-  { amosField: "Rest Hours", arusField: "restHours",
-    transform: (v) => parseNum(v) },
-  { amosField: "Violation", arusField: "hasViolation",
-    transform: (v) => parseBool(v), defaultValue: false },
+  { amosField: "Date", arusField: "date", transform: (v) => parseShipmateDate(v), required: true },
+  { amosField: "Work Hours", arusField: "workHours", transform: (v) => parseNum(v) },
+  { amosField: "Rest Hours", arusField: "restHours", transform: (v) => parseNum(v) },
+  {
+    amosField: "Violation",
+    arusField: "hasViolation",
+    transform: (v) => parseBool(v),
+    defaultValue: false,
+  },
   { amosField: "Violation Type", arusField: "violationType", transform: clean },
   { amosField: "Comments", arusField: "notes", transform: clean },
   { amosField: "Vessel", arusField: "_vesselName", transform: clean },
@@ -439,12 +482,18 @@ export type ShipmateModuleType =
 
 export function getShipmateMapping(moduleType: ShipmateModuleType): FieldMapping[] {
   switch (moduleType) {
-    case "pms_equipment": return SHIPMATE_EQUIPMENT_MAP;
-    case "pms_jobs": return SHIPMATE_JOB_MAP;
-    case "sps_stores": return SHIPMATE_STORES_MAP;
-    case "cms_crew_certs": return SHIPMATE_CREW_CERT_MAP;
-    case "cms_rest_hours": return SHIPMATE_REST_HOURS_MAP;
-    default: throw new Error(`Unknown SHIPMATE module: ${moduleType}`);
+    case "pms_equipment":
+      return SHIPMATE_EQUIPMENT_MAP;
+    case "pms_jobs":
+      return SHIPMATE_JOB_MAP;
+    case "sps_stores":
+      return SHIPMATE_STORES_MAP;
+    case "cms_crew_certs":
+      return SHIPMATE_CREW_CERT_MAP;
+    case "cms_rest_hours":
+      return SHIPMATE_REST_HOURS_MAP;
+    default:
+      throw new Error(`Unknown SHIPMATE module: ${moduleType}`);
   }
 }
 
@@ -477,35 +526,35 @@ export function normalizeShipmateHeaders(headers: string[]): string[] {
     "item description": "Part Name",
     "r.o.b": "ROB",
     "r.o.b.": "ROB",
-    "rob": "ROB",
+    rob: "ROB",
     "qty on board": "ROB",
     "remaining on board": "Remaining On Board",
-    "maker": "Maker",
+    maker: "Maker",
     "maker name": "Maker",
-    "manufacturer": "Manufacturer",
-    "mfr": "Manufacturer",
-    "model": "Model",
+    manufacturer: "Manufacturer",
+    mfr: "Manufacturer",
+    model: "Model",
     "model no": "Model No",
     "serial no": "Serial No",
     "serial number": "Serial Number",
-    "system": "System",
+    system: "System",
     "system name": "System Name",
-    "criticality": "Criticality",
+    criticality: "Criticality",
     "running hours": "Running Hours",
     "running hrs": "Running Hours",
     "run hrs": "Running Hours",
     "current hours": "Current Hours",
     "total running hours": "Total Running Hours",
-    "status": "Status",
-    "active": "Active",
-    "location": "Location",
-    "description": "Description",
+    status: "Status",
+    active: "Active",
+    location: "Location",
+    description: "Description",
     "install date": "Install Date",
     "installation date": "Installation Date",
     "job type": "Job Type",
     "maintenance type": "Maintenance Type",
     "job status": "Job Status",
-    "priority": "Priority",
+    priority: "Priority",
     "planned date": "Planned Date",
     "due date": "Due Date",
     "next due date": "Next Due Date",
@@ -517,51 +566,51 @@ export function normalizeShipmateHeaders(headers: string[]): string[] {
     "actual hours": "Actual Hours",
     "man hours": "Man Hours",
     "done at hours": "Done At Hours",
-    "remarks": "Remarks",
-    "comments": "Comments",
-    "findings": "Findings",
-    "category": "Category",
-    "group": "Group",
-    "uom": "UOM",
-    "unit": "Unit",
+    remarks: "Remarks",
+    comments: "Comments",
+    findings: "Findings",
+    category: "Category",
+    group: "Group",
+    uom: "UOM",
+    unit: "Unit",
     "min stock": "Min Stock",
     "minimum stock": "Minimum Stock",
     "max stock": "Max Stock",
     "unit price": "Unit Price",
-    "cost": "Cost",
+    cost: "Cost",
     "lead time": "Lead Time",
     "lead time (days)": "Lead Time (Days)",
-    "bin": "Bin",
+    bin: "Bin",
     "bin location": "Bin Location",
     "store location": "Store Location",
-    "supplier": "Supplier",
+    supplier: "Supplier",
     "supplier code": "Supplier Code",
     "imdg class": "IMDG Class",
     "un number": "UN Number",
-    "hazmat": "Hazmat",
-    "vessel": "Vessel",
+    hazmat: "Hazmat",
+    vessel: "Vessel",
     "vessel name": "Vessel Name",
     "vessel code": "Vessel Code",
     "employee no": "Employee No",
     "seafarer id": "Seafarer ID",
-    "name": "Name",
-    "rank": "Rank",
+    name: "Name",
+    rank: "Rank",
     "certificate name": "Certificate Name",
     "certificate type": "Certificate Type",
     "certificate no": "Certificate No",
     "issuing authority": "Issuing Authority",
     "issue date": "Issue Date",
     "expiry date": "Expiry Date",
-    "date": "Date",
+    date: "Date",
     "work hours": "Work Hours",
     "rest hours": "Rest Hours",
-    "violation": "Violation",
+    violation: "Violation",
     "violation type": "Violation Type",
-    "responsible": "Responsible",
+    responsible: "Responsible",
     "assigned to": "Assigned To",
     "power (kw)": "Power (kW)",
     "rated rpm": "Rated RPM",
-    "capacity": "Capacity",
+    capacity: "Capacity",
     "weight (kg)": "Weight (kg)",
     "class no": "Class No",
     "drawing no": "Drawing No",
@@ -577,7 +626,7 @@ export function normalizeShipmateHeaders(headers: string[]): string[] {
     "long description": "Long Description",
     "interval (days)": "Interval (Days)",
     "interval (hours)": "Interval (Hours)",
-    "frequency": "Frequency",
+    frequency: "Frequency",
   };
 
   return headers.map((h) => {

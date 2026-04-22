@@ -79,7 +79,6 @@ export interface ImportError {
 // ============================================================================
 
 class AmosImportService {
-
   async importFile(
     orgId: string,
     fileContent: string,
@@ -104,7 +103,12 @@ class AmosImportService {
         imported: 0,
         updated: 0,
         skipped: 0,
-        errors: [{ row: 0, message: `No data rows found in file. ${  parsed.warnings.join("; ") || "Check file format."}` }],
+        errors: [
+          {
+            row: 0,
+            message: `No data rows found in file. ${parsed.warnings.join("; ") || "Check file format."}`,
+          },
+        ],
         warnings: parsed.warnings,
         ragDocumentsCreated: 0,
         dryRun: options.dryRun ?? false,
@@ -163,16 +167,18 @@ class AmosImportService {
     let updated = 0;
     let skipped = 0;
 
-    const sortedRows = options.type === "equipment"
-      ? this.topologicalSort(validRows)
-      : validRows;
+    const sortedRows = options.type === "equipment" ? this.topologicalSort(validRows) : validRows;
 
     for (const row of sortedRows) {
       try {
         const result = await this.upsertRow(orgId, options.type, row.data, options.vesselId);
-        if (result === "inserted") {imported++;}
-        else if (result === "updated") {updated++;}
-        else {skipped++;}
+        if (result === "inserted") {
+          imported++;
+        } else if (result === "updated") {
+          updated++;
+        } else {
+          skipped++;
+        }
       } catch (err) {
         importErrors.push({
           row: row.rowNum,
@@ -185,7 +191,7 @@ class AmosImportService {
 
     // Step 6: Feed to RAG knowledge base
     let ragDocumentsCreated = 0;
-    if (options.feedToRag !== false && (imported + updated) > 0) {
+    if (options.feedToRag !== false && imported + updated > 0) {
       try {
         ragDocumentsCreated = await this.feedToRag(
           orgId,
@@ -195,7 +201,9 @@ class AmosImportService {
         );
       } catch (err) {
         logger.error("RAG ingestion failed (non-fatal)", { error: err });
-        parsed.warnings.push(`RAG ingestion failed: ${  err instanceof Error ? err.message : String(err)}`);
+        parsed.warnings.push(
+          `RAG ingestion failed: ${err instanceof Error ? err.message : String(err)}`
+        );
       }
     }
 
@@ -233,11 +241,16 @@ class AmosImportService {
 
   private getMappingForType(type: ImportType): FieldMapping[] {
     switch (type) {
-      case "equipment": return EQUIPMENT_FIELD_MAP;
-      case "work_orders": return WORK_ORDER_FIELD_MAP;
-      case "parts": return PARTS_FIELD_MAP;
-      case "maintenance_plans": return MAINTENANCE_PLAN_FIELD_MAP;
-      default: throw new Error(`Unknown import type: ${type}`);
+      case "equipment":
+        return EQUIPMENT_FIELD_MAP;
+      case "work_orders":
+        return WORK_ORDER_FIELD_MAP;
+      case "parts":
+        return PARTS_FIELD_MAP;
+      case "maintenance_plans":
+        return MAINTENANCE_PLAN_FIELD_MAP;
+      default:
+        throw new Error(`Unknown import type: ${type}`);
     }
   }
 
@@ -252,11 +265,16 @@ class AmosImportService {
     vesselId?: string
   ): Promise<"inserted" | "updated" | "skipped"> {
     switch (type) {
-      case "equipment": return this.upsertEquipment(orgId, data, vesselId);
-      case "work_orders": return this.upsertWorkOrder(orgId, data, vesselId);
-      case "parts": return this.upsertPart(orgId, data);
-      case "maintenance_plans": return this.upsertMaintenancePlan(orgId, data);
-      default: return "skipped";
+      case "equipment":
+        return this.upsertEquipment(orgId, data, vesselId);
+      case "work_orders":
+        return this.upsertWorkOrder(orgId, data, vesselId);
+      case "parts":
+        return this.upsertPart(orgId, data);
+      case "maintenance_plans":
+        return this.upsertMaintenancePlan(orgId, data);
+      default:
+        return "skipped";
     }
   }
 
@@ -269,7 +287,9 @@ class AmosImportService {
 
     for (const row of rows) {
       const id = row.data.id as string;
-      if (id) {idMap.set(id, row);}
+      if (id) {
+        idMap.set(id, row);
+      }
       const parentId = row.data.parentEquipmentId as string | undefined;
       if (!parentId) {
         roots.push(row);
@@ -294,7 +314,9 @@ class AmosImportService {
           next.push(row);
         }
       }
-      if (next.length === remaining.length) {break;}
+      if (next.length === remaining.length) {
+        break;
+      }
       remaining = next;
     }
 
@@ -324,11 +346,17 @@ class AmosImportService {
     }
 
     cleanData.orgId = orgId;
-    if (vesselId && !cleanData.vesselId) {cleanData.vesselId = vesselId;}
-    if (!cleanData.type) {cleanData.type = (cleanData.systemType as string) || "general";}
+    if (vesselId && !cleanData.vesselId) {
+      cleanData.vesselId = vesselId;
+    }
+    if (!cleanData.type) {
+      cleanData.type = (cleanData.systemType as string) || "general";
+    }
 
     const equipmentId = cleanData.id as string;
-    if (!equipmentId) {return "skipped";}
+    if (!equipmentId) {
+      return "skipped";
+    }
 
     // Check if exists
     const [existing] = await db
@@ -360,14 +388,20 @@ class AmosImportService {
   ): Promise<"inserted" | "updated" | "skipped"> {
     const cleanData: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {
-      if (!key.startsWith("_")) {cleanData[key] = value;}
+      if (!key.startsWith("_")) {
+        cleanData[key] = value;
+      }
     }
 
     cleanData.orgId = orgId;
-    if (vesselId && !cleanData.vesselId) {cleanData.vesselId = vesselId;}
+    if (vesselId && !cleanData.vesselId) {
+      cleanData.vesselId = vesselId;
+    }
 
     const woNumber = cleanData.woNumber as string;
-    if (!woNumber) {return "skipped";}
+    if (!woNumber) {
+      return "skipped";
+    }
 
     // Check if exists by woNumber
     const [existing] = await db
@@ -411,7 +445,9 @@ class AmosImportService {
 
     cleanData.orgId = orgId;
     const partNo = cleanData.partNo as string;
-    if (!partNo) {return "skipped";}
+    if (!partNo) {
+      return "skipped";
+    }
 
     // Check if exists
     const [existing] = await db
@@ -429,11 +465,14 @@ class AmosImportService {
         .where(and(eq(parts.partNo, partNo), eq(parts.orgId, orgId)));
       partId = existing.id;
     } else {
-      const [inserted] = await db.insert(parts).values({
-        ...cleanData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      } as any).returning({ id: parts.id });
+      const [inserted] = await db
+        .insert(parts)
+        .values({
+          ...cleanData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        } as any)
+        .returning({ id: parts.id });
       partId = inserted.id;
     }
 
@@ -444,22 +483,16 @@ class AmosImportService {
       const [existingStock] = await db
         .select({ id: stock.id })
         .from(stock)
-        .where(
-          and(
-            eq(stock.orgId, orgId),
-            eq(stock.partId, partId),
-            eq(stock.location, location)
-          )
-        )
+        .where(and(eq(stock.orgId, orgId), eq(stock.partId, partId), eq(stock.location, location)))
         .limit(1);
 
       if (existingStock) {
         await db
           .update(stock)
           .set({
-            quantityOnHand: stockData.quantityOnHand as number ?? 0,
-            unitCost: stockData.unitCost as number ?? 0,
-            binLocation: stockData.binLocation as string ?? null,
+            quantityOnHand: (stockData.quantityOnHand as number) ?? 0,
+            unitCost: (stockData.unitCost as number) ?? 0,
+            binLocation: (stockData.binLocation as string) ?? null,
             updatedAt: new Date(),
           })
           .where(eq(stock.id, existingStock.id));
@@ -469,9 +502,9 @@ class AmosImportService {
           partId,
           partNo,
           location,
-          quantityOnHand: stockData.quantityOnHand as number ?? 0,
-          unitCost: stockData.unitCost as number ?? 0,
-          binLocation: stockData.binLocation as string ?? null,
+          quantityOnHand: (stockData.quantityOnHand as number) ?? 0,
+          unitCost: (stockData.unitCost as number) ?? 0,
+          binLocation: (stockData.binLocation as string) ?? null,
           createdAt: new Date(),
           updatedAt: new Date(),
         } as any);
@@ -491,7 +524,9 @@ class AmosImportService {
     const cleanData: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(data)) {
-      if (!key.startsWith("_")) {cleanData[key] = value;}
+      if (!key.startsWith("_")) {
+        cleanData[key] = value;
+      }
     }
 
     cleanData.orgId = orgId;
@@ -546,7 +581,9 @@ class AmosImportService {
         break;
     }
 
-    if (ragDocuments.length === 0) {return 0;}
+    if (ragDocuments.length === 0) {
+      return 0;
+    }
 
     // Batch ingest into knowledge base
     let created = 0;
@@ -557,18 +594,20 @@ class AmosImportService {
         try {
           await ingestDocuments({
             orgId,
-            documents: [{
-              title: doc.title,
-              content: doc.content,
-              source: `AMOS Import: ${filename || type}`,
-              sourceType: "amos_import",
-              metadata: {
-                ...doc.metadata,
-                importType: type,
-                importedAt: new Date().toISOString(),
-                sourceFile: filename,
+            documents: [
+              {
+                title: doc.title,
+                content: doc.content,
+                source: `AMOS Import: ${filename || type}`,
+                sourceType: "amos_import",
+                metadata: {
+                  ...doc.metadata,
+                  importType: type,
+                  importedAt: new Date().toISOString(),
+                  sourceFile: filename,
+                },
               },
-            }],
+            ],
           });
           created++;
         } catch (err) {
@@ -601,7 +640,9 @@ class AmosImportService {
             }),
           });
 
-          if (res.ok) {created++;}
+          if (res.ok) {
+            created++;
+          }
         }
       } catch {
         logger.warn("Direct KB API call also failed, RAG ingestion skipped");
@@ -624,7 +665,9 @@ class AmosImportService {
 
     for (const row of rows) {
       const system = (row.systemType as string) || "General";
-      if (!bySystem.has(system)) {bySystem.set(system, []);}
+      if (!bySystem.has(system)) {
+        bySystem.set(system, []);
+      }
       bySystem.get(system)!.push(row);
     }
 
@@ -669,7 +712,9 @@ class AmosImportService {
 
     for (const row of rows) {
       const eqId = (row.equipmentId as string) || "unknown";
-      if (!byEquipment.has(eqId)) {byEquipment.set(eqId, []);}
+      if (!byEquipment.has(eqId)) {
+        byEquipment.set(eqId, []);
+      }
       byEquipment.get(eqId)!.push(row);
     }
 
@@ -741,13 +786,16 @@ class AmosImportService {
 
     for (const row of rows) {
       const cat = (row.category as string) || "General";
-      if (!byCategory.has(cat)) {byCategory.set(cat, []);}
+      if (!byCategory.has(cat)) {
+        byCategory.set(cat, []);
+      }
       byCategory.get(cat)!.push(row);
     }
 
     return [...byCategory.entries()].map(([category, items]) => {
-      const lines = items.map((part) =>
-        `- **${part.partNo}**: ${part.name}${part.manufacturer ? ` (${part.manufacturer})` : ""}${part.criticality ? ` [${part.criticality}]` : ""}`
+      const lines = items.map(
+        (part) =>
+          `- **${part.partNo}**: ${part.name}${part.manufacturer ? ` (${part.manufacturer})` : ""}${part.criticality ? ` [${part.criticality}]` : ""}`
       );
 
       return {
@@ -779,7 +827,9 @@ class AmosImportService {
         plan._tasks && `\nTasks:\n${plan._tasks}`,
         plan._requiredParts && `\nRequired Parts:\n${plan._requiredParts}`,
         plan._requiredSkills && `\nRequired Skills:\n${plan._requiredSkills}`,
-      ].filter(Boolean).join("\n"),
+      ]
+        .filter(Boolean)
+        .join("\n"),
       metadata: {
         entityType: "maintenance_plan",
         templateCode: plan.templateCode,

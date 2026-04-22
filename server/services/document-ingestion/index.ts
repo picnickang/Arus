@@ -1,27 +1,28 @@
-import { extractText } from './extractors';
-import { chunkText } from './chunker';
-import { embedChunks } from './embedder';
-import { summarizeDocument, generateKeywords } from './summarizer';
-import * as repository from './repository';
-import type { IngestDocumentParams, IngestDocumentResult, DocumentMetadata } from './types';
+import { extractText } from "./extractors";
+import { chunkText } from "./chunker";
+import { embedChunks } from "./embedder";
+import { summarizeDocument, generateKeywords } from "./summarizer";
+import * as repository from "./repository";
+import type { IngestDocumentParams, IngestDocumentResult, DocumentMetadata } from "./types";
 import {
   incrementKbDocumentsUploaded,
   incrementKbUploadBytes,
   incrementKbUploadInflight,
   decrementKbUploadInflight,
-} from '../../observability';
-import { semanticChunker } from '../rag/chunking/semantic-chunker';
-import { getRagSecurityServices } from '../rag/security';
+} from "../../observability";
+import { semanticChunker } from "../rag/chunking/semantic-chunker";
+import { getRagSecurityServices } from "../rag/security";
 
 export interface FileValidationOptions {
   skipValidation?: boolean;
 }
 
 export async function ingestDocument(
-  params: IngestDocumentParams, 
+  params: IngestDocumentParams,
   options: FileValidationOptions = {}
 ): Promise<IngestDocumentResult> {
-  const { orgId, fileName, fileBuffer, fileType, documentId, uploadedBy, equipmentId, openAiKey } = params;
+  const { orgId, fileName, fileBuffer, fileType, documentId, uploadedBy, equipmentId, openAiKey } =
+    params;
   const startTime = Date.now();
 
   // File validation (security hardening)
@@ -40,16 +41,18 @@ export async function ingestDocument(
           warnings: validation.warnings,
           quarantined: validation.quarantine,
         });
-        throw new Error(`File validation failed: ${validation.errors.join('; ')}`);
+        throw new Error(`File validation failed: ${validation.errors.join("; ")}`);
       }
 
       if (validation.warnings.length > 0) {
-        console.warn(`[DocIngestion] Validation warnings for ${fileName}: ${validation.warnings.join('; ')}`);
+        console.warn(
+          `[DocIngestion] Validation warnings for ${fileName}: ${validation.warnings.join("; ")}`
+        );
       }
 
       if (validation.quarantine) {
         console.warn(`[DocIngestion] File ${fileName} quarantined for review`);
-        throw new Error('File quarantined for security review');
+        throw new Error("File quarantined for security review");
       }
 
       // Log successful upload
@@ -62,15 +65,17 @@ export async function ingestDocument(
         success: true,
       });
     } catch (validationError: any) {
-      if (validationError.message.includes('File validation failed') || 
-          validationError.message.includes('quarantined')) {
+      if (
+        validationError.message.includes("File validation failed") ||
+        validationError.message.includes("quarantined")
+      ) {
         throw validationError;
       }
       // If security services aren't initialized, continue without validation in dev
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === "development") {
         console.warn(`[DocIngestion] Skipping file validation (security services not available)`);
       } else {
-        throw new Error('File validation unavailable');
+        throw new Error("File validation unavailable");
       }
     }
   }
@@ -83,10 +88,10 @@ export async function ingestDocument(
 
     const extractedText = await extractText(fileBuffer, fileType);
     if (!extractedText || extractedText.trim().length === 0) {
-      throw new Error('No text could be extracted from the document');
+      throw new Error("No text could be extracted from the document");
     }
 
-    if (['png', 'jpg', 'jpeg'].includes(fileType)) {
+    if (["png", "jpg", "jpeg"].includes(fileType)) {
       metadata.ocrUsed = true;
     }
 
@@ -98,18 +103,18 @@ export async function ingestDocument(
     try {
       const semanticChunks = semanticChunker.chunk(extractedText);
       if (semanticChunks.length > 0) {
-        textChunks = semanticChunks.map(c => c.content);
-        metadata.chunkingMethod = 'semantic';
+        textChunks = semanticChunks.map((c) => c.content);
+        metadata.chunkingMethod = "semantic";
         console.log(`[DocIngestion] Created ${textChunks.length} semantic chunks`);
       } else {
         textChunks = chunkText(extractedText);
-        metadata.chunkingMethod = 'basic';
+        metadata.chunkingMethod = "basic";
         console.log(`[DocIngestion] Created ${textChunks.length} basic chunks`);
       }
     } catch (chunkError) {
       console.warn(`[DocIngestion] Semantic chunking failed, using basic: ${chunkError}`);
       textChunks = chunkText(extractedText);
-      metadata.chunkingMethod = 'basic';
+      metadata.chunkingMethod = "basic";
       console.log(`[DocIngestion] Created ${textChunks.length} basic chunks (fallback)`);
     }
 
@@ -135,7 +140,12 @@ export async function ingestDocument(
         uploadedBy,
         equipmentId,
       });
-      await repository.recordDocumentCreation(doc.id, uploadedBy || null, fileBuffer.length, textChunks.length);
+      await repository.recordDocumentCreation(
+        doc.id,
+        uploadedBy || null,
+        fileBuffer.length,
+        textChunks.length
+      );
       console.log(`[DocIngestion] Created document: ${doc.id}`);
     }
 
@@ -145,13 +155,16 @@ export async function ingestDocument(
     const summarizationResult = await summarizeDocument(extractedText, { openAiKey });
     if (summarizationResult) {
       metadata.summary = summarizationResult.summary;
-      metadata.summaryTokens = summarizationResult.tokenCount.prompt + summarizationResult.tokenCount.completion;
-      
+      metadata.summaryTokens =
+        summarizationResult.tokenCount.prompt + summarizationResult.tokenCount.completion;
+
       const keywords = await generateKeywords(extractedText, 10);
       if (keywords.length > 0) {
         metadata.keywords = keywords;
       }
-      console.log(`[DocIngestion] Generated summary (${summarizationResult.summary.length} chars) and ${keywords.length} keywords`);
+      console.log(
+        `[DocIngestion] Generated summary (${summarizationResult.summary.length} chars) and ${keywords.length} keywords`
+      );
     }
 
     const processingTimeMs = Date.now() - startTime;
@@ -164,12 +177,12 @@ export async function ingestDocument(
     }
 
     console.log(`[DocIngestion] Completed in ${processingTimeMs}ms`);
-    incrementKbDocumentsUploaded(orgId, fileType, 'completed');
+    incrementKbDocumentsUploaded(orgId, fileType, "completed");
     incrementKbUploadBytes(orgId, fileType, fileBuffer.length);
 
     return { docId: doc.id, chunksCreated: textChunks.length, metadata };
   } catch (error) {
-    incrementKbDocumentsUploaded(orgId, fileType, 'failed');
+    incrementKbDocumentsUploaded(orgId, fileType, "failed");
     throw error;
   } finally {
     decrementKbUploadInflight(orgId);
@@ -181,26 +194,26 @@ export async function ingestDocument(
  */
 function getMimeTypeFromExtension(ext: string): string | undefined {
   const mimeMap: Record<string, string> = {
-    'pdf': 'application/pdf',
-    'doc': 'application/msword',
-    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'xls': 'application/vnd.ms-excel',
-    'txt': 'text/plain',
-    'md': 'text/markdown',
-    'csv': 'text/csv',
-    'png': 'image/png',
-    'jpg': 'image/jpeg',
-    'jpeg': 'image/jpeg',
-    'webp': 'image/webp',
+    pdf: "application/pdf",
+    doc: "application/msword",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    xls: "application/vnd.ms-excel",
+    txt: "text/plain",
+    md: "text/markdown",
+    csv: "text/csv",
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    webp: "image/webp",
   };
-  return mimeMap[ext.toLowerCase().replace('.', '')];
+  return mimeMap[ext.toLowerCase().replace(".", "")];
 }
 
 export { repository };
 export const documentRepository = repository;
-export { chunkText, chunkByParagraph } from './chunker';
-export { embedChunks } from './embedder';
-export { extractText, getExtractor, getSupportedTypes } from './extractors';
-export { summarizeDocument, generateKeywords } from './summarizer';
-export * from './types';
+export { chunkText, chunkByParagraph } from "./chunker";
+export { embedChunks } from "./embedder";
+export { extractText, getExtractor, getSupportedTypes } from "./extractors";
+export { summarizeDocument, generateKeywords } from "./summarizer";
+export * from "./types";

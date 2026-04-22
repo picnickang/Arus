@@ -4,11 +4,11 @@
  * SHA-256 hash chaining for tamper-evident audit records.
  */
 
-import { createHash } from 'node:crypto';
+import { createHash } from "node:crypto";
 
 /**
  * Compute SHA-256 hash of audit record content for chain integrity
- * 
+ *
  * IMPORTANT: changedFields is intentionally excluded from the hash chain.
  * The hash depends only on: prevHash, timestamp, entityType, entityId,
  * eventCategory, eventType, performedBy, previousState, newState.
@@ -37,7 +37,7 @@ export function computeAuditHash(
     newState: newState ? JSON.stringify(newState) : null,
   });
 
-  return createHash('sha256').update(hashInput).digest('hex');
+  return createHash("sha256").update(hashInput).digest("hex");
 }
 
 /**
@@ -48,7 +48,7 @@ export function computeLockKey(orgId: string): number {
   let hash = 0;
   for (let i = 0; i < orgId.length; i++) {
     const char = orgId.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash;
   }
   return Math.abs(hash);
@@ -62,11 +62,11 @@ export function parseJsonField(field: unknown): Record<string, unknown> | undefi
     return undefined;
   }
 
-  if (typeof field === 'object') {
+  if (typeof field === "object") {
     return field as Record<string, unknown>;
   }
 
-  if (typeof field === 'string') {
+  if (typeof field === "string") {
     try {
       return JSON.parse(field);
     } catch {
@@ -88,10 +88,12 @@ export function parseChangedFields(field: unknown): string[] | undefined {
     return field;
   }
 
-  if (typeof field === 'string') {
+  if (typeof field === "string") {
     try {
       const parsed = JSON.parse(field);
-      if (Array.isArray(parsed)) {return parsed;}
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
     } catch {
       return undefined;
     }

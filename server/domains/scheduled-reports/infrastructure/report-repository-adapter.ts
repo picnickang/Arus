@@ -3,13 +3,10 @@
  * Database persistence for report schedules and generated reports
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { db } from '../../../db.js';
-import { sql } from 'drizzle-orm';
-import type {
-  IReportScheduleRepository,
-  IGeneratedReportRepository,
-} from '../domain/ports.js';
+import { v4 as uuidv4 } from "uuid";
+import { db } from "../../../db.js";
+import { sql } from "drizzle-orm";
+import type { IReportScheduleRepository, IGeneratedReportRepository } from "../domain/ports.js";
 import type {
   ReportScheduleConfig,
   ReportScheduleInput,
@@ -18,7 +15,7 @@ import type {
   ReportFrequency,
   ReportFormat,
   ReportStatus,
-} from '../domain/types.js';
+} from "../domain/types.js";
 
 export class ReportScheduleRepositoryAdapter implements IReportScheduleRepository {
   async create(
@@ -28,7 +25,7 @@ export class ReportScheduleRepositoryAdapter implements IReportScheduleRepositor
   ): Promise<ReportScheduleConfig> {
     const id = uuidv4();
     const now = new Date();
-    const nextRunAt = this.calculateNextRun(input.cronExpression || '0 8 * * *');
+    const nextRunAt = this.calculateNextRun(input.cronExpression || "0 8 * * *");
 
     const record = {
       id,
@@ -36,9 +33,9 @@ export class ReportScheduleRepositoryAdapter implements IReportScheduleRepositor
       name: input.name,
       reportType: input.reportType,
       frequency: input.frequency,
-      cronExpression: input.cronExpression || '0 8 * * *',
-      timezone: input.timezone || 'UTC',
-      format: input.format || 'pdf',
+      cronExpression: input.cronExpression || "0 8 * * *",
+      timezone: input.timezone || "UTC",
+      format: input.format || "pdf",
       recipients: input.recipients,
       vesselIds: input.vesselIds || null,
       enabled: input.enabled !== false,
@@ -129,7 +126,9 @@ export class ReportScheduleRepositoryAdapter implements IReportScheduleRepositor
       SELECT * FROM report_schedules WHERE org_id = ${orgId} ORDER BY created_at DESC
     `);
 
-    if (!result.rows) {return [];}
+    if (!result.rows) {
+      return [];
+    }
     return result.rows.map((row: unknown) => this.mapRowToConfig(row));
   }
 
@@ -140,7 +139,9 @@ export class ReportScheduleRepositoryAdapter implements IReportScheduleRepositor
       ORDER BY next_run_at ASC
     `);
 
-    if (!result.rows) {return [];}
+    if (!result.rows) {
+      return [];
+    }
     return result.rows.map((row: unknown) => this.mapRowToConfig(row));
   }
 
@@ -164,8 +165,12 @@ export class ReportScheduleRepositoryAdapter implements IReportScheduleRepositor
       cronExpression: row.cron_expression,
       timezone: row.timezone,
       format: row.format as ReportFormat,
-      recipients: typeof row.recipients === 'string' ? JSON.parse(row.recipients) : row.recipients,
-      vesselIds: row.vessel_ids ? (typeof row.vessel_ids === 'string' ? JSON.parse(row.vessel_ids) : row.vessel_ids) : null,
+      recipients: typeof row.recipients === "string" ? JSON.parse(row.recipients) : row.recipients,
+      vesselIds: row.vessel_ids
+        ? typeof row.vessel_ids === "string"
+          ? JSON.parse(row.vessel_ids)
+          : row.vessel_ids
+        : null,
       enabled: Boolean(row.enabled),
       lastRunAt: row.last_run_at ? new Date(row.last_run_at) : null,
       nextRunAt: row.next_run_at ? new Date(row.next_run_at) : null,
@@ -184,7 +189,7 @@ export class ReportScheduleRepositoryAdapter implements IReportScheduleRepositor
 }
 
 export class GeneratedReportRepositoryAdapter implements IGeneratedReportRepository {
-  async create(report: Omit<GeneratedReport, 'id'>): Promise<GeneratedReport> {
+  async create(report: Omit<GeneratedReport, "id">): Promise<GeneratedReport> {
     const id = uuidv4();
     const record = { id, ...report };
 
@@ -209,15 +214,15 @@ export class GeneratedReportRepositoryAdapter implements IGeneratedReportReposit
     const values: any[] = [];
 
     if (updates.status !== undefined) {
-      setClauses.push(`status = $${  values.length + 1}`);
+      setClauses.push(`status = $${values.length + 1}`);
       values.push(updates.status);
     }
     if (updates.deliveredAt !== undefined) {
-      setClauses.push(`delivered_at = $${  values.length + 1}`);
+      setClauses.push(`delivered_at = $${values.length + 1}`);
       values.push(updates.deliveredAt);
     }
     if (updates.errorMessage !== undefined) {
-      setClauses.push(`error_message = $${  values.length + 1}`);
+      setClauses.push(`error_message = $${values.length + 1}`);
       values.push(updates.errorMessage);
     }
 
@@ -258,7 +263,9 @@ export class GeneratedReportRepositoryAdapter implements IGeneratedReportReposit
       LIMIT ${limit}
     `);
 
-    if (!result.rows) {return [];}
+    if (!result.rows) {
+      return [];
+    }
     return result.rows.map((row: unknown) => this.mapRowToReport(row));
   }
 
@@ -270,7 +277,9 @@ export class GeneratedReportRepositoryAdapter implements IGeneratedReportReposit
       LIMIT ${limit}
     `);
 
-    if (!result.rows) {return [];}
+    if (!result.rows) {
+      return [];
+    }
     return result.rows.map((row: unknown) => this.mapRowToReport(row));
   }
 
@@ -297,7 +306,7 @@ export class GeneratedReportRepositoryAdapter implements IGeneratedReportReposit
       generatedAt: new Date(row.generated_at),
       deliveredAt: row.delivered_at ? new Date(row.delivered_at) : null,
       expiresAt: new Date(row.expires_at),
-      metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata,
+      metadata: typeof row.metadata === "string" ? JSON.parse(row.metadata) : row.metadata,
       errorMessage: row.error_message,
     };
   }

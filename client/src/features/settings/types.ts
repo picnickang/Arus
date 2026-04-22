@@ -76,5 +76,5 @@ export const INTEGRATION_TYPES = [
   "openai",
 ] as const;
 
-export type SettingCategory = typeof SETTING_CATEGORIES[number];
-export type IntegrationType = typeof INTEGRATION_TYPES[number];
+export type SettingCategory = (typeof SETTING_CATEGORIES)[number];
+export type IntegrationType = (typeof INTEGRATION_TYPES)[number];

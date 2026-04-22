@@ -6,7 +6,7 @@
 export interface SchedulerRunEntity {
   id: string;
   orgId: string;
-  status: 'pending' | 'approved' | 'applied' | 'cancelled' | 'draft';
+  status: "pending" | "approved" | "applied" | "cancelled" | "draft";
   startDate: Date | null;
   endDate: Date | null;
   totalAssignments: number | null;
@@ -28,9 +28,9 @@ export interface ScheduleAssignmentEntity {
   crewId: string;
   vesselId: string;
   date: Date;
-  shift: 'day' | 'night' | 'full_day';
+  shift: "day" | "night" | "full_day";
   role: string | null;
-  status: 'proposed' | 'approved' | 'applied' | 'cancelled';
+  status: "proposed" | "approved" | "applied" | "cancelled";
   createdAt: Date;
 }
 
@@ -39,7 +39,7 @@ export interface ScheduleUnfilledEntity {
   runId: string;
   vesselId: string;
   date: Date;
-  shift: 'day' | 'night' | 'full_day';
+  shift: "day" | "night" | "full_day";
   role: string | null;
   reason: string | null;
   createdAt: Date;
@@ -47,7 +47,7 @@ export interface ScheduleUnfilledEntity {
 
 export interface CreateSchedulerRunCommand {
   orgId: string;
-  status?: 'pending' | 'approved' | 'applied' | 'cancelled' | 'draft';
+  status?: "pending" | "approved" | "applied" | "cancelled" | "draft";
   startDate?: Date | null;
   endDate?: Date | null;
   inputHash?: string | null;
@@ -58,7 +58,7 @@ export interface PlanScheduleCommand {
   from: string;
   days: number;
   vessels?: string[];
-  mode: 'dry_run' | 'simulate' | 'execute';
+  mode: "dry_run" | "simulate" | "execute";
 }
 
 export interface ApplyScheduleCommand {
@@ -68,7 +68,7 @@ export interface ApplyScheduleCommand {
 }
 
 export interface ConstraintViolation {
-  type: 'hard' | 'soft';
+  type: "hard" | "soft";
   code: string;
   message: string;
   crewId?: string;
@@ -99,7 +99,7 @@ export interface SimulateScheduleCommand {
   strategy?: SimulationStrategy;
 }
 
-export type SimulationStrategy = 'balanced' | 'minimize_changes' | 'maximize_rest' | 'fill_gaps';
+export type SimulationStrategy = "balanced" | "minimize_changes" | "maximize_rest" | "fill_gaps";
 
 export interface SimulationPreview {
   previewId: string;
@@ -121,9 +121,9 @@ export interface ProposedAssignment {
   vesselId: string;
   vesselName: string;
   date: string;
-  shift: 'day' | 'night' | 'full_day';
+  shift: "day" | "night" | "full_day";
   role: string | null;
-  changeType: 'add' | 'modify' | 'remove';
+  changeType: "add" | "modify" | "remove";
   originalAssignmentId?: string;
   confidence: number;
   reason: string;
@@ -131,7 +131,7 @@ export interface ProposedAssignment {
 
 export interface SimulationUnfilledShift {
   date: string;
-  shift: 'day' | 'night' | 'full_day';
+  shift: "day" | "night" | "full_day";
   vesselId: string;
   vesselName: string;
   role: string | null;

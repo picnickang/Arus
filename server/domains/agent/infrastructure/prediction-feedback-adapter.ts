@@ -22,9 +22,15 @@ export class PredictionFeedbackAdapter implements PredictionFeedbackPort {
         feedbackStatus: "pending",
       });
 
-      logger.info(LOG_CTX, `Recorded prediction feedback for prediction ${input.predictionId} (${input.feedbackType}, accurate=${input.isAccurate})`);
+      logger.info(
+        LOG_CTX,
+        `Recorded prediction feedback for prediction ${input.predictionId} (${input.feedbackType}, accurate=${input.isAccurate})`
+      );
     } catch (error: unknown) {
-      logger.warn(LOG_CTX, `Failed to record prediction feedback: ${error instanceof Error ? error.message : "unknown"}`);
+      logger.warn(
+        LOG_CTX,
+        `Failed to record prediction feedback: ${error instanceof Error ? error.message : "unknown"}`
+      );
     }
   }
 }

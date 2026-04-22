@@ -69,9 +69,13 @@ describe("Schematic Layout CRUD API", () => {
   it("PUT /zones/:id renames a zone", async () => {
     const { data } = await api("POST", `${layoutUrl}/zones`, { label: "Old Name" });
     const zone = data.zones.find((z: { label: string }) => z.label === "Old Name");
-    const { status, data: updated } = await api("PUT", `${layoutUrl}/zones/${zone.zoneId}`, { label: "New Name" });
+    const { status, data: updated } = await api("PUT", `${layoutUrl}/zones/${zone.zoneId}`, {
+      label: "New Name",
+    });
     expect(status).toBe(200);
-    expect(updated.zones.find((z: { zoneId: string }) => z.zoneId === zone.zoneId).label).toBe("New Name");
+    expect(updated.zones.find((z: { zoneId: string }) => z.zoneId === zone.zoneId).label).toBe(
+      "New Name"
+    );
   });
 
   it("DELETE /zones/:id removes zone, keeps orphaned slots", async () => {
@@ -112,19 +116,29 @@ describe("Schematic Layout CRUD API", () => {
   });
 
   it("DELETE /slots/:id succeeds with force=true even if equipment matched", async () => {
-    const { status: forced, data } = await api("DELETE", `${layoutUrl}/slots/gen1`, { force: true });
+    const { status: forced, data } = await api("DELETE", `${layoutUrl}/slots/gen1`, {
+      force: true,
+    });
     expect(forced).toBe(200);
     expect(data.slots.find((s: { slotId: string }) => s.slotId === "gen1")).toBeUndefined();
   });
 
   it("PUT /slots/:id/move moves a slot between zones", async () => {
     const { data: before } = await api("GET", layoutUrl);
-    expect(before.zones.find((z: { zoneId: string }) => z.zoneId === "engine-room").slotIds).toContain("me");
+    expect(
+      before.zones.find((z: { zoneId: string }) => z.zoneId === "engine-room").slotIds
+    ).toContain("me");
 
-    const { status, data } = await api("PUT", `${layoutUrl}/slots/me/move`, { targetZoneId: "bow-thruster" });
+    const { status, data } = await api("PUT", `${layoutUrl}/slots/me/move`, {
+      targetZoneId: "bow-thruster",
+    });
     expect(status).toBe(200);
-    expect(data.zones.find((z: { zoneId: string }) => z.zoneId === "bow-thruster").slotIds).toContain("me");
-    expect(data.zones.find((z: { zoneId: string }) => z.zoneId === "engine-room").slotIds).not.toContain("me");
+    expect(
+      data.zones.find((z: { zoneId: string }) => z.zoneId === "bow-thruster").slotIds
+    ).toContain("me");
+    expect(
+      data.zones.find((z: { zoneId: string }) => z.zoneId === "engine-room").slotIds
+    ).not.toContain("me");
   });
 
   it("POST /reset restores default layout", async () => {
@@ -139,10 +153,14 @@ describe("Schematic Layout CRUD API", () => {
   });
 
   it("returns 404 for non-existent zone/slot operations", async () => {
-    const { status: zoneNotFound } = await api("PUT", `${layoutUrl}/zones/nonexistent`, { label: "X" });
+    const { status: zoneNotFound } = await api("PUT", `${layoutUrl}/zones/nonexistent`, {
+      label: "X",
+    });
     expect(zoneNotFound).toBe(404);
 
-    const { status: slotNotFound } = await api("DELETE", `${layoutUrl}/slots/nonexistent`, { force: true });
+    const { status: slotNotFound } = await api("DELETE", `${layoutUrl}/slots/nonexistent`, {
+      force: true,
+    });
     expect(slotNotFound).toBe(404);
   });
 });

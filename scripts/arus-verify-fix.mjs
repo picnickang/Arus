@@ -65,7 +65,7 @@ for (const file of serverFiles) {
 if (badSchemaImports.length) {
   hasError = true;
   console.log("❌ Found direct schema imports (should use @shared/schema-runtime):");
-  badSchemaImports.forEach(f => console.log("   -", rel(f)));
+  badSchemaImports.forEach((f) => console.log("   -", rel(f)));
 } else {
   console.log("✅ All schema imports appear to use the runtime alias.");
 }
@@ -85,8 +85,8 @@ const skipFiles = [
 
 for (const file of [...serverFiles, ...walk(SHARED_DIR)]) {
   // Skip PostgreSQL schema definition files and build outputs
-  if (skipFiles.some(skip => file.endsWith(skip))) continue;
-  
+  if (skipFiles.some((skip) => file.endsWith(skip))) continue;
+
   const text = read(file);
   if (
     text.includes("gen_random_uuid(") ||
@@ -101,7 +101,7 @@ for (const file of [...serverFiles, ...walk(SHARED_DIR)]) {
 if (uuidBad.length) {
   hasError = true;
   console.log("❌ Found Postgres-only UUID usage in application code:");
-  uuidBad.forEach(f => console.log("   -", rel(f)));
+  uuidBad.forEach((f) => console.log("   -", rel(f)));
 } else {
   console.log("✅ No PostgreSQL-only UUIDs in application code (schema files are OK).");
 }
@@ -136,7 +136,7 @@ if (executeHits.length) {
   hasError = true;
   console.log("❌ db.execute detected. Ensure this is only used with libSQL client,");
   console.log("   and NOT in the local SQLite path / health checks.");
-  executeHits.forEach(f => console.log("   -", rel(f)));
+  executeHits.forEach((f) => console.log("   -", rel(f)));
 } else {
   console.log("✅ No db.execute calls found in server code.");
 }

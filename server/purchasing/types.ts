@@ -16,7 +16,14 @@ import type {
   InsertEmailQueue as InsertEmailQueueItem,
 } from "@shared/schema";
 
-export type PRStatus = "draft" | "submitted" | "approved" | "ordered" | "received" | "closed" | "cancelled";
+export type PRStatus =
+  | "draft"
+  | "submitted"
+  | "approved"
+  | "ordered"
+  | "received"
+  | "closed"
+  | "cancelled";
 
 export type PREventType =
   | "created"

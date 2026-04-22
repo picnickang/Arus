@@ -21,11 +21,10 @@ export function jsonExtract(column: string, path: string): any {
   if (isSQLiteMode()) {
     // SQLite: json_extract(column, '$.path')
     return sql`json_extract(${sql.raw(column)}, ${path})`;
-  } 
-    // PostgreSQL: column->>'key'
-    const key = path.replace("$.", "");
-    return sql`${sql.raw(column)}->>${key}`;
-  
+  }
+  // PostgreSQL: column->>'key'
+  const key = path.replace("$.", "");
+  return sql`${sql.raw(column)}->>${key}`;
 }
 
 /**
@@ -35,9 +34,8 @@ export function jsonExtract(column: string, path: string): any {
 export function jsonArrayAgg(column: string): any {
   if (isSQLiteMode()) {
     return sql`json_group_array(${sql.raw(column)})`;
-  } 
-    return sql`jsonb_agg(${sql.raw(column)})`;
-  
+  }
+  return sql`jsonb_agg(${sql.raw(column)})`;
 }
 
 /**
@@ -50,11 +48,10 @@ export function jsonBuildObject(pairs: Record<string, any>): any {
   if (isSQLiteMode()) {
     const args = entries.flatMap(([k, v]) => [sql.literal(k), v]);
     return sql`json_object(${sql.join(args, sql`, `)})`;
-  } 
-    // PostgreSQL: keys must be SQL string literals
-    const args = entries.flatMap(([k, v]) => [sql.literal(k), v]);
-    return sql`jsonb_build_object(${sql.join(args, sql`, `)})`;
-  
+  }
+  // PostgreSQL: keys must be SQL string literals
+  const args = entries.flatMap(([k, v]) => [sql.literal(k), v]);
+  return sql`jsonb_build_object(${sql.join(args, sql`, `)})`;
 }
 
 /**
@@ -114,10 +111,9 @@ export function ilike(column: any, pattern: string): any {
   if (isSQLiteMode()) {
     // SQLite: column LIKE pattern COLLATE NOCASE
     return sql`${column} LIKE ${pattern} COLLATE NOCASE`;
-  } 
-    // PostgreSQL: column ILIKE pattern
-    return sql`${column} ILIKE ${pattern}`;
-  
+  }
+  // PostgreSQL: column ILIKE pattern
+  return sql`${column} ILIKE ${pattern}`;
 }
 
 /**
@@ -134,10 +130,9 @@ export function arrayContains(column: any, value: string): any {
       SELECT 1 FROM json_each(${column}) 
       WHERE json_each.value = ${value}
     )`;
-  } 
-    // PostgreSQL: column @> ARRAY[value]
-    return sql`${column} @> ARRAY[${value}]::text[]`;
-  
+  }
+  // PostgreSQL: column @> ARRAY[value]
+  return sql`${column} @> ARRAY[${value}]::text[]`;
 }
 
 /**
@@ -156,14 +151,13 @@ export function jsonSet(column: any, path: string, value: any): any {
     const sqlitePath = path
       .replace(/^\{/, "$.") // Replace leading { with $.
       .replace(/\}$/, "") // Remove trailing }
-      .replaceAll(',', "."); // Replace commas with dots
+      .replaceAll(",", "."); // Replace commas with dots
 
     // SQLite json_set accepts raw values directly
     return sql`json_set(COALESCE(${column}, '{}'), ${sqlitePath}, ${value})`;
-  } 
-    // PostgreSQL: jsonb_set requires to_jsonb() wrapper for proper type conversion
-    return sql`jsonb_set(COALESCE(${column}, '{}'::jsonb), ${path}, to_jsonb(${value}))`;
-  
+  }
+  // PostgreSQL: jsonb_set requires to_jsonb() wrapper for proper type conversion
+  return sql`jsonb_set(COALESCE(${column}, '{}'::jsonb), ${path}, to_jsonb(${value}))`;
 }
 
 /**

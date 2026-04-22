@@ -1,6 +1,11 @@
-import type { HealthCollector, TelemetryHealthSummary, HealthStatus, ComponentHealth } from './types';
-import { batchWriterHealthCollector } from './collectors/batchWriter';
-import { circuitBreakerHealthCollector } from './collectors/circuitBreaker';
+import type {
+  HealthCollector,
+  TelemetryHealthSummary,
+  HealthStatus,
+  ComponentHealth,
+} from "./types";
+import { batchWriterHealthCollector } from "./collectors/batchWriter";
+import { circuitBreakerHealthCollector } from "./collectors/circuitBreaker";
 
 class TelemetryHealthAggregator {
   private collectors: HealthCollector[] = [];
@@ -10,12 +15,12 @@ class TelemetryHealthAggregator {
   }
 
   unregisterCollector(name: string): void {
-    this.collectors = this.collectors.filter(c => c.name !== name);
+    this.collectors = this.collectors.filter((c) => c.name !== name);
   }
 
   async getHealth(): Promise<TelemetryHealthSummary> {
     const components: ComponentHealth[] = await Promise.all(
-      this.collectors.map(c => c.collect())
+      this.collectors.map((c) => c.collect())
     );
 
     const overall = this.computeOverallStatus(components);
@@ -28,16 +33,24 @@ class TelemetryHealthAggregator {
   }
 
   private computeOverallStatus(components: ComponentHealth[]): HealthStatus {
-    if (components.length === 0) {return 'unknown';}
-    
-    const hasUnhealthy = components.some(c => c.status === 'unhealthy');
-    const hasDegraded = components.some(c => c.status === 'degraded');
-    const hasUnknown = components.some(c => c.status === 'unknown');
-    
-    if (hasUnhealthy) {return 'unhealthy';}
-    if (hasDegraded) {return 'degraded';}
-    if (hasUnknown) {return 'unknown';}
-    return 'healthy';
+    if (components.length === 0) {
+      return "unknown";
+    }
+
+    const hasUnhealthy = components.some((c) => c.status === "unhealthy");
+    const hasDegraded = components.some((c) => c.status === "degraded");
+    const hasUnknown = components.some((c) => c.status === "unknown");
+
+    if (hasUnhealthy) {
+      return "unhealthy";
+    }
+    if (hasDegraded) {
+      return "degraded";
+    }
+    if (hasUnknown) {
+      return "unknown";
+    }
+    return "healthy";
   }
 }
 
@@ -47,4 +60,4 @@ telemetryHealthAggregator.registerCollector(batchWriterHealthCollector);
 telemetryHealthAggregator.registerCollector(circuitBreakerHealthCollector);
 
 export { telemetryHealthAggregator, batchWriterHealthCollector, circuitBreakerHealthCollector };
-export * from './types';
+export * from "./types";

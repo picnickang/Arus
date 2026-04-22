@@ -60,11 +60,13 @@ export interface UseCertificationExpiryDataReturn {
   warningCount: number;
 }
 
-export function useCertificationExpiryData({ daysAhead = 90 }: UseCertificationExpiryDataProps = {}): UseCertificationExpiryDataReturn {
+export function useCertificationExpiryData({
+  daysAhead = 90,
+}: UseCertificationExpiryDataProps = {}): UseCertificationExpiryDataReturn {
   const { currentOrgId: orgId } = useOrganization();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   const [isExpanded, setIsExpanded] = useState(false);
   const [acknowledgeDialogOpen, setAcknowledgeDialogOpen] = useState(false);
   const [selectedCert, setSelectedCert] = useState<ExpiringCertification | null>(null);
@@ -84,13 +86,20 @@ export function useCertificationExpiryData({ daysAhead = 90 }: UseCertificationE
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crew-certifications/expiring"] });
-      toast({ title: "Alert Acknowledged", description: "The certification expiry alert has been acknowledged." });
+      toast({
+        title: "Alert Acknowledged",
+        description: "The certification expiry alert has been acknowledged.",
+      });
       setAcknowledgeDialogOpen(false);
       setSelectedCert(null);
       setAcknowledgeNotes("");
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message || "Failed to acknowledge alert", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message || "Failed to acknowledge alert",
+        variant: "destructive",
+      });
     },
   });
 
@@ -105,10 +114,19 @@ export function useCertificationExpiryData({ daysAhead = 90 }: UseCertificationE
     }
   }, [selectedCert, acknowledgeNotes, acknowledgeMutation]);
 
-  const markRenewed = useCallback((cert: ExpiringCertification) => {
-    acknowledgeMutation.mutate({ certId: cert.id, notes: `Renewed — ${cert.certificationName || "certification"}` });
-    toast({ title: "Marked as Renewed", description: `${cert.certificationName || "Certification"} has been marked as renewed. Update the expiry date in your records.` });
-  }, [acknowledgeMutation, toast]);
+  const markRenewed = useCallback(
+    (cert: ExpiringCertification) => {
+      acknowledgeMutation.mutate({
+        certId: cert.id,
+        notes: `Renewed — ${cert.certificationName || "certification"}`,
+      });
+      toast({
+        title: "Marked as Renewed",
+        description: `${cert.certificationName || "Certification"} has been marked as renewed. Update the expiry date in your records.`,
+      });
+    },
+    [acknowledgeMutation, toast]
+  );
 
   const unacknowledgedCerts = useMemo(() => {
     return (data?.certifications ?? []).filter((c) => !c.alertAcknowledged);

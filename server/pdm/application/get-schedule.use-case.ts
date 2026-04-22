@@ -1,5 +1,10 @@
-import type { PdmRepositoryPort, VesselBasic } from '../ports/pdm-repository.port.js';
-import type { PdmScheduleData, PdmScheduledTask, ScheduleKpis, BlockReason } from '../domain/types.js';
+import type { PdmRepositoryPort, VesselBasic } from "../ports/pdm-repository.port.js";
+import type {
+  PdmScheduleData,
+  PdmScheduledTask,
+  ScheduleKpis,
+  BlockReason,
+} from "../domain/types.js";
 
 export interface GetScheduleInput {
   orgId: string;
@@ -26,12 +31,12 @@ const MAX_VESSEL_HOURS_PER_DAY = 8;
 const MAX_BUFFER_DAYS = 5;
 const DEFAULT_MAX_TASKS_PER_DAY = 3;
 
-export type TelemetryFreshness = 'online' | 'delayed' | 'offline';
+export type TelemetryFreshness = "online" | "delayed" | "offline";
 
 export interface BufferFactors {
   confidence: number | null;
   telemetryFreshness: TelemetryFreshness;
-  severity: 'critical' | 'high' | 'medium' | 'low';
+  severity: "critical" | "high" | "medium" | "low";
 }
 
 export function computeBufferDays(factors: BufferFactors): number {
@@ -45,11 +50,11 @@ export function computeBufferDays(factors: BufferFactors): number {
     buffer += 1;
   }
 
-  if (factors.telemetryFreshness !== 'online') {
+  if (factors.telemetryFreshness !== "online") {
     buffer += 1;
   }
 
-  if (factors.severity === 'critical') {
+  if (factors.severity === "critical") {
     buffer += 1;
   }
 
@@ -65,9 +70,9 @@ export interface WindowInput {
   today: Date;
 }
 
-export function computeSchedulingWindow(input: WindowInput): { 
-  earliestStart: Date; 
-  preferredDate: Date; 
+export function computeSchedulingWindow(input: WindowInput): {
+  earliestStart: Date;
+  preferredDate: Date;
   latestFinish: Date;
   isBlockedByLeadTime: boolean;
 } {
@@ -82,15 +87,17 @@ export function computeSchedulingWindow(input: WindowInput): {
   const latestFinish = new Date(today);
   latestFinish.setDate(latestFinish.getDate() + rulP10Days - bufferDays);
 
-  const clampedPreferred = new Date(Math.max(earliestStart.getTime(), Math.min(preferredDate.getTime(), latestFinish.getTime())));
+  const clampedPreferred = new Date(
+    Math.max(earliestStart.getTime(), Math.min(preferredDate.getTime(), latestFinish.getTime()))
+  );
 
   const isBlockedByLeadTime = earliestStart > latestFinish;
 
-  return { 
-    earliestStart, 
-    preferredDate: isBlockedByLeadTime ? preferredDate : clampedPreferred, 
+  return {
+    earliestStart,
+    preferredDate: isBlockedByLeadTime ? preferredDate : clampedPreferred,
     latestFinish,
-    isBlockedByLeadTime
+    isBlockedByLeadTime,
   };
 }
 
@@ -101,21 +108,37 @@ export function determineBlockStatus(
   telemetryFreshness: TelemetryFreshness
 ): { isBlocked: boolean; reason?: BlockReason; details?: string } {
   if (task.confidence < 50) {
-    return { isBlocked: true, reason: 'insufficient_confidence', details: `Confidence ${task.confidence}% below threshold` };
+    return {
+      isBlocked: true,
+      reason: "insufficient_confidence",
+      details: `Confidence ${task.confidence}% below threshold`,
+    };
   }
 
-  if (telemetryFreshness === 'offline') {
-    return { isBlocked: true, reason: 'telemetry_stale', details: 'Equipment telemetry offline - prediction unreliable' };
+  if (telemetryFreshness === "offline") {
+    return {
+      isBlocked: true,
+      reason: "telemetry_stale",
+      details: "Equipment telemetry offline - prediction unreliable",
+    };
   }
 
   if (task.schedulingWindow.earliestStart > task.schedulingWindow.latestFinish) {
-    return { isBlocked: true, reason: 'scheduling_conflict', details: 'RUL window too short for prep time' };
+    return {
+      isBlocked: true,
+      reason: "scheduling_conflict",
+      details: "RUL window too short for prep time",
+    };
   }
 
-  const preferredKey = `${task.vesselId}-${task.schedulingWindow.preferredDate.toISOString().split('T')[0]}`;
+  const preferredKey = `${task.vesselId}-${task.schedulingWindow.preferredDate.toISOString().split("T")[0]}`;
   const currentHours = scheduledHoursPerDay.get(preferredKey) || 0;
   if (currentHours + task.estimatedDowntimeHours > maxHoursPerDay) {
-    return { isBlocked: true, reason: 'capacity', details: `Vessel at capacity (${maxHoursPerDay}h/day limit, ${currentHours}h scheduled)` };
+    return {
+      isBlocked: true,
+      reason: "capacity",
+      details: `Vessel at capacity (${maxHoursPerDay}h/day limit, ${currentHours}h scheduled)`,
+    };
   }
 
   return { isBlocked: false };
@@ -128,7 +151,11 @@ export function createGetScheduleUseCase(repository: PdmRepositoryPort): GetSche
       const startDate = input.startDate || today;
       const endDate = input.endDate || new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
 
-      let alerts = await repository.getActiveAlerts(input.orgId, input.vesselIds, input.equipmentTypes);
+      let alerts = await repository.getActiveAlerts(
+        input.orgId,
+        input.vesselIds,
+        input.equipmentTypes
+      );
       const vessels = await repository.getVessels(input.orgId);
       const maxTasksPerDay = input.maxTasksPerVesselPerDay ?? DEFAULT_MAX_TASKS_PER_DAY;
       const autoPopulate = input.autoPopulate !== false;
@@ -144,13 +171,15 @@ export function createGetScheduleUseCase(repository: PdmRepositoryPort): GetSche
 
       for (const alert of alerts) {
         const rulP10 = alert.rulConfidenceInterval?.lowDays || alert.rulEstimateDays || 7;
-        const rulP90 = alert.rulConfidenceInterval?.highDays || (alert.rulEstimateDays ? alert.rulEstimateDays * 1.5 : 14);
+        const rulP90 =
+          alert.rulConfidenceInterval?.highDays ||
+          (alert.rulEstimateDays ? alert.rulEstimateDays * 1.5 : 14);
         const rulP50 = alert.rulEstimateDays || Math.round((rulP10 + rulP90) / 2);
 
         // TODO: Integrate with telemetry heartbeat service to get actual freshness state
         // For now, default to 'online' - when telemetry integration is added, this should
         // query equipment heartbeat status from repository.getTelemetryFreshness(alert.equipmentId)
-        const telemetryFreshness: TelemetryFreshness = 'online';
+        const telemetryFreshness: TelemetryFreshness = "online";
 
         const bufferDays = computeBufferDays({
           confidence: alert.confidence,
@@ -191,7 +220,7 @@ export function createGetScheduleUseCase(repository: PdmRepositoryPort): GetSche
           schedulingWindow,
           estimatedDowntimeHours: estimatedDowntime,
           estimatedCost,
-          status: alert.workOrderId ? 'wo_created' : 'draft',
+          status: alert.workOrderId ? "wo_created" : "draft",
           recommendedActions: [alert.recommendedAction],
           evidenceChips: alert.evidenceChips,
           scheduledDate: schedulingWindow.preferredDate,
@@ -199,21 +228,32 @@ export function createGetScheduleUseCase(repository: PdmRepositoryPort): GetSche
           createdAt: alert.detectedAt,
         };
 
-        const blockCheck = determineBlockStatus(task, scheduledHoursPerDay, MAX_VESSEL_HOURS_PER_DAY, telemetryFreshness);
+        const blockCheck = determineBlockStatus(
+          task,
+          scheduledHoursPerDay,
+          MAX_VESSEL_HOURS_PER_DAY,
+          telemetryFreshness
+        );
         if (blockCheck.isBlocked) {
-          task.status = 'blocked';
+          task.status = "blocked";
           task.blockReason = blockCheck.reason;
           task.blockDetails = blockCheck.details;
           blockedTasks.push(task);
         } else {
-          task.status = task.workOrderId ? 'wo_created' : 'scheduled';
-          const dateKey = `${task.vesselId}-${schedulingWindow.preferredDate.toISOString().split('T')[0]}`;
-          scheduledHoursPerDay.set(dateKey, (scheduledHoursPerDay.get(dateKey) || 0) + task.estimatedDowntimeHours);
+          task.status = task.workOrderId ? "wo_created" : "scheduled";
+          const dateKey = `${task.vesselId}-${schedulingWindow.preferredDate.toISOString().split("T")[0]}`;
+          scheduledHoursPerDay.set(
+            dateKey,
+            (scheduledHoursPerDay.get(dateKey) || 0) + task.estimatedDowntimeHours
+          );
           scheduledTasks.push(task);
         }
       }
 
-      scheduledTasks.sort((a, b) => a.schedulingWindow.preferredDate.getTime() - b.schedulingWindow.preferredDate.getTime());
+      scheduledTasks.sort(
+        (a, b) =>
+          a.schedulingWindow.preferredDate.getTime() - b.schedulingWindow.preferredDate.getTime()
+      );
       blockedTasks.sort((a, b) => {
         const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
         return severityOrder[a.severity] - severityOrder[b.severity];
@@ -224,29 +264,37 @@ export function createGetScheduleUseCase(repository: PdmRepositoryPort): GetSche
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekEnd.getDate() + 6);
 
-      const tasksThisWeek = scheduledTasks.filter(t => {
-        const sd = t.nextScheduledDate ? new Date(t.nextScheduledDate) : t.schedulingWindow.preferredDate;
+      const tasksThisWeek = scheduledTasks.filter((t) => {
+        const sd = t.nextScheduledDate
+          ? new Date(t.nextScheduledDate)
+          : t.schedulingWindow.preferredDate;
         return sd >= weekStart && sd <= weekEnd;
       });
 
-      const unassignedHighRisk = blockedTasks.filter(t => t.severity === 'critical' || t.severity === 'high');
+      const unassignedHighRisk = blockedTasks.filter(
+        (t) => t.severity === "critical" || t.severity === "high"
+      );
 
-      const totalDowntimeHours = scheduledTasks.reduce((sum, t) => sum + t.estimatedDowntimeHours, 0);
+      const totalDowntimeHours = scheduledTasks.reduce(
+        (sum, t) => sum + t.estimatedDowntimeHours,
+        0
+      );
       const totalDowntimeCost = scheduledTasks.reduce((sum, t) => sum + t.estimatedCost, 0);
 
       const kpis: ScheduleKpis = {
         tasksScheduledThisWeek: tasksThisWeek.length,
-        scheduledDateRange: `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+        scheduledDateRange: `${weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${weekEnd.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
         unassignedHighRiskCount: unassignedHighRisk.length,
-        unassignedUrgency: unassignedHighRisk.length > 0 
-          ? `${unassignedHighRisk.filter(t => t.rulP10Days <= 7).length > 0 ? 'Tomorrow' : 'This week'}, ${unassignedHighRisk.length} days-start`
-          : 'None',
+        unassignedUrgency:
+          unassignedHighRisk.length > 0
+            ? `${unassignedHighRisk.filter((t) => t.rulP10Days <= 7).length > 0 ? "Tomorrow" : "This week"}, ${unassignedHighRisk.length} days-start`
+            : "None",
         expectedDowntimeForecastHours: totalDowntimeHours,
         expectedDowntimeForecastCost: totalDowntimeCost,
-        forecastPeriod: 'Next 7 Days',
+        forecastPeriod: "Next 7 Days",
         avoidedDowntimeHours: Math.round(totalDowntimeHours * 1.8),
         avoidedDowntimeCost: Math.round(totalDowntimeCost * 3.5),
-        avoidedPeriod: 'Last 7 Days',
+        avoidedPeriod: "Last 7 Days",
       };
 
       return {

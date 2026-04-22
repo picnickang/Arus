@@ -1,6 +1,6 @@
 /**
  * Async Handler Utilities
- * 
+ *
  * SonarQube Fix: Centralized async route handling to reduce try/catch duplication
  * Eliminates repeated error handling patterns across 40+ route files
  */
@@ -43,9 +43,13 @@ interface ErrorResponse {
  * Extract status code from various error types
  */
 function getErrorStatusCode(error: unknown): number {
-  if (error instanceof HttpError) {return error.statusCode;}
-  if (error instanceof z.ZodError) {return 400;}
-  
+  if (error instanceof HttpError) {
+    return error.statusCode;
+  }
+  if (error instanceof z.ZodError) {
+    return 400;
+  }
+
   const anyError = error as { status?: number; statusCode?: number };
   return anyError?.status || anyError?.statusCode || 500;
 }
@@ -54,8 +58,12 @@ function getErrorStatusCode(error: unknown): number {
  * Extract error message safely
  */
 function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) {return error.message;}
-  if (typeof error === "string") {return error;}
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === "string") {
+    return error;
+  }
   return "An unexpected error occurred";
 }
 
@@ -63,7 +71,9 @@ function getErrorMessage(error: unknown): string {
  * Extract error code if available
  */
 function getErrorCode(error: unknown): string | undefined {
-  if (error instanceof HttpError) {return error.code;}
+  if (error instanceof HttpError) {
+    return error.code;
+  }
   const anyError = error as { code?: string };
   return anyError?.code;
 }
@@ -73,7 +83,7 @@ function getErrorCode(error: unknown): string | undefined {
  */
 function formatErrorResponse(error: unknown, operation?: string): ErrorResponse {
   const message = operation ? `Failed to ${operation}` : getErrorMessage(error);
-  
+
   if (error instanceof z.ZodError) {
     return {
       message: operation ? `Validation error: ${operation}` : "Validation error",
@@ -91,13 +101,21 @@ function formatErrorResponse(error: unknown, operation?: string): ErrorResponse 
 /**
  * Log error with context
  */
-function logError(error: unknown, context: { operation?: string; path?: string; method?: string }): void {
+function logError(
+  error: unknown,
+  context: { operation?: string; path?: string; method?: string }
+): void {
   const statusCode = getErrorStatusCode(error);
-  
+
   if (statusCode >= 500) {
-    console.error(`[ERROR] ${context.method || "?"} ${context.path || "?"}: ${context.operation || "Operation failed"}`, error);
+    console.error(
+      `[ERROR] ${context.method || "?"} ${context.path || "?"}: ${context.operation || "Operation failed"}`,
+      error
+    );
   } else if (process.env.NODE_ENV === "development") {
-    console.warn(`[WARN] ${context.method || "?"} ${context.path || "?"}: ${getErrorMessage(error)}`);
+    console.warn(
+      `[WARN] ${context.method || "?"} ${context.path || "?"}: ${getErrorMessage(error)}`
+    );
   }
 }
 
@@ -105,13 +123,13 @@ type AsyncRouteHandler = (req: Request, res: Response, next: NextFunction) => Pr
 
 /**
  * Wrap async route handler with consistent error handling
- * 
+ *
  * @example
  * router.get("/items", asyncHandler(async (req, res) => {
  *   const items = await service.getItems();
  *   res.json(items);
  * }));
- * 
+ *
  * @example With operation name for better error messages
  * router.get("/items/:id", asyncHandler(async (req, res) => {
  *   const item = await service.getItem(req.params.id);
@@ -125,10 +143,10 @@ export function asyncHandler(handler: AsyncRouteHandler, operation?: string): Re
       await handler(req, res, next);
     } catch (error) {
       logError(error, { operation, path: req.path, method: req.method });
-      
+
       const statusCode = getErrorStatusCode(error);
       const response = formatErrorResponse(error, operation);
-      
+
       res.status(statusCode).json(response);
     }
   };
@@ -152,10 +170,10 @@ type ValidationSchema<T> = z.ZodType<T>;
 
 /**
  * Create a validated route handler that parses request body
- * 
+ *
  * @example
  * const createItemSchema = z.object({ name: z.string(), price: z.number() });
- * 
+ *
  * router.post("/items", validatedHandler(createItemSchema, async (req, res, data) => {
  *   const item = await service.createItem(data);
  *   res.status(201).json(item);
@@ -168,11 +186,11 @@ export function validatedHandler<T>(
 ): RequestHandler {
   return asyncHandler(async (req, res, next) => {
     const parseResult = schema.safeParse(req.body);
-    
+
     if (!parseResult.success) {
       throw parseResult.error;
     }
-    
+
     await handler(req, res, parseResult.data);
   }, operation);
 }

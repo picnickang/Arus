@@ -9,7 +9,6 @@ import {
   Package,
   Users,
   ClipboardCheck,
-
   Shield,
   Activity,
   Building,
@@ -56,7 +55,7 @@ export const routeResourceMap: Record<string, string> = {
   "/alerts": "alerts",
   "/governance-dashboard": "compliance_reports",
   "/diagnostics": "system_settings",
-  
+
   // Fleet
   "/fleet": "vessels",
   "/fleet-overview": "vessels",
@@ -64,7 +63,7 @@ export const routeResourceMap: Record<string, string> = {
   "/equipment": "vessels",
   "/certificates": "vessels",
   "/health": "vessels",
-  
+
   // Maintenance
   "/maint": "work_orders",
   "/work-orders": "work_orders",
@@ -74,14 +73,14 @@ export const routeResourceMap: Record<string, string> = {
   "/pdm-dashboard": "predictive_maintenance",
   "/pdm-platform": "predictive_maintenance",
   "/digital-twin": "predictive_maintenance",
-  
+
   // Crew
   "/crew": "crew_members",
   "/crew-management": "crew_members",
   "/crew-scheduler": "crew_schedules",
   "/schedule-planner": "crew_schedules",
   "/hours-of-rest": "rest_hours",
-  
+
   // Logistics / Inventory
   "/logistics": "inventory",
   "/inventory-management": "inventory",
@@ -91,7 +90,7 @@ export const routeResourceMap: Record<string, string> = {
   "/vendors": "suppliers",
   "/suppliers": "suppliers",
   "/service-providers": "suppliers",
-  
+
   // Records / Logbooks (consolidated)
   "/logs": "deck_logbook",
   "/logs/compliance": "compliance_reports",
@@ -106,7 +105,7 @@ export const routeResourceMap: Record<string, string> = {
   "/condition-monitoring-log": "condition_monitoring",
   "/rms-monitoring": "sensors",
   "/logs-compliance": "compliance_reports",
-  
+
   // Analytics
   "/equipment-intelligence": "predictive_maintenance",
   "/analytics": "analytics_dashboard",
@@ -114,7 +113,7 @@ export const routeResourceMap: Record<string, string> = {
   "/knowledge-base": "ai_reports",
   "/ai-sensor-audits": "sensors",
   "/optimization-tools": "predictive_maintenance",
-  
+
   // System
   "/system": "system_settings",
   "/configuration": "system_settings",
@@ -135,9 +134,26 @@ export const navigationCategories: NavigationCategory[] = [
     hubRoute: "/operations",
     description: "Dashboard, telemetry, and insights",
     children: [
-      { name: "Dashboard", href: "/dashboard", icon: Gauge, description: "Overview, metrics, alerts, telemetry & insights" },
-      { name: "Agent Findings", href: "/findings", icon: Brain, description: "Unified AI agent activity feed", badgeKey: "findings-pending" },
-      { name: "Daily Briefing", href: "/briefing", icon: FileText, description: "Automated shift-start summary", badgeKey: "briefing-new" },
+      {
+        name: "Dashboard",
+        href: "/dashboard",
+        icon: Gauge,
+        description: "Overview, metrics, alerts, telemetry & insights",
+      },
+      {
+        name: "Agent Findings",
+        href: "/findings",
+        icon: Brain,
+        description: "Unified AI agent activity feed",
+        badgeKey: "findings-pending",
+      },
+      {
+        name: "Daily Briefing",
+        href: "/briefing",
+        icon: FileText,
+        description: "Automated shift-start summary",
+        badgeKey: "briefing-new",
+      },
     ],
   },
   {
@@ -147,7 +163,12 @@ export const navigationCategories: NavigationCategory[] = [
     hubRoute: "/fleet",
     description: "Vessels and equipment management",
     children: [
-      { name: "Certificates", href: "/certificates", icon: Shield, description: "Vessel & equipment certificate registry" },
+      {
+        name: "Certificates",
+        href: "/certificates",
+        icon: Shield,
+        description: "Vessel & equipment certificate registry",
+      },
     ],
   },
   {
@@ -157,10 +178,30 @@ export const navigationCategories: NavigationCategory[] = [
     hubRoute: "/maint",
     description: "Work orders, schedules, and PDM",
     children: [
-      { name: "Work Orders", href: "/work-orders", icon: ClipboardCheck, description: "Work order management" },
-      { name: "Schedules", href: "/maintenance", icon: Wrench, description: "Maintenance schedules" },
-      { name: "Templates", href: "/maintenance-templates", icon: Clipboard, description: "Maintenance templates" },
-      { name: "Equipment Intelligence", href: "/equipment-intelligence", icon: Brain, description: "AI health, predictions & recommendations" },
+      {
+        name: "Work Orders",
+        href: "/work-orders",
+        icon: ClipboardCheck,
+        description: "Work order management",
+      },
+      {
+        name: "Schedules",
+        href: "/maintenance",
+        icon: Wrench,
+        description: "Maintenance schedules",
+      },
+      {
+        name: "Templates",
+        href: "/maintenance-templates",
+        icon: Clipboard,
+        description: "Maintenance templates",
+      },
+      {
+        name: "Equipment Intelligence",
+        href: "/equipment-intelligence",
+        icon: Brain,
+        description: "AI health, predictions & recommendations",
+      },
     ],
   },
   {
@@ -170,9 +211,24 @@ export const navigationCategories: NavigationCategory[] = [
     hubRoute: "/crew",
     description: "Crew management and scheduling",
     children: [
-      { name: "Crew Management", href: "/crew-management", icon: Users, description: "Crew roster and details" },
-      { name: "Schedule Planner", href: "/schedule-planner", icon: ClipboardCheck, description: "SmartPAL crew scheduling" },
-      { name: "Hours of Rest", href: "/hours-of-rest", icon: Activity, description: "STCW compliance tracking" },
+      {
+        name: "Crew Management",
+        href: "/crew-management",
+        icon: Users,
+        description: "Crew roster and details",
+      },
+      {
+        name: "Schedule Planner",
+        href: "/schedule-planner",
+        icon: ClipboardCheck,
+        description: "SmartPAL crew scheduling",
+      },
+      {
+        name: "Hours of Rest",
+        href: "/hours-of-rest",
+        icon: Activity,
+        description: "STCW compliance tracking",
+      },
     ],
   },
   {
@@ -182,9 +238,24 @@ export const navigationCategories: NavigationCategory[] = [
     hubRoute: "/logistics",
     description: "Inventory, purchasing, and suppliers",
     children: [
-      { name: "Inventory", href: "/inventory-management", icon: Boxes, description: "Parts, stock management & purchasing" },
-      { name: "Service Orders", href: "/service-orders", icon: Wrench, description: "Service order management" },
-      { name: "Vendors", href: "/vendors", icon: Building, description: "Suppliers & service providers" },
+      {
+        name: "Inventory",
+        href: "/inventory-management",
+        icon: Boxes,
+        description: "Parts, stock management & purchasing",
+      },
+      {
+        name: "Service Orders",
+        href: "/service-orders",
+        icon: Wrench,
+        description: "Service order management",
+      },
+      {
+        name: "Vendors",
+        href: "/vendors",
+        icon: Building,
+        description: "Suppliers & service providers",
+      },
     ],
   },
   {
@@ -194,11 +265,32 @@ export const navigationCategories: NavigationCategory[] = [
     hubRoute: "/logs",
     description: "Logbooks and compliance records",
     children: [
-      { name: "Compliance", href: "/logs/compliance", icon: Shield, description: "Compliance & governance" },
-      { name: "Deck Log", href: "/logs/deck", icon: Anchor, description: "Deck logbook & vessel track" },
+      {
+        name: "Compliance",
+        href: "/logs/compliance",
+        icon: Shield,
+        description: "Compliance & governance",
+      },
+      {
+        name: "Deck Log",
+        href: "/logs/deck",
+        icon: Anchor,
+        description: "Deck logbook & vessel track",
+      },
       { name: "Engine Log", href: "/logs/engine", icon: Wrench, description: "Engine room & fuel" },
-      { name: "Equipment Log", href: "/logs/equipment", icon: Activity, description: "Condition & decommissioned" },
-      { name: "RMS Monitoring", href: "/rms-monitoring", icon: Gauge, description: "Aquametro fuel monitoring & alerts", resource: "sensors" },
+      {
+        name: "Equipment Log",
+        href: "/logs/equipment",
+        icon: Activity,
+        description: "Condition & decommissioned",
+      },
+      {
+        name: "RMS Monitoring",
+        href: "/rms-monitoring",
+        icon: Gauge,
+        description: "Aquametro fuel monitoring & alerts",
+        resource: "sensors",
+      },
     ],
   },
   {
@@ -208,9 +300,24 @@ export const navigationCategories: NavigationCategory[] = [
     hubRoute: "/analytics",
     description: "Reports, AI, and performance tracking",
     children: [
-      { name: "Analytics Dashboard", href: "/analytics", icon: BarChart3, description: "Reports and analytics" },
-      { name: "Knowledge Base", href: "/knowledge-base", icon: BookOpen, description: "Documentation and RAG" },
-      { name: "Optimizer", href: "/optimization-tools", icon: Zap, description: "Maintenance optimization tools" },
+      {
+        name: "Analytics Dashboard",
+        href: "/analytics",
+        icon: BarChart3,
+        description: "Reports and analytics",
+      },
+      {
+        name: "Knowledge Base",
+        href: "/knowledge-base",
+        icon: BookOpen,
+        description: "Documentation and RAG",
+      },
+      {
+        name: "Optimizer",
+        href: "/optimization-tools",
+        icon: Zap,
+        description: "Maintenance optimization tools",
+      },
     ],
   },
   {
@@ -220,21 +327,56 @@ export const navigationCategories: NavigationCategory[] = [
     hubRoute: "/system",
     description: "Settings, admin, and sensors",
     children: [
-      { name: "Configuration", href: "/configuration", icon: Settings, description: "System configuration" },
-      { name: "Notifications", href: "/notifications", icon: Bell, description: "Email alerts, preferences & templates" },
-      { name: "Organizations", href: "/organization-management", icon: Building, description: "Multi-tenant settings" },
-      { name: "Sensor Templates", href: "/sensor-templates", icon: SlidersHorizontal, description: "Sensor templates" },
+      {
+        name: "Configuration",
+        href: "/configuration",
+        icon: Settings,
+        description: "System configuration",
+      },
+      {
+        name: "Notifications",
+        href: "/notifications",
+        icon: Bell,
+        description: "Email alerts, preferences & templates",
+      },
+      {
+        name: "Organizations",
+        href: "/organization-management",
+        icon: Building,
+        description: "Multi-tenant settings",
+      },
+      {
+        name: "Sensor Templates",
+        href: "/sensor-templates",
+        icon: SlidersHorizontal,
+        description: "Sensor templates",
+      },
       { name: "Sensors", href: "/sensors", icon: Activity, description: "Sensor management" },
-      { name: "StormGeo", href: "/stormgeo-settings", icon: Database, description: "Weather integration" },
-      { name: "System Admin", href: "/system-administration", icon: Shield, description: "Admin tools" },
-      { name: "System Health", href: "/diagnostics", icon: AlertCircle, description: "System health & diagnostics" },
+      {
+        name: "StormGeo",
+        href: "/stormgeo-settings",
+        icon: Database,
+        description: "Weather integration",
+      },
+      {
+        name: "System Admin",
+        href: "/system-administration",
+        icon: Shield,
+        description: "Admin tools",
+      },
+      {
+        name: "System Health",
+        href: "/diagnostics",
+        icon: AlertCircle,
+        description: "System health & diagnostics",
+      },
     ],
   },
 ];
 
 // Helper: Get category by ID
 export function getCategoryById(id: string): NavigationCategory | undefined {
-  return navigationCategories.find(cat => cat.id === id);
+  return navigationCategories.find((cat) => cat.id === id);
 }
 
 // Route migration map for legacy dock entries
@@ -257,7 +399,7 @@ export function migrateRoute(href: string): string {
 
 // Helper: Get all items for dock (flattened)
 export function getAllNavigationItems(): NavigationItem[] {
-  return navigationCategories.flatMap(cat => cat.children);
+  return navigationCategories.flatMap((cat) => cat.children);
 }
 
 // Legacy support: homePageGroups format (maps to categories)
@@ -267,10 +409,11 @@ export interface HomePageGroup {
   items: NavigationItem[];
 }
 
-export const homePageGroups: HomePageGroup[] = navigationCategories.map(cat => ({
+export const homePageGroups: HomePageGroup[] = navigationCategories.map((cat) => ({
   id: cat.id,
   name: cat.name,
-  items: cat.children.length > 0
-    ? cat.children
-    : [{ name: cat.name, href: cat.hubRoute, icon: cat.icon, description: cat.description }],
+  items:
+    cat.children.length > 0
+      ? cat.children
+      : [{ name: cat.name, href: cat.hubRoute, icon: cat.icon, description: cat.description }],
 }));

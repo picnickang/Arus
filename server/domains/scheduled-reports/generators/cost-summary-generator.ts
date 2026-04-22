@@ -3,19 +3,15 @@
  * Generates maintenance cost analysis report
  */
 
-import { vesselService, workOrderService } from '../../../repositories';
-import type { ICostSummaryGenerator } from '../domain/ports.js';
-import type {
-  CostSummaryData,
-  VesselCostSummary,
-  CategoryCost,
-} from '../domain/types.js';
-import { logger } from '../../../utils/logger.js';
+import { vesselService, workOrderService } from "../../../repositories";
+import type { ICostSummaryGenerator } from "../domain/ports.js";
+import type { CostSummaryData, VesselCostSummary, CategoryCost } from "../domain/types.js";
+import { logger } from "../../../utils/logger.js";
 
-const LOG_CTX = 'CostSummaryGenerator';
+const LOG_CTX = "CostSummaryGenerator";
 
 export class CostSummaryGenerator implements ICostSummaryGenerator {
-  readonly reportType = 'cost_summary' as const;
+  readonly reportType = "cost_summary" as const;
 
   async generate(orgId: string, vesselIds: string[] | null): Promise<CostSummaryData> {
     logger.info(LOG_CTX, `Generating cost summary report for org ${orgId}`);
@@ -37,7 +33,7 @@ export class CostSummaryGenerator implements ICostSummaryGenerator {
         period: { start: thirtyDaysAgo, end: now },
       };
     } catch (error) {
-      logger.error(LOG_CTX, 'Failed to generate cost summary report', String(error));
+      logger.error(LOG_CTX, "Failed to generate cost summary report", String(error));
       return {
         totalMaintenanceCost: 0,
         costByVessel: [],
@@ -65,7 +61,7 @@ export class CostSummaryGenerator implements ICostSummaryGenerator {
       for (const vessel of filteredVessels) {
         const workOrders = await workOrderService.getWorkOrdersWithDetails(undefined, orgId, {
           vesselId: vessel.id,
-          status: 'completed',
+          status: "completed",
         });
 
         let plannedCost = 0;
@@ -90,7 +86,7 @@ export class CostSummaryGenerator implements ICostSummaryGenerator {
 
       return summaries.sort((a, b) => b.actualCost - a.actualCost);
     } catch (error) {
-      logger.error(LOG_CTX, 'Failed to get vessel costs', String(error));
+      logger.error(LOG_CTX, "Failed to get vessel costs", String(error));
       return [];
     }
   }
@@ -111,13 +107,13 @@ export class CostSummaryGenerator implements ICostSummaryGenerator {
       for (const vessel of filteredVessels) {
         const workOrders = await workOrderService.getWorkOrdersWithDetails(undefined, orgId, {
           vesselId: vessel.id,
-          status: 'completed',
+          status: "completed",
         });
 
         for (const wo of workOrders) {
           const completedDate = wo.completedAt ? new Date(wo.completedAt) : null;
           if (completedDate && completedDate >= startDate && completedDate <= endDate) {
-            const category = (wo as any).category || 'Other';
+            const category = (wo as any).category || "Other";
             const cost = (wo as any).actualCost || (wo as any).estimatedCost || 0;
             categoryTotals[category] = (categoryTotals[category] || 0) + cost;
           }
@@ -134,7 +130,7 @@ export class CostSummaryGenerator implements ICostSummaryGenerator {
         }))
         .sort((a, b) => b.amount - a.amount);
     } catch (error) {
-      logger.error(LOG_CTX, 'Failed to get category costs', String(error));
+      logger.error(LOG_CTX, "Failed to get category costs", String(error));
       return [];
     }
   }

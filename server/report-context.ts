@@ -1,9 +1,9 @@
 /**
  * Report Context - Backward Compatibility Shim
- * 
+ *
  * This file re-exports all functions from the modularized report-context/ directory.
  * All functionality has been preserved in focused, maintainable modules.
- * 
+ *
  * @see server/report-context/index.ts for the modular implementation
  */
 

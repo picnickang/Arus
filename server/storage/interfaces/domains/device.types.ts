@@ -46,7 +46,10 @@ export interface IDeviceStorage {
   getDeviceRegistryEntries(): Promise<DeviceRegistry[]>;
   getDeviceRegistryEntry(id: string): Promise<DeviceRegistry | undefined>;
   createDeviceRegistryEntry(device: InsertDeviceRegistry): Promise<DeviceRegistry>;
-  updateDeviceRegistryEntry(id: string, device: Partial<InsertDeviceRegistry>): Promise<DeviceRegistry>;
+  updateDeviceRegistryEntry(
+    id: string,
+    device: Partial<InsertDeviceRegistry>
+  ): Promise<DeviceRegistry>;
   deleteDeviceRegistryEntry(id: string): Promise<void>;
 
   // Replay
@@ -55,17 +58,27 @@ export interface IDeviceStorage {
 
   // Edge Diagnostics
   createEdgeDiagnosticLog(log: InsertEdgeDiagnosticLog): Promise<EdgeDiagnosticLog>;
-  getEdgeDiagnosticLogs(deviceId?: string, orgId?: string, eventType?: string): Promise<EdgeDiagnosticLog[]>;
+  getEdgeDiagnosticLogs(
+    deviceId?: string,
+    orgId?: string,
+    eventType?: string
+  ): Promise<EdgeDiagnosticLog[]>;
 
   // Transport Settings
   getTransportSettings(): Promise<TransportSettings | undefined>;
   createTransportSettings(settings: InsertTransportSettings): Promise<TransportSettings>;
-  updateTransportSettings(id: string, settings: Partial<InsertTransportSettings>): Promise<TransportSettings>;
+  updateTransportSettings(
+    id: string,
+    settings: Partial<InsertTransportSettings>
+  ): Promise<TransportSettings>;
 
   // Transport Failover
   createTransportFailover(failover: InsertTransportFailover): Promise<TransportFailover>;
   getActiveTransportFailovers(deviceId: string): Promise<TransportFailover[]>;
-  updateTransportFailover(id: string, updates: Partial<InsertTransportFailover>): Promise<TransportFailover>;
+  updateTransportFailover(
+    id: string,
+    updates: Partial<InsertTransportFailover>
+  ): Promise<TransportFailover>;
 
   // Serial Port State
   getSerialPortState(deviceId: string, portPath: string): Promise<SerialPortState | undefined>;
@@ -73,5 +86,10 @@ export interface IDeviceStorage {
 
   // Calibration Cache
   createCalibrationCache(cache: InsertCalibrationCache): Promise<CalibrationCache>;
-  getCalibrationCache(equipmentType: string, manufacturer: string, model: string, sensorType: string): Promise<CalibrationCache | undefined>;
+  getCalibrationCache(
+    equipmentType: string,
+    manufacturer: string,
+    model: string,
+    sensorType: string
+  ): Promise<CalibrationCache | undefined>;
 }

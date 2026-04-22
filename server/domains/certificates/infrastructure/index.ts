@@ -3,4 +3,4 @@ export {
   CertificateEventRepositoryAdapter,
   certificateRepository,
   certificateEventRepository,
-} from './certificate-repository-adapter';
+} from "./certificate-repository-adapter";

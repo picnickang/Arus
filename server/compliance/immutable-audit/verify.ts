@@ -4,11 +4,11 @@
  * Verify the cryptographic integrity of the audit trail.
  */
 
-import { db } from '../../db';
-import { immutableAuditTrail } from '@shared/schema-runtime';
-import { eq, and, gte, lte } from 'drizzle-orm';
-import { computeAuditHash, parseJsonField } from './hashing';
-import type { ChainVerificationResult } from './types';
+import { db } from "../../db";
+import { immutableAuditTrail } from "@shared/schema-runtime";
+import { eq, and, gte, lte } from "drizzle-orm";
+import { computeAuditHash, parseJsonField } from "./hashing";
+import type { ChainVerificationResult } from "./types";
 
 /**
  * Verify the integrity of the audit chain

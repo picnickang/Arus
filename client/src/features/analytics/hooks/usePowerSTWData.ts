@@ -69,7 +69,11 @@ export interface UsePowerSTWDataReturn {
   setShowControls: (show: boolean) => void;
 }
 
-export function usePowerSTWData({ vesselId, startDate, endDate }: UsePowerSTWDataProps): UsePowerSTWDataReturn {
+export function usePowerSTWData({
+  vesselId,
+  startDate,
+  endDate,
+}: UsePowerSTWDataProps): UsePowerSTWDataReturn {
   const startDateStr = startDate?.toISOString();
   const endDateStr = endDate?.toISOString();
   const { toggles, setToggle } = useChartToggles("power-stw");
@@ -77,7 +81,12 @@ export function usePowerSTWData({ vesselId, startDate, endDate }: UsePowerSTWDat
   const [showControls, setShowControls] = useState(false);
 
   const { data, isLoading, error, isError } = useQuery<PowerSTWResponse>({
-    queryKey: ["/api/vessels", vesselId, "power-stw-analysis", { start: startDateStr, end: endDateStr }],
+    queryKey: [
+      "/api/vessels",
+      vesselId,
+      "power-stw-analysis",
+      { start: startDateStr, end: endDateStr },
+    ],
     enabled: !!vesselId,
     refetchInterval: 300000,
     staleTime: 120000,
@@ -85,7 +94,8 @@ export function usePowerSTWData({ vesselId, startDate, endDate }: UsePowerSTWDat
 
   const { data: fleetBenchmarks } = useQuery<FleetBenchmarksResponse>({
     queryKey: ["/api/fleet/benchmarks", { start: startDateStr, end: endDateStr }],
-    enabled: (toggles.showFleetAverage || toggles.showPercentiles) && !!startDateStr && !!endDateStr,
+    enabled:
+      (toggles.showFleetAverage || toggles.showPercentiles) && !!startDateStr && !!endDateStr,
     refetchInterval: 300000,
     staleTime: 120000,
   });
@@ -94,36 +104,47 @@ export function usePowerSTWData({ vesselId, startDate, endDate }: UsePowerSTWDat
   const powerUnit = preferences.power;
 
   const { enrichedData, avgDeviation } = useMemo(() => {
-    if (!data || data.actual.length === 0) {return { enrichedData: [], avgDeviation: 0 };}
+    if (!data || data.actual.length === 0) {
+      return { enrichedData: [], avgDeviation: 0 };
+    }
 
     let deviation = 0;
     if (data.baseline.length > 0 && data.actual.length > 0) {
       const deviations: number[] = [];
       for (const actualPoint of data.actual) {
-        const nearestBaseline = data.baseline.reduce((prev, curr) =>
-          Math.abs(curr.x - actualPoint.x) < Math.abs(prev.x - actualPoint.x) ? curr : prev
-        , data.baseline[0]);
+        const nearestBaseline = data.baseline.reduce(
+          (prev, curr) =>
+            Math.abs(curr.x - actualPoint.x) < Math.abs(prev.x - actualPoint.x) ? curr : prev,
+          data.baseline[0]
+        );
         if (nearestBaseline.y > 0) {
           const dev = ((actualPoint.y - nearestBaseline.y) / nearestBaseline.y) * 100;
           deviations.push(dev);
         }
       }
 
-      if (deviations.length > 0) {deviation = deviations.reduce((sum, d) => sum + d, 0) / deviations.length;}
+      if (deviations.length > 0) {
+        deviation = deviations.reduce((sum, d) => sum + d, 0) / deviations.length;
+      }
     }
 
-    const combinedData: { speed: number; actualPower?: number; baselinePower?: number }[] = data.actual.map((point) => ({
-      speed: point.x,
-      actualPower: point.y,
-      baselinePower: undefined,
-    }));
+    const combinedData: { speed: number; actualPower?: number; baselinePower?: number }[] =
+      data.actual.map((point) => ({
+        speed: point.x,
+        actualPower: point.y,
+        baselinePower: undefined,
+      }));
 
     for (const baselinePoint of data.baseline) {
       const existing = combinedData.find((d) => Math.abs(d.speed - baselinePoint.x) < 0.1);
       if (existing) {
         existing.baselinePower = baselinePoint.y;
       } else {
-        combinedData.push({ speed: baselinePoint.x, actualPower: undefined, baselinePower: baselinePoint.y });
+        combinedData.push({
+          speed: baselinePoint.x,
+          actualPower: undefined,
+          baselinePower: baselinePoint.y,
+        });
       }
     }
 
@@ -132,8 +153,10 @@ export function usePowerSTWData({ vesselId, startDate, endDate }: UsePowerSTWDat
     const convertedData = combinedData.map((d) => ({
       ...d,
       speed: convertSpeed(d.speed, "knots", speedUnit),
-      actualPower: d.actualPower === undefined ? undefined : convertPower(d.actualPower, "kW", powerUnit) ,
-      baselinePower: d.baselinePower === undefined ? undefined : convertPower(d.baselinePower, "kW", powerUnit) ,
+      actualPower:
+        d.actualPower === undefined ? undefined : convertPower(d.actualPower, "kW", powerUnit),
+      baselinePower:
+        d.baselinePower === undefined ? undefined : convertPower(d.baselinePower, "kW", powerUnit),
     }));
 
     const enriched: EnrichedDataPoint[] = convertedData.map((point) => {
@@ -143,7 +166,9 @@ export function usePowerSTWData({ vesselId, startDate, endDate }: UsePowerSTWDat
 
       return {
         ...point,
-        fleetAvg: benchmarkPoint ? convertPower(benchmarkPoint.fleetAvgPower, "kW", powerUnit) : undefined,
+        fleetAvg: benchmarkPoint
+          ? convertPower(benchmarkPoint.fleetAvgPower, "kW", powerUnit)
+          : undefined,
         p25: benchmarkPoint ? convertPower(benchmarkPoint.p25, "kW", powerUnit) : undefined,
         p50: benchmarkPoint ? convertPower(benchmarkPoint.p50, "kW", powerUnit) : undefined,
         p75: benchmarkPoint ? convertPower(benchmarkPoint.p75, "kW", powerUnit) : undefined,

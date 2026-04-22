@@ -24,11 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -76,28 +72,30 @@ const REASON_LABELS: Record<string, string> = {
   damaged_beyond_repair: "Damaged Beyond Repair",
 };
 
-const CONDITION_OPTIONS = [
-  "excellent",
-  "good",
-  "fair",
-  "poor",
-  "non_functional",
-];
+const CONDITION_OPTIONS = ["excellent", "good", "fair", "poor", "non_functional"];
 
 function formatCondition(condition: string): string {
-  return condition.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  return condition
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
 }
 
-function calculateDepreciation(purchaseValue: number | null | undefined, purchaseDate: Date | string | null | undefined): { bookValue: number; depreciationYears: number } {
-  if (!purchaseValue || !purchaseDate) {return { bookValue: 0, depreciationYears: 0 };}
-  
-  const purchaseDateObj = typeof purchaseDate === 'string' ? new Date(purchaseDate) : purchaseDate;
+function calculateDepreciation(
+  purchaseValue: number | null | undefined,
+  purchaseDate: Date | string | null | undefined
+): { bookValue: number; depreciationYears: number } {
+  if (!purchaseValue || !purchaseDate) {
+    return { bookValue: 0, depreciationYears: 0 };
+  }
+
+  const purchaseDateObj = typeof purchaseDate === "string" ? new Date(purchaseDate) : purchaseDate;
   const now = new Date();
   const yearsOwned = (now.getTime() - purchaseDateObj.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
   const usefulLifeYears = 10;
   const depreciationRate = 1 / usefulLifeYears;
   const depreciatedValue = purchaseValue * (1 - Math.min(yearsOwned * depreciationRate, 1));
-  
+
   return {
     bookValue: Math.max(0, depreciatedValue),
     depreciationYears: Math.round(yearsOwned * 10) / 10,
@@ -115,7 +113,9 @@ export function EquipmentDecommissionDialog({
   const [saleOpen, setSaleOpen] = useState(false);
   const [disposalOpen, setDisposalOpen] = useState(false);
 
-  const depreciation = equipment ? calculateDepreciation(equipment.purchaseValue, equipment.purchaseDate) : { bookValue: 0, depreciationYears: 0 };
+  const depreciation = equipment
+    ? calculateDepreciation(equipment.purchaseValue, equipment.purchaseDate)
+    : { bookValue: 0, depreciationYears: 0 };
 
   const form = useForm<DecommissionFormData>({
     resolver: zodResolver(decommissionFormSchema),
@@ -145,11 +145,14 @@ export function EquipmentDecommissionDialog({
 
   const selectedReason = form.watch("reason");
   const showSaleDetails = selectedReason === "sold";
-  const showDisposalDetails = selectedReason === "scrapped" || selectedReason === "damaged_beyond_repair";
+  const showDisposalDetails =
+    selectedReason === "scrapped" || selectedReason === "damaged_beyond_repair";
   const showReplacementLink = selectedReason === "replaced";
 
   const handleSubmit = (data: DecommissionFormData) => {
-    if (!equipment) {return;}
+    if (!equipment) {
+      return;
+    }
 
     const submissionData: InsertDecommissionEvent = {
       orgId: equipment.orgId,
@@ -161,7 +164,10 @@ export function EquipmentDecommissionDialog({
       notes: data.notes || undefined,
       saleDetails: showSaleDetails ? data.saleDetails : undefined,
       disposalDetails: showDisposalDetails ? data.disposalDetails : undefined,
-      replacementEquipmentId: showReplacementLink && data.replacementEquipmentId ? data.replacementEquipmentId : undefined,
+      replacementEquipmentId:
+        showReplacementLink && data.replacementEquipmentId
+          ? data.replacementEquipmentId
+          : undefined,
       bookValueAtRemoval: data.bookValueAtRemoval ?? depreciation.bookValue,
       residualValue: data.residualValue,
     };
@@ -169,7 +175,9 @@ export function EquipmentDecommissionDialog({
     onSubmit(equipment.id, submissionData);
   };
 
-  if (!equipment) {return null;}
+  if (!equipment) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -180,7 +188,8 @@ export function EquipmentDecommissionDialog({
             Decommission Equipment
           </DialogTitle>
           <DialogDescription>
-            Remove <span className="font-medium">{equipment.name}</span> from active service. This action will mark the equipment as inactive and record the decommission details.
+            Remove <span className="font-medium">{equipment.name}</span> from active service. This
+            action will mark the equipment as inactive and record the decommission details.
           </DialogDescription>
         </DialogHeader>
 
@@ -203,7 +212,9 @@ export function EquipmentDecommissionDialog({
                 <div>
                   <span className="text-muted-foreground">Est. Book Value:</span>{" "}
                   <span className="font-medium">{formatCurrency(depreciation.bookValue)}</span>
-                  <span className="text-xs text-muted-foreground ml-1">({depreciation.depreciationYears} yrs)</span>
+                  <span className="text-xs text-muted-foreground ml-1">
+                    ({depreciation.depreciationYears} yrs)
+                  </span>
                 </div>
               </>
             )}
@@ -219,7 +230,11 @@ export function EquipmentDecommissionDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Reason for Decommission *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} data-testid="select-decommission-reason">
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      data-testid="select-decommission-reason"
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select reason" />
@@ -260,7 +275,11 @@ export function EquipmentDecommissionDialog({
                   <FormItem>
                     <FormLabel>Authorized By</FormLabel>
                     <FormControl>
-                      <Input placeholder="Chief Engineer" {...field} data-testid="input-authorized-by" />
+                      <Input
+                        placeholder="Chief Engineer"
+                        {...field}
+                        data-testid="input-authorized-by"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -272,7 +291,11 @@ export function EquipmentDecommissionDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Final Condition</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""} data-testid="select-final-condition">
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || ""}
+                      data-testid="select-final-condition"
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select condition" />
@@ -294,12 +317,17 @@ export function EquipmentDecommissionDialog({
 
             {showSaleDetails && (
               <Collapsible open={saleOpen} onOpenChange={setSaleOpen} className="border rounded-md">
-                <CollapsibleTrigger className="flex items-center justify-between w-full p-4" data-testid="collapsible-sale-details">
+                <CollapsibleTrigger
+                  className="flex items-center justify-between w-full p-4"
+                  data-testid="collapsible-sale-details"
+                >
                   <div className="flex items-center gap-2">
                     <DollarSign className="h-4 w-4" />
                     <span className="font-medium">Sale Details</span>
                   </div>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${saleOpen ? "rotate-180" : ""}`} />
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${saleOpen ? "rotate-180" : ""}`}
+                  />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="px-4 pb-4 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -315,7 +343,11 @@ export function EquipmentDecommissionDialog({
                               placeholder="15000"
                               {...field}
                               value={field.value ?? ""}
-                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                              onChange={(e) =>
+                                field.onChange(
+                                  e.target.value ? parseFloat(e.target.value) : undefined
+                                )
+                              }
                               data-testid="input-sale-price"
                             />
                           </FormControl>
@@ -355,7 +387,11 @@ export function EquipmentDecommissionDialog({
                         <FormItem>
                           <FormLabel>Buyer Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Company or individual name" {...field} data-testid="input-buyer-name" />
+                            <Input
+                              placeholder="Company or individual name"
+                              {...field}
+                              data-testid="input-buyer-name"
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -368,7 +404,11 @@ export function EquipmentDecommissionDialog({
                         <FormItem>
                           <FormLabel>Buyer Contact</FormLabel>
                           <FormControl>
-                            <Input placeholder="Email or phone" {...field} data-testid="input-buyer-contact" />
+                            <Input
+                              placeholder="Email or phone"
+                              {...field}
+                              data-testid="input-buyer-contact"
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -380,13 +420,22 @@ export function EquipmentDecommissionDialog({
             )}
 
             {showDisposalDetails && (
-              <Collapsible open={disposalOpen} onOpenChange={setDisposalOpen} className="border rounded-md">
-                <CollapsibleTrigger className="flex items-center justify-between w-full p-4" data-testid="collapsible-disposal-details">
+              <Collapsible
+                open={disposalOpen}
+                onOpenChange={setDisposalOpen}
+                className="border rounded-md"
+              >
+                <CollapsibleTrigger
+                  className="flex items-center justify-between w-full p-4"
+                  data-testid="collapsible-disposal-details"
+                >
                   <div className="flex items-center gap-2">
                     <Trash2 className="h-4 w-4" />
                     <span className="font-medium">Disposal Details</span>
                   </div>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${disposalOpen ? "rotate-180" : ""}`} />
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${disposalOpen ? "rotate-180" : ""}`}
+                  />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="px-4 pb-4 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -420,7 +469,11 @@ export function EquipmentDecommissionDialog({
                         <FormItem>
                           <FormLabel>Disposal Vendor</FormLabel>
                           <FormControl>
-                            <Input placeholder="Vendor name" {...field} data-testid="input-disposal-vendor" />
+                            <Input
+                              placeholder="Vendor name"
+                              {...field}
+                              data-testid="input-disposal-vendor"
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -439,7 +492,11 @@ export function EquipmentDecommissionDialog({
                             placeholder="500"
                             {...field}
                             value={field.value ?? ""}
-                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                            onChange={(e) =>
+                              field.onChange(
+                                e.target.value ? parseFloat(e.target.value) : undefined
+                              )
+                            }
                             data-testid="input-disposal-cost"
                           />
                         </FormControl>
@@ -480,7 +537,11 @@ export function EquipmentDecommissionDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Link to Replacement</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ""} data-testid="select-replacement">
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || ""}
+                        data-testid="select-replacement"
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select replacement equipment" />
@@ -521,7 +582,9 @@ export function EquipmentDecommissionDialog({
                           placeholder={String(Math.round(depreciation.bookValue))}
                           {...field}
                           value={field.value ?? Math.round(depreciation.bookValue)}
-                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                          onChange={(e) =>
+                            field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)
+                          }
                           data-testid="input-book-value"
                         />
                       </FormControl>
@@ -541,7 +604,9 @@ export function EquipmentDecommissionDialog({
                           placeholder="0"
                           {...field}
                           value={field.value ?? ""}
-                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                          onChange={(e) =>
+                            field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)
+                          }
                           data-testid="input-residual-value"
                         />
                       </FormControl>
@@ -579,7 +644,12 @@ export function EquipmentDecommissionDialog({
               >
                 Cancel
               </Button>
-              <Button type="submit" variant="destructive" disabled={isPending} data-testid="button-submit-decommission">
+              <Button
+                type="submit"
+                variant="destructive"
+                disabled={isPending}
+                data-testid="button-submit-decommission"
+              >
                 {isPending ? "Processing..." : "Confirm Decommission"}
               </Button>
             </div>

@@ -1,4 +1,4 @@
-import type { TelemetryReading } from '../../telemetry-batch-writer';
+import type { TelemetryReading } from "../../telemetry-batch-writer";
 
 export interface DeadLetterEntry<T = unknown> {
   id: string;
@@ -17,11 +17,19 @@ export interface ITelemetryPersistence {
 }
 
 export interface IDeadLetterQueue<T = unknown> {
-  add(payload: T, error: string, source: string, metadata?: Record<string, unknown>): DeadLetterEntry<T>;
+  add(
+    payload: T,
+    error: string,
+    source: string,
+    metadata?: Record<string, unknown>
+  ): DeadLetterEntry<T>;
   get(id: string): DeadLetterEntry<T> | undefined;
   list(options?: { limit?: number; offset?: number; source?: string }): DeadLetterEntry<T>[];
   replay(id: string): Promise<{ success: boolean; entryId: string; error?: string }>;
-  replayAll(options?: { source?: string; limit?: number }): Promise<{ success: boolean; entryId: string; error?: string }[]>;
+  replayAll(options?: {
+    source?: string;
+    limit?: number;
+  }): Promise<{ success: boolean; entryId: string; error?: string }[]>;
   prune(): number;
   clear(): number;
   getMetrics(): DeadLetterQueueMetrics;

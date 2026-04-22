@@ -49,13 +49,21 @@ export function parseAmosCSV(
   const delimiter = options?.delimiter || (semicolons > commas ? ";" : ",");
 
   if (delimiter === ";" && commas > semicolons) {
-    warnings.push("Detected semicolon delimiter but file has more commas. Using semicolon as specified.");
+    warnings.push(
+      "Detected semicolon delimiter but file has more commas. Using semicolon as specified."
+    );
   }
 
   const lines = text.split("\n").filter((line) => line.trim() !== "");
 
   if (lines.length < 2) {
-    return { rows: [], headers: [], format: "csv", warnings: ["File has fewer than 2 lines"], rowCount: 0 };
+    return {
+      rows: [],
+      headers: [],
+      format: "csv",
+      warnings: ["File has fewer than 2 lines"],
+      rowCount: 0,
+    };
   }
 
   // Parse header row
@@ -72,7 +80,9 @@ export function parseAmosCSV(
     }
 
     if (values.length !== headers.length) {
-      warnings.push(`Row ${i + 1}: expected ${headers.length} columns, got ${values.length}. Padding/truncating.`);
+      warnings.push(
+        `Row ${i + 1}: expected ${headers.length} columns, got ${values.length}. Padding/truncating.`
+      );
     }
 
     const row: Record<string, string> = {};
@@ -164,7 +174,13 @@ export function parseAmosXML(content: string): ParseResult {
   }
 
   if (records.length === 0) {
-    return { rows: [], headers: [], format: "xml", warnings: ["Could not find record elements in XML"], rowCount: 0 };
+    return {
+      rows: [],
+      headers: [],
+      format: "xml",
+      warnings: ["Could not find record elements in XML"],
+      rowCount: 0,
+    };
   }
 
   const allHeaders = new Set<string>();
@@ -183,10 +199,7 @@ export function parseAmosXML(content: string): ParseResult {
 
     // Also extract attributes from the record element itself
     const attrRegex = /(\w+)="([^"]*)"/g;
-    const recordStart = text.substring(
-      text.indexOf(record) - 200,
-      text.indexOf(record)
-    );
+    const recordStart = text.substring(text.indexOf(record) - 200, text.indexOf(record));
     for (const attrMatch of recordStart.matchAll(attrRegex)) {
       const attrName = attrMatch[1].toUpperCase();
       if (!row[attrName]) {

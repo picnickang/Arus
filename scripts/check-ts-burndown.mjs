@@ -19,11 +19,10 @@ import { resolve, relative } from "node:path";
 const BASELINE_PATH = resolve("scripts/ts-burndown-baseline.json");
 
 function runTsc() {
-  const res = spawnSync(
-    "npx",
-    ["--no-install", "tsc", "--noEmit", "--pretty", "false"],
-    { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
-  );
+  const res = spawnSync("npx", ["--no-install", "tsc", "--noEmit", "--pretty", "false"], {
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  });
   // tsc exits 1 when errors are present — that's fine for our purposes.
   return (res.stdout || "") + (res.stderr || "");
 }
@@ -55,8 +54,7 @@ function summarize(errors) {
     const dir = e.file.split("/").slice(0, 2).join("/");
     byDir.set(dir, (byDir.get(dir) || 0) + 1);
   }
-  const top = (m, n = 10) =>
-    [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
+  const top = (m, n = 10) => [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
   return {
     byCode: Object.fromEntries(top(byCode)),
     byTopFiles: Object.fromEntries(top(byFile, 15)),
@@ -110,27 +108,23 @@ async function main() {
   try {
     baseline = JSON.parse(await readFile(BASELINE_PATH, "utf8"));
   } catch {
-    console.warn(
-      "\n⚠️  No baseline found. Run with --write-baseline to create one.",
-    );
+    console.warn("\n⚠️  No baseline found. Run with --write-baseline to create one.");
     return;
   }
 
   if (total > baseline.total) {
     const delta = total - baseline.total;
     console.error(
-      `\n❌ TypeScript error count INCREASED: ${baseline.total} → ${total} (+${delta})`,
+      `\n❌ TypeScript error count INCREASED: ${baseline.total} → ${total} (+${delta})`
     );
-    console.error(
-      "Fix the regression, or — if intentional — update the baseline:",
-    );
+    console.error("Fix the regression, or — if intentional — update the baseline:");
     console.error("  node scripts/check-ts-burndown.mjs --write-baseline");
     process.exit(1);
   }
 
   if (total < baseline.total) {
     console.log(
-      `\n✓ Reduction: ${baseline.total} → ${total} (-${baseline.total - total}). Consider regenerating the baseline.`,
+      `\n✓ Reduction: ${baseline.total} → ${total} (-${baseline.total - total}). Consider regenerating the baseline.`
     );
   } else {
     console.log("\n✓ TypeScript error count at baseline.");

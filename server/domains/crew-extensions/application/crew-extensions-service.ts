@@ -8,22 +8,22 @@ import type {
   IScheduleAssignmentRepository,
   ICrewExtensionsEventPublisher,
   ISchedulePlannerReadModel,
-} from '../domain/ports.js';
+} from "../domain/ports.js";
 import type {
   SchedulerRunEntity,
   ScheduleAssignmentEntity,
   PlanScheduleCommand,
   ApplyScheduleCommand,
   CompliancePreviewResult,
-} from '../domain/types.js';
-import type { SchedulePlannerView, SchedulePlannerFilter } from '../domain/read-models.js';
+} from "../domain/types.js";
+import type { SchedulePlannerView, SchedulePlannerFilter } from "../domain/read-models.js";
 import {
   createEventId,
   type SchedulerRunCreatedEvent,
   type SchedulerRunAppliedEvent,
   type SchedulerRunCancelledEvent,
   type HoRGeneratedFromScheduleEvent,
-} from '../domain/events.js';
+} from "../domain/events.js";
 
 export interface CrewExtensionsServiceDeps {
   schedulerRunRepository: ISchedulerRunRepository;
@@ -48,15 +48,17 @@ export class CrewExtensionsApplicationService {
     orgId: string
   ): Promise<{ run: SchedulerRunEntity; assignments: ScheduleAssignmentEntity[] } | undefined> {
     const run = await this.deps.schedulerRunRepository.findById(id, orgId);
-    if (!run) {return undefined;}
+    if (!run) {
+      return undefined;
+    }
 
     const assignments = await this.deps.assignmentRepository.findByRunId(id);
     return { run, assignments };
   }
 
   async planSchedule(command: PlanScheduleCommand, userId?: string): Promise<SchedulerRunEntity> {
-    const { planAndMaybeExecute } = await import('../../../scheduler/scheduler-controller.js');
-    
+    const { planAndMaybeExecute } = await import("../../../scheduler/scheduler-controller.js");
+
     const result = await planAndMaybeExecute({
       orgId: command.orgId,
       from: command.from,
@@ -66,7 +68,7 @@ export class CrewExtensionsApplicationService {
     });
 
     if (!result.runId) {
-      throw new Error('Failed to create scheduler run');
+      throw new Error("Failed to create scheduler run");
     }
 
     const run = await this.deps.schedulerRunRepository.findById(result.runId, command.orgId);
@@ -76,9 +78,9 @@ export class CrewExtensionsApplicationService {
 
     const event: SchedulerRunCreatedEvent = {
       eventId: createEventId(),
-      eventType: 'SchedulerRunCreated',
+      eventType: "SchedulerRunCreated",
       aggregateId: run.id,
-      aggregateType: 'SchedulerRun',
+      aggregateType: "SchedulerRun",
       occurredAt: new Date(),
       userId,
       orgId: command.orgId,
@@ -102,10 +104,13 @@ export class CrewExtensionsApplicationService {
       throw new Error(`Scheduler run ${command.runId} not found in org ${command.orgId}`);
     }
 
-    const { applySchedule } = await import('../../../scheduler/scheduler-controller.js');
+    const { applySchedule } = await import("../../../scheduler/scheduler-controller.js");
     await applySchedule(command.runId, command.orgId);
 
-    const updatedRun = await this.deps.schedulerRunRepository.findById(command.runId, command.orgId);
+    const updatedRun = await this.deps.schedulerRunRepository.findById(
+      command.runId,
+      command.orgId
+    );
     if (!updatedRun) {
       throw new Error(`Scheduler run ${command.runId} not found after apply`);
     }
@@ -114,9 +119,9 @@ export class CrewExtensionsApplicationService {
 
     const event: SchedulerRunAppliedEvent = {
       eventId: createEventId(),
-      eventType: 'SchedulerRunApplied',
+      eventType: "SchedulerRunApplied",
       aggregateId: command.runId,
-      aggregateType: 'SchedulerRun',
+      aggregateType: "SchedulerRun",
       occurredAt: new Date(),
       userId: command.userId,
       orgId: command.orgId,
@@ -139,7 +144,7 @@ export class CrewExtensionsApplicationService {
     }
 
     const previousStatus = run.status;
-    const { cancelScheduleRun } = await import('../../../scheduler/scheduler-controller.js');
+    const { cancelScheduleRun } = await import("../../../scheduler/scheduler-controller.js");
     await cancelScheduleRun(runId, orgId);
 
     const updatedRun = await this.deps.schedulerRunRepository.findById(runId, orgId);
@@ -149,9 +154,9 @@ export class CrewExtensionsApplicationService {
 
     const event: SchedulerRunCancelledEvent = {
       eventId: createEventId(),
-      eventType: 'SchedulerRunCancelled',
+      eventType: "SchedulerRunCancelled",
       aggregateId: runId,
-      aggregateType: 'SchedulerRun',
+      aggregateType: "SchedulerRun",
       occurredAt: new Date(),
       userId,
       orgId,
@@ -166,7 +171,11 @@ export class CrewExtensionsApplicationService {
     return updatedRun;
   }
 
-  async generateHoRFromSchedule(runId: string, orgId: string, userId?: string): Promise<{
+  async generateHoRFromSchedule(
+    runId: string,
+    orgId: string,
+    userId?: string
+  ): Promise<{
     success: boolean;
     sheetsCreated: number;
     daysCreated: number;
@@ -177,15 +186,15 @@ export class CrewExtensionsApplicationService {
       throw new Error(`Scheduler run ${runId} not found in org ${orgId}`);
     }
 
-    const { generateHoRFromSchedule } = await import('../../../scheduler/hor-generator.js');
+    const { generateHoRFromSchedule } = await import("../../../scheduler/hor-generator.js");
     const result = await generateHoRFromSchedule(runId);
 
     if (result.success) {
       const event: HoRGeneratedFromScheduleEvent = {
         eventId: createEventId(),
-        eventType: 'HoRGeneratedFromSchedule',
+        eventType: "HoRGeneratedFromSchedule",
         aggregateId: runId,
-        aggregateType: 'SchedulerRun',
+        aggregateType: "SchedulerRun",
         occurredAt: new Date(),
         userId,
         orgId,
@@ -209,7 +218,7 @@ export class CrewExtensionsApplicationService {
   ): Promise<CompliancePreviewResult> {
     let assignments: any[] = [];
 
-    if (typeof runIdOrAssignments === 'string') {
+    if (typeof runIdOrAssignments === "string") {
       const run = await this.deps.schedulerRunRepository.findById(runIdOrAssignments, orgId);
       if (!run) {
         throw new Error(`Scheduler run ${runIdOrAssignments} not found in org ${orgId}`);
@@ -227,7 +236,7 @@ export class CrewExtensionsApplicationService {
       };
     }
 
-    const { previewScheduleCompliance } = await import('../../../scheduler/compliance-preview.js');
+    const { previewScheduleCompliance } = await import("../../../scheduler/compliance-preview.js");
     return previewScheduleCompliance(orgId, assignments);
   }
 

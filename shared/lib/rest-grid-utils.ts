@@ -1,6 +1,6 @@
 /**
  * Rest Grid Utilities
- * 
+ *
  * Shared utilities for STCW/MLC Hours of Rest grid management.
  * Consolidates duplicate implementations per SonarQube duplication reduction guidance.
  */
@@ -108,14 +108,18 @@ export function emptyMonth(year: number, monthLabel: string): DayRow[] {
   const rows: DayRow[] = [];
   for (let d = 1; d <= days; d++) {
     const row = { date: ymd(year, idx, d) } as Record<string, string | number>;
-    for (let h = 0; h < 24; h++) { row[`h${h}`] = 0; }
+    for (let h = 0; h < 24; h++) {
+      row[`h${h}`] = 0;
+    }
     rows.push(row as DayRow);
   }
   return rows;
 }
 
 export function toCSV(rows: DayRow[]): string {
-  if (!rows.length) { return ""; }
+  if (!rows.length) {
+    return "";
+  }
   const header = ["date", ...Array.from({ length: 24 }, (_, i) => `h${i}`)];
   const lines = [header.join(",")];
   for (const r of rows) {
@@ -126,7 +130,9 @@ export function toCSV(rows: DayRow[]): string {
 
 export function parseCSV(text: string): DayRow[] {
   const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) { return []; }
+  if (lines.length < 2) {
+    return [];
+  }
   const header = lines[0].split(",").map((s) => s.trim());
   const out: DayRow[] = [];
   for (let i = 1; i < lines.length; i++) {
@@ -144,7 +150,9 @@ export function parseCSV(text: string): DayRow[] {
 
 export function sum24(r: DayRow): number {
   let s = 0;
-  for (let h = 0; h < 24; h++) { s += (r[`h${h}` as keyof DayRow] as number) || 0; }
+  for (let h = 0; h < 24; h++) {
+    s += (r[`h${h}` as keyof DayRow] as number) || 0;
+  }
   return s;
 }
 
@@ -153,7 +161,9 @@ export function chunks(r: DayRow): Array<[number, number]> {
   let cur = -1;
   for (let h = 0; h < 24; h++) {
     const v = (r[`h${h}` as keyof DayRow] as number) || 0;
-    if (v === 1 && cur === -1) { cur = h; }
+    if (v === 1 && cur === -1) {
+      cur = h;
+    }
     if ((v === 0 || h === 23) && cur !== -1) {
       const end = v === 0 ? h : 24;
       segs.push([cur, end]);
@@ -172,7 +182,9 @@ export function splitOK(r: DayRow): boolean {
 export function minRest24Around(idx: number, rows: DayRow[]): number {
   const flat: number[] = [];
   rows.forEach((r) => {
-    for (let h = 0; h < 24; h++) { flat.push((r[`h${h}` as keyof DayRow] as number) || 0); }
+    for (let h = 0; h < 24; h++) {
+      flat.push((r[`h${h}` as keyof DayRow] as number) || 0);
+    }
   });
   const base = idx * 24;
   let minv = 999;
@@ -180,7 +192,9 @@ export function minRest24Around(idx: number, rows: DayRow[]): number {
     const start = Math.max(0, base + k - 24);
     const end = base + k;
     const v = flat.slice(start, end).reduce((a, b) => a + b, 0);
-    if (v < minv) { minv = v; }
+    if (v < minv) {
+      minv = v;
+    }
   }
   return minv;
 }
@@ -193,11 +207,26 @@ export function getSaveStatusBadgeVariant(status: SaveStatus): {
 } {
   switch (status) {
     case "saved":
-      return { variant: "outline", className: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: "save", text: "Saved" };
+      return {
+        variant: "outline",
+        className: "bg-emerald-50 text-emerald-700 border-emerald-200",
+        icon: "save",
+        text: "Saved",
+      };
     case "saving":
-      return { variant: "outline", className: "bg-blue-50 text-blue-700 border-blue-200", icon: "clock", text: "Saving..." };
+      return {
+        variant: "outline",
+        className: "bg-blue-50 text-blue-700 border-blue-200",
+        icon: "clock",
+        text: "Saving...",
+      };
     case "unsaved":
-      return { variant: "outline", className: "bg-amber-50 text-amber-700 border-amber-200", icon: "alert", text: "Unsaved changes" };
+      return {
+        variant: "outline",
+        className: "bg-amber-50 text-amber-700 border-amber-200",
+        icon: "alert",
+        text: "Unsaved changes",
+      };
   }
 }
 
@@ -211,13 +240,22 @@ export function calculateWeekCount(rows: DayRow[]): number {
 }
 
 export function filterCrewByVessel(crew: Crew[], vesselId: string): Crew[] {
-  if (!vesselId || vesselId === "all") { return crew; }
+  if (!vesselId || vesselId === "all") {
+    return crew;
+  }
   return crew.filter((c) => c.vesselId === vesselId);
 }
 
-export function isGridReady(vesselId: string, crewId: string): { isVesselSelected: boolean; isCrewSelected: boolean; isReadyForActions: boolean } {
+export function isGridReady(
+  vesselId: string,
+  crewId: string
+): { isVesselSelected: boolean; isCrewSelected: boolean; isReadyForActions: boolean } {
   const isVesselSelected = !!vesselId;
   const isCrewSelected = crewId && crewId !== "";
   const isReadyForActions = isVesselSelected && isCrewSelected;
-  return { isVesselSelected: !!isVesselSelected, isCrewSelected: !!isCrewSelected, isReadyForActions: !!isReadyForActions };
+  return {
+    isVesselSelected: !!isVesselSelected,
+    isCrewSelected: !!isCrewSelected,
+    isReadyForActions: !!isReadyForActions,
+  };
 }

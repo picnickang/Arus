@@ -1,6 +1,6 @@
 /**
  * Work Orders Integration Tests
- * 
+ *
  * Tests the work orders CRUD lifecycle including:
  * - Creating work orders
  * - Updating status
@@ -26,8 +26,7 @@ describe("Work Orders API", () => {
     app = await createTestApp();
   }, 60000);
 
-  afterAll(async () => {
-  });
+  afterAll(async () => {});
 
   describe("GET /api/work-orders", () => {
     it("should return work orders list with pagination", async () => {
@@ -88,7 +87,7 @@ describe("Work Orders API", () => {
       expect(response.body).toBeDefined();
       expect(response.body.id).toBeDefined();
       expect(response.body.title).toBe(newWorkOrder.title);
-      
+
       createdWorkOrderId = response.body.id;
     });
 
@@ -105,10 +104,7 @@ describe("Work Orders API", () => {
     });
 
     it("should require org ID header", async () => {
-      await request(app)
-        .post("/api/work-orders")
-        .send({ title: "Test" })
-        .expect(401);
+      await request(app).post("/api/work-orders").send({ title: "Test" }).expect(401);
     });
   });
 

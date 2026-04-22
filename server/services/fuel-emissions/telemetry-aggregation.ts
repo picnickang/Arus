@@ -2,10 +2,10 @@
  * Telemetry Aggregation - Aggregate equipment telemetry for fuel calculations
  */
 
-import { db } from '../../db';
-import { equipment, equipmentTelemetry } from '@shared/schema';
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
-import type { TelemetryPeriod } from './types';
+import { db } from "../../db";
+import { equipment, equipmentTelemetry } from "@shared/schema";
+import { eq, and, gte, lte, sql } from "drizzle-orm";
+import type { TelemetryPeriod } from "./types";
 
 export async function aggregateTelemetryForPeriod(
   orgId: string,
@@ -19,8 +19,8 @@ export async function aggregateTelemetryForPeriod(
     .where(
       and(
         eq(equipment.vesselId, vesselId),
-        eq(equipment.category, 'propulsion'),
-        eq(equipment.status, 'operational')
+        eq(equipment.category, "propulsion"),
+        eq(equipment.status, "operational")
       )
     );
 
@@ -46,7 +46,10 @@ export async function aggregateTelemetryForPeriod(
     .where(
       and(
         eq(equipmentTelemetry.orgId, orgId),
-        sql`${equipmentTelemetry.equipmentId} = ANY(ARRAY[${sql.join(equipmentIds.map((id: string) => sql`${id}`), sql`, `)}]::text[])`,
+        sql`${equipmentTelemetry.equipmentId} = ANY(ARRAY[${sql.join(
+          equipmentIds.map((id: string) => sql`${id}`),
+          sql`, `
+        )}]::text[])`,
         gte(equipmentTelemetry.timestamp, periodStart),
         lte(equipmentTelemetry.timestamp, periodEnd)
       )

@@ -34,14 +34,78 @@ export default function OperatingParametersPage({ embedded }: OperatingParameter
   });
 
   const defaultParameters: OperatingParameter[] = [
-    { id: "1", name: "Engine RPM Warning", value: 2200, unit: "RPM", minValue: 1500, maxValue: 3000, category: "engine" },
-    { id: "2", name: "Engine RPM Critical", value: 2800, unit: "RPM", minValue: 2000, maxValue: 3500, category: "engine" },
-    { id: "3", name: "Oil Temperature Warning", value: 95, unit: "C", minValue: 80, maxValue: 120, category: "temperature" },
-    { id: "4", name: "Oil Temperature Critical", value: 110, unit: "C", minValue: 90, maxValue: 130, category: "temperature" },
-    { id: "5", name: "Coolant Temperature Warning", value: 90, unit: "C", minValue: 70, maxValue: 100, category: "temperature" },
-    { id: "6", name: "Fuel Pressure Min", value: 35, unit: "PSI", minValue: 20, maxValue: 50, category: "fuel" },
-    { id: "7", name: "Battery Voltage Min", value: 11.5, unit: "V", minValue: 10, maxValue: 14, category: "electrical" },
-    { id: "8", name: "Battery Voltage Max", value: 14.4, unit: "V", minValue: 13, maxValue: 16, category: "electrical" },
+    {
+      id: "1",
+      name: "Engine RPM Warning",
+      value: 2200,
+      unit: "RPM",
+      minValue: 1500,
+      maxValue: 3000,
+      category: "engine",
+    },
+    {
+      id: "2",
+      name: "Engine RPM Critical",
+      value: 2800,
+      unit: "RPM",
+      minValue: 2000,
+      maxValue: 3500,
+      category: "engine",
+    },
+    {
+      id: "3",
+      name: "Oil Temperature Warning",
+      value: 95,
+      unit: "C",
+      minValue: 80,
+      maxValue: 120,
+      category: "temperature",
+    },
+    {
+      id: "4",
+      name: "Oil Temperature Critical",
+      value: 110,
+      unit: "C",
+      minValue: 90,
+      maxValue: 130,
+      category: "temperature",
+    },
+    {
+      id: "5",
+      name: "Coolant Temperature Warning",
+      value: 90,
+      unit: "C",
+      minValue: 70,
+      maxValue: 100,
+      category: "temperature",
+    },
+    {
+      id: "6",
+      name: "Fuel Pressure Min",
+      value: 35,
+      unit: "PSI",
+      minValue: 20,
+      maxValue: 50,
+      category: "fuel",
+    },
+    {
+      id: "7",
+      name: "Battery Voltage Min",
+      value: 11.5,
+      unit: "V",
+      minValue: 10,
+      maxValue: 14,
+      category: "electrical",
+    },
+    {
+      id: "8",
+      name: "Battery Voltage Max",
+      value: 14.4,
+      unit: "V",
+      minValue: 13,
+      maxValue: 16,
+      category: "electrical",
+    },
   ];
 
   const params = parameters || defaultParameters;
@@ -102,13 +166,16 @@ export default function OperatingParametersPage({ embedded }: OperatingParameter
     }
   };
 
-  const groupedParams = params.reduce((acc, param) => {
-    if (!acc[param.category]) {
-      acc[param.category] = [];
-    }
-    acc[param.category].push(param);
-    return acc;
-  }, {} as Record<string, OperatingParameter[]>);
+  const groupedParams = params.reduce(
+    (acc, param) => {
+      if (!acc[param.category]) {
+        acc[param.category] = [];
+      }
+      acc[param.category].push(param);
+      return acc;
+    },
+    {} as Record<string, OperatingParameter[]>
+  );
 
   const hasChanges = Object.keys(editedValues).length > 0;
 
@@ -119,7 +186,9 @@ export default function OperatingParametersPage({ embedded }: OperatingParameter
           <h1 className="text-2xl font-semibold" data-testid="text-params-title">
             {embedded ? "Operating Parameters" : "Operating Parameters Configuration"}
           </h1>
-          <p className="text-muted-foreground">Configure threshold values for equipment monitoring</p>
+          <p className="text-muted-foreground">
+            Configure threshold values for equipment monitoring
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button

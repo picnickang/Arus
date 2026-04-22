@@ -48,7 +48,13 @@ export interface CostSavingsSummary {
   preventedFailures: number;
   roi: number;
   period: string;
-  savingsByType?: { labor?: number; parts?: number; downtime?: number; predictive?: number; preventive?: number };
+  savingsByType?: {
+    labor?: number;
+    parts?: number;
+    downtime?: number;
+    predictive?: number;
+    preventive?: number;
+  };
   savingsCount?: number;
   disputedCount?: number;
   voidedCount?: number;

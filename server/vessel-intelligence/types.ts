@@ -1,6 +1,6 @@
 /**
  * Vessel Intelligence Types
- * 
+ *
  * Type definitions for vessel intelligence and historical analysis.
  */
 

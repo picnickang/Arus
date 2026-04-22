@@ -55,7 +55,11 @@ export function recordJobDuration(queueName: string, durationSec: number) {
   jobQueueJobDuration.observe({ queue_name: queueName }, durationSec);
 }
 
-export function setJobQueueDepth(queueName: string, state: "pending" | "active" | "completed" | "failed", count: number) {
+export function setJobQueueDepth(
+  queueName: string,
+  state: "pending" | "active" | "completed" | "failed",
+  count: number
+) {
   jobQueueDepth.set({ queue_name: queueName, state }, count);
 }
 

@@ -36,7 +36,7 @@ async function main() {
 
 async function runMigrations(db: ReturnType<typeof drizzle>) {
   const migrationsFolder = path.resolve(process.cwd(), "migrations");
-  
+
   if (!fs.existsSync(migrationsFolder)) {
     console.error(`Migrations folder not found: ${migrationsFolder}`);
     process.exit(1);

@@ -33,7 +33,12 @@ const systemItems: GridItem[] = [
     description: "Alerts, preferences & templates",
     load: () => import("./notifications-hub"),
     loaderVariant: "form",
-    legacyRoutes: ["/notifications", "/notification-settings", "/email-alerts-settings", "/email-templates"],
+    legacyRoutes: [
+      "/notifications",
+      "/notification-settings",
+      "/email-alerts-settings",
+      "/email-templates",
+    ],
   },
   {
     id: "organizations",

@@ -5,8 +5,8 @@
 import type { WorkOrder } from "@shared/schema";
 import type { EquipmentHealth } from "../db/equipment/types.js";
 
-import { MARITIME_STANDARDS } from '../compliance.js';
-import type { ComplianceDeps, ReportingPeriod } from './types';
+import { MARITIME_STANDARDS } from "../compliance.js";
+import type { ComplianceDeps, ReportingPeriod } from "./types";
 import {
   createPDFContext,
   formatDate,
@@ -17,7 +17,7 @@ import {
   drawText,
   addSpacing,
   COLORS,
-} from './utils';
+} from "./utils";
 
 export async function generateFleetComplianceOverviewPDF(
   storage: ComplianceDeps,
@@ -40,15 +40,15 @@ async function renderFleetOverviewPDF(
   const ctx = await createPDFContext();
   const counts = countByStatus(equipment);
   const complianceRate =
-    equipment.length > 0 ? ((counts.healthy / equipment.length) * 100).toFixed(1) : 'N/A';
+    equipment.length > 0 ? ((counts.healthy / equipment.length) * 100).toFixed(1) : "N/A";
 
-  drawTitle(ctx, 'Fleet Compliance Overview', 20);
+  drawTitle(ctx, "Fleet Compliance Overview", 20);
 
   drawText(ctx, `Generated: ${new Date().toISOString()}`);
   drawText(ctx, `Period: ${formatDate(period.startDate)} to ${formatDate(period.endDate)}`);
   addSpacing(ctx, 10);
 
-  drawSectionHeader(ctx, 'FLEET STATISTICS');
+  drawSectionHeader(ctx, "FLEET STATISTICS");
 
   ctx.page.drawText(`Total Equipment: ${equipment.length}`, {
     x: 50,
@@ -94,11 +94,11 @@ async function renderFleetOverviewPDF(
   });
   ctx.yPosition -= 40;
 
-  drawSectionHeader(ctx, 'WORK ORDER STATISTICS');
+  drawSectionHeader(ctx, "WORK ORDER STATISTICS");
 
-  const completedWOs = workOrders.filter((wo) => wo.status === 'completed').length;
-  const openWOs = workOrders.filter((wo) => wo.status === 'open').length;
-  const inProgressWOs = workOrders.filter((wo) => wo.status === 'in_progress').length;
+  const completedWOs = workOrders.filter((wo) => wo.status === "completed").length;
+  const openWOs = workOrders.filter((wo) => wo.status === "open").length;
+  const inProgressWOs = workOrders.filter((wo) => wo.status === "in_progress").length;
 
   ctx.page.drawText(`Total Work Orders: ${workOrders.length}`, {
     x: 50,
@@ -129,7 +129,7 @@ async function renderFleetOverviewPDF(
   });
   ctx.yPosition -= 40;
 
-  drawSectionHeader(ctx, 'APPLICABLE MARITIME STANDARDS');
+  drawSectionHeader(ctx, "APPLICABLE MARITIME STANDARDS");
 
   for (const standard of MARITIME_STANDARDS.slice(0, 8)) {
     drawText(ctx, `${standard.code}: ${standard.name}`, { size: 9 });

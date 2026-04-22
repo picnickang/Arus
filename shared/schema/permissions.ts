@@ -1,6 +1,6 @@
 /**
  * Schema Permissions - Role-Based Access Control (RBAC)
- * 
+ *
  * Modular permission system for controlling access to resources and actions.
  * Designed for maritime fleet management with crew rank hierarchies.
  */
@@ -51,36 +51,30 @@ export const roles = pgTable(
 );
 
 // Resources (pages/features) that can be protected
-export const permissionResources = pgTable(
-  "permission_resources",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-    code: text("code").notNull().unique(),
-    name: text("name").notNull(),
-    description: text("description"),
-    category: text("category").notNull(),
-    icon: text("icon"),
-    sortOrder: integer("sort_order").default(0),
-    isActive: boolean("is_active").default(true),
-  }
-);
+export const permissionResources = pgTable("permission_resources", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  code: text("code").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  category: text("category").notNull(),
+  icon: text("icon"),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+});
 
 // Actions that can be performed on resources
-export const permissionActions = pgTable(
-  "permission_actions",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-    code: text("code").notNull().unique(),
-    name: text("name").notNull(),
-    description: text("description"),
-    riskLevel: text("risk_level").default("low"),
-    sortOrder: integer("sort_order").default(0),
-  }
-);
+export const permissionActions = pgTable("permission_actions", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  code: text("code").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  riskLevel: text("risk_level").default("low"),
+  sortOrder: integer("sort_order").default(0),
+});
 
 // Available actions for each resource (many-to-many)
 export const resourceActions = pgTable(
@@ -130,23 +124,20 @@ export const permissionGrants = pgTable(
 );
 
 // Role templates for quick setup
-export const roleTemplates = pgTable(
-  "role_templates",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-    name: text("name").notNull().unique(),
-    displayName: text("display_name").notNull(),
-    description: text("description"),
-    department: text("department"),
-    hierarchyLevel: integer("hierarchy_level").notNull().default(50),
-    permissions: text("permissions").notNull(),
-    fleetType: text("fleet_type"),
-    isActive: boolean("is_active").default(true),
-    createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
-  }
-);
+export const roleTemplates = pgTable("role_templates", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  displayName: text("display_name").notNull(),
+  description: text("description"),
+  department: text("department"),
+  hierarchyLevel: integer("hierarchy_level").notNull().default(50),
+  permissions: text("permissions").notNull(),
+  fleetType: text("fleet_type"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+});
 
 // Permission audit log for tracking changes
 export const permissionAuditLog = pgTable(
@@ -202,7 +193,11 @@ export const userRoleAssignments = pgTable(
 export const insertRoleSchema = createInsertSchema(roles)
   .omit({ id: true, createdAt: true, updatedAt: true })
   .extend({
-    name: z.string().min(2).max(50).regex(/^[a-z0-9_]+$/, "Must be lowercase with underscores"),
+    name: z
+      .string()
+      .min(2)
+      .max(50)
+      .regex(/^[a-z0-9_]+$/, "Must be lowercase with underscores"),
     displayName: z.string().min(2).max(100),
     department: z.enum(["bridge", "engine", "deck", "steward", "admin"]).optional(),
     hierarchyLevel: z.number().min(1).max(100).default(50),
@@ -211,7 +206,11 @@ export const insertRoleSchema = createInsertSchema(roles)
 export const insertPermissionResourceSchema = createInsertSchema(permissionResources)
   .omit({ id: true })
   .extend({
-    code: z.string().min(2).max(50).regex(/^[a-z0-9_]+$/),
+    code: z
+      .string()
+      .min(2)
+      .max(50)
+      .regex(/^[a-z0-9_]+$/),
     name: z.string().min(2).max(100),
     category: z.enum([
       "operations",
@@ -227,7 +226,11 @@ export const insertPermissionResourceSchema = createInsertSchema(permissionResou
 export const insertPermissionActionSchema = createInsertSchema(permissionActions)
   .omit({ id: true })
   .extend({
-    code: z.string().min(2).max(50).regex(/^[a-z0-9_]+$/),
+    code: z
+      .string()
+      .min(2)
+      .max(50)
+      .regex(/^[a-z0-9_]+$/),
     name: z.string().min(2).max(100),
     riskLevel: z.enum(["low", "medium", "high", "critical"]).default("low"),
   });
@@ -241,7 +244,11 @@ export const insertPermissionGrantSchema = createInsertSchema(permissionGrants)
 export const insertRoleTemplateSchema = createInsertSchema(roleTemplates)
   .omit({ id: true, createdAt: true })
   .extend({
-    name: z.string().min(2).max(50).regex(/^[a-z0-9_]+$/),
+    name: z
+      .string()
+      .min(2)
+      .max(50)
+      .regex(/^[a-z0-9_]+$/),
     displayName: z.string().min(2).max(100),
     permissions: z.string(),
     fleetType: z.enum(["deep_sea", "offshore", "cruise", "cargo", "tanker"]).optional(),

@@ -53,7 +53,9 @@ export function useAudioPlayback(workletPath = "/audio-playback-worklet.js") {
   const seqBufferRef = useRef(new SequenceBuffer());
 
   const init = useCallback(async () => {
-    if (readyRef.current) {return;}
+    if (readyRef.current) {
+      return;
+    }
 
     const ctx = new AudioContext({ sampleRate: 24000 });
     await ctx.audioWorklet.addModule(workletPath);
@@ -61,7 +63,9 @@ export function useAudioPlayback(workletPath = "/audio-playback-worklet.js") {
     worklet.connect(ctx.destination);
 
     worklet.port.onmessage = (e) => {
-      if (e.data.type === "ended") {setState("idle");}
+      if (e.data.type === "ended") {
+        setState("idle");
+      }
     };
 
     ctxRef.current = ctx;
@@ -71,7 +75,9 @@ export function useAudioPlayback(workletPath = "/audio-playback-worklet.js") {
 
   /** Push audio directly (no sequencing) - for simple streaming */
   const pushAudio = useCallback((base64Audio: string) => {
-    if (!workletRef.current) {return;}
+    if (!workletRef.current) {
+      return;
+    }
     const samples = decodePCM16ToFloat32(base64Audio);
     workletRef.current.port.postMessage({ type: "audio", samples });
     setState("playing");
@@ -79,7 +85,9 @@ export function useAudioPlayback(workletPath = "/audio-playback-worklet.js") {
 
   /** Push audio with sequence number - reorders before playback */
   const pushSequencedAudio = useCallback((seq: number, base64Audio: string) => {
-    if (!workletRef.current) {return;}
+    if (!workletRef.current) {
+      return;
+    }
 
     const readyChunks = seqBufferRef.current.push(seq, base64Audio);
     for (const chunk of readyChunks) {

@@ -24,13 +24,13 @@ export interface RagSecuredRequest extends Request {
  */
 export function ragAuthMiddleware(req: RagSecuredRequest, res: Response, next: NextFunction): void {
   const { config, tokenService, auditLogger } = getRagSecurityServices();
-  
+
   // For development mode, allow header-based org ID
-  const isDev = process.env.NODE_ENV === 'development';
-  
+  const isDev = process.env.NODE_ENV === "development";
+
   // Try to get auth context from session first
   const session = (req as any).session;
-  let userId = session?.userId || 'anonymous';
+  let userId = session?.userId || "anonymous";
   let orgId = session?.orgId;
   let authenticated = !!session?.orgId;
 
@@ -46,19 +46,19 @@ export function ragAuthMiddleware(req: RagSecuredRequest, res: Response, next: N
     } else if (config.auth.requireSession) {
       auditLogger.logAuthFailure({
         ipAddress: req.ip,
-        userAgent: req.get('user-agent'),
-        reason: 'Invalid or expired streaming token',
+        userAgent: req.get("user-agent"),
+        reason: "Invalid or expired streaming token",
       });
-      res.status(401).json({ error: 'Invalid or expired streaming token' });
+      res.status(401).json({ error: "Invalid or expired streaming token" });
       return;
     }
   }
 
   // Fall back to header-based org ID (dev mode only)
   if (!orgId && config.auth.allowHeaderOrgId) {
-    orgId = req.get('x-org-id') || 'default-org-id';
+    orgId = req.get("x-org-id") || "default-org-id";
     if (isDev && !authenticated) {
-      userId = 'dev-user-id';
+      userId = "dev-user-id";
       authenticated = false; // Mark as not fully authenticated
     }
   }
@@ -67,16 +67,16 @@ export function ragAuthMiddleware(req: RagSecuredRequest, res: Response, next: N
   if (!orgId && config.auth.requireSession && !isDev) {
     auditLogger.logAuthFailure({
       ipAddress: req.ip,
-      userAgent: req.get('user-agent'),
-      reason: 'No valid session or org context',
+      userAgent: req.get("user-agent"),
+      reason: "No valid session or org context",
     });
-    res.status(401).json({ error: 'Authentication required' });
+    res.status(401).json({ error: "Authentication required" });
     return;
   }
 
   // Default fallback for dev mode
   if (!orgId) {
-    orgId = 'default-org-id';
+    orgId = "default-org-id";
   }
 
   req.ragContext = {
@@ -105,7 +105,7 @@ export async function ragRateLimitMiddleware(
 
   // Use user ID + org ID as rate limit key, falling back to IP
   const context = req.ragContext;
-  const identifier = context?.authenticated 
+  const identifier = context?.authenticated
     ? `user:${context.userId}:${context.orgId}`
     : `ip:${req.ip}`;
 
@@ -113,9 +113,9 @@ export async function ragRateLimitMiddleware(
     const result = await rateLimiter.checkLimit(identifier);
 
     // Set rate limit headers
-    res.set('X-RateLimit-Limit', config.rateLimiting.requestsPerMinute.toString());
-    res.set('X-RateLimit-Remaining', result.remaining.toString());
-    res.set('X-RateLimit-Reset', Math.ceil(result.resetAt / 1000).toString());
+    res.set("X-RateLimit-Limit", config.rateLimiting.requestsPerMinute.toString());
+    res.set("X-RateLimit-Remaining", result.remaining.toString());
+    res.set("X-RateLimit-Reset", Math.ceil(result.resetAt / 1000).toString());
 
     if (!result.allowed) {
       auditLogger.logRateLimitExceeded({
@@ -126,9 +126,9 @@ export async function ragRateLimitMiddleware(
         retryAfter: result.retryAfter || 60,
       });
 
-      res.set('Retry-After', (result.retryAfter || 60).toString());
+      res.set("Retry-After", (result.retryAfter || 60).toString());
       res.status(429).json({
-        error: 'Rate limit exceeded',
+        error: "Rate limit exceeded",
         retryAfter: result.retryAfter,
         remaining: 0,
       });
@@ -161,7 +161,7 @@ export function ragInputSanitizationMiddleware(
   // Get query from body (POST) or query params (GET)
   const query = req.body?.query || req.query?.query;
 
-  if (!query || typeof query !== 'string') {
+  if (!query || typeof query !== "string") {
     next();
     return;
   }
@@ -207,13 +207,13 @@ export function generateStreamingToken(req: RagSecuredRequest, res: Response): v
   const context = req.ragContext;
 
   if (!context?.orgId) {
-    res.status(401).json({ error: 'Authentication required' });
+    res.status(401).json({ error: "Authentication required" });
     return;
   }
 
   const token = tokenService.generateToken(context.userId, context.orgId);
 
-  res.json({ 
+  res.json({
     token,
     expiresIn: getRagSecurityServices().config.auth.streamingTokenTTLSeconds,
   });
@@ -228,9 +228,13 @@ export function ragSecurityMiddleware(
   next: NextFunction
 ): void {
   ragAuthMiddleware(req, res, (err) => {
-    if (err) {return next(err);}
+    if (err) {
+      return next(err);
+    }
     ragRateLimitMiddleware(req, res, (err) => {
-      if (err) {return next(err);}
+      if (err) {
+        return next(err);
+      }
       ragInputSanitizationMiddleware(req, res, next);
     });
   });

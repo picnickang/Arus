@@ -1,10 +1,6 @@
 import { eq, and, desc } from "drizzle-orm";
 import { db } from "../../../../db";
-import {
-  assetTwinState,
-  type AssetTwinState,
-  type InsertAssetTwinState,
-} from "@shared/schema";
+import { assetTwinState, type AssetTwinState, type InsertAssetTwinState } from "@shared/schema";
 import type { TwinStatePort } from "./ports";
 
 export class TwinStateAdapter implements TwinStatePort {

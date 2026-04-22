@@ -77,12 +77,16 @@ function processCrewRestData(
   settings: any,
   results: CrewAlertResult[]
 ): void {
-  if (!hasValidRestData(restData)) {return;}
+  if (!hasValidRestData(restData)) {
+    return;
+  }
 
   const normalizedDays = normalizeRestDays(restData.days);
   const compliance = checkMonthCompliance(normalizedDays);
 
-  if (compliance.ok) {return;}
+  if (compliance.ok) {
+    return;
+  }
 
   const failedDays = compliance.days.filter((d) => !d.day_ok);
   const failed7d = compliance.rolling7d.filter((r) => !r.ok);
@@ -96,12 +100,16 @@ function processCrewRestData(
   }
 }
 
-export async function evaluateHoRViolationAlerts(ctx: EvaluationContext): Promise<CrewAlertResult[]> {
+export async function evaluateHoRViolationAlerts(
+  ctx: EvaluationContext
+): Promise<CrewAlertResult[]> {
   const results: CrewAlertResult[] = [];
   const now = ctx.now || new Date();
 
   const settings = await alertSettingsService.getCrewAlertSettings(ctx.orgId, ctx.vesselId || null);
-  if (!settings?.horViolationAlertsEnabled) {return results;}
+  if (!settings?.horViolationAlertsEnabled) {
+    return results;
+  }
 
   const vessels = ctx.vesselId ? [{ id: ctx.vesselId }] : await vesselService.getVessels(ctx.orgId);
   const currentYear = now.getFullYear();
@@ -109,7 +117,11 @@ export async function evaluateHoRViolationAlerts(ctx: EvaluationContext): Promis
 
   for (const vessel of vessels) {
     try {
-      const vesselCrewRest = await dbStcwStorage.getVesselCrewRest(vessel.id, currentYear, currentMonth);
+      const vesselCrewRest = await dbStcwStorage.getVesselCrewRest(
+        vessel.id,
+        currentYear,
+        currentMonth
+      );
 
       for (const [crewId, restData] of Object.entries(vesselCrewRest)) {
         processCrewRestData(crewId, restData, vessel.id, now, settings, results);

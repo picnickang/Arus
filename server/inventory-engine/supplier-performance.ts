@@ -1,6 +1,6 @@
 /**
  * Inventory Engine - Supplier Performance
- * 
+ *
  * Supplier evaluation and performance scoring.
  */
 

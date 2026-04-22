@@ -9,8 +9,12 @@ export function calculateGradients(
   numClasses: number
 ): { gradients: number[][]; hessians: number[][] } {
   const numSamples = predictions.length;
-  const gradients: number[][] = Array(numSamples).fill(0).map(() => Array(numClasses).fill(0));
-  const hessians: number[][] = Array(numSamples).fill(0).map(() => Array(numClasses).fill(0));
+  const gradients: number[][] = Array(numSamples)
+    .fill(0)
+    .map(() => Array(numClasses).fill(0));
+  const hessians: number[][] = Array(numSamples)
+    .fill(0)
+    .map(() => Array(numClasses).fill(0));
 
   for (let i = 0; i < numSamples; i++) {
     const logits = predictions[i];

@@ -10,13 +10,10 @@ import { StcwRestDependencies } from "./types";
 import { dbStcwStorage } from "../../../db/stcw/index.js";
 
 export function registerDataRoutes(app: Express, deps: StcwRestDependencies): void {
-  const {
-    generatePdfFilename,
-    renderRestPdf,
-    incrementHorPdfExport,
-  } = deps;
+  const { generatePdfFilename, renderRestPdf, incrementHorPdfExport } = deps;
 
-  app.get("/api/stcw/rest/:crewId/:year/:month",
+  app.get(
+    "/api/stcw/rest/:crewId/:year/:month",
     withErrorHandling("fetch rest data", async (req: Request, res: Response) => {
       const { crewId, year, month } = req.params;
 
@@ -40,7 +37,8 @@ export function registerDataRoutes(app: Express, deps: StcwRestDependencies): vo
     })
   );
 
-  app.get("/api/stcw/export/:crewId/:year/:month",
+  app.get(
+    "/api/stcw/export/:crewId/:year/:month",
     withErrorHandling("export STCW PDF", async (req: Request, res: Response) => {
       const { crewId, year, month } = req.params;
 
@@ -81,7 +79,8 @@ export function registerDataRoutes(app: Express, deps: StcwRestDependencies): vo
     })
   );
 
-  app.get("/api/crew/rest/export_pdf",
+  app.get(
+    "/api/crew/rest/export_pdf",
     withErrorHandling("export STCW rest PDF", async (req: Request, res: Response) => {
       const { crew_id, year, month } = req.query;
 
@@ -124,7 +123,8 @@ export function registerDataRoutes(app: Express, deps: StcwRestDependencies): vo
     })
   );
 
-  app.get("/api/crew/rest/sheet",
+  app.get(
+    "/api/crew/rest/sheet",
     withErrorHandling("fetch STCW rest sheet", async (req: Request, res: Response) => {
       const { crew_id, year, month } = req.query;
 

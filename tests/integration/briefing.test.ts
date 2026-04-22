@@ -7,7 +7,9 @@ async function api(method: string, path: string, body?: Record<string, unknown>)
     method,
     headers: { "Content-Type": "application/json" },
   };
-  if (body) {opts.body = JSON.stringify(body);}
+  if (body) {
+    opts.body = JSON.stringify(body);
+  }
   const res = await fetch(`${BASE_URL}${path}`, opts);
   const data = await res.json();
   return { status: res.status, data };
@@ -78,7 +80,9 @@ describe("Briefing API", () => {
     });
 
     it("returns empty array for future date", async () => {
-      const futureDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+      const futureDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0];
       const { status, data } = await api("GET", `/api/agent/briefings?date=${futureDate}`);
       expect(status).toBe(200);
       expect(Array.isArray(data)).toBe(true);
@@ -106,7 +110,9 @@ describe("Briefing API", () => {
   describe("Briefing section item structure", () => {
     it("items have required fields when present", async () => {
       const { data } = await api("GET", "/api/agent/briefings/latest");
-      const sections = data.sections as Array<{ items: Array<{ id: string; title: string; description: string }> }>;
+      const sections = data.sections as Array<{
+        items: Array<{ id: string; title: string; description: string }>;
+      }>;
       for (const section of sections) {
         for (const item of section.items) {
           expect(item.id).toBeDefined();

@@ -4,7 +4,13 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 
 export function useRunInference() {
   return useMutation({
-    mutationFn: async ({ equipmentId, modelVersionId }: { equipmentId: string; modelVersionId?: string }) => {
+    mutationFn: async ({
+      equipmentId,
+      modelVersionId,
+    }: {
+      equipmentId: string;
+      modelVersionId?: string;
+    }) => {
       return apiRequest("POST", "/api/pdm/infer", { equipmentId, modelVersionId });
     },
     onSuccess: () => {
@@ -18,8 +24,12 @@ export function usePredictionExplanations(predictionId: number | null) {
   return useQuery({
     queryKey: ["/api/pdm/infer/predictions", predictionId, "explanations"],
     queryFn: async () => {
-      const res = await fetch(`/api/pdm/infer/predictions/${predictionId}/explanations`, { headers: { "x-org-id": currentOrgId } });
-      if (!res.ok) {throw new Error("Failed to fetch explanations");}
+      const res = await fetch(`/api/pdm/infer/predictions/${predictionId}/explanations`, {
+        headers: { "x-org-id": currentOrgId },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to fetch explanations");
+      }
       return res.json();
     },
     enabled: predictionId != null && !!currentOrgId,

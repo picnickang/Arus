@@ -3,7 +3,7 @@
  * Handles report data collection, formatting, and delivery
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 import type {
   IGeneratedReportRepository,
   IPdfGeneratorAdapter,
@@ -11,7 +11,7 @@ import type {
   IReportDeliveryAdapter,
   IEventPublisher,
   ReportGeneratorRegistry,
-} from '../domain/ports.js';
+} from "../domain/ports.js";
 import type {
   ReportScheduleConfig,
   GeneratedReport,
@@ -19,7 +19,7 @@ import type {
   ReportSection,
   ReportSummary,
   ReportType,
-} from '../domain/types.js';
+} from "../domain/types.js";
 import {
   createEvent,
   type ReportGenerationStartedEvent,
@@ -27,13 +27,16 @@ import {
   type ReportGenerationFailedEvent,
   type ReportDeliveredEvent,
   type ReportDeliveryFailedEvent,
-} from '../domain/events.js';
-import { logger } from '../../../utils/logger.js';
-import { DbSettingsStorage } from '../../../db/system-admin/db-settings.js';
-import { DEFAULT_SCHEDULED_REPORTS_SETTINGS, type ScheduledReportsSettings } from '../interfaces/routes.js';
+} from "../domain/events.js";
+import { logger } from "../../../utils/logger.js";
+import { DbSettingsStorage } from "../../../db/system-admin/db-settings.js";
+import {
+  DEFAULT_SCHEDULED_REPORTS_SETTINGS,
+  type ScheduledReportsSettings,
+} from "../interfaces/routes.js";
 
-const LOG_CTX = 'ReportGenerationService';
-const SETTINGS_CATEGORY = 'scheduled_reports';
+const LOG_CTX = "ReportGenerationService";
+const SETTINGS_CATEGORY = "scheduled_reports";
 const settingsStorage = new DbSettingsStorage();
 
 export class ReportGenerationService {
@@ -52,7 +55,7 @@ export class ReportGenerationService {
     const settings = await this.getSettings(schedule.orgId);
 
     await this.eventPublisher.publish(
-      createEvent<ReportGenerationStartedEvent>('ReportGenerationStarted', schedule.orgId, {
+      createEvent<ReportGenerationStartedEvent>("ReportGenerationStarted", schedule.orgId, {
         reportId,
         scheduleId: schedule.id,
         reportType: schedule.reportType,
@@ -76,7 +79,7 @@ export class ReportGenerationService {
         filename,
         filePath,
         fileSize: content.length,
-        status: 'completed',
+        status: "completed",
         generatedAt: new Date(),
         deliveredAt: null,
         expiresAt: this.calculateExpiryDate(settings.reportRetentionDays),
@@ -89,7 +92,7 @@ export class ReportGenerationService {
       });
 
       await this.eventPublisher.publish(
-        createEvent<ReportGeneratedEvent>('ReportGenerated', schedule.orgId, {
+        createEvent<ReportGeneratedEvent>("ReportGenerated", schedule.orgId, {
           reportId: report.id,
           scheduleId: schedule.id,
           reportType: schedule.reportType,
@@ -114,10 +117,10 @@ export class ReportGenerationService {
         orgId: schedule.orgId,
         reportType: schedule.reportType,
         format: schedule.format,
-        filename: '',
-        filePath: '',
+        filename: "",
+        filePath: "",
         fileSize: 0,
-        status: 'failed',
+        status: "failed",
         generatedAt: new Date(),
         deliveredAt: null,
         expiresAt: this.calculateExpiryDate(settings.reportRetentionDays),
@@ -126,7 +129,7 @@ export class ReportGenerationService {
       });
 
       await this.eventPublisher.publish(
-        createEvent<ReportGenerationFailedEvent>('ReportGenerationFailed', schedule.orgId, {
+        createEvent<ReportGenerationFailedEvent>("ReportGenerationFailed", schedule.orgId, {
           reportId: report.id,
           scheduleId: schedule.id,
           reportType: schedule.reportType,
@@ -142,7 +145,7 @@ export class ReportGenerationService {
     orgId: string,
     reportType: ReportType,
     vesselIds: string[] | null,
-    format: 'pdf' | 'csv' | 'json'
+    format: "pdf" | "csv" | "json"
   ): Promise<{ content: Buffer; filename: string; contentType: string }> {
     const generator = this.generatorRegistry.get(reportType);
     if (!generator) {
@@ -188,7 +191,7 @@ export class ReportGenerationService {
     return {
       title,
       generatedAt: now,
-      orgId: '',
+      orgId: "",
       vesselIds,
       sections,
       summary,
@@ -197,96 +200,96 @@ export class ReportGenerationService {
 
   private getReportTitle(reportType: ReportType): string {
     const titles: Record<ReportType, string> = {
-      fleet_health: 'Fleet Health Summary Report',
-      maintenance_due: 'Upcoming Maintenance Report',
-      inventory_status: 'Inventory Status Report',
-      crew_compliance: 'Crew Compliance Report',
-      cost_summary: 'Maintenance Cost Summary',
+      fleet_health: "Fleet Health Summary Report",
+      maintenance_due: "Upcoming Maintenance Report",
+      inventory_status: "Inventory Status Report",
+      crew_compliance: "Crew Compliance Report",
+      cost_summary: "Maintenance Cost Summary",
     };
-    return titles[reportType] || 'Report';
+    return titles[reportType] || "Report";
   }
 
   private buildSections(reportType: ReportType, data: unknown): ReportSection[] {
     const sections: ReportSection[] = [];
 
     switch (reportType) {
-      case 'fleet_health': {
+      case "fleet_health": {
         const healthData = data as any;
         if (healthData.vessels) {
           sections.push({
-            title: 'Vessel Health Overview',
-            type: 'table',
+            title: "Vessel Health Overview",
+            type: "table",
             data: healthData.vessels,
           });
         }
         if (healthData.criticalEquipment?.length > 0) {
           sections.push({
-            title: 'Critical Equipment Alerts',
-            type: 'table',
+            title: "Critical Equipment Alerts",
+            type: "table",
             data: healthData.criticalEquipment,
           });
         }
         if (healthData.upcomingMaintenance?.length > 0) {
           sections.push({
-            title: 'Upcoming Maintenance',
-            type: 'table',
+            title: "Upcoming Maintenance",
+            type: "table",
             data: healthData.upcomingMaintenance,
           });
         }
         break;
       }
 
-      case 'maintenance_due':
+      case "maintenance_due":
         sections.push({
-          title: 'Scheduled Maintenance Tasks',
-          type: 'table',
+          title: "Scheduled Maintenance Tasks",
+          type: "table",
           data,
         });
         break;
 
-      case 'inventory_status': {
+      case "inventory_status": {
         const invData = data as any;
         if (invData.lowStockItems?.length > 0) {
           sections.push({
-            title: 'Low Stock Items',
-            type: 'table',
+            title: "Low Stock Items",
+            type: "table",
             data: invData.lowStockItems,
           });
         }
         if (invData.vesselBreakdown?.length > 0) {
           sections.push({
-            title: 'Inventory by Vessel',
-            type: 'table',
+            title: "Inventory by Vessel",
+            type: "table",
             data: invData.vesselBreakdown,
           });
         }
         break;
       }
 
-      case 'crew_compliance': {
+      case "crew_compliance": {
         const crewData = data as any;
         if (crewData.expiringCertifications?.length > 0) {
           sections.push({
-            title: 'Expiring Certifications',
-            type: 'table',
+            title: "Expiring Certifications",
+            type: "table",
             data: crewData.expiringCertifications,
           });
         }
         if (crewData.hoursOfRestViolations?.length > 0) {
           sections.push({
-            title: 'Hours of Rest Violations',
-            type: 'table',
+            title: "Hours of Rest Violations",
+            type: "table",
             data: crewData.hoursOfRestViolations,
           });
         }
         break;
       }
 
-      case 'cost_summary': {
+      case "cost_summary": {
         const costData = data as any;
         sections.push({
-          title: 'Cost Overview',
-          type: 'text',
+          title: "Cost Overview",
+          type: "text",
           data: {
             totalCost: costData.totalMaintenanceCost,
             savings: costData.savingsFromPredictive,
@@ -294,8 +297,8 @@ export class ReportGenerationService {
         });
         if (costData.costByVessel?.length > 0) {
           sections.push({
-            title: 'Cost by Vessel',
-            type: 'table',
+            title: "Cost by Vessel",
+            type: "table",
             data: costData.costByVessel,
           });
         }
@@ -316,15 +319,15 @@ export class ReportGenerationService {
     };
 
     switch (reportType) {
-      case 'fleet_health': {
+      case "fleet_health": {
         const healthData = data as any;
         summary.totalItems = healthData.vessels?.length || 0;
         summary.criticalCount = healthData.criticalEquipment?.length || 0;
-        summary.highlights.push(`Overall fleet health score: ${healthData.overallScore || 'N/A'}%`);
+        summary.highlights.push(`Overall fleet health score: ${healthData.overallScore || "N/A"}%`);
         break;
       }
 
-      case 'inventory_status': {
+      case "inventory_status": {
         const invData = data as any;
         summary.totalItems = invData.lowStockItems?.length || 0;
         summary.criticalCount = invData.reorderRequired || 0;
@@ -332,11 +335,11 @@ export class ReportGenerationService {
         break;
       }
 
-      case 'crew_compliance': {
+      case "crew_compliance": {
         const crewData = data as any;
         summary.criticalCount = crewData.expiringCertifications?.length || 0;
         summary.warningCount = crewData.hoursOfRestViolations?.length || 0;
-        summary.highlights.push(`Compliance score: ${crewData.complianceScore || 'N/A'}%`);
+        summary.highlights.push(`Compliance score: ${crewData.complianceScore || "N/A"}%`);
         break;
       }
     }
@@ -354,27 +357,27 @@ export class ReportGenerationService {
 
       if (result.success) {
         await this.reportRepository.update(report.id, {
-          status: 'delivered',
+          status: "delivered",
           deliveredAt: new Date(),
         });
 
         await this.eventPublisher.publish(
-          createEvent<ReportDeliveredEvent>('ReportDelivered', report.orgId, {
+          createEvent<ReportDeliveredEvent>("ReportDelivered", report.orgId, {
             reportId: report.id,
             scheduleId: report.scheduleId,
             recipients,
-            deliveryMethod: 'email',
+            deliveryMethod: "email",
           })
         );
       } else {
-        throw new Error(result.error || 'Delivery failed');
+        throw new Error(result.error || "Delivery failed");
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error(LOG_CTX, `Failed to deliver report ${report.id}`, errorMessage);
 
       await this.eventPublisher.publish(
-        createEvent<ReportDeliveryFailedEvent>('ReportDeliveryFailed', report.orgId, {
+        createEvent<ReportDeliveryFailedEvent>("ReportDeliveryFailed", report.orgId, {
           reportId: report.id,
           scheduleId: report.scheduleId,
           recipients,
@@ -385,9 +388,9 @@ export class ReportGenerationService {
   }
 
   private generateFilename(schedule: Partial<ReportScheduleConfig>, generatedAt: Date): string {
-    const date = generatedAt.toISOString().split('T')[0];
-    const time = generatedAt.toISOString().split('T')[1].substring(0, 5).replace(':', '');
-    const ext = schedule.format || 'pdf';
+    const date = generatedAt.toISOString().split("T")[0];
+    const time = generatedAt.toISOString().split("T")[1].substring(0, 5).replace(":", "");
+    const ext = schedule.format || "pdf";
     return `${schedule.reportType}_${date}_${time}.${ext}`;
   }
 
@@ -401,22 +404,28 @@ export class ReportGenerationService {
     try {
       const dbSettings = await settingsStorage.getSettingsByCategory(orgId, SETTINGS_CATEGORY);
       const settings: ScheduledReportsSettings = { ...DEFAULT_SCHEDULED_REPORTS_SETTINGS };
-      
+
       for (const setting of dbSettings) {
-        if (setting.key === 'report_retention_days' && typeof setting.value === 'number') {
+        if (setting.key === "report_retention_days" && typeof setting.value === "number") {
           settings.reportRetentionDays = setting.value;
-        } else if (setting.key === 'default_timezone' && typeof setting.value === 'string') {
+        } else if (setting.key === "default_timezone" && typeof setting.value === "string") {
           settings.defaultTimezone = setting.value;
-        } else if (setting.key === 'max_recipients_per_schedule' && typeof setting.value === 'number') {
+        } else if (
+          setting.key === "max_recipients_per_schedule" &&
+          typeof setting.value === "number"
+        ) {
           settings.maxRecipientsPerSchedule = setting.value;
-        } else if (setting.key === 'report_generation_timeout_seconds' && typeof setting.value === 'number') {
+        } else if (
+          setting.key === "report_generation_timeout_seconds" &&
+          typeof setting.value === "number"
+        ) {
           settings.reportGenerationTimeoutSeconds = setting.value;
         }
       }
-      
+
       return settings;
     } catch (error) {
-      logger.warn(LOG_CTX, 'Failed to load settings, using defaults', String(error));
+      logger.warn(LOG_CTX, "Failed to load settings, using defaults", String(error));
       return DEFAULT_SCHEDULED_REPORTS_SETTINGS;
     }
   }

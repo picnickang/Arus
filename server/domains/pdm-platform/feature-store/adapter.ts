@@ -1,6 +1,10 @@
 import { eq, and, desc, gte, lte } from "drizzle-orm";
 import { db } from "../../../db";
-import { equipmentFeatures, type EquipmentFeature, type InsertEquipmentFeature } from "@shared/schema";
+import {
+  equipmentFeatures,
+  type EquipmentFeature,
+  type InsertEquipmentFeature,
+} from "@shared/schema";
 import type { FeatureStorePort } from "./ports";
 import type { TelemetryPort, TelemetryReading } from "./telemetry-port";
 import { TelemetryAdapter } from "./telemetry-adapter";
@@ -32,18 +36,31 @@ function computeStats(values: number[]): SensorStats {
   const delta = max - min;
   const rateOfChange = n > 1 ? (values[0] - values[n - 1]) / n : 0;
 
-  return { mean: round(mean), std: round(std), min: round(min), max: round(max), count: n, rms: round(rms), delta: round(delta), rateOfChange: round(rateOfChange) };
+  return {
+    mean: round(mean),
+    std: round(std),
+    min: round(min),
+    max: round(max),
+    count: n,
+    rms: round(rms),
+    delta: round(delta),
+    rateOfChange: round(rateOfChange),
+  };
 }
 
 function computeKurtosis(values: number[], mean: number, std: number): number {
-  if (values.length < 4 || std === 0) {return 3.0;}
+  if (values.length < 4 || std === 0) {
+    return 3.0;
+  }
   const n = values.length;
   const m4 = values.reduce((sum, v) => sum + ((v - mean) / std) ** 4, 0) / n;
   return round(m4);
 }
 
 function computeSkewness(values: number[], mean: number, std: number): number {
-  if (values.length < 3 || std === 0) {return 0;}
+  if (values.length < 3 || std === 0) {
+    return 0;
+  }
   const n = values.length;
   const m3 = values.reduce((sum, v) => sum + ((v - mean) / std) ** 3, 0) / n;
   return round(m3);
@@ -60,43 +77,92 @@ export class FeatureStoreAdapter implements FeatureStorePort {
     this.telemetry = telemetryPort ?? new TelemetryAdapter();
   }
 
-  async computeAndStore(orgId: string, equipmentId: string, windowMinutes = 60): Promise<EquipmentFeature> {
+  async computeAndStore(
+    orgId: string,
+    equipmentId: string,
+    windowMinutes = 60
+  ): Promise<EquipmentFeature> {
     const readings = await this.telemetry.getRecentReadings(orgId, equipmentId, windowMinutes);
 
     let features: InsertEquipmentFeature;
 
     if (readings.length > 0) {
       features = this.computeFromTelemetry(orgId, equipmentId, windowMinutes, readings);
-      logger.info("[FeatureStore] Computed features from real telemetry", { orgId, equipmentId, readingCount: readings.length });
+      logger.info("[FeatureStore] Computed features from real telemetry", {
+        orgId,
+        equipmentId,
+        readingCount: readings.length,
+      });
     } else {
       features = this.computeStubFeatures(orgId, equipmentId, windowMinutes);
-      logger.warn("[FeatureStore] No telemetry data found, using stub features", { orgId, equipmentId, windowMinutes });
+      logger.warn("[FeatureStore] No telemetry data found, using stub features", {
+        orgId,
+        equipmentId,
+        windowMinutes,
+      });
     }
 
     const [result] = await db.insert(equipmentFeatures).values(features).returning();
-    logger.info("[FeatureStore] Stored features", { orgId, equipmentId, featureId: result.id, source: readings.length > 0 ? "telemetry" : "stub" });
+    logger.info("[FeatureStore] Stored features", {
+      orgId,
+      equipmentId,
+      featureId: result.id,
+      source: readings.length > 0 ? "telemetry" : "stub",
+    });
     return result;
   }
 
-  private computeFromTelemetry(orgId: string, equipmentId: string, windowMinutes: number, readings: TelemetryReading[]): InsertEquipmentFeature {
+  private computeFromTelemetry(
+    orgId: string,
+    equipmentId: string,
+    windowMinutes: number,
+    readings: TelemetryReading[]
+  ): InsertEquipmentFeature {
     const bySensor: Record<string, number[]> = {};
     for (const r of readings) {
       const key = r.sensorType.toLowerCase();
-      if (!bySensor[key]) {bySensor[key] = [];}
+      if (!bySensor[key]) {
+        bySensor[key] = [];
+      }
       bySensor[key].push(r.value);
     }
 
-    const tempValues = this.findSensorValues(bySensor, ["temperature", "temp", "exhaust_temp", "coolant_temp", "oil_temp"]);
-    const vibValues = this.findSensorValues(bySensor, ["vibration", "vib", "acceleration", "vibration_rms"]);
-    const pressValues = this.findSensorValues(bySensor, ["pressure", "press", "oil_pressure", "fuel_pressure", "boost_pressure"]);
+    const tempValues = this.findSensorValues(bySensor, [
+      "temperature",
+      "temp",
+      "exhaust_temp",
+      "coolant_temp",
+      "oil_temp",
+    ]);
+    const vibValues = this.findSensorValues(bySensor, [
+      "vibration",
+      "vib",
+      "acceleration",
+      "vibration_rms",
+    ]);
+    const pressValues = this.findSensorValues(bySensor, [
+      "pressure",
+      "press",
+      "oil_pressure",
+      "fuel_pressure",
+      "boost_pressure",
+    ]);
 
     const tempStats = computeStats(tempValues);
     const vibStats = computeStats(vibValues);
     const pressStats = computeStats(pressValues);
 
     const vibForKurtosis = vibValues.length > 0 ? vibValues : tempValues;
-    const kurtosis = computeKurtosis(vibForKurtosis, vibStats.mean || tempStats.mean, vibStats.std || tempStats.std || 1);
-    const skewness = computeSkewness(vibForKurtosis, vibStats.mean || tempStats.mean, vibStats.std || tempStats.std || 1);
+    const kurtosis = computeKurtosis(
+      vibForKurtosis,
+      vibStats.mean || tempStats.mean,
+      vibStats.std || tempStats.std || 1
+    );
+    const skewness = computeSkewness(
+      vibForKurtosis,
+      vibStats.mean || tempStats.mean,
+      vibStats.std || tempStats.std || 1
+    );
 
     return {
       orgId,
@@ -119,17 +185,25 @@ export class FeatureStoreAdapter implements FeatureStorePort {
 
   private findSensorValues(bySensor: Record<string, number[]>, candidates: string[]): number[] {
     for (const candidate of candidates) {
-      if (bySensor[candidate] && bySensor[candidate].length > 0) {return bySensor[candidate];}
+      if (bySensor[candidate] && bySensor[candidate].length > 0) {
+        return bySensor[candidate];
+      }
     }
     for (const key of Object.keys(bySensor)) {
       for (const candidate of candidates) {
-        if (key.includes(candidate)) {return bySensor[key];}
+        if (key.includes(candidate)) {
+          return bySensor[key];
+        }
       }
     }
     return [];
   }
 
-  private computeStubFeatures(orgId: string, equipmentId: string, windowMinutes: number): InsertEquipmentFeature {
+  private computeStubFeatures(
+    orgId: string,
+    equipmentId: string,
+    windowMinutes: number
+  ): InsertEquipmentFeature {
     return {
       orgId,
       equipmentId,
@@ -160,23 +234,34 @@ export class FeatureStoreAdapter implements FeatureStorePort {
   }
 
   async getLatest(orgId: string, equipmentId: string): Promise<EquipmentFeature | null> {
-    const [result] = await db.select()
+    const [result] = await db
+      .select()
       .from(equipmentFeatures)
-      .where(and(eq(equipmentFeatures.orgId, orgId), eq(equipmentFeatures.equipmentId, equipmentId)))
+      .where(
+        and(eq(equipmentFeatures.orgId, orgId), eq(equipmentFeatures.equipmentId, equipmentId))
+      )
       .orderBy(desc(equipmentFeatures.timestamp))
       .limit(1);
     return result ?? null;
   }
 
-  async getHistory(orgId: string, equipmentId: string, from: Date, to: Date): Promise<EquipmentFeature[]> {
-    return db.select()
+  async getHistory(
+    orgId: string,
+    equipmentId: string,
+    from: Date,
+    to: Date
+  ): Promise<EquipmentFeature[]> {
+    return db
+      .select()
       .from(equipmentFeatures)
-      .where(and(
-        eq(equipmentFeatures.orgId, orgId),
-        eq(equipmentFeatures.equipmentId, equipmentId),
-        gte(equipmentFeatures.timestamp, from),
-        lte(equipmentFeatures.timestamp, to)
-      ))
+      .where(
+        and(
+          eq(equipmentFeatures.orgId, orgId),
+          eq(equipmentFeatures.equipmentId, equipmentId),
+          gte(equipmentFeatures.timestamp, from),
+          lte(equipmentFeatures.timestamp, to)
+        )
+      )
       .orderBy(desc(equipmentFeatures.timestamp));
   }
 }

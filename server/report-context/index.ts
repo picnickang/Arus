@@ -1,6 +1,6 @@
 /**
  * Report Context Building
- * 
+ *
  * Comprehensive context building for AI-powered reports.
  */
 

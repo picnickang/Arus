@@ -6,7 +6,10 @@
 import type { TrainedXGBoostModel, XGBoostPrediction } from "./types.js";
 import { predictTree, calculateFeatureImportances } from "./tree.js";
 
-export function predictWithXGBoost(model: TrainedXGBoostModel, features: Record<string, number>): XGBoostPrediction {
+export function predictWithXGBoost(
+  model: TrainedXGBoostModel,
+  features: Record<string, number>
+): XGBoostPrediction {
   const featureVector = model.featureNames.map((name) => features[name] || 0);
   const numClasses = model.numClasses;
   const logits = Array(numClasses).fill(model.baseScore);
@@ -49,5 +52,12 @@ export function predictWithXGBoost(model: TrainedXGBoostModel, features: Record<
     .sort((a, b) => b.importance - a.importance)
     .slice(0, 10);
 
-  return { prediction, probabilities, confidence, failureRisk, method: "ml_xgboost", contributingFeatures };
+  return {
+    prediction,
+    probabilities,
+    confidence,
+    failureRisk,
+    method: "ml_xgboost",
+    contributingFeatures,
+  };
 }

@@ -1,6 +1,6 @@
 /**
  * Logbook Routes - Shared Types
- * 
+ *
  * Common types and interfaces for logbook route handlers.
  */
 

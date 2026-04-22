@@ -31,7 +31,7 @@ export interface PartsInventoryEntity {
   location: string | null;
   vesselId: string | null;
   equipmentId: string | null;
-  status: 'in_stock' | 'low_stock' | 'out_of_stock' | 'on_order';
+  status: "in_stock" | "low_stock" | "out_of_stock" | "on_order";
   orgId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -40,7 +40,7 @@ export interface PartsInventoryEntity {
 export interface StockMovementEntity {
   id: string;
   inventoryId: string;
-  movementType: 'in' | 'out' | 'adjustment' | 'transfer';
+  movementType: "in" | "out" | "adjustment" | "transfer";
   quantity: number;
   previousQuantity: number;
   newQuantity: number;
@@ -89,12 +89,12 @@ export interface UpdateInventoryItemCommand {
   unitCost?: number;
   currency?: string;
   location?: string;
-  status?: 'in_stock' | 'low_stock' | 'out_of_stock' | 'on_order';
+  status?: "in_stock" | "low_stock" | "out_of_stock" | "on_order";
 }
 
 export interface RecordStockMovementCommand {
   inventoryId: string;
-  movementType: 'in' | 'out' | 'adjustment' | 'transfer';
+  movementType: "in" | "out" | "adjustment" | "transfer";
   quantity: number;
   reason?: string;
   referenceType?: string;

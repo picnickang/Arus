@@ -10,7 +10,12 @@ interface SyncRoutesConfig {
   writeOperationRateLimit: RateLimitRequestHandler;
   getSyncMetrics: () => Promise<Record<string, unknown>>;
   processPendingEvents: (limit?: number) => Promise<number>;
-  recordAndPublish: (category: string, action: string, type: string, data: unknown) => Promise<void>;
+  recordAndPublish: (
+    category: string,
+    action: string,
+    type: string,
+    data: unknown
+  ) => Promise<void>;
 }
 
 export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void {
@@ -22,7 +27,10 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     recordAndPublish,
   } = config;
 
-  app.get("/api/sync/health", requireOrgId, generalApiRateLimit,
+  app.get(
+    "/api/sync/health",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("get sync health status", async (req: Request, res: Response) => {
       const metrics = await getSyncMetrics();
       res.json({
@@ -33,7 +41,10 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     })
   );
 
-  app.post("/api/sync/reconcile", requireOrgId, generalApiRateLimit,
+  app.post(
+    "/api/sync/reconcile",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("reconcile sync data", async (req: Request, res: Response) => {
       const results = {
         costSync: 0,
@@ -72,7 +83,10 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     })
   );
 
-  app.post("/api/sync/process-events", requireOrgId, generalApiRateLimit,
+  app.post(
+    "/api/sync/process-events",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("process sync events", async (req: Request, res: Response) => {
       const limit = Number.parseInt(req.query.limit as string) || 100;
       const processed = await processPendingEvents(limit);
@@ -85,14 +99,20 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     })
   );
 
-  app.get("/api/sync/metrics", requireOrgId, generalApiRateLimit,
+  app.get(
+    "/api/sync/metrics",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("get sync metrics", async (req: Request, res: Response) => {
       const metrics = await getSyncMetrics();
       res.json(metrics);
     })
   );
 
-  app.get("/api/sync/status", requireOrgId, generalApiRateLimit,
+  app.get(
+    "/api/sync/status",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("get sync status", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
 
@@ -114,7 +134,10 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     })
   );
 
-  app.post("/api/sync/reconcile/comprehensive", requireOrgId, generalApiRateLimit,
+  app.post(
+    "/api/sync/reconcile/comprehensive",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("comprehensive reconciliation", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
 
@@ -133,7 +156,10 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     })
   );
 
-  app.post("/api/sync/check-conflicts", requireOrgId, generalApiRateLimit,
+  app.post(
+    "/api/sync/check-conflicts",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("check conflicts", async (req: Request, res: Response) => {
       const { table, recordId, data, version, timestamp, user, device, orgId } = req.body;
 
@@ -160,14 +186,7 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
       if (result.hasConflict && result.conflicts.length > 0) {
         const conflictIds = [];
         for (const conflict of result.conflicts) {
-          const conflictId = await logConflict(
-            conflict,
-            user,
-            device,
-            null,
-            null,
-            orgId
-          );
+          const conflictId = await logConflict(conflict, user, device, null, null, orgId);
           conflictIds.push(conflictId);
         }
 
@@ -188,7 +207,10 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     })
   );
 
-  app.get("/api/sync/pending-conflicts", requireOrgId, generalApiRateLimit,
+  app.get(
+    "/api/sync/pending-conflicts",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("get pending conflicts", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
 
@@ -199,7 +221,10 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     })
   );
 
-  app.post("/api/sync/resolve-conflict", requireOrgId, writeOperationRateLimit,
+  app.post(
+    "/api/sync/resolve-conflict",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("resolve conflict", async (req: Request, res: Response) => {
       const { conflictId, resolvedValue, resolvedBy, resolutionNotes } = req.body;
 
@@ -227,7 +252,10 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     })
   );
 
-  app.post("/api/sync/auto-resolve", requireOrgId, writeOperationRateLimit,
+  app.post(
+    "/api/sync/auto-resolve",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("auto-resolve conflicts", async (req: Request, res: Response) => {
       const { conflictIds, resolvedBy } = req.body;
 
@@ -272,8 +300,10 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
         const resolutionStrategies: Record<string, () => unknown> = {
           max: () => Math.max(Number(localValue), Number(serverValue)),
           min: () => Math.min(Number(localValue), Number(serverValue)),
-          append: () => (typeof localValue === "string" && typeof serverValue === "string")
-            ? `${serverValue}\n---\n${localValue}` : localValue,
+          append: () =>
+            typeof localValue === "string" && typeof serverValue === "string"
+              ? `${serverValue}\n---\n${localValue}`
+              : localValue,
           lww: () => {
             const localTime = conflict.localTimestamp?.getTime() || 0;
             const serverTime = conflict.serverTimestamp?.getTime() || 0;
@@ -301,5 +331,8 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     })
   );
 
-  logger.info("SyncRoutes", "Registered (health, reconcile, process-events, metrics, status, check-conflicts, pending-conflicts, resolve-conflict, auto-resolve)");
+  logger.info(
+    "SyncRoutes",
+    "Registered (health, reconcile, process-events, metrics, status, check-conflicts, pending-conflicts, resolve-conflict, auto-resolve)"
+  );
 }

@@ -130,7 +130,9 @@ export const insertKbDocSchema = createInsertSchema(kbDocs);
 export const insertKbEmbeddingCacheSchema = createInsertSchema(kbEmbeddingCache);
 export const insertComponentDegradationSchema = createInsertSchema(componentDegradation);
 export const insertFailureHistorySchema = createInsertSchema(failureHistory);
-export const insertModelPerformanceValidationSchema = createInsertSchema(modelPerformanceValidations);
+export const insertModelPerformanceValidationSchema = createInsertSchema(
+  modelPerformanceValidations
+);
 export const insertPredictionFeedbackSchema = createInsertSchema(predictionFeedback);
 export const insertMlModelLegacySchema = createInsertSchema(mlModelsLegacy);
 export const insertShiftTemplateSchema = createInsertSchema(shiftTemplate);

@@ -1,9 +1,9 @@
 /**
  * Weibull RUL Analysis - Backward Compatibility Shim
- * 
+ *
  * This file re-exports all functions from the modularized weibull-rul/ directory.
  * All functionality has been preserved in focused, maintainable modules.
- * 
+ *
  * @see server/weibull-rul/index.ts for the modular implementation
  */
 

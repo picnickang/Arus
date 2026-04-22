@@ -1,7 +1,7 @@
 // Stub file - beast mode config
 export { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
-export type BeastModeFeature = 'vibration' | 'acoustic' | 'thermal' | 'pressure';
+export type BeastModeFeature = "vibration" | "acoustic" | "thermal" | "pressure";
 
 export const beastModeConfig = {
   enabled: false,

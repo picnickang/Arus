@@ -11,6 +11,8 @@ export const setApiReady = (ready: boolean) => {
 };
 
 export function apiReadyGate(req: Request, res: Response, next: NextFunction) {
-  if (apiReady) { return next(); }
+  if (apiReady) {
+    return next();
+  }
   return res.status(503).json({ status: "initializing" });
 }

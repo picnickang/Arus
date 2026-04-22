@@ -82,7 +82,11 @@ export const sheetVersionSqlite = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
-    sheetVersionIdx: index("idx_sv_sheet_version").on(table.sheetType, table.sheetId, table.version),
+    sheetVersionIdx: index("idx_sv_sheet_version").on(
+      table.sheetType,
+      table.sheetId,
+      table.version
+    ),
   })
 );
 

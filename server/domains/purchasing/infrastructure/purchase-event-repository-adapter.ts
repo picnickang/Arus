@@ -22,7 +22,9 @@ export class PurchaseEventRepositoryAdapter implements IPurchaseEventRepository 
       .from(purchaseRequests)
       .where(and(eq(purchaseRequests.id, prId), eq(purchaseRequests.orgId, orgId)));
 
-    if (!pr) {return null;}
+    if (!pr) {
+      return null;
+    }
 
     const prEvents = await db
       .select({
@@ -33,12 +35,7 @@ export class PurchaseEventRepositoryAdapter implements IPurchaseEventRepository 
         createdAt: purchaseRequestEvents.createdAt,
       })
       .from(purchaseRequestEvents)
-      .where(
-        and(
-          eq(purchaseRequestEvents.prId, prId),
-          eq(purchaseRequestEvents.orgId, orgId)
-        )
-      )
+      .where(and(eq(purchaseRequestEvents.prId, prId), eq(purchaseRequestEvents.orgId, orgId)))
       .orderBy(sql`${purchaseRequestEvents.createdAt} ASC`);
 
     const linkedPoIds = await this.findLinkedPOIds(prId, orgId);
@@ -55,12 +52,7 @@ export class PurchaseEventRepositoryAdapter implements IPurchaseEventRepository 
             createdAt: purchaseOrderEvents.createdAt,
           })
           .from(purchaseOrderEvents)
-          .where(
-            and(
-              eq(purchaseOrderEvents.poId, poId),
-              eq(purchaseOrderEvents.orgId, orgId)
-            )
-          )
+          .where(and(eq(purchaseOrderEvents.poId, poId), eq(purchaseOrderEvents.orgId, orgId)))
           .orderBy(sql`${purchaseOrderEvents.createdAt} ASC`);
         poEvents.push(...(events as RawEvent[]));
       }
@@ -83,17 +75,14 @@ export class PurchaseEventRepositoryAdapter implements IPurchaseEventRepository 
         details: purchaseRequestEvents.details,
       })
       .from(purchaseRequestEvents)
-      .where(
-        and(
-          eq(purchaseRequestEvents.prId, prId),
-          eq(purchaseRequestEvents.orgId, orgId)
-        )
-      );
+      .where(and(eq(purchaseRequestEvents.prId, prId), eq(purchaseRequestEvents.orgId, orgId)));
 
     const poIds = new Set<string>();
     for (const evt of events) {
       const details = evt.details as Record<string, unknown> | null;
-      if (!details) {continue;}
+      if (!details) {
+        continue;
+      }
 
       if (details.poId && typeof details.poId === "string") {
         poIds.add(details.poId);
@@ -102,8 +91,11 @@ export class PurchaseEventRepositoryAdapter implements IPurchaseEventRepository 
         for (const po of details.purchaseOrders) {
           if (po && typeof po === "object") {
             const poObj = po as Record<string, unknown>;
-            if (typeof poObj.poId === "string") {poIds.add(poObj.poId);}
-            else if (typeof poObj.id === "string") {poIds.add(poObj.id);}
+            if (typeof poObj.poId === "string") {
+              poIds.add(poObj.poId);
+            } else if (typeof poObj.id === "string") {
+              poIds.add(poObj.id);
+            }
           }
         }
       }
@@ -114,10 +106,7 @@ export class PurchaseEventRepositoryAdapter implements IPurchaseEventRepository 
         .select({ poId: purchaseOrderEvents.poId, details: purchaseOrderEvents.details })
         .from(purchaseOrderEvents)
         .where(
-          and(
-            eq(purchaseOrderEvents.orgId, orgId),
-            eq(purchaseOrderEvents.eventType, "created")
-          )
+          and(eq(purchaseOrderEvents.orgId, orgId), eq(purchaseOrderEvents.eventType, "created"))
         );
 
       for (const evt of poCreationEvents) {
@@ -133,7 +122,9 @@ export class PurchaseEventRepositoryAdapter implements IPurchaseEventRepository 
 
   async resolveUserNames(userIds: string[]): Promise<Map<string, string>> {
     const nameMap = new Map<string, string>();
-    if (userIds.length === 0) {return nameMap;}
+    if (userIds.length === 0) {
+      return nameMap;
+    }
 
     const uniqueIds = [...new Set(userIds)];
     const rows = await db

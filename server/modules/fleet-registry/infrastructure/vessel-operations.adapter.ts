@@ -18,12 +18,12 @@ export class VesselOperationsAdapter implements VesselOperationsPort {
     return vesselService.wipeVesselData(vesselId, orgId);
   }
   getVesselEquipment(vesselId: string, orgId: string) {
-    return dbEquipmentStorage.getEquipmentByVessel(vesselId, orgId || '');
+    return dbEquipmentStorage.getEquipmentByVessel(vesselId, orgId || "");
   }
   assignEquipment(vesselId: string, equipmentId: string, orgId: string) {
-    return dbEquipmentStorage.associateEquipmentToVessel(equipmentId, vesselId, orgId || '');
+    return dbEquipmentStorage.associateEquipmentToVessel(equipmentId, vesselId, orgId || "");
   }
   unassignEquipment(vesselId: string, equipmentId: string, orgId: string) {
-    return dbEquipmentStorage.disassociateEquipmentFromVessel(equipmentId, orgId || '');
+    return dbEquipmentStorage.disassociateEquipmentFromVessel(equipmentId, orgId || "");
   }
 }

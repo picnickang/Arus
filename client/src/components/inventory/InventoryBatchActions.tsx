@@ -53,7 +53,16 @@ export function InventoryBatchActions({
   });
 
   const createPRMutation = useMutation({
-    mutationFn: async (data: { notes?: string; items: Array<{ partId?: string; description: string; quantity: number; notes?: string; supplierId?: string }> }) => {
+    mutationFn: async (data: {
+      notes?: string;
+      items: Array<{
+        partId?: string;
+        description: string;
+        quantity: number;
+        notes?: string;
+        supplierId?: string;
+      }>;
+    }) => {
       const pr = await createPR.mutateAsync({
         requestedBy: "Batch Reorder",
         notes: data.notes || `Batch reorder for ${data.items.length} parts`,
@@ -100,10 +109,21 @@ export function InventoryBatchActions({
 
   // Hooks above must run unconditionally (rules-of-hooks); the early
   // return for an empty selection is performed only after every hook.
-  if (count === 0) {return null;}
+  if (count === 0) {
+    return null;
+  }
 
   const handleExportSelected = () => {
-    const headers = ["Part Number", "Part Name", "Category", "Current Stock", "Min Stock", "Max Stock", "Unit Cost", "Supplier"];
+    const headers = [
+      "Part Number",
+      "Part Name",
+      "Category",
+      "Current Stock",
+      "Min Stock",
+      "Max Stock",
+      "Unit Cost",
+      "Supplier",
+    ];
     const rows = selectedParts.map((p) => [
       p.partNumber || "",
       p.partName || "",
@@ -115,7 +135,9 @@ export function InventoryBatchActions({
       p.supplierName || "",
     ]);
 
-    const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${c}"`).join(","))].join("\n");
+    const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${c}"`).join(","))].join(
+      "\n"
+    );
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -139,7 +161,10 @@ export function InventoryBatchActions({
         )}
         data-testid="batch-actions-bar"
       >
-        <Badge variant="secondary" className="bg-primary-foreground/20 text-primary-foreground text-sm">
+        <Badge
+          variant="secondary"
+          className="bg-primary-foreground/20 text-primary-foreground text-sm"
+        >
           {count} selected
         </Badge>
 

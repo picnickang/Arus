@@ -1,10 +1,6 @@
 import { eq, and, desc } from "drizzle-orm";
 import { db } from "../../../../db";
-import {
-  twinScenarios,
-  type TwinScenario,
-  type InsertTwinScenario,
-} from "@shared/schema";
+import { twinScenarios, type TwinScenario, type InsertTwinScenario } from "@shared/schema";
 import type { ScenarioSimPort } from "./ports";
 
 export class ScenarioSimAdapter implements ScenarioSimPort {
@@ -12,9 +8,7 @@ export class ScenarioSimAdapter implements ScenarioSimPort {
     return db
       .select()
       .from(twinScenarios)
-      .where(
-        and(eq(twinScenarios.orgId, orgId), eq(twinScenarios.twinId, twinId))
-      )
+      .where(and(eq(twinScenarios.orgId, orgId), eq(twinScenarios.twinId, twinId)))
       .orderBy(desc(twinScenarios.createdAt));
   }
 
@@ -22,9 +16,7 @@ export class ScenarioSimAdapter implements ScenarioSimPort {
     const [result] = await db
       .select()
       .from(twinScenarios)
-      .where(
-        and(eq(twinScenarios.orgId, orgId), eq(twinScenarios.id, scenarioId))
-      );
+      .where(and(eq(twinScenarios.orgId, orgId), eq(twinScenarios.id, scenarioId)));
     return result ?? null;
   }
 

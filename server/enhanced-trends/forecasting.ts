@@ -116,7 +116,8 @@ export function seasonalForecast(
     const futureTimestamp = new Date(lastTimestamp + h * 60 * 60 * 1000);
 
     const seasonalPhase = ((h % period) / period) * 2 * Math.PI;
-    const seasonalComponent = dominantCycle.amplitude * Math.cos(seasonalPhase + dominantCycle.phase);
+    const seasonalComponent =
+      dominantCycle.amplitude * Math.cos(seasonalPhase + dominantCycle.phase);
     const trendComponent = trend.slope * (timestamps.length + h - 1);
 
     const predictedValue = meanValue + trendComponent + seasonalComponent;
@@ -153,24 +154,27 @@ export function selectBestForecastMethod(
 
   if (seasonality.hasSeasonality && seasonality.strength > 0.4) {
     return "seasonal";
-  } if (trend.rSquared > 0.3) {
+  }
+  if (trend.rSquared > 0.3) {
     return "linear";
-  } 
-    return "exponential";
-  
+  }
+  return "exponential";
 }
 
 export function generateForecastRecommendation(confidence: number): string {
   if (confidence > 0.8) {
     return `High confidence forecast (${(confidence * 100).toFixed(1)}%). Suitable for proactive maintenance planning.`;
-  } if (confidence > 0.6) {
+  }
+  if (confidence > 0.6) {
     return `Moderate confidence forecast (${(confidence * 100).toFixed(1)}%). Use for trend awareness, validate with additional sensors.`;
-  } 
-    return `Low confidence forecast (${(confidence * 100).toFixed(1)}%). Equipment behavior is unpredictable, increase monitoring frequency.`;
-  
+  }
+  return `Low confidence forecast (${(confidence * 100).toFixed(1)}%). Equipment behavior is unpredictable, increase monitoring frequency.`;
 }
 
-const forecastMethods: Record<string, (values: number[], timestamps: Date[], horizon: number) => ForecastOutput> = {
+const forecastMethods: Record<
+  string,
+  (values: number[], timestamps: Date[], horizon: number) => ForecastOutput
+> = {
   linear: linearForecast,
   exponential: exponentialSmoothing,
   seasonal: seasonalForecast,

@@ -1,6 +1,6 @@
 /**
  * OpenAPI Spec - Telemetry Endpoint Paths
- * 
+ *
  * Real-time telemetry data endpoints.
  */
 
@@ -17,13 +17,13 @@ export const telemetryPaths = {
             "application/json": {
               schema: {
                 type: "array",
-                items: { "$ref": "#/components/schemas/TelemetryReading" }
-              }
-            }
-          }
-        }
-      }
-    }
+                items: { $ref: "#/components/schemas/TelemetryReading" },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   "/telemetry": {
     post: {
@@ -46,19 +46,19 @@ export const telemetryPaths = {
                     properties: {
                       sensorType: { type: "string" },
                       value: { type: "number" },
-                      timestamp: { type: "string", format: "date-time" }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+                      timestamp: { type: "string", format: "date-time" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
       responses: {
         "201": { description: "Telemetry ingested successfully" },
-        "429": { "$ref": "#/components/responses/RateLimited" }
-      }
-    }
-  }
+        "429": { $ref: "#/components/responses/RateLimited" },
+      },
+    },
+  },
 };

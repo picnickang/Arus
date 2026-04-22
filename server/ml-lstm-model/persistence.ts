@@ -29,7 +29,11 @@ export async function saveLSTMModel(trainedModel: TrainedLSTMModel, path: string
 
   await savePreprocessingParams(path, {
     normalization: { means, stds },
-    features: { sensorTypes: trainedModel.featureNames, sequenceLength: trainedModel.config.sequenceLength, lookbackDays: undefined },
+    features: {
+      sensorTypes: trainedModel.featureNames,
+      sequenceLength: trainedModel.config.sequenceLength,
+      lookbackDays: undefined,
+    },
   });
 }
 

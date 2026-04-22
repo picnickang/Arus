@@ -1,6 +1,6 @@
 /**
  * Schema Maintenance - Schedules, Records, Templates, Costs, and Condition Monitoring
- * 
+ *
  * Maintenance planning, execution tracking, and condition-based maintenance.
  */
 
@@ -99,7 +99,10 @@ export const maintenanceCosts = pgTable(
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({
-    equipmentCostIdx: index("idx_maintenance_costs_equipment").on(table.equipmentId, table.incurredAt),
+    equipmentCostIdx: index("idx_maintenance_costs_equipment").on(
+      table.equipmentId,
+      table.incurredAt
+    ),
   })
 );
 
@@ -374,7 +377,10 @@ export const insertMaintenanceScheduleSchema = createInsertSchema(maintenanceSch
     status: z.enum(["scheduled", "in_progress", "completed", "cancelled"]).default("scheduled"),
     priority: z.number().min(1).max(3).default(2),
     pdmScore: z.number().min(0).max(100).optional(),
-    scheduledDate: z.string().or(z.date()).transform((val) => (typeof val === "string" ? new Date(val) : val)),
+    scheduledDate: z
+      .string()
+      .or(z.date())
+      .transform((val) => (typeof val === "string" ? new Date(val) : val)),
   });
 
 export const insertMaintenanceRecordSchema = createInsertSchema(maintenanceRecords)
@@ -395,11 +401,15 @@ export const insertMaintenanceTemplateSchema = createInsertSchema(maintenanceTem
   updatedAt: true,
 });
 
-export const insertMaintenanceChecklistItemSchema = createInsertSchema(maintenanceChecklistItems).omit({
+export const insertMaintenanceChecklistItemSchema = createInsertSchema(
+  maintenanceChecklistItems
+).omit({
   id: true,
 });
 
-export const insertMaintenanceChecklistCompletionSchema = createInsertSchema(maintenanceChecklistCompletions).omit({
+export const insertMaintenanceChecklistCompletionSchema = createInsertSchema(
+  maintenanceChecklistCompletions
+).omit({
   id: true,
 });
 
@@ -440,7 +450,9 @@ export type InsertMaintenanceTemplate = z.infer<typeof insertMaintenanceTemplate
 export type MaintenanceChecklistItem = typeof maintenanceChecklistItems.$inferSelect;
 export type InsertMaintenanceChecklistItem = z.infer<typeof insertMaintenanceChecklistItemSchema>;
 export type MaintenanceChecklistCompletion = typeof maintenanceChecklistCompletions.$inferSelect;
-export type InsertMaintenanceChecklistCompletion = z.infer<typeof insertMaintenanceChecklistCompletionSchema>;
+export type InsertMaintenanceChecklistCompletion = z.infer<
+  typeof insertMaintenanceChecklistCompletionSchema
+>;
 
 // Condition Monitoring Types
 export type OilAnalysis = typeof oilAnalysis.$inferSelect;

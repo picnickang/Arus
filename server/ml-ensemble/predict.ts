@@ -1,6 +1,6 @@
 /**
  * ML Ensemble Prediction
- * 
+ *
  * Main ensemble prediction combining LSTM, Random Forest, and XGBoost.
  */
 
@@ -49,10 +49,17 @@ export async function ensemblePredict(
     ? await getAdaptiveWeights(orgId, equipmentType)
     : STATIC_WEIGHTS.default;
 
-  logger.debug("MlEnsemble", `Predicting for ${equipmentType} with ${ensembleConfig.useAdaptiveWeights ? "adaptive" : "static"} weights`, weights);
+  logger.debug(
+    "MlEnsemble",
+    `Predicting for ${equipmentType} with ${ensembleConfig.useAdaptiveWeights ? "adaptive" : "static"} weights`,
+    weights
+  );
 
-  const { predictions, breakdown: modelBreakdown, confidences: modelConfs } = 
-    await collectModelPredictions(orgId, equipmentId, equipmentType, recentData);
+  const {
+    predictions,
+    breakdown: modelBreakdown,
+    confidences: modelConfs,
+  } = await collectModelPredictions(orgId, equipmentId, equipmentType, recentData);
 
   if (predictions.length === 0) {
     logger.error("MlEnsemble", "CRITICAL: No models available for prediction");
@@ -67,7 +74,10 @@ export async function ensemblePredict(
   logger.info("MlEnsemble", `Using ${predictions.length} models: ${availableModels.join(", ")}`);
 
   if (predictions.length < 2) {
-    logger.warn("MlEnsemble", `Only ${predictions.length} model available - ensemble confidence will be reduced`);
+    logger.warn(
+      "MlEnsemble",
+      `Only ${predictions.length} model available - ensemble confidence will be reduced`
+    );
   }
 
   let weightedSum = 0;
@@ -107,7 +117,10 @@ export async function ensemblePredict(
         latestCurve.parameters as any,
         latestCurve.method
       );
-      logger.debug("MlEnsemble", `Calibration applied: ${(finalPrediction * 100).toFixed(1)}% → ${(calibratedProbability * 100).toFixed(1)}% (${latestCurve.method})`);
+      logger.debug(
+        "MlEnsemble",
+        `Calibration applied: ${(finalPrediction * 100).toFixed(1)}% → ${(calibratedProbability * 100).toFixed(1)}% (${latestCurve.method})`
+      );
       finalPrediction = calibratedProbability;
     } else {
       logger.debug("MlEnsemble", "No calibration curve available - using raw ensemble prediction");
@@ -175,7 +188,10 @@ export async function ensemblePredict(
   });
 
   if (confidence < ensembleConfig.minConfidence) {
-    logger.warn("MlEnsemble", `Confidence ${(confidence * 100).toFixed(1)}% below minimum threshold ${(ensembleConfig.minConfidence * 100).toFixed(0)}%`);
+    logger.warn(
+      "MlEnsemble",
+      `Confidence ${(confidence * 100).toFixed(1)}% below minimum threshold ${(ensembleConfig.minConfidence * 100).toFixed(0)}%`
+    );
     result.recommendations.unshift(
       `⚠️ Low confidence (${(confidence * 100).toFixed(1)}%) - prediction may be unreliable`
     );

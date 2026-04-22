@@ -3,10 +3,10 @@
  * Wires up the application service with infrastructure adapters
  */
 
-import { MaintenanceApplicationService } from './maintenance-service';
-import { maintenanceScheduleRepository } from '../infrastructure/schedule-repository-adapter';
-import { maintenanceTemplateRepository } from '../infrastructure/template-repository-adapter';
-import { eventPublisher } from '../infrastructure/event-publisher-adapter';
+import { MaintenanceApplicationService } from "./maintenance-service";
+import { maintenanceScheduleRepository } from "../infrastructure/schedule-repository-adapter";
+import { maintenanceTemplateRepository } from "../infrastructure/template-repository-adapter";
+import { eventPublisher } from "../infrastructure/event-publisher-adapter";
 
 /**
  * Create and export the fully wired application service
@@ -18,4 +18,4 @@ export const maintenanceAppService = new MaintenanceApplicationService(
   eventPublisher
 );
 
-export { MaintenanceApplicationService } from './maintenance-service';
+export { MaintenanceApplicationService } from "./maintenance-service";

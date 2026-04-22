@@ -58,40 +58,39 @@ function getPredictionInterpretation(
         color: "bg-red-500",
         description: `Equipment may fail within ${days} days. Schedule maintenance immediately.`,
       };
-    } if (days <= 30) {
+    }
+    if (days <= 30) {
       return {
         label: "Maintenance Recommended",
         color: "bg-yellow-500",
         description: `Equipment predicted to fail in ${days} days. Plan maintenance soon.`,
       };
-    } 
-      return {
-        label: "Healthy",
-        color: "bg-green-500",
-        description: `Equipment in good condition. Expected to run for ${days}+ days.`,
-      };
-    
-  } 
-    if (prediction > 0.7) {
-      return {
-        label: "Critical Health Risk",
-        color: "bg-red-500",
-        description: "Equipment showing signs of serious degradation.",
-      };
-    } if (prediction > 0.4) {
-      return {
-        label: "Moderate Health Risk",
-        color: "bg-yellow-500",
-        description: "Equipment showing some wear. Monitor closely.",
-      };
-    } 
-      return {
-        label: "Good Health",
-        color: "bg-green-500",
-        description: "Equipment operating normally.",
-      };
-    
-  
+    }
+    return {
+      label: "Healthy",
+      color: "bg-green-500",
+      description: `Equipment in good condition. Expected to run for ${days}+ days.`,
+    };
+  }
+  if (prediction > 0.7) {
+    return {
+      label: "Critical Health Risk",
+      color: "bg-red-500",
+      description: "Equipment showing signs of serious degradation.",
+    };
+  }
+  if (prediction > 0.4) {
+    return {
+      label: "Moderate Health Risk",
+      color: "bg-yellow-500",
+      description: "Equipment showing some wear. Monitor closely.",
+    };
+  }
+  return {
+    label: "Good Health",
+    color: "bg-green-500",
+    description: "Equipment operating normally.",
+  };
 }
 
 // Waterfall Chart Component
@@ -186,7 +185,11 @@ function FeatureImportanceBar({ features }: { features: Feature[] }) {
         const barWidth = (feature.contribution / maxContribution) * 100;
 
         return (
-          <div key={`importance-${feature.name}`} className="space-y-1" data-testid={`importance-bar-${index}`}>
+          <div
+            key={`importance-${feature.name}`}
+            className="space-y-1"
+            data-testid={`importance-bar-${index}`}
+          >
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium truncate max-w-[200px]" title={feature.name}>
                 {feature.name}

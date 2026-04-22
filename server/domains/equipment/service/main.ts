@@ -4,28 +4,42 @@
 
 import type { Equipment, InsertEquipment, InsertDecommissionEvent } from "@shared/schema";
 import type { EquipmentHealth } from "../../../db/equipment/types.js";
-import { DualWriteAdapter } from '../../../infrastructure/DualWriteAdapter';
-import { featureFlags } from '../../../infrastructure/feature-flags';
-import type { PaginationOptions, PaginatedResult, SensorCoverageResult, SensorSetupResult } from './types.js';
-import type { DecommissionResult, DecommissionedEquipmentWithEvent } from './decommission-operations.js';
-import * as crud from './crud-operations.js';
-import * as health from './health-operations.js';
-import * as sensors from './sensor-operations.js';
-import * as parts from './parts-operations.js';
-import * as decommission from './decommission-operations.js';
+import { DualWriteAdapter } from "../../../infrastructure/DualWriteAdapter";
+import { featureFlags } from "../../../infrastructure/feature-flags";
+import type {
+  PaginationOptions,
+  PaginatedResult,
+  SensorCoverageResult,
+  SensorSetupResult,
+} from "./types.js";
+import type {
+  DecommissionResult,
+  DecommissionedEquipmentWithEvent,
+} from "./decommission-operations.js";
+import * as crud from "./crud-operations.js";
+import * as health from "./health-operations.js";
+import * as sensors from "./sensor-operations.js";
+import * as parts from "./parts-operations.js";
+import * as decommission from "./decommission-operations.js";
 
 export class EquipmentService {
   private adapter: DualWriteAdapter;
 
   constructor() {
-    this.adapter = new DualWriteAdapter({ featureFlag: () => featureFlags.isEnabled('useTenantScopedEquipment'), domain: 'equipment' });
+    this.adapter = new DualWriteAdapter({
+      featureFlag: () => featureFlags.isEnabled("useTenantScopedEquipment"),
+      domain: "equipment",
+    });
   }
 
   async listEquipment(orgId: string): Promise<Equipment[]> {
     return crud.listEquipment(this.adapter, orgId);
   }
 
-  async listEquipmentPaginated(orgId: string, options: PaginationOptions): Promise<PaginatedResult<Equipment>> {
+  async listEquipmentPaginated(
+    orgId: string,
+    options: PaginationOptions
+  ): Promise<PaginatedResult<Equipment>> {
     return crud.listEquipmentPaginated(this.adapter, orgId, options);
   }
 
@@ -37,7 +51,12 @@ export class EquipmentService {
     return crud.createEquipment(this.adapter, data, userId);
   }
 
-  async updateEquipment(id: string, data: Partial<InsertEquipment>, orgId: string, userId?: string): Promise<Equipment> {
+  async updateEquipment(
+    id: string,
+    data: Partial<InsertEquipment>,
+    orgId: string,
+    userId?: string
+  ): Promise<Equipment> {
     return crud.updateEquipment(this.adapter, id, data, orgId, userId);
   }
 
@@ -49,7 +68,11 @@ export class EquipmentService {
     return crud.disassociateVessel(this.adapter, equipmentId, orgId, userId);
   }
 
-  async getEquipmentHealth(orgId: string, vesselId?: string, equipmentId?: string): Promise<EquipmentHealth[]> {
+  async getEquipmentHealth(
+    orgId: string,
+    vesselId?: string,
+    equipmentId?: string
+  ): Promise<EquipmentHealth[]> {
     return health.getEquipmentHealth(this.adapter, orgId, vesselId, equipmentId);
   }
 
@@ -73,7 +96,11 @@ export class EquipmentService {
     return parts.getSuggestedParts(this.adapter, equipmentId, orgId);
   }
 
-  async decommissionEquipment(equipmentId: string, orgId: string, data: InsertDecommissionEvent): Promise<DecommissionResult> {
+  async decommissionEquipment(
+    equipmentId: string,
+    orgId: string,
+    data: InsertDecommissionEvent
+  ): Promise<DecommissionResult> {
     return decommission.decommissionEquipment(this.adapter, equipmentId, orgId, data);
   }
 

@@ -11,20 +11,11 @@ export interface ResidualRanking {
 }
 
 export interface ResidualAnalysisPort {
-  computeResiduals(
-    orgId: string,
-    twinId: string
-  ): Promise<TwinResidual[]>;
+  computeResiduals(orgId: string, twinId: string): Promise<TwinResidual[]>;
 
-  getResidualsByTwin(
-    orgId: string,
-    twinId: string,
-    limit?: number
-  ): Promise<TwinResidual[]>;
+  getResidualsByTwin(orgId: string, twinId: string, limit?: number): Promise<TwinResidual[]>;
 
-  getResidualRankings(
-    orgId: string
-  ): Promise<ResidualRanking[]>;
+  getResidualRankings(orgId: string): Promise<ResidualRanking[]>;
 
   storeResiduals(records: InsertTwinResidual[]): Promise<TwinResidual[]>;
 }

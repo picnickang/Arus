@@ -23,7 +23,9 @@ router.post("/:modelVersionId/compute", async (req: Request, res: Response) => {
   try {
     const orgId = req.headers["x-org-id"] as string;
     const parsed = computeDriftSchema.safeParse(req.body);
-    if (!parsed.success) {return res.status(400).json({ error: parsed.error.flatten().fieldErrors });}
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+    }
     const { windowDays } = parsed.data;
     const result = await monitoring.computeDrift(orgId, req.params.modelVersionId, windowDays);
     res.json(result);

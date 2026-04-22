@@ -52,21 +52,21 @@ export class SchedulePlannerReadModelAdapter implements ISchedulePlannerReadMode
     logger.info("Building schedule planner view", { filter });
 
     try {
-      const [
-        vesselList,
-        crewMembers,
-        assignments,
-        unfilled,
-        vesselCrewCounts,
-        vesselRequirements,
-      ] = await Promise.all([
-        this.fetchVessels(filter.orgId, filter.vesselIds),
-        this.fetchCrewMembersWithDetails(filter.orgId, filter.crewIds, filter.roles, filter.startDate, filter.endDate),
-        this.fetchAssignments(filter),
-        filter.includeUnfilled !== false ? this.fetchUnfilled(filter) : [],
-        this.fetchCurrentCrewPerVessel(filter.orgId),
-        this.fetchRequiredCrewPerVessel(filter.orgId),
-      ]);
+      const [vesselList, crewMembers, assignments, unfilled, vesselCrewCounts, vesselRequirements] =
+        await Promise.all([
+          this.fetchVessels(filter.orgId, filter.vesselIds),
+          this.fetchCrewMembersWithDetails(
+            filter.orgId,
+            filter.crewIds,
+            filter.roles,
+            filter.startDate,
+            filter.endDate
+          ),
+          this.fetchAssignments(filter),
+          filter.includeUnfilled !== false ? this.fetchUnfilled(filter) : [],
+          this.fetchCurrentCrewPerVessel(filter.orgId),
+          this.fetchRequiredCrewPerVessel(filter.orgId),
+        ]);
 
       const vesselMap = new Map(vesselList.map((v) => [v.id, v]));
 
@@ -118,10 +118,12 @@ export class SchedulePlannerReadModelAdapter implements ISchedulePlannerReadMode
       });
 
       recordViewQuery(filter.orgId, "getView", durationMs);
-      const allViolations = rows.flatMap(r => r.violations || []).map(v => ({
-        type: v.type,
-        severity: v.severity,
-      }));
+      const allViolations = rows
+        .flatMap((r) => r.violations || [])
+        .map((v) => ({
+          type: v.type,
+          severity: v.severity,
+        }));
       updateViewStats(filter.orgId, rows.length, complianceRate, crewUtilization, allViolations);
 
       return view;

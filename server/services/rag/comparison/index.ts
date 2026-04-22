@@ -52,10 +52,7 @@ export class ComparisonService {
     return this.openai !== null;
   }
 
-  async compare(
-    request: ComparisonRequest,
-    orgId: string
-  ): Promise<ComparisonResult> {
+  async compare(request: ComparisonRequest, orgId: string): Promise<ComparisonResult> {
     const { query, documentIds, maxChunksPerDoc = 5 } = request;
 
     if (documentIds.length < 2) {
@@ -66,11 +63,7 @@ export class ComparisonService {
       throw new Error("Maximum 5 documents can be compared at once");
     }
 
-    const documentContents = await this.fetchDocumentContents(
-      documentIds,
-      orgId,
-      maxChunksPerDoc
-    );
+    const documentContents = await this.fetchDocumentContents(documentIds, orgId, maxChunksPerDoc);
 
     if (documentContents.length < 2) {
       throw new Error("Could not find enough documents for comparison");
@@ -176,12 +169,13 @@ Focus on factual, specific differences. Be concise but thorough.`;
         documents: documents.map((doc) => ({
           documentId: doc.documentId,
           documentTitle: doc.documentTitle,
-          relevantExcerpts: doc.chunks.slice(0, 2).map((c) => `${c.content.substring(0, 200)  }...`),
+          relevantExcerpts: doc.chunks.slice(0, 2).map((c) => `${c.content.substring(0, 200)}...`),
         })),
         comparisonPoints: (parsed.comparisonPoints || []).map((point: any) => ({
           aspect: point.aspect,
           documents: point.documents.map((d: any) => ({
-            documentId: documents.find((doc) => doc.documentTitle === d.documentTitle)?.documentId || "",
+            documentId:
+              documents.find((doc) => doc.documentTitle === d.documentTitle)?.documentId || "",
             documentTitle: d.documentTitle,
             value: d.value,
           })),
@@ -208,7 +202,7 @@ Focus on factual, specific differences. Be concise but thorough.`;
       documents: documents.map((doc) => ({
         documentId: doc.documentId,
         documentTitle: doc.documentTitle,
-        relevantExcerpts: doc.chunks.slice(0, 2).map((c) => `${c.content.substring(0, 200)  }...`),
+        relevantExcerpts: doc.chunks.slice(0, 2).map((c) => `${c.content.substring(0, 200)}...`),
       })),
       comparisonPoints: [],
       confidence: 0.4,

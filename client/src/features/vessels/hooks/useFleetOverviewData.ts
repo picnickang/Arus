@@ -51,10 +51,15 @@ export function useFleetOverviewData(): UseFleetOverviewDataReturn {
       (acc, vessel) => {
         vessel.insights.forEach((insight) => {
           acc.total++;
-          if (insight.statusLevel === "critical") {acc.critical++;}
-          else if (insight.statusLevel === "action_required") {acc.actionRequired++;}
-          else if (insight.statusLevel === "monitor") {acc.monitor++;}
-          else {acc.normal++;}
+          if (insight.statusLevel === "critical") {
+            acc.critical++;
+          } else if (insight.statusLevel === "action_required") {
+            acc.actionRequired++;
+          } else if (insight.statusLevel === "monitor") {
+            acc.monitor++;
+          } else {
+            acc.normal++;
+          }
         });
         return acc;
       },
@@ -66,14 +71,19 @@ export function useFleetOverviewData(): UseFleetOverviewDataReturn {
     return data?.vessels
       .map((vessel) => ({
         ...vessel,
-        insights: vessel.insights.filter((insight) => !statusFilter || insight.statusLevel === statusFilter),
+        insights: vessel.insights.filter(
+          (insight) => !statusFilter || insight.statusLevel === statusFilter
+        ),
       }))
       .filter((vessel) => vessel.insights.length > 0);
   }, [data?.vessels, statusFilter]);
 
-  const handleViewDetails = useCallback((equipmentId: string) => {
-    navigate(`/health?equipmentId=${equipmentId}`);
-  }, [navigate]);
+  const handleViewDetails = useCallback(
+    (equipmentId: string) => {
+      navigate(`/health?equipmentId=${equipmentId}`);
+    },
+    [navigate]
+  );
 
   return {
     data,

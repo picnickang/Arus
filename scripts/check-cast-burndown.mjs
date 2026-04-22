@@ -33,14 +33,7 @@ const EXEMPT_PATH_FRAGMENTS = [
   "server/external-integrations/",
 ];
 
-const SKIP_DIR_NAMES = new Set([
-  "node_modules",
-  "dist",
-  "build",
-  ".git",
-  ".cache",
-  "coverage",
-]);
+const SKIP_DIR_NAMES = new Set(["node_modules", "dist", "build", ".git", ".cache", "coverage"]);
 
 const FILE_EXTS = [".ts", ".tsx"];
 
@@ -49,7 +42,9 @@ const CAST_RE = /\bas\s+any\b|\bas\s+unknown\s+as\s+/g;
 
 function isExempt(relPath) {
   for (const frag of EXEMPT_PATH_FRAGMENTS) {
-    if (relPath.includes(frag)) {return true;}
+    if (relPath.includes(frag)) {
+      return true;
+    }
   }
   return false;
 }
@@ -62,7 +57,9 @@ function* walk(dir) {
     return;
   }
   for (const name of entries) {
-    if (SKIP_DIR_NAMES.has(name)) {continue;}
+    if (SKIP_DIR_NAMES.has(name)) {
+      continue;
+    }
     const full = join(dir, name);
     let st;
     try {
@@ -83,10 +80,14 @@ function countCasts() {
   let total = 0;
   for (const scanDir of SCAN_DIRS) {
     const abs = resolve(ROOT, scanDir);
-    if (!existsSync(abs)) {continue;}
+    if (!existsSync(abs)) {
+      continue;
+    }
     for (const file of walk(abs)) {
       const rel = relative(ROOT, file);
-      if (isExempt(rel)) {continue;}
+      if (isExempt(rel)) {
+        continue;
+      }
       let src;
       try {
         src = readFileSync(file, "utf8");
@@ -94,9 +95,7 @@ function countCasts() {
         continue;
       }
       // Strip line comments and block comments so commented-out code doesn't count.
-      const stripped = src
-        .replace(/\/\*[\s\S]*?\*\//g, "")
-        .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+      const stripped = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
       const matches = stripped.match(CAST_RE);
       if (matches && matches.length > 0) {
         perFile.set(rel, matches.length);
@@ -108,9 +107,7 @@ function countCasts() {
 }
 
 function summarize(perFile) {
-  const top = [...perFile.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 15);
+  const top = [...perFile.entries()].sort((a, b) => b[1] - a[1]).slice(0, 15);
   const byDir = new Map();
   for (const [file, n] of perFile) {
     const dir = file.split("/").slice(0, 2).join("/");
@@ -130,9 +127,7 @@ function main() {
 
   const { total, perFile } = countCasts();
   console.log(`Type-cast occurrences (\`as any\` + \`as unknown as\`): ${total}`);
-  console.log(
-    `Scanned: ${SCAN_DIRS.join(", ")} (excluding ${EXEMPT_PATH_FRAGMENTS.join(", ")})`,
-  );
+  console.log(`Scanned: ${SCAN_DIRS.join(", ")} (excluding ${EXEMPT_PATH_FRAGMENTS.join(", ")})`);
 
   if (showReport) {
     const summary = summarize(perFile);
@@ -164,20 +159,14 @@ function main() {
   try {
     baseline = JSON.parse(readFileSync(BASELINE_PATH, "utf8"));
   } catch {
-    console.warn(
-      "\n⚠️  No baseline found. Run with --write-baseline to create one.",
-    );
+    console.warn("\n⚠️  No baseline found. Run with --write-baseline to create one.");
     return;
   }
 
   if (total > baseline.total) {
     const delta = total - baseline.total;
-    console.error(
-      `\n❌ Type-cast count INCREASED: ${baseline.total} → ${total} (+${delta})`,
-    );
-    console.error(
-      "Each `as any` or `as unknown as` is a hole in the type system.",
-    );
+    console.error(`\n❌ Type-cast count INCREASED: ${baseline.total} → ${total} (+${delta})`);
+    console.error("Each `as any` or `as unknown as` is a hole in the type system.");
     console.error("Fix the regression — or, if intentional and unavoidable, update the baseline:");
     console.error("  node scripts/check-cast-burndown.mjs --write-baseline");
     process.exit(1);
@@ -185,7 +174,7 @@ function main() {
 
   if (total < baseline.total) {
     console.log(
-      `\n✓ Reduction: ${baseline.total} → ${total} (-${baseline.total - total}). Consider regenerating the baseline.`,
+      `\n✓ Reduction: ${baseline.total} → ${total} (-${baseline.total - total}). Consider regenerating the baseline.`
     );
   } else {
     console.log("\n✓ Type-cast count at baseline.");

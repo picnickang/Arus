@@ -80,15 +80,26 @@ export function rankEquipmentByRisk(analyses: EquipmentAnalysisResult[]): Equipm
     const riskScore = anomalyRisk + volatilityRisk + trendRisk;
 
     const riskFactors: string[] = [];
-    if (anomalyDetection.summary.anomalyRate > 0.15) {riskFactors.push("High anomaly rate");}
-    if (statisticalSummary.standardDeviation > 5) {riskFactors.push("High volatility");}
-    if (statisticalSummary.trend.trendType === "volatile") {riskFactors.push("Unstable trends");}
+    if (anomalyDetection.summary.anomalyRate > 0.15) {
+      riskFactors.push("High anomaly rate");
+    }
+    if (statisticalSummary.standardDeviation > 5) {
+      riskFactors.push("High volatility");
+    }
+    if (statisticalSummary.trend.trendType === "volatile") {
+      riskFactors.push("Unstable trends");
+    }
 
     let priority: "low" | "medium" | "high" | "critical";
-    if (riskScore > 75) {priority = "critical";}
-    else if (riskScore > 50) {priority = "high";}
-    else if (riskScore > 25) {priority = "medium";}
-    else {priority = "low";}
+    if (riskScore > 75) {
+      priority = "critical";
+    } else if (riskScore > 50) {
+      priority = "high";
+    } else if (riskScore > 25) {
+      priority = "medium";
+    } else {
+      priority = "low";
+    }
 
     return {
       equipmentId,
@@ -148,7 +159,8 @@ export function generateFleetRecommendations(
       type: "optimization",
       equipmentIds: analyses.map((a) => a.equipmentId),
       priority: 3,
-      description: "Fleet-wide maintenance strategy review recommended due to elevated risk levels.",
+      description:
+        "Fleet-wide maintenance strategy review recommended due to elevated risk levels.",
       expectedBenefit: "Optimize maintenance schedules and reduce overall fleet risk.",
       timeFrame: "2-4 weeks",
     });

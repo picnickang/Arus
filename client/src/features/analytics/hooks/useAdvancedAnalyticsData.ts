@@ -70,14 +70,27 @@ export interface UseAdvancedAnalyticsDataReturn {
   resetModelForm: () => void;
 }
 
-interface EquipmentData { id: string; name?: string; }
-interface VesselData { id: string; name?: string; }
-interface MlModelFormData { name: string; modelType: string; targetEquipment?: string; parameters?: Record<string, unknown>; }
+interface EquipmentData {
+  id: string;
+  name?: string;
+}
+interface VesselData {
+  id: string;
+  name?: string;
+}
+interface MlModelFormData {
+  name: string;
+  modelType: string;
+  targetEquipment?: string;
+  parameters?: Record<string, unknown>;
+}
 
 async function fetchAnalyticsData(endpoint: string, orgId: string) {
   try {
     const res = await fetch(`/api/analytics/${endpoint}?orgId=${orgId}`);
-    if (!res.ok) {return [];}
+    if (!res.ok) {
+      return [];
+    }
     const data = await res.json();
     return Array.isArray(data) ? data : [];
   } catch {
@@ -141,7 +154,9 @@ export function useAdvancedAnalyticsData(): UseAdvancedAnalyticsDataReturn {
     invalidateKeys: [["/api/analytics/ml-models", orgId]],
     successMessage: "ML model created successfully",
     errorMessage: "Failed to create ML model",
-    onSuccess: () => { setIsDialogOpen(false); },
+    onSuccess: () => {
+      setIsDialogOpen(false);
+    },
     transformData: (data: MlModelFormData) => ({ ...data, orgId }),
   });
 
@@ -150,7 +165,10 @@ export function useAdvancedAnalyticsData(): UseAdvancedAnalyticsDataReturn {
     invalidateKeys: [["/api/analytics/ml-models", orgId]],
     successMessage: "ML model updated successfully",
     errorMessage: "Failed to update ML model",
-    onSuccess: () => { setIsDialogOpen(false); setEditingItem(null); },
+    onSuccess: () => {
+      setIsDialogOpen(false);
+      setEditingItem(null);
+    },
     transformData: (data: MlModelFormData) => ({ ...data, orgId }),
   });
 
@@ -164,14 +182,18 @@ export function useAdvancedAnalyticsData(): UseAdvancedAnalyticsDataReturn {
 
   const acknowledgeAnomalyMutation = useCustomMutation({
     mutationFn: ({ id, acknowledgedBy }: { id: number; acknowledgedBy: string }) =>
-      apiRequest("PATCH", `/api/analytics/anomaly-detections/${id}/acknowledge`, { acknowledgedBy, orgId }),
+      apiRequest("PATCH", `/api/analytics/anomaly-detections/${id}/acknowledge`, {
+        acknowledgedBy,
+        orgId,
+      }),
     invalidateKeys: [["/api/analytics/anomaly-detections", orgId]],
     successMessage: "Anomaly acknowledged successfully",
     errorMessage: "Failed to acknowledge anomaly",
   });
 
   const applyOptimizationMutation = useCustomMutation({
-    mutationFn: (id: number) => apiRequest("PATCH", `/api/analytics/threshold-optimizations/${id}/apply`, { orgId }),
+    mutationFn: (id: number) =>
+      apiRequest("PATCH", `/api/analytics/threshold-optimizations/${id}/apply`, { orgId }),
     invalidateKeys: [["/api/analytics/threshold-optimizations", orgId]],
     successMessage: "Threshold optimization applied successfully",
     errorMessage: "Failed to apply threshold optimization",
@@ -194,19 +216,69 @@ export function useAdvancedAnalyticsData(): UseAdvancedAnalyticsDataReturn {
     }
   };
 
-  const handleEdit = (item: MlModel) => { setEditingItem(item); setIsDialogOpen(true); };
-  const handleDelete = (id: string) => { if (confirm("Are you sure you want to delete this ML model?")) {deleteMlModelMutation.mutate(id);} };
-  const handleAcknowledgeAnomaly = (id: number) => { const acknowledgedBy = prompt("Enter your name to acknowledge this anomaly:"); if (acknowledgedBy) {acknowledgeAnomalyMutation.mutate({ id, acknowledgedBy });} };
-  const handleApplyOptimization = (id: number) => { if (confirm("Are you sure you want to apply this threshold optimization?")) {applyOptimizationMutation.mutate(id);} };
+  const handleEdit = (item: MlModel) => {
+    setEditingItem(item);
+    setIsDialogOpen(true);
+  };
+  const handleDelete = (id: string) => {
+    if (confirm("Are you sure you want to delete this ML model?")) {
+      deleteMlModelMutation.mutate(id);
+    }
+  };
+  const handleAcknowledgeAnomaly = (id: number) => {
+    const acknowledgedBy = prompt("Enter your name to acknowledge this anomaly:");
+    if (acknowledgedBy) {
+      acknowledgeAnomalyMutation.mutate({ id, acknowledgedBy });
+    }
+  };
+  const handleApplyOptimization = (id: number) => {
+    if (confirm("Are you sure you want to apply this threshold optimization?")) {
+      applyOptimizationMutation.mutate(id);
+    }
+  };
   const resetModelForm = () => mlModelForm.reset(createDefaultMlModelForm());
 
   return {
-    selectedTab, setSelectedTab, isDialogOpen, setIsDialogOpen, editingItem, setEditingItem,
-    selectedAnomaly, setSelectedAnomaly, selectedDigitalTwin, setSelectedDigitalTwin, selectedInsight, setSelectedInsight,
-    orgId, equipment, vessels, getEquipmentName, getVesselName,
-    mlModels, isLoadingModels, anomalyDetections, isLoadingAnomalies, failurePredictions, isLoadingPredictions,
-    thresholdOptimizations, isLoadingOptimizations, digitalTwins, isLoadingTwins, insightSnapshots, isLoadingInsights,
-    createMlModelMutation, updateMlModelMutation, deleteMlModelMutation, acknowledgeAnomalyMutation, applyOptimizationMutation,
-    mlModelForm, onSubmitMlModel, handleEdit, handleDelete, handleAcknowledgeAnomaly, handleApplyOptimization, resetModelForm,
+    selectedTab,
+    setSelectedTab,
+    isDialogOpen,
+    setIsDialogOpen,
+    editingItem,
+    setEditingItem,
+    selectedAnomaly,
+    setSelectedAnomaly,
+    selectedDigitalTwin,
+    setSelectedDigitalTwin,
+    selectedInsight,
+    setSelectedInsight,
+    orgId,
+    equipment,
+    vessels,
+    getEquipmentName,
+    getVesselName,
+    mlModels,
+    isLoadingModels,
+    anomalyDetections,
+    isLoadingAnomalies,
+    failurePredictions,
+    isLoadingPredictions,
+    thresholdOptimizations,
+    isLoadingOptimizations,
+    digitalTwins,
+    isLoadingTwins,
+    insightSnapshots,
+    isLoadingInsights,
+    createMlModelMutation,
+    updateMlModelMutation,
+    deleteMlModelMutation,
+    acknowledgeAnomalyMutation,
+    applyOptimizationMutation,
+    mlModelForm,
+    onSubmitMlModel,
+    handleEdit,
+    handleDelete,
+    handleAcknowledgeAnomaly,
+    handleApplyOptimization,
+    resetModelForm,
   };
 }

@@ -118,11 +118,21 @@ export const inventoryCurrencyOps = new client.Counter({
  * Helper to bucket batch sizes for metrics labels
  */
 export function getBatchSizeBucket(count: number): string {
-  if (count === 1) { return "single"; }
-  if (count <= 5) { return "1-5"; }
-  if (count <= 10) { return "6-10"; }
-  if (count <= 25) { return "11-25"; }
-  if (count <= 50) { return "26-50"; }
+  if (count === 1) {
+    return "single";
+  }
+  if (count <= 5) {
+    return "1-5";
+  }
+  if (count <= 10) {
+    return "6-10";
+  }
+  if (count <= 25) {
+    return "11-25";
+  }
+  if (count <= 50) {
+    return "26-50";
+  }
   return "50+";
 }
 
@@ -130,10 +140,18 @@ export function getBatchSizeBucket(count: number): string {
  * Helper to bucket work order counts for metrics labels
  */
 export function getWorkOrderCountBucket(count: number): string {
-  if (count === 1) { return "single"; }
-  if (count <= 5) { return "1-5"; }
-  if (count <= 10) { return "6-10"; }
-  if (count <= 20) { return "11-20"; }
+  if (count === 1) {
+    return "single";
+  }
+  if (count <= 5) {
+    return "1-5";
+  }
+  if (count <= 10) {
+    return "6-10";
+  }
+  if (count <= 20) {
+    return "11-20";
+  }
   return "20+";
 }
 
@@ -141,9 +159,17 @@ export function getWorkOrderCountBucket(count: number): string {
  * Helper to bucket part counts for metrics labels
  */
 export function getPartCountBucket(count: number): string {
-  if (count <= 10) { return "1-10"; }
-  if (count <= 50) { return "11-50"; }
-  if (count <= 100) { return "51-100"; }
-  if (count <= 500) { return "101-500"; }
+  if (count <= 10) {
+    return "1-10";
+  }
+  if (count <= 50) {
+    return "11-50";
+  }
+  if (count <= 100) {
+    return "51-100";
+  }
+  if (count <= 500) {
+    return "101-500";
+  }
   return "500+";
 }

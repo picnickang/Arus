@@ -28,7 +28,9 @@ export function BenchmarkLayer({
   showPercentiles = false,
   xKey: _xKey = "x",
 }: BenchmarkLayerProps) {
-  if (!data || data.length === 0) {return null;}
+  if (!data || data.length === 0) {
+    return null;
+  }
 
   return (
     <>

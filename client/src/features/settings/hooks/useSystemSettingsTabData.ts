@@ -29,7 +29,11 @@ export function useSystemSettingsTabData() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<AdminSystemSetting | null>(null);
 
-  const { data: settings, isLoading, error } = useQuery({
+  const {
+    data: settings,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: systemSettingsKeys.all,
     queryFn: adminQueryFn(systemSettingsKeys.all),
   });
@@ -56,7 +60,10 @@ export function useSystemSettingsTabData() {
     },
   });
 
-  const updateMutation = useCustomMutation<{ id: string; data: Partial<SystemSettingForm> }, AdminSystemSetting>({
+  const updateMutation = useCustomMutation<
+    { id: string; data: Partial<SystemSettingForm> },
+    AdminSystemSetting
+  >({
     mutationFn: ({ id, data }) => adminApiRequest("PUT", `/api/admin/settings/${id}`, data),
     invalidateKeys: [systemSettingsKeys.all],
     successMessage: "System setting updated successfully",
@@ -69,30 +76,39 @@ export function useSystemSettingsTabData() {
     successMessage: "System setting deleted successfully",
   });
 
-  const handleSubmit = useCallback((data: SystemSettingForm) => {
-    if (editingItem) {
-      updateMutation.mutate({ id: editingItem.id, data });
-    } else {
-      createMutation.mutate(data);
-    }
-  }, [editingItem, createMutation, updateMutation]);
+  const handleSubmit = useCallback(
+    (data: SystemSettingForm) => {
+      if (editingItem) {
+        updateMutation.mutate({ id: editingItem.id, data });
+      } else {
+        createMutation.mutate(data);
+      }
+    },
+    [editingItem, createMutation, updateMutation]
+  );
 
-  const handleEdit = useCallback((setting: AdminSystemSetting) => {
-    setEditingItem(setting);
-    form.reset({
-      orgId: setting.orgId,
-      category: setting.category,
-      key: setting.key,
-      value: JSON.stringify(setting.value),
-      description: setting.description || "",
-      isPublic: !setting.isSecret,
-    });
-    setCreateDialogOpen(true);
-  }, [form]);
+  const handleEdit = useCallback(
+    (setting: AdminSystemSetting) => {
+      setEditingItem(setting);
+      form.reset({
+        orgId: setting.orgId,
+        category: setting.category,
+        key: setting.key,
+        value: JSON.stringify(setting.value),
+        description: setting.description || "",
+        isPublic: !setting.isSecret,
+      });
+      setCreateDialogOpen(true);
+    },
+    [form]
+  );
 
-  const handleDelete = useCallback((id: string) => {
-    deleteMutation.mutate(id);
-  }, [deleteMutation]);
+  const handleDelete = useCallback(
+    (id: string) => {
+      deleteMutation.mutate(id);
+    },
+    [deleteMutation]
+  );
 
   const handleCloseDialog = useCallback(() => {
     setCreateDialogOpen(false);

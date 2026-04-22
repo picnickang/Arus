@@ -23,7 +23,6 @@
  * ```
  */
 
-
 export interface DualWriteConfig {
   /** Function to check feature flag state */
   featureFlag: () => boolean;
@@ -82,9 +81,8 @@ export class DualWriteAdapter {
 
     if (useRepository) {
       return this.executeWithRepository(operation, startTime);
-    } 
-      return this.executeWithLegacy(operation, startTime);
-    
+    }
+    return this.executeWithLegacy(operation, startTime);
   }
 
   /**
@@ -208,8 +206,12 @@ export const ConsistencyChecks = {
 
   /** Check object by ID */
   objectById: <T extends { id: string }>(a: T | undefined, b: T | undefined): boolean => {
-    if (!a && !b) { return true; }
-    if (!a || !b) { return false; }
+    if (!a && !b) {
+      return true;
+    }
+    if (!a || !b) {
+      return false;
+    }
     return a.id === b.id;
   },
 

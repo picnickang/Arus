@@ -93,7 +93,6 @@ export class ObjectNotFoundError extends Error {
 
 // The object storage service is used to interact with the object storage service.
 export class ObjectStorageService {
-
   // Gets the public object search paths.
   getPublicObjectSearchPaths(): Array<string> {
     const pathsStr = process.env.PUBLIC_OBJECT_SEARCH_PATHS || "";
@@ -131,13 +130,15 @@ export class ObjectStorageService {
     }
 
     // S5443: Block path traversal attempts
-    if (filePath.includes('..') || filePath.includes('\0')) {
+    if (filePath.includes("..") || filePath.includes("\0")) {
       console.warn(`[ObjectStorage] Blocked path traversal attempt: ${filePath}`);
       return null;
     }
 
     const searchPaths = this.getPublicObjectSearchPaths();
-    if (searchPaths.length === 0) {return null;}
+    if (searchPaths.length === 0) {
+      return null;
+    }
 
     for (const searchPath of searchPaths) {
       const fullPath = `${searchPath}/${filePath}`;
@@ -222,7 +223,7 @@ export class ObjectStorageService {
     }
 
     // S5443: Block path traversal attempts
-    if (objectPath.includes('..') || objectPath.includes('\0')) {
+    if (objectPath.includes("..") || objectPath.includes("\0")) {
       throw new ObjectNotFoundError();
     }
 
@@ -265,7 +266,9 @@ export class ObjectStorageService {
     const rawObjectPath = url.pathname;
 
     let objectEntityDir = this.getPrivateObjectDir();
-    if (!objectEntityDir) {return rawObjectPath;}
+    if (!objectEntityDir) {
+      return rawObjectPath;
+    }
     if (!objectEntityDir.endsWith("/")) {
       objectEntityDir = `${objectEntityDir}/`;
     }

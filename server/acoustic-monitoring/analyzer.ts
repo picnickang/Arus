@@ -7,13 +7,31 @@
 import { fft } from "fft-js";
 import { mean } from "simple-statistics";
 import type { AcousticFeatures, AcousticAnalysisResult } from "./types.js";
-import { calculateZeroCrossingRate, calculateSpectralCentroid, calculateSpectralRolloff, calculateHarmonicRatio } from "./spectral-analysis.js";
-import { detectBearingFault, detectGearFault, detectCavitation, detectLeakage, detectImbalance } from "./fault-detection.js";
+import {
+  calculateZeroCrossingRate,
+  calculateSpectralCentroid,
+  calculateSpectralRolloff,
+  calculateHarmonicRatio,
+} from "./spectral-analysis.js";
+import {
+  detectBearingFault,
+  detectGearFault,
+  detectCavitation,
+  detectLeakage,
+  detectImbalance,
+} from "./fault-detection.js";
 
 function createEmptyAcousticFeatures(): AcousticFeatures {
   return {
-    rms: 0, peakAmplitude: 0, spectralCentroid: 0, spectralRolloff: 0, zeroCrossingRate: 0,
-    dominantFrequency: 0, harmonicRatio: 0, noiseFloor: 0, snr: 0,
+    rms: 0,
+    peakAmplitude: 0,
+    spectralCentroid: 0,
+    spectralRolloff: 0,
+    zeroCrossingRate: 0,
+    dominantFrequency: 0,
+    harmonicRatio: 0,
+    noiseFloor: 0,
+    snr: 0,
     frequencyBands: { lowFreq: 0, midFreq: 0, highFreq: 0, ultrasonic: 0 },
     faultIndicators: {
       bearingFault: { detected: false, confidence: 0, frequency: null },
@@ -25,9 +43,15 @@ function createEmptyAcousticFeatures(): AcousticFeatures {
   };
 }
 
-export function analyzeAcoustic(values: number[], sampleRate: number, rpm?: number): AcousticFeatures {
+export function analyzeAcoustic(
+  values: number[],
+  sampleRate: number,
+  rpm?: number
+): AcousticFeatures {
   const n = values.length;
-  if (n < 8) { return createEmptyAcousticFeatures(); }
+  if (n < 8) {
+    return createEmptyAcousticFeatures();
+  }
 
   const meanVal = mean(values);
   const acValues = values.map((x) => x - meanVal);
@@ -43,19 +67,26 @@ export function analyzeAcoustic(values: number[], sampleRate: number, rpm?: numb
   });
 
   const frequencies: number[] = [];
-  for (let i = 0; i < magnitudes.length; i++) {frequencies.push((i * sampleRate) / n);}
+  for (let i = 0; i < magnitudes.length; i++) {
+    frequencies.push((i * sampleRate) / n);
+  }
 
   let maxMagIndex = 0;
   let maxMag = magnitudes[0];
   for (let i = 1; i < magnitudes.length; i++) {
-    if (magnitudes[i] > maxMag) { maxMag = magnitudes[i]; maxMagIndex = i; }
+    if (magnitudes[i] > maxMag) {
+      maxMag = magnitudes[i];
+      maxMagIndex = i;
+    }
   }
   const dominantFrequency = frequencies[maxMagIndex];
 
   const spectralCentroid = calculateSpectralCentroid(frequencies, magnitudes);
   const spectralRolloff = calculateSpectralRolloff(frequencies, magnitudes);
   const harmonicRatio = calculateHarmonicRatio(magnitudes, maxMagIndex);
-  const noiseFloor = magnitudes.slice(1).reduce((min, mag) => Math.min(min, mag), magnitudes[1] ?? 0);
+  const noiseFloor = magnitudes
+    .slice(1)
+    .reduce((min, mag) => Math.min(min, mag), magnitudes[1] ?? 0);
   const snr = noiseFloor > 0 ? 20 * Math.log10(maxMag / noiseFloor) : 0;
 
   const frequencyBands = { lowFreq: 0, midFreq: 0, highFreq: 0, ultrasonic: 0 };
@@ -74,7 +105,16 @@ export function analyzeAcoustic(values: number[], sampleRate: number, rpm?: numb
   }
 
   return {
-    rms, peakAmplitude, spectralCentroid, spectralRolloff, zeroCrossingRate, dominantFrequency, harmonicRatio, noiseFloor, snr, frequencyBands,
+    rms,
+    peakAmplitude,
+    spectralCentroid,
+    spectralRolloff,
+    zeroCrossingRate,
+    dominantFrequency,
+    harmonicRatio,
+    noiseFloor,
+    snr,
+    frequencyBands,
     faultIndicators: {
       bearingFault: detectBearingFault(frequencies, magnitudes, rpm),
       gearFault: detectGearFault(frequencies, magnitudes, rpm),
@@ -85,15 +125,25 @@ export function analyzeAcoustic(values: number[], sampleRate: number, rpm?: numb
   };
 }
 
-type AnalysisState = { healthScore: number; severity: "normal" | "warning" | "critical"; issues: string[]; recs: string[] };
+type AnalysisState = {
+  healthScore: number;
+  severity: "normal" | "warning" | "critical";
+  issues: string[];
+  recs: string[];
+};
 
-function updateSeverity(current: "normal" | "warning" | "critical", newLevel: "warning" | "critical"): "normal" | "warning" | "critical" {
+function updateSeverity(
+  current: "normal" | "warning" | "critical",
+  newLevel: "warning" | "critical"
+): "normal" | "warning" | "critical" {
   return current === "critical" ? "critical" : newLevel;
 }
 
 function assessBearingFault(f: AcousticFeatures, state: AnalysisState): void {
   const fault = f.faultIndicators.bearingFault;
-  if (!fault.detected) {return;}
+  if (!fault.detected) {
+    return;
+  }
   state.healthScore -= fault.confidence * 30;
   if (fault.confidence > 0.7) {
     state.issues.push(`Critical bearing fault detected at ${fault.frequency?.toFixed(1)} Hz`);
@@ -108,7 +158,9 @@ function assessBearingFault(f: AcousticFeatures, state: AnalysisState): void {
 
 function assessGearFault(f: AcousticFeatures, state: AnalysisState): void {
   const fault = f.faultIndicators.gearFault;
-  if (!fault.detected) {return;}
+  if (!fault.detected) {
+    return;
+  }
   state.healthScore -= fault.confidence * 25;
   if (fault.confidence > 0.6) {
     state.issues.push(`Gear fault detected at ${fault.frequency?.toFixed(1)} Hz`);
@@ -123,10 +175,14 @@ function assessGearFault(f: AcousticFeatures, state: AnalysisState): void {
 
 function assessCavitation(f: AcousticFeatures, state: AnalysisState): void {
   const fault = f.faultIndicators.cavitation;
-  if (!fault.detected) {return;}
+  if (!fault.detected) {
+    return;
+  }
   state.healthScore -= fault.confidence * 35;
   if (fault.confidence > 0.6) {
-    state.issues.push(`Severe cavitation detected (intensity: ${(fault.intensity * 100).toFixed(0)}%)`);
+    state.issues.push(
+      `Severe cavitation detected (intensity: ${(fault.intensity * 100).toFixed(0)}%)`
+    );
     state.recs.push("Check suction conditions and NPSH immediately");
     state.severity = "critical";
   } else {
@@ -138,7 +194,9 @@ function assessCavitation(f: AcousticFeatures, state: AnalysisState): void {
 
 function assessLeakage(f: AcousticFeatures, state: AnalysisState): void {
   const fault = f.faultIndicators.leakage;
-  if (!fault.detected) {return;}
+  if (!fault.detected) {
+    return;
+  }
   state.healthScore -= fault.confidence * 20;
   state.issues.push(`Potential leakage detected (${fault.location})`);
   state.recs.push("Perform ultrasonic leak detection survey");
@@ -147,7 +205,9 @@ function assessLeakage(f: AcousticFeatures, state: AnalysisState): void {
 
 function assessImbalance(f: AcousticFeatures, state: AnalysisState): void {
   const fault = f.faultIndicators.imbalance;
-  if (!fault.detected) {return;}
+  if (!fault.detected) {
+    return;
+  }
   state.healthScore -= fault.confidence * 15;
   if (fault.confidence > 0.7) {
     state.issues.push("Significant rotor imbalance detected");
@@ -171,7 +231,12 @@ function assessNoiseQuality(f: AcousticFeatures, state: AnalysisState): void {
   }
 }
 
-export function performAcousticAnalysis(values: number[], sampleRate: number, equipmentType?: string, rpm?: number): AcousticAnalysisResult {
+export function performAcousticAnalysis(
+  values: number[],
+  sampleRate: number,
+  equipmentType?: string,
+  rpm?: number
+): AcousticAnalysisResult {
   const features = analyzeAcoustic(values, sampleRate, rpm);
   const state: AnalysisState = { healthScore: 100, severity: "normal", issues: [], recs: [] };
 
@@ -188,5 +253,11 @@ export function performAcousticAnalysis(values: number[], sampleRate: number, eq
     state.recs.push("Continue routine monitoring");
   }
 
-  return { features, severity: state.severity, primaryIssues: state.issues, recommendations: state.recs, healthScore: state.healthScore };
+  return {
+    features,
+    severity: state.severity,
+    primaryIssues: state.issues,
+    recommendations: state.recs,
+    healthScore: state.healthScore,
+  };
 }

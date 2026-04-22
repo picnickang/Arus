@@ -39,10 +39,7 @@ function buildSystemPrompt(): string {
 /**
  * Build fleet analysis user prompt
  */
-function buildUserPrompt(
-  equipmentDossiers: EquipmentDossier[],
-  telemetrySummary: any
-): string {
+function buildUserPrompt(equipmentDossiers: EquipmentDossier[], telemetrySummary: any): string {
   return `FLEET ANALYSIS REQUEST:
     
     Equipment: ${equipmentDossiers

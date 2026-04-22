@@ -1,6 +1,6 @@
 /**
  * RAG Semantic Cache Service
- * 
+ *
  * Caches RAG responses using semantic similarity for query matching.
  * Features:
  * - Exact hash-based cache lookup (fast path)
@@ -9,13 +9,13 @@
  * - Cache hit statistics
  */
 
-import crypto from 'crypto';
-import { db } from '../../db';
-import { sql, eq, and, gt, lt } from 'drizzle-orm';
-import { ragSemanticCache } from '@shared/schema-runtime';
-import { generateEmbedding } from '../../embedding-service';
-import type { Citation, SemanticCacheEntry } from './types';
-import { logger } from '../../utils/logger';
+import crypto from "crypto";
+import { db } from "../../db";
+import { sql, eq, and, gt, lt } from "drizzle-orm";
+import { ragSemanticCache } from "@shared/schema-runtime";
+import { generateEmbedding } from "../../embedding-service";
+import type { Citation, SemanticCacheEntry } from "./types";
+import { logger } from "../../utils/logger";
 
 const DEFAULT_TTL_SECONDS = 3600;
 const SEMANTIC_SIMILARITY_THRESHOLD = 0.95;
@@ -41,11 +41,8 @@ export class SemanticCache {
   }
 
   private hashQuery(query: string, orgId: string): string {
-    const normalized = query.toLowerCase().trim().replace(/\s+/g, ' ');
-    return crypto
-      .createHash('sha256')
-      .update(`${orgId}:${normalized}`)
-      .digest('hex');
+    const normalized = query.toLowerCase().trim().replace(/\s+/g, " ");
+    return crypto.createHash("sha256").update(`${orgId}:${normalized}`).digest("hex");
   }
 
   async get(orgId: string, query: string): Promise<SemanticCacheEntry | null> {
@@ -69,7 +66,7 @@ export class SemanticCache {
 
     if (exactMatch.length > 0) {
       const entry = exactMatch[0];
-      
+
       await db
         .update(ragSemanticCache)
         .set({
@@ -79,7 +76,7 @@ export class SemanticCache {
         .where(eq(ragSemanticCache.id, entry.id));
 
       logger.info(`[SemanticCache] Exact cache hit for query hash ${queryHash.substring(0, 8)}`);
-      
+
       return this.toEntry(entry);
     }
 
@@ -93,7 +90,7 @@ export class SemanticCache {
   private async semanticLookup(orgId: string, query: string): Promise<SemanticCacheEntry | null> {
     try {
       const queryEmbedding = await generateEmbedding(query, { orgId });
-      const embeddingStr = `[${queryEmbedding.join(',')}]`;
+      const embeddingStr = `[${queryEmbedding.join(",")}]`;
       const distanceThreshold = 1 - this.semanticThreshold;
 
       const results = await db.execute<{
@@ -124,7 +121,7 @@ export class SemanticCache {
 
       if (results.rows.length > 0) {
         const entry = results.rows[0];
-        
+
         await db
           .update(ragSemanticCache)
           .set({
@@ -134,21 +131,21 @@ export class SemanticCache {
           .where(eq(ragSemanticCache.id, entry.id));
 
         logger.info(`[SemanticCache] Semantic cache hit (distance: ${entry.distance.toFixed(4)})`);
-        
+
         return {
           queryHash: entry.query_hash,
           queryText: entry.query_text,
           response: entry.response,
-          citations: entry.citations as Citation[] || [],
+          citations: (entry.citations as Citation[]) || [],
           sourceChunkIds: entry.source_chunk_ids || [],
-          modelUsed: entry.model_used || 'unknown',
+          modelUsed: entry.model_used || "unknown",
           hitCount: entry.hit_count,
           createdAt: entry.created_at,
           expiresAt: entry.expires_at || undefined,
         };
       }
     } catch (error) {
-      logger.error('[SemanticCache] Semantic lookup failed:', error);
+      logger.error("[SemanticCache] Semantic lookup failed:", error);
     }
 
     return null;
@@ -176,7 +173,7 @@ export class SemanticCache {
       try {
         queryEmbedding = await generateEmbedding(params.query, { orgId: params.orgId });
       } catch (error) {
-        logger.warn('[SemanticCache] Failed to generate query embedding:', error);
+        logger.warn("[SemanticCache] Failed to generate query embedding:", error);
       }
     }
 
@@ -210,7 +207,7 @@ export class SemanticCache {
 
       logger.info(`[SemanticCache] Cached response for query hash ${queryHash.substring(0, 8)}`);
     } catch (error) {
-      logger.error('[SemanticCache] Failed to cache response:', error);
+      logger.error("[SemanticCache] Failed to cache response:", error);
     }
   }
 
@@ -219,12 +216,7 @@ export class SemanticCache {
       const queryHash = this.hashQuery(query, orgId);
       const result = await db
         .delete(ragSemanticCache)
-        .where(
-          and(
-            eq(ragSemanticCache.orgId, orgId),
-            eq(ragSemanticCache.queryHash, queryHash)
-          )
-        )
+        .where(and(eq(ragSemanticCache.orgId, orgId), eq(ragSemanticCache.queryHash, queryHash)))
         .returning({ id: ragSemanticCache.id });
       return result.length;
     }
@@ -270,9 +262,9 @@ export class SemanticCache {
 
     const row = stats.rows[0];
     return {
-      totalEntries: parseInt(row?.total_entries || '0', 10),
-      totalHits: parseInt(row?.total_hits || '0', 10),
-      avgHitCount: parseFloat(row?.avg_hits || '0'),
+      totalEntries: parseInt(row?.total_entries || "0", 10),
+      totalHits: parseInt(row?.total_hits || "0", 10),
+      avgHitCount: parseFloat(row?.avg_hits || "0"),
     };
   }
 
@@ -281,9 +273,9 @@ export class SemanticCache {
       queryHash: row.queryHash,
       queryText: row.queryText,
       response: row.response,
-      citations: row.citations as Citation[] || [],
+      citations: (row.citations as Citation[]) || [],
       sourceChunkIds: row.sourceChunkIds || [],
-      modelUsed: row.modelUsed || 'unknown',
+      modelUsed: row.modelUsed || "unknown",
       hitCount: row.hitCount,
       createdAt: row.createdAt,
       expiresAt: row.expiresAt || undefined,

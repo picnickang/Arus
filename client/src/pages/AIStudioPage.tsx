@@ -6,47 +6,43 @@ import { InsightCard } from "@/components/ml-ai/data-display/InsightCard";
 import { ModelTable, Model } from "@/components/ml-ai/data-display/ModelTable";
 import { AccuracyTrendChart } from "@/components/ml-ai/visualizations/AccuracyTrendChart";
 import { ModelTrainingForm, TrainingConfig } from "@/components/ml-ai/forms/ModelTrainingForm";
-import { AcousticAnalysisPanel, AcousticData, AnalysisResult } from "@/components/ml-ai/forms/AcousticAnalysisPanel";
+import {
+  AcousticAnalysisPanel,
+  AcousticData,
+  AnalysisResult,
+} from "@/components/ml-ai/forms/AcousticAnalysisPanel";
 import { ModelDetailsDrawer } from "@/components/ml-ai/modals/ModelDetailsDrawer";
 import { TabbedDashboard } from "@/components/ml-ai/layouts/TabbedDashboard";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { 
-  Brain, 
-  Activity, 
-  TrendingUp, 
-  AlertTriangle, 
-  Plus,
-  List,
-  Sparkles,
-} from "lucide-react";
+import { Brain, Activity, TrendingUp, AlertTriangle, Plus, List, Sparkles } from "lucide-react";
 
 export default function AIStudioPage() {
   const { toast } = useToast();
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [accuracyTimeRange, setAccuracyTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
+  const [accuracyTimeRange, setAccuracyTimeRange] = useState<"7d" | "30d" | "90d">("30d");
 
   // Fetch ML models
   const { data: models = [], isLoading: modelsLoading } = useQuery<Model[]>({
-    queryKey: ['/api/ml/models'],
+    queryKey: ["/api/ml/models"],
   });
 
   // Fetch accuracy trend data
   const { data: accuracyData = [] } = useQuery({
-    queryKey: ['/api/ml/accuracy-trend', accuracyTimeRange],
+    queryKey: ["/api/ml/accuracy-trend", accuracyTimeRange],
   });
 
   // Fetch equipment types for training form
   const { data: equipmentTypes = [] } = useQuery<string[]>({
-    queryKey: ['/api/equipment/types'],
+    queryKey: ["/api/equipment/types"],
   });
 
   // Train model mutation
   const trainModelMutation = useMutation({
     mutationFn: async (config: TrainingConfig) => {
-      return apiRequest('/api/ml/train', {
-        method: 'POST',
+      return apiRequest("/api/ml/train", {
+        method: "POST",
         body: JSON.stringify(config),
       });
     },
@@ -55,7 +51,7 @@ export default function AIStudioPage() {
         title: "Training Started",
         description: "Your model training has been queued successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/ml/models'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/ml/models"] });
     },
     onError: (error: Error) => {
       toast({
@@ -70,7 +66,7 @@ export default function AIStudioPage() {
   const deployModelMutation = useMutation({
     mutationFn: async (modelId: string) => {
       return apiRequest(`/api/ml/models/${modelId}/deploy`, {
-        method: 'POST',
+        method: "POST",
       });
     },
     onSuccess: () => {
@@ -78,7 +74,7 @@ export default function AIStudioPage() {
         title: "Model Deployed",
         description: "Model is now active and making predictions.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/ml/models'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/ml/models"] });
     },
     onError: (error: Error) => {
       toast({
@@ -93,7 +89,7 @@ export default function AIStudioPage() {
   const archiveModelMutation = useMutation({
     mutationFn: async (modelId: string) => {
       return apiRequest(`/api/ml/models/${modelId}/archive`, {
-        method: 'POST',
+        method: "POST",
       });
     },
     onSuccess: () => {
@@ -101,7 +97,7 @@ export default function AIStudioPage() {
         title: "Model Archived",
         description: "Model has been archived successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/ml/models'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/ml/models"] });
     },
     onError: (error: Error) => {
       toast({
@@ -115,8 +111,8 @@ export default function AIStudioPage() {
   // Acoustic analysis mutation
   const analyzeAcousticMutation = useMutation({
     mutationFn: async (data: AcousticData): Promise<AnalysisResult> => {
-      return apiRequest('/api/ml/acoustic-analysis', {
-        method: 'POST',
+      return apiRequest("/api/ml/acoustic-analysis", {
+        method: "POST",
         body: JSON.stringify(data),
       });
     },
@@ -130,7 +126,7 @@ export default function AIStudioPage() {
   });
 
   const handleViewDetails = (modelId: string) => {
-    const model = models.find(m => m.id === modelId);
+    const model = models.find((m) => m.id === modelId);
     if (model) {
       setSelectedModel(model);
       setDrawerOpen(true);
@@ -153,13 +149,12 @@ export default function AIStudioPage() {
   };
 
   // Calculate KPIs
-  const deployedModels = models.filter(m => m.status === 'deployed').length;
-  const avgAccuracy = models.length > 0 
-    ? models.reduce((sum, m) => sum + (m.accuracy || 0), 0) / models.length 
-    : 0;
-  const trainingModels = models.filter(m => m.status === 'training').length;
-  const modelsNeedingAttention = models.filter(m => 
-    m.accuracy !== null && m.accuracy < 70
+  const deployedModels = models.filter((m) => m.status === "deployed").length;
+  const avgAccuracy =
+    models.length > 0 ? models.reduce((sum, m) => sum + (m.accuracy || 0), 0) / models.length : 0;
+  const trainingModels = models.filter((m) => m.status === "training").length;
+  const modelsNeedingAttention = models.filter(
+    (m) => m.accuracy !== null && m.accuracy < 70
   ).length;
 
   // Overview Tab Component
@@ -172,14 +167,14 @@ export default function AIStudioPage() {
             title="Active Models"
             value={deployedModels}
             icon={Brain}
-            trend={deployedModels > 0 ? { direction: 'up', value: 12 } : undefined}
+            trend={deployedModels > 0 ? { direction: "up", value: 12 } : undefined}
             data-testid="kpi-active-models"
           />
           <KpiCard
             title="Avg. Accuracy"
             value={`${avgAccuracy.toFixed(1)}%`}
             icon={TrendingUp}
-            trend={avgAccuracy >= 80 ? { direction: 'up', value: 5 } : undefined}
+            trend={avgAccuracy >= 80 ? { direction: "up", value: 5 } : undefined}
             data-testid="kpi-avg-accuracy"
           />
           <KpiCard
@@ -205,8 +200,8 @@ export default function AIStudioPage() {
               avgAccuracy >= 85
                 ? "Excellent model performance across the fleet"
                 : avgAccuracy >= 70
-                ? "Good performance, but some models need attention"
-                : "Several models require retraining"
+                  ? "Good performance, but some models need attention"
+                  : "Several models require retraining"
             }
             type={avgAccuracy >= 85 ? "success" : avgAccuracy >= 70 ? "info" : "warning"}
           />
@@ -253,11 +248,9 @@ export default function AIStudioPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <p className="text-muted-foreground">
-            Manage all your trained models
-          </p>
+          <p className="text-muted-foreground">Manage all your trained models</p>
         </div>
-        
+
         <ModelTable
           models={models}
           loading={modelsLoading}
@@ -281,7 +274,7 @@ export default function AIStudioPage() {
             Configure and train a new predictive maintenance model
           </p>
         </div>
-        
+
         <ModelTrainingForm
           onSubmit={async (config) => {
             await trainModelMutation.mutateAsync(config);
@@ -304,7 +297,7 @@ export default function AIStudioPage() {
             Analyze acoustic data for anomaly detection and equipment health assessment
           </p>
         </div>
-        
+
         <AcousticAnalysisPanel
           onAnalyze={async (data) => {
             return analyzeAcousticMutation.mutateAsync(data);
@@ -328,26 +321,26 @@ export default function AIStudioPage() {
         title="AI Studio"
         tabs={[
           {
-            id: 'overview',
-            label: 'Overview',
+            id: "overview",
+            label: "Overview",
             icon: TrendingUp,
             component: OverviewTab,
           },
           {
-            id: 'models',
-            label: 'All Models',
+            id: "models",
+            label: "All Models",
             icon: List,
             component: AllModelsTab,
           },
           {
-            id: 'train',
-            label: 'Train Model',
+            id: "train",
+            label: "Train Model",
             icon: Plus,
             component: TrainModelTab,
           },
           {
-            id: 'acoustic',
-            label: 'Acoustic Analysis',
+            id: "acoustic",
+            label: "Acoustic Analysis",
             icon: Activity,
             component: AcousticTab,
           },

@@ -1,12 +1,24 @@
 /**
  * Schema IoT Edge - Device Management and Edge Diagnostics
- * 
+ *
  * MQTT devices, device registry, transport settings, diagnostics,
  * failovers, serial port states, calibration, and data quality.
  */
 
 import {
-  sql, pgTable, text, varchar, integer, real, timestamp, boolean, jsonb, serial, index, createInsertSchema, z,
+  sql,
+  pgTable,
+  text,
+  varchar,
+  integer,
+  real,
+  timestamp,
+  boolean,
+  jsonb,
+  serial,
+  index,
+  createInsertSchema,
+  z,
 } from "./base";
 import { organizations } from "./core";
 import { devices } from "./equipment";
@@ -15,9 +27,15 @@ import { devices } from "./equipment";
 export const mqttDevices = pgTable(
   "mqtt_devices",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    deviceId: varchar("device_id").references(() => devices.id).notNull(),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    deviceId: varchar("device_id")
+      .references(() => devices.id)
+      .notNull(),
     mqttClientId: varchar("mqtt_client_id").unique().notNull(),
     brokerEndpoint: varchar("broker_endpoint").notNull(),
     topicPrefix: varchar("topic_prefix").notNull(),
@@ -40,7 +58,9 @@ export const deviceRegistry = pgTable(
   "device_registry",
   {
     id: text("id").primaryKey(),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     label: text("label"),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   },
@@ -49,7 +69,9 @@ export const deviceRegistry = pgTable(
 
 // Transport settings for telemetry ingestion configuration
 export const transportSettings = pgTable("transport_settings", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   enableHttpIngest: boolean("enable_http_ingest").default(true),
   enableMqttIngest: boolean("enable_mqtt_ingest").default(false),
   mqttHost: text("mqtt_host"),
@@ -64,8 +86,12 @@ export const transportSettings = pgTable("transport_settings", {
 export const edgeDiagnosticLogs = pgTable(
   "edge_diagnostic_logs",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     deviceId: varchar("device_id").references(() => devices.id),
     equipmentId: varchar("equipment_id"),
     eventType: text("event_type").notNull(),
@@ -89,9 +115,15 @@ export const edgeDiagnosticLogs = pgTable(
 export const transportFailovers = pgTable(
   "transport_failovers",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    deviceId: varchar("device_id").notNull().references(() => devices.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    deviceId: varchar("device_id")
+      .notNull()
+      .references(() => devices.id),
     fromTransport: text("from_transport").notNull(),
     toTransport: text("to_transport").notNull(),
     reason: text("reason").notNull(),
@@ -111,9 +143,15 @@ export const transportFailovers = pgTable(
 export const serialPortStates = pgTable(
   "serial_port_states",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    deviceId: varchar("device_id").notNull().references(() => devices.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    deviceId: varchar("device_id")
+      .notNull()
+      .references(() => devices.id),
     portPath: text("port_path").notNull(),
     portType: text("port_type").notNull(),
     protocol: text("protocol"),
@@ -141,8 +179,12 @@ export const serialPortStates = pgTable(
 export const calibrationCache = pgTable(
   "calibration_cache",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     equipmentType: text("equipment_type").notNull(),
     manufacturer: text("manufacturer").notNull(),
     model: text("model").notNull(),
@@ -156,7 +198,11 @@ export const calibrationCache = pgTable(
     notes: text("notes"),
   },
   (table) => ({
-    equipmentIdx: index("idx_calibration_equipment").on(table.equipmentType, table.manufacturer, table.model),
+    equipmentIdx: index("idx_calibration_equipment").on(
+      table.equipmentType,
+      table.manufacturer,
+      table.model
+    ),
     sensorIdx: index("idx_calibration_sensor").on(table.sensorType),
   })
 );
@@ -165,8 +211,13 @@ export const calibrationCache = pgTable(
 export const calibrationCurves = pgTable(
   "calibration_curves",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id).default("default-org-id"),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id)
+      .default("default-org-id"),
     modelType: varchar("model_type").notNull(),
     equipmentType: varchar("equipment_type").notNull(),
     method: varchar("method").notNull(),
@@ -201,22 +252,57 @@ export const dataQualityMetrics = pgTable("data_quality_metrics", {
 });
 
 // Insert schemas
-export const insertMqttDeviceSchema = createInsertSchema(mqttDevices).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertDeviceRegistrySchema = createInsertSchema(deviceRegistry).omit({ createdAt: true });
-export const insertTransportSettingsSchema = createInsertSchema(transportSettings).omit({ id: true, updatedAt: true });
-export const insertEdgeDiagnosticLogSchema = createInsertSchema(edgeDiagnosticLogs).omit({ id: true, createdAt: true }).extend({
-  eventType: z.enum(["mqtt_failover", "credential_refresh", "port_restart", "baud_detect", "pgn_conflict", "hot_plug", "clock_skew", "config_reconcile", "calibration_fetch"]),
-  severity: z.enum(["info", "warning", "error", "critical"]).default("info"),
-  status: z.enum(["pending", "in_progress", "success", "failed"]).default("pending"),
+export const insertMqttDeviceSchema = createInsertSchema(mqttDevices).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
-export const insertTransportFailoverSchema = createInsertSchema(transportFailovers).omit({ id: true, failedAt: true }).extend({
-  fromTransport: z.enum(["mqtt", "http", "serial", "can"]),
-  toTransport: z.enum(["mqtt", "http", "serial", "can"]),
+export const insertDeviceRegistrySchema = createInsertSchema(deviceRegistry).omit({
+  createdAt: true,
 });
-export const insertSerialPortStateSchema = createInsertSchema(serialPortStates).omit({ id: true, updatedAt: true });
-export const insertCalibrationCacheSchema = createInsertSchema(calibrationCache).omit({ id: true, fetchedAt: true });
-export const insertCalibrationCurveSchema = createInsertSchema(calibrationCurves).omit({ id: true, createdAt: true });
-export const insertDataQualityMetricSchema = createInsertSchema(dataQualityMetrics).omit({ id: true, validationTimestamp: true });
+export const insertTransportSettingsSchema = createInsertSchema(transportSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+export const insertEdgeDiagnosticLogSchema = createInsertSchema(edgeDiagnosticLogs)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    eventType: z.enum([
+      "mqtt_failover",
+      "credential_refresh",
+      "port_restart",
+      "baud_detect",
+      "pgn_conflict",
+      "hot_plug",
+      "clock_skew",
+      "config_reconcile",
+      "calibration_fetch",
+    ]),
+    severity: z.enum(["info", "warning", "error", "critical"]).default("info"),
+    status: z.enum(["pending", "in_progress", "success", "failed"]).default("pending"),
+  });
+export const insertTransportFailoverSchema = createInsertSchema(transportFailovers)
+  .omit({ id: true, failedAt: true })
+  .extend({
+    fromTransport: z.enum(["mqtt", "http", "serial", "can"]),
+    toTransport: z.enum(["mqtt", "http", "serial", "can"]),
+  });
+export const insertSerialPortStateSchema = createInsertSchema(serialPortStates).omit({
+  id: true,
+  updatedAt: true,
+});
+export const insertCalibrationCacheSchema = createInsertSchema(calibrationCache).omit({
+  id: true,
+  fetchedAt: true,
+});
+export const insertCalibrationCurveSchema = createInsertSchema(calibrationCurves).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertDataQualityMetricSchema = createInsertSchema(dataQualityMetrics).omit({
+  id: true,
+  validationTimestamp: true,
+});
 
 // Types
 export type MqttDevice = typeof mqttDevices.$inferSelect;

@@ -5,16 +5,7 @@
  * conditions of class, and flag state endorsements.
  */
 
-import {
-  sql,
-  pgTable,
-  text,
-  varchar,
-  timestamp,
-  jsonb,
-  createInsertSchema,
-  z,
-} from "./base";
+import { sql, pgTable, text, varchar, timestamp, jsonb, createInsertSchema, z } from "./base";
 import { organizations } from "./core";
 import { vessels } from "./vessels";
 import { equipment } from "./equipment";
@@ -129,18 +120,16 @@ export const certificateEvents = pgTable(
   })
 );
 
-export const insertVesselCertificateSchema = createInsertSchema(vesselCertificates)
-  .omit({
-    id: true,
-    createdAt: true,
-    updatedAt: true,
-  });
+export const insertVesselCertificateSchema = createInsertSchema(vesselCertificates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
-export const insertCertificateEventSchema = createInsertSchema(certificateEvents)
-  .omit({
-    id: true,
-    createdAt: true,
-  });
+export const insertCertificateEventSchema = createInsertSchema(certificateEvents).omit({
+  id: true,
+  createdAt: true,
+});
 
 export type VesselCertificate = typeof vesselCertificates.$inferSelect;
 export type InsertVesselCertificate = z.infer<typeof insertVesselCertificateSchema>;
@@ -148,9 +137,9 @@ export type InsertVesselCertificate = z.infer<typeof insertVesselCertificateSche
 export type CertificateEvent = typeof certificateEvents.$inferSelect;
 export type InsertCertificateEvent = z.infer<typeof insertCertificateEventSchema>;
 
-export type CertificateType = typeof CERTIFICATE_TYPES[number];
-export type CertificateStatus = typeof CERTIFICATE_STATUSES[number];
-export type IssuingAuthorityType = typeof ISSUING_AUTHORITY_TYPES[number];
+export type CertificateType = (typeof CERTIFICATE_TYPES)[number];
+export type CertificateStatus = (typeof CERTIFICATE_STATUSES)[number];
+export type IssuingAuthorityType = (typeof ISSUING_AUTHORITY_TYPES)[number];
 
 export interface ConditionOfClass {
   id: string;

@@ -1,6 +1,6 @@
 /**
  * Page-Level Telemetry Integration Tests
- * 
+ *
  * Tests to verify that the 12 pages consuming telemetry data
  * receive properly formatted data from the pipeline.
  */
@@ -112,7 +112,7 @@ describe("Page-Level Telemetry Integration", () => {
             for (const field of contract.requiredFields) {
               const value = reading[field];
               expect(value).toBeDefined();
-              
+
               if (field === "value") {
                 expect(typeof value).toBe("number");
               } else if (field === "timestamp") {
@@ -126,8 +126,8 @@ describe("Page-Level Telemetry Integration", () => {
 
         if (contract.sensorTypes && contract.sensorTypes.length > 0) {
           it(`should support expected sensor types: ${contract.sensorTypes.join(", ")}`, () => {
-            const readingSensorTypes = new Set(sampleReadings.map(r => r.sensorType));
-            
+            const readingSensorTypes = new Set(sampleReadings.map((r) => r.sensorType));
+
             for (const expectedType of contract.sensorTypes!) {
               expect(readingSensorTypes.has(expectedType)).toBe(true);
             }
@@ -148,7 +148,7 @@ describe("Page-Level Telemetry Integration", () => {
       for (const reading of sampleReadings) {
         expect(reading.timestamp).toBeInstanceOf(Date);
         expect(isNaN(reading.timestamp.getTime())).toBe(false);
-        
+
         const isoString = reading.timestamp.toISOString();
         expect(isoString).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
       }
@@ -230,7 +230,7 @@ describe("Page-Level Telemetry Integration", () => {
   describe("High-Volume Page Scenarios", () => {
     it("should handle dashboard with 1000+ readings efficiently", () => {
       const frames = createBatchOfFrames(4000, 1000);
-      
+
       const start = performance.now();
       const readings = processor.process(frames);
       const duration = performance.now() - start;
@@ -243,11 +243,11 @@ describe("Page-Level Telemetry Integration", () => {
       const frames = createBatchOfFrames(5000, 500);
       const readings = processor.process(frames);
 
-      const equipmentIds = new Set(readings.map(r => r.equipmentId));
+      const equipmentIds = new Set(readings.map((r) => r.equipmentId));
       expect(equipmentIds.size).toBe(1);
       expect(equipmentIds.has(TEST_EQUIPMENT_ID)).toBe(true);
 
-      const orgIds = new Set(readings.map(r => r.orgId));
+      const orgIds = new Set(readings.map((r) => r.orgId));
       expect(orgIds.size).toBe(1);
       expect(orgIds.has(TEST_ORG_ID)).toBe(true);
     });
@@ -260,7 +260,7 @@ describe("Page-Level Telemetry Integration", () => {
 
       const apiResponse = {
         success: true,
-        data: readings.map(r => ({
+        data: readings.map((r) => ({
           ...r,
           timestamp: r.timestamp.toISOString(),
         })),
@@ -271,7 +271,7 @@ describe("Page-Level Telemetry Integration", () => {
       };
 
       expect(() => JSON.stringify(apiResponse)).not.toThrow();
-      
+
       const parsed = JSON.parse(JSON.stringify(apiResponse));
       expect(parsed.success).toBe(true);
       expect(parsed.data.length).toBe(readings.length);
@@ -289,7 +289,7 @@ describe("Page-Level Telemetry Integration", () => {
 
       const serialized = JSON.stringify(wsMessage);
       expect(serialized.length).toBeLessThan(1024);
-      
+
       const parsed = JSON.parse(serialized);
       expect(parsed.type).toBe("telemetry");
       expect(parsed.payload.sensorType).toBe("ENGINE_SPEED_RPM");
@@ -300,8 +300,12 @@ describe("Page-Level Telemetry Integration", () => {
 describe("Equipment Resolution", () => {
   it("should use custom equipment resolver when provided", () => {
     const customResolver = (source: string): string | null => {
-      if (source === "CAN0") {return "engine-main";}
-      if (source === "CAN1") {return "engine-aux";}
+      if (source === "CAN0") {
+        return "engine-main";
+      }
+      if (source === "CAN1") {
+        return "engine-aux";
+      }
       return null;
     };
 

@@ -15,7 +15,11 @@ export interface WorkOrderServiceDependencies {
 export class WorkOrderApplicationService {
   constructor(private deps: WorkOrderServiceDependencies) {}
 
-  async listWorkOrders(equipmentId?: string, orgId?: string, filters?: any): Promise<SelectWorkOrder[]> {
+  async listWorkOrders(
+    equipmentId?: string,
+    orgId?: string,
+    filters?: any
+  ): Promise<SelectWorkOrder[]> {
     return workOrderRepository.findAll(equipmentId, orgId, filters);
   }
 
@@ -53,11 +57,20 @@ export class WorkOrderApplicationService {
     return workOrder;
   }
 
-  async createWorkOrderWithSuggestions(data: InsertWorkOrder, orgId: string, userId?: string): Promise<SelectWorkOrder> {
+  async createWorkOrderWithSuggestions(
+    data: InsertWorkOrder,
+    orgId: string,
+    userId?: string
+  ): Promise<SelectWorkOrder> {
     return this.createWorkOrder(data, userId);
   }
 
-  async updateWorkOrder(id: string, data: Partial<InsertWorkOrder>, orgId?: string, userId?: string): Promise<SelectWorkOrder> {
+  async updateWorkOrder(
+    id: string,
+    data: Partial<InsertWorkOrder>,
+    orgId?: string,
+    userId?: string
+  ): Promise<SelectWorkOrder> {
     const previous = await workOrderRepository.findById(id, orgId as string);
     const workOrder = await workOrderRepository.update(id, data);
     const resolvedOrgId = workOrder.orgId || orgId || "default";
@@ -78,7 +91,12 @@ export class WorkOrderApplicationService {
         await voidSavingsForWorkOrder(workOrder.id, resolvedOrgId, "Work order cancelled.", userId);
       } else if (previous.status === "completed" && data.status !== "completed") {
         const { voidSavingsForWorkOrder } = await import("../../../cost-savings-engine");
-        await voidSavingsForWorkOrder(workOrder.id, resolvedOrgId, "Work order reopened after completion.", userId);
+        await voidSavingsForWorkOrder(
+          workOrder.id,
+          resolvedOrgId,
+          "Work order reopened after completion.",
+          userId
+        );
       }
     } else {
       await this.deps.eventPublisher.publish({
@@ -160,7 +178,11 @@ export class WorkOrderApplicationService {
     return workOrderRepository.updateWorkOrderPart(partId, data);
   }
 
-  async removePartAndRestoreInventory(workOrderPartId: string, orgId: string, performedBy: string): Promise<void> {
+  async removePartAndRestoreInventory(
+    workOrderPartId: string,
+    orgId: string,
+    performedBy: string
+  ): Promise<void> {
     return workOrderRepository.removePartAndRestoreInventory(workOrderPartId, orgId, performedBy);
   }
 

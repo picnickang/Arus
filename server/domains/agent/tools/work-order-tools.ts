@@ -12,8 +12,12 @@ interface CostImpactData {
 
 async function fetchPredictionCostContext(
   equipmentId: string,
-  orgId: string,
-): Promise<{ costImpact: CostImpactData | null; confidence: number | null; failureMode: string | null }> {
+  orgId: string
+): Promise<{
+  costImpact: CostImpactData | null;
+  confidence: number | null;
+  failureMode: string | null;
+}> {
   try {
     const [pred] = await db
       .select({
@@ -23,14 +27,13 @@ async function fetchPredictionCostContext(
       })
       .from(failurePredictions)
       .where(
-        and(
-          eq(failurePredictions.equipmentId, equipmentId),
-          eq(failurePredictions.orgId, orgId),
-        ),
+        and(eq(failurePredictions.equipmentId, equipmentId), eq(failurePredictions.orgId, orgId))
       )
       .orderBy(desc(failurePredictions.predictionTimestamp))
       .limit(1);
-    if (!pred) {return { costImpact: null, confidence: null, failureMode: null };}
+    if (!pred) {
+      return { costImpact: null, confidence: null, failureMode: null };
+    }
     return {
       costImpact: (pred.costImpact as CostImpactData) || null,
       confidence: pred.failureProbability,
@@ -46,7 +49,9 @@ async function fetchOrgLaborRate(orgId: string): Promise<number | null> {
     const [result] = await db
       .select({ avgRate: sql<number>`AVG(${crew.hourlyRate})` })
       .from(crew)
-      .where(and(eq(crew.orgId, orgId), sql`${crew.hourlyRate} IS NOT NULL AND ${crew.hourlyRate} > 0`));
+      .where(
+        and(eq(crew.orgId, orgId), sql`${crew.hourlyRate} IS NOT NULL AND ${crew.hourlyRate} > 0`)
+      );
     return result?.avgRate ?? null;
   } catch {
     return null;
@@ -56,7 +61,7 @@ async function fetchOrgLaborRate(orgId: string): Promise<number | null> {
 function buildAutoJustification(
   costImpact: CostImpactData,
   confidence: number | null,
-  failureMode: string | null,
+  failureMode: string | null
 ): string {
   const fmt = (v: number) => (v >= 1000 ? `~$${(v / 1000).toFixed(0)}K` : `~$${v.toFixed(0)}`);
   const parts: string[] = [];
@@ -85,8 +90,10 @@ function buildAutoJustification(
   if (costImpact.estimatedDowntime != null) {
     parts.push(`Estimated downtime: ${costImpact.estimatedDowntime}h`);
   }
-  if (parts.length === 0) {return "";}
-  return `${parts.join(". ")  }.`;
+  if (parts.length === 0) {
+    return "";
+  }
+  return `${parts.join(". ")}.`;
 }
 
 const draftWorkOrderInput = z.object({
@@ -106,20 +113,36 @@ registerTool({
   name: "draftWorkOrder",
   category: "work-orders",
   riskLevel: "high-write",
-  description: "Create a DRAFT work order for maintenance. This does NOT create the work order directly — it creates a draft that requires human approval. For prediction-triggered work orders, cost fields are auto-populated from the prediction's cost impact data.",
+  description:
+    "Create a DRAFT work order for maintenance. This does NOT create the work order directly — it creates a draft that requires human approval. For prediction-triggered work orders, cost fields are auto-populated from the prediction's cost impact data.",
   parameters: {
     type: "object",
     properties: {
       equipmentId: { type: "string", description: "The equipment this work order is for" },
       title: { type: "string", description: "Short title for the work order" },
       description: { type: "string", description: "Detailed description of work to be done" },
-      priority: { type: "string", enum: ["low", "medium", "high", "critical"], description: "Priority level" },
+      priority: {
+        type: "string",
+        enum: ["low", "medium", "high", "critical"],
+        description: "Priority level",
+      },
       estimatedHours: { type: "number", description: "Estimated labor hours" },
       estimatedCostPerHour: { type: "number", description: "Estimated labor cost per hour in USD" },
       estimatedPartsCost: { type: "number", description: "Estimated parts/materials cost in USD" },
-      costJustification: { type: "string", description: "Financial justification for the work order, including prediction confidence, estimated failure cost, and repair cost rationale" },
-      predictionId: { type: "number", description: "ID of the failure prediction that triggered this work order (enables auto-population of cost fields)" },
-      type: { type: "string", description: "Work type: preventive, corrective, predictive, inspection" },
+      costJustification: {
+        type: "string",
+        description:
+          "Financial justification for the work order, including prediction confidence, estimated failure cost, and repair cost rationale",
+      },
+      predictionId: {
+        type: "number",
+        description:
+          "ID of the failure prediction that triggered this work order (enables auto-population of cost fields)",
+      },
+      type: {
+        type: "string",
+        description: "Work type: preventive, corrective, predictive, inspection",
+      },
     },
     required: ["equipmentId", "title", "description", "priority"],
   },
@@ -133,8 +156,7 @@ registerTool({
     let estimatedCostPerHour = validated.estimatedCostPerHour;
     let estimatedPartsCost = validated.estimatedPartsCost;
 
-    const isPredictionTriggered = predictionId != null
-      || inputType === "predictive";
+    const isPredictionTriggered = predictionId != null || inputType === "predictive";
 
     if (!costJustification && isPredictionTriggered) {
       const predContext = await fetchPredictionCostContext(equipmentId, ctx.orgId);
@@ -142,9 +164,11 @@ registerTool({
         const autoJustification = buildAutoJustification(
           predContext.costImpact,
           predContext.confidence,
-          predContext.failureMode,
+          predContext.failureMode
         );
-        if (autoJustification) {costJustification = autoJustification;}
+        if (autoJustification) {
+          costJustification = autoJustification;
+        }
         if (estimatedPartsCost == null && predContext.costImpact.estimatedRepairCost) {
           estimatedPartsCost = Math.round(predContext.costImpact.estimatedRepairCost * 0.4);
         }

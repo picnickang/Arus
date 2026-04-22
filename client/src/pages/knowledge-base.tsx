@@ -5,8 +5,15 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Upload, Search, FileText, Loader2, Trash2, X,
-  CheckCircle2, XCircle, Clock,
+  Upload,
+  Search,
+  FileText,
+  Loader2,
+  Trash2,
+  X,
+  CheckCircle2,
+  XCircle,
+  Clock,
 } from "lucide-react";
 import { useKnowledgeBase, type Document } from "@/features/ml-ai";
 
@@ -33,7 +40,9 @@ function UploadDropZone({
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!isOpen) {return null;}
+  if (!isOpen) {
+    return null;
+  }
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -41,11 +50,16 @@ function UploadDropZone({
     const files = Array.from(e.dataTransfer.files).filter(
       (f) => f.type === "application/pdf" || f.type.startsWith("image/")
     );
-    if (files.length > 0) {onFilesSelected(files);}
+    if (files.length > 0) {
+      onFilesSelected(files);
+    }
   };
 
   return (
-    <div className="border rounded-lg p-4 bg-card mb-4 animate-in fade-in-50 duration-200" data-testid="upload-dropzone">
+    <div
+      className="border rounded-lg p-4 bg-card mb-4 animate-in fade-in-50 duration-200"
+      data-testid="upload-dropzone"
+    >
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold flex items-center gap-2">
           <Upload className="h-4 w-4" /> Upload Documents
@@ -57,9 +71,16 @@ function UploadDropZone({
       <div
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") {fileInputRef.current?.click();} }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            fileInputRef.current?.click();
+          }
+        }}
         onDrop={handleDrop}
-        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+        }}
         onDragLeave={() => setIsDragging(false)}
         onClick={() => fileInputRef.current?.click()}
         className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all ${
@@ -79,8 +100,12 @@ function UploadDropZone({
           accept=".pdf,image/png,image/jpeg"
           onChange={(e) => {
             const files = Array.from(e.target.files ?? []);
-            if (files.length > 0) {onFilesSelected(files);}
-            if (fileInputRef.current) {fileInputRef.current.value = "";}
+            if (files.length > 0) {
+              onFilesSelected(files);
+            }
+            if (fileInputRef.current) {
+              fileInputRef.current.value = "";
+            }
           }}
           className="hidden"
           data-testid="input-file"
@@ -91,7 +116,9 @@ function UploadDropZone({
 }
 
 function UploadProgressBar({ jobs, onClear }: { jobs: UploadJob[]; onClear: () => void }) {
-  if (jobs.length === 0) {return null;}
+  if (jobs.length === 0) {
+    return null;
+  }
 
   const active = jobs.filter((j) => j.status === "uploading" || j.status === "processing").length;
   const completed = jobs.filter((j) => j.status === "completed").length;
@@ -99,11 +126,15 @@ function UploadProgressBar({ jobs, onClear }: { jobs: UploadJob[]; onClear: () =
 
   const statusIcon = (status: UploadJob["status"]) => {
     switch (status) {
-      case "queued": return <Clock className="h-3 w-3 text-muted-foreground" />;
+      case "queued":
+        return <Clock className="h-3 w-3 text-muted-foreground" />;
       case "uploading":
-      case "processing": return <Loader2 className="h-3 w-3 animate-spin text-blue-500" />;
-      case "completed": return <CheckCircle2 className="h-3 w-3 text-green-500" />;
-      case "failed": return <XCircle className="h-3 w-3 text-destructive" />;
+      case "processing":
+        return <Loader2 className="h-3 w-3 animate-spin text-blue-500" />;
+      case "completed":
+        return <CheckCircle2 className="h-3 w-3 text-green-500" />;
+      case "failed":
+        return <XCircle className="h-3 w-3 text-destructive" />;
     }
   };
 
@@ -111,17 +142,29 @@ function UploadProgressBar({ jobs, onClear }: { jobs: UploadJob[]; onClear: () =
     <div className="border rounded-lg p-3 mb-4 bg-card" data-testid="upload-progress">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-medium text-muted-foreground">
-          {active > 0 ? `Processing ${active} of ${jobs.length}` : `${completed} completed${failed > 0 ? `, ${failed} failed` : ""}`}
+          {active > 0
+            ? `Processing ${active} of ${jobs.length}`
+            : `${completed} completed${failed > 0 ? `, ${failed} failed` : ""}`}
         </span>
         {active === 0 && (
-          <Button variant="ghost" size="sm" onClick={onClear} className="h-6 text-xs" data-testid="button-clear-uploads">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClear}
+            className="h-6 text-xs"
+            data-testid="button-clear-uploads"
+          >
             Clear
           </Button>
         )}
       </div>
       <div className="space-y-1">
         {jobs.map((job) => (
-          <div key={job.id} className="flex items-center gap-2 text-xs" data-testid={`upload-job-${job.id}`}>
+          <div
+            key={job.id}
+            className="flex items-center gap-2 text-xs"
+            data-testid={`upload-job-${job.id}`}
+          >
             {statusIcon(job.status)}
             <span className="truncate flex-1">{job.file.name}</span>
             {(job.status === "uploading" || job.status === "processing") && (
@@ -138,9 +181,12 @@ function UploadProgressBar({ jobs, onClear }: { jobs: UploadJob[]; onClear: () =
 }
 
 function DocumentFilterBar({
-  search, onSearchChange,
-  fileType, onFileTypeChange,
-  status, onStatusChange,
+  search,
+  onSearchChange,
+  fileType,
+  onFileTypeChange,
+  status,
+  onStatusChange,
   onClear,
 }: {
   search: string;
@@ -196,32 +242,47 @@ function DocumentFilterBar({
   );
 }
 
-function SemanticSearchResults({ query, searchData, searching }: {
+function SemanticSearchResults({
+  query,
+  searchData,
+  searching,
+}: {
   query: string;
   searchData: any;
   searching: boolean;
 }) {
   const isQuestion = query.length >= 10 && (query.includes("?") || query.split(/\s+/).length > 4);
-  if (!isQuestion || (!searching && !searchData?.results?.length)) {return null;}
+  if (!isQuestion || (!searching && !searchData?.results?.length)) {
+    return null;
+  }
 
   return (
     <div className="mb-4 border rounded-lg overflow-hidden" data-testid="semantic-results">
       <div className="px-4 py-2 bg-sky-500/5 border-b flex items-center gap-2">
         <Search className="h-3.5 w-3.5 text-sky-500" />
-        <span className="text-xs font-semibold text-sky-600 dark:text-sky-400">AI Search Results</span>
+        <span className="text-xs font-semibold text-sky-600 dark:text-sky-400">
+          AI Search Results
+        </span>
         {searching && <Loader2 className="h-3 w-3 animate-spin" />}
       </div>
       {searchData?.results?.length > 0 && (
         <div className="p-3 space-y-2 max-h-60 overflow-y-auto">
           {searchData.results.slice(0, 5).map((result: any) => (
-            <div key={result.chunkId} className="p-3 rounded border-l-2 border-sky-500 bg-card text-sm" data-testid={`search-result-${result.chunkId}`}>
+            <div
+              key={result.chunkId}
+              className="p-3 rounded border-l-2 border-sky-500 bg-card text-sm"
+              data-testid={`search-result-${result.chunkId}`}
+            >
               <div className="flex items-center justify-between mb-1">
                 <span className="font-medium text-xs">{result.docName}</span>
                 <Badge variant="outline" className="text-[9px]">
                   {(result.similarity * 100).toFixed(0)}% match
                 </Badge>
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">{result.text?.slice(0, 200)}{result.text?.length > 200 ? "..." : ""}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {result.text?.slice(0, 200)}
+                {result.text?.length > 200 ? "..." : ""}
+              </p>
             </div>
           ))}
         </div>
@@ -251,17 +312,22 @@ export default function KnowledgeBasePage() {
   const [fileTypeFilter, setFileTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const handleSearchChange = useCallback((value: string) => {
-    setDocSearch(value);
-    if (value.length >= 10 && (value.includes("?") || value.split(/\s+/).length > 4)) {
-      setSearchQuery(value);
-    } else if (value.length < 3) {
-      setSearchQuery("");
-    }
-  }, [setSearchQuery]);
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setDocSearch(value);
+      if (value.length >= 10 && (value.includes("?") || value.split(/\s+/).length > 4)) {
+        setSearchQuery(value);
+      } else if (value.length < 3) {
+        setSearchQuery("");
+      }
+    },
+    [setSearchQuery]
+  );
 
   const filteredDocuments = useMemo(() => {
-    if (!documentsData?.documents) {return [];}
+    if (!documentsData?.documents) {
+      return [];
+    }
     return documentsData.documents.filter((doc: DocumentWithStatus) => {
       const matchesSearch = !docSearch || doc.name.toLowerCase().includes(docSearch.toLowerCase());
       const matchesType = fileTypeFilter === "all" || doc.fileType === fileTypeFilter;
@@ -270,31 +336,38 @@ export default function KnowledgeBasePage() {
     });
   }, [documentsData?.documents, docSearch, fileTypeFilter, statusFilter]);
 
-  const handleFilesSelected = useCallback((files: File[]) => {
-    const MAX_SIZE = 10 * 1024 * 1024;
-    const oversized = files.filter((f) => f.size > MAX_SIZE);
-    if (oversized.length > 0) {
-      toast({
-        title: "Files too large",
-        description: `${oversized.map((f) => f.name).join(", ")} exceed the 10MB limit.`,
-        variant: "destructive",
-      });
-    }
-    const valid = files.filter((f) => f.size <= MAX_SIZE);
-    if (valid.length === 0) {return;}
+  const handleFilesSelected = useCallback(
+    (files: File[]) => {
+      const MAX_SIZE = 10 * 1024 * 1024;
+      const oversized = files.filter((f) => f.size > MAX_SIZE);
+      if (oversized.length > 0) {
+        toast({
+          title: "Files too large",
+          description: `${oversized.map((f) => f.name).join(", ")} exceed the 10MB limit.`,
+          variant: "destructive",
+        });
+      }
+      const valid = files.filter((f) => f.size <= MAX_SIZE);
+      if (valid.length === 0) {
+        return;
+      }
 
-    const newJobs: UploadJob[] = valid.map((file) => ({
-      id: crypto.randomUUID().slice(0, 8),
-      file,
-      status: "queued",
-      progress: 0,
-    }));
-    setUploadJobs((prev) => [...prev, ...newJobs]);
-    newJobs.forEach((job) => uploadFile(job));
-  }, [toast]);
+      const newJobs: UploadJob[] = valid.map((file) => ({
+        id: crypto.randomUUID().slice(0, 8),
+        file,
+        status: "queued",
+        progress: 0,
+      }));
+      setUploadJobs((prev) => [...prev, ...newJobs]);
+      newJobs.forEach((job) => uploadFile(job));
+    },
+    [toast]
+  );
 
   const uploadFile = async (job: UploadJob) => {
-    setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "uploading" as const, progress: 10 } : j));
+    setUploadJobs((prev) =>
+      prev.map((j) => (j.id === job.id ? { ...j, status: "uploading" as const, progress: 10 } : j))
+    );
     try {
       const formData = new FormData();
       formData.append("file", job.file);
@@ -304,10 +377,26 @@ export default function KnowledgeBasePage() {
         throw new Error(error.message || "Upload failed");
       }
       const data = await res.json();
-      setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "processing" as const, jobId: data.jobId, progress: 30 } : j));
+      setUploadJobs((prev) =>
+        prev.map((j) =>
+          j.id === job.id
+            ? { ...j, status: "processing" as const, jobId: data.jobId, progress: 30 }
+            : j
+        )
+      );
       pollJobStatus(job.id, data.jobId);
     } catch (error) {
-      setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "failed" as const, error: error instanceof Error ? error.message : "Upload failed" } : j));
+      setUploadJobs((prev) =>
+        prev.map((j) =>
+          j.id === job.id
+            ? {
+                ...j,
+                status: "failed" as const,
+                error: error instanceof Error ? error.message : "Upload failed",
+              }
+            : j
+        )
+      );
     }
   };
 
@@ -317,17 +406,33 @@ export default function KnowledgeBasePage() {
     while (polling) {
       try {
         const res = await fetch(`/api/kb/jobs/${jobId}`);
-        if (!res.ok) {break;}
+        if (!res.ok) {
+          break;
+        }
         const status = await res.json();
         if (status.status === "completed") {
-          setUploadJobs((prev) => prev.map((j) => j.id === uploadId ? { ...j, status: "completed" as const, progress: 100 } : j));
+          setUploadJobs((prev) =>
+            prev.map((j) =>
+              j.id === uploadId ? { ...j, status: "completed" as const, progress: 100 } : j
+            )
+          );
           handleUploadComplete();
           polling = false;
         } else if (status.status === "failed") {
-          setUploadJobs((prev) => prev.map((j) => j.id === uploadId ? { ...j, status: "failed" as const, error: status.error || "Processing failed" } : j));
+          setUploadJobs((prev) =>
+            prev.map((j) =>
+              j.id === uploadId
+                ? { ...j, status: "failed" as const, error: status.error || "Processing failed" }
+                : j
+            )
+          );
           polling = false;
         } else {
-          setUploadJobs((prev) => prev.map((j) => j.id === uploadId ? { ...j, progress: status.status === "processing" ? 60 : 40 } : j));
+          setUploadJobs((prev) =>
+            prev.map((j) =>
+              j.id === uploadId ? { ...j, progress: status.status === "processing" ? 60 : 40 } : j
+            )
+          );
         }
         if (polling) {
           await new Promise((r) => setTimeout(r, backoffMs));
@@ -353,7 +458,11 @@ export default function KnowledgeBasePage() {
             )}
           </p>
         </div>
-        <Button onClick={() => setShowUpload(!showUpload)} variant={showUpload ? "secondary" : "default"} data-testid="button-toggle-upload">
+        <Button
+          onClick={() => setShowUpload(!showUpload)}
+          variant={showUpload ? "secondary" : "default"}
+          data-testid="button-toggle-upload"
+        >
           <Upload className="h-4 w-4 mr-2" />
           {showUpload ? "Close Upload" : "Upload"}
         </Button>
@@ -366,10 +475,7 @@ export default function KnowledgeBasePage() {
           onFilesSelected={handleFilesSelected}
         />
 
-        <UploadProgressBar
-          jobs={uploadJobs}
-          onClear={() => setUploadJobs([])}
-        />
+        <UploadProgressBar jobs={uploadJobs} onClear={() => setUploadJobs([])} />
 
         <DocumentFilterBar
           search={docSearch}
@@ -386,11 +492,7 @@ export default function KnowledgeBasePage() {
           }}
         />
 
-        <SemanticSearchResults
-          query={docSearch}
-          searchData={searchData}
-          searching={searching}
-        />
+        <SemanticSearchResults query={docSearch} searchData={searchData} searching={searching} />
 
         {documentsLoading ? (
           <div className="flex items-center justify-center py-12">
@@ -407,11 +509,15 @@ export default function KnowledgeBasePage() {
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="min-w-0">
-                    <div className="font-medium text-sm truncate" data-testid={`text-name-${doc.id}`}>
+                    <div
+                      className="font-medium text-sm truncate"
+                      data-testid={`text-name-${doc.id}`}
+                    >
                       {doc.name}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {doc.fileType.toUpperCase()} · {doc.numChunks} chunks · {new Date(doc.createdAt).toLocaleDateString()}
+                      {doc.fileType.toUpperCase()} · {doc.numChunks} chunks ·{" "}
+                      {new Date(doc.createdAt).toLocaleDateString()}
                     </div>
                   </div>
                 </div>
@@ -431,8 +537,15 @@ export default function KnowledgeBasePage() {
           <div className="text-center py-16 text-muted-foreground" data-testid="empty-state">
             <FileText className="h-10 w-10 mx-auto mb-3 opacity-40" />
             <p className="font-medium">No documents yet</p>
-            <p className="text-sm mt-1">Upload PDF or image files to build your fleet knowledge base.</p>
-            <Button variant="outline" className="mt-4" onClick={() => setShowUpload(true)} data-testid="button-upload-first">
+            <p className="text-sm mt-1">
+              Upload PDF or image files to build your fleet knowledge base.
+            </p>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => setShowUpload(true)}
+              data-testid="button-upload-first"
+            >
               <Upload className="h-4 w-4 mr-2" /> Upload First Document
             </Button>
           </div>

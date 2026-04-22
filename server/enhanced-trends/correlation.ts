@@ -58,18 +58,30 @@ export function analyzeLagCorrelation(x: number[], y: number[]): LagAnalysisResu
 export function classifyRelationship(
   correlation: number
 ): "positive" | "negative" | "nonlinear" | "none" {
-  if (Math.abs(correlation) < 0.1) { return "none"; }
-  if (correlation > 0.1) { return "positive"; }
-  if (correlation < -0.1) { return "negative"; }
+  if (Math.abs(correlation) < 0.1) {
+    return "none";
+  }
+  if (correlation > 0.1) {
+    return "positive";
+  }
+  if (correlation < -0.1) {
+    return "negative";
+  }
   return "nonlinear";
 }
 
 export function classifyCorrelationStrength(
   absCorrelation: number
 ): "weak" | "moderate" | "strong" | "very_strong" {
-  if (absCorrelation < 0.3) { return "weak"; }
-  if (absCorrelation < 0.5) { return "moderate"; }
-  if (absCorrelation < 0.7) { return "strong"; }
+  if (absCorrelation < 0.3) {
+    return "weak";
+  }
+  if (absCorrelation < 0.5) {
+    return "moderate";
+  }
+  if (absCorrelation < 0.7) {
+    return "strong";
+  }
   return "very_strong";
 }
 
@@ -78,9 +90,15 @@ export function assessCausality(
   significance: number,
   lagAnalysis: LagAnalysisResult
 ): "none" | "possible" | "likely" | "strong" {
-  if (Math.abs(correlation) < 0.3 || significance > 0.05) { return "none"; }
-  if (Math.abs(correlation) < 0.5 && lagAnalysis.lag === 0) { return "possible"; }
-  if (Math.abs(correlation) >= 0.5 && Math.abs(lagAnalysis.lag) <= 1) { return "likely"; }
+  if (Math.abs(correlation) < 0.3 || significance > 0.05) {
+    return "none";
+  }
+  if (Math.abs(correlation) < 0.5 && lagAnalysis.lag === 0) {
+    return "possible";
+  }
+  if (Math.abs(correlation) >= 0.5 && Math.abs(lagAnalysis.lag) <= 1) {
+    return "likely";
+  }
   return "strong";
 }
 

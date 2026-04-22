@@ -28,17 +28,17 @@ interface NotificationSettings {
   overrideEmail: string | null;
 }
 
-export function CrewNotificationSettingsTab({ 
-  crewId, 
-  crewName, 
-  crewEmail 
+export function CrewNotificationSettingsTab({
+  crewId,
+  crewName,
+  crewEmail,
 }: CrewNotificationSettingsTabProps) {
   const { toast } = useToast();
   const [localSettings, setLocalSettings] = useState<NotificationSettings | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
 
   const { data: settings, isLoading } = useQuery<NotificationSettings>({
-    queryKey: ['/api/crew', crewId, 'notification-settings'],
+    queryKey: ["/api/crew", crewId, "notification-settings"],
   });
 
   useEffect(() => {
@@ -51,12 +51,12 @@ export function CrewNotificationSettingsTab({
   const updateMutation = useMutation({
     mutationFn: async (data: Partial<NotificationSettings>) => {
       return apiRequest(`/api/crew/${crewId}/notification-settings`, {
-        method: 'PUT',
+        method: "PUT",
         body: JSON.stringify(data),
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/crew', crewId, 'notification-settings'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crew", crewId, "notification-settings"] });
       setHasChanges(false);
       toast({
         title: "Settings saved",
@@ -73,19 +73,25 @@ export function CrewNotificationSettingsTab({
   });
 
   const handleToggle = (field: keyof NotificationSettings, value: boolean) => {
-    if (!localSettings) {return;}
+    if (!localSettings) {
+      return;
+    }
     setLocalSettings({ ...localSettings, [field]: value });
     setHasChanges(true);
   };
 
   const handleOverrideEmailChange = (value: string) => {
-    if (!localSettings) {return;}
+    if (!localSettings) {
+      return;
+    }
     setLocalSettings({ ...localSettings, overrideEmail: value || null });
     setHasChanges(true);
   };
 
   const handleSave = () => {
-    if (!localSettings) {return;}
+    if (!localSettings) {
+      return;
+    }
     updateMutation.mutate({
       emailAlertsEnabled: localSettings.emailAlertsEnabled,
       certExpiryEmailEnabled: localSettings.certExpiryEmailEnabled,
@@ -126,7 +132,7 @@ export function CrewNotificationSettingsTab({
               </Badge>
             )}
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="override-email" className="text-sm text-muted-foreground">
               Override Email (optional)
@@ -160,51 +166,51 @@ export function CrewNotificationSettingsTab({
             </div>
             <Switch
               checked={localSettings?.emailAlertsEnabled ?? true}
-              onCheckedChange={(checked) => handleToggle('emailAlertsEnabled', checked)}
+              onCheckedChange={(checked) => handleToggle("emailAlertsEnabled", checked)}
               data-testid="switch-email-alerts-enabled"
             />
           </div>
 
           <Separator />
-              
+
           <div className={`space-y-4 ${!localSettings?.emailAlertsEnabled ? "opacity-50" : ""}`}>
             <h4 className="text-sm font-medium text-muted-foreground">Alert Types</h4>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Award className="h-4 w-4 text-blue-500" />
-                    <div>
-                      <Label className="text-sm">Certification Expiry</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Alerts when certifications are about to expire
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={localSettings?.certExpiryEmailEnabled ?? true}
-                    onCheckedChange={(checked) => handleToggle('certExpiryEmailEnabled', checked)}
-                    disabled={!localSettings?.emailAlertsEnabled}
-                    data-testid="switch-cert-expiry-enabled"
-                  />
-                </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-green-500" />
-                    <div>
-                      <Label className="text-sm">Document Expiry</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Alerts when documents are about to expire
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={localSettings?.documentExpiryEmailEnabled ?? true}
-                    onCheckedChange={(checked) => handleToggle('documentExpiryEmailEnabled', checked)}
-                    disabled={!localSettings?.emailAlertsEnabled}
-                    data-testid="switch-document-expiry-enabled"
-                  />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Award className="h-4 w-4 text-blue-500" />
+                <div>
+                  <Label className="text-sm">Certification Expiry</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Alerts when certifications are about to expire
+                  </p>
                 </div>
+              </div>
+              <Switch
+                checked={localSettings?.certExpiryEmailEnabled ?? true}
+                onCheckedChange={(checked) => handleToggle("certExpiryEmailEnabled", checked)}
+                disabled={!localSettings?.emailAlertsEnabled}
+                data-testid="switch-cert-expiry-enabled"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-green-500" />
+                <div>
+                  <Label className="text-sm">Document Expiry</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Alerts when documents are about to expire
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={localSettings?.documentExpiryEmailEnabled ?? true}
+                onCheckedChange={(checked) => handleToggle("documentExpiryEmailEnabled", checked)}
+                disabled={!localSettings?.emailAlertsEnabled}
+                data-testid="switch-document-expiry-enabled"
+              />
+            </div>
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -218,7 +224,7 @@ export function CrewNotificationSettingsTab({
               </div>
               <Switch
                 checked={localSettings?.complianceEmailEnabled ?? true}
-                onCheckedChange={(checked) => handleToggle('complianceEmailEnabled', checked)}
+                onCheckedChange={(checked) => handleToggle("complianceEmailEnabled", checked)}
                 disabled={!localSettings?.emailAlertsEnabled}
                 data-testid="switch-compliance-enabled"
               />
@@ -229,8 +235,8 @@ export function CrewNotificationSettingsTab({
 
       {hasChanges && (
         <div className="flex justify-end">
-          <Button 
-            onClick={handleSave} 
+          <Button
+            onClick={handleSave}
             disabled={updateMutation.isPending}
             data-testid="button-save-notification-settings"
           >
@@ -246,7 +252,8 @@ export function CrewNotificationSettingsTab({
 
       {!localSettings?.emailAlertsEnabled && (
         <p className="text-sm text-muted-foreground text-center py-2">
-          Email alerts are disabled. Enable the master switch above to configure individual alert types.
+          Email alerts are disabled. Enable the master switch above to configure individual alert
+          types.
         </p>
       )}
     </div>

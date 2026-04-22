@@ -76,17 +76,16 @@ export class SensorStateRepository extends TenantScopedRepository {
         .returning();
 
       return updated;
-    } 
-      const [created] = await db
-        .insert(sensorStates)
-        .values({
-          ...data,
-          orgId: this.orgId,
-          lastUpdated: new Date(),
-        })
-        .returning();
+    }
+    const [created] = await db
+      .insert(sensorStates)
+      .values({
+        ...data,
+        orgId: this.orgId,
+        lastUpdated: new Date(),
+      })
+      .returning();
 
-      return created;
-    
+    return created;
   }
 }

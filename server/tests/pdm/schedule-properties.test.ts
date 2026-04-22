@@ -1,16 +1,24 @@
-import { describe, it, expect } from '@jest/globals';
-import * as fc from 'fast-check';
-import { computeBufferDays, computeSchedulingWindow } from '../../pdm/application/get-schedule.use-case';
-import type { TelemetryFreshness } from '../../pdm/application/get-schedule.use-case';
+import { describe, it, expect } from "@jest/globals";
+import * as fc from "fast-check";
+import {
+  computeBufferDays,
+  computeSchedulingWindow,
+} from "../../pdm/application/get-schedule.use-case";
+import type { TelemetryFreshness } from "../../pdm/application/get-schedule.use-case";
 
-describe('PdM Schedule Property-Based Tests (Tier 1)', () => {
-  describe('computeBufferDays properties', () => {
-    it('buffer should never exceed 5 days (MAX_BUFFER_DAYS)', () => {
+describe("PdM Schedule Property-Based Tests (Tier 1)", () => {
+  describe("computeBufferDays properties", () => {
+    it("buffer should never exceed 5 days (MAX_BUFFER_DAYS)", () => {
       fc.assert(
         fc.property(
           fc.option(fc.integer({ min: 0, max: 100 }), { nil: null }),
-          fc.constantFrom<TelemetryFreshness>('online', 'delayed', 'offline'),
-          fc.constantFrom<'critical' | 'high' | 'medium' | 'low'>('critical', 'high', 'medium', 'low'),
+          fc.constantFrom<TelemetryFreshness>("online", "delayed", "offline"),
+          fc.constantFrom<"critical" | "high" | "medium" | "low">(
+            "critical",
+            "high",
+            "medium",
+            "low"
+          ),
           (confidence, telemetryFreshness, severity) => {
             const buffer = computeBufferDays({ confidence, telemetryFreshness, severity });
             expect(buffer).toBeLessThanOrEqual(5);
@@ -21,19 +29,34 @@ describe('PdM Schedule Property-Based Tests (Tier 1)', () => {
       );
     });
 
-    it('lower confidence should never decrease buffer', () => {
+    it("lower confidence should never decrease buffer", () => {
       fc.assert(
         fc.property(
           fc.integer({ min: 1, max: 100 }),
           fc.integer({ min: 0, max: 49 }),
-          fc.constantFrom<TelemetryFreshness>('online', 'delayed', 'offline'),
-          fc.constantFrom<'critical' | 'high' | 'medium' | 'low'>('critical', 'high', 'medium', 'low'),
+          fc.constantFrom<TelemetryFreshness>("online", "delayed", "offline"),
+          fc.constantFrom<"critical" | "high" | "medium" | "low">(
+            "critical",
+            "high",
+            "medium",
+            "low"
+          ),
           (highConf, lowConfOffset, telemetryFreshness, severity) => {
             const lowConf = Math.max(0, highConf - lowConfOffset - 1);
-            if (lowConf >= highConf) {return;}
+            if (lowConf >= highConf) {
+              return;
+            }
 
-            const highBuffer = computeBufferDays({ confidence: highConf, telemetryFreshness, severity });
-            const lowBuffer = computeBufferDays({ confidence: lowConf, telemetryFreshness, severity });
+            const highBuffer = computeBufferDays({
+              confidence: highConf,
+              telemetryFreshness,
+              severity,
+            });
+            const lowBuffer = computeBufferDays({
+              confidence: lowConf,
+              telemetryFreshness,
+              severity,
+            });
 
             expect(lowBuffer).toBeGreaterThanOrEqual(highBuffer);
           }
@@ -42,14 +65,23 @@ describe('PdM Schedule Property-Based Tests (Tier 1)', () => {
       );
     });
 
-    it('null confidence should add buffer compared to high confidence', () => {
+    it("null confidence should add buffer compared to high confidence", () => {
       fc.assert(
         fc.property(
-          fc.constantFrom<TelemetryFreshness>('online', 'delayed', 'offline'),
-          fc.constantFrom<'critical' | 'high' | 'medium' | 'low'>('critical', 'high', 'medium', 'low'),
+          fc.constantFrom<TelemetryFreshness>("online", "delayed", "offline"),
+          fc.constantFrom<"critical" | "high" | "medium" | "low">(
+            "critical",
+            "high",
+            "medium",
+            "low"
+          ),
           (telemetryFreshness, severity) => {
             const withConf = computeBufferDays({ confidence: 90, telemetryFreshness, severity });
-            const withoutConf = computeBufferDays({ confidence: null, telemetryFreshness, severity });
+            const withoutConf = computeBufferDays({
+              confidence: null,
+              telemetryFreshness,
+              severity,
+            });
 
             expect(withoutConf).toBeGreaterThanOrEqual(withConf);
           }
@@ -58,15 +90,32 @@ describe('PdM Schedule Property-Based Tests (Tier 1)', () => {
       );
     });
 
-    it('offline/delayed telemetry should add buffer compared to online', () => {
+    it("offline/delayed telemetry should add buffer compared to online", () => {
       fc.assert(
         fc.property(
           fc.option(fc.integer({ min: 50, max: 100 }), { nil: null }),
-          fc.constantFrom<'critical' | 'high' | 'medium' | 'low'>('critical', 'high', 'medium', 'low'),
+          fc.constantFrom<"critical" | "high" | "medium" | "low">(
+            "critical",
+            "high",
+            "medium",
+            "low"
+          ),
           (confidence, severity) => {
-            const online = computeBufferDays({ confidence, telemetryFreshness: 'online', severity });
-            const delayed = computeBufferDays({ confidence, telemetryFreshness: 'delayed', severity });
-            const offline = computeBufferDays({ confidence, telemetryFreshness: 'offline', severity });
+            const online = computeBufferDays({
+              confidence,
+              telemetryFreshness: "online",
+              severity,
+            });
+            const delayed = computeBufferDays({
+              confidence,
+              telemetryFreshness: "delayed",
+              severity,
+            });
+            const offline = computeBufferDays({
+              confidence,
+              telemetryFreshness: "offline",
+              severity,
+            });
 
             expect(delayed).toBeGreaterThanOrEqual(online);
             expect(offline).toBeGreaterThanOrEqual(online);
@@ -76,15 +125,23 @@ describe('PdM Schedule Property-Based Tests (Tier 1)', () => {
       );
     });
 
-    it('critical severity should add buffer compared to non-critical', () => {
+    it("critical severity should add buffer compared to non-critical", () => {
       fc.assert(
         fc.property(
           fc.option(fc.integer({ min: 50, max: 100 }), { nil: null }),
-          fc.constantFrom<TelemetryFreshness>('online', 'delayed', 'offline'),
-          fc.constantFrom<'high' | 'medium' | 'low'>('high', 'medium', 'low'),
+          fc.constantFrom<TelemetryFreshness>("online", "delayed", "offline"),
+          fc.constantFrom<"high" | "medium" | "low">("high", "medium", "low"),
           (confidence, telemetryFreshness, nonCriticalSeverity) => {
-            const critical = computeBufferDays({ confidence, telemetryFreshness, severity: 'critical' });
-            const nonCritical = computeBufferDays({ confidence, telemetryFreshness, severity: nonCriticalSeverity });
+            const critical = computeBufferDays({
+              confidence,
+              telemetryFreshness,
+              severity: "critical",
+            });
+            const nonCritical = computeBufferDays({
+              confidence,
+              telemetryFreshness,
+              severity: nonCriticalSeverity,
+            });
 
             expect(critical).toBeGreaterThanOrEqual(nonCritical);
           }
@@ -94,8 +151,8 @@ describe('PdM Schedule Property-Based Tests (Tier 1)', () => {
     });
   });
 
-  describe('computeSchedulingWindow properties', () => {
-    it('earliestStart <= preferredDate <= latestFinish when not blocked', () => {
+  describe("computeSchedulingWindow properties", () => {
+    it("earliestStart <= preferredDate <= latestFinish when not blocked", () => {
       fc.assert(
         fc.property(
           fc.integer({ min: 5, max: 30 }),
@@ -119,8 +176,12 @@ describe('PdM Schedule Property-Based Tests (Tier 1)', () => {
             });
 
             if (!result.isBlockedByLeadTime) {
-              expect(result.earliestStart.getTime()).toBeLessThanOrEqual(result.preferredDate.getTime());
-              expect(result.preferredDate.getTime()).toBeLessThanOrEqual(result.latestFinish.getTime());
+              expect(result.earliestStart.getTime()).toBeLessThanOrEqual(
+                result.preferredDate.getTime()
+              );
+              expect(result.preferredDate.getTime()).toBeLessThanOrEqual(
+                result.latestFinish.getTime()
+              );
             }
           }
         ),
@@ -128,7 +189,7 @@ describe('PdM Schedule Property-Based Tests (Tier 1)', () => {
       );
     });
 
-    it('increasing prepDays should never decrease earliestStart', () => {
+    it("increasing prepDays should never decrease earliestStart", () => {
       fc.assert(
         fc.property(
           fc.integer({ min: 5, max: 20 }),
@@ -157,14 +218,16 @@ describe('PdM Schedule Property-Based Tests (Tier 1)', () => {
               today,
             });
 
-            expect(result2.earliestStart.getTime()).toBeGreaterThanOrEqual(result1.earliestStart.getTime());
+            expect(result2.earliestStart.getTime()).toBeGreaterThanOrEqual(
+              result1.earliestStart.getTime()
+            );
           }
         ),
         { numRuns: 100 }
       );
     });
 
-    it('lead time blocking should trigger when prepDays > P10', () => {
+    it("lead time blocking should trigger when prepDays > P10", () => {
       fc.assert(
         fc.property(
           fc.integer({ min: 2, max: 5 }),

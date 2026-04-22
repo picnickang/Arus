@@ -16,8 +16,12 @@ import { modelVersions } from "./ml-analytics-core";
 export const trainingDatasets = pgTable(
   "training_datasets",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     name: varchar("name", { length: 255 }).notNull(),
     description: text("description"),
     sourceType: varchar("source_type", { length: 50 }).notNull(),
@@ -44,9 +48,15 @@ export const trainingDatasets = pgTable(
 export const modelArtifacts = pgTable(
   "model_artifacts",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    modelVersionId: varchar("model_version_id").references(() => modelVersions.id, { onDelete: "cascade" }),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    modelVersionId: varchar("model_version_id").references(() => modelVersions.id, {
+      onDelete: "cascade",
+    }),
     artifactType: varchar("artifact_type", { length: 50 }).notNull(),
     storageUri: varchar("storage_uri", { length: 1000 }).notNull(),
     checksum: varchar("checksum", { length: 128 }),
@@ -65,9 +75,15 @@ export const modelArtifacts = pgTable(
 export const trainingRuns = pgTable(
   "training_runs",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    datasetId: varchar("dataset_id").notNull().references(() => trainingDatasets.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    datasetId: varchar("dataset_id")
+      .notNull()
+      .references(() => trainingDatasets.id),
     modelVersionId: varchar("model_version_id").references(() => modelVersions.id),
     artifactId: varchar("artifact_id").references(() => modelArtifacts.id),
     status: varchar("status", { length: 50 }).notNull().default("pending"),
@@ -87,9 +103,19 @@ export const trainingRuns = pgTable(
   })
 );
 
-export const insertTrainingDatasetSchema = createInsertSchema(trainingDatasets).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertModelArtifactSchema = createInsertSchema(modelArtifacts).omit({ id: true, createdAt: true });
-export const insertTrainingRunSchema = createInsertSchema(trainingRuns).omit({ id: true, createdAt: true });
+export const insertTrainingDatasetSchema = createInsertSchema(trainingDatasets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export const insertModelArtifactSchema = createInsertSchema(modelArtifacts).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertTrainingRunSchema = createInsertSchema(trainingRuns).omit({
+  id: true,
+  createdAt: true,
+});
 
 export type TrainingDataset = typeof trainingDatasets.$inferSelect;
 export type InsertTrainingDataset = z.infer<typeof insertTrainingDatasetSchema>;

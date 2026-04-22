@@ -1,6 +1,6 @@
 /**
  * Schema Insights - Analytics Engine and LLM Cost Tracking
- * 
+ *
  * Fleet KPI snapshots, insight reports, and LLM cost/usage tracking.
  */
 

@@ -1,6 +1,6 @@
 /**
  * Configuration Audit Log Tab Component
- * 
+ *
  * Displays configuration changes with hot-reload tracking.
  * Extracted from system-administration.tsx for better maintainability.
  */
@@ -60,7 +60,7 @@ function ConfigAuditLogTabComponent() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm">{(error)?.message || "Failed to load audit log"}</p>
+            <p className="text-sm">{error?.message || "Failed to load audit log"}</p>
           </CardContent>
         </Card>
       </div>

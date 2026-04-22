@@ -1,4 +1,16 @@
-export type ToolCategory = "fleet" | "maintenance" | "alerts" | "predictions" | "crew" | "inventory" | "work-orders" | "analytics" | "files" | "knowledge-base" | "compliance" | "meta";
+export type ToolCategory =
+  | "fleet"
+  | "maintenance"
+  | "alerts"
+  | "predictions"
+  | "crew"
+  | "inventory"
+  | "work-orders"
+  | "analytics"
+  | "files"
+  | "knowledge-base"
+  | "compliance"
+  | "meta";
 
 export type RiskLevel = "read" | "low-write" | "high-write";
 
@@ -12,7 +24,10 @@ export interface ToolDefinition {
   parameters: Record<string, unknown>;
   inputSchema?: import("zod").ZodType;
   requiresApproval: boolean;
-  execute: (input: Record<string, unknown>, context: ToolContext) => Promise<Record<string, unknown>>;
+  execute: (
+    input: Record<string, unknown>,
+    context: ToolContext
+  ) => Promise<Record<string, unknown>>;
 }
 
 export interface ToolContext {
@@ -64,12 +79,24 @@ export interface UsageStats {
   avgTokensPerConversation: number;
   topTools: { toolName: string; count: number }[];
   dailyUsage: { date: string; tokens: number; messages: number }[];
-  approvalStats: { total: number; approved: number; rejected: number; pending: number; approvalRate: number };
+  approvalStats: {
+    total: number;
+    approved: number;
+    rejected: number;
+    pending: number;
+    approvalRate: number;
+  };
   estimatedCost: number;
 }
 
 export const WRITE_TOOLS = ["draftWorkOrder", "shareReport"] as const;
-export const MAINTENANCE_ROLES = ["admin", "chief_engineer", "second_engineer", "captain", "chief_officer"] as const;
+export const MAINTENANCE_ROLES = [
+  "admin",
+  "chief_engineer",
+  "second_engineer",
+  "captain",
+  "chief_officer",
+] as const;
 
 export interface FileAttachment {
   filename: string;
@@ -103,7 +130,11 @@ export interface AgentSignal {
   confidenceInterval?: unknown;
   predictedFailureDate?: string | null;
   suggestionId?: string;
-  costImpact?: { estimatedRepairCost?: number; estimatedDowntime?: number; revenueImpact?: number } | null;
+  costImpact?: {
+    estimatedRepairCost?: number;
+    estimatedDowntime?: number;
+    revenueImpact?: number;
+  } | null;
 }
 
 export const DEFAULT_CONFIG = {

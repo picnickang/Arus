@@ -1,7 +1,7 @@
 /**
  * Shared logging utilities to prevent circular dependencies
  * between server/observability.ts and server/error-handling.ts
- * 
+ *
  * Phase 3 Enhancements:
  * - Correlation IDs for request tracing (AsyncLocalStorage for concurrency safety)
  * - Org scoping for multi-tenant isolation
@@ -80,10 +80,7 @@ export function generateCorrelationId(): string {
  * Run a function within a request context (use in middleware)
  * This ensures correlation ID and org context are properly scoped to the request
  */
-export function runWithContext<T>(
-  context: Partial<RequestContext>,
-  fn: () => T
-): T {
+export function runWithContext<T>(context: Partial<RequestContext>, fn: () => T): T {
   const fullContext: RequestContext = {
     correlationId: context.correlationId || generateCorrelationId(),
     orgId: context.orgId,
@@ -174,7 +171,7 @@ export function getCorrelationIdWithFallback(): string | undefined {
 }
 
 /**
- * Internal: Get org ID with fallback support for background workers  
+ * Internal: Get org ID with fallback support for background workers
  */
 export function getOrgContextWithFallback(): string | undefined {
   return asyncLocalStorage.getStore()?.orgId || fallbackOrgId;
@@ -196,21 +193,28 @@ export function setOrgContextWithFallback(orgId: string): void {
  * Redact sensitive fields from an object (deep)
  */
 export function redactSensitiveFields<T>(obj: T, depth: number = 0): T {
-  if (depth > 10) {return obj;} // Prevent infinite recursion
-  if (obj === null || obj === undefined) {return obj;}
-  if (typeof obj !== "object") {return obj;}
+  if (depth > 10) {
+    return obj;
+  } // Prevent infinite recursion
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  if (typeof obj !== "object") {
+    return obj;
+  }
 
   if (Array.isArray(obj)) {
-    return obj.map(item => redactSensitiveFields(item, depth + 1)) as unknown as T;
+    return obj.map((item) => redactSensitiveFields(item, depth + 1)) as unknown as T;
   }
 
   const redacted: Record<string, any> = {};
   for (const [key, value] of Object.entries(obj)) {
     const lowerKey = key.toLowerCase();
-    
+
     // Check if the key matches any sensitive field pattern
-    const isSensitive = SENSITIVE_FIELDS.has(lowerKey) ||
-      Array.from(SENSITIVE_FIELDS).some(field => lowerKey.includes(field.toLowerCase()));
+    const isSensitive =
+      SENSITIVE_FIELDS.has(lowerKey) ||
+      Array.from(SENSITIVE_FIELDS).some((field) => lowerKey.includes(field.toLowerCase()));
 
     if (isSensitive && typeof value === "string") {
       // Redact but show length hint
@@ -235,7 +239,7 @@ export function structuredLog(
 ) {
   // Get request context from AsyncLocalStorage with fallback for background workers
   const requestContext = getRequestContext();
-  
+
   // Auto-populate correlation ID and org context from request context if not explicitly provided
   // Falls back to module-level variables for background workers
   const enrichedContext = {
@@ -290,7 +294,9 @@ export function createScopedLogger(scope: {
     error: (message: string, error?: Error, metadata?: Record<string, any>) =>
       structuredLog("error", message, {
         ...scope,
-        error: error ? { message: error.message, stack: error.stack, code: (error as any).code } : undefined,
+        error: error
+          ? { message: error.message, stack: error.stack, code: (error as any).code }
+          : undefined,
         metadata,
       }),
     debug: (message: string, metadata?: Record<string, any>) =>
@@ -325,10 +331,10 @@ export function loggingContextMiddleware() {
     const correlationId = (req.headers["x-correlation-id"] as string) || generateCorrelationId();
     const requestId = (req as any).requestId || `req_${Date.now()}_${randomUUID().slice(0, 7)}`;
     const orgId = (req as any).orgId;
-    
+
     // Add correlation ID to response headers for client tracing
     res.setHeader("x-correlation-id", correlationId);
-    
+
     // Run the rest of the request in the scoped context
     runWithContext({ correlationId, requestId, orgId }, () => {
       next();

@@ -111,18 +111,25 @@ export default function SyncAdmin() {
   };
 
   const getHealthBadge = () => {
-    if (isLoadingSyncStatus)
-      {return <Badge variant="secondary">Loading...</Badge>;}
+    if (isLoadingSyncStatus) {
+      return <Badge variant="secondary">Loading...</Badge>;
+    }
 
-    if (!syncStatus) {return <Badge variant="destructive">Unknown</Badge>;}
+    if (!syncStatus) {
+      return <Badge variant="destructive">Unknown</Badge>;
+    }
 
     const hasCriticalIssues = syncStatus.sync.criticalIssues > 0;
     const hasIssues = syncStatus.sync.totalIssues > 0;
     const hasSystemIssues =
       syncStatus.metrics.failedEvents > 0 || syncStatus.metrics.pendingEvents > 50;
 
-    if (hasCriticalIssues) {return <Badge variant="destructive">Critical Issues</Badge>;}
-    if (hasIssues || hasSystemIssues) {return <Badge variant="secondary">Issues Detected</Badge>;}
+    if (hasCriticalIssues) {
+      return <Badge variant="destructive">Critical Issues</Badge>;
+    }
+    if (hasIssues || hasSystemIssues) {
+      return <Badge variant="secondary">Issues Detected</Badge>;
+    }
     return <Badge variant="default">Healthy</Badge>;
   };
 
@@ -183,7 +190,9 @@ export default function SyncAdmin() {
                 <div className="text-sm text-muted-foreground">Pending Events</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">{syncStatus.metrics.failedEvents}</div>
+                <div className="text-2xl font-bold text-red-600">
+                  {syncStatus.metrics.failedEvents}
+                </div>
                 <div className="text-sm text-muted-foreground">Failed Events</div>
               </div>
               <div className="text-center">
@@ -199,7 +208,10 @@ export default function SyncAdmin() {
                 <div className="text-sm font-medium">Recent Data Quality Activity:</div>
                 <div className="space-y-1">
                   {syncStatus.sync.recentActivity.slice(0, 3).map((activity) => (
-                    <div key={activity} className="text-xs bg-muted p-2 rounded text-muted-foreground">
+                    <div
+                      key={activity}
+                      className="text-xs bg-muted p-2 rounded text-muted-foreground"
+                    >
                       {activity}
                     </div>
                   ))}
@@ -272,9 +284,7 @@ export default function SyncAdmin() {
         <div className="space-y-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            <span>
-              Last updated: {syncStatus ? formatDate(syncStatus.timestamp) : "Never"}
-            </span>
+            <span>Last updated: {syncStatus ? formatDate(syncStatus.timestamp) : "Never"}</span>
           </div>
           <div className="flex items-start gap-2">
             <AlertCircle className="h-4 w-4 mt-0.5" />

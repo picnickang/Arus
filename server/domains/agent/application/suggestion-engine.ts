@@ -1,8 +1,12 @@
 import { db } from "../../../db";
 import { eq, desc, and, sql, gte, lte } from "drizzle-orm";
 import {
-  alertNotifications, failurePredictions, maintenanceSchedules,
-  crewCertification, crew, notificationQueue,
+  alertNotifications,
+  failurePredictions,
+  maintenanceSchedules,
+  crewCertification,
+  crew,
+  notificationQueue,
 } from "@shared/schema";
 import type { AgentRepositoryPort } from "../domain/ports";
 import type { AgentSuggestion } from "@shared/schema/agent";
@@ -46,17 +50,26 @@ export class SuggestionEngine {
   }
 
   startBackgroundEvaluation(orgId: string, intervalMs?: number): void {
-    if (this.intervalIds.has(orgId)) {return;}
-    if (intervalMs) {this.evaluationIntervalMs = intervalMs;}
+    if (this.intervalIds.has(orgId)) {
+      return;
+    }
+    if (intervalMs) {
+      this.evaluationIntervalMs = intervalMs;
+    }
 
-    console.log(`[SuggestionEngine] Starting background evaluation every ${this.evaluationIntervalMs / 60000} minutes for org ${orgId}`);
+    console.log(
+      `[SuggestionEngine] Starting background evaluation every ${this.evaluationIntervalMs / 60000} minutes for org ${orgId}`
+    );
 
     const id = setInterval(async () => {
       try {
         const storedPrefs = await this.repo.suggestions.getPreferences(orgId);
         await this.generateProactiveSuggestions(orgId, storedPrefs ?? undefined);
       } catch (err) {
-        console.error(`[SuggestionEngine] Background evaluation error for org ${orgId}:`, err instanceof Error ? err.message : "unknown");
+        console.error(
+          `[SuggestionEngine] Background evaluation error for org ${orgId}:`,
+          err instanceof Error ? err.message : "unknown"
+        );
       }
     }, this.evaluationIntervalMs);
     this.intervalIds.set(orgId, id);
@@ -79,12 +92,15 @@ export class SuggestionEngine {
     }
   }
 
-  async generateProactiveSuggestions(orgId: string, preferences?: SuggestionPreferences): Promise<AgentSuggestion[]> {
+  async generateProactiveSuggestions(
+    orgId: string,
+    preferences?: SuggestionPreferences
+  ): Promise<AgentSuggestion[]> {
     const prefs = preferences || DEFAULT_PREFERENCES;
     const newSuggestions: AgentSuggestion[] = [];
 
     const existingPending = await this.repo.suggestions.list(orgId, "pending", 500);
-    const pendingKeys = new Set(existingPending.map(s => `${s.triggerType}:${s.entityId || ""}`));
+    const pendingKeys = new Set(existingPending.map((s) => `${s.triggerType}:${s.entityId || ""}`));
 
     if (prefs.predictions) {
       const items = await this.evaluateHighRiskPredictions(orgId, prefs.minSeverity, pendingKeys);
@@ -107,7 +123,11 @@ export class SuggestionEngine {
     }
 
     if (prefs.crew) {
-      const items = await this.evaluateExpiringCertifications(orgId, prefs.minSeverity, pendingKeys);
+      const items = await this.evaluateExpiringCertifications(
+        orgId,
+        prefs.minSeverity,
+        pendingKeys
+      );
       newSuggestions.push(...items);
     }
 
@@ -122,27 +142,37 @@ export class SuggestionEngine {
       await this.queueNotifications(orgId, updatedSuggestions);
     }
 
-    console.log(`[SuggestionEngine] Generated ${newSuggestions.length} suggestions for org ${orgId}`);
+    console.log(
+      `[SuggestionEngine] Generated ${newSuggestions.length} suggestions for org ${orgId}`
+    );
     return newSuggestions;
   }
 
-  private async evaluateHighRiskPredictions(orgId: string, minSeverity: string, pendingKeys: Set<string>): Promise<AgentSuggestion[]> {
+  private async evaluateHighRiskPredictions(
+    orgId: string,
+    minSeverity: string,
+    pendingKeys: Set<string>
+  ): Promise<AgentSuggestion[]> {
     const results: AgentSuggestion[] = [];
-    const highRiskPredictions = await db.select({
-      id: failurePredictions.id,
-      equipmentId: failurePredictions.equipmentId,
-      failureMode: failurePredictions.failureMode,
-      failureProbability: failurePredictions.failureProbability,
-      riskLevel: failurePredictions.riskLevel,
-      predictedFailureDate: failurePredictions.predictedFailureDate,
-      modelId: failurePredictions.modelId,
-      confidenceInterval: failurePredictions.confidenceInterval,
-      costImpact: failurePredictions.costImpact,
-    }).from(failurePredictions)
-      .where(and(
-        eq(failurePredictions.orgId, orgId),
-        gte(failurePredictions.predictionTimestamp, new Date(Date.now() - 86400000)),
-      ))
+    const highRiskPredictions = await db
+      .select({
+        id: failurePredictions.id,
+        equipmentId: failurePredictions.equipmentId,
+        failureMode: failurePredictions.failureMode,
+        failureProbability: failurePredictions.failureProbability,
+        riskLevel: failurePredictions.riskLevel,
+        predictedFailureDate: failurePredictions.predictedFailureDate,
+        modelId: failurePredictions.modelId,
+        confidenceInterval: failurePredictions.confidenceInterval,
+        costImpact: failurePredictions.costImpact,
+      })
+      .from(failurePredictions)
+      .where(
+        and(
+          eq(failurePredictions.orgId, orgId),
+          gte(failurePredictions.predictionTimestamp, new Date(Date.now() - 86400000))
+        )
+      )
       .orderBy(desc(failurePredictions.failureProbability))
       .limit(10);
 
@@ -159,17 +189,26 @@ export class SuggestionEngine {
     for (const pred of highRiskPredictions) {
       if (pred.failureProbability > 0.8) {
         const dedupKey = `high_risk_prediction:${pred.equipmentId}`;
-        if (pendingKeys.has(dedupKey)) {continue;}
+        if (pendingKeys.has(dedupKey)) {
+          continue;
+        }
         const severity = pred.failureProbability >= 0.9 ? "critical" : "warning";
-        if (!meetsMinSeverity(severity, minSeverity)) {continue;}
+        if (!meetsMinSeverity(severity, minSeverity)) {
+          continue;
+        }
 
-        const costImpact = pred.costImpact as { estimatedRepairCost?: number; estimatedDowntime?: number; revenueImpact?: number } | null;
+        const costImpact = pred.costImpact as {
+          estimatedRepairCost?: number;
+          estimatedDowntime?: number;
+          revenueImpact?: number;
+        } | null;
         let costLine = "";
         if (costImpact && (costImpact.estimatedRepairCost || costImpact.revenueImpact)) {
           const repairCost = costImpact.estimatedRepairCost ?? 0;
           const failureCost = costImpact.revenueImpact ?? 0;
           const savings = failureCost - repairCost;
-          const fmt = (v: number) => v >= 1000 ? `~$${(v / 1000).toFixed(0)}K` : `~$${v.toFixed(0)}`;
+          const fmt = (v: number) =>
+            v >= 1000 ? `~$${(v / 1000).toFixed(0)}K` : `~$${v.toFixed(0)}`;
           let savingsText = "";
           if (savings > 0) {
             savingsText = ` Potential savings: ${fmt(savings)}.`;
@@ -202,7 +241,7 @@ export class SuggestionEngine {
           const cooldownKey = `${orgId}:${pred.equipmentId}:high_risk_prediction`;
           const lastDispatch = this.recentSignals.get(cooldownKey);
           const now = Date.now();
-          if (!lastDispatch || (now - lastDispatch) >= this.signalCooldownMs) {
+          if (!lastDispatch || now - lastDispatch >= this.signalCooldownMs) {
             this.recentSignals.set(cooldownKey, now);
             const signal: AgentSignal = {
               type: "high_risk_prediction",
@@ -229,7 +268,9 @@ export class SuggestionEngine {
   }
 
   private dispatchSignal(signal: AgentSignal): void {
-    if (!this.signalHandler) {return;}
+    if (!this.signalHandler) {
+      return;
+    }
     const handler = this.signalHandler;
     setImmediate(async () => {
       try {
@@ -237,36 +278,52 @@ export class SuggestionEngine {
       } catch (err) {
         console.error(
           `[SuggestionEngine] Signal dispatch failed for ${signal.type} on ${signal.equipmentId}:`,
-          err instanceof Error ? err.message : "unknown",
+          err instanceof Error ? err.message : "unknown"
         );
       }
     });
   }
 
-  private async evaluateOverdueMaintenance(orgId: string, minSeverity: string, pendingKeys: Set<string>): Promise<AgentSuggestion[]> {
+  private async evaluateOverdueMaintenance(
+    orgId: string,
+    minSeverity: string,
+    pendingKeys: Set<string>
+  ): Promise<AgentSuggestion[]> {
     const results: AgentSuggestion[] = [];
-    if (!meetsMinSeverity("warning", minSeverity)) {return results;}
+    if (!meetsMinSeverity("warning", minSeverity)) {
+      return results;
+    }
 
-    const overdueMaint = await db.select({
-      id: maintenanceSchedules.id,
-      equipmentId: maintenanceSchedules.equipmentId,
-      scheduledDate: maintenanceSchedules.nextScheduledDate,
-      maintenanceType: maintenanceSchedules.maintenanceType,
-      description: maintenanceSchedules.description,
-    }).from(maintenanceSchedules)
-      .where(and(
-        eq(maintenanceSchedules.orgId, orgId),
-        eq(maintenanceSchedules.status, "scheduled"),
-        lte(maintenanceSchedules.nextScheduledDate, new Date(Date.now() - 24 * 60 * 60 * 1000)),
-      ))
+    const overdueMaint = await db
+      .select({
+        id: maintenanceSchedules.id,
+        equipmentId: maintenanceSchedules.equipmentId,
+        scheduledDate: maintenanceSchedules.nextScheduledDate,
+        maintenanceType: maintenanceSchedules.maintenanceType,
+        description: maintenanceSchedules.description,
+      })
+      .from(maintenanceSchedules)
+      .where(
+        and(
+          eq(maintenanceSchedules.orgId, orgId),
+          eq(maintenanceSchedules.status, "scheduled"),
+          lte(maintenanceSchedules.nextScheduledDate, new Date(Date.now() - 24 * 60 * 60 * 1000))
+        )
+      )
       .limit(10);
 
     for (const maint of overdueMaint) {
       const dedupKey = `overdue_maintenance:${maint.id}`;
-      if (pendingKeys.has(dedupKey)) {continue;}
-      const daysOverdue = Math.floor((Date.now() - new Date(maint.nextScheduledDate).getTime()) / (24 * 60 * 60 * 1000));
+      if (pendingKeys.has(dedupKey)) {
+        continue;
+      }
+      const daysOverdue = Math.floor(
+        (Date.now() - new Date(maint.nextScheduledDate).getTime()) / (24 * 60 * 60 * 1000)
+      );
       const severity = daysOverdue > 7 ? "critical" : "warning";
-      if (!meetsMinSeverity(severity, minSeverity)) {continue;}
+      if (!meetsMinSeverity(severity, minSeverity)) {
+        continue;
+      }
       const sug = await this.repo.suggestions.create({
         orgId,
         triggerType: "overdue_maintenance",
@@ -283,9 +340,15 @@ export class SuggestionEngine {
     return results;
   }
 
-  private async evaluateLowStock(orgId: string, minSeverity: string, pendingKeys: Set<string>): Promise<AgentSuggestion[]> {
+  private async evaluateLowStock(
+    orgId: string,
+    minSeverity: string,
+    pendingKeys: Set<string>
+  ): Promise<AgentSuggestion[]> {
     const results: AgentSuggestion[] = [];
-    if (!meetsMinSeverity("info", minSeverity)) {return results;}
+    if (!meetsMinSeverity("info", minSeverity)) {
+      return results;
+    }
 
     try {
       const lowStockResult = await db.execute(sql`
@@ -298,9 +361,13 @@ export class SuggestionEngine {
 
       for (const part of lowStockRows) {
         const dedupKey = `low_stock:${part.id as string}`;
-        if (pendingKeys.has(dedupKey)) {continue;}
+        if (pendingKeys.has(dedupKey)) {
+          continue;
+        }
         const severity = Number(part.quantity_on_hand) === 0 ? "critical" : "info";
-        if (!meetsMinSeverity(severity, minSeverity)) {continue;}
+        if (!meetsMinSeverity(severity, minSeverity)) {
+          continue;
+        }
         const sug = await this.repo.suggestions.create({
           orgId,
           triggerType: "low_stock",
@@ -315,37 +382,52 @@ export class SuggestionEngine {
         results.push(sug);
       }
     } catch (err) {
-      console.warn("[SuggestionEngine] Low stock query failed:", err instanceof Error ? err.message : "unknown");
+      console.warn(
+        "[SuggestionEngine] Low stock query failed:",
+        err instanceof Error ? err.message : "unknown"
+      );
     }
     return results;
   }
 
-  private async evaluateCriticalAlerts(orgId: string, minSeverity: string, pendingKeys: Set<string>): Promise<AgentSuggestion[]> {
+  private async evaluateCriticalAlerts(
+    orgId: string,
+    minSeverity: string,
+    pendingKeys: Set<string>
+  ): Promise<AgentSuggestion[]> {
     const results: AgentSuggestion[] = [];
-    if (!meetsMinSeverity("critical", minSeverity)) {return results;}
+    if (!meetsMinSeverity("critical", minSeverity)) {
+      return results;
+    }
 
     try {
-      const recentAlerts = await db.select({
-        id: alertNotifications.id,
-        equipmentId: alertNotifications.equipmentId,
-        sensorType: alertNotifications.sensorType,
-        alertType: alertNotifications.alertType,
-        message: alertNotifications.message,
-        value: alertNotifications.value,
-        threshold: alertNotifications.threshold,
-      }).from(alertNotifications)
-        .where(and(
-          eq(alertNotifications.orgId, orgId),
-          eq(alertNotifications.acknowledged, false),
-          gte(alertNotifications.createdAt, new Date(Date.now() - 24 * 60 * 60 * 1000)),
-          sql`${alertNotifications.alertType} IN ('critical', 'high', 'danger', 'emergency')`,
-        ))
+      const recentAlerts = await db
+        .select({
+          id: alertNotifications.id,
+          equipmentId: alertNotifications.equipmentId,
+          sensorType: alertNotifications.sensorType,
+          alertType: alertNotifications.alertType,
+          message: alertNotifications.message,
+          value: alertNotifications.value,
+          threshold: alertNotifications.threshold,
+        })
+        .from(alertNotifications)
+        .where(
+          and(
+            eq(alertNotifications.orgId, orgId),
+            eq(alertNotifications.acknowledged, false),
+            gte(alertNotifications.createdAt, new Date(Date.now() - 24 * 60 * 60 * 1000)),
+            sql`${alertNotifications.alertType} IN ('critical', 'high', 'danger', 'emergency')`
+          )
+        )
         .orderBy(desc(alertNotifications.createdAt))
         .limit(10);
 
       for (const alert of recentAlerts) {
         const dedupKey = `critical_alert:${alert.equipmentId}`;
-        if (pendingKeys.has(dedupKey)) {continue;}
+        if (pendingKeys.has(dedupKey)) {
+          continue;
+        }
         const sug = await this.repo.suggestions.create({
           orgId,
           triggerType: "critical_alert",
@@ -360,38 +442,57 @@ export class SuggestionEngine {
         results.push(sug);
       }
     } catch (err) {
-      console.warn("[SuggestionEngine] Critical alerts query failed:", err instanceof Error ? err.message : "unknown");
+      console.warn(
+        "[SuggestionEngine] Critical alerts query failed:",
+        err instanceof Error ? err.message : "unknown"
+      );
     }
     return results;
   }
 
-  private async evaluateExpiringCertifications(orgId: string, minSeverity: string, pendingKeys: Set<string>): Promise<AgentSuggestion[]> {
+  private async evaluateExpiringCertifications(
+    orgId: string,
+    minSeverity: string,
+    pendingKeys: Set<string>
+  ): Promise<AgentSuggestion[]> {
     const results: AgentSuggestion[] = [];
-    if (!meetsMinSeverity("warning", minSeverity)) {return results;}
+    if (!meetsMinSeverity("warning", minSeverity)) {
+      return results;
+    }
 
     try {
       const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-      const expiringCerts = await db.select({
-        certId: crewCertification.id,
-        crewId: crewCertification.crewId,
-        cert: crewCertification.cert,
-        expiresAt: crewCertification.expiresAt,
-        crewName: crew.name,
-      }).from(crewCertification)
+      const expiringCerts = await db
+        .select({
+          certId: crewCertification.id,
+          crewId: crewCertification.crewId,
+          cert: crewCertification.cert,
+          expiresAt: crewCertification.expiresAt,
+          crewName: crew.name,
+        })
+        .from(crewCertification)
         .innerJoin(crew, eq(crewCertification.crewId, crew.id))
-        .where(and(
-          eq(crewCertification.orgId, orgId),
-          lte(crewCertification.expiresAt, thirtyDaysFromNow),
-          gte(crewCertification.expiresAt, new Date()),
-        ))
+        .where(
+          and(
+            eq(crewCertification.orgId, orgId),
+            lte(crewCertification.expiresAt, thirtyDaysFromNow),
+            gte(crewCertification.expiresAt, new Date())
+          )
+        )
         .limit(10);
 
       for (const cert of expiringCerts) {
         const dedupKey = `expiring_certification:${cert.crewId}`;
-        if (pendingKeys.has(dedupKey)) {continue;}
-        const daysUntilExpiry = Math.ceil((new Date(cert.expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+        if (pendingKeys.has(dedupKey)) {
+          continue;
+        }
+        const daysUntilExpiry = Math.ceil(
+          (new Date(cert.expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)
+        );
         const severity = daysUntilExpiry <= 7 ? "critical" : "warning";
-        if (!meetsMinSeverity(severity, minSeverity)) {continue;}
+        if (!meetsMinSeverity(severity, minSeverity)) {
+          continue;
+        }
         const sug = await this.repo.suggestions.create({
           orgId,
           triggerType: "expiring_certification",
@@ -406,7 +507,10 @@ export class SuggestionEngine {
         results.push(sug);
       }
     } catch (err) {
-      console.warn("[SuggestionEngine] Certification expiry query failed:", err instanceof Error ? err.message : "unknown");
+      console.warn(
+        "[SuggestionEngine] Certification expiry query failed:",
+        err instanceof Error ? err.message : "unknown"
+      );
     }
     return results;
   }
@@ -416,9 +520,12 @@ export class SuggestionEngine {
       const { default: OpenAI } = await import("openai");
       const openai = new OpenAI();
 
-      const triggerSummaries = suggestions.map((s, i) =>
-        `${i + 1}. [${s.severity?.toUpperCase()}] ${s.triggerType}: ${s.title} — ${s.summary}`
-      ).join("\n");
+      const triggerSummaries = suggestions
+        .map(
+          (s, i) =>
+            `${i + 1}. [${s.severity?.toUpperCase()}] ${s.triggerType}: ${s.title} — ${s.summary}`
+        )
+        .join("\n");
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -426,7 +533,8 @@ export class SuggestionEngine {
         messages: [
           {
             role: "system",
-            content: "You are a marine operations assistant. Given a list of triggered alerts/suggestions, produce:\n1. A brief executive summary (2-3 sentences) of the overall situation.\n2. For each item, a one-sentence actionable recommendation.\nFormat: First the executive summary, then numbered items matching the input order.\nBe concise and actionable. Use marine operations terminology.",
+            content:
+              "You are a marine operations assistant. Given a list of triggered alerts/suggestions, produce:\n1. A brief executive summary (2-3 sentences) of the overall situation.\n2. For each item, a one-sentence actionable recommendation.\nFormat: First the executive summary, then numbered items matching the input order.\nBe concise and actionable. Use marine operations terminology.",
           },
           {
             role: "user",
@@ -437,9 +545,9 @@ export class SuggestionEngine {
 
       const aiContent = response.choices[0]?.message?.content;
       if (aiContent && suggestions.length > 0) {
-        const lines = aiContent.split("\n").filter(l => l.trim());
+        const lines = aiContent.split("\n").filter((l) => l.trim());
         for (let i = 0; i < suggestions.length; i++) {
-          const recLine = lines.find(l => l.trim().startsWith(`${i + 1}.`));
+          const recLine = lines.find((l) => l.trim().startsWith(`${i + 1}.`));
           if (recLine) {
             await this.repo.suggestions.update(suggestions[i].id, {
               summary: `${suggestions[i].summary} AI recommendation: ${recLine.replace(/^\d+\.\s*/, "")}`,
@@ -452,20 +560,25 @@ export class SuggestionEngine {
           triggerType: "ai_summary",
           title: `AI Summary: ${suggestions.length} new conditions detected`,
           summary: aiContent,
-          severity: suggestions.some(s => s.severity === "critical") ? "critical" : "warning",
+          severity: suggestions.some((s) => s.severity === "critical") ? "critical" : "warning",
           status: "pending",
-          context: { suggestionIds: suggestions.map(s => s.id), count: suggestions.length },
+          context: { suggestionIds: suggestions.map((s) => s.id), count: suggestions.length },
         });
       }
     } catch (err) {
-      console.warn("[SuggestionEngine] AI summarization failed (non-blocking):", err instanceof Error ? err.message : "unknown");
+      console.warn(
+        "[SuggestionEngine] AI summarization failed (non-blocking):",
+        err instanceof Error ? err.message : "unknown"
+      );
     }
   }
 
   private async queueNotifications(orgId: string, suggestions: AgentSuggestion[]): Promise<void> {
     try {
       for (const sug of suggestions) {
-        if (sug.triggerType === "ai_summary") {continue;}
+        if (sug.triggerType === "ai_summary") {
+          continue;
+        }
         await db.insert(notificationQueue).values({
           orgId,
           notificationType: "ai_suggestion",
@@ -478,7 +591,10 @@ export class SuggestionEngine {
         });
       }
     } catch (err) {
-      console.warn("[SuggestionEngine] Notification queue integration failed (non-blocking):", err instanceof Error ? err.message : "unknown");
+      console.warn(
+        "[SuggestionEngine] Notification queue integration failed (non-blocking):",
+        err instanceof Error ? err.message : "unknown"
+      );
     }
   }
 }

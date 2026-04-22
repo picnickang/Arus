@@ -38,8 +38,16 @@ export const telemetryDroppedTotal = new client.Counter({
 });
 
 // Helper functions
-export function recordTelemetryProcessed(equipmentId: string, sensorType: string, vesselId: string, count: number = 1) {
-  telemetryProcessedTotal.inc({ equipment_id: equipmentId, sensor_type: sensorType, vessel_id: vesselId }, count);
+export function recordTelemetryProcessed(
+  equipmentId: string,
+  sensorType: string,
+  vesselId: string,
+  count: number = 1
+) {
+  telemetryProcessedTotal.inc(
+    { equipment_id: equipmentId, sensor_type: sensorType, vessel_id: vesselId },
+    count
+  );
 }
 
 export function recordTelemetryError(errorType: string, equipmentId: string) {
@@ -58,7 +66,9 @@ export function setTelemetryBufferUtilization(percent: number) {
   telemetryBufferUtilization.set(percent);
 }
 
-export function recordTelemetryDropped(reason: "buffer_overflow" | "validation_failed" | "rate_limited") {
+export function recordTelemetryDropped(
+  reason: "buffer_overflow" | "validation_failed" | "rate_limited"
+) {
   telemetryDroppedTotal.inc({ reason });
 }
 

@@ -1,7 +1,11 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { hubSyncService } from "./service";
-import { insertReplayIncomingSchema, insertSheetVersionSchema, insertOptimizerConfigurationSchema } from "@shared/schema-runtime";
+import {
+  insertReplayIncomingSchema,
+  insertSheetVersionSchema,
+  insertOptimizerConfigurationSchema,
+} from "@shared/schema-runtime";
 import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";
 import { withErrorHandling, handleApiError, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
@@ -16,7 +20,9 @@ export function registerHubSyncRoutes(
   const { writeOperationRateLimit, generalApiRateLimit } = rateLimiters;
 
   // ===== REPLAY HELPER ENDPOINTS =====
-  app.post("/api/replay", generalApiRateLimit,
+  app.post(
+    "/api/replay",
+    generalApiRateLimit,
     withErrorHandling("log replay request", async (req: Request, res: Response) => {
       const validatedData = insertReplayIncomingSchema.parse(req.body);
       const request = await hubSyncService.logReplayRequest(validatedData);
@@ -24,7 +30,9 @@ export function registerHubSyncRoutes(
     })
   );
 
-  app.get("/api/replay/history", generalApiRateLimit,
+  app.get(
+    "/api/replay/history",
+    generalApiRateLimit,
     withErrorHandling("get replay history", async (req: Request, res: Response) => {
       const replayHistoryQuerySchema = z.object({
         deviceId: z.string().optional(),
@@ -51,7 +59,12 @@ export function registerHubSyncRoutes(
         });
       }
 
-      const lock = await hubSyncService.acquireSheetLock(sheetKey, holder, token, new Date(expiresAt));
+      const lock = await hubSyncService.acquireSheetLock(
+        sheetKey,
+        holder,
+        token,
+        new Date(expiresAt)
+      );
       res.status(201).json(lock);
     } catch (error) {
       if (error instanceof Error && error.message.includes("already locked")) {
@@ -61,7 +74,9 @@ export function registerHubSyncRoutes(
     }
   });
 
-  app.delete("/api/sheets/lock", generalApiRateLimit,
+  app.delete(
+    "/api/sheets/lock",
+    generalApiRateLimit,
     withErrorHandling("release sheet lock", async (req: Request, res: Response) => {
       const { sheetKey, token } = req.body;
 
@@ -77,7 +92,9 @@ export function registerHubSyncRoutes(
     })
   );
 
-  app.get("/api/sheets/lock/:sheetKey", generalApiRateLimit,
+  app.get(
+    "/api/sheets/lock/:sheetKey",
+    generalApiRateLimit,
     withErrorHandling("get sheet lock", async (req: Request, res: Response) => {
       const lock = await hubSyncService.getSheetLock(req.params.sheetKey);
       if (!lock) {
@@ -87,7 +104,9 @@ export function registerHubSyncRoutes(
     })
   );
 
-  app.get("/api/sheets/lock/:sheetKey/status", generalApiRateLimit,
+  app.get(
+    "/api/sheets/lock/:sheetKey/status",
+    generalApiRateLimit,
     withErrorHandling("check sheet lock status", async (req: Request, res: Response) => {
       const isLocked = await hubSyncService.isSheetLocked(req.params.sheetKey);
       res.json({ sheetKey: req.params.sheetKey, isLocked });
@@ -95,7 +114,9 @@ export function registerHubSyncRoutes(
   );
 
   // ===== SHEET VERSIONING ENDPOINTS =====
-  app.get("/api/sheets/version/:sheetKey", generalApiRateLimit,
+  app.get(
+    "/api/sheets/version/:sheetKey",
+    generalApiRateLimit,
     withErrorHandling("get sheet version", async (req: Request, res: Response) => {
       const version = await hubSyncService.getSheetVersion(req.params.sheetKey);
       if (!version) {
@@ -105,7 +126,9 @@ export function registerHubSyncRoutes(
     })
   );
 
-  app.post("/api/sheets/version/:sheetKey/increment", generalApiRateLimit,
+  app.post(
+    "/api/sheets/version/:sheetKey/increment",
+    generalApiRateLimit,
     withErrorHandling("increment sheet version", async (req: Request, res: Response) => {
       const { modifiedBy } = req.body;
 
@@ -121,7 +144,9 @@ export function registerHubSyncRoutes(
     })
   );
 
-  app.post("/api/sheets/version", generalApiRateLimit,
+  app.post(
+    "/api/sheets/version",
+    generalApiRateLimit,
     withErrorHandling("set sheet version", async (req: Request, res: Response) => {
       const validatedData = insertSheetVersionSchema.parse(req.body);
       const version = await hubSyncService.setSheetVersion(validatedData);
@@ -130,7 +155,10 @@ export function registerHubSyncRoutes(
   );
 
   // ===== OPTIMIZATION TOOLS API =====
-  app.get("/api/optimization/configurations", requireOrgId, generalApiRateLimit,
+  app.get(
+    "/api/optimization/configurations",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("fetch optimizer configurations", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId || (req.query.orgId as string);
       const configs = await hubSyncService.getOptimizerConfigurations(orgId);
@@ -138,7 +166,10 @@ export function registerHubSyncRoutes(
     })
   );
 
-  app.post("/api/optimization/configurations", requireOrgId, writeOperationRateLimit,
+  app.post(
+    "/api/optimization/configurations",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("create optimizer configuration", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId || req.body.orgId;
       const configData = {
@@ -153,20 +184,27 @@ export function registerHubSyncRoutes(
     })
   );
 
-  app.delete("/api/optimization/configurations/:id", writeOperationRateLimit, async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      await hubSyncService.deleteOptimizerConfiguration(id);
-      res.status(204).send();
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("not found")) {
-        return sendNotFound(res, "Optimizer configuration");
+  app.delete(
+    "/api/optimization/configurations/:id",
+    writeOperationRateLimit,
+    async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        await hubSyncService.deleteOptimizerConfiguration(id);
+        res.status(204).send();
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("not found")) {
+          return sendNotFound(res, "Optimizer configuration");
+        }
+        handleApiError(res, error, "delete optimizer configuration");
       }
-      handleApiError(res, error, "delete optimizer configuration");
     }
-  });
+  );
 
-  app.get("/api/optimization/results", requireOrgId, generalApiRateLimit,
+  app.get(
+    "/api/optimization/results",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("fetch optimization results", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId || (req.query.orgId as string);
       const results = await hubSyncService.getOptimizationResults(orgId);
@@ -174,7 +212,9 @@ export function registerHubSyncRoutes(
     })
   );
 
-  app.post("/api/optimization/run", writeOperationRateLimit,
+  app.post(
+    "/api/optimization/run",
+    writeOperationRateLimit,
     withErrorHandling("start optimization run", async (req: Request, res: Response) => {
       const runOptimizationSchema = z.object({
         configId: z.string().uuid("Configuration ID must be a valid UUID"),
@@ -186,46 +226,61 @@ export function registerHubSyncRoutes(
       const { configId, equipmentScope, timeHorizon } = validatedData;
 
       const orgId = (req as AuthenticatedRequest).orgId || (req.query.orgId as string);
-      const result = await hubSyncService.runOptimization(configId, equipmentScope, timeHorizon, orgId);
+      const result = await hubSyncService.runOptimization(
+        configId,
+        equipmentScope,
+        timeHorizon,
+        orgId
+      );
       res.json(result);
     })
   );
 
-  app.delete("/api/optimization/cancel/:id", writeOperationRateLimit, async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const result = await hubSyncService.cancelOptimization(id);
-      res.json({ message: "Optimization cancelled successfully", result });
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (message.includes("not found")) {
-        return res.status(404).json({ message });
+  app.delete(
+    "/api/optimization/cancel/:id",
+    writeOperationRateLimit,
+    async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        const result = await hubSyncService.cancelOptimization(id);
+        res.json({ message: "Optimization cancelled successfully", result });
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes("not found")) {
+          return res.status(404).json({ message });
+        }
+        if (message.includes("Cannot cancel")) {
+          return res.status(400).json({ message });
+        }
+        handleApiError(res, error, "cancel optimization");
       }
-      if (message.includes("Cannot cancel")) {
-        return res.status(400).json({ message });
-      }
-      handleApiError(res, error, "cancel optimization");
     }
-  });
+  );
 
-  app.post("/api/optimization/:id/apply", writeOperationRateLimit, async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const result = await hubSyncService.applyOptimizationToProduction(id);
-      res.json({ message: "Optimization applied to production successfully", result });
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (message.includes("not found")) {
-        return res.status(404).json({ message });
+  app.post(
+    "/api/optimization/:id/apply",
+    writeOperationRateLimit,
+    async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        const result = await hubSyncService.applyOptimizationToProduction(id);
+        res.json({ message: "Optimization applied to production successfully", result });
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes("not found")) {
+          return res.status(404).json({ message });
+        }
+        if (message.includes("Cannot apply") || message.includes("already applied")) {
+          return res.status(400).json({ message });
+        }
+        handleApiError(res, error, "apply optimization to production");
       }
-      if (message.includes("Cannot apply") || message.includes("already applied")) {
-        return res.status(400).json({ message });
-      }
-      handleApiError(res, error, "apply optimization to production");
     }
-  });
+  );
 
-  app.get("/api/optimization/:id/download", generalApiRateLimit,
+  app.get(
+    "/api/optimization/:id/download",
+    generalApiRateLimit,
     withErrorHandling("download optimization result", async (req: Request, res: Response) => {
       const { id } = req.params;
       const result = await hubSyncService.getOptimizationResult(id);
@@ -241,7 +296,9 @@ export function registerHubSyncRoutes(
     })
   );
 
-  app.delete("/api/optimization/results/:id", writeOperationRateLimit,
+  app.delete(
+    "/api/optimization/results/:id",
+    writeOperationRateLimit,
     withErrorHandling("delete optimization result", async (req: Request, res: Response) => {
       const { id } = req.params;
       await hubSyncService.deleteOptimizationResult(id);
@@ -249,7 +306,10 @@ export function registerHubSyncRoutes(
     })
   );
 
-  app.delete("/api/optimization/results", requireOrgId, writeOperationRateLimit,
+  app.delete(
+    "/api/optimization/results",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("delete all optimization results", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId || (req.query.orgId as string);
       const deletedCount = await hubSyncService.deleteAllOptimizationResults(orgId);
@@ -261,7 +321,9 @@ export function registerHubSyncRoutes(
   );
 
   // ===== SHIFT TEMPLATES =====
-  app.get("/api/shift-templates", generalApiRateLimit,
+  app.get(
+    "/api/shift-templates",
+    generalApiRateLimit,
     withErrorHandling("get shift templates", async (req: Request, res: Response) => {
       const { orgId } = req.query;
       const templates = await hubSyncService.getShiftTemplates(orgId as string);
@@ -269,14 +331,18 @@ export function registerHubSyncRoutes(
     })
   );
 
-  app.post("/api/shift-templates", writeOperationRateLimit,
+  app.post(
+    "/api/shift-templates",
+    writeOperationRateLimit,
     withErrorHandling("create shift template", async (req: Request, res: Response) => {
       const template = await hubSyncService.createShiftTemplate(req.body);
       res.json(template);
     })
   );
 
-  app.delete("/api/shift-templates/:id", writeOperationRateLimit,
+  app.delete(
+    "/api/shift-templates/:id",
+    writeOperationRateLimit,
     withErrorHandling("delete shift template", async (req: Request, res: Response) => {
       await hubSyncService.deleteShiftTemplate(req.params.id);
       res.json({

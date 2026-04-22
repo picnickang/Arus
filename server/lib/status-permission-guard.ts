@@ -1,6 +1,6 @@
 /**
  * Status-Aware Permission Guard
- * 
+ *
  * Provides middleware and utilities for enforcing permissions based on record status.
  * When a record is in "draft" status, normal edit/delete is allowed.
  * When a record is submitted (non-draft), only users with "approve" permission can modify it.
@@ -36,25 +36,25 @@ export async function canModifyRecord(
   options: StatusAwareGuardOptions
 ): Promise<{ allowed: boolean; reason?: string }> {
   const isDraft = options.draftStatuses.includes(currentStatus);
-  
+
   if (isDraft) {
     return { allowed: true };
   }
-  
+
   const hasPermission = await permissionService.hasPermission(
     userId,
     orgId,
     options.resource,
     options.requiredActionForSubmitted
   );
-  
+
   if (!hasPermission) {
     return {
       allowed: false,
       reason: `Only users with ${options.requiredActionForSubmitted} permission can modify ${options.resource} in ${currentStatus} status`,
     };
   }
-  
+
   return { allowed: true };
 }
 

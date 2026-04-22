@@ -6,19 +6,19 @@
 import { logger } from "../../../utils/logger.js";
 import type { RagSecurityConfig } from "./types.js";
 
-export type AuditEventType = 
-  | 'query'
-  | 'query_response'
-  | 'document_access'
-  | 'document_upload'
-  | 'document_delete'
-  | 'rate_limit_exceeded'
-  | 'auth_failure'
-  | 'prompt_injection_attempt'
-  | 'file_validation_failure'
-  | 'streaming_token_issued'
-  | 'streaming_token_used'
-  | 'config_change';
+export type AuditEventType =
+  | "query"
+  | "query_response"
+  | "document_access"
+  | "document_upload"
+  | "document_delete"
+  | "rate_limit_exceeded"
+  | "auth_failure"
+  | "prompt_injection_attempt"
+  | "file_validation_failure"
+  | "streaming_token_issued"
+  | "streaming_token_used"
+  | "config_change";
 
 export interface AuditEvent {
   id: string;
@@ -46,13 +46,13 @@ const auditStore: AuditLogStore = {
 };
 
 export class RagAuditLogger {
-  private config: RagSecurityConfig['audit'];
+  private config: RagSecurityConfig["audit"];
   private eventQueue: AuditEvent[] = [];
   private flushInterval: NodeJS.Timeout | null = null;
 
-  constructor(config: RagSecurityConfig['audit']) {
+  constructor(config: RagSecurityConfig["audit"]) {
     this.config = config;
-    
+
     if (config.enabled) {
       // Flush events periodically
       this.flushInterval = setInterval(() => this.flushEvents(), 10000);
@@ -70,10 +70,12 @@ export class RagAuditLogger {
     sanitized?: boolean;
     blockedPatterns?: string[];
   }): void {
-    if (!this.config.enabled || !this.config.logQueries) {return;}
+    if (!this.config.enabled || !this.config.logQueries) {
+      return;
+    }
 
     this.addEvent({
-      eventType: 'query',
+      eventType: "query",
       userId: params.userId,
       orgId: params.orgId,
       ipAddress: params.ipAddress,
@@ -101,14 +103,16 @@ export class RagAuditLogger {
     cached: boolean;
     duration: number;
   }): void {
-    if (!this.config.enabled || !this.config.logResponses) {return;}
+    if (!this.config.enabled || !this.config.logResponses) {
+      return;
+    }
 
     this.addEvent({
-      eventType: 'query_response',
+      eventType: "query_response",
       userId: params.userId,
       orgId: params.orgId,
       resourceId: params.conversationId,
-      resourceType: 'conversation',
+      resourceType: "conversation",
       details: {
         responseLength: params.responseLength,
         chunksUsed: params.chunksUsed,
@@ -128,16 +132,18 @@ export class RagAuditLogger {
     orgId?: string;
     documentId: string;
     documentName?: string;
-    action: 'view' | 'download' | 'search';
+    action: "view" | "download" | "search";
   }): void {
-    if (!this.config.enabled || !this.config.logDocumentAccess) {return;}
+    if (!this.config.enabled || !this.config.logDocumentAccess) {
+      return;
+    }
 
     this.addEvent({
-      eventType: 'document_access',
+      eventType: "document_access",
       userId: params.userId,
       orgId: params.orgId,
       resourceId: params.documentId,
-      resourceType: 'document',
+      resourceType: "document",
       details: {
         action: params.action,
         documentName: params.documentName,
@@ -160,10 +166,12 @@ export class RagAuditLogger {
     errorMessage?: string;
     quarantined?: boolean;
   }): void {
-    if (!this.config.enabled) {return;}
+    if (!this.config.enabled) {
+      return;
+    }
 
     this.addEvent({
-      eventType: 'document_upload',
+      eventType: "document_upload",
       userId: params.userId,
       orgId: params.orgId,
       ipAddress: params.ipAddress,
@@ -188,10 +196,12 @@ export class RagAuditLogger {
     identifier: string;
     retryAfter: number;
   }): void {
-    if (!this.config.enabled) {return;}
+    if (!this.config.enabled) {
+      return;
+    }
 
     this.addEvent({
-      eventType: 'rate_limit_exceeded',
+      eventType: "rate_limit_exceeded",
       userId: params.userId,
       orgId: params.orgId,
       ipAddress: params.ipAddress,
@@ -218,10 +228,12 @@ export class RagAuditLogger {
     reason: string;
     attemptedOrgId?: string;
   }): void {
-    if (!this.config.enabled) {return;}
+    if (!this.config.enabled) {
+      return;
+    }
 
     this.addEvent({
-      eventType: 'auth_failure',
+      eventType: "auth_failure",
       ipAddress: params.ipAddress,
       userAgent: params.userAgent,
       details: {
@@ -248,10 +260,12 @@ export class RagAuditLogger {
     blockedPatterns: string[];
     queryPreview: string;
   }): void {
-    if (!this.config.enabled) {return;}
+    if (!this.config.enabled) {
+      return;
+    }
 
     this.addEvent({
-      eventType: 'prompt_injection_attempt',
+      eventType: "prompt_injection_attempt",
       userId: params.userId,
       orgId: params.orgId,
       ipAddress: params.ipAddress,
@@ -260,7 +274,7 @@ export class RagAuditLogger {
         queryPreview: params.queryPreview.slice(0, 200),
       },
       success: false,
-      errorMessage: 'Potential prompt injection detected',
+      errorMessage: "Potential prompt injection detected",
     });
 
     logger.warn("RagAudit", "Prompt injection attempt detected", {
@@ -281,10 +295,12 @@ export class RagAuditLogger {
     warnings: string[];
     quarantined: boolean;
   }): void {
-    if (!this.config.enabled) {return;}
+    if (!this.config.enabled) {
+      return;
+    }
 
     this.addEvent({
-      eventType: 'file_validation_failure',
+      eventType: "file_validation_failure",
       userId: params.userId,
       orgId: params.orgId,
       ipAddress: params.ipAddress,
@@ -295,11 +311,11 @@ export class RagAuditLogger {
         quarantined: params.quarantined,
       },
       success: false,
-      errorMessage: params.errors.join('; '),
+      errorMessage: params.errors.join("; "),
     });
   }
 
-  private addEvent(event: Omit<AuditEvent, 'id' | 'timestamp'>): void {
+  private addEvent(event: Omit<AuditEvent, "id" | "timestamp">): void {
     const fullEvent: AuditEvent = {
       id: `rag-audit-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       timestamp: new Date(),
@@ -315,7 +331,9 @@ export class RagAuditLogger {
   }
 
   private flushEvents(): void {
-    if (this.eventQueue.length === 0) {return;}
+    if (this.eventQueue.length === 0) {
+      return;
+    }
 
     const events = [...this.eventQueue];
     this.eventQueue = [];
@@ -346,19 +364,19 @@ export class RagAuditLogger {
     let filtered = [...auditStore.events];
 
     if (params.eventType) {
-      filtered = filtered.filter(e => e.eventType === params.eventType);
+      filtered = filtered.filter((e) => e.eventType === params.eventType);
     }
     if (params.userId) {
-      filtered = filtered.filter(e => e.userId === params.userId);
+      filtered = filtered.filter((e) => e.userId === params.userId);
     }
     if (params.orgId) {
-      filtered = filtered.filter(e => e.orgId === params.orgId);
+      filtered = filtered.filter((e) => e.orgId === params.orgId);
     }
     if (params.startTime) {
-      filtered = filtered.filter(e => e.timestamp >= params.startTime!);
+      filtered = filtered.filter((e) => e.timestamp >= params.startTime!);
     }
     if (params.endTime) {
-      filtered = filtered.filter(e => e.timestamp <= params.endTime!);
+      filtered = filtered.filter((e) => e.timestamp <= params.endTime!);
     }
 
     // Sort by timestamp descending
@@ -379,7 +397,7 @@ export class RagAuditLogger {
   } {
     let events = auditStore.events;
     if (orgId) {
-      events = events.filter(e => e.orgId === orgId);
+      events = events.filter((e) => e.orgId === orgId);
     }
 
     const eventsByType: Record<string, number> = {};
@@ -389,9 +407,15 @@ export class RagAuditLogger {
 
     for (const event of events) {
       eventsByType[event.eventType] = (eventsByType[event.eventType] || 0) + 1;
-      if (!event.success) {failedEvents++;}
-      if (event.eventType === 'rate_limit_exceeded') {rateLimitEvents++;}
-      if (event.eventType === 'prompt_injection_attempt') {injectionAttempts++;}
+      if (!event.success) {
+        failedEvents++;
+      }
+      if (event.eventType === "rate_limit_exceeded") {
+        rateLimitEvents++;
+      }
+      if (event.eventType === "prompt_injection_attempt") {
+        injectionAttempts++;
+      }
     }
 
     return {
@@ -403,9 +427,9 @@ export class RagAuditLogger {
     };
   }
 
-  updateConfig(config: RagSecurityConfig['audit']): void {
+  updateConfig(config: RagSecurityConfig["audit"]): void {
     this.config = config;
-    
+
     if (config.enabled && !this.flushInterval) {
       this.flushInterval = setInterval(() => this.flushEvents(), 10000);
     } else if (!config.enabled && this.flushInterval) {
@@ -424,14 +448,14 @@ export class RagAuditLogger {
 
 let instance: RagAuditLogger | null = null;
 
-export function getRagAuditLogger(config: RagSecurityConfig['audit']): RagAuditLogger {
+export function getRagAuditLogger(config: RagSecurityConfig["audit"]): RagAuditLogger {
   if (!instance) {
     instance = new RagAuditLogger(config);
   }
   return instance;
 }
 
-export function updateAuditLoggerConfig(config: RagSecurityConfig['audit']): void {
+export function updateAuditLoggerConfig(config: RagSecurityConfig["audit"]): void {
   if (instance) {
     instance.updateConfig(config);
   }

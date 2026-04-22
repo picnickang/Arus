@@ -9,7 +9,7 @@ import type { EquipmentHealth } from "../db/equipment/types.js";
  * Format a date to ISO date string (YYYY-MM-DD)
  */
 export function formatDate(date: Date | null | undefined): string {
-  return date?.toISOString().split('T')[0] ?? '';
+  return date?.toISOString().split("T")[0] ?? "";
 }
 
 /**
@@ -21,8 +21,8 @@ export function countByStatus(equipment: EquipmentHealth[]): {
   critical: number;
 } {
   return {
-    healthy: equipment.filter((e) => e.status === 'healthy').length,
-    warning: equipment.filter((e) => e.status === 'warning').length,
-    critical: equipment.filter((e) => e.status === 'critical').length,
+    healthy: equipment.filter((e) => e.status === "healthy").length,
+    warning: equipment.filter((e) => e.status === "warning").length,
+    critical: equipment.filter((e) => e.status === "critical").length,
   };
 }

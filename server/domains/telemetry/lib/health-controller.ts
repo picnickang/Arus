@@ -1,15 +1,15 @@
 /**
  * Telemetry Health Controller
- * 
+ *
  * Provides health monitoring endpoints for telemetry infrastructure.
  * Exposes per-vessel ingestion rates, buffer status, and connection health.
- * 
+ *
  * Features:
  * - Per-vessel ingestion rate tracking
  * - Buffer utilization monitoring
  * - Connection status aggregation
  * - 5-second polling friendly (not WebSocket)
- * 
+ *
  * Module size: ~180 lines (target 100-250)
  */
 
@@ -52,10 +52,14 @@ class TelemetryHealthController {
 
   getIngestionRate(vesselId: string): number {
     const counter = this.ingestionCounters.get(vesselId);
-    if (!counter) {return 0;}
+    if (!counter) {
+      return 0;
+    }
 
     const elapsed = Date.now() - counter.windowStart;
-    if (elapsed <= 0) {return 0;}
+    if (elapsed <= 0) {
+      return 0;
+    }
 
     return (counter.count / elapsed) * 1000;
   }

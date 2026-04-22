@@ -1,39 +1,36 @@
 /**
  * Telemetry Batch Writer Service
- * 
+ *
  * Provides centralized, high-performance batched writes for all telemetry ingestion sources.
  * Replaces per-packet DB writes with configurable batch intervals to prevent database
  * bottlenecks and improve throughput under high telemetry load.
- * 
+ *
  * Features:
  * - Configurable batch interval (TELEMETRY_BATCH_INTERVAL_MS, default 500ms)
  * - Bounded buffer with ring buffer eviction (TELEMETRY_MAX_BUFFER_SIZE, default 10000)
  * - Per-stream isolation to prevent cross-equipment interference
  * - Prometheus metrics for buffer depth, evictions, flush latency
  * - Graceful shutdown with final flush
- * 
+ *
  * Trade-offs:
  * - Batching introduces latency (up to BATCH_INTERVAL_MS) before data hits the DB
  * - Ring buffer eviction may drop oldest readings under extreme load
  * - Tune BATCH_INTERVAL_MS lower (100-250ms) for near-real-time needs
  * - Tune BATCH_INTERVAL_MS higher (1000-2000ms) for throughput over latency
- * 
+ *
  * Usage:
  *   import { telemetryBatchWriter } from './telemetry-batch-writer';
- *   
+ *
  *   // Queue a reading (non-blocking)
  *   telemetryBatchWriter.queue(reading);
- *   
+ *
  *   // Get health stats
  *   const stats = telemetryBatchWriter.getStats();
  */
 
 import { EventEmitter } from "node:events";
 import { dbTelemetryStorage } from "./repositories";
-import {
-  telemetryBufferDepth,
-  telemetryBufferEvictions,
-} from "./observability/telemetry-metrics";
+import { telemetryBufferDepth, telemetryBufferEvictions } from "./observability/telemetry-metrics";
 import client from "prom-client";
 import { logger } from "./utils/logger";
 
@@ -105,7 +102,6 @@ const batchWriterRetryQueueSize = new client.Gauge({
   help: "Current number of readings queued for retry",
 });
 
-
 export class TelemetryBatchWriter extends EventEmitter {
   private vesselBuffers: Map<string, TelemetryReading[]> = new Map();
   private flushTimer: NodeJS.Timeout | null = null;
@@ -114,7 +110,9 @@ export class TelemetryBatchWriter extends EventEmitter {
 
   // Fault injection for testing - when enabled, writeBatch will throw
   private static faultInjectionEnabled = false;
-  private static faultInjectionError = new Error('Simulated PostgreSQL connection failure (fault injection)');
+  private static faultInjectionError = new Error(
+    "Simulated PostgreSQL connection failure (fault injection)"
+  );
 
   /** Enable fault injection to simulate PG failures during testing */
   static enableFaultInjection(enabled: boolean): void {
@@ -186,7 +184,9 @@ export class TelemetryBatchWriter extends EventEmitter {
    * Stop the batch writer service
    */
   async stop(): Promise<void> {
-    if (!this.isRunning) { return; }
+    if (!this.isRunning) {
+      return;
+    }
 
     this.isRunning = false;
 
@@ -197,7 +197,10 @@ export class TelemetryBatchWriter extends EventEmitter {
 
     const totalSize = this.getTotalBufferSize();
     if (this.config.flushOnShutdown && totalSize > 0) {
-      logger.info("TelemetryBatchWriter", `Final flush of ${totalSize} readings across ${this.vesselBuffers.size} vessels...`);
+      logger.info(
+        "TelemetryBatchWriter",
+        `Final flush of ${totalSize} readings across ${this.vesselBuffers.size} vessels...`
+      );
       await this.flush();
     }
 
@@ -231,11 +234,11 @@ export class TelemetryBatchWriter extends EventEmitter {
    */
   queue(reading: TelemetryReading): void {
     const vesselId = this.getVesselId(reading.equipmentId);
-    
+
     if (!this.vesselBuffers.has(vesselId)) {
       this.vesselBuffers.set(vesselId, []);
     }
-    
+
     const buffer = this.vesselBuffers.get(vesselId)!;
     buffer.push(reading);
     this.stats.totalQueued++;
@@ -266,7 +269,9 @@ export class TelemetryBatchWriter extends EventEmitter {
    */
   private evictOldestFromVessel(vesselId: string): void {
     const buffer = this.vesselBuffers.get(vesselId);
-    if (!buffer || buffer.length === 0) {return;}
+    if (!buffer || buffer.length === 0) {
+      return;
+    }
 
     const perVesselMax = Math.floor(this.config.bufferSize / Math.max(this.vesselBuffers.size, 1));
     const evictCount = Math.floor(perVesselMax * this.config.evictionPercent);
@@ -280,13 +285,17 @@ export class TelemetryBatchWriter extends EventEmitter {
       const equipmentId = evicted[0].equipmentId;
       telemetryBufferEvictions.inc({ org_id: orgId, equipment_id: equipmentId }, evicted.length);
 
-      logger.warn("TelemetryBatchWriter", `Vessel ${vesselId} buffer overflow - evicted ${evicted.length} oldest readings`, {
-        vesselId,
-        bufferSize: buffer.length,
-        perVesselMax,
-        orgId,
-        equipmentId,
-      });
+      logger.warn(
+        "TelemetryBatchWriter",
+        `Vessel ${vesselId} buffer overflow - evicted ${evicted.length} oldest readings`,
+        {
+          vesselId,
+          bufferSize: buffer.length,
+          perVesselMax,
+          orgId,
+          equipmentId,
+        }
+      );
     }
 
     this.emit("eviction", { vesselId, count: evicted.length, evicted });
@@ -304,7 +313,7 @@ export class TelemetryBatchWriter extends EventEmitter {
 
     this.isFlushing = true;
     const startTime = Date.now();
-    
+
     const toFlush: TelemetryReading[] = [];
     for (const [vesselId, buffer] of this.vesselBuffers.entries()) {
       toFlush.push(...buffer);
@@ -329,7 +338,11 @@ export class TelemetryBatchWriter extends EventEmitter {
       batchWriterFlushSize.observe(toFlush.length);
       batchWriterRetryQueueSize.set(0);
 
-      this.emit("flush", { count: toFlush.length, durationMs: duration, vesselCount: this.vesselBuffers.size });
+      this.emit("flush", {
+        count: toFlush.length,
+        durationMs: duration,
+        vesselCount: this.vesselBuffers.size,
+      });
 
       return toFlush.length;
     } catch (flushError) {
@@ -351,16 +364,22 @@ export class TelemetryBatchWriter extends EventEmitter {
       if (readingsToDrop.length > 0) {
         this.stats.totalDropped += readingsToDrop.length;
         batchWriterDroppedTotal.inc(readingsToDrop.length);
-        logger.warn("TelemetryBatchWriter", `Dropped ${readingsToDrop.length} readings after ${this.config.maxRetries} retries`);
+        logger.warn(
+          "TelemetryBatchWriter",
+          `Dropped ${readingsToDrop.length} readings after ${this.config.maxRetries} retries`
+        );
         this.emit("dropped", { count: readingsToDrop.length, readings: readingsToDrop });
       }
 
       if (readingsToRetry.length > 0) {
         const retryAttempt = readingsToRetry[0]._retryCount ?? 1;
-        
-        batchWriterRetriesTotal.inc({ retry_attempt: String(retryAttempt) }, readingsToRetry.length);
+
+        batchWriterRetriesTotal.inc(
+          { retry_attempt: String(retryAttempt) },
+          readingsToRetry.length
+        );
         batchWriterRetryQueueSize.set(readingsToRetry.length);
-        
+
         for (const reading of readingsToRetry) {
           const vesselId = this.getVesselId(reading.equipmentId);
           if (!this.vesselBuffers.has(vesselId)) {
@@ -368,20 +387,26 @@ export class TelemetryBatchWriter extends EventEmitter {
           }
           this.vesselBuffers.get(vesselId)!.unshift(reading);
         }
-        
+
         for (const vesselId of this.vesselBuffers.keys()) {
-          const perVesselMax = Math.floor(this.config.bufferSize / Math.max(this.vesselBuffers.size, 1));
+          const perVesselMax = Math.floor(
+            this.config.bufferSize / Math.max(this.vesselBuffers.size, 1)
+          );
           const buffer = this.vesselBuffers.get(vesselId)!;
           if (buffer.length > perVesselMax) {
             this.evictOldestFromVessel(vesselId);
           }
         }
-        
-        logger.error("TelemetryBatchWriter", `Flush failed, ${readingsToRetry.length} readings re-queued`, {
-          retryAttempt,
-          maxRetries: this.config.maxRetries,
-          error: flushError instanceof Error ? flushError.message : String(flushError),
-        });
+
+        logger.error(
+          "TelemetryBatchWriter",
+          `Flush failed, ${readingsToRetry.length} readings re-queued`,
+          {
+            retryAttempt,
+            maxRetries: this.config.maxRetries,
+            error: flushError instanceof Error ? flushError.message : String(flushError),
+          }
+        );
       } else {
         batchWriterRetryQueueSize.set(0);
       }
@@ -397,7 +422,9 @@ export class TelemetryBatchWriter extends EventEmitter {
    * Write readings to database in a single batch operation
    */
   private async writeToDatabase(readings: TelemetryReading[]): Promise<void> {
-    if (readings.length === 0) { return; }
+    if (readings.length === 0) {
+      return;
+    }
 
     const batchSize = 500;
     for (let i = 0; i < readings.length; i += batchSize) {
@@ -409,7 +436,7 @@ export class TelemetryBatchWriter extends EventEmitter {
           sensorType: reading.sensorType,
           value: reading.value,
           timestamp: reading.timestamp,
-          orgId: reading.orgId || 'default-org-id',
+          orgId: reading.orgId || "default-org-id",
           metadata: {
             ...reading.metadata,
             batchWriter: true,
@@ -424,22 +451,19 @@ export class TelemetryBatchWriter extends EventEmitter {
 
   /**
    * Write a batch of readings synchronously (for sqlite-bridge)
-   * 
+   *
    * Critical: This method enforces single-path ingestion - only 'sqlite-bridge' source is allowed
    * in production. This bypasses the queue and writes directly to the database, which is
    * necessary for cursor safety (cursor advances only after successful Postgres commit).
-   * 
+   *
    * @param readings - Array of telemetry readings to write
    * @param options.source - Must be 'sqlite-bridge' in production
    * @throws Error if source is not 'sqlite-bridge' in production
    */
-  async writeBatch(
-    readings: TelemetryReading[],
-    options: { source: string }
-  ): Promise<void> {
-    const isProduction = process.env.NODE_ENV === 'production';
-    
-    if (isProduction && options.source !== 'sqlite-bridge') {
+  async writeBatch(readings: TelemetryReading[], options: { source: string }): Promise<void> {
+    const isProduction = process.env.NODE_ENV === "production";
+
+    if (isProduction && options.source !== "sqlite-bridge") {
       throw new Error(
         `Source guard violation: Only 'sqlite-bridge' source is allowed in production. Got: '${options.source}'`
       );
@@ -471,14 +495,17 @@ export class TelemetryBatchWriter extends EventEmitter {
         this.stats.flushDurations.shift();
       }
 
-      batchWriterFlushDuration.observe({ status: 'success' }, duration);
+      batchWriterFlushDuration.observe({ status: "success" }, duration);
       batchWriterFlushSize.observe(readings.length);
 
-      this.emit('batchWritten', { count: readings.length, durationMs: duration, source: options.source });
-
+      this.emit("batchWritten", {
+        count: readings.length,
+        durationMs: duration,
+        source: options.source,
+      });
     } catch (err) {
       this.stats.totalErrors++;
-      batchWriterFlushDuration.observe({ status: 'error' }, Date.now() - startTime);
+      batchWriterFlushDuration.observe({ status: "error" }, Date.now() - startTime);
       throw err;
     }
   }
@@ -557,5 +584,5 @@ export class TelemetryBatchWriter extends EventEmitter {
 
 export const telemetryBatchWriter = new TelemetryBatchWriter();
 
-import { batchWriterHealthCollector } from './services/telemetry-health';
+import { batchWriterHealthCollector } from "./services/telemetry-health";
 batchWriterHealthCollector.setMetricsProvider(telemetryBatchWriter);

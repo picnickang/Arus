@@ -1,6 +1,6 @@
 /**
  * Manifest Validation
- * 
+ *
  * Functions for validating export manifests during import.
  */
 

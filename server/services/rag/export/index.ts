@@ -46,9 +46,8 @@ export class ExportService {
 
     if (opts.format === "pdf") {
       return this.exportToPDF(conversation, opts);
-    } 
-      return this.exportToMarkdown(conversation, opts);
-    
+    }
+    return this.exportToMarkdown(conversation, opts);
   }
 
   private async exportToMarkdown(
@@ -136,10 +135,7 @@ export class ExportService {
       });
       doc.on("error", reject);
 
-      doc
-        .fontSize(20)
-        .font("Helvetica-Bold")
-        .text(conversation.title, { align: "center" });
+      doc.fontSize(20).font("Helvetica-Bold").text(conversation.title, { align: "center" });
 
       doc.moveDown();
 
@@ -153,12 +149,7 @@ export class ExportService {
 
       doc.moveDown(2);
 
-      doc
-        .strokeColor("#cccccc")
-        .lineWidth(1)
-        .moveTo(50, doc.y)
-        .lineTo(545, doc.y)
-        .stroke();
+      doc.strokeColor("#cccccc").lineWidth(1).moveTo(50, doc.y).lineTo(545, doc.y).stroke();
 
       doc.moveDown();
 
@@ -182,22 +173,14 @@ export class ExportService {
 
         doc.moveDown(0.5);
 
-        doc
-          .fontSize(11)
-          .font("Helvetica")
-          .fillColor("#333333")
-          .text(message.content, {
-            align: "left",
-            lineGap: 2,
-          });
+        doc.fontSize(11).font("Helvetica").fillColor("#333333").text(message.content, {
+          align: "left",
+          lineGap: 2,
+        });
 
         if (options.includeCitations && message.citations && message.citations.length > 0) {
           doc.moveDown(0.5);
-          doc
-            .fontSize(9)
-            .font("Helvetica-Oblique")
-            .fillColor("#666666")
-            .text("Sources:");
+          doc.fontSize(9).font("Helvetica-Oblique").fillColor("#666666").text("Sources:");
 
           for (const citation of message.citations) {
             doc.text(`  - ${citation.documentTitle}`, {
@@ -208,12 +191,7 @@ export class ExportService {
 
         doc.moveDown();
 
-        doc
-          .strokeColor("#eeeeee")
-          .lineWidth(0.5)
-          .moveTo(50, doc.y)
-          .lineTo(545, doc.y)
-          .stroke();
+        doc.strokeColor("#eeeeee").lineWidth(0.5).moveTo(50, doc.y).lineTo(545, doc.y).stroke();
 
         doc.moveDown();
 

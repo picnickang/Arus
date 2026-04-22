@@ -1,9 +1,9 @@
 /**
  * Observability Module Aggregator
- * 
+ *
  * This module re-exports all observability metrics and functions from domain-specific modules.
  * Total: ~1,567 lines modularized into 16 domain-specific files.
- * 
+ *
  * Modules:
  * - core-metrics: Event loop, database, memory monitoring
  * - http-metrics: HTTP request metrics and middleware
@@ -22,7 +22,7 @@
  * - circuit-breaker-metrics: External circuit breaker metrics
  * - health-endpoints: Health check endpoints
  * - initialization: Metrics initialization
- * 
+ *
  * Pre-existing modules (already modularized):
  * - inventory-metrics: Advanced inventory management metrics
  * - optimizer-metrics: LP optimizer metrics
@@ -72,11 +72,7 @@ export {
 } from "./http-metrics";
 
 // Performance tracking
-export {
-  trackPerformance,
-  trackDatabaseQuery,
-  trackBatchOperation,
-} from "./performance-tracking";
+export { trackPerformance, trackDatabaseQuery, trackBatchOperation } from "./performance-tracking";
 
 // WebSocket metrics
 export {

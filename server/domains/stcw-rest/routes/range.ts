@@ -12,12 +12,10 @@ import { logger } from "../../../utils/logger.js";
 import { dbStcwStorage } from "../../../db/stcw/index.js";
 
 export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): void {
-  const {
-    incrementRangeQuery,
-    recordRangeQueryDuration,
-  } = deps;
+  const { incrementRangeQuery, recordRangeQueryDuration } = deps;
 
-  app.post("/api/crew/rest/prepare_for_plan",
+  app.post(
+    "/api/crew/rest/prepare_for_plan",
     withErrorHandling("prepare HoR context for planning", async (req: Request, res: Response) => {
       const { crew, range } = req.body;
 
@@ -61,7 +59,10 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
                 results.push(...filteredDays);
               }
             } catch {
-              logger.warn("STCWRestRange", `No rest data found for crew ${crewId} in ${year}-${month}`);
+              logger.warn(
+                "STCWRestRange",
+                `No rest data found for crew ${crewId} in ${year}-${month}`
+              );
             }
 
             current.setMonth(current.getMonth() + 1);
@@ -87,7 +88,8 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
     })
   );
 
-  app.get("/api/stcw/rest/range/:crewId/:startDate/:endDate",
+  app.get(
+    "/api/stcw/rest/range/:crewId/:startDate/:endDate",
     withErrorHandling("fetch crew rest range data", async (req: Request, res: Response) => {
       const startTime = Date.now();
       const { crewId, startDate, endDate } = req.params;
@@ -109,7 +111,8 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
     })
   );
 
-  app.get("/api/stcw/rest/vessel/:vesselId/:year/:month",
+  app.get(
+    "/api/stcw/rest/vessel/:vesselId/:year/:month",
     withErrorHandling("fetch vessel crew rest data", async (req: Request, res: Response) => {
       const startTime = Date.now();
       const { vesselId, year, month } = req.params;

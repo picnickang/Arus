@@ -29,22 +29,34 @@ export interface WorkOrderWithWorkflowContext {
 }
 
 export interface ICostSavingsPort {
-  processCompletion(workOrderId: string, orgId: string): Promise<{
+  processCompletion(
+    workOrderId: string,
+    orgId: string
+  ): Promise<{
     saved: boolean;
     savingsId?: string;
   }>;
-  voidForWorkOrder(workOrderId: string, orgId: string, reason: string, changedBy?: string): Promise<number>;
+  voidForWorkOrder(
+    workOrderId: string,
+    orgId: string,
+    reason: string,
+    changedBy?: string
+  ): Promise<number>;
   updateValidation(
     workOrderId: string,
     orgId: string,
     status: "valid" | "disputed" | "voided",
     reason: string,
-    changedBy: string,
+    changedBy: string
   ): Promise<boolean>;
 }
 
 export interface IPredictionFeedbackPort {
-  recordFeedback(feedback: CompletionPredictionFeedback, orgId: string, userId: string): Promise<void>;
+  recordFeedback(
+    feedback: CompletionPredictionFeedback,
+    orgId: string,
+    userId: string
+  ): Promise<void>;
 }
 
 export interface LegacyCompletionData {
@@ -57,11 +69,28 @@ export interface LegacyCompletionData {
 }
 
 export interface ILegacyCompletionPort {
-  completeWorkOrder(workOrderId: string, completionData: LegacyCompletionData, orgId: string, userId?: string): Promise<void>;
+  completeWorkOrder(
+    workOrderId: string,
+    completionData: LegacyCompletionData,
+    orgId: string,
+    userId?: string
+  ): Promise<void>;
   aggregateProcurementCosts(workOrderId: string, orgId: string): Promise<void>;
 }
 
 export interface IWorkOrderEventPort {
-  emitCompleted(workOrderId: string, orgId: string, completedBy: string, actualHours?: number, completionNotes?: string): Promise<void>;
-  emitStatusChanged(workOrderId: string, orgId: string, previousStatus: string, newStatus: string, changedBy?: string): Promise<void>;
+  emitCompleted(
+    workOrderId: string,
+    orgId: string,
+    completedBy: string,
+    actualHours?: number,
+    completionNotes?: string
+  ): Promise<void>;
+  emitStatusChanged(
+    workOrderId: string,
+    orgId: string,
+    previousStatus: string,
+    newStatus: string,
+    changedBy?: string
+  ): Promise<void>;
 }

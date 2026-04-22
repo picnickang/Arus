@@ -59,7 +59,8 @@ const dtcActiveQuerySchema = z.object({
 export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
   const { writeOperationRateLimit, getWebSocketServer } = config;
 
-  app.get("/api/dtc/definitions",
+  app.get(
+    "/api/dtc/definitions",
     withErrorHandling("fetch DTC definitions", async (req: Request, res: Response) => {
       const validation = dtcDefinitionsQuerySchema.safeParse(req.query);
       if (!validation.success) {
@@ -76,7 +77,8 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     })
   );
 
-  app.get("/api/equipment/:id/dtc/active",
+  app.get(
+    "/api/equipment/:id/dtc/active",
     withErrorHandling("fetch active DTCs", async (req: Request, res: Response) => {
       const { id } = req.params;
       const orgId = req.headers["x-org-id"] as string;
@@ -90,7 +92,8 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     })
   );
 
-  app.get("/api/equipment/:id/dtc/history",
+  app.get(
+    "/api/equipment/:id/dtc/history",
     withErrorHandling("fetch DTC history", async (req: Request, res: Response) => {
       const { id } = req.params;
       const orgId = req.headers["x-org-id"] as string;
@@ -113,7 +116,8 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     })
   );
 
-  app.get("/api/dtc/active",
+  app.get(
+    "/api/dtc/active",
     withErrorHandling("fetch all active DTCs", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
 
@@ -173,7 +177,9 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     })
   );
 
-  app.post("/api/dtc/faults", writeOperationRateLimit,
+  app.post(
+    "/api/dtc/faults",
+    writeOperationRateLimit,
     withErrorHandling("create DTC fault", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
 
@@ -199,7 +205,8 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     })
   );
 
-  app.get("/api/dtc/dashboard-stats",
+  app.get(
+    "/api/dtc/dashboard-stats",
     withErrorHandling("fetch DTC dashboard statistics", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
 
@@ -214,7 +221,8 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     })
   );
 
-  app.post("/api/dtc/:equipmentId/:spn/:fmi/create-work-order",
+  app.post(
+    "/api/dtc/:equipmentId/:spn/:fmi/create-work-order",
     withErrorHandling("create work order from DTC", async (req: Request, res: Response) => {
       const { equipmentId, spn, fmi } = req.params;
       const orgId = req.headers["x-org-id"] as string;
@@ -224,7 +232,9 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
       }
 
       const activeDtcs = await dbDtcStorage.getActiveDtcs(equipmentId, orgId);
-      const dtc = activeDtcs.find((d: any) => d.spn === Number.parseInt(spn) && d.fmi === Number.parseInt(fmi));
+      const dtc = activeDtcs.find(
+        (d: any) => d.spn === Number.parseInt(spn) && d.fmi === Number.parseInt(fmi)
+      );
 
       if (!dtc) {
         return sendNotFound(res, "DTC not found or not active");
@@ -243,7 +253,8 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     })
   );
 
-  app.post("/api/dtc/:equipmentId/:spn/:fmi/create-alert",
+  app.post(
+    "/api/dtc/:equipmentId/:spn/:fmi/create-alert",
     withErrorHandling("create alert from DTC", async (req: Request, res: Response) => {
       const { equipmentId, spn, fmi } = req.params;
       const orgId = req.headers["x-org-id"] as string;
@@ -253,7 +264,9 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
       }
 
       const activeDtcs2 = await dbDtcStorage.getActiveDtcs(equipmentId, orgId);
-      const dtc = activeDtcs2.find((d: any) => d.spn === Number.parseInt(spn) && d.fmi === Number.parseInt(fmi));
+      const dtc = activeDtcs2.find(
+        (d: any) => d.spn === Number.parseInt(spn) && d.fmi === Number.parseInt(fmi)
+      );
 
       if (!dtc) {
         return sendNotFound(res, "DTC not found or not active");
@@ -280,7 +293,8 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     })
   );
 
-  app.get("/api/equipment/:id/dtc/health-impact",
+  app.get(
+    "/api/equipment/:id/dtc/health-impact",
     withErrorHandling("calculate DTC health impact", async (req: Request, res: Response) => {
       const { id } = req.params;
       const orgId = req.headers["x-org-id"] as string;
@@ -302,7 +316,8 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     })
   );
 
-  app.get("/api/vessel/:vesselId/dtc/financial-impact",
+  app.get(
+    "/api/vessel/:vesselId/dtc/financial-impact",
     withErrorHandling("calculate vessel financial impact", async (req: Request, res: Response) => {
       const { vesselId } = req.params;
       const orgId = req.headers["x-org-id"] as string;
@@ -318,7 +333,8 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     })
   );
 
-  app.get("/api/equipment/:id/dtc/report-summary",
+  app.get(
+    "/api/equipment/:id/dtc/report-summary",
     withErrorHandling("get DTC report summary", async (req: Request, res: Response) => {
       const { id } = req.params;
       const orgId = req.headers["x-org-id"] as string;
@@ -334,18 +350,23 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     })
   );
 
-  app.get("/api/dtc/:equipmentId/:spn/:fmi/telemetry-correlation",
+  app.get(
+    "/api/dtc/:equipmentId/:spn/:fmi/telemetry-correlation",
     withErrorHandling("correlate DTC with telemetry", async (req: Request, res: Response) => {
       const { equipmentId, spn, fmi } = req.params;
       const orgId = req.headers["x-org-id"] as string;
-      const timeWindow = req.query.timeWindow ? Number.parseInt(req.query.timeWindow as string) : 60;
+      const timeWindow = req.query.timeWindow
+        ? Number.parseInt(req.query.timeWindow as string)
+        : 60;
 
       if (!orgId) {
         return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
       }
 
       const activeDtcsCorr = await dbDtcStorage.getActiveDtcs(equipmentId, orgId);
-      const dtc = activeDtcsCorr.find((d: any) => d.spn === Number.parseInt(spn) && d.fmi === Number.parseInt(fmi));
+      const dtc = activeDtcsCorr.find(
+        (d: any) => d.spn === Number.parseInt(spn) && d.fmi === Number.parseInt(fmi)
+      );
 
       if (!dtc) {
         return sendNotFound(res, "DTC not found or not active");

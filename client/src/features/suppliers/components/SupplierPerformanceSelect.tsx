@@ -13,7 +13,13 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Star, Clock } from "lucide-react";
 
 interface Supplier {
@@ -63,8 +69,12 @@ export function SupplierPerformanceSelect({
   const sorted = [...(suppliers || [])]
     .filter((s) => s.isActive !== false)
     .sort((a, b) => {
-      if (a.isPreferred && !b.isPreferred) {return -1;}
-      if (!a.isPreferred && b.isPreferred) {return 1;}
+      if (a.isPreferred && !b.isPreferred) {
+        return -1;
+      }
+      if (!a.isPreferred && b.isPreferred) {
+        return 1;
+      }
       return (b.qualityRating ?? 0) - (a.qualityRating ?? 0);
     });
 
@@ -80,9 +90,7 @@ export function SupplierPerformanceSelect({
             <span className="flex items-center gap-2 w-full">
               <span className="truncate">{s.name}</span>
               <span className="flex items-center gap-1.5 flex-shrink-0 ml-auto">
-                {s.isPreferred && (
-                  <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
-                )}
+                {s.isPreferred && <Star className="h-3 w-3 text-amber-500 fill-amber-500" />}
                 {s.qualityRating != null && (
                   <span className="text-[10px] text-muted-foreground tabular-nums">
                     ★{s.qualityRating.toFixed(1)}

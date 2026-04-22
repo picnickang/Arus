@@ -2,34 +2,34 @@
  * Fuel Emissions Orchestrator - Main autofill and summary methods
  */
 
-import { db } from '../../db';
-import { fuelEmissionsLog } from '@shared/schema';
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
-import type { FuelEmissionsResult, FuelEmissionsSummary } from './types';
-import { getCIIRating } from './calculations';
-import { aggregateTelemetryForPeriod } from './telemetry-aggregation';
-import { createFuelEmissionsEntry, createFuelEmissionsEntryFromFMCC } from './entry-creators';
-import { tryGetFMCCData } from './fmcc-integration';
+import { db } from "../../db";
+import { fuelEmissionsLog } from "@shared/schema";
+import { eq, and, gte, lte, sql } from "drizzle-orm";
+import type { FuelEmissionsResult, FuelEmissionsSummary } from "./types";
+import { getCIIRating } from "./calculations";
+import { aggregateTelemetryForPeriod } from "./telemetry-aggregation";
+import { createFuelEmissionsEntry, createFuelEmissionsEntryFromFMCC } from "./entry-creators";
+import { tryGetFMCCData } from "./fmcc-integration";
 
 export async function autoFillFuelEmissions(
   orgId: string,
   vesselId: string,
   startDate: Date,
   endDate: Date,
-  periodType: 'hourly' | 'daily' = 'hourly'
+  periodType: "hourly" | "daily" = "hourly"
 ): Promise<FuelEmissionsResult> {
   const result: FuelEmissionsResult = {
     success: true,
     recordsCreated: 0,
     recordsUpdated: 0,
     errors: [],
-    dataSource: 'telemetry',
+    dataSource: "telemetry",
     fmccRecords: 0,
     telemetryRecords: 0,
   };
 
   try {
-    const periodMs = periodType === 'hourly' ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+    const periodMs = periodType === "hourly" ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
     let currentStart = new Date(startDate);
 
     while (currentStart < endDate) {
@@ -46,7 +46,12 @@ export async function autoFillFuelEmissions(
           result.fmccRecords = (result.fmccRecords ?? 0) + 1;
         }
       } else {
-        const period = await aggregateTelemetryForPeriod(orgId, vesselId, currentStart, effectiveEnd);
+        const period = await aggregateTelemetryForPeriod(
+          orgId,
+          vesselId,
+          currentStart,
+          effectiveEnd
+        );
 
         if (period?.dataPoints > 0) {
           const logId = await createFuelEmissionsEntry(orgId, vesselId, period, periodType);
@@ -62,11 +67,11 @@ export async function autoFillFuelEmissions(
     }
 
     if (result.fmccRecords && result.telemetryRecords) {
-      result.dataSource = 'mixed';
+      result.dataSource = "mixed";
     } else if (result.fmccRecords) {
-      result.dataSource = 'fmcc';
+      result.dataSource = "fmcc";
     } else {
-      result.dataSource = 'telemetry';
+      result.dataSource = "telemetry";
     }
   } catch (error) {
     result.success = false;

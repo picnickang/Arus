@@ -66,7 +66,10 @@ function findCandidateFiles() {
   const cmd = `grep -rlE "catch\\s*\\(\\s*_" --include="*.ts" --include="*.tsx" server client shared 2>/dev/null || true`;
   const out = execSync(cmd, { cwd: ROOT, encoding: "utf8" }).trim();
   if (!out) return [];
-  return out.split("\n").filter(Boolean).map((p) => resolve(ROOT, p));
+  return out
+    .split("\n")
+    .filter(Boolean)
+    .map((p) => resolve(ROOT, p));
 }
 
 // ============================================================================
@@ -169,8 +172,8 @@ function transformFile(filePath) {
   CATCH_RE.lastIndex = 0;
   let m;
   while ((m = CATCH_RE.exec(src)) !== null) {
-    const matchText = m[0];           // e.g. `catch (_error) {`
-    const binding = m[1];             // e.g. `_error`
+    const matchText = m[0]; // e.g. `catch (_error) {`
+    const binding = m[1]; // e.g. `_error`
     const openBraceIdx = m.index + matchText.length - 1;
     const closeBraceIdx = findMatchingBrace(src, openBraceIdx);
 

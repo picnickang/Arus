@@ -7,46 +7,491 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { CloudSun, Upload, FileJson, FileSpreadsheet, Settings, Check, X, AlertCircle, Ship, RefreshCw, Loader2, ShieldCheck } from "lucide-react";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  CloudSun,
+  Upload,
+  FileJson,
+  FileSpreadsheet,
+  Settings,
+  Check,
+  X,
+  AlertCircle,
+  Ship,
+  RefreshCw,
+  Loader2,
+  ShieldCheck,
+} from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useStormGeoSettingsData, type ImportHistory } from "@/features/settings";
 
-interface StormGeoSettingsPanelProps { vesselId?: string; }
+interface StormGeoSettingsPanelProps {
+  vesselId?: string;
+}
 
 export function StormGeoSettingsPanel({ vesselId }: StormGeoSettingsPanelProps) {
-  const { vessels, loadingVessels: _loadingVessels, importHistory, loadingHistory, uploadDialogOpen, setUploadDialogOpen, selectedFile, selectedVesselForUpload, setSelectedVesselForUpload, form, saveSettingsMutation, importMutation, handleFileChange, handleImport, onSubmitSettings, handleCancelUpload, refetchHistory, getVesselName } = useStormGeoSettingsData(vesselId);
+  const {
+    vessels,
+    loadingVessels: _loadingVessels,
+    importHistory,
+    loadingHistory,
+    uploadDialogOpen,
+    setUploadDialogOpen,
+    selectedFile,
+    selectedVesselForUpload,
+    setSelectedVesselForUpload,
+    form,
+    saveSettingsMutation,
+    importMutation,
+    handleFileChange,
+    handleImport,
+    onSubmitSettings,
+    handleCancelUpload,
+    refetchHistory,
+    getVesselName,
+  } = useStormGeoSettingsData(vesselId);
 
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><CloudSun className="h-5 w-5" />StormGeo Weather Integration</CardTitle><CardDescription>Configure automatic weather data import from StormGeo for deck logbook auto-fill</CardDescription></CardHeader>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CloudSun className="h-5 w-5" />
+            StormGeo Weather Integration
+          </CardTitle>
+          <CardDescription>
+            Configure automatic weather data import from StormGeo for deck logbook auto-fill
+          </CardDescription>
+        </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmitSettings)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="vesselId" render={({ field }) => (<FormItem><FormLabel>Vessel (Optional)</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger data-testid="select-stormgeo-vessel"><SelectValue placeholder="All vessels (fleet-wide)" /></SelectTrigger></FormControl><SelectContent><SelectItem value="__all__">All vessels (fleet-wide)</SelectItem>{vessels?.filter(v => v.id).map((vessel) => <SelectItem key={vessel.id} value={vessel.id}>{vessel.name}</SelectItem>)}</SelectContent></Select><FormDescription>Configure for a specific vessel or apply fleet-wide</FormDescription></FormItem>)} />
-                <FormField control={form.control} name="integrationMode" render={({ field }) => (<FormItem><FormLabel>Integration Mode</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger data-testid="select-integration-mode"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="file">Manual File Upload</SelectItem><SelectItem value="api">API Integration</SelectItem><SelectItem value="sftp">SFTP Auto-Sync</SelectItem></SelectContent></Select></FormItem>)} />
+                <FormField
+                  control={form.control}
+                  name="vesselId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Vessel (Optional)</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-stormgeo-vessel">
+                            <SelectValue placeholder="All vessels (fleet-wide)" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="__all__">All vessels (fleet-wide)</SelectItem>
+                          {vessels
+                            ?.filter((v) => v.id)
+                            .map((vessel) => (
+                              <SelectItem key={vessel.id} value={vessel.id}>
+                                {vessel.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Configure for a specific vessel or apply fleet-wide
+                      </FormDescription>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="integrationMode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Integration Mode</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-integration-mode">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="file">Manual File Upload</SelectItem>
+                          <SelectItem value="api">API Integration</SelectItem>
+                          <SelectItem value="sftp">SFTP Auto-Sync</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
               </div>
 
               {form.watch("integrationMode") === "api" && (
-                <Card className="bg-muted/50"><CardHeader className="pb-3"><CardTitle className="text-base">API Connection Settings</CardTitle><CardDescription>Configure StormGeo API endpoint and credentials</CardDescription></CardHeader><CardContent className="space-y-4"><Alert><ShieldCheck className="h-4 w-4" /><AlertDescription>Credentials are stored securely and encrypted on the server.</AlertDescription></Alert><FormField control={form.control} name="apiUrl" render={({ field }) => (<FormItem><FormLabel>API URL</FormLabel><FormControl><Input {...field} placeholder="https://api.stormgeo.com/v1/weather" data-testid="input-api-url" /></FormControl><FormDescription>StormGeo API endpoint URL</FormDescription></FormItem>)} /><FormField control={form.control} name="apiKey" render={({ field }) => (<FormItem><FormLabel>API Key</FormLabel><FormControl><Input {...field} type="password" placeholder="Enter your StormGeo API key" data-testid="input-api-key" /></FormControl><FormDescription>Your StormGeo API authentication key</FormDescription></FormItem>)} /><FormField control={form.control} name="pollIntervalMinutes" render={({ field }) => (<FormItem><FormLabel>Poll Interval (minutes)</FormLabel><FormControl><Input type="number" min="5" max="1440" {...field} onChange={(e) => field.onChange(Number.parseInt(e.target.value) || 60)} className="w-32" data-testid="input-poll-interval" /></FormControl><FormDescription>How often to fetch new weather data (5-1440 minutes)</FormDescription></FormItem>)} /></CardContent></Card>
+                <Card className="bg-muted/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">API Connection Settings</CardTitle>
+                    <CardDescription>
+                      Configure StormGeo API endpoint and credentials
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Alert>
+                      <ShieldCheck className="h-4 w-4" />
+                      <AlertDescription>
+                        Credentials are stored securely and encrypted on the server.
+                      </AlertDescription>
+                    </Alert>
+                    <FormField
+                      control={form.control}
+                      name="apiUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>API URL</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="https://api.stormgeo.com/v1/weather"
+                              data-testid="input-api-url"
+                            />
+                          </FormControl>
+                          <FormDescription>StormGeo API endpoint URL</FormDescription>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="apiKey"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>API Key</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="password"
+                              placeholder="Enter your StormGeo API key"
+                              data-testid="input-api-key"
+                            />
+                          </FormControl>
+                          <FormDescription>Your StormGeo API authentication key</FormDescription>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="pollIntervalMinutes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Poll Interval (minutes)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min="5"
+                              max="1440"
+                              {...field}
+                              onChange={(e) =>
+                                field.onChange(Number.parseInt(e.target.value) || 60)
+                              }
+                              className="w-32"
+                              data-testid="input-poll-interval"
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            How often to fetch new weather data (5-1440 minutes)
+                          </FormDescription>
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
               )}
 
               {form.watch("integrationMode") === "sftp" && (
-                <Card className="bg-muted/50"><CardHeader className="pb-3"><CardTitle className="text-base">SFTP Connection Settings</CardTitle><CardDescription>Configure SFTP server for automatic file sync</CardDescription></CardHeader><CardContent className="space-y-4"><Alert><ShieldCheck className="h-4 w-4" /><AlertDescription>Credentials are stored securely and encrypted on the server.</AlertDescription></Alert><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><FormField control={form.control} name="sftpHost" render={({ field }) => (<FormItem><FormLabel>SFTP Host</FormLabel><FormControl><Input {...field} placeholder="sftp.stormgeo.com" data-testid="input-sftp-host" /></FormControl></FormItem>)} /><FormField control={form.control} name="sftpPort" render={({ field }) => (<FormItem><FormLabel>Port</FormLabel><FormControl><Input type="number" {...field} onChange={(e) => field.onChange(Number.parseInt(e.target.value) || 22)} placeholder="22" className="w-24" data-testid="input-sftp-port" /></FormControl></FormItem>)} /></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><FormField control={form.control} name="sftpUser" render={({ field }) => (<FormItem><FormLabel>Username</FormLabel><FormControl><Input {...field} placeholder="username" data-testid="input-sftp-user" /></FormControl></FormItem>)} /><FormField control={form.control} name="sftpPassword" render={({ field }) => (<FormItem><FormLabel>Password</FormLabel><FormControl><Input {...field} type="password" placeholder="••••••••" data-testid="input-sftp-password" /></FormControl></FormItem>)} /></div><FormField control={form.control} name="sftpPath" render={({ field }) => (<FormItem><FormLabel>Remote Path</FormLabel><FormControl><Input {...field} placeholder="/data/weather/exports" data-testid="input-sftp-path" /></FormControl><FormDescription>Directory path on the SFTP server to monitor for new files</FormDescription></FormItem>)} /><FormField control={form.control} name="pollIntervalMinutes" render={({ field }) => (<FormItem><FormLabel>Sync Interval (minutes)</FormLabel><FormControl><Input type="number" min="5" max="1440" {...field} onChange={(e) => field.onChange(Number.parseInt(e.target.value) || 60)} className="w-32" data-testid="input-sftp-poll-interval" /></FormControl><FormDescription>How often to check for new files (5-1440 minutes)</FormDescription></FormItem>)} /></CardContent></Card>
+                <Card className="bg-muted/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">SFTP Connection Settings</CardTitle>
+                    <CardDescription>Configure SFTP server for automatic file sync</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Alert>
+                      <ShieldCheck className="h-4 w-4" />
+                      <AlertDescription>
+                        Credentials are stored securely and encrypted on the server.
+                      </AlertDescription>
+                    </Alert>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="sftpHost"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>SFTP Host</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="sftp.stormgeo.com"
+                                data-testid="input-sftp-host"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="sftpPort"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Port</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                {...field}
+                                onChange={(e) =>
+                                  field.onChange(Number.parseInt(e.target.value) || 22)
+                                }
+                                placeholder="22"
+                                className="w-24"
+                                data-testid="input-sftp-port"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="sftpUser"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Username</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="username"
+                                data-testid="input-sftp-user"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="sftpPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                type="password"
+                                placeholder="••••••••"
+                                data-testid="input-sftp-password"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="sftpPath"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Remote Path</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="/data/weather/exports"
+                              data-testid="input-sftp-path"
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Directory path on the SFTP server to monitor for new files
+                          </FormDescription>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="pollIntervalMinutes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Sync Interval (minutes)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min="5"
+                              max="1440"
+                              {...field}
+                              onChange={(e) =>
+                                field.onChange(Number.parseInt(e.target.value) || 60)
+                              }
+                              className="w-32"
+                              data-testid="input-sftp-poll-interval"
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            How often to check for new files (5-1440 minutes)
+                          </FormDescription>
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
               )}
 
               <Separator />
-              <div className="flex items-center justify-between"><div className="space-y-0.5"><Label>Enable Integration</Label><p className="text-sm text-muted-foreground">Allow weather data to be fetched from StormGeo</p></div><FormField control={form.control} name="enabled" render={({ field }) => (<FormItem><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-stormgeo-enabled" /></FormControl></FormItem>)} /></div>
-              <div className="flex items-center justify-between"><div className="space-y-0.5"><Label>Auto-fill Deck Log</Label><p className="text-sm text-muted-foreground">Automatically populate weather fields in hourly log entries</p></div><FormField control={form.control} name="autoFillEnabled" render={({ field }) => (<FormItem><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-autofill-enabled" /></FormControl></FormItem>)} /></div>
-              <div className="flex items-center justify-between"><div className="space-y-0.5"><Label>Overwrite Manual Entries</Label><p className="text-sm text-muted-foreground">Replace manually entered weather data when auto-filling</p></div><FormField control={form.control} name="overwriteManualEntries" render={({ field }) => (<FormItem><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-overwrite-manual" /></FormControl></FormItem>)} /></div>
-              <FormField control={form.control} name="confidenceThreshold" render={({ field }) => (<FormItem><FormLabel>Confidence Threshold</FormLabel><FormControl><Input type="number" step="0.1" min="0" max="1" {...field} onChange={(e) => field.onChange(Number.parseFloat(e.target.value))} className="w-32" data-testid="input-confidence-threshold" /></FormControl><FormDescription>Minimum confidence score (0-1) to auto-fill weather data</FormDescription></FormItem>)} />
-              <FormField control={form.control} name="notes" render={({ field }) => (<FormItem><FormLabel>Notes</FormLabel><FormControl><Input {...field} placeholder="Optional configuration notes..." data-testid="input-stormgeo-notes" /></FormControl></FormItem>)} />
-              <div className="flex justify-end gap-2"><Button type="submit" disabled={saveSettingsMutation.isPending} data-testid="button-save-stormgeo-settings">{saveSettingsMutation.isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</> : <><Settings className="h-4 w-4 mr-2" />Save Settings</>}</Button></div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Enable Integration</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Allow weather data to be fetched from StormGeo
+                  </p>
+                </div>
+                <FormField
+                  control={form.control}
+                  name="enabled"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="switch-stormgeo-enabled"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Auto-fill Deck Log</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Automatically populate weather fields in hourly log entries
+                  </p>
+                </div>
+                <FormField
+                  control={form.control}
+                  name="autoFillEnabled"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="switch-autofill-enabled"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Overwrite Manual Entries</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Replace manually entered weather data when auto-filling
+                  </p>
+                </div>
+                <FormField
+                  control={form.control}
+                  name="overwriteManualEntries"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="switch-overwrite-manual"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="confidenceThreshold"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confidence Threshold</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="1"
+                        {...field}
+                        onChange={(e) => field.onChange(Number.parseFloat(e.target.value))}
+                        className="w-32"
+                        data-testid="input-confidence-threshold"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Minimum confidence score (0-1) to auto-fill weather data
+                    </FormDescription>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Optional configuration notes..."
+                        data-testid="input-stormgeo-notes"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="submit"
+                  disabled={saveSettingsMutation.isPending}
+                  data-testid="button-save-stormgeo-settings"
+                >
+                  {saveSettingsMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Settings className="h-4 w-4 mr-2" />
+                      Save Settings
+                    </>
+                  )}
+                </Button>
+              </div>
             </form>
           </Form>
         </CardContent>
@@ -54,12 +499,180 @@ export function StormGeoSettingsPanel({ vesselId }: StormGeoSettingsPanelProps) 
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <div><CardTitle className="flex items-center gap-2"><Upload className="h-5 w-5" />Import Weather Data</CardTitle><CardDescription>Upload StormGeo route forecast files (CSV or JSON format)</CardDescription></div>
-          <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}><DialogTrigger asChild><Button data-testid="button-import-stormgeo"><Upload className="h-4 w-4 mr-2" />Import File</Button></DialogTrigger><DialogContent className="sm:max-w-[500px]"><DialogHeader><DialogTitle>Import StormGeo Data</DialogTitle><DialogDescription>Upload a CSV or JSON file containing weather/routing forecast data</DialogDescription></DialogHeader><div className="space-y-4 py-4"><div className="space-y-2"><Label>Select Vessel</Label><Select value={selectedVesselForUpload} onValueChange={setSelectedVesselForUpload}><SelectTrigger data-testid="select-import-vessel"><SelectValue placeholder="Select vessel for this data" /></SelectTrigger><SelectContent>{vessels?.filter(v => v.id).map((vessel) => <SelectItem key={vessel.id} value={vessel.id}>{vessel.name}</SelectItem>)}</SelectContent></Select></div><div className="space-y-2"><Label>Upload File</Label><Input type="file" accept=".csv,.json" onChange={handleFileChange} data-testid="input-stormgeo-file" />{selectedFile && <div className="flex items-center gap-2 text-sm text-muted-foreground">{selectedFile.name.endsWith(".json") ? <FileJson className="h-4 w-4" /> : <FileSpreadsheet className="h-4 w-4" />}{selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)</div>}</div><div className="flex justify-end gap-2"><Button variant="outline" onClick={handleCancelUpload}>Cancel</Button><Button onClick={handleImport} disabled={!selectedFile || !selectedVesselForUpload || importMutation.isPending} data-testid="button-confirm-import">{importMutation.isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Importing...</> : <><Upload className="h-4 w-4 mr-2" />Import</>}</Button></div></div></DialogContent></Dialog>
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              Import Weather Data
+            </CardTitle>
+            <CardDescription>
+              Upload StormGeo route forecast files (CSV or JSON format)
+            </CardDescription>
+          </div>
+          <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+            <DialogTrigger asChild>
+              <Button data-testid="button-import-stormgeo">
+                <Upload className="h-4 w-4 mr-2" />
+                Import File
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Import StormGeo Data</DialogTitle>
+                <DialogDescription>
+                  Upload a CSV or JSON file containing weather/routing forecast data
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Select Vessel</Label>
+                  <Select
+                    value={selectedVesselForUpload}
+                    onValueChange={setSelectedVesselForUpload}
+                  >
+                    <SelectTrigger data-testid="select-import-vessel">
+                      <SelectValue placeholder="Select vessel for this data" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vessels
+                        ?.filter((v) => v.id)
+                        .map((vessel) => (
+                          <SelectItem key={vessel.id} value={vessel.id}>
+                            {vessel.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Upload File</Label>
+                  <Input
+                    type="file"
+                    accept=".csv,.json"
+                    onChange={handleFileChange}
+                    data-testid="input-stormgeo-file"
+                  />
+                  {selectedFile && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      {selectedFile.name.endsWith(".json") ? (
+                        <FileJson className="h-4 w-4" />
+                      ) : (
+                        <FileSpreadsheet className="h-4 w-4" />
+                      )}
+                      {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={handleCancelUpload}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleImport}
+                    disabled={!selectedFile || !selectedVesselForUpload || importMutation.isPending}
+                    data-testid="button-confirm-import"
+                  >
+                    {importMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Importing...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Import
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border"><Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Vessel</TableHead><TableHead>File</TableHead><TableHead>Records</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Duration</TableHead></TableRow></TableHeader><TableBody>{loadingHistory ? <TableRow><TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell></TableRow> : (importHistory?.length ?? 0) === 0 ? <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No import history. Upload a file to get started.</TableCell></TableRow> : importHistory?.map((history: ImportHistory) => <TableRow key={history.id}><TableCell className="font-mono text-sm">{format(new Date(history.createdAt), "MMM d, HH:mm")}</TableCell><TableCell><div className="flex items-center gap-1"><Ship className="h-3 w-3 text-muted-foreground" />{getVesselName(history.vesselId)}</div></TableCell><TableCell className="max-w-[150px] truncate">{history.fileName || "-"}</TableCell><TableCell><span className="text-green-600">{history.recordsCreated || 0}</span>{(history.recordsFailed ?? 0) > 0 && <span className="text-red-500 ml-1">/ {history.recordsFailed} failed</span>}</TableCell><TableCell><Badge variant={history.status === "success" ? "default" : history.status === "partial" ? "secondary" : "destructive"}>{history.status === "success" && <Check className="h-3 w-3 mr-1" />}{history.status === "failed" && <X className="h-3 w-3 mr-1" />}{history.status === "partial" && <AlertCircle className="h-3 w-3 mr-1" />}{history.status}</Badge></TableCell><TableCell className="text-right text-muted-foreground">{history.durationMs ? `${(history.durationMs / 1000).toFixed(1)}s` : "-"}</TableCell></TableRow>)}</TableBody></Table></div>
-          <div className="flex justify-end mt-4"><Button variant="outline" size="sm" onClick={() => refetchHistory()} data-testid="button-refresh-history"><RefreshCw className="h-4 w-4 mr-2" />Refresh</Button></div>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Vessel</TableHead>
+                  <TableHead>File</TableHead>
+                  <TableHead>Records</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Duration</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loadingHistory ? (
+                  <TableRow>
+                    <TableCell colSpan={6}>
+                      <Skeleton className="h-8 w-full" />
+                    </TableCell>
+                  </TableRow>
+                ) : (importHistory?.length ?? 0) === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      No import history. Upload a file to get started.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  importHistory?.map((history: ImportHistory) => (
+                    <TableRow key={history.id}>
+                      <TableCell className="font-mono text-sm">
+                        {format(new Date(history.createdAt), "MMM d, HH:mm")}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Ship className="h-3 w-3 text-muted-foreground" />
+                          {getVesselName(history.vesselId)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-[150px] truncate">
+                        {history.fileName || "-"}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-green-600">{history.recordsCreated || 0}</span>
+                        {(history.recordsFailed ?? 0) > 0 && (
+                          <span className="text-red-500 ml-1">
+                            / {history.recordsFailed} failed
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            history.status === "success"
+                              ? "default"
+                              : history.status === "partial"
+                                ? "secondary"
+                                : "destructive"
+                          }
+                        >
+                          {history.status === "success" && <Check className="h-3 w-3 mr-1" />}
+                          {history.status === "failed" && <X className="h-3 w-3 mr-1" />}
+                          {history.status === "partial" && <AlertCircle className="h-3 w-3 mr-1" />}
+                          {history.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {history.durationMs ? `${(history.durationMs / 1000).toFixed(1)}s` : "-"}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="flex justify-end mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchHistory()}
+              data-testid="button-refresh-history"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

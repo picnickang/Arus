@@ -12,7 +12,14 @@ import type {
   EngineLogDaily,
 } from "@shared/schema";
 
-export type { EngineLogHourly, InsertEngineLogHourly, EngineLogGenerator, InsertEngineLogGenerator, EquipmentTelemetry, EngineLogDaily };
+export type {
+  EngineLogHourly,
+  InsertEngineLogHourly,
+  EngineLogGenerator,
+  InsertEngineLogGenerator,
+  EquipmentTelemetry,
+  EngineLogDaily,
+};
 
 export class AutoFillServiceError extends Error {
   constructor(
@@ -22,7 +29,7 @@ export class AutoFillServiceError extends Error {
     public readonly cause?: Error
   ) {
     super(message);
-    this.name = 'AutoFillServiceError';
+    this.name = "AutoFillServiceError";
   }
 }
 
@@ -50,15 +57,15 @@ export interface AutoFillResult {
     field: string;
     value: number;
     threshold: { min?: number; max?: number };
-    severity: 'warning' | 'critical';
+    severity: "warning" | "critical";
   }>;
-  source: 'telemetry' | 'fmcc' | 'mixed';
+  source: "telemetry" | "fmcc" | "mixed";
   confidence: number;
 }
 
 export interface FMCCFuelResult {
   success: boolean;
-  source: 'fmcc' | 'telemetry' | 'none';
+  source: "fmcc" | "telemetry" | "none";
   fuelMeConsumption?: number;
   fuelDgConsumption?: number;
   fuelTotalConsumption?: number;
@@ -77,14 +84,14 @@ export interface AutoFillSummary {
   totalAnomalies: number;
   results: AutoFillResult[];
   fmccFuelData?: FMCCFuelResult;
-  dataSource: 'telemetry' | 'fmcc' | 'mixed';
+  dataSource: "telemetry" | "fmcc" | "mixed";
 }
 
 export interface AnomalyThreshold {
   min?: number;
   max?: number;
   unit: string;
-  severity: 'warning' | 'critical';
+  severity: "warning" | "critical";
 }
 
 export interface AutoFillOptions {
@@ -101,7 +108,7 @@ export interface AnomalySummary {
   totalAnomalies: number;
   criticalCount: number;
   warningCount: number;
-  byField: Record<string, { count: number; severity: 'warning' | 'critical'; values: number[] }>;
+  byField: Record<string, { count: number; severity: "warning" | "critical"; values: number[] }>;
 }
 
 export interface UnsignedLogInfo {

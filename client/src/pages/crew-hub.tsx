@@ -42,7 +42,9 @@ const crewItems: GridItem[] = [
     icon: Shield,
     description: "STCW/MLC status",
     component: (
-      <Suspense fallback={<div className="p-6 text-muted-foreground">Loading compliance data...</div>}>
+      <Suspense
+        fallback={<div className="p-6 text-muted-foreground">Loading compliance data...</div>}
+      >
         <ComplianceDashboard />
       </Suspense>
     ),

@@ -1,6 +1,6 @@
 /**
  * Insights Persistence
- * 
+ *
  * Store and retrieve insight snapshots.
  */
 

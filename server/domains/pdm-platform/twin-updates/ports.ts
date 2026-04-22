@@ -18,8 +18,17 @@ export interface ITwinFreshnessStorage {
 }
 
 export interface ITwinUpdateScheduler {
-  refreshOneTwin(orgId: string, twinId: string): Promise<{ state: AssetTwinState; residuals: TwinResidual[] }>;
-  refreshAllActiveTwins(orgId: string): Promise<{ refreshed: number; failed: number; results: Array<{ twinId: string; success: boolean; error?: string }> }>;
+  refreshOneTwin(
+    orgId: string,
+    twinId: string
+  ): Promise<{ state: AssetTwinState; residuals: TwinResidual[] }>;
+  refreshAllActiveTwins(
+    orgId: string
+  ): Promise<{
+    refreshed: number;
+    failed: number;
+    results: Array<{ twinId: string; success: boolean; error?: string }>;
+  }>;
   getFreshnessStatus(orgId: string): Promise<TwinFreshnessInfo[]>;
   getTwinFreshness(orgId: string, twinId: string): Promise<TwinFreshnessInfo | null>;
 }

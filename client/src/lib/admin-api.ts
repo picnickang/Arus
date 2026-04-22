@@ -1,6 +1,6 @@
 /**
  * Admin API Utilities
- * 
+ *
  * Provides authenticated API request functions for admin operations.
  * Dev mode: bypasses session checks for development access.
  */
@@ -59,12 +59,12 @@ export async function adminApiRequest(
 
   const text = await res.text();
   const result = text ? JSON.parse(text) : null;
-  
+
   // Handle standardized API response format (unwrap { success, data } envelope)
-  if (result && typeof result === 'object' && 'success' in result && 'data' in result) {
+  if (result && typeof result === "object" && "success" in result && "data" in result) {
     return result.data;
   }
-  
+
   return result;
 }
 
@@ -103,12 +103,12 @@ export function adminQueryFn(queryKey: string[]) {
     }
 
     const result = await res.json();
-    
+
     // Handle standardized API response format (unwrap { success, data } envelope)
-    if (result && typeof result === 'object' && 'success' in result && 'data' in result) {
+    if (result && typeof result === "object" && "success" in result && "data" in result) {
       return result.data;
     }
-    
+
     return result;
   };
 }

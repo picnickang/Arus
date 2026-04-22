@@ -4,8 +4,17 @@
 
 import type { DtcWithDefinition, DtcSummary, DtcFinancialImpact, DtcDashboardStats } from "./types";
 import { createWorkOrderFromDtc } from "./work-order-handler";
-import { calculateDtcHealthImpact, getDtcSummaryForReports, calculateDtcFinancialImpact } from "./health-impact";
-import { shouldTriggerAlert, createDtcAlert, correlateDtcWithTelemetry, getDtcDashboardStats } from "./alert-handler";
+import {
+  calculateDtcHealthImpact,
+  getDtcSummaryForReports,
+  calculateDtcFinancialImpact,
+} from "./health-impact";
+import {
+  shouldTriggerAlert,
+  createDtcAlert,
+  correlateDtcWithTelemetry,
+  getDtcDashboardStats,
+} from "./alert-handler";
 
 export class DtcIntegrationService {
   async createWorkOrderFromDtc(dtc: DtcWithDefinition, orgId: string): Promise<any | null> {
@@ -32,7 +41,11 @@ export class DtcIntegrationService {
     return createDtcAlert(dtc, orgId);
   }
 
-  async correlateDtcWithTelemetry(dtc: DtcWithDefinition, orgId: string, timeWindowMinutes: number = 60): Promise<any[]> {
+  async correlateDtcWithTelemetry(
+    dtc: DtcWithDefinition,
+    orgId: string,
+    timeWindowMinutes: number = 60
+  ): Promise<any[]> {
     return correlateDtcWithTelemetry(dtc, orgId, timeWindowMinutes);
   }
 
@@ -52,6 +65,8 @@ export function initDtcIntegrationService(): DtcIntegrationService {
 }
 
 export function getDtcIntegrationService(): DtcIntegrationService {
-  if (!dtcServiceInstance) { throw new Error("[DTC Integration] Service not initialized"); }
+  if (!dtcServiceInstance) {
+    throw new Error("[DTC Integration] Service not initialized");
+  }
   return dtcServiceInstance;
 }

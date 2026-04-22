@@ -1,7 +1,7 @@
 /**
  * Telemetry Processing Service
  * Extracted from routes.ts for modularization
- * 
+ *
  * Handles telemetry-related processing including:
  * - Alert checking and creation
  * - Sensor configuration application
@@ -11,24 +11,46 @@
 
 import type { EquipmentTelemetry } from "@shared/schema";
 import {
-  dbEquipmentStorage, dbAlertStorage, dbSensorsStorage, dbTelemetryStorage,
-  dbMaintenanceStorage, dbSystemAdminStorage, schedulingAdapter, analyticsInsightsAdapter,
+  dbEquipmentStorage,
+  dbAlertStorage,
+  dbSensorsStorage,
+  dbTelemetryStorage,
+  dbMaintenanceStorage,
+  dbSystemAdminStorage,
+  schedulingAdapter,
+  analyticsInsightsAdapter,
 } from "../repositories";
 import { getWebSocketServer } from "../websocket-server";
-import {
-  incrementAlertGenerated,
-} from "../observability";
+import { incrementAlertGenerated } from "../observability";
 
 const aiInsightsCache = new Map<string, number>();
 const DEFAULT_AI_INSIGHTS_THROTTLE_MS = 2 * 60 * 1000;
 
 const LOW_IS_BAD_SENSORS = new Set([
-  "flow_rate", "flow", "pressure", "level", "efficiency",
-  "power_output", "fuel_level", "fuel_pressure", "oil_pressure",
-  "lube_oil_pressure", "coolant_level", "coolant_pressure",
-  "hydraulic_pressure", "battery_level", "water_level",
-  "tank_level", "vacuum", "suction_pressure", "rpm_efficiency",
-  "capacity", "throughput", "output", "performance", "availability",
+  "flow_rate",
+  "flow",
+  "pressure",
+  "level",
+  "efficiency",
+  "power_output",
+  "fuel_level",
+  "fuel_pressure",
+  "oil_pressure",
+  "lube_oil_pressure",
+  "coolant_level",
+  "coolant_pressure",
+  "hydraulic_pressure",
+  "battery_level",
+  "water_level",
+  "tank_level",
+  "vacuum",
+  "suction_pressure",
+  "rpm_efficiency",
+  "capacity",
+  "throughput",
+  "output",
+  "performance",
+  "availability",
 ]);
 
 interface ThresholdResult {
@@ -95,7 +117,11 @@ async function createAlert(
     orgId: telemetryReading.orgId,
   });
 
-  incrementAlertGenerated(result.alertType, telemetryReading.equipmentId, telemetryReading.sensorType);
+  incrementAlertGenerated(
+    result.alertType,
+    telemetryReading.equipmentId,
+    telemetryReading.sensorType
+  );
 
   const wsServer = getWebSocketServer();
   wsServer?.broadcastAlert?.({
@@ -127,14 +153,18 @@ export async function checkAndCreateAlerts(telemetryReading: EquipmentTelemetry)
       config.equipmentId
     );
 
-    if (!result.triggered) {continue;}
+    if (!result.triggered) {
+      continue;
+    }
 
     const isSuppressed = await dbAlertStorage.isAlertSuppressed(
       telemetryReading.equipmentId,
       telemetryReading.sensorType,
       result.alertType
     );
-    if (isSuppressed) {continue;}
+    if (isSuppressed) {
+      continue;
+    }
 
     const hasRecentAlert = await dbAlertStorage.hasRecentAlert(
       telemetryReading.equipmentId,
@@ -142,7 +172,9 @@ export async function checkAndCreateAlerts(telemetryReading: EquipmentTelemetry)
       result.alertType,
       10
     );
-    if (hasRecentAlert) {continue;}
+    if (hasRecentAlert) {
+      continue;
+    }
 
     await createAlert(telemetryReading, result);
   }
@@ -222,7 +254,9 @@ export async function generateAIInsights(telemetryReading: EquipmentTelemetry): 
     const equipment = await dbEquipmentStorage.getEquipmentRegistry(telemetryReading.orgId);
     const equipmentDetails = equipment.find((e) => e.id === telemetryReading.equipmentId);
 
-    if (!equipmentDetails) { return; }
+    if (!equipmentDetails) {
+      return;
+    }
 
     const recentTelemetry = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(
       telemetryReading.equipmentId,
@@ -231,7 +265,9 @@ export async function generateAIInsights(telemetryReading: EquipmentTelemetry): 
       telemetryReading.orgId
     );
 
-    if (recentTelemetry.length < 5) { return; }
+    if (recentTelemetry.length < 5) {
+      return;
+    }
 
     const analysis = await analyzeEquipmentHealth({
       equipmentId: telemetryReading.equipmentId,
@@ -279,12 +315,12 @@ export async function checkAndScheduleAutomaticMaintenance(
     return;
   }
 
-  const existingSchedules = await dbMaintenanceStorage.getMaintenanceSchedules(telemetryReading.equipmentId);
+  const existingSchedules = await dbMaintenanceStorage.getMaintenanceSchedules(
+    telemetryReading.equipmentId
+  );
   const hasUpcoming = existingSchedules.some(
     (s) =>
-      s.status === "pending" &&
-      s.nextScheduledDate &&
-      new Date(s.nextScheduledDate) > new Date()
+      s.status === "pending" && s.nextScheduledDate && new Date(s.nextScheduledDate) > new Date()
   );
 
   if (!hasUpcoming) {

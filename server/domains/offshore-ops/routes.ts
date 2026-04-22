@@ -20,9 +20,16 @@ function getFirstRow(result: any): any | undefined {
 }
 
 const OP_TYPES = [
-  "cargo_transfer", "anchor_handling", "towing", "spm_operations",
-  "dive_support", "rov_operations", "standby_duty", "personnel_transfer",
-  "bunkering", "dp_operations",
+  "cargo_transfer",
+  "anchor_handling",
+  "towing",
+  "spm_operations",
+  "dive_support",
+  "rov_operations",
+  "standby_duty",
+  "personnel_transfer",
+  "bunkering",
+  "dp_operations",
 ] as const;
 
 const createOpSchema = z.object({
@@ -40,16 +47,22 @@ const createOpSchema = z.object({
   waveHeightM: z.number().optional(),
   visibilityNm: z.number().optional(),
   seaState: z.enum(["calm", "slight", "moderate", "rough", "very_rough"]).optional(),
-  cargoDetails: z.object({
-    items: z.array(z.object({
-      description: z.string(),
-      quantity: z.number().optional(),
-      unit: z.string().optional(),
-      weightMt: z.number().optional(),
-    })).optional(),
-    totalWeightMt: z.number().optional(),
-    deckAreaM2: z.number().optional(),
-  }).optional(),
+  cargoDetails: z
+    .object({
+      items: z
+        .array(
+          z.object({
+            description: z.string(),
+            quantity: z.number().optional(),
+            unit: z.string().optional(),
+            weightMt: z.number().optional(),
+          })
+        )
+        .optional(),
+      totalWeightMt: z.number().optional(),
+      deckAreaM2: z.number().optional(),
+    })
+    .optional(),
   fuelConsumedMt: z.number().optional(),
   officerInCharge: z.string().min(1),
   officerRank: z.string().optional(),
@@ -64,7 +77,9 @@ const createOpSchema = z.object({
 router.get("/", requireOrgId, async (req: Request, res: Response) => {
   try {
     const { vesselId, type, from, to } = req.query;
-    const fromDate = from ? new Date(from as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const fromDate = from
+      ? new Date(from as string)
+      : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const defaultTo = new Date();
     defaultTo.setHours(23, 59, 59, 999);
     const toDate = to ? new Date(to as string) : defaultTo;
@@ -76,8 +91,12 @@ router.get("/", requireOrgId, async (req: Request, res: Response) => {
       WHERE oo.org_id = ${getOrgId(req)}
         AND oo.start_time >= ${fromDate} AND oo.start_time <= ${toDate}
     `;
-    if (vesselId) {q = sql`${q} AND oo.vessel_id = ${vesselId as string}`;}
-    if (type) {q = sql`${q} AND oo.operation_type = ${type as string}`;}
+    if (vesselId) {
+      q = sql`${q} AND oo.vessel_id = ${vesselId as string}`;
+    }
+    if (type) {
+      q = sql`${q} AND oo.operation_type = ${type as string}`;
+    }
     q = sql`${q} ORDER BY oo.start_time DESC LIMIT 200`;
 
     const result = await db.execute(q);
@@ -122,25 +141,29 @@ router.post("/", requireOrgId, async (req: Request, res: Response) => {
         ${data.toolboxTalkDone}, ${data.jsaCompleted},
         ${data.permitToWork || null},
         ${data.clientRepresentative || null}, ${data.clientSignedOff},
-        ${endTime ? 'completed' : 'in_progress'}, ${data.notes || null}
+        ${endTime ? "completed" : "in_progress"}, ${data.notes || null}
       ) RETURNING *
     `);
 
     res.status(201).json(getFirstRow(result));
   } catch (err) {
-    if (err instanceof z.ZodError) {return res.status(400).json({ error: "Validation failed", details: err.flatten() });}
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation failed", details: err.flatten() });
+    }
     res.status(500).json({ error: "Failed to create operation" });
   }
 });
 
 router.patch("/:id/complete", requireOrgId, async (req: Request, res: Response) => {
   try {
-    const { endTime, fuelConsumedMt, clientSignedOff, notes } = z.object({
-      endTime: z.string(),
-      fuelConsumedMt: z.number().optional(),
-      clientSignedOff: z.boolean().optional(),
-      notes: z.string().optional(),
-    }).parse(req.body);
+    const { endTime, fuelConsumedMt, clientSignedOff, notes } = z
+      .object({
+        endTime: z.string(),
+        fuelConsumedMt: z.number().optional(),
+        clientSignedOff: z.boolean().optional(),
+        notes: z.string().optional(),
+      })
+      .parse(req.body);
 
     const result = await db.execute(sql`
       UPDATE offshore_operations SET
@@ -157,7 +180,9 @@ router.patch("/:id/complete", requireOrgId, async (req: Request, res: Response) 
 
     res.json(getFirstRow(result));
   } catch (err) {
-    if (err instanceof z.ZodError) {return res.status(400).json({ error: "Validation failed", details: err.flatten() });}
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation failed", details: err.flatten() });
+    }
     res.status(500).json({ error: "Failed to complete operation" });
   }
 });
@@ -165,7 +190,9 @@ router.patch("/:id/complete", requireOrgId, async (req: Request, res: Response) 
 router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
   try {
     const { vesselId, days } = req.query;
-    if (!vesselId) {return res.status(400).json({ error: "vesselId required" });}
+    if (!vesselId) {
+      return res.status(400).json({ error: "vesselId required" });
+    }
     const d = Number(days) || 30;
     const cutoff = new Date(Date.now() - d * 24 * 60 * 60 * 1000);
 
@@ -194,10 +221,20 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
       totalHours: ops.reduce((s, o) => s + Number(o.total_hours || 0), 0),
       totalFuelMt: ops.reduce((s, o) => s + Number(o.total_fuel_mt || 0), 0),
       safetyCompliance: {
-        toolboxTalkRate: ops.reduce((s, o) => s + Number(o.with_toolbox_talk), 0) /
-          Math.max(1, ops.reduce((s, o) => s + Number(o.count), 0)) * 100,
-        jsaRate: ops.reduce((s, o) => s + Number(o.with_jsa), 0) /
-          Math.max(1, ops.reduce((s, o) => s + Number(o.count), 0)) * 100,
+        toolboxTalkRate:
+          (ops.reduce((s, o) => s + Number(o.with_toolbox_talk), 0) /
+            Math.max(
+              1,
+              ops.reduce((s, o) => s + Number(o.count), 0)
+            )) *
+          100,
+        jsaRate:
+          (ops.reduce((s, o) => s + Number(o.with_jsa), 0) /
+            Math.max(
+              1,
+              ops.reduce((s, o) => s + Number(o.count), 0)
+            )) *
+          100,
       },
       byType: ops,
     });

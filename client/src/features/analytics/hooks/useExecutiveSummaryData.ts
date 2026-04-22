@@ -78,19 +78,27 @@ export function useExecutiveSummaryData(): UseExecutiveSummaryDataReturn {
   }, [workOrders]);
 
   const overdueWorkOrders = useMemo(() => {
-    return openWorkOrders.filter((wo) => wo.targetCompletionDate && new Date(wo.targetCompletionDate) < new Date());
+    return openWorkOrders.filter(
+      (wo) => wo.targetCompletionDate && new Date(wo.targetCompletionDate) < new Date()
+    );
   }, [openWorkOrders]);
 
   const topCriticalEquipment = useMemo(() => criticalEquipment.slice(0, 3), [criticalEquipment]);
   const topPredictions = useMemo(() => highRiskPredictions.slice(0, 3), [highRiskPredictions]);
 
   const maintenanceEfficiency = useMemo(() => {
-    if (!workOrders?.length) {return 0;}
-    return Math.round((workOrders.filter((wo) => wo.status === "completed").length / workOrders.length) * 100);
+    if (!workOrders?.length) {
+      return 0;
+    }
+    return Math.round(
+      (workOrders.filter((wo) => wo.status === "completed").length / workOrders.length) * 100
+    );
   }, [workOrders]);
 
   const avgResponseTime = useMemo(() => {
-    if (!workOrders?.length) {return "N/A";}
+    if (!workOrders?.length) {
+      return "N/A";
+    }
     const totalHours = workOrders.reduce((acc, wo) => {
       const start = new Date(wo.createdAt);
       const end = wo.completedAt ? new Date(wo.completedAt) : new Date();

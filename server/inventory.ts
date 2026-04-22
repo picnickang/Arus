@@ -1,9 +1,9 @@
 /**
  * Advanced Inventory Management Engine
- * 
+ *
  * BACKWARD COMPATIBILITY SHIM
  * This file re-exports from the modularized inventory-engine for existing imports.
- * 
+ *
  * Original: 846 lines
  * Modularized into 7 files in server/inventory-engine/:
  * - types.ts (~95 lines): Type definitions

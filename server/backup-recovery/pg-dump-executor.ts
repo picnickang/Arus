@@ -1,6 +1,6 @@
 /**
  * PostgreSQL Dump Executor - Handles pg_dump execution with compression
- * 
+ *
  * Security (S2076, S4036): Uses resolveExecutable from secure-exec module
  * which resolves binaries from compile-time allowlisted names only.
  */

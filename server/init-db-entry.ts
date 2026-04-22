@@ -1,11 +1,9 @@
-import { createClient } from '@libsql/client';
-import { mkdirSync }    from 'node:fs';
-import { dirname }      from 'node:path';
+import { createClient } from "@libsql/client";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 
 export async function initDb(dbPath?: string): Promise<void> {
-  const path = dbPath
-    ?? process.env.DATABASE_PATH
-    ?? 'data/vessel-local.db';
+  const path = dbPath ?? process.env.DATABASE_PATH ?? "data/vessel-local.db";
 
   console.log(`[ARUS] Initialising database: ${path}`);
   mkdirSync(dirname(path), { recursive: true });
@@ -13,9 +11,9 @@ export async function initDb(dbPath?: string): Promise<void> {
   const client = createClient({ url: `file:${path}` });
 
   try {
-    await client.execute('PRAGMA foreign_keys = ON');
-    await client.execute('PRAGMA journal_mode = WAL');
-    await client.execute('PRAGMA synchronous   = NORMAL');
+    await client.execute("PRAGMA foreign_keys = ON");
+    await client.execute("PRAGMA journal_mode = WAL");
+    await client.execute("PRAGMA synchronous   = NORMAL");
 
     await client.execute(`
       CREATE TABLE IF NOT EXISTS _schema_version (
@@ -112,17 +110,18 @@ export async function initDb(dbPath?: string): Promise<void> {
     `);
 
     const indexes = [
-      'CREATE INDEX IF NOT EXISTS idx_update_settings_org     ON update_settings(org_id)',
-      'CREATE INDEX IF NOT EXISTS idx_admin_sessions_org      ON admin_sessions(org_id)',
-      'CREATE INDEX IF NOT EXISTS idx_admin_sessions_token    ON admin_sessions(session_token)',
-      'CREATE INDEX IF NOT EXISTS idx_admin_audit_org         ON admin_audit_events(org_id)',
-      'CREATE INDEX IF NOT EXISTS idx_admin_settings_org_cat ON admin_system_settings(org_id, category)',
+      "CREATE INDEX IF NOT EXISTS idx_update_settings_org     ON update_settings(org_id)",
+      "CREATE INDEX IF NOT EXISTS idx_admin_sessions_org      ON admin_sessions(org_id)",
+      "CREATE INDEX IF NOT EXISTS idx_admin_sessions_token    ON admin_sessions(session_token)",
+      "CREATE INDEX IF NOT EXISTS idx_admin_audit_org         ON admin_audit_events(org_id)",
+      "CREATE INDEX IF NOT EXISTS idx_admin_settings_org_cat ON admin_system_settings(org_id, category)",
     ];
-    for (const sql of indexes) {await client.execute(sql);}
+    for (const sql of indexes) {
+      await client.execute(sql);
+    }
 
-    console.log('[ARUS] Database initialised successfully.');
+    console.log("[ARUS] Database initialised successfully.");
   } finally {
     client.close();
   }
 }
-

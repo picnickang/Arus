@@ -1,6 +1,6 @@
 /**
  * OpenAPI Spec - PdM (Predictive Maintenance) Endpoint Paths
- * 
+ *
  * Predictive maintenance scores and alerts endpoints.
  */
 
@@ -17,13 +17,13 @@ export const pdmPaths = {
             "application/json": {
               schema: {
                 type: "array",
-                items: { "$ref": "#/components/schemas/PdmScore" }
-              }
-            }
-          }
-        }
-      }
-    }
+                items: { $ref: "#/components/schemas/PdmScore" },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   "/pdm/health": {
     get: {
@@ -33,10 +33,10 @@ export const pdmPaths = {
       responses: {
         "200": {
           description: "PdM health summary",
-          content: { "application/json": { schema: { type: "object" } } }
-        }
-      }
-    }
+          content: { "application/json": { schema: { type: "object" } } },
+        },
+      },
+    },
   },
   "/pdm/alerts": {
     get: {
@@ -57,14 +57,14 @@ export const pdmPaths = {
                     equipmentId: { type: "string" },
                     severity: { type: "string" },
                     message: { type: "string" },
-                    createdAt: { type: "string", format: "date-time" }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
+                    createdAt: { type: "string", format: "date-time" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
 };

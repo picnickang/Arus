@@ -12,7 +12,9 @@ export function createGetIntelligenceUseCase(repo: EquipmentIntelligenceReposito
       equipment.sort((a, b) => {
         const riskOrder = { critical: 0, warning: 1, low: 2 };
         const riskDiff = riskOrder[a.risk] - riskOrder[b.risk];
-        if (riskDiff !== 0) {return riskDiff;}
+        if (riskDiff !== 0) {
+          return riskDiff;
+        }
         return a.health - b.health;
       });
 

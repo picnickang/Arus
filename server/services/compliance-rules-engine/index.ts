@@ -1,6 +1,6 @@
 /**
  * Compliance Rules Engine
- * 
+ *
  * Automated logbook compliance validation.
  */
 

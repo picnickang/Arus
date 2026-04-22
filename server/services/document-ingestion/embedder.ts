@@ -1,4 +1,4 @@
-import { generateEmbedding } from '../../embedding-service';
+import { generateEmbedding } from "../../embedding-service";
 
 export interface EmbedOptions {
   openAiKey?: string;

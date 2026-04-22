@@ -1,8 +1,8 @@
 /**
  * Inventory Engine - Index
- * 
+ *
  * Modularized Inventory Management Engine
- * 
+ *
  * Original: 846 lines (server/inventory.ts)
  * Modularized into 7 files:
  * - types.ts (~95 lines): Type definitions

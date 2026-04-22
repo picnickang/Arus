@@ -160,8 +160,14 @@ export function calculateDowntimeCost(equipmentType: string, riskScore: number):
  * Determine risk category from overall risk score
  */
 export function getRiskCategory(overallRisk: number): "low" | "medium" | "high" | "critical" {
-  if (overallRisk >= 80) {return "critical";}
-  if (overallRisk >= 60) {return "high";}
-  if (overallRisk >= 30) {return "medium";}
+  if (overallRisk >= 80) {
+    return "critical";
+  }
+  if (overallRisk >= 60) {
+    return "high";
+  }
+  if (overallRisk >= 30) {
+    return "medium";
+  }
   return "low";
 }

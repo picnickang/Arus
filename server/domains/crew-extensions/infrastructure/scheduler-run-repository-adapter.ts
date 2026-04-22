@@ -3,9 +3,9 @@
  * Implements ISchedulerRunRepository using existing storage
  */
 
-import type { ISchedulerRunRepository } from '../domain/ports.js';
-import type { SchedulerRunEntity, CreateSchedulerRunCommand } from '../domain/types.js';
-import { dbSchedulerStorage } from '../../../repositories';
+import type { ISchedulerRunRepository } from "../domain/ports.js";
+import type { SchedulerRunEntity, CreateSchedulerRunCommand } from "../domain/types.js";
+import { dbSchedulerStorage } from "../../../repositories";
 
 function mapToEntity(run: any): SchedulerRunEntity {
   return {
@@ -32,7 +32,7 @@ export class SchedulerRunRepositoryAdapter implements ISchedulerRunRepository {
   async create(command: CreateSchedulerRunCommand): Promise<SchedulerRunEntity> {
     const run = await dbSchedulerStorage.createSchedulerRun({
       orgId: command.orgId,
-      status: command.status || 'pending',
+      status: command.status || "pending",
       startDate: command.startDate,
       endDate: command.endDate,
       inputHash: command.inputHash,
@@ -42,8 +42,12 @@ export class SchedulerRunRepositoryAdapter implements ISchedulerRunRepository {
 
   async findById(id: string, orgId?: string): Promise<SchedulerRunEntity | undefined> {
     const run = await dbSchedulerStorage.getSchedulerRun(id);
-    if (!run) {return undefined;}
-    if (orgId && run.orgId !== orgId) {return undefined;}
+    if (!run) {
+      return undefined;
+    }
+    if (orgId && run.orgId !== orgId) {
+      return undefined;
+    }
     return mapToEntity(run);
   }
 
@@ -57,13 +61,20 @@ export class SchedulerRunRepositoryAdapter implements ISchedulerRunRepository {
     return runs.map(mapToEntity);
   }
 
-  async findRecentByHash(orgId: string, inputHash: string, hoursBack?: number): Promise<SchedulerRunEntity | undefined> {
+  async findRecentByHash(
+    orgId: string,
+    inputHash: string,
+    hoursBack?: number
+  ): Promise<SchedulerRunEntity | undefined> {
     const run = await dbSchedulerStorage.findRecentSchedulerRunByHash(orgId, inputHash, hoursBack);
     return run ? mapToEntity(run) : undefined;
   }
 
   async update(id: string, updates: Partial<SchedulerRunEntity>): Promise<SchedulerRunEntity> {
-    const run = await dbSchedulerStorage.updateSchedulerRun(id, updates as Partial<import("@shared/schema-runtime").InsertSchedulerRun>);
+    const run = await dbSchedulerStorage.updateSchedulerRun(
+      id,
+      updates as Partial<import("@shared/schema-runtime").InsertSchedulerRun>
+    );
     return mapToEntity(run);
   }
 

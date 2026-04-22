@@ -30,7 +30,10 @@ export async function processPDFGeneration(data: {
       doc.fontSize(16).text("Equipment Health Summary", 100, 180);
       let y = 210;
       reportData.equipmentHealth.slice(0, 10).forEach((equipment: any) => {
-        doc.fontSize(10).text(`${equipment.id}: Health ${equipment.healthIndex}%`, 100, y).text(`Status: ${equipment.status}`, 300, y);
+        doc
+          .fontSize(10)
+          .text(`${equipment.id}: Health ${equipment.healthIndex}%`, 100, y)
+          .text(`Status: ${equipment.status}`, 300, y);
         y += 20;
       });
     }
@@ -40,7 +43,11 @@ export async function processPDFGeneration(data: {
       doc.fontSize(16).text("Work Orders Summary", 100, y);
       y += 30;
       reportData.workOrders.slice(0, 5).forEach((order: any) => {
-        doc.fontSize(10).text(`${order.title}`, 100, y).text(`Priority: ${order.priority}`, 300, y).text(`Status: ${order.status}`, 400, y);
+        doc
+          .fontSize(10)
+          .text(`${order.title}`, 100, y)
+          .text(`Priority: ${order.priority}`, 300, y)
+          .text(`Status: ${order.status}`, 400, y);
         y += 20;
       });
     }
@@ -60,7 +67,9 @@ export async function processCSVGeneration(data: {
 
   const sanitizeCSV = (value: any): string => {
     const str = String(value || "");
-    if (str.match(/^[=+\-@]/)) { return `'${str}`; }
+    if (str.match(/^[=+\-@]/)) {
+      return `'${str}`;
+    }
     return str.replaceAll('"', '""');
   };
 
@@ -68,19 +77,31 @@ export async function processCSVGeneration(data: {
 
   if (reportData.equipmentHealth) {
     reportData.equipmentHealth.forEach((equipment: any) => {
-      csvRows.push([
-        "Equipment Health", "Health Index", sanitizeCSV(equipment.id), equipment.healthIndex,
-        `Vessel: ${sanitizeCSV(equipment.vessel)}, Status: ${equipment.status}`, timestamp,
-      ].join(","));
+      csvRows.push(
+        [
+          "Equipment Health",
+          "Health Index",
+          sanitizeCSV(equipment.id),
+          equipment.healthIndex,
+          `Vessel: ${sanitizeCSV(equipment.vessel)}, Status: ${equipment.status}`,
+          timestamp,
+        ].join(",")
+      );
     });
   }
 
   if (reportData.workOrders) {
     reportData.workOrders.forEach((order: any) => {
-      csvRows.push([
-        "Work Orders", "Maintenance Task", sanitizeCSV(order.id), sanitizeCSV(order.title),
-        `Priority: ${order.priority}, Status: ${order.status}`, timestamp,
-      ].join(","));
+      csvRows.push(
+        [
+          "Work Orders",
+          "Maintenance Task",
+          sanitizeCSV(order.id),
+          sanitizeCSV(order.title),
+          `Priority: ${order.priority}, Status: ${order.status}`,
+          timestamp,
+        ].join(",")
+      );
     });
   }
 
@@ -97,27 +118,54 @@ export async function processHTMLGeneration(data: {
   const { reportData, options } = data;
 
   const escapeHtml = (text: any) => {
-    if (text === null || text === undefined) {return "";}
-    return String(text).replaceAll('&', "&amp;").replaceAll('<', "&lt;").replaceAll('>', "&gt;").replaceAll('"', "&quot;").replaceAll('\'', "&#39;");
+    if (text === null || text === undefined) {
+      return "";
+    }
+    return String(text)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
   };
 
-  const formattedDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const formattedDate = new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
-  const equipmentSection = reportData.equipmentHealth ? `
+  const equipmentSection = reportData.equipmentHealth
+    ? `
     <div class="section"><h2>Equipment Health Summary</h2>
       <table><thead><tr><th>Equipment ID</th><th>Vessel</th><th>Health Index</th><th>Status</th><th>Due Days</th></tr></thead>
-        <tbody>${reportData.equipmentHealth.slice(0, 20).map((e: any) => `
+        <tbody>${reportData.equipmentHealth
+          .slice(0, 20)
+          .map(
+            (e: any) => `
           <tr><td>${escapeHtml(e.id)}</td><td>${escapeHtml(e.vessel)}</td><td>${e.healthIndex}%</td>
           <td class="status-${e.status === "critical" ? "critical" : e.status === "warning" ? "warning" : "normal"}">${escapeHtml(e.status)}</td>
-          <td>${e.predictedDueDays || "N/A"}</td></tr>`).join("")}</tbody></table></div>` : "";
+          <td>${e.predictedDueDays || "N/A"}</td></tr>`
+          )
+          .join("")}</tbody></table></div>`
+    : "";
 
-  const workOrdersSection = reportData.workOrders ? `
+  const workOrdersSection = reportData.workOrders
+    ? `
     <div class="section"><h2>Work Orders Summary</h2>
       <table><thead><tr><th>Title</th><th>Equipment</th><th>Priority</th><th>Status</th><th>Due Date</th></tr></thead>
-        <tbody>${reportData.workOrders.slice(0, 15).map((o: any) => `
+        <tbody>${reportData.workOrders
+          .slice(0, 15)
+          .map(
+            (o: any) => `
           <tr><td>${escapeHtml(o.title)}</td><td>${escapeHtml(o.equipmentId)}</td>
           <td class="status-${o.priority === "critical" ? "critical" : o.priority === "high" ? "warning" : "normal"}">${escapeHtml(o.priority)}</td>
-          <td>${escapeHtml(o.status)}</td><td>${o.dueDate ? new Date(o.dueDate).toLocaleDateString() : "N/A"}</td></tr>`).join("")}</tbody></table></div>` : "";
+          <td>${escapeHtml(o.status)}</td><td>${o.dueDate ? new Date(o.dueDate).toLocaleDateString() : "N/A"}</td></tr>`
+          )
+          .join("")}</tbody></table></div>`
+    : "";
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <title>${escapeHtml(options.title || "ARUS Marine Report")}</title>

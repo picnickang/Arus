@@ -1,6 +1,6 @@
 /**
  * Telemetry Ingestion Integration Tests
- * 
+ *
  * Tests the telemetry data pipeline including:
  * - Reading telemetry data
  * - Heartbeat endpoints
@@ -23,8 +23,7 @@ describe("Telemetry API", () => {
     app = await createTestApp();
   }, 60000);
 
-  afterAll(async () => {
-  });
+  afterAll(async () => {});
 
   describe("GET /api/telemetry/readings", () => {
     it("should return telemetry readings", async () => {

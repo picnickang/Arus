@@ -60,10 +60,7 @@ const BATCH_SIZE = 10;
  *
  * Override via env: EMAIL_QUEUE_MAX_AGE_HOURS=48 (etc).
  */
-const MAX_QUEUE_AGE_HOURS = Number.parseInt(
-  process.env.EMAIL_QUEUE_MAX_AGE_HOURS ?? "24",
-  10
-);
+const MAX_QUEUE_AGE_HOURS = Number.parseInt(process.env.EMAIL_QUEUE_MAX_AGE_HOURS ?? "24", 10);
 
 let intervalHandle: ReturnType<typeof setInterval> | null = null;
 
@@ -110,12 +107,7 @@ async function expireStaleQueueItems(): Promise<number> {
       errorMessage: `Expired after ${MAX_QUEUE_AGE_HOURS}h without being sent`,
       lastAttemptAt: new Date(),
     })
-    .where(
-      and(
-        eq(emailQueue.status, "pending"),
-        lt(emailQueue.createdAt, cutoff)
-      )
-    )
+    .where(and(eq(emailQueue.status, "pending"), lt(emailQueue.createdAt, cutoff)))
     .returning({ id: emailQueue.id });
 
   return result.length;
@@ -189,7 +181,9 @@ async function processEmailBatch(): Promise<void> {
     .orderBy(emailQueue.createdAt)
     .limit(BATCH_SIZE);
 
-  if (pending.length === 0) {return;}
+  if (pending.length === 0) {
+    return;
+  }
 
   logger.info(LOG_CTX, `Processing ${pending.length} queued email(s)`);
 
@@ -246,7 +240,9 @@ async function processEmailBatch(): Promise<void> {
 
 export async function getDeadLetterEmails(orgId?: string) {
   const conditions: any[] = [eq(emailQueue.status, "dead_letter")];
-  if (orgId) {conditions.push(eq(emailQueue.orgId, orgId));}
+  if (orgId) {
+    conditions.push(eq(emailQueue.orgId, orgId));
+  }
   return db
     .select()
     .from(emailQueue)
@@ -261,7 +257,9 @@ export async function getDeadLetterEmails(orgId?: string) {
  */
 export async function getExpiredEmails(orgId?: string) {
   const conditions: any[] = [eq(emailQueue.status, "expired")];
-  if (orgId) {conditions.push(eq(emailQueue.orgId, orgId));}
+  if (orgId) {
+    conditions.push(eq(emailQueue.orgId, orgId));
+  }
   return db
     .select()
     .from(emailQueue)
@@ -313,14 +311,10 @@ export function startEmailWorker(): void {
     `Started — polling every ${POLL_INTERVAL_MS / 1000}s, max queue age ${MAX_QUEUE_AGE_HOURS}h`
   );
 
-  processEmailBatch().catch((err) =>
-    logger.error(LOG_CTX, `Initial batch failed: ${err}`)
-  );
+  processEmailBatch().catch((err) => logger.error(LOG_CTX, `Initial batch failed: ${err}`));
 
   intervalHandle = setInterval(() => {
-    processEmailBatch().catch((err) =>
-      logger.error(LOG_CTX, `Batch failed: ${err}`)
-    );
+    processEmailBatch().catch((err) => logger.error(LOG_CTX, `Batch failed: ${err}`));
   }, POLL_INTERVAL_MS);
 }
 

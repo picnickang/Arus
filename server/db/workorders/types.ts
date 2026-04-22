@@ -2,9 +2,23 @@
  * Work Orders - Types and WebSocket Setup
  */
 
-import type { WorkOrder, WorkOrderPart, WorkOrderTask, WorkOrderChecklist, WorkOrderWorklog, WorkOrderCompletion } from "@shared/schema";
+import type {
+  WorkOrder,
+  WorkOrderPart,
+  WorkOrderTask,
+  WorkOrderChecklist,
+  WorkOrderWorklog,
+  WorkOrderCompletion,
+} from "@shared/schema";
 
-export type { WorkOrder, WorkOrderPart, WorkOrderTask, WorkOrderChecklist, WorkOrderWorklog, WorkOrderCompletion };
+export type {
+  WorkOrder,
+  WorkOrderPart,
+  WorkOrderTask,
+  WorkOrderChecklist,
+  WorkOrderWorklog,
+  WorkOrderCompletion,
+};
 
 export interface WorkOrderFilters {
   vesselId?: string;
@@ -20,7 +34,10 @@ export interface WorkOrderPaginationResult {
 }
 
 interface WebSocketServerLike {
-  broadcastWorkOrderChange(action: "create" | "update" | "delete", data: Record<string, unknown>): void;
+  broadcastWorkOrderChange(
+    action: "create" | "update" | "delete",
+    data: Record<string, unknown>
+  ): void;
 }
 
 let wsServer: WebSocketServerLike | null = null;
@@ -33,7 +50,10 @@ export function getWebSocketServer(): WebSocketServerLike | null {
   return wsServer;
 }
 
-export function broadcastChange(action: "create" | "update" | "delete", data: Record<string, unknown>) {
+export function broadcastChange(
+  action: "create" | "update" | "delete",
+  data: Record<string, unknown>
+) {
   const ws = getWebSocketServer();
   ws?.broadcastWorkOrderChange(action, data);
 }

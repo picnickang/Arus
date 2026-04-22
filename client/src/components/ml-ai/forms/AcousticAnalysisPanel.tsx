@@ -23,7 +23,7 @@ import { Upload, FileText, Activity, BarChart3, AlertCircle, CheckCircle2 } from
 import { cn } from "@/lib/utils";
 
 export interface AcousticData {
-  source: 'file' | 'paste';
+  source: "file" | "paste";
   data: number[];
   sampleRate: number;
   rpm?: number;
@@ -48,15 +48,15 @@ interface AcousticAnalysisPanelProps {
   onAnalyze: (data: AcousticData) => Promise<AnalysisResult>;
   loading?: boolean;
   className?: string;
-  'data-testid'?: string;
+  "data-testid"?: string;
 }
 
 function parseCSV(csvText: string): number[] {
-  const lines = csvText.trim().split('\n');
+  const lines = csvText.trim().split("\n");
   const values: number[] = [];
-  
+
   for (const line of lines) {
-    const parts = line.split(',').map(s => s.trim());
+    const parts = line.split(",").map((s) => s.trim());
     for (const part of parts) {
       const num = Number.parseFloat(part);
       if (!Number.isNaN(num)) {
@@ -64,13 +64,15 @@ function parseCSV(csvText: string): number[] {
       }
     }
   }
-  
+
   return values;
 }
 
 function WaveformTooltip({ active, payload }: TooltipProps<number, string>) {
-  if (!active || !payload || payload.length === 0) {return null;}
-  
+  if (!active || !payload || payload.length === 0) {
+    return null;
+  }
+
   return (
     <div className="bg-popover border rounded-lg shadow-lg p-2 text-xs">
       <p>Sample: {payload[0].payload.index}</p>
@@ -85,57 +87,59 @@ export function AcousticAnalysisPanel({
   onAnalyze,
   loading = false,
   className,
-  'data-testid': testId,
+  "data-testid": testId,
 }: AcousticAnalysisPanelProps) {
-  const [inputMode, setInputMode] = useState<'file' | 'paste'>('file');
-  const [sampleRate, setSampleRate] = useState<string>('44100');
-  const [rpm, setRpm] = useState<string>('');
-  const [pasteData, setPasteData] = useState<string>('');
+  const [inputMode, setInputMode] = useState<"file" | "paste">("file");
+  const [sampleRate, setSampleRate] = useState<string>("44100");
+  const [rpm, setRpm] = useState<string>("");
+  const [pasteData, setPasteData] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [waveformData, setWaveformData] = useState<number[]>([]);
   const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) {return;}
+    if (!file) {
+      return;
+    }
 
     setSelectedFile(file);
-    setError('');
+    setError("");
 
-    if (file.name.endsWith('.csv')) {
+    if (file.name.endsWith(".csv")) {
       const text = await file.text();
       const data = parseCSV(text);
       setWaveformData(data);
     } else {
-      setError('Please upload a CSV file');
+      setError("Please upload a CSV file");
     }
   };
 
   const handlePasteAnalyze = () => {
     const data = parseCSV(pasteData);
     if (data.length === 0) {
-      setError('No valid numeric data found');
+      setError("No valid numeric data found");
       return;
     }
     setWaveformData(data);
-    setError('');
+    setError("");
   };
 
   const handleAnalyze = async () => {
     if (waveformData.length === 0) {
-      setError('No data to analyze');
+      setError("No data to analyze");
       return;
     }
 
     const sampleRateNum = Number.parseInt(sampleRate);
     if (Number.isNaN(sampleRateNum) || sampleRateNum <= 0) {
-      setError('Invalid sample rate');
+      setError("Invalid sample rate");
       return;
     }
 
-    setError('');
-    
+    setError("");
+
     const acousticData: AcousticData = {
       source: inputMode,
       data: waveformData,
@@ -153,7 +157,7 @@ export function AcousticAnalysisPanel({
       const analysisResult = await onAnalyze(acousticData);
       setResult(analysisResult);
     } catch {
-      setError(err instanceof Error ? err.message : 'Analysis failed');
+      setError(err instanceof Error ? err.message : "Analysis failed");
     }
   };
 
@@ -165,10 +169,13 @@ export function AcousticAnalysisPanel({
     .map((value, i) => ({ index: i * step, amplitude: value }));
 
   // Simple FFT approximation (for visualization only)
-  const fftData = waveformData.length > 0 ? waveformData.slice(0, 256).map((val, i) => ({
-    frequency: i * (Number.parseInt(sampleRate) / 512),
-    magnitude: Math.abs(val),
-  })) : [];
+  const fftData =
+    waveformData.length > 0
+      ? waveformData.slice(0, 256).map((val, i) => ({
+          frequency: i * (Number.parseInt(sampleRate) / 512),
+          magnitude: Math.abs(val),
+        }))
+      : [];
 
   return (
     <div className={cn("grid grid-cols-1 lg:grid-cols-2 gap-6", className)} data-testid={testId}>
@@ -177,9 +184,7 @@ export function AcousticAnalysisPanel({
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Data Input</CardTitle>
-            <CardDescription>
-              Upload CSV file or paste acoustic data
-            </CardDescription>
+            <CardDescription>Upload CSV file or paste acoustic data</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "file" | "paste")}>
@@ -276,7 +281,7 @@ export function AcousticAnalysisPanel({
               className="w-full"
               data-testid="button-analyze"
             >
-              {loading ? 'Analyzing...' : 'Analyze Acoustic Data'}
+              {loading ? "Analyzing..." : "Analyze Acoustic Data"}
             </Button>
 
             {waveformData.length > 0 && (
@@ -309,9 +314,11 @@ export function AcousticAnalysisPanel({
                       <div
                         className={cn(
                           "h-full transition-all",
-                          result.healthScore >= 80 ? "bg-green-500" :
-                          result.healthScore >= 60 ? "bg-yellow-500" :
-                          "bg-red-500"
+                          result.healthScore >= 80
+                            ? "bg-green-500"
+                            : result.healthScore >= 60
+                              ? "bg-yellow-500"
+                              : "bg-red-500"
                         )}
                         style={{ width: `${result.healthScore}%` }}
                       />
@@ -328,7 +335,10 @@ export function AcousticAnalysisPanel({
                   <Label className="text-sm">Dominant Frequencies</Label>
                   <ul className="mt-1 space-y-1">
                     {result.dominantFrequencies.slice(0, 3).map((freq) => (
-                      <li key={`freq-${freq.frequency}-${freq.amplitude}`} className="text-sm text-muted-foreground">
+                      <li
+                        key={`freq-${freq.frequency}-${freq.amplitude}`}
+                        className="text-sm text-muted-foreground"
+                      >
                         {freq.frequency.toFixed(1)} Hz (amplitude: {freq.amplitude.toFixed(3)})
                       </li>
                     ))}
@@ -341,7 +351,10 @@ export function AcousticAnalysisPanel({
                   <Label className="text-sm">Recommendations</Label>
                   <ul className="mt-1 space-y-1 list-disc list-inside">
                     {result.recommendations.map((rec, i) => (
-                      <li key={`rec-${rec.slice(0, 30)}-${i}`} className="text-sm text-muted-foreground">
+                      <li
+                        key={`rec-${rec.slice(0, 30)}-${i}`}
+                        className="text-sm text-muted-foreground"
+                      >
                         {rec}
                       </li>
                     ))}
@@ -371,16 +384,29 @@ export function AcousticAnalysisPanel({
               <Skeleton className="h-[250px] w-full" />
             ) : (
               <ResponsiveContainer width="100%" height={250} data-testid="waveform-chart">
-                <LineChart data={waveformChartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                <LineChart
+                  data={waveformChartData}
+                  margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis
                     dataKey="index"
                     tick={{ fontSize: 10 }}
-                    label={{ value: 'Sample', position: 'insideBottom', offset: -5, style: { fontSize: 11 } }}
+                    label={{
+                      value: "Sample",
+                      position: "insideBottom",
+                      offset: -5,
+                      style: { fontSize: 11 },
+                    }}
                   />
                   <YAxis
                     tick={{ fontSize: 10 }}
-                    label={{ value: 'Amplitude', angle: -90, position: 'insideLeft', style: { fontSize: 11 } }}
+                    label={{
+                      value: "Amplitude",
+                      angle: -90,
+                      position: "insideLeft",
+                      style: { fontSize: 11 },
+                    }}
                   />
                   <Tooltip content={<WaveformTooltip />} />
                   <Line
@@ -412,23 +438,33 @@ export function AcousticAnalysisPanel({
               <Skeleton className="h-[250px] w-full" />
             ) : (
               <ResponsiveContainer width="100%" height={250} data-testid="fft-chart">
-                <BarChart data={fftData.slice(0, 128)} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                <BarChart
+                  data={fftData.slice(0, 128)}
+                  margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis
                     dataKey="frequency"
                     tick={{ fontSize: 10 }}
                     tickFormatter={(value) => `${(value / 1000).toFixed(1)}k`}
-                    label={{ value: 'Frequency (Hz)', position: 'insideBottom', offset: -5, style: { fontSize: 11 } }}
+                    label={{
+                      value: "Frequency (Hz)",
+                      position: "insideBottom",
+                      offset: -5,
+                      style: { fontSize: 11 },
+                    }}
                   />
                   <YAxis
                     tick={{ fontSize: 10 }}
-                    label={{ value: 'Magnitude', angle: -90, position: 'insideLeft', style: { fontSize: 11 } }}
+                    label={{
+                      value: "Magnitude",
+                      angle: -90,
+                      position: "insideLeft",
+                      style: { fontSize: 11 },
+                    }}
                   />
                   <Tooltip />
-                  <Bar
-                    dataKey="magnitude"
-                    fill="hsl(var(--primary))"
-                  />
+                  <Bar dataKey="magnitude" fill="hsl(var(--primary))" />
                 </BarChart>
               </ResponsiveContainer>
             )}

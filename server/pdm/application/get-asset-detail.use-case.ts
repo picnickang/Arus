@@ -1,5 +1,5 @@
-import type { PdmRepositoryPort } from '../ports/pdm-repository.port';
-import type { AssetDetail } from '../domain/types';
+import type { PdmRepositoryPort } from "../ports/pdm-repository.port";
+import type { AssetDetail } from "../domain/types";
 
 export interface GetAssetDetailInput {
   orgId: string;

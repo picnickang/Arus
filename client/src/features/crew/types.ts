@@ -89,13 +89,7 @@ export interface RestPeriod {
   isRest: boolean;
 }
 
-export const DEPARTMENTS = [
-  "Deck",
-  "Engine",
-  "Catering",
-  "Radio",
-  "Medical",
-] as const;
+export const DEPARTMENTS = ["Deck", "Engine", "Catering", "Radio", "Medical"] as const;
 
 export const RANKS = {
   Deck: [
@@ -119,19 +113,9 @@ export const RANKS = {
     "Fitter",
     "Engine Cadet",
   ],
-  Catering: [
-    "Chief Cook",
-    "Second Cook",
-    "Steward",
-    "Messman",
-  ],
-  Radio: [
-    "Radio Officer",
-  ],
-  Medical: [
-    "Ship's Doctor",
-    "Nurse",
-  ],
+  Catering: ["Chief Cook", "Second Cook", "Steward", "Messman"],
+  Radio: ["Radio Officer"],
+  Medical: ["Ship's Doctor", "Nurse"],
 } as const;
 
 export const LEAVE_TYPES = [
@@ -142,4 +126,4 @@ export const LEAVE_TYPES = [
   "Shore Leave",
 ] as const;
 
-export type Department = typeof DEPARTMENTS[number];
+export type Department = (typeof DEPARTMENTS)[number];

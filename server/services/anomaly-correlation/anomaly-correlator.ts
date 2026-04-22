@@ -72,8 +72,8 @@ export interface CorrelationReport {
 
 interface FailureSignature {
   name: string;
-  requiredSensors: string[];   // Must see anomalies from ALL of these
-  optionalSensors: string[];   // Supporting evidence if present
+  requiredSensors: string[]; // Must see anomalies from ALL of these
+  optionalSensors: string[]; // Supporting evidence if present
   diagnosis: string;
   rootCause: string;
   action: string;
@@ -88,7 +88,8 @@ const FAILURE_SIGNATURES: FailureSignature[] = [
     optionalSensors: ["temperature", "acoustic", "oil_analysis"],
     diagnosis: "Bearing degradation detected",
     rootCause: "Bearing wear, misalignment, or lubrication failure",
-    action: "Schedule bearing inspection within 48 hours. Check lubrication system. Order replacement bearings.",
+    action:
+      "Schedule bearing inspection within 48 hours. Check lubrication system. Order replacement bearings.",
     baseSeverity: "high",
     confidenceBoostPerOptional: 0.1,
   },
@@ -118,7 +119,8 @@ const FAILURE_SIGNATURES: FailureSignature[] = [
     optionalSensors: ["flow_rate", "temperature", "acoustic"],
     diagnosis: "Pump cavitation detected",
     rootCause: "Low suction pressure, air ingestion, or impeller wear",
-    action: "Check suction line for restrictions. Verify inlet pressure. Inspect impeller condition.",
+    action:
+      "Check suction line for restrictions. Verify inlet pressure. Inspect impeller condition.",
     baseSeverity: "high",
     confidenceBoostPerOptional: 0.1,
   },
@@ -128,7 +130,8 @@ const FAILURE_SIGNATURES: FailureSignature[] = [
     optionalSensors: ["temperature", "insulation_resistance", "power_factor"],
     diagnosis: "Electrical system degradation",
     rootCause: "Insulation breakdown, loose connections, or winding deterioration",
-    action: "Perform insulation resistance test. Check terminal connections. Monitor for thermal hotspots.",
+    action:
+      "Perform insulation resistance test. Check terminal connections. Monitor for thermal hotspots.",
     baseSeverity: "high",
     confidenceBoostPerOptional: 0.1,
   },
@@ -150,22 +153,54 @@ const FAILURE_SIGNATURES: FailureSignature[] = [
 
 function normalizeSensorType(sensorType: string): string {
   const type = sensorType.toLowerCase().replace(/[_-]/g, "");
-  if (type.includes("temp") || type.includes("thermal")) {return "temperature";}
-  if (type.includes("vib") || type.includes("accel")) {return "vibration";}
-  if (type.includes("press")) {return "pressure";}
-  if (type.includes("rpm") || type.includes("speed")) {return "rpm";}
-  if (type.includes("flow")) {return "flow_rate";}
-  if (type.includes("volt")) {return "voltage";}
-  if (type.includes("curr") || type.includes("amp")) {return "current";}
-  if (type.includes("fuel") && type.includes("cons")) {return "fuel_consumption";}
-  if (type.includes("exhaust")) {return "exhaust_temperature";}
-  if (type.includes("oil") && type.includes("press")) {return "oil_pressure";}
-  if (type.includes("oil")) {return "oil_analysis";}
-  if (type.includes("wear") || type.includes("particle")) {return "wear_particles";}
-  if (type.includes("acoustic") || type.includes("sound")) {return "acoustic";}
-  if (type.includes("cool")) {return "coolant_flow";}
-  if (type.includes("power")) {return "power";}
-  if (type.includes("insul")) {return "insulation_resistance";}
+  if (type.includes("temp") || type.includes("thermal")) {
+    return "temperature";
+  }
+  if (type.includes("vib") || type.includes("accel")) {
+    return "vibration";
+  }
+  if (type.includes("press")) {
+    return "pressure";
+  }
+  if (type.includes("rpm") || type.includes("speed")) {
+    return "rpm";
+  }
+  if (type.includes("flow")) {
+    return "flow_rate";
+  }
+  if (type.includes("volt")) {
+    return "voltage";
+  }
+  if (type.includes("curr") || type.includes("amp")) {
+    return "current";
+  }
+  if (type.includes("fuel") && type.includes("cons")) {
+    return "fuel_consumption";
+  }
+  if (type.includes("exhaust")) {
+    return "exhaust_temperature";
+  }
+  if (type.includes("oil") && type.includes("press")) {
+    return "oil_pressure";
+  }
+  if (type.includes("oil")) {
+    return "oil_analysis";
+  }
+  if (type.includes("wear") || type.includes("particle")) {
+    return "wear_particles";
+  }
+  if (type.includes("acoustic") || type.includes("sound")) {
+    return "acoustic";
+  }
+  if (type.includes("cool")) {
+    return "coolant_flow";
+  }
+  if (type.includes("power")) {
+    return "power";
+  }
+  if (type.includes("insul")) {
+    return "insulation_resistance";
+  }
   return sensorType.toLowerCase();
 }
 
@@ -189,11 +224,14 @@ export class AnomalyCorrelator {
   /**
    * Correlate unacknowledged anomalies into equipment-level diagnosis groups.
    */
-  async correlateAnomalies(orgId: string, options?: {
-    includeAcknowledged?: boolean;
-    maxAnomalies?: number;
-    equipmentId?: string;
-  }): Promise<CorrelationReport> {
+  async correlateAnomalies(
+    orgId: string,
+    options?: {
+      includeAcknowledged?: boolean;
+      maxAnomalies?: number;
+      equipmentId?: string;
+    }
+  ): Promise<CorrelationReport> {
     const startTime = Date.now();
 
     // 1. Fetch recent anomalies
@@ -219,7 +257,7 @@ export class AnomalyCorrelator {
       }));
 
     if (!options?.includeAcknowledged) {
-      anomalies = anomalies.filter(a => !a.acknowledgedAt);
+      anomalies = anomalies.filter((a) => !a.acknowledgedAt);
     }
 
     // 2. Group by equipment
@@ -258,10 +296,14 @@ export class AnomalyCorrelator {
             try {
               const vessel = await this.storage.getVessel(vesselId, orgId);
               vesselName = vessel?.name || null;
-            } catch { /* vessel lookup failed */ }
+            } catch {
+              /* vessel lookup failed */
+            }
           }
         }
-      } catch { /* equipment lookup failed */ }
+      } catch {
+        /* equipment lookup failed */
+      }
 
       for (const cluster of clusters) {
         if (cluster.length === 1) {
@@ -269,15 +311,19 @@ export class AnomalyCorrelator {
           // Single anomalies still get a group, just with lower confidence
         }
 
-        const sensorTypes = [...new Set(cluster.map(a => normalizeSensorType(a.sensorType)))];
-        const severities = cluster.map(a => a.severity);
+        const sensorTypes = [...new Set(cluster.map((a) => normalizeSensorType(a.sensorType)))];
+        const severities = cluster.map((a) => a.severity);
         const groupSeverity = this.computeGroupSeverity(severities);
 
         // Match against known failure signatures
         const signatureMatch = this.matchFailureSignature(sensorTypes);
 
-        const firstDetected = new Date(Math.min(...cluster.map(a => a.detectionTimestamp.getTime())));
-        const lastDetected = new Date(Math.max(...cluster.map(a => a.detectionTimestamp.getTime())));
+        const firstDetected = new Date(
+          Math.min(...cluster.map((a) => a.detectionTimestamp.getTime()))
+        );
+        const lastDetected = new Date(
+          Math.max(...cluster.map((a) => a.detectionTimestamp.getTime()))
+        );
 
         const group: CorrelatedAnomalyGroup = {
           groupId: `${equipmentId}-${firstDetected.getTime()}`,
@@ -286,17 +332,24 @@ export class AnomalyCorrelator {
           equipmentType,
           vesselId,
           vesselName,
-          diagnosis: signatureMatch?.diagnosis ?? this.generateGenericDiagnosis(sensorTypes, equipmentType),
-          rootCauseSuggestion: signatureMatch?.rootCause ?? "Multiple sensor anomalies detected. Manual investigation recommended.",
-          recommendedAction: signatureMatch?.action ?? `Inspect ${equipmentName}. Review ${sensorTypes.join(", ")} sensor readings.`,
+          diagnosis:
+            signatureMatch?.diagnosis ?? this.generateGenericDiagnosis(sensorTypes, equipmentType),
+          rootCauseSuggestion:
+            signatureMatch?.rootCause ??
+            "Multiple sensor anomalies detected. Manual investigation recommended.",
+          recommendedAction:
+            signatureMatch?.action ??
+            `Inspect ${equipmentName}. Review ${sensorTypes.join(", ")} sensor readings.`,
           severity: signatureMatch ? signatureMatch.severity : groupSeverity,
-          confidence: signatureMatch?.confidence ?? this.computeConfidence(cluster.length, sensorTypes.length),
+          confidence:
+            signatureMatch?.confidence ??
+            this.computeConfidence(cluster.length, sensorTypes.length),
           anomalyCount: cluster.length,
           sensorTypes,
           firstDetected,
           lastDetected,
           anomalies: cluster,
-          isAcknowledged: cluster.every(a => !!a.acknowledgedAt),
+          isAcknowledged: cluster.every((a) => !!a.acknowledgedAt),
         };
 
         groups.push(group);
@@ -307,7 +360,9 @@ export class AnomalyCorrelator {
     const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
     groups.sort((a, b) => {
       const sevDiff = (severityOrder[a.severity] ?? 4) - (severityOrder[b.severity] ?? 4);
-      if (sevDiff !== 0) {return sevDiff;}
+      if (sevDiff !== 0) {
+        return sevDiff;
+      }
       return b.anomalyCount - a.anomalyCount;
     });
 
@@ -317,11 +372,15 @@ export class AnomalyCorrelator {
       totalAnomalies: anomalies.length,
       totalGroups: groups.length,
       ungroupedAnomalies: ungrouped,
-      criticalGroups: groups.filter(g => g.severity === "critical").length,
+      criticalGroups: groups.filter((g) => g.severity === "critical").length,
       groups,
     };
 
-    logger.info(LOG_CTX, `Correlated ${anomalies.length} anomalies into ${groups.length} groups (${report.criticalGroups} critical) in ${Date.now() - startTime}ms`, { orgId });
+    logger.info(
+      LOG_CTX,
+      `Correlated ${anomalies.length} anomalies into ${groups.length} groups (${report.criticalGroups} critical) in ${Date.now() - startTime}ms`,
+      { orgId }
+    );
 
     return report;
   }
@@ -335,7 +394,9 @@ export class AnomalyCorrelator {
    * Anomalies within correlationWindowMs of each other are grouped together.
    */
   private temporalCluster(sorted: RawAnomaly[]): RawAnomaly[][] {
-    if (sorted.length === 0) {return [];}
+    if (sorted.length === 0) {
+      return [];
+    }
 
     const clusters: RawAnomaly[][] = [[sorted[0]]];
 
@@ -344,7 +405,8 @@ export class AnomalyCorrelator {
       const lastCluster = clusters[clusters.length - 1];
       const lastInCluster = lastCluster[lastCluster.length - 1];
 
-      const timeDiff = current.detectionTimestamp.getTime() - lastInCluster.detectionTimestamp.getTime();
+      const timeDiff =
+        current.detectionTimestamp.getTime() - lastInCluster.detectionTimestamp.getTime();
 
       if (timeDiff <= this.correlationWindowMs) {
         lastCluster.push(current);
@@ -373,21 +435,24 @@ export class AnomalyCorrelator {
 
     for (const sig of FAILURE_SIGNATURES) {
       // Check if all required sensors are present
-      const hasAllRequired = sig.requiredSensors.every(req =>
-        sensorTypes.some(st => st === req || st.includes(req))
+      const hasAllRequired = sig.requiredSensors.every((req) =>
+        sensorTypes.some((st) => st === req || st.includes(req))
       );
 
-      if (!hasAllRequired) {continue;}
+      if (!hasAllRequired) {
+        continue;
+      }
 
       // Count optional sensor matches
-      const optionalMatches = sig.optionalSensors.filter(opt =>
-        sensorTypes.some(st => st === opt || st.includes(opt))
+      const optionalMatches = sig.optionalSensors.filter((opt) =>
+        sensorTypes.some((st) => st === opt || st.includes(opt))
       ).length;
 
-      const confidence = Math.min(0.95,
+      const confidence = Math.min(
+        0.95,
         0.6 + // base confidence for matching required sensors
-        optionalMatches * sig.confidenceBoostPerOptional +
-        (sensorTypes.length > sig.requiredSensors.length ? 0.05 : 0) // multi-sensor bonus
+          optionalMatches * sig.confidenceBoostPerOptional +
+          (sensorTypes.length > sig.requiredSensors.length ? 0.05 : 0) // multi-sensor bonus
       );
 
       if (confidence > bestConfidence) {
@@ -397,7 +462,9 @@ export class AnomalyCorrelator {
       }
     }
 
-    if (!bestMatch) {return null;}
+    if (!bestMatch) {
+      return null;
+    }
 
     return {
       diagnosis: bestMatch.diagnosis,
@@ -413,10 +480,18 @@ export class AnomalyCorrelator {
   // ===========================================================================
 
   private computeGroupSeverity(severities: string[]): "critical" | "high" | "medium" | "low" {
-    if (severities.includes("critical")) {return "critical";}
-    if (severities.includes("high")) {return "high";}
-    if (severities.filter(s => s === "medium").length >= 3) {return "high";} // 3+ medium = high
-    if (severities.includes("medium")) {return "medium";}
+    if (severities.includes("critical")) {
+      return "critical";
+    }
+    if (severities.includes("high")) {
+      return "high";
+    }
+    if (severities.filter((s) => s === "medium").length >= 3) {
+      return "high";
+    } // 3+ medium = high
+    if (severities.includes("medium")) {
+      return "medium";
+    }
     return "low";
   }
 

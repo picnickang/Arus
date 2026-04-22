@@ -1,7 +1,7 @@
 /**
  * Crew Routes - Index Aggregator
  * Combines all modular crew route handlers
- * 
+ *
  * Modularized into 8 files:
  * - types.ts (~28 lines): Shared interfaces and helpers
  * - crew-member-routes.ts (~95 lines): Crew member CRUD
@@ -44,7 +44,10 @@ export function registerCrewRoutes(app: Express, rateLimit: RateLimitMiddleware)
   registerDocumentRoutes(deps);
   registerNotificationRoutes(deps);
 
-  logger.info("CrewRoutes", "Registered (members: 5, skills: 5, leave: 4, assignments: 4, certs: 6, docs: 6, notifications: 3, lifecycle: 7)");
+  logger.info(
+    "CrewRoutes",
+    "Registered (members: 5, skills: 5, leave: 4, assignments: 4, certs: 6, docs: 6, notifications: 3, lifecycle: 7)"
+  );
 }
 
 export {

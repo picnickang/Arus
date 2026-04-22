@@ -14,7 +14,9 @@ import { withErrorHandling, sendNotFound } from "../../../lib/route-utils";
 import type { RateLimitMiddleware } from "./types";
 
 export function registerCompletionRoutes(app: Express, rateLimit: RateLimitMiddleware) {
-  app.get("/api/work-order-completions", requireOrgId,
+  app.get(
+    "/api/work-order-completions",
+    requireOrgId,
     withErrorHandling("fetch work order completions", async (req: Request, res: Response) => {
       const { equipmentId, vesselId, startDate, endDate } = req.query;
       const orgId = (req as AuthenticatedRequest).orgId;
@@ -32,25 +34,32 @@ export function registerCompletionRoutes(app: Express, rateLimit: RateLimitMiddl
     })
   );
 
-  app.get("/api/work-order-completions/analytics", requireOrgId,
-    withErrorHandling("fetch work order completion analytics", async (req: Request, res: Response) => {
-      const { equipmentId, vesselId, startDate, endDate } = req.query;
-      const orgId = (req as AuthenticatedRequest).orgId;
+  app.get(
+    "/api/work-order-completions/analytics",
+    requireOrgId,
+    withErrorHandling(
+      "fetch work order completion analytics",
+      async (req: Request, res: Response) => {
+        const { equipmentId, vesselId, startDate, endDate } = req.query;
+        const orgId = (req as AuthenticatedRequest).orgId;
 
-      const filters = {
-        equipmentId: equipmentId as string | undefined,
-        vesselId: vesselId as string | undefined,
-        startDate: startDate ? new Date(startDate as string) : undefined,
-        endDate: endDate ? new Date(endDate as string) : undefined,
-        orgId,
-      };
+        const filters = {
+          equipmentId: equipmentId as string | undefined,
+          vesselId: vesselId as string | undefined,
+          startDate: startDate ? new Date(startDate as string) : undefined,
+          endDate: endDate ? new Date(endDate as string) : undefined,
+          orgId,
+        };
 
-      const analytics = await workOrderService.getWorkOrderCompletionAnalytics(filters);
-      res.json(analytics);
-    })
+        const analytics = await workOrderService.getWorkOrderCompletionAnalytics(filters);
+        res.json(analytics);
+      }
+    )
   );
 
-  app.get("/api/work-order-completions/:id", requireOrgId,
+  app.get(
+    "/api/work-order-completions/:id",
+    requireOrgId,
     withErrorHandling("fetch work order completion", async (req: Request, res: Response) => {
       const completion = await workOrderService.getWorkOrderCompletion(req.params.id);
       if (!completion) {
@@ -60,7 +69,9 @@ export function registerCompletionRoutes(app: Express, rateLimit: RateLimitMiddl
     })
   );
 
-  app.get("/api/work-orders/:id/completions", requireOrgId,
+  app.get(
+    "/api/work-orders/:id/completions",
+    requireOrgId,
     withErrorHandling("fetch work order completions", async (req: Request, res: Response) => {
       const completions = await workOrderService.getWorkOrderCompletionsByWorkOrder(req.params.id);
       res.json(completions);

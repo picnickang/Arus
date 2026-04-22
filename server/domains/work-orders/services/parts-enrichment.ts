@@ -1,6 +1,6 @@
 /**
  * Work Order Parts Enrichment Service
- * 
+ *
  * Enriches work order parts with stock status, part details, and delivery estimates.
  * Follows modular architecture pattern - max 300 lines.
  */
@@ -41,14 +41,23 @@ export interface OutOfStockSuggestion {
   supplierLeadTimeDays: number | null;
 }
 
-function determineStockStatus(quantityOnHand: number, minStockLevel: number | null): "in_stock" | "low_stock" | "out_of_stock" {
-  if (quantityOnHand <= 0) {return "out_of_stock";}
-  if (minStockLevel && quantityOnHand <= minStockLevel) {return "low_stock";}
+function determineStockStatus(
+  quantityOnHand: number,
+  minStockLevel: number | null
+): "in_stock" | "low_stock" | "out_of_stock" {
+  if (quantityOnHand <= 0) {
+    return "out_of_stock";
+  }
+  if (minStockLevel && quantityOnHand <= minStockLevel) {
+    return "low_stock";
+  }
   return "in_stock";
 }
 
-
-export async function getEnrichedWorkOrderParts(workOrderId: string, orgId: string): Promise<EnrichedWorkOrderPart[]> {
+export async function getEnrichedWorkOrderParts(
+  workOrderId: string,
+  orgId: string
+): Promise<EnrichedWorkOrderPart[]> {
   const woParts = await db
     .select({
       id: workOrderParts.id,
@@ -68,7 +77,9 @@ export async function getEnrichedWorkOrderParts(workOrderId: string, orgId: stri
     .from(workOrderParts)
     .where(and(eq(workOrderParts.workOrderId, workOrderId), eq(workOrderParts.orgId, orgId)));
 
-  if (woParts.length === 0) {return [];}
+  if (woParts.length === 0) {
+    return [];
+  }
 
   const partIds = woParts.map((p) => p.partId);
 
@@ -107,21 +118,27 @@ export async function getEnrichedWorkOrderParts(workOrderId: string, orgId: stri
     });
   }
 
-  const supplierIds = [...new Set(catalogParts.map((p) => p.primarySupplierId).filter(Boolean))] as string[];
+  const supplierIds = [
+    ...new Set(catalogParts.map((p) => p.primarySupplierId).filter(Boolean)),
+  ] as string[];
   let suppliersMap = new Map<string, { name: string; leadTimeDays: number | null }>();
   if (supplierIds.length > 0) {
     const suppliersData = await db
       .select({ id: suppliers.id, name: suppliers.name, leadTimeDays: suppliers.leadTimeDays })
       .from(suppliers)
       .where(inArray(suppliers.id, supplierIds));
-    suppliersMap = new Map(suppliersData.map((s) => [s.id, { name: s.name, leadTimeDays: s.leadTimeDays }]));
+    suppliersMap = new Map(
+      suppliersData.map((s) => [s.id, { name: s.name, leadTimeDays: s.leadTimeDays }])
+    );
   }
 
   return woParts.map((wop) => {
     const catalogPart = catalogMap.get(wop.partId);
     const invItem = catalogPart ? stockByPartNoMap.get(catalogPart.partNo) : null;
     const quantityOnHand = invItem?.quantityOnHand ?? 0;
-    const supplierInfo = catalogPart?.primarySupplierId ? suppliersMap.get(catalogPart.primarySupplierId) : null;
+    const supplierInfo = catalogPart?.primarySupplierId
+      ? suppliersMap.get(catalogPart.primarySupplierId)
+      : null;
 
     return {
       id: wop.id,
@@ -151,7 +168,10 @@ export interface EnrichedWorkOrderPartWithInventory extends EnrichedWorkOrderPar
   inventoryItemId: string | null;
 }
 
-export async function getEnrichedWorkOrderPartsWithInventoryFlag(workOrderId: string, orgId: string): Promise<EnrichedWorkOrderPartWithInventory[]> {
+export async function getEnrichedWorkOrderPartsWithInventoryFlag(
+  workOrderId: string,
+  orgId: string
+): Promise<EnrichedWorkOrderPartWithInventory[]> {
   const woParts = await db
     .select({
       id: workOrderParts.id,
@@ -171,7 +191,9 @@ export async function getEnrichedWorkOrderPartsWithInventoryFlag(workOrderId: st
     .from(workOrderParts)
     .where(and(eq(workOrderParts.workOrderId, workOrderId), eq(workOrderParts.orgId, orgId)));
 
-  if (woParts.length === 0) {return [];}
+  if (woParts.length === 0) {
+    return [];
+  }
 
   const partIds = woParts.map((p) => p.partId);
 
@@ -210,21 +232,27 @@ export async function getEnrichedWorkOrderPartsWithInventoryFlag(workOrderId: st
     });
   }
 
-  const supplierIds = [...new Set(catalogParts.map((p) => p.primarySupplierId).filter(Boolean))] as string[];
+  const supplierIds = [
+    ...new Set(catalogParts.map((p) => p.primarySupplierId).filter(Boolean)),
+  ] as string[];
   let suppliersMap = new Map<string, { name: string; leadTimeDays: number | null }>();
   if (supplierIds.length > 0) {
     const suppliersData = await db
       .select({ id: suppliers.id, name: suppliers.name, leadTimeDays: suppliers.leadTimeDays })
       .from(suppliers)
       .where(inArray(suppliers.id, supplierIds));
-    suppliersMap = new Map(suppliersData.map((s) => [s.id, { name: s.name, leadTimeDays: s.leadTimeDays }]));
+    suppliersMap = new Map(
+      suppliersData.map((s) => [s.id, { name: s.name, leadTimeDays: s.leadTimeDays }])
+    );
   }
 
   return woParts.map((wop) => {
     const catalogPart = catalogMap.get(wop.partId);
     const invItem = catalogPart ? stockByPartNoMap.get(catalogPart.partNo) : null;
     const quantityOnHand = invItem?.quantityOnHand ?? 0;
-    const supplierInfo = catalogPart?.primarySupplierId ? suppliersMap.get(catalogPart.primarySupplierId) : null;
+    const supplierInfo = catalogPart?.primarySupplierId
+      ? suppliersMap.get(catalogPart.primarySupplierId)
+      : null;
     const hasValidInventory = invItem !== null && invItem !== undefined;
 
     return {
@@ -252,14 +280,18 @@ export async function getEnrichedWorkOrderPartsWithInventoryFlag(workOrderId: st
   });
 }
 
-export async function getOutOfStockSuggestions(workOrderId: string, orgId: string): Promise<OutOfStockSuggestion[]> {
+export async function getOutOfStockSuggestions(
+  workOrderId: string,
+  orgId: string
+): Promise<OutOfStockSuggestion[]> {
   const enrichedParts = await getEnrichedWorkOrderPartsWithInventoryFlag(workOrderId, orgId);
 
   return enrichedParts
-    .filter((p) => 
-      p.hasValidInventory && 
-      p.inventoryItemId &&
-      (p.stockStatus === "out_of_stock" || p.quantityUsed > p.quantityOnHand)
+    .filter(
+      (p) =>
+        p.hasValidInventory &&
+        p.inventoryItemId &&
+        (p.stockStatus === "out_of_stock" || p.quantityUsed > p.quantityOnHand)
     )
     .map((p) => {
       const shortfall = Math.max(0, p.quantityUsed - p.quantityOnHand);

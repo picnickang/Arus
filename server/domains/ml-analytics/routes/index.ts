@@ -1,6 +1,6 @@
 /**
  * ML Analytics Domain Routes - Main Entry Point
- * 
+ *
  * Orchestrates registration of all ML analytics route modules.
  */
 
@@ -26,5 +26,8 @@ export function registerMlAnalyticsRoutes(app: Express, config: MlAnalyticsConfi
   registerTwinRoutes(app, config);
   registerInsightRoutes(app, config);
 
-  logger.info("MlAnalyticsRoutes", "Registered (exports: 4, anomalies: 4, predictions: 3, thresholds: 4, twins: 4, insights: 2)");
+  logger.info(
+    "MlAnalyticsRoutes",
+    "Registered (exports: 4, anomalies: 4, predictions: 3, thresholds: 4, twins: 4, insights: 2)"
+  );
 }

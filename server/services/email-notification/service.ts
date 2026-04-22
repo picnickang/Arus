@@ -18,7 +18,12 @@ import {
   buildAlertBody,
   buildLogbookReminderBody,
 } from "./templates.js";
-import { queueNotification, processQueueItem, processDigestQueue, retryFailedNotifications } from "./queue-processor.js";
+import {
+  queueNotification,
+  processQueueItem,
+  processDigestQueue,
+  retryFailedNotifications,
+} from "./queue-processor.js";
 import {
   sendCertificationExpiryNotification,
   sendDocumentExpiryNotification,
@@ -60,13 +65,17 @@ class EmailNotificationService {
     );
 
     if (applicableSettings.length === 0) {
-      console.log(`[EmailNotificationService] No applicable notification settings for finding ${finding.id}`);
+      console.log(
+        `[EmailNotificationService] No applicable notification settings for finding ${finding.id}`
+      );
       return;
     }
 
     for (const setting of applicableSettings) {
       const recipients = this.getRecipients(setting);
-      if (recipients.length === 0) { continue; }
+      if (recipients.length === 0) {
+        continue;
+      }
 
       const subject = buildComplianceSubject(finding, vesselName);
       const { text, html } = buildComplianceBody(finding, vesselName);
@@ -109,13 +118,19 @@ class EmailNotificationService {
     orgId: string
   ): Promise<void> {
     const settings = await dbNotificationsStorage.getNotificationSettings(orgId);
-    const applicableSettings = settings.filter((s) => s.enabled && (!s.vesselId || s.vesselId === vesselId));
+    const applicableSettings = settings.filter(
+      (s) => s.enabled && (!s.vesselId || s.vesselId === vesselId)
+    );
 
-    if (applicableSettings.length === 0) { return; }
+    if (applicableSettings.length === 0) {
+      return;
+    }
 
     for (const setting of applicableSettings) {
       const recipients = this.getRecipients(setting);
-      if (recipients.length === 0) { continue; }
+      if (recipients.length === 0) {
+        continue;
+      }
 
       const { subject, text, html } = buildLogbookReminderBody(logType, vesselName, logDate);
 
@@ -146,11 +161,15 @@ class EmailNotificationService {
       (s) => s.enabled && this.severityMeetsThreshold(alert.severity, s.minSeverity || "warning")
     );
 
-    if (applicableSettings.length === 0) { return; }
+    if (applicableSettings.length === 0) {
+      return;
+    }
 
     for (const setting of applicableSettings) {
       const recipients = this.getRecipients(setting);
-      if (recipients.length === 0) { continue; }
+      if (recipients.length === 0) {
+        continue;
+      }
 
       const subject = `[${alert.severity.toUpperCase()}] Alert - ${equipmentName} on ${vesselName}`;
       const { text, html } = buildAlertBody(alert, vesselName, equipmentName);

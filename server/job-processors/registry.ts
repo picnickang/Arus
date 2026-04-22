@@ -4,7 +4,11 @@
 
 import { jobQueue, JOB_TYPES } from "../background-jobs";
 import { processEquipmentAnalysis, processFleetAnalysis } from "./ai-processors";
-import { processPDFGeneration, processCSVGeneration, processHTMLGeneration } from "./report-processors";
+import {
+  processPDFGeneration,
+  processCSVGeneration,
+  processHTMLGeneration,
+} from "./report-processors";
 import { processCrewScheduling, processMaintenanceScheduling } from "./scheduling-processors";
 import { processInsightsSnapshotGeneration } from "./insights-processor";
 import { processTelemetryProcessing } from "./telemetry-processor";
@@ -22,7 +26,10 @@ export function registerJobProcessors(): void {
 
   jobQueue.registerProcessor(JOB_TYPES.TELEMETRY_PROCESSING, processTelemetryProcessing);
 
-  jobQueue.registerProcessor(JOB_TYPES.INSIGHTS_SNAPSHOT_GENERATION, processInsightsSnapshotGeneration);
+  jobQueue.registerProcessor(
+    JOB_TYPES.INSIGHTS_SNAPSHOT_GENERATION,
+    processInsightsSnapshotGeneration
+  );
 
   console.log("[Background Jobs] All processors registered successfully");
 }

@@ -1,6 +1,6 @@
 /**
  * Default Compliance Rules
- * 
+ *
  * Predefined rules for deck and engine logbook compliance.
  */
 
@@ -10,7 +10,8 @@ export const DEFAULT_DECK_RULES: Omit<InsertComplianceRule, "orgId">[] = [
   {
     ruleCode: "DLB_MISSING_WATCH",
     ruleName: "Missing Watch Officer Assignment",
-    description: "Deck logbook daily record must have watch officer assignments for all 4 watch periods",
+    description:
+      "Deck logbook daily record must have watch officer assignments for all 4 watch periods",
     sourceType: "logbook_deck",
     category: "operational",
     severity: "warning",

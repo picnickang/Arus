@@ -7,7 +7,7 @@ export function healthzEndpoint(req: Request, res: Response) {
   const isLocalMode = process.env.LOCAL_MODE === "true" || process.env.EMBEDDED_MODE === "true";
   const deploymentMode = isLocalMode ? "VESSEL" : "CLOUD";
   const databaseType = isLocalMode ? "SQLite" : "PostgreSQL";
-  
+
   res.json({
     status: "ok",
     timestamp: new Date().toISOString(),
@@ -96,7 +96,11 @@ async function checkJobQueue(ctx: HealthContext): Promise<void> {
       workerStarted: queueHealth.workerStarted,
     };
 
-    if (queueHealth.status === "unavailable" || !queueHealth.initialized || !queueHealth.workerStarted) {
+    if (
+      queueHealth.status === "unavailable" ||
+      !queueHealth.initialized ||
+      !queueHealth.workerStarted
+    ) {
       degradeStatus(ctx);
     }
   } catch (queueError) {
@@ -204,7 +208,8 @@ export async function readyzEndpoint(req: Request, res: Response) {
       metadata: { overallStatus: ctx.overallStatus, checksRun: Object.keys(ctx.checks).length },
     });
 
-    const statusCode = ctx.overallStatus === "not ready" ? 503 : ctx.overallStatus === "degraded" ? 207 : 200;
+    const statusCode =
+      ctx.overallStatus === "not ready" ? 503 : ctx.overallStatus === "degraded" ? 207 : 200;
     res.status(statusCode).json(healthResponse);
   } catch (error) {
     const duration = Date.now() - start;
@@ -238,7 +243,7 @@ export async function dbIndexesHealthEndpoint(req: Request, res: Response) {
   try {
     const { verifyDatabaseIndexes } = await import("../db-indexes");
     const result = await verifyDatabaseIndexes();
-    
+
     const statusCode = result.ok ? 200 : 503;
     res.status(statusCode).json(result);
   } catch (error) {

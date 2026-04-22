@@ -3,13 +3,13 @@
  * Implements IMaintenanceScheduleRepository port using storage layer
  */
 
-import type { IMaintenanceScheduleRepository } from '../domain/ports';
+import type { IMaintenanceScheduleRepository } from "../domain/ports";
 import type {
   MaintenanceScheduleEntity,
   CreateScheduleCommand,
   UpdateScheduleCommand,
-} from '../domain/types';
-import { dbMaintenanceStorage, schedulingAdapter } from '../../../repositories';
+} from "../domain/types";
+import { dbMaintenanceStorage, schedulingAdapter } from "../../../repositories";
 
 /**
  * PostgreSQL/Storage adapter for MaintenanceScheduleRepository
@@ -32,13 +32,15 @@ export class MaintenanceScheduleRepositoryAdapter implements IMaintenanceSchedul
   }
 
   async findUpcoming(orgId: string, daysAhead: number): Promise<MaintenanceScheduleEntity[]> {
-    const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, 'scheduled');
+    const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, "scheduled");
     const now = new Date();
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + daysAhead);
 
     return schedules
-      .filter((s) => s.orgId === orgId && s.nextScheduledDate >= now && s.nextScheduledDate <= futureDate)
+      .filter(
+        (s) => s.orgId === orgId && s.nextScheduledDate >= now && s.nextScheduledDate <= futureDate
+      )
       .sort((a, b) => a.nextScheduledDate.getTime() - b.nextScheduledDate.getTime())
       .map(this.mapToEntity);
   }
@@ -57,7 +59,10 @@ export class MaintenanceScheduleRepositoryAdapter implements IMaintenanceSchedul
     await dbMaintenanceStorage.deleteMaintenanceSchedule(id);
   }
 
-  async autoScheduleForEquipment(equipmentId: string, pdmScore: number): Promise<MaintenanceScheduleEntity> {
+  async autoScheduleForEquipment(
+    equipmentId: string,
+    pdmScore: number
+  ): Promise<MaintenanceScheduleEntity> {
     const schedule = await schedulingAdapter.autoScheduleMaintenance(equipmentId, pdmScore);
     return this.mapToEntity(schedule);
   }
@@ -68,8 +73,8 @@ export class MaintenanceScheduleRepositoryAdapter implements IMaintenanceSchedul
       orgId: schedule.orgId,
       equipmentId: schedule.equipmentId,
       scheduledDate: schedule.nextScheduledDate,
-      status: schedule.status || 'scheduled',
-      priority: schedule.priority || 'medium',
+      status: schedule.status || "scheduled",
+      priority: schedule.priority || "medium",
       maintenanceType: schedule.maintenanceType,
       description: schedule.description,
       estimatedDuration: schedule.estimatedDurationHours,

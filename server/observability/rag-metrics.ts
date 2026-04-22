@@ -101,7 +101,11 @@ export const kbVectorIndexRowCount = new client.Gauge({
 });
 
 // Helper functions
-export function recordKbDocumentUpload(orgId: string, fileType: string, status: "completed" | "failed" | "processing") {
+export function recordKbDocumentUpload(
+  orgId: string,
+  fileType: string,
+  status: "completed" | "failed" | "processing"
+) {
   kbDocumentsUploadedTotal.inc({ org_id: orgId, file_type: fileType, status });
 }
 
@@ -117,7 +121,11 @@ export function recordKbEmbeddingDuration(orgId: string, modelType: string, dura
   kbEmbeddingDuration.observe({ org_id: orgId, model_type: modelType }, durationSec);
 }
 
-export function recordKbChunkProcessed(orgId: string, modelType: string, status: "success" | "error") {
+export function recordKbChunkProcessed(
+  orgId: string,
+  modelType: string,
+  status: "success" | "error"
+) {
   kbChunksProcessedTotal.inc({ org_id: orgId, model_type: modelType, status });
 }
 
@@ -166,7 +174,11 @@ export const incrementKbChunksProcessed = recordKbChunkProcessed;
 export const incrementKbEmbeddingCacheHit = recordKbEmbeddingCacheHit;
 export const incrementKbEmbeddingCacheMiss = recordKbEmbeddingCacheMiss;
 
-export function incrementKbDocumentsUploaded(orgId: string, fileType: string, status: "completed" | "failed" | "processing") {
+export function incrementKbDocumentsUploaded(
+  orgId: string,
+  fileType: string,
+  status: "completed" | "failed" | "processing"
+) {
   kbDocumentsUploadedTotal.inc({ org_id: orgId, file_type: fileType, status });
 }
 

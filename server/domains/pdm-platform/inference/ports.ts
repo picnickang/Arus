@@ -12,5 +12,9 @@ export interface InferenceResult {
 }
 
 export interface InferenceRunnerPort {
-  runInference(orgId: string, equipmentId: string, modelVersionId?: string): Promise<InferenceResult>;
+  runInference(
+    orgId: string,
+    equipmentId: string,
+    modelVersionId?: string
+  ): Promise<InferenceResult>;
 }

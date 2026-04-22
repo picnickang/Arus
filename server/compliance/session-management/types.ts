@@ -2,7 +2,7 @@
  * Session Management - Type Definitions
  */
 
-import type { UserSession } from '@shared/schema';
+import type { UserSession } from "@shared/schema";
 
 export interface SessionConfig {
   sessionDurationMinutes: number;
@@ -31,8 +31,8 @@ export interface LoginEventInput {
   orgId?: string;
   userId?: string;
   attemptedEmail?: string;
-  loginType: 'password' | 'sso' | 'api_key' | 'refresh_token' | 'device_hmac';
-  outcome: 'success' | 'failure' | 'locked' | 'mfa_required' | 'mfa_failed';
+  loginType: "password" | "sso" | "api_key" | "refresh_token" | "device_hmac";
+  outcome: "success" | "failure" | "locked" | "mfa_required" | "mfa_failed";
   failureReason?: string;
   ipAddress?: string;
   userAgent?: string;

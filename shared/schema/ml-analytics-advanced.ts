@@ -1,6 +1,6 @@
 /**
  * Schema ML Analytics Advanced - Validation, Feedback, Vibration, and RUL
- * 
+ *
  * Advanced ML tables including model performance validation, prediction feedback,
  * vibration analysis, RUL models, Weibull estimates, and PdM baselines.
  */
@@ -24,16 +24,27 @@ import {
 import { organizations } from "./core";
 import { vessels } from "./vessels";
 import { equipment } from "./equipment";
-import { mlModels, modelVersions, failurePredictions, anomalyDetections } from "./ml-analytics-core";
+import {
+  mlModels,
+  modelVersions,
+  failurePredictions,
+  anomalyDetections,
+} from "./ml-analytics-core";
 
 // Model performance validation - tracks predictions vs actual outcomes
 export const modelPerformanceValidations = pgTable(
   "model_performance_validations",
   {
     id: serial("id").primaryKey(),
-    orgId: varchar("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
-    modelId: varchar("model_id").notNull().references(() => mlModels.id, { onDelete: "cascade" }),
-    equipmentId: varchar("equipment_id").notNull().references(() => equipment.id, { onDelete: "cascade" }),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    modelId: varchar("model_id")
+      .notNull()
+      .references(() => mlModels.id, { onDelete: "cascade" }),
+    equipmentId: varchar("equipment_id")
+      .notNull()
+      .references(() => equipment.id, { onDelete: "cascade" }),
     predictionId: integer("prediction_id"),
     predictionType: varchar("prediction_type").notNull(),
     predictionTimestamp: timestamp("prediction_timestamp", { withTimezone: true }).notNull(),
@@ -54,7 +65,10 @@ export const modelPerformanceValidations = pgTable(
     predictionTimeIdx: index("idx_perf_val_prediction_time").on(table.predictionTimestamp),
     classificationIdx: index("idx_perf_val_classification").on(table.classificationLabel),
     modelEquipmentIdx: index("idx_perf_val_model_equipment").on(table.modelId, table.equipmentId),
-    predictionLookupIdx: index("idx_perf_val_prediction_lookup").on(table.predictionType, table.predictionId),
+    predictionLookupIdx: index("idx_perf_val_prediction_lookup").on(
+      table.predictionType,
+      table.predictionId
+    ),
   })
 );
 
@@ -63,10 +77,14 @@ export const predictionFeedback = pgTable(
   "prediction_feedback",
   {
     id: serial("id").primaryKey(),
-    orgId: varchar("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     predictionId: integer("prediction_id").notNull(),
     predictionType: varchar("prediction_type").notNull(),
-    equipmentId: varchar("equipment_id").notNull().references(() => equipment.id, { onDelete: "cascade" }),
+    equipmentId: varchar("equipment_id")
+      .notNull()
+      .references(() => equipment.id, { onDelete: "cascade" }),
     userId: varchar("user_id").notNull(),
     feedbackType: varchar("feedback_type").notNull(),
     rating: integer("rating"),
@@ -88,14 +106,21 @@ export const predictionFeedback = pgTable(
     equipmentIdx: index("idx_feedback_equipment").on(table.equipmentId),
     userIdx: index("idx_feedback_user").on(table.userId),
     statusIdx: index("idx_feedback_status").on(table.feedbackStatus),
-    retrainingIdx: index("idx_feedback_retraining").on(table.useForRetraining, table.feedbackStatus),
+    retrainingIdx: index("idx_feedback_retraining").on(
+      table.useForRetraining,
+      table.feedbackStatus
+    ),
   })
 );
 
 // Vibration Analysis: FFT features and ISO band analysis
 export const vibrationFeatures = pgTable("vibration_features", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull().references(() => organizations.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id")
+    .notNull()
+    .references(() => organizations.id),
   equipmentId: text("equipment_id").notNull(),
   vesselId: varchar("vessel_id").references(() => vessels.id),
   timestamp: timestamp("timestamp", { mode: "date" }).defaultNow(),
@@ -116,8 +141,12 @@ export const vibrationFeatures = pgTable("vibration_features", {
 
 // RUL Models: Weibull reliability models for component failure prediction
 export const rulModels = pgTable("rul_models", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull().references(() => organizations.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id")
+    .notNull()
+    .references(() => organizations.id),
   modelId: text("model_id").notNull().unique(),
   componentClass: text("component_class").notNull(),
   equipmentType: text("equipment_type"),
@@ -136,8 +165,12 @@ export const rulModels = pgTable("rul_models", {
 
 // RUL Fit History: Version history for model retraining
 export const rulFitHistory = pgTable("rul_fit_history", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull().references(() => organizations.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id")
+    .notNull()
+    .references(() => organizations.id),
   modelId: text("model_id").notNull(),
   shapeK: real("shape_k").notNull(),
   scaleLambda: real("scale_lambda").notNull(),
@@ -148,9 +181,15 @@ export const rulFitHistory = pgTable("rul_fit_history", {
 
 // Vibration analysis table
 export const vibrationAnalysis = pgTable("vibration_analysis", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull().references(() => organizations.id),
-  equipmentId: varchar("equipment_id").notNull().references(() => equipment.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id")
+    .notNull()
+    .references(() => organizations.id),
+  equipmentId: varchar("equipment_id")
+    .notNull()
+    .references(() => equipment.id),
   sampleRate: real("sample_rate").notNull(),
   shaftRpm: real("shaft_rpm"),
   windowType: text("window_type").notNull().default("hann"),
@@ -164,9 +203,15 @@ export const vibrationAnalysis = pgTable("vibration_analysis", {
 
 // Weibull estimates table
 export const weibullEstimates = pgTable("weibull_estimates", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull().references(() => organizations.id),
-  equipmentId: varchar("equipment_id").notNull().references(() => equipment.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id")
+    .notNull()
+    .references(() => organizations.id),
+  equipmentId: varchar("equipment_id")
+    .notNull()
+    .references(() => equipment.id),
   currentAgeDays: real("current_age_days").notNull(),
   sampleData: jsonb("sample_data").notNull(),
   shapeParameter: real("shape_parameter").notNull(),
@@ -182,8 +227,12 @@ export const weibullEstimates = pgTable("weibull_estimates", {
 export const pdmBaseline = pgTable(
   "pdm_baseline",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     vesselName: text("vessel_name").notNull(),
     assetId: text("asset_id").notNull(),
     assetClass: text("asset_class").notNull(),
@@ -194,7 +243,12 @@ export const pdmBaseline = pgTable(
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({
-    uniqueVesselAssetFeature: unique().on(table.orgId, table.vesselName, table.assetId, table.feature),
+    uniqueVesselAssetFeature: unique().on(
+      table.orgId,
+      table.vesselName,
+      table.assetId,
+      table.feature
+    ),
   })
 );
 
@@ -202,8 +256,12 @@ export const pdmBaseline = pgTable(
 export const pdmAlerts = pgTable(
   "pdm_alerts",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     at: timestamp("at", { mode: "date" }).defaultNow(),
     vesselName: text("vessel_name").notNull(),
     assetId: text("asset_id").notNull(),
@@ -395,8 +453,7 @@ export const modelDeployments = pgTable(
     modelId: varchar("model_id")
       .notNull()
       .references(() => mlModels.id, { onDelete: "cascade" }),
-    modelVersionId: varchar("model_version_id")
-      .references(() => modelVersions.id),
+    modelVersionId: varchar("model_version_id").references(() => modelVersions.id),
     deploymentTarget: varchar("deployment_target").notNull(),
     deploymentStatus: varchar("deployment_status").notNull().default("pending"),
     trafficPercentage: integer("traffic_percentage").default(100),
@@ -692,9 +749,15 @@ export const predictionDataQuality = pgTable(
 export const inferenceRuns = pgTable(
   "inference_runs",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    equipmentId: varchar("equipment_id").notNull().references(() => equipment.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    equipmentId: varchar("equipment_id")
+      .notNull()
+      .references(() => equipment.id),
     modelVersionId: varchar("model_version_id").references(() => modelVersions.id),
     startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
@@ -716,9 +779,13 @@ export const inferenceRuns = pgTable(
 export const predictionExplanations = pgTable(
   "prediction_explanations",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
     predictionId: integer("prediction_id").notNull(),
-    inferenceRunId: varchar("inference_run_id").references(() => inferenceRuns.id, { onDelete: "cascade" }),
+    inferenceRunId: varchar("inference_run_id").references(() => inferenceRuns.id, {
+      onDelete: "cascade",
+    }),
     featureName: varchar("feature_name", { length: 100 }).notNull(),
     importance: real("importance").notNull(),
     featureValue: real("feature_value"),
@@ -737,9 +804,15 @@ export const predictionExplanations = pgTable(
 export const modelDriftMetrics = pgTable(
   "model_drift_metrics",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    modelVersionId: varchar("model_version_id").notNull().references(() => modelVersions.id, { onDelete: "cascade" }),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    modelVersionId: varchar("model_version_id")
+      .notNull()
+      .references(() => modelVersions.id, { onDelete: "cascade" }),
     featureName: varchar("feature_name", { length: 100 }).notNull(),
     trainingMean: real("training_mean").notNull(),
     trainingStd: real("training_std"),
@@ -759,35 +832,94 @@ export const modelDriftMetrics = pgTable(
 
 // Insert schemas
 export const insertInferenceRunSchema = createInsertSchema(inferenceRuns).omit({ id: true });
-export const insertPredictionExplanationSchema = createInsertSchema(predictionExplanations).omit({ id: true, createdAt: true });
-export const insertModelDriftMetricSchema = createInsertSchema(modelDriftMetrics).omit({ id: true, computedAt: true });
-export const insertModelPerformanceValidationSchema = createInsertSchema(modelPerformanceValidations).omit({ id: true, createdAt: true });
-export const insertPredictionFeedbackSchema = createInsertSchema(predictionFeedback).omit({ id: true, createdAt: true });
-export const insertVibrationFeatureSchema = createInsertSchema(vibrationFeatures).omit({ id: true, createdAt: true });
-export const insertRulModelSchema = createInsertSchema(rulModels).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPredictionExplanationSchema = createInsertSchema(predictionExplanations).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertModelDriftMetricSchema = createInsertSchema(modelDriftMetrics).omit({
+  id: true,
+  computedAt: true,
+});
+export const insertModelPerformanceValidationSchema = createInsertSchema(
+  modelPerformanceValidations
+).omit({ id: true, createdAt: true });
+export const insertPredictionFeedbackSchema = createInsertSchema(predictionFeedback).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertVibrationFeatureSchema = createInsertSchema(vibrationFeatures).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertRulModelSchema = createInsertSchema(rulModels).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 export const insertRulFitHistorySchema = createInsertSchema(rulFitHistory).omit({ id: true });
-export const insertVibrationAnalysisSchema = createInsertSchema(vibrationAnalysis).omit({ id: true, createdAt: true });
-export const insertWeibullEstimateSchema = createInsertSchema(weibullEstimates).omit({ id: true, createdAt: true });
-export const insertPdmBaselineSchema = createInsertSchema(pdmBaseline).omit({ id: true, updatedAt: true });
+export const insertVibrationAnalysisSchema = createInsertSchema(vibrationAnalysis).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertWeibullEstimateSchema = createInsertSchema(weibullEstimates).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertPdmBaselineSchema = createInsertSchema(pdmBaseline).omit({
+  id: true,
+  updatedAt: true,
+});
 export const insertPdmAlertSchema = createInsertSchema(pdmAlerts).omit({ id: true, at: true });
-export const insertRealTimePredictionSchema = createInsertSchema(realTimePredictions).omit({ id: true });
-export const insertFeatureImportanceSchema = createInsertSchema(featureImportances).omit({ id: true });
-export const insertSensorFusionSnapshotSchema = createInsertSchema(sensorFusionSnapshots).omit({ id: true });
+export const insertRealTimePredictionSchema = createInsertSchema(realTimePredictions).omit({
+  id: true,
+});
+export const insertFeatureImportanceSchema = createInsertSchema(featureImportances).omit({
+  id: true,
+});
+export const insertSensorFusionSnapshotSchema = createInsertSchema(sensorFusionSnapshots).omit({
+  id: true,
+});
 export const insertAcousticEventSchema = createInsertSchema(acousticEvents).omit({ id: true });
 export const insertModelDeploymentSchema = createInsertSchema(modelDeployments).omit({ id: true });
 export const insertLlmBudgetConfigSchema = createInsertSchema(llmBudgetConfigs).omit({ id: true });
-export const insertRetrainingTriggerSchema = createInsertSchema(retrainingTriggers).omit({ id: true });
-export const insertDigitalTwinSchema = createInsertSchema(digitalTwins).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertRetrainingTriggerSchema = createInsertSchema(retrainingTriggers).omit({
+  id: true,
+});
+export const insertDigitalTwinSchema = createInsertSchema(digitalTwins).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 export const insertTwinSimulationSchema = createInsertSchema(twinSimulations).omit({ id: true });
-export const insertVisualizationAssetSchema = createInsertSchema(visualizationAssets).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertArMaintenanceProcedureSchema = createInsertSchema(arMaintenanceProcedures).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertModelRegistrySchema = createInsertSchema(modelRegistry).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertMlModelAccuracyHistorySchema = createInsertSchema(mlModelAccuracyHistory).omit({ id: true, createdAt: true });
-export const insertPredictionDataQualitySchema = createInsertSchema(predictionDataQuality).omit({ id: true, createdAt: true });
+export const insertVisualizationAssetSchema = createInsertSchema(visualizationAssets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export const insertArMaintenanceProcedureSchema = createInsertSchema(arMaintenanceProcedures).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export const insertModelRegistrySchema = createInsertSchema(modelRegistry).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export const insertMlModelAccuracyHistorySchema = createInsertSchema(mlModelAccuracyHistory).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertPredictionDataQualitySchema = createInsertSchema(predictionDataQuality).omit({
+  id: true,
+  createdAt: true,
+});
 
 // Types
 export type ModelPerformanceValidation = typeof modelPerformanceValidations.$inferSelect;
-export type InsertModelPerformanceValidation = z.infer<typeof insertModelPerformanceValidationSchema>;
+export type InsertModelPerformanceValidation = z.infer<
+  typeof insertModelPerformanceValidationSchema
+>;
 export type PredictionFeedback = typeof predictionFeedback.$inferSelect;
 export type InsertPredictionFeedback = z.infer<typeof insertPredictionFeedbackSchema>;
 export type VibrationFeature = typeof vibrationFeatures.$inferSelect;

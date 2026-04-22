@@ -29,11 +29,12 @@ interface PdmGapFillDeps {
 export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): void {
   const { db, generalApiRateLimit, writeOperationRateLimit, wsServer } = deps;
 
-  app.post("/api/ml/calibration/fit", writeOperationRateLimit,
+  app.post(
+    "/api/ml/calibration/fit",
+    writeOperationRateLimit,
     withErrorHandling("fit calibration model", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { modelId, method } = req.body;
-
 
       const calibrator = new PredictionCalibrator(db);
 
@@ -52,20 +53,24 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
         dataPoints: result.dataPointCount,
         metrics: result.metrics,
         improvement: {
-          brierScoreReduction: (result.metrics.brierScoreBefore - result.metrics.brierScoreAfter).toFixed(4),
-          percentImprovement: result.metrics.brierScoreBefore > 0
-            ? `${((1 - result.metrics.brierScoreAfter / result.metrics.brierScoreBefore) * 100).toFixed(1)  }%`
-            : "N/A",
+          brierScoreReduction: (
+            result.metrics.brierScoreBefore - result.metrics.brierScoreAfter
+          ).toFixed(4),
+          percentImprovement:
+            result.metrics.brierScoreBefore > 0
+              ? `${((1 - result.metrics.brierScoreAfter / result.metrics.brierScoreBefore) * 100).toFixed(1)}%`
+              : "N/A",
         },
       });
     })
   );
 
-  app.get("/api/ml/calibration/report", generalApiRateLimit,
+  app.get(
+    "/api/ml/calibration/report",
+    generalApiRateLimit,
     withErrorHandling("get calibration report", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const modelId = req.query.modelId as string | undefined;
-
 
       const calibrator = new PredictionCalibrator(db);
 
@@ -81,14 +86,17 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     })
   );
 
-  app.post("/api/ml/outcomes/evaluate", writeOperationRateLimit,
+  app.post(
+    "/api/ml/outcomes/evaluate",
+    writeOperationRateLimit,
     withErrorHandling("evaluate prediction outcomes", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
 
-
       const tracker = new PredictionOutcomeTracker(db, {
-        getWorkOrders: (equipmentId, orgId) => workOrderService.getWorkOrdersWithDetails(equipmentId, orgId),
-        getAlertNotifications: (acknowledged, orgId) => dbAlertStorage.getAlertNotifications(acknowledged, orgId),
+        getWorkOrders: (equipmentId, orgId) =>
+          workOrderService.getWorkOrdersWithDetails(equipmentId, orgId),
+        getAlertNotifications: (acknowledged, orgId) =>
+          dbAlertStorage.getAlertNotifications(acknowledged, orgId),
       });
 
       const report = await tracker.evaluatePredictions(orgId);
@@ -97,13 +105,13 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     })
   );
 
-  app.get("/api/analytics/anomaly-groups", generalApiRateLimit,
+  app.get(
+    "/api/analytics/anomaly-groups",
+    generalApiRateLimit,
     withErrorHandling("get correlated anomaly groups", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const equipmentId = req.query.equipmentId as string | undefined;
       const includeAcknowledged = req.query.includeAcknowledged === "true";
-
-
 
       const correlator = new AnomalyCorrelator(dbMlAnalyticsStorage);
 
@@ -116,11 +124,12 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     })
   );
 
-  app.post("/api/telemetry/aggregation/run", writeOperationRateLimit,
+  app.post(
+    "/api/telemetry/aggregation/run",
+    writeOperationRateLimit,
     withErrorHandling("run telemetry aggregation", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { lookbackHours = 2 } = req.body;
-
 
       const aggregator = new TelemetryAggregator(db);
 
@@ -133,18 +142,28 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     })
   );
 
-  app.get("/api/telemetry/aggregated/:equipmentId/:sensorType", generalApiRateLimit,
+  app.get(
+    "/api/telemetry/aggregated/:equipmentId/:sensorType",
+    generalApiRateLimit,
     withErrorHandling("query aggregated telemetry", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { equipmentId, sensorType } = req.params;
-      const startDate = new Date(req.query.startDate as string || Date.now() - 24 * 60 * 60 * 1000);
-      const endDate = new Date(req.query.endDate as string || Date.now());
+      const startDate = new Date(
+        (req.query.startDate as string) || Date.now() - 24 * 60 * 60 * 1000
+      );
+      const endDate = new Date((req.query.endDate as string) || Date.now());
       const bucket = req.query.bucket as any;
-
 
       const aggregator = new TelemetryAggregator(db);
 
-      const data = await aggregator.queryAggregated(orgId, equipmentId, sensorType, startDate, endDate, bucket);
+      const data = await aggregator.queryAggregated(
+        orgId,
+        equipmentId,
+        sensorType,
+        startDate,
+        endDate,
+        bucket
+      );
 
       res.json({
         equipmentId,
@@ -157,7 +176,9 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     })
   );
 
-  app.post("/api/ml/evaluate-model", writeOperationRateLimit,
+  app.post(
+    "/api/ml/evaluate-model",
+    writeOperationRateLimit,
     withErrorHandling("evaluate model for deployment", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { modelId, testData, thresholds } = req.body;
@@ -171,7 +192,6 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
           message: "testData array is required with {features, label} objects",
         });
       }
-
 
       const gate = new ModelEvaluationGate(db, thresholds);
 
@@ -187,7 +207,9 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     })
   );
 
-  app.post("/api/ml/train/async", writeOperationRateLimit,
+  app.post(
+    "/api/ml/train/async",
+    writeOperationRateLimit,
     withErrorHandling("enqueue ML training job", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { modelType = "all", equipmentType, config = {} } = req.body;
@@ -199,9 +221,6 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
       }
 
       try {
-
-
-
         const boss = jobQueueService.getBoss();
         if (!boss) {
           return res.status(503).json({ message: "Job queue not initialized" });
@@ -236,15 +255,14 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     })
   );
 
-  app.get("/api/ml/train/status/:jobId", generalApiRateLimit,
+  app.get(
+    "/api/ml/train/status/:jobId",
+    generalApiRateLimit,
     withErrorHandling("get training job status", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { jobId } = req.params;
 
       try {
-
-
-
         const boss = jobQueueService.getBoss();
         if (!boss) {
           return res.status(503).json({ message: "Job queue not initialized" });
@@ -268,14 +286,13 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     })
   );
 
-  app.get("/api/ml/train/jobs", generalApiRateLimit,
+  app.get(
+    "/api/ml/train/jobs",
+    generalApiRateLimit,
     withErrorHandling("list training jobs", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
 
       try {
-
-
-
         const boss = jobQueueService.getBoss();
         if (!boss) {
           return res.json({ jobs: [], count: 0, note: "Job queue not initialized" });
@@ -293,7 +310,6 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
 
   (async () => {
     try {
-
       const aggregator = new TelemetryAggregator(db);
       await aggregator.ensureTable();
     } catch (err) {
@@ -301,5 +317,8 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     }
   })();
 
-  logger.info(LOG_CTX, "Registered (calibration: 2, outcomes: 1, anomaly-groups: 1, aggregation: 2, evaluation: 1, training-queue: 3)");
+  logger.info(
+    LOG_CTX,
+    "Registered (calibration: 2, outcomes: 1, anomaly-groups: 1, aggregation: 2, evaluation: 1, training-queue: 3)"
+  );
 }

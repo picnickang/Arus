@@ -18,7 +18,10 @@ export function calculateDtcHealthImpact(activeDtcs: DtcWithDefinition[]): numbe
   return Math.min(healthPenalty, 100);
 }
 
-export async function getDtcSummaryForReports(equipmentId: string, orgId: string): Promise<DtcSummary> {
+export async function getDtcSummaryForReports(
+  equipmentId: string,
+  orgId: string
+): Promise<DtcSummary> {
   const dtcs = await dbDtcStorage.getActiveDtcs(equipmentId, orgId);
 
   const criticalCount = dtcs.filter((d) => d.definition?.severity === 1).length;
@@ -30,20 +33,35 @@ export async function getDtcSummaryForReports(equipmentId: string, orgId: string
     .sort((a, b) => {
       const sevA = a.definition?.severity ?? 999;
       const sevB = b.definition?.severity ?? 999;
-      if (sevA !== sevB) { return sevA - sevB; }
+      if (sevA !== sevB) {
+        return sevA - sevB;
+      }
       return b.oc - a.oc;
     })
     .slice(0, 5)
     .map((d) => ({
-      spn: d.spn, fmi: d.fmi, description: d.definition?.description ?? "Unknown fault",
-      severity: d.definition?.severity ?? 0, oc: d.oc,
+      spn: d.spn,
+      fmi: d.fmi,
+      description: d.definition?.description ?? "Unknown fault",
+      severity: d.definition?.severity ?? 0,
+      oc: d.oc,
     }));
 
-  return { activeDtcCount: dtcs.length, criticalCount, highCount, moderateCount, lowCount, topDtcs };
+  return {
+    activeDtcCount: dtcs.length,
+    criticalCount,
+    highCount,
+    moderateCount,
+    lowCount,
+    topDtcs,
+  };
 }
 
-export async function calculateDtcFinancialImpact(vesselId: string, orgId: string): Promise<DtcFinancialImpact> {
-  const vesselEquipment = await dbEquipmentStorage.getEquipmentByVessel(vesselId, orgId || '');
+export async function calculateDtcFinancialImpact(
+  vesselId: string,
+  orgId: string
+): Promise<DtcFinancialImpact> {
+  const vesselEquipment = await dbEquipmentStorage.getEquipmentByVessel(vesselId, orgId || "");
   let totalDowntimeHours = 0;
   let criticalDtcCount = 0;
 
@@ -52,7 +70,9 @@ export async function calculateDtcFinancialImpact(vesselId: string, orgId: strin
     criticalDtcCount += dtcs.filter((d) => d.definition?.severity === 1).length;
 
     const eqWorkOrders = await workOrderService.getWorkOrdersWithDetails(eq.id);
-    const dtcWorkOrders = eqWorkOrders.filter((wo) => wo.reason?.includes("DTC Fault") && wo.affectsVesselDowntime);
+    const dtcWorkOrders = eqWorkOrders.filter(
+      (wo) => wo.reason?.includes("DTC Fault") && wo.affectsVesselDowntime
+    );
 
     for (const wo of dtcWorkOrders) {
       totalDowntimeHours += wo.actualDowntimeHours ?? wo.estimatedDowntimeHours ?? 0;

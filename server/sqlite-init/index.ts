@@ -1,6 +1,6 @@
 /**
  * SQLite Init Domain Organization
- * 
+ *
  * This module provides a manifest of all 142+ tables organized by domain
  * for the SQLite database initialization (vessel offline mode), including
  * inventory schema migration for aligning column names with PostgreSQL.
@@ -8,7 +8,16 @@
 
 export type { SqliteDomainDefinition, SqliteDomainMap } from "./types.js";
 export { SqliteDomains, type SqliteDomainName } from "./manifest.js";
-export { getTableCount, getIndexCount, getTablesByDomain, findTableDomain, getAllTables, getAllIndexes, getDomainSummary, validateManifest } from "./helpers.js";
+export {
+  getTableCount,
+  getIndexCount,
+  getTablesByDomain,
+  findTableDomain,
+  getAllTables,
+  getAllIndexes,
+  getDomainSummary,
+  validateManifest,
+} from "./helpers.js";
 
 import type { Client as LibsqlClient } from "@libsql/client";
 import { getAllTablesSql, getAllIndexesSql } from "../sqlite/index.js";
@@ -16,10 +25,14 @@ import { getAllTablesSql, getAllIndexesSql } from "../sqlite/index.js";
 let _initialized = false;
 
 export async function isSqliteDatabaseInitialized(): Promise<boolean> {
-  if (_initialized) {return true;}
+  if (_initialized) {
+    return true;
+  }
   try {
     const { libsqlClient } = await import("../db-config.js");
-    if (!libsqlClient) {return false;}
+    if (!libsqlClient) {
+      return false;
+    }
     const result = await libsqlClient.execute(
       "SELECT name FROM sqlite_master WHERE type='table' AND name='parts_inventory'"
     );
@@ -55,12 +68,22 @@ async function getTableColumns(client: LibsqlClient, tableName: string): Promise
   return result.rows.map((r) => String(r.name));
 }
 
-async function safeRenameColumn(client: LibsqlClient, table: string, oldCol: string, newCol: string): Promise<void> {
+async function safeRenameColumn(
+  client: LibsqlClient,
+  table: string,
+  oldCol: string,
+  newCol: string
+): Promise<void> {
   await client.execute(`ALTER TABLE ${table} RENAME COLUMN ${oldCol} TO ${newCol}`);
   console.log(`  ✓ Renamed ${table}.${oldCol} → ${newCol}`);
 }
 
-async function backfillFromLegacy(client: LibsqlClient, table: string, oldCol: string, newCol: string): Promise<void> {
+async function backfillFromLegacy(
+  client: LibsqlClient,
+  table: string,
+  oldCol: string,
+  newCol: string
+): Promise<void> {
   const result = await client.execute(
     `UPDATE ${table} SET ${newCol} = ${oldCol} WHERE ${newCol} IS NULL OR ${newCol} = '' OR ${newCol} = 0`
   );
@@ -70,12 +93,19 @@ async function backfillFromLegacy(client: LibsqlClient, table: string, oldCol: s
   }
 }
 
-async function safeAddColumn(client: LibsqlClient, table: string, col: string, definition: string): Promise<void> {
+async function safeAddColumn(
+  client: LibsqlClient,
+  table: string,
+  col: string,
+  definition: string
+): Promise<void> {
   try {
     await client.execute(`ALTER TABLE ${table} ADD COLUMN ${col} ${definition}`);
     console.log(`  ✓ Added ${table}.${col}`);
   } catch (error) {
-    if (error instanceof Error && error.message.includes("duplicate column")) {return;}
+    if (error instanceof Error && error.message.includes("duplicate column")) {
+      return;
+    }
     throw error;
   }
 }
@@ -91,7 +121,9 @@ export async function applyInventoryMigrations(): Promise<void> {
 
 async function runInventoryMigrations(client: LibsqlClient): Promise<void> {
   const piCols = await getTableColumns(client, "parts_inventory");
-  if (!piCols.length) {return;}
+  if (!piCols.length) {
+    return;
+  }
 
   const migrationErrors: string[] = [];
 
@@ -127,10 +159,20 @@ async function runInventoryMigrations(client: LibsqlClient): Promise<void> {
     }
 
     if (!piCols.includes("quantity_on_hand")) {
-      await safeAddColumn(client, "parts_inventory", "quantity_on_hand", "INTEGER NOT NULL DEFAULT 0");
+      await safeAddColumn(
+        client,
+        "parts_inventory",
+        "quantity_on_hand",
+        "INTEGER NOT NULL DEFAULT 0"
+      );
     }
     if (!piCols.includes("quantity_reserved")) {
-      await safeAddColumn(client, "parts_inventory", "quantity_reserved", "INTEGER NOT NULL DEFAULT 0");
+      await safeAddColumn(
+        client,
+        "parts_inventory",
+        "quantity_reserved",
+        "INTEGER NOT NULL DEFAULT 0"
+      );
     }
     if (!piCols.includes("min_stock_level")) {
       await safeAddColumn(client, "parts_inventory", "min_stock_level", "INTEGER DEFAULT 1");
@@ -151,11 +193,15 @@ async function runInventoryMigrations(client: LibsqlClient): Promise<void> {
       await safeAddColumn(client, "parts_inventory", "location", "TEXT");
     }
   } catch (error) {
-    migrationErrors.push(`parts_inventory: ${error instanceof Error ? error.message : String(error)}`);
+    migrationErrors.push(
+      `parts_inventory: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 
   const stockCols = await getTableColumns(client, "stock");
-  if (!stockCols.length) {return;}
+  if (!stockCols.length) {
+    return;
+  }
 
   try {
     if (stockCols.includes("quantity") && !stockCols.includes("quantity_on_hand")) {
@@ -198,13 +244,19 @@ async function runInventoryMigrations(client: LibsqlClient): Promise<void> {
       }
       if (!poiCols.includes("org_id")) {
         await safeAddColumn(client, "purchase_order_items", "org_id", "TEXT NOT NULL DEFAULT ''");
-        const poIdCol = poiCols.includes("po_id") ? "po_id" : (poiCols.includes("purchase_order_id") ? "purchase_order_id" : null);
+        const poIdCol = poiCols.includes("po_id")
+          ? "po_id"
+          : poiCols.includes("purchase_order_id")
+            ? "purchase_order_id"
+            : null;
         if (poIdCol) {
           const backfilled = await client.execute(
             `UPDATE purchase_order_items SET org_id = (SELECT po.org_id FROM purchase_orders po WHERE po.id = purchase_order_items.${poIdCol}) WHERE org_id = ''`
           );
           if (backfilled.rowsAffected > 0) {
-            console.log(`  ✓ Backfilled ${backfilled.rowsAffected} purchase_order_items.org_id from purchase_orders`);
+            console.log(
+              `  ✓ Backfilled ${backfilled.rowsAffected} purchase_order_items.org_id from purchase_orders`
+            );
           }
         }
       }
@@ -212,7 +264,9 @@ async function runInventoryMigrations(client: LibsqlClient): Promise<void> {
         await safeAddColumn(client, "purchase_order_items", "po_id", "TEXT NOT NULL DEFAULT ''");
       }
     } catch (error) {
-      migrationErrors.push(`purchase_order_items: ${error instanceof Error ? error.message : String(error)}`);
+      migrationErrors.push(
+        `purchase_order_items: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -227,28 +281,41 @@ async function runInventoryMigrations(client: LibsqlClient): Promise<void> {
 
 async function verifyInventorySchema(client: LibsqlClient): Promise<void> {
   const requiredPiCols = [
-    "quantity_on_hand", "quantity_reserved", "min_stock_level", "max_stock_level", "part_name"
+    "quantity_on_hand",
+    "quantity_reserved",
+    "min_stock_level",
+    "max_stock_level",
+    "part_name",
   ];
   const requiredStockCols = [
-    "quantity_on_hand", "quantity_reserved", "quantity_on_order", "part_no"
+    "quantity_on_hand",
+    "quantity_reserved",
+    "quantity_on_order",
+    "part_no",
   ];
 
   const requiredPoiCols = ["org_id", "po_id"];
 
   const piCols = await getTableColumns(client, "parts_inventory");
-  const missingPi = requiredPiCols.filter(c => !piCols.includes(c));
+  const missingPi = requiredPiCols.filter((c) => !piCols.includes(c));
 
   const stockCols = await getTableColumns(client, "stock");
-  const missingStock = requiredStockCols.filter(c => !stockCols.includes(c));
+  const missingStock = requiredStockCols.filter((c) => !stockCols.includes(c));
 
   const poiCols = await getTableColumns(client, "purchase_order_items");
-  const missingPoi = poiCols.length ? requiredPoiCols.filter(c => !poiCols.includes(c)) : [];
+  const missingPoi = poiCols.length ? requiredPoiCols.filter((c) => !poiCols.includes(c)) : [];
 
   if (missingPi.length > 0 || missingStock.length > 0 || missingPoi.length > 0) {
     const details: string[] = [];
-    if (missingPi.length) {details.push(`parts_inventory missing: ${missingPi.join(", ")}`);}
-    if (missingStock.length) {details.push(`stock missing: ${missingStock.join(", ")}`);}
-    if (missingPoi.length) {details.push(`purchase_order_items missing: ${missingPoi.join(", ")}`);}
+    if (missingPi.length) {
+      details.push(`parts_inventory missing: ${missingPi.join(", ")}`);
+    }
+    if (missingStock.length) {
+      details.push(`stock missing: ${missingStock.join(", ")}`);
+    }
+    if (missingPoi.length) {
+      details.push(`purchase_order_items missing: ${missingPoi.join(", ")}`);
+    }
     const msg = `Inventory schema verification FAILED:\n  ${details.join("\n  ")}`;
     console.error(msg);
     throw new Error(msg);
@@ -260,18 +327,26 @@ async function verifyInventorySchema(client: LibsqlClient): Promise<void> {
     );
     const count = Number(orphaned.rows[0]?.cnt ?? 0);
     if (count > 0) {
-      console.warn(`⚠ ${count} purchase_order_items rows have empty org_id — tenant isolation incomplete`);
+      console.warn(
+        `⚠ ${count} purchase_order_items rows have empty org_id — tenant isolation incomplete`
+      );
     }
   }
 
   const legacyPiCols = ["min_quantity", "current_quantity", "reorder_level", "reorder_quantity"];
-  const stalepi = legacyPiCols.filter(c => piCols.includes(c));
+  const stalepi = legacyPiCols.filter((c) => piCols.includes(c));
   const legacyStockCols = ["quantity"];
-  const staleStock = legacyStockCols.filter(c => stockCols.includes(c) && c !== "quantity_on_hand");
+  const staleStock = legacyStockCols.filter(
+    (c) => stockCols.includes(c) && c !== "quantity_on_hand"
+  );
 
   if (stalepi.length > 0 || staleStock.length > 0) {
-    console.warn(`⚠ Legacy columns still present (will not be used by Drizzle):`,
-      [...stalepi.map(c => `parts_inventory.${c}`), ...staleStock.map(c => `stock.${c}`)].join(", "));
+    console.warn(
+      `⚠ Legacy columns still present (will not be used by Drizzle):`,
+      [...stalepi.map((c) => `parts_inventory.${c}`), ...staleStock.map((c) => `stock.${c}`)].join(
+        ", "
+      )
+    );
   }
 
   console.log("✓ Inventory schema verification passed");

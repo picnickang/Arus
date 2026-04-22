@@ -5,8 +5,8 @@
 import type { WorkOrder } from "@shared/schema";
 import type { EquipmentHealth } from "../db/equipment/types.js";
 
-import type { ComplianceDeps, ReportingPeriod, RegulatoryFramework } from './types';
-import { FRAMEWORK_STANDARDS } from './types';
+import type { ComplianceDeps, ReportingPeriod, RegulatoryFramework } from "./types";
+import { FRAMEWORK_STANDARDS } from "./types";
 import {
   createWorkbook,
   addSheet,
@@ -15,7 +15,7 @@ import {
   countByStatus,
   getComplianceStatus,
   buildStandardsSheet,
-} from './utils';
+} from "./utils";
 
 export async function generateRegulatoryComplianceExcel(
   storage: ComplianceDeps,
@@ -28,7 +28,7 @@ export async function generateRegulatoryComplianceExcel(
     `[Compliance Excel] Generating regulatory compliance for framework: ${regulatoryFramework}`
   );
 
-  const standardCodes = FRAMEWORK_STANDARDS[regulatoryFramework] || ['ABS-A1-MACHINERY'];
+  const standardCodes = FRAMEWORK_STANDARDS[regulatoryFramework] || ["ABS-A1-MACHINERY"];
 
   const equipmentHealth = await storage.getEquipmentHealth(orgId);
   const filteredEquipment =
@@ -59,62 +59,62 @@ function renderRegulatoryExcel(
   const summaryData: any[][] = [
     [`${framework} REGULATORY COMPLIANCE REPORT`],
     [],
-    ['Report Details'],
-    ['Framework', framework],
-    ['Generated', new Date().toISOString()],
+    ["Report Details"],
+    ["Framework", framework],
+    ["Generated", new Date().toISOString()],
     [],
-    ['Period'],
-    ['Start', formatDate(period.startDate)],
-    ['End', formatDate(period.endDate)],
+    ["Period"],
+    ["Start", formatDate(period.startDate)],
+    ["End", formatDate(period.endDate)],
     [],
-    ['Equipment Compliance Status'],
-    ['Total Equipment', equipment.length],
-    ['Healthy (Compliant)', counts.healthy],
-    ['Warning (Review Required)', counts.warning],
-    ['Critical (Non-Compliant)', counts.critical],
+    ["Equipment Compliance Status"],
+    ["Total Equipment", equipment.length],
+    ["Healthy (Compliant)", counts.healthy],
+    ["Warning (Review Required)", counts.warning],
+    ["Critical (Non-Compliant)", counts.critical],
   ];
 
-  addSheet(workbook, summaryData, 'Summary');
+  addSheet(workbook, summaryData, "Summary");
 
   const matrixData: any[][] = [
-    ['COMPLIANCE MATRIX'],
+    ["COMPLIANCE MATRIX"],
     [],
-    ['Equipment ID', 'Name', 'Type', 'Status', 'Health Score', 'Compliance Status'],
+    ["Equipment ID", "Name", "Type", "Status", "Health Score", "Compliance Status"],
   ];
 
   for (const eq of equipment) {
     matrixData.push([
       eq.id,
-      eq.name ?? '',
-      eq.type ?? '',
-      eq.status ?? '',
+      eq.name ?? "",
+      eq.type ?? "",
+      eq.status ?? "",
       eq.healthIndex ?? 0,
       getComplianceStatus(eq.status),
     ]);
   }
 
-  addSheet(workbook, matrixData, 'Compliance Matrix');
+  addSheet(workbook, matrixData, "Compliance Matrix");
 
   const woData: any[][] = [
-    ['MAINTENANCE HISTORY'],
+    ["MAINTENANCE HISTORY"],
     [],
-    ['WO Number', 'Equipment', 'Type', 'Priority', 'Status', 'Created', 'Description'],
+    ["WO Number", "Equipment", "Type", "Priority", "Status", "Created", "Description"],
   ];
 
   for (const wo of workOrders) {
     woData.push([
       wo.workOrderNumber ?? wo.id,
-      wo.equipmentId ?? '',
-      wo.maintenanceType ?? '',
-      wo.priority ?? '',
-      wo.status ?? '',
+      wo.equipmentId ?? "",
+      wo.maintenanceType ?? "",
+      wo.priority ?? "",
+      wo.status ?? "",
       formatDate(wo.createdAt),
-      wo.description ?? '',
+      wo.description ?? "",
     ]);
   }
 
-  addSheet(workbook, woData, 'Maintenance History');
-  addSheet(workbook, buildStandardsSheet(standardCodes), 'Standards');
+  addSheet(workbook, woData, "Maintenance History");
+  addSheet(workbook, buildStandardsSheet(standardCodes), "Standards");
 
   return writeWorkbook(workbook);
 }

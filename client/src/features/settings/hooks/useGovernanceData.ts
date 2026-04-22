@@ -4,8 +4,20 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { LineageRecord, ProvenanceEvent, VerificationResult } from "../lib/governanceUtils";
 
-export interface LineageFilters { family: string; stage: string; profile: string; fromDate: string; toDate: string; }
-export interface ProvenanceFilters { type: string; modelId: string; fromDate: string; toDate: string; limit: number; }
+export interface LineageFilters {
+  family: string;
+  stage: string;
+  profile: string;
+  fromDate: string;
+  toDate: string;
+}
+export interface ProvenanceFilters {
+  type: string;
+  modelId: string;
+  fromDate: string;
+  toDate: string;
+  limit: number;
+}
 
 export function useGovernanceData() {
   const { toast } = useToast();
@@ -13,47 +25,106 @@ export function useGovernanceData() {
   const [selectedModel, setSelectedModel] = useState<LineageRecord | null>(null);
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
   const [comparisonModel, setComparisonModel] = useState<LineageRecord | null>(null);
-  const [lineageFilters, setLineageFilters] = useState<LineageFilters>({ family: "", stage: "", profile: "", fromDate: "", toDate: "" });
-  const [provenanceFilters, setProvenanceFilters] = useState<ProvenanceFilters>({ type: "", modelId: "", fromDate: "", toDate: "", limit: 100 });
+  const [lineageFilters, setLineageFilters] = useState<LineageFilters>({
+    family: "",
+    stage: "",
+    profile: "",
+    fromDate: "",
+    toDate: "",
+  });
+  const [provenanceFilters, setProvenanceFilters] = useState<ProvenanceFilters>({
+    type: "",
+    modelId: "",
+    fromDate: "",
+    toDate: "",
+    limit: 100,
+  });
 
-  const { data: lineageData, isLoading: isLoadingLineage, refetch: refetchLineage } = useQuery<{ success: boolean; count: number; records: LineageRecord[] }>({
+  const {
+    data: lineageData,
+    isLoading: isLoadingLineage,
+    refetch: refetchLineage,
+  } = useQuery<{ success: boolean; count: number; records: LineageRecord[] }>({
     queryKey: ["/api/governance/model/lineage", lineageFilters],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (lineageFilters.family) {params.set("family", lineageFilters.family);}
-      if (lineageFilters.stage) {params.set("stage", lineageFilters.stage);}
-      if (lineageFilters.profile) {params.set("profile", lineageFilters.profile);}
-      if (lineageFilters.fromDate) {params.set("from", lineageFilters.fromDate);}
-      if (lineageFilters.toDate) {params.set("to", lineageFilters.toDate);}
+      if (lineageFilters.family) {
+        params.set("family", lineageFilters.family);
+      }
+      if (lineageFilters.stage) {
+        params.set("stage", lineageFilters.stage);
+      }
+      if (lineageFilters.profile) {
+        params.set("profile", lineageFilters.profile);
+      }
+      if (lineageFilters.fromDate) {
+        params.set("from", lineageFilters.fromDate);
+      }
+      if (lineageFilters.toDate) {
+        params.set("to", lineageFilters.toDate);
+      }
       const res = await apiRequest("GET", `/api/governance/model/lineage?${params.toString()}`);
-      if (!res.ok) { const errorData = await res.json().catch(() => ({})); throw new Error(errorData.error || "Failed to fetch lineage records"); }
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to fetch lineage records");
+      }
       return res.json();
     },
   });
 
-  const { data: provenanceData, isLoading: isLoadingProvenance, refetch: refetchProvenance } = useQuery<{ success: boolean; events: ProvenanceEvent[]; total: number }>({
+  const {
+    data: provenanceData,
+    isLoading: isLoadingProvenance,
+    refetch: refetchProvenance,
+  } = useQuery<{ success: boolean; events: ProvenanceEvent[]; total: number }>({
     queryKey: ["/api/governance/provenance/events", provenanceFilters],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (provenanceFilters.type) {params.set("type", provenanceFilters.type);}
-      if (provenanceFilters.modelId) {params.set("modelId", provenanceFilters.modelId);}
-      if (provenanceFilters.fromDate) {params.set("from", provenanceFilters.fromDate);}
-      if (provenanceFilters.toDate) {params.set("to", provenanceFilters.toDate);}
+      if (provenanceFilters.type) {
+        params.set("type", provenanceFilters.type);
+      }
+      if (provenanceFilters.modelId) {
+        params.set("modelId", provenanceFilters.modelId);
+      }
+      if (provenanceFilters.fromDate) {
+        params.set("from", provenanceFilters.fromDate);
+      }
+      if (provenanceFilters.toDate) {
+        params.set("to", provenanceFilters.toDate);
+      }
       params.set("limit", String(provenanceFilters.limit));
       const res = await apiRequest("GET", `/api/governance/provenance/events?${params.toString()}`);
-      if (!res.ok) { const errorData = await res.json().catch(() => ({})); throw new Error(errorData.error || "Failed to fetch provenance events"); }
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to fetch provenance events");
+      }
       return res.json();
     },
     enabled: activeTab === "provenance",
   });
 
   const verifyChainMutation = useMutation({
-    mutationFn: async () => { const res = await apiRequest("POST", "/api/governance/provenance/verify", {}); return res.json(); },
-    onSuccess: (data: { success: boolean; verification: VerificationResult }) => {
-      if (data.verification.ok) { toast({ title: "Chain Verified", description: `All ${data.verification.totalEvents} events verified successfully.` }); }
-      else { toast({ title: "Chain Verification Failed", description: `Broken at event ${data.verification.brokenAt}. ${data.verification.errors?.length || 0} errors found.`, variant: "destructive" }); }
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/governance/provenance/verify", {});
+      return res.json();
     },
-    onError: (error: Error) => { toast({ title: "Verification Error", description: error.message, variant: "destructive" }); },
+    onSuccess: (data: { success: boolean; verification: VerificationResult }) => {
+      if (data.verification.ok) {
+        toast({
+          title: "Chain Verified",
+          description: `All ${data.verification.totalEvents} events verified successfully.`,
+        });
+      } else {
+        toast({
+          title: "Chain Verification Failed",
+          description: `Broken at event ${data.verification.brokenAt}. ${data.verification.errors?.length || 0} errors found.`,
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: Error) => {
+      toast({ title: "Verification Error", description: error.message, variant: "destructive" });
+    },
   });
 
   const lineageRecords = useMemo(() => lineageData?.records ?? [], [lineageData]);
@@ -65,24 +136,59 @@ export function useGovernanceData() {
       totalModels: records.length,
       productionModels: records.filter((r) => r.promotion.stage === "production").length,
       totalPredictions: records.reduce((acc, r) => acc + r.predictionCount, 0),
-      familyCounts: { lstm: records.filter((r) => r.family === "lstm").length, xgboost: records.filter((r) => r.family === "xgboost").length, rf: records.filter((r) => r.family === "rf").length },
+      familyCounts: {
+        lstm: records.filter((r) => r.family === "lstm").length,
+        xgboost: records.filter((r) => r.family === "xgboost").length,
+        rf: records.filter((r) => r.family === "rf").length,
+      },
     };
   }, [lineageRecords]);
 
-  const handleViewModelDetails = (model: LineageRecord) => { setSelectedModel(model); setDetailDrawerOpen(true); };
-  const handleRefresh = () => { refetchLineage(); refetchProvenance(); };
+  const handleViewModelDetails = (model: LineageRecord) => {
+    setSelectedModel(model);
+    setDetailDrawerOpen(true);
+  };
+  const handleRefresh = () => {
+    refetchLineage();
+    refetchProvenance();
+  };
   const handleToggleComparison = (record: LineageRecord) => {
-    if (comparisonModel?.modelId === record.modelId) { setComparisonModel(null); }
-    else { setComparisonModel(record); toast({ title: "Model Selected for Comparison", description: "Select another model to view details and compare" }); }
+    if (comparisonModel?.modelId === record.modelId) {
+      setComparisonModel(null);
+    } else {
+      setComparisonModel(record);
+      toast({
+        title: "Model Selected for Comparison",
+        description: "Select another model to view details and compare",
+      });
+    }
   };
   const handleClearComparison = () => setComparisonModel(null);
-  const updateLineageFilter = (key: keyof LineageFilters, value: string) => setLineageFilters((f) => ({ ...f, [key]: value === "all" ? "" : value }));
-  const updateProvenanceFilter = (key: keyof ProvenanceFilters, value: string | number) => setProvenanceFilters((f) => ({ ...f, [key]: value === "all" ? "" : value }));
+  const updateLineageFilter = (key: keyof LineageFilters, value: string) =>
+    setLineageFilters((f) => ({ ...f, [key]: value === "all" ? "" : value }));
+  const updateProvenanceFilter = (key: keyof ProvenanceFilters, value: string | number) =>
+    setProvenanceFilters((f) => ({ ...f, [key]: value === "all" ? "" : value }));
 
   return {
-    activeTab, setActiveTab, selectedModel, detailDrawerOpen, setDetailDrawerOpen, comparisonModel,
-    lineageFilters, provenanceFilters, updateLineageFilter, updateProvenanceFilter,
-    lineageRecords, provenanceEvents, isLoadingLineage, isLoadingProvenance, stats,
-    verifyChainMutation, handleViewModelDetails, handleRefresh, handleToggleComparison, handleClearComparison,
+    activeTab,
+    setActiveTab,
+    selectedModel,
+    detailDrawerOpen,
+    setDetailDrawerOpen,
+    comparisonModel,
+    lineageFilters,
+    provenanceFilters,
+    updateLineageFilter,
+    updateProvenanceFilter,
+    lineageRecords,
+    provenanceEvents,
+    isLoadingLineage,
+    isLoadingProvenance,
+    stats,
+    verifyChainMutation,
+    handleViewModelDetails,
+    handleRefresh,
+    handleToggleComparison,
+    handleClearComparison,
   };
 }

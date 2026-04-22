@@ -71,7 +71,11 @@ export function useRetireCrew() {
       toast({ title: "Crew member retired", description: "Employment record has been updated" });
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to retire crew member", description: error.message, variant: "destructive" });
+      toast({
+        title: "Failed to retire crew member",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 }
@@ -81,7 +85,15 @@ export function useCancelContract() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ crewId, notes, applyPenalty }: { crewId: string; notes?: string; applyPenalty?: boolean }) => {
+    mutationFn: async ({
+      crewId,
+      notes,
+      applyPenalty,
+    }: {
+      crewId: string;
+      notes?: string;
+      applyPenalty?: boolean;
+    }) => {
       return apiRequest("POST", `/api/crew/${crewId}/cancel`, { notes, applyPenalty });
     },
     onSuccess: (_data, variables) => {
@@ -92,7 +104,11 @@ export function useCancelContract() {
       toast({ title: "Contract cancelled", description: "Employment record has been updated" });
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to cancel contract", description: error.message, variant: "destructive" });
+      toast({
+        title: "Failed to cancel contract",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 }
@@ -102,7 +118,15 @@ export function useReinstateCrew() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ crewId, notes, startDate }: { crewId: string; notes?: string; startDate?: string }) => {
+    mutationFn: async ({
+      crewId,
+      notes,
+      startDate,
+    }: {
+      crewId: string;
+      notes?: string;
+      startDate?: string;
+    }) => {
       return apiRequest("POST", `/api/crew/${crewId}/reinstate`, { notes, startDate });
     },
     onSuccess: (_data, variables) => {
@@ -110,10 +134,17 @@ export function useReinstateCrew() {
       queryClient.refetchQueries({ queryKey: crewKeys.all });
       queryClient.invalidateQueries({ queryKey: lifecycleKeys.former() });
       queryClient.invalidateQueries({ queryKey: lifecycleKeys.history(variables.crewId) });
-      toast({ title: "Crew member reinstated", description: "They are now back on the active roster" });
+      toast({
+        title: "Crew member reinstated",
+        description: "They are now back on the active roster",
+      });
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to reinstate crew member", description: error.message, variant: "destructive" });
+      toast({
+        title: "Failed to reinstate crew member",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 }
@@ -130,10 +161,17 @@ export function useDeleteFormerCrew() {
       queryClient.invalidateQueries({ queryKey: lifecycleKeys.former() });
       queryClient.invalidateQueries({ queryKey: lifecycleKeys.history(crewId) });
       queryClient.removeQueries({ queryKey: lifecycleKeys.history(crewId) });
-      toast({ title: "Former crew record deleted", description: "The record has been permanently removed" });
+      toast({
+        title: "Former crew record deleted",
+        description: "The record has been permanently removed",
+      });
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to delete record", description: error.message, variant: "destructive" });
+      toast({
+        title: "Failed to delete record",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 }
@@ -153,7 +191,13 @@ export function useUpdateEmploymentHistory() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ historyId, data }: { historyId: string; data: UpdateEmploymentHistoryInput }) => {
+    mutationFn: async ({
+      historyId,
+      data,
+    }: {
+      historyId: string;
+      data: UpdateEmploymentHistoryInput;
+    }) => {
       return apiRequest("PUT", `/api/crew/history/${historyId}`, data);
     },
     onSuccess: () => {
@@ -161,7 +205,11 @@ export function useUpdateEmploymentHistory() {
       toast({ title: "Employment period updated", description: "The changes have been saved" });
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to update employment period", description: error.message, variant: "destructive" });
+      toast({
+        title: "Failed to update employment period",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 }
@@ -179,7 +227,11 @@ export function useDeleteEmploymentHistory() {
       toast({ title: "Employment period deleted", description: "The record has been removed" });
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to delete employment period", description: error.message, variant: "destructive" });
+      toast({
+        title: "Failed to delete employment period",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 }

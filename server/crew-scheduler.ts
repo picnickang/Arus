@@ -54,7 +54,9 @@ function hoursInRange(
   let total = 0;
 
   for (const assignment of assignments) {
-    if (assignment.crewId !== crewId) { continue; }
+    if (assignment.crewId !== crewId) {
+      continue;
+    }
 
     const start = parseIso(assignment.start);
     const end = parseIso(assignment.end);
@@ -73,14 +75,18 @@ function restOk(assignments: Assignment[], crewId: string, start: Date, minRestH
   let lastEnd: Date | null = null;
 
   for (const assignment of assignments) {
-    if (assignment.crewId !== crewId) { continue; }
+    if (assignment.crewId !== crewId) {
+      continue;
+    }
     const end = parseIso(assignment.end);
     if (end <= start && (lastEnd === null || end > lastEnd)) {
       lastEnd = end;
     }
   }
 
-  if (lastEnd === null) { return true; }
+  if (lastEnd === null) {
+    return true;
+  }
   const restHours = (start.getTime() - lastEnd.getTime()) / (1000 * 60 * 60);
   return restHours >= minRestH;
 }
@@ -98,7 +104,12 @@ function buildLeaveIndex(leaves: SelectCrewLeave[]): Map<string, Array<[Date, Da
   return leaveIndex;
 }
 
-function isOnLeave(leaveIndex: Map<string, Array<[Date, Date]>>, crewId: string, start: Date, end: Date): boolean {
+function isOnLeave(
+  leaveIndex: Map<string, Array<[Date, Date]>>,
+  crewId: string,
+  start: Date,
+  end: Date
+): boolean {
   const crewLeaves = leaveIndex.get(crewId) ?? [];
   return crewLeaves.some(([leaveStart, leaveEnd]) => overlaps(leaveStart, leaveEnd, start, end));
 }
@@ -107,7 +118,9 @@ function rankCrew(crew: CrewWithSkills[], vesselId?: string | null): CrewWithSki
   return [...crew].sort((a, b) => {
     const aVesselMatch = !vesselId || a.vesselId === vesselId ? 0 : 1;
     const bVesselMatch = !vesselId || b.vesselId === vesselId ? 0 : 1;
-    if (aVesselMatch !== bVesselMatch) { return aVesselMatch - bVesselMatch; }
+    if (aVesselMatch !== bVesselMatch) {
+      return aVesselMatch - bVesselMatch;
+    }
     return (a.rank ?? "").localeCompare(b.rank ?? "");
   });
 }
@@ -120,22 +133,34 @@ function canAssignCrewMember(
   assignments: Assignment[],
   leaveIndex: Map<string, Array<[Date, Date]>>
 ): boolean {
-  if (!crewMember.active) { return false; }
+  if (!crewMember.active) {
+    return false;
+  }
 
   const crewId = crewMember.id;
   const minRest = crewMember.minRestH ?? 10;
   const max7d = crewMember.maxHours7d ?? 72;
 
-  if (shift.requiredSkills && !crewMember.skills.includes(shift.requiredSkills)) { return false; }
-  if (shift.vesselId && crewMember.vesselId && crewMember.vesselId !== shift.vesselId) { return false; }
-  if (isOnLeave(leaveIndex, crewId, start, end)) { return false; }
-  if (!restOk(assignments, crewId, start, minRest)) { return false; }
+  if (shift.requiredSkills && !crewMember.skills.includes(shift.requiredSkills)) {
+    return false;
+  }
+  if (shift.vesselId && crewMember.vesselId && crewMember.vesselId !== shift.vesselId) {
+    return false;
+  }
+  if (isOnLeave(leaveIndex, crewId, start, end)) {
+    return false;
+  }
+  if (!restOk(assignments, crewId, start, minRest)) {
+    return false;
+  }
 
   const weekStart = new Date(start.getTime() - 7 * 24 * 60 * 60 * 1000);
   const weekEnd = new Date(start.getTime() + 1);
   const shiftHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
 
-  if (hoursInRange(assignments, crewId, weekStart, weekEnd) + shiftHours > max7d) { return false; }
+  if (hoursInRange(assignments, crewId, weekStart, weekEnd) + shiftHours > max7d) {
+    return false;
+  }
 
   return true;
 }
@@ -150,16 +175,22 @@ function processShift(
 ): void {
   const start = new Date(`${day}T${shift.start}`);
   const end = new Date(`${day}T${shift.end}`);
-  if (end <= start) { end.setDate(end.getDate() + 1); }
+  if (end <= start) {
+    end.setDate(end.getDate() + 1);
+  }
 
   const needed = shift.needed ?? 1;
   const rankedCrew = rankCrew(crew, shift.vesselId);
   let picked = 0;
 
   for (const crewMember of rankedCrew) {
-    if (picked >= needed) { break; }
+    if (picked >= needed) {
+      break;
+    }
 
-    if (!canAssignCrewMember(crewMember, shift, start, end, assignments, leaveIndex)) { continue; }
+    if (!canAssignCrewMember(crewMember, shift, start, end, assignments, leaveIndex)) {
+      continue;
+    }
 
     assignments.push({
       date: day,
@@ -175,7 +206,12 @@ function processShift(
   }
 
   if (picked < needed) {
-    unfilled.push({ day, shiftId: shift.id, need: needed - picked, reason: "insufficient crew for constraints" });
+    unfilled.push({
+      day,
+      shiftId: shift.id,
+      need: needed - picked,
+      reason: "insufficient crew for constraints",
+    });
   }
 }
 

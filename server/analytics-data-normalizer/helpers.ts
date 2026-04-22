@@ -3,7 +3,9 @@
  */
 
 export function expandAnomalyType(type: string | null | undefined): string {
-  if (!type) { return "statistical"; }
+  if (!type) {
+    return "statistical";
+  }
 
   const abbreviationMap: Record<string, string> = {
     stat: "statistical",
@@ -19,8 +21,12 @@ export function expandAnomalyType(type: string | null | undefined): string {
   return abbreviationMap[type.toLowerCase()] || type;
 }
 
-export function expandRiskLevel(level: string | null | undefined): "low" | "medium" | "high" | "critical" {
-  if (!level) { return "medium"; }
+export function expandRiskLevel(
+  level: string | null | undefined
+): "low" | "medium" | "high" | "critical" {
+  if (!level) {
+    return "medium";
+  }
 
   const abbreviationMap: Record<string, "low" | "medium" | "high" | "critical"> = {
     l: "low",
@@ -38,7 +44,9 @@ export function expandRiskLevel(level: string | null | undefined): "low" | "medi
 }
 
 export function expandFailureMode(mode: string | null | undefined): string {
-  if (!mode) { return "unknown"; }
+  if (!mode) {
+    return "unknown";
+  }
 
   const abbreviationMap: Record<string, string> = {
     wr: "wear",

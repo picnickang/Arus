@@ -11,7 +11,12 @@ export async function validateHMAC(req: Request, res: Response, next: NextFuncti
 
     let equipmentId = req.body?.equipmentId || req.headers["x-equipment-id"];
 
-    if (!equipmentId && req.body?.rows && Array.isArray(req.body.rows) && req.body.rows.length > 0) {
+    if (
+      !equipmentId &&
+      req.body?.rows &&
+      Array.isArray(req.body.rows) &&
+      req.body.rows.length > 0
+    ) {
       equipmentId = req.body.rows[0]?.src;
     }
 
@@ -44,7 +49,8 @@ export async function validateHMAC(req: Request, res: Response, next: NextFuncti
       });
     }
 
-    const signature = req.headers["x-hmac-signature"] || 
+    const signature =
+      req.headers["x-hmac-signature"] ||
       (req.headers["authorization"] as string)?.replace("HMAC ", "");
     if (!signature) {
       return res.status(401).json({
@@ -60,7 +66,10 @@ export async function validateHMAC(req: Request, res: Response, next: NextFuncti
     const expectedBuffer = Buffer.from(expectedSignature, "hex");
     const providedBuffer = Buffer.from(providedSignature, "hex");
 
-    if (expectedBuffer.length !== providedBuffer.length || !timingSafeEqual(expectedBuffer, providedBuffer)) {
+    if (
+      expectedBuffer.length !== providedBuffer.length ||
+      !timingSafeEqual(expectedBuffer, providedBuffer)
+    ) {
       return res.status(401).json({
         error: "Invalid HMAC signature",
         code: "INVALID_HMAC_SIGNATURE",

@@ -3,29 +3,31 @@
  * Replaces Math.random() to address S2245 security hotspots
  */
 
-let cryptoModule: typeof import('crypto') | null = null;
+let cryptoModule: typeof import("crypto") | null = null;
 
-function getCrypto(): typeof import('crypto') {
-  if (cryptoModule) {return cryptoModule;}
-  
-  if (typeof globalThis.crypto !== 'undefined' && globalThis.crypto.getRandomValues) {
+function getCrypto(): typeof import("crypto") {
+  if (cryptoModule) {
+    return cryptoModule;
+  }
+
+  if (typeof globalThis.crypto !== "undefined" && globalThis.crypto.getRandomValues) {
     return {
       randomUUID: () => globalThis.crypto.randomUUID(),
       getRandomValues: <T extends ArrayBufferView>(array: T): T => {
         globalThis.crypto.getRandomValues(array);
         return array;
-      }
-    } as unknown as typeof import('crypto');
+      },
+    } as unknown as typeof import("crypto");
   }
-  
-  cryptoModule = require('crypto');
+
+  cryptoModule = require("crypto");
   return cryptoModule!;
 }
 
 export function cryptoRandom(): number {
   const array = new Uint32Array(1);
   getCrypto().getRandomValues(array);
-  return array[0] / 0xFFFFFFFF;
+  return array[0] / 0xffffffff;
 }
 
 export function cryptoRandomInt(max: number): number {
@@ -37,7 +39,7 @@ export function cryptoRandomInRange(min: number, max: number): number {
 }
 
 export function cryptoRandomId(length: number = 8): string {
-  return getCrypto().randomUUID().replace(/-/g, '').slice(0, length);
+  return getCrypto().randomUUID().replace(/-/g, "").slice(0, length);
 }
 
 export function cryptoRandomChoice<T>(array: T[]): T {

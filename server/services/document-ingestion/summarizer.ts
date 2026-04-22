@@ -1,13 +1,13 @@
 /**
  * Document Auto-Summarization Service
- * 
+ *
  * Uses LLM to generate concise summaries of ingested documents.
  * Summaries are stored with documents for quick reference and
  * can be used for RAG context enhancement.
  */
 
-import { createOpenAIClient } from '../../openai/client';
-import { logger } from '../../utils/logger';
+import { createOpenAIClient } from "../../openai/client";
+import { logger } from "../../utils/logger";
 
 const SUMMARIZATION_PROMPT = `You are a technical document summarizer for a marine fleet management system.
 Create a concise summary of the following document content.
@@ -44,36 +44,32 @@ export async function summarizeDocument(
   content: string,
   options: SummarizationOptions = {}
 ): Promise<SummarizationResult | null> {
-  const {
-    maxContentLength = 12000,
-    model = 'gpt-4o-mini',
-  } = options;
+  const { maxContentLength = 12000, model = "gpt-4o-mini" } = options;
 
   const startTime = Date.now();
 
   try {
     const client = await createOpenAIClient();
     if (!client) {
-      logger.warn('[Summarizer] OpenAI client unavailable - skipping summarization');
+      logger.warn("[Summarizer] OpenAI client unavailable - skipping summarization");
       return null;
     }
 
-    const truncatedContent = content.length > maxContentLength
-      ? `${content.slice(0, maxContentLength)  }...[truncated]`
-      : content;
+    const truncatedContent =
+      content.length > maxContentLength
+        ? `${content.slice(0, maxContentLength)}...[truncated]`
+        : content;
 
-    const prompt = SUMMARIZATION_PROMPT.replace('{content}', truncatedContent);
+    const prompt = SUMMARIZATION_PROMPT.replace("{content}", truncatedContent);
 
     const response = await client.chat.completions.create({
       model,
-      messages: [
-        { role: 'user', content: prompt }
-      ],
+      messages: [{ role: "user", content: prompt }],
       max_tokens: 500,
       temperature: 0.3,
     });
 
-    const summary = response.choices[0]?.message?.content || '';
+    const summary = response.choices[0]?.message?.content || "";
     const usage = response.usage || { prompt_tokens: 0, completion_tokens: 0 };
 
     const result: SummarizationResult = {
@@ -86,11 +82,12 @@ export async function summarizeDocument(
       durationMs: Date.now() - startTime,
     };
 
-    logger.info(`[Summarizer] Generated summary: ${result.summary.length} chars in ${result.durationMs}ms`);
+    logger.info(
+      `[Summarizer] Generated summary: ${result.summary.length} chars in ${result.durationMs}ms`
+    );
     return result;
-
   } catch (error: any) {
-    logger.error('[Summarizer] Failed to generate summary:', error.message);
+    logger.error("[Summarizer] Failed to generate summary:", error.message);
     return null;
   }
 }
@@ -106,28 +103,27 @@ export async function generateKeywords(
     }
 
     const truncated = content.slice(0, 8000);
-    
+
     const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: "gpt-4o-mini",
       messages: [
         {
-          role: 'user',
-          content: `Extract the ${maxKeywords} most important keywords from this marine engineering document. Return only a comma-separated list of keywords, nothing else.\n\nDocument:\n${truncated}`
-        }
+          role: "user",
+          content: `Extract the ${maxKeywords} most important keywords from this marine engineering document. Return only a comma-separated list of keywords, nothing else.\n\nDocument:\n${truncated}`,
+        },
       ],
       max_tokens: 100,
       temperature: 0.1,
     });
 
-    const keywordsText = response.choices[0]?.message?.content || '';
+    const keywordsText = response.choices[0]?.message?.content || "";
     return keywordsText
-      .split(',')
-      .map(k => k.trim().toLowerCase())
-      .filter(k => k.length > 0)
+      .split(",")
+      .map((k) => k.trim().toLowerCase())
+      .filter((k) => k.length > 0)
       .slice(0, maxKeywords);
-
   } catch (error: any) {
-    logger.error('[Summarizer] Failed to extract keywords:', error.message);
+    logger.error("[Summarizer] Failed to extract keywords:", error.message);
     return [];
   }
 }

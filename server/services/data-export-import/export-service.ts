@@ -1,6 +1,6 @@
 /**
  * Export Service
- * 
+ *
  * Core export orchestration for org-scoped data exports.
  */
 
@@ -13,7 +13,7 @@ import { isVesselMode } from "../../config/runtimeEnv";
 import {
   DataAnonymizationService,
   AnonymizationConfig,
-  AnonymizationResult
+  AnonymizationResult,
 } from "../../compliance/data-anonymization.service";
 
 import {
@@ -22,12 +22,7 @@ import {
   ENTITY_EXPORT_ORDER,
   TELEMETRY_ENTITIES,
 } from "./constants";
-import type {
-  ExportManifest,
-  ExportOptions,
-  ExportResult,
-  EntityExportResult,
-} from "./types";
+import type { ExportManifest, ExportOptions, ExportResult, EntityExportResult } from "./types";
 import { fetchEntityData } from "./entity-fetchers";
 import { createArchive } from "./archive-utils";
 import { exportTelemetryChunked } from "./telemetry-export";
@@ -54,14 +49,15 @@ export async function exportOrg(
     anonymizationConfig: options.anonymizationConfig,
   };
 
-  const anonymizationService = fullOptions.anonymize !== "none"
-    ? new DataAnonymizationService()
-    : null;
-  
+  const anonymizationService =
+    fullOptions.anonymize !== "none" ? new DataAnonymizationService() : null;
+
   const anonymizationResults: Record<string, AnonymizationResult> = {};
 
   try {
-    console.log(`[DataExport] Starting export for org: ${orgId}${fullOptions.anonymize !== "none" ? ` (anonymization: ${fullOptions.anonymize})` : ""}`);
+    console.log(
+      `[DataExport] Starting export for org: ${orgId}${fullOptions.anonymize !== "none" ? ` (anonymization: ${fullOptions.anonymize})` : ""}`
+    );
     fs.mkdirSync(exportPath, { recursive: true });
 
     const manifest: ExportManifest = {
@@ -81,7 +77,13 @@ export async function exportOrg(
     };
 
     for (const entity of ENTITY_EXPORT_ORDER) {
-      const result = await exportEntity(entity, orgId, exportPath, fullOptions, anonymizationService);
+      const result = await exportEntity(
+        entity,
+        orgId,
+        exportPath,
+        fullOptions,
+        anonymizationService
+      );
       if (result.count > 0) {
         manifest.entities[entity] = { count: result.count, file: result.file };
         if (result.anonymizationResult) {
@@ -106,7 +108,7 @@ export async function exportOrg(
             file: result.file,
             chunked: result.chunked,
             chunkSize: result.chunkSize,
-            files: result.files
+            files: result.files,
           };
           if (result.anonymizationResult) {
             anonymizationResults[entity] = result.anonymizationResult;
@@ -123,13 +125,15 @@ export async function exportOrg(
           preserveIds: fullOptions.anonymizationConfig?.preserveIds ?? true,
           preserveTimestamps: fullOptions.anonymizationConfig?.preserveTimestamps ?? true,
           preserveTechnicalData: fullOptions.anonymizationConfig?.preserveTechnicalData ?? true,
-          salt: anonymizationService.getSalt()
+          salt: anonymizationService.getSalt(),
         }
       );
-      
+
       const reportPath = path.join(exportPath, "anonymization-report.json");
       fs.writeFileSync(reportPath, JSON.stringify(anonymizationReport, null, 2));
-      console.log(`[DataExport] Anonymization report: ${anonymizationReport.summary.anonymizationRate} of fields anonymized`);
+      console.log(
+        `[DataExport] Anonymization report: ${anonymizationReport.summary.anonymizationRate} of fields anonymized`
+      );
     }
 
     const manifestPath = path.join(exportPath, "manifest.json");
@@ -183,7 +187,7 @@ async function exportEntity(
   const totalAnonymizationResult: AnonymizationResult = {
     originalFieldCount: 0,
     anonymizedFieldCount: 0,
-    skippedFieldCount: 0
+    skippedFieldCount: 0,
   };
 
   try {
@@ -195,18 +199,18 @@ async function exportEntity(
           preserveIds: options.anonymizationConfig?.preserveIds ?? true,
           preserveTimestamps: options.anonymizationConfig?.preserveTimestamps ?? true,
           preserveTechnicalData: options.anonymizationConfig?.preserveTechnicalData ?? true,
-          salt: anonymizationService.getSalt()
+          salt: anonymizationService.getSalt(),
         }
       : {
           level: "none",
           preserveIds: true,
           preserveTimestamps: true,
-          preserveTechnicalData: true
+          preserveTechnicalData: true,
         };
 
     for (const record of data) {
       let outputRecord = record;
-      
+
       if (anonymizationService && options.anonymize && options.anonymize !== "none") {
         const { record: anonymized, result } = anonymizationService.anonymizeRecord(
           record,
@@ -218,23 +222,24 @@ async function exportEntity(
         totalAnonymizationResult.anonymizedFieldCount += result.anonymizedFieldCount;
         totalAnonymizationResult.skippedFieldCount += result.skippedFieldCount;
       }
-      
-      writeStream.write(`${JSON.stringify(outputRecord)  }\n`);
+
+      writeStream.write(`${JSON.stringify(outputRecord)}\n`);
       count++;
     }
 
     writeStream.end();
     await new Promise((resolve) => writeStream.on("finish", resolve));
 
-    const anonymizationInfo = anonymizationService && options.anonymize !== "none"
-      ? ` (anonymized: ${totalAnonymizationResult.anonymizedFieldCount} fields)`
-      : "";
+    const anonymizationInfo =
+      anonymizationService && options.anonymize !== "none"
+        ? ` (anonymized: ${totalAnonymizationResult.anonymizedFieldCount} fields)`
+        : "";
     console.log(`[DataExport] Exported ${entityName}: ${count} records${anonymizationInfo}`);
 
     return {
       count,
       file: `${entityName}.jsonl`,
-      anonymizationResult: anonymizationService ? totalAnonymizationResult : undefined
+      anonymizationResult: anonymizationService ? totalAnonymizationResult : undefined,
     };
   } catch {
     console.warn(`[DataExport] Failed to export ${entityName}:`, error);

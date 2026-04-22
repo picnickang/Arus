@@ -13,7 +13,7 @@ export function wildcardToRegex(pat: string): RegExp {
   const trimmed = pat.trim().slice(0, 256);
   const withPlaceholder = trimmed.replace(/\*/g, "__WILDCARD_STAR__");
   const escaped = withPlaceholder.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = escaped.replaceAll('__WILDCARD_STAR__', "[^/]*");
+  const pattern = escaped.replaceAll("__WILDCARD_STAR__", "[^/]*");
   return new RegExp(`^${pattern}$`);
 }
 

@@ -2,14 +2,19 @@ import type { Express, Request, Response } from "express";
 import { withErrorHandling } from "../lib/route-utils";
 import { logger } from "../utils/logger";
 
-export function registerKbAskRoute(app: Express, deps: {
-  generalApiRateLimit: any;
-}) {
+export function registerKbAskRoute(
+  app: Express,
+  deps: {
+    generalApiRateLimit: any;
+  }
+) {
   const { generalApiRateLimit } = deps;
 
-  app.post("/api/kb/ask", generalApiRateLimit,
+  app.post(
+    "/api/kb/ask",
+    generalApiRateLimit,
     withErrorHandling("kb ask", async (req: Request, res: Response) => {
-      const orgId = (req as any).orgId || req.headers["x-org-id"] as string;
+      const orgId = (req as any).orgId || (req.headers["x-org-id"] as string);
 
       const { query, context, equipmentId, vesselId } = req.body;
 
@@ -23,7 +28,10 @@ export function registerKbAskRoute(app: Express, deps: {
         const { searchKnowledgeBase } = await import("../vector-search-service");
         const results = await searchKnowledgeBase(query, { limit: 3, threshold: 0.3, orgId });
         kbResults = results || [];
-        kbContext = kbResults.map((r: any) => r.content || r.text || "").filter(Boolean).join("\n\n");
+        kbContext = kbResults
+          .map((r: any) => r.content || r.text || "")
+          .filter(Boolean)
+          .join("\n\n");
       } catch (err) {
         logger.warn("KbAsk", "KB search failed, continuing with LLM only", err);
       }
@@ -38,7 +46,10 @@ export function registerKbAskRoute(app: Express, deps: {
             [],
             [context, kbContext].filter(Boolean).join("\n\n")
           );
-          answer = typeof llmResult === "string" ? llmResult : llmResult?.analysis || llmResult?.response || llmResult?.text || "";
+          answer =
+            typeof llmResult === "string"
+              ? llmResult
+              : llmResult?.analysis || llmResult?.response || llmResult?.text || "";
         }
       } catch (err) {
         logger.warn("KbAsk", "LLM analysis failed, returning KB results only", err);
@@ -47,7 +58,8 @@ export function registerKbAskRoute(app: Express, deps: {
       if (!answer && kbResults.length > 0) {
         answer = kbContext;
       } else if (!answer) {
-        answer = "I couldn't find relevant information for your query. Please try rephrasing or check the Knowledge Base for uploaded documentation.";
+        answer =
+          "I couldn't find relevant information for your query. Please try rephrasing or check the Knowledge Base for uploaded documentation.";
       }
 
       const sources = kbResults.map((r: any) => ({

@@ -6,45 +6,45 @@
 import type { AnomalyThreshold } from "./types.js";
 
 export const ENGINE_ANOMALY_THRESHOLDS: Record<string, AnomalyThreshold> = {
-  meRpm: { min: 0, max: 150, unit: 'RPM', severity: 'warning' },
-  meLoad: { min: 0, max: 110, unit: '%', severity: 'warning' },
-  meFuelRackPosition: { min: 0, max: 100, unit: 'mm', severity: 'warning' },
-  meExhaustTempPort: { min: 200, max: 450, unit: '°C', severity: 'critical' },
-  meExhaustTempStbd: { min: 200, max: 450, unit: '°C', severity: 'critical' },
-  meScavAirPress: { min: 0.5, max: 3.5, unit: 'bar', severity: 'warning' },
-  meScavAirTemp: { min: 20, max: 60, unit: '°C', severity: 'warning' },
-  meTurbochargerRpm: { min: 0, max: 30000, unit: 'RPM', severity: 'warning' },
-  meTurbochargerExhaustTemp: { min: 300, max: 550, unit: '°C', severity: 'critical' },
-  meCoolantTempIn: { min: 60, max: 95, unit: '°C', severity: 'warning' },
-  meCoolantTempOut: { min: 70, max: 100, unit: '°C', severity: 'warning' },
-  meLubOilPress: { min: 2, max: 8, unit: 'bar', severity: 'critical' },
-  meLubOilTemp: { min: 40, max: 70, unit: '°C', severity: 'warning' },
-  meFuelOilPress: { min: 4, max: 12, unit: 'bar', severity: 'warning' },
-  meFuelOilTemp: { min: 80, max: 150, unit: '°C', severity: 'warning' },
-  seaWaterCoolingTemp: { min: 10, max: 35, unit: '°C', severity: 'warning' },
-  freshWaterCoolingTemp: { min: 30, max: 50, unit: '°C', severity: 'warning' },
-  airCompressorPress: { min: 20, max: 35, unit: 'bar', severity: 'warning' },
-  startingAirPress: { min: 20, max: 32, unit: 'bar', severity: 'critical' },
-  controlAirPress: { min: 5, max: 10, unit: 'bar', severity: 'warning' },
-  engineRoomTemp: { min: 25, max: 55, unit: '°C', severity: 'warning' },
-  engineRoomHumidity: { min: 30, max: 90, unit: '%', severity: 'warning' },
+  meRpm: { min: 0, max: 150, unit: "RPM", severity: "warning" },
+  meLoad: { min: 0, max: 110, unit: "%", severity: "warning" },
+  meFuelRackPosition: { min: 0, max: 100, unit: "mm", severity: "warning" },
+  meExhaustTempPort: { min: 200, max: 450, unit: "°C", severity: "critical" },
+  meExhaustTempStbd: { min: 200, max: 450, unit: "°C", severity: "critical" },
+  meScavAirPress: { min: 0.5, max: 3.5, unit: "bar", severity: "warning" },
+  meScavAirTemp: { min: 20, max: 60, unit: "°C", severity: "warning" },
+  meTurbochargerRpm: { min: 0, max: 30000, unit: "RPM", severity: "warning" },
+  meTurbochargerExhaustTemp: { min: 300, max: 550, unit: "°C", severity: "critical" },
+  meCoolantTempIn: { min: 60, max: 95, unit: "°C", severity: "warning" },
+  meCoolantTempOut: { min: 70, max: 100, unit: "°C", severity: "warning" },
+  meLubOilPress: { min: 2, max: 8, unit: "bar", severity: "critical" },
+  meLubOilTemp: { min: 40, max: 70, unit: "°C", severity: "warning" },
+  meFuelOilPress: { min: 4, max: 12, unit: "bar", severity: "warning" },
+  meFuelOilTemp: { min: 80, max: 150, unit: "°C", severity: "warning" },
+  seaWaterCoolingTemp: { min: 10, max: 35, unit: "°C", severity: "warning" },
+  freshWaterCoolingTemp: { min: 30, max: 50, unit: "°C", severity: "warning" },
+  airCompressorPress: { min: 20, max: 35, unit: "bar", severity: "warning" },
+  startingAirPress: { min: 20, max: 32, unit: "bar", severity: "critical" },
+  controlAirPress: { min: 5, max: 10, unit: "bar", severity: "warning" },
+  engineRoomTemp: { min: 25, max: 55, unit: "°C", severity: "warning" },
+  engineRoomHumidity: { min: 30, max: 90, unit: "%", severity: "warning" },
 };
 
 export const GENERATOR_ANOMALY_THRESHOLDS: Record<string, AnomalyThreshold> = {
-  loadKw: { min: 0, max: 2000, unit: 'kW', severity: 'warning' },
-  loadPercent: { min: 0, max: 110, unit: '%', severity: 'warning' },
-  voltage: { min: 380, max: 480, unit: 'V', severity: 'critical' },
-  frequency: { min: 58, max: 62, unit: 'Hz', severity: 'critical' },
-  exhaustTemp: { min: 200, max: 500, unit: '°C', severity: 'warning' },
-  lubOilPress: { min: 2, max: 6, unit: 'bar', severity: 'critical' },
-  coolantTemp: { min: 60, max: 95, unit: '°C', severity: 'warning' },
+  loadKw: { min: 0, max: 2000, unit: "kW", severity: "warning" },
+  loadPercent: { min: 0, max: 110, unit: "%", severity: "warning" },
+  voltage: { min: 380, max: 480, unit: "V", severity: "critical" },
+  frequency: { min: 58, max: 62, unit: "Hz", severity: "critical" },
+  exhaustTemp: { min: 200, max: 500, unit: "°C", severity: "warning" },
+  lubOilPress: { min: 2, max: 6, unit: "bar", severity: "critical" },
+  coolantTemp: { min: 60, max: 95, unit: "°C", severity: "warning" },
 };
 
 export function checkAnomaly(
   field: string,
   value: number | null | undefined,
   thresholds: Record<string, AnomalyThreshold>
-): { isAnomaly: boolean; severity?: 'warning' | 'critical'; reason?: string } {
+): { isAnomaly: boolean; severity?: "warning" | "critical"; reason?: string } {
   if (value === null || value === undefined) {
     return { isAnomaly: false };
   }

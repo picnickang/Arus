@@ -72,9 +72,15 @@ export const severityConfig: Record<SeverityLevel, SeverityConfig> = {
  * Get severity level based on health score (0-100)
  */
 export function getSeverityFromHealth(health: number): SeverityLevel {
-  if (health < 30) {return "critical";}
-  if (health < 50) {return "warning";}
-  if (health < 70) {return "caution";}
+  if (health < 30) {
+    return "critical";
+  }
+  if (health < 50) {
+    return "warning";
+  }
+  if (health < 70) {
+    return "caution";
+  }
   return "good";
 }
 
@@ -83,9 +89,15 @@ export function getSeverityFromHealth(health: number): SeverityLevel {
  */
 export function getSeverityFromRisk(risk: string): SeverityLevel {
   const riskLower = risk.toLowerCase();
-  if (riskLower === "critical" || riskLower === "high") {return "critical";}
-  if (riskLower === "medium") {return "warning";}
-  if (riskLower === "low") {return "caution";}
+  if (riskLower === "critical" || riskLower === "high") {
+    return "critical";
+  }
+  if (riskLower === "medium") {
+    return "warning";
+  }
+  if (riskLower === "low") {
+    return "caution";
+  }
   return "info";
 }
 
@@ -93,9 +105,15 @@ export function getSeverityFromRisk(risk: string): SeverityLevel {
  * Get severity level based on prediction probability
  */
 export function getSeverityFromProbability(probability: number): SeverityLevel {
-  if (probability >= 0.8) {return "critical";}
-  if (probability >= 0.6) {return "warning";}
-  if (probability >= 0.4) {return "caution";}
+  if (probability >= 0.8) {
+    return "critical";
+  }
+  if (probability >= 0.6) {
+    return "warning";
+  }
+  if (probability >= 0.4) {
+    return "caution";
+  }
   return "info";
 }
 

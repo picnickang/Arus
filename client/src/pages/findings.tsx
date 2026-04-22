@@ -3,7 +3,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -17,10 +23,31 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  Bot, AlertTriangle, Clock, Shield, Package, Wrench, Users,
-  Lightbulb, CheckCircle, XCircle, Eye, ChevronRight,
-  FileText, Play, Filter, Inbox, BarChart3, RefreshCw, X, ExternalLink, Calendar, Terminal, PauseCircle,
-  ListTodo, ArrowRight,
+  Bot,
+  AlertTriangle,
+  Clock,
+  Shield,
+  Package,
+  Wrench,
+  Users,
+  Lightbulb,
+  CheckCircle,
+  XCircle,
+  Eye,
+  ChevronRight,
+  FileText,
+  Play,
+  Filter,
+  Inbox,
+  BarChart3,
+  RefreshCw,
+  X,
+  ExternalLink,
+  Calendar,
+  Terminal,
+  PauseCircle,
+  ListTodo,
+  ArrowRight,
 } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -30,7 +57,16 @@ import { AgentChatPanel } from "@/components/agent/AgentChatPanel";
 
 type FindingSource = "suggestion" | "draft" | "schedule_run" | "agent_finding";
 type FindingSeverity = "info" | "warning" | "critical";
-type FindingStatus = "pending" | "acted" | "dismissed" | "deferred" | "approved" | "rejected" | "completed" | "failed" | "running";
+type FindingStatus =
+  | "pending"
+  | "acted"
+  | "dismissed"
+  | "deferred"
+  | "approved"
+  | "rejected"
+  | "completed"
+  | "failed"
+  | "running";
 
 interface UnifiedFindingItem {
   id: string;
@@ -184,8 +220,16 @@ const ENTITY_LABELS: Record<string, string> = {
   schedule: "Schedule",
 };
 
-function EntityLink({ entityType, entityId }: { entityType?: string | null; entityId?: string | null }) {
-  if (!entityType || !entityId) {return null;}
+function EntityLink({
+  entityType,
+  entityId,
+}: {
+  entityType?: string | null;
+  entityId?: string | null;
+}) {
+  if (!entityType || !entityId) {
+    return null;
+  }
   const route = ENTITY_ROUTES[entityType];
   const label = ENTITY_LABELS[entityType] || entityType.replace(/_/g, " ");
   const shortId = entityId.length > 8 ? `${entityId.slice(0, 8)}…` : entityId;
@@ -214,11 +258,24 @@ function EntityLink({ entityType, entityId }: { entityType?: string | null; enti
   );
 }
 
-function RunOutputDialog({ item, open, onClose }: { item: UnifiedFindingItem | null; open: boolean; onClose: () => void }) {
-  if (!item) {return null;}
+function RunOutputDialog({
+  item,
+  open,
+  onClose,
+}: {
+  item: UnifiedFindingItem | null;
+  open: boolean;
+  onClose: () => void;
+}) {
+  if (!item) {
+    return null;
+  }
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[70vh] overflow-y-auto" data-testid="dialog-run-output">
+      <DialogContent
+        className="max-w-2xl max-h-[70vh] overflow-y-auto"
+        data-testid="dialog-run-output"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Terminal className="h-5 w-5" />
@@ -228,7 +285,10 @@ function RunOutputDialog({ item, open, onClose }: { item: UnifiedFindingItem | n
         <div className="space-y-3">
           <div>
             <span className="text-xs font-medium text-muted-foreground">Status</span>
-            <Badge variant="outline" className={cn("ml-2 text-xs", STATUS_STYLES[item.status] || "")}>
+            <Badge
+              variant="outline"
+              className={cn("ml-2 text-xs", STATUS_STYLES[item.status] || "")}
+            >
               {item.status}
             </Badge>
           </div>
@@ -302,7 +362,9 @@ function OutcomeDialog({
               </SelectTrigger>
               <SelectContent>
                 {OUTCOME_CATEGORIES.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                  <SelectItem key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -320,7 +382,18 @@ function OutcomeDialog({
           </div>
         </div>
         <DialogFooter className="gap-2">
-          <Button variant="outline" size="sm" onClick={() => { onSkip(); setOutcome(action === "act" ? "useful" : "not_relevant"); setReason(""); }} data-testid="button-skip-outcome">Skip</Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              onSkip();
+              setOutcome(action === "act" ? "useful" : "not_relevant");
+              setReason("");
+            }}
+            data-testid="button-skip-outcome"
+          >
+            Skip
+          </Button>
           <Button
             size="sm"
             onClick={() => {
@@ -341,20 +414,31 @@ function OutcomeDialog({
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) {return "just now";}
-  if (mins < 60) {return `${mins}m ago`;}
+  if (mins < 1) {
+    return "just now";
+  }
+  if (mins < 60) {
+    return `${mins}m ago`;
+  }
   const hours = Math.floor(mins / 60);
-  if (hours < 24) {return `${hours}h ago`;}
+  if (hours < 24) {
+    return `${hours}h ago`;
+  }
   const days = Math.floor(hours / 24);
-  if (days < 7) {return `${days}d ago`;}
+  if (days < 7) {
+    return `${days}d ago`;
+  }
   return new Date(dateStr).toLocaleDateString();
 }
 
 function SummaryStrip({ summary, isLoading }: { summary?: FindingsSummary; isLoading: boolean }) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" data-testid="summary-strip-loading">
-        {[1, 2, 3, 4].map(i => (
+      <div
+        className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6"
+        data-testid="summary-strip-loading"
+      >
+        {[1, 2, 3, 4].map((i) => (
           <Skeleton key={i} className="h-20 rounded-lg" />
         ))}
       </div>
@@ -401,7 +485,10 @@ function SummaryStrip({ summary, isLoading }: { summary?: FindingsSummary; isLoa
               <Icon className={cn("h-4 w-4", color)} />
               <span className="text-xs text-muted-foreground">{label}</span>
             </div>
-            <p className={cn("text-2xl font-bold", color)} data-testid={`summary-${label.toLowerCase().replace(/\s+/g, "-")}`}>
+            <p
+              className={cn("text-2xl font-bold", color)}
+              data-testid={`summary-${label.toLowerCase().replace(/\s+/g, "-")}`}
+            >
               {value}
             </p>
           </CardContent>
@@ -436,7 +523,8 @@ function FilterBar({
   onDateToChange: (v: string) => void;
   onReset: () => void;
 }) {
-  const hasFilters = source !== "all" || severity !== "all" || status !== "all" || dateFrom !== "" || dateTo !== "";
+  const hasFilters =
+    source !== "all" || severity !== "all" || status !== "all" || dateFrom !== "" || dateTo !== "";
 
   return (
     <div className="flex flex-wrap items-center gap-2 mb-4" data-testid="filter-bar">
@@ -502,7 +590,13 @@ function FilterBar({
         />
       </div>
       {hasFilters && (
-        <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={onReset} data-testid="button-reset-filters">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 text-xs gap-1"
+          onClick={onReset}
+          data-testid="button-reset-filters"
+        >
           <X className="h-3 w-3" /> Clear
         </Button>
       )}
@@ -540,37 +634,53 @@ function FindingCard({
     <div
       className={cn(
         "p-4 border rounded-lg transition-colors hover:bg-muted/30",
-        item.requiresAction && "border-l-4 border-l-amber-500",
+        item.requiresAction && "border-l-4 border-l-amber-500"
       )}
       data-testid={`finding-card-${item.id}`}
     >
       <div className="flex items-start gap-3">
-        <div className={cn(
-          "mt-0.5 p-1.5 rounded-md shrink-0",
-          item.severity === "critical" ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" :
-          item.severity === "warning" ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400" :
-          "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-        )}>
+        <div
+          className={cn(
+            "mt-0.5 p-1.5 rounded-md shrink-0",
+            item.severity === "critical"
+              ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+              : item.severity === "warning"
+                ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"
+                : "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+          )}
+        >
           <TriggerIcon className="h-4 w-4" />
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <h3 className="text-sm font-medium leading-tight" data-testid={`finding-title-${item.id}`}>
+              <h3
+                className="text-sm font-medium leading-tight"
+                data-testid={`finding-title-${item.id}`}
+              >
                 {item.title}
               </h3>
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2" data-testid={`finding-summary-${item.id}`}>
+              <p
+                className="text-xs text-muted-foreground mt-1 line-clamp-2"
+                data-testid={`finding-summary-${item.id}`}
+              >
                 {item.summary}
               </p>
             </div>
           </div>
 
           <div className="flex items-center flex-wrap gap-1.5 mt-2">
-            <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", SEVERITY_STYLES[item.severity])}>
+            <Badge
+              variant="outline"
+              className={cn("text-[10px] px-1.5 py-0", SEVERITY_STYLES[item.severity])}
+            >
               {item.severity}
             </Badge>
-            <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", STATUS_STYLES[item.status] || "")}>
+            <Badge
+              variant="outline"
+              className={cn("text-[10px] px-1.5 py-0", STATUS_STYLES[item.status] || "")}
+            >
               {item.status}
             </Badge>
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
@@ -581,21 +691,29 @@ function FindingCard({
                 {item.triggerType.replace(/_/g, " ")}
               </Badge>
             )}
-            {item.source === "suggestion" && item.context?.costImpact && (() => {
-              const ci = item.context.costImpact as { revenueImpact?: number; estimatedRepairCost?: number };
-              const atRisk = ci.revenueImpact ?? 0;
-              if (atRisk <= 0) {return null;}
-              const fmt = atRisk >= 1000 ? `~$${(atRisk / 1000).toFixed(0)}K` : `~$${atRisk.toFixed(0)}`;
-              return (
-                <Badge
-                  variant="outline"
-                  className="text-[10px] px-1.5 py-0 bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
-                  data-testid={`badge-cost-impact-${item.id}`}
-                >
-                  {fmt} at risk
-                </Badge>
-              );
-            })()}
+            {item.source === "suggestion" &&
+              item.context?.costImpact &&
+              (() => {
+                const ci = item.context.costImpact as {
+                  revenueImpact?: number;
+                  estimatedRepairCost?: number;
+                };
+                const atRisk = ci.revenueImpact ?? 0;
+                if (atRisk <= 0) {
+                  return null;
+                }
+                const fmt =
+                  atRisk >= 1000 ? `~$${(atRisk / 1000).toFixed(0)}K` : `~$${atRisk.toFixed(0)}`;
+                return (
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] px-1.5 py-0 bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
+                    data-testid={`badge-cost-impact-${item.id}`}
+                  >
+                    {fmt} at risk
+                  </Badge>
+                );
+              })()}
             <EntityLink entityType={item.entityType} entityId={item.entityId} />
             <span className="text-[10px] text-muted-foreground flex items-center gap-0.5 ml-auto">
               <Clock className="h-2.5 w-2.5" />
@@ -604,7 +722,10 @@ function FindingCard({
           </div>
 
           {item.outcome && (
-            <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground" data-testid={`outcome-info-${item.id}`}>
+            <div
+              className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground"
+              data-testid={`outcome-info-${item.id}`}
+            >
               <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                 {item.outcome.replace(/_/g, " ")}
               </Badge>
@@ -731,17 +852,21 @@ function TaskCard({
       className={cn(
         "p-4 border rounded-lg transition-colors hover:bg-muted/30",
         task.status === "blocked" && "border-l-4 border-l-red-500",
-        (task.status === "open" || task.status === "in_progress") && "border-l-4 border-l-blue-500",
+        (task.status === "open" || task.status === "in_progress") && "border-l-4 border-l-blue-500"
       )}
       data-testid={`task-card-${task.id}`}
     >
       <div className="flex items-start gap-3">
-        <div className={cn(
-          "mt-0.5 p-1.5 rounded-md shrink-0",
-          task.status === "completed" ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400" :
-          task.status === "failed" || task.status === "blocked" ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" :
-          "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-        )}>
+        <div
+          className={cn(
+            "mt-0.5 p-1.5 rounded-md shrink-0",
+            task.status === "completed"
+              ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+              : task.status === "failed" || task.status === "blocked"
+                ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                : "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+          )}
+        >
           <ListTodo className="h-4 w-4" />
         </div>
 
@@ -750,16 +875,25 @@ function TaskCard({
             {task.title}
           </h3>
           {task.description && (
-            <p className="text-xs text-muted-foreground mt-1 line-clamp-2" data-testid={`task-description-${task.id}`}>
+            <p
+              className="text-xs text-muted-foreground mt-1 line-clamp-2"
+              data-testid={`task-description-${task.id}`}
+            >
               {task.description}
             </p>
           )}
 
           <div className="flex items-center flex-wrap gap-1.5 mt-2">
-            <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", TASK_STATUS_STYLES[task.status] || "")}>
+            <Badge
+              variant="outline"
+              className={cn("text-[10px] px-1.5 py-0", TASK_STATUS_STYLES[task.status] || "")}
+            >
               {task.status.replace(/_/g, " ")}
             </Badge>
-            <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", TASK_PRIORITY_STYLES[task.priority] || "")}>
+            <Badge
+              variant="outline"
+              className={cn("text-[10px] px-1.5 py-0", TASK_PRIORITY_STYLES[task.priority] || "")}
+            >
               {task.priority}
             </Badge>
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
@@ -784,13 +918,16 @@ function TaskCard({
           </div>
 
           {task.outcome && (
-            <div className="mt-1.5 text-[10px] text-muted-foreground italic" data-testid={`task-outcome-${task.id}`}>
+            <div
+              className="mt-1.5 text-[10px] text-muted-foreground italic"
+              data-testid={`task-outcome-${task.id}`}
+            >
               Outcome: {task.outcome}
             </div>
           )}
 
           <div className="flex items-center gap-1.5 mt-3">
-            {nextStatuses.map(ns => (
+            {nextStatuses.map((ns) => (
               <Button
                 key={ns}
                 size="sm"
@@ -819,11 +956,7 @@ function TaskCard({
   );
 }
 
-function TasksSection({
-  onOpenAssistant,
-}: {
-  onOpenAssistant: (task: AgentTask) => void;
-}) {
+function TasksSection({ onOpenAssistant }: { onOpenAssistant: (task: AgentTask) => void }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState("all");
@@ -848,11 +981,12 @@ function TasksSection({
       queryClient.invalidateQueries({ queryKey: ["/api/agent/tasks"] });
       toast({ title: "Task updated" });
     },
-    onError: (err: unknown) => toast({
-      title: "Failed to update task",
-      description: err instanceof Error ? err.message : "Unknown error",
-      variant: "destructive",
-    }),
+    onError: (err: unknown) =>
+      toast({
+        title: "Failed to update task",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      }),
   });
 
   const handleTransition = (taskId: string, newStatus: string) => {
@@ -895,7 +1029,9 @@ function TasksSection({
 
       {isLoading ? (
         <div className="space-y-3" data-testid="tasks-loading">
-          {[1, 2, 3].map(i => <Skeleton key={i} className="h-24 rounded-lg" />)}
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-24 rounded-lg" />
+          ))}
         </div>
       ) : taskList.length === 0 ? (
         <div className="text-center py-16 border rounded-lg" data-testid="tasks-empty">
@@ -907,7 +1043,7 @@ function TasksSection({
         </div>
       ) : (
         <div className="space-y-2" data-testid="task-list">
-          {taskList.map(task => (
+          {taskList.map((task) => (
             <TaskCard
               key={task.id}
               task={task}
@@ -945,7 +1081,7 @@ export default function FindingsPage() {
     severity: severityFilter !== "all" ? severityFilter : null,
     status: statusFilter !== "all" ? statusFilter : null,
     dateFrom: dateFromFilter ? new Date(dateFromFilter).toISOString() : null,
-    dateTo: dateToFilter ? new Date(`${dateToFilter  }T23:59:59`).toISOString() : null,
+    dateTo: dateToFilter ? new Date(`${dateToFilter}T23:59:59`).toISOString() : null,
   };
 
   const { data: findings, isLoading: findingsLoading } = useQuery<FindingsResponse>({
@@ -965,7 +1101,12 @@ export default function FindingsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings/summary"] });
       toast({ title: "Draft approved" });
     },
-    onError: (err: unknown) => toast({ title: "Failed to approve", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" }),
+    onError: (err: unknown) =>
+      toast({
+        title: "Failed to approve",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      }),
   });
 
   const rejectMutation = useMutation({
@@ -975,60 +1116,113 @@ export default function FindingsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings/summary"] });
       toast({ title: "Draft rejected" });
     },
-    onError: (err: unknown) => toast({ title: "Failed to reject", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" }),
+    onError: (err: unknown) =>
+      toast({
+        title: "Failed to reject",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      }),
   });
 
   const dismissMutation = useMutation({
-    mutationFn: ({ id, outcome, outcomeReason }: { id: string; outcome?: string; outcomeReason?: string }) =>
-      apiRequest("POST", `/api/agent/suggestions/${id}/dismiss`, { outcome, outcomeReason }),
+    mutationFn: ({
+      id,
+      outcome,
+      outcomeReason,
+    }: {
+      id: string;
+      outcome?: string;
+      outcomeReason?: string;
+    }) => apiRequest("POST", `/api/agent/suggestions/${id}/dismiss`, { outcome, outcomeReason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings/summary"] });
       toast({ title: "Suggestion dismissed" });
     },
-    onError: (err: unknown) => toast({ title: "Failed to dismiss", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" }),
+    onError: (err: unknown) =>
+      toast({
+        title: "Failed to dismiss",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      }),
   });
 
   const actMutation = useMutation({
-    mutationFn: ({ id, outcome, outcomeReason }: { id: string; outcome?: string; outcomeReason?: string }) =>
-      apiRequest("POST", `/api/agent/suggestions/${id}/act`, { outcome, outcomeReason }),
+    mutationFn: ({
+      id,
+      outcome,
+      outcomeReason,
+    }: {
+      id: string;
+      outcome?: string;
+      outcomeReason?: string;
+    }) => apiRequest("POST", `/api/agent/suggestions/${id}/act`, { outcome, outcomeReason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings/summary"] });
       toast({ title: "Marked as acted on" });
     },
-    onError: (err: unknown) => toast({ title: "Failed to act", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" }),
+    onError: (err: unknown) =>
+      toast({
+        title: "Failed to act",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      }),
   });
 
   const deferMutation = useMutation({
-    mutationFn: ({ id, outcome, outcomeReason }: { id: string; outcome?: string; outcomeReason?: string }) =>
-      apiRequest("POST", `/api/agent/suggestions/${id}/defer`, { outcome, outcomeReason }),
+    mutationFn: ({
+      id,
+      outcome,
+      outcomeReason,
+    }: {
+      id: string;
+      outcome?: string;
+      outcomeReason?: string;
+    }) => apiRequest("POST", `/api/agent/suggestions/${id}/defer`, { outcome, outcomeReason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings/summary"] });
       toast({ title: "Suggestion deferred" });
     },
-    onError: (err: unknown) => toast({ title: "Failed to defer", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" }),
+    onError: (err: unknown) =>
+      toast({
+        title: "Failed to defer",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      }),
   });
 
   const acknowledgeFindingMutation = useMutation({
-    mutationFn: (findingId: string) => apiRequest("PATCH", `/api/agent/finding-records/${findingId}`, { status: "acknowledged" }),
+    mutationFn: (findingId: string) =>
+      apiRequest("PATCH", `/api/agent/finding-records/${findingId}`, { status: "acknowledged" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings/summary"] });
       toast({ title: "Finding acknowledged" });
     },
-    onError: (err: unknown) => toast({ title: "Failed to acknowledge", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" }),
+    onError: (err: unknown) =>
+      toast({
+        title: "Failed to acknowledge",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      }),
   });
 
   const archiveFindingMutation = useMutation({
-    mutationFn: (findingId: string) => apiRequest("PATCH", `/api/agent/finding-records/${findingId}`, { status: "archived" }),
+    mutationFn: (findingId: string) =>
+      apiRequest("PATCH", `/api/agent/finding-records/${findingId}`, { status: "archived" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings/summary"] });
       toast({ title: "Finding archived" });
     },
-    onError: (err: unknown) => toast({ title: "Failed to archive", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" }),
+    onError: (err: unknown) =>
+      toast({
+        title: "Failed to archive",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      }),
   });
 
   const openOutcomeDialog = useCallback((action: "act" | "dismiss" | "defer", sugId: string) => {
@@ -1037,21 +1231,40 @@ export default function FindingsPage() {
     setOutcomeDialogOpen(true);
   }, []);
 
-  const handleOutcomeSubmit = useCallback((outcome: string, reason: string) => {
-    if (!outcomeSuggestionId) {return;}
-    if (outcomeAction === "act") {
-      actMutation.mutate({ id: outcomeSuggestionId, outcome, outcomeReason: reason || undefined });
-    } else if (outcomeAction === "dismiss") {
-      dismissMutation.mutate({ id: outcomeSuggestionId, outcome, outcomeReason: reason || undefined });
-    } else {
-      deferMutation.mutate({ id: outcomeSuggestionId, outcome, outcomeReason: reason || undefined });
-    }
-    setOutcomeDialogOpen(false);
-    setOutcomeSuggestionId(null);
-  }, [outcomeSuggestionId, outcomeAction, actMutation, dismissMutation, deferMutation]);
+  const handleOutcomeSubmit = useCallback(
+    (outcome: string, reason: string) => {
+      if (!outcomeSuggestionId) {
+        return;
+      }
+      if (outcomeAction === "act") {
+        actMutation.mutate({
+          id: outcomeSuggestionId,
+          outcome,
+          outcomeReason: reason || undefined,
+        });
+      } else if (outcomeAction === "dismiss") {
+        dismissMutation.mutate({
+          id: outcomeSuggestionId,
+          outcome,
+          outcomeReason: reason || undefined,
+        });
+      } else {
+        deferMutation.mutate({
+          id: outcomeSuggestionId,
+          outcome,
+          outcomeReason: reason || undefined,
+        });
+      }
+      setOutcomeDialogOpen(false);
+      setOutcomeSuggestionId(null);
+    },
+    [outcomeSuggestionId, outcomeAction, actMutation, dismissMutation, deferMutation]
+  );
 
   const handleOutcomeSkip = useCallback(() => {
-    if (!outcomeSuggestionId) {return;}
+    if (!outcomeSuggestionId) {
+      return;
+    }
     if (outcomeAction === "act") {
       actMutation.mutate({ id: outcomeSuggestionId });
     } else if (outcomeAction === "dismiss") {
@@ -1080,8 +1293,8 @@ export default function FindingsPage() {
 
   const items = findings?.items ?? [];
   const total = findings?.total ?? 0;
-  const actionItems = items.filter(i => i.requiresAction);
-  const feedItems = items.filter(i => !i.requiresAction);
+  const actionItems = items.filter((i) => i.requiresAction);
+  const feedItems = items.filter((i) => !i.requiresAction);
 
   return (
     <div className="min-h-screen" data-testid="findings-page">
@@ -1090,9 +1303,12 @@ export default function FindingsPage() {
           <div className="flex items-center gap-3">
             <Eye className="h-6 w-6 text-primary" />
             <div>
-              <h1 className="text-xl font-bold" data-testid="text-page-title">Agent Findings</h1>
+              <h1 className="text-xl font-bold" data-testid="text-page-title">
+                Agent Findings
+              </h1>
               <p className="text-sm text-muted-foreground">
-                Unified view of all AI agent activity — suggestions, drafts, scheduled runs, and agent findings
+                Unified view of all AI agent activity — suggestions, drafts, scheduled runs, and
+                agent findings
               </p>
             </div>
           </div>
@@ -1124,109 +1340,128 @@ export default function FindingsPage() {
           </TabsList>
 
           <TabsContent value="findings">
-        <FilterBar
-          source={sourceFilter}
-          severity={severityFilter}
-          status={statusFilter}
-          dateFrom={dateFromFilter}
-          dateTo={dateToFilter}
-          onSourceChange={(v) => { setSourceFilter(v); setOffset(0); }}
-          onSeverityChange={(v) => { setSeverityFilter(v); setOffset(0); }}
-          onStatusChange={(v) => { setStatusFilter(v); setOffset(0); }}
-          onDateFromChange={(v) => { setDateFromFilter(v); setOffset(0); }}
-          onDateToChange={(v) => { setDateToFilter(v); setOffset(0); }}
-          onReset={resetFilters}
-        />
+            <FilterBar
+              source={sourceFilter}
+              severity={severityFilter}
+              status={statusFilter}
+              dateFrom={dateFromFilter}
+              dateTo={dateToFilter}
+              onSourceChange={(v) => {
+                setSourceFilter(v);
+                setOffset(0);
+              }}
+              onSeverityChange={(v) => {
+                setSeverityFilter(v);
+                setOffset(0);
+              }}
+              onStatusChange={(v) => {
+                setStatusFilter(v);
+                setOffset(0);
+              }}
+              onDateFromChange={(v) => {
+                setDateFromFilter(v);
+                setOffset(0);
+              }}
+              onDateToChange={(v) => {
+                setDateToFilter(v);
+                setOffset(0);
+              }}
+              onReset={resetFilters}
+            />
 
-        {findingsLoading ? (
-          <div className="space-y-3" data-testid="findings-loading">
-            {[1, 2, 3].map(i => <Skeleton key={i} className="h-24 rounded-lg" />)}
-          </div>
-        ) : items.length === 0 ? (
-          <div className="text-center py-16 border rounded-lg" data-testid="findings-empty">
-            <Inbox className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
-            <h3 className="text-sm font-medium text-muted-foreground">No findings yet</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              Agent suggestions, draft actions, and scheduled run results will appear here.
-            </p>
-          </div>
-        ) : (
-          <>
-            {actionItems.length > 0 && (
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <AlertTriangle className="h-4 w-4 text-amber-500" />
-                  <h2 className="text-sm font-semibold">Needs Your Attention ({actionItems.length})</h2>
-                </div>
-                <div className="space-y-2" data-testid="action-items">
-                  {actionItems.map(item => (
-                    <FindingCard
-                      key={item.id}
-                      item={item}
-                      onApprove={id => approveMutation.mutate(id)}
-                      onReject={id => rejectMutation.mutate(id)}
-                      onDismiss={id => openOutcomeDialog("dismiss", id)}
-                      onAct={id => openOutcomeDialog("act", id)}
-                      onDefer={id => openOutcomeDialog("defer", id)}
-                      onViewOutput={setRunOutputItem}
-                      onOpenAssistant={openAssistant}
-                      onAcknowledge={id => acknowledgeFindingMutation.mutate(id)}
-                      onArchive={id => archiveFindingMutation.mutate(id)}
-                    />
-                  ))}
-                </div>
+            {findingsLoading ? (
+              <div className="space-y-3" data-testid="findings-loading">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-24 rounded-lg" />
+                ))}
               </div>
-            )}
-
-            {feedItems.length > 0 && (
-              <div>
+            ) : items.length === 0 ? (
+              <div className="text-center py-16 border rounded-lg" data-testid="findings-empty">
+                <Inbox className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
+                <h3 className="text-sm font-medium text-muted-foreground">No findings yet</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Agent suggestions, draft actions, and scheduled run results will appear here.
+                </p>
+              </div>
+            ) : (
+              <>
                 {actionItems.length > 0 && (
-                  <h2 className="text-sm font-semibold mb-3">All Findings</h2>
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      <h2 className="text-sm font-semibold">
+                        Needs Your Attention ({actionItems.length})
+                      </h2>
+                    </div>
+                    <div className="space-y-2" data-testid="action-items">
+                      {actionItems.map((item) => (
+                        <FindingCard
+                          key={item.id}
+                          item={item}
+                          onApprove={(id) => approveMutation.mutate(id)}
+                          onReject={(id) => rejectMutation.mutate(id)}
+                          onDismiss={(id) => openOutcomeDialog("dismiss", id)}
+                          onAct={(id) => openOutcomeDialog("act", id)}
+                          onDefer={(id) => openOutcomeDialog("defer", id)}
+                          onViewOutput={setRunOutputItem}
+                          onOpenAssistant={openAssistant}
+                          onAcknowledge={(id) => acknowledgeFindingMutation.mutate(id)}
+                          onArchive={(id) => archiveFindingMutation.mutate(id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 )}
-                <div className="space-y-2" data-testid="feed-items">
-                  {feedItems.map(item => (
-                    <FindingCard
-                      key={item.id}
-                      item={item}
-                      onViewOutput={setRunOutputItem}
-                      onOpenAssistant={openAssistant}
-                      onAcknowledge={id => acknowledgeFindingMutation.mutate(id)}
-                      onArchive={id => archiveFindingMutation.mutate(id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
 
-            {total > limit && (
-              <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                <span className="text-xs text-muted-foreground">
-                  Showing {offset + 1}–{Math.min(offset + limit, total)} of {total}
-                </span>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={offset === 0}
-                    onClick={() => setOffset(Math.max(0, offset - limit))}
-                    data-testid="button-prev-page"
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={offset + limit >= total}
-                    onClick={() => setOffset(offset + limit)}
-                    data-testid="button-next-page"
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
+                {feedItems.length > 0 && (
+                  <div>
+                    {actionItems.length > 0 && (
+                      <h2 className="text-sm font-semibold mb-3">All Findings</h2>
+                    )}
+                    <div className="space-y-2" data-testid="feed-items">
+                      {feedItems.map((item) => (
+                        <FindingCard
+                          key={item.id}
+                          item={item}
+                          onViewOutput={setRunOutputItem}
+                          onOpenAssistant={openAssistant}
+                          onAcknowledge={(id) => acknowledgeFindingMutation.mutate(id)}
+                          onArchive={(id) => archiveFindingMutation.mutate(id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {total > limit && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                    <span className="text-xs text-muted-foreground">
+                      Showing {offset + 1}–{Math.min(offset + limit, total)} of {total}
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={offset === 0}
+                        onClick={() => setOffset(Math.max(0, offset - limit))}
+                        data-testid="button-prev-page"
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={offset + limit >= total}
+                        onClick={() => setOffset(offset + limit)}
+                        data-testid="button-next-page"
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
-          </>
-        )}
           </TabsContent>
 
           <TabsContent value="tasks">
@@ -1243,7 +1478,10 @@ export default function FindingsPage() {
 
       <AgentChatPanel
         open={chatOpen}
-        onClose={() => { setChatOpen(false); setChatMessage(null); }}
+        onClose={() => {
+          setChatOpen(false);
+          setChatMessage(null);
+        }}
         initialMessage={chatMessage}
       />
 
@@ -1255,7 +1493,10 @@ export default function FindingsPage() {
 
       <OutcomeDialog
         open={outcomeDialogOpen}
-        onClose={() => { setOutcomeDialogOpen(false); setOutcomeSuggestionId(null); }}
+        onClose={() => {
+          setOutcomeDialogOpen(false);
+          setOutcomeSuggestionId(null);
+        }}
         action={outcomeAction}
         onSubmit={handleOutcomeSubmit}
         onSkip={handleOutcomeSkip}

@@ -2,7 +2,12 @@
  * Aquametro FMCC - REST API Client
  */
 
-import type { FMCCConfig, FMCCInstantFlow, FMCCCumulativeCounters, FMCCMeterStatus } from "./types.js";
+import type {
+  FMCCConfig,
+  FMCCInstantFlow,
+  FMCCCumulativeCounters,
+  FMCCMeterStatus,
+} from "./types.js";
 
 export class FMCCRestClient {
   private config: FMCCConfig["restConfig"];
@@ -151,9 +156,13 @@ export class FMCCRestClient {
 
   private mapMeterStatus(status: string): FMCCInstantFlow["meterStatus"] {
     const statusMap: Record<string, FMCCInstantFlow["meterStatus"]> = {
-      online: "online", ok: "online", running: "online",
-      offline: "offline", disconnected: "offline",
-      maintenance: "maintenance", calibration: "maintenance",
+      online: "online",
+      ok: "online",
+      running: "online",
+      offline: "offline",
+      disconnected: "offline",
+      maintenance: "maintenance",
+      calibration: "maintenance",
     };
     return statusMap[status?.toLowerCase()] ?? "error";
   }

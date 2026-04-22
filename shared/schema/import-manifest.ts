@@ -14,15 +14,7 @@
  * ============================================================================
  */
 
-import {
-  pgTable,
-  varchar,
-  text,
-  integer,
-  timestamp,
-  jsonb,
-  index,
-} from "drizzle-orm/pg-core";
+import { pgTable, varchar, text, integer, timestamp, jsonb, index } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -36,13 +28,13 @@ export const importManifest = pgTable(
     orgId: varchar("org_id").notNull(),
 
     // What was imported
-    sourceSystem: text("source_system").notNull(),      // "shipmate" | "amos" | future
-    module: text("module").notNull(),                    // "pms_equipment" | "pms_jobs" | "sps_stores"
-    filename: text("filename"),                          // the upload filename, if available
+    sourceSystem: text("source_system").notNull(), // "shipmate" | "amos" | future
+    module: text("module").notNull(), // "pms_equipment" | "pms_jobs" | "sps_stores"
+    filename: text("filename"), // the upload filename, if available
 
     // Which vessel
-    vesselId: varchar("vessel_id"),                      // resolved vessel ID (null if not resolved)
-    vesselNameRequested: text("vessel_name_requested"),  // what the user asked for
+    vesselId: varchar("vessel_id"), // resolved vessel ID (null if not resolved)
+    vesselNameRequested: text("vessel_name_requested"), // what the user asked for
 
     // Lifecycle
     status: text("status").notNull().default("running"), // "running" | "committed" | "rolled_back" | "failed"
@@ -57,16 +49,13 @@ export const importManifest = pgTable(
 
     // Diagnostics
     errorMessage: text("error_message"),
-    firstErrors: jsonb("first_errors"),                  // first ~20 errors for triage
+    firstErrors: jsonb("first_errors"), // first ~20 errors for triage
 
     // Who
-    initiatedBy: varchar("initiated_by"),                // user id, if known
+    initiatedBy: varchar("initiated_by"), // user id, if known
   },
   (table) => ({
-    orgStatusIdx: index("idx_import_manifest_org_status").on(
-      table.orgId,
-      table.status
-    ),
+    orgStatusIdx: index("idx_import_manifest_org_status").on(table.orgId, table.status),
     vesselIdx: index("idx_import_manifest_vessel").on(table.vesselId),
     startedAtIdx: index("idx_import_manifest_started_at").on(table.startedAt),
   })

@@ -4,8 +4,8 @@ import "./index.css";
 
 // Suppress Vite HMR WebSocket unhandled rejections in development
 if (import.meta.env.DEV) {
-  globalThis.addEventListener('unhandledrejection', (event) => {
-    if (event.reason?.message?.includes('string did not match')) {
+  globalThis.addEventListener("unhandledrejection", (event) => {
+    if (event.reason?.message?.includes("string did not match")) {
       event.preventDefault();
     }
   });

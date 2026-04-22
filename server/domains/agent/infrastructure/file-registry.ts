@@ -43,23 +43,28 @@ export function getOrgUploadDir(orgId: string): string {
     throw new Error("Invalid orgId for file storage");
   }
   const dir = path.join(UPLOAD_BASE_DIR, safe);
-  if (!fs.existsSync(dir)) {fs.mkdirSync(dir, { recursive: true, mode: 0o700 });}
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  }
   return dir;
 }
 
 export async function registerFile(
   orgId: string,
   conversationId: string,
-  multerFile: { originalname: string; mimetype: string; size: number; path: string },
+  multerFile: { originalname: string; mimetype: string; size: number; path: string }
 ): Promise<FileRecord> {
-  const [record] = await db.insert(agentFiles).values({
-    orgId,
-    conversationId,
-    filename: multerFile.originalname,
-    mimetype: multerFile.mimetype,
-    size: multerFile.size,
-    storedPath: multerFile.path,
-  }).returning();
+  const [record] = await db
+    .insert(agentFiles)
+    .values({
+      orgId,
+      conversationId,
+      filename: multerFile.originalname,
+      mimetype: multerFile.mimetype,
+      size: multerFile.size,
+      storedPath: multerFile.path,
+    })
+    .returning();
   return record;
 }
 
@@ -69,12 +74,18 @@ export async function registerFile(
  * stored path escapes the org upload directory.
  */
 export async function resolveFile(fileId: string, orgId: string): Promise<FileRecord | null> {
-  const [record] = await db.select().from(agentFiles)
+  const [record] = await db
+    .select()
+    .from(agentFiles)
     .where(and(eq(agentFiles.id, fileId), eq(agentFiles.orgId, orgId)));
-  if (!record) {return null;}
+  if (!record) {
+    return null;
+  }
 
   // Verify the physical file still exists
-  if (!fs.existsSync(record.storedPath)) {return null;}
+  if (!fs.existsSync(record.storedPath)) {
+    return null;
+  }
 
   // Path-traversal guard: resolved path must be under the org's upload dir
   // or under the base upload dir (for cross-org safety).
@@ -93,14 +104,21 @@ export async function resolveFile(fileId: string, orgId: string): Promise<FileRe
   return record;
 }
 
-export async function listConversationFiles(conversationId: string, orgId: string): Promise<FileRecord[]> {
-  return db.select().from(agentFiles)
+export async function listConversationFiles(
+  conversationId: string,
+  orgId: string
+): Promise<FileRecord[]> {
+  return db
+    .select()
+    .from(agentFiles)
     .where(and(eq(agentFiles.conversationId, conversationId), eq(agentFiles.orgId, orgId)));
 }
 
 export async function deleteFile(fileId: string, orgId: string): Promise<boolean> {
   const record = await resolveFile(fileId, orgId);
-  if (!record) {return false;}
+  if (!record) {
+    return false;
+  }
   try {
     fs.unlinkSync(record.storedPath);
   } catch {

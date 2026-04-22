@@ -3,9 +3,13 @@
  * Implements IPartsInventoryRepository using existing storage
  */
 
-import type { IPartsInventoryRepository } from '../domain/ports.js';
-import type { PartsInventoryEntity, CreateInventoryItemCommand, UpdateInventoryItemCommand } from '../domain/types.js';
-import { inventoryRepository } from '../repository';
+import type { IPartsInventoryRepository } from "../domain/ports.js";
+import type {
+  PartsInventoryEntity,
+  CreateInventoryItemCommand,
+  UpdateInventoryItemCommand,
+} from "../domain/types.js";
+import { inventoryRepository } from "../repository";
 
 function mapToEntity(item: any): PartsInventoryEntity {
   return {
@@ -18,11 +22,11 @@ function mapToEntity(item: any): PartsInventoryEntity {
     minQuantity: item.minQuantity ?? 0,
     maxQuantity: item.maxQuantity,
     unitCost: item.unitCost,
-    currency: item.currency ?? 'USD',
+    currency: item.currency ?? "USD",
     location: item.location,
     vesselId: item.vesselId,
     equipmentId: item.equipmentId,
-    status: item.status ?? 'in_stock',
+    status: item.status ?? "in_stock",
     orgId: item.orgId,
     createdAt: item.createdAt ? new Date(item.createdAt) : new Date(),
     updatedAt: item.updatedAt ? new Date(item.updatedAt) : new Date(),
@@ -35,9 +39,15 @@ export class PartsInventoryRepositoryAdapter implements IPartsInventoryRepositor
     orgId?: string,
     search?: string,
     sortBy?: string,
-    sortOrder?: 'asc' | 'desc'
+    sortOrder?: "asc" | "desc"
   ): Promise<PartsInventoryEntity[]> {
-    const items = await inventoryRepository.findPartsInventory(category, orgId, search, sortBy, sortOrder);
+    const items = await inventoryRepository.findPartsInventory(
+      category,
+      orgId,
+      search,
+      sortBy,
+      sortOrder
+    );
     return items.map(mapToEntity);
   }
 
@@ -61,7 +71,11 @@ export class PartsInventoryRepositoryAdapter implements IPartsInventoryRepositor
     return mapToEntity(item);
   }
 
-  async update(id: string, updates: UpdateInventoryItemCommand, orgId?: string): Promise<PartsInventoryEntity> {
+  async update(
+    id: string,
+    updates: UpdateInventoryItemCommand,
+    orgId?: string
+  ): Promise<PartsInventoryEntity> {
     const item = await inventoryRepository.updateInventoryItem(id, updates as any, orgId);
     return mapToEntity(item);
   }
@@ -70,8 +84,16 @@ export class PartsInventoryRepositoryAdapter implements IPartsInventoryRepositor
     await inventoryRepository.deleteInventoryItem(id, orgId);
   }
 
-  async updateQuantity(id: string, newQuantity: number, orgId?: string): Promise<PartsInventoryEntity> {
-    const item = await inventoryRepository.updateInventoryItem(id, { quantity: newQuantity }, orgId);
+  async updateQuantity(
+    id: string,
+    newQuantity: number,
+    orgId?: string
+  ): Promise<PartsInventoryEntity> {
+    const item = await inventoryRepository.updateInventoryItem(
+      id,
+      { quantity: newQuantity },
+      orgId
+    );
     return mapToEntity(item);
   }
 }

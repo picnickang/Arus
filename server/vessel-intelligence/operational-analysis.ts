@@ -1,13 +1,10 @@
 /**
  * Vessel Intelligence Operational Analysis
- * 
+ *
  * Operational patterns, cost analysis, and predictive indicators.
  */
 
-import type {
-  EquipmentTelemetry,
-  WorkOrder,
-} from "@shared/schema";
+import type { EquipmentTelemetry, WorkOrder } from "@shared/schema";
 import type { VesselLearnings } from "./types.js";
 import {
   calculateEfficiencyTrends,

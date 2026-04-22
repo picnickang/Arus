@@ -17,7 +17,9 @@ export class OrgIdValidationError extends Error {
   }
 }
 
-export function extractOrgIdFromHeader(req: Request | { headers: Record<string, string | string[] | undefined> }): string {
+export function extractOrgIdFromHeader(
+  req: Request | { headers: Record<string, string | string[] | undefined> }
+): string {
   const orgId = req.headers["x-org-id"] as string | undefined;
 
   if (!orgId) {

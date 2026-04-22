@@ -1,10 +1,15 @@
 /**
  * Custom Context Builder
- * 
+ *
  * Build context for specialized custom reports.
  */
 
-import { vesselService, dbEquipmentStorage, workOrderService, dbTelemetryStorage } from "../repositories";
+import {
+  vesselService,
+  dbEquipmentStorage,
+  workOrderService,
+  dbTelemetryStorage,
+} from "../repositories";
 import type { ReportContext, ContextBuilderOptions } from "./types.js";
 import { fetchKBKnowledge } from "./knowledge-citations.js";
 

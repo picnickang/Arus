@@ -1,11 +1,18 @@
-export const TASK_STATUSES = ["open", "in_progress", "blocked", "completed", "failed", "deferred"] as const;
-export type TaskStatus = typeof TASK_STATUSES[number];
+export const TASK_STATUSES = [
+  "open",
+  "in_progress",
+  "blocked",
+  "completed",
+  "failed",
+  "deferred",
+] as const;
+export type TaskStatus = (typeof TASK_STATUSES)[number];
 
 export const TASK_PRIORITIES = ["low", "medium", "high", "critical"] as const;
-export type TaskPriority = typeof TASK_PRIORITIES[number];
+export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 
 export const TASK_SOURCES = ["suggestion", "signal", "user", "scheduled"] as const;
-export type TaskSource = typeof TASK_SOURCES[number];
+export type TaskSource = (typeof TASK_SOURCES)[number];
 
 export const VALID_STATUS_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   open: ["in_progress", "blocked", "deferred", "failed"],
@@ -31,9 +38,14 @@ export interface AgentTaskFilter {
 }
 
 export interface AgentTaskRepositoryPort {
-  create(data: import("@shared/schema").InsertAgentTask): Promise<import("@shared/schema").AgentTask>;
+  create(
+    data: import("@shared/schema").InsertAgentTask
+  ): Promise<import("@shared/schema").AgentTask>;
   getById(id: string, orgId: string): Promise<import("@shared/schema").AgentTask | null>;
   list(orgId: string, filter?: AgentTaskFilter): Promise<import("@shared/schema").AgentTask[]>;
-  update(id: string, data: Partial<import("@shared/schema").AgentTask>): Promise<import("@shared/schema").AgentTask>;
+  update(
+    id: string,
+    data: Partial<import("@shared/schema").AgentTask>
+  ): Promise<import("@shared/schema").AgentTask>;
   countByStatus(orgId: string): Promise<Record<string, number>>;
 }

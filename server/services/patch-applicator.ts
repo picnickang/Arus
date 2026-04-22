@@ -3,7 +3,7 @@
  * CLOUD-ONLY: Uses PostgreSQL transactions (not available in SQLite)
  * Applies software patches atomically with rollback capability
  * Part of ARUS 3-Tier Patching System - Tier 2
- * 
+ *
  * Security (S2076, S4036): All command execution uses runTrustedExecutable
  * with compile-time allowlisted executables only.
  */
@@ -35,8 +35,8 @@ export class PatchApplicator {
 
   constructor() {
     // GUARD: Patch applicator is cloud-only
-    assertCloudMode('Patch Applicator Service');
-    
+    assertCloudMode("Patch Applicator Service");
+
     this.backupDir = path.resolve(process.cwd(), "backups");
     this.appDir = process.cwd();
 
@@ -134,7 +134,7 @@ export class PatchApplicator {
     // Security: Validate paths to prevent path traversal
     const safePatchPath = validatePath(process.cwd(), patchPath);
     const safeExtractDir = validatePath(process.cwd(), extractDir);
-    
+
     if (!fs.existsSync(safeExtractDir)) {
       fs.mkdirSync(safeExtractDir, { recursive: true });
     }
@@ -304,7 +304,7 @@ export class PatchApplicator {
       console.log(`[PatchApplicator] Applying patch: ${patchId}`);
 
       // Get patch from database
-      const patchesTable = getCloudTable(softwarePatches, 'Software Patches');
+      const patchesTable = getCloudTable(softwarePatches, "Software Patches");
       const [patch] = await db
         .select()
         .from(patchesTable)
@@ -318,10 +318,7 @@ export class PatchApplicator {
       const manifest = patch.manifest as unknown as PatchManifest;
 
       // Update patch status
-      await db
-        .update(patchesTable)
-        .set({ status: "applying" })
-        .where(eq(patchesTable.id, patchId));
+      await db.update(patchesTable).set({ status: "applying" }).where(eq(patchesTable.id, patchId));
 
       // Extract patch to temporary directory
       const extractDir = path.join(this.backupDir, `extract-${Date.now()}`);

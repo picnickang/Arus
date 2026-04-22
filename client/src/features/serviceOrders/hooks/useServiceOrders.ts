@@ -105,8 +105,19 @@ export function useStartServiceOrder() {
 
 export function useCompleteServiceOrder() {
   return useMutation({
-    mutationFn: ({ id, actualAmount, actualDurationHours }: { id: string; actualAmount?: number; actualDurationHours?: number }) =>
-      apiRequest("POST", `/api/service-orders/${id}/complete`, { actualAmount, actualDurationHours }),
+    mutationFn: ({
+      id,
+      actualAmount,
+      actualDurationHours,
+    }: {
+      id: string;
+      actualAmount?: number;
+      actualDurationHours?: number;
+    }) =>
+      apiRequest("POST", `/api/service-orders/${id}/complete`, {
+        actualAmount,
+        actualDurationHours,
+      }),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: soKeys.all });
       queryClient.invalidateQueries({ queryKey: soKeys.detail(id) });

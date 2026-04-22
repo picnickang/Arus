@@ -1,7 +1,18 @@
 import { z } from "zod";
 import {
-  Power, Activity, Zap, Fuel, Droplets, Bell, Wrench, Users,
-  Settings, FileText, Thermometer, Gauge, type LucideIcon,
+  Power,
+  Activity,
+  Zap,
+  Fuel,
+  Droplets,
+  Bell,
+  Wrench,
+  Users,
+  Settings,
+  FileText,
+  Thermometer,
+  Gauge,
+  type LucideIcon,
 } from "lucide-react";
 
 export interface EngineEventUIConfig {
@@ -57,16 +68,31 @@ export interface AutoFillResult {
 }
 
 export const optionalNumber = () =>
-  z.string().optional()
+  z
+    .string()
+    .optional()
     .transform((val) => (val === "" || val === undefined ? undefined : val))
     .pipe(z.union([z.undefined(), z.coerce.number()]));
 
 export const manualEngineEventFormSchema = z.object({
-  eventType: z.enum([
-    "ME_START", "ME_STOP", "DG_START", "DG_STOP", "DG_LOAD_TRANSFER",
-    "FUEL_TRANSFER", "BUNKERING", "OIL_TRANSFER", "BILGE_PUMP",
-    "MAINTENANCE", "INSPECTION", "REMARK", "CUSTOM"
-  ], { required_error: "Please select an event type" }),
+  eventType: z.enum(
+    [
+      "ME_START",
+      "ME_STOP",
+      "DG_START",
+      "DG_STOP",
+      "DG_LOAD_TRANSFER",
+      "FUEL_TRANSFER",
+      "BUNKERING",
+      "OIL_TRANSFER",
+      "BILGE_PUMP",
+      "MAINTENANCE",
+      "INSPECTION",
+      "REMARK",
+      "CUSTOM",
+    ],
+    { required_error: "Please select an event type" }
+  ),
   summary: z.string().min(5, "Summary must be at least 5 characters").max(500),
   details: z.string().max(2000).optional(),
   equipmentId: z.string().optional(),
@@ -81,5 +107,12 @@ export function getEngineEventTypeConfig(eventType: string): EngineEventUIConfig
 }
 
 export function createDefaultManualEventFormValues(): Partial<ManualEngineEventFormValues> {
-  return { eventType: undefined, summary: "", details: "", equipmentId: "", meRpm: undefined, meLoad: undefined };
+  return {
+    eventType: undefined,
+    summary: "",
+    details: "",
+    equipmentId: "",
+    meRpm: undefined,
+    meLoad: undefined,
+  };
 }

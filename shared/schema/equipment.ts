@@ -1,6 +1,6 @@
 /**
  * Schema Equipment - Equipment Registry, Devices, and Lifecycle
- * 
+ *
  * Central equipment catalog, edge devices, and lifecycle tracking.
  */
 
@@ -69,7 +69,9 @@ export const equipment = pgTable(
     decommissionEventId: varchar("decommission_event_id"),
     reinstatedAt: timestamp("reinstated_at", { mode: "date" }),
     reinstatedBy: varchar("reinstated_by"),
-    parentEquipmentId: varchar("parent_equipment_id").references((): any => equipment.id, { onDelete: "set null" }),
+    parentEquipmentId: varchar("parent_equipment_id").references((): any => equipment.id, {
+      onDelete: "set null",
+    }),
     hierarchyLevel: integer("hierarchy_level").default(0),
     hierarchyPath: text("hierarchy_path").default(""),
     ...timestamps(),
@@ -199,7 +201,10 @@ export const performanceMetrics = pgTable(
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({
-    equipmentMetricDateIdx: index("idx_perf_equipment_date").on(table.equipmentId, table.metricDate),
+    equipmentMetricDateIdx: index("idx_perf_equipment_date").on(
+      table.equipmentId,
+      table.metricDate
+    ),
   })
 );
 
@@ -405,7 +410,10 @@ export const operatingConditionAlerts = pgTable(
     equipmentIdx: index("idx_op_alerts_equipment").on(table.equipmentId),
     timeIdx: index("idx_op_alerts_time").on(table.alertedAt),
     activeIdx: index("idx_op_alerts_active").on(table.equipmentId, table.acknowledgedAt),
-    resolvedIdx: index("idx_operating_condition_alerts_resolved").on(table.equipmentId, table.resolved),
+    resolvedIdx: index("idx_operating_condition_alerts_resolved").on(
+      table.equipmentId,
+      table.resolved
+    ),
   })
 );
 
@@ -477,20 +485,32 @@ export const insertDecommissionEventSchema = createInsertSchema(equipmentDecommi
   });
 
 // Equipment analytics insert schemas
-export const insertDowntimeEventSchema = createInsertSchema(downtimeEvents)
-  .omit({ id: true, createdAt: true, updatedAt: true });
+export const insertDowntimeEventSchema = createInsertSchema(downtimeEvents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
-export const insertPartFailureHistorySchema = createInsertSchema(partFailureHistory)
-  .omit({ id: true, createdAt: true });
+export const insertPartFailureHistorySchema = createInsertSchema(partFailureHistory).omit({
+  id: true,
+  createdAt: true,
+});
 
-export const insertIndustryBenchmarkSchema = createInsertSchema(industryBenchmarks)
-  .omit({ id: true, createdAt: true, updatedAt: true });
+export const insertIndustryBenchmarkSchema = createInsertSchema(industryBenchmarks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
-export const insertOperatingParameterSchema = createInsertSchema(operatingParameters)
-  .omit({ id: true, createdAt: true, updatedAt: true });
+export const insertOperatingParameterSchema = createInsertSchema(operatingParameters).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
-export const insertOperatingConditionAlertSchema = createInsertSchema(operatingConditionAlerts)
-  .omit({ id: true, alertedAt: true });
+export const insertOperatingConditionAlertSchema = createInsertSchema(
+  operatingConditionAlerts
+).omit({ id: true, alertedAt: true });
 
 // Types
 export type Equipment = typeof equipment.$inferSelect;

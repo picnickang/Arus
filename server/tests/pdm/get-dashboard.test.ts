@@ -1,46 +1,46 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import type { PdmRepositoryPort } from '../../pdm/ports/pdm-repository.port';
-import { createGetDashboardUseCase } from '../../pdm/application/get-dashboard.use-case';
-import type { 
-  FleetHealthKpis, 
-  RiskQueueItem, 
-  TelemetryCoverage, 
-  ModelHealth, 
-  MaintenancePipeline 
-} from '../../pdm/domain/types';
+import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+import type { PdmRepositoryPort } from "../../pdm/ports/pdm-repository.port";
+import { createGetDashboardUseCase } from "../../pdm/application/get-dashboard.use-case";
+import type {
+  FleetHealthKpis,
+  RiskQueueItem,
+  TelemetryCoverage,
+  ModelHealth,
+  MaintenancePipeline,
+} from "../../pdm/domain/types";
 
-describe('PdM Dashboard Use Cases', () => {
+describe("PdM Dashboard Use Cases", () => {
   let mockRepository: jest.Mocked<PdmRepositoryPort>;
-  const testOrgId = 'test-org-id';
+  const testOrgId = "test-org-id";
 
   const mockKpis: FleetHealthKpis = {
     fleetHealthScore: 87.5,
     fleetHealthChange: 3.2,
-    fleetHealthPeriod: 'last week',
+    fleetHealthPeriod: "last week",
     activeAlertsTotal: 12,
     criticalAlertsCount: 3,
     assetsAtRisk: 5,
     assetsRulUnder14Days: 4,
     avoidedDowntimeHours: 156.5,
-    avoidedDowntimePeriod: 'Last 30 Days',
+    avoidedDowntimePeriod: "Last 30 Days",
     maintenanceForecastCost: 45000,
-    maintenanceForecastPeriod: 'Next 30 Days',
+    maintenanceForecastPeriod: "Next 30 Days",
   };
 
   const mockRiskItem: RiskQueueItem = {
-    id: '1',
-    vesselId: 'vessel-1',
-    vesselName: 'MV Test Ship',
-    equipmentId: 'eq-1',
-    equipmentName: 'Main Engine',
-    equipmentType: 'Engine',
-    failureMode: 'Bearing Wear',
-    severity: 'high',
+    id: "1",
+    vesselId: "vessel-1",
+    vesselName: "MV Test Ship",
+    equipmentId: "eq-1",
+    equipmentName: "Main Engine",
+    equipmentType: "Engine",
+    failureMode: "Bearing Wear",
+    severity: "high",
     rulEstimateDays: 10,
     rulConfidenceInterval: { lowDays: 8, highDays: 14 },
     confidence: 85,
-    recommendedAction: 'Schedule inspection',
-    status: 'active',
+    recommendedAction: "Schedule inspection",
+    status: "active",
     detectedAt: new Date(),
     acknowledgedAt: null,
     acknowledgedBy: null,
@@ -70,23 +70,32 @@ describe('PdM Dashboard Use Cases', () => {
   beforeEach(() => {
     mockRepository = {
       getFleetHealthKpis: jest.fn<() => Promise<FleetHealthKpis>>().mockResolvedValue(mockKpis),
-      getRiskQueue: jest.fn<(orgId: string, status?: string) => Promise<RiskQueueItem[]>>()
+      getRiskQueue: jest
+        .fn<(orgId: string, status?: string) => Promise<RiskQueueItem[]>>()
         .mockImplementation(async (_orgId, status) => {
-          if (status === 'active') {return [mockRiskItem];}
-          if (status === 'resolved') {return [];}
-          return [{ ...mockRiskItem, status: 'new', severity: 'medium' }];
+          if (status === "active") {
+            return [mockRiskItem];
+          }
+          if (status === "resolved") {
+            return [];
+          }
+          return [{ ...mockRiskItem, status: "new", severity: "medium" }];
         }),
-      getTelemetryCoverage: jest.fn<() => Promise<TelemetryCoverage>>().mockResolvedValue(mockTelemetryCoverage),
+      getTelemetryCoverage: jest
+        .fn<() => Promise<TelemetryCoverage>>()
+        .mockResolvedValue(mockTelemetryCoverage),
       getModelHealth: jest.fn<() => Promise<ModelHealth>>().mockResolvedValue(mockModelHealth),
-      getMaintenancePipeline: jest.fn<() => Promise<MaintenancePipeline>>().mockResolvedValue(mockMaintenancePipeline),
+      getMaintenancePipeline: jest
+        .fn<() => Promise<MaintenancePipeline>>()
+        .mockResolvedValue(mockMaintenancePipeline),
       getAssetDetail: jest.fn(),
       acknowledgeRiskItem: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-      createWorkOrderFromRisk: jest.fn<() => Promise<string>>().mockResolvedValue('wo-123'),
+      createWorkOrderFromRisk: jest.fn<() => Promise<string>>().mockResolvedValue("wo-123"),
     };
   });
 
-  describe('GetDashboardUseCase', () => {
-    it('should aggregate all dashboard data correctly', async () => {
+  describe("GetDashboardUseCase", () => {
+    it("should aggregate all dashboard data correctly", async () => {
       const useCase = createGetDashboardUseCase(mockRepository);
       const result = await useCase.execute({ orgId: testOrgId });
 
@@ -98,48 +107,50 @@ describe('PdM Dashboard Use Cases', () => {
       expect(result.maintenancePipeline).toEqual(mockMaintenancePipeline);
     });
 
-    it('should call repository with correct orgId', async () => {
+    it("should call repository with correct orgId", async () => {
       const useCase = createGetDashboardUseCase(mockRepository);
       await useCase.execute({ orgId: testOrgId });
 
       expect(mockRepository.getFleetHealthKpis).toHaveBeenCalledWith(testOrgId);
-      expect(mockRepository.getRiskQueue).toHaveBeenCalledWith(testOrgId, 'new');
-      expect(mockRepository.getRiskQueue).toHaveBeenCalledWith(testOrgId, 'active');
-      expect(mockRepository.getRiskQueue).toHaveBeenCalledWith(testOrgId, 'resolved');
+      expect(mockRepository.getRiskQueue).toHaveBeenCalledWith(testOrgId, "new");
+      expect(mockRepository.getRiskQueue).toHaveBeenCalledWith(testOrgId, "active");
+      expect(mockRepository.getRiskQueue).toHaveBeenCalledWith(testOrgId, "resolved");
       expect(mockRepository.getTelemetryCoverage).toHaveBeenCalledWith(testOrgId);
       expect(mockRepository.getModelHealth).toHaveBeenCalledWith(testOrgId);
       expect(mockRepository.getMaintenancePipeline).toHaveBeenCalledWith(testOrgId);
     });
 
-    it('should make all repository calls in parallel', async () => {
+    it("should make all repository calls in parallel", async () => {
       const callOrder: string[] = [];
-      
-      mockRepository.getFleetHealthKpis = jest.fn<() => Promise<FleetHealthKpis>>()
+
+      mockRepository.getFleetHealthKpis = jest
+        .fn<() => Promise<FleetHealthKpis>>()
         .mockImplementation(async () => {
-          callOrder.push('kpis-start');
-          await new Promise(resolve => setTimeout(resolve, 10));
-          callOrder.push('kpis-end');
+          callOrder.push("kpis-start");
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          callOrder.push("kpis-end");
           return mockKpis;
         });
-      
-      mockRepository.getTelemetryCoverage = jest.fn<() => Promise<TelemetryCoverage>>()
+
+      mockRepository.getTelemetryCoverage = jest
+        .fn<() => Promise<TelemetryCoverage>>()
         .mockImplementation(async () => {
-          callOrder.push('telemetry-start');
-          await new Promise(resolve => setTimeout(resolve, 10));
-          callOrder.push('telemetry-end');
+          callOrder.push("telemetry-start");
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          callOrder.push("telemetry-end");
           return mockTelemetryCoverage;
         });
 
       const useCase = createGetDashboardUseCase(mockRepository);
       await useCase.execute({ orgId: testOrgId });
 
-      expect(callOrder[0]).toBe('kpis-start');
-      expect(callOrder[1]).toBe('telemetry-start');
+      expect(callOrder[0]).toBe("kpis-start");
+      expect(callOrder[1]).toBe("telemetry-start");
     });
   });
 
-  describe('FleetHealthKpis Calculation', () => {
-    it('should handle zero predictions gracefully', async () => {
+  describe("FleetHealthKpis Calculation", () => {
+    it("should handle zero predictions gracefully", async () => {
       const emptyKpis: FleetHealthKpis = {
         ...mockKpis,
         activeAlertsTotal: 0,
@@ -157,7 +168,7 @@ describe('PdM Dashboard Use Cases', () => {
       expect(result.kpis.fleetHealthScore).toBeDefined();
     });
 
-    it('should include downtime cost calculation in maintenance forecast', async () => {
+    it("should include downtime cost calculation in maintenance forecast", async () => {
       const kpisWithCost: FleetHealthKpis = {
         ...mockKpis,
         maintenanceForecastCost: 85000,
@@ -171,7 +182,7 @@ describe('PdM Dashboard Use Cases', () => {
       expect(result.kpis.maintenanceForecastCost).toBeGreaterThan(0);
     });
 
-    it('should calculate fleet health score within valid range', async () => {
+    it("should calculate fleet health score within valid range", async () => {
       const useCase = createGetDashboardUseCase(mockRepository);
       const result = await useCase.execute({ orgId: testOrgId });
 
@@ -179,11 +190,11 @@ describe('PdM Dashboard Use Cases', () => {
       expect(result.kpis.fleetHealthScore).toBeLessThanOrEqual(100);
     });
 
-    it('should track avoided downtime hours correctly', async () => {
+    it("should track avoided downtime hours correctly", async () => {
       const kpisWithDowntime: FleetHealthKpis = {
         ...mockKpis,
         avoidedDowntimeHours: 250.5,
-        avoidedDowntimePeriod: 'Last 30 Days',
+        avoidedDowntimePeriod: "Last 30 Days",
       };
       mockRepository.getFleetHealthKpis.mockResolvedValue(kpisWithDowntime);
 
@@ -191,12 +202,12 @@ describe('PdM Dashboard Use Cases', () => {
       const result = await useCase.execute({ orgId: testOrgId });
 
       expect(result.kpis.avoidedDowntimeHours).toBe(250.5);
-      expect(result.kpis.avoidedDowntimePeriod).toBe('Last 30 Days');
+      expect(result.kpis.avoidedDowntimePeriod).toBe("Last 30 Days");
     });
   });
 
-  describe('RiskQueue Filtering', () => {
-    it('should separate risk queue items by status', async () => {
+  describe("RiskQueue Filtering", () => {
+    it("should separate risk queue items by status", async () => {
       const useCase = createGetDashboardUseCase(mockRepository);
       const result = await useCase.execute({ orgId: testOrgId });
 
@@ -205,7 +216,7 @@ describe('PdM Dashboard Use Cases', () => {
       expect(result.riskQueue.resolved).toBeDefined();
     });
 
-    it('should include confidence interval in risk queue items', async () => {
+    it("should include confidence interval in risk queue items", async () => {
       const useCase = createGetDashboardUseCase(mockRepository);
       const result = await useCase.execute({ orgId: testOrgId });
 
@@ -215,7 +226,7 @@ describe('PdM Dashboard Use Cases', () => {
       expect(activeItem.rulConfidenceInterval?.highDays).toBe(14);
     });
 
-    it('should handle items without confidence interval', async () => {
+    it("should handle items without confidence interval", async () => {
       const itemWithoutCI: RiskQueueItem = {
         ...mockRiskItem,
         rulConfidenceInterval: null,
@@ -229,8 +240,8 @@ describe('PdM Dashboard Use Cases', () => {
     });
   });
 
-  describe('Telemetry Coverage', () => {
-    it('should return correct online/total counts', async () => {
+  describe("Telemetry Coverage", () => {
+    it("should return correct online/total counts", async () => {
       const useCase = createGetDashboardUseCase(mockRepository);
       const result = await useCase.execute({ orgId: testOrgId });
 
@@ -239,7 +250,7 @@ describe('PdM Dashboard Use Cases', () => {
       expect(result.telemetryCoverage.delayedCount).toBe(3);
     });
 
-    it('should handle empty delayed equipment list', async () => {
+    it("should handle empty delayed equipment list", async () => {
       const useCase = createGetDashboardUseCase(mockRepository);
       const result = await useCase.execute({ orgId: testOrgId });
 
@@ -247,8 +258,8 @@ describe('PdM Dashboard Use Cases', () => {
     });
   });
 
-  describe('Model Health', () => {
-    it('should track active models and drift alerts', async () => {
+  describe("Model Health", () => {
+    it("should track active models and drift alerts", async () => {
       const useCase = createGetDashboardUseCase(mockRepository);
       const result = await useCase.execute({ orgId: testOrgId });
 
@@ -256,7 +267,7 @@ describe('PdM Dashboard Use Cases', () => {
       expect(result.modelHealth.driftAlertsCount).toBe(1);
     });
 
-    it('should handle null training date', async () => {
+    it("should handle null training date", async () => {
       const healthWithNullDate: ModelHealth = {
         ...mockModelHealth,
         lastTrainingDate: null,
@@ -270,8 +281,8 @@ describe('PdM Dashboard Use Cases', () => {
     });
   });
 
-  describe('Maintenance Pipeline', () => {
-    it('should track work order counts by status', async () => {
+  describe("Maintenance Pipeline", () => {
+    it("should track work order counts by status", async () => {
       const useCase = createGetDashboardUseCase(mockRepository);
       const result = await useCase.execute({ orgId: testOrgId });
 

@@ -1,6 +1,6 @@
 /**
  * ML Ensemble Weights
- * 
+ *
  * Static and adaptive weight computation for model ensemble.
  */
 
@@ -50,7 +50,9 @@ export async function getAdaptiveWeights(
     }
 
     const score = (model: any) => {
-      if (!model) { return 0; }
+      if (!model) {
+        return 0;
+      }
       const perf = model.performance;
       const rawScore = perf?.macroF1 ?? perf?.f1Score ?? perf?.accuracy ?? 0;
       return Math.max(0.5, Math.min(1, rawScore));

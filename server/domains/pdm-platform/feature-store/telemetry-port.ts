@@ -6,6 +6,10 @@ export interface TelemetryReading {
 }
 
 export interface TelemetryPort {
-  getRecentReadings(orgId: string, equipmentId: string, windowMinutes: number): Promise<TelemetryReading[]>;
+  getRecentReadings(
+    orgId: string,
+    equipmentId: string,
+    windowMinutes: number
+  ): Promise<TelemetryReading[]>;
   getAvailableSensorTypes(orgId: string, equipmentId: string): Promise<string[]>;
 }

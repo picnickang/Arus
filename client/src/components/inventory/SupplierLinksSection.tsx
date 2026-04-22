@@ -65,8 +65,12 @@ export function SupplierLinksSection({
   }
 
   const sortedLinks = [...(links || [])].sort((a, b) => {
-    if (a.isPreferred && !b.isPreferred) {return -1;}
-    if (!a.isPreferred && b.isPreferred) {return 1;}
+    if (a.isPreferred && !b.isPreferred) {
+      return -1;
+    }
+    if (!a.isPreferred && b.isPreferred) {
+      return 1;
+    }
     return 0;
   });
 
@@ -79,7 +83,12 @@ export function SupplierLinksSection({
             Linked Suppliers ({links?.length || 0})
           </CardTitle>
           {!readOnly && onAddSupplier && (
-            <Button variant="outline" size="sm" onClick={onAddSupplier} data-testid="btn-add-supplier">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onAddSupplier}
+              data-testid="btn-add-supplier"
+            >
               <Plus className="h-3 w-3 mr-1" />
               Add
             </Button>

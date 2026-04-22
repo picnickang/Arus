@@ -45,16 +45,41 @@ export interface MoveSlotCommand {
 }
 
 const DEFAULT_SLOTS: SchematicSlot[] = [
-  { slotId: "me", label: "Main Engine", category: "propulsion", typeMatch: ["engine", "main engine", "propulsion"] },
+  {
+    slotId: "me",
+    label: "Main Engine",
+    category: "propulsion",
+    typeMatch: ["engine", "main engine", "propulsion"],
+  },
   { slotId: "gen1", label: "Generator #1", category: "power", typeMatch: ["generator"] },
   { slotId: "gen2", label: "Generator #2", category: "power", typeMatch: ["generator"] },
   { slotId: "pump1", label: "Cargo Pump", category: "cargo", typeMatch: ["pump"] },
-  { slotId: "bow", label: "Bow Thruster", category: "thrusters", typeMatch: ["thruster", "bow thruster"] },
+  {
+    slotId: "bow",
+    label: "Bow Thruster",
+    category: "thrusters",
+    typeMatch: ["thruster", "bow thruster"],
+  },
   { slotId: "crane", label: "Deck Crane", category: "deck", typeMatch: ["crane", "deck crane"] },
-  { slotId: "dp", label: "DP System", category: "navigation", typeMatch: ["navigation", "dp", "dynamic positioning"] },
+  {
+    slotId: "dp",
+    label: "DP System",
+    category: "navigation",
+    typeMatch: ["navigation", "dp", "dynamic positioning"],
+  },
   { slotId: "fuel", label: "Fuel System", category: "fuel", typeMatch: ["tank", "fuel", "boiler"] },
-  { slotId: "comp", label: "Compressor", category: "aux", typeMatch: ["compressor", "air compressor"] },
-  { slotId: "elec", label: "Switchboard", category: "electrical", typeMatch: ["electrical", "switchboard", "transformer"] },
+  {
+    slotId: "comp",
+    label: "Compressor",
+    category: "aux",
+    typeMatch: ["compressor", "air compressor"],
+  },
+  {
+    slotId: "elec",
+    label: "Switchboard",
+    category: "electrical",
+    typeMatch: ["electrical", "switchboard", "transformer"],
+  },
 ];
 
 const DEFAULT_ZONES: SchematicZone[] = [
@@ -67,7 +92,7 @@ const DEFAULT_ZONES: SchematicZone[] = [
 
 export function getDefaultLayout(): SchematicLayout {
   return {
-    zones: DEFAULT_ZONES.map(z => ({ ...z, slotIds: [...z.slotIds] })),
-    slots: DEFAULT_SLOTS.map(s => ({ ...s, typeMatch: [...s.typeMatch] })),
+    zones: DEFAULT_ZONES.map((z) => ({ ...z, slotIds: [...z.slotIds] })),
+    slots: DEFAULT_SLOTS.map((s) => ({ ...s, typeMatch: [...s.typeMatch] })),
   };
 }

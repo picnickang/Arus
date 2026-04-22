@@ -1,6 +1,6 @@
 /**
  * SensorSparklineChart Component
- * 
+ *
  * Mini sparkline graph for sensor telemetry with anomaly markers.
  * Displays current value, status, and optional z-score for anomalies.
  */
@@ -42,15 +42,25 @@ export function SensorSparklineChart({
   onViewDetails,
 }: SensorSparklineChartProps) {
   const getStatusColor = () => {
-    if (hasAnomaly) {return "border-destructive";}
-    if (status === "critical") {return "border-destructive";}
-    if (status === "warning") {return "border-amber-500";}
+    if (hasAnomaly) {
+      return "border-destructive";
+    }
+    if (status === "critical") {
+      return "border-destructive";
+    }
+    if (status === "warning") {
+      return "border-amber-500";
+    }
     return "border-border";
   };
 
   const getStatusDotColor = () => {
-    if (hasAnomaly || status === "critical") {return "bg-destructive";}
-    if (status === "warning") {return "bg-amber-500";}
+    if (hasAnomaly || status === "critical") {
+      return "bg-destructive";
+    }
+    if (status === "warning") {
+      return "bg-amber-500";
+    }
     return "bg-green-500";
   };
 
@@ -65,7 +75,7 @@ export function SensorSparklineChart({
     : null;
 
   return (
-    <Card 
+    <Card
       className={`${getStatusColor()} ${hasAnomaly ? "border-2" : ""}`}
       data-testid={`card-sensor-${sensorType}`}
     >
@@ -73,7 +83,10 @@ export function SensorSparklineChart({
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2 min-w-0">
             <div className={`h-2 w-2 rounded-full flex-shrink-0 ${getStatusDotColor()}`} />
-            <span className="text-sm font-medium truncate" data-testid={`text-sensor-${sensorType}`}>
+            <span
+              className="text-sm font-medium truncate"
+              data-testid={`text-sensor-${sensorType}`}
+            >
               {sensorType}
             </span>
           </div>

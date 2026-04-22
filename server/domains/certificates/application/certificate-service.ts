@@ -3,10 +3,7 @@
  * Orchestrates domain logic using ports (interfaces)
  */
 
-import type {
-  ICertificateRepository,
-  ICertificateEventRepository,
-} from '../domain/ports';
+import type { ICertificateRepository, ICertificateEventRepository } from "../domain/ports";
 import type {
   CertificateEntity,
   CreateCertificateCommand,
@@ -14,7 +11,7 @@ import type {
   CertificateSummary,
   ConditionOfClass,
   FlagStateEndorsement,
-} from '../domain/types';
+} from "../domain/types";
 
 export class CertificateApplicationService {
   constructor(
@@ -22,17 +19,22 @@ export class CertificateApplicationService {
     private readonly eventRepo: ICertificateEventRepository
   ) {}
 
-  async listCertificates(orgId: string, filters?: {
-    vesselId?: string;
-    type?: string;
-    status?: string;
-  }) {
+  async listCertificates(
+    orgId: string,
+    filters?: {
+      vesselId?: string;
+      type?: string;
+      status?: string;
+    }
+  ) {
     return this.certificateRepo.findAll(orgId, filters);
   }
 
   async getCertificateById(id: string, orgId: string) {
     const cert = await this.certificateRepo.findById(id, orgId);
-    if (!cert) {return undefined;}
+    if (!cert) {
+      return undefined;
+    }
 
     const events = await this.eventRepo.findByCertificateId(id);
     return { ...cert, events };
@@ -73,7 +75,9 @@ export class CertificateApplicationService {
     userId?: string
   ) {
     const updated = await this.certificateRepo.update(id, orgId, updates, userId);
-    if (!updated) {return undefined;}
+    if (!updated) {
+      return undefined;
+    }
 
     if (updates.status) {
       await this.eventRepo.create({
@@ -99,7 +103,9 @@ export class CertificateApplicationService {
     userId?: string
   ) {
     const cert = await this.certificateRepo.findById(id, orgId);
-    if (!cert) {return undefined;}
+    if (!cert) {
+      return undefined;
+    }
 
     const conditions = ((cert.conditionsOfClass as ConditionOfClass[]) || []).slice();
     const newCondition: ConditionOfClass = {
@@ -132,7 +138,9 @@ export class CertificateApplicationService {
     userId?: string
   ) {
     const cert = await this.certificateRepo.findById(id, orgId);
-    if (!cert) {return undefined;}
+    if (!cert) {
+      return undefined;
+    }
 
     const conditions = ((cert.conditionsOfClass as ConditionOfClass[]) || []).map((c) => {
       if (c.id === conditionId) {
@@ -146,7 +154,11 @@ export class CertificateApplicationService {
       return c;
     });
 
-    const updated = await this.certificateRepo.updateConditions(id, orgId, conditions as ConditionOfClass[]);
+    const updated = await this.certificateRepo.updateConditions(
+      id,
+      orgId,
+      conditions as ConditionOfClass[]
+    );
 
     await this.eventRepo.create({
       orgId,
@@ -166,7 +178,9 @@ export class CertificateApplicationService {
     userId?: string
   ) {
     const cert = await this.certificateRepo.findById(id, orgId);
-    if (!cert) {return undefined;}
+    if (!cert) {
+      return undefined;
+    }
 
     const endorsements = ((cert.endorsements as FlagStateEndorsement[]) || []).slice();
     endorsements.push(endorsement);

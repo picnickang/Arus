@@ -42,7 +42,7 @@ function log(level: LogLevel, message: string, context: Record<string, unknown> 
     .filter(([_, v]) => v !== undefined)
     .map(([k, v]) => `${k}=${typeof v === "object" ? JSON.stringify(v) : v}`)
     .join(" ");
-  
+
   logHandlers[level]("AlertRunner", message, contextStr || undefined);
 }
 
@@ -63,8 +63,8 @@ interface ClaimSnapshot {
 }
 
 async function claimAlertSlot(
-  orgId: string, 
-  alertKey: string, 
+  orgId: string,
+  alertKey: string,
   severity: string,
   alertType: string,
   title: string,
@@ -75,7 +75,7 @@ async function claimAlertSlot(
   try {
     const cooldownHours = getAlertCooldownHours(severity);
     const cooldownMs = cooldownHours * 60 * 60 * 1000;
-    
+
     const claim = await alertSettingsRepository.atomicClaimAlertSlot(
       orgId,
       alertType,
@@ -84,12 +84,12 @@ async function claimAlertSlot(
       vesselId,
       entityId
     );
-    
+
     if (!claim.claimed) {
       log("info", "Alert cooldown active", { alertKey, reason: claim.reason });
       return { claimed: false };
     }
-    
+
     const logEntry = await alertSettingsRepository.logEmail({
       orgId,
       alertType,
@@ -99,15 +99,15 @@ async function claimAlertSlot(
       subject: title,
       status: "sending",
     });
-    
-    return { 
-      claimed: true, 
+
+    return {
+      claimed: true,
       cooldownId: claim.cooldownId,
       logId: logEntry.id,
-      snapshot: claim.snapshot
+      snapshot: claim.snapshot,
     };
   } catch (err) {
-    log("warn", "Failed to claim alert slot, skipping", { 
+    log("warn", "Failed to claim alert slot, skipping", {
       alertKey,
       error: err instanceof Error ? err.message : String(err),
     });
@@ -128,7 +128,7 @@ async function updateAlertLogStatus(
       errorMessage || null
     );
   } catch (err) {
-    log("error", "Failed to update alert log status", { 
+    log("error", "Failed to update alert log status", {
       logId,
       status,
       error: err instanceof Error ? err.message : String(err),
@@ -142,17 +142,17 @@ async function getAlertRecipients(
   _alertType: string
 ): Promise<string[]> {
   const recipients: string[] = [];
-  
+
   const settings = await alertSettingsService.getCrewAlertSettings(orgId, vesselId || null);
   if (!settings) {
     return recipients;
   }
-  
+
   const notifyRecipients = settings.notifyRecipients;
   if (!notifyRecipients || notifyRecipients.length === 0) {
     return recipients;
   }
-  
+
   for (const recipientId of notifyRecipients) {
     try {
       const user = await dbUserStorage.getUser(recipientId);
@@ -163,22 +163,25 @@ async function getAlertRecipients(
       log("warn", "Failed to get user email", { userId: recipientId });
     }
   }
-  
+
   return recipients;
 }
 
-function buildAlertEmail(alert: CrewAlertResult, vesselName?: string): { subject: string; html: string; text: string } {
+function buildAlertEmail(
+  alert: CrewAlertResult,
+  vesselName?: string
+): { subject: string; html: string; text: string } {
   const severityColors: Record<string, string> = {
     critical: "#dc2626",
     warning: "#f59e0b",
     info: "#3b82f6",
   };
-  
+
   const severityColor = severityColors[alert.severity] || "#6b7280";
   const vesselInfo = vesselName ? ` - ${vesselName}` : "";
-  
+
   const subject = `[${alert.severity.toUpperCase()}] ${alert.title}${vesselInfo}`;
-  
+
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background: ${severityColor}; color: white; padding: 16px; border-radius: 8px 8px 0 0;">
@@ -199,7 +202,7 @@ function buildAlertEmail(alert: CrewAlertResult, vesselName?: string): { subject
       </div>
     </div>
   `;
-  
+
   const text = `[${alert.severity.toUpperCase()}] ${alert.title}${vesselInfo}
 
 ${alert.message}
@@ -208,7 +211,7 @@ Alert Type: ${alert.alertType}
 Severity: ${alert.severity}
 Generated: ${format(new Date(), "MMM dd, yyyy HH:mm")}
 `;
-  
+
   return { subject, html, text };
 }
 
@@ -231,7 +234,7 @@ async function logAlertToDatabase(
       sentAt: status === "sent" ? new Date() : null,
     });
   } catch (err) {
-    log("error", "Failed to log alert to database", { 
+    log("error", "Failed to log alert to database", {
       alertKey: alert.alertKey,
       error: err instanceof Error ? err.message : String(err),
     });
@@ -249,18 +252,17 @@ async function processAlert(
 ): Promise<void> {
   const vesselId = (alert.metadata?.vesselId as string) || ctx.vesselId;
   const recipients = await getAlertRecipients(ctx.orgId, vesselId, alert.alertType);
-  
+
   if (recipients.length === 0) {
     log("info", "Alert skipped (no recipients)", { alertKey: alert.alertKey });
     result.alertsSkipped++;
     await logAlertToDatabase(ctx.orgId, alert, [], "skipped", "No recipients configured");
     return;
   }
-  
-  const entityId = (alert.metadata?.crewId as string) || 
-                   (alert.metadata?.equipmentId as string) || 
-                   alert.entityId;
-  
+
+  const entityId =
+    (alert.metadata?.crewId as string) || (alert.metadata?.equipmentId as string) || alert.entityId;
+
   const claim = await claimAlertSlot(
     ctx.orgId,
     alert.alertKey,
@@ -271,16 +273,16 @@ async function processAlert(
     vesselId,
     entityId
   );
-  
+
   if (!claim.claimed) {
     log("info", "Alert skipped (cooldown or concurrent claim)", { alertKey: alert.alertKey });
     result.alertsSkipped++;
     return;
   }
-  
+
   const vesselName = vesselId ? await getVesselName(vesselId) : undefined;
   const email = buildAlertEmail(alert, vesselName);
-  
+
   const sendResult = await emailProviderService.sendEmail(
     ctx.orgId,
     recipients,
@@ -288,7 +290,7 @@ async function processAlert(
     email.text,
     email.html
   );
-  
+
   await handleSendResult(sendResult, alert, claim, result, recipients.length);
 }
 
@@ -341,21 +343,21 @@ export async function runCrewAlerts(ctx: EvaluationContext): Promise<AlertRunRes
     alertsSkipped: 0,
     errors: [],
   };
-  
+
   try {
     const alerts = await runAllCrewAlertEvaluators(ctx);
     result.alertsTriggered = alerts.length;
-    
+
     log("info", "Crew alerts evaluation complete", {
       orgId: ctx.orgId,
       vesselId: ctx.vesselId,
       alertsTriggered: alerts.length,
     });
-    
+
     if (alerts.length === 0) {
       return result;
     }
-    
+
     for (const alert of alerts) {
       try {
         await processAlert(ctx, alert, result);
@@ -365,7 +367,7 @@ export async function runCrewAlerts(ctx: EvaluationContext): Promise<AlertRunRes
         log("error", "Alert processing error", { alertKey: alert.alertKey, error: errorMsg });
       }
     }
-    
+
     return result;
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
@@ -377,10 +379,10 @@ export async function runCrewAlerts(ctx: EvaluationContext): Promise<AlertRunRes
 
 export async function runCrewAlertsForAllOrgs(): Promise<AlertRunResult[]> {
   const results: AlertRunResult[] = [];
-  
+
   try {
-    const orgs = await dbUserStorage.getOrganizations?.() ?? [];
-    
+    const orgs = (await dbUserStorage.getOrganizations?.()) ?? [];
+
     for (const org of orgs) {
       try {
         const result = await runCrewAlerts({
@@ -389,13 +391,13 @@ export async function runCrewAlertsForAllOrgs(): Promise<AlertRunResult[]> {
         });
         results.push(result);
       } catch (err) {
-        log("error", "Failed to run alerts for org", { 
+        log("error", "Failed to run alerts for org", {
           orgId: org.id,
           error: err instanceof Error ? err.message : String(err),
         });
       }
     }
-    
+
     log("info", "Completed crew alerts run for all orgs", {
       orgCount: orgs.length,
       totalAlerts: results.reduce((sum, r) => sum + r.alertsQueued, 0),
@@ -405,7 +407,7 @@ export async function runCrewAlertsForAllOrgs(): Promise<AlertRunResult[]> {
       error: err instanceof Error ? err.message : String(err),
     });
   }
-  
+
   return results;
 }
 

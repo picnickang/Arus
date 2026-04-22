@@ -62,7 +62,7 @@ export function EquipmentFormDialog({
   const createForm = useEquipmentForm();
   const editForm = useEquipmentEditForm(equipment);
   const form = mode === "create" ? createForm : editForm;
-  
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const dialogOpen = open ?? isOpen ?? false;
@@ -71,27 +71,41 @@ export function EquipmentFormDialog({
     mutationFn: (data: InsertEquipment) => apiRequest("POST", "/api/equipment", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: equipmentKeys.list() });
-      toast({ title: "Equipment created", description: "The equipment has been added successfully" });
+      toast({
+        title: "Equipment created",
+        description: "The equipment has been added successfully",
+      });
       form.reset();
       onOpenChange(false);
       onSuccess?.();
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to create equipment", description: error.message, variant: "destructive" });
+      toast({
+        title: "Failed to create equipment",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<InsertEquipment> }) => 
+    mutationFn: ({ id, data }: { id: string; data: Partial<InsertEquipment> }) =>
       apiRequest("PUT", `/api/equipment/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: equipmentKeys.list() });
-      toast({ title: "Equipment updated", description: "The equipment has been updated successfully" });
+      toast({
+        title: "Equipment updated",
+        description: "The equipment has been updated successfully",
+      });
       onOpenChange(false);
       onSuccess?.();
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to update equipment", description: error.message, variant: "destructive" });
+      toast({
+        title: "Failed to update equipment",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -100,7 +114,7 @@ export function EquipmentFormDialog({
       ...data,
       vesselId: data.vesselId === "unassigned" || data.vesselId === "" ? null : data.vesselId,
     };
-    
+
     if (onSubmit) {
       onSubmit(submissionData, equipment?.id);
     } else if (mode === "create") {
@@ -110,7 +124,8 @@ export function EquipmentFormDialog({
     }
   };
 
-  const isPending = externalPending ?? (mode === "create" ? createMutation.isPending : updateMutation.isPending);
+  const isPending =
+    externalPending ?? (mode === "create" ? createMutation.isPending : updateMutation.isPending);
 
   const handleClose = () => {
     onOpenChange(false);
@@ -120,8 +135,16 @@ export function EquipmentFormDialog({
   const isCreate = mode === "create";
   const testIdPrefix = isCreate ? "" : "edit-";
   const dialogTitle = isCreate ? "Add New Equipment" : "Edit Equipment";
-  const dialogDescription = isCreate ? "Register new equipment in your fleet inventory" : "Update equipment information";
-  const submitLabel = isCreate ? (isPending ? "Creating..." : "Create Equipment") : (isPending ? "Updating..." : "Update Equipment");
+  const dialogDescription = isCreate
+    ? "Register new equipment in your fleet inventory"
+    : "Update equipment information";
+  const submitLabel = isCreate
+    ? isPending
+      ? "Creating..."
+      : "Create Equipment"
+    : isPending
+      ? "Updating..."
+      : "Update Equipment";
 
   return (
     <Dialog open={dialogOpen} onOpenChange={onOpenChange}>
@@ -144,7 +167,11 @@ export function EquipmentFormDialog({
                   <FormItem>
                     <FormLabel>Equipment Name *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Main Engine #1" {...field} data-testid={`input-${testIdPrefix}name`} />
+                      <Input
+                        placeholder="Main Engine #1"
+                        {...field}
+                        data-testid={`input-${testIdPrefix}name`}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -189,7 +216,11 @@ export function EquipmentFormDialog({
                   <FormItem>
                     <FormLabel>Manufacturer</FormLabel>
                     <FormControl>
-                      <Input placeholder="Caterpillar" {...field} data-testid={`input-${testIdPrefix}manufacturer`} />
+                      <Input
+                        placeholder="Caterpillar"
+                        {...field}
+                        data-testid={`input-${testIdPrefix}manufacturer`}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -202,7 +233,11 @@ export function EquipmentFormDialog({
                   <FormItem>
                     <FormLabel>Model</FormLabel>
                     <FormControl>
-                      <Input placeholder="3516C" {...field} data-testid={`input-${testIdPrefix}model`} />
+                      <Input
+                        placeholder="3516C"
+                        {...field}
+                        data-testid={`input-${testIdPrefix}model`}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -218,7 +253,11 @@ export function EquipmentFormDialog({
                   <FormItem>
                     <FormLabel>Serial Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="ABC123456" {...field} data-testid={`input-${testIdPrefix}serial`} />
+                      <Input
+                        placeholder="ABC123456"
+                        {...field}
+                        data-testid={`input-${testIdPrefix}serial`}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -243,11 +282,13 @@ export function EquipmentFormDialog({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="unassigned">No vessel assigned</SelectItem>
-                        {vessels.filter(v => v.id).map((vessel) => (
-                          <SelectItem key={vessel.id} value={vessel.id}>
-                            {vessel.name}
-                          </SelectItem>
-                        ))}
+                        {vessels
+                          .filter((v) => v.id)
+                          .map((vessel) => (
+                            <SelectItem key={vessel.id} value={vessel.id}>
+                              {vessel.name}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -299,7 +340,9 @@ export function EquipmentFormDialog({
                         placeholder="25000"
                         {...field}
                         value={field.value ?? ""}
-                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                        onChange={(e) =>
+                          field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)
+                        }
                         data-testid={`input-${testIdPrefix}purchase-value`}
                       />
                     </FormControl>
@@ -344,7 +387,13 @@ export function EquipmentFormDialog({
                       <Input
                         type="date"
                         {...field}
-                        value={field.value ? (typeof field.value === 'string' ? field.value.split("T")[0] : new Date(field.value).toISOString().split("T")[0]) : ""}
+                        value={
+                          field.value
+                            ? typeof field.value === "string"
+                              ? field.value.split("T")[0]
+                              : new Date(field.value).toISOString().split("T")[0]
+                            : ""
+                        }
                         onChange={(e) => field.onChange(e.target.value || undefined)}
                         data-testid={`input-${testIdPrefix}purchase-date`}
                       />
@@ -370,7 +419,9 @@ export function EquipmentFormDialog({
                           placeholder="20000"
                           {...field}
                           value={field.value ?? ""}
-                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                          onChange={(e) =>
+                            field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)
+                          }
                           data-testid={`input-${testIdPrefix}service-life-hours`}
                         />
                       </FormControl>
@@ -391,7 +442,9 @@ export function EquipmentFormDialog({
                           placeholder="10"
                           {...field}
                           value={field.value ?? ""}
-                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                          onChange={(e) =>
+                            field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)
+                          }
                           data-testid={`input-${testIdPrefix}service-life-years`}
                         />
                       </FormControl>
@@ -440,7 +493,9 @@ export function EquipmentFormDialog({
                           placeholder="10"
                           {...field}
                           value={field.value ?? ""}
-                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                          onChange={(e) =>
+                            field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)
+                          }
                           data-testid={`input-${testIdPrefix}depreciation-rate`}
                         />
                       </FormControl>
@@ -460,7 +515,9 @@ export function EquipmentFormDialog({
                           placeholder="2500"
                           {...field}
                           value={field.value ?? ""}
-                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                          onChange={(e) =>
+                            field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)
+                          }
                           data-testid={`input-${testIdPrefix}salvage-value`}
                         />
                       </FormControl>
@@ -502,7 +559,11 @@ export function EquipmentFormDialog({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isPending} data-testid={`button-submit-${isCreate ? "create" : "edit"}`}>
+              <Button
+                type="submit"
+                disabled={isPending}
+                data-testid={`button-submit-${isCreate ? "create" : "edit"}`}
+              >
                 {submitLabel}
               </Button>
             </div>
@@ -517,6 +578,8 @@ export function EquipmentCreateDialog(props: Omit<EquipmentFormDialogProps, "mod
   return <EquipmentFormDialog mode="create" {...props} />;
 }
 
-export function EquipmentEditDialog(props: Omit<EquipmentFormDialogProps, "mode"> & { equipment: Equipment | null }) {
+export function EquipmentEditDialog(
+  props: Omit<EquipmentFormDialogProps, "mode"> & { equipment: Equipment | null }
+) {
   return <EquipmentFormDialog mode="edit" {...props} />;
 }

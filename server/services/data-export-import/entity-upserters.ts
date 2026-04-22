@@ -1,14 +1,20 @@
 /**
  * Entity Upserters
- * 
+ *
  * Functions for upserting entity records during import.
  */
 
 import * as crypto from "node:crypto";
 import {
-  dbUserStorage, dbEquipmentStorage, dbAlertStorage, dbSensorsStorage,
-  dbInventoryStorage, dbMaintenanceStorage, dbTelemetryStorage,
-  vesselService, workOrderService,
+  dbUserStorage,
+  dbEquipmentStorage,
+  dbAlertStorage,
+  dbSensorsStorage,
+  dbInventoryStorage,
+  dbMaintenanceStorage,
+  dbTelemetryStorage,
+  vesselService,
+  workOrderService,
 } from "../../repositories";
 import type { ConflictResolution } from "./types";
 
@@ -16,7 +22,11 @@ import type { ConflictResolution } from "./types";
  * Upsert a record to the database
  * Returns the new ID if the record was created with a new ID (for cross-org mapping)
  */
-type UpsertHandler = (record: any, conflictResolution: ConflictResolution, isRemapping: boolean) => Promise<string | undefined>;
+type UpsertHandler = (
+  record: any,
+  conflictResolution: ConflictResolution,
+  isRemapping: boolean
+) => Promise<string | undefined>;
 
 const entityUpserters: Record<string, UpsertHandler> = {
   organizations: upsertOrganization,
@@ -26,7 +36,8 @@ const entityUpserters: Record<string, UpsertHandler> = {
   maintenance_schedules: upsertMaintenanceSchedule,
   sensors: upsertSensor,
   alert_configurations: upsertAlertConfiguration,
-  sensor_configurations: (record, conflictResolution) => upsertSensorConfiguration(record, conflictResolution),
+  sensor_configurations: (record, conflictResolution) =>
+    upsertSensorConfiguration(record, conflictResolution),
   parts_inventory: (record) => upsertPartsInventory(record),
   equipment_telemetry: (record) => upsertTelemetry(record),
 };
@@ -50,10 +61,14 @@ async function upsertOrganization(
   conflictResolution: ConflictResolution,
   isRemapping: boolean
 ): Promise<string | undefined> {
-  if (isRemapping) { return undefined; }
+  if (isRemapping) {
+    return undefined;
+  }
   const existingOrg = await dbUserStorage.getOrganization(record.id);
   if (existingOrg) {
-    if (conflictResolution === "skip") { return undefined; }
+    if (conflictResolution === "skip") {
+      return undefined;
+    }
     await dbUserStorage.updateOrganization(record.id, record);
   } else {
     await dbUserStorage.createOrganization(record);
@@ -75,13 +90,14 @@ async function upsertVessel(
   }
   const existingVessel = await vesselService.getVessel(record.id);
   if (existingVessel) {
-    if (conflictResolution === "skip") { return undefined; }
+    if (conflictResolution === "skip") {
+      return undefined;
+    }
     await vesselService.updateVessel(record.id, record, record.orgId);
     return undefined;
-  } 
-    await vesselService.createVessel(record);
-    return record.id;
-  
+  }
+  await vesselService.createVessel(record);
+  return record.id;
 }
 
 async function upsertEquipment(
@@ -93,18 +109,21 @@ async function upsertEquipment(
     const oldId = record.id;
     record.id = crypto.randomUUID();
     await dbEquipmentStorage.createEquipment(record);
-    console.log(`[DataImport] Created equipment: ${oldId} → ${record.id} (vesselId: ${record.vesselId})`);
+    console.log(
+      `[DataImport] Created equipment: ${oldId} → ${record.id} (vesselId: ${record.vesselId})`
+    );
     return record.id;
   }
   const existingEquip = await dbEquipmentStorage.getEquipment(record.orgId, record.id);
   if (existingEquip) {
-    if (conflictResolution === "skip") { return undefined; }
-    await dbEquipmentStorage.updateEquipment(record.id, record, record.orgId || '');
+    if (conflictResolution === "skip") {
+      return undefined;
+    }
+    await dbEquipmentStorage.updateEquipment(record.id, record, record.orgId || "");
     return undefined;
-  } 
-    await dbEquipmentStorage.createEquipment(record);
-    return record.id;
-  
+  }
+  await dbEquipmentStorage.createEquipment(record);
+  return record.id;
 }
 
 async function upsertWorkOrder(
@@ -122,13 +141,14 @@ async function upsertWorkOrder(
   }
   const existingWO = await workOrderService.getWorkOrderById(record.id, record.orgId);
   if (existingWO) {
-    if (conflictResolution === "skip") { return undefined; }
+    if (conflictResolution === "skip") {
+      return undefined;
+    }
     await workOrderService.updateWorkOrderWithDowntimeTracking(record.id, record);
     return undefined;
-  } 
-    await workOrderService.createWorkOrder(record);
-    return record.id;
-  
+  }
+  await workOrderService.createWorkOrder(record);
+  return record.id;
 }
 
 async function upsertMaintenanceSchedule(
@@ -138,7 +158,9 @@ async function upsertMaintenanceSchedule(
 ): Promise<string | undefined> {
   const existingSched = await dbMaintenanceStorage.getMaintenanceSchedule(record.id);
   if (existingSched) {
-    if (conflictResolution === "skip") { return undefined; }
+    if (conflictResolution === "skip") {
+      return undefined;
+    }
     await dbMaintenanceStorage.updateMaintenanceSchedule(record.id, record);
   } else {
     if (isRemapping) {
@@ -202,8 +224,7 @@ async function upsertSensorConfiguration(
 async function upsertPartsInventory(record: any): Promise<string | undefined> {
   try {
     await dbInventoryStorage.createPartsInventory(record);
-  } catch {
-  }
+  } catch {}
   return record.id;
 }
 

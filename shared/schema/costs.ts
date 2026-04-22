@@ -1,6 +1,6 @@
 /**
  * Schema Costs - Labor Rates, Expenses, Cost Model, Cost Savings
- * 
+ *
  * Financial tracking for maintenance ROI and expense management.
  */
 
@@ -29,8 +29,12 @@ import { failurePredictions } from "./ml-analytics-core";
 // ============================================================================
 
 export const laborRates = pgTable("labor_rates", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull().references(() => organizations.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id")
+    .notNull()
+    .references(() => organizations.id),
   skillLevel: text("skill_level").notNull(),
   position: text("position").notNull(),
   standardRate: real("standard_rate").notNull(),
@@ -82,8 +86,12 @@ export type InsertLaborRate = z.infer<typeof insertLaborRateSchema>;
 // ============================================================================
 
 export const expenses = pgTable("expenses", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull().references(() => organizations.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id")
+    .notNull()
+    .references(() => organizations.id),
   type: text("type").notNull(),
   amount: real("amount").notNull(),
   currency: text("currency").notNull().default("USD"),
@@ -132,8 +140,12 @@ export type InsertExpense = z.infer<typeof insertExpenseSchema>;
 export const costModel = pgTable(
   "cost_model",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     currency: text("currency").notNull().default("USD"),
     laborRatePerHour: real("labor_rate_per_hour").notNull().default(50),
     downtimePerHour: real("downtime_per_hour").notNull().default(1000),
@@ -168,12 +180,20 @@ export type InsertCostModel = z.infer<typeof insertCostModelSchema>;
 export const costSavings = pgTable(
   "cost_savings",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     workOrderId: varchar("work_order_id").references(() => workOrders.id, { onDelete: "cascade" }),
-    equipmentId: varchar("equipment_id").notNull().references(() => equipment.id),
+    equipmentId: varchar("equipment_id")
+      .notNull()
+      .references(() => equipment.id),
     vesselId: varchar("vessel_id").references(() => vessels.id),
-    predictionId: integer("prediction_id").references(() => failurePredictions.id, { onDelete: "set null" }),
+    predictionId: integer("prediction_id").references(() => failurePredictions.id, {
+      onDelete: "set null",
+    }),
     maintenanceType: text("maintenance_type").notNull(),
     actualCost: real("actual_cost").notNull().default(0),
     avoidedCost: real("avoided_cost").notNull().default(0),
@@ -197,7 +217,10 @@ export const costSavings = pgTable(
   },
   (table) => ({
     orgSavingsIdx: index("idx_cost_savings_org").on(table.orgId, table.calculatedAt),
-    equipmentSavingsIdx: index("idx_cost_savings_equipment").on(table.equipmentId, table.calculatedAt),
+    equipmentSavingsIdx: index("idx_cost_savings_equipment").on(
+      table.equipmentId,
+      table.calculatedAt
+    ),
     vesselSavingsIdx: index("idx_cost_savings_vessel").on(table.vesselId, table.calculatedAt),
     workOrderIdx: index("idx_cost_savings_work_order").on(table.workOrderId),
   })

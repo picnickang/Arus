@@ -15,18 +15,23 @@ async function resolveAdminEmails(orgId: string): Promise<string[]> {
     const adminRows = await db
       .select({ email: users.email })
       .from(users)
-      .where(and(
-        eq(users.orgId, orgId),
-        inArray(users.role, ["admin", "supervisor"]),
-        eq(users.isActive, true)
-      ));
-    return adminRows.map(r => r.email).filter(Boolean);
+      .where(
+        and(
+          eq(users.orgId, orgId),
+          inArray(users.role, ["admin", "supervisor"]),
+          eq(users.isActive, true)
+        )
+      );
+    return adminRows.map((r) => r.email).filter(Boolean);
   } catch {
     return [];
   }
 }
 
-export type BriefingHandler = (orgId: string, scheduleRunId: string) => Promise<{ briefingId: string }>;
+export type BriefingHandler = (
+  orgId: string,
+  scheduleRunId: string
+) => Promise<{ briefingId: string }>;
 
 export class SchedulerService {
   private cronJobs: Map<string, cron.ScheduledTask> = new Map();
@@ -40,8 +45,8 @@ export class SchedulerService {
       conversationId: string | undefined,
       message: string,
       userRole?: string,
-      options?: { toolAllowlist?: string[] | null; maxTokenBudget?: number },
-    ) => Promise<any>,
+      options?: { toolAllowlist?: string[] | null; maxTokenBudget?: number }
+    ) => Promise<any>
   ) {}
 
   registerBriefingHandler(handler: BriefingHandler): void {
@@ -55,14 +60,18 @@ export class SchedulerService {
         this.scheduleJob(sched);
       }
     }
-    console.log(`[SchedulerService] Initialized ${schedules.filter(s => s.enabled).length} schedules for org ${orgId}`);
+    console.log(
+      `[SchedulerService] Initialized ${schedules.filter((s) => s.enabled).length} schedules for org ${orgId}`
+    );
   }
 
   scheduleJob(schedule: AgentSchedule): void {
     this.cancelJob(schedule.id);
 
     if (!cron.validate(schedule.cronExpression)) {
-      console.warn(`[SchedulerService] Invalid cron expression for schedule ${schedule.id}: ${schedule.cronExpression}`);
+      console.warn(
+        `[SchedulerService] Invalid cron expression for schedule ${schedule.id}: ${schedule.cronExpression}`
+      );
       return;
     }
 
@@ -79,7 +88,9 @@ export class SchedulerService {
     });
 
     this.cronJobs.set(schedule.id, task);
-    console.log(`[SchedulerService] Scheduled job ${schedule.id} (${schedule.name}): ${schedule.cronExpression}`);
+    console.log(
+      `[SchedulerService] Scheduled job ${schedule.id} (${schedule.name}): ${schedule.cronExpression}`
+    );
   }
 
   cancelJob(scheduleId: string): void {
@@ -92,7 +103,10 @@ export class SchedulerService {
 
   async executeSchedule(schedule: AgentSchedule): Promise<void> {
     if (schedule.prompt === "__briefing__" && this.briefingHandler) {
-      const run = await this.repo.schedules.createRun({ scheduleId: schedule.id, status: "running" });
+      const run = await this.repo.schedules.createRun({
+        scheduleId: schedule.id,
+        status: "running",
+      });
       try {
         const result = await this.briefingHandler(schedule.orgId, run.id);
         await this.repo.schedules.updateRun(run.id, {
@@ -100,11 +114,18 @@ export class SchedulerService {
           output: { briefingId: result.briefingId },
           completedAt: new Date(),
         });
-        await this.repo.schedules.update(schedule.id, { lastRunAt: new Date(), consecutiveFailures: 0 });
+        await this.repo.schedules.update(schedule.id, {
+          lastRunAt: new Date(),
+          consecutiveFailures: 0,
+        });
         console.log(`[SchedulerService] Daily briefing generated: ${result.briefingId}`);
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : "unknown";
-        await this.repo.schedules.updateRun(run.id, { status: "failed", error: errMsg, completedAt: new Date() });
+        await this.repo.schedules.updateRun(run.id, {
+          status: "failed",
+          error: errMsg,
+          completedAt: new Date(),
+        });
         await this.handleConsecutiveFailure(schedule, errMsg);
         console.error(`[SchedulerService] Briefing generation failed: ${errMsg}`);
       }
@@ -124,7 +145,12 @@ export class SchedulerService {
 
     try {
       const result = await this.runAgentFn(
-        schedule.orgId, undefined, undefined, schedule.prompt, "system", runOptions,
+        schedule.orgId,
+        undefined,
+        undefined,
+        schedule.prompt,
+        "system",
+        runOptions
       );
 
       await this.repo.schedules.updateRun(run.id, {
@@ -134,13 +160,23 @@ export class SchedulerService {
           toolCallCount: result.toolCallCount,
           tokensUsed: result.totalTokens,
           conversationId: result.conversationId,
-          toolCalls: Array.isArray(result.toolCalls) ? result.toolCalls.map((tc: { toolName: string; input: unknown; durationMs: number; status: string; error?: string }) => ({
-            toolName: tc.toolName,
-            input: tc.input,
-            durationMs: tc.durationMs,
-            status: tc.status,
-            error: tc.error,
-          })) : [],
+          toolCalls: Array.isArray(result.toolCalls)
+            ? result.toolCalls.map(
+                (tc: {
+                  toolName: string;
+                  input: unknown;
+                  durationMs: number;
+                  status: string;
+                  error?: string;
+                }) => ({
+                  toolName: tc.toolName,
+                  input: tc.input,
+                  durationMs: tc.durationMs,
+                  status: tc.status,
+                  error: tc.error,
+                })
+              )
+            : [],
         },
         tokenUsage: result.totalTokens,
         completedAt: new Date(),
@@ -178,12 +214,17 @@ export class SchedulerService {
   private scheduleRetry(
     schedule: AgentSchedule,
     runOptions: { toolAllowlist: string[] | null; maxTokenBudget: number },
-    originalError: string,
+    originalError: string
   ): void {
     setImmediate(async () => {
       try {
         const retryResult = await this.runAgentFn(
-          schedule.orgId, undefined, undefined, schedule.prompt, "system", runOptions,
+          schedule.orgId,
+          undefined,
+          undefined,
+          schedule.prompt,
+          "system",
+          runOptions
         );
 
         const retryRun = await this.repo.schedules.createRun({
@@ -197,13 +238,23 @@ export class SchedulerService {
             toolCallCount: retryResult.toolCallCount,
             tokensUsed: retryResult.totalTokens,
             conversationId: retryResult.conversationId,
-            toolCalls: Array.isArray(retryResult.toolCalls) ? retryResult.toolCalls.map((tc: { toolName: string; input: unknown; durationMs: number; status: string; error?: string }) => ({
-              toolName: tc.toolName,
-              input: tc.input,
-              durationMs: tc.durationMs,
-              status: tc.status,
-              error: tc.error,
-            })) : [],
+            toolCalls: Array.isArray(retryResult.toolCalls)
+              ? retryResult.toolCalls.map(
+                  (tc: {
+                    toolName: string;
+                    input: unknown;
+                    durationMs: number;
+                    status: string;
+                    error?: string;
+                  }) => ({
+                    toolName: tc.toolName,
+                    input: tc.input,
+                    durationMs: tc.durationMs,
+                    status: tc.status,
+                    error: tc.error,
+                  })
+                )
+              : [],
             retried: true,
           },
           tokenUsage: retryResult.totalTokens,
@@ -229,10 +280,7 @@ export class SchedulerService {
   /**
    * Increment failure counter, auto-disable if threshold reached, alert admin.
    */
-  private async handleConsecutiveFailure(
-    schedule: AgentSchedule,
-    errorMsg: string,
-  ): Promise<void> {
+  private async handleConsecutiveFailure(schedule: AgentSchedule, errorMsg: string): Promise<void> {
     const freshSchedule = await this.repo.schedules.get(schedule.id, schedule.orgId);
     const currentFailCount = freshSchedule?.consecutiveFailures || 0;
     const newFailCount = currentFailCount + 1;
@@ -245,7 +293,7 @@ export class SchedulerService {
       await this.repo.schedules.update(schedule.id, { enabled: false });
       this.cancelJob(schedule.id);
       console.warn(
-        `[SchedulerService] Schedule ${schedule.id} auto-disabled after ${MAX_CONSECUTIVE_FAILURES} consecutive failures`,
+        `[SchedulerService] Schedule ${schedule.id} auto-disabled after ${MAX_CONSECUTIVE_FAILURES} consecutive failures`
       );
     }
 
@@ -258,13 +306,17 @@ export class SchedulerService {
 
     if (!schedule.allowWriteTools) {
       const base = allowedTools || getRegisteredToolNames();
-      return base.filter(t => !WRITE_TOOLS.includes(t));
+      return base.filter((t) => !WRITE_TOOLS.includes(t));
     }
 
     return allowedTools;
   }
 
-  private async deliverOutput(schedule: AgentSchedule, response: string, result: any): Promise<void> {
+  private async deliverOutput(
+    schedule: AgentSchedule,
+    response: string,
+    result: any
+  ): Promise<void> {
     const dest = schedule.outputDestination || "notification";
     const adminEmails = await resolveAdminEmails(schedule.orgId);
 
@@ -274,7 +326,7 @@ export class SchedulerService {
           orgId: schedule.orgId,
           notificationType: "agent_schedule",
           subject: `Scheduled Run: ${schedule.name}`,
-          body: response.length > 500 ? `${response.slice(0, 497)  }...` : response,
+          body: response.length > 500 ? `${response.slice(0, 497)}...` : response,
           recipients: adminEmails,
           relatedEntityType: "agent_schedule",
           relatedEntityId: schedule.id,
@@ -317,7 +369,7 @@ export class SchedulerService {
         } catch (reportErr) {
           console.warn(
             "[SchedulerService] Report storage failed, falling back to notification:",
-            reportErr instanceof Error ? reportErr.message : "unknown",
+            reportErr instanceof Error ? reportErr.message : "unknown"
           );
           await db.insert(notificationQueue).values({
             orgId: schedule.orgId,
@@ -334,7 +386,7 @@ export class SchedulerService {
     } catch (err) {
       console.warn(
         "[SchedulerService] Output delivery failed (non-blocking):",
-        err instanceof Error ? err.message : "unknown",
+        err instanceof Error ? err.message : "unknown"
       );
     }
   }
@@ -342,7 +394,7 @@ export class SchedulerService {
   private async alertAdminFailure(
     schedule: AgentSchedule,
     errorMsg: string,
-    failCount: number,
+    failCount: number
   ): Promise<void> {
     try {
       const autoDisabled = failCount >= MAX_CONSECUTIVE_FAILURES;
@@ -362,7 +414,10 @@ export class SchedulerService {
         status: "pending",
       });
     } catch (err) {
-      console.warn("[SchedulerService] Failed to alert admin:", err instanceof Error ? err.message : "unknown");
+      console.warn(
+        "[SchedulerService] Failed to alert admin:",
+        err instanceof Error ? err.message : "unknown"
+      );
     }
   }
 

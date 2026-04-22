@@ -61,7 +61,16 @@ router.post("/", requireOrgId, importLimit, async (req: Request, res: Response) 
       return res.status(400).json({ error: "Validation failed", details: parsed.error.flatten() });
     }
 
-    const { content, module, vesselName, vesselId, filename, feedToRag, delimiter, syncRunningHours } = parsed.data;
+    const {
+      content,
+      module,
+      vesselName,
+      vesselId,
+      filename,
+      feedToRag,
+      delimiter,
+      syncRunningHours,
+    } = parsed.data;
 
     logger.info("SHIPMATE import request", { orgId, module, vesselName, filename });
 
@@ -79,7 +88,9 @@ router.post("/", requireOrgId, importLimit, async (req: Request, res: Response) 
     res.status(result.success ? 200 : 207).json({ success: result.success, data: result });
   } catch (err) {
     logger.error("SHIPMATE import failed", { error: err });
-    res.status(500).json({ error: "Import failed", message: err instanceof Error ? err.message : String(err) });
+    res
+      .status(500)
+      .json({ error: "Import failed", message: err instanceof Error ? err.message : String(err) });
   }
 });
 
@@ -109,15 +120,18 @@ router.post("/preview", requireOrgId, importLimit, async (req: Request, res: Res
       success: true,
       data: {
         ...result,
-        message: `Preview: ${result.imported} rows would be imported, ${result.skipped} skipped.${ 
+        message: `Preview: ${result.imported} rows would be imported, ${result.skipped} skipped.${
           result.hierarchyLevelsDetected > 0
             ? ` Equipment hierarchy: ${result.hierarchyLevelsDetected} levels detected.`
-            : ""}`,
+            : ""
+        }`,
       },
     });
   } catch (err) {
     logger.error("SHIPMATE preview failed", { error: err });
-    res.status(500).json({ error: "Preview failed", message: err instanceof Error ? err.message : String(err) });
+    res
+      .status(500)
+      .json({ error: "Preview failed", message: err instanceof Error ? err.message : String(err) });
   }
 });
 

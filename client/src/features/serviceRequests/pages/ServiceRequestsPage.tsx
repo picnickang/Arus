@@ -3,13 +3,33 @@ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ClipboardList, AlertCircle, CheckCircle, Loader2, XCircle, ArrowRightCircle } from "lucide-react";
+import {
+  ClipboardList,
+  AlertCircle,
+  CheckCircle,
+  Loader2,
+  XCircle,
+  ArrowRightCircle,
+} from "lucide-react";
 import {
   useServiceRequests,
   useReviewServiceRequest,
@@ -25,19 +45,36 @@ interface ConvertDialogProps {
   onOpenChange: (open: boolean) => void;
   srId: string | null;
   isPending: boolean;
-  onSubmit: (data: { serviceProviderId: string; scope?: string; estimatedCost?: number; scheduledStartDate?: string; scheduledEndDate?: string }) => void;
+  onSubmit: (data: {
+    serviceProviderId: string;
+    scope?: string;
+    estimatedCost?: number;
+    scheduledStartDate?: string;
+    scheduledEndDate?: string;
+  }) => void;
 }
 
-function ConvertToSODialog({ open, onOpenChange, srId: _srId, onSubmit, isPending }: ConvertDialogProps) {
+function ConvertToSODialog({
+  open,
+  onOpenChange,
+  srId: _srId,
+  onSubmit,
+  isPending,
+}: ConvertDialogProps) {
   const [scope, setScope] = useState("");
   const [serviceProviderId, setServiceProviderId] = useState("");
   const [estimatedCost, setEstimatedCost] = useState("");
   const [scheduledStartDate, setScheduledStartDate] = useState("");
   const [scheduledEndDate, setScheduledEndDate] = useState("");
-  const { data: suppliers } = useQuery<{ id: string; name: string }[]>({ queryKey: ["/api/suppliers"], enabled: open });
+  const { data: suppliers } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ["/api/suppliers"],
+    enabled: open,
+  });
 
   const handleSubmit = () => {
-    if (!serviceProviderId) {return;}
+    if (!serviceProviderId) {
+      return;
+    }
     onSubmit({
       serviceProviderId,
       scope: scope || undefined,
@@ -52,40 +89,80 @@ function ConvertToSODialog({ open, onOpenChange, srId: _srId, onSubmit, isPendin
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Convert to Service Order</DialogTitle>
-          <DialogDescription>Create a formal service order from this approved request.</DialogDescription>
+          <DialogDescription>
+            Create a formal service order from this approved request.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>
             <Label>Service Provider *</Label>
             <Select value={serviceProviderId} onValueChange={setServiceProviderId}>
-              <SelectTrigger data-testid="select-convert-provider"><SelectValue placeholder="Select provider" /></SelectTrigger>
+              <SelectTrigger data-testid="select-convert-provider">
+                <SelectValue placeholder="Select provider" />
+              </SelectTrigger>
               <SelectContent>
-                {suppliers?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                {suppliers?.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div>
             <Label>Scope of Work</Label>
-            <Textarea value={scope} onChange={(e) => setScope(e.target.value)} placeholder="Describe the work scope..." data-testid="input-convert-scope" />
+            <Textarea
+              value={scope}
+              onChange={(e) => setScope(e.target.value)}
+              placeholder="Describe the work scope..."
+              data-testid="input-convert-scope"
+            />
           </div>
           <div>
             <Label>Estimated Cost</Label>
-            <Input type="number" step="0.01" value={estimatedCost} onChange={(e) => setEstimatedCost(e.target.value)} placeholder="0.00" data-testid="input-convert-cost" />
+            <Input
+              type="number"
+              step="0.01"
+              value={estimatedCost}
+              onChange={(e) => setEstimatedCost(e.target.value)}
+              placeholder="0.00"
+              data-testid="input-convert-cost"
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Scheduled Start</Label>
-              <Input type="date" value={scheduledStartDate} onChange={(e) => setScheduledStartDate(e.target.value)} data-testid="input-convert-start-date" />
+              <Input
+                type="date"
+                value={scheduledStartDate}
+                onChange={(e) => setScheduledStartDate(e.target.value)}
+                data-testid="input-convert-start-date"
+              />
             </div>
             <div>
               <Label>Scheduled End</Label>
-              <Input type="date" value={scheduledEndDate} onChange={(e) => setScheduledEndDate(e.target.value)} data-testid="input-convert-end-date" />
+              <Input
+                type="date"
+                value={scheduledEndDate}
+                onChange={(e) => setScheduledEndDate(e.target.value)}
+                data-testid="input-convert-end-date"
+              />
             </div>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="btn-cancel-convert">Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!serviceProviderId || isPending} data-testid="btn-submit-convert">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            data-testid="btn-cancel-convert"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!serviceProviderId || isPending}
+            data-testid="btn-submit-convert"
+          >
             {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             <ArrowRightCircle className="h-4 w-4 mr-2" /> Convert to SO
           </Button>
@@ -111,15 +188,33 @@ function RejectDialog({ open, onOpenChange, srId: _srId, onSubmit, isPending }: 
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Reject Service Request</DialogTitle>
-          <DialogDescription>Provide a reason for rejecting this request. The work order status will be restored.</DialogDescription>
+          <DialogDescription>
+            Provide a reason for rejecting this request. The work order status will be restored.
+          </DialogDescription>
         </DialogHeader>
         <div>
           <Label>Reason</Label>
-          <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Explain why this request is being rejected..." data-testid="input-reject-reason" />
+          <Textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Explain why this request is being rejected..."
+            data-testid="input-reject-reason"
+          />
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="btn-cancel-reject">Cancel</Button>
-          <Button variant="destructive" onClick={() => onSubmit(reason)} disabled={isPending} data-testid="btn-submit-reject">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            data-testid="btn-cancel-reject"
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => onSubmit(reason)}
+            disabled={isPending}
+            data-testid="btn-submit-reject"
+          >
             {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             <XCircle className="h-4 w-4 mr-2" /> Reject
           </Button>
@@ -145,24 +240,30 @@ export function ServiceRequestsPage() {
   const convertMutation = useConvertServiceRequest();
 
   const filteredRequests = searchInput
-    ? requests.filter((r) =>
-        r.title.toLowerCase().includes(searchInput.toLowerCase()) ||
-        r.requestNumber.toLowerCase().includes(searchInput.toLowerCase()) ||
-        (r.workOrderNumber?.toLowerCase().includes(searchInput.toLowerCase())) ||
-        (r.vesselName?.toLowerCase().includes(searchInput.toLowerCase())) ||
-        (r.equipmentName?.toLowerCase().includes(searchInput.toLowerCase()))
+    ? requests.filter(
+        (r) =>
+          r.title.toLowerCase().includes(searchInput.toLowerCase()) ||
+          r.requestNumber.toLowerCase().includes(searchInput.toLowerCase()) ||
+          r.workOrderNumber?.toLowerCase().includes(searchInput.toLowerCase()) ||
+          r.vesselName?.toLowerCase().includes(searchInput.toLowerCase()) ||
+          r.equipmentName?.toLowerCase().includes(searchInput.toLowerCase())
       )
     : requests;
 
   const stats = {
     total: requests.length,
-    pendingReview: requests.filter((r) => r.status === "pending_review" || r.status === "under_review").length,
+    pendingReview: requests.filter(
+      (r) => r.status === "pending_review" || r.status === "under_review"
+    ).length,
     approved: requests.filter((r) => r.status === "approved").length,
     converted: requests.filter((r) => r.status === "converted").length,
   };
 
   const handleStatusChange = (value: string) =>
-    setFilters((prev) => ({ ...prev, status: value === "all" ? undefined : value as SRStatus | "actionable" | undefined }));
+    setFilters((prev) => ({
+      ...prev,
+      status: value === "all" ? undefined : (value as SRStatus | "actionable" | undefined),
+    }));
 
   const handleReview = (id: string) => {
     reviewMutation.mutate(id, {
@@ -173,7 +274,11 @@ export function ServiceRequestsPage() {
 
   const handleApprove = (id: string) => {
     approveMutation.mutate(id, {
-      onSuccess: () => toast({ title: "Request approved", description: "You can now convert it to a Service Order." }),
+      onSuccess: () =>
+        toast({
+          title: "Request approved",
+          description: "You can now convert it to a Service Order.",
+        }),
       onError: (err) => toast({ title: "Error", description: String(err), variant: "destructive" }),
     });
   };
@@ -184,15 +289,21 @@ export function ServiceRequestsPage() {
   };
 
   const handleRejectSubmit = (reason: string) => {
-    if (!selectedSRId) {return;}
-    rejectMutation.mutate({ id: selectedSRId, reason }, {
-      onSuccess: () => {
-        toast({ title: "Request rejected", description: "Work order status has been restored." });
-        setRejectDialogOpen(false);
-        setSelectedSRId(null);
-      },
-      onError: (err) => toast({ title: "Error", description: String(err), variant: "destructive" }),
-    });
+    if (!selectedSRId) {
+      return;
+    }
+    rejectMutation.mutate(
+      { id: selectedSRId, reason },
+      {
+        onSuccess: () => {
+          toast({ title: "Request rejected", description: "Work order status has been restored." });
+          setRejectDialogOpen(false);
+          setSelectedSRId(null);
+        },
+        onError: (err) =>
+          toast({ title: "Error", description: String(err), variant: "destructive" }),
+      }
+    );
   };
 
   const handleConvert = (id: string) => {
@@ -200,16 +311,30 @@ export function ServiceRequestsPage() {
     setConvertDialogOpen(true);
   };
 
-  const handleConvertSubmit = (data: { serviceProviderId: string; scope?: string; estimatedCost?: number; scheduledStartDate?: string }) => {
-    if (!selectedSRId) {return;}
-    convertMutation.mutate({ id: selectedSRId, data }, {
-      onSuccess: () => {
-        toast({ title: "Service Order created", description: "Request has been converted to a formal Service Order." });
-        setConvertDialogOpen(false);
-        setSelectedSRId(null);
-      },
-      onError: (err) => toast({ title: "Error", description: String(err), variant: "destructive" }),
-    });
+  const handleConvertSubmit = (data: {
+    serviceProviderId: string;
+    scope?: string;
+    estimatedCost?: number;
+    scheduledStartDate?: string;
+  }) => {
+    if (!selectedSRId) {
+      return;
+    }
+    convertMutation.mutate(
+      { id: selectedSRId, data },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Service Order created",
+            description: "Request has been converted to a formal Service Order.",
+          });
+          setConvertDialogOpen(false);
+          setSelectedSRId(null);
+        },
+        onError: (err) =>
+          toast({ title: "Error", description: String(err), variant: "destructive" }),
+      }
+    );
   };
 
   const handleViewDetails = (id: string) => {
@@ -223,36 +348,79 @@ export function ServiceRequestsPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold" data-testid="text-page-title">Service Requests</h1>
-          <p className="text-sm text-muted-foreground">Procurement queue — review, approve, and convert service requests to formal orders.</p>
+          <h1 className="text-2xl font-bold" data-testid="text-page-title">
+            Service Requests
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Procurement queue — review, approve, and convert service requests to formal orders.
+          </p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card data-testid="stat-total-sr">
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total Requests</CardTitle></CardHeader>
-          <CardContent><div className="flex items-center gap-2"><ClipboardList className="h-5 w-5 text-primary" /><span className="text-2xl font-bold">{stats.total}</span></div></CardContent>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Requests
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-primary" />
+              <span className="text-2xl font-bold">{stats.total}</span>
+            </div>
+          </CardContent>
         </Card>
         <Card data-testid="stat-pending-sr">
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Pending Review</CardTitle></CardHeader>
-          <CardContent><div className="flex items-center gap-2"><AlertCircle className="h-5 w-5 text-yellow-500" /><span className="text-2xl font-bold">{stats.pendingReview}</span></div></CardContent>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Pending Review
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-yellow-500" />
+              <span className="text-2xl font-bold">{stats.pendingReview}</span>
+            </div>
+          </CardContent>
         </Card>
         <Card data-testid="stat-approved-sr">
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Approved</CardTitle></CardHeader>
-          <CardContent><div className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /><span className="text-2xl font-bold">{stats.approved}</span></div></CardContent>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Approved</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              <span className="text-2xl font-bold">{stats.approved}</span>
+            </div>
+          </CardContent>
         </Card>
         <Card data-testid="stat-converted-sr">
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Converted</CardTitle></CardHeader>
-          <CardContent><div className="flex items-center gap-2"><ArrowRightCircle className="h-5 w-5 text-primary" /><span className="text-2xl font-bold">{stats.converted}</span></div></CardContent>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Converted</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <ArrowRightCircle className="h-5 w-5 text-primary" />
+              <span className="text-2xl font-bold">{stats.converted}</span>
+            </div>
+          </CardContent>
         </Card>
       </div>
 
       <div className="flex flex-wrap gap-4">
         <div className="flex gap-2 flex-1 min-w-[250px]">
-          <Input placeholder="Search by title, number, or WO..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} data-testid="input-search-sr" />
+          <Input
+            placeholder="Search by title, number, or WO..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            data-testid="input-search-sr"
+          />
         </div>
         <Select value={filters.status || "all"} onValueChange={handleStatusChange}>
-          <SelectTrigger className="w-[180px]" data-testid="select-status-filter-sr"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-[180px]" data-testid="select-status-filter-sr">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
             <SelectItem value="actionable">Actionable</SelectItem>
@@ -265,9 +433,16 @@ export function ServiceRequestsPage() {
         </Select>
         <Select
           value={filters.sortBy || "created"}
-          onValueChange={(v: string) => setFilters((prev) => ({ ...prev, sortBy: v === "created" ? undefined : v as SRSortBy }))}
+          onValueChange={(v: string) =>
+            setFilters((prev) => ({
+              ...prev,
+              sortBy: v === "created" ? undefined : (v as SRSortBy),
+            }))
+          }
         >
-          <SelectTrigger className="w-[160px]" data-testid="select-sort-sr"><SelectValue placeholder="Sort by" /></SelectTrigger>
+          <SelectTrigger className="w-[160px]" data-testid="select-sort-sr">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="created">Newest First</SelectItem>
             <SelectItem value="urgency">By Urgency</SelectItem>

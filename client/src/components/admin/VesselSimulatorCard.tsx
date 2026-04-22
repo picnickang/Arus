@@ -1,6 +1,6 @@
 /**
  * Vessel Simulator Card Component
- * 
+ *
  * Admin tool for generating synthetic telemetry data for testing and ML training.
  */
 

@@ -5,5 +5,5 @@ export const getMlRetrainingService = () => ({
 
 export const evaluateRetrainingTriggers = async () => ({
   shouldRetrain: false,
-  reason: 'disabled',
+  reason: "disabled",
 });

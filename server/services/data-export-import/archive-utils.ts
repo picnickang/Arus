@@ -1,6 +1,6 @@
 /**
  * Archive Utilities
- * 
+ *
  * Functions for creating and extracting tar.gz archives
  * with path traversal protection.
  */

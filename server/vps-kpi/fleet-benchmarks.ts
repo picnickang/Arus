@@ -11,14 +11,23 @@ export async function computeEquipmentLoadDistribution(
   orgId: string,
   timeRange: { start: Date; end: Date }
 ): Promise<LoadHistBin[]> {
-  const telemetry = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(equipmentId, timeRange.start, timeRange.end, orgId);
-  if (!telemetry || telemetry.length === 0) {return [];}
+  const telemetry = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(
+    equipmentId,
+    timeRange.start,
+    timeRange.end,
+    orgId
+  );
+  if (!telemetry || telemetry.length === 0) {
+    return [];
+  }
 
   const torqueData = telemetry
     .filter((t) => t.sensorType === "shaft_torque" || t.sensorType === "torque")
     .map((t) => t.value);
 
-  if (torqueData.length === 0) {return [];}
+  if (torqueData.length === 0) {
+    return [];
+  }
 
   const maxTorque = quantile(torqueData, 0.95);
   const loadPct = torqueData.map((v) => Math.max(0, Math.min(100, (100 * v) / maxTorque)));
@@ -28,7 +37,12 @@ export async function computeEquipmentLoadDistribution(
 
   for (const load of loadPct) {
     let binIndex = counts.length - 1;
-    for (let i = 0; i < bins.length; i++) { if (load <= bins[i]) { binIndex = i; break; } }
+    for (let i = 0; i < bins.length; i++) {
+      if (load <= bins[i]) {
+        binIndex = i;
+        break;
+      }
+    }
     counts[binIndex] += 1;
   }
 
@@ -42,7 +56,9 @@ export async function computeFleetLoadBenchmarks(
 ): Promise<FleetLoadBenchmark[]> {
   const vessels = await vesselService.getVessels(orgId);
   const filteredVessels = vesselType ? vessels.filter((v) => v.type === vesselType) : vessels;
-  if (filteredVessels.length === 0) {return [];}
+  if (filteredVessels.length === 0) {
+    return [];
+  }
 
   const allEquipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
   const allDistributions: LoadHistBin[][] = [];
@@ -52,20 +68,28 @@ export async function computeFleetLoadBenchmarks(
     for (const eq of equipment) {
       try {
         const dist = await computeEquipmentLoadDistribution(eq.id, orgId, timeRange);
-        if (dist.length > 0) {allDistributions.push(dist);}
+        if (dist.length > 0) {
+          allDistributions.push(dist);
+        }
       } catch {
         console.error(`Error computing load distribution for ${eq.id}:`, err);
       }
     }
   }
 
-  if (allDistributions.length === 0) {return [];}
+  if (allDistributions.length === 0) {
+    return [];
+  }
 
   const bins = [20, 30, 35, 43, 48, 50, 62, 70, 80, 90, 100];
 
   return bins.map((bin, binIdx) => {
-    const hoursInBin = allDistributions.map((dist) => dist[binIdx]?.hours || 0).filter((h) => h > 0);
-    if (hoursInBin.length === 0) {return { bin, fleetAvg: 0, p25: 0, p50: 0, p75: 0 };}
+    const hoursInBin = allDistributions
+      .map((dist) => dist[binIdx]?.hours || 0)
+      .filter((h) => h > 0);
+    if (hoursInBin.length === 0) {
+      return { bin, fleetAvg: 0, p25: 0, p50: 0, p75: 0 };
+    }
 
     return {
       bin,
@@ -84,7 +108,9 @@ export async function computeFleetPowerSTWBenchmarks(
 ): Promise<FleetPowerSTWBenchmark[]> {
   const vessels = await vesselService.getVessels(orgId);
   const filteredVessels = vesselType ? vessels.filter((v) => v.type === vesselType) : vessels;
-  if (filteredVessels.length === 0) {return [];}
+  if (filteredVessels.length === 0) {
+    return [];
+  }
 
   const allPoints: PowerVsSTW[] = [];
 
@@ -92,12 +118,23 @@ export async function computeFleetPowerSTWBenchmarks(
     try {
       const equipment = await dbEquipmentStorage.getEquipmentByVessel(vessel.id, orgId);
       for (const eq of equipment) {
-        const telemetry = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(eq.id, timeRange.start, timeRange.end, orgId);
-        if (!telemetry || telemetry.length === 0) {continue;}
+        const telemetry = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(
+          eq.id,
+          timeRange.start,
+          timeRange.end,
+          orgId
+        );
+        if (!telemetry || telemetry.length === 0) {
+          continue;
+        }
 
         const rpm = telemetry.filter((t) => t.sensorType === "rpm").map((t) => t.value);
-        const torque = telemetry.filter((t) => t.sensorType === "shaft_torque" || t.sensorType === "torque").map((t) => t.value);
-        const stw = telemetry.filter((t) => t.sensorType === "speed" || t.sensorType === "stw").map((t) => t.value);
+        const torque = telemetry
+          .filter((t) => t.sensorType === "shaft_torque" || t.sensorType === "torque")
+          .map((t) => t.value);
+        const stw = telemetry
+          .filter((t) => t.sensorType === "speed" || t.sensorType === "stw")
+          .map((t) => t.value);
 
         if (rpm.length > 0 && torque.length > 0) {
           allPoints.push(...calculatePowerSTWCurve(rpm, torque, stw.length > 0 ? stw : undefined));
@@ -108,18 +145,24 @@ export async function computeFleetPowerSTWBenchmarks(
     }
   }
 
-  if (allPoints.length === 0) {return [];}
+  if (allPoints.length === 0) {
+    return [];
+  }
 
   const speedBins = new Map<number, number[]>();
   for (const point of allPoints) {
     const speedBin = Math.round(point.x);
-    if (!speedBins.has(speedBin)) {speedBins.set(speedBin, []);}
+    if (!speedBins.has(speedBin)) {
+      speedBins.set(speedBin, []);
+    }
     speedBins.get(speedBin)!.push(point.y);
   }
 
   const benchmarks: FleetPowerSTWBenchmark[] = [];
   for (const [speed, powers] of Array.from(speedBins.entries()).sort((a, b) => a[0] - b[0])) {
-    if (powers.length === 0) {continue;}
+    if (powers.length === 0) {
+      continue;
+    }
     benchmarks.push({
       speed,
       fleetAvgPower: powers.reduce((sum, p) => sum + p, 0) / powers.length,

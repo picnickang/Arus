@@ -4,28 +4,26 @@
  * Uses advisory locks for hash chain integrity across concurrent processes.
  */
 
-import { pool } from '../../db';
-import { computeAuditHash, computeLockKey } from './hashing';
-import type { AuditEventInput, AuditRecord } from './types';
+import { pool } from "../../db";
+import { computeAuditHash, computeLockKey } from "./hashing";
+import type { AuditEventInput, AuditRecord } from "./types";
 
 /**
  * Log audit event with PostgreSQL advisory lock for chain integrity
  */
-export async function logEventPostgres(
-  input: AuditEventInput
-): Promise<AuditRecord> {
+export async function logEventPostgres(input: AuditEventInput): Promise<AuditRecord> {
   if (!pool) {
-    throw new Error('PostgreSQL pool not available');
+    throw new Error("PostgreSQL pool not available");
   }
 
   const id = crypto.randomUUID();
   const client = await pool.connect();
 
   try {
-    await client.query('BEGIN');
+    await client.query("BEGIN");
 
     const lockKey = computeLockKey(input.orgId);
-    await client.query('SELECT pg_advisory_xact_lock($1)', [lockKey]);
+    await client.query("SELECT pg_advisory_xact_lock($1)", [lockKey]);
 
     const eventTimestamp = new Date();
     const serverTimestamp = new Date();
@@ -70,7 +68,7 @@ export async function logEventPostgres(
         input.newState ? JSON.stringify(input.newState) : null,
         input.changedFields ?? null,
         input.performedBy,
-        input.performedByType ?? 'user',
+        input.performedByType ?? "user",
         input.performedByName ?? null,
         input.performedByRole ?? null,
         input.ipAddress ?? null,
@@ -87,7 +85,7 @@ export async function logEventPostgres(
       ]
     );
 
-    await client.query('COMMIT');
+    await client.query("COMMIT");
 
     return {
       id,
@@ -100,7 +98,7 @@ export async function logEventPostgres(
       newState: input.newState,
       changedFields: input.changedFields,
       performedBy: input.performedBy,
-      performedByType: input.performedByType ?? 'user',
+      performedByType: input.performedByType ?? "user",
       performedByName: input.performedByName,
       performedByRole: input.performedByRole,
       ipAddress: input.ipAddress,
@@ -116,7 +114,7 @@ export async function logEventPostgres(
       metadata: input.metadata,
     };
   } catch (error) {
-    await client.query('ROLLBACK');
+    await client.query("ROLLBACK");
     throw error;
   } finally {
     client.release();

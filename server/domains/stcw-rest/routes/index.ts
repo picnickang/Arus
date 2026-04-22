@@ -19,17 +19,17 @@ import { registerAdminRoutes } from "./admin";
 import type { StcwRestDependencies } from "./types";
 import { logger } from "../../../utils/logger.js";
 
-export function registerStcwRestRoutes(
-  app: Express,
-  deps: StcwRestDependencies
-): void {
+export function registerStcwRestRoutes(app: Express, deps: StcwRestDependencies): void {
   registerImportRoutes(app, deps);
   registerDataRoutes(app, deps);
   registerRangeRoutes(app, deps);
   registerFatigueRoutes(app, deps);
   registerAdminRoutes(app, deps);
 
-  logger.info("STCWRestRoutes", "Registered (import: 2, export: 2, compliance: 2, fatigue: 3, range: 3, data: 6)");
+  logger.info(
+    "STCWRestRoutes",
+    "Registered (import: 2, export: 2, compliance: 2, fatigue: 3, range: 3, data: 6)"
+  );
 }
 
 export type { StcwRestDependencies, RestDay } from "./types";

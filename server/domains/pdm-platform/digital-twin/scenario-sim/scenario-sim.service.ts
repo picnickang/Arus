@@ -22,19 +22,18 @@ export class ScenarioSimService {
       .from(assetTwins)
       .where(and(eq(assetTwins.orgId, orgId), eq(assetTwins.id, twinId)));
 
-    if (!twin) {throw new Error(`Twin ${twinId} not found`);}
+    if (!twin) {
+      throw new Error(`Twin ${twinId} not found`);
+    }
 
     const [template] = await db
       .select()
       .from(assetTwinTemplates)
-      .where(
-        and(
-          eq(assetTwinTemplates.orgId, orgId),
-          eq(assetTwinTemplates.id, twin.templateId)
-        )
-      );
+      .where(and(eq(assetTwinTemplates.orgId, orgId), eq(assetTwinTemplates.id, twin.templateId)));
 
-    if (!template) {throw new Error(`Template ${twin.templateId} not found`);}
+    if (!template) {
+      throw new Error(`Template ${twin.templateId} not found`);
+    }
 
     const latestState = await this.stateAdapter.getLatestState(orgId, twinId);
 
@@ -55,7 +54,13 @@ export class ScenarioSimService {
     const rulDeltaHours = projected.rulHours - baseline.rulHours;
 
     const riskLevel = this.assessRisk(projected.healthScore, projected.rulHours);
-    const summary = this.generateSummary(parameters, healthDelta, efficiencyDelta, rulDeltaHours, riskLevel);
+    const summary = this.generateSummary(
+      parameters,
+      healthDelta,
+      efficiencyDelta,
+      rulDeltaHours,
+      riskLevel
+    );
 
     const results: ScenarioResult = {
       projectedHealthScore: projected.healthScore,
@@ -141,9 +146,15 @@ export class ScenarioSimService {
   }
 
   private assessRisk(healthScore: number, rulHours: number): string {
-    if (healthScore < 30 || rulHours < 168) {return "critical";}
-    if (healthScore < 50 || rulHours < 720) {return "high";}
-    if (healthScore < 70 || rulHours < 2160) {return "medium";}
+    if (healthScore < 30 || rulHours < 168) {
+      return "critical";
+    }
+    if (healthScore < 50 || rulHours < 720) {
+      return "high";
+    }
+    if (healthScore < 70 || rulHours < 2160) {
+      return "medium";
+    }
     return "low";
   }
 

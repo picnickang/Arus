@@ -1,4 +1,4 @@
-import type { PdmRepositoryPort } from '../ports/pdm-repository.port';
+import type { PdmRepositoryPort } from "../ports/pdm-repository.port";
 
 export interface CreateWorkOrderFromRiskInput {
   orgId: string;
@@ -14,10 +14,16 @@ export interface CreateWorkOrderFromRiskUseCase {
   execute(input: CreateWorkOrderFromRiskInput): Promise<CreateWorkOrderFromRiskOutput>;
 }
 
-export function createCreateWorkOrderFromRiskUseCase(repository: PdmRepositoryPort): CreateWorkOrderFromRiskUseCase {
+export function createCreateWorkOrderFromRiskUseCase(
+  repository: PdmRepositoryPort
+): CreateWorkOrderFromRiskUseCase {
   return {
     async execute(input: CreateWorkOrderFromRiskInput): Promise<CreateWorkOrderFromRiskOutput> {
-      const workOrderId = await repository.createWorkOrderFromRisk(input.orgId, input.itemId, input.userId);
+      const workOrderId = await repository.createWorkOrderFromRisk(
+        input.orgId,
+        input.itemId,
+        input.userId
+      );
       return { workOrderId };
     },
   };

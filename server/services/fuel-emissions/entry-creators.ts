@@ -2,11 +2,11 @@
  * Fuel Emissions Entry Creators - Create log entries from telemetry or FMCC
  */
 
-import { db } from '../../db';
-import { fuelEmissionsLog, vessels, InsertFuelEmissionsLog } from '@shared/schema';
-import { eq } from 'drizzle-orm';
-import type { TelemetryPeriod } from './types';
-import { EMISSION_FACTORS, type FuelType } from './constants';
+import { db } from "../../db";
+import { fuelEmissionsLog, vessels, InsertFuelEmissionsLog } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import type { TelemetryPeriod } from "./types";
+import { EMISSION_FACTORS, type FuelType } from "./constants";
 import {
   getSFOC,
   calculateFuelConsumption,
@@ -15,9 +15,9 @@ import {
   calculateDataQuality,
   calculateEEOI,
   calculateCII,
-} from './calculations';
-import { aggregateTelemetryForPeriod } from './telemetry-aggregation';
-import type { FMCCCumulativeCounters } from '../../integrations/aquametro-fmcc';
+} from "./calculations";
+import { aggregateTelemetryForPeriod } from "./telemetry-aggregation";
+import type { FMCCCumulativeCounters } from "../../integrations/aquametro-fmcc";
 
 async function getVesselDwt(vesselId: string): Promise<number> {
   const vessel = await db
@@ -32,8 +32,8 @@ export async function createFuelEmissionsEntry(
   orgId: string,
   vesselId: string,
   period: TelemetryPeriod,
-  periodType: 'hourly' | 'daily' | 'voyage' = 'hourly',
-  fuelType: FuelType = 'VLSFO'
+  periodType: "hourly" | "daily" | "voyage" = "hourly",
+  fuelType: FuelType = "VLSFO"
 ): Promise<string | null> {
   const vesselDwt = await getVesselDwt(vesselId);
   const sfoc = getSFOC(period.avgEngineLoad);
@@ -42,7 +42,7 @@ export async function createFuelEmissionsEntry(
   const totalFuelMt = foConsumptionMt + doConsumptionMt;
 
   const emissions = calculateEmissions(foConsumptionMt, fuelType);
-  const doEmissions = calculateEmissions(doConsumptionMt, 'MGO');
+  const doEmissions = calculateEmissions(doConsumptionMt, "MGO");
 
   const totalCo2 = emissions.co2Mt + doEmissions.co2Mt;
   const totalSox = emissions.soxKg + doEmissions.soxKg;
@@ -54,7 +54,7 @@ export async function createFuelEmissionsEntry(
   const cii = calculateCII(totalCo2, vesselDwt, period.distanceNm);
   const ciiRating = cii ? getCIIRating(cii / 1000) : null;
 
-  const expectedDataPoints = periodType === 'hourly' ? 60 : 1440;
+  const expectedDataPoints = periodType === "hourly" ? 60 : 1440;
   const completeness = period.dataPoints / expectedDataPoints;
   const dataQuality = calculateDataQuality(completeness);
 
@@ -84,10 +84,10 @@ export async function createFuelEmissionsEntry(
     eeoi,
     cii,
     ciiRating,
-    dataSource: 'estimated',
+    dataSource: "estimated",
     dataQuality,
     confidenceScore: completeness,
-    calculationMethod: 'sfoc_curve',
+    calculationMethod: "sfoc_curve",
     calculationDetails: {
       sfocUsed: sfoc,
       loadFactors: [period.avgEngineLoad],
@@ -95,7 +95,10 @@ export async function createFuelEmissionsEntry(
     },
   };
 
-  const result = await db.insert(fuelEmissionsLog).values(logEntry).returning({ id: fuelEmissionsLog.id });
+  const result = await db
+    .insert(fuelEmissionsLog)
+    .values(logEntry)
+    .returning({ id: fuelEmissionsLog.id });
   return result[0]?.id ?? null;
 }
 
@@ -103,8 +106,8 @@ export async function createFuelEmissionsEntryFromFMCC(
   orgId: string,
   vesselId: string,
   fmccData: FMCCCumulativeCounters,
-  periodType: 'hourly' | 'daily' | 'voyage' = 'hourly',
-  fuelType: FuelType = 'VLSFO'
+  periodType: "hourly" | "daily" | "voyage" = "hourly",
+  fuelType: FuelType = "VLSFO"
 ): Promise<string | null> {
   const vesselDwt = await getVesselDwt(vesselId);
 
@@ -113,13 +116,14 @@ export async function createFuelEmissionsEntryFromFMCC(
   const totalFuelMt = fmccData.totalFuelMt;
 
   const emissions = calculateEmissions(foConsumptionMt, fuelType);
-  const doEmissions = calculateEmissions(doConsumptionMt, 'MGO');
+  const doEmissions = calculateEmissions(doConsumptionMt, "MGO");
 
   const totalCo2 = emissions.co2Mt + doEmissions.co2Mt;
   const totalSox = emissions.soxKg + doEmissions.soxKg;
   const totalNox = emissions.noxKg + doEmissions.noxKg;
 
-  const periodHours = (fmccData.periodEnd.getTime() - fmccData.periodStart.getTime()) / (1000 * 60 * 60);
+  const periodHours =
+    (fmccData.periodEnd.getTime() - fmccData.periodStart.getTime()) / (1000 * 60 * 60);
 
   const telemetryPeriod = await aggregateTelemetryForPeriod(
     orgId,
@@ -170,10 +174,10 @@ export async function createFuelEmissionsEntryFromFMCC(
     eeoi,
     cii,
     ciiRating,
-    dataSource: 'fmcc',
+    dataSource: "fmcc",
     dataQuality,
     confidenceScore: fmccData.dataCompleteness,
-    calculationMethod: 'fmcc_measured',
+    calculationMethod: "fmcc_measured",
     calculationDetails: {
       fmccSource: true,
       foDensity: fmccData.avgFoDensity,
@@ -185,6 +189,9 @@ export async function createFuelEmissionsEntryFromFMCC(
     },
   };
 
-  const result = await db.insert(fuelEmissionsLog).values(logEntry).returning({ id: fuelEmissionsLog.id });
+  const result = await db
+    .insert(fuelEmissionsLog)
+    .values(logEntry)
+    .returning({ id: fuelEmissionsLog.id });
   return result[0]?.id ?? null;
 }

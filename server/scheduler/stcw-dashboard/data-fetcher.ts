@@ -2,10 +2,10 @@
  * STCW Dashboard Data Fetcher - Crew rest data retrieval
  */
 
-import { dbCrewStorage, dbStcwStorage } from '../../repositories';
-import { withSpan } from '../../utils/request-spans';
-import type { RestDay } from '../../stcw-compliance';
-import type { CrewRestData } from './types';
+import { dbCrewStorage, dbStcwStorage } from "../../repositories";
+import { withSpan } from "../../utils/request-spans";
+import type { RestDay } from "../../stcw-compliance";
+import type { CrewRestData } from "./types";
 
 export function getDateRange(days: number): { startDate: string; endDate: string } {
   const endDate = new Date();
@@ -13,8 +13,8 @@ export function getDateRange(days: number): { startDate: string; endDate: string
   startDate.setDate(startDate.getDate() - days);
 
   return {
-    startDate: startDate.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0],
+    startDate: startDate.toISOString().split("T")[0],
+    endDate: endDate.toISOString().split("T")[0],
   };
 }
 
@@ -27,7 +27,9 @@ export async function getCrewRestDataForVessel(
   const crewDataMap = new Map<string, CrewRestData>();
 
   try {
-    const crewList = await withSpan('db', 'getCrew', () => dbCrewStorage.getCrew(orgId), { vesselId });
+    const crewList = await withSpan("db", "getCrew", () => dbCrewStorage.getCrew(orgId), {
+      vesselId,
+    });
     const vesselCrew = crewList.filter((c) => c.vesselId === vesselId);
 
     for (const crew of vesselCrew) {
@@ -36,10 +38,30 @@ export async function getCrewRestDataForVessel(
       const restDays: RestDay[] = restData.days
         .filter((day) => {
           return [
-            day.h0, day.h1, day.h2, day.h3, day.h4, day.h5,
-            day.h6, day.h7, day.h8, day.h9, day.h10, day.h11,
-            day.h12, day.h13, day.h14, day.h15, day.h16, day.h17,
-            day.h18, day.h19, day.h20, day.h21, day.h22, day.h23,
+            day.h0,
+            day.h1,
+            day.h2,
+            day.h3,
+            day.h4,
+            day.h5,
+            day.h6,
+            day.h7,
+            day.h8,
+            day.h9,
+            day.h10,
+            day.h11,
+            day.h12,
+            day.h13,
+            day.h14,
+            day.h15,
+            day.h16,
+            day.h17,
+            day.h18,
+            day.h19,
+            day.h20,
+            day.h21,
+            day.h22,
+            day.h23,
           ].some((h) => h !== null && h !== undefined);
         })
         .map((day) => ({

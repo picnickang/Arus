@@ -14,7 +14,7 @@ interface InsightCardProps {
   defaultOpen?: boolean;
   actions?: React.ReactNode;
   className?: string;
-  'data-testid'?: string;
+  "data-testid"?: string;
 }
 
 export function InsightCard({
@@ -26,7 +26,7 @@ export function InsightCard({
   defaultOpen = false,
   actions,
   className,
-  'data-testid': testId,
+  "data-testid": testId,
 }: InsightCardProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -40,21 +40,27 @@ export function InsightCard({
               <div className="p-2 rounded-lg bg-muted flex-shrink-0">
                 <Icon className="h-5 w-5 text-primary" />
               </div>
-              
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-sm md:text-base truncate" data-testid={`${testId}-title`}>
+                  <h3
+                    className="font-semibold text-sm md:text-base truncate"
+                    data-testid={`${testId}-title`}
+                  >
                     {title}
                   </h3>
                   <StatusBadge status={status} size="sm" />
                 </div>
-                
-                <p className="text-sm text-muted-foreground line-clamp-2" data-testid={`${testId}-description`}>
+
+                <p
+                  className="text-sm text-muted-foreground line-clamp-2"
+                  data-testid={`${testId}-description`}
+                >
                   {description}
                 </p>
               </div>
             </div>
-            
+
             <CollapsibleTrigger asChild>
               <button
                 className="p-1 hover:bg-muted rounded transition-colors flex-shrink-0"
@@ -69,20 +75,23 @@ export function InsightCard({
               </button>
             </CollapsibleTrigger>
           </div>
-          
+
           {/* Collapsible Content */}
           <CollapsibleContent className="space-y-3">
             {bullets.length > 0 && (
               <ul className="space-y-2 ml-2" data-testid={`${testId}-bullets`}>
                 {bullets.map((bullet, index) => (
-                  <li key={`bullet-${bullet.slice(0, 30)}-${index}`} className="flex items-start gap-2 text-sm">
+                  <li
+                    key={`bullet-${bullet.slice(0, 30)}-${index}`}
+                    className="flex items-start gap-2 text-sm"
+                  >
                     <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                     <span className="text-muted-foreground">{bullet}</span>
                   </li>
                 ))}
               </ul>
             )}
-            
+
             {actions && (
               <div className="pt-2 border-t" data-testid={`${testId}-actions`}>
                 {actions}

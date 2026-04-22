@@ -1,6 +1,6 @@
 /**
  * Permission Middleware - Route-level Authorization
- * 
+ *
  * Provides Express middleware for checking permissions on routes.
  * Uses the permission service for authorization checks.
  */
@@ -123,7 +123,9 @@ export async function attachUserPermissions(
   res: Response,
   next: NextFunction
 ): Promise<void> {
-  const authReq = req as AuthenticatedRequest & { permissions?: Record<string, Record<string, boolean>> };
+  const authReq = req as AuthenticatedRequest & {
+    permissions?: Record<string, Record<string, boolean>>;
+  };
   const userId = authReq.user?.id;
   const orgId = authReq.orgId;
 

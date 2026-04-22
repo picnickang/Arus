@@ -20,7 +20,13 @@ export default function AnalyticsOperationsPage() {
         <h1 className="text-lg font-bold">Operations Analytics</h1>
       </div>
       <div className="p-4 lg:p-6">
-        <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          }
+        >
           <OperationsMode />
         </Suspense>
       </div>

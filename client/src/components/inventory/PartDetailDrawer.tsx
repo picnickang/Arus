@@ -47,7 +47,12 @@ function getStockStatus(part: PartsInventoryItem): {
   icon: typeof CheckCircle;
 } {
   if (!part.stock) {
-    return { status: "unknown", label: "No Stock Data", color: "text-muted-foreground", icon: Package };
+    return {
+      status: "unknown",
+      label: "No Stock Data",
+      color: "text-muted-foreground",
+      icon: Package,
+    };
   }
 
   const { quantityOnHand, quantityReserved } = part.stock;
@@ -56,15 +61,30 @@ function getStockStatus(part: PartsInventoryItem): {
   const maxStock = part.maxStockLevel;
 
   if (quantityOnHand <= 0) {
-    return { status: "out_of_stock", label: "Out of Stock", color: "text-destructive", icon: XCircle };
+    return {
+      status: "out_of_stock",
+      label: "Out of Stock",
+      color: "text-destructive",
+      icon: XCircle,
+    };
   }
 
   if (available <= 0 || available < minStock * 0.5) {
-    return { status: "critical", label: "Critical", color: "text-destructive", icon: AlertTriangle };
+    return {
+      status: "critical",
+      label: "Critical",
+      color: "text-destructive",
+      icon: AlertTriangle,
+    };
   }
 
   if (available < minStock) {
-    return { status: "low_stock", label: "Low Stock", color: "text-yellow-600", icon: AlertTriangle };
+    return {
+      status: "low_stock",
+      label: "Low Stock",
+      color: "text-yellow-600",
+      icon: AlertTriangle,
+    };
   }
 
   if (available > maxStock) {
@@ -74,7 +94,9 @@ function getStockStatus(part: PartsInventoryItem): {
 }
 
 function formatCurrencyDisplay(value: number | null | undefined): string {
-  if (value === null || value === undefined) {return "-";}
+  if (value === null || value === undefined) {
+    return "-";
+  }
   return formatCurrency(value);
 }
 
@@ -134,22 +156,30 @@ export function PartDetailDrawer({
   const statusInfo = useMemo(() => (part ? getStockStatus(part) : null), [part]);
 
   const available = useMemo(() => {
-    if (!part?.stock) {return 0;}
+    if (!part?.stock) {
+      return 0;
+    }
     return Math.max(0, part.stock.quantityOnHand - part.stock.quantityReserved);
   }, [part]);
 
   const totalValue = useMemo(() => {
-    if (!part?.stock) {return 0;}
+    if (!part?.stock) {
+      return 0;
+    }
     const unitCost = part.stock.unitCost ?? part.standardCost ?? 0;
     return unitCost * part.stock.quantityOnHand;
   }, [part]);
 
   const reorderNeeded = useMemo(() => {
-    if (!part) {return false;}
+    if (!part) {
+      return false;
+    }
     return available < part.minStockLevel;
   }, [part, available]);
 
-  if (!part) {return null;}
+  if (!part) {
+    return null;
+  }
 
   const StatusIcon = statusInfo?.icon ?? Package;
   const unitCost = part.stock?.unitCost ?? part.standardCost ?? 0;
@@ -160,18 +190,14 @@ export function PartDetailDrawer({
         <SheetHeader className="pb-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <SheetTitle className="text-xl font-bold truncate pr-8">
-                {part.partName}
-              </SheetTitle>
+              <SheetTitle className="text-xl font-bold truncate pr-8">{part.partName}</SheetTitle>
               <SheetDescription className="flex items-center gap-2 mt-1">
                 <code className="text-sm font-mono bg-muted px-2 py-0.5 rounded">
                   {part.partNumber}
                 </code>
                 <Badge variant="outline">{part.category}</Badge>
                 {part.criticality && (
-                  <Badge
-                    variant={part.criticality === "critical" ? "destructive" : "secondary"}
-                  >
+                  <Badge variant={part.criticality === "critical" ? "destructive" : "secondary"}>
                     {part.criticality}
                   </Badge>
                 )}
@@ -181,28 +207,26 @@ export function PartDetailDrawer({
         </SheetHeader>
 
         <div className="space-y-6 pb-6">
-          <div className={cn(
-            "flex items-center gap-3 p-3 rounded-lg border",
-            statusInfo?.status === "critical" || statusInfo?.status === "out_of_stock"
-              ? "bg-destructive/10 border-destructive/20"
-              : statusInfo?.status === "low_stock"
-              ? "bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800"
-              : statusInfo?.status === "excess"
-              ? "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800"
-              : "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
-          )}>
+          <div
+            className={cn(
+              "flex items-center gap-3 p-3 rounded-lg border",
+              statusInfo?.status === "critical" || statusInfo?.status === "out_of_stock"
+                ? "bg-destructive/10 border-destructive/20"
+                : statusInfo?.status === "low_stock"
+                  ? "bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800"
+                  : statusInfo?.status === "excess"
+                    ? "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800"
+                    : "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
+            )}
+          >
             <StatusIcon className={cn("h-5 w-5", statusInfo?.color)} />
             <div className="flex-1">
-              <p className={cn("font-medium", statusInfo?.color)}>
-                {statusInfo?.label}
-              </p>
+              <p className={cn("font-medium", statusInfo?.color)}>{statusInfo?.label}</p>
               <p className="text-sm text-muted-foreground">
                 {available} units available of {part.stock?.quantityOnHand ?? 0} on hand
               </p>
             </div>
-            {reorderNeeded && (
-              <Badge variant="destructive">Reorder Needed</Badge>
-            )}
+            {reorderNeeded && <Badge variant="destructive">Reorder Needed</Badge>}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -212,22 +236,14 @@ export function PartDetailDrawer({
               subtitle={`${part.stock?.quantityReserved ?? 0} reserved`}
               icon={Package}
             />
-            <StatCard
-              title="Unit Cost"
-              value={formatCurrencyDisplay(unitCost)}
-              icon={DollarSign}
-            />
+            <StatCard title="Unit Cost" value={formatCurrencyDisplay(unitCost)} icon={DollarSign} />
             <StatCard
               title="Total Value"
               value={formatCurrencyDisplay(totalValue)}
               subtitle={`${part.stock?.quantityOnHand ?? 0} units`}
               icon={BarChart3}
             />
-            <StatCard
-              title="Lead Time"
-              value={`${part.leadTimeDays ?? 7} days`}
-              icon={Clock}
-            />
+            <StatCard title="Lead Time" value={`${part.leadTimeDays ?? 7} days`} icon={Clock} />
           </div>
 
           <div className="flex gap-2">
@@ -310,9 +326,7 @@ export function PartDetailDrawer({
                 </CardContent>
               </Card>
 
-              {part.id && (
-                <SupplierLinksSection inventoryItemId={part.id} />
-              )}
+              {part.id && <SupplierLinksSection inventoryItemId={part.id} />}
             </TabsContent>
 
             <TabsContent value="stock" className="space-y-4 mt-4">
@@ -348,15 +362,23 @@ export function PartDetailDrawer({
                 <CardContent className="space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Minimum Stock Level</span>
-                    <span className={cn(available < part.minStockLevel && "text-destructive font-medium")}>
+                    <span
+                      className={cn(
+                        available < part.minStockLevel && "text-destructive font-medium"
+                      )}
+                    >
                       {part.minStockLevel}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Maximum Stock Level</span>
-                    <span className={cn(
-                      part.stock && part.stock.quantityOnHand > part.maxStockLevel && "text-blue-600 font-medium"
-                    )}>
+                    <span
+                      className={cn(
+                        part.stock &&
+                          part.stock.quantityOnHand > part.maxStockLevel &&
+                          "text-blue-600 font-medium"
+                      )}
+                    >
                       {part.maxStockLevel}
                     </span>
                   </div>

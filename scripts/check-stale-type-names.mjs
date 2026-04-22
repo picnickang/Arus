@@ -35,7 +35,8 @@ function* walk(dir) {
   for (const entry of entries) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name === "node_modules" || entry.name === ".local" || entry.name.startsWith(".")) continue;
+      if (entry.name === "node_modules" || entry.name === ".local" || entry.name.startsWith("."))
+        continue;
       yield* walk(full);
     } else if (/\.(ts|tsx)$/.test(entry.name) && !entry.name.endsWith(".d.ts")) {
       yield full;
@@ -72,7 +73,8 @@ function readExportedNames(filePath, visited = new Set()) {
   let unresolvedWildcards = 0;
 
   // export const|let|var|function|class|enum|interface|type X
-  const decl = /export\s+(?:declare\s+)?(?:const|let|var|function|class|enum|interface|type|abstract\s+class)\s+([A-Za-z_$][\w$]*)/g;
+  const decl =
+    /export\s+(?:declare\s+)?(?:const|let|var|function|class|enum|interface|type|abstract\s+class)\s+([A-Za-z_$][\w$]*)/g;
   for (const m of content.matchAll(decl)) names.add(m[1]);
 
   // export { A, B as C } [from "..."]

@@ -1,6 +1,16 @@
 import {
-  Wrench, AlertTriangle, Clock, Activity, Ship, Shield,
-  ClipboardCheck, Anchor, BookOpen, BarChart3, Settings, Gauge,
+  Wrench,
+  AlertTriangle,
+  Clock,
+  Activity,
+  Ship,
+  Shield,
+  ClipboardCheck,
+  Anchor,
+  BookOpen,
+  BarChart3,
+  Settings,
+  Gauge,
 } from "lucide-react";
 
 export interface QuickActionDef {
@@ -28,7 +38,11 @@ export const ROLES: Record<string, RoleConfig> = {
     quickActions: [
       { label: "New Work Order", icon: ClipboardCheck, href: "/work-orders?action=create" },
       { label: "Log Engine Entry", icon: BookOpen, href: "/engine-logbook?action=new" },
-      { label: "Report Defect", icon: AlertTriangle, href: "/work-orders?action=create&type=corrective" },
+      {
+        label: "Report Defect",
+        icon: AlertTriangle,
+        href: "/work-orders?action=create&type=corrective",
+      },
       { label: "Check PdM Alerts", icon: Activity, href: "/pdm-dashboard" },
     ],
     pinnedGroups: ["maintenance", "operations", "fleet"],

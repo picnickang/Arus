@@ -37,8 +37,12 @@ const DEV_SESSION_TOKEN = "dev-admin-session-token";
 export function AdminAccessProvider({ children }: { children: React.ReactNode }) {
   // In dev mode, start unlocked with dev token
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(DEV_MODE);
-  const [sessionToken, setSessionToken] = useState<string | null>(DEV_MODE ? DEV_SESSION_TOKEN : null);
-  const [sessionExpiresAt, setSessionExpiresAt] = useState<Date | null>(DEV_MODE ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null);
+  const [sessionToken, setSessionToken] = useState<string | null>(
+    DEV_MODE ? DEV_SESSION_TOKEN : null
+  );
+  const [sessionExpiresAt, setSessionExpiresAt] = useState<Date | null>(
+    DEV_MODE ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null
+  );
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [unlockError, setUnlockError] = useState<string | null>(null);
   const [timeUntilExpiry, setTimeUntilExpiry] = useState<number | null>(null);
@@ -116,7 +120,10 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
         });
       } catch (error) {
         // Log error without exposing password or tokens
-        console.error("Failed to unlock admin:", (error as Error).message || "Authentication failed");
+        console.error(
+          "Failed to unlock admin:",
+          (error as Error).message || "Authentication failed"
+        );
 
         // Handle specific error cases
         if ((error as { code?: string }).code === "INVALID_PASSWORD") {
@@ -141,7 +148,9 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
 
   // Set up expiry and idle timeout timers
   useEffect(() => {
-    if (!isAdminUnlocked || !sessionExpiresAt) { return; }
+    if (!isAdminUnlocked || !sessionExpiresAt) {
+      return;
+    }
 
     // Update countdown timers every second
     const updateTimers = () => {
@@ -175,13 +184,17 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
     expiryTimerRef.current = timerId;
 
     return () => {
-      if (timerId) {clearInterval(timerId);}
+      if (timerId) {
+        clearInterval(timerId);
+      }
     };
   }, [isAdminUnlocked, sessionExpiresAt, lockAdmin]);
 
   // Track user activity to reset idle timeout
   useEffect(() => {
-    if (!isAdminUnlocked) { return; }
+    if (!isAdminUnlocked) {
+      return;
+    }
 
     const events = ["mousedown", "keydown", "scroll", "touchstart"];
 

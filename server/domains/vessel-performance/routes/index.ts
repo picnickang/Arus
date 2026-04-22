@@ -13,7 +13,10 @@ import { logger } from "../../../utils/logger.js";
 
 export type { VesselPerformanceRoutesConfig } from "./types.js";
 
-export function registerVesselPerformanceRoutes(app: Express, config: VesselPerformanceRoutesConfig): void {
+export function registerVesselPerformanceRoutes(
+  app: Express,
+  config: VesselPerformanceRoutesConfig
+): void {
   logger.info("VesselPerformanceRoutes", "Registering VPS API endpoints");
 
   registerVPSRoutes(app, config);
@@ -22,5 +25,8 @@ export function registerVesselPerformanceRoutes(app: Express, config: VesselPerf
   registerNarrativeRoutes(app, config);
   registerSchedulingRoutes(app, config);
 
-  logger.info("VesselPerformanceRoutes", "Registered (vps: 2, cii: 2, mode: 1, narrative: 1, enhanced-scheduling: 1)");
+  logger.info(
+    "VesselPerformanceRoutes",
+    "Registered (vps: 2, cii: 2, mode: 1, narrative: 1, enhanced-scheduling: 1)"
+  );
 }

@@ -10,8 +10,12 @@ export function getSeverityColor(severity: string): string {
 }
 
 export function getUrgencyInfo(daysUntilExpiry: number): { color: string; label: string } {
-  if (daysUntilExpiry <= 30) { return { color: "#ef4444", label: "URGENT" }; }
-  if (daysUntilExpiry <= 60) { return { color: "#f59e0b", label: "WARNING" }; }
+  if (daysUntilExpiry <= 30) {
+    return { color: "#ef4444", label: "URGENT" };
+  }
+  if (daysUntilExpiry <= 60) {
+    return { color: "#f59e0b", label: "WARNING" };
+  }
   return { color: "#3b82f6", label: "NOTICE" };
 }
 

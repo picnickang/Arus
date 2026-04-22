@@ -1,11 +1,16 @@
 /**
  * Inventory Engine - Optimization
- * 
+ *
  * EOQ, reorder point, and inventory level optimization.
  */
 
 import type { Part } from "@shared/schema";
-import type { InventoryOptimization, UsageHistoryRecord, CostParameters, OptimizationOptions } from "./types.js";
+import type {
+  InventoryOptimization,
+  UsageHistoryRecord,
+  CostParameters,
+  OptimizationOptions,
+} from "./types.js";
 import {
   inventoryOptimizationRuns,
   inventoryOptimizationSavings,
@@ -20,8 +25,14 @@ import {
  * @param holdingCost Annual holding cost per unit
  * @returns Optimal order quantity
  */
-export function calculateEOQ(annualDemand: number, orderingCost: number, holdingCost: number): number {
-  if (holdingCost <= 0) { return 0; }
+export function calculateEOQ(
+  annualDemand: number,
+  orderingCost: number,
+  holdingCost: number
+): number {
+  if (holdingCost <= 0) {
+    return 0;
+  }
   return Math.sqrt((2 * annualDemand * orderingCost) / holdingCost);
 }
 
@@ -78,7 +89,9 @@ export function optimizeInventoryLevels(
   for (const part of parts) {
     const usage = usageHistory.find((h) => h.partNo === part.partNo);
 
-    if (!usage || usage.monthlyUsage.length === 0) {continue;}
+    if (!usage || usage.monthlyUsage.length === 0) {
+      continue;
+    }
 
     const monthlyDemand =
       usage.monthlyUsage.reduce((sum, m) => sum + m, 0) / usage.monthlyUsage.length;

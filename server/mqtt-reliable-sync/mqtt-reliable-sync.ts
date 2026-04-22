@@ -1,8 +1,8 @@
 /**
  * MQTT Reliable Sync Service
- * 
+ *
  * Provides persistent, guaranteed-delivery sync for critical data using MQTT.
- * 
+ *
  * Why MQTT instead of WebSocket for critical sync:
  * - Message persistence (retained messages)
  * - Quality of Service (QoS) levels for guaranteed delivery
@@ -13,17 +13,27 @@
 
 import { EventEmitter } from "node:events";
 import mqtt from "mqtt";
-import type { ReliableSyncConfig, MqttMessage, MqttMetrics, ServiceMetrics, HealthStatus, PublishOptions, DataChangeOperation } from "./types.js";
+import type {
+  ReliableSyncConfig,
+  MqttMessage,
+  MqttMetrics,
+  ServiceMetrics,
+  HealthStatus,
+  PublishOptions,
+  DataChangeOperation,
+} from "./types.js";
 import { createDefaultConfig, topics } from "./config.js";
 import { initializeQueueDirectory, loadPersistedQueue, persistQueue } from "./queue-persistence.js";
 import { flushMessageQueue } from "./message-queue.js";
 import { publishDataChange } from "./publishing.js";
-import { subscribeToEntity, unsubscribeFromEntity, resubscribeAll, topicMatches } from "./subscription.js";
-import { publishCatchupMessages } from "./catchup.js";
 import {
-  setMqttConnectionStatus,
-  incrementMqttReconnectionAttempts,
-} from "../observability";
+  subscribeToEntity,
+  unsubscribeFromEntity,
+  resubscribeAll,
+  topicMatches,
+} from "./subscription.js";
+import { publishCatchupMessages } from "./catchup.js";
+import { setMqttConnectionStatus, incrementMqttReconnectionAttempts } from "../observability";
 import { logExpectedLimitation, logger } from "../utils/logger.js";
 
 export class MqttReliableSyncService extends EventEmitter {
@@ -45,7 +55,7 @@ export class MqttReliableSyncService extends EventEmitter {
   constructor(config: Partial<ReliableSyncConfig> = {}) {
     super();
     this.config = createDefaultConfig(config);
-    
+
     logger.info("MqttReliableSync", "Service initialized", {
       broker: this.config.brokerUrl,
       vesselId: this.config.vesselId,
@@ -127,9 +137,13 @@ export class MqttReliableSyncService extends EventEmitter {
     } catch (error) {
       const isEmbeddedMode = process.env.EMBEDDED_MODE === "true";
       const isLocalMode = process.env.LOCAL_MODE === "true";
-      
+
       if (isEmbeddedMode || isLocalMode) {
-        logExpectedLimitation("MQTT Reliable Sync", "Failed to start - continuing in offline mode", []);
+        logExpectedLimitation(
+          "MQTT Reliable Sync",
+          "Failed to start - continuing in offline mode",
+          []
+        );
       } else {
         logger.error("MqttReliableSync", "Failed to start", error);
       }
@@ -137,7 +151,9 @@ export class MqttReliableSyncService extends EventEmitter {
   }
 
   private setupEventHandlers(): void {
-    if (!this.client) {return;}
+    if (!this.client) {
+      return;
+    }
 
     this.client.on("connect", () => {
       logger.info("MqttReliableSync", "Connected to broker");
@@ -152,7 +168,14 @@ export class MqttReliableSyncService extends EventEmitter {
       );
 
       resubscribeAll(this.client, this.isConnected, this.subscriptions);
-      flushMessageQueue(this.messageQueue, this.client, this.isConnected, this.config.maxQueueSize, this.metrics, this.emit.bind(this));
+      flushMessageQueue(
+        this.messageQueue,
+        this.client,
+        this.isConnected,
+        this.config.maxQueueSize,
+        this.metrics,
+        this.emit.bind(this)
+      );
       this.emit("connected");
     });
 
@@ -267,16 +290,44 @@ export class MqttReliableSyncService extends EventEmitter {
     );
   }
 
-  async subscribe(entityType: string, callback: (payload: any) => void, enableCatchup: boolean = true): Promise<void> {
-    return subscribeToEntity(this.client, this.isConnected, this.subscriptions, entityType, callback, enableCatchup);
+  async subscribe(
+    entityType: string,
+    callback: (payload: any) => void,
+    enableCatchup: boolean = true
+  ): Promise<void> {
+    return subscribeToEntity(
+      this.client,
+      this.isConnected,
+      this.subscriptions,
+      entityType,
+      callback,
+      enableCatchup
+    );
   }
 
   async unsubscribe(entityType: string, callback: (payload: any) => void): Promise<void> {
-    return unsubscribeFromEntity(this.client, this.isConnected, this.subscriptions, entityType, callback);
+    return unsubscribeFromEntity(
+      this.client,
+      this.isConnected,
+      this.subscriptions,
+      entityType,
+      callback
+    );
   }
 
-  async publishCatchupMessages(entityType: string, since: Date, limit: number = 100): Promise<void> {
-    return publishCatchupMessages(this.client, this.isConnected, entityType, since, limit, this.emit.bind(this));
+  async publishCatchupMessages(
+    entityType: string,
+    since: Date,
+    limit: number = 100
+  ): Promise<void> {
+    return publishCatchupMessages(
+      this.client,
+      this.isConnected,
+      entityType,
+      since,
+      limit,
+      this.emit.bind(this)
+    );
   }
 
   getMetrics(): ServiceMetrics {
@@ -309,7 +360,7 @@ export class MqttReliableSyncService extends EventEmitter {
       qosLevel: this.config.qosLevel,
       queuedMessages: this.messageQueue.length,
       maxQueueSize: this.config.maxQueueSize,
-      queueUtilization: `${((this.messageQueue.length / this.config.maxQueueSize) * 100).toFixed(1)  }%`,
+      queueUtilization: `${((this.messageQueue.length / this.config.maxQueueSize) * 100).toFixed(1)}%`,
       activeSubscriptions: this.subscriptions.size,
       topics: Object.keys(topics).length,
       reconnectAttempts: this.reconnectAttempts,
@@ -335,7 +386,10 @@ export class MqttReliableSyncService extends EventEmitter {
   }
 
   async publishMaintenanceChange(operation: DataChangeOperation, schedule: any): Promise<void> {
-    return this.publishDataChange("maintenance_schedules", operation, schedule, { qos: 1, retain: true });
+    return this.publishDataChange("maintenance_schedules", operation, schedule, {
+      qos: 1,
+      retain: true,
+    });
   }
 
   async publishVesselChange(operation: DataChangeOperation, vessel: any): Promise<void> {

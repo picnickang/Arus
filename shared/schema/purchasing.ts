@@ -1,6 +1,6 @@
 /**
  * Schema Purchasing - Purchasing, Procurement, and Service Orders
- * 
+ *
  * Manages purchase requests, purchase orders, service orders,
  * parts reservations, and item-supplier relationships.
  */
@@ -180,7 +180,10 @@ export const purchaseRequests = pgTable(
   },
   (table) => ({
     orgStatusIdx: sql`CREATE INDEX IF NOT EXISTS idx_purchase_requests_org_status ON purchase_requests (org_id, status)`,
-    orgRequestNumberIdx: unique("uq_purchase_requests_org_request_number").on(table.orgId, table.requestNumber),
+    orgRequestNumberIdx: unique("uq_purchase_requests_org_request_number").on(
+      table.orgId,
+      table.requestNumber
+    ),
     vesselIdx: sql`CREATE INDEX IF NOT EXISTS idx_purchase_requests_vessel ON purchase_requests (vessel_id)`,
     workOrderIdx: sql`CREATE INDEX IF NOT EXISTS idx_purchase_requests_work_order ON purchase_requests (work_order_id)`,
   })
@@ -274,7 +277,11 @@ export const itemSuppliers = pgTable(
   (table) => ({
     partSupplierIdx: sql`CREATE INDEX IF NOT EXISTS idx_item_suppliers_part_supplier ON item_suppliers (part_id, supplier_id)`,
     orgPartIdx: sql`CREATE INDEX IF NOT EXISTS idx_item_suppliers_org_part ON item_suppliers (org_id, part_id)`,
-    uniqueOrgPartSupplier: unique("uq_item_suppliers_org_part_supplier").on(table.orgId, table.partId, table.supplierId),
+    uniqueOrgPartSupplier: unique("uq_item_suppliers_org_part_supplier").on(
+      table.orgId,
+      table.partId,
+      table.supplierId
+    ),
   })
 );
 
@@ -315,7 +322,10 @@ export const serviceRequests = pgTable(
   (table) => ({
     orgStatusIdx: sql`CREATE INDEX IF NOT EXISTS idx_service_requests_org_status ON service_requests (org_id, status)`,
     workOrderIdx: sql`CREATE INDEX IF NOT EXISTS idx_service_requests_work_order ON service_requests (work_order_id)`,
-    orgRequestNumberIdx: unique("uq_service_requests_org_request_number").on(table.orgId, table.requestNumber),
+    orgRequestNumberIdx: unique("uq_service_requests_org_request_number").on(
+      table.orgId,
+      table.requestNumber
+    ),
   })
 );
 
@@ -399,38 +409,65 @@ export const serviceOrderEvents = pgTable(
 // INSERT SCHEMAS
 // ============================================================================
 
-export const insertReservationSchema = createInsertSchema(reservations)
-  .omit({ id: true, createdAt: true });
+export const insertReservationSchema = createInsertSchema(reservations).omit({
+  id: true,
+  createdAt: true,
+});
 
-export const insertPurchaseOrderSchema = createInsertSchema(purchaseOrders)
-  .omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPurchaseOrderSchema = createInsertSchema(purchaseOrders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
-export const insertPurchaseOrderItemSchema = createInsertSchema(purchaseOrderItems)
-  .omit({ id: true, createdAt: true });
+export const insertPurchaseOrderItemSchema = createInsertSchema(purchaseOrderItems).omit({
+  id: true,
+  createdAt: true,
+});
 
-export const insertPurchaseOrderEventSchema = createInsertSchema(purchaseOrderEvents)
-  .omit({ id: true, createdAt: true });
+export const insertPurchaseOrderEventSchema = createInsertSchema(purchaseOrderEvents).omit({
+  id: true,
+  createdAt: true,
+});
 
-export const insertPurchaseRequestSchema = createInsertSchema(purchaseRequests)
-  .omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPurchaseRequestSchema = createInsertSchema(purchaseRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
-export const insertPurchaseRequestItemSchema = createInsertSchema(purchaseRequestItems)
-  .omit({ id: true, createdAt: true });
+export const insertPurchaseRequestItemSchema = createInsertSchema(purchaseRequestItems).omit({
+  id: true,
+  createdAt: true,
+});
 
-export const insertPurchaseRequestEventSchema = createInsertSchema(purchaseRequestEvents)
-  .omit({ id: true, createdAt: true });
+export const insertPurchaseRequestEventSchema = createInsertSchema(purchaseRequestEvents).omit({
+  id: true,
+  createdAt: true,
+});
 
-export const insertItemSupplierSchema = createInsertSchema(itemSuppliers)
-  .omit({ id: true, createdAt: true, updatedAt: true });
+export const insertItemSupplierSchema = createInsertSchema(itemSuppliers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
-export const insertServiceRequestSchema = createInsertSchema(serviceRequests)
-  .omit({ id: true, createdAt: true, updatedAt: true });
+export const insertServiceRequestSchema = createInsertSchema(serviceRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
-export const insertServiceOrderSchema = createInsertSchema(serviceOrders)
-  .omit({ id: true, createdAt: true, updatedAt: true });
+export const insertServiceOrderSchema = createInsertSchema(serviceOrders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
-export const insertServiceOrderEventSchema = createInsertSchema(serviceOrderEvents)
-  .omit({ id: true, createdAt: true });
+export const insertServiceOrderEventSchema = createInsertSchema(serviceOrderEvents).omit({
+  id: true,
+  createdAt: true,
+});
 
 // ============================================================================
 // TYPE EXPORTS

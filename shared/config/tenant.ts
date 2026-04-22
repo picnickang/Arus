@@ -1,6 +1,6 @@
 /**
  * Single-Tenant Configuration
- * 
+ *
  * Centralized configuration for single-tenant mode to prevent drift across modules.
  * All modules should import DEFAULT_ORG_ID from this file.
  */

@@ -14,7 +14,9 @@ import { dbSensorsStorage } from "../../../db/sensors/index.js";
 export function registerSensorStatusRoutes(app: Express, config: SensorManagementConfig) {
   const { requireOrgId } = config;
 
-  app.get("/api/sensor-configs/status", requireOrgId,
+  app.get(
+    "/api/sensor-configs/status",
+    requireOrgId,
     withErrorHandling("fetch sensor status", async (req, res) => {
       const { equipmentId } = z.object({ equipmentId: z.string().optional() }).parse(req.query);
       const orgId = (req as AuthenticatedRequest).orgId;
@@ -23,11 +25,14 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
       const now = new Date();
       const sensors = sensorConfigs.map((config: any) => ({
         equipmentId: config.equipmentId,
-        sensorType: config.sensorType
+        sensorType: config.sensorType,
       }));
       const telemetryResults = await dbSensorsStorage.getLatestTelemetryForSensors(sensors, orgId);
       const telemetryMap = new Map(
-        telemetryResults.map((result: any) => [`${result.equipmentId}:${result.sensorType}`, result])
+        telemetryResults.map((result: any) => [
+          `${result.equipmentId}:${result.sensorType}`,
+          result,
+        ])
       );
 
       const sensorStatus = sensorConfigs.map((config: any) => {
@@ -54,14 +59,16 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
           lastValue: telemetry?.value || null,
           enabled: config.enabled,
           expectedIntervalMs: config.expectedIntervalMs || null,
-          graceMultiplier: config.graceMultiplier || null
+          graceMultiplier: config.graceMultiplier || null,
         };
       });
       res.json(sensorStatus);
     })
   );
 
-  app.get("/api/sensor-states/:equipmentId/:sensorType", requireOrgId,
+  app.get(
+    "/api/sensor-states/:equipmentId/:sensorType",
+    requireOrgId,
     withErrorHandling("fetch sensor state", async (req, res) => {
       const { equipmentId, sensorType } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
@@ -73,7 +80,9 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
     })
   );
 
-  app.post("/api/sensor-states", requireOrgId,
+  app.post(
+    "/api/sensor-states",
+    requireOrgId,
     withErrorHandling("create/update sensor state", async (req, res) => {
       const stateData = insertSensorStateSchema.parse(req.body);
       const orgId = (req as AuthenticatedRequest).orgId;

@@ -3,4 +3,7 @@
  * Delegates to modular routes in ./routes/
  */
 
-export { registerVesselPerformanceRoutes, type VesselPerformanceRoutesConfig } from "./routes/index.js";
+export {
+  registerVesselPerformanceRoutes,
+  type VesselPerformanceRoutesConfig,
+} from "./routes/index.js";

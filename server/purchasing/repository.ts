@@ -49,29 +49,41 @@ export async function getPurchaseRequestWithItems(
   orgId: string
 ): Promise<PRWithItems | null> {
   const pr = await getPurchaseRequestById(id, orgId);
-  if (!pr) {return null;}
+  if (!pr) {
+    return null;
+  }
 
   const rawItems = await db
     .select()
     .from(purchaseRequestItems)
     .where(eq(purchaseRequestItems.prId, id));
 
-  const partIds = [...new Set(rawItems.map(i => i.partId).filter(Boolean))] as string[];
-  const supplierIds = [...new Set(rawItems.map(i => i.supplierId).filter(Boolean))] as string[];
+  const partIds = [...new Set(rawItems.map((i) => i.partId).filter(Boolean))] as string[];
+  const supplierIds = [...new Set(rawItems.map((i) => i.supplierId).filter(Boolean))] as string[];
 
   const partsMap = new Map<string, { name: string; partNumber: string }>();
   const suppliersMap = new Map<string, string>();
 
   if (partIds.length > 0) {
-    const partRows = await db.select({ id: parts.id, name: parts.name, partNumber: parts.partNumber }).from(parts).where(inArray(parts.id, partIds));
-    for (const p of partRows) {partsMap.set(p.id, { name: p.name, partNumber: p.partNumber });}
+    const partRows = await db
+      .select({ id: parts.id, name: parts.name, partNumber: parts.partNumber })
+      .from(parts)
+      .where(inArray(parts.id, partIds));
+    for (const p of partRows) {
+      partsMap.set(p.id, { name: p.name, partNumber: p.partNumber });
+    }
   }
   if (supplierIds.length > 0) {
-    const supplierRows = await db.select({ id: suppliers.id, name: suppliers.name }).from(suppliers).where(inArray(suppliers.id, supplierIds));
-    for (const s of supplierRows) {suppliersMap.set(s.id, s.name);}
+    const supplierRows = await db
+      .select({ id: suppliers.id, name: suppliers.name })
+      .from(suppliers)
+      .where(inArray(suppliers.id, supplierIds));
+    for (const s of supplierRows) {
+      suppliersMap.set(s.id, s.name);
+    }
   }
 
-  const items: PRItemWithDetails[] = rawItems.map(item => {
+  const items: PRItemWithDetails[] = rawItems.map((item) => {
     const part = item.partId ? partsMap.get(item.partId) : null;
     return {
       ...item,
@@ -86,12 +98,24 @@ export async function getPurchaseRequestWithItems(
 
 export async function listPurchaseRequests(filters: PRListFilters) {
   const conditions = [eq(purchaseRequests.orgId, filters.orgId)];
-  if (filters.status)      {conditions.push(eq(purchaseRequests.status, filters.status));}
-  if (filters.vesselId)    {conditions.push(eq(purchaseRequests.vesselId, filters.vesselId));}
-  if (filters.requestedBy) {conditions.push(eq(purchaseRequests.requestedBy, filters.requestedBy));}
-  if (filters.workOrderId) {conditions.push(eq(purchaseRequests.workOrderId, filters.workOrderId));}
-  if (filters.fromDate)    {conditions.push(gte(purchaseRequests.createdAt, filters.fromDate));}
-  if (filters.toDate)      {conditions.push(lte(purchaseRequests.createdAt, filters.toDate));}
+  if (filters.status) {
+    conditions.push(eq(purchaseRequests.status, filters.status));
+  }
+  if (filters.vesselId) {
+    conditions.push(eq(purchaseRequests.vesselId, filters.vesselId));
+  }
+  if (filters.requestedBy) {
+    conditions.push(eq(purchaseRequests.requestedBy, filters.requestedBy));
+  }
+  if (filters.workOrderId) {
+    conditions.push(eq(purchaseRequests.workOrderId, filters.workOrderId));
+  }
+  if (filters.fromDate) {
+    conditions.push(gte(purchaseRequests.createdAt, filters.fromDate));
+  }
+  if (filters.toDate) {
+    conditions.push(lte(purchaseRequests.createdAt, filters.toDate));
+  }
 
   return db
     .select()
@@ -123,11 +147,13 @@ export async function addPurchaseRequestItem(data: InsertPurchaseRequestItem) {
 export async function removePurchaseRequestItem(id: string, prId: string, orgId: string) {
   const [result] = await db
     .delete(purchaseRequestItems)
-    .where(and(
-      eq(purchaseRequestItems.id, id),
-      eq(purchaseRequestItems.prId, prId),
-      eq(purchaseRequestItems.orgId, orgId)
-    ))
+    .where(
+      and(
+        eq(purchaseRequestItems.id, id),
+        eq(purchaseRequestItems.prId, prId),
+        eq(purchaseRequestItems.orgId, orgId)
+      )
+    )
     .returning();
   return result;
 }
@@ -135,18 +161,18 @@ export async function removePurchaseRequestItem(id: string, prId: string, orgId:
 export async function getItemSuppliers(partId: string, orgId: string) {
   return db
     .select({
-      id:                 itemSuppliers.id,
-      orgId:              itemSuppliers.orgId,
-      partId:             itemSuppliers.partId,
-      supplierId:         itemSuppliers.supplierId,
-      isPrimary:          itemSuppliers.isPrimary,
+      id: itemSuppliers.id,
+      orgId: itemSuppliers.orgId,
+      partId: itemSuppliers.partId,
+      supplierId: itemSuppliers.supplierId,
+      isPrimary: itemSuppliers.isPrimary,
       supplierPartNumber: itemSuppliers.supplierPartNumber,
-      unitCost:           itemSuppliers.unitCost,
-      leadTimeDays:       itemSuppliers.leadTimeDays,
-      notes:              itemSuppliers.notes,
-      createdAt:          itemSuppliers.createdAt,
-      updatedAt:          itemSuppliers.updatedAt,
-      supplierName:       suppliers.name,
+      unitCost: itemSuppliers.unitCost,
+      leadTimeDays: itemSuppliers.leadTimeDays,
+      notes: itemSuppliers.notes,
+      createdAt: itemSuppliers.createdAt,
+      updatedAt: itemSuppliers.updatedAt,
+      supplierName: suppliers.name,
     })
     .from(itemSuppliers)
     .leftJoin(suppliers, eq(itemSuppliers.supplierId, suppliers.id))
@@ -160,12 +186,12 @@ export async function linkItemSupplier(data: InsertItemSupplier) {
     .onConflictDoUpdate({
       target: [itemSuppliers.orgId, itemSuppliers.partId, itemSuppliers.supplierId],
       set: {
-        isPrimary:          data.isPrimary,
+        isPrimary: data.isPrimary,
         supplierPartNumber: data.supplierPartNumber,
-        unitCost:           data.unitCost,
-        leadTimeDays:       data.leadTimeDays,
-        notes:              data.notes,
-        updatedAt:          new Date(),
+        unitCost: data.unitCost,
+        leadTimeDays: data.leadTimeDays,
+        notes: data.notes,
+        updatedAt: new Date(),
       },
     })
     .returning();
@@ -175,11 +201,13 @@ export async function linkItemSupplier(data: InsertItemSupplier) {
 export async function unlinkItemSupplier(partId: string, supplierId: string, orgId: string) {
   const [result] = await db
     .delete(itemSuppliers)
-    .where(and(
-      eq(itemSuppliers.partId, partId),
-      eq(itemSuppliers.supplierId, supplierId),
-      eq(itemSuppliers.orgId, orgId)
-    ))
+    .where(
+      and(
+        eq(itemSuppliers.partId, partId),
+        eq(itemSuppliers.supplierId, supplierId),
+        eq(itemSuppliers.orgId, orgId)
+      )
+    )
     .returning();
   return result;
 }
@@ -233,13 +261,21 @@ export async function updateEmailStatus(
 ) {
   const updateData: Record<string, unknown> = {
     status,
-    attempts:      sql`${emailQueue.attempts} + 1`,
+    attempts: sql`${emailQueue.attempts} + 1`,
     lastAttemptAt: new Date(),
   };
-  if (status === "sent") {updateData.sentAt = new Date();}
-  if (errorMessage)      {updateData.errorMessage = errorMessage;}
+  if (status === "sent") {
+    updateData.sentAt = new Date();
+  }
+  if (errorMessage) {
+    updateData.errorMessage = errorMessage;
+  }
 
-  const [result] = await db.update(emailQueue).set(updateData).where(eq(emailQueue.id, id)).returning();
+  const [result] = await db
+    .update(emailQueue)
+    .set(updateData)
+    .where(eq(emailQueue.id, id))
+    .returning();
   return result;
 }
 
@@ -254,7 +290,7 @@ export async function updateEmailStatus(
  * it is created on-the-fly and the year rolls over cleanly.
  */
 export async function generateRequestNumber(orgId: string): Promise<string> {
-  const year   = new Date().getFullYear();
+  const year = new Date().getFullYear();
   const seqName = `pr_number_seq_${year}`;
 
   // Ensure the sequence exists for this year (idempotent)
@@ -273,7 +309,7 @@ export async function generateRequestNumber(orgId: string): Promise<string> {
  * Called from pr-send-service.ts to generate PO numbers atomically.
  */
 export async function generatePONumber(orgId: string, tx?: any): Promise<string> {
-  const year    = new Date().getFullYear();
+  const year = new Date().getFullYear();
   const seqName = `po_number_seq_${year}`;
   const executor = tx ?? db;
 

@@ -17,8 +17,12 @@ const Z_SCORE_CRITICAL = 3;
 
 function severityFromZScore(z: number): "normal" | "warning" | "critical" {
   const abs = Math.abs(z);
-  if (abs >= Z_SCORE_CRITICAL) {return "critical";}
-  if (abs >= Z_SCORE_WARNING) {return "warning";}
+  if (abs >= Z_SCORE_CRITICAL) {
+    return "critical";
+  }
+  if (abs >= Z_SCORE_WARNING) {
+    return "warning";
+  }
   return "normal";
 }
 
@@ -29,33 +33,27 @@ function round(v: number): number {
 export class ResidualAnalysisService {
   private adapter = new ResidualAnalysisAdapter();
 
-  async computeResiduals(
-    orgId: string,
-    twinId: string
-  ): Promise<TwinResidual[]> {
+  async computeResiduals(orgId: string, twinId: string): Promise<TwinResidual[]> {
     const [twin] = await db
       .select()
       .from(assetTwins)
       .where(and(eq(assetTwins.orgId, orgId), eq(assetTwins.id, twinId)));
-    if (!twin) {throw new Error("Twin not found");}
+    if (!twin) {
+      throw new Error("Twin not found");
+    }
 
     const [template] = await db
       .select()
       .from(assetTwinTemplates)
-      .where(
-        and(
-          eq(assetTwinTemplates.orgId, orgId),
-          eq(assetTwinTemplates.id, twin.templateId)
-        )
-      );
-    if (!template) {throw new Error("Twin template not found");}
+      .where(and(eq(assetTwinTemplates.orgId, orgId), eq(assetTwinTemplates.id, twin.templateId)));
+    if (!template) {
+      throw new Error("Twin template not found");
+    }
 
     const [latestState] = await db
       .select()
       .from(assetTwinState)
-      .where(
-        and(eq(assetTwinState.orgId, orgId), eq(assetTwinState.twinId, twinId))
-      )
+      .where(and(eq(assetTwinState.orgId, orgId), eq(assetTwinState.twinId, twinId)))
       .orderBy(desc(assetTwinState.timestamp))
       .limit(1);
 
@@ -67,7 +65,10 @@ export class ResidualAnalysisService {
       : {};
 
     if (Object.keys(observed).length === 0) {
-      console.warn(LOG_MODULE, "No state data for twin, generating stub residuals", { orgId, twinId });
+      console.warn(LOG_MODULE, "No state data for twin, generating stub residuals", {
+        orgId,
+        twinId,
+      });
       return this.generateStubResiduals(orgId, twinId, template.equipmentType);
     }
 
@@ -89,9 +90,7 @@ export class ResidualAnalysisService {
       };
     }
 
-    const sensorTypes = Array.from(
-      new Set([...Object.keys(observed), ...Object.keys(expected)])
-    );
+    const sensorTypes = Array.from(new Set([...Object.keys(observed), ...Object.keys(expected)]));
 
     const now = new Date();
     const records: InsertTwinResidual[] = [];
@@ -99,12 +98,13 @@ export class ResidualAnalysisService {
     for (const sensorType of sensorTypes) {
       const obs = observed[sensorType];
       const exp = expected[sensorType];
-      if (obs == null || exp == null) {continue;}
+      if (obs == null || exp == null) {
+        continue;
+      }
 
       const residual = round(obs - exp);
 
-      const baseline = baselineMap[sensorType] ??
-        baselineMap[`mean${capitalize(sensorType)}`];
+      const baseline = baselineMap[sensorType] ?? baselineMap[`mean${capitalize(sensorType)}`];
       const stddev = baseline ? baseline.stddev : Math.abs(exp) * 0.1 || 1;
       const zScore = round(stddev > 0 ? residual / stddev : 0);
       const severity = severityFromZScore(zScore);
@@ -139,8 +139,8 @@ export class ResidualAnalysisService {
     const sensorTypes = ["temperature", "vibration", "pressure"];
     const now = new Date();
     const records: InsertTwinResidual[] = sensorTypes.map((sensorType) => {
-      const obs = deterministicValue(twinId, `${sensorType  }_obs`, 30, 100);
-      const exp = deterministicValue(twinId, `${sensorType  }_exp`, 30, 100);
+      const obs = deterministicValue(twinId, `${sensorType}_obs`, 30, 100);
+      const exp = deterministicValue(twinId, `${sensorType}_exp`, 30, 100);
       const residual = round(obs - exp);
       const stddev = Math.abs(exp) * 0.1 || 1;
       const zScore = round(residual / stddev);
@@ -160,11 +160,7 @@ export class ResidualAnalysisService {
     return this.adapter.storeResiduals(records);
   }
 
-  async getResidualsByTwin(
-    orgId: string,
-    twinId: string,
-    limit?: number
-  ): Promise<TwinResidual[]> {
+  async getResidualsByTwin(orgId: string, twinId: string, limit?: number): Promise<TwinResidual[]> {
     return this.adapter.getResidualsByTwin(orgId, twinId, limit);
   }
 
@@ -177,12 +173,7 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function deterministicValue(
-  id: string,
-  seed: string,
-  min: number,
-  max: number
-): number {
+function deterministicValue(id: string, seed: string, min: number, max: number): number {
   let hash = 0;
   const str = id + seed;
   for (let i = 0; i < str.length; i++) {

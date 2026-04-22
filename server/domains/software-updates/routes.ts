@@ -1,7 +1,7 @@
 /**
  * Software Updates Domain Routes
  * Extracted from routes.ts for Phase 4 modularization
- * 
+ *
  * Provides update checking, patch management, and rollback functionality
  */
 
@@ -42,10 +42,7 @@ export function registerSoftwareUpdatesRoutes(
       const orgId = req.header("x-org-id") || "default-org-id";
       const { channel } = req.query;
 
-      const manifest = await updateChecker.checkForUpdates(
-        orgId,
-        (channel as string) || "stable"
-      );
+      const manifest = await updateChecker.checkForUpdates(orgId, (channel as string) || "stable");
 
       if (manifest) {
         const patch = await updateChecker.registerPatch(orgId, manifest);
@@ -149,7 +146,11 @@ export function registerSoftwareUpdatesRoutes(
           },
         });
 
-        const result = await patchApplicator.applyPatch(id, patchPath, (req as AuthenticatedRequest).user?.id);
+        const result = await patchApplicator.applyPatch(
+          id,
+          patchPath,
+          (req as AuthenticatedRequest).user?.id
+        );
 
         if (result.success) {
           wsServer.broadcastUpdateNotification({

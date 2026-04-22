@@ -12,10 +12,7 @@ interface MlPipelineRoutesConfig {
   generalApiRateLimit: RateLimitRequestHandler;
 }
 
-export function registerMlPipelineRoutes(
-  app: Express,
-  config: MlPipelineRoutesConfig
-): void {
+export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesConfig): void {
   const { generalApiRateLimit } = config;
 
   logger.info("MLPipelineRoutes", "Registering ML pipeline API endpoints");
@@ -24,7 +21,9 @@ export function registerMlPipelineRoutes(
   // Acoustic Monitoring Routes
   // ============================================================================
 
-  app.post("/api/acoustic/analyze", generalApiRateLimit,
+  app.post(
+    "/api/acoustic/analyze",
+    generalApiRateLimit,
     withErrorHandling("analyze acoustic data", async (req: Request, res: Response) => {
       const { acousticData, sampleRate, equipmentType, rpm } = req.body;
 
@@ -41,7 +40,9 @@ export function registerMlPipelineRoutes(
     })
   );
 
-  app.post("/api/acoustic/features", generalApiRateLimit,
+  app.post(
+    "/api/acoustic/features",
+    generalApiRateLimit,
     withErrorHandling("extract acoustic features", async (req: Request, res: Response) => {
       const { acousticData, sampleRate, rpm } = req.body;
 
@@ -62,7 +63,9 @@ export function registerMlPipelineRoutes(
   // ML Training Routes
   // ============================================================================
 
-  app.post("/api/ml/train/lstm", generalApiRateLimit,
+  app.post(
+    "/api/ml/train/lstm",
+    generalApiRateLimit,
     withErrorHandling("train LSTM model", async (req: AuthenticatedRequest, res: Response) => {
       const { orgId = req.orgId!, equipmentType, lstmConfig } = req.body;
 
@@ -92,32 +95,39 @@ export function registerMlPipelineRoutes(
     })
   );
 
-  app.post("/api/ml/train/random-forest", generalApiRateLimit,
-    withErrorHandling("train Random Forest model", async (req: AuthenticatedRequest, res: Response) => {
-      const { orgId = req.orgId!, equipmentType, rfConfig } = req.body;
+  app.post(
+    "/api/ml/train/random-forest",
+    generalApiRateLimit,
+    withErrorHandling(
+      "train Random Forest model",
+      async (req: AuthenticatedRequest, res: Response) => {
+        const { orgId = req.orgId!, equipmentType, rfConfig } = req.body;
 
-      const { trainRFForHealthClassification } = await import("../../ml-training-pipeline");
+        const { trainRFForHealthClassification } = await import("../../ml-training-pipeline");
 
-      const config = {
-        orgId,
-        equipmentType,
-        modelType: "random_forest" as const,
-        targetMetric: "health_classification" as const,
-        rfConfig: rfConfig || {
-          numTrees: 50,
-          maxDepth: 10,
-          minSamplesSplit: 5,
-          maxFeatures: 8,
-          bootstrapSampleRatio: 0.8,
-        },
-      };
+        const config = {
+          orgId,
+          equipmentType,
+          modelType: "random_forest" as const,
+          targetMetric: "health_classification" as const,
+          rfConfig: rfConfig || {
+            numTrees: 50,
+            maxDepth: 10,
+            minSamplesSplit: 5,
+            maxFeatures: 8,
+            bootstrapSampleRatio: 0.8,
+          },
+        };
 
-      const result = await trainRFForHealthClassification(config);
-      res.json(result);
-    })
+        const result = await trainRFForHealthClassification(config);
+        res.json(result);
+      }
+    )
   );
 
-  app.post("/api/ml/train/xgboost", generalApiRateLimit,
+  app.post(
+    "/api/ml/train/xgboost",
+    generalApiRateLimit,
     withErrorHandling("train XGBoost model", async (req: AuthenticatedRequest, res: Response) => {
       const { orgId = req.orgId!, equipmentType, xgboostConfig } = req.body;
 
@@ -142,18 +152,23 @@ export function registerMlPipelineRoutes(
     })
   );
 
-  app.post("/api/ml/train/all", generalApiRateLimit,
-    withErrorHandling("batch train all models", async (req: AuthenticatedRequest, res: Response) => {
-      const { orgId = req.orgId! } = req.body;
+  app.post(
+    "/api/ml/train/all",
+    generalApiRateLimit,
+    withErrorHandling(
+      "batch train all models",
+      async (req: AuthenticatedRequest, res: Response) => {
+        const { orgId = req.orgId! } = req.body;
 
-      const { retrainAllModels } = await import("../../ml-training-pipeline");
-      const results = await retrainAllModels(orgId);
+        const { retrainAllModels } = await import("../../ml-training-pipeline");
+        const results = await retrainAllModels(orgId);
 
-      res.json({
-        message: `Successfully trained ${results.length} models`,
-        results,
-      });
-    })
+        res.json({
+          message: `Successfully trained ${results.length} models`,
+          results,
+        });
+      }
+    )
   );
 
   // ============================================================================
@@ -175,78 +190,94 @@ export function registerMlPipelineRoutes(
    * - 'random_forest': Classification model for health status
    * - 'hybrid' (default): Weighted averaging of all available models
    */
-  app.post("/api/ml/predict/failure", generalApiRateLimit,
-    withErrorHandling("predict equipment failure", async (req: AuthenticatedRequest, res: Response) => {
-      const { equipmentId, orgId = req.orgId!, method = "hybrid" } = req.body;
+  app.post(
+    "/api/ml/predict/failure",
+    generalApiRateLimit,
+    withErrorHandling(
+      "predict equipment failure",
+      async (req: AuthenticatedRequest, res: Response) => {
+        const { equipmentId, orgId = req.orgId!, method = "hybrid" } = req.body;
 
-      if (!equipmentId) {
-        return res.status(400).json({ error: "equipmentId is required" });
+        if (!equipmentId) {
+          return res.status(400).json({ error: "equipmentId is required" });
+        }
+
+        const {
+          predictFailureWithLSTM,
+          predictHealthWithRandomForest,
+          predictWithHybridModel,
+          predictWithEnsemble,
+          storePrediction,
+        } = await import("../../ml-prediction-service");
+
+        let prediction = null;
+
+        if (method === "lstm") {
+          prediction = await predictFailureWithLSTM(equipmentId, orgId);
+        } else if (method === "random_forest") {
+          prediction = await predictHealthWithRandomForest(equipmentId, orgId);
+        } else if (method === "ensemble") {
+          prediction = await predictWithEnsemble(equipmentId, orgId);
+        } else {
+          prediction = await predictWithHybridModel(equipmentId, orgId);
+        }
+
+        if (!prediction) {
+          return res.status(404).json({
+            error: "No ML models available for prediction",
+            hint: "Train models first using /api/ml/train endpoints",
+          });
+        }
+
+        await storePrediction(equipmentId, orgId, prediction);
+        res.json(prediction);
       }
-
-      const {
-        predictFailureWithLSTM,
-        predictHealthWithRandomForest,
-        predictWithHybridModel,
-        predictWithEnsemble,
-        storePrediction,
-      } = await import("../../ml-prediction-service");
-
-      let prediction = null;
-
-      if (method === "lstm") {
-        prediction = await predictFailureWithLSTM(equipmentId, orgId);
-      } else if (method === "random_forest") {
-        prediction = await predictHealthWithRandomForest(equipmentId, orgId);
-      } else if (method === "ensemble") {
-        prediction = await predictWithEnsemble(equipmentId, orgId);
-      } else {
-        prediction = await predictWithHybridModel(equipmentId, orgId);
-      }
-
-      if (!prediction) {
-        return res.status(404).json({
-          error: "No ML models available for prediction",
-          hint: "Train models first using /api/ml/train endpoints",
-        });
-      }
-
-      await storePrediction(equipmentId, orgId, prediction);
-      res.json(prediction);
-    })
+    )
   );
 
   // ============================================================================
   // ML Retraining & Training Window Routes
   // ============================================================================
 
-  app.get("/api/ml/retraining-triggers", generalApiRateLimit,
-    withErrorHandling("evaluate retraining triggers", async (req: AuthenticatedRequest, res: Response) => {
-      const orgId = req.orgId!;
+  app.get(
+    "/api/ml/retraining-triggers",
+    generalApiRateLimit,
+    withErrorHandling(
+      "evaluate retraining triggers",
+      async (req: AuthenticatedRequest, res: Response) => {
+        const orgId = req.orgId!;
 
-      const { evaluateRetrainingTriggers } = await import("../../ml-retraining-service");
-      const triggers = await evaluateRetrainingTriggers();
+        const { evaluateRetrainingTriggers } = await import("../../ml-retraining-service");
+        const triggers = await evaluateRetrainingTriggers();
 
-      res.json(triggers);
-    })
+        res.json(triggers);
+      }
+    )
   );
 
-  app.get("/api/ml/training-window/:equipmentType?", generalApiRateLimit,
-    withErrorHandling("determine training window", async (req: AuthenticatedRequest, res: Response) => {
-      const orgId = req.orgId!;
-      const equipmentType = req.params.equipmentType;
+  app.get(
+    "/api/ml/training-window/:equipmentType?",
+    generalApiRateLimit,
+    withErrorHandling(
+      "determine training window",
+      async (req: AuthenticatedRequest, res: Response) => {
+        const orgId = req.orgId!;
+        const equipmentType = req.params.equipmentType;
 
-      const { determineOptimalTrainingWindow } = await import("../../adaptive-training-window");
-      const windowConfig = await determineOptimalTrainingWindow(orgId, equipmentType);
+        const { determineOptimalTrainingWindow } = await import("../../adaptive-training-window");
+        const windowConfig = await determineOptimalTrainingWindow(orgId, equipmentType);
 
-      res.json(windowConfig);
-    })
+        res.json(windowConfig);
+      }
+    )
   );
 
   // ============================================================================
   // ML Health & Metrics Routes
   // ============================================================================
 
-  app.get("/api/ml/health",
+  app.get(
+    "/api/ml/health",
     withErrorHandling("check ML health", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
 
@@ -313,7 +344,8 @@ export function registerMlPipelineRoutes(
     })
   );
 
-  app.get("/api/ml/metrics",
+  app.get(
+    "/api/ml/metrics",
     withErrorHandling("retrieve ML metrics", async (req: Request, res: Response) => {
       const { getMetrics, getMetricsContentType } = await import("../../ml-prometheus-metrics");
       const metrics = await getMetrics();
@@ -327,7 +359,9 @@ export function registerMlPipelineRoutes(
   // RUL (Remaining Useful Life) Analysis Routes
   // ============================================================================
 
-  app.get("/api/rul/models", generalApiRateLimit,
+  app.get(
+    "/api/rul/models",
+    generalApiRateLimit,
     withErrorHandling("get RUL models", async (req: AuthenticatedRequest, res: Response) => {
       const { componentClass, orgId = req.orgId! } = req.query;
       const models = await dbMlAnalyticsStorage.getRulModels(orgId as string);
@@ -335,7 +369,9 @@ export function registerMlPipelineRoutes(
     })
   );
 
-  app.post("/api/rul/fit", generalApiRateLimit,
+  app.post(
+    "/api/rul/fit",
+    generalApiRateLimit,
     withErrorHandling("fit RUL model", async (req: AuthenticatedRequest, res: Response) => {
       const { modelId, componentClass, failureTimes } = req.body;
       const orgId = req.orgId!;
@@ -361,7 +397,9 @@ export function registerMlPipelineRoutes(
     })
   );
 
-  app.post("/api/rul/predict", generalApiRateLimit,
+  app.post(
+    "/api/rul/predict",
+    generalApiRateLimit,
     withErrorHandling("predict RUL", async (req: AuthenticatedRequest, res: Response) => {
       const { modelId, currentAge, quantile = 0.5 } = req.body;
       const orgId = req.orgId!;
@@ -381,5 +419,8 @@ export function registerMlPipelineRoutes(
     })
   );
 
-  logger.info("MLPipelineRoutes", "Registered (acoustic: 2, ml-training: 4, ml-prediction: 1, ml-health: 4, rul: 3)");
+  logger.info(
+    "MLPipelineRoutes",
+    "Registered (acoustic: 2, ml-training: 4, ml-prediction: 1, ml-health: 4, rul: 3)"
+  );
 }

@@ -1,6 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, CheckCircle, XCircle, Eye, ArrowRightCircle, Ship, Wrench } from "lucide-react";
+import {
+  ExternalLink,
+  CheckCircle,
+  XCircle,
+  Eye,
+  ArrowRightCircle,
+  Ship,
+  Wrench,
+} from "lucide-react";
 import { SRStatusBadge } from "./SRStatusBadge";
 import { SRPriorityBadge } from "./SRPriorityBadge";
 import type { ServiceRequest } from "../types";
@@ -14,7 +22,14 @@ interface SRCardProps {
   onViewDetails?: (id: string) => void;
 }
 
-export function SRCard({ sr, onReview, onApprove, onReject, onConvert, onViewDetails }: SRCardProps) {
+export function SRCard({
+  sr,
+  onReview,
+  onApprove,
+  onReject,
+  onConvert,
+  onViewDetails,
+}: SRCardProps) {
   const isPending = sr.status === "pending_review";
   const isUnderReview = sr.status === "under_review";
   const isApproved = sr.status === "approved";
@@ -39,18 +54,27 @@ export function SRCard({ sr, onReview, onApprove, onReject, onConvert, onViewDet
         )}
         <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
           {sr.workOrderNumber && (
-            <span><span className="font-medium">WO:</span> {sr.workOrderNumber}</span>
+            <span>
+              <span className="font-medium">WO:</span> {sr.workOrderNumber}
+            </span>
           )}
           {sr.vesselName && (
-            <span className="flex items-center gap-1"><Ship className="h-3 w-3" />{sr.vesselName}</span>
+            <span className="flex items-center gap-1">
+              <Ship className="h-3 w-3" />
+              {sr.vesselName}
+            </span>
           )}
           {sr.equipmentName && (
-            <span className="flex items-center gap-1"><Wrench className="h-3 w-3" />{sr.equipmentName}</span>
+            <span className="flex items-center gap-1">
+              <Wrench className="h-3 w-3" />
+              {sr.equipmentName}
+            </span>
           )}
         </div>
         {sr.estimatedCost != null && (
           <div className="text-xs text-muted-foreground">
-            <span className="font-medium">Est. Cost:</span> ${Number(sr.estimatedCost).toLocaleString()}
+            <span className="font-medium">Est. Cost:</span> $
+            {Number(sr.estimatedCost).toLocaleString()}
           </div>
         )}
         {sr.rejectionReason && (
@@ -63,27 +87,53 @@ export function SRCard({ sr, onReview, onApprove, onReject, onConvert, onViewDet
         </div>
         <div className="flex gap-2 pt-2 flex-wrap">
           {isPending && onReview && (
-            <Button size="sm" variant="outline" onClick={() => onReview(sr.id)} data-testid={`btn-review-sr-${sr.id}`}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onReview(sr.id)}
+              data-testid={`btn-review-sr-${sr.id}`}
+            >
               <Eye className="h-3 w-3 mr-1" /> Review
             </Button>
           )}
           {(isPending || isUnderReview) && onApprove && (
-            <Button size="sm" variant="outline" className="text-green-600 border-green-300 hover:bg-green-50 dark:hover:bg-green-900/20" onClick={() => onApprove(sr.id)} data-testid={`btn-approve-sr-${sr.id}`}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-green-600 border-green-300 hover:bg-green-50 dark:hover:bg-green-900/20"
+              onClick={() => onApprove(sr.id)}
+              data-testid={`btn-approve-sr-${sr.id}`}
+            >
               <CheckCircle className="h-3 w-3 mr-1" /> Approve
             </Button>
           )}
           {(isPending || isUnderReview) && onReject && (
-            <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => onReject(sr.id)} data-testid={`btn-reject-sr-${sr.id}`}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-red-600 border-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
+              onClick={() => onReject(sr.id)}
+              data-testid={`btn-reject-sr-${sr.id}`}
+            >
               <XCircle className="h-3 w-3 mr-1" /> Reject
             </Button>
           )}
           {isApproved && onConvert && (
-            <Button size="sm" onClick={() => onConvert(sr.id)} data-testid={`btn-convert-sr-${sr.id}`}>
+            <Button
+              size="sm"
+              onClick={() => onConvert(sr.id)}
+              data-testid={`btn-convert-sr-${sr.id}`}
+            >
               <ArrowRightCircle className="h-3 w-3 mr-1" /> Convert to SO
             </Button>
           )}
           {onViewDetails && (
-            <Button size="sm" variant="ghost" onClick={() => onViewDetails(sr.id)} data-testid={`btn-view-sr-${sr.id}`}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => onViewDetails(sr.id)}
+              data-testid={`btn-view-sr-${sr.id}`}
+            >
               <ExternalLink className="h-3 w-3 mr-1" /> WO Details
             </Button>
           )}

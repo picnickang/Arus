@@ -1,8 +1,8 @@
 /**
  * Enhanced LLM - Module Aggregator
- * 
+ *
  * Re-exports all enhanced LLM modules for convenient imports.
- * 
+ *
  * Module structure (1,059 lines → 8 modules):
  * - types.ts (~75 lines): Core types and interfaces
  * - model-config.ts (~55 lines): Default models and selection
@@ -20,6 +20,11 @@ export { defaultModels, getModelConfig } from "./model-config.js";
 export { getAudiencePromptTemplate } from "./prompt-templates.js";
 export { calculateEstimatedCost, logCostTracking } from "./cost-tracking.js";
 export { enrichContextWithRAG, serializeContext, buildCitations } from "./context-enrichment.js";
-export { generateScenarios, calculateROI, calculateConfidence, generateFallbackAnalysis } from "./scenario-analysis.js";
+export {
+  generateScenarios,
+  calculateROI,
+  calculateConfidence,
+  generateFallbackAnalysis,
+} from "./scenario-analysis.js";
 export { generateWithOpenAI, generateWithAnthropic } from "./providers.js";
 export { EnhancedLLMService, enhancedLLM } from "./enhanced-llm.js";

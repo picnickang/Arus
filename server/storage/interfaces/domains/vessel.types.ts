@@ -18,7 +18,11 @@ import type {
 export interface IVesselStorage {
   // Vessels
   getVessels(orgId?: string): Promise<SelectVessel[]>;
-  getVesselsPaginated(orgId: string | undefined, limit: number, offset: number): Promise<{ items: SelectVessel[]; total: number }>;
+  getVesselsPaginated(
+    orgId: string | undefined,
+    limit: number,
+    offset: number
+  ): Promise<{ items: SelectVessel[]; total: number }>;
   getVessel(id: string, orgId?: string): Promise<SelectVessel | undefined>;
   createVessel(vessel: InsertVessel): Promise<SelectVessel>;
   updateVessel(id: string, vessel: Partial<InsertVessel>): Promise<SelectVessel>;
@@ -27,10 +31,21 @@ export interface IVesselStorage {
   resetVesselOperation(id: string): Promise<SelectVessel>;
   wipeVesselData(vesselId: string, orgId?: string): Promise<{ deletedRecords: number }>;
   exportVessel(vesselId: string, orgId: string): Promise<any>;
-  importVessel(data: any, orgId: string): Promise<{ vesselId: string; equipmentCount: number; crewCount: number }>;
+  importVessel(
+    data: any,
+    orgId: string
+  ): Promise<{ vesselId: string; equipmentCount: number; crewCount: number }>;
 
   // Fleet Overview
-  getVesselFleetOverview(orgId?: string): Promise<{ vessels: number; signalsMapped: number; signalsDiscovered: number; latestPerVessel: Array<{ vesselId: string; lastTs: string }>; dq7d: Record<string, number> }>;
+  getVesselFleetOverview(
+    orgId?: string
+  ): Promise<{
+    vessels: number;
+    signalsMapped: number;
+    signalsDiscovered: number;
+    latestPerVessel: Array<{ vesselId: string; lastTs: string }>;
+    dq7d: Record<string, number>;
+  }>;
 
   // Weather Data
   cacheWeatherData(data: any, orgId: string): Promise<void>;
@@ -45,6 +60,9 @@ export interface IVesselStorage {
   // Drydock Windows
   getDrydockWindows(vesselId?: string): Promise<SelectDrydockWindow[]>;
   createDrydockWindow(drydock: InsertDrydockWindow): Promise<SelectDrydockWindow>;
-  updateDrydockWindow(id: string, drydock: Partial<InsertDrydockWindow>): Promise<SelectDrydockWindow>;
+  updateDrydockWindow(
+    id: string,
+    drydock: Partial<InsertDrydockWindow>
+  ): Promise<SelectDrydockWindow>;
   deleteDrydockWindow(id: string): Promise<void>;
 }

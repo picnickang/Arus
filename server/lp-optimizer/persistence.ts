@@ -3,10 +3,7 @@
  */
 
 import { db } from "../db.js";
-import {
-  optimizationResults,
-  scheduleOptimizations,
-} from "../../shared/schema.js";
+import { optimizationResults, scheduleOptimizations } from "../../shared/schema.js";
 import type { OptimizationResult, OptimizationConstraints } from "./types.js";
 
 export async function persistOptimizationResults(

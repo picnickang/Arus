@@ -1,6 +1,6 @@
 /**
  * Permission Repository - Database Operations
- * 
+ *
  * CRUD operations for roles, permissions, and user role assignments.
  */
 
@@ -177,13 +177,8 @@ export async function listActions(): Promise<PermissionAction[]> {
   return db.select().from(permissionActions).orderBy(permissionActions.sortOrder);
 }
 
-export async function getPermissionGrantsForRole(
-  roleId: string
-): Promise<PermissionGrant[]> {
-  return db
-    .select()
-    .from(permissionGrants)
-    .where(eq(permissionGrants.roleId, roleId));
+export async function getPermissionGrantsForRole(roleId: string): Promise<PermissionGrant[]> {
+  return db.select().from(permissionGrants).where(eq(permissionGrants.roleId, roleId));
 }
 
 export async function setPermissionGrant(
@@ -237,11 +232,7 @@ export async function listRoleTemplates(): Promise<RoleTemplate[]> {
 }
 
 export async function getRoleTemplateById(id: string): Promise<RoleTemplate | undefined> {
-  const [template] = await db
-    .select()
-    .from(roleTemplates)
-    .where(eq(roleTemplates.id, id))
-    .limit(1);
+  const [template] = await db.select().from(roleTemplates).where(eq(roleTemplates.id, id)).limit(1);
   return template;
 }
 
@@ -325,7 +316,9 @@ export async function listUserRoleAssignments(
     );
 }
 
-export async function assignRoleToUser(data: InsertUserRoleAssignment): Promise<UserRoleAssignment> {
+export async function assignRoleToUser(
+  data: InsertUserRoleAssignment
+): Promise<UserRoleAssignment> {
   const [assignment] = await db.insert(userRoleAssignments).values(data).returning();
   return assignment;
 }
@@ -418,16 +411,18 @@ export async function getCrewCountByRoleId(roleId: string, orgId: string): Promi
     .select({ count: count() })
     .from(crew)
     .where(and(eq(crew.roleId, roleId), eq(crew.orgId, orgId)));
-  
+
   return result[0]?.count ?? 0;
 }
 
-export async function listUsersWithRoles(orgId: string): Promise<Array<{
-  id: string;
-  name: string | null;
-  email: string | null;
-  roles: Array<{ roleId: string; roleName: string; assignedAt: string }>;
-}>> {
+export async function listUsersWithRoles(orgId: string): Promise<
+  Array<{
+    id: string;
+    name: string | null;
+    email: string | null;
+    roles: Array<{ roleId: string; roleName: string; assignedAt: string }>;
+  }>
+> {
   const assignments = await db
     .select({
       userId: userRoleAssignments.userId,
@@ -437,12 +432,7 @@ export async function listUsersWithRoles(orgId: string): Promise<Array<{
     })
     .from(userRoleAssignments)
     .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
-    .where(
-      and(
-        eq(userRoleAssignments.orgId, orgId),
-        eq(userRoleAssignments.isActive, true)
-      )
-    );
+    .where(and(eq(userRoleAssignments.orgId, orgId), eq(userRoleAssignments.isActive, true)));
 
   const systemUsers = await db
     .select({
@@ -462,12 +452,15 @@ export async function listUsersWithRoles(orgId: string): Promise<Array<{
     .from(crew)
     .where(eq(crew.orgId, orgId));
 
-  const userMap = new Map<string, {
-    id: string;
-    name: string | null;
-    email: string | null;
-    roles: Array<{ roleId: string; roleName: string; assignedAt: string }>;
-  }>();
+  const userMap = new Map<
+    string,
+    {
+      id: string;
+      name: string | null;
+      email: string | null;
+      roles: Array<{ roleId: string; roleName: string; assignedAt: string }>;
+    }
+  >();
 
   for (const user of systemUsers) {
     userMap.set(user.id, {

@@ -2,7 +2,7 @@
  * FMCC Integration - Aquametro flow meter data retrieval
  */
 
-import { getFMCCService, type FMCCCumulativeCounters } from '../../integrations/aquametro-fmcc';
+import { getFMCCService, type FMCCCumulativeCounters } from "../../integrations/aquametro-fmcc";
 
 export async function tryGetFMCCData(
   vesselId: string,
@@ -30,7 +30,7 @@ export async function tryGetFMCCData(
 
     return null;
   } catch (error) {
-    console.warn('[FuelEmissions] FMCC data fetch failed, falling back to telemetry:', error);
+    console.warn("[FuelEmissions] FMCC data fetch failed, falling back to telemetry:", error);
     return null;
   }
 }

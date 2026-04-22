@@ -19,17 +19,16 @@ export function FocusModeProvider({ children }: { children: ReactNode }) {
     setIsFocusMode(enabled);
   }, []);
 
-  const value = useMemo(() => ({
-    isFocusMode,
-    toggleFocusMode,
-    setFocusMode,
-  }), [isFocusMode, toggleFocusMode, setFocusMode]);
-
-  return (
-    <FocusModeContext.Provider value={value}>
-      {children}
-    </FocusModeContext.Provider>
+  const value = useMemo(
+    () => ({
+      isFocusMode,
+      toggleFocusMode,
+      setFocusMode,
+    }),
+    [isFocusMode, toggleFocusMode, setFocusMode]
   );
+
+  return <FocusModeContext.Provider value={value}>{children}</FocusModeContext.Provider>;
 }
 
 export function useFocusMode() {

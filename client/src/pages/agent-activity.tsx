@@ -4,12 +4,29 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Activity, Clock, CheckCircle, XCircle, Loader2,
-  Calendar, Zap, DollarSign, TrendingUp,
-  ChevronDown, ChevronRight, Wrench, AlertTriangle,
-  Bot, User,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Activity,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  Calendar,
+  Zap,
+  DollarSign,
+  TrendingUp,
+  ChevronDown,
+  ChevronRight,
+  Wrench,
+  AlertTriangle,
+  Bot,
+  User,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -57,24 +74,39 @@ interface ActivitySummary {
 }
 
 function formatDuration(ms: number | null | undefined): string {
-  if (ms == null) {return "—";}
-  if (ms < 1000) {return `${ms}ms`;}
-  if (ms < 60000) {return `${(ms / 1000).toFixed(1)}s`;}
+  if (ms == null) {
+    return "—";
+  }
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
+  if (ms < 60000) {
+    return `${(ms / 1000).toFixed(1)}s`;
+  }
   return `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`;
 }
 
 function formatRelativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
-  if (diff < 60000) {return "Just now";}
-  if (diff < 3600000) {return `${Math.floor(diff / 60000)}m ago`;}
-  if (diff < 86400000) {return `${Math.floor(diff / 3600000)}h ago`;}
+  if (diff < 60000) {
+    return "Just now";
+  }
+  if (diff < 3600000) {
+    return `${Math.floor(diff / 60000)}m ago`;
+  }
+  if (diff < 86400000) {
+    return `${Math.floor(diff / 3600000)}h ago`;
+  }
   return new Date(dateStr).toLocaleDateString();
 }
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "completed") {
     return (
-      <Badge className="text-[9px] bg-green-500/10 text-green-600 border-green-500/20" data-testid={`badge-status-${status}`}>
+      <Badge
+        className="text-[9px] bg-green-500/10 text-green-600 border-green-500/20"
+        data-testid={`badge-status-${status}`}
+      >
         <CheckCircle className="h-2.5 w-2.5 mr-0.5" /> Completed
       </Badge>
     );
@@ -87,37 +119,75 @@ function StatusBadge({ status }: { status: string }) {
     );
   }
   return (
-    <Badge className="text-[9px] bg-blue-500/10 text-blue-600 border-blue-500/20" data-testid={`badge-status-${status}`}>
+    <Badge
+      className="text-[9px] bg-blue-500/10 text-blue-600 border-blue-500/20"
+      data-testid={`badge-status-${status}`}
+    >
       <Loader2 className="h-2.5 w-2.5 mr-0.5 animate-spin" /> Running
     </Badge>
   );
 }
 
 function TriggerIcon({ type }: { type: string }) {
-  if (type === "scheduled") {return <Clock className="h-3.5 w-3.5 text-blue-500" />;}
+  if (type === "scheduled") {
+    return <Clock className="h-3.5 w-3.5 text-blue-500" />;
+  }
   return <User className="h-3.5 w-3.5 text-green-500" />;
 }
 
 function SummaryMetrics({ summary }: { summary: ActivitySummary | undefined }) {
-  if (!summary) {return null;}
+  if (!summary) {
+    return null;
+  }
 
   const metrics = [
     { label: "Runs Today", value: summary.runsToday, icon: Activity, color: "text-blue-600" },
-    { label: "Success Rate (7d)", value: `${summary.successRate7d}%`, icon: TrendingUp, color: summary.successRate7d >= 90 ? "text-green-600" : summary.successRate7d >= 70 ? "text-amber-600" : "text-red-600" },
-    { label: "Avg Tokens/Run", value: summary.avgTokensPerRun > 0 ? `${(summary.avgTokensPerRun / 1000).toFixed(1)}k` : "—", icon: Zap, color: "text-purple-600" },
-    { label: "Est. Cost (30d)", value: `$${summary.estimatedCost30d.toFixed(2)}`, icon: DollarSign, color: "text-emerald-600" },
-    { label: "Failures (7d)", value: summary.failureCount7d, icon: AlertTriangle, color: summary.failureCount7d > 0 ? "text-red-600" : "text-green-600" },
+    {
+      label: "Success Rate (7d)",
+      value: `${summary.successRate7d}%`,
+      icon: TrendingUp,
+      color:
+        summary.successRate7d >= 90
+          ? "text-green-600"
+          : summary.successRate7d >= 70
+            ? "text-amber-600"
+            : "text-red-600",
+    },
+    {
+      label: "Avg Tokens/Run",
+      value: summary.avgTokensPerRun > 0 ? `${(summary.avgTokensPerRun / 1000).toFixed(1)}k` : "—",
+      icon: Zap,
+      color: "text-purple-600",
+    },
+    {
+      label: "Est. Cost (30d)",
+      value: `$${summary.estimatedCost30d.toFixed(2)}`,
+      icon: DollarSign,
+      color: "text-emerald-600",
+    },
+    {
+      label: "Failures (7d)",
+      value: summary.failureCount7d,
+      icon: AlertTriangle,
+      color: summary.failureCount7d > 0 ? "text-red-600" : "text-green-600",
+    },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6" data-testid="activity-summary-metrics">
+    <div
+      className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6"
+      data-testid="activity-summary-metrics"
+    >
       {metrics.map(({ label, value, icon: Icon, color }) => (
         <Card key={label}>
           <CardContent className="p-3">
             <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] uppercase tracking-wider">
               <Icon className={`h-3.5 w-3.5 ${color}`} /> {label}
             </div>
-            <p className={`text-xl font-bold mt-1 ${color}`} data-testid={`metric-${label.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}>
+            <p
+              className={`text-xl font-bold mt-1 ${color}`}
+              data-testid={`metric-${label.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
+            >
               {value}
             </p>
           </CardContent>
@@ -169,36 +239,63 @@ function ActivityRow({ item }: { item: AgentActivityItem }) {
             )}
           </div>
           {item.response && (
-            <p className="text-xs text-muted-foreground/70 mt-1 truncate max-w-[600px]" data-testid={`snippet-${item.id}`}>
-              {item.response.length > 120 ? `${item.response.slice(0, 117)  }...` : item.response}
+            <p
+              className="text-xs text-muted-foreground/70 mt-1 truncate max-w-[600px]"
+              data-testid={`snippet-${item.id}`}
+            >
+              {item.response.length > 120 ? `${item.response.slice(0, 117)}...` : item.response}
             </p>
           )}
         </div>
 
-        {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+        {expanded ? (
+          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+        )}
       </button>
 
       {expanded && (
-        <div className="px-3 pb-3 border-t pt-3 space-y-3" data-testid={`activity-detail-${item.id}`}>
+        <div
+          className="px-3 pb-3 border-t pt-3 space-y-3"
+          data-testid={`activity-detail-${item.id}`}
+        >
           {item.error && (
-            <div className="p-2 rounded bg-red-500/10 border border-red-500/20 text-sm text-red-600" data-testid={`error-${item.id}`}>
-              <span className="font-medium">Error: </span>{item.error}
+            <div
+              className="p-2 rounded bg-red-500/10 border border-red-500/20 text-sm text-red-600"
+              data-testid={`error-${item.id}`}
+            >
+              <span className="font-medium">Error: </span>
+              {item.error}
             </div>
           )}
 
           {item.response && (
             <div>
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Response</div>
-              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap" data-testid={`response-${item.id}`}>{item.response}</p>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+                Response
+              </div>
+              <p
+                className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap"
+                data-testid={`response-${item.id}`}
+              >
+                {item.response}
+              </p>
             </div>
           )}
 
           {item.toolCalls.length > 0 && (
             <div>
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Tool Call Timeline</div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">
+                Tool Call Timeline
+              </div>
               <div className="space-y-1.5 ml-2 border-l-2 border-border pl-3">
                 {item.toolCalls.map((tc, i) => (
-                  <div key={i} className="flex items-start gap-2 text-xs" data-testid={`tool-call-${item.id}-${i}`}>
+                  <div
+                    key={i}
+                    className="flex items-start gap-2 text-xs"
+                    data-testid={`tool-call-${item.id}-${i}`}
+                  >
                     {tc.status === "completed" || tc.status === "success" ? (
                       <CheckCircle className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />
                     ) : tc.status === "failed" || tc.status === "error" ? (
@@ -212,7 +309,12 @@ function ActivityRow({ item }: { item: AgentActivityItem }) {
                         <span className="text-muted-foreground ml-1">({tc.durationMs}ms)</span>
                       )}
                       {tc.inputSummary && (
-                        <p className="text-muted-foreground/70 truncate mt-0.5 font-mono text-[10px]" data-testid={`tool-input-${item.id}-${i}`}>{tc.inputSummary}</p>
+                        <p
+                          className="text-muted-foreground/70 truncate mt-0.5 font-mono text-[10px]"
+                          data-testid={`tool-input-${item.id}-${i}`}
+                        >
+                          {tc.inputSummary}
+                        </p>
                       )}
                       {tc.error && <p className="text-red-500 mt-0.5">{tc.error}</p>}
                     </div>
@@ -224,23 +326,38 @@ function ActivityRow({ item }: { item: AgentActivityItem }) {
 
           {item.triggerContext && (
             <div data-testid={`trigger-context-${item.id}`}>
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Trigger Context</div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+                Trigger Context
+              </div>
               <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                 {item.triggerContext.scheduleName && (
-                  <span><Clock className="h-3 w-3 inline mr-0.5" />Schedule: <span className="font-medium text-foreground">{item.triggerContext.scheduleName}</span></span>
+                  <span>
+                    <Clock className="h-3 w-3 inline mr-0.5" />
+                    Schedule:{" "}
+                    <span className="font-medium text-foreground">
+                      {item.triggerContext.scheduleName}
+                    </span>
+                  </span>
                 )}
                 {item.triggerContext.scheduleId && (
-                  <span className="text-[10px] font-mono">ID: {item.triggerContext.scheduleId.slice(0, 8)}…</span>
+                  <span className="text-[10px] font-mono">
+                    ID: {item.triggerContext.scheduleId.slice(0, 8)}…
+                  </span>
                 )}
                 {item.triggerContext.conversationId && (
-                  <span className="text-[10px] font-mono">Conv: {item.triggerContext.conversationId.slice(0, 8)}…</span>
+                  <span className="text-[10px] font-mono">
+                    Conv: {item.triggerContext.conversationId.slice(0, 8)}…
+                  </span>
                 )}
               </div>
             </div>
           )}
 
           <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1 border-t">
-            <span><Calendar className="h-3 w-3 inline mr-1" />{new Date(item.startedAt).toLocaleString()}</span>
+            <span>
+              <Calendar className="h-3 w-3 inline mr-1" />
+              {new Date(item.startedAt).toLocaleString()}
+            </span>
             {item.conversationId && !item.triggerContext?.conversationId && (
               <span className="text-[10px] font-mono">{item.conversationId.slice(0, 8)}…</span>
             )}
@@ -258,10 +375,18 @@ export default function AgentActivityPage() {
   const [endDate, setEndDate] = useState<string>("");
 
   const queryParams = new URLSearchParams();
-  if (triggerFilter !== "all") {queryParams.set("triggerType", triggerFilter);}
-  if (statusFilter !== "all") {queryParams.set("status", statusFilter);}
-  if (startDate) {queryParams.set("startDate", new Date(startDate).toISOString());}
-  if (endDate) {queryParams.set("endDate", new Date(`${endDate  }T23:59:59`).toISOString());}
+  if (triggerFilter !== "all") {
+    queryParams.set("triggerType", triggerFilter);
+  }
+  if (statusFilter !== "all") {
+    queryParams.set("status", statusFilter);
+  }
+  if (startDate) {
+    queryParams.set("startDate", new Date(startDate).toISOString());
+  }
+  if (endDate) {
+    queryParams.set("endDate", new Date(`${endDate}T23:59:59`).toISOString());
+  }
   queryParams.set("limit", "50");
 
   const { data: summary, isLoading: summaryLoading } = useQuery<ActivitySummary>({
@@ -271,8 +396,12 @@ export default function AgentActivityPage() {
   const { data: items = [], isLoading: itemsLoading } = useQuery<AgentActivityItem[]>({
     queryKey: ["/api/agent/activity", triggerFilter, statusFilter, startDate, endDate],
     queryFn: async () => {
-      const res = await fetch(`/api/agent/activity?${queryParams.toString()}`, { credentials: "include" });
-      if (!res.ok) {throw new Error("Failed to fetch activity");}
+      const res = await fetch(`/api/agent/activity?${queryParams.toString()}`, {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        throw new Error("Failed to fetch activity");
+      }
       return res.json();
     },
   });
@@ -281,7 +410,10 @@ export default function AgentActivityPage() {
     <div className="min-h-screen p-6 max-w-5xl mx-auto" data-testid="agent-activity-page">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2" data-testid="heading-agent-activity">
+          <h1
+            className="text-2xl font-bold flex items-center gap-2"
+            data-testid="heading-agent-activity"
+          >
             <Activity className="h-6 w-6" /> Agent Activity
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -354,7 +486,10 @@ export default function AgentActivityPage() {
             variant="ghost"
             size="sm"
             className="text-xs h-8"
-            onClick={() => { setStartDate(""); setEndDate(""); }}
+            onClick={() => {
+              setStartDate("");
+              setEndDate("");
+            }}
             data-testid="button-clear-dates"
           >
             Clear dates
@@ -373,10 +508,15 @@ export default function AgentActivityPage() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : items.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground border rounded-lg" data-testid="empty-activity">
+        <div
+          className="text-center py-12 text-muted-foreground border rounded-lg"
+          data-testid="empty-activity"
+        >
           <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
           <p className="text-sm">No agent activity found</p>
-          <p className="text-xs mt-1">Activity will appear here as the Copilot processes requests and scheduled runs.</p>
+          <p className="text-xs mt-1">
+            Activity will appear here as the Copilot processes requests and scheduled runs.
+          </p>
         </div>
       ) : (
         <div className="space-y-2" data-testid="activity-list">

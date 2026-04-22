@@ -1,6 +1,6 @@
 /**
  * Aquametro FMCC - Types and Interfaces
- * 
+ *
  * @see https://www.aquametro-oil-marine.com/products/fmcc/
  */
 

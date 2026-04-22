@@ -47,7 +47,9 @@ export function ChartWrapper({
   const enhancedChildren =
     showBands && (optimalRange || criticalRange || warningRange)
       ? Children.map(children, (child) => {
-          if (!isValidElement(child)) {return child;}
+          if (!isValidElement(child)) {
+            return child;
+          }
 
           const bandElements = [];
 

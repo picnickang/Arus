@@ -1,31 +1,18 @@
 import { eq, and, desc, sql } from "drizzle-orm";
 import { db } from "../../../../db";
-import {
-  twinResiduals,
-  type TwinResidual,
-  type InsertTwinResidual,
-} from "@shared/schema";
+import { twinResiduals, type TwinResidual, type InsertTwinResidual } from "@shared/schema";
 import type { ResidualAnalysisPort, ResidualRanking } from "./ports";
 
 export class ResidualAnalysisAdapter implements ResidualAnalysisPort {
-  async computeResiduals(
-    _orgId: string,
-    _twinId: string
-  ): Promise<TwinResidual[]> {
+  async computeResiduals(_orgId: string, _twinId: string): Promise<TwinResidual[]> {
     throw new Error("Use ResidualAnalysisService.computeResiduals instead");
   }
 
-  async getResidualsByTwin(
-    orgId: string,
-    twinId: string,
-    limit = 100
-  ): Promise<TwinResidual[]> {
+  async getResidualsByTwin(orgId: string, twinId: string, limit = 100): Promise<TwinResidual[]> {
     return db
       .select()
       .from(twinResiduals)
-      .where(
-        and(eq(twinResiduals.orgId, orgId), eq(twinResiduals.twinId, twinId))
-      )
+      .where(and(eq(twinResiduals.orgId, orgId), eq(twinResiduals.twinId, twinId)))
       .orderBy(desc(twinResiduals.timestamp))
       .limit(limit);
   }
@@ -63,7 +50,9 @@ export class ResidualAnalysisAdapter implements ResidualAnalysisPort {
   }
 
   async storeResiduals(records: InsertTwinResidual[]): Promise<TwinResidual[]> {
-    if (records.length === 0) {return [];}
+    if (records.length === 0) {
+      return [];
+    }
     return db.insert(twinResiduals).values(records).returning();
   }
 }

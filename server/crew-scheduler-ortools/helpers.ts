@@ -3,7 +3,13 @@
  * Time window and validation utilities
  */
 
-import type { CrewWithSkills, SelectCrewLeave, SelectPortCall, SelectDrydockWindow, SelectCrewCertification } from "./types.js";
+import type {
+  CrewWithSkills,
+  SelectCrewLeave,
+  SelectPortCall,
+  SelectDrydockWindow,
+  SelectCrewCertification,
+} from "./types.js";
 
 export function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): boolean {
   return Math.max(aStart.getTime(), bStart.getTime()) < Math.min(aEnd.getTime(), bEnd.getTime());
@@ -13,7 +19,11 @@ export function toUtc(day: string, timeHHmm: string): Date {
   return new Date(`${day}T${timeHHmm}Z`);
 }
 
-export function shiftWindow(day: string, startTime: string, endTime: string): { start: Date; end: Date } {
+export function shiftWindow(
+  day: string,
+  startTime: string,
+  endTime: string
+): { start: Date; end: Date } {
   const start = toUtc(day, startTime);
   let end = toUtc(day, endTime);
   if (end <= start) {
@@ -22,9 +32,16 @@ export function shiftWindow(day: string, startTime: string, endTime: string): { 
   return { start, end };
 }
 
-export function leaveOverlaps(crewId: string, shiftStart: Date, shiftEnd: Date, leaves: SelectCrewLeave[]): boolean {
+export function leaveOverlaps(
+  crewId: string,
+  shiftStart: Date,
+  shiftEnd: Date,
+  leaves: SelectCrewLeave[]
+): boolean {
   return leaves.some((leave) => {
-    if (leave.crewId !== crewId) { return false; }
+    if (leave.crewId !== crewId) {
+      return false;
+    }
     const leaveStart = new Date(leave.start);
     const leaveEnd = new Date(leave.end);
     return overlaps(shiftStart, shiftEnd, leaveStart, leaveEnd);
@@ -76,7 +93,9 @@ export function hasValidCertification(
   shiftEnd: Date,
   certifications: { [crewId: string]: SelectCrewCertification[] }
 ): boolean {
-  if (!requiredCert) { return true; }
+  if (!requiredCert) {
+    return true;
+  }
   const crewCerts = certifications[crew.id] ?? [];
 
   for (const cert of crewCerts) {

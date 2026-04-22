@@ -1,5 +1,5 @@
-import Database from 'better-sqlite3';
-import type { RawFrame } from '../../telemetry/decode/types';
+import Database from "better-sqlite3";
+import type { RawFrame } from "../../telemetry/decode/types";
 
 export interface RawFrameRow {
   id: number;
@@ -18,7 +18,7 @@ export class SqliteRawFrameSource {
 
   constructor(db: Database.Database) {
     this.db = db;
-    
+
     this.fetchBatchStmt = db.prepare(`
       SELECT id, unix_time_ms, source, protocol, payload, quality_flags, payload_format_version
       FROM raw_frames
@@ -34,8 +34,8 @@ export class SqliteRawFrameSource {
 
   fetchBatch(afterId: number, limit: number): RawFrame[] {
     const rows = this.fetchBatchStmt.all(afterId, limit) as RawFrameRow[];
-    
-    return rows.map(row => ({
+
+    return rows.map((row) => ({
       id: row.id,
       ts: row.unix_time_ms,
       source: row.source,

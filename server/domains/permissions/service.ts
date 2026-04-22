@@ -1,6 +1,6 @@
 /**
  * Permission Service - Authorization Logic with Caching
- * 
+ *
  * Provides permission checking with in-memory caching for performance.
  * Compiles user permissions into a matrix for fast lookups.
  */
@@ -74,12 +74,7 @@ export async function compileUserPermissions(
     .from(permissionGrants)
     .innerJoin(permissionResources, eq(permissionGrants.resourceId, permissionResources.id))
     .innerJoin(permissionActions, eq(permissionGrants.actionId, permissionActions.id))
-    .where(
-      and(
-        eq(permissionGrants.orgId, orgId),
-        inArray(permissionGrants.roleId, roleIds)
-      )
-    );
+    .where(and(eq(permissionGrants.orgId, orgId), inArray(permissionGrants.roleId, roleIds)));
 
   const grantMatrix: CompiledPermissions["grants"] = {};
 
@@ -218,7 +213,9 @@ export async function getResourcePermissions(
 ): Promise<Record<string, boolean>> {
   const permissions = await compileUserPermissions(userId, orgId);
   const resourceDef = RESOURCES.find((r) => r.code === resource);
-  if (!resourceDef) {return {};}
+  if (!resourceDef) {
+    return {};
+  }
 
   const result: Record<string, boolean> = {};
   for (const actionCode of resourceDef.actions) {

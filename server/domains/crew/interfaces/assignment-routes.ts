@@ -12,15 +12,19 @@ import type { CrewRouteDeps } from "./types.js";
 export function registerAssignmentRoutes({ app, rateLimit }: CrewRouteDeps): void {
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimit;
 
-  app.get("/api/crew-assignments", generalApiRateLimit, withErrorHandling("fetch crew assignments", async (req, res) => {
-    const { date, crewId, vesselId } = req.query;
-    const assignments = await crewService.listAssignments(
-      date as string | undefined,
-      crewId as string | undefined,
-      vesselId as string | undefined
-    );
-    res.json(assignments);
-  }));
+  app.get(
+    "/api/crew-assignments",
+    generalApiRateLimit,
+    withErrorHandling("fetch crew assignments", async (req, res) => {
+      const { date, crewId, vesselId } = req.query;
+      const assignments = await crewService.listAssignments(
+        date as string | undefined,
+        crewId as string | undefined,
+        vesselId as string | undefined
+      );
+      res.json(assignments);
+    })
+  );
 
   app.post(
     "/api/crew-assignments",

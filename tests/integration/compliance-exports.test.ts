@@ -1,6 +1,6 @@
 /**
  * Compliance Exports Integration Tests
- * 
+ *
  * Tests the compliance export functionality including:
  * - Excel exports
  * - PDF exports
@@ -23,8 +23,7 @@ describe("Compliance API", () => {
     app = await createTestApp();
   }, 60000);
 
-  afterAll(async () => {
-  });
+  afterAll(async () => {});
 
   describe("GET /api/compliance/findings", () => {
     it("should return compliance findings", async () => {
@@ -59,9 +58,7 @@ describe("Compliance API", () => {
 
   describe("GET /api/compliance/rules", () => {
     it("should return compliance rules", async () => {
-      const response = await request(app)
-        .get("/api/compliance/rules")
-        .set("x-org-id", TEST_ORG_ID);
+      const response = await request(app).get("/api/compliance/rules").set("x-org-id", TEST_ORG_ID);
 
       expect([200, 404]).toContain(response.status);
     });
@@ -88,9 +85,7 @@ describe("Compliance API", () => {
 
   describe("Data Export", () => {
     it("should list available exports", async () => {
-      const response = await request(app)
-        .get("/api/data-export/list")
-        .set("x-org-id", TEST_ORG_ID);
+      const response = await request(app).get("/api/data-export/list").set("x-org-id", TEST_ORG_ID);
 
       expect([200, 404]).toContain(response.status);
     });

@@ -4,7 +4,9 @@ export default function EmailTemplatesPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base" data-testid="text-email-templates-title">Email Templates</CardTitle>
+        <CardTitle className="text-base" data-testid="text-email-templates-title">
+          Email Templates
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground" data-testid="text-email-templates-desc">

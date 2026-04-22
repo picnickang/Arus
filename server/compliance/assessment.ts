@@ -2,73 +2,122 @@
  * Compliance Assessment - Functions for assessing equipment compliance
  */
 
-import type {
-  Device,
-  AlertNotification,
-  EquipmentTelemetry,
-} from "@shared/schema";
+import type { Device, AlertNotification, EquipmentTelemetry } from "@shared/schema";
 import type { ComplianceStandard, ComplianceAssessment, ComplianceReport } from "./types";
 
 type Requirement = ComplianceStandard["requirements"][number];
 type FindingStatus = "pass" | "fail" | "na";
 
 function matchesMeasurementType(sensorType: string, measurementType: string): boolean {
-  if (measurementType === "vibration") {return sensorType === "vibration";}
-  if (measurementType === "temperature") {return sensorType === "temperature";}
-  if (measurementType === "pressure") {return sensorType === "pressure";}
-  if (measurementType === "flow_rate" || measurementType === "flow") {return sensorType === "flow_rate";}
+  if (measurementType === "vibration") {
+    return sensorType === "vibration";
+  }
+  if (measurementType === "temperature") {
+    return sensorType === "temperature";
+  }
+  if (measurementType === "pressure") {
+    return sensorType === "pressure";
+  }
+  if (measurementType === "flow_rate" || measurementType === "flow") {
+    return sensorType === "flow_rate";
+  }
   return false;
 }
 
-function filterRelevantReadings(telemetryData: EquipmentTelemetry[], measurementType: string): EquipmentTelemetry[] {
-  return telemetryData.filter((reading) => matchesMeasurementType(reading.sensorType, measurementType));
+function filterRelevantReadings(
+  telemetryData: EquipmentTelemetry[],
+  measurementType: string
+): EquipmentTelemetry[] {
+  return telemetryData.filter((reading) =>
+    matchesMeasurementType(reading.sensorType, measurementType)
+  );
 }
 
-function filterRelevantAlerts(alerts: AlertNotification[], measurementType: string, equipmentId: string): AlertNotification[] {
-  return alerts.filter((alert) => alert.alertType === measurementType && alert.equipmentId === equipmentId);
+function filterRelevantAlerts(
+  alerts: AlertNotification[],
+  measurementType: string,
+  equipmentId: string
+): AlertNotification[] {
+  return alerts.filter(
+    (alert) => alert.alertType === measurementType && alert.equipmentId === equipmentId
+  );
 }
 
-function evaluateThresholdStatus(avgValue: number, requirement: Requirement): { status: FindingStatus; evidence: string; comments: string; correctiveAction: string } {
+function evaluateThresholdStatus(
+  avgValue: number,
+  requirement: Requirement
+): { status: FindingStatus; evidence: string; comments: string; correctiveAction: string } {
   const { warning, critical } = requirement.thresholds;
   const unit = requirement.thresholds.unit;
   const type = requirement.measurementType;
-  
+
   if (critical === undefined) {
-    return { status: "pass", evidence: `${type} monitoring active`, comments: "", correctiveAction: "" };
+    return {
+      status: "pass",
+      evidence: `${type} monitoring active`,
+      comments: "",
+      correctiveAction: "",
+    };
   }
-  
+
   if (avgValue >= critical) {
     return {
       status: "fail",
       evidence: `Average ${type} of ${avgValue.toFixed(2)} ${unit} exceeds critical threshold of ${critical} ${unit}`,
       comments: "",
-      correctiveAction: `Immediate maintenance required - ${type} exceeds safe operating limits`
+      correctiveAction: `Immediate maintenance required - ${type} exceeds safe operating limits`,
     };
   }
-  
+
   if (warning !== undefined && avgValue >= warning) {
     return {
       status: "pass",
       evidence: `Average ${type} of ${avgValue.toFixed(2)} ${unit} is above warning threshold but below critical`,
       comments: "Monitor closely - approaching warning limits",
-      correctiveAction: ""
+      correctiveAction: "",
     };
   }
-  
-  return { status: "pass", evidence: `Average ${type} of ${avgValue.toFixed(2)} ${unit} is within acceptable limits`, comments: "", correctiveAction: "" };
+
+  return {
+    status: "pass",
+    evidence: `Average ${type} of ${avgValue.toFixed(2)} ${unit} is within acceptable limits`,
+    comments: "",
+    correctiveAction: "",
+  };
 }
 
 function checkRecentCriticalAlerts(relevantAlerts: AlertNotification[]): number {
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-  return relevantAlerts.filter((alert) => alert.severity === "critical" && new Date(alert.timestamp).getTime() > cutoff).length;
+  return relevantAlerts.filter(
+    (alert) => alert.severity === "critical" && new Date(alert.timestamp).getTime() > cutoff
+  ).length;
 }
 
-function evaluateRequirement(requirement: Requirement, relevantReadings: EquipmentTelemetry[], relevantAlerts: AlertNotification[]): ComplianceAssessment["findings"][number] {
+function evaluateRequirement(
+  requirement: Requirement,
+  relevantReadings: EquipmentTelemetry[],
+  relevantAlerts: AlertNotification[]
+): ComplianceAssessment["findings"][number] {
   if (relevantReadings.length === 0) {
     const noDataResult = requirement.mandatory
-      ? { status: "fail" as FindingStatus, evidence: "No telemetry data available for mandatory requirement", correctiveAction: "Install monitoring sensors and establish data collection" }
-      : { status: "na" as FindingStatus, evidence: "No data available - not applicable for this equipment type", correctiveAction: "" };
-    return { requirementId: requirement.id, status: noDataResult.status, evidence: noDataResult.evidence, measurementValue: undefined, comments: "", correctiveAction: noDataResult.correctiveAction || undefined };
+      ? {
+          status: "fail" as FindingStatus,
+          evidence: "No telemetry data available for mandatory requirement",
+          correctiveAction: "Install monitoring sensors and establish data collection",
+        }
+      : {
+          status: "na" as FindingStatus,
+          evidence: "No data available - not applicable for this equipment type",
+          correctiveAction: "",
+        };
+    return {
+      requirementId: requirement.id,
+      status: noDataResult.status,
+      evidence: noDataResult.evidence,
+      measurementValue: undefined,
+      comments: "",
+      correctiveAction: noDataResult.correctiveAction || undefined,
+    };
   }
 
   const recentReadings = relevantReadings.slice(-100);
@@ -79,19 +128,40 @@ function evaluateRequirement(requirement: Requirement, relevantReadings: Equipme
   const criticalAlertCount = checkRecentCriticalAlerts(relevantAlerts);
 
   if (criticalAlertCount > 0) {
-    result = { ...result, status: "fail", evidence: `${result.evidence  } | ${criticalAlertCount} critical alerts in last 24 hours`, correctiveAction: "Investigate and resolve critical alerts before survey completion" };
+    result = {
+      ...result,
+      status: "fail",
+      evidence: `${result.evidence} | ${criticalAlertCount} critical alerts in last 24 hours`,
+      correctiveAction: "Investigate and resolve critical alerts before survey completion",
+    };
   }
 
-  return { requirementId: requirement.id, status: result.status, evidence: result.evidence, measurementValue, comments: result.comments, correctiveAction: result.correctiveAction || undefined };
+  return {
+    requirementId: requirement.id,
+    status: result.status,
+    evidence: result.evidence,
+    measurementValue,
+    comments: result.comments,
+    correctiveAction: result.correctiveAction || undefined,
+  };
 }
 
 function determineOverallStatus(complianceRate: number): ComplianceAssessment["overallStatus"] {
-  if (complianceRate >= 1) {return "compliant";}
-  if (complianceRate >= 0.8) {return "conditional";}
+  if (complianceRate >= 1) {
+    return "compliant";
+  }
+  if (complianceRate >= 0.8) {
+    return "conditional";
+  }
   return "non_compliant";
 }
 
-function assessStandard(equipment: Device, standard: ComplianceStandard, telemetryData: EquipmentTelemetry[], alerts: AlertNotification[]): ComplianceAssessment {
+function assessStandard(
+  equipment: Device,
+  standard: ComplianceStandard,
+  telemetryData: EquipmentTelemetry[],
+  alerts: AlertNotification[]
+): ComplianceAssessment {
   const findings: ComplianceAssessment["findings"] = [];
   let passCount = 0;
 
@@ -100,7 +170,9 @@ function assessStandard(equipment: Device, standard: ComplianceStandard, telemet
     const relevantAlerts = filterRelevantAlerts(alerts, requirement.measurementType, equipment.id);
     const finding = evaluateRequirement(requirement, relevantReadings, relevantAlerts);
     findings.push(finding);
-    if (finding.status === "pass") {passCount++;}
+    if (finding.status === "pass") {
+      passCount++;
+    }
   }
 
   const complianceRate = passCount / standard.requirements.length;
@@ -109,9 +181,15 @@ function assessStandard(equipment: Device, standard: ComplianceStandard, telemet
   nextAssessmentDate.setMonth(nextAssessmentDate.getMonth() + 12);
 
   return {
-    equipmentId: equipment.id, standardCode: standard.code, assessmentDate: new Date(), assessor: "ARUS Automated Assessment System",
-    overallStatus, findings, nextAssessmentDate,
-    certificateNumber: overallStatus === "compliant" ? `ARUS-${Date.now()}-${equipment.id}` : undefined,
+    equipmentId: equipment.id,
+    standardCode: standard.code,
+    assessmentDate: new Date(),
+    assessor: "ARUS Automated Assessment System",
+    overallStatus,
+    findings,
+    nextAssessmentDate,
+    certificateNumber:
+      overallStatus === "compliant" ? `ARUS-${Date.now()}-${equipment.id}` : undefined,
     validUntil: overallStatus === "compliant" ? nextAssessmentDate : undefined,
   };
 }
@@ -119,7 +197,12 @@ function assessStandard(equipment: Device, standard: ComplianceStandard, telemet
 /**
  * Assess equipment compliance against specific standards
  */
-export function assessCompliance(equipment: Device, standards: ComplianceStandard[], telemetryData: EquipmentTelemetry[], alerts: AlertNotification[]): ComplianceAssessment[] {
+export function assessCompliance(
+  equipment: Device,
+  standards: ComplianceStandard[],
+  telemetryData: EquipmentTelemetry[],
+  alerts: AlertNotification[]
+): ComplianceAssessment[] {
   return standards.map((standard) => assessStandard(equipment, standard, telemetryData, alerts));
 }
 

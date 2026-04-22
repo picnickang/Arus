@@ -1,6 +1,6 @@
 /**
  * Telemetry Persistence Integration Tests
- * 
+ *
  * Tests for PostgreSQL persistence structure, read-after-write consistency,
  * and data integrity verification for the telemetry pipeline.
  */
@@ -63,7 +63,7 @@ describe("Telemetry Persistence", () => {
 
       expect(readings.length).toBe(500);
 
-      const idempotencyKeys = readings.map(r => r.metadata?.idempotencyKey);
+      const idempotencyKeys = readings.map((r) => r.metadata?.idempotencyKey);
       const uniqueKeys = new Set(idempotencyKeys);
       expect(uniqueKeys.size).toBe(500);
     });
@@ -76,8 +76,8 @@ describe("Telemetry Persistence", () => {
       const readings2 = processor.process(batch2);
 
       const allKeys = [
-        ...readings1.map(r => r.metadata?.idempotencyKey),
-        ...readings2.map(r => r.metadata?.idempotencyKey),
+        ...readings1.map((r) => r.metadata?.idempotencyKey),
+        ...readings2.map((r) => r.metadata?.idempotencyKey),
       ];
       const uniqueKeys = new Set(allKeys);
 
@@ -95,7 +95,7 @@ describe("Telemetry Persistence", () => {
       const allReadings = results.flat();
       expect(allReadings.length).toBe(500);
 
-      const idempotencyKeys = new Set(allReadings.map(r => r.metadata?.idempotencyKey));
+      const idempotencyKeys = new Set(allReadings.map((r) => r.metadata?.idempotencyKey));
       expect(idempotencyKeys.size).toBe(500);
     });
   });
@@ -107,7 +107,7 @@ describe("Telemetry Persistence", () => {
       const readings = processor.process(frames);
 
       for (let i = 0; i < readings.length; i++) {
-        const expectedTs = baseTimestamp + (i * 100);
+        const expectedTs = baseTimestamp + i * 100;
         expect(readings[i].timestamp.getTime()).toBe(expectedTs);
       }
     });
@@ -123,7 +123,7 @@ describe("Telemetry Persistence", () => {
       const readings = processor.process(frames);
       expect(readings.length).toBe(3);
 
-      const timestamps = readings.map(r => r.timestamp.getTime());
+      const timestamps = readings.map((r) => r.timestamp.getTime());
       expect(timestamps[2] - timestamps[0]).toBeGreaterThan(dayMs);
     });
   });
@@ -131,13 +131,11 @@ describe("Telemetry Persistence", () => {
   describe("Idempotency Key Generation", () => {
     it("should generate consistent idempotency keys for same frame", () => {
       const frame = createJ1939EngineSpeedFrame(5000, 1500);
-      
+
       const readings1 = processor.process([frame]);
       const readings2 = processor.process([frame]);
 
-      expect(readings1[0].metadata?.idempotencyKey).toBe(
-        readings2[0].metadata?.idempotencyKey
-      );
+      expect(readings1[0].metadata?.idempotencyKey).toBe(readings2[0].metadata?.idempotencyKey);
     });
 
     it("should generate different keys for different frames", () => {
@@ -147,9 +145,7 @@ describe("Telemetry Persistence", () => {
       const readings1 = processor.process([frame1]);
       const readings2 = processor.process([frame2]);
 
-      expect(readings1[0].metadata?.idempotencyKey).not.toBe(
-        readings2[0].metadata?.idempotencyKey
-      );
+      expect(readings1[0].metadata?.idempotencyKey).not.toBe(readings2[0].metadata?.idempotencyKey);
     });
 
     it("should include source and protocol in idempotency key", () => {
@@ -202,7 +198,7 @@ describe("Read-After-Write Consistency", () => {
 
       for (const reading of readings) {
         expect(() => JSON.stringify(reading)).not.toThrow();
-        
+
         const parsed = JSON.parse(JSON.stringify(reading));
         expect(parsed.equipmentId).toBe(reading.equipmentId);
         expect(parsed.sensorType).toBe(reading.sensorType);
@@ -244,15 +240,15 @@ describe("Data Integrity Through Pipeline", () => {
     it("should track checksums through pipeline", () => {
       const { frames, checksums } = createIntegrityTestBatch(14000);
       const readings = processor.process(frames);
-      
+
       expect(checksums.size).toBe(frames.length);
       expect(readings.length).toBe(frames.length);
-      
+
       for (let i = 0; i < frames.length; i++) {
         const frame = frames[i];
         const checksum = checksums.get(frame.id);
         const expectedChecksum = computeFrameChecksum(frame);
-        
+
         expect(checksum).toBe(expectedChecksum);
       }
     });
@@ -260,14 +256,14 @@ describe("Data Integrity Through Pipeline", () => {
     it("should preserve reading data through pipeline", () => {
       const { frames } = createIntegrityTestBatch(15000);
       const readings = processor.process(frames);
-      
-      const originalData = readings.map(r => ({
+
+      const originalData = readings.map((r) => ({
         equipmentId: r.equipmentId,
         sensorType: r.sensorType,
         value: r.value,
         orgId: r.orgId,
       }));
-      
+
       for (const original of originalData) {
         expect(original.equipmentId).toBe(TEST_EQUIPMENT_ID);
         expect(original.orgId).toBe(TEST_ORG_ID);
@@ -278,7 +274,7 @@ describe("Data Integrity Through Pipeline", () => {
 
     it("should verify all frames have corresponding checksums", () => {
       const { frames, checksums } = createIntegrityTestBatch(16000);
-      
+
       for (const frame of frames) {
         expect(checksums.has(frame.id)).toBe(true);
         const checksum = checksums.get(frame.id);
@@ -292,20 +288,20 @@ describe("Data Integrity Through Pipeline", () => {
     it("should produce readings compatible with DB insert schema", () => {
       const frames = createBatchOfFrames(17000, 20);
       const readings = processor.process(frames);
-      
+
       for (const reading of readings) {
         expect(reading.equipmentId).toBeDefined();
         expect(typeof reading.equipmentId).toBe("string");
-        
+
         expect(reading.sensorType).toBeDefined();
         expect(typeof reading.sensorType).toBe("string");
-        
+
         expect(reading.value).toBeDefined();
         expect(Number.isFinite(reading.value)).toBe(true);
-        
+
         expect(reading.timestamp).toBeInstanceOf(Date);
         expect(!isNaN(reading.timestamp.getTime())).toBe(true);
-        
+
         expect(reading.orgId).toBe(TEST_ORG_ID);
       }
     });
@@ -313,7 +309,7 @@ describe("Data Integrity Through Pipeline", () => {
     it("should include all metadata required for audit trail", () => {
       const frames = createBatchOfFrames(18000, 10);
       const readings = processor.process(frames);
-      
+
       for (const reading of readings) {
         expect(reading.metadata).toBeDefined();
         expect(reading.metadata?.idempotencyKey).toBeDefined();
@@ -334,7 +330,7 @@ describe("Data Integrity Through Pipeline", () => {
         org_id: reading.orgId,
         metadata: reading.metadata ? JSON.stringify(reading.metadata) : null,
       };
-      
+
       return {
         equipmentId: dbRow.equipment_id,
         sensorType: dbRow.sensor_type,
@@ -349,10 +345,10 @@ describe("Data Integrity Through Pipeline", () => {
     it("should preserve data through simulated persistence round trip", () => {
       const frames = createBatchOfFrames(19000, 50);
       const readings = processor.process(frames);
-      
+
       for (const original of readings) {
         const retrieved = simulateDbRoundTrip(original);
-        
+
         expect(retrieved.equipmentId).toBe(original.equipmentId);
         expect(retrieved.sensorType).toBe(original.sensorType);
         expect(retrieved.value).toBeCloseTo(original.value, 6);
@@ -365,10 +361,10 @@ describe("Data Integrity Through Pipeline", () => {
     it("should handle idempotency key collisions through round trip", () => {
       const frames = createBatchOfFrames(20000, 100);
       const readings = processor.process(frames);
-      
+
       const storedKeys = new Map<string, TelemetryReading>();
       let collisions = 0;
-      
+
       for (const reading of readings) {
         const key = reading.metadata?.idempotencyKey;
         if (key) {
@@ -379,7 +375,7 @@ describe("Data Integrity Through Pipeline", () => {
           }
         }
       }
-      
+
       expect(collisions).toBe(0);
       expect(storedKeys.size).toBe(readings.length);
     });
@@ -387,11 +383,11 @@ describe("Data Integrity Through Pipeline", () => {
     it("should preserve checksum-verifiable data through round trip", () => {
       const { frames, checksums } = createIntegrityTestBatch(21000);
       const readings = processor.process(frames);
-      
+
       const retrievedReadings = readings.map(simulateDbRoundTrip);
-      
+
       expect(retrievedReadings.length).toBe(frames.length);
-      
+
       for (let i = 0; i < retrievedReadings.length; i++) {
         expect(retrievedReadings[i].metadata?.idempotencyKey).toBe(
           readings[i].metadata?.idempotencyKey

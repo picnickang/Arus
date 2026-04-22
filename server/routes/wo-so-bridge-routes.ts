@@ -26,7 +26,9 @@ import { checkPermissionInDev } from "../domains/permissions/middleware";
 
 function getOrgId(req: any): string {
   const orgId = req.orgId || req.headers["x-org-id"];
-  if (!orgId) {throw new Error("Missing orgId");}
+  if (!orgId) {
+    throw new Error("Missing orgId");
+  }
   return orgId as string;
 }
 
@@ -66,17 +68,23 @@ export async function createServiceOrderFromWorkOrder(
     updateWorkOrderStatus = true,
   } = params;
 
-  const [seqResult] = await db.execute(sql`
+  const [seqResult] = await db
+    .execute(
+      sql`
     SELECT COALESCE(
       MAX(CAST(SUBSTRING(so_number FROM 'SO-([0-9]+)') AS INTEGER)),
       0
     ) + 1 AS next_num
     FROM service_orders
     WHERE org_id = ${orgId}
-  `).then((r) => r.rows || r);
+  `
+    )
+    .then((r) => r.rows || r);
   const soNumber = `SO-${String(seqResult?.next_num || 1).padStart(4, "0")}`;
 
-  const [newSo] = await db.execute(sql`
+  const [newSo] = await db
+    .execute(
+      sql`
     INSERT INTO service_orders (
       id, org_id, so_number, status,
       work_order_id, work_order_number,
@@ -106,7 +114,9 @@ export async function createServiceOrderFromWorkOrder(
       NOW()
     )
     RETURNING *
-  `).then((r) => r.rows || r);
+  `
+    )
+    .then((r) => r.rows || r);
 
   if (updateWorkOrderStatus) {
     await db.execute(sql`
@@ -191,68 +201,79 @@ export function registerWoSoBridgeRoutes(
     requireOrgIdAndValidateBody,
     checkPermissionInDev("service_orders", "create"),
     writeOperationRateLimit,
-    withErrorHandling("create service order from work order", async (req: Request, res: Response) => {
-      const orgId = getOrgId(req);
-      const workOrderId = req.params.id;
+    withErrorHandling(
+      "create service order from work order",
+      async (req: Request, res: Response) => {
+        const orgId = getOrgId(req);
+        const workOrderId = req.params.id;
 
-      const [wo] = await defaultDb.execute(sql`
+        const [wo] = await defaultDb
+          .execute(
+            sql`
         SELECT id, wo_number, equipment_id, description, vessel_id, org_id
         FROM work_orders
         WHERE id = ${workOrderId} AND org_id = ${orgId}
-      `).then((r) => r.rows || r);
+      `
+          )
+          .then((r) => r.rows || r);
 
-      if (!wo) {
-        return sendNotFound(res, "Work Order");
-      }
+        if (!wo) {
+          return sendNotFound(res, "Work Order");
+        }
 
-      const [pendingSr] = await defaultDb.execute(sql`
+        const [pendingSr] = await defaultDb
+          .execute(
+            sql`
         SELECT id, request_number, status
         FROM service_requests
         WHERE work_order_id = ${workOrderId} AND org_id = ${orgId}
           AND status NOT IN ('rejected', 'converted')
         LIMIT 1
-      `).then((r) => r.rows || r);
+      `
+          )
+          .then((r) => r.rows || r);
 
-      if (pendingSr) {
-        return res.status(409).json({
-          error: `This work order has an active service request (${pendingSr.request_number}, status: ${pendingSr.status}). Complete the SR workflow before creating a service order directly.`,
+        if (pendingSr) {
+          return res.status(409).json({
+            error: `This work order has an active service request (${pendingSr.request_number}, status: ${pendingSr.status}). Complete the SR workflow before creating a service order directly.`,
+          });
+        }
+
+        const {
+          serviceProviderId,
+          scope,
+          estimatedCost,
+          scheduledStartDate,
+          scheduledEndDate,
+          estimatedDurationHours,
+          serviceDetails,
+          specialRequirements,
+          updateWorkOrderStatus = true,
+        } = req.body;
+
+        if (!serviceProviderId) {
+          return res.status(400).json({ error: "serviceProviderId is required" });
+        }
+
+        const newSo = await createServiceOrderFromWorkOrder(defaultDb, {
+          orgId,
+          workOrderId,
+          woNumber: wo.wo_number,
+          woDescription: wo.description,
+          serviceProviderId,
+          scope,
+          estimatedCost: estimatedCost ? Number(estimatedCost) : null,
+          scheduledStartDate,
+          scheduledEndDate,
+          estimatedDurationHours: estimatedDurationHours ? Number(estimatedDurationHours) : null,
+          serviceDetails,
+          specialRequirements,
+          updateWorkOrderStatus,
         });
+
+        sendCreated(res, newSo);
       }
-
-      const {
-        serviceProviderId,
-        scope,
-        estimatedCost,
-        scheduledStartDate,
-        scheduledEndDate,
-        estimatedDurationHours,
-        serviceDetails,
-        specialRequirements,
-        updateWorkOrderStatus = true,
-      } = req.body;
-
-      if (!serviceProviderId) {
-        return res.status(400).json({ error: "serviceProviderId is required" });
-      }
-
-      const newSo = await createServiceOrderFromWorkOrder(defaultDb, {
-        orgId,
-        workOrderId,
-        woNumber: wo.wo_number,
-        woDescription: wo.description,
-        serviceProviderId,
-        scope,
-        estimatedCost: estimatedCost ? Number(estimatedCost) : null,
-        scheduledStartDate,
-        scheduledEndDate,
-        estimatedDurationHours: estimatedDurationHours ? Number(estimatedDurationHours) : null,
-        serviceDetails,
-        specialRequirements,
-        updateWorkOrderStatus,
-      });
-
-      sendCreated(res, newSo);
-    })
+    )
   );
 
   app.get(
@@ -263,7 +284,9 @@ export function registerWoSoBridgeRoutes(
       const orgId = getOrgId(req);
       const serviceOrderId = req.params.id;
 
-      const [row] = await defaultDb.execute(sql`
+      const [row] = await defaultDb
+        .execute(
+          sql`
         SELECT
           wo.id,
           wo.wo_number AS "workOrderNumber",
@@ -280,7 +303,9 @@ export function registerWoSoBridgeRoutes(
         WHERE so.id = ${serviceOrderId}
           AND so.org_id = ${orgId}
           AND so.work_order_id IS NOT NULL
-      `).then((r) => r.rows || r);
+      `
+        )
+        .then((r) => r.rows || r);
 
       if (!row) {
         return res.json({ workOrder: null, linked: false });
@@ -304,16 +329,22 @@ export function registerWoSoBridgeRoutes(
         return res.status(400).json({ error: "workOrderId is required" });
       }
 
-      const [wo] = await defaultDb.execute(sql`
+      const [wo] = await defaultDb
+        .execute(
+          sql`
         SELECT id, wo_number FROM work_orders
         WHERE id = ${workOrderId} AND org_id = ${orgId}
-      `).then((r) => r.rows || r);
+      `
+        )
+        .then((r) => r.rows || r);
 
       if (!wo) {
         return sendNotFound(res, "Work Order");
       }
 
-      const [so] = await defaultDb.execute(sql`
+      const [so] = await defaultDb
+        .execute(
+          sql`
         UPDATE service_orders
         SET
           work_order_id = ${workOrderId},
@@ -321,7 +352,9 @@ export function registerWoSoBridgeRoutes(
           updated_at = NOW()
         WHERE id = ${serviceOrderId} AND org_id = ${orgId}
         RETURNING *
-      `).then((r) => r.rows || r);
+      `
+        )
+        .then((r) => r.rows || r);
 
       if (!so) {
         return sendNotFound(res, "Service Order");
@@ -337,33 +370,43 @@ export function registerWoSoBridgeRoutes(
     requireOrgIdAndValidateBody,
     checkPermissionInDev("service_orders", "edit"),
     writeOperationRateLimit,
-    withErrorHandling("sync work order status from service order", async (req: Request, res: Response) => {
-      const orgId = getOrgId(req);
-      const serviceOrderId = req.params.id;
+    withErrorHandling(
+      "sync work order status from service order",
+      async (req: Request, res: Response) => {
+        const orgId = getOrgId(req);
+        const serviceOrderId = req.params.id;
 
-      const [so] = await defaultDb.execute(sql`
+        const [so] = await defaultDb
+          .execute(
+            sql`
         SELECT id, work_order_id, status, so_number
         FROM service_orders
         WHERE id = ${serviceOrderId} AND org_id = ${orgId}
-      `).then((r) => r.rows || r);
+      `
+          )
+          .then((r) => r.rows || r);
 
-      if (!so || !so.work_order_id) {
-        return res.json({ synced: false, reason: "No linked work order" });
-      }
+        if (!so || !so.work_order_id) {
+          return res.json({ synced: false, reason: "No linked work order" });
+        }
 
-      const [soStatus] = await defaultDb.execute(sql`
+        const [soStatus] = await defaultDb
+          .execute(
+            sql`
         SELECT
           COUNT(*)::int AS total,
           COUNT(*) FILTER (WHERE status = 'completed')::int AS completed,
           COUNT(*) FILTER (WHERE status = 'cancelled')::int AS cancelled
         FROM service_orders
         WHERE work_order_id = ${so.work_order_id} AND org_id = ${orgId}
-      `).then((r) => r.rows || r);
+      `
+          )
+          .then((r) => r.rows || r);
 
-      const allDone = soStatus.completed + soStatus.cancelled === soStatus.total;
+        const allDone = soStatus.completed + soStatus.cancelled === soStatus.total;
 
-      if (allDone && soStatus.completed > 0) {
-        await defaultDb.execute(sql`
+        if (allDone && soStatus.completed > 0) {
+          await defaultDb.execute(sql`
           UPDATE work_orders
           SET
             status = CASE
@@ -373,10 +416,18 @@ export function registerWoSoBridgeRoutes(
             updated_at = NOW()
           WHERE id = ${so.work_order_id} AND org_id = ${orgId}
         `);
-        return res.json({ synced: true, workOrderStatus: "in_progress", reason: "All service orders completed" });
-      }
+          return res.json({
+            synced: true,
+            workOrderStatus: "in_progress",
+            reason: "All service orders completed",
+          });
+        }
 
-      res.json({ synced: false, reason: `${soStatus.total - soStatus.completed - soStatus.cancelled} service orders still active` });
-    })
+        res.json({
+          synced: false,
+          reason: `${soStatus.total - soStatus.completed - soStatus.cancelled} service orders still active`,
+        });
+      }
+    )
   );
 }

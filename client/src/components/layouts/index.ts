@@ -2,10 +2,10 @@ export { TabbedPageLayout, type TabDefinition } from "./TabbedPageLayout";
 
 export { PageLoader, type PageLoaderProps } from "./PageLoader";
 
-export { 
+export {
   IconGridLayout,
   createIconGridLegacyRedirects,
-  type GridItem, 
+  type GridItem,
   type IconGridItem,
-  type IconGridLayoutProps 
+  type IconGridLayoutProps,
 } from "./IconGridLayout";

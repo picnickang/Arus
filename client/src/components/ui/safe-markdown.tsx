@@ -1,20 +1,22 @@
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { cn } from '@/lib/utils';
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { cn } from "@/lib/utils";
 
-const SAFE_PROTOCOLS = ['http:', 'https:', 'mailto:'];
+const SAFE_PROTOCOLS = ["http:", "https:", "mailto:"];
 
 function isSafeUrl(href: string | undefined): string | null {
-  if (!href) {return null;}
-  
+  if (!href) {
+    return null;
+  }
+
   try {
-    const url = new URL(href, 'https://example.com');
+    const url = new URL(href, "https://example.com");
     if (SAFE_PROTOCOLS.includes(url.protocol)) {
       return href;
     }
     return null;
   } catch {
-    if (href.startsWith('/') || href.startsWith('#')) {
+    if (href.startsWith("/") || href.startsWith("#")) {
       return href;
     }
     return null;
@@ -52,19 +54,18 @@ export function SafeMarkdown({ content, className }: SafeMarkdownProps) {
               return <span className="text-muted-foreground">{children}</span>;
             }
             return (
-              <a
-                href={safeHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                {...props}
-              >
+              <a href={safeHref} target="_blank" rel="noopener noreferrer" {...props}>
                 {children}
               </a>
             );
           },
           img: ({ src, alt, ...props }) => {
-            if (!src?.startsWith('https://')) {
-              return <span className="text-muted-foreground italic">[Image: {alt || 'unavailable'}]</span>;
+            if (!src?.startsWith("https://")) {
+              return (
+                <span className="text-muted-foreground italic">
+                  [Image: {alt || "unavailable"}]
+                </span>
+              );
             }
             return (
               <img
@@ -95,10 +96,7 @@ export function ReleaseNotesMarkdown({ content, className }: SafeMarkdownProps) 
   return (
     <div className={cn("rounded-md bg-muted p-4", className)}>
       <h4 className="mb-3 font-medium text-foreground">Release Notes</h4>
-      <SafeMarkdown 
-        content={content} 
-        className="text-sm"
-      />
+      <SafeMarkdown content={content} className="text-sm" />
     </div>
   );
 }

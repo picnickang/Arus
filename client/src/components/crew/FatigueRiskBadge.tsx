@@ -1,13 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, AlertTriangle, AlertCircle, Info, CheckCircle, Activity, Moon, Clock, ChevronDown } from "lucide-react";
+import {
+  Loader2,
+  AlertTriangle,
+  AlertCircle,
+  Info,
+  CheckCircle,
+  Activity,
+  Moon,
+  Clock,
+  ChevronDown,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type FatigueLevel = "critical" | "high" | "medium" | "low";
@@ -47,13 +53,16 @@ const defaultLevelConfig = {
   icon: Info,
 };
 
-const levelConfig: Record<FatigueLevel, {
-  label: string;
-  color: string;
-  bgColor: string;
-  borderColor: string;
-  icon: typeof AlertTriangle;
-}> = {
+const levelConfig: Record<
+  FatigueLevel,
+  {
+    label: string;
+    color: string;
+    bgColor: string;
+    borderColor: string;
+    icon: typeof AlertTriangle;
+  }
+> = {
   critical: {
     label: "Critical",
     color: "text-red-700 dark:text-red-400",
@@ -97,7 +106,11 @@ export function FatigueRiskBadge({
   lookbackDays = 14,
   className,
 }: FatigueRiskBadgeProps) {
-  const { data: fatigueData, isLoading, error } = useQuery<FatigueRiskResult>({
+  const {
+    data: fatigueData,
+    isLoading,
+    error,
+  } = useQuery<FatigueRiskResult>({
     queryKey: [`/api/hor/fatigue/${crewId}?days=${lookbackDays}`],
     enabled: !!crewId,
     staleTime: 300000,
@@ -106,7 +119,11 @@ export function FatigueRiskBadge({
 
   if (isLoading) {
     return (
-      <Badge variant="outline" className={cn("gap-1.5", className)} data-testid={`badge-fatigue-loading-${crewId}`}>
+      <Badge
+        variant="outline"
+        className={cn("gap-1.5", className)}
+        data-testid={`badge-fatigue-loading-${crewId}`}
+      >
         <Loader2 className="h-3 w-3 animate-spin" />
         {!compact && <span>Fatigue</span>}
       </Badge>
@@ -115,7 +132,11 @@ export function FatigueRiskBadge({
 
   if (error || !fatigueData) {
     return (
-      <Badge variant="outline" className={cn("gap-1.5 text-muted-foreground", className)} data-testid={`badge-fatigue-unavailable-${crewId}`}>
+      <Badge
+        variant="outline"
+        className={cn("gap-1.5 text-muted-foreground", className)}
+        data-testid={`badge-fatigue-unavailable-${crewId}`}
+      >
         <Activity className="h-3 w-3" />
         {!compact && <span>N/A</span>}
       </Badge>
@@ -142,9 +163,7 @@ export function FatigueRiskBadge({
       {compact ? (
         showScore && <span>{fatigueData.score}</span>
       ) : (
-        <span>
-          {showScore ? `${config.label} (${fatigueData.score})` : config.label}
-        </span>
+        <span>{showScore ? `${config.label} (${fatigueData.score})` : config.label}</span>
       )}
       <ChevronDown className="h-3 w-3 opacity-50" />
     </Badge>
@@ -179,7 +198,13 @@ function FatigueDetailsContent({ data, crewName, lookbackDays = 14 }: FatigueDet
             {crewName || data.crewName || "Crew Member"}
           </p>
         </div>
-        <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded-md text-sm font-medium", config.bgColor, config.color)}>
+        <div
+          className={cn(
+            "flex items-center gap-1.5 px-2 py-1 rounded-md text-sm font-medium",
+            config.bgColor,
+            config.color
+          )}
+        >
           <Icon className="h-4 w-4" />
           <span>{config.label}</span>
         </div>
@@ -190,11 +215,17 @@ function FatigueDetailsContent({ data, crewName, lookbackDays = 14 }: FatigueDet
           <span className="text-muted-foreground">Risk Score</span>
           <span className="font-medium">{data.score}/100</span>
         </div>
-        <Progress 
-          value={data.score} 
-          className={cn("h-2", data.level === "critical" ? "[&>div]:bg-red-500" : 
-            data.level === "high" ? "[&>div]:bg-orange-500" :
-            data.level === "medium" ? "[&>div]:bg-amber-500" : "[&>div]:bg-green-500"
+        <Progress
+          value={data.score}
+          className={cn(
+            "h-2",
+            data.level === "critical"
+              ? "[&>div]:bg-red-500"
+              : data.level === "high"
+                ? "[&>div]:bg-orange-500"
+                : data.level === "medium"
+                  ? "[&>div]:bg-amber-500"
+                  : "[&>div]:bg-green-500"
           )}
         />
       </div>
@@ -202,8 +233,10 @@ function FatigueDetailsContent({ data, crewName, lookbackDays = 14 }: FatigueDet
       <Separator />
 
       <div className="space-y-3">
-        <h5 className="text-xs font-medium uppercase text-muted-foreground">Contributing Factors</h5>
-        
+        <h5 className="text-xs font-medium uppercase text-muted-foreground">
+          Contributing Factors
+        </h5>
+
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="flex items-center gap-2">
             <Moon className="h-4 w-4 text-muted-foreground" />
@@ -212,7 +245,7 @@ function FatigueDetailsContent({ data, crewName, lookbackDays = 14 }: FatigueDet
               <p className="font-medium">{data.factors.consecutiveNightShifts} consecutive</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Activity className="h-4 w-4 text-muted-foreground" />
             <div>
@@ -257,7 +290,10 @@ function FatigueDetailsContent({ data, crewName, lookbackDays = 14 }: FatigueDet
             <h5 className="text-xs font-medium uppercase text-muted-foreground">Recommendations</h5>
             <ul className="space-y-1">
               {data.recommendations.map((rec, i) => (
-                <li key={`rec-${rec.slice(0, 30)}-${i}`} className="text-xs text-muted-foreground flex items-start gap-2">
+                <li
+                  key={`rec-${rec.slice(0, 30)}-${i}`}
+                  className="text-xs text-muted-foreground flex items-start gap-2"
+                >
                   <span className="text-primary mt-0.5">•</span>
                   <span>{rec}</span>
                 </li>
@@ -272,7 +308,9 @@ function FatigueDetailsContent({ data, crewName, lookbackDays = 14 }: FatigueDet
       </div>
 
       <div className="pt-2 border-t text-xs text-muted-foreground">
-        Fatigue scores are calculated using STCW-compliant algorithms based on rest hours, night shifts, and work patterns over the past {lookbackDays} days. Scores above 70 indicate significant fatigue risk.
+        Fatigue scores are calculated using STCW-compliant algorithms based on rest hours, night
+        shifts, and work patterns over the past {lookbackDays} days. Scores above 70 indicate
+        significant fatigue risk.
       </div>
     </div>
   );
@@ -295,7 +333,12 @@ export function FatigueSummaryCard({
       mediumCount: number;
       lowCount: number;
       averageScore: number;
-      highestRiskCrew: Array<{ crewId: string; crewName?: string; score: number; level: FatigueLevel }>;
+      highestRiskCrew: Array<{
+        crewId: string;
+        crewName?: string;
+        score: number;
+        level: FatigueLevel;
+      }>;
     };
     crewFatigue: FatigueRiskResult[];
   }>({
@@ -306,7 +349,10 @@ export function FatigueSummaryCard({
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground" data-testid={`fatigue-summary-loading-${vesselId}`}>
+      <div
+        className="flex items-center gap-2 text-sm text-muted-foreground"
+        data-testid={`fatigue-summary-loading-${vesselId}`}
+      >
         <Loader2 className="h-4 w-4 animate-spin" />
         <span>Loading fatigue data...</span>
       </div>
@@ -315,7 +361,10 @@ export function FatigueSummaryCard({
 
   if (error || !data) {
     return (
-      <div className="text-sm text-muted-foreground" data-testid={`fatigue-summary-unavailable-${vesselId}`}>
+      <div
+        className="text-sm text-muted-foreground"
+        data-testid={`fatigue-summary-unavailable-${vesselId}`}
+      >
         Fatigue data unavailable
       </div>
     );
@@ -341,16 +390,37 @@ export function FatigueSummaryCard({
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-center">
-        <div className={cn("rounded-md p-2", summary.criticalCount > 0 ? "bg-red-500/20" : "bg-muted/50")}>
-          <p className="text-lg font-bold text-red-600 dark:text-red-400">{summary.criticalCount}</p>
+        <div
+          className={cn(
+            "rounded-md p-2",
+            summary.criticalCount > 0 ? "bg-red-500/20" : "bg-muted/50"
+          )}
+        >
+          <p className="text-lg font-bold text-red-600 dark:text-red-400">
+            {summary.criticalCount}
+          </p>
           <p className="text-xs text-muted-foreground">Critical</p>
         </div>
-        <div className={cn("rounded-md p-2", summary.highCount > 0 ? "bg-orange-500/20" : "bg-muted/50")}>
-          <p className="text-lg font-bold text-orange-600 dark:text-orange-400">{summary.highCount}</p>
+        <div
+          className={cn(
+            "rounded-md p-2",
+            summary.highCount > 0 ? "bg-orange-500/20" : "bg-muted/50"
+          )}
+        >
+          <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
+            {summary.highCount}
+          </p>
           <p className="text-xs text-muted-foreground">High</p>
         </div>
-        <div className={cn("rounded-md p-2", summary.mediumCount > 0 ? "bg-amber-500/20" : "bg-muted/50")}>
-          <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{summary.mediumCount}</p>
+        <div
+          className={cn(
+            "rounded-md p-2",
+            summary.mediumCount > 0 ? "bg-amber-500/20" : "bg-muted/50"
+          )}
+        >
+          <p className="text-lg font-bold text-amber-600 dark:text-amber-400">
+            {summary.mediumCount}
+          </p>
           <p className="text-xs text-muted-foreground">Medium</p>
         </div>
         <div className="rounded-md p-2 bg-green-500/20">

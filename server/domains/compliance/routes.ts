@@ -10,12 +10,15 @@ interface RateLimiters {
 }
 
 export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimiters): void {
-  const writeOperationRateLimit = rateLimiters?.writeOperationRateLimit || ((req: any, res: any, next: any) => next());
-  const criticalOperationRateLimit = rateLimiters?.criticalOperationRateLimit || ((req: any, res: any, next: any) => next());
+  const writeOperationRateLimit =
+    rateLimiters?.writeOperationRateLimit || ((req: any, res: any, next: any) => next());
+  const criticalOperationRateLimit =
+    rateLimiters?.criticalOperationRateLimit || ((req: any, res: any, next: any) => next());
 
   // ===== COMPLIANCE RULES ENGINE ROUTES =====
 
-  app.get("/api/compliance/findings",
+  app.get(
+    "/api/compliance/findings",
     withErrorHandling("get compliance findings", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const filters = {
@@ -27,26 +30,29 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
         startDate: req.query.startDate as string | undefined,
         endDate: req.query.endDate as string | undefined,
       };
-      
+
       const findings = await complianceRepo.getComplianceFindings(orgId!, filters);
       res.json(findings);
     })
   );
 
-  app.get("/api/compliance/findings/:id",
+  app.get(
+    "/api/compliance/findings/:id",
     withErrorHandling("get compliance finding", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const finding = await complianceRepo.getComplianceFindingById(req.params.id, orgId!);
-      
+
       if (!finding) {
         return sendNotFound(res, "Compliance finding");
       }
-      
+
       res.json(finding);
     })
   );
 
-  app.post("/api/compliance/findings", writeOperationRateLimit,
+  app.post(
+    "/api/compliance/findings",
+    writeOperationRateLimit,
     withErrorHandling("create compliance finding", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const finding = await complianceRepo.createComplianceFinding({
@@ -57,15 +63,17 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
     })
   );
 
-  app.post("/api/compliance/findings/:id/acknowledge", writeOperationRateLimit,
+  app.post(
+    "/api/compliance/findings/:id/acknowledge",
+    writeOperationRateLimit,
     withErrorHandling("acknowledge compliance finding", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const { acknowledgedByUserId, acknowledgedByUserName } = req.body;
-      
+
       if (!acknowledgedByUserId || !acknowledgedByUserName) {
         return res.status(400).json({ error: "User details required for acknowledgment" });
       }
-      
+
       const finding = await complianceRepo.acknowledgeComplianceFinding(
         req.params.id,
         { acknowledgedByUserId, acknowledgedByUserName },
@@ -75,15 +83,17 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
     })
   );
 
-  app.post("/api/compliance/findings/:id/resolve", writeOperationRateLimit,
+  app.post(
+    "/api/compliance/findings/:id/resolve",
+    writeOperationRateLimit,
     withErrorHandling("resolve compliance finding", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const { resolvedByUserId, resolvedByUserName, resolutionNotes } = req.body;
-      
+
       if (!resolvedByUserId || !resolvedByUserName) {
         return res.status(400).json({ error: "User details required for resolution" });
       }
-      
+
       const finding = await complianceRepo.resolveComplianceFinding(
         req.params.id,
         { resolvedByUserId, resolvedByUserName, resolutionNotes },
@@ -93,15 +103,17 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
     })
   );
 
-  app.post("/api/compliance/findings/:id/suppress", writeOperationRateLimit,
+  app.post(
+    "/api/compliance/findings/:id/suppress",
+    writeOperationRateLimit,
     withErrorHandling("suppress compliance finding", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const { suppressedUntil, suppressedReason } = req.body;
-      
+
       if (!suppressedUntil || !suppressedReason) {
         return res.status(400).json({ error: "Suppression details required" });
       }
-      
+
       const finding = await complianceRepo.suppressComplianceFinding(
         req.params.id,
         { suppressedUntil: new Date(suppressedUntil), suppressedReason },
@@ -111,7 +123,9 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
     })
   );
 
-  app.delete("/api/compliance/findings/:id", criticalOperationRateLimit,
+  app.delete(
+    "/api/compliance/findings/:id",
+    criticalOperationRateLimit,
     withErrorHandling("delete compliance finding", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       await complianceRepo.deleteComplianceFinding(req.params.id, orgId!);
@@ -119,34 +133,39 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
     })
   );
 
-  app.get("/api/compliance/rules",
+  app.get(
+    "/api/compliance/rules",
     withErrorHandling("get compliance rules", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const filters = {
         sourceType: req.query.sourceType as string | undefined,
         category: req.query.category as string | undefined,
-        enabled: req.query.enabled === 'true' ? true : req.query.enabled === 'false' ? false : undefined,
+        enabled:
+          req.query.enabled === "true" ? true : req.query.enabled === "false" ? false : undefined,
       };
-      
+
       const rules = await complianceRepo.getComplianceRules(orgId!, filters);
       res.json(rules);
     })
   );
 
-  app.get("/api/compliance/rules/:id",
+  app.get(
+    "/api/compliance/rules/:id",
     withErrorHandling("get compliance rule", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const rule = await complianceRepo.getComplianceRuleById(req.params.id, orgId!);
-      
+
       if (!rule) {
         return sendNotFound(res, "Compliance rule");
       }
-      
+
       res.json(rule);
     })
   );
 
-  app.post("/api/compliance/rules", writeOperationRateLimit,
+  app.post(
+    "/api/compliance/rules",
+    writeOperationRateLimit,
     withErrorHandling("create compliance rule", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const rule = await complianceRepo.createComplianceRule({
@@ -157,7 +176,9 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
     })
   );
 
-  app.patch("/api/compliance/rules/:id", writeOperationRateLimit,
+  app.patch(
+    "/api/compliance/rules/:id",
+    writeOperationRateLimit,
     withErrorHandling("update compliance rule", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const rule = await complianceRepo.updateComplianceRule(req.params.id, req.body, orgId!);
@@ -165,7 +186,9 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
     })
   );
 
-  app.delete("/api/compliance/rules/:id", criticalOperationRateLimit,
+  app.delete(
+    "/api/compliance/rules/:id",
+    criticalOperationRateLimit,
     withErrorHandling("delete compliance rule", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       await complianceRepo.deleteComplianceRule(req.params.id, orgId!);
@@ -173,7 +196,9 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
     })
   );
 
-  app.post("/api/compliance/check", writeOperationRateLimit,
+  app.post(
+    "/api/compliance/check",
+    writeOperationRateLimit,
     withErrorHandling("run compliance check", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const { vesselId, logDate, logType } = req.body;
@@ -187,7 +212,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
       }
 
       const { complianceRulesEngine } = await import("../../services/compliance-rules-engine");
-      
+
       const result = await complianceRulesEngine.runComplianceCheck({
         orgId,
         vesselId,
@@ -210,17 +235,20 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
     })
   );
 
-  app.post("/api/compliance/rules/seed", writeOperationRateLimit,
+  app.post(
+    "/api/compliance/rules/seed",
+    writeOperationRateLimit,
     withErrorHandling("seed compliance rules", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const { complianceRulesEngine } = await import("../../services/compliance-rules-engine");
-      
+
       await complianceRulesEngine.seedDefaultRules(orgId);
       res.json({ success: true, message: "Default compliance rules seeded" });
     })
   );
 
-  app.get("/api/compliance/summary/:vesselId",
+  app.get(
+    "/api/compliance/summary/:vesselId",
     withErrorHandling("get compliance summary", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const { vesselId } = req.params;
@@ -260,7 +288,8 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
 
   // ===== STCW COMPLIANCE DASHBOARD ROUTES =====
 
-  app.get("/api/dashboard/stcw-summary",
+  app.get(
+    "/api/dashboard/stcw-summary",
     withErrorHandling("fetch fleet STCW summary", async (req: Request, res: Response) => {
       const orgId = req.orgId!;
       const { days = "30" } = req.query;
@@ -274,7 +303,8 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
     })
   );
 
-  app.get("/api/dashboard/stcw-summary/vessel/:vesselId",
+  app.get(
+    "/api/dashboard/stcw-summary/vessel/:vesselId",
     withErrorHandling("fetch vessel STCW summary", async (req: Request, res: Response) => {
       const orgId = req.orgId!;
       const { vesselId } = req.params;
@@ -289,14 +319,19 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
     })
   );
 
-  app.get("/api/dashboard/stcw-trends",
+  app.get(
+    "/api/dashboard/stcw-trends",
     withErrorHandling("fetch STCW trends", async (req: Request, res: Response) => {
       const orgId = req.orgId!;
       const { days = "30", vesselId } = req.query;
       const lookbackDays = Number.parseInt(days as string, 10) || 30;
 
       const { getSTCWComplianceTrends } = await import("../../scheduler/stcw-dashboard");
-      const trends = await getSTCWComplianceTrends(orgId, lookbackDays, vesselId as string | undefined);
+      const trends = await getSTCWComplianceTrends(
+        orgId,
+        lookbackDays,
+        vesselId as string | undefined
+      );
 
       res.setHeader("Cache-Control", "private, max-age=300");
       res.json(trends);

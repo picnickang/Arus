@@ -28,9 +28,7 @@ const migrationRedirects: LegacyRedirect[] = Object.entries(routeMigrations || {
 export const legacyRedirects: LegacyRedirect[] = [
   ...additionalRedirects,
   ...migrationRedirects,
-].filter(
-  (redirect, index, self) => index === self.findIndex((r) => r.from === redirect.from)
-);
+].filter((redirect, index, self) => index === self.findIndex((r) => r.from === redirect.from));
 
 const STORAGE_KEY = "arus:redirect_usage";
 
@@ -43,8 +41,7 @@ export function trackRedirectUsage(from: string, to: string): void {
     entry.lastUsed = new Date().toISOString();
     usage[from] = entry;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(usage));
-  } catch {
-  }
+  } catch {}
 }
 
 export function getRedirectUsageStats(): Record<string, { count: number; lastUsed: string }> {

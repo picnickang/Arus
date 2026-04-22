@@ -1,9 +1,9 @@
-import type { PdmRepositoryPort } from '../ports/pdm-repository.port';
-import type { RiskQueueItem } from '../domain/types';
+import type { PdmRepositoryPort } from "../ports/pdm-repository.port";
+import type { RiskQueueItem } from "../domain/types";
 
 export interface GetRiskQueueInput {
   orgId: string;
-  status?: 'new' | 'active' | 'resolved';
+  status?: "new" | "active" | "resolved";
 }
 
 export interface GetRiskQueueUseCase {

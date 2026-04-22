@@ -80,7 +80,9 @@ async function main() {
   }
 
   if (violations.length === 0) {
-    console.log(`✅ Domain boundary check passed — ${files.length} files scanned, 0 cross-domain imports.`);
+    console.log(
+      `✅ Domain boundary check passed — ${files.length} files scanned, 0 cross-domain imports.`
+    );
     process.exit(0);
   }
 
@@ -88,7 +90,9 @@ async function main() {
   for (const v of violations) {
     console.error(`  [${v.from}] → [${v.to}]  ${v.file}  import "${v.import}"`);
   }
-  console.error(`\nFix: move shared logic to server/repositories.ts, server/services/, or server/lib/.`);
+  console.error(
+    `\nFix: move shared logic to server/repositories.ts, server/services/, or server/lib/.`
+  );
   console.error(`Or add to ALLOWLIST in scripts/check-domain-boundaries.mjs if intentional.`);
   process.exit(1);
 }

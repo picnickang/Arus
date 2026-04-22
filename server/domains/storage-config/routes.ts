@@ -1,7 +1,7 @@
 /**
  * Storage Config Domain Routes
  * Extracted from routes.ts for Phase 4 modularization
- * 
+ *
  * Object storage configuration, ops database, and file management
  */
 
@@ -11,12 +11,10 @@ import { logger } from "../../utils/logger.js";
 
 interface StorageConfigDependencies {}
 
-export function registerStorageConfigRoutes(
-  app: Express,
-  deps: StorageConfigDependencies
-): void {
+export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDependencies): void {
   // Get storage configuration
-  app.get("/api/storage/config",
+  app.get(
+    "/api/storage/config",
     withErrorHandling("list storage configurations", async (req: Request, res: Response) => {
       const { storageConfigService } = await import("../../storage-config");
       const { kind } = req.query;
@@ -26,7 +24,8 @@ export function registerStorageConfigRoutes(
   );
 
   // Create/update storage configuration
-  app.post("/api/storage/config",
+  app.post(
+    "/api/storage/config",
     withErrorHandling("save storage configuration", async (req: Request, res: Response) => {
       const { storageConfigService } = await import("../../storage-config");
       const { insertStorageConfigSchema } = await import("@shared/schema");
@@ -37,7 +36,8 @@ export function registerStorageConfigRoutes(
   );
 
   // Delete storage configuration
-  app.delete("/api/storage/config/:id",
+  app.delete(
+    "/api/storage/config/:id",
     withErrorHandling("delete storage configuration", async (req: Request, res: Response) => {
       const { storageConfigService } = await import("../../storage-config");
       await storageConfigService.delete(req.params.id);
@@ -46,7 +46,8 @@ export function registerStorageConfigRoutes(
   );
 
   // Test storage configuration
-  app.post("/api/storage/config/test",
+  app.post(
+    "/api/storage/config/test",
     withErrorHandling("test storage configuration", async (req: Request, res: Response) => {
       const { storageConfigService } = await import("../../storage-config");
       const { insertStorageConfigSchema } = await import("@shared/schema");
@@ -57,7 +58,8 @@ export function registerStorageConfigRoutes(
   );
 
   // Get current ops database
-  app.get("/api/storage/ops-db/current",
+  app.get(
+    "/api/storage/ops-db/current",
     withErrorHandling("get current operational database", async (req: Request, res: Response) => {
       const { opsDbService } = await import("../../storage-config");
       const current = await opsDbService.getCurrent();
@@ -66,7 +68,8 @@ export function registerStorageConfigRoutes(
   );
 
   // Stage ops database URL
-  app.post("/api/storage/ops-db/stage",
+  app.post(
+    "/api/storage/ops-db/stage",
     withErrorHandling("stage operational database", async (req: Request, res: Response) => {
       const { opsDbService } = await import("../../storage-config");
       const { url } = req.body;
@@ -79,7 +82,8 @@ export function registerStorageConfigRoutes(
   );
 
   // Get staged ops database
-  app.get("/api/storage/ops-db/staged",
+  app.get(
+    "/api/storage/ops-db/staged",
     withErrorHandling("get staged operational database", async (req: Request, res: Response) => {
       const { opsDbService } = await import("../../storage-config");
       const staged = await opsDbService.getStaged();
@@ -88,7 +92,8 @@ export function registerStorageConfigRoutes(
   );
 
   // Test ops database connection
-  app.post("/api/storage/ops-db/test",
+  app.post(
+    "/api/storage/ops-db/test",
     withErrorHandling("test operational database", async (req: Request, res: Response) => {
       const { opsDbService } = await import("../../storage-config");
       const { url } = req.body;
@@ -101,7 +106,8 @@ export function registerStorageConfigRoutes(
   );
 
   // Public object access
-  app.get("/public-objects/:filePath(*)",
+  app.get(
+    "/public-objects/:filePath(*)",
     withErrorHandling("search for public object", async (req: Request, res: Response) => {
       const { ObjectStorageService } = await import("../../objectStorage");
       const objectStorageService = new ObjectStorageService();
@@ -115,14 +121,16 @@ export function registerStorageConfigRoutes(
   );
 
   // Upload object
-  app.post("/api/objects/upload",
+  app.post(
+    "/api/objects/upload",
     withErrorHandling("get upload URL", async (req: Request, res: Response) => {
       const { ObjectStorageService } = await import("../../objectStorage");
       const objectStorageService = new ObjectStorageService();
       if (!(await objectStorageService.isConfigured())) {
         return res.status(503).json({
           error: "Object storage not configured",
-          message: "Please configure PUBLIC_OBJECT_SEARCH_PATHS and PRIVATE_OBJECT_DIR environment variables",
+          message:
+            "Please configure PUBLIC_OBJECT_SEARCH_PATHS and PRIVATE_OBJECT_DIR environment variables",
         });
       }
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
@@ -131,7 +139,8 @@ export function registerStorageConfigRoutes(
   );
 
   // Get object (private with ACL)
-  app.get("/objects/:objectPath(*)",
+  app.get(
+    "/objects/:objectPath(*)",
     withErrorHandling("access object", async (req: Request, res: Response) => {
       const { ObjectStorageService, ObjectNotFoundError } = await import("../../objectStorage");
       const objectStorageService = new ObjectStorageService();
@@ -148,7 +157,8 @@ export function registerStorageConfigRoutes(
   );
 
   // App storage status
-  app.get("/api/storage/app-storage/status",
+  app.get(
+    "/api/storage/app-storage/status",
     withErrorHandling("check app storage status", async (req: Request, res: Response) => {
       const { ObjectStorageService } = await import("../../objectStorage");
       const objectStorageService = new ObjectStorageService();

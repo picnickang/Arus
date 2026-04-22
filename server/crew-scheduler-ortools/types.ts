@@ -3,7 +3,14 @@
  * Shared type definitions for scheduling
  */
 
-import { crew, shiftTemplate, crewLeave, crewCertification, portCall, drydockWindow } from "@shared/schema-runtime";
+import {
+  crew,
+  shiftTemplate,
+  crewLeave,
+  crewCertification,
+  portCall,
+  drydockWindow,
+} from "@shared/schema-runtime";
 
 // Locally-derived select types — these types historically lived in
 // @shared/schema-runtime as named re-exports but were never actually

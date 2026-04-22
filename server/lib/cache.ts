@@ -53,8 +53,12 @@ export class CacheClient {
   }
 
   private async getRedis(): Promise<Redis | null> {
-    if (!this.enabled) {return null;}
-    if (this.redis) {return this.redis;}
+    if (!this.enabled) {
+      return null;
+    }
+    if (this.redis) {
+      return this.redis;
+    }
     this.redis = await getSharedRedisClient();
     return this.redis;
   }
@@ -168,10 +172,7 @@ export class CacheClient {
 const cacheEnabled = process.env.ENABLE_INVENTORY_CACHE !== "false";
 const analyticsCacheEnabled = process.env.ENABLE_ANALYTICS_CACHE !== "false";
 
-export const inventoryCache = new CacheClient(
-  { ttl: 900, keyPrefix: "inventory" },
-  cacheEnabled
-);
+export const inventoryCache = new CacheClient({ ttl: 900, keyPrefix: "inventory" }, cacheEnabled);
 
 export const analyticsCache = new CacheClient(
   { ttl: 300, keyPrefix: "analytics" },
@@ -184,8 +185,12 @@ export const cacheConfig = {
 };
 
 if (isRedisEnabled()) {
-  console.log(`[Cache] Inventory cache ${cacheEnabled ? "enabled" : "disabled"} (using shared Redis client)`);
-  console.log(`[Cache] Analytics cache ${analyticsCacheEnabled ? "enabled" : "disabled"} (using shared Redis client)`);
+  console.log(
+    `[Cache] Inventory cache ${cacheEnabled ? "enabled" : "disabled"} (using shared Redis client)`
+  );
+  console.log(
+    `[Cache] Analytics cache ${analyticsCacheEnabled ? "enabled" : "disabled"} (using shared Redis client)`
+  );
 }
 
 /**
@@ -253,7 +258,9 @@ export const analyticsCacheKeys = {
  */
 export const invalidateAnalyticsCache = {
   async equipmentHealth(orgId: string, equipmentId?: string) {
-    if (!cacheConfig.analyticsEnabled) { return; }
+    if (!cacheConfig.analyticsEnabled) {
+      return;
+    }
     if (equipmentId) {
       await analyticsCache.del(analyticsCacheKeys.equipmentHealth(orgId, equipmentId));
     }
@@ -261,7 +268,9 @@ export const invalidateAnalyticsCache = {
   },
 
   async rulPredictions(orgId: string, equipmentId?: string) {
-    if (!cacheConfig.analyticsEnabled) { return; }
+    if (!cacheConfig.analyticsEnabled) {
+      return;
+    }
     if (equipmentId) {
       await analyticsCache.del(analyticsCacheKeys.rulPredictions(orgId, equipmentId));
     }
@@ -269,7 +278,9 @@ export const invalidateAnalyticsCache = {
   },
 
   async anomalies(orgId: string, equipmentId?: string) {
-    if (!cacheConfig.analyticsEnabled) { return; }
+    if (!cacheConfig.analyticsEnabled) {
+      return;
+    }
     if (equipmentId) {
       await analyticsCache.invalidatePattern(`${orgId}:anomalies:${equipmentId}*`);
     } else {
@@ -278,7 +289,9 @@ export const invalidateAnalyticsCache = {
   },
 
   async failurePredictions(orgId: string, equipmentId?: string) {
-    if (!cacheConfig.analyticsEnabled) { return; }
+    if (!cacheConfig.analyticsEnabled) {
+      return;
+    }
     if (equipmentId) {
       await analyticsCache.invalidatePattern(`${orgId}:failure-predictions:${equipmentId}*`);
     } else {
@@ -287,12 +300,16 @@ export const invalidateAnalyticsCache = {
   },
 
   async mlModels(orgId: string) {
-    if (!cacheConfig.analyticsEnabled) { return; }
+    if (!cacheConfig.analyticsEnabled) {
+      return;
+    }
     await analyticsCache.invalidatePattern(`${orgId}:ml-models*`);
   },
 
   async allForOrg(orgId: string) {
-    if (!cacheConfig.analyticsEnabled) { return; }
+    if (!cacheConfig.analyticsEnabled) {
+      return;
+    }
     await analyticsCache.invalidatePattern(`${orgId}:*`);
   },
 };

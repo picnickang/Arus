@@ -141,22 +141,24 @@ export {
 // NOSONAR: S5443 - /tmp used for temporary import processing; files processed and removed
 export const upload = multer({
   storage: multer.diskStorage({
-    destination: '/tmp/data-imports',
+    destination: "/tmp/data-imports",
     filename: (req, file, cb) => {
       const uniqueName = `${Date.now()}-${file.originalname}`;
       cb(null, uniqueName);
-    }
+    },
   }),
   limits: {
     fileSize: 500 * 1024 * 1024,
   },
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'application/gzip' || 
-        file.originalname.endsWith('.tar.gz') ||
-        file.originalname.endsWith('.gz')) {
+    if (
+      file.mimetype === "application/gzip" ||
+      file.originalname.endsWith(".tar.gz") ||
+      file.originalname.endsWith(".gz")
+    ) {
       cb(null, true);
     } else {
-      cb(new Error('Only .tar.gz files are allowed'));
+      cb(new Error("Only .tar.gz files are allowed"));
     }
   },
 });

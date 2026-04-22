@@ -1,10 +1,18 @@
 /**
  * Report Context Data Fetchers
- * 
+ *
  * Data fetching utilities for report context building.
  */
 
-import { dbEquipmentStorage, workOrderService, dbTelemetryStorage, dbMaintenanceStorage, dbAlertStorage, dbCrewExtensionsStorage, dbStcwStorage } from "../repositories";
+import {
+  dbEquipmentStorage,
+  workOrderService,
+  dbTelemetryStorage,
+  dbMaintenanceStorage,
+  dbAlertStorage,
+  dbCrewExtensionsStorage,
+  dbStcwStorage,
+} from "../repositories";
 import { db } from "../db-config";
 import { sql } from "drizzle-orm";
 import type { WorkOrder, EquipmentTelemetry } from "@shared/schema";
@@ -36,8 +44,7 @@ export async function getVesselTelemetry(
 
   const allTelemetry = await dbTelemetryStorage.getLatestTelemetryReadings();
   return allTelemetry.filter(
-    (t) =>
-      equipmentIds.includes(t.equipmentId) && new Date(t.ts) >= start && new Date(t.ts) <= end
+    (t) => equipmentIds.includes(t.equipmentId) && new Date(t.ts) >= start && new Date(t.ts) <= end
   );
 }
 
@@ -74,6 +81,8 @@ export async function getCrewRestSheets(vesselId: string, start: Date, end: Date
 }
 
 export async function getComplianceLogs(start: Date, end: Date): Promise<any[]> {
-  const result = await db.execute(sql`SELECT * FROM compliance_audit_log WHERE created_at >= ${start.toISOString()}::timestamp AND created_at <= ${end.toISOString()}::timestamp ORDER BY created_at DESC`);
+  const result = await db.execute(
+    sql`SELECT * FROM compliance_audit_log WHERE created_at >= ${start.toISOString()}::timestamp AND created_at <= ${end.toISOString()}::timestamp ORDER BY created_at DESC`
+  );
   return result.rows as any[];
 }

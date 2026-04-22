@@ -1,17 +1,56 @@
 import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Loader2, Package, Search, ChevronDown, AlertTriangle, Truck } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Plus,
+  Trash2,
+  Loader2,
+  Package,
+  Search,
+  ChevronDown,
+  AlertTriangle,
+  Truck,
+} from "lucide-react";
 import { useParts } from "@/features/inventory/hooks/useInventory";
-import { useInventoryPartSuppliers, type SupplierLink } from "@/features/inventory/hooks/useInventoryPartSuppliers";
+import {
+  useInventoryPartSuppliers,
+  type SupplierLink,
+} from "@/features/inventory/hooks/useInventoryPartSuppliers";
 import { cn } from "@/lib/utils";
 
 interface InventoryPartFromAPI {
@@ -60,12 +99,27 @@ export interface SuggestedPart {
 interface MultiLinePartsRequestDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: { notes?: string; items: Array<{ partId?: string; description: string; quantity: number; notes?: string; supplierId?: string }> }) => void;
+  onSubmit: (data: {
+    notes?: string;
+    items: Array<{
+      partId?: string;
+      description: string;
+      quantity: number;
+      notes?: string;
+      supplierId?: string;
+    }>;
+  }) => void;
   isPending: boolean;
   suggestions?: SuggestedPart[];
 }
 
-export function MultiLinePartsRequestDialog({ open, onOpenChange, onSubmit, isPending, suggestions = [] }: MultiLinePartsRequestDialogProps) {
+export function MultiLinePartsRequestDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+  isPending,
+  suggestions = [],
+}: MultiLinePartsRequestDialogProps) {
   const [items, setItems] = useState<PartItem[]>([]);
   const [globalNotes, setGlobalNotes] = useState("");
   const [suggestionsLoaded, setSuggestionsLoaded] = useState(false);
@@ -92,37 +146,52 @@ export function MultiLinePartsRequestDialog({ open, onOpenChange, onSubmit, isPe
     }
   }, [suggestions, suggestionsLoaded]);
 
-  const addInventoryItem = useCallback((part: { id: string; partNumber: string; partName: string; unitCost?: number; quantityOnHand?: number }) => {
-    setItems(prev => [...prev, {
-      id: generateId(),
-      inventoryItemId: part.id,
-      partNumber: part.partNumber,
-      partName: part.partName,
-      description: `${part.partNumber} - ${part.partName}`,
-      quantity: 1,
-      notes: "",
-      unitCost: part.unitCost,
-      quantityOnHand: part.quantityOnHand,
-      isCustom: false,
-    }]);
-  }, []);
+  const addInventoryItem = useCallback(
+    (part: {
+      id: string;
+      partNumber: string;
+      partName: string;
+      unitCost?: number;
+      quantityOnHand?: number;
+    }) => {
+      setItems((prev) => [
+        ...prev,
+        {
+          id: generateId(),
+          inventoryItemId: part.id,
+          partNumber: part.partNumber,
+          partName: part.partName,
+          description: `${part.partNumber} - ${part.partName}`,
+          quantity: 1,
+          notes: "",
+          unitCost: part.unitCost,
+          quantityOnHand: part.quantityOnHand,
+          isCustom: false,
+        },
+      ]);
+    },
+    []
+  );
 
   const addCustomItem = useCallback(() => {
-    setItems(prev => [...prev, {
-      id: generateId(),
-      description: "",
-      quantity: 1,
-      notes: "",
-      isCustom: true,
-    }]);
+    setItems((prev) => [
+      ...prev,
+      {
+        id: generateId(),
+        description: "",
+        quantity: 1,
+        notes: "",
+        isCustom: true,
+      },
+    ]);
   }, []);
 
   const updateItem = useCallback((id: string, field: keyof PartItem, value: string | number) => {
-    setItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
   }, []);
 
   const removeItem = useCallback((id: string) => {
-    setItems(prev => prev.filter(item => item.id !== id));
+    setItems((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
   const resetForm = useCallback(() => {
@@ -136,11 +205,13 @@ export function MultiLinePartsRequestDialog({ open, onOpenChange, onSubmit, isPe
   }
 
   const handleSubmit = () => {
-    const validItems = items.filter(item => item.description.trim() && item.quantity > 0);
-    if (validItems.length === 0) {return;}
+    const validItems = items.filter((item) => item.description.trim() && item.quantity > 0);
+    if (validItems.length === 0) {
+      return;
+    }
     onSubmit({
       notes: globalNotes || undefined,
-      items: validItems.map(item => ({
+      items: validItems.map((item) => ({
         partId: item.inventoryItemId,
         description: item.description,
         quantity: item.quantity,
@@ -151,19 +222,29 @@ export function MultiLinePartsRequestDialog({ open, onOpenChange, onSubmit, isPe
   };
 
   const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen) {resetForm();}
+    if (!isOpen) {
+      resetForm();
+    }
     onOpenChange(isOpen);
   };
 
-  const validItemCount = items.filter(item => item.description.trim() && item.quantity > 0).length;
+  const validItemCount = items.filter(
+    (item) => item.description.trim() && item.quantity > 0
+  ).length;
   const canSubmit = validItemCount > 0 && !isPending;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl w-[95vw] md:w-auto max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Package className="h-5 w-5" />Create Purchase Request</DialogTitle>
-          <DialogDescription>Add parts from inventory or enter custom items. You can add multiple items in a single request.</DialogDescription>
+          <DialogTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Create Purchase Request
+          </DialogTitle>
+          <DialogDescription>
+            Add parts from inventory or enter custom items. You can add multiple items in a single
+            request.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -171,15 +252,21 @@ export function MultiLinePartsRequestDialog({ open, onOpenChange, onSubmit, isPe
             <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
               <AlertTriangle className="h-4 w-4 text-amber-600" />
               <span className="text-sm text-amber-800 dark:text-amber-200">
-                {suggestions.length} out-of-stock part{suggestions.length > 1 ? "s" : ""} pre-filled from work order
+                {suggestions.length} out-of-stock part{suggestions.length > 1 ? "s" : ""} pre-filled
+                from work order
               </span>
             </div>
           )}
 
           <div className="flex items-center gap-2">
-            <PartSearchCombobox parts={inventoryParts} isLoading={partsLoading} onSelect={addInventoryItem} />
+            <PartSearchCombobox
+              parts={inventoryParts}
+              isLoading={partsLoading}
+              onSelect={addInventoryItem}
+            />
             <Button variant="outline" onClick={addCustomItem} data-testid="btn-add-custom-item">
-              <Plus className="h-4 w-4 mr-1" />Custom Item
+              <Plus className="h-4 w-4 mr-1" />
+              Custom Item
             </Button>
           </div>
 
@@ -206,7 +293,12 @@ export function MultiLinePartsRequestDialog({ open, onOpenChange, onSubmit, isPe
                     <TableRow key={item.id}>
                       <TableCell>
                         {item.isCustom ? (
-                          <Input value={item.description} onChange={(e) => updateItem(item.id, "description", e.target.value)} placeholder="Enter part description..." data-testid={`input-item-desc-${item.id}`} />
+                          <Input
+                            value={item.description}
+                            onChange={(e) => updateItem(item.id, "description", e.target.value)}
+                            placeholder="Enter part description..."
+                            data-testid={`input-item-desc-${item.id}`}
+                          />
                         ) : (
                           <div>
                             <div className="font-medium text-sm">{item.partNumber}</div>
@@ -215,33 +307,62 @@ export function MultiLinePartsRequestDialog({ open, onOpenChange, onSubmit, isPe
                         )}
                       </TableCell>
                       <TableCell>
-                        <Input type="number" min="1" value={item.quantity} onChange={(e) => updateItem(item.id, "quantity", Number.parseInt(e.target.value) || 1)} className="w-20" data-testid={`input-item-qty-${item.id}`} />
+                        <Input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) =>
+                            updateItem(item.id, "quantity", Number.parseInt(e.target.value) || 1)
+                          }
+                          className="w-20"
+                          data-testid={`input-item-qty-${item.id}`}
+                        />
                       </TableCell>
                       <TableCell>
                         {item.isCustom ? (
                           <Badge variant="outline">Custom</Badge>
                         ) : (
                           <div className="flex items-center gap-1">
-                            <Badge className={item.quantityOnHand && item.quantityOnHand > 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                            <Badge
+                              className={
+                                item.quantityOnHand && item.quantityOnHand > 0
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }
+                            >
                               {item.quantityOnHand ?? 0}
                             </Badge>
-                            {item.quantityOnHand !== undefined && item.quantity > item.quantityOnHand && (
-                              <AlertTriangle className="h-4 w-4 text-amber-500" />
-                            )}
+                            {item.quantityOnHand !== undefined &&
+                              item.quantity > item.quantityOnHand && (
+                                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                              )}
                           </div>
                         )}
                       </TableCell>
                       <TableCell>
                         <SupplierSelectCell
                           item={item}
-                          onSupplierSelect={(supplierId) => updateItem(item.id, "selectedSupplierId", supplierId)}
+                          onSupplierSelect={(supplierId) =>
+                            updateItem(item.id, "selectedSupplierId", supplierId)
+                          }
                         />
                       </TableCell>
                       <TableCell>
-                        <Input value={item.notes} onChange={(e) => updateItem(item.id, "notes", e.target.value)} placeholder="Notes..." className="text-sm" data-testid={`input-item-notes-${item.id}`} />
+                        <Input
+                          value={item.notes}
+                          onChange={(e) => updateItem(item.id, "notes", e.target.value)}
+                          placeholder="Notes..."
+                          className="text-sm"
+                          data-testid={`input-item-notes-${item.id}`}
+                        />
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm" onClick={() => removeItem(item.id)} data-testid={`btn-remove-item-${item.id}`}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeItem(item.id)}
+                          data-testid={`btn-remove-item-${item.id}`}
+                        >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </TableCell>
@@ -254,13 +375,23 @@ export function MultiLinePartsRequestDialog({ open, onOpenChange, onSubmit, isPe
 
           <div>
             <Label>General Notes (Optional)</Label>
-            <Textarea value={globalNotes} onChange={(e) => setGlobalNotes(e.target.value)} placeholder="Additional notes for this purchase request..." rows={2} data-testid="input-pr-global-notes" />
+            <Textarea
+              value={globalNotes}
+              onChange={(e) => setGlobalNotes(e.target.value)}
+              placeholder="Additional notes for this purchase request..."
+              rows={2}
+              data-testid="input-pr-global-notes"
+            />
           </div>
         </div>
 
         <DialogFooter className="gap-2">
-          <div className="flex-1 text-sm text-muted-foreground">{validItemCount} item{validItemCount !== 1 ? "s" : ""} ready</div>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
+          <div className="flex-1 text-sm text-muted-foreground">
+            {validItemCount} item{validItemCount !== 1 ? "s" : ""} ready
+          </div>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>
+            Cancel
+          </Button>
           <Button onClick={handleSubmit} disabled={!canSubmit} data-testid="btn-submit-pr">
             {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Create Purchase Request
@@ -272,9 +403,21 @@ export function MultiLinePartsRequestDialog({ open, onOpenChange, onSubmit, isPe
 }
 
 interface PartSearchComboboxProps {
-  parts: Array<{ id: string; partNumber: string; partName: string; unitCost?: number; quantityOnHand?: number }>;
+  parts: Array<{
+    id: string;
+    partNumber: string;
+    partName: string;
+    unitCost?: number;
+    quantityOnHand?: number;
+  }>;
   isLoading: boolean;
-  onSelect: (part: { id: string; partNumber: string; partName: string; unitCost?: number; quantityOnHand?: number }) => void;
+  onSelect: (part: {
+    id: string;
+    partNumber: string;
+    partName: string;
+    unitCost?: number;
+    quantityOnHand?: number;
+  }) => void;
 }
 
 function PartSearchCombobox({ parts, isLoading, onSelect }: PartSearchComboboxProps) {
@@ -282,22 +425,37 @@ function PartSearchCombobox({ parts, isLoading, onSelect }: PartSearchComboboxPr
   const [search, setSearch] = useState("");
 
   const searchLower = search.toLowerCase();
-  const filteredParts = parts.filter(p =>
-    (p.partNumber?.toLowerCase() || "").includes(searchLower) ||
-    (p.partName?.toLowerCase() || "").includes(searchLower)
-  ).slice(0, 20);
+  const filteredParts = parts
+    .filter(
+      (p) =>
+        (p.partNumber?.toLowerCase() || "").includes(searchLower) ||
+        (p.partName?.toLowerCase() || "").includes(searchLower)
+    )
+    .slice(0, 20);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="flex-1 justify-between" data-testid="btn-search-inventory">
-          <span className="flex items-center gap-2"><Search className="h-4 w-4" />Search Inventory...</span>
+        <Button
+          variant="outline"
+          className="flex-1 justify-between"
+          data-testid="btn-search-inventory"
+        >
+          <span className="flex items-center gap-2">
+            <Search className="h-4 w-4" />
+            Search Inventory...
+          </span>
           <ChevronDown className="h-4 w-4 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[400px] p-0" align="start">
         <Command>
-          <CommandInput placeholder="Search by part number or name..." value={search} onValueChange={setSearch} data-testid="input-search-inventory" />
+          <CommandInput
+            placeholder="Search by part number or name..."
+            value={search}
+            onValueChange={setSearch}
+            data-testid="input-search-inventory"
+          />
           <CommandList>
             {isLoading ? (
               <div className="p-4 text-center text-sm text-muted-foreground">Loading...</div>
@@ -306,12 +464,30 @@ function PartSearchCombobox({ parts, isLoading, onSelect }: PartSearchComboboxPr
                 <CommandEmpty>No parts found.</CommandEmpty>
                 <CommandGroup heading="Inventory Parts">
                   {filteredParts.map((part) => (
-                    <CommandItem key={part.id} value={`${part.partNumber} ${part.partName}`} onSelect={() => { onSelect(part); setOpen(false); setSearch(""); }} className="cursor-pointer" data-testid={`option-part-${part.id}`}>
+                    <CommandItem
+                      key={part.id}
+                      value={`${part.partNumber} ${part.partName}`}
+                      onSelect={() => {
+                        onSelect(part);
+                        setOpen(false);
+                        setSearch("");
+                      }}
+                      className="cursor-pointer"
+                      data-testid={`option-part-${part.id}`}
+                    >
                       <div className="flex-1">
                         <div className="font-medium">{part.partNumber}</div>
                         <div className="text-xs text-muted-foreground">{part.partName}</div>
                       </div>
-                      <Badge variant="outline" className={cn("ml-2", part.quantityOnHand && part.quantityOnHand > 0 ? "bg-green-50" : "bg-red-50")}>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "ml-2",
+                          part.quantityOnHand && part.quantityOnHand > 0
+                            ? "bg-green-50"
+                            : "bg-red-50"
+                        )}
+                      >
                         Stock: {part.quantityOnHand ?? 0}
                       </Badge>
                     </CommandItem>
@@ -339,7 +515,7 @@ function SupplierSelectCell({ item, onSupplierSelect }: SupplierSelectCellProps)
 
   useEffect(() => {
     if (!item.isCustom && suppliers.length > 0 && !item.selectedSupplierId) {
-      const preferredSupplier = suppliers.find(s => s.isPreferred);
+      const preferredSupplier = suppliers.find((s) => s.isPreferred);
       const defaultSupplierId = preferredSupplier?.supplierId || suppliers[0].supplierId;
       if (defaultSupplierId) {
         onSupplierSelect(defaultSupplierId);
@@ -348,7 +524,11 @@ function SupplierSelectCell({ item, onSupplierSelect }: SupplierSelectCellProps)
   }, [suppliers, item.isCustom, item.selectedSupplierId, onSupplierSelect]);
 
   if (item.isCustom) {
-    return <Badge variant="outline" className="text-xs">Manual</Badge>;
+    return (
+      <Badge variant="outline" className="text-xs">
+        Manual
+      </Badge>
+    );
   }
 
   if (isLoading) {
@@ -379,7 +559,9 @@ function SupplierSelectCell({ item, onSupplierSelect }: SupplierSelectCellProps)
             <div className="flex items-center gap-2">
               <span>{supplier.supplierName}</span>
               {supplier.isPreferred && (
-                <Badge variant="secondary" className="text-[10px] px-1 py-0">Preferred</Badge>
+                <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                  Preferred
+                </Badge>
               )}
             </div>
           </SelectItem>

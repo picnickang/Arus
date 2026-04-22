@@ -12,12 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { QuickReorderButton } from "./QuickReorderButton";
 import {
   DropdownMenu,
@@ -86,7 +81,13 @@ const COLUMNS = [
   { key: "category", label: "Category", width: 120, sortable: true },
   { key: "available", label: "Available", width: 100, sortable: true, align: "right" as const },
   { key: "quantityOnHand", label: "On Hand", width: 80, sortable: true, align: "right" as const },
-  { key: "quantityReserved", label: "Reserved", width: 80, sortable: true, align: "right" as const },
+  {
+    key: "quantityReserved",
+    label: "Reserved",
+    width: 80,
+    sortable: true,
+    align: "right" as const,
+  },
   { key: "unitCost", label: "Unit Cost", width: 100, sortable: true, align: "right" as const },
   { key: "totalValue", label: "Total Value", width: 100, sortable: true, align: "right" as const },
   { key: "status", label: "Status", width: 100, sortable: true },
@@ -94,22 +95,41 @@ const COLUMNS = [
 ];
 
 function getStockStatus(item: PartsInventoryItem): string {
-  if (!item.stock) {return "unknown";}
+  if (!item.stock) {
+    return "unknown";
+  }
   const { quantityOnHand, quantityReserved } = item.stock;
   const available = Math.max(0, quantityOnHand - quantityReserved);
   const minStock = item.minStockLevel;
   const maxStock = item.maxStockLevel;
 
-  if (quantityOnHand <= 0) {return "out_of_stock";}
-  if (available <= 0) {return "critical";}
-  if (available < minStock * 0.5) {return "critical";}
-  if (available < minStock) {return "low_stock";}
-  if (available > maxStock) {return "excess_stock";}
+  if (quantityOnHand <= 0) {
+    return "out_of_stock";
+  }
+  if (available <= 0) {
+    return "critical";
+  }
+  if (available < minStock * 0.5) {
+    return "critical";
+  }
+  if (available < minStock) {
+    return "low_stock";
+  }
+  if (available > maxStock) {
+    return "excess_stock";
+  }
   return "adequate";
 }
 
 function getStatusBadge(status: string) {
-  const statusConfig: Record<string, { variant: "default" | "destructive" | "secondary" | "outline"; label: string; icon: typeof CheckCircle }> = {
+  const statusConfig: Record<
+    string,
+    {
+      variant: "default" | "destructive" | "secondary" | "outline";
+      label: string;
+      icon: typeof CheckCircle;
+    }
+  > = {
     out_of_stock: { variant: "destructive", label: "Out of Stock", icon: XCircle },
     critical: { variant: "destructive", label: "Critical", icon: AlertTriangle },
     low_stock: { variant: "secondary", label: "Low Stock", icon: AlertTriangle },
@@ -130,7 +150,9 @@ function getStatusBadge(status: string) {
 }
 
 function formatCurrencyDisplay(value: number | null | undefined): string {
-  if (value === null || value === undefined) {return "-";}
+  if (value === null || value === undefined) {
+    return "-";
+  }
   return formatCurrency(value);
 }
 
@@ -140,7 +162,7 @@ function SortableHeader({
   sortDirection,
   onSort,
 }: {
-  column: typeof COLUMNS[0];
+  column: (typeof COLUMNS)[0];
   sortField: string;
   sortDirection: "asc" | "desc";
   onSort: (field: string) => void;
@@ -259,14 +281,15 @@ export function VirtualizedInventoryTable({
   const virtualItems = rowVirtualizer.getVirtualItems();
 
   return (
-    <div className="border rounded-lg overflow-x-auto flex flex-col" data-testid="virtualized-inventory-table">
+    <div
+      className="border rounded-lg overflow-x-auto flex flex-col"
+      data-testid="virtualized-inventory-table"
+    >
       <div className="bg-muted/50 flex-none">
         <Table>
           <TableHeader>
             <TableRow>
-              {onSelectionChange && (
-                <TableHead style={{ width: 40, minWidth: 40 }} />
-              )}
+              {onSelectionChange && <TableHead style={{ width: 40, minWidth: 40 }} />}
               {COLUMNS.map((column) => (
                 <TableHead
                   key={column.key}
@@ -301,8 +324,8 @@ export function VirtualizedInventoryTable({
           {virtualItems.map((virtualRow) => {
             const item = items[virtualRow.index];
             const status = getStockStatus(item);
-            const available = item.stock 
-              ? Math.max(0, item.stock.quantityOnHand - item.stock.quantityReserved) 
+            const available = item.stock
+              ? Math.max(0, item.stock.quantityOnHand - item.stock.quantityReserved)
               : 0;
             const unitCost = item.stock?.unitCost ?? item.standardCost ?? 0;
             const totalValue = unitCost * (item.stock?.quantityOnHand ?? 0);
@@ -325,11 +348,19 @@ export function VirtualizedInventoryTable({
                   selectedItems.has(item.id) && "bg-primary/5"
                 )}
                 onClick={() => onRowClick?.(item)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRowClick?.(item); } }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onRowClick?.(item);
+                  }
+                }}
                 data-testid={`inventory-row-${item.id}`}
               >
                 {onSelectionChange && (
-                  <div className="px-2 flex items-center justify-center" style={{ width: 40, minWidth: 40 }}>
+                  <div
+                    className="px-2 flex items-center justify-center"
+                    style={{ width: 40, minWidth: 40 }}
+                  >
                     <Checkbox
                       checked={selectedItems.has(item.id)}
                       onCheckedChange={(checked) => {
@@ -340,7 +371,10 @@ export function VirtualizedInventoryTable({
                     />
                   </div>
                 )}
-                <div className="font-mono text-sm px-4 truncate" style={{ width: 120, minWidth: 120 }}>
+                <div
+                  className="font-mono text-sm px-4 truncate"
+                  style={{ width: 120, minWidth: 120 }}
+                >
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -356,18 +390,24 @@ export function VirtualizedInventoryTable({
                   <div className="flex flex-col">
                     <span className="font-medium truncate">{item.partName}</span>
                     {item.supplierName && (
-                      <span className="text-xs text-muted-foreground truncate">{item.supplierName}</span>
+                      <span className="text-xs text-muted-foreground truncate">
+                        {item.supplierName}
+                      </span>
                     )}
                   </div>
                 </div>
                 <div className="px-4" style={{ width: 120, minWidth: 120 }}>
-                  <Badge variant="outline" className="text-xs">{item.category}</Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {item.category}
+                  </Badge>
                 </div>
                 <div className="px-4 text-right font-medium" style={{ width: 100, minWidth: 100 }}>
-                  <span className={cn(
-                    status === "critical" || status === "out_of_stock" ? "text-destructive" : "",
-                    status === "low_stock" ? "text-yellow-600" : ""
-                  )}>
+                  <span
+                    className={cn(
+                      status === "critical" || status === "out_of_stock" ? "text-destructive" : "",
+                      status === "low_stock" ? "text-yellow-600" : ""
+                    )}
+                  >
                     {available}
                   </span>
                 </div>
@@ -385,13 +425,11 @@ export function VirtualizedInventoryTable({
                 </div>
                 <div className="px-4 flex items-center gap-1" style={{ width: 100, minWidth: 100 }}>
                   {getStatusBadge(status)}
-                  {(status === "critical" || status === "low_stock" || status === "out_of_stock") && (
+                  {(status === "critical" ||
+                    status === "low_stock" ||
+                    status === "out_of_stock") && (
                     <span onClick={(e) => e.stopPropagation()}>
-                      <QuickReorderButton
-                        part={item}
-                        variant="icon"
-                        onReorderCreated={() => {}}
-                      />
+                      <QuickReorderButton part={item} variant="icon" onReorderCreated={() => {}} />
                     </span>
                   )}
                 </div>

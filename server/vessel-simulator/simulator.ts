@@ -1,6 +1,6 @@
 /**
  * Vessel Telemetry Simulator Service
- * 
+ *
  * Main simulation engine for generating realistic marine vessel telemetry data.
  */
 
@@ -130,11 +130,17 @@ export class VesselSimulator {
         : undefined;
 
     const winchTension = signals.includes("winch_tension")
-      ? Math.max(0, cryptoRandom() < 0.1 ? 50 + 300 * cryptoRandom() : 5 + PhysicsEngine.randn(0, 3))
+      ? Math.max(
+          0,
+          cryptoRandom() < 0.1 ? 50 + 300 * cryptoRandom() : 5 + PhysicsEngine.randn(0, 3)
+        )
       : undefined;
 
     const towlineTension = signals.includes("towline_tension")
-      ? Math.max(0, cryptoRandom() < 0.08 ? 100 + 600 * cryptoRandom() : 8 + PhysicsEngine.randn(0, 5))
+      ? Math.max(
+          0,
+          cryptoRandom() < 0.08 ? 100 + 600 * cryptoRandom() : 8 + PhysicsEngine.randn(0, 5)
+        )
       : undefined;
 
     const cargoPumpPressure = signals.includes("cargo_pump_pressure")
@@ -162,7 +168,9 @@ export class VesselSimulator {
       : undefined;
 
     const dpStatus = signals.includes("dp_status")
-      ? thrusterLoad && thrusterLoad > 35 ? 1 : 0
+      ? thrusterLoad && thrusterLoad > 35
+        ? 1
+        : 0
       : undefined;
 
     const combinedLoad = PhysicsEngine.clamp(
@@ -175,11 +183,14 @@ export class VesselSimulator {
     const coolantTemp = PhysicsEngine.temperatureStep(state.coolantTemp, combinedLoad, 27, 150);
 
     const vibration_x =
-      PhysicsEngine.vibrationComponents(loadPercent, state.faultDrift) + PhysicsEngine.randn(0, 0.01);
+      PhysicsEngine.vibrationComponents(loadPercent, state.faultDrift) +
+      PhysicsEngine.randn(0, 0.01);
     const vibration_y =
-      PhysicsEngine.vibrationComponents(loadPercent, state.faultDrift) + PhysicsEngine.randn(0, 0.01);
+      PhysicsEngine.vibrationComponents(loadPercent, state.faultDrift) +
+      PhysicsEngine.randn(0, 0.01);
     const vibration_z =
-      PhysicsEngine.vibrationComponents(loadPercent, state.faultDrift) + PhysicsEngine.randn(0, 0.012);
+      PhysicsEngine.vibrationComponents(loadPercent, state.faultDrift) +
+      PhysicsEngine.randn(0, 0.012);
 
     const fuelRate = PhysicsEngine.clamp(20 + 0.15 * torque + PhysicsEngine.randn(0, 1.2), 10, 120);
     const imu = PhysicsEngine.seaState(t, preset.seaState);

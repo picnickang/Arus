@@ -12,12 +12,22 @@ export const hubSyncService = {
   },
 
   async getReplayHistory(deviceId?: string, endpoint?: string) {
-    const rows = await db.select().from(replayIncoming).orderBy(desc(replayIncoming.createdAt)).limit(100);
-    if (!deviceId && !endpoint) {return rows;}
+    const rows = await db
+      .select()
+      .from(replayIncoming)
+      .orderBy(desc(replayIncoming.createdAt))
+      .limit(100);
+    if (!deviceId && !endpoint) {
+      return rows;
+    }
     return rows.filter((row: Record<string, unknown>) => {
       const payload = row.payload as Record<string, unknown> | null;
-      if (deviceId && payload?.deviceId !== deviceId) {return false;}
-      if (endpoint && payload?.endpoint !== endpoint) {return false;}
+      if (deviceId && payload?.deviceId !== deviceId) {
+        return false;
+      }
+      if (endpoint && payload?.endpoint !== endpoint) {
+        return false;
+      }
       return true;
     });
   },
@@ -46,7 +56,9 @@ export const hubSyncService = {
     if (lock && lock.token !== token) {
       throw new Error(`Cannot release lock on ${sheetKey}: invalid token`);
     }
-    await db.execute(sql`DELETE FROM sheet_lock WHERE sheet_key = ${sheetKey} AND token = ${token}`);
+    await db.execute(
+      sql`DELETE FROM sheet_lock WHERE sheet_key = ${sheetKey} AND token = ${token}`
+    );
   },
 
   async getSheetLock(sheetKey: string) {
@@ -58,7 +70,9 @@ export const hubSyncService = {
 
   async isSheetLocked(sheetKey: string) {
     const lock = await this.getSheetLock(sheetKey);
-    if (!lock) {return false;}
+    if (!lock) {
+      return false;
+    }
     return new Date(lock.expires_at as string) > new Date();
   },
 
@@ -87,8 +101,8 @@ export const hubSyncService = {
   },
 
   async setSheetVersion(data: Record<string, unknown>) {
-    const sheetKey = data.sheetId as string || data.sheetKey as string;
-    const modifiedBy = data.lastModifiedBy as string || data.modifiedBy as string || '';
+    const sheetKey = (data.sheetId as string) || (data.sheetKey as string);
+    const modifiedBy = (data.lastModifiedBy as string) || (data.modifiedBy as string) || "";
     const version = data.version as number | undefined;
     if (version !== undefined) {
       const result = await db.execute(
@@ -118,28 +132,35 @@ export const hubSyncService = {
     return dbOptimizerStorage.getOptimizationResults(orgId);
   },
 
-  async runOptimization(configId: string, equipmentScope?: string[], timeHorizon?: number, orgId?: string) {
+  async runOptimization(
+    configId: string,
+    equipmentScope?: string[],
+    timeHorizon?: number,
+    orgId?: string
+  ) {
     const configs = await dbOptimizerStorage.getOptimizerConfigurations(orgId);
-    const matchedConfig = configs.find(c => c.id === configId);
+    const matchedConfig = configs.find((c) => c.id === configId);
     const resolvedOrgId = matchedConfig?.orgId || orgId;
     if (!resolvedOrgId) {
-      throw new Error("Cannot determine orgId for optimization run. Provide orgId or use a valid configId.");
+      throw new Error(
+        "Cannot determine orgId for optimization run. Provide orgId or use a valid configId."
+      );
     }
     return await dbOptimizerStorage.createOptimizationResult({
       configurationId: configId,
       orgId: resolvedOrgId,
-      runStatus: 'queued',
+      runStatus: "queued",
       equipmentScope: equipmentScope ? JSON.stringify(equipmentScope) : undefined,
       timeHorizon,
     });
   },
 
   async cancelOptimization(id: string) {
-    return dbOptimizerStorage.updateOptimizationResult(id, { runStatus: 'cancelled' });
+    return dbOptimizerStorage.updateOptimizationResult(id, { runStatus: "cancelled" });
   },
 
   async applyOptimizationToProduction(id: string) {
-    return dbOptimizerStorage.updateOptimizationResult(id, { runStatus: 'applied' });
+    return dbOptimizerStorage.updateOptimizationResult(id, { runStatus: "applied" });
   },
 
   async getOptimizationResult(id: string) {
@@ -166,6 +187,6 @@ export const hubSyncService = {
   },
 
   async deleteShiftTemplate(id: string, orgId?: string) {
-    return dbCrewStorage.deleteShiftTemplate(id, orgId || '');
+    return dbCrewStorage.deleteShiftTemplate(id, orgId || "");
   },
 };

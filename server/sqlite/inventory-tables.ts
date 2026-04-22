@@ -38,4 +38,3 @@ export function getInventoryIndexesSql(): SQL[] {
     sql`CREATE INDEX IF NOT EXISTS idx_reservations_work_order ON reservations(work_order_id)`,
   ];
 }
-

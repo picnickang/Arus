@@ -11,12 +11,7 @@ import {
   purchaseRequestEvents,
   stock,
 } from "@shared/schema";
-import type {
-  FulfillItemRequest,
-  FulfillmentResult,
-  FulfillmentStatus,
-  PRStatus,
-} from "./types";
+import type { FulfillItemRequest, FulfillmentResult, FulfillmentStatus, PRStatus } from "./types";
 import * as repository from "./repository";
 import { recordAndPublish } from "../sync-events";
 
@@ -74,7 +69,9 @@ export async function getInventoryByPartId(partId: string, orgId: string) {
     .select()
     .from(stock)
     .where(and(eq(stock.partId, partId), eq(stock.orgId, orgId)));
-  if (stockRows.length === 0) {return null;}
+  if (stockRows.length === 0) {
+    return null;
+  }
   return {
     ...stockRows[0],
     quantityOnHand: stockRows.reduce((s, r) => s + (r.quantityOnHand ?? 0), 0),
@@ -141,7 +138,9 @@ export async function fulfillItem(request: FulfillItemRequest): Promise<Fulfillm
       }
       let remaining = quantityToFulfill;
       for (const row of stockItems) {
-        if (remaining <= 0) {break;}
+        if (remaining <= 0) {
+          break;
+        }
         const onHand = Math.round(row.quantityOnHand ?? 0);
         const toDeduct = Math.min(remaining, onHand);
         if (toDeduct > 0) {
@@ -190,7 +189,8 @@ export async function fulfillItem(request: FulfillItemRequest): Promise<Fulfillm
         partId,
         "update",
         {
-          partId, orgId,
+          partId,
+          orgId,
           action: "fulfillment_decrement",
           quantityDeducted: quantityToFulfill,
           newStockLevel,
@@ -226,7 +226,9 @@ export async function updatePRStatus(
   userId?: string
 ): Promise<{ success: boolean; pr?: any; error?: string }> {
   const pr = await repository.getPurchaseRequestById(prId, orgId);
-  if (!pr) { return { success: false, error: "Purchase request not found" }; }
+  if (!pr) {
+    return { success: false, error: "Purchase request not found" };
+  }
 
   const currentStatus = pr.status as PRStatus;
   if (!validateStatusTransition(currentStatus, newStatus)) {
@@ -237,7 +239,9 @@ export async function updatePRStatus(
   }
 
   const updateData: Record<string, unknown> = { status: newStatus };
-  if (newStatus === "closed") { updateData.closedAt = new Date(); }
+  if (newStatus === "closed") {
+    updateData.closedAt = new Date();
+  }
 
   const updatedPR = await repository.updatePurchaseRequest(prId, orgId, updateData as any);
 
@@ -268,22 +272,24 @@ export async function deletePurchaseRequest(
   userId?: string
 ): Promise<{ success: boolean; error?: string }> {
   const pr = await repository.getPurchaseRequestById(prId, orgId);
-  if (!pr) { return { success: false, error: "Purchase request not found" }; }
+  if (!pr) {
+    return { success: false, error: "Purchase request not found" };
+  }
 
   const status = pr.status as PRStatus;
   if (status !== "draft" && status !== "cancelled") {
     return { success: false, error: "Only draft or cancelled requests can be deleted" };
   }
 
-  await db.delete(purchaseRequestEvents).where(
-    and(eq(purchaseRequestEvents.prId, prId), eq(purchaseRequestEvents.orgId, orgId))
-  );
-  await db.delete(purchaseRequestItems).where(
-    and(eq(purchaseRequestItems.prId, prId), eq(purchaseRequestItems.orgId, orgId))
-  );
-  await db.delete(purchaseRequests).where(
-    and(eq(purchaseRequests.id, prId), eq(purchaseRequests.orgId, orgId))
-  );
+  await db
+    .delete(purchaseRequestEvents)
+    .where(and(eq(purchaseRequestEvents.prId, prId), eq(purchaseRequestEvents.orgId, orgId)));
+  await db
+    .delete(purchaseRequestItems)
+    .where(and(eq(purchaseRequestItems.prId, prId), eq(purchaseRequestItems.orgId, orgId)));
+  await db
+    .delete(purchaseRequests)
+    .where(and(eq(purchaseRequests.id, prId), eq(purchaseRequests.orgId, orgId)));
 
   return { success: true };
 }
@@ -303,7 +309,9 @@ export async function deleteAllPurchaseRequestsByWorkOrder(
       deletedCount++;
     } else {
       skippedCount++;
-      if (result.error) { errors.push(`${pr.requestNumber}: ${result.error}`); }
+      if (result.error) {
+        errors.push(`${pr.requestNumber}: ${result.error}`);
+      }
     }
   }
 

@@ -1,6 +1,6 @@
 /**
  * Weibull RUL (Remaining Useful Life) Analysis
- * 
+ *
  * Statistical reliability analysis using Weibull distribution.
  */
 

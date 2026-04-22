@@ -6,7 +6,10 @@ export interface WizardState {
   currentStep: WizardStep;
   selectedBundleId?: string;
   customSensorSelections?: string[];
-  thresholds?: Record<string, { warnHi?: number; warnLo?: number; critHi?: number; critLo?: number }>;
+  thresholds?: Record<
+    string,
+    { warnHi?: number; warnLo?: number; critHi?: number; critLo?: number }
+  >;
 }
 
 export interface SensorSetupWizardProps {

@@ -12,26 +12,26 @@ export interface DragState {
 
 export function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
-  
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
-  
+
   return isMobile;
 }
 
 export const ROLE_COLORS: Record<string, string> = {
-  "Master": "bg-blue-500",
+  Master: "bg-blue-500",
   "Chief Engineer": "bg-purple-500",
   "First Mate": "bg-sky-500",
-  "Engineer": "bg-violet-500",
+  Engineer: "bg-violet-500",
   "Deck Cadet": "bg-teal-500",
-  "Cook": "bg-orange-500",
-  "Steward": "bg-pink-500",
-  "default": "bg-slate-500",
+  Cook: "bg-orange-500",
+  Steward: "bg-pink-500",
+  default: "bg-slate-500",
 };
 
 export function getRoleColor(role: string): string {
@@ -40,10 +40,14 @@ export function getRoleColor(role: string): string {
 
 export function getStatusBadge(status: ScheduleAssignment["status"]) {
   switch (status) {
-    case "draft": return { label: "Draft", variant: "secondary" as const };
-    case "confirmed": return { label: "Confirmed", variant: "default" as const };
-    case "published": return { label: "Published", variant: "default" as const };
-    default: return { label: status, variant: "outline" as const };
+    case "draft":
+      return { label: "Draft", variant: "secondary" as const };
+    case "confirmed":
+      return { label: "Confirmed", variant: "default" as const };
+    case "published":
+      return { label: "Published", variant: "default" as const };
+    default:
+      return { label: status, variant: "outline" as const };
   }
 }
 

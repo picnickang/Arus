@@ -86,9 +86,7 @@ const MemoizedCard = memo(function MemoizedCard<T>({
               </span>
             </div>
           ))}
-          {actions && (
-            <div className="flex justify-end gap-2 pt-2 border-t">{actions(item)}</div>
-          )}
+          {actions && <div className="flex justify-end gap-2 pt-2 border-t">{actions(item)}</div>}
         </div>
       </CardContent>
     </Card>
@@ -111,16 +109,19 @@ export function ResponsiveTable<T>({
   onSort,
 }: ResponsiveTableProps<T>) {
   // Memoize sort icon helper to prevent unnecessary re-renders
-  const getSortIcon = useCallback((columnSortKey: string) => {
-    if (sortColumn !== columnSortKey) {
-      return <ArrowUpDown className="h-4 w-4 ml-2 opacity-50" />;
-    }
-    return sortDirection === "asc" ? (
-      <ArrowUp className="h-4 w-4 ml-2" />
-    ) : (
-      <ArrowDown className="h-4 w-4 ml-2" />
-    );
-  }, [sortColumn, sortDirection]);
+  const getSortIcon = useCallback(
+    (columnSortKey: string) => {
+      if (sortColumn !== columnSortKey) {
+        return <ArrowUpDown className="h-4 w-4 ml-2 opacity-50" />;
+      }
+      return sortDirection === "asc" ? (
+        <ArrowUp className="h-4 w-4 ml-2" />
+      ) : (
+        <ArrowDown className="h-4 w-4 ml-2" />
+      );
+    },
+    [sortColumn, sortDirection]
+  );
 
   if (data.length === 0) {
     return <div className="text-center py-8 text-muted-foreground">{emptyMessage}</div>;

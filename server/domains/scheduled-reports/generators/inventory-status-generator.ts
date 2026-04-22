@@ -3,19 +3,15 @@
  * Generates inventory and low stock report
  */
 
-import { vesselService, dbInventoryStorage } from '../../../repositories';
-import type { IInventoryStatusGenerator } from '../domain/ports.js';
-import type {
-  InventoryStatusData,
-  LowStockItem,
-  VesselInventorySummary,
-} from '../domain/types.js';
-import { logger } from '../../../utils/logger.js';
+import { vesselService, dbInventoryStorage } from "../../../repositories";
+import type { IInventoryStatusGenerator } from "../domain/ports.js";
+import type { InventoryStatusData, LowStockItem, VesselInventorySummary } from "../domain/types.js";
+import { logger } from "../../../utils/logger.js";
 
-const LOG_CTX = 'InventoryStatusGenerator';
+const LOG_CTX = "InventoryStatusGenerator";
 
 export class InventoryStatusGenerator implements IInventoryStatusGenerator {
-  readonly reportType = 'inventory_status' as const;
+  readonly reportType = "inventory_status" as const;
 
   async generate(orgId: string, vesselIds: string[] | null): Promise<InventoryStatusData> {
     logger.info(LOG_CTX, `Generating inventory status report for org ${orgId}`);
@@ -33,7 +29,7 @@ export class InventoryStatusGenerator implements IInventoryStatusGenerator {
         vesselBreakdown,
       };
     } catch (error) {
-      logger.error(LOG_CTX, 'Failed to generate inventory status report', String(error));
+      logger.error(LOG_CTX, "Failed to generate inventory status report", String(error));
       return {
         lowStockItems: [],
         reorderRequired: 0,
@@ -66,7 +62,7 @@ export class InventoryStatusGenerator implements IInventoryStatusGenerator {
             lowStockItems.push({
               partId: item.id,
               partName: item.name,
-              partNumber: item.partNumber || 'N/A',
+              partNumber: item.partNumber || "N/A",
               currentQuantity: currentQty,
               minimumQuantity: minQty,
               vesselName: vessel.name,
@@ -82,7 +78,7 @@ export class InventoryStatusGenerator implements IInventoryStatusGenerator {
         return aRatio - bRatio;
       });
     } catch (error) {
-      logger.error(LOG_CTX, 'Failed to get low stock items', String(error));
+      logger.error(LOG_CTX, "Failed to get low stock items", String(error));
       return [];
     }
   }
@@ -126,7 +122,7 @@ export class InventoryStatusGenerator implements IInventoryStatusGenerator {
 
       return summaries;
     } catch (error) {
-      logger.error(LOG_CTX, 'Failed to get vessel breakdown', String(error));
+      logger.error(LOG_CTX, "Failed to get vessel breakdown", String(error));
       return [];
     }
   }

@@ -40,7 +40,9 @@ const timeout = setTimeout(() => {
 function finish(code, message) {
   resolved = true;
   clearTimeout(timeout);
-  try { child.kill("SIGTERM"); } catch {}
+  try {
+    child.kill("SIGTERM");
+  } catch {}
   if (message) console.log(message);
   process.exit(code);
 }
@@ -58,7 +60,9 @@ function check() {
     errors.push(`Module count mismatch: expected ${EXPECTED_MODULES}, got ${actual}.`);
   }
   if (failedRegs !== 0) {
-    errors.push(`Found ${failedRegs} "Failed to register" line(s) — a dynamic-import target is missing.`);
+    errors.push(
+      `Found ${failedRegs} "Failed to register" line(s) — a dynamic-import target is missing.`
+    );
     const failLines = output.split("\n").filter((l) => l.includes("Failed to register"));
     for (const line of failLines) errors.push(`  ${line.trim()}`);
   }
@@ -70,11 +74,20 @@ function check() {
   }
 }
 
-child.stdout.on("data", (d) => { output += d.toString(); check(); });
-child.stderr.on("data", (d) => { output += d.toString(); check(); });
+child.stdout.on("data", (d) => {
+  output += d.toString();
+  check();
+});
+child.stderr.on("data", (d) => {
+  output += d.toString();
+  check();
+});
 
 child.on("exit", (code) => {
   if (!resolved) {
-    finish(1, `Process exited (code=${code}) before reaching boot-complete state.\n--- last output ---\n${output.slice(-2000)}`);
+    finish(
+      1,
+      `Process exited (code=${code}) before reaching boot-complete state.\n--- last output ---\n${output.slice(-2000)}`
+    );
   }
 });

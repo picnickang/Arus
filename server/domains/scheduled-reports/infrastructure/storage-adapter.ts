@@ -3,25 +3,27 @@
  * File system storage for generated reports
  */
 
-import fs from 'fs/promises';
-import path from 'path';
-import type { IReportStorageAdapter } from '../domain/ports.js';
-import { logger } from '../../../utils/logger.js';
+import fs from "fs/promises";
+import path from "path";
+import type { IReportStorageAdapter } from "../domain/ports.js";
+import { logger } from "../../../utils/logger.js";
 
-const LOG_CTX = 'ReportStorageAdapter';
-const REPORTS_DIR = path.join(process.cwd(), 'data', 'reports');
+const LOG_CTX = "ReportStorageAdapter";
+const REPORTS_DIR = path.join(process.cwd(), "data", "reports");
 
 export class ReportStorageAdapter implements IReportStorageAdapter {
   private initialized = false;
 
   private async ensureDirectory(): Promise<void> {
-    if (this.initialized) {return;}
+    if (this.initialized) {
+      return;
+    }
 
     try {
       await fs.mkdir(REPORTS_DIR, { recursive: true });
       this.initialized = true;
     } catch (error) {
-      logger.error(LOG_CTX, 'Failed to create reports directory', String(error));
+      logger.error(LOG_CTX, "Failed to create reports directory", String(error));
       throw error;
     }
   }
@@ -50,7 +52,7 @@ export class ReportStorageAdapter implements IReportStorageAdapter {
       await fs.unlink(filePath);
       logger.info(LOG_CTX, `Deleted report: ${filePath}`);
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
         logger.error(LOG_CTX, `Failed to delete report: ${filePath}`, String(error));
       }
     }

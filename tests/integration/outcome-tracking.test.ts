@@ -27,7 +27,9 @@ async function createSuggestion(overrides: Record<string, unknown> = {}) {
     status: "pending",
     ...overrides,
   });
-  if (status !== 201) {throw new Error(`Failed to create suggestion: ${status} ${JSON.stringify(data)}`);}
+  if (status !== 201) {
+    throw new Error(`Failed to create suggestion: ${status} ${JSON.stringify(data)}`);
+  }
   return data;
 }
 
@@ -78,10 +80,14 @@ describe("Outcome Tracking API", () => {
 
   describe("POST /api/agent/suggestions/:id/dismiss", () => {
     it("records outcome with category and reason", async () => {
-      const { status, data } = await api("POST", `/api/agent/suggestions/${suggestionIds[1]}/dismiss`, {
-        outcome: "false_alarm",
-        outcomeReason: "Sensor was miscalibrated",
-      });
+      const { status, data } = await api(
+        "POST",
+        `/api/agent/suggestions/${suggestionIds[1]}/dismiss`,
+        {
+          outcome: "false_alarm",
+          outcomeReason: "Sensor was miscalibrated",
+        }
+      );
 
       expect(status).toBe(200);
       expect(data.status).toBe("dismissed");
@@ -102,9 +108,13 @@ describe("Outcome Tracking API", () => {
 
   describe("POST /api/agent/suggestions/:id/defer", () => {
     it("creates deferred status", async () => {
-      const { status, data } = await api("POST", `/api/agent/suggestions/${suggestionIds[2]}/defer`, {
-        outcomeReason: "Will review next week",
-      });
+      const { status, data } = await api(
+        "POST",
+        `/api/agent/suggestions/${suggestionIds[2]}/defer`,
+        {
+          outcomeReason: "Will review next week",
+        }
+      );
 
       expect(status).toBe(200);
       expect(data.status).toBe("deferred");
@@ -148,7 +158,9 @@ describe("Outcome Tracking API", () => {
     it("rejects re-acting on already acted suggestion", async () => {
       const fresh = await createSuggestion();
       await api("POST", `/api/agent/suggestions/${fresh.id}/act`, { outcome: "useful" });
-      const { status, data } = await api("POST", `/api/agent/suggestions/${fresh.id}/act`, { outcome: "useful" });
+      const { status, data } = await api("POST", `/api/agent/suggestions/${fresh.id}/act`, {
+        outcome: "useful",
+      });
       expect(status).toBe(500);
       expect(data.error).toContain("Cannot transition");
     });
@@ -156,7 +168,9 @@ describe("Outcome Tracking API", () => {
     it("rejects dismissing already dismissed suggestion", async () => {
       const fresh = await createSuggestion();
       await api("POST", `/api/agent/suggestions/${fresh.id}/dismiss`, { outcome: "not_relevant" });
-      const { status, data } = await api("POST", `/api/agent/suggestions/${fresh.id}/dismiss`, { outcome: "not_relevant" });
+      const { status, data } = await api("POST", `/api/agent/suggestions/${fresh.id}/dismiss`, {
+        outcome: "not_relevant",
+      });
       expect(status).toBe(500);
       expect(data.error).toContain("Cannot transition");
     });

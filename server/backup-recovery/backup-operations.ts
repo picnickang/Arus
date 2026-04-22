@@ -6,7 +6,13 @@ import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import { BACKUP_CONFIG, type BackupMetadata, type BackupResult } from "./types";
 import { executePgDump } from "./pg-dump-executor";
-import { generateBackupId, determineRetentionType, getDatabaseVersion, calculateFileChecksum, formatBytes } from "./utils";
+import {
+  generateBackupId,
+  determineRetentionType,
+  getDatabaseVersion,
+  calculateFileChecksum,
+  formatBytes,
+} from "./utils";
 import { storeBackupMetadata } from "./metadata-store";
 
 export async function createFullBackup(): Promise<BackupResult> {

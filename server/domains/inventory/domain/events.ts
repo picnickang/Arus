@@ -3,23 +3,23 @@
  * Typed discriminated unions for event-driven architecture
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
 export type InventoryEventType =
-  | 'PartCreated'
-  | 'PartUpdated'
-  | 'PartDeleted'
-  | 'InventoryItemCreated'
-  | 'InventoryItemUpdated'
-  | 'InventoryItemDeleted'
-  | 'StockMovementRecorded'
-  | 'LowStockDetected'
-  | 'StockReplenished';
+  | "PartCreated"
+  | "PartUpdated"
+  | "PartDeleted"
+  | "InventoryItemCreated"
+  | "InventoryItemUpdated"
+  | "InventoryItemDeleted"
+  | "StockMovementRecorded"
+  | "LowStockDetected"
+  | "StockReplenished";
 
 interface BaseInventoryEvent {
   eventId: string;
   aggregateId: string;
-  aggregateType: 'Part' | 'PartsInventory' | 'StockMovement';
+  aggregateType: "Part" | "PartsInventory" | "StockMovement";
   occurredAt: Date;
   userId?: string;
   orgId: string;
@@ -27,7 +27,7 @@ interface BaseInventoryEvent {
 }
 
 export interface PartCreatedEvent extends BaseInventoryEvent {
-  eventType: 'PartCreated';
+  eventType: "PartCreated";
   payload: {
     partNo: string;
     description: string;
@@ -37,7 +37,7 @@ export interface PartCreatedEvent extends BaseInventoryEvent {
 }
 
 export interface PartUpdatedEvent extends BaseInventoryEvent {
-  eventType: 'PartUpdated';
+  eventType: "PartUpdated";
   payload: {
     changedFields: string[];
     previousState: Record<string, unknown>;
@@ -46,7 +46,7 @@ export interface PartUpdatedEvent extends BaseInventoryEvent {
 }
 
 export interface PartDeletedEvent extends BaseInventoryEvent {
-  eventType: 'PartDeleted';
+  eventType: "PartDeleted";
   payload: {
     partNo: string;
     description: string;
@@ -54,7 +54,7 @@ export interface PartDeletedEvent extends BaseInventoryEvent {
 }
 
 export interface InventoryItemCreatedEvent extends BaseInventoryEvent {
-  eventType: 'InventoryItemCreated';
+  eventType: "InventoryItemCreated";
   payload: {
     partNo: string;
     name: string;
@@ -65,7 +65,7 @@ export interface InventoryItemCreatedEvent extends BaseInventoryEvent {
 }
 
 export interface InventoryItemUpdatedEvent extends BaseInventoryEvent {
-  eventType: 'InventoryItemUpdated';
+  eventType: "InventoryItemUpdated";
   payload: {
     changedFields: string[];
     previousState: Record<string, unknown>;
@@ -74,7 +74,7 @@ export interface InventoryItemUpdatedEvent extends BaseInventoryEvent {
 }
 
 export interface InventoryItemDeletedEvent extends BaseInventoryEvent {
-  eventType: 'InventoryItemDeleted';
+  eventType: "InventoryItemDeleted";
   payload: {
     partNo: string;
     name: string;
@@ -82,10 +82,10 @@ export interface InventoryItemDeletedEvent extends BaseInventoryEvent {
 }
 
 export interface StockMovementRecordedEvent extends BaseInventoryEvent {
-  eventType: 'StockMovementRecorded';
+  eventType: "StockMovementRecorded";
   payload: {
     inventoryId: string;
-    movementType: 'in' | 'out' | 'adjustment' | 'transfer';
+    movementType: "in" | "out" | "adjustment" | "transfer";
     quantity: number;
     previousQuantity: number;
     newQuantity: number;
@@ -94,7 +94,7 @@ export interface StockMovementRecordedEvent extends BaseInventoryEvent {
 }
 
 export interface LowStockDetectedEvent extends BaseInventoryEvent {
-  eventType: 'LowStockDetected';
+  eventType: "LowStockDetected";
   payload: {
     partNo: string;
     currentQuantity: number;
@@ -104,7 +104,7 @@ export interface LowStockDetectedEvent extends BaseInventoryEvent {
 }
 
 export interface StockReplenishedEvent extends BaseInventoryEvent {
-  eventType: 'StockReplenished';
+  eventType: "StockReplenished";
   payload: {
     partNo: string;
     previousQuantity: number;

@@ -55,7 +55,9 @@ export function EquipmentReinstateDialog({
   });
 
   const handleSubmit = () => {
-    if (!equipment) {return;}
+    if (!equipment) {
+      return;
+    }
     reinstateMutation.mutate({ notes });
   };
 
@@ -64,7 +66,9 @@ export function EquipmentReinstateDialog({
     onOpenChange(false);
   };
 
-  if (!equipment) {return null;}
+  if (!equipment) {
+    return null;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -85,7 +89,10 @@ export function EquipmentReinstateDialog({
             <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-green-800 dark:text-green-200">
               <p className="font-medium">Reinstatement</p>
-              <p>This equipment was previously decommissioned. Reinstating will return it to active operations.</p>
+              <p>
+                This equipment was previously decommissioned. Reinstating will return it to active
+                operations.
+              </p>
             </div>
           </div>
 

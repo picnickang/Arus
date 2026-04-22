@@ -17,7 +17,10 @@ export interface SupplierPerformanceSummaryDTO {
 const CACHE_TTL = 5 * 60 * 1000;
 const cache = new Map<string, { data: SupplierPerformanceSummaryDTO[]; expiresAt: number }>();
 
-async function buildDeliveryHistory(orgId: string, supplierMap: Map<string, number>): Promise<DeliveryHistoryRecord[]> {
+async function buildDeliveryHistory(
+  orgId: string,
+  supplierMap: Map<string, number>
+): Promise<DeliveryHistoryRecord[]> {
   const receivedOrders = await db
     .select({
       supplierId: purchaseOrders.supplierId,
@@ -45,7 +48,9 @@ async function buildDeliveryHistory(orgId: string, supplierMap: Map<string, numb
     }));
 }
 
-export async function getSupplierPerformanceSummaries(orgId: string): Promise<SupplierPerformanceSummaryDTO[]> {
+export async function getSupplierPerformanceSummaries(
+  orgId: string
+): Promise<SupplierPerformanceSummaryDTO[]> {
   const cached = cache.get(orgId);
   if (cached && Date.now() < cached.expiresAt) {
     return cached.data;
@@ -54,12 +59,8 @@ export async function getSupplierPerformanceSummaries(orgId: string): Promise<Su
   const activeSuppliers = await db
     .select()
     .from(suppliers)
-    .where(and(eq(suppliers.orgId, orgId), eq(suppliers.isActive, true)))
-;
-
-  const supplierQualityMap = new Map(
-    activeSuppliers.map((s) => [s.id, s.qualityRating ?? 0])
-  );
+    .where(and(eq(suppliers.orgId, orgId), eq(suppliers.isActive, true)));
+  const supplierQualityMap = new Map(activeSuppliers.map((s) => [s.id, s.qualityRating ?? 0]));
 
   const deliveryHistory = await buildDeliveryHistory(orgId, supplierQualityMap);
 

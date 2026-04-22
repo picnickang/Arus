@@ -5,10 +5,30 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Ship, Power, Edit, Trash2, UserCheck, Award, UserX, User, Bell, History, FileText } from "lucide-react";
+import {
+  Users,
+  Ship,
+  Power,
+  Edit,
+  Trash2,
+  UserCheck,
+  Award,
+  UserX,
+  User,
+  Bell,
+  History,
+  FileText,
+} from "lucide-react";
 import { CrewDocumentsTab } from "@/components/CrewDocumentsTab";
 import { CrewNotificationSettingsTab } from "@/components/CrewNotificationSettingsTab";
-import { useEmploymentHistory, useUpdateEmploymentHistory, useDeleteEmploymentHistory, formatRank, type EmploymentHistoryRecord, type UpdateEmploymentHistoryInput } from "@/features/crew";
+import {
+  useEmploymentHistory,
+  useUpdateEmploymentHistory,
+  useDeleteEmploymentHistory,
+  formatRank,
+  type EmploymentHistoryRecord,
+  type UpdateEmploymentHistoryInput,
+} from "@/features/crew";
 import { format } from "date-fns";
 
 interface EmploymentHistoryPanelProps {
@@ -33,12 +53,21 @@ export function EmploymentHistoryPanel({ crewId }: EmploymentHistoryPanelProps) 
   };
 
   const handleSaveEdit = () => {
-    if (!editingRecord) {return;}
+    if (!editingRecord) {
+      return;
+    }
     const data: UpdateEmploymentHistoryInput = {};
-    if (editStartDate) {data.startDate = new Date(editStartDate).toISOString();}
-    if (editEndDate) {data.endDate = new Date(editEndDate).toISOString();}
+    if (editStartDate) {
+      data.startDate = new Date(editStartDate).toISOString();
+    }
+    if (editEndDate) {
+      data.endDate = new Date(editEndDate).toISOString();
+    }
     data.terminationNotes = editNotes;
-    updateMutation.mutate({ historyId: editingRecord.id, data }, { onSuccess: () => setEditingRecord(null) });
+    updateMutation.mutate(
+      { historyId: editingRecord.id, data },
+      { onSuccess: () => setEditingRecord(null) }
+    );
   };
 
   const handleDelete = (id: string) => {
@@ -50,7 +79,9 @@ export function EmploymentHistoryPanel({ crewId }: EmploymentHistoryPanelProps) 
   }
 
   if (history.length === 0) {
-    return <div className="py-4 text-center text-muted-foreground">No employment history records</div>;
+    return (
+      <div className="py-4 text-center text-muted-foreground">No employment history records</div>
+    );
   }
 
   return (
@@ -63,50 +94,113 @@ export function EmploymentHistoryPanel({ crewId }: EmploymentHistoryPanelProps) 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-sm font-medium">Start Date</label>
-                    <Input type="date" value={editStartDate} onChange={(e) => setEditStartDate(e.target.value)} data-testid="input-edit-start-date" />
+                    <Input
+                      type="date"
+                      value={editStartDate}
+                      onChange={(e) => setEditStartDate(e.target.value)}
+                      data-testid="input-edit-start-date"
+                    />
                   </div>
                   <div>
                     <label className="text-sm font-medium">End Date</label>
-                    <Input type="date" value={editEndDate} onChange={(e) => setEditEndDate(e.target.value)} data-testid="input-edit-end-date" />
+                    <Input
+                      type="date"
+                      value={editEndDate}
+                      onChange={(e) => setEditEndDate(e.target.value)}
+                      data-testid="input-edit-end-date"
+                    />
                   </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium">Notes</label>
-                  <Textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Notes about this period" data-testid="input-edit-notes" />
+                  <Textarea
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    placeholder="Notes about this period"
+                    data-testid="input-edit-notes"
+                  />
                 </div>
                 <div className="flex gap-2 justify-end">
-                  <Button variant="outline" size="sm" onClick={() => setEditingRecord(null)} data-testid="button-cancel-edit">Cancel</Button>
-                  <Button size="sm" onClick={handleSaveEdit} disabled={updateMutation.isPending} data-testid="button-save-edit">{updateMutation.isPending ? "Saving..." : "Save"}</Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditingRecord(null)}
+                    data-testid="button-cancel-edit"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleSaveEdit}
+                    disabled={updateMutation.isPending}
+                    data-testid="button-save-edit"
+                  >
+                    {updateMutation.isPending ? "Saving..." : "Save"}
+                  </Button>
                 </div>
               </div>
             ) : (
               <div className="flex items-start justify-between gap-2">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <Badge variant={record.terminationType === "retired" ? "secondary" : "destructive"}>
+                    <Badge
+                      variant={record.terminationType === "retired" ? "secondary" : "destructive"}
+                    >
                       {record.terminationType === "retired" ? "Retired" : "Contract Cancelled"}
                     </Badge>
                     {record.rank && <Badge variant="outline">{formatRank(record.rank)}</Badge>}
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(record.startDate), "MMM d, yyyy")} - {record.endDate ? format(new Date(record.endDate), "MMM d, yyyy") : "Present"}
+                    {format(new Date(record.startDate), "MMM d, yyyy")} -{" "}
+                    {record.endDate ? format(new Date(record.endDate), "MMM d, yyyy") : "Present"}
                   </p>
                   {record.terminationNotes && (
                     <p className="text-sm mt-1">{record.terminationNotes}</p>
                   )}
                   {record.contractPenalty && (
-                    <p className="text-sm text-destructive">Penalty: ${record.contractPenalty.toFixed(2)}</p>
+                    <p className="text-sm text-destructive">
+                      Penalty: ${record.contractPenalty.toFixed(2)}
+                    </p>
                   )}
                 </div>
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" onClick={() => handleEditClick(record)} data-testid={`button-edit-period-${record.id}`}><Edit className="h-4 w-4" /></Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEditClick(record)}
+                    data-testid={`button-edit-period-${record.id}`}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
                   {deleteConfirmId === record.id ? (
                     <div className="flex gap-1">
-                      <Button variant="destructive" size="sm" onClick={() => handleDelete(record.id)} disabled={deleteMutation.isPending} data-testid={`button-confirm-delete-${record.id}`}>{deleteMutation.isPending ? "..." : "Yes"}</Button>
-                      <Button variant="outline" size="sm" onClick={() => setDeleteConfirmId(null)} data-testid={`button-cancel-delete-${record.id}`}>No</Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(record.id)}
+                        disabled={deleteMutation.isPending}
+                        data-testid={`button-confirm-delete-${record.id}`}
+                      >
+                        {deleteMutation.isPending ? "..." : "Yes"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDeleteConfirmId(null)}
+                        data-testid={`button-cancel-delete-${record.id}`}
+                      >
+                        No
+                      </Button>
                     </div>
                   ) : (
-                    <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(record.id)} data-testid={`button-delete-period-${record.id}`}><Trash2 className="h-4 w-4" /></Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setDeleteConfirmId(record.id)}
+                      data-testid={`button-delete-period-${record.id}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   )}
                 </div>
               </div>
@@ -137,7 +231,9 @@ export function ActiveCrewStats({ stats }: ActiveCrewStatsProps) {
         <CardContent className="pt-6">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-blue-600" />
-            <div className="text-2xl font-bold text-blue-600" data-testid="stat-total-crew">{stats.totalCrew}</div>
+            <div className="text-2xl font-bold text-blue-600" data-testid="stat-total-crew">
+              {stats.totalCrew}
+            </div>
           </div>
           <p className="text-sm text-muted-foreground mt-1">Total Crew</p>
         </CardContent>
@@ -146,7 +242,9 @@ export function ActiveCrewStats({ stats }: ActiveCrewStatsProps) {
         <CardContent className="pt-6">
           <div className="flex items-center gap-2">
             <UserCheck className="h-4 w-4 text-green-600" />
-            <div className="text-2xl font-bold text-green-600" data-testid="stat-active-crew">{stats.activeCrew}</div>
+            <div className="text-2xl font-bold text-green-600" data-testid="stat-active-crew">
+              {stats.activeCrew}
+            </div>
           </div>
           <p className="text-sm text-muted-foreground mt-1">Active</p>
         </CardContent>
@@ -155,7 +253,9 @@ export function ActiveCrewStats({ stats }: ActiveCrewStatsProps) {
         <CardContent className="pt-6">
           <div className="flex items-center gap-2">
             <Power className="h-4 w-4 text-orange-600" />
-            <div className="text-2xl font-bold text-orange-600" data-testid="stat-on-duty-crew">{stats.onDutyCrew}</div>
+            <div className="text-2xl font-bold text-orange-600" data-testid="stat-on-duty-crew">
+              {stats.onDutyCrew}
+            </div>
           </div>
           <p className="text-sm text-muted-foreground mt-1">On Duty</p>
         </CardContent>
@@ -164,7 +264,9 @@ export function ActiveCrewStats({ stats }: ActiveCrewStatsProps) {
         <CardContent className="pt-6">
           <div className="flex items-center gap-2">
             <Ship className="h-4 w-4 text-purple-600" />
-            <div className="text-2xl font-bold text-purple-600" data-testid="stat-vessels">{stats.uniqueVessels}</div>
+            <div className="text-2xl font-bold text-purple-600" data-testid="stat-vessels">
+              {stats.uniqueVessels}
+            </div>
           </div>
           <p className="text-sm text-muted-foreground mt-1">Vessels</p>
         </CardContent>
@@ -173,7 +275,9 @@ export function ActiveCrewStats({ stats }: ActiveCrewStatsProps) {
         <CardContent className="pt-6">
           <div className="flex items-center gap-2">
             <Award className="h-4 w-4 text-teal-600" />
-            <div className="text-2xl font-bold text-teal-600" data-testid="stat-skills">{stats.uniqueSkills}</div>
+            <div className="text-2xl font-bold text-teal-600" data-testid="stat-skills">
+              {stats.uniqueSkills}
+            </div>
           </div>
           <p className="text-sm text-muted-foreground mt-1">Unique Skills</p>
         </CardContent>
@@ -193,7 +297,9 @@ export function FormerCrewStats({ count }: FormerCrewStatsProps) {
         <CardContent className="pt-6">
           <div className="flex items-center gap-2">
             <UserX className="h-4 w-4 text-muted-foreground" />
-            <div className="text-2xl font-bold" data-testid="stat-former-crew">{count}</div>
+            <div className="text-2xl font-bold" data-testid="stat-former-crew">
+              {count}
+            </div>
           </div>
           <p className="text-sm text-muted-foreground mt-1">Former Crew</p>
         </CardContent>
@@ -239,16 +345,20 @@ export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentPr
     <Tabs defaultValue="details">
       <TabsList className="w-full">
         <TabsTrigger value="details" data-testid="tab-crew-details">
-          <User className="h-4 w-4 mr-2" />Details
+          <User className="h-4 w-4 mr-2" />
+          Details
         </TabsTrigger>
         <TabsTrigger value="history" data-testid="tab-crew-history">
-          <History className="h-4 w-4 mr-2" />History
+          <History className="h-4 w-4 mr-2" />
+          History
         </TabsTrigger>
         <TabsTrigger value="documents" data-testid="tab-crew-documents">
-          <FileText className="h-4 w-4 mr-2" />Docs & Certs
+          <FileText className="h-4 w-4 mr-2" />
+          Docs & Certs
         </TabsTrigger>
         <TabsTrigger value="notifications" data-testid="tab-crew-notifications">
-          <Bell className="h-4 w-4 mr-2" />Alerts
+          <Bell className="h-4 w-4 mr-2" />
+          Alerts
         </TabsTrigger>
       </TabsList>
       <TabsContent value="details" className="mt-4 space-y-4">
@@ -259,7 +369,9 @@ export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentPr
           </div>
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">Vessel</p>
-            <p className="font-medium">{vessels.find((v) => v.id === crew.vesselId)?.name || "Unassigned"}</p>
+            <p className="font-medium">
+              {vessels.find((v) => v.id === crew.vesselId)?.name || "Unassigned"}
+            </p>
           </div>
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">Status</p>
@@ -294,15 +406,21 @@ export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentPr
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">Email</p>
-              <p className="font-medium" data-testid="text-crew-email">{crew.email || "Not set"}</p>
+              <p className="font-medium" data-testid="text-crew-email">
+                {crew.email || "Not set"}
+              </p>
             </div>
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">Phone</p>
-              <p className="font-medium" data-testid="text-crew-phone">{crew.phone || "Not set"}</p>
+              <p className="font-medium" data-testid="text-crew-phone">
+                {crew.phone || "Not set"}
+              </p>
             </div>
             <div className="space-y-1 col-span-2">
               <p className="text-sm text-muted-foreground">Address</p>
-              <p className="font-medium" data-testid="text-crew-address">{crew.address || "Not set"}</p>
+              <p className="font-medium" data-testid="text-crew-address">
+                {crew.address || "Not set"}
+              </p>
             </div>
           </div>
         </div>
@@ -312,11 +430,15 @@ export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentPr
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">Name</p>
-              <p className="font-medium" data-testid="text-emergency-name">{crew.emergencyContactName || "Not set"}</p>
+              <p className="font-medium" data-testid="text-emergency-name">
+                {crew.emergencyContactName || "Not set"}
+              </p>
             </div>
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">Phone</p>
-              <p className="font-medium" data-testid="text-emergency-phone">{crew.emergencyContactPhone || "Not set"}</p>
+              <p className="font-medium" data-testid="text-emergency-phone">
+                {crew.emergencyContactPhone || "Not set"}
+              </p>
             </div>
           </div>
         </div>
@@ -333,7 +455,9 @@ export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentPr
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">Contract End</p>
               <p className="font-medium" data-testid="text-contract-end">
-                {crew.contractEndDate ? format(new Date(crew.contractEndDate), "MMM d, yyyy") : "Not set"}
+                {crew.contractEndDate
+                  ? format(new Date(crew.contractEndDate), "MMM d, yyyy")
+                  : "Not set"}
               </p>
             </div>
             <div className="space-y-1">
@@ -350,7 +474,9 @@ export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentPr
             <p className="text-sm font-medium mb-2">Skills</p>
             <div className="flex gap-2 flex-wrap">
               {crew.skills.map((skill: string) => (
-                <Badge key={skill} variant="secondary">{skill}</Badge>
+                <Badge key={skill} variant="secondary">
+                  {skill}
+                </Badge>
               ))}
             </div>
           </div>

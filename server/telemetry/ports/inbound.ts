@@ -1,5 +1,5 @@
-import type { RawFrame } from '../decode/types';
-import type { TelemetryReading } from '../../telemetry-batch-writer';
+import type { RawFrame } from "../decode/types";
+import type { TelemetryReading } from "../../telemetry-batch-writer";
 
 export interface IngestBatchResult {
   framesProcessed: number;

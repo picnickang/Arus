@@ -84,5 +84,5 @@ export const SENSOR_TYPES = [
 
 export const SENSOR_STATUSES = ["normal", "warning", "critical", "offline"] as const;
 
-export type SensorType = typeof SENSOR_TYPES[number];
-export type SensorStatus = typeof SENSOR_STATUSES[number];
+export type SensorType = (typeof SENSOR_TYPES)[number];
+export type SensorStatus = (typeof SENSOR_STATUSES)[number];

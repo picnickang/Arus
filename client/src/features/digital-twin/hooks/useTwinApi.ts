@@ -8,7 +8,9 @@ function orgHeaders(orgId: string) {
 
 async function fetchJson(url: string, orgId: string) {
   const res = await fetch(url, { headers: orgHeaders(orgId) });
-  if (!res.ok) {throw new Error(`Failed: ${res.statusText}`);}
+  if (!res.ok) {
+    throw new Error(`Failed: ${res.statusText}`);
+  }
   return res.json();
 }
 
@@ -83,11 +85,14 @@ export function useTwinStateHistory(twinId: string, limit = 50) {
 export function useComputeTwinState() {
   const { currentOrgId } = useOrganization();
   return useMutation({
-    mutationFn: (twinId: string) =>
-      apiRequest("POST", "/api/pdm/twin/state/compute", { twinId }),
+    mutationFn: (twinId: string) => apiRequest("POST", "/api/pdm/twin/state/compute", { twinId }),
     onSuccess: (_data, twinId) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/pdm/twin/state/latest", currentOrgId, twinId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/pdm/twin/state/history", currentOrgId, twinId] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/pdm/twin/state/latest", currentOrgId, twinId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/pdm/twin/state/history", currentOrgId, twinId],
+      });
     },
   });
 }
@@ -136,7 +141,9 @@ export function useRunScenario() {
     mutationFn: (data: { twinId: string; name: string; parameters: Record<string, any> }) =>
       apiRequest("POST", "/api/pdm/twin/scenarios/run", data),
     onSuccess: (_data, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/pdm/twin/scenarios/twins", currentOrgId, vars.twinId] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/pdm/twin/scenarios/twins", currentOrgId, vars.twinId],
+      });
     },
   });
 }
@@ -144,8 +151,12 @@ export function useRunScenario() {
 export function useTwinTimeline(twinId: string, startTime?: string, endTime?: string) {
   const { currentOrgId } = useOrganization();
   const params = new URLSearchParams({ twinId });
-  if (startTime) {params.set("startTime", startTime);}
-  if (endTime) {params.set("endTime", endTime);}
+  if (startTime) {
+    params.set("startTime", startTime);
+  }
+  if (endTime) {
+    params.set("endTime", endTime);
+  }
   return useQuery({
     queryKey: ["/api/pdm/twin/replay/timeline", currentOrgId, twinId, startTime, endTime],
     queryFn: () => fetchJson(`/api/pdm/twin/replay/timeline?${params}`, currentOrgId),
@@ -156,8 +167,12 @@ export function useTwinTimeline(twinId: string, startTime?: string, endTime?: st
 export function useLogTwinEvent() {
   const { currentOrgId } = useOrganization();
   return useMutation({
-    mutationFn: (data: { twinId: string; eventType: string; payload?: Record<string, any>; source?: string }) =>
-      apiRequest("POST", "/api/pdm/twin/replay/events", { ...data, orgId: currentOrgId }),
+    mutationFn: (data: {
+      twinId: string;
+      eventType: string;
+      payload?: Record<string, any>;
+      source?: string;
+    }) => apiRequest("POST", "/api/pdm/twin/replay/events", { ...data, orgId: currentOrgId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/pdm/twin/replay/timeline"] });
     },

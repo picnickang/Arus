@@ -59,7 +59,11 @@ export function useEquipmentEditForm(
         vesselName: equipment.vesselName || "",
         isActive: equipment.isActive,
         purchaseValue: equipment.purchaseValue ?? undefined,
-        purchaseDate: equipment.purchaseDate ? (typeof equipment.purchaseDate === 'string' ? equipment.purchaseDate : new Date(equipment.purchaseDate).toISOString()) : undefined,
+        purchaseDate: equipment.purchaseDate
+          ? typeof equipment.purchaseDate === "string"
+            ? equipment.purchaseDate
+            : new Date(equipment.purchaseDate).toISOString()
+          : undefined,
         purchaseCurrency: equipment.purchaseCurrency || "USD",
         serviceLifeHours: equipment.serviceLifeHours ?? undefined,
         serviceLifeYears: equipment.serviceLifeYears ?? undefined,

@@ -4,21 +4,21 @@
  */
 
 export type MaintenanceEventType =
-  | 'MaintenanceScheduleCreated'
-  | 'MaintenanceScheduleUpdated'
-  | 'MaintenanceScheduleDeleted'
-  | 'MaintenanceScheduleCompleted'
-  | 'MaintenanceScheduleOverdue'
-  | 'MaintenanceAutoScheduled'
-  | 'MaintenanceTemplateCreated'
-  | 'MaintenanceTemplateUpdated'
-  | 'MaintenanceTemplateDeleted';
+  | "MaintenanceScheduleCreated"
+  | "MaintenanceScheduleUpdated"
+  | "MaintenanceScheduleDeleted"
+  | "MaintenanceScheduleCompleted"
+  | "MaintenanceScheduleOverdue"
+  | "MaintenanceAutoScheduled"
+  | "MaintenanceTemplateCreated"
+  | "MaintenanceTemplateUpdated"
+  | "MaintenanceTemplateDeleted";
 
 export interface DomainEventBase {
   eventId: string;
   eventType: MaintenanceEventType;
   aggregateId: string;
-  aggregateType: 'MaintenanceSchedule' | 'MaintenanceTemplate';
+  aggregateType: "MaintenanceSchedule" | "MaintenanceTemplate";
   occurredAt: Date;
   userId?: string;
   orgId: string;
@@ -26,8 +26,8 @@ export interface DomainEventBase {
 }
 
 export interface MaintenanceScheduleCreatedEvent extends DomainEventBase {
-  eventType: 'MaintenanceScheduleCreated';
-  aggregateType: 'MaintenanceSchedule';
+  eventType: "MaintenanceScheduleCreated";
+  aggregateType: "MaintenanceSchedule";
   payload: {
     equipmentId: string;
     scheduledDate: Date;
@@ -39,8 +39,8 @@ export interface MaintenanceScheduleCreatedEvent extends DomainEventBase {
 }
 
 export interface MaintenanceScheduleUpdatedEvent extends DomainEventBase {
-  eventType: 'MaintenanceScheduleUpdated';
-  aggregateType: 'MaintenanceSchedule';
+  eventType: "MaintenanceScheduleUpdated";
+  aggregateType: "MaintenanceSchedule";
   payload: {
     previousState: Record<string, unknown>;
     newState: Record<string, unknown>;
@@ -49,8 +49,8 @@ export interface MaintenanceScheduleUpdatedEvent extends DomainEventBase {
 }
 
 export interface MaintenanceScheduleDeletedEvent extends DomainEventBase {
-  eventType: 'MaintenanceScheduleDeleted';
-  aggregateType: 'MaintenanceSchedule';
+  eventType: "MaintenanceScheduleDeleted";
+  aggregateType: "MaintenanceSchedule";
   payload: {
     equipmentId: string;
     scheduledDate: Date;
@@ -59,8 +59,8 @@ export interface MaintenanceScheduleDeletedEvent extends DomainEventBase {
 }
 
 export interface MaintenanceScheduleCompletedEvent extends DomainEventBase {
-  eventType: 'MaintenanceScheduleCompleted';
-  aggregateType: 'MaintenanceSchedule';
+  eventType: "MaintenanceScheduleCompleted";
+  aggregateType: "MaintenanceSchedule";
   payload: {
     equipmentId: string;
     completedAt: Date;
@@ -71,8 +71,8 @@ export interface MaintenanceScheduleCompletedEvent extends DomainEventBase {
 }
 
 export interface MaintenanceScheduleOverdueEvent extends DomainEventBase {
-  eventType: 'MaintenanceScheduleOverdue';
-  aggregateType: 'MaintenanceSchedule';
+  eventType: "MaintenanceScheduleOverdue";
+  aggregateType: "MaintenanceSchedule";
   payload: {
     equipmentId: string;
     scheduledDate: Date;
@@ -81,21 +81,21 @@ export interface MaintenanceScheduleOverdueEvent extends DomainEventBase {
 }
 
 export interface MaintenanceAutoScheduledEvent extends DomainEventBase {
-  eventType: 'MaintenanceAutoScheduled';
-  aggregateType: 'MaintenanceSchedule';
+  eventType: "MaintenanceAutoScheduled";
+  aggregateType: "MaintenanceSchedule";
   payload: {
     equipmentId: string;
     scheduledDate: Date;
     pdmScore: number;
-    triggerSource: 'pdm_prediction' | 'rul_threshold' | 'anomaly_detection';
+    triggerSource: "pdm_prediction" | "rul_threshold" | "anomaly_detection";
     modelId?: string;
     modelVersion?: string;
   };
 }
 
 export interface MaintenanceTemplateCreatedEvent extends DomainEventBase {
-  eventType: 'MaintenanceTemplateCreated';
-  aggregateType: 'MaintenanceTemplate';
+  eventType: "MaintenanceTemplateCreated";
+  aggregateType: "MaintenanceTemplate";
   payload: {
     name: string;
     equipmentType?: string;
@@ -104,8 +104,8 @@ export interface MaintenanceTemplateCreatedEvent extends DomainEventBase {
 }
 
 export interface MaintenanceTemplateUpdatedEvent extends DomainEventBase {
-  eventType: 'MaintenanceTemplateUpdated';
-  aggregateType: 'MaintenanceTemplate';
+  eventType: "MaintenanceTemplateUpdated";
+  aggregateType: "MaintenanceTemplate";
   payload: {
     previousState: Record<string, unknown>;
     newState: Record<string, unknown>;
@@ -114,8 +114,8 @@ export interface MaintenanceTemplateUpdatedEvent extends DomainEventBase {
 }
 
 export interface MaintenanceTemplateDeletedEvent extends DomainEventBase {
-  eventType: 'MaintenanceTemplateDeleted';
-  aggregateType: 'MaintenanceTemplate';
+  eventType: "MaintenanceTemplateDeleted";
+  aggregateType: "MaintenanceTemplate";
   payload: {
     name: string;
     equipmentType?: string;

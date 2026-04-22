@@ -69,21 +69,16 @@ export function createRequestContext(
 
 /**
  * Express middleware to establish correlation context for each request
- * 
+ *
  * Looks for correlation ID in incoming headers (for distributed tracing)
  * or generates a new one. Adds the ID to response headers.
- * 
+ *
  * Uses enterWith() to maintain context across the entire async request lifecycle,
  * avoiding context loss when next() returns before async handlers complete.
  */
-export function correlationMiddleware(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
+export function correlationMiddleware(req: Request, res: Response, next: NextFunction): void {
   const incomingCorrelationId =
-    (req.headers["x-correlation-id"] as string) ||
-    (req.headers["x-request-id"] as string);
+    (req.headers["x-correlation-id"] as string) || (req.headers["x-request-id"] as string);
 
   const context = createRequestContext(incomingCorrelationId, {
     path: req.path,
@@ -97,7 +92,7 @@ export function correlationMiddleware(
   // Use enterWith() to maintain context across the entire async request lifecycle
   // This ensures context persists even after next() returns
   asyncLocalStorage.enterWith(context);
-  
+
   next();
 }
 

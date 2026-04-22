@@ -21,8 +21,30 @@ import { eq, and, desc } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { db } from "../../db-config";
 import { recordAndPublish, publishEvent, type EntityType, type EventType } from "../../sync-events";
-import { maintenanceTemplates, maintenanceChecklistItems, maintenanceChecklistCompletions, workOrders, workOrderTasks, workOrderChecklists, workOrderWorklogs } from "@shared/schema-runtime";
-import type { MaintenanceTemplate, InsertMaintenanceTemplate, MaintenanceChecklistItem, InsertMaintenanceChecklistItem, MaintenanceChecklistCompletion, InsertMaintenanceChecklistCompletion, WorkOrder, WorkOrderTask, InsertWorkOrderTask, WorkOrderChecklist, InsertWorkOrderChecklist, WorkOrderWorklog, InsertWorkOrderWorklog } from "@shared/schema";
+import {
+  maintenanceTemplates,
+  maintenanceChecklistItems,
+  maintenanceChecklistCompletions,
+  workOrders,
+  workOrderTasks,
+  workOrderChecklists,
+  workOrderWorklogs,
+} from "@shared/schema-runtime";
+import type {
+  MaintenanceTemplate,
+  InsertMaintenanceTemplate,
+  MaintenanceChecklistItem,
+  InsertMaintenanceChecklistItem,
+  MaintenanceChecklistCompletion,
+  InsertMaintenanceChecklistCompletion,
+  WorkOrder,
+  WorkOrderTask,
+  InsertWorkOrderTask,
+  WorkOrderChecklist,
+  InsertWorkOrderChecklist,
+  WorkOrderWorklog,
+  InsertWorkOrderWorklog,
+} from "@shared/schema";
 
 export class DatabaseChecklistsStorage {
   // ──────────────────────────────────────────────────────────────────────
@@ -35,22 +57,40 @@ export class DatabaseChecklistsStorage {
     isActive?: boolean
   ): Promise<MaintenanceTemplate[]> {
     const c = [];
-    if (orgId) {c.push(eq(maintenanceTemplates.orgId, orgId));}
-    if (equipmentType) {c.push(eq(maintenanceTemplates.equipmentType, equipmentType));}
-    if (isActive !== undefined) {c.push(eq(maintenanceTemplates.isActive, isActive));}
+    if (orgId) {
+      c.push(eq(maintenanceTemplates.orgId, orgId));
+    }
+    if (equipmentType) {
+      c.push(eq(maintenanceTemplates.equipmentType, equipmentType));
+    }
+    if (isActive !== undefined) {
+      c.push(eq(maintenanceTemplates.isActive, isActive));
+    }
     let q = db.select().from(maintenanceTemplates);
-    if (c.length > 0) {q = q.where(and(...c)) as typeof q;}
+    if (c.length > 0) {
+      q = q.where(and(...c)) as typeof q;
+    }
     return q.orderBy(maintenanceTemplates.name);
   }
 
-  async getMaintenanceTemplate(id: string, orgId?: string): Promise<MaintenanceTemplate | undefined> {
+  async getMaintenanceTemplate(
+    id: string,
+    orgId?: string
+  ): Promise<MaintenanceTemplate | undefined> {
     const c = [eq(maintenanceTemplates.id, id)];
-    if (orgId) {c.push(eq(maintenanceTemplates.orgId, orgId));}
-    const r = await db.select().from(maintenanceTemplates).where(and(...c));
+    if (orgId) {
+      c.push(eq(maintenanceTemplates.orgId, orgId));
+    }
+    const r = await db
+      .select()
+      .from(maintenanceTemplates)
+      .where(and(...c));
     return r[0];
   }
 
-  async createMaintenanceTemplate(template: InsertMaintenanceTemplate): Promise<MaintenanceTemplate> {
+  async createMaintenanceTemplate(
+    template: InsertMaintenanceTemplate
+  ): Promise<MaintenanceTemplate> {
     const [n] = await db.insert(maintenanceTemplates).values(template).returning();
     await recordAndPublish("maintenance_template" as EntityType, n.id, "create", n);
     return n;
@@ -62,22 +102,33 @@ export class DatabaseChecklistsStorage {
     orgId?: string
   ): Promise<MaintenanceTemplate> {
     const c = [eq(maintenanceTemplates.id, id)];
-    if (orgId) {c.push(eq(maintenanceTemplates.orgId, orgId));}
+    if (orgId) {
+      c.push(eq(maintenanceTemplates.orgId, orgId));
+    }
     const [u] = await db
       .update(maintenanceTemplates)
       .set({ ...template, updatedAt: new Date() })
       .where(and(...c))
       .returning();
-    if (!u) {throw new Error(`Maintenance template ${id} not found`);}
+    if (!u) {
+      throw new Error(`Maintenance template ${id} not found`);
+    }
     await recordAndPublish("maintenance_template" as EntityType, u.id, "update", u);
     return u;
   }
 
   async deleteMaintenanceTemplate(id: string, orgId?: string): Promise<void> {
     const c = [eq(maintenanceTemplates.id, id)];
-    if (orgId) {c.push(eq(maintenanceTemplates.orgId, orgId));}
-    const r = await db.delete(maintenanceTemplates).where(and(...c)).returning();
-    if (r.length === 0) {throw new Error(`Maintenance template ${id} not found`);}
+    if (orgId) {
+      c.push(eq(maintenanceTemplates.orgId, orgId));
+    }
+    const r = await db
+      .delete(maintenanceTemplates)
+      .where(and(...c))
+      .returning();
+    if (r.length === 0) {
+      throw new Error(`Maintenance template ${id} not found`);
+    }
     await recordAndPublish("maintenance_template" as EntityType, id, "delete", r[0]);
   }
 
@@ -88,12 +139,25 @@ export class DatabaseChecklistsStorage {
   ): Promise<MaintenanceTemplate> {
     return db.transaction(async (tx) => {
       const c = [eq(maintenanceTemplates.id, id)];
-      if (orgId) {c.push(eq(maintenanceTemplates.orgId, orgId));}
-      const [o] = await tx.select().from(maintenanceTemplates).where(and(...c));
-      if (!o) {throw new Error(`Maintenance template ${id} not found`);}
+      if (orgId) {
+        c.push(eq(maintenanceTemplates.orgId, orgId));
+      }
+      const [o] = await tx
+        .select()
+        .from(maintenanceTemplates)
+        .where(and(...c));
+      if (!o) {
+        throw new Error(`Maintenance template ${id} not found`);
+      }
       const [cloned] = await tx
         .insert(maintenanceTemplates)
-        .values({ ...o, id: undefined, name: newName, createdAt: new Date(), updatedAt: new Date() })
+        .values({
+          ...o,
+          id: undefined,
+          name: newName,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
         .returning();
       const oi = await tx
         .select()
@@ -109,7 +173,10 @@ export class DatabaseChecklistsStorage {
           }))
         );
       }
-      await publishEvent("maintenance_template.created" as EventType, { id: cloned.id, data: cloned });
+      await publishEvent("maintenance_template.created" as EventType, {
+        id: cloned.id,
+        data: cloned,
+      });
       return cloned;
     });
   }
@@ -151,7 +218,9 @@ export class DatabaseChecklistsStorage {
       .set(item)
       .where(eq(maintenanceChecklistItems.id, id))
       .returning();
-    if (!u) {throw new Error(`Maintenance checklist item ${id} not found`);}
+    if (!u) {
+      throw new Error(`Maintenance checklist item ${id} not found`);
+    }
     await recordAndPublish("maintenance_checklist_item" as EntityType, u.id, "update", u);
     return u;
   }
@@ -161,7 +230,9 @@ export class DatabaseChecklistsStorage {
       .delete(maintenanceChecklistItems)
       .where(eq(maintenanceChecklistItems.id, id))
       .returning();
-    if (r.length === 0) {throw new Error(`Maintenance checklist item ${id} not found`);}
+    if (r.length === 0) {
+      throw new Error(`Maintenance checklist item ${id} not found`);
+    }
     await recordAndPublish("maintenance_checklist_item" as EntityType, id, "delete", r[0]);
   }
 
@@ -219,7 +290,9 @@ export class DatabaseChecklistsStorage {
       .set(updates)
       .where(eq(maintenanceChecklistCompletions.id, id))
       .returning();
-    if (!u) {throw new Error(`Checklist completion ${id} not found`);}
+    if (!u) {
+      throw new Error(`Checklist completion ${id} not found`);
+    }
     await recordAndPublish("maintenance_checklist_completion" as EntityType, u.id, "update", u);
     return u;
   }
@@ -235,23 +308,28 @@ export class DatabaseChecklistsStorage {
       notes?: string;
     }>
   ): Promise<MaintenanceChecklistCompletion[]> {
-    if (completions.length === 0) {return [];}
+    if (completions.length === 0) {
+      return [];
+    }
     return db.transaction(async (tx) => {
       const created = await tx
         .insert(maintenanceChecklistCompletions)
         .values(
-          completions.map((c) => ({
-            workOrderId,
-            itemId: c.itemId,
-            completedBy: c.completedBy,
-            completedByName: c.completedByName,
-            passed: c.passed ?? null,
-            actualValue: c.actualValue ?? null,
-            notes: c.notes ?? null,
-            photoUrls: null,
-            completedAt: new Date(),
-            status: c.passed === false ? "failed" : "completed",
-          } as any))
+          completions.map(
+            (c) =>
+              ({
+                workOrderId,
+                itemId: c.itemId,
+                completedBy: c.completedBy,
+                completedByName: c.completedByName,
+                passed: c.passed ?? null,
+                actualValue: c.actualValue ?? null,
+                notes: c.notes ?? null,
+                photoUrls: null,
+                completedAt: new Date(),
+                status: c.passed === false ? "failed" : "completed",
+              }) as any
+          )
         )
         .returning();
       for (const completion of created) {
@@ -272,11 +350,7 @@ export class DatabaseChecklistsStorage {
     failedItems: number;
     percentComplete: number;
   }> {
-    const wo = await db
-      .select()
-      .from(workOrders)
-      .where(eq(workOrders.id, workOrderId))
-      .limit(1);
+    const wo = await db.select().from(workOrders).where(eq(workOrders.id, workOrderId)).limit(1);
     if (wo.length === 0 || !wo[0].maintenanceTemplateId) {
       return {
         totalItems: 0,
@@ -319,8 +393,7 @@ export class DatabaseChecklistsStorage {
       ).length +
       (totalItems - completions.length);
     const reviewedItems = completedItems + failedItems;
-    const percentComplete =
-      totalItems > 0 ? Math.round((reviewedItems / totalItems) * 100) : 0;
+    const percentComplete = totalItems > 0 ? Math.round((reviewedItems / totalItems) * 100) : 0;
     return { totalItems, completedItems, pendingItems, skippedItems, failedItems, percentComplete };
   }
 
@@ -330,13 +403,17 @@ export class DatabaseChecklistsStorage {
     orgId?: string
   ): Promise<WorkOrder> {
     const c = [eq(workOrders.id, workOrderId)];
-    if (orgId) {c.push(eq(workOrders.orgId, orgId));}
+    if (orgId) {
+      c.push(eq(workOrders.orgId, orgId));
+    }
     const [u] = await db
       .update(workOrders)
       .set({ maintenanceTemplateId: templateId, updatedAt: new Date() })
       .where(and(...c))
       .returning();
-    if (!u) {throw new Error(`Work order ${workOrderId} not found`);}
+    if (!u) {
+      throw new Error(`Work order ${workOrderId} not found`);
+    }
     await recordAndPublish("work_order", u.id, "update", u);
     return u;
   }
@@ -351,13 +428,17 @@ export class DatabaseChecklistsStorage {
         .from(maintenanceTemplates)
         .where(eq(maintenanceTemplates.id, templateId))
         .limit(1);
-      if (!template) {throw new Error(`Maintenance template ${templateId} not found`);}
+      if (!template) {
+        throw new Error(`Maintenance template ${templateId} not found`);
+      }
       const [wo] = await tx
         .select()
         .from(workOrders)
         .where(eq(workOrders.id, workOrderId))
         .limit(1);
-      if (!wo) {throw new Error(`Work order ${workOrderId} not found`);}
+      if (!wo) {
+        throw new Error(`Work order ${workOrderId} not found`);
+      }
       await tx
         .update(workOrders)
         .set({ maintenanceTemplateId: templateId, updatedAt: new Date() })
@@ -367,23 +448,28 @@ export class DatabaseChecklistsStorage {
         .from(maintenanceChecklistItems)
         .where(eq(maintenanceChecklistItems.templateId, templateId))
         .orderBy(maintenanceChecklistItems.stepNumber);
-      if (items.length === 0) {return [];}
+      if (items.length === 0) {
+        return [];
+      }
       const created = await tx
         .insert(maintenanceChecklistCompletions)
         .values(
-          items.map((item: MaintenanceChecklistItem) => ({
-            orgId: wo.orgId,
-            workOrderId,
-            itemId: item.id,
-            completedBy: null,
-            completedByName: null,
-            passed: null,
-            actualValue: null,
-            notes: null,
-            photoUrls: null,
-            completedAt: null,
-            status: "pending",
-          } as any))
+          items.map(
+            (item: MaintenanceChecklistItem) =>
+              ({
+                orgId: wo.orgId,
+                workOrderId,
+                itemId: item.id,
+                completedBy: null,
+                completedByName: null,
+                passed: null,
+                actualValue: null,
+                notes: null,
+                photoUrls: null,
+                completedAt: null,
+                status: "pending",
+              }) as any
+          )
         )
         .returning();
       for (const c of created) {
@@ -401,7 +487,9 @@ export class DatabaseChecklistsStorage {
   // ──────────────────────────────────────────────────────────────────────
 
   async getWorkOrderTasks(workOrderId: string, orgId?: string): Promise<WorkOrderTask[]> {
-    if (!orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     return db
       .select()
       .from(workOrderTasks)
@@ -410,7 +498,9 @@ export class DatabaseChecklistsStorage {
   }
 
   async createWorkOrderTask(task: InsertWorkOrderTask): Promise<WorkOrderTask> {
-    if (!task.orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!task.orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     const [n] = await db
       .insert(workOrderTasks)
       .values({ id: randomUUID(), ...task, createdAt: new Date(), updatedAt: new Date() })
@@ -423,18 +513,24 @@ export class DatabaseChecklistsStorage {
     updates: Partial<InsertWorkOrderTask>,
     orgId?: string
   ): Promise<WorkOrderTask> {
-    if (!orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     const [u] = await db
       .update(workOrderTasks)
       .set({ ...updates, updatedAt: new Date() })
       .where(and(eq(workOrderTasks.id, id), eq(workOrderTasks.orgId, orgId)))
       .returning();
-    if (!u) {throw new Error(`Work order task ${id} not found`);}
+    if (!u) {
+      throw new Error(`Work order task ${id} not found`);
+    }
     return u;
   }
 
   async deleteWorkOrderTask(id: string, orgId?: string): Promise<void> {
-    if (!orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     await db
       .delete(workOrderTasks)
       .where(and(eq(workOrderTasks.id, id), eq(workOrderTasks.orgId, orgId)));
@@ -448,15 +544,25 @@ export class DatabaseChecklistsStorage {
     workOrderId?: string,
     orgId?: string
   ): Promise<WorkOrderChecklist[]> {
-    if (!orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     const c = [eq(workOrderChecklists.orgId, orgId)];
-    if (workOrderId) {c.push(eq(workOrderChecklists.workOrderId, workOrderId));}
+    if (workOrderId) {
+      c.push(eq(workOrderChecklists.workOrderId, workOrderId));
+    }
     // Note: workOrderChecklists uses createdAt for ordering (sortOrder not present in shared schema).
-    return db.select().from(workOrderChecklists).where(and(...c)).orderBy(workOrderChecklists.createdAt);
+    return db
+      .select()
+      .from(workOrderChecklists)
+      .where(and(...c))
+      .orderBy(workOrderChecklists.createdAt);
   }
 
   async createWorkOrderChecklist(checklist: InsertWorkOrderChecklist): Promise<WorkOrderChecklist> {
-    if (!checklist.orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!checklist.orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     const [n] = await db
       .insert(workOrderChecklists)
       .values({ id: randomUUID(), ...checklist, createdAt: new Date() } as any)
@@ -469,18 +575,24 @@ export class DatabaseChecklistsStorage {
     updates: Partial<InsertWorkOrderChecklist>,
     orgId?: string
   ): Promise<WorkOrderChecklist> {
-    if (!orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     const [u] = await db
       .update(workOrderChecklists)
       .set({ ...updates } as any)
       .where(and(eq(workOrderChecklists.id, id), eq(workOrderChecklists.orgId, orgId)))
       .returning();
-    if (!u) {throw new Error(`Work order checklist ${id} not found`);}
+    if (!u) {
+      throw new Error(`Work order checklist ${id} not found`);
+    }
     return u;
   }
 
   async deleteWorkOrderChecklist(id: string, orgId?: string): Promise<void> {
-    if (!orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     await db
       .delete(workOrderChecklists)
       .where(and(eq(workOrderChecklists.id, id), eq(workOrderChecklists.orgId, orgId)));
@@ -491,15 +603,25 @@ export class DatabaseChecklistsStorage {
   // ──────────────────────────────────────────────────────────────────────
 
   async getWorkOrderWorklogs(workOrderId?: string, orgId?: string): Promise<WorkOrderWorklog[]> {
-    if (!orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     const c = [eq(workOrderWorklogs.orgId, orgId)];
-    if (workOrderId) {c.push(eq(workOrderWorklogs.workOrderId, workOrderId));}
+    if (workOrderId) {
+      c.push(eq(workOrderWorklogs.workOrderId, workOrderId));
+    }
     // NOTE: performedAt → use startTime (the actual column in the schema)
-    return db.select().from(workOrderWorklogs).where(and(...c)).orderBy(desc(workOrderWorklogs.startTime));
+    return db
+      .select()
+      .from(workOrderWorklogs)
+      .where(and(...c))
+      .orderBy(desc(workOrderWorklogs.startTime));
   }
 
   async createWorkOrderWorklog(worklog: InsertWorkOrderWorklog): Promise<WorkOrderWorklog> {
-    if (!worklog.orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!worklog.orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     const [n] = await db
       .insert(workOrderWorklogs)
       .values({ id: randomUUID(), ...worklog, createdAt: new Date(), updatedAt: new Date() })
@@ -512,18 +634,24 @@ export class DatabaseChecklistsStorage {
     updates: Partial<InsertWorkOrderWorklog>,
     orgId?: string
   ): Promise<WorkOrderWorklog> {
-    if (!orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     const [u] = await db
       .update(workOrderWorklogs)
       .set({ ...updates, updatedAt: new Date() })
       .where(and(eq(workOrderWorklogs.id, id), eq(workOrderWorklogs.orgId, orgId)))
       .returning();
-    if (!u) {throw new Error(`Work order worklog ${id} not found`);}
+    if (!u) {
+      throw new Error(`Work order worklog ${id} not found`);
+    }
     return u;
   }
 
   async deleteWorkOrderWorklog(id: string, orgId?: string): Promise<void> {
-    if (!orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     await db
       .delete(workOrderWorklogs)
       .where(and(eq(workOrderWorklogs.id, id), eq(workOrderWorklogs.orgId, orgId)));
@@ -533,7 +661,9 @@ export class DatabaseChecklistsStorage {
     workOrderId: string,
     orgId?: string
   ): Promise<{ totalLaborHours: number; totalLaborCost: number }> {
-    if (!orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     const logs = await db
       .select()
       .from(workOrderWorklogs)

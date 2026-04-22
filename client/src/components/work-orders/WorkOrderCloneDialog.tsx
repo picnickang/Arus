@@ -27,23 +27,25 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { WorkOrder } from "@shared/schema";
 
-const cloneFormSchema = z.object({
-  plannedStartDate: z.string().optional(),
-  plannedEndDate: z.string().optional(),
-  includeTasks: z.boolean().default(true),
-  includeParts: z.boolean().default(true),
-}).refine(
-  (data) => {
-    if (data.plannedStartDate && data.plannedEndDate) {
-      return new Date(data.plannedEndDate) >= new Date(data.plannedStartDate);
+const cloneFormSchema = z
+  .object({
+    plannedStartDate: z.string().optional(),
+    plannedEndDate: z.string().optional(),
+    includeTasks: z.boolean().default(true),
+    includeParts: z.boolean().default(true),
+  })
+  .refine(
+    (data) => {
+      if (data.plannedStartDate && data.plannedEndDate) {
+        return new Date(data.plannedEndDate) >= new Date(data.plannedStartDate);
+      }
+      return true;
+    },
+    {
+      message: "End date must be after start date",
+      path: ["plannedEndDate"],
     }
-    return true;
-  },
-  {
-    message: "End date must be after start date",
-    path: ["plannedEndDate"],
-  }
-);
+  );
 
 type CloneFormValues = z.infer<typeof cloneFormSchema>;
 
@@ -75,7 +77,9 @@ export function WorkOrderCloneDialog({
 
   const cloneMutation = useMutation({
     mutationFn: async (values: CloneFormValues) => {
-      if (!workOrder) {throw new Error("No work order to clone");}
+      if (!workOrder) {
+        throw new Error("No work order to clone");
+      }
 
       const payload: Record<string, unknown> = {
         includeTasks: values.includeTasks,
@@ -115,7 +119,9 @@ export function WorkOrderCloneDialog({
     cloneMutation.mutate(values);
   };
 
-  if (!workOrder) {return null;}
+  if (!workOrder) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -126,7 +132,8 @@ export function WorkOrderCloneDialog({
             Clone Work Order
           </DialogTitle>
           <DialogDescription>
-            Create a copy of work order <span className="font-medium">{workOrder.woNumber || workOrder.id.slice(0, 8)}</span>.
+            Create a copy of work order{" "}
+            <span className="font-medium">{workOrder.woNumber || workOrder.id.slice(0, 8)}</span>.
             The new work order will have status "Open" with a new WO number.
           </DialogDescription>
         </DialogHeader>
@@ -136,9 +143,15 @@ export function WorkOrderCloneDialog({
             <div className="rounded-lg border p-4 bg-muted/30">
               <h4 className="text-sm font-medium mb-2">Original Work Order</h4>
               <div className="text-sm text-muted-foreground space-y-1">
-                <div><span className="font-medium">Reason:</span> {workOrder.reason || "N/A"}</div>
-                <div><span className="font-medium">Type:</span> {workOrder.maintenanceType || "N/A"}</div>
-                <div><span className="font-medium">Priority:</span> {workOrder.priority}</div>
+                <div>
+                  <span className="font-medium">Reason:</span> {workOrder.reason || "N/A"}
+                </div>
+                <div>
+                  <span className="font-medium">Type:</span> {workOrder.maintenanceType || "N/A"}
+                </div>
+                <div>
+                  <span className="font-medium">Priority:</span> {workOrder.priority}
+                </div>
               </div>
             </div>
 
@@ -155,11 +168,7 @@ export function WorkOrderCloneDialog({
                     <FormItem>
                       <FormLabel>Planned Start</FormLabel>
                       <FormControl>
-                        <Input
-                          type="date"
-                          {...field}
-                          data-testid="input-clone-start-date"
-                        />
+                        <Input type="date" {...field} data-testid="input-clone-start-date" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -173,11 +182,7 @@ export function WorkOrderCloneDialog({
                     <FormItem>
                       <FormLabel>Planned End</FormLabel>
                       <FormControl>
-                        <Input
-                          type="date"
-                          {...field}
-                          data-testid="input-clone-end-date"
-                        />
+                        <Input type="date" {...field} data-testid="input-clone-end-date" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -191,7 +196,7 @@ export function WorkOrderCloneDialog({
 
             <div className="space-y-4">
               <h4 className="text-sm font-medium">Include in Clone</h4>
-              
+
               <FormField
                 control={form.control}
                 name="includeTasks"

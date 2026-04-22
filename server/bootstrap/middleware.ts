@@ -7,11 +7,7 @@ import type { Express } from "express";
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
-import {
-  additionalSecurityHeaders,
-  sanitizeRequestData,
-  detectAttackPatterns,
-} from "../security";
+import { additionalSecurityHeaders, sanitizeRequestData, detectAttackPatterns } from "../security";
 import { originAllowed } from "../utils/corsWildcard";
 import { safeStringify } from "../utils/redact-log";
 import { correlationMiddleware, getCorrelationId } from "../utils/correlation-context";
@@ -20,7 +16,8 @@ import { performanceMiddleware } from "../middleware/performance";
 export function configureMiddleware(app: Express): void {
   const isDevelopment = process.env.NODE_ENV === "development";
 
-  const isVesselMode = process.env.DEPLOYMENT_MODE === "vessel" || process.env.DEPLOYMENT_MODE === "desktop";
+  const isVesselMode =
+    process.env.DEPLOYMENT_MODE === "vessel" || process.env.DEPLOYMENT_MODE === "desktop";
   app.set("trust proxy", isVesselMode ? "loopback" : true);
 
   app.use(
@@ -30,9 +27,7 @@ export function configureMiddleware(app: Express): void {
           defaultSrc: ["'self'"],
           styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
           fontSrc: ["'self'", "https://fonts.gstatic.com"],
-          scriptSrc: isDevelopment
-            ? ["'self'", "'unsafe-inline'", "'unsafe-eval'"]
-            : ["'self'"],
+          scriptSrc: isDevelopment ? ["'self'", "'unsafe-inline'", "'unsafe-eval'"] : ["'self'"],
           imgSrc: ["'self'", "data:", "https:", "blob:"],
           // Security (S5332): http: protocol allowed in development only for local testing
           // Production enforces HTTPS-only connections
@@ -57,7 +52,9 @@ export function configureMiddleware(app: Express): void {
     origin: string | undefined,
     callback: (err: Error | null, allow?: boolean) => void
   ) => {
-    if (!origin) { return callback(null, true); }
+    if (!origin) {
+      return callback(null, true);
+    }
 
     // NOSONAR: S5332 - http://localhost allowed for local development only
     // Production deployments use HTTPS exclusively via ALLOWED_ORIGINS env var
@@ -152,7 +149,7 @@ export function configureMiddleware(app: Express): void {
         let line = `${shortId}${req.method} ${path} ${res.statusCode} in ${duration}ms`;
         if (capturedJsonResponse) {
           const jsonStr = safeStringify(capturedJsonResponse);
-          line += ` :: ${jsonStr.length > 500 ? `${jsonStr.slice(0, 500)  }...` : jsonStr}`;
+          line += ` :: ${jsonStr.length > 500 ? `${jsonStr.slice(0, 500)}...` : jsonStr}`;
         }
         console.log(line);
       }
@@ -172,7 +169,9 @@ export async function configureAuthMiddleware(app: Express): Promise<void> {
   const publicPaths = new Set(["/healthz", "/readyz", "/health", "/metrics"]);
 
   const skipPublicPaths = (middleware: any) => (req: any, res: any, next: any) => {
-    if (publicPaths.has(req.path)) {return next();}
+    if (publicPaths.has(req.path)) {
+      return next();
+    }
     return middleware(req, res, next);
   };
 

@@ -1,6 +1,6 @@
 /**
  * ML Analytics - Digital Twin Routes
- * 
+ *
  * Routes for digital twins and twin simulations.
  */
 
@@ -11,19 +11,25 @@ import type { AuthenticatedRequest } from "../../../middleware/auth";
 import { dbMlAnalyticsStorage } from "../../../repositories.js";
 
 export function registerTwinRoutes(app: Express, _config: MlAnalyticsConfig) {
-  app.get("/api/analytics/digital-twins",
+  app.get(
+    "/api/analytics/digital-twins",
     withErrorHandling("fetch digital twins", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, vesselId, twinType } = req.query;
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
-      const twins = await dbMlAnalyticsStorage.getDigitalTwins(orgId as string, vesselId as string, twinType as string);
+      const twins = await dbMlAnalyticsStorage.getDigitalTwins(
+        orgId as string,
+        vesselId as string,
+        twinType as string
+      );
       const { normalizeDigitalTwins } = await import("../../../analytics-data-normalizer.js");
       res.json(normalizeDigitalTwins(twins));
     })
   );
 
-  app.get("/api/analytics/digital-twins/:id",
+  app.get(
+    "/api/analytics/digital-twins/:id",
     withErrorHandling("fetch digital twin", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId } = req.query;
       if (!orgId) {
@@ -38,9 +44,15 @@ export function registerTwinRoutes(app: Express, _config: MlAnalyticsConfig) {
     })
   );
 
-  app.get("/api/analytics/twin-simulations",
+  app.get(
+    "/api/analytics/twin-simulations",
     withErrorHandling("fetch twin simulations", async (req, res) => {
-      const { orgId = (req as AuthenticatedRequest).orgId, digitalTwinId, scenarioType, status } = req.query;
+      const {
+        orgId = (req as AuthenticatedRequest).orgId,
+        digitalTwinId,
+        scenarioType,
+        status,
+      } = req.query;
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
@@ -54,13 +66,17 @@ export function registerTwinRoutes(app: Express, _config: MlAnalyticsConfig) {
     })
   );
 
-  app.get("/api/analytics/twin-simulations/:id",
+  app.get(
+    "/api/analytics/twin-simulations/:id",
     withErrorHandling("fetch twin simulation", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId } = req.query;
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
-      const simulation = await dbMlAnalyticsStorage.getTwinSimulation(req.params.id, orgId as string);
+      const simulation = await dbMlAnalyticsStorage.getTwinSimulation(
+        req.params.id,
+        orgId as string
+      );
       if (!simulation) {
         return sendNotFound(res, "Twin simulation");
       }

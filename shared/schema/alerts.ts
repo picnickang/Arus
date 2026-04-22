@@ -1,6 +1,6 @@
 /**
  * Schema Alerts - Alert Configurations and Notifications
- * 
+ *
  * Alert settings, notifications, suppressions, and cooldowns.
  */
 
@@ -224,8 +224,15 @@ export const alertSettingsVessel = pgTable(
 );
 
 // Alert thresholds
-export const alertThresholdCategoryEnum = ["machinery", "telemetry", "compliance", "crew", "logbook", "maintenance"] as const;
-export type AlertThresholdCategory = typeof alertThresholdCategoryEnum[number];
+export const alertThresholdCategoryEnum = [
+  "machinery",
+  "telemetry",
+  "compliance",
+  "crew",
+  "logbook",
+  "maintenance",
+] as const;
+export type AlertThresholdCategory = (typeof alertThresholdCategoryEnum)[number];
 
 export const alertThresholds = pgTable(
   "alert_thresholds",
@@ -362,7 +369,13 @@ export const alertCooldown = pgTable(
     orgIdIdx: index("idx_alert_cooldown_org").on(table.orgId),
     vesselIdIdx: index("idx_alert_cooldown_vessel").on(table.vesselId),
     alertTypeKeyIdx: index("idx_alert_cooldown_type_key").on(table.alertType, table.alertKey),
-    uniqueCooldown: unique("uq_alert_cooldown").on(table.orgId, table.vesselId, table.alertType, table.alertKey, table.entityId),
+    uniqueCooldown: unique("uq_alert_cooldown").on(
+      table.orgId,
+      table.vesselId,
+      table.alertType,
+      table.alertKey,
+      table.entityId
+    ),
   })
 );
 

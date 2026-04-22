@@ -28,7 +28,8 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
 
 export class SuggestionEngine {
   private openai: OpenAI | null = null;
-  private cachedSuggestions: Map<string, { suggestions: Suggestion[]; timestamp: number }> = new Map();
+  private cachedSuggestions: Map<string, { suggestions: Suggestion[]; timestamp: number }> =
+    new Map();
   private cacheTTL = 300000;
 
   async initialize(apiKey: string): Promise<void> {
@@ -39,10 +40,7 @@ export class SuggestionEngine {
     return this.openai !== null;
   }
 
-  async generateSuggestions(
-    context: SuggestionContext,
-    count: number = 5
-  ): Promise<Suggestion[]> {
+  async generateSuggestions(context: SuggestionContext, count: number = 5): Promise<Suggestion[]> {
     const cacheKey = this.buildCacheKey(context);
     const cached = this.cachedSuggestions.get(cacheKey);
 
@@ -67,10 +65,7 @@ export class SuggestionEngine {
     }
   }
 
-  private async generateWithLLM(
-    context: SuggestionContext,
-    count: number
-  ): Promise<Suggestion[]> {
+  private async generateWithLLM(context: SuggestionContext, count: number): Promise<Suggestion[]> {
     const prompt = this.buildPrompt(context, count);
 
     const response = await this.openai!.chat.completions.create({
@@ -141,14 +136,14 @@ No explanation, just the JSON array.`,
     return parts.join("\n");
   }
 
-  private generateFallbackSuggestions(
-    context: SuggestionContext,
-    count: number
-  ): Suggestion[] {
+  private generateFallbackSuggestions(context: SuggestionContext, count: number): Suggestion[] {
     const templates: Array<{ template: string; category: Suggestion["category"] }> = [
       { template: "What are the maintenance intervals for {topic}?", category: "maintenance" },
       { template: "How do I troubleshoot {topic} issues?", category: "technical" },
-      { template: "What safety precautions should I take when working with {topic}?", category: "safety" },
+      {
+        template: "What safety precautions should I take when working with {topic}?",
+        category: "safety",
+      },
       { template: "What is the proper procedure for {topic}?", category: "operations" },
       { template: "What are the specifications for {topic}?", category: "technical" },
       { template: "How do I perform routine checks on {topic}?", category: "maintenance" },
@@ -205,7 +200,12 @@ No explanation, just the JSON array.`,
     }
 
     if (context.conversationHistory) {
-      parts.push(context.conversationHistory.slice(-2).map((m) => m.content.substring(0, 50)).join("|"));
+      parts.push(
+        context.conversationHistory
+          .slice(-2)
+          .map((m) => m.content.substring(0, 50))
+          .join("|")
+      );
     }
 
     return parts.join("::") || "default";
@@ -215,7 +215,9 @@ No explanation, just the JSON array.`,
     const lowerQuestion = question.toLowerCase();
 
     for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-      if (category === "general") {continue;}
+      if (category === "general") {
+        continue;
+      }
       if (keywords.some((kw) => lowerQuestion.includes(kw))) {
         return category as Suggestion["category"];
       }

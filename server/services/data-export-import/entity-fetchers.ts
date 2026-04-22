@@ -1,14 +1,24 @@
 /**
  * Entity Fetchers
- * 
+ *
  * Functions for fetching entity data from storage for export.
  */
 
 import {
-  dbCrewStorage, dbCrewExtensionsStorage, dbAlertStorage, dbEquipmentStorage,
-  dbDevicesStorage, dbUserStorage, dbSensorsStorage, dbMaintenanceStorage,
-  dbInventoryStorage, dbSystemAdminStorage, dbWorkOrderStorage,
-  vesselService, workOrderService, analyticsInsightsAdapter,
+  dbCrewStorage,
+  dbCrewExtensionsStorage,
+  dbAlertStorage,
+  dbEquipmentStorage,
+  dbDevicesStorage,
+  dbUserStorage,
+  dbSensorsStorage,
+  dbMaintenanceStorage,
+  dbInventoryStorage,
+  dbSystemAdminStorage,
+  dbWorkOrderStorage,
+  vesselService,
+  workOrderService,
+  analyticsInsightsAdapter,
 } from "../../repositories";
 import type { ExportOptions } from "./types";
 
@@ -39,7 +49,10 @@ async function fetchPdmScoreLogs(orgId: string): Promise<any[]> {
 }
 
 const entityFetchers: Record<string, EntityFetcher> = {
-  organizations: async (orgId) => { const org = await dbUserStorage.getOrganization(orgId); return org ? [org] : []; },
+  organizations: async (orgId) => {
+    const org = await dbUserStorage.getOrganization(orgId);
+    return org ? [org] : [];
+  },
   vessels: (orgId) => vesselService.getVessels(orgId),
   equipment: (orgId) => dbEquipmentStorage.getEquipmentRegistry(orgId),
   devices: (orgId) => dbDevicesStorage.getDevices(orgId),
@@ -56,10 +69,19 @@ const entityFetchers: Record<string, EntityFetcher> = {
   alert_notifications: (orgId) => fetchAlertNotifications(orgId),
   pdm_score_logs: (orgId) => fetchPdmScoreLogs(orgId),
   parts_inventory: (orgId) => dbInventoryStorage.getPartsInventory(orgId),
-  system_settings: async () => { const settings = await dbSystemAdminStorage.getSettings(); return settings ? [settings] : []; },
+  system_settings: async () => {
+    const settings = await dbSystemAdminStorage.getSettings();
+    return settings ? [settings] : [];
+  },
   kb_docs: async (orgId, options) => {
-    if (!options.includeKnowledgeBase) {return [];}
-    try { return analyticsInsightsAdapter.getKbDocs(orgId); } catch { return []; }
+    if (!options.includeKnowledgeBase) {
+      return [];
+    }
+    try {
+      return analyticsInsightsAdapter.getKbDocs(orgId);
+    } catch {
+      return [];
+    }
   },
 };
 

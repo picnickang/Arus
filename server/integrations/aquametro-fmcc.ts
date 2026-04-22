@@ -1,9 +1,9 @@
 /**
  * Aquametro FMCC Integration - Backward Compatibility Shim
- * 
+ *
  * This file re-exports from the modular aquametro-fmcc/ directory.
  * New code should import from './aquametro-fmcc/index.js'
- * 
+ *
  * Original: 858 lines → 7 modular files
  */
 

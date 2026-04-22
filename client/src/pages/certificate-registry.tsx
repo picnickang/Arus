@@ -9,11 +9,46 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { CERTIFICATE_TYPES, CERTIFICATE_STATUSES, ISSUING_AUTHORITY_TYPES } from "@shared/schema";
 import type { VesselCertificate } from "@shared/schema";
@@ -75,39 +110,69 @@ export function getCertExpiryStatus(expiryDate: string | Date | null | undefined
   label: string;
   badgeClass: string;
 } | null {
-  if (!expiryDate) {return null;}
+  if (!expiryDate) {
+    return null;
+  }
   const expiry = typeof expiryDate === "string" ? parseISO(expiryDate) : expiryDate;
   const now = new Date();
   const days = differenceInDays(expiry, now);
 
   if (days < 0) {
-    return { level: "expired", label: "Expired", badgeClass: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" };
+    return {
+      level: "expired",
+      label: "Expired",
+      badgeClass: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+    };
   }
   if (days <= 30) {
-    return { level: "critical", label: `${days} days`, badgeClass: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" };
+    return {
+      level: "critical",
+      label: `${days} days`,
+      badgeClass: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+    };
   }
   if (days <= 60) {
-    return { level: "warning", label: `${days} days`, badgeClass: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400" };
+    return {
+      level: "warning",
+      label: `${days} days`,
+      badgeClass: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+    };
   }
   if (days <= 90) {
-    return { level: "notice", label: `${days} days`, badgeClass: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" };
+    return {
+      level: "notice",
+      label: `${days} days`,
+      badgeClass: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+    };
   }
-  return { level: "current", label: "Current", badgeClass: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" };
+  return {
+    level: "current",
+    label: "Current",
+    badgeClass: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  };
 }
 
 function getStatusBadgeClass(status: string): string {
   switch (status) {
-    case "valid": return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-    case "expired": return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
-    case "suspended": return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
-    case "withdrawn": return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
-    case "pending_renewal": return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
-    default: return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
+    case "valid":
+      return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+    case "expired":
+      return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+    case "suspended":
+      return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
+    case "withdrawn":
+      return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
+    case "pending_renewal":
+      return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
+    default:
+      return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
   }
 }
 
 function formatDate(d: string | Date | null | undefined): string {
-  if (!d) {return "—";}
+  if (!d) {
+    return "—";
+  }
   try {
     const date = typeof d === "string" ? parseISO(d) : d;
     return format(date, "dd MMM yyyy");
@@ -171,13 +236,32 @@ function CertificateFormDialog({
         certificateNumber: data.certificateNumber || "",
         issuingAuthority: data.issuingAuthority || "",
         issuingAuthorityType: (data as any).issuingAuthorityType || "",
-        issueDate: data.issueDate ? format(typeof data.issueDate === "string" ? parseISO(data.issueDate) : data.issueDate, "yyyy-MM-dd") : "",
-        expiryDate: data.expiryDate ? format(typeof data.expiryDate === "string" ? parseISO(data.expiryDate) : data.expiryDate, "yyyy-MM-dd") : "",
+        issueDate: data.issueDate
+          ? format(
+              typeof data.issueDate === "string" ? parseISO(data.issueDate) : data.issueDate,
+              "yyyy-MM-dd"
+            )
+          : "",
+        expiryDate: data.expiryDate
+          ? format(
+              typeof data.expiryDate === "string" ? parseISO(data.expiryDate) : data.expiryDate,
+              "yyyy-MM-dd"
+            )
+          : "",
         equipmentId: data.equipmentId || "",
         notes: data.notes || "",
       });
       setEditStatus(data.status || "valid");
-      setEditNextSurveyDue(data.nextSurveyDue ? format(typeof data.nextSurveyDue === "string" ? parseISO(data.nextSurveyDue) : data.nextSurveyDue, "yyyy-MM-dd") : "");
+      setEditNextSurveyDue(
+        data.nextSurveyDue
+          ? format(
+              typeof data.nextSurveyDue === "string"
+                ? parseISO(data.nextSurveyDue)
+                : data.nextSurveyDue,
+              "yyyy-MM-dd"
+            )
+          : ""
+      );
     } else {
       setForm(defaultFormData);
       setEditStatus("");
@@ -197,7 +281,10 @@ function CertificateFormDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/certificates"] });
       queryClient.invalidateQueries({ queryKey: ["/api/certificates/summary"] });
-      toast({ title: "Certificate Created", description: "The certificate has been created successfully." });
+      toast({
+        title: "Certificate Created",
+        description: "The certificate has been created successfully.",
+      });
       onOpenChange(false);
     },
     onError: (err: Error) => {
@@ -211,7 +298,10 @@ function CertificateFormDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/certificates"] });
       queryClient.invalidateQueries({ queryKey: ["/api/certificates/summary"] });
-      toast({ title: "Certificate Updated", description: "The certificate has been updated successfully." });
+      toast({
+        title: "Certificate Updated",
+        description: "The certificate has been updated successfully.",
+      });
       onOpenChange(false);
     },
     onError: (err: Error) => {
@@ -228,27 +318,52 @@ function CertificateFormDialog({
         issuingAuthority: form.issuingAuthority,
         issueDate: form.issueDate,
       };
-      if (form.certificateNumber) {payload.certificateNumber = form.certificateNumber;}
-      if (form.issuingAuthorityType) {payload.issuingAuthorityType = form.issuingAuthorityType;}
-      if (form.expiryDate) {payload.expiryDate = form.expiryDate;}
-      if (form.equipmentId) {payload.equipmentId = form.equipmentId;}
-      if (form.notes) {payload.notes = form.notes;}
+      if (form.certificateNumber) {
+        payload.certificateNumber = form.certificateNumber;
+      }
+      if (form.issuingAuthorityType) {
+        payload.issuingAuthorityType = form.issuingAuthorityType;
+      }
+      if (form.expiryDate) {
+        payload.expiryDate = form.expiryDate;
+      }
+      if (form.equipmentId) {
+        payload.equipmentId = form.equipmentId;
+      }
+      if (form.notes) {
+        payload.notes = form.notes;
+      }
       createMutation.mutate(payload);
     } else {
       const payload: Record<string, unknown> = {};
-      if (editStatus) {payload.status = editStatus;}
-      if (form.certificateNumber) {payload.certificateNumber = form.certificateNumber;}
-      if (form.expiryDate) {payload.expiryDate = form.expiryDate;}
-      if (editNextSurveyDue) {payload.nextSurveyDue = editNextSurveyDue;}
-      if (form.notes !== undefined) {payload.notes = form.notes;}
+      if (editStatus) {
+        payload.status = editStatus;
+      }
+      if (form.certificateNumber) {
+        payload.certificateNumber = form.certificateNumber;
+      }
+      if (form.expiryDate) {
+        payload.expiryDate = form.expiryDate;
+      }
+      if (editNextSurveyDue) {
+        payload.nextSurveyDue = editNextSurveyDue;
+      }
+      if (form.notes !== undefined) {
+        payload.notes = form.notes;
+      }
       updateMutation.mutate(payload);
     }
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
-  const isValid = mode === "create"
-    ? form.vesselId && form.certificateType && form.certificateName && form.issuingAuthority && form.issueDate
-    : true;
+  const isValid =
+    mode === "create"
+      ? form.vesselId &&
+        form.certificateType &&
+        form.certificateName &&
+        form.issuingAuthority &&
+        form.issueDate
+      : true;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -258,7 +373,9 @@ function CertificateFormDialog({
             {mode === "create" ? "Add Certificate" : "Edit Certificate"}
           </DialogTitle>
           <DialogDescription>
-            {mode === "create" ? "Add a new vessel certificate to the registry." : "Update certificate details."}
+            {mode === "create"
+              ? "Add a new vessel certificate to the registry."
+              : "Update certificate details."}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
@@ -266,22 +383,36 @@ function CertificateFormDialog({
             <>
               <div className="space-y-2">
                 <Label>Vessel *</Label>
-                <Select value={form.vesselId} onValueChange={(v) => setForm({ ...form, vesselId: v })}>
-                  <SelectTrigger data-testid="select-form-vessel"><SelectValue placeholder="Select vessel" /></SelectTrigger>
+                <Select
+                  value={form.vesselId}
+                  onValueChange={(v) => setForm({ ...form, vesselId: v })}
+                >
+                  <SelectTrigger data-testid="select-form-vessel">
+                    <SelectValue placeholder="Select vessel" />
+                  </SelectTrigger>
                   <SelectContent>
                     {vessels.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label>Certificate Type *</Label>
-                <Select value={form.certificateType} onValueChange={(v) => setForm({ ...form, certificateType: v })}>
-                  <SelectTrigger data-testid="select-form-cert-type"><SelectValue placeholder="Select type" /></SelectTrigger>
+                <Select
+                  value={form.certificateType}
+                  onValueChange={(v) => setForm({ ...form, certificateType: v })}
+                >
+                  <SelectTrigger data-testid="select-form-cert-type">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
                   <SelectContent>
                     {CERTIFICATE_TYPES.map((t) => (
-                      <SelectItem key={t} value={t}>{CERT_TYPE_LABELS[t] || t}</SelectItem>
+                      <SelectItem key={t} value={t}>
+                        {CERT_TYPE_LABELS[t] || t}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -306,11 +437,18 @@ function CertificateFormDialog({
               </div>
               <div className="space-y-2">
                 <Label>Issuing Authority Type</Label>
-                <Select value={form.issuingAuthorityType} onValueChange={(v) => setForm({ ...form, issuingAuthorityType: v })}>
-                  <SelectTrigger data-testid="select-form-authority-type"><SelectValue placeholder="Select type" /></SelectTrigger>
+                <Select
+                  value={form.issuingAuthorityType}
+                  onValueChange={(v) => setForm({ ...form, issuingAuthorityType: v })}
+                >
+                  <SelectTrigger data-testid="select-form-authority-type">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
                   <SelectContent>
                     {ISSUING_AUTHORITY_TYPES.map((t) => (
-                      <SelectItem key={t} value={t}>{AUTHORITY_TYPE_LABELS[t] || t}</SelectItem>
+                      <SelectItem key={t} value={t}>
+                        {AUTHORITY_TYPE_LABELS[t] || t}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -337,12 +475,19 @@ function CertificateFormDialog({
               </div>
               <div className="space-y-2">
                 <Label>Equipment (optional)</Label>
-                <Select value={form.equipmentId || "none"} onValueChange={(v) => setForm({ ...form, equipmentId: v === "none" ? "" : v })}>
-                  <SelectTrigger data-testid="select-form-equipment"><SelectValue placeholder="Select equipment" /></SelectTrigger>
+                <Select
+                  value={form.equipmentId || "none"}
+                  onValueChange={(v) => setForm({ ...form, equipmentId: v === "none" ? "" : v })}
+                >
+                  <SelectTrigger data-testid="select-form-equipment">
+                    <SelectValue placeholder="Select equipment" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
                     {equipmentList.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -363,10 +508,14 @@ function CertificateFormDialog({
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select value={editStatus} onValueChange={setEditStatus}>
-                  <SelectTrigger data-testid="select-form-status"><SelectValue placeholder="Select status" /></SelectTrigger>
+                  <SelectTrigger data-testid="select-form-status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
                   <SelectContent>
                     {CERTIFICATE_STATUSES.map((s) => (
-                      <SelectItem key={s} value={s}>{CERT_STATUS_LABELS[s] || s}</SelectItem>
+                      <SelectItem key={s} value={s}>
+                        {CERT_STATUS_LABELS[s] || s}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -405,8 +554,18 @@ function CertificateFormDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-form-cancel">Cancel</Button>
-          <Button onClick={handleSubmit} disabled={isPending || !isValid} data-testid="button-form-submit">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            data-testid="button-form-cancel"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={isPending || !isValid}
+            data-testid="button-form-submit"
+          >
             {isPending ? "Saving..." : mode === "create" ? "Create" : "Update"}
           </Button>
         </DialogFooter>
@@ -434,9 +593,15 @@ export default function CertificateRegistryPage() {
   const [selectedCert, setSelectedCert] = useState<VesselCertificate | null>(null);
 
   const queryParams: Record<string, string> = {};
-  if (vesselFilter !== "all") {queryParams.vesselId = vesselFilter;}
-  if (typeFilter !== "all") {queryParams.type = typeFilter;}
-  if (statusFilter !== "all") {queryParams.status = statusFilter;}
+  if (vesselFilter !== "all") {
+    queryParams.vesselId = vesselFilter;
+  }
+  if (typeFilter !== "all") {
+    queryParams.type = typeFilter;
+  }
+  if (statusFilter !== "all") {
+    queryParams.status = statusFilter;
+  }
 
   const { data: certificates = [], isLoading: isLoadingCerts } = useQuery<VesselCertificate[]>({
     queryKey: ["/api/certificates", queryParams],
@@ -454,14 +619,16 @@ export default function CertificateRegistryPage() {
     queryKey: ["/api/certificates/summary"],
   });
 
-  const summary = rawSummary ? {
-    total: rawSummary.totalCertificates,
-    valid: rawSummary.valid,
-    expiringSoon: rawSummary.expiringIn90Days,
-    expired: rawSummary.expired,
-    suspended: rawSummary.suspended,
-    pendingRenewal: rawSummary.pendingRenewal,
-  } : undefined;
+  const summary = rawSummary
+    ? {
+        total: rawSummary.totalCertificates,
+        valid: rawSummary.valid,
+        expiringSoon: rawSummary.expiringIn90Days,
+        expired: rawSummary.expired,
+        suspended: rawSummary.suspended,
+        pendingRenewal: rawSummary.pendingRenewal,
+      }
+    : undefined;
 
   const { data: vessels = [] } = useQuery<Array<{ id: string; name: string }>>({
     queryKey: ["/api/vessels"],
@@ -517,7 +684,12 @@ export default function CertificateRegistryPage() {
   const totalPages = Math.max(1, Math.ceil(filteredCerts.length / PAGE_SIZE));
   const paginatedCerts = filteredCerts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const hasActiveFilters = vesselFilter !== "all" || typeFilter !== "all" || statusFilter !== "all" || equipmentFilter !== "all" || searchQuery.trim() !== "";
+  const hasActiveFilters =
+    vesselFilter !== "all" ||
+    typeFilter !== "all" ||
+    statusFilter !== "all" ||
+    equipmentFilter !== "all" ||
+    searchQuery.trim() !== "";
 
   const clearFilters = () => {
     setVesselFilter("all");
@@ -554,10 +726,14 @@ export default function CertificateRegistryPage() {
             <Skeleton className="h-10 w-40" />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24" />)}
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-24" />
+            ))}
           </div>
           <div className="space-y-2">
-            {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-14" />)}
+            {[...Array(8)].map((_, i) => (
+              <Skeleton key={i} className="h-14" />
+            ))}
           </div>
         </div>
       </div>
@@ -568,9 +744,12 @@ export default function CertificateRegistryPage() {
     <div className="min-h-screen">
       <div className="p-6 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold" data-testid="text-page-title">Certificate Registry</h1>
+          <h1 className="text-2xl font-bold" data-testid="text-page-title">
+            Certificate Registry
+          </h1>
           <Button onClick={() => setIsCreateOpen(true)} data-testid="button-add-certificate">
-            <Plus className="h-4 w-4 mr-2" />Add Certificate
+            <Plus className="h-4 w-4 mr-2" />
+            Add Certificate
           </Button>
         </div>
 
@@ -580,7 +759,9 @@ export default function CertificateRegistryPage() {
               <div className="flex items-center justify-between gap-1">
                 <div>
                   <p className="text-sm text-muted-foreground">Total</p>
-                  <p className="text-2xl font-bold" data-testid="text-summary-total">{summary?.total ?? 0}</p>
+                  <p className="text-2xl font-bold" data-testid="text-summary-total">
+                    {summary?.total ?? 0}
+                  </p>
                 </div>
                 <FileText className="h-8 w-8 text-muted-foreground" />
               </div>
@@ -591,7 +772,9 @@ export default function CertificateRegistryPage() {
               <div className="flex items-center justify-between gap-1">
                 <div>
                   <p className="text-sm text-muted-foreground">Valid</p>
-                  <p className="text-2xl font-bold text-green-600" data-testid="text-summary-valid">{summary?.valid ?? 0}</p>
+                  <p className="text-2xl font-bold text-green-600" data-testid="text-summary-valid">
+                    {summary?.valid ?? 0}
+                  </p>
                 </div>
                 <ShieldCheck className="h-8 w-8 text-green-500" />
               </div>
@@ -602,7 +785,12 @@ export default function CertificateRegistryPage() {
               <div className="flex items-center justify-between gap-1">
                 <div>
                   <p className="text-sm text-muted-foreground">Expiring Soon</p>
-                  <p className="text-2xl font-bold text-amber-600" data-testid="text-summary-expiring">{summary?.expiringSoon ?? 0}</p>
+                  <p
+                    className="text-2xl font-bold text-amber-600"
+                    data-testid="text-summary-expiring"
+                  >
+                    {summary?.expiringSoon ?? 0}
+                  </p>
                 </div>
                 <Clock className="h-8 w-8 text-amber-500" />
               </div>
@@ -613,7 +801,9 @@ export default function CertificateRegistryPage() {
               <div className="flex items-center justify-between gap-1">
                 <div>
                   <p className="text-sm text-muted-foreground">Expired</p>
-                  <p className="text-2xl font-bold text-red-600" data-testid="text-summary-expired">{summary?.expired ?? 0}</p>
+                  <p className="text-2xl font-bold text-red-600" data-testid="text-summary-expired">
+                    {summary?.expired ?? 0}
+                  </p>
                 </div>
                 <ShieldAlert className="h-8 w-8 text-red-500" />
               </div>
@@ -629,43 +819,100 @@ export default function CertificateRegistryPage() {
                 <Input
                   placeholder="Search certificates..."
                   value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setPage(1);
+                  }}
                   className="pl-9"
                   data-testid="input-search"
                 />
               </div>
               <div className="flex flex-wrap gap-2">
-                <Select value={vesselFilter} onValueChange={(v) => { setVesselFilter(v); setPage(1); }}>
-                  <SelectTrigger className="w-40" data-testid="select-vessel"><SelectValue placeholder="Vessel" /></SelectTrigger>
+                <Select
+                  value={vesselFilter}
+                  onValueChange={(v) => {
+                    setVesselFilter(v);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-40" data-testid="select-vessel">
+                    <SelectValue placeholder="Vessel" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Vessels</SelectItem>
-                    {vessels.map((v) => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+                    {vessels.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-                <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(1); }}>
-                  <SelectTrigger className="w-40" data-testid="select-type"><SelectValue placeholder="Type" /></SelectTrigger>
+                <Select
+                  value={typeFilter}
+                  onValueChange={(v) => {
+                    setTypeFilter(v);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-40" data-testid="select-type">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Types</SelectItem>
-                    {CERTIFICATE_TYPES.map((t) => <SelectItem key={t} value={t}>{CERT_TYPE_LABELS[t] || t}</SelectItem>)}
+                    {CERTIFICATE_TYPES.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {CERT_TYPE_LABELS[t] || t}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-                <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-                  <SelectTrigger className="w-40" data-testid="select-status"><SelectValue placeholder="Status" /></SelectTrigger>
+                <Select
+                  value={statusFilter}
+                  onValueChange={(v) => {
+                    setStatusFilter(v);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-40" data-testid="select-status">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
-                    {CERTIFICATE_STATUSES.map((s) => <SelectItem key={s} value={s}>{CERT_STATUS_LABELS[s] || s}</SelectItem>)}
+                    {CERTIFICATE_STATUSES.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {CERT_STATUS_LABELS[s] || s}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-                <Select value={equipmentFilter} onValueChange={(v) => { setEquipmentFilter(v); setPage(1); }}>
-                  <SelectTrigger className="w-44" data-testid="select-equipment"><SelectValue placeholder="Equipment" /></SelectTrigger>
+                <Select
+                  value={equipmentFilter}
+                  onValueChange={(v) => {
+                    setEquipmentFilter(v);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-44" data-testid="select-equipment">
+                    <SelectValue placeholder="Equipment" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Equipment</SelectItem>
-                    {equipmentList.map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+                    {equipmentList.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 {hasActiveFilters && (
-                  <Button variant="ghost" size="sm" onClick={clearFilters} data-testid="button-clear-filters">
-                    <X className="h-4 w-4 mr-1" />Clear
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    data-testid="button-clear-filters"
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Clear
                   </Button>
                 )}
               </div>
@@ -689,7 +936,9 @@ export default function CertificateRegistryPage() {
                 {paginatedCerts.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      {hasActiveFilters ? "No certificates match your filters" : "No certificates found"}
+                      {hasActiveFilters
+                        ? "No certificates match your filters"
+                        : "No certificates found"}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -705,21 +954,29 @@ export default function CertificateRegistryPage() {
                         <TableCell>
                           <div className="font-medium">{cert.certificateName}</div>
                           {cert.certificateNumber && (
-                            <div className="text-xs text-muted-foreground">#{cert.certificateNumber}</div>
+                            <div className="text-xs text-muted-foreground">
+                              #{cert.certificateNumber}
+                            </div>
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{CERT_TYPE_LABELS[cert.certificateType] || cert.certificateType}</Badge>
+                          <Badge variant="outline">
+                            {CERT_TYPE_LABELS[cert.certificateType] || cert.certificateType}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1.5">
                             <Ship className="h-3.5 w-3.5 text-blue-600" />
-                            <span className="text-sm">{vesselMap.get(cert.vesselId) || cert.vesselId}</span>
+                            <span className="text-sm">
+                              {vesselMap.get(cert.vesselId) || cert.vesselId}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell>
                           {cert.equipmentId ? (
-                            <span className="text-sm">{equipmentMap.get(cert.equipmentId) || cert.equipmentId}</span>
+                            <span className="text-sm">
+                              {equipmentMap.get(cert.equipmentId) || cert.equipmentId}
+                            </span>
                           ) : (
                             <span className="text-muted-foreground text-sm">—</span>
                           )}
@@ -728,11 +985,13 @@ export default function CertificateRegistryPage() {
                           <Badge className={getStatusBadgeClass(cert.status)}>
                             {CERT_STATUS_LABELS[cert.status] || cert.status}
                           </Badge>
-                          {expiryStatus && cert.status === "valid" && expiryStatus.level !== "current" && (
-                            <Badge className={`ml-1 ${expiryStatus.badgeClass}`}>
-                              {expiryStatus.label}
-                            </Badge>
-                          )}
+                          {expiryStatus &&
+                            cert.status === "valid" &&
+                            expiryStatus.level !== "current" && (
+                              <Badge className={`ml-1 ${expiryStatus.badgeClass}`}>
+                                {expiryStatus.label}
+                              </Badge>
+                            )}
                         </TableCell>
                         <TableCell className="text-sm">{formatDate(cert.expiryDate)}</TableCell>
                         <TableCell className="text-sm">{cert.issuingAuthority}</TableCell>
@@ -746,7 +1005,10 @@ export default function CertificateRegistryPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={(e) => { e.stopPropagation(); handleEdit(cert); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(cert);
+                              }}
                               data-testid={`button-edit-${cert.id}`}
                             >
                               <Pencil className="h-4 w-4" />
@@ -755,7 +1017,10 @@ export default function CertificateRegistryPage() {
                               variant="ghost"
                               size="icon"
                               className="text-destructive"
-                              onClick={(e) => { e.stopPropagation(); handleDeleteClick(cert); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteClick(cert);
+                              }}
                               data-testid={`button-delete-${cert.id}`}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -771,7 +1036,8 @@ export default function CertificateRegistryPage() {
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-4 py-3 border-t">
                 <p className="text-sm text-muted-foreground">
-                  Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredCerts.length)} of {filteredCerts.length}
+                  Showing {(page - 1) * PAGE_SIZE + 1}–
+                  {Math.min(page * PAGE_SIZE, filteredCerts.length)} of {filteredCerts.length}
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
@@ -783,7 +1049,9 @@ export default function CertificateRegistryPage() {
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <span className="text-sm">Page {page} of {totalPages}</span>
+                  <span className="text-sm">
+                    Page {page} of {totalPages}
+                  </span>
                   <Button
                     variant="outline"
                     size="sm"
@@ -822,7 +1090,8 @@ export default function CertificateRegistryPage() {
                       const es = getCertExpiryStatus(selectedCert.expiryDate);
                       return es && es.level !== "current" ? (
                         <Badge className={es.badgeClass}>
-                          <AlertTriangle className="h-3 w-3 mr-1" />{es.label}
+                          <AlertTriangle className="h-3 w-3 mr-1" />
+                          {es.label}
                         </Badge>
                       ) : null;
                     })()}
@@ -830,7 +1099,9 @@ export default function CertificateRegistryPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Vessel</p>
-                      <p className="font-medium">{vesselMap.get(selectedCert.vesselId) || selectedCert.vesselId}</p>
+                      <p className="font-medium">
+                        {vesselMap.get(selectedCert.vesselId) || selectedCert.vesselId}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Equipment</p>
@@ -842,7 +1113,10 @@ export default function CertificateRegistryPage() {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Certificate Type</p>
-                      <p className="font-medium">{CERT_TYPE_LABELS[selectedCert.certificateType] || selectedCert.certificateType}</p>
+                      <p className="font-medium">
+                        {CERT_TYPE_LABELS[selectedCert.certificateType] ||
+                          selectedCert.certificateType}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Certificate Number</p>
@@ -855,7 +1129,9 @@ export default function CertificateRegistryPage() {
                     <div>
                       <p className="text-sm text-muted-foreground">Authority Type</p>
                       <p className="font-medium">
-                        {AUTHORITY_TYPE_LABELS[(selectedCert as any).issuingAuthorityType] || (selectedCert as any).issuingAuthorityType || "—"}
+                        {AUTHORITY_TYPE_LABELS[(selectedCert as any).issuingAuthorityType] ||
+                          (selectedCert as any).issuingAuthorityType ||
+                          "—"}
                       </p>
                     </div>
                     <div>
@@ -899,18 +1175,26 @@ export default function CertificateRegistryPage() {
                     <Button
                       variant="outline"
                       className="flex-1"
-                      onClick={() => { setIsDetailOpen(false); handleEdit(selectedCert); }}
+                      onClick={() => {
+                        setIsDetailOpen(false);
+                        handleEdit(selectedCert);
+                      }}
                       data-testid="button-detail-edit"
                     >
-                      <Pencil className="h-4 w-4 mr-2" />Edit
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
                     </Button>
                     <Button
                       variant="outline"
                       className="flex-1 text-destructive"
-                      onClick={() => { setIsDetailOpen(false); handleDeleteClick(selectedCert); }}
+                      onClick={() => {
+                        setIsDetailOpen(false);
+                        handleDeleteClick(selectedCert);
+                      }}
                       data-testid="button-detail-delete"
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />Delete
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
                     </Button>
                   </div>
                 </div>
@@ -941,7 +1225,8 @@ export default function CertificateRegistryPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Certificate</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete "{selectedCert?.certificateName}"? This action cannot be undone.
+                Are you sure you want to delete "{selectedCert?.certificateName}"? This action
+                cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

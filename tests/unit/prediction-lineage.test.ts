@@ -3,7 +3,7 @@ import { failurePredictions } from "@shared/schema/ml-analytics-core";
 
 describe("Prediction Lineage Schema", () => {
   it("failure_predictions has lineage columns (model_version_id, feature_set_version, feature_snapshot_id)", () => {
-    const columns = Object.keys((failurePredictions as any));
+    const columns = Object.keys(failurePredictions as any);
     expect(columns).toContain("modelVersionId");
     expect(columns).toContain("featureSetVersion");
     expect(columns).toContain("featureSnapshotId");

@@ -19,14 +19,20 @@ export class WorkOrderWorkflowService {
     private savings: ICostSavingsPort,
     private predictionFeedback: IPredictionFeedbackPort,
     private legacyCompletion: ILegacyCompletionPort,
-    private events: IWorkOrderEventPort,
+    private events: IWorkOrderEventPort
   ) {}
 
   async completeWithFeedback(
     input: WorkOrderCompletionInput,
-    userId: string,
+    userId: string
   ): Promise<WorkOrderCompletionResult> {
-    const { workOrderId, orgId, predictionFeedback: feedback, completionNotes, actualHours } = input;
+    const {
+      workOrderId,
+      orgId,
+      predictionFeedback: feedback,
+      completionNotes,
+      actualHours,
+    } = input;
 
     const wo = await this.woRepo.findById(workOrderId, orgId);
     if (!wo) {
@@ -81,12 +87,12 @@ export class WorkOrderWorkflowService {
           actualDowntimeHours: actualHours || 0,
         },
         orgId,
-        userId,
+        userId
       );
     } catch (err) {
       console.error(
         `[WOWorkflow] Legacy completion failed for WO ${workOrderId}:`,
-        err instanceof Error ? err.message : "unknown",
+        err instanceof Error ? err.message : "unknown"
       );
       return {
         workOrderId,
@@ -105,7 +111,7 @@ export class WorkOrderWorkflowService {
     } catch (err) {
       console.error(
         `[WOWorkflow] Procurement cost aggregation failed for WO ${workOrderId}:`,
-        err instanceof Error ? err.message : "unknown",
+        err instanceof Error ? err.message : "unknown"
       );
     }
 
@@ -117,7 +123,7 @@ export class WorkOrderWorkflowService {
       } catch (err) {
         console.error(
           `[WOWorkflow] Failed to record prediction feedback for WO ${workOrderId}:`,
-          err instanceof Error ? err.message : "unknown",
+          err instanceof Error ? err.message : "unknown"
         );
       }
     }
@@ -134,7 +140,7 @@ export class WorkOrderWorkflowService {
           orgId,
           "disputed",
           "Predicted condition not confirmed during work — flagged as false alarm by completing engineer.",
-          userId,
+          userId
         );
         savingsValidationStatus = "disputed";
       } else if (result.saved) {
@@ -143,7 +149,7 @@ export class WorkOrderWorkflowService {
     } catch (err) {
       console.error(
         `[WOWorkflow] Savings calculation failed for WO ${workOrderId}:`,
-        err instanceof Error ? err.message : "unknown",
+        err instanceof Error ? err.message : "unknown"
       );
     }
 
@@ -160,7 +166,7 @@ export class WorkOrderWorkflowService {
     workOrderId: string,
     orgId: string,
     reason: string,
-    userId: string,
+    userId: string
   ): Promise<{ cancelled: boolean; savingsVoided: number; error?: string }> {
     const wo = await this.woRepo.findById(workOrderId, orgId);
     if (!wo) {
@@ -185,22 +191,19 @@ export class WorkOrderWorkflowService {
       workOrderId,
       orgId,
       `Work order cancelled: ${reason}`,
-      userId,
+      userId
     );
 
     if (voided > 0) {
       console.log(
-        `[WOWorkflow] Voided ${voided} savings record(s) for cancelled WO ${workOrderId}`,
+        `[WOWorkflow] Voided ${voided} savings record(s) for cancelled WO ${workOrderId}`
       );
     }
 
     return { cancelled: true, savingsVoided: voided };
   }
 
-  async createQuick(
-    orgId: string,
-    input: QuickWorkOrderInput,
-  ): Promise<QuickWorkOrderResult> {
+  async createQuick(orgId: string, input: QuickWorkOrderInput): Promise<QuickWorkOrderResult> {
     return this.woRepo.createQuick(orgId, input);
   }
 }

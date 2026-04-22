@@ -1,6 +1,6 @@
 /**
  * Enhanced LLM - Context Enrichment
- * 
+ *
  * RAG (Retrieval Augmented Generation) context enrichment.
  */
 
@@ -29,9 +29,7 @@ export function enrichContextWithRAG(context: ReportContext): ReportContext {
   }
 
   if (context.data.alerts && context.data.alerts.length > 0) {
-    const criticalAlerts = context.data.alerts
-      .filter((a) => a.severity === "critical")
-      .slice(0, 3);
+    const criticalAlerts = context.data.alerts.filter((a) => a.severity === "critical").slice(0, 3);
 
     criticalAlerts.forEach((alert) => {
       knowledgeSnippets.push(
@@ -74,21 +72,23 @@ export function enrichContextWithRAG(context: ReportContext): ReportContext {
   if (context.knowledge) {
     if (context.knowledge.documents && context.knowledge.documents.length > 0) {
       context.knowledge.documents.slice(0, 5).forEach((doc: any) => {
-        const docType = doc.docType || 'document';
-        const excerpt = doc.content?.slice(0, 500) || doc.summary || 'No content available';
+        const docType = doc.docType || "document";
+        const excerpt = doc.content?.slice(0, 500) || doc.summary || "No content available";
         knowledgeSnippets.push(
-          `KB Document [${docType.toUpperCase()}]: "${doc.title}" - ${excerpt}${excerpt.length >= 500 ? '...' : ''}`
+          `KB Document [${docType.toUpperCase()}]: "${doc.title}" - ${excerpt}${excerpt.length >= 500 ? "..." : ""}`
         );
       });
     }
 
     if (context.knowledge.semanticMatches && context.knowledge.semanticMatches.length > 0) {
       context.knowledge.semanticMatches.slice(0, 5).forEach((match: any) => {
-        const similarity = match.similarity ? `(${(match.similarity * 100).toFixed(0)}% match)` : '';
-        const docType = match.docType || 'document';
-        const excerpt = match.content?.slice(0, 400) || match.summary || 'No content available';
+        const similarity = match.similarity
+          ? `(${(match.similarity * 100).toFixed(0)}% match)`
+          : "";
+        const docType = match.docType || "document";
+        const excerpt = match.content?.slice(0, 400) || match.summary || "No content available";
         knowledgeSnippets.push(
-          `KB Reference [${docType.toUpperCase()}] ${similarity}: "${match.title}" - ${excerpt}${excerpt.length >= 400 ? '...' : ''}`
+          `KB Reference [${docType.toUpperCase()}] ${similarity}: "${match.title}" - ${excerpt}${excerpt.length >= 400 ? "..." : ""}`
         );
       });
     }

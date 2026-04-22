@@ -214,7 +214,7 @@ describe("Task Summary Counts", () => {
 
 afterAll(async () => {
   const { data: findings } = await api("GET", "/api/agent/finding-records");
-  for (const f of (findings as { id: string; title: string }[])) {
+  for (const f of findings as { id: string; title: string }[]) {
     if (f.title.includes("Test") || f.title.includes("Feed Integration")) {
       await api("PATCH", `/api/agent/finding-records/${f.id}`, { status: "archived" });
     }

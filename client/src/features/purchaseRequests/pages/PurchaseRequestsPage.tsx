@@ -3,7 +3,13 @@ import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -30,15 +36,19 @@ export function PurchaseRequestsPage() {
       toast({ title: "Error", description: "Requester name is required", variant: "destructive" });
       return;
     }
-    createMutation.mutate({ requestedBy: requestedBy.trim() }, {
-      onSuccess: (pr: PurchaseRequest) => {
-        toast({ title: "Purchase Request created" });
-        setIsCreateOpen(false);
-        setRequestedBy("");
-        setLocation(`/purchase-requests/${pr.id}`);
-      },
-      onError: (err) => toast({ title: "Error", description: String(err), variant: "destructive" }),
-    });
+    createMutation.mutate(
+      { requestedBy: requestedBy.trim() },
+      {
+        onSuccess: (pr: PurchaseRequest) => {
+          toast({ title: "Purchase Request created" });
+          setIsCreateOpen(false);
+          setRequestedBy("");
+          setLocation(`/purchase-requests/${pr.id}`);
+        },
+        onError: (err) =>
+          toast({ title: "Error", description: String(err), variant: "destructive" }),
+      }
+    );
   };
 
   const handleView = (pr: PurchaseRequest) => setLocation(`/purchase-requests/${pr.id}`);
@@ -72,7 +82,9 @@ export function PurchaseRequestsPage() {
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
             {(Object.keys(PR_STATUS_LABELS) as PRStatus[]).map((s) => (
-              <SelectItem key={s} value={s}>{PR_STATUS_LABELS[s]}</SelectItem>
+              <SelectItem key={s} value={s}>
+                {PR_STATUS_LABELS[s]}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -116,13 +128,24 @@ export function PurchaseRequestsPage() {
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium">Requested By *</label>
-              <Input value={requestedBy} onChange={(e) => setRequestedBy(e.target.value)} placeholder="Your name" data-testid="input-requested-by" />
+              <Input
+                value={requestedBy}
+                onChange={(e) => setRequestedBy(e.target.value)}
+                placeholder="Your name"
+                data-testid="input-requested-by"
+              />
             </div>
             <div className="flex gap-2">
-              <Button onClick={handleCreate} disabled={createMutation.isPending} data-testid="button-submit-create">
+              <Button
+                onClick={handleCreate}
+                disabled={createMutation.isPending}
+                data-testid="button-submit-create"
+              >
                 Create Draft
               </Button>
-              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                Cancel
+              </Button>
             </div>
           </div>
         </DialogContent>

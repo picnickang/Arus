@@ -35,21 +35,32 @@ interface ComplianceResult {
 
 export const stcwRestKeys = {
   crew: ["/api/crew"] as const,
-  rest: (crewId: string, year: number, month: string) => ["/api/stcw/rest", crewId, year, month] as const,
+  rest: (crewId: string, year: number, month: string) =>
+    ["/api/stcw/rest", crewId, year, month] as const,
 };
 
 export const MONTHS_LIST = [
-  { value: "01", label: "January" }, { value: "02", label: "February" }, { value: "03", label: "March" },
-  { value: "04", label: "April" }, { value: "05", label: "May" }, { value: "06", label: "June" },
-  { value: "07", label: "July" }, { value: "08", label: "August" }, { value: "09", label: "September" },
-  { value: "10", label: "October" }, { value: "11", label: "November" }, { value: "12", label: "December" },
+  { value: "01", label: "January" },
+  { value: "02", label: "February" },
+  { value: "03", label: "March" },
+  { value: "04", label: "April" },
+  { value: "05", label: "May" },
+  { value: "06", label: "June" },
+  { value: "07", label: "July" },
+  { value: "08", label: "August" },
+  { value: "09", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
 ];
 
 export function useHoursOfRestManagement() {
   const { toast } = useToast();
   const [selectedCrew, setSelectedCrew] = useState("");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, "0"));
+  const [selectedMonth, setSelectedMonth] = useState(
+    (new Date().getMonth() + 1).toString().padStart(2, "0")
+  );
   const [importFile, setImportFile] = useState<File | null>(null);
   const [complianceResult, setComplianceResult] = useState<ComplianceResult | null>(null);
 
@@ -58,13 +69,21 @@ export function useHoursOfRestManagement() {
     refetchInterval: 60000,
   });
 
-  const { data: restData, isLoading: restLoading, refetch: refetchRestData } = useQuery<RestSheetData>({
+  const {
+    data: restData,
+    isLoading: restLoading,
+    refetch: refetchRestData,
+  } = useQuery<RestSheetData>({
     queryKey: stcwRestKeys.rest(selectedCrew, selectedYear, selectedMonth),
     enabled: !!selectedCrew,
     refetchInterval: 60000,
     queryFn: async () => {
-      const response = await fetch(`/api/stcw/rest/${selectedCrew}/${selectedYear}/${selectedMonth}`);
-      if (!response.ok) {throw new Error("Failed to fetch rest data");}
+      const response = await fetch(
+        `/api/stcw/rest/${selectedCrew}/${selectedYear}/${selectedMonth}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch rest data");
+      }
       return response.json();
     },
   });
@@ -72,18 +91,30 @@ export function useHoursOfRestManagement() {
   const importMutation = useCustomMutation({
     mutationFn: async (formData: FormData) => {
       const response = await fetch("/api/stcw/import", { method: "POST", body: formData });
-      if (!response.ok) {throw new Error(await response.text());}
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
       return response.json();
     },
-    invalidateKeys: () => [stcwRestKeys.crew, stcwRestKeys.rest(selectedCrew, selectedYear, selectedMonth)],
+    invalidateKeys: () => [
+      stcwRestKeys.crew,
+      stcwRestKeys.rest(selectedCrew, selectedYear, selectedMonth),
+    ],
     successMessage: (data) => `Imported rest data for ${data.sheets} crew members`,
-    onSuccess: () => { setImportFile(null); refetchRestData(); },
+    onSuccess: () => {
+      setImportFile(null);
+      refetchRestData();
+    },
   });
 
   const complianceMutation = useCustomMutation({
     mutationFn: async (params: { crewId: string; year: number; month: string }) => {
-      const response = await fetch(`/api/stcw/compliance/${params.crewId}/${params.year}/${params.month}`);
-      if (!response.ok) {throw new Error("Compliance check failed");}
+      const response = await fetch(
+        `/api/stcw/compliance/${params.crewId}/${params.year}/${params.month}`
+      );
+      if (!response.ok) {
+        throw new Error("Compliance check failed");
+      }
       return response.json();
     },
     successMessage: (data) => `${data.compliant ? "Compliant" : "Violations found"}`,
@@ -91,22 +122,34 @@ export function useHoursOfRestManagement() {
   });
 
   const handleImport = useCallback(() => {
-    if (!importFile) { toast({ title: "Please select a file", variant: "destructive" }); return; }
+    if (!importFile) {
+      toast({ title: "Please select a file", variant: "destructive" });
+      return;
+    }
     const formData = new FormData();
     formData.append("file", importFile);
     importMutation.mutate(formData);
   }, [importFile, importMutation, toast]);
 
   const handleCheckCompliance = useCallback(() => {
-    if (!selectedCrew) {return;}
+    if (!selectedCrew) {
+      return;
+    }
     complianceMutation.mutate({ crewId: selectedCrew, year: selectedYear, month: selectedMonth });
   }, [selectedCrew, selectedYear, selectedMonth, complianceMutation]);
 
   const handleExportPDF = useCallback(async () => {
-    if (!selectedCrew) { toast({ title: "Please select a crew member", variant: "destructive" }); return; }
+    if (!selectedCrew) {
+      toast({ title: "Please select a crew member", variant: "destructive" });
+      return;
+    }
     try {
-      const response = await fetch(`/api/stcw/export/${selectedCrew}/${selectedYear}/${selectedMonth}`);
-      if (!response.ok) {throw new Error("Export failed");}
+      const response = await fetch(
+        `/api/stcw/export/${selectedCrew}/${selectedYear}/${selectedMonth}`
+      );
+      if (!response.ok) {
+        throw new Error("Export failed");
+      }
       const blob = await response.blob();
       const url = globalThis.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -117,7 +160,9 @@ export function useHoursOfRestManagement() {
       globalThis.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       toast({ title: "PDF exported successfully" });
-    } catch { toast({ title: "Export failed", variant: "destructive" }); }
+    } catch {
+      toast({ title: "Export failed", variant: "destructive" });
+    }
   }, [selectedCrew, selectedYear, selectedMonth, toast]);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,7 +170,9 @@ export function useHoursOfRestManagement() {
   }, []);
 
   const calendarGrid = useMemo(() => {
-    if (!restData?.days) {return null;}
+    if (!restData?.days) {
+      return null;
+    }
     const daysInMonth = new Date(selectedYear, Number.parseInt(selectedMonth), 0).getDate();
     const grid = [];
     for (let day = 1; day <= daysInMonth; day++) {
@@ -138,10 +185,15 @@ export function useHoursOfRestManagement() {
     return grid;
   }, [restData, selectedYear, selectedMonth]);
 
-  const years = useMemo(() => Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i), []);
+  const years = useMemo(
+    () => Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i),
+    []
+  );
 
-  const selectedMonthLabel = useMemo(() =>
-    MONTHS_LIST.find((m) => m.value === selectedMonth)?.label || "", [selectedMonth]);
+  const selectedMonthLabel = useMemo(
+    () => MONTHS_LIST.find((m) => m.value === selectedMonth)?.label || "",
+    [selectedMonth]
+  );
 
   return {
     crew,
@@ -150,7 +202,8 @@ export function useHoursOfRestManagement() {
     selectedCrew,
     setSelectedCrew,
     selectedYear,
-    setSelectedYear: (year: number | string) => setSelectedYear(typeof year === "string" ? Number.parseInt(year) : year),
+    setSelectedYear: (year: number | string) =>
+      setSelectedYear(typeof year === "string" ? Number.parseInt(year) : year),
     selectedMonth,
     setSelectedMonth,
     selectedMonthLabel,

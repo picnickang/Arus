@@ -48,11 +48,18 @@ export const mlSemaphoreWaitTime = new client.Histogram({
 // Helper functions
 type ModelType = "lstm" | "random_forest" | "xgboost" | "ensemble";
 
-export function recordMlPredictionDuration(modelType: ModelType, orgId: string, durationMs: number) {
+export function recordMlPredictionDuration(
+  modelType: ModelType,
+  orgId: string,
+  durationMs: number
+) {
   mlPredictionDuration.observe({ model_type: modelType, org_id: orgId }, durationMs / 1000);
 }
 
-export function recordMlPrediction(modelType: ModelType, status: "success" | "error" | "circuit_open") {
+export function recordMlPrediction(
+  modelType: ModelType,
+  status: "success" | "error" | "circuit_open"
+) {
   mlPredictionTotal.inc({ model_type: modelType, status });
 }
 

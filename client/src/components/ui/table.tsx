@@ -1,10 +1,10 @@
 /**
  * Table Component Library
- * 
+ *
  * Accessibility (S5256 Compliant):
  * All data tables include a visually-hidden caption for screen readers.
  * Use the `caption` prop for custom descriptions, or include TableHeader with TableHead.
- * 
+ *
  * Example usage:
  * <Table caption="User account details">
  *   <TableHeader>

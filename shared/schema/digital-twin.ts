@@ -1,13 +1,4 @@
-import {
-  pgTable,
-  varchar,
-  text,
-  real,
-  timestamp,
-  jsonb,
-  index,
-  sql,
-} from "./base";
+import { pgTable, varchar, text, real, timestamp, jsonb, index, sql } from "./base";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { organizations } from "./core";
@@ -16,7 +7,9 @@ import { equipment } from "./equipment";
 export const assetTwinTemplates = pgTable(
   "asset_twin_templates",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
     orgId: varchar("org_id")
       .references(() => organizations.id)
       .notNull(),
@@ -31,17 +24,16 @@ export const assetTwinTemplates = pgTable(
   },
   (table) => ({
     orgIdx: index("idx_asset_twin_templates_org").on(table.orgId),
-    typeIdx: index("idx_asset_twin_templates_type").on(
-      table.orgId,
-      table.equipmentType
-    ),
+    typeIdx: index("idx_asset_twin_templates_type").on(table.orgId, table.equipmentType),
   })
 );
 
 export const assetTwins = pgTable(
   "asset_twins",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
     orgId: varchar("org_id")
       .references(() => organizations.id)
       .notNull(),
@@ -66,7 +58,9 @@ export const assetTwins = pgTable(
 export const assetTwinState = pgTable(
   "asset_twin_state",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
     orgId: varchar("org_id")
       .references(() => organizations.id)
       .notNull(),
@@ -91,7 +85,9 @@ export const assetTwinState = pgTable(
 export const twinResiduals = pgTable(
   "twin_residuals",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
     orgId: varchar("org_id")
       .references(() => organizations.id)
       .notNull(),
@@ -117,7 +113,9 @@ export const twinResiduals = pgTable(
 export const twinScenarios = pgTable(
   "twin_scenarios",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
     orgId: varchar("org_id")
       .references(() => organizations.id)
       .notNull(),
@@ -138,7 +136,9 @@ export const twinScenarios = pgTable(
 export const twinEvents = pgTable(
   "twin_events",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
     orgId: varchar("org_id")
       .references(() => organizations.id)
       .notNull(),

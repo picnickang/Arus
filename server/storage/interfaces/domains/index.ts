@@ -1,9 +1,9 @@
 /**
  * Storage Interface Domains - Combined IStorage Interface
- * 
+ *
  * This file combines all domain-specific storage interfaces into
  * the complete IStorage interface using TypeScript intersection types.
- * 
+ *
  * Module Structure:
  * - core.types.ts (~45 lines) - Organizations, Users, Settings
  * - device.types.ts (~75 lines) - Devices, Heartbeats, Registry
@@ -73,8 +73,7 @@ import type { IExternalStorage } from "./external.types";
  * is retained only for existing service-layer consumers (~50 files) that have not
  * yet been migrated. No new code should depend on IStorage.
  */
-export type IStorage =
-  ICoreStorage &
+export type IStorage = ICoreStorage &
   IDeviceStorage &
   ITelemetryStorage &
   IWorkOrderStorage &

@@ -3,19 +3,35 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Popover, PopoverContent, PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
-  Lightbulb, X, Bot, AlertTriangle, Clock,
-  Shield, Package, Wrench, Users, ChevronRight,
+  Lightbulb,
+  X,
+  Bot,
+  AlertTriangle,
+  Clock,
+  Shield,
+  Package,
+  Wrench,
+  Users,
+  ChevronRight,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -59,19 +75,29 @@ const SEVERITY_STYLES: Record<string, string> = {
 };
 
 function formatTriggerType(type: string): string {
-  return type.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 60) {return `${mins}m ago`;}
+  if (mins < 60) {
+    return `${mins}m ago`;
+  }
   const hours = Math.floor(mins / 60);
-  if (hours < 24) {return `${hours}h ago`;}
+  if (hours < 24) {
+    return `${hours}h ago`;
+  }
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-const MAINTENANCE_ROLES = ["admin", "chief_engineer", "second_engineer", "captain", "chief_officer"];
+const MAINTENANCE_ROLES = [
+  "admin",
+  "chief_engineer",
+  "second_engineer",
+  "captain",
+  "chief_officer",
+];
 
 export function SuggestionBell() {
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -84,19 +110,26 @@ export function SuggestionBell() {
   const [dismissReason, setDismissReason] = useState("");
   const queryClient = useQueryClient();
   const { roles } = useUserPermissions();
-  const canMutate = roles.some(r => MAINTENANCE_ROLES.includes(r));
+  const canMutate = roles.some((r) => MAINTENANCE_ROLES.includes(r));
 
   const { data: suggestions = [] } = useQuery<Suggestion[]>({
     queryKey: ["/api/agent/suggestions"],
     refetchInterval: 60000,
   });
 
-  const pendingSuggestions = suggestions.filter(s => s.status === "pending");
-  const historySuggestions = suggestions.filter(s => s.status !== "pending");
+  const pendingSuggestions = suggestions.filter((s) => s.status === "pending");
+  const historySuggestions = suggestions.filter((s) => s.status !== "pending");
 
   const dismissMutation = useMutation({
-    mutationFn: ({ id, outcome, outcomeReason }: { id: string; outcome?: string; outcomeReason?: string }) =>
-      apiRequest("POST", `/api/agent/suggestions/${id}/dismiss`, { outcome, outcomeReason }),
+    mutationFn: ({
+      id,
+      outcome,
+      outcomeReason,
+    }: {
+      id: string;
+      outcome?: string;
+      outcomeReason?: string;
+    }) => apiRequest("POST", `/api/agent/suggestions/${id}/dismiss`, { outcome, outcomeReason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/suggestions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings"] });
@@ -112,14 +145,22 @@ export function SuggestionBell() {
   }, []);
 
   const handleDismissSubmit = useCallback(() => {
-    if (!dismissTargetId) {return;}
-    dismissMutation.mutate({ id: dismissTargetId, outcome: dismissOutcome, outcomeReason: dismissReason || undefined });
+    if (!dismissTargetId) {
+      return;
+    }
+    dismissMutation.mutate({
+      id: dismissTargetId,
+      outcome: dismissOutcome,
+      outcomeReason: dismissReason || undefined,
+    });
     setDismissDialogOpen(false);
     setDismissTargetId(null);
   }, [dismissTargetId, dismissOutcome, dismissReason, dismissMutation]);
 
   const handleDismissSkip = useCallback(() => {
-    if (!dismissTargetId) {return;}
+    if (!dismissTargetId) {
+      return;
+    }
     dismissMutation.mutate({ id: dismissTargetId });
     setDismissDialogOpen(false);
     setDismissTargetId(null);
@@ -166,10 +207,18 @@ export function SuggestionBell() {
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="w-full grid grid-cols-2 h-8 rounded-none border-b">
-              <TabsTrigger value="pending" className="text-xs" data-testid="tab-suggestions-pending">
+              <TabsTrigger
+                value="pending"
+                className="text-xs"
+                data-testid="tab-suggestions-pending"
+              >
                 Active ({pendingSuggestions.length})
               </TabsTrigger>
-              <TabsTrigger value="history" className="text-xs" data-testid="tab-suggestions-history">
+              <TabsTrigger
+                value="history"
+                className="text-xs"
+                data-testid="tab-suggestions-history"
+              >
                 History ({historySuggestions.length})
               </TabsTrigger>
             </TabsList>
@@ -177,12 +226,15 @@ export function SuggestionBell() {
             <TabsContent value="pending" className="m-0">
               <ScrollArea className="max-h-80">
                 {pendingSuggestions.length === 0 ? (
-                  <div className="p-6 text-center text-muted-foreground text-sm" data-testid="text-no-suggestions">
+                  <div
+                    className="p-6 text-center text-muted-foreground text-sm"
+                    data-testid="text-no-suggestions"
+                  >
                     No active suggestions
                   </div>
                 ) : (
                   <div className="divide-y">
-                    {pendingSuggestions.map(suggestion => (
+                    {pendingSuggestions.map((suggestion) => (
                       <SuggestionCard
                         key={suggestion.id}
                         suggestion={suggestion}
@@ -203,7 +255,7 @@ export function SuggestionBell() {
                   </div>
                 ) : (
                   <div className="divide-y">
-                    {historySuggestions.slice(0, 20).map(suggestion => (
+                    {historySuggestions.slice(0, 20).map((suggestion) => (
                       <HistoryCard key={suggestion.id} suggestion={suggestion} />
                     ))}
                   </div>
@@ -215,7 +267,10 @@ export function SuggestionBell() {
       </Popover>
       <AgentChatPanel
         open={chatOpen}
-        onClose={() => { setChatOpen(false); setChatMessage(null); }}
+        onClose={() => {
+          setChatOpen(false);
+          setChatMessage(null);
+        }}
         initialMessage={chatMessage}
       />
       <Dialog open={dismissDialogOpen} onOpenChange={(v) => !v && setDismissDialogOpen(false)}>
@@ -232,7 +287,9 @@ export function SuggestionBell() {
                 </SelectTrigger>
                 <SelectContent>
                   {OUTCOME_CATEGORIES.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -250,8 +307,21 @@ export function SuggestionBell() {
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" size="sm" onClick={handleDismissSkip} data-testid="button-bell-dismiss-skip">Skip</Button>
-            <Button size="sm" onClick={handleDismissSubmit} data-testid="button-bell-dismiss-submit">Submit</Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDismissSkip}
+              data-testid="button-bell-dismiss-skip"
+            >
+              Skip
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleDismissSubmit}
+              data-testid="button-bell-dismiss-submit"
+            >
+              Submit
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -271,19 +341,29 @@ function SuggestionCard({
   const Icon = TRIGGER_ICONS[suggestion.triggerType] || Lightbulb;
 
   return (
-    <div className="p-3 hover:bg-muted/50 transition-colors" data-testid={`card-suggestion-${suggestion.id}`}>
+    <div
+      className="p-3 hover:bg-muted/50 transition-colors"
+      data-testid={`card-suggestion-${suggestion.id}`}
+    >
       <div className="flex items-start gap-2">
-        <div className={cn(
-          "mt-0.5 p-1 rounded",
-          suggestion.severity === "critical" ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" :
-          suggestion.severity === "warning" ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400" :
-          "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-        )}>
+        <div
+          className={cn(
+            "mt-0.5 p-1 rounded",
+            suggestion.severity === "critical"
+              ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+              : suggestion.severity === "warning"
+                ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"
+                : "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+          )}
+        >
           <Icon className="h-3.5 w-3.5" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-1">
-            <span className="text-xs font-medium truncate" data-testid={`text-suggestion-title-${suggestion.id}`}>
+            <span
+              className="text-xs font-medium truncate"
+              data-testid={`text-suggestion-title-${suggestion.id}`}
+            >
               {suggestion.title}
             </span>
             {onDismiss && (
@@ -298,12 +378,18 @@ function SuggestionCard({
               </Button>
             )}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2" data-testid={`text-suggestion-summary-${suggestion.id}`}>
+          <p
+            className="text-xs text-muted-foreground mt-0.5 line-clamp-2"
+            data-testid={`text-suggestion-summary-${suggestion.id}`}
+          >
             {suggestion.summary}
           </p>
           <div className="flex items-center justify-between mt-1.5">
             <div className="flex items-center gap-1.5">
-              <Badge variant="outline" className={cn("text-[10px] px-1 py-0", SEVERITY_STYLES[suggestion.severity])}>
+              <Badge
+                variant="outline"
+                className={cn("text-[10px] px-1 py-0", SEVERITY_STYLES[suggestion.severity])}
+              >
                 {suggestion.severity}
               </Badge>
               <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
@@ -340,9 +426,15 @@ function HistoryCard({ suggestion }: { suggestion: Suggestion }) {
           <span className="text-xs truncate block">{suggestion.title}</span>
           <div className="flex items-center gap-1.5 mt-1">
             <Badge variant="outline" className="text-[10px] px-1 py-0">
-              {suggestion.status === "acted" ? "Acted on" : suggestion.status === "dismissed" ? "Dismissed" : suggestion.status}
+              {suggestion.status === "acted"
+                ? "Acted on"
+                : suggestion.status === "dismissed"
+                  ? "Dismissed"
+                  : suggestion.status}
             </Badge>
-            <span className="text-[10px] text-muted-foreground">{timeAgo(suggestion.createdAt)}</span>
+            <span className="text-[10px] text-muted-foreground">
+              {timeAgo(suggestion.createdAt)}
+            </span>
           </div>
         </div>
       </div>

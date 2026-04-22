@@ -5,7 +5,7 @@
 
 import type { LogContext } from "./types.js";
 
-type LogLevel = 'info' | 'warn' | 'error';
+type LogLevel = "info" | "warn" | "error";
 const logOutputs: Record<LogLevel, (msg: string) => void> = {
   error: (msg) => console.error(msg),
   warn: (msg) => console.warn(msg),
@@ -21,7 +21,7 @@ export function log(
   const prefix = `[EngineLog:AutoFill]`;
   const contextStr = Object.entries(context)
     .filter(([_, v]) => v !== undefined)
-    .map(([k, v]) => `${k}=${typeof v === 'object' ? JSON.stringify(v) : v}`)
-    .join(' ');
+    .map(([k, v]) => `${k}=${typeof v === "object" ? JSON.stringify(v) : v}`)
+    .join(" ");
   logOutputs[level](`${timestamp} ${prefix} ${message} ${contextStr}`);
 }

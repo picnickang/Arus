@@ -7,7 +7,12 @@
 
 import { Router } from "express";
 import { db } from "../db";
-import { sensorBundles, sensorTemplates, sensorConfigurations, equipment } from "@shared/schema-runtime";
+import {
+  sensorBundles,
+  sensorTemplates,
+  sensorConfigurations,
+  equipment,
+} from "@shared/schema-runtime";
 import { eq, and, isNull, or, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { insertSensorBundleSchema } from "@shared/schema-runtime";

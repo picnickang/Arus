@@ -190,7 +190,10 @@ export function sendSuccess<T>(
  * Async error wrapper for route handlers
  * Catches errors and sends standardized responses
  */
-export function asyncHandler(operation: string, handler: (req: Request, res: Response) => Promise<void>) {
+export function asyncHandler(
+  operation: string,
+  handler: (req: Request, res: Response) => Promise<void>
+) {
   return async (req: Request, res: Response) => {
     try {
       await handler(req, res);
@@ -363,7 +366,11 @@ export function sendZodError(res: Response, zodError: ZodError) {
 /**
  * Check required fields and send error if missing
  */
-export function validateRequiredFields(res: Response, data: Record<string, unknown>, fields: string[]): boolean {
+export function validateRequiredFields(
+  res: Response,
+  data: Record<string, unknown>,
+  fields: string[]
+): boolean {
   const missing = fields.filter((field) => !data[field]);
 
   if (missing.length > 0) {
@@ -440,7 +447,12 @@ export const ErrorCodeToStatusCode: Record<ErrorCode, number> = {
 /**
  * Send error with automatic status code mapping
  */
-export function sendErrorAuto(res: Response, code: ErrorCode, message: string, details?: ErrorDetails) {
+export function sendErrorAuto(
+  res: Response,
+  code: ErrorCode,
+  message: string,
+  details?: ErrorDetails
+) {
   const statusCode = ErrorCodeToStatusCode[code] || 500;
   sendError(res, code, message, statusCode, details);
 }

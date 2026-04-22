@@ -14,22 +14,22 @@ export async function linkSupplierToPart(data: InsertItemSupplier) {
     .select()
     .from(parts)
     .where(and(eq(parts.id, data.partId), eq(parts.orgId, data.orgId)));
-  if (!part) {throw new Error("Part not found or does not belong to organization");}
+  if (!part) {
+    throw new Error("Part not found or does not belong to organization");
+  }
 
   const [supplier] = await db
     .select()
     .from(suppliers)
     .where(and(eq(suppliers.id, data.supplierId), eq(suppliers.orgId, data.orgId)));
-  if (!supplier) {throw new Error("Supplier not found or does not belong to organization");}
+  if (!supplier) {
+    throw new Error("Supplier not found or does not belong to organization");
+  }
 
   return repo.linkItemSupplier(data);
 }
 
-export async function unlinkSupplierFromPart(
-  partId: string,
-  supplierId: string,
-  orgId: string
-) {
+export async function unlinkSupplierFromPart(partId: string, supplierId: string, orgId: string) {
   return repo.unlinkItemSupplier(partId, supplierId, orgId);
 }
 

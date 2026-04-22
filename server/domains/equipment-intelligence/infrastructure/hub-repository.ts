@@ -14,26 +14,40 @@ import type {
 } from "../domain/types.js";
 
 function computeRisk(health: number): "critical" | "warning" | "low" {
-  if (health < 40) {return "critical";}
-  if (health < 70) {return "warning";}
+  if (health < 40) {
+    return "critical";
+  }
+  if (health < 70) {
+    return "warning";
+  }
   return "low";
 }
 
 function computeTrend(telemetry: number[]): "declining" | "stable" | "improving" {
-  if (telemetry.length < 2) {return "stable";}
+  if (telemetry.length < 2) {
+    return "stable";
+  }
   const first = telemetry.slice(0, Math.ceil(telemetry.length / 2));
   const second = telemetry.slice(Math.ceil(telemetry.length / 2));
   const avgFirst = first.reduce((a, b) => a + b, 0) / first.length;
   const avgSecond = second.reduce((a, b) => a + b, 0) / second.length;
   const diff = avgSecond - avgFirst;
-  if (diff < -3) {return "declining";}
-  if (diff > 3) {return "improving";}
+  if (diff < -3) {
+    return "declining";
+  }
+  if (diff > 3) {
+    return "improving";
+  }
   return "stable";
 }
 
 function recommendedActionText(risk: string, rul: number): string {
-  if (risk === "critical") {return `Schedule immediate maintenance. Estimated window: ${rul} days. Create a work order and ensure spare parts are available.`;}
-  if (risk === "warning") {return "Monitor closely. Plan maintenance for next scheduled port call. Check parts availability.";}
+  if (risk === "critical") {
+    return `Schedule immediate maintenance. Estimated window: ${rul} days. Create a work order and ensure spare parts are available.`;
+  }
+  if (risk === "warning") {
+    return "Monitor closely. Plan maintenance for next scheduled port call. Check parts availability.";
+  }
   return "No action required. Continue normal operating schedule.";
 }
 
@@ -48,7 +62,9 @@ function assessmentText(risk: string, health: number, rul: number, prediction: s
 }
 
 function parseSignalEntry(entry: unknown): string {
-  if (typeof entry === "string") {return entry;}
+  if (typeof entry === "string") {
+    return entry;
+  }
   if (typeof entry === "object" && entry !== null && "description" in entry) {
     return String((entry as { description: unknown }).description);
   }
@@ -72,9 +88,20 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
       .leftJoin(vessels, eq(equipment.vesselId, vessels.id))
       .where(and(eq(equipment.orgId, orgId), eq(equipment.id, equipmentId)));
 
-    if (!row) {return null;}
+    if (!row) {
+      return null;
+    }
 
-    const [pdmScores, predictions, insights, telemetryData, workOrders, serviceOrders, diagnosticRuns, activityTimeline] = await Promise.all([
+    const [
+      pdmScores,
+      predictions,
+      insights,
+      telemetryData,
+      workOrders,
+      serviceOrders,
+      diagnosticRuns,
+      activityTimeline,
+    ] = await Promise.all([
       this.fetchPdmScores(orgId, equipmentId),
       this.fetchPredictions(orgId, equipmentId),
       this.fetchInsights(orgId, equipmentId),
@@ -96,7 +123,9 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
       if (ins.supportingSignals) {
         try {
           const parsed: unknown[] = JSON.parse(ins.supportingSignals);
-          if (Array.isArray(parsed)) {signals.push(...parsed.map(parseSignalEntry));}
+          if (Array.isArray(parsed)) {
+            signals.push(...parsed.map(parseSignalEntry));
+          }
         } catch {
           signals.push(ins.supportingSignals);
         }
@@ -110,12 +139,15 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
       : "Operating within normal parameters";
 
     const lastService = workOrders.find((wo) => wo.status === "completed")?.completedAt || null;
-    const nextDue = workOrders.find((wo) => wo.status === "scheduled" || wo.status === "pending" || wo.status === "open")?.createdAt || null;
+    const nextDue =
+      workOrders.find(
+        (wo) => wo.status === "scheduled" || wo.status === "pending" || wo.status === "open"
+      )?.createdAt || null;
 
     const hasPdm = pdmScores.length > 0;
     const hasPred = predictions.length > 0;
     const dataAvailability: "full" | "partial" | "unavailable" =
-      hasPdm && hasPred ? "full" : (hasPdm || hasPred) ? "partial" : "unavailable";
+      hasPdm && hasPred ? "full" : hasPdm || hasPred ? "partial" : "unavailable";
 
     const operationalContext = this.buildOperationalContext(row.vesselStatus);
 
@@ -149,10 +181,15 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
     };
   }
 
-  async getServiceOrdersForEquipment(orgId: string, equipmentId: string): Promise<ServiceOrderSummary[]> {
+  async getServiceOrdersForEquipment(
+    orgId: string,
+    equipmentId: string
+  ): Promise<ServiceOrderSummary[]> {
     try {
       const { serviceOrders, workOrders, suppliers } = await import("@shared/schema-runtime");
-      if (!serviceOrders) {return [];}
+      if (!serviceOrders) {
+        return [];
+      }
       const rows = await db
         .select({
           soId: serviceOrders.id,
@@ -213,7 +250,13 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
     }
   }
 
-  async saveDiagnosticRun(orgId: string, equipmentId: string, analysisType: string, results: unknown, summary: string): Promise<DiagnosticRunSummary> {
+  async saveDiagnosticRun(
+    orgId: string,
+    equipmentId: string,
+    analysisType: string,
+    results: unknown,
+    summary: string
+  ): Promise<DiagnosticRunSummary> {
     const { diagnosticRuns } = await import("@shared/schema-runtime");
     if (!diagnosticRuns) {
       return {
@@ -278,13 +321,17 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
           severity: wo.status === "open" ? "warning" : "info",
         });
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     try {
       const predRows = await db
         .select()
         .from(failurePredictions)
-        .where(and(eq(failurePredictions.equipmentId, equipmentId), eq(failurePredictions.orgId, orgId)))
+        .where(
+          and(eq(failurePredictions.equipmentId, equipmentId), eq(failurePredictions.orgId, orgId))
+        )
         .orderBy(desc(failurePredictions.predictionTimestamp))
         .limit(5);
 
@@ -294,11 +341,20 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
           type: "prediction",
           title: `Prediction: ${pred.failureMode || "Failure analysis"}`,
           description: pred.remainingUsefulLife ? `RUL: ${pred.remainingUsefulLife} days` : null,
-          timestamp: pred.predictionTimestamp ? new Date(pred.predictionTimestamp).toISOString() : new Date().toISOString(),
-          severity: (pred.remainingUsefulLife ?? 365) < 14 ? "critical" : (pred.remainingUsefulLife ?? 365) < 30 ? "warning" : "info",
+          timestamp: pred.predictionTimestamp
+            ? new Date(pred.predictionTimestamp).toISOString()
+            : new Date().toISOString(),
+          severity:
+            (pred.remainingUsefulLife ?? 365) < 14
+              ? "critical"
+              : (pred.remainingUsefulLife ?? 365) < 30
+                ? "warning"
+                : "info",
         });
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     try {
       const { diagnosticRuns } = await import("@shared/schema-runtime");
@@ -321,12 +377,16 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
             type: "diagnostic",
             title: `Diagnostic: ${diag.analysisType}`,
             description: diag.summary,
-            timestamp: diag.createdAt ? new Date(diag.createdAt).toISOString() : new Date().toISOString(),
+            timestamp: diag.createdAt
+              ? new Date(diag.createdAt).toISOString()
+              : new Date().toISOString(),
             severity: "info",
           });
         }
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     try {
       const { anomalyDetections } = await import("@shared/schema-runtime");
@@ -342,25 +402,37 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
             detectionTimestamp: anomalyDetections.detectionTimestamp,
           })
           .from(anomalyDetections)
-          .where(and(eq(anomalyDetections.equipmentId, equipmentId), eq(anomalyDetections.orgId, orgId)))
+          .where(
+            and(eq(anomalyDetections.equipmentId, equipmentId), eq(anomalyDetections.orgId, orgId))
+          )
           .orderBy(desc(anomalyDetections.detectionTimestamp))
           .limit(5);
 
         for (const anomaly of anomalyRows) {
-          const deviation = anomaly.detectedValue && anomaly.expectedValue
-            ? `Detected: ${anomaly.detectedValue}, Expected: ${anomaly.expectedValue}`
-            : null;
+          const deviation =
+            anomaly.detectedValue && anomaly.expectedValue
+              ? `Detected: ${anomaly.detectedValue}, Expected: ${anomaly.expectedValue}`
+              : null;
           events.push({
             id: `anomaly-${anomaly.id}`,
             type: "telemetry_anomaly",
             title: `Anomaly: ${anomaly.anomalyType || anomaly.sensorType}`,
             description: deviation,
-            timestamp: anomaly.detectionTimestamp ? new Date(anomaly.detectionTimestamp).toISOString() : new Date().toISOString(),
-            severity: anomaly.severity === "high" ? "critical" : anomaly.severity === "medium" ? "warning" : "info",
+            timestamp: anomaly.detectionTimestamp
+              ? new Date(anomaly.detectionTimestamp).toISOString()
+              : new Date().toISOString(),
+            severity:
+              anomaly.severity === "high"
+                ? "critical"
+                : anomaly.severity === "medium"
+                  ? "warning"
+                  : "info",
           });
         }
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     try {
       const { serviceOrders, workOrders: woTable } = await import("@shared/schema-runtime");
@@ -384,12 +456,16 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
             type: "procurement",
             title: `Service Order: SO ${so.soNumber}`,
             description: `Status: ${so.status}`,
-            timestamp: so.createdAt ? new Date(so.createdAt).toISOString() : new Date().toISOString(),
+            timestamp: so.createdAt
+              ? new Date(so.createdAt).toISOString()
+              : new Date().toISOString(),
             severity: so.status === "draft" ? "info" : so.status === "sent" ? "warning" : "info",
           });
         }
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     return events.slice(0, 20);
@@ -413,7 +489,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
     rul: number,
     workOrders: WorkOrderSummary[],
     serviceOrders: ServiceOrderSummary[],
-    equipmentId: string,
+    equipmentId: string
   ): NeedsActionItem[] {
     const items: NeedsActionItem[] = [];
 
@@ -459,13 +535,35 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
 
     if (items.length < 3) {
       const defaults: NeedsActionItem[] = [
-        { id: `na-review-${equipmentId}`, type: "work_order", title: "Review maintenance history", urgency: "low", link: `/equipment/${equipmentId}#work-orders` },
-        { id: `na-parts-${equipmentId}`, type: "parts", title: "Verify spare parts inventory", urgency: "low", link: `/inventory?equipmentId=${equipmentId}` },
-        { id: `na-schedule-${equipmentId}`, type: "prediction", title: "Check next scheduled maintenance", urgency: "low", link: `/pdm-dashboard?equipmentId=${equipmentId}` },
+        {
+          id: `na-review-${equipmentId}`,
+          type: "work_order",
+          title: "Review maintenance history",
+          urgency: "low",
+          link: `/equipment/${equipmentId}#work-orders`,
+        },
+        {
+          id: `na-parts-${equipmentId}`,
+          type: "parts",
+          title: "Verify spare parts inventory",
+          urgency: "low",
+          link: `/inventory?equipmentId=${equipmentId}`,
+        },
+        {
+          id: `na-schedule-${equipmentId}`,
+          type: "prediction",
+          title: "Check next scheduled maintenance",
+          urgency: "low",
+          link: `/pdm-dashboard?equipmentId=${equipmentId}`,
+        },
       ];
       for (const d of defaults) {
-        if (items.length >= 3) {break;}
-        if (!items.some((i) => i.id === d.id)) {items.push(d);}
+        if (items.length >= 3) {
+          break;
+        }
+        if (!items.some((i) => i.id === d.id)) {
+          items.push(d);
+        }
       }
     }
 
@@ -494,7 +592,9 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
     return db
       .select()
       .from(failurePredictions)
-      .where(and(eq(failurePredictions.orgId, orgId), eq(failurePredictions.equipmentId, equipmentId)))
+      .where(
+        and(eq(failurePredictions.orgId, orgId), eq(failurePredictions.equipmentId, equipmentId))
+      )
       .orderBy(desc(failurePredictions.predictionTimestamp))
       .limit(5);
   }
@@ -503,7 +603,9 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
     return db
       .select()
       .from(actionableInsights)
-      .where(and(eq(actionableInsights.orgId, orgId), eq(actionableInsights.equipmentId, equipmentId)))
+      .where(
+        and(eq(actionableInsights.orgId, orgId), eq(actionableInsights.equipmentId, equipmentId))
+      )
       .orderBy(desc(actionableInsights.createdAt))
       .limit(10);
   }

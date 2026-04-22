@@ -1,4 +1,8 @@
-import type { AgentFindingRepositoryPort, AgentFindingFilter, FindingStatus } from "../domain/finding-domain-types";
+import type {
+  AgentFindingRepositoryPort,
+  AgentFindingFilter,
+  FindingStatus,
+} from "../domain/finding-domain-types";
 import { isValidFindingStatusTransition } from "../domain/finding-domain-types";
 import type { AgentFinding, InsertAgentFinding } from "@shared/schema";
 
@@ -19,9 +23,16 @@ export class AgentFindingService {
 
   async update(id: string, orgId: string, data: Partial<AgentFinding>): Promise<AgentFinding> {
     const finding = await this.repo.getById(id, orgId);
-    if (!finding) {throw new Error("Finding not found");}
+    if (!finding) {
+      throw new Error("Finding not found");
+    }
     if (data.status && data.status !== finding.status) {
-      if (!isValidFindingStatusTransition(finding.status as FindingStatus, data.status as FindingStatus)) {
+      if (
+        !isValidFindingStatusTransition(
+          finding.status as FindingStatus,
+          data.status as FindingStatus
+        )
+      ) {
         throw new Error(`Cannot transition finding from '${finding.status}' to '${data.status}'`);
       }
     }

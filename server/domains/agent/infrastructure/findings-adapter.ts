@@ -18,16 +18,27 @@ import type {
 } from "../domain/findings-types";
 
 function normalizeSeverity(val: string | null | undefined): FindingSeverity {
-  if (val === "critical" || val === "warning" || val === "info") {return val;}
+  if (val === "critical" || val === "warning" || val === "info") {
+    return val;
+  }
   return "info";
 }
 
 function normalizeStatus(val: string | null | undefined): FindingStatus {
   const valid: FindingStatus[] = [
-    "pending", "acted", "dismissed", "deferred", "approved", "rejected",
-    "completed", "failed", "running",
+    "pending",
+    "acted",
+    "dismissed",
+    "deferred",
+    "approved",
+    "rejected",
+    "completed",
+    "failed",
+    "running",
   ];
-  if (val && valid.includes(val as FindingStatus)) {return val as FindingStatus;}
+  if (val && valid.includes(val as FindingStatus)) {
+    return val as FindingStatus;
+  }
   return "pending";
 }
 
@@ -36,7 +47,7 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
     async getFindings(
       orgId: string,
       filter?: FindingsFilter,
-      pagination?: FindingsPagination,
+      pagination?: FindingsPagination
     ): Promise<{ items: UnifiedFindingItem[]; total: number }> {
       const limit = pagination?.limit ?? 50;
       const offset = pagination?.offset ?? 0;
@@ -47,12 +58,22 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
 
       if (shouldInclude("suggestion")) {
         const conditions = [eq(agentSuggestions.orgId, orgId)];
-        if (filter?.status) {conditions.push(eq(agentSuggestions.status, filter.status));}
-        if (filter?.severity) {conditions.push(eq(agentSuggestions.severity, filter.severity));}
-        if (filter?.dateFrom) {conditions.push(gte(agentSuggestions.createdAt, new Date(filter.dateFrom)));}
-        if (filter?.dateTo) {conditions.push(lte(agentSuggestions.createdAt, new Date(filter.dateTo)));}
+        if (filter?.status) {
+          conditions.push(eq(agentSuggestions.status, filter.status));
+        }
+        if (filter?.severity) {
+          conditions.push(eq(agentSuggestions.severity, filter.severity));
+        }
+        if (filter?.dateFrom) {
+          conditions.push(gte(agentSuggestions.createdAt, new Date(filter.dateFrom)));
+        }
+        if (filter?.dateTo) {
+          conditions.push(lte(agentSuggestions.createdAt, new Date(filter.dateTo)));
+        }
 
-        const suggestions = await db.select().from(agentSuggestions)
+        const suggestions = await db
+          .select()
+          .from(agentSuggestions)
           .where(and(...conditions))
           .orderBy(desc(agentSuggestions.createdAt));
 
@@ -85,17 +106,27 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
 
       if (shouldInclude("draft")) {
         const conditions = [eq(agentDrafts.orgId, orgId)];
-        if (filter?.status) {conditions.push(eq(agentDrafts.status, filter.status));}
-        if (filter?.dateFrom) {conditions.push(gte(agentDrafts.createdAt, new Date(filter.dateFrom)));}
-        if (filter?.dateTo) {conditions.push(lte(agentDrafts.createdAt, new Date(filter.dateTo)));}
+        if (filter?.status) {
+          conditions.push(eq(agentDrafts.status, filter.status));
+        }
+        if (filter?.dateFrom) {
+          conditions.push(gte(agentDrafts.createdAt, new Date(filter.dateFrom)));
+        }
+        if (filter?.dateTo) {
+          conditions.push(lte(agentDrafts.createdAt, new Date(filter.dateTo)));
+        }
 
-        const drafts = await db.select().from(agentDrafts)
+        const drafts = await db
+          .select()
+          .from(agentDrafts)
           .where(and(...conditions))
           .orderBy(desc(agentDrafts.createdAt));
 
         for (const d of drafts) {
           const severity: FindingSeverity = d.status === "pending" ? "warning" : "info";
-          if (filter?.severity && severity !== filter.severity) {continue;}
+          if (filter?.severity && severity !== filter.severity) {
+            continue;
+          }
 
           items.push({
             id: `draft_${d.id}`,
@@ -120,20 +151,33 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
       }
 
       if (shouldInclude("schedule_run")) {
-        const scheduleList = await db.select().from(agentSchedules)
+        const scheduleList = await db
+          .select()
+          .from(agentSchedules)
           .where(eq(agentSchedules.orgId, orgId));
-        const scheduleMap = new Map(scheduleList.map(s => [s.id, s]));
-        const scheduleIds = scheduleList.map(s => s.id);
+        const scheduleMap = new Map(scheduleList.map((s) => [s.id, s]));
+        const scheduleIds = scheduleList.map((s) => s.id);
 
         if (scheduleIds.length > 0) {
           const runConditions = [
-            sql`${agentScheduleRuns.scheduleId} IN (${sql.join(scheduleIds.map(id => sql`${id}`), sql`, `)})`,
+            sql`${agentScheduleRuns.scheduleId} IN (${sql.join(
+              scheduleIds.map((id) => sql`${id}`),
+              sql`, `
+            )})`,
           ];
-          if (filter?.status) {runConditions.push(eq(agentScheduleRuns.status, filter.status));}
-          if (filter?.dateFrom) {runConditions.push(gte(agentScheduleRuns.startedAt, new Date(filter.dateFrom)));}
-          if (filter?.dateTo) {runConditions.push(lte(agentScheduleRuns.startedAt, new Date(filter.dateTo)));}
+          if (filter?.status) {
+            runConditions.push(eq(agentScheduleRuns.status, filter.status));
+          }
+          if (filter?.dateFrom) {
+            runConditions.push(gte(agentScheduleRuns.startedAt, new Date(filter.dateFrom)));
+          }
+          if (filter?.dateTo) {
+            runConditions.push(lte(agentScheduleRuns.startedAt, new Date(filter.dateTo)));
+          }
 
-          const runs = await db.select().from(agentScheduleRuns)
+          const runs = await db
+            .select()
+            .from(agentScheduleRuns)
             .where(and(...runConditions))
             .orderBy(desc(agentScheduleRuns.startedAt));
 
@@ -141,9 +185,11 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
             const schedule = scheduleMap.get(r.scheduleId);
             const runStatus = normalizeStatus(r.status);
 
-            const severity: FindingSeverity = r.status === "failed" ? "critical"
-              : r.status === "running" ? "warning" : "info";
-            if (filter?.severity && severity !== filter.severity) {continue;}
+            const severity: FindingSeverity =
+              r.status === "failed" ? "critical" : r.status === "running" ? "warning" : "info";
+            if (filter?.severity && severity !== filter.severity) {
+              continue;
+            }
 
             items.push({
               id: `run_${r.id}`,
@@ -166,7 +212,7 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
               requiresAction: false,
               createdAt: (r.startedAt ?? new Date()).toISOString(),
               updatedAt: r.completedAt?.toISOString() ?? null,
-              context: r.output ? { output: r.output } as Record<string, unknown> : null,
+              context: r.output ? ({ output: r.output } as Record<string, unknown>) : null,
             });
           }
         }
@@ -174,7 +220,9 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
 
       if (shouldInclude("agent_finding")) {
         const conditions = [eq(agentFindings.orgId, orgId)];
-        if (filter?.severity) {conditions.push(eq(agentFindings.severity, filter.severity));}
+        if (filter?.severity) {
+          conditions.push(eq(agentFindings.severity, filter.severity));
+        }
         if (filter?.status) {
           const statusMap: Record<string, string[]> = {
             pending: ["new"],
@@ -185,13 +233,24 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
           if (mappedStatuses.length === 1) {
             conditions.push(eq(agentFindings.status, mappedStatuses[0]));
           } else {
-            conditions.push(sql`${agentFindings.status} IN (${sql.join(mappedStatuses.map(s => sql`${s}`), sql`, `)})`);
+            conditions.push(
+              sql`${agentFindings.status} IN (${sql.join(
+                mappedStatuses.map((s) => sql`${s}`),
+                sql`, `
+              )})`
+            );
           }
         }
-        if (filter?.dateFrom) {conditions.push(gte(agentFindings.createdAt, new Date(filter.dateFrom)));}
-        if (filter?.dateTo) {conditions.push(lte(agentFindings.createdAt, new Date(filter.dateTo)));}
+        if (filter?.dateFrom) {
+          conditions.push(gte(agentFindings.createdAt, new Date(filter.dateFrom)));
+        }
+        if (filter?.dateTo) {
+          conditions.push(lte(agentFindings.createdAt, new Date(filter.dateTo)));
+        }
 
-        const agentFindingRows = await db.select().from(agentFindings)
+        const agentFindingRows = await db
+          .select()
+          .from(agentFindings)
           .where(and(...conditions))
           .orderBy(desc(agentFindings.createdAt));
 
@@ -237,18 +296,12 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
       const [pendingSuggestions] = await db
         .select({ count: count() })
         .from(agentSuggestions)
-        .where(and(
-          eq(agentSuggestions.orgId, orgId),
-          eq(agentSuggestions.status, "pending"),
-        ));
+        .where(and(eq(agentSuggestions.orgId, orgId), eq(agentSuggestions.status, "pending")));
 
       const [pendingDrafts] = await db
         .select({ count: count() })
         .from(agentDrafts)
-        .where(and(
-          eq(agentDrafts.orgId, orgId),
-          eq(agentDrafts.status, "pending"),
-        ));
+        .where(and(eq(agentDrafts.orgId, orgId), eq(agentDrafts.status, "pending")));
 
       const [totalSuggestions] = await db
         .select({ count: count() })
@@ -260,9 +313,11 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
         .from(agentDrafts)
         .where(eq(agentDrafts.orgId, orgId));
 
-      const scheduleList = await db.select({ id: agentSchedules.id }).from(agentSchedules)
+      const scheduleList = await db
+        .select({ id: agentSchedules.id })
+        .from(agentSchedules)
         .where(eq(agentSchedules.orgId, orgId));
-      const scheduleIds = scheduleList.map(s => s.id);
+      const scheduleIds = scheduleList.map((s) => s.id);
 
       let recentFailures = 0;
       let totalRuns = 0;
@@ -271,17 +326,27 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
         const [failedRuns] = await db
           .select({ count: count() })
           .from(agentScheduleRuns)
-          .where(and(
-            sql`${agentScheduleRuns.scheduleId} IN (${sql.join(scheduleIds.map(id => sql`${id}`), sql`, `)})`,
-            eq(agentScheduleRuns.status, "failed"),
-            gte(agentScheduleRuns.startedAt, sevenDaysAgo),
-          ));
+          .where(
+            and(
+              sql`${agentScheduleRuns.scheduleId} IN (${sql.join(
+                scheduleIds.map((id) => sql`${id}`),
+                sql`, `
+              )})`,
+              eq(agentScheduleRuns.status, "failed"),
+              gte(agentScheduleRuns.startedAt, sevenDaysAgo)
+            )
+          );
         recentFailures = failedRuns?.count ?? 0;
 
         const [allRuns] = await db
           .select({ count: count() })
           .from(agentScheduleRuns)
-          .where(sql`${agentScheduleRuns.scheduleId} IN (${sql.join(scheduleIds.map(id => sql`${id}`), sql`, `)})`);
+          .where(
+            sql`${agentScheduleRuns.scheduleId} IN (${sql.join(
+              scheduleIds.map((id) => sql`${id}`),
+              sql`, `
+            )})`
+          );
         totalRuns = allRuns?.count ?? 0;
       }
 
@@ -298,7 +363,11 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
         pendingApprovals: draftCount,
         pendingSuggestions: sugCount,
         recentFailures,
-        totalFindings: (totalSuggestions?.count ?? 0) + (totalDrafts?.count ?? 0) + totalRuns + agentFindingsCount,
+        totalFindings:
+          (totalSuggestions?.count ?? 0) +
+          (totalDrafts?.count ?? 0) +
+          totalRuns +
+          agentFindingsCount,
         agentFindings: agentFindingsCount,
       };
     },

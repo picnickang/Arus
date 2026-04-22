@@ -1,13 +1,12 @@
 /**
  * Service Initialization
  * Database, job queue, ML services, telemetry
- * 
+ *
  * Security Note (S5443 - publicly writable directories):
  * /tmp/kb-uploads is used for temporary file processing during KB document uploads.
  * Files are processed and moved to permanent storage immediately.
  * In production, consider using a secure application-owned directory.
  */
-
 
 export async function initializeLocalDatabase(): Promise<void> {
   if (process.env.LOCAL_MODE === "true") {
@@ -28,7 +27,11 @@ export async function initializeDatabase(): Promise<void> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(`  Attempting database connection (attempt ${attempt}/${maxRetries})...`);
-      await withServiceTimeout(db.select().from(devices).limit(1), connectionTimeout, "Database connection check");
+      await withServiceTimeout(
+        db.select().from(devices).limit(1),
+        connectionTimeout,
+        "Database connection check"
+      );
       console.log("  Database connection verified");
 
       if (!isLocalMode) {
@@ -38,22 +41,36 @@ export async function initializeDatabase(): Promise<void> {
 
         const { createDatabaseViews, verifyDatabaseViews } = await import("../schema-views");
         await withServiceTimeout(createDatabaseViews(), 60000, "Create database views");
-        const viewVerification = await withServiceTimeout(verifyDatabaseViews(), 30000, "Verify database views");
+        const viewVerification = await withServiceTimeout(
+          verifyDatabaseViews(),
+          30000,
+          "Verify database views"
+        );
         if (!viewVerification.success) {
           console.error("Database view verification failed:", viewVerification.errors);
           throw new Error("Essential database views are not functioning properly");
         }
 
-        await withServiceTimeout(dbInventoryStorage.seedStockForParts("default-org-id"), 30000, "Seed stock data");
+        await withServiceTimeout(
+          dbInventoryStorage.seedStockForParts("default-org-id"),
+          30000,
+          "Seed stock data"
+        );
 
         const { createDatabaseIndexes, analyzeDatabasePerformance } = await import("../db-indexes");
         await withServiceTimeout(createDatabaseIndexes(), 60000, "Create database indexes");
 
         if (process.env.NODE_ENV === "development") {
-          await withServiceTimeout(analyzeDatabasePerformance(), 30000, "Analyze database performance");
+          await withServiceTimeout(
+            analyzeDatabasePerformance(),
+            30000,
+            "Analyze database performance"
+          );
         }
       } else {
-        console.log("SQLite mode: Skipping PostgreSQL-specific setup (TimescaleDB, views, indexes)");
+        console.log(
+          "SQLite mode: Skipping PostgreSQL-specific setup (TimescaleDB, views, indexes)"
+        );
         console.log("Database ready for offline-first operation");
       }
 
@@ -64,7 +81,10 @@ export async function initializeDatabase(): Promise<void> {
         await migrateWorkOrderServiceOrderBridge(db);
         console.log("✓ WO ↔ SO bridge migration applied");
       } catch (err) {
-        console.warn("[WO-SO Bridge] Migration skipped or already applied:", (err as Error).message);
+        console.warn(
+          "[WO-SO Bridge] Migration skipped or already applied:",
+          (err as Error).message
+        );
       }
 
       return;
@@ -75,7 +95,7 @@ export async function initializeDatabase(): Promise<void> {
       if (!isLastAttempt) {
         const delay = attempt * 5000;
         console.log(`  Retrying in ${delay / 1000}s...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       } else {
         console.error("Database initialization failed after all retries:", error);
         if (process.env.EMBEDDED_MODE === "true" || process.env.LOCAL_MODE === "true") {
@@ -103,7 +123,7 @@ export async function seedDevelopmentUser(): Promise<void> {
 
   try {
     const existing = await db.select().from(users).where(eq(users.id, devUserId)).limit(1);
-    
+
     if (existing.length === 0) {
       await db.insert(users).values({
         id: devUserId,
@@ -123,10 +143,17 @@ export async function seedDevelopmentUser(): Promise<void> {
   }
 }
 
-async function withServiceTimeout<T>(promise: Promise<T>, timeoutMs: number, service: string): Promise<T> {
+async function withServiceTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  service: string
+): Promise<T> {
   let timeoutId: NodeJS.Timeout;
   const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error(`${service} timed out after ${timeoutMs}ms`)), timeoutMs);
+    timeoutId = setTimeout(
+      () => reject(new Error(`${service} timed out after ${timeoutMs}ms`)),
+      timeoutMs
+    );
   });
   try {
     const result = await Promise.race([promise, timeoutPromise]);
@@ -153,7 +180,11 @@ export async function initializeJobQueue(): Promise<void> {
 
   if (process.env.DATABASE_URL) {
     try {
-      await withServiceTimeout(jobQueueService.initialize(process.env.DATABASE_URL), 15000, "Job queue");
+      await withServiceTimeout(
+        jobQueueService.initialize(process.env.DATABASE_URL),
+        15000,
+        "Job queue"
+      );
       await withServiceTimeout(startIngestionWorker(5), 10000, "Ingestion worker");
       console.log("✓ Job queue initialized with 5 workers");
     } catch (error: any) {
@@ -174,7 +205,9 @@ export async function initializeMLServices(): Promise<void> {
 }
 
 export async function applyTimescaleOptimizations(isLocalMode: boolean): Promise<void> {
-  if (isLocalMode || !process.env.DATABASE_URL) { return; }
+  if (isLocalMode || !process.env.DATABASE_URL) {
+    return;
+  }
 
   try {
     console.log("→ Applying TimescaleDB optimizations...");
@@ -203,7 +236,9 @@ export async function applyTimescaleOptimizations(isLocalMode: boolean): Promise
 }
 
 export async function startSyncServices(isLocalMode: boolean): Promise<void> {
-  if (!isLocalMode) { return; }
+  if (!isLocalMode) {
+    return;
+  }
 
   console.log("→ Starting sync services...");
   const { syncManager } = await import("../sync-manager");
@@ -235,7 +270,9 @@ export async function initializeAutoReplanPolicy(): Promise<void> {
   }
 
   console.log("→ Initializing auto-replan policy...");
-  const { initializeAutoReplanPolicy: initPolicy } = await import("../scheduler/auto-replan-policy");
+  const { initializeAutoReplanPolicy: initPolicy } = await import(
+    "../scheduler/auto-replan-policy"
+  );
   initPolicy();
   console.log("✓ Auto-replan policy initialized");
 }

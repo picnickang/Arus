@@ -70,11 +70,13 @@ export interface UseDocumentExpiryDataReturn {
   getDocumentTypeLabel: (type: string) => string;
 }
 
-export function useDocumentExpiryData({ daysAhead = 90 }: UseDocumentExpiryDataProps = {}): UseDocumentExpiryDataReturn {
+export function useDocumentExpiryData({
+  daysAhead = 90,
+}: UseDocumentExpiryDataProps = {}): UseDocumentExpiryDataReturn {
   const { currentOrgId: orgId } = useOrganization();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   const [isExpanded, setIsExpanded] = useState(false);
   const [acknowledgeDialogOpen, setAcknowledgeDialogOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<ExpiringDocument | null>(null);
@@ -94,13 +96,20 @@ export function useDocumentExpiryData({ daysAhead = 90 }: UseDocumentExpiryDataP
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crew-documents/expiring"] });
-      toast({ title: "Alert Acknowledged", description: "The document expiry alert has been acknowledged." });
+      toast({
+        title: "Alert Acknowledged",
+        description: "The document expiry alert has been acknowledged.",
+      });
       setAcknowledgeDialogOpen(false);
       setSelectedDoc(null);
       setAcknowledgeNotes("");
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message || "Failed to acknowledge alert", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message || "Failed to acknowledge alert",
+        variant: "destructive",
+      });
     },
   });
 
@@ -115,10 +124,19 @@ export function useDocumentExpiryData({ daysAhead = 90 }: UseDocumentExpiryDataP
     }
   }, [selectedDoc, acknowledgeNotes, acknowledgeMutation]);
 
-  const markRenewed = useCallback((doc: ExpiringDocument) => {
-    acknowledgeMutation.mutate({ docId: doc.id, notes: `Renewed — ${doc.documentType || "document"}` });
-    toast({ title: "Marked as Renewed", description: `${doc.documentType || "Document"} has been marked as renewed. Update the expiry date in your records.` });
-  }, [acknowledgeMutation, toast]);
+  const markRenewed = useCallback(
+    (doc: ExpiringDocument) => {
+      acknowledgeMutation.mutate({
+        docId: doc.id,
+        notes: `Renewed — ${doc.documentType || "document"}`,
+      });
+      toast({
+        title: "Marked as Renewed",
+        description: `${doc.documentType || "Document"} has been marked as renewed. Update the expiry date in your records.`,
+      });
+    },
+    [acknowledgeMutation, toast]
+  );
 
   const unacknowledgedDocs = useMemo(() => {
     return (data?.documents ?? []).filter((d) => !d.alertAcknowledged);

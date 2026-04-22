@@ -1,4 +1,8 @@
-import { dataQualityScore, modeThresholdMultiplier, calibrateFailureProb } from "../../server/utils/rul-utils";
+import {
+  dataQualityScore,
+  modeThresholdMultiplier,
+  calibrateFailureProb,
+} from "../../server/utils/rul-utils";
 
 describe("RUL Engine Utilities", () => {
   describe("dataQualityScore", () => {
@@ -96,7 +100,7 @@ describe("RUL Engine Utilities", () => {
     });
 
     it("pulls underconfident predictions toward base rate", () => {
-      const calibrated = calibrateFailureProb(0.05, 0.30);
+      const calibrated = calibrateFailureProb(0.05, 0.3);
       expect(calibrated).toBeGreaterThan(0.05);
     });
 

@@ -18,7 +18,15 @@ interface NavigationCardProps {
   isInDock?: boolean;
 }
 
-export function NavigationCard({ name, href, icon: Icon, description, className, onAddToDock, isInDock }: NavigationCardProps) {
+export function NavigationCard({
+  name,
+  href,
+  icon: Icon,
+  description,
+  className,
+  onAddToDock,
+  isInDock,
+}: NavigationCardProps) {
   const cardContent = (
     <div
       className={cn(
@@ -29,13 +37,18 @@ export function NavigationCard({ name, href, icon: Icon, description, className,
       )}
       data-testid={`nav-card-${name.toLowerCase().replace(/\s+/g, "-")}`}
     >
-      <div className={cn(
-        "w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 rounded-2xl flex items-center justify-center",
-        "bg-primary shadow-lg",
-        "group-hover:shadow-xl group-hover:bg-primary/90",
-        "transition-all duration-200"
-      )}>
-        <Icon className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 text-primary-foreground" strokeWidth={2} />
+      <div
+        className={cn(
+          "w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 rounded-2xl flex items-center justify-center",
+          "bg-primary shadow-lg",
+          "group-hover:shadow-xl group-hover:bg-primary/90",
+          "transition-all duration-200"
+        )}
+      >
+        <Icon
+          className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 text-primary-foreground"
+          strokeWidth={2}
+        />
       </div>
       <span className="mt-2 text-xs sm:text-sm font-medium text-center text-foreground line-clamp-2 max-w-[80px] sm:max-w-[100px]">
         {name}
@@ -47,13 +60,11 @@ export function NavigationCard({ name, href, icon: Icon, description, className,
     return (
       <ContextMenu>
         <ContextMenuTrigger asChild>
-          <Link href={href}>
-            {cardContent}
-          </Link>
+          <Link href={href}>{cardContent}</Link>
         </ContextMenuTrigger>
         <ContextMenuContent>
-          <ContextMenuItem 
-            onClick={onAddToDock} 
+          <ContextMenuItem
+            onClick={onAddToDock}
             disabled={isInDock}
             data-testid={`menu-add-dock-${name.toLowerCase().replace(/\s+/g, "-")}`}
           >
@@ -74,9 +85,5 @@ export function NavigationCard({ name, href, icon: Icon, description, className,
     );
   }
 
-  return (
-    <Link href={href}>
-      {cardContent}
-    </Link>
-  );
+  return <Link href={href}>{cardContent}</Link>;
 }

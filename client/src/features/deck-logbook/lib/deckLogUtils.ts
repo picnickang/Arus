@@ -1,7 +1,17 @@
 import { z } from "zod";
 import {
-  Activity, Navigation, Anchor, Users, Settings, Fuel,
-  AlertTriangle, Wrench, Bell, MapPin, FileText, type LucideIcon,
+  Activity,
+  Navigation,
+  Anchor,
+  Users,
+  Settings,
+  Fuel,
+  AlertTriangle,
+  Wrench,
+  Bell,
+  MapPin,
+  FileText,
+  type LucideIcon,
 } from "lucide-react";
 
 export interface DeckEventUIConfig {
@@ -33,16 +43,34 @@ export const EVENT_TYPES_UI: Record<string, DeckEventUIConfig> = {
 };
 
 export const optionalCoordinate = (min: number, max: number) =>
-  z.string().optional()
+  z
+    .string()
+    .optional()
     .transform((val) => (val === "" || val === undefined ? undefined : val))
     .pipe(z.union([z.undefined(), z.coerce.number().min(min).max(max)]));
 
 export const manualEventFormSchema = z.object({
-  eventType: z.enum([
-    "DEPARTURE", "ARRIVAL", "ANCHORING", "ANCHOR_UP", "CARGO_OPS",
-    "BUNKERING", "FUEL_TRANSFER", "DRILL", "POSITION_FIX", "MOVEMENT", "REMARK", "CUSTOM"
-  ], { required_error: "Please select an event type" }),
-  summary: z.string().min(5, "Summary must be at least 5 characters").max(500, "Summary must be less than 500 characters"),
+  eventType: z.enum(
+    [
+      "DEPARTURE",
+      "ARRIVAL",
+      "ANCHORING",
+      "ANCHOR_UP",
+      "CARGO_OPS",
+      "BUNKERING",
+      "FUEL_TRANSFER",
+      "DRILL",
+      "POSITION_FIX",
+      "MOVEMENT",
+      "REMARK",
+      "CUSTOM",
+    ],
+    { required_error: "Please select an event type" }
+  ),
+  summary: z
+    .string()
+    .min(5, "Summary must be at least 5 characters")
+    .max(500, "Summary must be less than 500 characters"),
   details: z.string().max(2000, "Details must be less than 2000 characters").optional(),
   positionLat: optionalCoordinate(-90, 90),
   positionLon: optionalCoordinate(-180, 180),
@@ -68,5 +96,11 @@ export function getEventTypeConfig(eventType: string): DeckEventUIConfig {
 }
 
 export function createDefaultManualEventFormValues(): Partial<ManualEventFormValues> {
-  return { eventType: undefined, summary: "", details: "", positionLat: undefined, positionLon: undefined };
+  return {
+    eventType: undefined,
+    summary: "",
+    details: "",
+    positionLat: undefined,
+    positionLon: undefined,
+  };
 }

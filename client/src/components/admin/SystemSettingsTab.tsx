@@ -3,13 +3,56 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Edit, Trash2, Mail, Bell, FileText, ChevronRight, Key, Eye, EyeOff, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Mail,
+  Bell,
+  FileText,
+  ChevronRight,
+  Key,
+  Eye,
+  EyeOff,
+  CheckCircle,
+  XCircle,
+  Loader2,
+} from "lucide-react";
 import { useSystemSettingsTabData } from "@/features/settings";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -27,11 +70,25 @@ function OpenAIKeyCard() {
     queryKey: ["/api/settings"],
   });
 
-  const validateQuery = useQuery<{ valid: boolean; status: string; message: string; source: string | null; hasDbKey: boolean; hasEnvKey: boolean }>({
+  const validateQuery = useQuery<{
+    valid: boolean;
+    status: string;
+    message: string;
+    source: string | null;
+    hasDbKey: boolean;
+    hasEnvKey: boolean;
+  }>({
     queryKey: ["/api/settings", "validate-openai-key"],
     queryFn: async () => {
       const res = await apiRequest("GET", "/api/settings/validate-openai-key");
-      return res as { valid: boolean; status: string; message: string; source: string | null; hasDbKey: boolean; hasEnvKey: boolean };
+      return res as {
+        valid: boolean;
+        status: string;
+        message: string;
+        source: string | null;
+        hasDbKey: boolean;
+        hasEnvKey: boolean;
+      };
     },
     refetchOnWindowFocus: false,
     staleTime: 60000,
@@ -45,11 +102,18 @@ function OpenAIKeyCard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
-      toast({ title: "API key saved", description: "Your OpenAI API key has been saved. Validating with OpenAI..." });
+      toast({
+        title: "API key saved",
+        description: "Your OpenAI API key has been saved. Validating with OpenAI...",
+      });
       setApiKey("");
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to save", description: error.message || "Could not save API key. Please try again.", variant: "destructive" });
+      toast({
+        title: "Failed to save",
+        description: error.message || "Could not save API key. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -63,7 +127,11 @@ function OpenAIKeyCard() {
       toast({ title: "API key removed", description: "Your OpenAI API key has been cleared." });
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to remove", description: error.message || "Could not remove API key. Please try again.", variant: "destructive" });
+      toast({
+        title: "Failed to remove",
+        description: error.message || "Could not remove API key. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -72,10 +140,20 @@ function OpenAIKeyCard() {
 
   const statusBadge = () => {
     if (saveMutation.isPending || removeMutation.isPending) {
-      return <Badge variant="outline"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Saving</Badge>;
+      return (
+        <Badge variant="outline">
+          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+          Saving
+        </Badge>
+      );
     }
     if (validateQuery.isLoading || validateQuery.isFetching) {
-      return <Badge variant="outline"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Validating</Badge>;
+      return (
+        <Badge variant="outline">
+          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+          Validating
+        </Badge>
+      );
     }
     if (!hasKey && !validateQuery.data?.valid) {
       return (
@@ -87,14 +165,16 @@ function OpenAIKeyCard() {
     if (validateQuery.data?.valid) {
       return (
         <Badge variant="default" className="bg-green-600" data-testid="badge-openai-status">
-          <CheckCircle className="h-3 w-3 mr-1" />Active
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Active
         </Badge>
       );
     }
     if (hasKey && validateQuery.data && !validateQuery.data.valid) {
       return (
         <Badge variant="destructive" data-testid="badge-openai-status">
-          <XCircle className="h-3 w-3 mr-1" />Invalid Key
+          <XCircle className="h-3 w-3 mr-1" />
+          Invalid Key
         </Badge>
       );
     }
@@ -138,7 +218,11 @@ function OpenAIKeyCard() {
               disabled={removeMutation.isPending}
               data-testid="button-remove-key"
             >
-              {removeMutation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />}
+              {removeMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-1" />
+              )}
               Remove
             </Button>
           </div>
@@ -146,7 +230,9 @@ function OpenAIKeyCard() {
         <div className="flex items-center gap-2">
           <Input
             type="password"
-            placeholder={hasKey ? "Enter new API key to replace..." : "Enter your OpenAI API key (sk-...)"}
+            placeholder={
+              hasKey ? "Enter new API key to replace..." : "Enter your OpenAI API key (sk-...)"
+            }
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             data-testid="input-openai-key"
@@ -159,16 +245,22 @@ function OpenAIKeyCard() {
             {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
           </Button>
         </div>
-        {hasKey && validateQuery.data && !validateQuery.data.valid && validateQuery.data.status !== "not_configured" && (
-          <p className="text-xs text-destructive" data-testid="text-validation-error">
-            Key saved but validation failed: {validateQuery.data.message}. Please check your key is correct.
-          </p>
-        )}
+        {hasKey &&
+          validateQuery.data &&
+          !validateQuery.data.valid &&
+          validateQuery.data.status !== "not_configured" && (
+            <p className="text-xs text-destructive" data-testid="text-validation-error">
+              Key saved but validation failed: {validateQuery.data.message}. Please check your key
+              is correct.
+            </p>
+          )}
         {validateQuery.data?.valid && (
           <p className="text-xs text-muted-foreground" data-testid="text-validation-source">
-            {validateQuery.data.source === "user_configured" ? "Using your configured key" : 
-             validateQuery.data.source === "environment" ? "Using environment variable key" : 
-             `Source: ${validateQuery.data.source || "auto-detected"}`}
+            {validateQuery.data.source === "user_configured"
+              ? "Using your configured key"
+              : validateQuery.data.source === "environment"
+                ? "Using environment variable key"
+                : `Source: ${validateQuery.data.source || "auto-detected"}`}
           </p>
         )}
         {!hasKey && validateQuery.data?.hasEnvKey && validateQuery.data?.valid && (
@@ -184,11 +276,24 @@ function OpenAIKeyCard() {
 function SystemSettingsTabContent() {
   const [, setLocation] = useLocation();
   const {
-    settings, isLoading, form, createDialogOpen, setCreateDialogOpen, editingItem,
-    createMutation, updateMutation, deleteMutation, handleSubmit, handleEdit, handleDelete,
-    handleCloseDialog, handleOpenCreate, navigateToEmailSettings, navigateToNotificationSettings,
+    settings,
+    isLoading,
+    form,
+    createDialogOpen,
+    setCreateDialogOpen,
+    editingItem,
+    createMutation,
+    updateMutation,
+    deleteMutation,
+    handleSubmit,
+    handleEdit,
+    handleDelete,
+    handleCloseDialog,
+    handleOpenCreate,
+    navigateToEmailSettings,
+    navigateToNotificationSettings,
   } = useSystemSettingsTabData();
-  
+
   const navigateToScheduledReportsSettings = () => setLocation("/scheduled-reports-settings");
 
   if (isLoading) {
@@ -200,42 +305,66 @@ function SystemSettingsTabContent() {
       <OpenAIKeyCard />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={navigateToEmailSettings} data-testid="card-email-settings">
+        <Card
+          className="cursor-pointer hover:bg-accent/50 transition-colors"
+          onClick={navigateToEmailSettings}
+          data-testid="card-email-settings"
+        >
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg"><Mail className="h-5 w-5 text-primary" /></div>
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Mail className="h-5 w-5 text-primary" />
+                </div>
                 <div>
                   <CardTitle className="text-base">Email & Alerts Settings</CardTitle>
-                  <CardDescription className="text-sm">Configure email providers, alert thresholds, and notifications</CardDescription>
+                  <CardDescription className="text-sm">
+                    Configure email providers, alert thresholds, and notifications
+                  </CardDescription>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </div>
           </CardHeader>
         </Card>
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={navigateToNotificationSettings} data-testid="card-notification-settings">
+        <Card
+          className="cursor-pointer hover:bg-accent/50 transition-colors"
+          onClick={navigateToNotificationSettings}
+          data-testid="card-notification-settings"
+        >
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg"><Bell className="h-5 w-5 text-primary" /></div>
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Bell className="h-5 w-5 text-primary" />
+                </div>
                 <div>
                   <CardTitle className="text-base">Notification Settings</CardTitle>
-                  <CardDescription className="text-sm">Manage in-app notifications and push notification preferences</CardDescription>
+                  <CardDescription className="text-sm">
+                    Manage in-app notifications and push notification preferences
+                  </CardDescription>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </div>
           </CardHeader>
         </Card>
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={navigateToScheduledReportsSettings} data-testid="card-scheduled-reports-settings">
+        <Card
+          className="cursor-pointer hover:bg-accent/50 transition-colors"
+          onClick={navigateToScheduledReportsSettings}
+          data-testid="card-scheduled-reports-settings"
+        >
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg"><FileText className="h-5 w-5 text-primary" /></div>
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <FileText className="h-5 w-5 text-primary" />
+                </div>
                 <div>
                   <CardTitle className="text-base">Scheduled Reports Settings</CardTitle>
-                  <CardDescription className="text-sm">Configure report retention, defaults, and generation limits</CardDescription>
+                  <CardDescription className="text-sm">
+                    Configure report retention, defaults, and generation limits
+                  </CardDescription>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -247,52 +376,131 @@ function SystemSettingsTabContent() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-medium">System Settings</h3>
-          <p className="text-sm text-muted-foreground">Manage application configuration and system parameters</p>
+          <p className="text-sm text-muted-foreground">
+            Manage application configuration and system parameters
+          </p>
         </div>
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild><Button data-testid="button-create-setting" onClick={handleOpenCreate}><Plus className="mr-2 h-4 w-4" />Add Setting</Button></DialogTrigger>
+          <DialogTrigger asChild>
+            <Button data-testid="button-create-setting" onClick={handleOpenCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Setting
+            </Button>
+          </DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>{editingItem ? "Edit System Setting" : "Create System Setting"}</DialogTitle>
-              <DialogDescription>{editingItem ? "Modify the system setting details" : "Add a new system configuration parameter"}</DialogDescription>
+              <DialogTitle>
+                {editingItem ? "Edit System Setting" : "Create System Setting"}
+              </DialogTitle>
+              <DialogDescription>
+                {editingItem
+                  ? "Modify the system setting details"
+                  : "Add a new system configuration parameter"}
+              </DialogDescription>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                <FormField control={form.control} name="category" render={({ field }) => (
-                  <FormItem><FormLabel>Category</FormLabel><FormControl>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger data-testid="select-category"><SelectValue placeholder="Select category" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="system">System</SelectItem>
-                        <SelectItem value="security">Security</SelectItem>
-                        <SelectItem value="performance">Performance</SelectItem>
-                        <SelectItem value="integration">Integration</SelectItem>
-                        <SelectItem value="ui">User Interface</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="key" render={({ field }) => (
-                  <FormItem><FormLabel>Key</FormLabel><FormControl><Input {...field} placeholder="e.g., max_upload_size" data-testid="input-key" /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="value" render={({ field }) => (
-                  <FormItem><FormLabel>Value</FormLabel><FormControl><Input {...field} placeholder="e.g., 10485760" data-testid="input-value" /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="description" render={({ field }) => (
-                  <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} placeholder="Optional description of this setting" data-testid="textarea-description" /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="isPublic" render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">Public Setting</FormLabel>
-                      <FormDescription>Make this setting visible to non-admin users</FormDescription>
-                    </div>
-                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-public" /></FormControl>
-                  </FormItem>
-                )} />
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <FormControl>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger data-testid="select-category">
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="system">System</SelectItem>
+                            <SelectItem value="security">Security</SelectItem>
+                            <SelectItem value="performance">Performance</SelectItem>
+                            <SelectItem value="integration">Integration</SelectItem>
+                            <SelectItem value="ui">User Interface</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="key"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Key</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="e.g., max_upload_size"
+                          data-testid="input-key"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="value"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Value</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., 10485760" data-testid="input-value" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          placeholder="Optional description of this setting"
+                          data-testid="textarea-description"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="isPublic"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Public Setting</FormLabel>
+                        <FormDescription>
+                          Make this setting visible to non-admin users
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="switch-public"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={handleCloseDialog}>Cancel</Button>
-                  <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} data-testid="button-save-setting">
+                  <Button type="button" variant="outline" onClick={handleCloseDialog}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={createMutation.isPending || updateMutation.isPending}
+                    data-testid="button-save-setting"
+                  >
                     {editingItem ? "Update Setting" : "Create Setting"}
                   </Button>
                 </DialogFooter>
@@ -307,27 +515,63 @@ function SystemSettingsTabContent() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Category</TableHead><TableHead>Key</TableHead><TableHead>Value</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Key</TableHead>
+                <TableHead>Value</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {settings.map((setting: AdminSystemSetting) => (
                 <TableRow key={setting.id}>
-                  <TableCell><Badge variant="outline" data-testid={`badge-category-${setting.id}`}>{setting.category}</Badge></TableCell>
-                  <TableCell className="font-medium" data-testid={`text-key-${setting.id}`}>{setting.key}</TableCell>
-                  <TableCell className="max-w-xs truncate" data-testid={`text-value-${setting.id}`}>{JSON.stringify(setting.value)}</TableCell>
-                  <TableCell><Badge variant={setting.isSecret ? "destructive" : "default"} data-testid={`badge-status-${setting.id}`}>{setting.isSecret ? "Secret" : "Public"}</Badge></TableCell>
+                  <TableCell>
+                    <Badge variant="outline" data-testid={`badge-category-${setting.id}`}>
+                      {setting.category}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-medium" data-testid={`text-key-${setting.id}`}>
+                    {setting.key}
+                  </TableCell>
+                  <TableCell className="max-w-xs truncate" data-testid={`text-value-${setting.id}`}>
+                    {JSON.stringify(setting.value)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={setting.isSecret ? "destructive" : "default"}
+                      data-testid={`badge-status-${setting.id}`}
+                    >
+                      {setting.isSecret ? "Secret" : "Public"}
+                    </Badge>
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(setting)} data-testid={`button-edit-${setting.id}`}><Edit className="h-4 w-4" /></Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(setting.id)} disabled={deleteMutation.isPending} data-testid={`button-delete-${setting.id}`}><Trash2 className="h-4 w-4" /></Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(setting)}
+                        data-testid={`button-edit-${setting.id}`}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(setting.id)}
+                        disabled={deleteMutation.isPending}
+                        data-testid={`button-delete-${setting.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
               {settings.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No system settings configured. Add your first setting to get started.</TableCell>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    No system settings configured. Add your first setting to get started.
+                  </TableCell>
                 </TableRow>
               )}
             </TableBody>

@@ -69,10 +69,7 @@ export class PartsRepository extends TenantScopedRepository {
         stockLocation: stock.location,
       })
       .from(parts)
-      .leftJoin(
-        stock,
-        and(eq(parts.id, stock.partId), eq(stock.orgId, this.orgId))
-      )
+      .leftJoin(stock, and(eq(parts.id, stock.partId), eq(stock.orgId, this.orgId)))
       .where(
         this.orgWhere(
           parts,

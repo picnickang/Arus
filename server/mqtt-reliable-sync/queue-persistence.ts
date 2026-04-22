@@ -1,6 +1,6 @@
 /**
  * MQTT Reliable Sync - Queue Persistence
- * 
+ *
  * Handles JSONL file-based queue persistence for message durability.
  */
 
@@ -63,12 +63,14 @@ export async function loadPersistedQueue(queueDir: string): Promise<MqttMessage[
  * Persist current queue to JSONL file
  */
 export async function persistQueue(queueDir: string, messages: MqttMessage[]): Promise<void> {
-  if (messages.length === 0) {return;}
+  if (messages.length === 0) {
+    return;
+  }
 
   const queueFile = path.join(queueDir, "pending.jsonl");
 
   try {
-    const lines = `${messages.map((msg) => JSON.stringify(msg)).join("\n")  }\n`;
+    const lines = `${messages.map((msg) => JSON.stringify(msg)).join("\n")}\n`;
     await fs.writeFile(queueFile, lines);
     logger.debug("MqttReliableSync", `Persisted ${messages.length} messages to queue`);
   } catch (error) {

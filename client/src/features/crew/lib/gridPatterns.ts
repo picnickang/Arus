@@ -10,7 +10,9 @@ export function applyPatternToRows(
   customPatterns: ShiftPattern[] = []
 ): { rows: DayRow[]; appliedPattern: ShiftPattern | null } {
   const pattern = [...DEFAULT_PATTERNS, ...customPatterns].find((p) => p.id === patternId);
-  if (!pattern) { return { rows, appliedPattern: null }; }
+  if (!pattern) {
+    return { rows, appliedPattern: null };
+  }
 
   const next = rows.map((r, i) => {
     if (dayIndices.includes(i)) {
@@ -44,11 +46,7 @@ export function getWeekendIndices(rows: DayRow[]): number[] {
     .filter((i) => i !== -1);
 }
 
-export function copyWeekData(
-  rows: DayRow[],
-  sourceWeek: number,
-  targetWeeks: number[]
-): DayRow[] {
+export function copyWeekData(rows: DayRow[], sourceWeek: number, targetWeeks: number[]): DayRow[] {
   const startIdx = sourceWeek * 7;
   const endIdx = Math.min(startIdx + 7, rows.length);
   const weekData = rows.slice(startIdx, endIdx);
@@ -65,10 +63,7 @@ export function copyWeekData(
   return next;
 }
 
-export function applyRestPeriodToAllDays(
-  rows: DayRow[],
-  pattern: number[]
-): DayRow[] {
+export function applyRestPeriodToAllDays(rows: DayRow[], pattern: number[]): DayRow[] {
   return rows.map((r) => {
     const newRow: DayRow = { date: r.date } as DayRow;
     for (let h = 0; h < 24; h++) {
@@ -81,7 +76,9 @@ export function applyRestPeriodToAllDays(
 export function clearAllHours(rows: DayRow[]): DayRow[] {
   return rows.map((r) => {
     const x = { ...r } as DayRow;
-    for (let h = 0; h < 24; h++) {(x as Record<string, number | string>)[`h${h}`] = 0;}
+    for (let h = 0; h < 24; h++) {
+      (x as Record<string, number | string>)[`h${h}`] = 0;
+    }
     return x;
   });
 }

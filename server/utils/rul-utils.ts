@@ -24,29 +24,29 @@ export type OpMode =
 
 const TAG_PRIORITY_ORDER: OpMode[] = ["DP", "DOCKING", "CARGO_OPS", "HARBOR", "TRANSIT", "STANDBY"];
 const TAG_ALIASES: Record<string, OpMode> = {
-  "DP": "DP",
-  "DOCKING": "DOCKING",
-  "CARGO_OPS": "CARGO_OPS",
-  "CARGO": "CARGO_OPS",
-  "HARBOR": "HARBOR",
-  "TRANSIT": "TRANSIT",
-  "STANDBY": "STANDBY",
+  DP: "DP",
+  DOCKING: "DOCKING",
+  CARGO_OPS: "CARGO_OPS",
+  CARGO: "CARGO_OPS",
+  HARBOR: "HARBOR",
+  TRANSIT: "TRANSIT",
+  STANDBY: "STANDBY",
 };
 
 const MODE_STRING_MAP: Record<string, OpMode> = {
-  "DP": "DP",
+  DP: "DP",
   "DYNAMIC POSITIONING": "DP",
-  "TRANSIT": "TRANSIT",
-  "UNDERWAY": "TRANSIT",
-  "HARBOR": "HARBOR",
-  "HARBOUR": "HARBOR",
-  "CARGO_OPS": "CARGO_OPS",
+  TRANSIT: "TRANSIT",
+  UNDERWAY: "TRANSIT",
+  HARBOR: "HARBOR",
+  HARBOUR: "HARBOR",
+  CARGO_OPS: "CARGO_OPS",
   "CARGO OPERATIONS": "CARGO_OPS",
-  "CARGO": "CARGO_OPS",
-  "STANDBY": "STANDBY",
-  "IDLE": "STANDBY",
-  "DOCKING": "DOCKING",
-  "UNDOCKING": "DOCKING",
+  CARGO: "CARGO_OPS",
+  STANDBY: "STANDBY",
+  IDLE: "STANDBY",
+  DOCKING: "DOCKING",
+  UNDOCKING: "DOCKING",
 };
 
 function deriveFromTags(tags: string[]): OpMode | null {
@@ -72,11 +72,15 @@ function deriveFromModeString(operatingMode: string): OpMode | null {
 export function deriveOpMode(tags?: string[], operatingMode?: string): OpMode {
   if (tags?.length) {
     const fromTags = deriveFromTags(tags);
-    if (fromTags) {return fromTags;}
+    if (fromTags) {
+      return fromTags;
+    }
   }
   if (operatingMode) {
     const fromString = deriveFromModeString(operatingMode);
-    if (fromString) {return fromString;}
+    if (fromString) {
+      return fromString;
+    }
   }
   return "UNKNOWN";
 }
@@ -156,13 +160,13 @@ export function dataQualityScore(
  * // Apply to RUL: remainingDays = 30 * 0.85 = 25.5 days (DP mode)
  */
 const modeThresholdMultipliers: Record<OpMode, number> = {
-  DP: 0.85,         // Stricter: DP operations are critical, equipment failure is high-risk
-  DOCKING: 0.9,     // Strict: Docking/undocking requires reliability
-  CARGO_OPS: 0.95,  // Moderate: Cargo ops need equipment availability
-  TRANSIT: 1,       // Baseline: Standard operations, neutral threshold
-  HARBOR: 1.1,      // Lenient: Harbor ops have shore support available
-  STANDBY: 1.2,     // Most lenient: Equipment idle, maintenance can be scheduled
-  UNKNOWN: 1,       // Default to baseline when mode unknown
+  DP: 0.85, // Stricter: DP operations are critical, equipment failure is high-risk
+  DOCKING: 0.9, // Strict: Docking/undocking requires reliability
+  CARGO_OPS: 0.95, // Moderate: Cargo ops need equipment availability
+  TRANSIT: 1, // Baseline: Standard operations, neutral threshold
+  HARBOR: 1.1, // Lenient: Harbor ops have shore support available
+  STANDBY: 1.2, // Most lenient: Equipment idle, maintenance can be scheduled
+  UNKNOWN: 1, // Default to baseline when mode unknown
 };
 
 export function modeThresholdMultiplier(mode: OpMode): number {
@@ -214,10 +218,18 @@ export function calibrateFailureProb(p: number, baseRate: number): number {
  * @returns Quality level description
  */
 export function qualityLevelDescription(score: number): string {
-  if (score >= 0.8) { return "Excellent"; }
-  if (score >= 0.6) { return "Good"; }
-  if (score >= 0.4) { return "Fair"; }
-  if (score >= 0.2) { return "Poor"; }
+  if (score >= 0.8) {
+    return "Excellent";
+  }
+  if (score >= 0.6) {
+    return "Good";
+  }
+  if (score >= 0.4) {
+    return "Fair";
+  }
+  if (score >= 0.2) {
+    return "Poor";
+  }
   return "Very Poor";
 }
 
@@ -228,8 +240,14 @@ export function qualityLevelDescription(score: number): string {
  * @returns Hex color code
  */
 export function qualityLevelColor(score: number): string {
-  if (score >= 0.8) { return "#10b981"; } // green
-  if (score >= 0.6) { return "#f59e0b"; } // amber
-  if (score >= 0.4) { return "#f97316"; } // orange
+  if (score >= 0.8) {
+    return "#10b981";
+  } // green
+  if (score >= 0.6) {
+    return "#f59e0b";
+  } // amber
+  if (score >= 0.4) {
+    return "#f97316";
+  } // orange
   return "#ef4444"; // red
 }

@@ -1,6 +1,6 @@
 /**
  * OpenAPI Spec - Component Schemas
- * 
+ *
  * Reusable schema definitions for API resources.
  */
 
@@ -10,16 +10,16 @@ export const schemas = {
     properties: {
       code: { type: "string", example: "VALIDATION_ERROR" },
       message: { type: "string", example: "Invalid request parameters" },
-      error: { type: "string", example: "Bad Request" }
-    }
+      error: { type: "string", example: "Bad Request" },
+    },
   },
   HealthResponse: {
     type: "object",
     properties: {
       ok: { type: "boolean", example: true },
       timestamp: { type: "string", format: "date-time" },
-      service: { type: "string", example: "arus-api" }
-    }
+      service: { type: "string", example: "arus-api" },
+    },
   },
   Equipment: {
     type: "object",
@@ -33,14 +33,14 @@ export const schemas = {
       model: { type: "string" },
       serialNumber: { type: "string" },
       installDate: { type: "string", format: "date" },
-      status: { 
-        type: "string", 
-        enum: ["operational", "maintenance", "critical", "offline"]
+      status: {
+        type: "string",
+        enum: ["operational", "maintenance", "critical", "offline"],
       },
       healthScore: { type: "number", minimum: 0, maximum: 100 },
       lastMaintenanceDate: { type: "string", format: "date" },
-      nextMaintenanceDate: { type: "string", format: "date" }
-    }
+      nextMaintenanceDate: { type: "string", format: "date" },
+    },
   },
   EquipmentCreate: {
     type: "object",
@@ -52,8 +52,8 @@ export const schemas = {
       manufacturer: { type: "string" },
       model: { type: "string" },
       serialNumber: { type: "string" },
-      installDate: { type: "string", format: "date" }
-    }
+      installDate: { type: "string", format: "date" },
+    },
   },
   Vessel: {
     type: "object",
@@ -66,8 +66,8 @@ export const schemas = {
       flag: { type: "string", example: "SG" },
       yearBuilt: { type: "integer", example: 2018 },
       grossTonnage: { type: "number" },
-      status: { type: "string", enum: ["active", "maintenance", "laid_up"] }
-    }
+      status: { type: "string", enum: ["active", "maintenance", "laid_up"] },
+    },
   },
   TelemetryReading: {
     type: "object",
@@ -78,8 +78,8 @@ export const schemas = {
       sensorType: { type: "string", example: "temperature" },
       value: { type: "number" },
       unit: { type: "string", example: "celsius" },
-      quality: { type: "string", enum: ["good", "uncertain", "bad"] }
-    }
+      quality: { type: "string", enum: ["good", "uncertain", "bad"] },
+    },
   },
   PdmScore: {
     type: "object",
@@ -98,11 +98,11 @@ export const schemas = {
           properties: {
             name: { type: "string" },
             contribution: { type: "number" },
-            trend: { type: "string", enum: ["improving", "stable", "degrading"] }
-          }
-        }
-      }
-    }
+            trend: { type: "string", enum: ["improving", "stable", "degrading"] },
+          },
+        },
+      },
+    },
   },
   WorkOrder: {
     type: "object",
@@ -123,8 +123,8 @@ export const schemas = {
       actualEndDate: { type: "string", format: "date-time" },
       estimatedHours: { type: "number" },
       actualHours: { type: "number" },
-      assignedCrewId: { type: "string", format: "uuid" }
-    }
+      assignedCrewId: { type: "string", format: "uuid" },
+    },
   },
   Part: {
     type: "object",
@@ -139,8 +139,8 @@ export const schemas = {
       quantityInStock: { type: "integer" },
       reorderLevel: { type: "integer" },
       unitPrice: { type: "number" },
-      criticality: { type: "string", enum: ["low", "medium", "high", "critical"] }
-    }
+      criticality: { type: "string", enum: ["low", "medium", "high", "critical"] },
+    },
   },
   MlModel: {
     type: "object",
@@ -153,8 +153,8 @@ export const schemas = {
       status: { type: "string", enum: ["training", "active", "archived", "failed"] },
       accuracy: { type: "number", minimum: 0, maximum: 1 },
       createdAt: { type: "string", format: "date-time" },
-      lastTrainedAt: { type: "string", format: "date-time" }
-    }
+      lastTrainedAt: { type: "string", format: "date-time" },
+    },
   },
   DashboardData: {
     type: "object",
@@ -165,8 +165,8 @@ export const schemas = {
       activeAlerts: { type: "integer" },
       pendingWorkOrders: { type: "integer" },
       criticalEquipment: { type: "integer" },
-      upcomingMaintenance: { type: "integer" }
-    }
+      upcomingMaintenance: { type: "integer" },
+    },
   },
   Pagination: {
     type: "object",
@@ -174,7 +174,7 @@ export const schemas = {
       page: { type: "integer", minimum: 1 },
       limit: { type: "integer", minimum: 1, maximum: 100 },
       total: { type: "integer" },
-      totalPages: { type: "integer" }
-    }
-  }
+      totalPages: { type: "integer" },
+    },
+  },
 };

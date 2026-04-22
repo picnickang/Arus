@@ -1,6 +1,6 @@
 /**
  * Enhanced LLM - Prompt Templates
- * 
+ *
  * Audience-specific prompt templates for report generation.
  */
 
@@ -124,10 +124,7 @@ Reference specific regulations and standards.`,
 /**
  * Get audience-specific prompt template
  */
-export function getAudiencePromptTemplate(
-  audience: Audience,
-  reportType: string
-): PromptTemplate {
+export function getAudiencePromptTemplate(audience: Audience, reportType: string): PromptTemplate {
   const templates: Record<Audience, PromptTemplate> = {
     executive: executiveTemplate,
     technical: technicalTemplate,

@@ -149,7 +149,9 @@ describe("Findings Page E2E", () => {
     let pendingSuggestionId: string | null = null;
 
     beforeAll(async () => {
-      const { body } = await fetchJson("/api/agent/findings?source=suggestion&status=pending&limit=1");
+      const { body } = await fetchJson(
+        "/api/agent/findings?source=suggestion&status=pending&limit=1"
+      );
       if (body.items.length > 0) {
         pendingSuggestionId = body.items[0].sourceId;
       }

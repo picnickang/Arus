@@ -1,6 +1,6 @@
 /**
  * AI Health Dashboard
- * 
+ *
  * Consolidated AI/ML dashboard with tabbed layout.
  * Includes: Overview, Performance, Insights, Training, Reports
  */
@@ -11,10 +11,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Activity, 
-  AlertTriangle, 
-  CheckCircle2, 
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle2,
   Wrench,
   TrendingUp,
   Brain,
@@ -22,7 +22,7 @@ import {
   BarChart3,
   FileText,
   Settings,
-  Sparkles
+  Sparkles,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchEquipmentHealthTyped } from "@/lib/api/equipment";
@@ -99,9 +99,11 @@ export default function AIHealthDashboard() {
       urgency: p.confidence >= 0.8 ? "high" : p.confidence >= 0.6 ? "medium" : "low",
     }));
 
-  const avgConfidence = predictions.length > 0
-    ? predictions.reduce((sum: number, p: any) => sum + (p.confidence || 0), 0) / predictions.length
-    : 0;
+  const avgConfidence =
+    predictions.length > 0
+      ? predictions.reduce((sum: number, p: any) => sum + (p.confidence || 0), 0) /
+        predictions.length
+      : 0;
 
   return (
     <div className="space-y-6" data-testid="page-ai-health">
@@ -149,9 +151,7 @@ export default function AIHealthDashboard() {
                 <div className="text-3xl font-bold" data-testid="text-active-alerts">
                   {activeAlerts}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Require attention
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Require attention</p>
               </CardContent>
             </Card>
 
@@ -164,9 +164,7 @@ export default function AIHealthDashboard() {
                 <div className="text-3xl font-bold" data-testid="text-predicted">
                   {predictedFailures}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  High confidence predictions
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">High confidence predictions</p>
               </CardContent>
             </Card>
 
@@ -179,9 +177,7 @@ export default function AIHealthDashboard() {
                 <div className="text-3xl font-bold" data-testid="text-maintenance">
                   {maintenanceDue}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Within 14 days
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Within 14 days</p>
               </CardContent>
             </Card>
           </div>
@@ -238,8 +234,8 @@ export default function AIHealthDashboard() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="overflow-x-auto pb-2">
             <TabsList className="inline-flex w-full min-w-fit p-1 gap-1">
-              <TabsTrigger 
-                value="overview" 
+              <TabsTrigger
+                value="overview"
                 className="flex-shrink-0 text-xs sm:text-sm px-3 py-2 min-h-[44px]"
                 data-testid="tab-overview"
               >
@@ -247,8 +243,8 @@ export default function AIHealthDashboard() {
                 <span className="hidden sm:inline">Overview</span>
                 <span className="sm:hidden">Summary</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="performance" 
+              <TabsTrigger
+                value="performance"
                 className="flex-shrink-0 text-xs sm:text-sm px-3 py-2 min-h-[44px]"
                 data-testid="tab-performance"
               >
@@ -256,24 +252,24 @@ export default function AIHealthDashboard() {
                 <span className="hidden sm:inline">Performance</span>
                 <span className="sm:hidden">Perf</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="insights" 
+              <TabsTrigger
+                value="insights"
                 className="flex-shrink-0 text-xs sm:text-sm px-3 py-2 min-h-[44px]"
                 data-testid="tab-insights"
               >
                 <Sparkles className="h-4 w-4 mr-1 sm:mr-2" />
                 <span>Insights</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="training" 
+              <TabsTrigger
+                value="training"
                 className="flex-shrink-0 text-xs sm:text-sm px-3 py-2 min-h-[44px]"
                 data-testid="tab-training"
               >
                 <Settings className="h-4 w-4 mr-1 sm:mr-2" />
                 <span>Training</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="reports" 
+              <TabsTrigger
+                value="reports"
                 className="flex-shrink-0 text-xs sm:text-sm px-3 py-2 min-h-[44px]"
                 data-testid="tab-reports"
               >
@@ -316,7 +312,13 @@ export default function AIHealthDashboard() {
   );
 }
 
-function OverviewTab({ avgConfidence, predictions }: { avgConfidence: number; predictions: any[] }) {
+function OverviewTab({
+  avgConfidence,
+  predictions,
+}: {
+  avgConfidence: number;
+  predictions: any[];
+}) {
   return (
     <Card>
       <CardHeader>
@@ -359,7 +361,7 @@ function OverviewTab({ avgConfidence, predictions }: { avgConfidence: number; pr
           <p>The AI system uses a 3-model hybrid ensemble with SHAP explainability.</p>
           <p className="mt-1">Models are retrained automatically when performance degrades.</p>
           <p className="mt-2">
-            <strong>Navigate the tabs above</strong> for detailed model performance, AI insights, 
+            <strong>Navigate the tabs above</strong> for detailed model performance, AI insights,
             training controls, and AI-generated reports.
           </p>
         </div>

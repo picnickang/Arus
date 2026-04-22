@@ -3,7 +3,9 @@
  */
 
 export function sanitizeInput(input: string, skipLengthLimit = false): string {
-  if (typeof input !== "string") {return input;}
+  if (typeof input !== "string") {
+    return input;
+  }
 
   let sanitized = input.replace(/\0/g, "");
   sanitized = sanitized.trim();
@@ -24,19 +26,23 @@ export function validateDatabaseIdentifier(identifier: string): boolean {
 }
 
 export function sanitizeForHTML(input: string): string {
-  if (typeof input !== "string") {return input;}
+  if (typeof input !== "string") {
+    return input;
+  }
 
   return input
-    .replaceAll('&', "&amp;")
-    .replaceAll('<', "&lt;")
-    .replaceAll('>', "&gt;")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
-    .replaceAll('\'', "&#x27;")
+    .replaceAll("'", "&#x27;")
     .replace(/\//g, "&#x2F;");
 }
 
 export function sanitizeMongoQuery(query: any): any {
-  if (typeof query !== "object" || query === null) {return query;}
+  if (typeof query !== "object" || query === null) {
+    return query;
+  }
 
   const sanitized = Array.isArray(query) ? [] : {};
 
@@ -58,7 +64,9 @@ export function sanitizeMongoQuery(query: any): any {
 }
 
 export function sanitizeRequestBody(obj: any, skipLengthLimit = false): any {
-  if (obj === null || obj === undefined) {return obj;}
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
 
   if (Array.isArray(obj)) {
     return obj.map((item) => sanitizeRequestBody(item, skipLengthLimit));

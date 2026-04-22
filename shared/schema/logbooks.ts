@@ -1,6 +1,6 @@
 /**
  * Schema Logbooks - Digital Deck and Engine Room Logbooks
- * 
+ *
  * Maritime compliance feature for regulatory requirements (IMO SOLAS, ISM Code).
  * Based on professional marine logbook standards (SeaLogs, K-Fleet, NOZZLE).
  */
@@ -33,9 +33,15 @@ import { equipment } from "./equipment";
 export const deckLogDaily = pgTable(
   "deck_log_daily",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    vesselId: varchar("vessel_id").notNull().references(() => vessels.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    vesselId: varchar("vessel_id")
+      .notNull()
+      .references(() => vessels.id),
     logDate: text("log_date").notNull(),
     trueCourseNoon: real("true_course_noon"),
     dayRun: real("day_run"),
@@ -91,9 +97,15 @@ export type InsertDeckLogDaily = z.infer<typeof insertDeckLogDailySchema>;
 export const deckLogHourly = pgTable(
   "deck_log_hourly",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    dailyLogId: varchar("daily_log_id").notNull().references(() => deckLogDaily.id, { onDelete: "cascade" }),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    dailyLogId: varchar("daily_log_id")
+      .notNull()
+      .references(() => deckLogDaily.id, { onDelete: "cascade" }),
     hour: integer("hour").notNull(),
     courseTrue: real("course_true"),
     courseGyro: real("course_gyro"),
@@ -141,9 +153,15 @@ export type InsertDeckLogHourly = z.infer<typeof insertDeckLogHourlySchema>;
 export const deckLogWatch = pgTable(
   "deck_log_watch",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    dailyLogId: varchar("daily_log_id").notNull().references(() => deckLogDaily.id, { onDelete: "cascade" }),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    dailyLogId: varchar("daily_log_id")
+      .notNull()
+      .references(() => deckLogDaily.id, { onDelete: "cascade" }),
     watchPeriod: text("watch_period").notNull(),
     watchOfficerId: varchar("watch_officer_id").references(() => crew.id),
     watchOfficerName: text("watch_officer_name"),
@@ -173,10 +191,18 @@ export type InsertDeckLogWatch = z.infer<typeof insertDeckLogWatchSchema>;
 export const deckLogEvents = pgTable(
   "deck_log_events",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    vesselId: varchar("vessel_id").notNull().references(() => vessels.id),
-    dayId: varchar("day_id").notNull().references(() => deckLogDaily.id, { onDelete: "cascade" }),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    vesselId: varchar("vessel_id")
+      .notNull()
+      .references(() => vessels.id),
+    dayId: varchar("day_id")
+      .notNull()
+      .references(() => deckLogDaily.id, { onDelete: "cascade" }),
     timestamp: timestamp("timestamp", { mode: "date" }).notNull(),
     eventType: text("event_type").notNull(),
     source: text("source").notNull().default("manual"),
@@ -264,9 +290,15 @@ export const DECK_LOG_EVENT_SOURCES = {
 export const engineLogDaily = pgTable(
   "engine_log_daily",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    vesselId: varchar("vessel_id").notNull().references(() => vessels.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    vesselId: varchar("vessel_id")
+      .notNull()
+      .references(() => vessels.id),
     logDate: text("log_date").notNull(),
     mainEngineHoursStart: real("me_hours_start"),
     mainEngineHoursEnd: real("me_hours_end"),
@@ -333,9 +365,15 @@ export type InsertEngineLogDaily = z.infer<typeof insertEngineLogDailySchema>;
 export const engineLogHourly = pgTable(
   "engine_log_hourly",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    dailyLogId: varchar("daily_log_id").notNull().references(() => engineLogDaily.id, { onDelete: "cascade" }),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    dailyLogId: varchar("daily_log_id")
+      .notNull()
+      .references(() => engineLogDaily.id, { onDelete: "cascade" }),
     hour: integer("hour").notNull(),
     meRpm: integer("me_rpm"),
     meLoad: real("me_load"),
@@ -385,9 +423,15 @@ export type InsertEngineLogHourly = z.infer<typeof insertEngineLogHourlySchema>;
 export const engineLogGenerator = pgTable(
   "engine_log_generator",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    dailyLogId: varchar("daily_log_id").notNull().references(() => engineLogDaily.id, { onDelete: "cascade" }),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    dailyLogId: varchar("daily_log_id")
+      .notNull()
+      .references(() => engineLogDaily.id, { onDelete: "cascade" }),
     hour: integer("hour").notNull(),
     generatorNumber: integer("generator_number").notNull(),
     isRunning: boolean("is_running").default(false),
@@ -414,7 +458,11 @@ export const engineLogGenerator = pgTable(
   },
   (table) => ({
     dailyLogIdx: index("idx_engine_log_gen_daily").on(table.dailyLogId),
-    uniqueGenHour: unique("uq_engine_log_gen_hour").on(table.dailyLogId, table.hour, table.generatorNumber),
+    uniqueGenHour: unique("uq_engine_log_gen_hour").on(
+      table.dailyLogId,
+      table.hour,
+      table.generatorNumber
+    ),
   })
 );
 
@@ -430,9 +478,15 @@ export type InsertEngineLogGenerator = z.infer<typeof insertEngineLogGeneratorSc
 export const engineLogWatch = pgTable(
   "engine_log_watch",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    dailyLogId: varchar("daily_log_id").notNull().references(() => engineLogDaily.id, { onDelete: "cascade" }),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    dailyLogId: varchar("daily_log_id")
+      .notNull()
+      .references(() => engineLogDaily.id, { onDelete: "cascade" }),
     watchPeriod: text("watch_period").notNull(),
     watchEngineerId: varchar("watch_engineer_id").references(() => crew.id),
     watchEngineerName: text("watch_engineer_name"),
@@ -467,10 +521,18 @@ export type InsertEngineLogWatch = z.infer<typeof insertEngineLogWatchSchema>;
 export const engineLogEvents = pgTable(
   "engine_log_events",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    vesselId: varchar("vessel_id").notNull().references(() => vessels.id),
-    dayId: varchar("day_id").notNull().references(() => engineLogDaily.id, { onDelete: "cascade" }),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    vesselId: varchar("vessel_id")
+      .notNull()
+      .references(() => vessels.id),
+    dayId: varchar("day_id")
+      .notNull()
+      .references(() => engineLogDaily.id, { onDelete: "cascade" }),
     timestamp: timestamp("timestamp", { mode: "date" }).notNull(),
     eventType: text("event_type").notNull(),
     source: text("source").notNull().default("manual"),
@@ -566,9 +628,15 @@ export const ENGINE_LOG_EVENT_SOURCES = {
 export const deckLogHourlyAutoFill = pgTable(
   "deck_log_hourly_autofill",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    hourlyLogId: varchar("hourly_log_id").notNull().references(() => deckLogHourly.id, { onDelete: "cascade" }),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    hourlyLogId: varchar("hourly_log_id")
+      .notNull()
+      .references(() => deckLogHourly.id, { onDelete: "cascade" }),
     fieldName: text("field_name").notNull(),
     sourceType: text("source_type").notNull().default("telemetry"),
     sourceId: varchar("source_id"),
@@ -603,9 +671,15 @@ export type InsertDeckLogHourlyAutoFill = z.infer<typeof insertDeckLogHourlyAuto
 export const fuelEmissionsLog = pgTable(
   "fuel_emissions_log",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    vesselId: varchar("vessel_id").notNull().references(() => vessels.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    vesselId: varchar("vessel_id")
+      .notNull()
+      .references(() => vessels.id),
     logDate: text("log_date").notNull(),
     fuelType: text("fuel_type").notNull(),
     consumptionMt: real("consumption_mt").notNull(),
@@ -642,9 +716,15 @@ export type InsertFuelEmissionsLog = z.infer<typeof insertFuelEmissionsLogSchema
 export const vesselTrackLog = pgTable(
   "vessel_track_log",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    vesselId: varchar("vessel_id").notNull().references(() => vessels.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    vesselId: varchar("vessel_id")
+      .notNull()
+      .references(() => vessels.id),
     timestamp: timestamp("timestamp", { mode: "date" }).notNull(),
     latitude: real("latitude").notNull(),
     longitude: real("longitude").notNull(),
@@ -675,9 +755,15 @@ export type InsertVesselTrackLog = z.infer<typeof insertVesselTrackLogSchema>;
 export const conditionLogSummary = pgTable(
   "condition_log_summary",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    vesselId: varchar("vessel_id").notNull().references(() => vessels.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    vesselId: varchar("vessel_id")
+      .notNull()
+      .references(() => vessels.id),
     logDate: text("log_date").notNull(),
     equipmentId: varchar("equipment_id").references(() => equipment.id),
     equipmentName: text("equipment_name"),

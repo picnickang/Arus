@@ -22,7 +22,9 @@ export function PendingApprovalsBanner() {
   const pendingDrafts = (drafts || []).filter((d) => d.status === "pending");
   const count = pendingDrafts.length;
 
-  if (count === 0 || dismissed) {return null;}
+  if (count === 0 || dismissed) {
+    return null;
+  }
 
   return (
     <div

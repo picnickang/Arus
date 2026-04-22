@@ -1,6 +1,6 @@
 /**
  * Telemetry Stress Test Harness
- * 
+ *
  * Generates high-rate telemetry to validate batch writer performance
  * and measure system throughput under load.
  */
@@ -48,7 +48,10 @@ function generateTelemetryMessage(ctx: MessageGeneratorContext) {
 
 function calculateBatchParams(intervalMs: number, messagesPerSecond: number) {
   const batchInterval = Math.max(10, Math.floor(intervalMs));
-  const messagesPerBatch = Math.max(1, Math.floor((1000 / batchInterval / messagesPerSecond) * 1000));
+  const messagesPerBatch = Math.max(
+    1,
+    Math.floor((1000 / batchInterval / messagesPerSecond) * 1000)
+  );
   return { batchInterval, messagesPerBatch };
 }
 
@@ -71,7 +74,10 @@ export class TelemetryStressTest {
   ): Promise<{ messageCount: number; errors: number }> {
     let messageCount = 0;
     let errors = 0;
-    const { batchInterval, messagesPerBatch } = calculateBatchParams(intervalMs, config.messagesPerSecond);
+    const { batchInterval, messagesPerBatch } = calculateBatchParams(
+      intervalMs,
+      config.messagesPerSecond
+    );
     const maxMessages = config.messagesPerSecond * config.durationSeconds;
 
     while (Date.now() < endTime && this.isRunning) {
@@ -128,7 +134,9 @@ export class TelemetryStressTest {
 
     this.isRunning = true;
     const startTime = Date.now();
-    console.log(`[StressTest] Starting ${config.messagesPerSecond} msg/sec for ${config.durationSeconds}s`);
+    console.log(
+      `[StressTest] Starting ${config.messagesPerSecond} msg/sec for ${config.durationSeconds}s`
+    );
 
     try {
       const { telemetryBatchWriter } = await import("../telemetry-batch-writer");

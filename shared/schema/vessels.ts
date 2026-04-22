@@ -1,6 +1,6 @@
 /**
  * Schema Vessels - Vessel Management and Weather
- * 
+ *
  * Vessel registry, weather cache, port calls, and drydock windows.
  */
 

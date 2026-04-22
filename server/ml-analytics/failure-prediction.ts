@@ -9,9 +9,17 @@ import { db } from "../db";
 import { telemetryAggregates } from "@shared/schema-runtime";
 import { eq, and, gte, asc } from "drizzle-orm";
 import type { FailurePredictionResult, DegradationMetrics, TelemetryReading } from "./types";
-import { calculateTrend, calculateVariability, isBadTrendSensor, isGoodTrendSensor } from "./statistical";
+import {
+  calculateTrend,
+  calculateVariability,
+  isBadTrendSensor,
+  isGoodTrendSensor,
+} from "./statistical";
 
-export async function getMultiSensorData(equipmentId: string, days: number): Promise<TelemetryReading[]> {
+export async function getMultiSensorData(
+  equipmentId: string,
+  days: number
+): Promise<TelemetryReading[]> {
   const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
   const data = await db
@@ -50,17 +58,27 @@ export function calculateDegradationMetrics(data: TelemetryReading[]): Degradati
 
   for (const [sensorType, readings] of Object.entries(sensorGroups)) {
     const values = readings.map((r) => r.avgValue).filter((v) => v !== null) as number[];
-    if (values.length < 5) { continue; }
+    if (values.length < 5) {
+      continue;
+    }
 
     const trend = calculateTrend(values);
     const variability = calculateVariability(values);
     const anomalyCount = readings.filter((r) => (r.anomalyScore || 0) > 0.7).length;
 
     let sensorRisk = 0;
-    if (trend === "increasing" && isBadTrendSensor(sensorType)) { sensorRisk += 0.3; }
-    if (trend === "decreasing" && isGoodTrendSensor(sensorType)) { sensorRisk += 0.3; }
-    if (variability > 0.5) { sensorRisk += 0.2; }
-    if (anomalyCount > readings.length * 0.2) { sensorRisk += 0.3; }
+    if (trend === "increasing" && isBadTrendSensor(sensorType)) {
+      sensorRisk += 0.3;
+    }
+    if (trend === "decreasing" && isGoodTrendSensor(sensorType)) {
+      sensorRisk += 0.3;
+    }
+    if (variability > 0.5) {
+      sensorRisk += 0.2;
+    }
+    if (anomalyCount > readings.length * 0.2) {
+      sensorRisk += 0.3;
+    }
 
     if (sensorRisk > 0.6) {
       metrics.criticalSensors.push(sensorType);
@@ -75,17 +93,25 @@ export function calculateDegradationMetrics(data: TelemetryReading[]): Degradati
   return metrics;
 }
 
-export function statisticalFailurePrediction(degradationMetrics: DegradationMetrics): FailurePredictionResult {
+export function statisticalFailurePrediction(
+  degradationMetrics: DegradationMetrics
+): FailurePredictionResult {
   const degradationScore = degradationMetrics.degradationScore;
   const criticalSensorCount = degradationMetrics.criticalSensors.length;
 
   let failureProbability = Math.min(0.95, degradationScore * 1.2);
-  if (criticalSensorCount > 2) { failureProbability *= 1.3; }
+  if (criticalSensorCount > 2) {
+    failureProbability *= 1.3;
+  }
 
   let remainingUsefulLife = 365;
-  if (degradationScore > 0.8) { remainingUsefulLife = 30; }
-  else if (degradationScore > 0.6) { remainingUsefulLife = 90; }
-  else if (degradationScore > 0.4) { remainingUsefulLife = 180; }
+  if (degradationScore > 0.8) {
+    remainingUsefulLife = 30;
+  } else if (degradationScore > 0.6) {
+    remainingUsefulLife = 90;
+  } else if (degradationScore > 0.4) {
+    remainingUsefulLife = 180;
+  }
 
   const predictedFailureDate =
     failureProbability > 0.3
@@ -133,14 +159,24 @@ export function getDefaultPrediction(reason: string): FailurePredictionResult {
 }
 
 export function inferFailureMode(criticalSensors: string[]): string {
-  if (criticalSensors.includes("vibration")) { return "bearing_wear"; }
-  if (criticalSensors.includes("temperature")) { return "overheating"; }
-  if (criticalSensors.includes("pressure")) { return "seal_failure"; }
-  if (criticalSensors.includes("current")) { return "electrical_degradation"; }
+  if (criticalSensors.includes("vibration")) {
+    return "bearing_wear";
+  }
+  if (criticalSensors.includes("temperature")) {
+    return "overheating";
+  }
+  if (criticalSensors.includes("pressure")) {
+    return "seal_failure";
+  }
+  if (criticalSensors.includes("current")) {
+    return "electrical_degradation";
+  }
   return "general_deterioration";
 }
 
-export function generateMaintenanceRecommendations(degradationMetrics: DegradationMetrics): string[] {
+export function generateMaintenanceRecommendations(
+  degradationMetrics: DegradationMetrics
+): string[] {
   const recommendations = ["Schedule routine inspection"];
 
   if (degradationMetrics.criticalSensors.includes("vibration")) {

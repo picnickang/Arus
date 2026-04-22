@@ -232,7 +232,10 @@ export function useCustomMutation<TInput, TOutput = unknown>(
       });
 
       if (options.successMessage) {
-        const message = typeof options.successMessage === 'function' ? options.successMessage(data) : options.successMessage;
+        const message =
+          typeof options.successMessage === "function"
+            ? options.successMessage(data)
+            : options.successMessage;
         toast({
           title: "Success",
           description: message,
@@ -242,7 +245,10 @@ export function useCustomMutation<TInput, TOutput = unknown>(
       options.onSuccess?.(data);
     },
     onError: (error: Error) => {
-      const message = typeof options.errorMessage === 'function' ? options.errorMessage(error) : (options.errorMessage || error.message);
+      const message =
+        typeof options.errorMessage === "function"
+          ? options.errorMessage(error)
+          : options.errorMessage || error.message;
       toast({
         title: "Error",
         description: message,

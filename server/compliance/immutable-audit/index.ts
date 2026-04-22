@@ -16,21 +16,21 @@
  * @see ./convenience-loggers.ts - Pre-configured loggers
  */
 
-import { IS_POSTGRES, IS_SQLITE } from '@shared/schema-runtime';
-import { logEventPostgres } from './log-event-postgres';
-import { logEventSqlite } from './log-event-sqlite';
-import { queryAuditEvents } from './query';
-import { verifyAuditChain } from './verify';
-import { createConvenienceLoggers } from './convenience-loggers';
+import { IS_POSTGRES, IS_SQLITE } from "@shared/schema-runtime";
+import { logEventPostgres } from "./log-event-postgres";
+import { logEventSqlite } from "./log-event-sqlite";
+import { queryAuditEvents } from "./query";
+import { verifyAuditChain } from "./verify";
+import { createConvenienceLoggers } from "./convenience-loggers";
 import type {
   AuditEventInput,
   AuditRecord,
   AuditQueryOptions,
   ChainVerificationResult,
   AuditStats,
-} from './types';
+} from "./types";
 
-export * from './types';
+export * from "./types";
 
 class ImmutableAuditService {
   private static instance: ImmutableAuditService;
@@ -50,11 +50,11 @@ class ImmutableAuditService {
   async logEvent(input: AuditEventInput): Promise<AuditRecord> {
     if (IS_POSTGRES) {
       return logEventPostgres(input);
-    } if (IS_SQLITE) {
+    }
+    if (IS_SQLITE) {
       return logEventSqlite(input);
-    } 
-      throw new Error('No database mode configured');
-    
+    }
+    throw new Error("No database mode configured");
   }
 
   async queryEvents(options: AuditQueryOptions): Promise<AuditRecord[]> {
@@ -69,11 +69,7 @@ class ImmutableAuditService {
     return verifyAuditChain(orgId, startDate, endDate);
   }
 
-  async getStats(
-    orgId: string,
-    startDate?: Date,
-    endDate?: Date
-  ): Promise<AuditStats> {
+  async getStats(orgId: string, startDate?: Date, endDate?: Date): Promise<AuditStats> {
     const events = await this.queryEvents({
       orgId,
       startDate,
@@ -99,13 +95,27 @@ class ImmutableAuditService {
     };
   }
 
-  get logLogin() { return this.convenienceLoggers.logLogin; }
-  get logDataChange() { return this.convenienceLoggers.logDataChange; }
-  get logMLPrediction() { return this.convenienceLoggers.logMLPrediction; }
-  get logPredictionOverride() { return this.convenienceLoggers.logPredictionOverride; }
-  get logWorkOrderAction() { return this.convenienceLoggers.logWorkOrderAction; }
-  get logSecurityEvent() { return this.convenienceLoggers.logSecurityEvent; }
-  get logComplianceEvent() { return this.convenienceLoggers.logComplianceEvent; }
+  get logLogin() {
+    return this.convenienceLoggers.logLogin;
+  }
+  get logDataChange() {
+    return this.convenienceLoggers.logDataChange;
+  }
+  get logMLPrediction() {
+    return this.convenienceLoggers.logMLPrediction;
+  }
+  get logPredictionOverride() {
+    return this.convenienceLoggers.logPredictionOverride;
+  }
+  get logWorkOrderAction() {
+    return this.convenienceLoggers.logWorkOrderAction;
+  }
+  get logSecurityEvent() {
+    return this.convenienceLoggers.logSecurityEvent;
+  }
+  get logComplianceEvent() {
+    return this.convenienceLoggers.logComplianceEvent;
+  }
 }
 
 export const auditService = ImmutableAuditService.getInstance();

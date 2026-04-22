@@ -12,14 +12,14 @@ const telemetryQuerySchema = z.object({
 
 /**
  * Telemetry Domain Routes
- * 
+ *
  * Handles telemetry data read operations:
  * - Latest readings query
  * - Telemetry history and trends
  * - Edge device heartbeats
  * - Bulk data cleanup
- * 
- * Note: Complex telemetry ingestion routes with HMAC validation 
+ *
+ * Note: Complex telemetry ingestion routes with HMAC validation
  * and sensor configuration processing remain in routes.ts
  */
 export function registerTelemetryRoutes(
@@ -36,7 +36,9 @@ export function registerTelemetryRoutes(
   // ========== TELEMETRY READ ROUTES ==========
 
   // Get latest telemetry readings
-  app.get("/api/telemetry/latest", generalApiRateLimit,
+  app.get(
+    "/api/telemetry/latest",
+    generalApiRateLimit,
     withErrorHandling("fetch latest telemetry readings", async (req, res) => {
       const vesselId = req.query.vesselId as string | undefined;
       const equipmentId = req.query.equipmentId as string | undefined;
@@ -52,7 +54,9 @@ export function registerTelemetryRoutes(
   );
 
   // Get telemetry trends (equipmentId is optional for fleet-wide view)
-  app.get("/api/telemetry/trends", generalApiRateLimit,
+  app.get(
+    "/api/telemetry/trends",
+    generalApiRateLimit,
     withErrorHandling("fetch telemetry trends", async (req, res) => {
       const queryValidation = telemetryQuerySchema.parse(req.query);
       const { equipmentId, hours } = queryValidation;
@@ -63,7 +67,9 @@ export function registerTelemetryRoutes(
   );
 
   // Get telemetry history for equipment/sensor
-  app.get("/api/telemetry/history/:equipmentId/:sensorType", generalApiRateLimit,
+  app.get(
+    "/api/telemetry/history/:equipmentId/:sensorType",
+    generalApiRateLimit,
     withErrorHandling("fetch telemetry history", async (req, res) => {
       const { equipmentId, sensorType } = req.params;
       const hours = req.query.hours ? Number.parseInt(req.query.hours as string) : 24;
@@ -73,7 +79,9 @@ export function registerTelemetryRoutes(
   );
 
   // Clear orphaned telemetry data
-  app.delete("/api/telemetry/cleanup", criticalOperationRateLimit,
+  app.delete(
+    "/api/telemetry/cleanup",
+    criticalOperationRateLimit,
     withErrorHandling("clear telemetry data", async (req, res) => {
       await dbTelemetryStorage.clearOrphanedTelemetryData();
       res.json({
@@ -86,7 +94,9 @@ export function registerTelemetryRoutes(
   // ========== EDGE HEARTBEAT ROUTES ==========
 
   // Get all edge heartbeats
-  app.get("/api/edge/heartbeats", generalApiRateLimit,
+  app.get(
+    "/api/edge/heartbeats",
+    generalApiRateLimit,
     withErrorHandling("fetch heartbeats", async (req, res) => {
       const heartbeats = await dbDevicesStorage.getHeartbeatsByOrg();
       res.json(heartbeats);
@@ -96,7 +106,9 @@ export function registerTelemetryRoutes(
   // ========== SENSOR CONFIGURATION ROUTES ==========
 
   // Get sensor configurations
-  app.get("/api/sensor-configs", generalApiRateLimit,
+  app.get(
+    "/api/sensor-configs",
+    generalApiRateLimit,
     withErrorHandling("fetch sensor configurations", async (req, res) => {
       const { equipmentId, sensorType } = req.query;
       const orgId = req.orgId!;
@@ -111,7 +123,9 @@ export function registerTelemetryRoutes(
   );
 
   // Get single sensor configuration
-  app.get("/api/sensor-config", generalApiRateLimit,
+  app.get(
+    "/api/sensor-config",
+    generalApiRateLimit,
     withErrorHandling("fetch sensor configuration", async (req, res) => {
       const { equipmentId, sensorType } = req.query;
       const orgId = req.orgId!;
@@ -121,14 +135,17 @@ export function registerTelemetryRoutes(
         equipmentId as string,
         sensorType as string
       );
-      
+
       if (configs.length === 0) {
         return sendNotFound(res, "Sensor configuration");
       }
-      
+
       res.json(configs[0]);
     })
   );
 
-  logger.info("TelemetryRoutes", "Telemetry read routes registered (readings: 4, heartbeats: 1, configs: 2)");
+  logger.info(
+    "TelemetryRoutes",
+    "Telemetry read routes registered (readings: 4, heartbeats: 1, configs: 2)"
+  );
 }

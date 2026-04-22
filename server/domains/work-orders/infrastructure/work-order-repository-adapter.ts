@@ -19,6 +19,8 @@ export const workOrderRepoAdapter: IWorkOrderRepository = {
   findOverdue: async (orgId) => {
     const all = await legacyRepository.findAll(orgId);
     const now = new Date();
-    return all.filter(wo => wo.dueDate && new Date(wo.dueDate) < now && wo.status !== "completed");
+    return all.filter(
+      (wo) => wo.dueDate && new Date(wo.dueDate) < now && wo.status !== "completed"
+    );
   },
 };

@@ -17,7 +17,9 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   // They are NOT registered here to preserve the existing security model
 
   // Application health (comprehensive version)
-  app.get("/api/health", generalApiRateLimit,
+  app.get(
+    "/api/health",
+    generalApiRateLimit,
     withErrorHandling("get health status", async (req: Request, res: Response) => {
       const health = {
         ok: true,
@@ -37,7 +39,9 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   );
 
   // Scalability and load balancer health
-  app.get("/api/health/scalability", generalApiRateLimit,
+  app.get(
+    "/api/health/scalability",
+    generalApiRateLimit,
     withErrorHandling("get scalability health", async (req: Request, res: Response) => {
       const { getLoadBalancerHealth } = await import("../../scalability");
       res.json(getLoadBalancerHealth());
@@ -45,7 +49,9 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   );
 
   // Background jobs health
-  app.get("/api/health/background-jobs", generalApiRateLimit,
+  app.get(
+    "/api/health/background-jobs",
+    generalApiRateLimit,
     withErrorHandling("get background job status", async (req: Request, res: Response) => {
       const { jobQueue } = await import("../../background-jobs");
       res.json({
@@ -58,7 +64,9 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   );
 
   // Cache health
-  app.get("/api/health/cache", generalApiRateLimit,
+  app.get(
+    "/api/health/cache",
+    generalApiRateLimit,
     withErrorHandling("get cache status", async (req: Request, res: Response) => {
       const { cache } = await import("../../scalability");
       res.json({
@@ -70,22 +78,25 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   );
 
   // Telemetry health - batch writer and ingestion stats
-  app.get("/api/health/telemetry", generalApiRateLimit,
+  app.get(
+    "/api/health/telemetry",
+    generalApiRateLimit,
     withErrorHandling("get telemetry health status", async (req: Request, res: Response) => {
       const { telemetryBatchWriter } = await import("../../telemetry-batch-writer");
       const { getBridgeState } = await import("../../services/sqlite-bridge");
-      
+
       const batchWriterStats = telemetryBatchWriter.getStats();
       const bridgeState = getBridgeState();
-      
-      const bufferHealthy = batchWriterStats.totalQueued === 0 || 
+
+      const bufferHealthy =
+        batchWriterStats.totalQueued === 0 ||
         batchWriterStats.bufferSize < batchWriterStats.totalQueued * 0.8;
-      const isHealthy = 
-        batchWriterStats.isRunning && 
+      const isHealthy =
+        batchWriterStats.isRunning &&
         batchWriterStats.totalErrors === 0 &&
         bufferHealthy &&
         !bridgeState.pgOffline;
-      
+
       res.json({
         service: "Telemetry Ingestion Pipeline",
         status: isHealthy ? "healthy" : "degraded",
@@ -120,7 +131,9 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     })
   );
 
-  app.get("/api/health/detailed", requireOrgId,
+  app.get(
+    "/api/health/detailed",
+    requireOrgId,
     withErrorHandling("fetch detailed health", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
 
@@ -144,19 +157,29 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     })
   );
 
-  app.get("/api/health/equipment", requireOrgId,
+  app.get(
+    "/api/health/equipment",
+    requireOrgId,
     withErrorHandling("fetch equipment health", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const { equipmentId } = req.query;
 
-      const pdmScores = await dbDevicesStorage.getPdmScores(equipmentId as string, (req.headers["x-org-id"] as string) || '');
+      const pdmScores = await dbDevicesStorage.getPdmScores(
+        equipmentId as string,
+        (req.headers["x-org-id"] as string) || ""
+      );
       const latestScore = pdmScores[0];
 
       const health = {
         equipmentId: equipmentId ?? "all",
         timestamp: new Date().toISOString(),
         healthScore: latestScore?.healthIdx ?? 100,
-        status: latestScore?.healthIdx < 30 ? "critical" : latestScore?.healthIdx < 60 ? "warning" : "healthy",
+        status:
+          latestScore?.healthIdx < 30
+            ? "critical"
+            : latestScore?.healthIdx < 60
+              ? "warning"
+              : "healthy",
         lastUpdated: latestScore?.ts ?? null,
       };
 
@@ -164,7 +187,9 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     })
   );
 
-  app.get("/api/health/fleet", requireOrgId,
+  app.get(
+    "/api/health/fleet",
+    requireOrgId,
     withErrorHandling("fetch fleet health", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
 
@@ -178,13 +203,20 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
           equipmentId: eq.id,
           name: eq.name,
           healthScore: latestScore?.healthIdx ?? 100,
-          status: latestScore?.healthIdx < 30 ? "critical" : latestScore?.healthIdx < 60 ? "warning" : "healthy",
+          status:
+            latestScore?.healthIdx < 30
+              ? "critical"
+              : latestScore?.healthIdx < 60
+                ? "warning"
+                : "healthy",
         };
       });
 
-      const avgHealth = equipmentHealth.length > 0
-        ? equipmentHealth.reduce((sum: number, e: any) => sum + e.healthScore, 0) / equipmentHealth.length
-        : 100;
+      const avgHealth =
+        equipmentHealth.length > 0
+          ? equipmentHealth.reduce((sum: number, e: any) => sum + e.healthScore, 0) /
+            equipmentHealth.length
+          : 100;
 
       res.json({
         timestamp: new Date().toISOString(),
@@ -199,7 +231,9 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   );
 
   // Error logs
-  app.get("/api/error-logs", requireOrgId,
+  app.get(
+    "/api/error-logs",
+    requireOrgId,
     withErrorHandling("fetch error logs", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const { level, source, dateFrom, dateTo, limit } = req.query;
@@ -215,7 +249,9 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     })
   );
 
-  app.post("/api/error-logs", requireOrgId,
+  app.post(
+    "/api/error-logs",
+    requireOrgId,
     withErrorHandling("create error log", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const log = await dbSystemAdminStorage.createErrorLog({ ...req.body, orgId });
@@ -223,7 +259,9 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     })
   );
 
-  app.delete("/api/error-logs/:id", requireOrgId,
+  app.delete(
+    "/api/error-logs/:id",
+    requireOrgId,
     withErrorHandling("delete error log", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       await dbSystemAdminStorage.deleteErrorLog(req.params.id, orgId);
@@ -231,28 +269,36 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     })
   );
 
-  app.delete("/api/error-logs", requireOrgId,
+  app.delete(
+    "/api/error-logs",
+    requireOrgId,
     withErrorHandling("clear error logs", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const { olderThan } = req.query;
-      await dbSystemAdminStorage.clearErrorLogs(olderThan ? new Date(olderThan as string) : undefined, orgId);
+      await dbSystemAdminStorage.clearErrorLogs(
+        olderThan ? new Date(olderThan as string) : undefined,
+        orgId
+      );
       res.status(204).send();
     })
   );
 
   // Error health summary
-  app.get("/api/error-health", requireOrgId,
+  app.get(
+    "/api/error-health",
+    requireOrgId,
     withErrorHandling("fetch error health", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const logs = await dbSystemAdminStorage.getErrorLogs({ orgId, limit: 1000 });
-      
+
       const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const recentLogs = (logs ?? []).filter((log: Record<string, unknown>) => {
         const ts = log.createdAt || log.timestamp;
         return ts ? new Date(ts as string) >= last24h : false;
       });
 
-      const getSeverity = (log: Record<string, unknown>) => ((log.level || log.severity || '') as string).toLowerCase();
+      const getSeverity = (log: Record<string, unknown>) =>
+        ((log.level || log.severity || "") as string).toLowerCase();
       const summary = {
         totalErrors: recentLogs.length,
         byLevel: {
@@ -260,7 +306,8 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
           warning: recentLogs.filter((l) => getSeverity(l) === "warning").length,
           info: recentLogs.filter((l) => getSeverity(l) === "info").length,
         },
-        status: recentLogs.filter((l) => getSeverity(l) === "error").length > 10 ? "degraded" : "healthy",
+        status:
+          recentLogs.filter((l) => getSeverity(l) === "error").length > 10 ? "degraded" : "healthy",
         timestamp: new Date().toISOString(),
       };
 
@@ -268,9 +315,10 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     })
   );
 
-
   // Performance metrics
-  app.get("/api/performance", requireOrgId,
+  app.get(
+    "/api/performance",
+    requireOrgId,
     withErrorHandling("fetch performance metrics", async (req: Request, res: Response) => {
       const performance = {
         timestamp: new Date().toISOString(),
@@ -289,17 +337,22 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   );
 
   // Circuit breaker status for external services
-  app.get("/api/health/circuit-breakers", generalApiRateLimit,
+  app.get(
+    "/api/health/circuit-breakers",
+    generalApiRateLimit,
     withErrorHandling("fetch circuit breaker status", async (req: Request, res: Response) => {
-      const { getAllCircuitBreakerStatuses } = await import("../../services/external-circuit-breakers");
+      const { getAllCircuitBreakerStatuses } = await import(
+        "../../services/external-circuit-breakers"
+      );
       const { circuitBreakerRegistry } = await import("../../ml-circuit-breaker");
-      
+
       const externalStatuses = getAllCircuitBreakerStatuses();
       const mlStatuses = circuitBreakerRegistry.getAllStats();
-      
-      const allOpen = Object.values(externalStatuses).some(s => s.state === "OPEN") ||
-        Object.values(mlStatuses).some(s => s.state === "OPEN");
-      
+
+      const allOpen =
+        Object.values(externalStatuses).some((s) => s.state === "OPEN") ||
+        Object.values(mlStatuses).some((s) => s.state === "OPEN");
+
       res.json({
         status: allOpen ? "degraded" : "healthy",
         timestamp: new Date().toISOString(),
@@ -308,8 +361,12 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
         summary: {
           totalBreakers: Object.keys(externalStatuses).length + Object.keys(mlStatuses).length,
           openBreakers: [
-            ...Object.entries(externalStatuses).filter(([, s]) => s.state === "OPEN").map(([n]) => n),
-            ...Object.entries(mlStatuses).filter(([, s]) => s.state === "OPEN").map(([n]) => n),
+            ...Object.entries(externalStatuses)
+              .filter(([, s]) => s.state === "OPEN")
+              .map(([n]) => n),
+            ...Object.entries(mlStatuses)
+              .filter(([, s]) => s.state === "OPEN")
+              .map(([n]) => n),
           ],
         },
       });
@@ -317,24 +374,26 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   );
 
   // External dependencies health check
-  app.get("/api/health/dependencies", generalApiRateLimit,
+  app.get(
+    "/api/health/dependencies",
+    generalApiRateLimit,
     withErrorHandling("check dependency health", async (req: Request, res: Response) => {
       const { inventoryCache, analyticsCache, cacheConfig } = await import("../../lib/cache");
       const { mqttReliableSyncService } = await import("../../mqtt-reliable-sync");
       const { setDependencyHealthStatus } = await import("../../observability");
-      
+
       const redisInventoryHealthy = await inventoryCache.healthCheck();
       const redisAnalyticsHealthy = await analyticsCache.healthCheck();
       const mqttConnected = mqttReliableSyncService?.isConnected?.() ?? false;
-      
+
       // Emit dependency health metrics
       setDependencyHealthStatus("redis_inventory", redisInventoryHealthy ? 1 : 0);
       setDependencyHealthStatus("redis_analytics", redisAnalyticsHealthy ? 1 : 0);
       setDependencyHealthStatus("mqtt", mqttConnected ? 1 : 0);
       setDependencyHealthStatus("postgres", 1); // If we got here, DB is working
-      
+
       const issues: string[] = [];
-      
+
       if (cacheConfig.enabled && !redisInventoryHealthy) {
         issues.push("Redis inventory cache unavailable - falling back to direct queries");
       }
@@ -346,9 +405,9 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
       if (!mqttConnected) {
         issues.push("MQTT broker disconnected - sync functionality may be delayed");
       }
-      
+
       const hasIssues = issues.length > 0;
-      
+
       res.json({
         status: hasIssues ? "degraded" : "healthy",
         timestamp: new Date().toISOString(),
@@ -370,10 +429,12 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
             postgres: "connected",
           },
         },
-        notes: hasIssues ? [
-          "Some dependencies are unavailable. The application will use fallback mechanisms.",
-          ...issues,
-        ] : [],
+        notes: hasIssues
+          ? [
+              "Some dependencies are unavailable. The application will use fallback mechanisms.",
+              ...issues,
+            ]
+          : [],
       });
     })
   );

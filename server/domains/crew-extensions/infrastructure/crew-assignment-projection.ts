@@ -18,8 +18,16 @@ const logger = createLogger("CrewAssignmentProjection");
 
 interface ICrewAssignmentProjectionRepository {
   getByFilter(filter: SchedulePlannerFilter): Promise<CrewAssignmentProjection[]>;
-  getByCrewId(crewId: string, startDate?: string, endDate?: string): Promise<CrewAssignmentProjection[]>;
-  getByVesselId(vesselId: string, startDate?: string, endDate?: string): Promise<CrewAssignmentProjection[]>;
+  getByCrewId(
+    crewId: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<CrewAssignmentProjection[]>;
+  getByVesselId(
+    vesselId: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<CrewAssignmentProjection[]>;
   refresh(orgId: string): Promise<void>;
 }
 
@@ -120,8 +128,10 @@ export class CrewAssignmentProjectionAdapter implements ICrewAssignmentProjectio
     endDate?: string
   ): Promise<CrewAssignmentProjection[]> {
     const now = new Date();
-    const defaultStart = startDate || new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-    const defaultEnd = endDate || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    const defaultStart =
+      startDate || new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    const defaultEnd =
+      endDate || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
     try {
       const result = await db
@@ -174,8 +184,10 @@ export class CrewAssignmentProjectionAdapter implements ICrewAssignmentProjectio
     endDate?: string
   ): Promise<CrewAssignmentProjection[]> {
     const now = new Date();
-    const defaultStart = startDate || new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-    const defaultEnd = endDate || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    const defaultStart =
+      startDate || new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    const defaultEnd =
+      endDate || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
     try {
       const result = await db

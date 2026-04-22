@@ -1,6 +1,6 @@
 /**
  * ARUS Insights Engine
- * 
+ *
  * Fleet KPI Analysis and Risk Assessment.
  * Integrated with existing ARUS data models and architecture.
  */

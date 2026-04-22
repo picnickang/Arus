@@ -2,10 +2,10 @@
  * STCW Dashboard Vessel Summary - Single vessel STCW compliance details
  */
 
-import { vesselService } from '../../repositories';
-import { checkMonthCompliance, calculateFatigueRisk } from '../../stcw-compliance';
-import type { VesselDetailedSummary } from './types';
-import { getDateRange, getCrewRestDataForVessel } from './data-fetcher';
+import { vesselService } from "../../repositories";
+import { checkMonthCompliance, calculateFatigueRisk } from "../../stcw-compliance";
+import type { VesselDetailedSummary } from "./types";
+import { getDateRange, getCrewRestDataForVessel } from "./data-fetcher";
 
 export async function getVesselSTCWSummary(
   orgId: string,
@@ -20,7 +20,7 @@ export async function getVesselSTCWSummary(
   }
 
   const crewData = await getCrewRestDataForVessel(orgId, vesselId, startDate, endDate);
-  const crewDetails: VesselDetailedSummary['crewDetails'] = [];
+  const crewDetails: VesselDetailedSummary["crewDetails"] = [];
 
   let compliantCrew = 0;
   let totalViolations = 0;
@@ -39,7 +39,7 @@ export async function getVesselSTCWSummary(
         isCompliant: true,
         violationCount: 0,
         warningCount: 0,
-        fatigueLevel: 'low',
+        fatigueLevel: "low",
         fatigueScore: 0,
         avgRestPer24h: 0,
         recentIssues: [],
@@ -64,11 +64,11 @@ export async function getVesselSTCWSummary(
     totalRest24h += fatigue.metrics.avgRestPer24h;
     totalRest7d += fatigue.metrics.avgRestPer7d;
 
-    if (fatigue.riskLevel === 'high') {
+    if (fatigue.riskLevel === "high") {
       highFatigue++;
     }
 
-    if (fatigue.riskLevel === 'critical') {
+    if (fatigue.riskLevel === "critical") {
       criticalFatigue++;
     }
 
@@ -77,11 +77,11 @@ export async function getVesselSTCWSummary(
       .slice(-5)
       .map((d) => ({
         date: d.date,
-        rule: d.min_rest_24 < 10 ? '10h/24h' : 'split_rest',
+        rule: d.min_rest_24 < 10 ? "10h/24h" : "split_rest",
         description:
           d.min_rest_24 < 10
             ? `Only ${d.min_rest_24}h rest (min 10h required)`
-            : 'Rest period split rule violated',
+            : "Rest period split rule violated",
       }));
 
     crewDetails.push({

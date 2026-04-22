@@ -1,6 +1,6 @@
 /**
  * Report Context Builder
- * 
+ *
  * Main class for building comprehensive report contexts.
  */
 

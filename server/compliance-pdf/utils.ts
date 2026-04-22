@@ -2,8 +2,8 @@
  * Compliance PDF Utils - Shared PDF utilities
  */
 
-import { PDFDocument, rgb, StandardFonts, PDFFont, PDFPage, RGB } from 'pdf-lib';
-import { formatDate, countByStatus } from '../compliance-shared/utils';
+import { PDFDocument, rgb, StandardFonts, PDFFont, PDFPage, RGB } from "pdf-lib";
+import { formatDate, countByStatus } from "../compliance-shared/utils";
 
 export { formatDate, countByStatus };
 
@@ -31,8 +31,12 @@ export async function createPDFContext(): Promise<PDFContext> {
 }
 
 export function getStatusColor(status: string): RGB {
-  if (status === 'healthy') { return rgb(0, 0.6, 0); }
-  if (status === 'warning') { return rgb(0.8, 0.6, 0); }
+  if (status === "healthy") {
+    return rgb(0, 0.6, 0);
+  }
+  if (status === "warning") {
+    return rgb(0.8, 0.6, 0);
+  }
   return rgb(0.8, 0, 0);
 }
 
@@ -41,8 +45,12 @@ export function getComplianceColor(rate: number): RGB {
 }
 
 export function getHealthColor(health: number): RGB {
-  if (health >= 80) { return rgb(0, 0.6, 0); }
-  if (health >= 60) { return rgb(0.8, 0.6, 0); }
+  if (health >= 80) {
+    return rgb(0, 0.6, 0);
+  }
+  if (health >= 60) {
+    return rgb(0.8, 0.6, 0);
+  }
   return rgb(0.8, 0, 0);
 }
 

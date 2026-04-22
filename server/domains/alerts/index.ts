@@ -22,8 +22,4 @@ export {
   type EvaluationContext,
 } from "./crew-alert-evaluators";
 
-export {
-  alertRunnerService,
-  runCrewAlerts,
-  runCrewAlertsForAllOrgs,
-} from "./alert-runner";
+export { alertRunnerService, runCrewAlerts, runCrewAlertsForAllOrgs } from "./alert-runner";

@@ -3,22 +3,19 @@
  * Orchestrates domain logic using injected ports
  */
 
-import type {
-  IPartsInventoryRepository,
-  IInventoryEventPublisher,
-} from '../domain/ports.js';
+import type { IPartsInventoryRepository, IInventoryEventPublisher } from "../domain/ports.js";
 import type {
   PartsInventoryEntity,
   CreateInventoryItemCommand,
   UpdateInventoryItemCommand,
-} from '../domain/types.js';
+} from "../domain/types.js";
 import {
   createEventId,
   type InventoryItemCreatedEvent,
   type InventoryItemUpdatedEvent,
   type InventoryItemDeletedEvent,
   type LowStockDetectedEvent,
-} from '../domain/events.js';
+} from "../domain/events.js";
 
 export interface InventoryServiceDeps {
   partsInventoryRepository: IPartsInventoryRepository;
@@ -33,7 +30,7 @@ export class InventoryApplicationService {
     orgId?: string,
     search?: string,
     sortBy?: string,
-    sortOrder?: 'asc' | 'desc'
+    sortOrder?: "asc" | "desc"
   ): Promise<PartsInventoryEntity[]> {
     return this.deps.partsInventoryRepository.findAll(category, orgId, search, sortBy, sortOrder);
   }
@@ -54,9 +51,9 @@ export class InventoryApplicationService {
 
     const event: InventoryItemCreatedEvent = {
       eventId: createEventId(),
-      eventType: 'InventoryItemCreated',
+      eventType: "InventoryItemCreated",
       aggregateId: item.id,
-      aggregateType: 'PartsInventory',
+      aggregateType: "PartsInventory",
       occurredAt: new Date(),
       userId,
       orgId: command.orgId,
@@ -82,7 +79,7 @@ export class InventoryApplicationService {
     userId?: string
   ): Promise<PartsInventoryEntity> {
     const previousItem = await this.deps.partsInventoryRepository.findById(id, orgId);
-    
+
     if (!previousItem) {
       throw new Error(`Inventory item ${id} not found in org ${orgId}`);
     }
@@ -95,9 +92,9 @@ export class InventoryApplicationService {
 
     const event: InventoryItemUpdatedEvent = {
       eventId: createEventId(),
-      eventType: 'InventoryItemUpdated',
+      eventType: "InventoryItemUpdated",
       aggregateId: item.id,
-      aggregateType: 'PartsInventory',
+      aggregateType: "PartsInventory",
       occurredAt: new Date(),
       userId,
       orgId,
@@ -114,9 +111,9 @@ export class InventoryApplicationService {
     if (item.quantity < item.minQuantity && previousItem.quantity >= previousItem.minQuantity) {
       const lowStockEvent: LowStockDetectedEvent = {
         eventId: createEventId(),
-        eventType: 'LowStockDetected',
+        eventType: "LowStockDetected",
         aggregateId: item.id,
-        aggregateType: 'PartsInventory',
+        aggregateType: "PartsInventory",
         occurredAt: new Date(),
         userId,
         orgId,
@@ -135,13 +132,9 @@ export class InventoryApplicationService {
     return item;
   }
 
-  async deleteInventoryItem(
-    id: string,
-    orgId: string,
-    userId?: string
-  ): Promise<void> {
+  async deleteInventoryItem(id: string, orgId: string, userId?: string): Promise<void> {
     const item = await this.deps.partsInventoryRepository.findById(id, orgId);
-    
+
     if (!item) {
       throw new Error(`Inventory item ${id} not found in org ${orgId}`);
     }
@@ -150,9 +143,9 @@ export class InventoryApplicationService {
 
     const event: InventoryItemDeletedEvent = {
       eventId: createEventId(),
-      eventType: 'InventoryItemDeleted',
+      eventType: "InventoryItemDeleted",
       aggregateId: id,
-      aggregateType: 'PartsInventory',
+      aggregateType: "PartsInventory",
       occurredAt: new Date(),
       userId,
       orgId,

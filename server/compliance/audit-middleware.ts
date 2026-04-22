@@ -1,9 +1,9 @@
 /**
  * Comprehensive Audit Middleware
- * 
+ *
  * Express middleware that automatically logs all data-changing operations
  * (POST, PUT, PATCH, DELETE) to the immutable audit trail.
- * 
+ *
  * Features:
  * - Automatic entity detection from request path
  * - Before/after state capture for modifications
@@ -12,8 +12,12 @@
  * - Configurable exclusion patterns
  */
 
-import { Request, Response, NextFunction } from 'express';
-import { auditService, type AuditEventCategory, type AuditEventType } from './immutable-audit.service';
+import { Request, Response, NextFunction } from "express";
+import {
+  auditService,
+  type AuditEventCategory,
+  type AuditEventType,
+} from "./immutable-audit.service";
 
 interface AuditMiddlewareConfig {
   enabled: boolean;
@@ -51,14 +55,14 @@ const defaultConfig: AuditMiddlewareConfig = {
     /^\/socket/,
   ],
   sensitiveFields: [
-    'password',
-    'token',
-    'secret',
-    'apiKey',
-    'api_key',
-    'sessionToken',
-    'refreshToken',
-    'hmacSecret',
+    "password",
+    "token",
+    "secret",
+    "apiKey",
+    "api_key",
+    "sessionToken",
+    "refreshToken",
+    "hmacSecret",
   ],
   logRequestBody: true,
   logResponseBody: false,
@@ -67,47 +71,47 @@ const defaultConfig: AuditMiddlewareConfig = {
 let config = { ...defaultConfig };
 
 const httpMethodToEventType: Record<string, AuditEventType> = {
-  POST: 'create',
-  PUT: 'update',
-  PATCH: 'update',
-  DELETE: 'delete',
+  POST: "create",
+  PUT: "update",
+  PATCH: "update",
+  DELETE: "delete",
 };
 
 /**
  * Map HTTP methods to audit event types
  */
 function getEventType(method: string): AuditEventType {
-  return httpMethodToEventType[method.toUpperCase()] ?? 'read';
+  return httpMethodToEventType[method.toUpperCase()] ?? "read";
 }
 
 /**
  * Determine event category based on path
  */
 function getEventCategory(path: string): AuditEventCategory {
-  if (path.includes('/auth') || path.includes('/login') || path.includes('/session')) {
-    return 'authentication';
+  if (path.includes("/auth") || path.includes("/login") || path.includes("/session")) {
+    return "authentication";
   }
 
-  if (path.includes('/config') || path.includes('/settings')) {
-    return 'configuration_change';
+  if (path.includes("/config") || path.includes("/settings")) {
+    return "configuration_change";
   }
 
-  if (path.includes('/ml') || path.includes('/prediction') || path.includes('/model')) {
-    return 'ml_prediction';
+  if (path.includes("/ml") || path.includes("/prediction") || path.includes("/model")) {
+    return "ml_prediction";
   }
 
-  if (path.includes('/maintenance') || path.includes('/work-order')) {
-    return 'maintenance_action';
+  if (path.includes("/maintenance") || path.includes("/work-order")) {
+    return "maintenance_action";
   }
 
-  if (path.includes('/compliance') || path.includes('/audit')) {
-    return 'compliance_event';
+  if (path.includes("/compliance") || path.includes("/audit")) {
+    return "compliance_event";
   }
 
-  if (path.includes('/security') || path.includes('/admin')) {
-    return 'security_event';
+  if (path.includes("/security") || path.includes("/admin")) {
+    return "security_event";
   }
-  return 'data_modification';
+  return "data_modification";
 }
 
 /**
@@ -118,26 +122,26 @@ function parseEntityFromPath(path: string): { entityType: string; entityId?: str
   // /api/entity -> entityType = entity
   // /api/entity/:id -> entityType = entity, entityId = :id
   // /api/entity/:id/action -> entityType = entity, entityId = :id
-  
-  const segments = path.replace('/api/', '').split('/').filter(Boolean);
-  
+
+  const segments = path.replace("/api/", "").split("/").filter(Boolean);
+
   if (segments.length === 0) {
-    return { entityType: 'api' };
+    return { entityType: "api" };
   }
-  
-  const entityType = segments[0].replaceAll('-', '_');
-  
+
+  const entityType = segments[0].replaceAll("-", "_");
+
   // Check if second segment looks like an ID (UUID or numeric)
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const numericPattern = /^\d+$/;
-  
+
   if (segments.length > 1) {
     const potentialId = segments[1];
     if (uuidPattern.test(potentialId) || numericPattern.test(potentialId)) {
       return { entityType, entityId: potentialId };
     }
   }
-  
+
   return { entityType };
 }
 
@@ -145,20 +149,20 @@ function parseEntityFromPath(path: string): { entityType: string; entityId?: str
  * Redact sensitive fields from objects
  */
 function redactSensitiveData(obj: any, sensitiveFields: string[]): any {
-  if (!obj || typeof obj !== 'object') {
+  if (!obj || typeof obj !== "object") {
     return obj;
   }
-  
+
   if (Array.isArray(obj)) {
-    return obj.map(item => redactSensitiveData(item, sensitiveFields));
+    return obj.map((item) => redactSensitiveData(item, sensitiveFields));
   }
-  
+
   const redacted: Record<string, any> = {};
   for (const [key, value] of Object.entries(obj)) {
     const lowerKey = key.toLowerCase();
-    if (sensitiveFields.some(field => lowerKey.includes(field.toLowerCase()))) {
-      redacted[key] = '[REDACTED]';
-    } else if (typeof value === 'object') {
+    if (sensitiveFields.some((field) => lowerKey.includes(field.toLowerCase()))) {
+      redacted[key] = "[REDACTED]";
+    } else if (typeof value === "object") {
       redacted[key] = redactSensitiveData(value, sensitiveFields);
     } else {
       redacted[key] = value;
@@ -171,11 +175,11 @@ function redactSensitiveData(obj: any, sensitiveFields: string[]): any {
  * Get client IP from request
  */
 function getClientIP(req: Request): string {
-  const forwarded = req.headers['x-forwarded-for'];
+  const forwarded = req.headers["x-forwarded-for"];
   if (forwarded) {
-    return Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0].trim();
+    return Array.isArray(forwarded) ? forwarded[0] : forwarded.split(",")[0].trim();
   }
-  return req.ip || req.socket.remoteAddress || 'unknown';
+  return req.ip || req.socket.remoteAddress || "unknown";
 }
 
 /**
@@ -185,85 +189,80 @@ export function createAuditMiddleware(customConfig?: Partial<AuditMiddlewareConf
   if (customConfig) {
     config = { ...defaultConfig, ...customConfig };
   }
-  
+
   return async function auditMiddleware(req: Request, res: Response, next: NextFunction) {
     // Skip if disabled
     if (!config.enabled) {
       return next();
     }
-    
+
     // Skip non-mutation requests
-    const mutationMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
+    const mutationMethods = ["POST", "PUT", "PATCH", "DELETE"];
     if (!mutationMethods.includes(req.method.toUpperCase())) {
       return next();
     }
-    
+
     // Check exclusion patterns
     const path = req.path;
-    if (config.excludePatterns.some(pattern => pattern.test(path))) {
+    if (config.excludePatterns.some((pattern) => pattern.test(path))) {
       return next();
     }
-    
+
     // Extract org ID from headers (single-tenant mode: default-org-id)
-    const orgId = req.headers['x-org-id'] as string || 'default-org-id';
-    
+    const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+
     // Parse entity from path
     const { entityType, entityId } = parseEntityFromPath(path);
-    
+
     // Extract user information
-    const userId = req.headers['x-user-id'] as string || 
-                   (req as any).user?.id || 
-                   'anonymous';
-    const userName = req.headers['x-user-name'] as string || 
-                     (req as any).user?.name || 
-                     'Anonymous User';
-    
+    const userId = (req.headers["x-user-id"] as string) || (req as any).user?.id || "anonymous";
+    const userName =
+      (req.headers["x-user-name"] as string) || (req as any).user?.name || "Anonymous User";
+
     // Get request metadata
-    const requestId = req.headers['x-request-id'] as string || 
-                      `req_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`;
+    const requestId =
+      (req.headers["x-request-id"] as string) ||
+      `req_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`;
     const ipAddress = getClientIP(req);
-    const userAgent = req.headers['user-agent'] || 'unknown';
-    
+    const userAgent = req.headers["user-agent"] || "unknown";
+
     // Prepare request body (redacted)
-    const requestBody = config.logRequestBody && req.body 
-      ? redactSensitiveData(req.body, config.sensitiveFields)
-      : undefined;
-    
+    const requestBody =
+      config.logRequestBody && req.body
+        ? redactSensitiveData(req.body, config.sensitiveFields)
+        : undefined;
+
     // Store original json method to capture response
     const originalJson = res.json;
     let responseBody: any;
-    
+
     if (config.logResponseBody) {
-      res.json = function(body: any) {
+      res.json = function (body: any) {
         responseBody = body;
         return originalJson.call(this, body);
       };
     }
-    
+
     // Track start time
     const startTime = Date.now();
-    
+
     // Capture response status on finish
-    res.on('finish', async () => {
+    res.on("finish", async () => {
       try {
         const duration = Date.now() - startTime;
         const wasSuccessful = res.statusCode >= 200 && res.statusCode < 400;
-        
+
         // Log to audit trail
         await auditService.logEvent({
           orgId,
           eventCategory: getEventCategory(path),
           eventType: getEventType(req.method),
           entityType,
-          entityId: entityId || 
-                    req.body?.id || 
-                    responseBody?.id || 
-                    responseBody?.data?.id ||
-                    'new',
+          entityId: entityId || req.body?.id || responseBody?.id || responseBody?.data?.id || "new",
           newState: requestBody,
           changedFields: requestBody ? Object.keys(requestBody) : undefined,
           performedBy: userId,
-          performedByType: 'user',
+          performedByType: "user",
           performedByName: userName,
           ipAddress,
           metadata: {
@@ -276,16 +275,16 @@ export function createAuditMiddleware(customConfig?: Partial<AuditMiddlewareConf
             successful: wasSuccessful,
           },
         });
-        
+
         console.log(
           `[Audit] ${req.method} ${path} -> ${res.statusCode} (${duration}ms) [${orgId}/${userId}]`
         );
       } catch (error) {
         // Log error but don't fail the request
-        console.error('[Audit] Failed to log audit event:', error);
+        console.error("[Audit] Failed to log audit event:", error);
       }
     });
-    
+
     next();
   };
 }
@@ -300,31 +299,31 @@ export const auditMiddleware = createAuditMiddleware();
  * Logs both before and after states
  */
 export function sensitiveOperationAudit(entityType: string) {
-  return async function(req: Request, res: Response, next: NextFunction) {
-    const orgId = req.headers['x-org-id'] as string || 'default-org-id';
-    const userId = req.headers['x-user-id'] as string || 'anonymous';
-    const userName = req.headers['x-user-name'] as string || 'Anonymous User';
+  return async function (req: Request, res: Response, next: NextFunction) {
+    const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+    const userId = (req.headers["x-user-id"] as string) || "anonymous";
+    const userName = (req.headers["x-user-name"] as string) || "Anonymous User";
     const ipAddress = getClientIP(req);
-    
+
     // Log the attempt
     await auditService.logEvent({
       orgId,
-      eventCategory: 'security_event',
+      eventCategory: "security_event",
       eventType: getEventType(req.method),
       entityType,
-      entityId: req.params.id || 'unknown',
+      entityId: req.params.id || "unknown",
       newState: redactSensitiveData(req.body, config.sensitiveFields),
       performedBy: userId,
-      performedByType: 'user',
+      performedByType: "user",
       performedByName: userName,
       ipAddress,
       metadata: {
-        action: 'sensitive_operation_attempt',
+        action: "sensitive_operation_attempt",
         method: req.method,
         path: req.path,
       },
     });
-    
+
     next();
   };
 }

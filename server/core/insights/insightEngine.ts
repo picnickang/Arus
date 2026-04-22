@@ -1,5 +1,5 @@
-import { eq, and, sql } from 'drizzle-orm';
-import { db } from '../../db';
+import { eq, and, sql } from "drizzle-orm";
+import { db } from "../../db";
 import {
   actionableInsights,
   equipment,
@@ -8,19 +8,19 @@ import {
   sensorConfigurations,
   equipmentTelemetry,
   pdmScoreLogs,
-} from '@shared/schema-runtime';
-import type { InsertActionableInsight } from '@shared/schema';
-import { logger } from '../../utils/logger.js';
+} from "@shared/schema-runtime";
+import type { InsertActionableInsight } from "@shared/schema";
+import { logger } from "../../utils/logger.js";
 
 export type InsightType =
-  | 'MAINTENANCE_DUE'
-  | 'FAILURE_PREDICTED'
-  | 'CONDITION_DETERIORATING'
-  | 'SENSOR_ANOMALY'
-  | 'OPTIMIZATION_OPPORTUNITY'
-  | 'COMPLIANCE_RISK';
+  | "MAINTENANCE_DUE"
+  | "FAILURE_PREDICTED"
+  | "CONDITION_DETERIORATING"
+  | "SENSOR_ANOMALY"
+  | "OPTIMIZATION_OPPORTUNITY"
+  | "COMPLIANCE_RISK";
 
-export type InsightSeverity = 'critical' | 'high' | 'medium' | 'low';
+export type InsightSeverity = "critical" | "high" | "medium" | "low";
 
 export interface EquipmentHealthContext {
   equipmentId: string;
@@ -49,10 +49,7 @@ export class InsightEngine {
   private static readonly PDM_CRITICAL_THRESHOLD = 80;
   private static readonly PDM_WARNING_THRESHOLD = 60;
 
-  static async evaluateEquipment(
-    equipmentId: string,
-    orgId: string
-  ): Promise<GeneratedInsight[]> {
+  static async evaluateEquipment(equipmentId: string, orgId: string): Promise<GeneratedInsight[]> {
     try {
       const context = await this.gatherHealthContext(equipmentId, orgId);
       const insights: GeneratedInsight[] = [];
@@ -62,9 +59,11 @@ export class InsightEngine {
       insights.push(...this.evaluateRecentAlerts(context));
       insights.push(...this.evaluateSensorHealth(context));
 
-      return insights.sort((a, b) => this.getSeverityScore(b.severity) - this.getSeverityScore(a.severity));
+      return insights.sort(
+        (a, b) => this.getSeverityScore(b.severity) - this.getSeverityScore(a.severity)
+      );
     } catch (error) {
-      logger.error('Insight evaluation failed', { equipmentId, error });
+      logger.error("Insight evaluation failed", { equipmentId, error });
       return [];
     }
   }
@@ -102,7 +101,12 @@ export class InsightEngine {
     const sensorData = await db
       .select()
       .from(sensorConfigurations)
-      .where(and(eq(sensorConfigurations.equipmentId, equipmentId), eq(sensorConfigurations.orgId, orgId)));
+      .where(
+        and(
+          eq(sensorConfigurations.equipmentId, equipmentId),
+          eq(sensorConfigurations.orgId, orgId)
+        )
+      );
 
     const [pdmScoreLog] = await db
       .select()
@@ -114,7 +118,9 @@ export class InsightEngine {
     const recentTelemetry = await db
       .select()
       .from(equipmentTelemetry)
-      .where(and(eq(equipmentTelemetry.equipmentId, equipmentId), eq(equipmentTelemetry.orgId, orgId)))
+      .where(
+        and(eq(equipmentTelemetry.equipmentId, equipmentId), eq(equipmentTelemetry.orgId, orgId))
+      )
       .orderBy(sql`${equipmentTelemetry.ts} DESC`)
       .limit(50);
 
@@ -142,8 +148,8 @@ export class InsightEngine {
 
     if (probability > 0.8) {
       insights.push({
-        type: 'FAILURE_PREDICTED',
-        severity: 'critical',
+        type: "FAILURE_PREDICTED",
+        severity: "critical",
         title: `High Failure Risk Detected`,
         message: `Equipment has ${(probability * 100).toFixed(0)}% probability of failure. Immediate attention required.`,
         supportingSignals: {
@@ -151,21 +157,23 @@ export class InsightEngine {
           predictionId: prediction.id,
           timestamp: prediction.predictionTimestamp,
         },
-        recommendedAction: 'Schedule emergency maintenance immediately. Order replacement parts if not in inventory. Prepare backup equipment.',
-        relatedProcedures: ['EMERGENCY_MAINTENANCE', 'PARTS_ORDERING', 'EQUIPMENT_SWAP'],
+        recommendedAction:
+          "Schedule emergency maintenance immediately. Order replacement parts if not in inventory. Prepare backup equipment.",
+        relatedProcedures: ["EMERGENCY_MAINTENANCE", "PARTS_ORDERING", "EQUIPMENT_SWAP"],
       });
     } else if (probability > 0.6) {
       insights.push({
-        type: 'MAINTENANCE_DUE',
-        severity: 'high',
+        type: "MAINTENANCE_DUE",
+        severity: "high",
         title: `Elevated Failure Risk`,
         message: `Equipment shows ${(probability * 100).toFixed(0)}% failure probability. Preventive maintenance recommended.`,
         supportingSignals: {
           failureProbability: probability,
           predictionId: prediction.id,
         },
-        recommendedAction: 'Schedule preventive maintenance within the next week. Verify parts availability.',
-        relatedProcedures: ['PREVENTIVE_MAINTENANCE', 'PARTS_CHECK'],
+        recommendedAction:
+          "Schedule preventive maintenance within the next week. Verify parts availability.",
+        relatedProcedures: ["PREVENTIVE_MAINTENANCE", "PARTS_CHECK"],
       });
     }
 
@@ -183,28 +191,30 @@ export class InsightEngine {
 
     if (score >= this.PDM_CRITICAL_THRESHOLD) {
       insights.push({
-        type: 'CONDITION_DETERIORATING',
-        severity: 'critical',
+        type: "CONDITION_DETERIORATING",
+        severity: "critical",
         title: `Critical Equipment Condition - PDM Score ${score}`,
         message: `Equipment health score has reached critical level (${score}/100). Immediate attention required.`,
         supportingSignals: {
           pdmScore: score,
           timestamp: context.pdmScoreLog.ts,
         },
-        recommendedAction: 'Perform comprehensive equipment inspection. Review maintenance history. Check for abnormal operating conditions.',
-        relatedProcedures: ['COMPREHENSIVE_INSPECTION', 'MAINTENANCE_REVIEW'],
+        recommendedAction:
+          "Perform comprehensive equipment inspection. Review maintenance history. Check for abnormal operating conditions.",
+        relatedProcedures: ["COMPREHENSIVE_INSPECTION", "MAINTENANCE_REVIEW"],
       });
     } else if (score >= this.PDM_WARNING_THRESHOLD) {
       insights.push({
-        type: 'CONDITION_DETERIORATING',
-        severity: 'medium',
+        type: "CONDITION_DETERIORATING",
+        severity: "medium",
         title: `Equipment Condition Declining - PDM Score ${score}`,
         message: `Equipment health score is elevated (${score}/100). Monitor closely and consider maintenance.`,
         supportingSignals: {
           pdmScore: score,
         },
-        recommendedAction: 'Increase monitoring frequency. Review sensor data for early warning signs.',
-        relatedProcedures: ['INCREASED_MONITORING'],
+        recommendedAction:
+          "Increase monitoring frequency. Review sensor data for early warning signs.",
+        relatedProcedures: ["INCREASED_MONITORING"],
       });
     }
 
@@ -215,13 +225,13 @@ export class InsightEngine {
     const insights: GeneratedInsight[] = [];
 
     const criticalAlerts = context.recentAlerts.filter(
-      (a) => a.alertType === 'CRITICAL' || a.alertType === 'THRESHOLD_EXCEEDED'
+      (a) => a.alertType === "CRITICAL" || a.alertType === "THRESHOLD_EXCEEDED"
     );
 
     if (criticalAlerts.length >= 3) {
       insights.push({
-        type: 'SENSOR_ANOMALY',
-        severity: 'high',
+        type: "SENSOR_ANOMALY",
+        severity: "high",
         title: `Multiple Critical Alerts - ${criticalAlerts.length} Unacknowledged`,
         message: `${criticalAlerts.length} critical alerts detected. Equipment may be operating outside safe parameters.`,
         supportingSignals: {
@@ -229,8 +239,9 @@ export class InsightEngine {
           alertTypes: [...new Set(criticalAlerts.map((a) => a.alertType))],
           sensorTypes: [...new Set(criticalAlerts.map((a) => a.sensorType))],
         },
-        recommendedAction: 'Review all alerts immediately. Check if equipment is operating within design limits. Consider reducing load or shutting down.',
-        relatedProcedures: ['ALERT_INVESTIGATION', 'EQUIPMENT_SHUTDOWN'],
+        recommendedAction:
+          "Review all alerts immediately. Check if equipment is operating within design limits. Consider reducing load or shutting down.",
+        relatedProcedures: ["ALERT_INVESTIGATION", "EQUIPMENT_SHUTDOWN"],
       });
     }
 
@@ -240,12 +251,12 @@ export class InsightEngine {
   private static evaluateSensorHealth(context: EquipmentHealthContext): GeneratedInsight[] {
     const insights: GeneratedInsight[] = [];
 
-    const inactiveSensors = context.sensorData.filter((s) => s.status !== 'active');
+    const inactiveSensors = context.sensorData.filter((s) => s.status !== "active");
 
     if (inactiveSensors.length > 0) {
       insights.push({
-        type: 'SENSOR_ANOMALY',
-        severity: inactiveSensors.length > 2 ? 'high' : 'medium',
+        type: "SENSOR_ANOMALY",
+        severity: inactiveSensors.length > 2 ? "high" : "medium",
         title: `${inactiveSensors.length} Sensor(s) Offline`,
         message: `${inactiveSensors.length} sensors are not reporting data. Equipment monitoring may be incomplete.`,
         supportingSignals: {
@@ -255,16 +266,19 @@ export class InsightEngine {
             status: s.status,
           })),
         },
-        recommendedAction: 'Check sensor connectivity. Verify power supply. Replace faulty sensors.',
-        relatedProcedures: ['SENSOR_DIAGNOSTICS', 'SENSOR_REPLACEMENT'],
+        recommendedAction:
+          "Check sensor connectivity. Verify power supply. Replace faulty sensors.",
+        relatedProcedures: ["SENSOR_DIAGNOSTICS", "SENSOR_REPLACEMENT"],
       });
     }
 
     return insights;
   }
 
-  private static calculatePDMTrend(context: EquipmentHealthContext): 'rising' | 'stable' | 'falling' {
-    return 'rising';
+  private static calculatePDMTrend(
+    context: EquipmentHealthContext
+  ): "rising" | "stable" | "falling" {
+    return "rising";
   }
 
   private static getSeverityScore(severity: InsightSeverity): number {
@@ -291,7 +305,7 @@ export class InsightEngine {
       .limit(1);
 
     if (existingInsight) {
-      logger.debug('Insight already exists', { equipmentId, type: insight.type });
+      logger.debug("Insight already exists", { equipmentId, type: insight.type });
       return existingInsight.id;
     }
 
@@ -314,7 +328,7 @@ export class InsightEngine {
 
     const [created] = await db.insert(actionableInsights).values(insightData).returning();
 
-    logger.info('Actionable insight created', {
+    logger.info("Actionable insight created", {
       insightId: created.id,
       equipmentId,
       type: insight.type,
@@ -337,7 +351,7 @@ export class InsightEngine {
         const id = await this.storeInsight(orgId, equipmentId, vesselId || null, insight);
         insightIds.push(id);
       } catch (error) {
-        logger.error('Failed to store insight', { equipmentId, insight, error });
+        logger.error("Failed to store insight", { equipmentId, insight, error });
       }
     }
 

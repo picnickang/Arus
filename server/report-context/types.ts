@@ -1,6 +1,6 @@
 /**
  * Report Context Types
- * 
+ *
  * Type definitions for report context building.
  */
 

@@ -18,7 +18,7 @@ export function trackPerformance(
   context?: Partial<LogContext>
 ): void {
   const threshold = OPERATION_THRESHOLDS[operationType] || OPERATION_THRESHOLDS.default;
-  
+
   if (durationMs > threshold) {
     structuredLog("warn", `Slow ${operationType}: ${durationMs}ms (threshold: ${threshold}ms)`, {
       operation: operationType,
@@ -49,7 +49,7 @@ export function trackBatchOperation(
   durationMs: number
 ): void {
   const perItemMs = batchSize > 0 ? durationMs / batchSize : 0;
-  
+
   if (durationMs > 5000 || perItemMs > 100) {
     structuredLog("warn", `Slow batch ${operationType}: ${batchSize} items in ${durationMs}ms`, {
       operation: operationType,

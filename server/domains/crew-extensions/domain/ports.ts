@@ -8,16 +8,20 @@ import type {
   ScheduleAssignmentEntity,
   ScheduleUnfilledEntity,
   CreateSchedulerRunCommand,
-} from './types.js';
-import type { CrewExtensionsDomainEvent } from './events.js';
-import type { SchedulePlannerView, SchedulePlannerFilter } from './read-models.js';
+} from "./types.js";
+import type { CrewExtensionsDomainEvent } from "./events.js";
+import type { SchedulePlannerView, SchedulePlannerFilter } from "./read-models.js";
 
 export interface ISchedulerRunRepository {
   create(command: CreateSchedulerRunCommand): Promise<SchedulerRunEntity>;
   findById(id: string, orgId?: string): Promise<SchedulerRunEntity | undefined>;
   findByOrgId(orgId: string, limit?: number): Promise<SchedulerRunEntity[]>;
   findByStatus(orgId: string, status: string, limit?: number): Promise<SchedulerRunEntity[]>;
-  findRecentByHash(orgId: string, inputHash: string, hoursBack?: number): Promise<SchedulerRunEntity | undefined>;
+  findRecentByHash(
+    orgId: string,
+    inputHash: string,
+    hoursBack?: number
+  ): Promise<SchedulerRunEntity | undefined>;
   update(id: string, updates: Partial<SchedulerRunEntity>): Promise<SchedulerRunEntity>;
   approve(id: string, userId?: string): Promise<SchedulerRunEntity>;
   publish(id: string, userId: string): Promise<SchedulerRunEntity>;
@@ -26,14 +30,14 @@ export interface ISchedulerRunRepository {
 }
 
 export interface IScheduleAssignmentRepository {
-  createBulk(assignments: Omit<ScheduleAssignmentEntity, 'id' | 'createdAt'>[]): Promise<void>;
+  createBulk(assignments: Omit<ScheduleAssignmentEntity, "id" | "createdAt">[]): Promise<void>;
   findByRunId(runId: string): Promise<ScheduleAssignmentEntity[]>;
   findByDateRange(orgId: string, fromDate: Date, toDate: Date): Promise<ScheduleAssignmentEntity[]>;
   deleteByDateRange(orgId: string, start: Date, end: Date, mode?: string): Promise<void>;
 }
 
 export interface IScheduleUnfilledRepository {
-  createBulk(unfilled: Omit<ScheduleUnfilledEntity, 'id' | 'createdAt'>[]): Promise<void>;
+  createBulk(unfilled: Omit<ScheduleUnfilledEntity, "id" | "createdAt">[]): Promise<void>;
   findByOrgId(orgId: string, runId?: string): Promise<ScheduleUnfilledEntity[]>;
 }
 
@@ -65,9 +69,12 @@ export interface ISchedulePlannerReadModel {
  * Port for in-memory simulation preview storage
  */
 export interface ISimulationPreviewStore {
-  save(preview: import('./types.js').SimulationPreview): Promise<void>;
-  get(previewId: string, orgId: string): Promise<import('./types.js').SimulationPreview | undefined>;
-  getLatest(orgId: string): Promise<import('./types.js').SimulationPreview | undefined>;
+  save(preview: import("./types.js").SimulationPreview): Promise<void>;
+  get(
+    previewId: string,
+    orgId: string
+  ): Promise<import("./types.js").SimulationPreview | undefined>;
+  getLatest(orgId: string): Promise<import("./types.js").SimulationPreview | undefined>;
   delete(previewId: string, orgId: string): Promise<boolean>;
   deleteExpired(): Promise<number>;
 }
@@ -82,10 +89,10 @@ export interface IScheduleGeneratorStrategy {
     toDate: Date;
     vesselIds?: string[];
     crewIds?: string[];
-    existingAssignments: import('./types.js').ScheduleAssignmentEntity[];
+    existingAssignments: import("./types.js").ScheduleAssignmentEntity[];
   }): Promise<{
-    proposedAssignments: import('./types.js').ProposedAssignment[];
-    unfilledShifts: import('./types.js').SimulationUnfilledShift[];
+    proposedAssignments: import("./types.js").ProposedAssignment[];
+    unfilledShifts: import("./types.js").SimulationUnfilledShift[];
   }>;
 }
 
@@ -93,23 +100,33 @@ export interface IScheduleGeneratorStrategy {
  * Port for crew data access (read-only)
  */
 export interface ICrewDataPort {
-  findByOrgId(orgId: string, crewIds?: string[]): Promise<Array<{
-    id: string;
-    name: string;
-    role: string;
-    status: string;
-    certifications?: string[];
-  }>>;
+  findByOrgId(
+    orgId: string,
+    crewIds?: string[]
+  ): Promise<
+    Array<{
+      id: string;
+      name: string;
+      role: string;
+      status: string;
+      certifications?: string[];
+    }>
+  >;
 }
 
 /**
  * Port for vessel data access (read-only)
  */
 export interface IVesselDataPort {
-  findByOrgId(orgId: string, vesselIds?: string[]): Promise<Array<{
-    id: string;
-    name: string;
-    type: string;
-    status: string;
-  }>>;
+  findByOrgId(
+    orgId: string,
+    vesselIds?: string[]
+  ): Promise<
+    Array<{
+      id: string;
+      name: string;
+      type: string;
+      status: string;
+    }>
+  >;
 }

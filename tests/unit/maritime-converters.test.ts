@@ -1,4 +1,10 @@
-import { windSpeedToBeaufort, waveHeightToSeaState, bearingToDirection, BEAUFORT_DESCRIPTIONS, SEA_STATE_DESCRIPTIONS } from "../../shared/lib/maritime-converters";
+import {
+  windSpeedToBeaufort,
+  waveHeightToSeaState,
+  bearingToDirection,
+  BEAUFORT_DESCRIPTIONS,
+  SEA_STATE_DESCRIPTIONS,
+} from "../../shared/lib/maritime-converters";
 
 describe("Maritime Converters", () => {
   describe("windSpeedToBeaufort", () => {

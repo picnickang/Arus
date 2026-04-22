@@ -2,7 +2,7 @@
  * Update Checker Service
  * Checks for available software patches and coordinates update downloads
  * Part of ARUS 3-Tier Patching System - Tier 2
- * 
+ *
  * DEPLOYMENT MODE: This service is CLOUD-ONLY.
  * Vessel/embedded deployments use different update channels.
  */
@@ -48,7 +48,7 @@ export class UpdateChecker {
 
   /**
    * Create a new UpdateChecker instance with async provider initialization
-   * 
+   *
    * CLOUD-ONLY: This service requires PostgreSQL and cloud-only tables
    */
   static async create(
@@ -56,8 +56,8 @@ export class UpdateChecker {
     currentVersion?: string
   ): Promise<UpdateChecker> {
     // GUARD: Update checker is cloud-only
-    assertCloudMode('Update Checker Service');
-    
+    assertCloudMode("Update Checker Service");
+
     const actualProvider = provider || (await createUpdateProvider(getProviderConfigFromEnv()));
     return new UpdateChecker(actualProvider, currentVersion);
   }
@@ -105,7 +105,7 @@ export class UpdateChecker {
       }
 
       // Check if we've already applied this version
-      const patchesTable = getCloudTable(softwarePatches, 'Software Patches');
+      const patchesTable = getCloudTable(softwarePatches, "Software Patches");
       const existing = await db
         .select()
         .from(patchesTable)
@@ -323,9 +323,9 @@ export class UpdateChecker {
   async downloadPatch(patchId: string, orgId: string): Promise<string> {
     try {
       // Get patch from database
-      const patchesTable = getCloudTable(softwarePatches, 'Software Patches');
-      const downloadsTable = getCloudTable(patchDownloads, 'Patch Downloads');
-      
+      const patchesTable = getCloudTable(softwarePatches, "Software Patches");
+      const downloadsTable = getCloudTable(patchDownloads, "Patch Downloads");
+
       const [patch] = await db
         .select()
         .from(patchesTable)
@@ -399,7 +399,7 @@ export class UpdateChecker {
       console.error("[UpdateChecker] Patch download failed:", error);
 
       // Update status to failed
-      const patchesTable = getCloudTable(softwarePatches, 'Software Patches');
+      const patchesTable = getCloudTable(softwarePatches, "Software Patches");
       await db
         .update(patchesTable)
         .set({
@@ -416,14 +416,16 @@ export class UpdateChecker {
    * Check if a patch should be auto-applied
    */
   async shouldAutoApply(patchId: string, orgId: string): Promise<boolean> {
-    const patchesTable = getCloudTable(softwarePatches, 'Software Patches');
+    const patchesTable = getCloudTable(softwarePatches, "Software Patches");
     const [patch] = await db
       .select()
       .from(patchesTable)
       .where(eq(patchesTable.id, patchId))
       .limit(1);
 
-    if (!patch) { return false; }
+    if (!patch) {
+      return false;
+    }
 
     const settings = await this.getUpdateSettings(orgId);
 
@@ -444,7 +446,7 @@ export class UpdateChecker {
    * Get list of available patches for an organization
    */
   async getAvailablePatches(orgId: string): Promise<SoftwarePatch[]> {
-    const patchesTable = getCloudTable(softwarePatches, 'Software Patches');
+    const patchesTable = getCloudTable(softwarePatches, "Software Patches");
     return db
       .select()
       .from(patchesTable)
@@ -456,7 +458,7 @@ export class UpdateChecker {
    * Get patch history for an organization
    */
   async getPatchHistory(orgId: string, limit: number = 50): Promise<SoftwarePatch[]> {
-    const patchesTable = getCloudTable(softwarePatches, 'Software Patches');
+    const patchesTable = getCloudTable(softwarePatches, "Software Patches");
     return db
       .select()
       .from(patchesTable)

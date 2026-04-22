@@ -1,19 +1,8 @@
 import { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IntelligenceLayout } from "@/components/intelligence/IntelligenceLayout";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { useEquipmentName, useEquipmentVesselName } from "@/hooks/use-equipment-lookup";
@@ -67,9 +56,15 @@ function severityColor(severity: string) {
 }
 
 function healthColor(score: number | null | undefined) {
-  if (score == null) {return "text-muted-foreground";}
-  if (score >= 80) {return "text-green-600";}
-  if (score >= 60) {return "text-yellow-600";}
+  if (score == null) {
+    return "text-muted-foreground";
+  }
+  if (score >= 80) {
+    return "text-green-600";
+  }
+  if (score >= 60) {
+    return "text-yellow-600";
+  }
   return "text-red-600";
 }
 
@@ -117,7 +112,9 @@ function OverviewTab() {
   };
 
   const handleCreateTemplate = async () => {
-    if (!templateName || !templateType) {return;}
+    if (!templateName || !templateType) {
+      return;
+    }
     try {
       await createTemplate.mutateAsync({
         name: templateName,
@@ -147,7 +144,9 @@ function OverviewTab() {
   };
 
   const handleCreateTwin = async () => {
-    if (!twinName || !twinEquipmentId || !twinTemplateId) {return;}
+    if (!twinName || !twinEquipmentId || !twinTemplateId) {
+      return;
+    }
     try {
       await createTwin.mutateAsync({
         name: twinName,
@@ -208,9 +207,7 @@ function OverviewTab() {
                 onClick={handleCreateTemplate}
                 disabled={createTemplate.isPending || !templateName}
               >
-                {createTemplate.isPending && (
-                  <Loader2 className="w-4 h-4 animate-spin mr-1" />
-                )}
+                {createTemplate.isPending && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
                 Create
               </Button>
             </div>
@@ -231,7 +228,9 @@ function OverviewTab() {
                 <CardDescription>{t.equipmentType}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-muted-foreground">{t.description || `${t.equipmentType || "General"} template`}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t.description || `${t.equipmentType || "General"} template`}
+                </p>
               </CardContent>
             </Card>
           ))}
@@ -311,16 +310,9 @@ function OverviewTab() {
               <Button
                 data-testid="button-create-twin"
                 onClick={handleCreateTwin}
-                disabled={
-                  createTwin.isPending ||
-                  !twinName ||
-                  !twinEquipmentId ||
-                  !twinTemplateId
-                }
+                disabled={createTwin.isPending || !twinName || !twinEquipmentId || !twinTemplateId}
               >
-                {createTwin.isPending && (
-                  <Loader2 className="w-4 h-4 animate-spin mr-1" />
-                )}
+                {createTwin.isPending && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
                 Create
               </Button>
             </div>
@@ -354,13 +346,21 @@ function OverviewTab() {
 }
 
 function formatTimeAgo(dateStr: string | null | undefined): string {
-  if (!dateStr) {return "Never";}
+  if (!dateStr) {
+    return "Never";
+  }
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) {return "Just now";}
-  if (mins < 60) {return `${mins}m ago`;}
+  if (mins < 1) {
+    return "Just now";
+  }
+  if (mins < 60) {
+    return `${mins}m ago`;
+  }
   const hours = Math.floor(mins / 60);
-  if (hours < 24) {return `${hours}h ago`;}
+  if (hours < 24) {
+    return `${hours}h ago`;
+  }
   return `${Math.floor(hours / 24)}d ago`;
 }
 
@@ -416,7 +416,8 @@ function TwinOverviewCard({
           </div>
         </div>
         <CardDescription>
-          {equipmentName}{vesselName ? ` — ${vesselName}` : ""}
+          {equipmentName}
+          {vesselName ? ` — ${vesselName}` : ""}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -424,14 +425,20 @@ function TwinOverviewCard({
           <div className="grid grid-cols-3 gap-2 text-center">
             <div>
               <Heart className={`w-4 h-4 mx-auto mb-1 ${healthColor(state.healthScore)}`} />
-              <p className={`text-lg font-bold ${healthColor(state.healthScore)}`} data-testid={`text-health-${twin.id}`}>
+              <p
+                className={`text-lg font-bold ${healthColor(state.healthScore)}`}
+                data-testid={`text-health-${twin.id}`}
+              >
                 {state.healthScore?.toFixed(0) ?? "—"}
               </p>
               <p className="text-xs text-muted-foreground">Health</p>
             </div>
             <div>
               <Gauge className="w-4 h-4 mx-auto mb-1 text-blue-600" />
-              <p className="text-lg font-bold text-blue-600" data-testid={`text-efficiency-${twin.id}`}>
+              <p
+                className="text-lg font-bold text-blue-600"
+                data-testid={`text-efficiency-${twin.id}`}
+              >
                 {state.efficiencyScore?.toFixed(0) ?? "—"}%
               </p>
               <p className="text-xs text-muted-foreground">Efficiency</p>
@@ -496,7 +503,9 @@ function StateTab() {
   const { toast } = useToast();
 
   const handleCompute = async () => {
-    if (!twinId) {return;}
+    if (!twinId) {
+      return;
+    }
     try {
       await computeMutation.mutateAsync(twinId);
       toast({ title: "State computed successfully" });
@@ -507,9 +516,10 @@ function StateTab() {
 
   const observed = state?.observedValues as Record<string, number> | undefined;
   const expected = state?.expectedValues as Record<string, number> | undefined;
-  const allSensors = observed && expected
-    ? Array.from(new Set([...Object.keys(observed), ...Object.keys(expected)]))
-    : [];
+  const allSensors =
+    observed && expected
+      ? Array.from(new Set([...Object.keys(observed), ...Object.keys(expected)]))
+      : [];
 
   return (
     <div className="space-y-4">
@@ -595,18 +605,16 @@ function StateTab() {
                         const obs = observed?.[sensor];
                         const exp = expected?.[sensor];
                         const dev =
-                          obs != null && exp != null
-                            ? ((obs - exp) / (exp || 1)) * 100
-                            : null;
+                          obs != null && exp != null ? ((obs - exp) / (exp || 1)) * 100 : null;
                         return (
-                          <tr key={sensor} className="border-b" data-testid={`row-metric-${sensor}`}>
+                          <tr
+                            key={sensor}
+                            className="border-b"
+                            data-testid={`row-metric-${sensor}`}
+                          >
                             <td className="py-2 capitalize">{sensor.replace(/_/g, " ")}</td>
-                            <td className="py-2 text-right font-mono">
-                              {exp?.toFixed(2) ?? "—"}
-                            </td>
-                            <td className="py-2 text-right font-mono">
-                              {obs?.toFixed(2) ?? "—"}
-                            </td>
+                            <td className="py-2 text-right font-mono">{exp?.toFixed(2) ?? "—"}</td>
+                            <td className="py-2 text-right font-mono">{obs?.toFixed(2) ?? "—"}</td>
                             <td className="py-2 text-right">
                               {dev != null ? (
                                 <span
@@ -658,7 +666,9 @@ function ResidualsTab() {
   const { toast } = useToast();
 
   const handleCompute = async () => {
-    if (!twinId) {return;}
+    if (!twinId) {
+      return;
+    }
     try {
       await computeMutation.mutateAsync(twinId);
       toast({ title: "Residuals computed" });
@@ -719,23 +729,16 @@ function ResidualsTab() {
                 <tbody>
                   {residuals.map((r: any, i: number) => (
                     <tr key={r.id || i} className="border-b" data-testid={`row-residual-${i}`}>
-                      <td className="py-2 capitalize">
-                        {r.sensorType?.replace(/_/g, " ")}
-                      </td>
-                      <td className="py-2 text-right font-mono">
-                        {r.observed?.toFixed(2)}
-                      </td>
-                      <td className="py-2 text-right font-mono">
-                        {r.expected?.toFixed(2)}
-                      </td>
-                      <td className="py-2 text-right font-mono">
-                        {r.residual?.toFixed(2)}
-                      </td>
-                      <td className="py-2 text-right font-mono">
-                        {r.zScore?.toFixed(2)}
-                      </td>
+                      <td className="py-2 capitalize">{r.sensorType?.replace(/_/g, " ")}</td>
+                      <td className="py-2 text-right font-mono">{r.observed?.toFixed(2)}</td>
+                      <td className="py-2 text-right font-mono">{r.expected?.toFixed(2)}</td>
+                      <td className="py-2 text-right font-mono">{r.residual?.toFixed(2)}</td>
+                      <td className="py-2 text-right font-mono">{r.zScore?.toFixed(2)}</td>
                       <td className="py-2">
-                        <Badge variant={severityColor(r.severity)} data-testid={`badge-severity-${i}`}>
+                        <Badge
+                          variant={severityColor(r.severity)}
+                          data-testid={`badge-severity-${i}`}
+                        >
                           {r.severity}
                         </Badge>
                       </td>
@@ -759,20 +762,14 @@ function ResidualsTab() {
                 <CardContent className="pt-4">
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="font-medium capitalize">
-                        {r.sensorType?.replace(/_/g, " ")}
-                      </p>
+                      <p className="font-medium capitalize">{r.sensorType?.replace(/_/g, " ")}</p>
                       <p className="text-xs text-muted-foreground">
                         Twin: {r.twinId?.slice(0, 8)}...
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-mono text-sm">
-                        Avg Z: {r.avgZScore?.toFixed(2)}
-                      </p>
-                      <Badge variant={severityColor(r.severity)}>
-                        {r.severity}
-                      </Badge>
+                      <p className="font-mono text-sm">Avg Z: {r.avgZScore?.toFixed(2)}</p>
+                      <Badge variant={severityColor(r.severity)}>{r.severity}</Badge>
                     </div>
                   </div>
                 </CardContent>
@@ -800,7 +797,9 @@ function ScenariosTab() {
   const { toast } = useToast();
 
   const handleRun = async () => {
-    if (!twinId || !scenarioName) {return;}
+    if (!twinId || !scenarioName) {
+      return;
+    }
     try {
       await runMutation.mutateAsync({
         twinId,
@@ -850,7 +849,9 @@ function ScenariosTab() {
             <div>
               <label className="text-sm font-medium">
                 Load (%):{" "}
-                <span className="font-mono" data-testid="text-load-value">{loadPercent}</span>
+                <span className="font-mono" data-testid="text-load-value">
+                  {loadPercent}
+                </span>
               </label>
               <input
                 data-testid="input-load-percent"
@@ -865,7 +866,9 @@ function ScenariosTab() {
             <div>
               <label className="text-sm font-medium">
                 Temp Offset (°C):{" "}
-                <span className="font-mono" data-testid="text-temp-value">{tempOffset}</span>
+                <span className="font-mono" data-testid="text-temp-value">
+                  {tempOffset}
+                </span>
               </label>
               <input
                 data-testid="input-temp-offset"
@@ -880,7 +883,9 @@ function ScenariosTab() {
             <div>
               <label className="text-sm font-medium">
                 Maintenance Delay (days):{" "}
-                <span className="font-mono" data-testid="text-delay-value">{maintDelay}</span>
+                <span className="font-mono" data-testid="text-delay-value">
+                  {maintDelay}
+                </span>
               </label>
               <input
                 data-testid="input-maint-delay"
@@ -956,9 +961,7 @@ function ScenariosTab() {
                         )}
                       </div>
                       {results?.summary && (
-                        <p className="text-sm mt-2 text-muted-foreground">
-                          {results.summary}
-                        </p>
+                        <p className="text-sm mt-2 text-muted-foreground">{results.summary}</p>
                       )}
                     </CardContent>
                   </Card>
@@ -1021,9 +1024,7 @@ function ReplayTab() {
       {timeline?.length > 0 ? (
         <Card data-testid="card-timeline">
           <CardHeader>
-            <CardTitle className="text-base">
-              Event Timeline ({timeline.length} events)
-            </CardTitle>
+            <CardTitle className="text-base">Event Timeline ({timeline.length} events)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -1050,9 +1051,7 @@ function ReplayTab() {
                         {new Date(evt.timestamp).toLocaleString()}
                       </span>
                       {evt.source && (
-                        <span className="text-xs text-muted-foreground">
-                          via {evt.source}
-                        </span>
+                        <span className="text-xs text-muted-foreground">via {evt.source}</span>
                       )}
                     </div>
                     {evt.payload && (
@@ -1081,50 +1080,50 @@ export default function DigitalTwinPage() {
   return (
     <IntelligenceLayout>
       <div className="p-4 md:p-6 space-y-6">
-      <p className="text-xs text-slate-500">
-        Asset-level digital twins for predictive maintenance
-      </p>
+        <p className="text-xs text-slate-500">
+          Asset-level digital twins for predictive maintenance
+        </p>
 
-      <Tabs defaultValue="overview">
-        <TabsList className="flex w-full overflow-x-auto" data-testid="tabs-digital-twin">
-          <TabsTrigger value="overview" data-testid="tab-overview">
-            <Box className="w-4 h-4 mr-2" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="state" data-testid="tab-state">
-            <Activity className="w-4 h-4 mr-2" />
-            State
-          </TabsTrigger>
-          <TabsTrigger value="residuals" data-testid="tab-residuals">
-            <BarChart3 className="w-4 h-4 mr-2" />
-            Residuals
-          </TabsTrigger>
-          <TabsTrigger value="scenarios" data-testid="tab-scenarios">
-            <FlaskConical className="w-4 h-4 mr-2" />
-            Scenarios
-          </TabsTrigger>
-          <TabsTrigger value="replay" data-testid="tab-replay">
-            <Clock className="w-4 h-4 mr-2" />
-            Replay
-          </TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="overview">
+          <TabsList className="flex w-full overflow-x-auto" data-testid="tabs-digital-twin">
+            <TabsTrigger value="overview" data-testid="tab-overview">
+              <Box className="w-4 h-4 mr-2" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="state" data-testid="tab-state">
+              <Activity className="w-4 h-4 mr-2" />
+              State
+            </TabsTrigger>
+            <TabsTrigger value="residuals" data-testid="tab-residuals">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Residuals
+            </TabsTrigger>
+            <TabsTrigger value="scenarios" data-testid="tab-scenarios">
+              <FlaskConical className="w-4 h-4 mr-2" />
+              Scenarios
+            </TabsTrigger>
+            <TabsTrigger value="replay" data-testid="tab-replay">
+              <Clock className="w-4 h-4 mr-2" />
+              Replay
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="overview" className="mt-4">
-          <OverviewTab />
-        </TabsContent>
-        <TabsContent value="state" className="mt-4">
-          <StateTab />
-        </TabsContent>
-        <TabsContent value="residuals" className="mt-4">
-          <ResidualsTab />
-        </TabsContent>
-        <TabsContent value="scenarios" className="mt-4">
-          <ScenariosTab />
-        </TabsContent>
-        <TabsContent value="replay" className="mt-4">
-          <ReplayTab />
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="overview" className="mt-4">
+            <OverviewTab />
+          </TabsContent>
+          <TabsContent value="state" className="mt-4">
+            <StateTab />
+          </TabsContent>
+          <TabsContent value="residuals" className="mt-4">
+            <ResidualsTab />
+          </TabsContent>
+          <TabsContent value="scenarios" className="mt-4">
+            <ScenariosTab />
+          </TabsContent>
+          <TabsContent value="replay" className="mt-4">
+            <ReplayTab />
+          </TabsContent>
+        </Tabs>
       </div>
     </IntelligenceLayout>
   );

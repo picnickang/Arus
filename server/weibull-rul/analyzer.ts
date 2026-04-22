@@ -115,8 +115,12 @@ export class WeibullRULAnalyzer {
 
   async getRULHistory(equipmentId: string, orgId: string, limit: number = 50): Promise<any[]> {
     try {
-      return await db.select().from(weibullEstimates)
-        .where(and(eq(weibullEstimates.equipmentId, equipmentId), eq(weibullEstimates.orgId, orgId)))
+      return await db
+        .select()
+        .from(weibullEstimates)
+        .where(
+          and(eq(weibullEstimates.equipmentId, equipmentId), eq(weibullEstimates.orgId, orgId))
+        )
         .orderBy(desc(weibullEstimates.createdAt))
         .limit(limit);
     } catch (error) {

@@ -27,7 +27,9 @@ interface AttentionBannerProps {
 export function AttentionBanner({ items, className }: AttentionBannerProps) {
   const [, setLocation] = useLocation();
 
-  if (items.length === 0) {return null;}
+  if (items.length === 0) {
+    return null;
+  }
 
   const hasCritical = items.some((i) => i.severity === "critical");
 
@@ -43,14 +45,9 @@ export function AttentionBanner({ items, className }: AttentionBannerProps) {
     >
       <div className="flex items-center gap-2 mb-2">
         <AlertTriangle
-          className={cn(
-            "h-4 w-4",
-            hasCritical ? "text-destructive" : "text-yellow-500"
-          )}
+          className={cn("h-4 w-4", hasCritical ? "text-destructive" : "text-yellow-500")}
         />
-        <span className="text-sm font-semibold text-foreground">
-          Needs Attention
-        </span>
+        <span className="text-sm font-semibold text-foreground">Needs Attention</span>
       </div>
 
       <div className="space-y-1.5">
@@ -69,8 +66,8 @@ export function AttentionBanner({ items, className }: AttentionBannerProps) {
                   item.severity === "critical"
                     ? "bg-destructive text-destructive-foreground"
                     : item.severity === "warning"
-                    ? "bg-yellow-500 text-black"
-                    : "bg-primary text-primary-foreground"
+                      ? "bg-yellow-500 text-black"
+                      : "bg-primary text-primary-foreground"
                 )}
               >
                 {item.count}

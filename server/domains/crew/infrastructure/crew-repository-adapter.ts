@@ -17,7 +17,11 @@ export const crewMemberRepository: ICrewMemberRepository = {
   createCrew: async (data: InsertCrew): Promise<SelectCrew> => {
     return dbCrewStorage.createCrewMember(data);
   },
-  updateCrew: async (id: string, data: Partial<InsertCrew>, orgId?: string): Promise<SelectCrew> => {
+  updateCrew: async (
+    id: string,
+    data: Partial<InsertCrew>,
+    orgId?: string
+  ): Promise<SelectCrew> => {
     return dbCrewStorage.updateCrewMember(id, data, orgId);
   },
   deleteCrew: async (id: string, orgId?: string): Promise<void> => {

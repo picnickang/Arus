@@ -8,7 +8,9 @@ import EquipmentPage from "./equipment";
 function getTabFromSearch(search: string): "vessels" | "equipment" {
   const params = new URLSearchParams(search.startsWith("?") ? search : search);
   const tab = params.get("tab");
-  if (tab === "equipment") {return "equipment";}
+  if (tab === "equipment") {
+    return "equipment";
+  }
   return "vessels";
 }
 
@@ -35,11 +37,19 @@ export default function FleetPage() {
       <div className="px-6 pt-4">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList data-testid="fleet-tabs">
-            <TabsTrigger value="vessels" className="flex items-center gap-2" data-testid="tab-vessels">
+            <TabsTrigger
+              value="vessels"
+              className="flex items-center gap-2"
+              data-testid="tab-vessels"
+            >
               <Ship className="h-4 w-4" />
               Vessels
             </TabsTrigger>
-            <TabsTrigger value="equipment" className="flex items-center gap-2" data-testid="tab-equipment">
+            <TabsTrigger
+              value="equipment"
+              className="flex items-center gap-2"
+              data-testid="tab-equipment"
+            >
               <Server className="h-4 w-4" />
               Equipment
             </TabsTrigger>

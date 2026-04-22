@@ -1,6 +1,6 @@
 /**
  * Crew Scheduling Integration Tests
- * 
+ *
  * Tests the crew scheduling and assignment functionality including:
  * - Crew member CRUD
  * - Schedule creation and management
@@ -25,8 +25,7 @@ describe("Crew Scheduling API", () => {
     app = await createTestApp();
   }, 60000);
 
-  afterAll(async () => {
-  });
+  afterAll(async () => {});
 
   describe("GET /api/crew", () => {
     it("should return crew members list", async () => {

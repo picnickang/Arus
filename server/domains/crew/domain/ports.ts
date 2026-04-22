@@ -60,7 +60,10 @@ export interface ICertificationRepository {
   findAllCertifications(crewId?: string): Promise<SelectCrewCertification[]>;
   findCertificationById(id: string): Promise<SelectCrewCertification | undefined>;
   createCertification(data: InsertCrewCertification): Promise<SelectCrewCertification>;
-  updateCertification(id: string, data: Partial<InsertCrewCertification>): Promise<SelectCrewCertification>;
+  updateCertification(
+    id: string,
+    data: Partial<InsertCrewCertification>
+  ): Promise<SelectCrewCertification>;
   deleteCertification(id: string): Promise<void>;
   findExpiringCertifications(daysAhead: number): Promise<SelectCrewCertification[]>;
 }

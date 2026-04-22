@@ -12,12 +12,7 @@ import { randomUUID } from "node:crypto";
 
 import { dbUserStorage } from "../../repositories";
 import { ENTITY_EXPORT_ORDER, TELEMETRY_ENTITIES } from "./constants";
-import type {
-  ExportManifest,
-  ImportResult,
-  ImportOptions,
-  IdMappings,
-} from "./types";
+import type { ExportManifest, ImportResult, ImportOptions, IdMappings } from "./types";
 import { extractArchive, validateFilePath } from "./archive-utils";
 import { validateManifest } from "./manifest-validation";
 import { convertDates, remapOrgId, remapForeignKeys, createIdMappings } from "./data-transforms";
@@ -31,10 +26,12 @@ function generateImportId(): string {
 
 async function ensureTargetOrg(targetOrgId: string, sourceOrgId: string): Promise<void> {
   const targetOrg = await dbUserStorage.getOrganization(targetOrgId);
-  if (targetOrg) { return; }
+  if (targetOrg) {
+    return;
+  }
 
   console.log(`[DataImport] Creating target organization: ${targetOrgId}`);
-  const slug = targetOrgId.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  const slug = targetOrgId.toLowerCase().replace(/[^a-z0-9-]/g, "-");
   await dbUserStorage.createOrganization({
     name: `Imported from ${sourceOrgId}`,
     slug,
@@ -67,7 +64,15 @@ async function importEntityFile(
   }
 
   try {
-    return await importEntity(entity, filePath, targetOrgId, sourceOrgId, conflictResolution, dryRun, idMappings);
+    return await importEntity(
+      entity,
+      filePath,
+      targetOrgId,
+      sourceOrgId,
+      conflictResolution,
+      dryRun,
+      idMappings
+    );
   } catch (error) {
     errors.push(`Failed to import ${entity}: ${error}`);
     return 0;
@@ -95,10 +100,20 @@ async function importTelemetryChunks(
       continue;
     }
 
-    if (!fs.existsSync(chunkPath)) { continue; }
+    if (!fs.existsSync(chunkPath)) {
+      continue;
+    }
 
     try {
-      totalCount += await importEntity(entity, chunkPath, targetOrgId, sourceOrgId, conflictResolution, dryRun, idMappings);
+      totalCount += await importEntity(
+        entity,
+        chunkPath,
+        targetOrgId,
+        sourceOrgId,
+        conflictResolution,
+        dryRun,
+        idMappings
+      );
     } catch (error) {
       errors.push(`Failed to import telemetry chunk ${chunkFile}: ${error}`);
     }
@@ -131,8 +146,12 @@ export async function importData(
 
     const manifest: ExportManifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
     const validation = validateManifest(manifest);
-    if (!validation.valid) { throw new Error(`Manifest validation failed: ${validation.error}`); }
-    if (validation.warnings) { warnings.push(...validation.warnings); }
+    if (!validation.valid) {
+      throw new Error(`Manifest validation failed: ${validation.error}`);
+    }
+    if (validation.warnings) {
+      warnings.push(...validation.warnings);
+    }
 
     const targetOrgId = options.targetOrgId ?? manifest.scope.orgId;
     const conflictResolution = options.conflictResolution ?? "upsert";
@@ -142,28 +161,51 @@ export async function importData(
       await ensureTargetOrg(options.targetOrgId, manifest.scope.orgId);
     }
 
-    if (options.dryRun) { console.log(`[DataImport] Dry run - no changes will be made`); }
-    if (isRemapping) { console.log(`[DataImport] Cross-org import: ${manifest.scope.orgId} → ${targetOrgId}`); }
+    if (options.dryRun) {
+      console.log(`[DataImport] Dry run - no changes will be made`);
+    }
+    if (isRemapping) {
+      console.log(`[DataImport] Cross-org import: ${manifest.scope.orgId} → ${targetOrgId}`);
+    }
 
     for (const entity of ENTITY_EXPORT_ORDER) {
       const entityManifest = manifest.entities[entity];
-      if (!entityManifest) { continue; }
+      if (!entityManifest) {
+        continue;
+      }
 
       const filePath = path.join(extractPath, entityManifest.file);
       entitiesImported[entity] = await importEntityFile(
-        entity, filePath, extractPath, targetOrgId, manifest.scope.orgId,
-        conflictResolution, options.dryRun || false, idMappings, errors, warnings
+        entity,
+        filePath,
+        extractPath,
+        targetOrgId,
+        manifest.scope.orgId,
+        conflictResolution,
+        options.dryRun || false,
+        idMappings,
+        errors,
+        warnings
       );
     }
 
     if (!options.skipTelemetry) {
       for (const entity of TELEMETRY_ENTITIES) {
         const entityManifest = manifest.entities[entity];
-        if (!entityManifest?.chunked) { continue; }
+        if (!entityManifest?.chunked) {
+          continue;
+        }
 
         entitiesImported[entity] = await importTelemetryChunks(
-          entity, entityManifest, extractPath, targetOrgId, manifest.scope.orgId,
-          conflictResolution, options.dryRun || false, idMappings, errors
+          entity,
+          entityManifest,
+          extractPath,
+          targetOrgId,
+          manifest.scope.orgId,
+          conflictResolution,
+          options.dryRun || false,
+          idMappings,
+          errors
         );
       }
     }
@@ -215,7 +257,9 @@ async function importEntity(
   let count = 0;
 
   for await (const line of rl) {
-    if (!line.trim()) { continue; }
+    if (!line.trim()) {
+      continue;
+    }
 
     try {
       let record = JSON.parse(line);
@@ -223,7 +267,9 @@ async function importEntity(
 
       record = remapOrgId(record, sourceOrgId, targetOrgId);
       record = convertDates(record);
-      if (isRemapping) { record = remapForeignKeys(entityName, record, idMappings); }
+      if (isRemapping) {
+        record = remapForeignKeys(entityName, record, idMappings);
+      }
 
       if (!dryRun) {
         const newId = await upsertRecord(entityName, record, conflictResolution, isRemapping);

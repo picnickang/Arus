@@ -30,10 +30,14 @@ async function triggerProcurementAggregation(
   previousStatus: string,
   newStatus: string
 ): Promise<void> {
-  if (!workOrderId) {return;}
+  if (!workOrderId) {
+    return;
+  }
   const wasFinalized = FINALIZED_SO_STATUSES.includes(previousStatus);
   const isFinalized = FINALIZED_SO_STATUSES.includes(newStatus);
-  if (!wasFinalized && !isFinalized) {return;}
+  if (!wasFinalized && !isFinalized) {
+    return;
+  }
   try {
     const { aggregateProcurementCostsToWorkOrder } = await import("../cost-savings-engine");
     await aggregateProcurementCostsToWorkOrder(workOrderId, orgId);
@@ -59,14 +63,16 @@ const sanitize = (obj: Record<string, unknown>): Record<string, unknown> => {
 // ── GET / ──────────────────────────────────────────────────────────────────────
 router.get("/", async (req: Request, res: Response) => {
   const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {return res.status(400).json({ error: "Missing x-org-id header" });}
+  if (!orgId) {
+    return res.status(400).json({ error: "Missing x-org-id header" });
+  }
 
   const filters = {
-    status:            req.query.status as ServiceOrderStatus | undefined,
+    status: req.query.status as ServiceOrderStatus | undefined,
     serviceProviderId: req.query.serviceProviderId as string | undefined,
-    workOrderId:       req.query.workOrderId as string | undefined,
+    workOrderId: req.query.workOrderId as string | undefined,
     dateFrom: req.query.dateFrom ? new Date(req.query.dateFrom as string) : undefined,
-    dateTo:   req.query.dateTo   ? new Date(req.query.dateTo   as string) : undefined,
+    dateTo: req.query.dateTo ? new Date(req.query.dateTo as string) : undefined,
   };
 
   const orders = await repo.listServiceOrders(orgId, filters);
@@ -76,17 +82,23 @@ router.get("/", async (req: Request, res: Response) => {
 // ── GET /:id ───────────────────────────────────────────────────────────────────
 router.get("/:id", async (req: Request, res: Response) => {
   const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {return res.status(400).json({ error: "Missing x-org-id header" });}
+  if (!orgId) {
+    return res.status(400).json({ error: "Missing x-org-id header" });
+  }
 
   const order = await repo.getServiceOrderById(req.params.id, orgId);
-  if (!order) {return res.status(404).json({ error: "Service order not found" });}
+  if (!order) {
+    return res.status(404).json({ error: "Service order not found" });
+  }
   res.json(order);
 });
 
 // ── POST / ─────────────────────────────────────────────────────────────────────
 router.post("/", async (req: Request, res: Response) => {
   const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {return res.status(400).json({ error: "Missing x-org-id header" });}
+  if (!orgId) {
+    return res.status(400).json({ error: "Missing x-org-id header" });
+  }
 
   const bodyWithOrg = sanitize({ ...req.body, orgId });
   const parsed = insertServiceOrderSchema.safeParse(bodyWithOrg);
@@ -96,34 +108,41 @@ router.post("/", async (req: Request, res: Response) => {
 
   // Improvement #3: sequence-based SO number from repository
   const soNumber = await repo.generateSoNumber(orgId);
-  const order    = await repo.createServiceOrder({ ...parsed.data, soNumber });
+  const order = await repo.createServiceOrder({ ...parsed.data, soNumber });
   res.status(201).json(order);
 });
 
 // ── PATCH /:id ─────────────────────────────────────────────────────────────────
 router.patch("/:id", async (req: Request, res: Response) => {
-  const orgId  = req.headers["x-org-id"] as string;
+  const orgId = req.headers["x-org-id"] as string;
   const userId = req.headers["x-user-id"] as string | undefined;
-  if (!orgId) {return res.status(400).json({ error: "Missing x-org-id header" });}
+  if (!orgId) {
+    return res.status(400).json({ error: "Missing x-org-id header" });
+  }
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
-  if (!existing) {return res.status(404).json({ error: "Service order not found" });}
+  if (!existing) {
+    return res.status(404).json({ error: "Service order not found" });
+  }
 
   if (userId) {
     const permCheck = await canModifyRecord(userId, orgId, existing.status, SO_PERMISSION_GUARD);
     if (!permCheck.allowed) {
-      return res.status(403).json({ error: "Forbidden", message: permCheck.reason, code: "INSUFFICIENT_PERMISSIONS" });
+      return res
+        .status(403)
+        .json({ error: "Forbidden", message: permCheck.reason, code: "INSUFFICIENT_PERMISSIONS" });
     }
   }
 
-  const data    = sanitize(req.body);
+  const data = sanitize(req.body);
   const updated = await repo.updateServiceOrder(req.params.id, orgId, data);
 
   const newStatus = data.status ?? existing.status;
-  if (existing.workOrderId && (
-    (data.actualAmount !== undefined && FINALIZED_SO_STATUSES.includes(existing.status)) ||
-    (data.status !== undefined && data.status !== existing.status)
-  )) {
+  if (
+    existing.workOrderId &&
+    ((data.actualAmount !== undefined && FINALIZED_SO_STATUSES.includes(existing.status)) ||
+      (data.status !== undefined && data.status !== existing.status))
+  ) {
     await triggerProcurementAggregation(existing.workOrderId, orgId, existing.status, newStatus);
   }
 
@@ -137,9 +156,11 @@ router.patch("/:id", async (req: Request, res: Response) => {
  * The original quotedAmount is preserved; revisedAmount tracks the change.
  */
 router.patch("/:id/revise-cost", async (req: Request, res: Response) => {
-  const orgId  = req.headers["x-org-id"] as string;
+  const orgId = req.headers["x-org-id"] as string;
   const userId = req.headers["x-user-id"] as string | undefined;
-  if (!orgId) {return res.status(400).json({ error: "Missing x-org-id header" });}
+  if (!orgId) {
+    return res.status(400).json({ error: "Missing x-org-id header" });
+  }
 
   const schema = z.object({
     revisedAmount: z.number().min(0, "Revised amount must be non-negative"),
@@ -152,7 +173,9 @@ router.patch("/:id/revise-cost", async (req: Request, res: Response) => {
   }
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
-  if (!existing) {return res.status(404).json({ error: "Service order not found" });}
+  if (!existing) {
+    return res.status(404).json({ error: "Service order not found" });
+  }
 
   const allowedStatuses: ServiceOrderStatus[] = ["sent", "confirmed", "in_progress"];
   if (!allowedStatuses.includes(existing.status as ServiceOrderStatus)) {
@@ -164,19 +187,20 @@ router.patch("/:id/revise-cost", async (req: Request, res: Response) => {
   const updated = await repo.updateServiceOrder(req.params.id, orgId, {
     revisedAmount: parsed.data.revisedAmount,
     revisionNotes: parsed.data.revisionNotes,
-    revisedAt:     new Date(),
+    revisedAt: new Date(),
   });
 
   // Record a cost_revised event for audit trail
   await repo.updateServiceOrderStatus(
-    req.params.id, orgId,
+    req.params.id,
+    orgId,
     existing.status as ServiceOrderStatus,
     userId,
     {
-      eventOverride:   "cost_revised",
-      originalAmount:  existing.quotedAmount,
-      revisedAmount:   parsed.data.revisedAmount,
-      revisionNotes:   parsed.data.revisionNotes,
+      eventOverride: "cost_revised",
+      originalAmount: existing.quotedAmount,
+      revisedAmount: parsed.data.revisedAmount,
+      revisionNotes: parsed.data.revisionNotes,
     }
   );
 
@@ -186,17 +210,28 @@ router.patch("/:id/revise-cost", async (req: Request, res: Response) => {
 // ── POST /:id/send ─────────────────────────────────────────────────────────────
 router.post("/:id/send", async (req: Request, res: Response) => {
   const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {return res.status(400).json({ error: "Missing x-org-id header" });}
+  if (!orgId) {
+    return res.status(400).json({ error: "Missing x-org-id header" });
+  }
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
-  if (!existing) {return res.status(404).json({ error: "Service order not found" });}
+  if (!existing) {
+    return res.status(404).json({ error: "Service order not found" });
+  }
 
   if (!SERVICE_ORDER_STATUS_TRANSITIONS[existing.status as ServiceOrderStatus].includes("sent")) {
     return res.status(400).json({ error: `Cannot send order in ${existing.status} status` });
   }
 
-  const updated = await repo.updateServiceOrderStatus(req.params.id, orgId, "sent", req.body.userId);
-  if (!updated) {return res.status(500).json({ error: "Failed to update service order status" });}
+  const updated = await repo.updateServiceOrderStatus(
+    req.params.id,
+    orgId,
+    "sent",
+    req.body.userId
+  );
+  if (!updated) {
+    return res.status(500).json({ error: "Failed to update service order status" });
+  }
 
   let emailQueued = false;
   if (existing.serviceProviderId) {
@@ -208,7 +243,9 @@ router.post("/:id/send", async (req: Request, res: Response) => {
 
       if (provider?.email) {
         const emailContent = await generateSOEmailHtmlWithTemplate(
-          orgId, existing, provider,
+          orgId,
+          existing,
+          provider,
           { woNumber: existing.workOrderNumber, description: existing.workOrderDescription },
           { name: existing.equipmentName },
           { name: existing.vesselName }
@@ -216,12 +253,12 @@ router.post("/:id/send", async (req: Request, res: Response) => {
 
         await db.insert(emailQueue).values({
           orgId,
-          supplierId:     existing.serviceProviderId,
+          supplierId: existing.serviceProviderId,
           recipientEmail: provider.email,
-          recipientName:  provider.contactName || provider.name,
-          subject:        emailContent.subject,
-          htmlContent:    emailContent.body,
-          status:         "pending",
+          recipientName: provider.contactName || provider.name,
+          subject: emailContent.subject,
+          htmlContent: emailContent.body,
+          status: "pending",
         });
         emailQueued = true;
       }
@@ -236,44 +273,72 @@ router.post("/:id/send", async (req: Request, res: Response) => {
 // ── POST /:id/confirm ──────────────────────────────────────────────────────────
 router.post("/:id/confirm", async (req: Request, res: Response) => {
   const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {return res.status(400).json({ error: "Missing x-org-id header" });}
+  if (!orgId) {
+    return res.status(400).json({ error: "Missing x-org-id header" });
+  }
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
-  if (!existing) {return res.status(404).json({ error: "Service order not found" });}
+  if (!existing) {
+    return res.status(404).json({ error: "Service order not found" });
+  }
 
-  if (!SERVICE_ORDER_STATUS_TRANSITIONS[existing.status as ServiceOrderStatus].includes("confirmed")) {
+  if (
+    !SERVICE_ORDER_STATUS_TRANSITIONS[existing.status as ServiceOrderStatus].includes("confirmed")
+  ) {
     return res.status(400).json({ error: `Cannot confirm order in ${existing.status} status` });
   }
 
-  const updated = await repo.updateServiceOrderStatus(req.params.id, orgId, "confirmed", req.body.userId);
+  const updated = await repo.updateServiceOrderStatus(
+    req.params.id,
+    orgId,
+    "confirmed",
+    req.body.userId
+  );
   res.json(updated);
 });
 
 // ── POST /:id/start ────────────────────────────────────────────────────────────
 router.post("/:id/start", async (req: Request, res: Response) => {
   const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {return res.status(400).json({ error: "Missing x-org-id header" });}
+  if (!orgId) {
+    return res.status(400).json({ error: "Missing x-org-id header" });
+  }
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
-  if (!existing) {return res.status(404).json({ error: "Service order not found" });}
+  if (!existing) {
+    return res.status(404).json({ error: "Service order not found" });
+  }
 
-  if (!SERVICE_ORDER_STATUS_TRANSITIONS[existing.status as ServiceOrderStatus].includes("in_progress")) {
+  if (
+    !SERVICE_ORDER_STATUS_TRANSITIONS[existing.status as ServiceOrderStatus].includes("in_progress")
+  ) {
     return res.status(400).json({ error: `Cannot start order in ${existing.status} status` });
   }
 
-  const updated = await repo.updateServiceOrderStatus(req.params.id, orgId, "in_progress", req.body.userId);
+  const updated = await repo.updateServiceOrderStatus(
+    req.params.id,
+    orgId,
+    "in_progress",
+    req.body.userId
+  );
   res.json(updated);
 });
 
 // ── POST /:id/complete ─────────────────────────────────────────────────────────
 router.post("/:id/complete", async (req: Request, res: Response) => {
   const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {return res.status(400).json({ error: "Missing x-org-id header" });}
+  if (!orgId) {
+    return res.status(400).json({ error: "Missing x-org-id header" });
+  }
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
-  if (!existing) {return res.status(404).json({ error: "Service order not found" });}
+  if (!existing) {
+    return res.status(404).json({ error: "Service order not found" });
+  }
 
-  if (!SERVICE_ORDER_STATUS_TRANSITIONS[existing.status as ServiceOrderStatus].includes("completed")) {
+  if (
+    !SERVICE_ORDER_STATUS_TRANSITIONS[existing.status as ServiceOrderStatus].includes("completed")
+  ) {
     return res.status(400).json({ error: `Cannot complete order in ${existing.status} status` });
   }
 
@@ -282,7 +347,12 @@ router.post("/:id/complete", async (req: Request, res: Response) => {
     await repo.updateServiceOrder(req.params.id, orgId, { actualAmount, actualDurationHours });
   }
 
-  const updated = await repo.updateServiceOrderStatus(req.params.id, orgId, "completed", req.body.userId);
+  const updated = await repo.updateServiceOrderStatus(
+    req.params.id,
+    orgId,
+    "completed",
+    req.body.userId
+  );
   await triggerProcurementAggregation(existing.workOrderId, orgId, existing.status, "completed");
   res.json(updated);
 });
@@ -290,17 +360,27 @@ router.post("/:id/complete", async (req: Request, res: Response) => {
 // ── POST /:id/cancel ───────────────────────────────────────────────────────────
 router.post("/:id/cancel", async (req: Request, res: Response) => {
   const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {return res.status(400).json({ error: "Missing x-org-id header" });}
+  if (!orgId) {
+    return res.status(400).json({ error: "Missing x-org-id header" });
+  }
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
-  if (!existing) {return res.status(404).json({ error: "Service order not found" });}
+  if (!existing) {
+    return res.status(404).json({ error: "Service order not found" });
+  }
 
-  if (!SERVICE_ORDER_STATUS_TRANSITIONS[existing.status as ServiceOrderStatus].includes("cancelled")) {
+  if (
+    !SERVICE_ORDER_STATUS_TRANSITIONS[existing.status as ServiceOrderStatus].includes("cancelled")
+  ) {
     return res.status(400).json({ error: `Cannot cancel order in ${existing.status} status` });
   }
 
   const updated = await repo.updateServiceOrderStatus(
-    req.params.id, orgId, "cancelled", req.body.userId, { reason: req.body.reason }
+    req.params.id,
+    orgId,
+    "cancelled",
+    req.body.userId,
+    { reason: req.body.reason }
   );
   await triggerProcurementAggregation(existing.workOrderId, orgId, existing.status, "cancelled");
   res.json(updated);
@@ -309,7 +389,9 @@ router.post("/:id/cancel", async (req: Request, res: Response) => {
 // ── GET /:id/events ────────────────────────────────────────────────────────────
 router.get("/:id/events", async (req: Request, res: Response) => {
   const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {return res.status(400).json({ error: "Missing x-org-id header" });}
+  if (!orgId) {
+    return res.status(400).json({ error: "Missing x-org-id header" });
+  }
 
   const events = await repo.getServiceOrderEvents(req.params.id, orgId);
   res.json(events);
@@ -317,17 +399,23 @@ router.get("/:id/events", async (req: Request, res: Response) => {
 
 // ── DELETE /:id ────────────────────────────────────────────────────────────────
 router.delete("/:id", async (req: Request, res: Response) => {
-  const orgId  = req.headers["x-org-id"] as string;
+  const orgId = req.headers["x-org-id"] as string;
   const userId = req.headers["x-user-id"] as string | undefined;
-  if (!orgId) {return res.status(400).json({ error: "Missing x-org-id header" });}
+  if (!orgId) {
+    return res.status(400).json({ error: "Missing x-org-id header" });
+  }
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
-  if (!existing) {return res.status(404).json({ error: "Service order not found" });}
+  if (!existing) {
+    return res.status(404).json({ error: "Service order not found" });
+  }
 
   if (userId) {
     const permCheck = await canModifyRecord(userId, orgId, existing.status, SO_PERMISSION_GUARD);
     if (!permCheck.allowed) {
-      return res.status(403).json({ error: "Forbidden", message: permCheck.reason, code: "INSUFFICIENT_PERMISSIONS" });
+      return res
+        .status(403)
+        .json({ error: "Forbidden", message: permCheck.reason, code: "INSUFFICIENT_PERMISSIONS" });
     }
   }
 
@@ -343,7 +431,9 @@ router.delete("/:id", async (req: Request, res: Response) => {
 // ── DELETE /bulk/by-work-order/:workOrderId ────────────────────────────────────
 router.delete("/bulk/by-work-order/:workOrderId", async (req: Request, res: Response) => {
   const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {return res.status(400).json({ error: "Missing x-org-id header" });}
+  if (!orgId) {
+    return res.status(400).json({ error: "Missing x-org-id header" });
+  }
 
   const result = await repo.deleteAllServiceOrdersByWorkOrder(req.params.workOrderId, orgId);
   res.json(result);

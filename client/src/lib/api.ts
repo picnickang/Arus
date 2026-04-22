@@ -1,6 +1,6 @@
 /**
  * ARUS API Client - Barrel Export
- * 
+ *
  * This file re-exports all API functions from domain-specific modules.
  * For new code, prefer importing directly from the specific module:
  * - @/lib/api/insights

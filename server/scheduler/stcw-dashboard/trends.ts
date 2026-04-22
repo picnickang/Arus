@@ -2,11 +2,11 @@
  * STCW Dashboard Trends - Historical compliance trend analysis
  */
 
-import { vesselService } from '../../repositories';
-import { checkMonthCompliance, calculateFatigueRisk } from '../../stcw-compliance';
-import type { STCWTrends, TrendDataPoint } from './types';
-import { getCacheKey, getFromCache, setCache } from './cache';
-import { getCrewRestDataForVessel } from './data-fetcher';
+import { vesselService } from "../../repositories";
+import { checkMonthCompliance, calculateFatigueRisk } from "../../stcw-compliance";
+import type { STCWTrends, TrendDataPoint } from "./types";
+import { getCacheKey, getFromCache, setCache } from "./cache";
+import { getCrewRestDataForVessel } from "./data-fetcher";
 
 interface TrendMetrics {
   totalCrew: number;
@@ -29,17 +29,21 @@ function processSingleCrew(
   metrics.totalCrew++;
 
   const filteredDays = days.filter((d) => d.date >= startStr && d.date <= dateStr);
-  if (filteredDays.length === 0) {return;}
+  if (filteredDays.length === 0) {
+    return;
+  }
 
   metrics.crewWithData++;
   const compliance = checkMonthCompliance(filteredDays);
   const fatigue = calculateFatigueRisk(crewId, filteredDays, crewName);
 
-  if (compliance.ok) {metrics.compliantCrew++;}
+  if (compliance.ok) {
+    metrics.compliantCrew++;
+  }
   metrics.violations += compliance.days.filter((d) => !d.day_ok).length;
   metrics.warnings += compliance.days.filter((d) => !d.split_ok && d.day_ok).length;
 
-  if (fatigue.riskLevel === 'high' || fatigue.riskLevel === 'critical') {
+  if (fatigue.riskLevel === "high" || fatigue.riskLevel === "critical") {
     metrics.highFatigueCrew++;
   }
   metrics.totalRest24h += fatigue.metrics.avgRestPer24h;
@@ -75,7 +79,8 @@ function buildTrendDataPoint(dateStr: string, metrics: TrendMetrics): TrendDataP
     complianceRate: metrics.totalCrew > 0 ? (metrics.compliantCrew / metrics.totalCrew) * 100 : 100,
     violationCount: metrics.violations,
     warningCount: metrics.warnings,
-    highFatigueRate: metrics.totalCrew > 0 ? (metrics.highFatigueCrew / metrics.totalCrew) * 100 : 0,
+    highFatigueRate:
+      metrics.totalCrew > 0 ? (metrics.highFatigueCrew / metrics.totalCrew) * 100 : 0,
     avgRest24h: metrics.crewWithData > 0 ? metrics.totalRest24h / metrics.crewWithData : 0,
   };
 }
@@ -83,28 +88,40 @@ function buildTrendDataPoint(dateStr: string, metrics: TrendMetrics): TrendDataP
 function determineTrendDirection(
   avgSecond: number,
   avgFirst: number
-): 'increasing' | 'stable' | 'decreasing' {
-  if (avgSecond > avgFirst * 1.1) {return 'increasing';}
-  if (avgSecond < avgFirst * 0.9) {return 'decreasing';}
-  return 'stable';
+): "increasing" | "stable" | "decreasing" {
+  if (avgSecond > avgFirst * 1.1) {
+    return "increasing";
+  }
+  if (avgSecond < avgFirst * 0.9) {
+    return "decreasing";
+  }
+  return "stable";
 }
 
 function computeTrendSummary(trends: TrendDataPoint[]): {
   complianceRateChange: number;
-  violationTrend: 'increasing' | 'stable' | 'decreasing';
-  fatigueRiskTrend: 'increasing' | 'stable' | 'decreasing';
+  violationTrend: "increasing" | "stable" | "decreasing";
+  fatigueRiskTrend: "increasing" | "stable" | "decreasing";
 } {
   const firstHalf = trends.slice(0, Math.floor(trends.length / 2));
   const secondHalf = trends.slice(Math.floor(trends.length / 2));
 
   const avgViolationsFirst =
-    firstHalf.length > 0 ? firstHalf.reduce((sum, t) => sum + t.violationCount, 0) / firstHalf.length : 0;
+    firstHalf.length > 0
+      ? firstHalf.reduce((sum, t) => sum + t.violationCount, 0) / firstHalf.length
+      : 0;
   const avgViolationsSecond =
-    secondHalf.length > 0 ? secondHalf.reduce((sum, t) => sum + t.violationCount, 0) / secondHalf.length : 0;
+    secondHalf.length > 0
+      ? secondHalf.reduce((sum, t) => sum + t.violationCount, 0) / secondHalf.length
+      : 0;
   const avgFatigueFirst =
-    firstHalf.length > 0 ? firstHalf.reduce((sum, t) => sum + t.highFatigueRate, 0) / firstHalf.length : 0;
+    firstHalf.length > 0
+      ? firstHalf.reduce((sum, t) => sum + t.highFatigueRate, 0) / firstHalf.length
+      : 0;
   const avgFatigueSecond =
-    secondHalf.length > 0 ? secondHalf.reduce((sum, t) => sum + t.highFatigueRate, 0) / secondHalf.length : 0;
+    secondHalf.length > 0
+      ? secondHalf.reduce((sum, t) => sum + t.highFatigueRate, 0) / secondHalf.length
+      : 0;
 
   return {
     complianceRateChange:
@@ -119,9 +136,11 @@ export async function getSTCWComplianceTrends(
   lookbackDays: number = 30,
   vesselId?: string
 ): Promise<STCWTrends> {
-  const cacheKey = getCacheKey('stcw-trends', orgId, `${lookbackDays}:${vesselId || 'all'}`);
+  const cacheKey = getCacheKey("stcw-trends", orgId, `${lookbackDays}:${vesselId || "all"}`);
   const cached = getFromCache<STCWTrends>(cacheKey);
-  if (cached) {return cached;}
+  if (cached) {
+    return cached;
+  }
 
   const startTime = Date.now();
   const trends: TrendDataPoint[] = [];
@@ -136,8 +155,8 @@ export async function getSTCWComplianceTrends(
 
   const fullRangeStart = new Date(endDate);
   fullRangeStart.setDate(fullRangeStart.getDate() - lookbackDays - 7);
-  const fullStartStr = fullRangeStart.toISOString().split('T')[0];
-  const fullEndStr = endDate.toISOString().split('T')[0];
+  const fullStartStr = fullRangeStart.toISOString().split("T")[0];
+  const fullEndStr = endDate.toISOString().split("T")[0];
 
   const vesselDataPromises = vessels.map((vessel) =>
     getCrewRestDataForVessel(orgId, vessel.id, fullStartStr, fullEndStr).then((crewData) => ({
@@ -150,11 +169,11 @@ export async function getSTCWComplianceTrends(
   for (let i = dataPointCount - 1; i >= 0; i--) {
     const pointDate = new Date(endDate);
     pointDate.setDate(pointDate.getDate() - i * intervalDays);
-    const dateStr = pointDate.toISOString().split('T')[0];
+    const dateStr = pointDate.toISOString().split("T")[0];
 
     const weekStartDate = new Date(pointDate);
     weekStartDate.setDate(weekStartDate.getDate() - 7);
-    const startStr = weekStartDate.toISOString().split('T')[0];
+    const startStr = weekStartDate.toISOString().split("T")[0];
 
     const metrics = collectMetricsForDate(allVesselData, startStr, dateStr);
     trends.push(buildTrendDataPoint(dateStr, metrics));

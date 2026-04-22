@@ -21,8 +21,12 @@ function getUser(req: Request): { id: string; name?: string; rank?: string } {
 }
 
 function getRows(result: any): any[] {
-  if (Array.isArray(result)) {return result;}
-  if (result?.rows && Array.isArray(result.rows)) {return result.rows;}
+  if (Array.isArray(result)) {
+    return result;
+  }
+  if (result?.rows && Array.isArray(result.rows)) {
+    return result.rows;
+  }
   return [];
 }
 
@@ -170,7 +174,9 @@ router.get("/psc-view", requireOrgId, async (req: Request, res: Response) => {
       return res.status(400).json({ error: "vesselId is required" });
     }
 
-    const fromDate = from ? new Date(from as string) : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const fromDate = from
+      ? new Date(from as string)
+      : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
     const toDate = to ? new Date(to as string) : new Date();
 
     const result = await db.execute(sql`

@@ -1,26 +1,26 @@
-import { randomUUID } from 'node:crypto';
-import { eq, sql, and, desc, lt } from 'drizzle-orm';
-import { db } from '../../db-config';
-import { telemetryBatchAck, type TelemetryBatchAck } from '@shared/schema/telemetry';
-import { logger } from '../../utils/logger';
-import client from 'prom-client';
+import { randomUUID } from "node:crypto";
+import { eq, sql, and, desc, lt } from "drizzle-orm";
+import { db } from "../../db-config";
+import { telemetryBatchAck, type TelemetryBatchAck } from "@shared/schema/telemetry";
+import { logger } from "../../utils/logger";
+import client from "prom-client";
 
 const batchReceivedTotal = new client.Counter({
-  name: 'arus_telemetry_batch_received_total',
-  help: 'Total telemetry batches received',
-  labelNames: ['source'],
+  name: "arus_telemetry_batch_received_total",
+  help: "Total telemetry batches received",
+  labelNames: ["source"],
 });
 
 const batchAcknowledgedTotal = new client.Counter({
-  name: 'arus_telemetry_batch_acknowledged_total',
-  help: 'Total telemetry batches acknowledged',
-  labelNames: ['source', 'status'],
+  name: "arus_telemetry_batch_acknowledged_total",
+  help: "Total telemetry batches acknowledged",
+  labelNames: ["source", "status"],
 });
 
 const batchProcessingHistogram = new client.Histogram({
-  name: 'arus_telemetry_batch_processing_ms',
-  help: 'Batch processing time in milliseconds',
-  labelNames: ['source'],
+  name: "arus_telemetry_batch_processing_ms",
+  help: "Batch processing time in milliseconds",
+  labelNames: ["source"],
   buckets: [10, 50, 100, 250, 500, 1000, 2500, 5000],
 });
 
@@ -37,7 +37,7 @@ export interface BatchReceiveInput {
 
 export interface BatchAckResult {
   batchId: string;
-  status: 'received' | 'duplicate';
+  status: "received" | "duplicate";
   receivedAt: Date;
 }
 
@@ -61,10 +61,10 @@ export class TelemetryBatchAckAdapter {
       .limit(1);
 
     if (existing.length > 0) {
-      logger.debug('BatchAck', 'Duplicate batch received', { batchId });
+      logger.debug("BatchAck", "Duplicate batch received", { batchId });
       return {
         batchId,
-        status: 'duplicate',
+        status: "duplicate",
         receivedAt: existing[0].receivedAt,
       };
     }
@@ -77,27 +77,27 @@ export class TelemetryBatchAckAdapter {
       frameCount: input.frameCount,
       firstFrameTs: input.firstFrameTs,
       lastFrameTs: input.lastFrameTs,
-      status: 'received',
+      status: "received",
       metadata: input.metadata as any,
     });
 
     batchReceivedTotal.inc({ source: input.source });
-    logger.info('BatchAck', 'Batch received', { 
-      batchId, 
+    logger.info("BatchAck", "Batch received", {
+      batchId,
       frameCount: input.frameCount,
       source: input.source,
     });
 
     return {
       batchId,
-      status: 'received',
+      status: "received",
       receivedAt: now,
     };
   }
 
   async acknowledgeBatch(result: BatchProcessResult): Promise<void> {
     const now = new Date();
-    const status = result.errorCount > 0 ? 'partial' : 'acknowledged';
+    const status = result.errorCount > 0 ? "partial" : "acknowledged";
 
     await db
       .update(telemetryBatchAck)
@@ -112,12 +112,12 @@ export class TelemetryBatchAckAdapter {
       .where(eq(telemetryBatchAck.batchId, result.batchId));
 
     const batch = await this.getBatch(result.batchId);
-    const source = batch?.source ?? 'unknown';
+    const source = batch?.source ?? "unknown";
 
     batchAcknowledgedTotal.inc({ source, status });
     batchProcessingHistogram.observe({ source }, result.processingTimeMs);
 
-    logger.info('BatchAck', 'Batch acknowledged', {
+    logger.info("BatchAck", "Batch acknowledged", {
       batchId: result.batchId,
       status,
       readingsPersisted: result.readingsPersisted,
@@ -129,13 +129,13 @@ export class TelemetryBatchAckAdapter {
     await db
       .update(telemetryBatchAck)
       .set({
-        status: 'failed',
+        status: "failed",
         errorCount: sql`COALESCE(${telemetryBatchAck.errorCount}, 0) + 1`,
         metadata: sql`jsonb_set(COALESCE(${telemetryBatchAck.metadata}, '{}'), '{lastError}', ${JSON.stringify(error)}::jsonb)`,
       })
       .where(eq(telemetryBatchAck.batchId, batchId));
 
-    logger.warn('BatchAck', 'Batch marked as failed', { batchId, error });
+    logger.warn("BatchAck", "Batch marked as failed", { batchId, error });
   }
 
   async getBatch(batchId: string): Promise<TelemetryBatchAck | undefined> {
@@ -150,12 +150,7 @@ export class TelemetryBatchAckAdapter {
     return db
       .select()
       .from(telemetryBatchAck)
-      .where(
-        and(
-          eq(telemetryBatchAck.orgId, orgId),
-          eq(telemetryBatchAck.status, 'received')
-        )
-      )
+      .where(and(eq(telemetryBatchAck.orgId, orgId), eq(telemetryBatchAck.status, "received")))
       .orderBy(telemetryBatchAck.receivedAt)
       .limit(limit);
   }
@@ -164,12 +159,7 @@ export class TelemetryBatchAckAdapter {
     return db
       .select()
       .from(telemetryBatchAck)
-      .where(
-        and(
-          eq(telemetryBatchAck.orgId, orgId),
-          eq(telemetryBatchAck.status, 'failed')
-        )
-      )
+      .where(and(eq(telemetryBatchAck.orgId, orgId), eq(telemetryBatchAck.status, "failed")))
       .orderBy(desc(telemetryBatchAck.receivedAt))
       .limit(limit);
   }
@@ -178,20 +168,20 @@ export class TelemetryBatchAckAdapter {
     await db
       .update(telemetryBatchAck)
       .set({
-        status: 'received',
+        status: "received",
         acknowledgedAt: null,
       })
       .where(eq(telemetryBatchAck.batchId, batchId));
 
-    logger.info('BatchAck', 'Batch marked for retry', { batchId });
+    logger.info("BatchAck", "Batch marked for retry", { batchId });
   }
 
   async getRecentBatches(
-    orgId: string, 
+    orgId: string,
     options: { limit?: number; deviceId?: string; source?: string } = {}
   ): Promise<TelemetryBatchAck[]> {
     const conditions = [eq(telemetryBatchAck.orgId, orgId)];
-    
+
     if (options.deviceId) {
       conditions.push(eq(telemetryBatchAck.deviceId, options.deviceId));
     }
@@ -215,23 +205,17 @@ export class TelemetryBatchAckAdapter {
       .select({ count: sql<number>`count(*)` })
       .from(telemetryBatchAck)
       .where(
-        and(
-          eq(telemetryBatchAck.status, 'acknowledged'),
-          lt(telemetryBatchAck.receivedAt, cutoff)
-        )
+        and(eq(telemetryBatchAck.status, "acknowledged"), lt(telemetryBatchAck.receivedAt, cutoff))
       );
 
     await db
       .delete(telemetryBatchAck)
       .where(
-        and(
-          eq(telemetryBatchAck.status, 'acknowledged'),
-          lt(telemetryBatchAck.receivedAt, cutoff)
-        )
+        and(eq(telemetryBatchAck.status, "acknowledged"), lt(telemetryBatchAck.receivedAt, cutoff))
       );
 
     const removed = Number(countResult[0]?.count ?? 0);
-    logger.info('BatchAck', 'Pruned old batches', { removed, retentionDays });
+    logger.info("BatchAck", "Pruned old batches", { removed, retentionDays });
     return removed;
   }
 
@@ -258,7 +242,7 @@ export class TelemetryBatchAckAdapter {
 
     for (const row of statusCounts) {
       counts[row.status] = Number(row.count);
-      if (row.avgProcessingTime && row.status === 'acknowledged') {
+      if (row.avgProcessingTime && row.status === "acknowledged") {
         totalProcessingTime += row.avgProcessingTime * Number(row.count);
         processedCount += Number(row.count);
       }
@@ -266,10 +250,10 @@ export class TelemetryBatchAckAdapter {
 
     return {
       totalReceived: Object.values(counts).reduce((a, b) => a + b, 0),
-      totalAcknowledged: counts['acknowledged'] ?? 0,
-      totalFailed: counts['failed'] ?? 0,
+      totalAcknowledged: counts["acknowledged"] ?? 0,
+      totalFailed: counts["failed"] ?? 0,
       avgProcessingTimeMs: processedCount > 0 ? totalProcessingTime / processedCount : null,
-      pendingCount: counts['received'] ?? 0,
+      pendingCount: counts["received"] ?? 0,
     };
   }
 }

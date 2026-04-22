@@ -2,11 +2,11 @@
  * Compliance Excel Utils - Shared utility functions
  */
 
-import * as XLSX from 'xlsx';
+import * as XLSX from "xlsx";
 import type { WorkOrder } from "@shared/schema";
 import type { EquipmentHealth } from "../db/equipment/types.js";
-import { MARITIME_STANDARDS } from '../compliance.js';
-import { formatDate, countByStatus } from '../compliance-shared/utils';
+import { MARITIME_STANDARDS } from "../compliance.js";
+import { formatDate, countByStatus } from "../compliance-shared/utils";
 
 export { formatDate, countByStatus };
 
@@ -20,28 +20,37 @@ export function addSheet(workbook: XLSX.WorkBook, data: any[][], name: string): 
 }
 
 export function writeWorkbook(workbook: XLSX.WorkBook): Buffer {
-  return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
+  return Buffer.from(XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }));
 }
 
 export function getComplianceStatus(status: string | undefined): string {
-  if (status === 'healthy') { return 'COMPLIANT'; }
-  if (status === 'warning') { return 'REVIEW REQUIRED'; }
-  return 'NON-COMPLIANT';
+  if (status === "healthy") {
+    return "COMPLIANT";
+  }
+  if (status === "warning") {
+    return "REVIEW REQUIRED";
+  }
+  return "NON-COMPLIANT";
 }
 
-export function buildEquipmentSheet(equipment: EquipmentHealth[], includeCompliance = false): any[][] {
-  const header = ['ID', 'Name', 'Type', 'Vessel', 'Status', 'Health Index'];
-  if (includeCompliance) { header.push('Compliance Status'); }
+export function buildEquipmentSheet(
+  equipment: EquipmentHealth[],
+  includeCompliance = false
+): any[][] {
+  const header = ["ID", "Name", "Type", "Vessel", "Status", "Health Index"];
+  if (includeCompliance) {
+    header.push("Compliance Status");
+  }
 
-  const data: any[][] = [['EQUIPMENT STATUS'], [], header];
+  const data: any[][] = [["EQUIPMENT STATUS"], [], header];
 
   for (const eq of equipment) {
     const row: any[] = [
       eq.id,
-      eq.name ?? '',
-      eq.type ?? '',
-      eq.vessel ?? '',
-      eq.status ?? '',
+      eq.name ?? "",
+      eq.type ?? "",
+      eq.vessel ?? "",
+      eq.status ?? "",
       eq.healthIndex ?? 0,
     ];
     if (includeCompliance) {
@@ -55,21 +64,21 @@ export function buildEquipmentSheet(equipment: EquipmentHealth[], includeComplia
 
 export function buildWorkOrderSheet(
   workOrders: WorkOrder[],
-  title: string = 'MAINTENANCE RECORDS'
+  title: string = "MAINTENANCE RECORDS"
 ): any[][] {
   const data: any[][] = [
     [title],
     [],
-    ['WO Number', 'Equipment ID', 'Type', 'Priority', 'Status', 'Created', 'Completed'],
+    ["WO Number", "Equipment ID", "Type", "Priority", "Status", "Created", "Completed"],
   ];
 
   for (const wo of workOrders) {
     data.push([
       wo.workOrderNumber ?? wo.id,
-      wo.equipmentId ?? '',
-      wo.maintenanceType ?? '',
-      wo.priority ?? '',
-      wo.status ?? '',
+      wo.equipmentId ?? "",
+      wo.maintenanceType ?? "",
+      wo.priority ?? "",
+      wo.status ?? "",
       formatDate(wo.createdAt),
       formatDate(wo.actualEndDate),
     ]);
@@ -79,7 +88,7 @@ export function buildWorkOrderSheet(
 }
 
 export function buildStandardsSheet(standardCodes?: string[]): any[][] {
-  const data: any[][] = [['APPLICABLE STANDARDS'], [], ['Code', 'Name', 'Authority', 'Category']];
+  const data: any[][] = [["APPLICABLE STANDARDS"], [], ["Code", "Name", "Authority", "Category"]];
 
   const standards = standardCodes
     ? MARITIME_STANDARDS.filter((s) => standardCodes.includes(s.code))

@@ -5,7 +5,11 @@
 
 import { z } from "zod";
 import { crewAppService as crewService } from "../application/index.js";
-import { requireOrgId, requireOrgIdAndValidateBody, AuthenticatedRequest } from "../../../middleware/auth";
+import {
+  requireOrgId,
+  requireOrgIdAndValidateBody,
+  AuthenticatedRequest,
+} from "../../../middleware/auth";
 import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
 import type { CrewRouteDeps } from "./types.js";
 

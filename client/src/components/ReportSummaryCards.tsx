@@ -52,7 +52,9 @@ export function ReportSummaryCards({ content, reportType, audience }: ReportSumm
             <AlertTriangle className="h-4 w-4" />
             <span>Recommendations</span>
           </div>
-          <p className="font-medium text-sm">{recommendationCount} item{recommendationCount !== 1 ? "s" : ""}</p>
+          <p className="font-medium text-sm">
+            {recommendationCount} item{recommendationCount !== 1 ? "s" : ""}
+          </p>
         </CardContent>
       </Card>
     </div>

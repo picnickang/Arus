@@ -1,7 +1,7 @@
 /**
  * Configuration Management Domain Routes
  * Extracted from routes.ts for Phase 4 modularization
- * 
+ *
  * Provides hot config reload, config CRUD, and config audit
  */
 

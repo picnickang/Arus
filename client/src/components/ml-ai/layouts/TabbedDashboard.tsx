@@ -8,7 +8,9 @@ interface Tab {
   id: string;
   label: string;
   icon: LucideIcon;
-  component: React.LazyExoticComponent<React.ComponentType<Record<string, unknown>>> | React.ComponentType<Record<string, unknown>>;
+  component:
+    | React.LazyExoticComponent<React.ComponentType<Record<string, unknown>>>
+    | React.ComponentType<Record<string, unknown>>;
   props?: Record<string, unknown>;
 }
 
@@ -19,7 +21,7 @@ interface TabbedDashboardProps {
   defaultTab?: string;
   header?: React.ReactNode;
   className?: string;
-  'data-testid'?: string;
+  "data-testid"?: string;
 }
 
 function TabLoadingFallback() {
@@ -39,9 +41,9 @@ export function TabbedDashboard({
   defaultTab,
   header,
   className,
-  'data-testid': testId,
+  "data-testid": testId,
 }: TabbedDashboardProps) {
-  const [activeTab, setActiveTab] = useState(defaultTab || tabs[0]?.id || '');
+  const [activeTab, setActiveTab] = useState(defaultTab || tabs[0]?.id || "");
 
   return (
     <div className={cn("space-y-6", className)} data-testid={testId}>
@@ -64,7 +66,7 @@ export function TabbedDashboard({
                 >
                   <Icon className="h-4 w-4" />
                   <span className="hidden sm:inline">{tab.label}</span>
-                  <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
+                  <span className="sm:hidden">{tab.label.split(" ")[0]}</span>
                 </TabsTrigger>
               );
             })}
@@ -74,7 +76,7 @@ export function TabbedDashboard({
         {/* Tab Content */}
         {tabs.map((tab) => {
           const Component = tab.component;
-          
+
           return (
             <TabsContent
               key={tab.id}

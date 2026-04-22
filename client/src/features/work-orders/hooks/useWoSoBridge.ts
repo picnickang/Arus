@@ -129,7 +129,9 @@ export function useCreateServiceOrderFromWO() {
     },
     onSuccess: (_, variables) => {
       // Invalidate both WO and SO queries
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", variables.workOrderId, "service-orders"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/work-orders", variables.workOrderId, "service-orders"],
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/service-orders"] });
     },
@@ -143,12 +145,24 @@ export function useLinkServiceOrderToWO() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ serviceOrderId, workOrderId }: { serviceOrderId: string; workOrderId: string }) => {
-      return apiRequest("PATCH", `/api/service-orders/${serviceOrderId}/link-work-order`, { workOrderId });
+    mutationFn: async ({
+      serviceOrderId,
+      workOrderId,
+    }: {
+      serviceOrderId: string;
+      workOrderId: string;
+    }) => {
+      return apiRequest("PATCH", `/api/service-orders/${serviceOrderId}/link-work-order`, {
+        workOrderId,
+      });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/service-orders", variables.serviceOrderId, "work-order"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", variables.workOrderId, "service-orders"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/service-orders", variables.serviceOrderId, "work-order"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/work-orders", variables.workOrderId, "service-orders"],
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/service-orders"] });
     },

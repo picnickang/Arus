@@ -1,1 +1,1 @@
-export { registerCertificateRoutes } from './routes';
+export { registerCertificateRoutes } from "./routes";

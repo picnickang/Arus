@@ -28,7 +28,7 @@ import { registerAllDomainRouters } from "./routes/domain-router-registry";
 
 /**
  * Register all application routes
- * 
+ *
  * @param app - Express application instance
  * @param options - Optional configuration
  * @param options.skipGlobalTenantIsolation - FOR TESTING ONLY: Skip global requireOrgId middleware
@@ -50,15 +50,19 @@ export async function registerRoutes(
   if (options.skipGlobalTenantIsolation) {
     console.warn(
       "[SECURITY WARNING] Global tenant isolation middleware DISABLED for testing. " +
-      "This creates a CRITICAL VULNERABILITY and should NEVER be used in production!"
+        "This creates a CRITICAL VULNERABILITY and should NEVER be used in production!"
     );
   } else {
     const publicPaths = new Set(["/healthz", "/readyz", "/health", "/metrics"]);
     app.use("/api", (req, res, next) => {
-      if (publicPaths.has(req.path)) {return next();}
+      if (publicPaths.has(req.path)) {
+        return next();
+      }
       return requireOrgId(req, res, next);
     });
-    console.log("[Security] Global tenant isolation middleware registered (before all /api routes)");
+    console.log(
+      "[Security] Global tenant isolation middleware registered (before all /api routes)"
+    );
   }
 
   const { initDtcIntegrationService } = await import("./dtc-integration-service");
@@ -71,9 +75,11 @@ export async function registerRoutes(
   const httpServer = createServer(app);
 
   httpServer.on("connection", (socket) => {
-    import("./index").then(({ trackConnection }) => {
-      trackConnection(socket);
-    }).catch(() => {});
+    import("./index")
+      .then(({ trackConnection }) => {
+        trackConnection(socket);
+      })
+      .catch(() => {});
   });
 
   const wsServer = new TelemetryWebSocketServer(httpServer);

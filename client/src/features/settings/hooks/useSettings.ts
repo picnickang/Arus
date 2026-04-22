@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import type { SystemSettings, IntegrationConfig, AuditEvent, TransportSettings, StorageConfig } from "../types";
+import type {
+  SystemSettings,
+  IntegrationConfig,
+  AuditEvent,
+  TransportSettings,
+  StorageConfig,
+} from "../types";
 
 export const settingsKeys = {
   all: ["/api/settings"] as const,
@@ -25,14 +31,24 @@ export function useIntegrationConfigs() {
   });
 }
 
-export function useAuditEvents(filters?: { eventType?: string; entityType?: string; limit?: number }) {
+export function useAuditEvents(filters?: {
+  eventType?: string;
+  entityType?: string;
+  limit?: number;
+}) {
   const params = new URLSearchParams();
-  if (filters?.eventType) {params.append("eventType", filters.eventType);}
-  if (filters?.entityType) {params.append("entityType", filters.entityType);}
-  if (filters?.limit) {params.append("limit", String(filters.limit));}
+  if (filters?.eventType) {
+    params.append("eventType", filters.eventType);
+  }
+  if (filters?.entityType) {
+    params.append("entityType", filters.entityType);
+  }
+  if (filters?.limit) {
+    params.append("limit", String(filters.limit));
+  }
   const queryString = params.toString();
   const filterKey = `${filters?.eventType ?? "all"}_${filters?.entityType ?? "all"}_${filters?.limit ?? "all"}`;
-  
+
   return useQuery<AuditEvent[]>({
     queryKey: [...settingsKeys.audit(), filterKey],
     queryFn: () => apiRequest("GET", `/api/admin/audit${queryString ? `?${queryString}` : ""}`),
@@ -55,7 +71,7 @@ export function useStorageConfig() {
 
 export function useUpdateSystemSetting() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
       return apiRequest("PUT", `/api/settings/${encodeURIComponent(key)}`, { value });
@@ -68,7 +84,7 @@ export function useUpdateSystemSetting() {
 
 export function useUpdateIntegrationConfig() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<IntegrationConfig> & { id: string }) => {
       return apiRequest("PATCH", `/api/integrations/${id}`, data);
@@ -89,7 +105,7 @@ export function useTestIntegration() {
 
 export function useSyncIntegration() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (integrationId: string) => {
       return apiRequest("POST", `/api/integrations/${integrationId}/sync`);
@@ -102,7 +118,7 @@ export function useSyncIntegration() {
 
 export function useUpdateTransportSettings() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: Partial<TransportSettings>) => {
       return apiRequest("PUT", "/api/transport-settings", data);
@@ -115,7 +131,7 @@ export function useUpdateTransportSettings() {
 
 export function useUpdateStorageConfig() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: Partial<StorageConfig>) => {
       return apiRequest("POST", "/api/storage/config", data);

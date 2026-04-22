@@ -58,7 +58,9 @@ export function auditAdminAction(action: string) {
       res.end = originalEnd;
 
       (async () => {
-        if (outcomeUpdated) {return;}
+        if (outcomeUpdated) {
+          return;
+        }
         outcomeUpdated = true;
 
         const statusCode = res.statusCode;

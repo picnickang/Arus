@@ -29,10 +29,7 @@ import { createClient as createLibsqlClient, type Client as LibsqlClient } from 
 // tables side by side for a parity test.
 import { vessels as pgVessels, equipment as pgEquipment } from "../../shared/schema/index";
 // SQLite schema barrel
-import {
-  vesselsSqlite,
-  equipmentSqlite,
-} from "../../shared/sqlite-schema/core";
+import { vesselsSqlite, equipmentSqlite } from "../../shared/sqlite-schema/core";
 
 interface TablePair {
   name: string;
@@ -99,11 +96,7 @@ describe("Dual-driver query parity — Drizzle expression compilation", () => {
       const sqliteDb = drizzleLibsql(sqliteClient);
 
       const pgQuery = pgDb.select().from(pg).where(eq(pg.id, "test-id")).limit(1);
-      const sqliteQuery = sqliteDb
-        .select()
-        .from(sqlite)
-        .where(eq(sqlite.id, "test-id"))
-        .limit(1);
+      const sqliteQuery = sqliteDb.select().from(sqlite).where(eq(sqlite.id, "test-id")).limit(1);
 
       const pgSql = pgQuery.toSQL();
       const sqliteSql = sqliteQuery.toSQL();

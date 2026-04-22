@@ -104,7 +104,8 @@ export async function buildEquipmentDossiers(
             current: equipment.healthIndex,
             degradationRate:
               pdmHistory.length > 1
-                ? (pdmHistory[pdmHistory.length - 1].score - pdmHistory[0].score) / pdmHistory.length
+                ? (pdmHistory[pdmHistory.length - 1].score - pdmHistory[0].score) /
+                  pdmHistory.length
                 : 0,
             hasHistory: pdmHistory.length > 0,
             worstScore:

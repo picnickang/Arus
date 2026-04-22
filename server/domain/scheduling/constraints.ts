@@ -16,7 +16,9 @@ export function checkRestHoursConstraint(
   context: ConstraintCheckContext,
   lastShiftEnd: Date | null
 ): ConstraintViolation | null {
-  if (!lastShiftEnd) {return null;}
+  if (!lastShiftEnd) {
+    return null;
+  }
 
   const restHours = (context.shiftStart.getTime() - lastShiftEnd.getTime()) / (1000 * 60 * 60);
   const required = context.preferences.rules.minRestHours;
@@ -98,7 +100,9 @@ export function checkCertificationConstraint(
   context: ConstraintCheckContext,
   requiredCert: string | null
 ): ConstraintViolation | null {
-  if (!requiredCert) {return null;}
+  if (!requiredCert) {
+    return null;
+  }
 
   const crewCerts = context.certifications.filter((c) => c.crewId === context.crewId);
   const matchingCert = crewCerts.find((c) => c.cert === requiredCert);
@@ -159,7 +163,9 @@ export function checkCertificationConstraint(
   return null;
 }
 
-export function checkOverlapConstraint(context: ConstraintCheckContext): ConstraintViolation | null {
+export function checkOverlapConstraint(
+  context: ConstraintCheckContext
+): ConstraintViolation | null {
   const bufferHours = context.preferences.rules.overlapBufferHours;
   const enforcement = context.preferences.ruleEnforcement.overlapBuffer;
   const bufferMs = bufferHours * 60 * 60 * 1000;
@@ -205,19 +211,34 @@ export function checkAllConstraints(
   const violations: ConstraintViolation[] = [];
 
   const restViolation = checkRestHoursConstraint(context, lastShiftEnd);
-  if (restViolation) {violations.push(restViolation);}
+  if (restViolation) {
+    violations.push(restViolation);
+  }
 
-  const weeklyViolation = checkMaxWeeklyHoursConstraint(context, weeklyHours, shiftDuration, maxWeekly);
-  if (weeklyViolation) {violations.push(weeklyViolation);}
+  const weeklyViolation = checkMaxWeeklyHoursConstraint(
+    context,
+    weeklyHours,
+    shiftDuration,
+    maxWeekly
+  );
+  if (weeklyViolation) {
+    violations.push(weeklyViolation);
+  }
 
   const leaveViolation = checkLeaveConstraint(context);
-  if (leaveViolation) {violations.push(leaveViolation);}
+  if (leaveViolation) {
+    violations.push(leaveViolation);
+  }
 
   const certViolation = checkCertificationConstraint(context, requiredCert);
-  if (certViolation) {violations.push(certViolation);}
+  if (certViolation) {
+    violations.push(certViolation);
+  }
 
   const overlapViolation = checkOverlapConstraint(context);
-  if (overlapViolation) {violations.push(overlapViolation);}
+  if (overlapViolation) {
+    violations.push(overlapViolation);
+  }
 
   return violations;
 }

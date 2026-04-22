@@ -15,7 +15,10 @@ export class VibrationAnalyzer {
   private readonly sampleRate = SAMPLE_RATE;
   private readonly windowSize = WINDOW_SIZE;
 
-  async analyzeVibration(equipmentId: string, orgId: string = "default-org-id"): Promise<VibrationAnalysis | null> {
+  async analyzeVibration(
+    equipmentId: string,
+    orgId: string = "default-org-id"
+  ): Promise<VibrationAnalysis | null> {
     try {
       const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "vibration_analysis");
       if (!isEnabled) {
@@ -25,7 +28,9 @@ export class VibrationAnalyzer {
 
       const vibrationData = await this.getVibrationData(equipmentId, orgId);
       if (!vibrationData || vibrationData.length < this.windowSize) {
-        console.log(`[Vibration Analysis] Insufficient data for ${equipmentId} (${vibrationData?.length || 0} samples, need ${this.windowSize})`);
+        console.log(
+          `[Vibration Analysis] Insufficient data for ${equipmentId} (${vibrationData?.length || 0} samples, need ${this.windowSize})`
+        );
         return null;
       }
 
@@ -40,7 +45,10 @@ export class VibrationAnalyzer {
         shaftRpm: null,
         windowType: "hann",
         rawData: JSON.stringify(vibrationData.slice(-this.windowSize).map((d) => d.value)),
-        spectrumData: JSON.stringify({ frequencies: fftResult.frequencies, magnitudes: fftResult.magnitudes }),
+        spectrumData: JSON.stringify({
+          frequencies: fftResult.frequencies,
+          magnitudes: fftResult.magnitudes,
+        }),
         isoBands: JSON.stringify(calculateISOBands(fftResult)),
         faultBands: JSON.stringify(calculateFaultBands(fftResult, anomalyDetection)),
         dominantFrequency: fftResult.dominantFreq,
@@ -60,12 +68,17 @@ export class VibrationAnalyzer {
         timestamp: new Date(),
       };
 
-      const [savedAnalysis] = await db.insert(vibrationAnalysis).values({
-        id: randomUUID(),
-        ...analysis,
-        createdAt: new Date(),
-      }).returning();
-      console.log(`[Vibration Analysis] Analysis completed for ${equipmentId}: ${anomalyDetection.isAnomalous ? "ANOMALY DETECTED" : "NORMAL"} (score: ${anomalyDetection.anomalyScore.toFixed(2)})`);
+      const [savedAnalysis] = await db
+        .insert(vibrationAnalysis)
+        .values({
+          id: randomUUID(),
+          ...analysis,
+          createdAt: new Date(),
+        })
+        .returning();
+      console.log(
+        `[Vibration Analysis] Analysis completed for ${equipmentId}: ${anomalyDetection.isAnomalous ? "ANOMALY DETECTED" : "NORMAL"} (score: ${anomalyDetection.anomalyScore.toFixed(2)})`
+      );
       return savedAnalysis;
     } catch (error) {
       console.error(`[Vibration Analysis] Error analyzing ${equipmentId}:`, error);
@@ -93,12 +106,22 @@ export class VibrationAnalyzer {
     }
   }
 
-  async getAnalysisHistory(equipmentId: string, orgId: string = "default-org-id", limit: number = 50): Promise<VibrationAnalysis[]> {
+  async getAnalysisHistory(
+    equipmentId: string,
+    orgId: string = "default-org-id",
+    limit: number = 50
+  ): Promise<VibrationAnalysis[]> {
     try {
       const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "vibration_analysis");
-      if (!isEnabled) {return [];}
-      return db.select().from(vibrationAnalysis)
-        .where(and(eq(vibrationAnalysis.orgId, orgId), eq(vibrationAnalysis.equipmentId, equipmentId)))
+      if (!isEnabled) {
+        return [];
+      }
+      return db
+        .select()
+        .from(vibrationAnalysis)
+        .where(
+          and(eq(vibrationAnalysis.orgId, orgId), eq(vibrationAnalysis.equipmentId, equipmentId))
+        )
         .orderBy(desc(vibrationAnalysis.timestamp))
         .limit(limit);
     } catch (error) {
@@ -107,11 +130,16 @@ export class VibrationAnalyzer {
     }
   }
 
-  async batchAnalyze(equipmentIds: string[], orgId: string = "default-org-id"): Promise<VibrationAnalysis[]> {
+  async batchAnalyze(
+    equipmentIds: string[],
+    orgId: string = "default-org-id"
+  ): Promise<VibrationAnalysis[]> {
     const results: VibrationAnalysis[] = [];
     for (const equipmentId of equipmentIds) {
       const analysis = await this.analyzeVibration(equipmentId, orgId);
-      if (analysis) {results.push(analysis);}
+      if (analysis) {
+        results.push(analysis);
+      }
     }
     return results;
   }

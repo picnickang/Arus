@@ -12,12 +12,11 @@ export async function getSavingsSummary(
   startDate: Date,
   endDate: Date
 ): Promise<SavingsSummary> {
-  const safeStartDate = startDate instanceof Date && !isNaN(startDate.getTime()) 
-    ? startDate 
-    : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-  const safeEndDate = endDate instanceof Date && !isNaN(endDate.getTime()) 
-    ? endDate 
-    : new Date();
+  const safeStartDate =
+    startDate instanceof Date && !isNaN(startDate.getTime())
+      ? startDate
+      : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+  const safeEndDate = endDate instanceof Date && !isNaN(endDate.getTime()) ? endDate : new Date();
 
   const allSavings = await db
     .select()
@@ -36,7 +35,10 @@ export async function getSavingsSummary(
   const voidedSavings = allSavings.filter((s) => s.validationStatus === "voided");
 
   const totalSavings = validSavings.reduce((sum, s) => sum + (s.totalSavings ?? 0), 0);
-  const totalDowntimePrevented = validSavings.reduce((sum, s) => sum + (s.estimatedDowntimePrevented ?? 0), 0);
+  const totalDowntimePrevented = validSavings.reduce(
+    (sum, s) => sum + (s.estimatedDowntimePrevented ?? 0),
+    0
+  );
 
   const savingsByType = {
     labor: validSavings.reduce((sum, s) => sum + (s.laborSavings ?? 0), 0),
@@ -55,9 +57,10 @@ export async function getSavingsSummary(
   const confidenceScores = validSavings
     .map((s) => s.confidenceScore)
     .filter((c): c is number => c !== null && c !== undefined);
-  const avgConfidence = confidenceScores.length > 0
-    ? confidenceScores.reduce((sum, c) => sum + c, 0) / confidenceScores.length
-    : 0.5;
+  const avgConfidence =
+    confidenceScores.length > 0
+      ? confidenceScores.reduce((sum, c) => sum + c, 0) / confidenceScores.length
+      : 0.5;
   const clampedConfidence = Math.max(0, Math.min(1, avgConfidence));
   const uncertaintyMargin = 1 - clampedConfidence;
   const confidenceRange = {
@@ -67,9 +70,18 @@ export async function getSavingsSummary(
   };
 
   const equipmentIds = [...new Set(validSavings.slice(0, 5).map((s) => s.equipmentId))];
-  const equipmentData = equipmentIds.length > 0
-    ? await db.select().from(equipment).where(sql`${equipment.id} IN (${sql.join(equipmentIds.map((id) => sql`${id}`), sql`, `)})`)
-    : [];
+  const equipmentData =
+    equipmentIds.length > 0
+      ? await db
+          .select()
+          .from(equipment)
+          .where(
+            sql`${equipment.id} IN (${sql.join(
+              equipmentIds.map((id) => sql`${id}`),
+              sql`, `
+            )})`
+          )
+      : [];
 
   const equipmentMap = new Map(equipmentData.map((e) => [e.id, e.name]));
 
@@ -99,15 +111,17 @@ export async function getSavingsSummary(
 export async function getMonthlySavingsTrend(
   orgId: string,
   months: number = 12
-): Promise<Array<{
-  month: string;
-  totalSavings: number;
-  laborSavings: number;
-  partsSavings: number;
-  downtimeSavings: number;
-  downtimePrevented: number;
-  savingsCount: number;
-}>> {
+): Promise<
+  Array<{
+    month: string;
+    totalSavings: number;
+    laborSavings: number;
+    partsSavings: number;
+    downtimeSavings: number;
+    downtimePrevented: number;
+    savingsCount: number;
+  }>
+> {
   const cutoffDate = new Date();
   cutoffDate.setMonth(cutoffDate.getMonth() - months);
 
@@ -121,7 +135,9 @@ export async function getMonthlySavingsTrend(
   const monthlyData: Record<string, any> = {};
 
   savings.forEach((s) => {
-    if (!s.calculatedAt) { return; }
+    if (!s.calculatedAt) {
+      return;
+    }
 
     const monthKey = `${s.calculatedAt.getFullYear()}-${String(s.calculatedAt.getMonth() + 1).padStart(2, "0")}`;
 

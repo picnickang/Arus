@@ -1,7 +1,7 @@
 /**
  * Data Export/Import Domain Routes
  * Extracted from routes.ts for Phase 4 modularization
- * 
+ *
  * Provides data export, import, and backup management
  */
 
@@ -20,10 +20,7 @@ interface DataExportDependencies {
   upload: any;
 }
 
-export function registerDataExportRoutes(
-  app: Express,
-  deps: DataExportDependencies
-): void {
+export function registerDataExportRoutes(app: Express, deps: DataExportDependencies): void {
   const {
     generalApiRateLimit,
     criticalOperationRateLimit,
@@ -43,12 +40,16 @@ export function registerDataExportRoutes(
       const orgId = req.header("x-org-id") || req.body.orgId || "default-org-id";
       const exportedBy = (req as AuthenticatedRequest).user?.id || "admin";
 
-      const result = await service.exportOrg(orgId, {
-        includeTelemetry: req.body.includeTelemetry ?? false,
-        telemetryDays: req.body.telemetryDays ?? 30,
-        includeKnowledgeBase: req.body.includeKnowledgeBase ?? true,
-        includeAuditLogs: req.body.includeAuditLogs ?? false,
-      }, exportedBy);
+      const result = await service.exportOrg(
+        orgId,
+        {
+          includeTelemetry: req.body.includeTelemetry ?? false,
+          telemetryDays: req.body.telemetryDays ?? 30,
+          includeKnowledgeBase: req.body.includeKnowledgeBase ?? true,
+          includeAuditLogs: req.body.includeAuditLogs ?? false,
+        },
+        exportedBy
+      );
 
       if (result.success) {
         res.json({
@@ -99,12 +100,14 @@ export function registerDataExportRoutes(
       const service = getDataExportImportService();
       const exports = await service.listExports();
 
-      res.json(exports.map((e: any) => ({
-        id: e.id,
-        createdAt: e.createdAt,
-        size: e.size,
-        downloadUrl: `/api/admin/export/download/${e.id}`,
-      })));
+      res.json(
+        exports.map((e: any) => ({
+          id: e.id,
+          createdAt: e.createdAt,
+          size: e.size,
+          downloadUrl: `/api/admin/export/download/${e.id}`,
+        }))
+      );
     })
   );
 

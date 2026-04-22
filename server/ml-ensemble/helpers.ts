@@ -1,6 +1,6 @@
 /**
  * ML Ensemble Helpers
- * 
+ *
  * Statistical and recommendation utilities for ensemble predictions.
  */
 
@@ -32,7 +32,9 @@ export function calculateStats(values: number[]): StatsResult {
  * Higher score means models agree more (more confident prediction)
  */
 export function calculateAgreement(predictions: number[]): number {
-  if (predictions.length < 2) { return 1; }
+  if (predictions.length < 2) {
+    return 1;
+  }
 
   const mean = predictions.reduce((sum, p) => sum + p, 0) / predictions.length;
   const variance =
@@ -54,11 +56,21 @@ export function generateRecommendations(
   const recommendations: string[] = [];
 
   if (prediction > 0.7 && confidence > 0.7) {
-    recommendations.push("HIGH RISK: Schedule immediate inspection", "Review recent maintenance history", "Prepare replacement parts");
+    recommendations.push(
+      "HIGH RISK: Schedule immediate inspection",
+      "Review recent maintenance history",
+      "Prepare replacement parts"
+    );
   } else if (prediction > 0.5 && confidence > 0.6) {
-    recommendations.push("MODERATE RISK: Schedule preventive maintenance within 7 days", "Monitor telemetry closely");
+    recommendations.push(
+      "MODERATE RISK: Schedule preventive maintenance within 7 days",
+      "Monitor telemetry closely"
+    );
   } else if (prediction > 0.3) {
-    recommendations.push("LOW RISK: Continue normal monitoring", "Schedule routine maintenance as planned");
+    recommendations.push(
+      "LOW RISK: Continue normal monitoring",
+      "Schedule routine maintenance as planned"
+    );
   }
 
   if (agreement < 0.6) {

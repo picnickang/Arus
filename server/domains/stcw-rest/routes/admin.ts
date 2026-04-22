@@ -11,7 +11,8 @@ import { dbWorkOrderStorage } from "../../../db/workorders/index.js";
 import { dbMaintenanceStorage } from "../../../db/maintenance/index.js";
 
 export function registerAdminRoutes(app: Express, deps: StcwRestDependencies): void {
-  app.delete("/api/work-orders/clear",
+  app.delete(
+    "/api/work-orders/clear",
     withErrorHandling("clear work orders", async (_req: Request, res: Response) => {
       await dbWorkOrderStorage.clearAllWorkOrders();
       res.json({
@@ -21,7 +22,8 @@ export function registerAdminRoutes(app: Express, deps: StcwRestDependencies): v
     })
   );
 
-  app.delete("/api/maintenance/schedules/clear",
+  app.delete(
+    "/api/maintenance/schedules/clear",
     withErrorHandling("clear maintenance schedules", async (_req: Request, res: Response) => {
       await dbMaintenanceStorage.getMaintenanceSchedules();
       res.json({

@@ -28,7 +28,11 @@ export function calculateHealthScore(fftResult: FFTResult, anomaly: AnomalyDetec
 /**
  * Calculate energy in a specific frequency band
  */
-export function calculateBandEnergy(fftResult: FFTResult, minFreq: number, maxFreq: number): number {
+export function calculateBandEnergy(
+  fftResult: FFTResult,
+  minFreq: number,
+  maxFreq: number
+): number {
   const { frequencies, magnitudes } = fftResult;
   let energy = 0;
   let count = 0;

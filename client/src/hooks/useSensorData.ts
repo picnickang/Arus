@@ -48,9 +48,7 @@ export function useSensorBundles(filters?: {
   // Use tuple segments [baseUrl, params] for proper cache invalidation
   // The default query function will convert params to query string
   return useQuery<SensorBundle[]>({
-    queryKey: filters
-      ? [SENSOR_BUNDLES_QUERY_KEY, filters]
-      : [SENSOR_BUNDLES_QUERY_KEY],
+    queryKey: filters ? [SENSOR_BUNDLES_QUERY_KEY, filters] : [SENSOR_BUNDLES_QUERY_KEY],
   });
 }
 
@@ -86,9 +84,7 @@ export function useSensorTemplates(filters?: {
   // Use tuple segments [baseUrl, params] for proper cache invalidation
   // The default query function will convert params to query string
   return useQuery<SensorTemplate[]>({
-    queryKey: filters
-      ? [SENSOR_TEMPLATES_QUERY_KEY, filters]
-      : [SENSOR_TEMPLATES_QUERY_KEY],
+    queryKey: filters ? [SENSOR_TEMPLATES_QUERY_KEY, filters] : [SENSOR_TEMPLATES_QUERY_KEY],
   });
 }
 
@@ -132,7 +128,9 @@ export function useSensorConfigsByEquipment(
   return useQuery<SensorConfiguration[], Error, SensorConfiguration[]>({
     queryKey: [SENSOR_CONFIGS_QUERY_KEY],
     select: (data) => {
-      if (!equipmentId) {return [];}
+      if (!equipmentId) {
+        return [];
+      }
       return data.filter((c) => c.equipmentId === equipmentId);
     },
     enabled: !!equipmentId,

@@ -11,20 +11,25 @@ import {
 import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";
 import { withErrorHandling } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
-import { getSavingsSummary, getMonthlySavingsTrend, calculateWorkOrderSavings, processWorkOrderCompletion, updateSavingsValidationStatus } from "../../cost-savings-engine";
+import {
+  getSavingsSummary,
+  getMonthlySavingsTrend,
+  calculateWorkOrderSavings,
+  processWorkOrderCompletion,
+  updateSavingsValidationStatus,
+} from "../../cost-savings-engine";
 import { db } from "../../db";
 
 interface CostSavingsRoutesConfig {
   writeOperationRateLimit: RateLimitRequestHandler;
 }
 
-export function registerCostSavingsRoutes(
-  app: Express,
-  config: CostSavingsRoutesConfig
-): void {
+export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoutesConfig): void {
   const { writeOperationRateLimit } = config;
 
-  app.get("/api/cost-savings/summary", requireOrgId,
+  app.get(
+    "/api/cost-savings/summary",
+    requireOrgId,
     withErrorHandling("fetch cost savings summary", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const validatedQuery = costSavingsSummaryQuerySchema.parse(req.query);
@@ -39,7 +44,9 @@ export function registerCostSavingsRoutes(
     })
   );
 
-  app.get("/api/cost-savings/trend", requireOrgId,
+  app.get(
+    "/api/cost-savings/trend",
+    requireOrgId,
     withErrorHandling("fetch cost savings trend", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const validatedQuery = costSavingsTrendQuerySchema.parse(req.query);
@@ -50,7 +57,10 @@ export function registerCostSavingsRoutes(
     })
   );
 
-  app.post("/api/cost-savings/calculate/:workOrderId", requireOrgId, writeOperationRateLimit,
+  app.post(
+    "/api/cost-savings/calculate/:workOrderId",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("calculate cost savings", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { workOrderId } = req.params;
@@ -73,7 +83,10 @@ export function registerCostSavingsRoutes(
     })
   );
 
-  app.post("/api/cost-savings/process/:workOrderId", requireOrgId, writeOperationRateLimit,
+  app.post(
+    "/api/cost-savings/process/:workOrderId",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("process cost savings", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { workOrderId } = req.params;
@@ -84,7 +97,9 @@ export function registerCostSavingsRoutes(
     })
   );
 
-  app.get("/api/cost-savings", requireOrgId,
+  app.get(
+    "/api/cost-savings",
+    requireOrgId,
     withErrorHandling("fetch cost savings", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const validatedQuery = costSavingsListQuerySchema.parse(req.query);
@@ -115,7 +130,9 @@ export function registerCostSavingsRoutes(
     })
   );
 
-  app.get("/api/cost-savings/equipment-financials", requireOrgId,
+  app.get(
+    "/api/cost-savings/equipment-financials",
+    requireOrgId,
     withErrorHandling("fetch equipment financial summary", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
 
@@ -127,9 +144,12 @@ export function registerCostSavingsRoutes(
       startDate.setMonth(startDate.getMonth() - 12);
       const savingsSummary = await getSavingsSummary(orgId, startDate, endDate);
 
-      const assetROI = financials.totalFleetValue > 0
-        ? ((savingsSummary.totalSavings + financials.totalCapitalRecovered) / financials.totalFleetValue) * 100
-        : 0;
+      const assetROI =
+        financials.totalFleetValue > 0
+          ? ((savingsSummary.totalSavings + financials.totalCapitalRecovered) /
+              financials.totalFleetValue) *
+            100
+          : 0;
 
       res.json({
         ...financials,
@@ -139,7 +159,10 @@ export function registerCostSavingsRoutes(
     })
   );
 
-  app.patch("/api/cost-savings/:id/validation", requireOrgId, writeOperationRateLimit,
+  app.patch(
+    "/api/cost-savings/:id/validation",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("update savings validation status", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const userId = (req as AuthenticatedRequest).user?.id ?? "unknown";
@@ -170,5 +193,8 @@ export function registerCostSavingsRoutes(
     })
   );
 
-  logger.info("CostSavingsRoutes", "Registered: summary, trend, calculate, process, list, equipment-financials, validation");
+  logger.info(
+    "CostSavingsRoutes",
+    "Registered: summary, trend, calculate, process, list, equipment-financials, validation"
+  );
 }

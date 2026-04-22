@@ -2,7 +2,7 @@
  * Update Scheduler Service
  * Tier 3: Automated update checking with maintenance windows and marine-specific logic
  * Part of ARUS 3-Tier Patching System
- * 
+ *
  * DEPLOYMENT MODE: This service should ONLY run in CLOUD mode.
  * Vessel/embedded deployments receive updates through different channels.
  */
@@ -56,10 +56,9 @@ function isInMaintenanceWindow(
     if (endTimeMinutes < startTimeMinutes) {
       // Window crosses midnight
       return currentTimeMinutes >= startTimeMinutes || currentTimeMinutes <= endTimeMinutes;
-    } 
-      // Normal window within same day
-      return currentTimeMinutes >= startTimeMinutes && currentTimeMinutes <= endTimeMinutes;
-    
+    }
+    // Normal window within same day
+    return currentTimeMinutes >= startTimeMinutes && currentTimeMinutes <= endTimeMinutes;
   } catch (error) {
     console.error("[UpdateScheduler] Error checking maintenance window:", error);
     // On error, assume we're NOT in maintenance window (safer default)
@@ -72,7 +71,7 @@ function isInMaintenanceWindow(
  */
 async function checkForUpdatesAllOrgs(): Promise<void> {
   // GUARD: Update scheduler only runs in CLOUD mode
-  if (!isCloudMode || !canUseCloudFeature('updateScheduler')) {
+  if (!isCloudMode || !canUseCloudFeature("updateScheduler")) {
     console.log("[UpdateScheduler] Skipped - not available in VESSEL mode");
     return;
   }
@@ -260,8 +259,10 @@ async function checkForUpdatesAllOrgs(): Promise<void> {
  */
 export function setupUpdateScheduler(): void {
   // GUARD: Update scheduler only runs in CLOUD mode
-  if (!isCloudMode || !canUseCloudFeature('updateScheduler')) {
-    console.log("[UpdateScheduler] Disabled - update scheduler is cloud-only (vessel mode uses different update channels)");
+  if (!isCloudMode || !canUseCloudFeature("updateScheduler")) {
+    console.log(
+      "[UpdateScheduler] Disabled - update scheduler is cloud-only (vessel mode uses different update channels)"
+    );
     return;
   }
 

@@ -8,8 +8,8 @@ export interface MaintenanceScheduleEntity {
   orgId: string;
   equipmentId: string;
   scheduledDate: Date;
-  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'overdue';
-  priority: 'low' | 'medium' | 'high' | 'critical';
+  status: "scheduled" | "in_progress" | "completed" | "cancelled" | "overdue";
+  priority: "low" | "medium" | "high" | "critical";
   maintenanceType: string;
   description?: string;
   estimatedDuration?: number;

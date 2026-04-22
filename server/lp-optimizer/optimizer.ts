@@ -63,13 +63,7 @@ export class LinearProgrammingOptimizer {
         return result;
       }
 
-      const result = processSolution(
-        solution,
-        jobs,
-        constraints,
-        Date.now() - startTime,
-        false
-      );
+      const result = processSolution(solution, jobs, constraints, Date.now() - startTime, false);
 
       recordOptimizationMetrics(this.orgId, result, jobs);
 

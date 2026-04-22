@@ -27,7 +27,10 @@ export function torqueToNm(value: number, unit: "Nm" | "kNm"): number {
   return unit === "kNm" ? value * 1000 : value;
 }
 
-export async function computeVPSKPIs(payload: VPSPayload, config: VPSConfiguration = {}): Promise<VPSKPIResult> {
+export async function computeVPSKPIs(
+  payload: VPSPayload,
+  config: VPSConfiguration = {}
+): Promise<VPSKPIResult> {
   const t = payload.timestamp ?? [];
   const rpm = payload.rpm ?? [];
   const tqRaw = payload.shaft_torque ?? [];
@@ -35,8 +38,12 @@ export async function computeVPSKPIs(payload: VPSPayload, config: VPSConfigurati
   const unit = config.torque_unit ?? payload.torque_unit ?? "Nm";
 
   const tqNm = tqRaw.map((v) => torqueToNm(v ?? 0, unit));
-  const maxTorque = config.max_torque_nm && config.max_torque_nm > 0
-    ? config.max_torque_nm : tqNm.length > 0 ? quantile(tqNm, 0.95) : 1;
+  const maxTorque =
+    config.max_torque_nm && config.max_torque_nm > 0
+      ? config.max_torque_nm
+      : tqNm.length > 0
+        ? quantile(tqNm, 0.95)
+        : 1;
 
   const loadPct = tqNm.map((v) => Math.max(0, Math.min(100, (100 * v) / maxTorque)));
   const powerKw = rpm.map((r, i) => (2 * Math.PI * (tqNm[i] ?? 0) * (r ?? 0)) / 60 / 1000);
@@ -46,14 +53,21 @@ export async function computeVPSKPIs(payload: VPSPayload, config: VPSConfigurati
   const sfoc = powerKw.map((p, i) => (p > 1e-6 ? (fuelKgh[i] * 1000) / p : NaN));
   const sfocSmoothed = movingAverage(sfoc, 7);
 
-  const stw = payload.stw && payload.stw.length === rpm.length
-    ? payload.stw : rpm.map((r) => Math.max(0, 10 * Math.pow((r ?? 1) / 1200, 1.5)));
+  const stw =
+    payload.stw && payload.stw.length === rpm.length
+      ? payload.stw
+      : rpm.map((r) => Math.max(0, 10 * Math.pow((r ?? 1) / 1200, 1.5)));
 
   const bins = [20, 30, 35, 43, 48, 50, 62, 70, 80, 90, 100];
   const counts = bins.map(() => 0);
   for (const load of loadPct) {
     let binIndex = counts.length - 1;
-    for (let i = 0; i < bins.length; i++) { if (load <= bins[i]) { binIndex = i; break; } }
+    for (let i = 0; i < bins.length; i++) {
+      if (load <= bins[i]) {
+        binIndex = i;
+        break;
+      }
+    }
     counts[binIndex] += 1;
   }
   const hours = counts.map((c) => c / 3600);
@@ -62,7 +76,9 @@ export async function computeVPSKPIs(payload: VPSPayload, config: VPSConfigurati
   return {
     meta: { max_torque_nm: maxTorque, fuel_density_kg_per_l: rho, torque_unit: unit },
     series: {
-      load_vs_sfoc: loadPct.map((load, i) => ({ x: load, y: sfocSmoothed[i] })).filter((d) => Number.isFinite(d.y)),
+      load_vs_sfoc: loadPct
+        .map((load, i) => ({ x: load, y: sfocSmoothed[i] }))
+        .filter((d) => Number.isFinite(d.y)),
       fuel_vs_time: xTime.map((time, i) => ({ x: time, y: fuelLh[i] ?? 0 })),
       power_vs_stw: stw.map((speed, i) => ({ x: speed, y: powerKw[i] ?? 0 })),
       load_hist: bins.map((bin, i) => ({ bin, hours: hours[i] })),
@@ -70,8 +86,13 @@ export async function computeVPSKPIs(payload: VPSPayload, config: VPSConfigurati
   };
 }
 
-export function calculatePowerSTWCurve(rpm: number[], torque: number[], stw?: number[]): PowerVsSTW[] {
+export function calculatePowerSTWCurve(
+  rpm: number[],
+  torque: number[],
+  stw?: number[]
+): PowerVsSTW[] {
   const powerKw = rpm.map((r, i) => (2 * Math.PI * (torque[i] ?? 0) * r) / 60 / 1000);
-  const stwKnots = stw?.length === rpm.length ? stw : rpm.map((r) => 10 * Math.pow((r ?? 1) / 1200, 1.5));
+  const stwKnots =
+    stw?.length === rpm.length ? stw : rpm.map((r) => 10 * Math.pow((r ?? 1) / 1200, 1.5));
   return stwKnots.map((speed, i) => ({ x: speed, y: powerKw[i] ?? 0 }));
 }

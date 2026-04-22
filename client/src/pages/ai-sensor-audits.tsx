@@ -155,211 +155,211 @@ export default function AISensorAudits() {
           </Button>
         </div>
 
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card data-testid="card-total-runs">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Runs
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalRuns}</div>
-            </CardContent>
-          </Card>
+        {/* Stats Cards */}
+        {stats && (
+          <div className="grid gap-4 md:grid-cols-4">
+            <Card data-testid="card-total-runs">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Runs
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalRuns}</div>
+              </CardContent>
+            </Card>
 
-          <Card data-testid="card-success-rate">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Success Rate
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.successRate.toFixed(1)}%</div>
-            </CardContent>
-          </Card>
+            <Card data-testid="card-success-rate">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Success Rate
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.successRate.toFixed(1)}%</div>
+              </CardContent>
+            </Card>
 
-          <Card data-testid="card-avg-time">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Avg Execution Time
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {(stats.averageExecutionTime / 1000).toFixed(1)}s
+            <Card data-testid="card-avg-time">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Avg Execution Time
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {(stats.averageExecutionTime / 1000).toFixed(1)}s
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-recent-runs">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Recent Runs (30d)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.recentRuns}</div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Audit History Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5" />
+              Audit History
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {auditsLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading audit history...</div>
+            ) : audits.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No audits run yet. Click "Run Audit" to start your first validation.
               </div>
-            </CardContent>
-          </Card>
-
-          <Card data-testid="card-recent-runs">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Recent Runs (30d)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.recentRuns}</div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Audit History Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" />
-            Audit History
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {auditsLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading audit history...</div>
-          ) : audits.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No audits run yet. Click "Run Audit" to start your first validation.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Run Type</TableHead>
-                    <TableHead>Tests Passed</TableHead>
-                    <TableHead>Execution Time</TableHead>
-                    <TableHead>Started At</TableHead>
-                    <TableHead>Triggered By</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {audits.map((audit) => (
-                    <TableRow key={audit.id} data-testid={`row-audit-${audit.id}`}>
-                      <TableCell>
-                        {getStatusBadge(audit.status, audit.testsPassed, audit.testsFailed)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{audit.runType}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-mono">
-                          {audit.testsPassed}/{audit.totalTests}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-mono">
-                          {audit.executionTimeMs
-                            ? `${(audit.executionTimeMs / 1000).toFixed(1)}s`
-                            : "-"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(audit.startedAt), "MMM d, yyyy HH:mm")}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {audit.triggeredBy}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          data-testid={`button-view-${audit.id}`}
-                          onClick={() => setSelectedAudit(audit)}
-                        >
-                          View Details
-                        </Button>
-                      </TableCell>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Run Type</TableHead>
+                      <TableHead>Tests Passed</TableHead>
+                      <TableHead>Execution Time</TableHead>
+                      <TableHead>Started At</TableHead>
+                      <TableHead>Triggered By</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Audit Details Modal */}
-      {selectedAudit && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Audit Run Details</CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => setSelectedAudit(null)}>
-                  Close
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm text-muted-foreground">Status</div>
-                  <div className="mt-1">
-                    {getStatusBadge(
-                      selectedAudit.status,
-                      selectedAudit.testsPassed,
-                      selectedAudit.testsFailed
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">Execution Time</div>
-                  <div className="mt-1 font-mono">
-                    {(selectedAudit.executionTimeMs / 1000).toFixed(2)}s
-                  </div>
-                </div>
-              </div>
-
-              {selectedAudit.modelPerformance && (
-                <div>
-                  <h3 className="font-semibold mb-2">Model Performance</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    {Object.entries(selectedAudit.modelPerformance).map(
-                      ([model, perf]: [string, { accuracy: string; trainingTimeMs: number }]) => (
-                        <Card key={model}>
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">{model.toUpperCase()}</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="text-2xl font-bold">{perf.accuracy}</div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {perf.trainingTimeMs}ms
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {selectedAudit.featureRankings && selectedAudit.featureRankings.length > 0 && (
-                <div>
-                  <h3 className="font-semibold mb-2">Feature Rankings</h3>
-                  <div className="space-y-2">
-                    {selectedAudit.featureRankings.map((ranking, i) => (
-                      <div key={i} className="flex items-center justify-between">
-                        <span className="text-sm">{ranking.sensor}</span>
-                        <Badge variant="outline">{ranking.confidence.toFixed(1)}%</Badge>
-                      </div>
+                  </TableHeader>
+                  <TableBody>
+                    {audits.map((audit) => (
+                      <TableRow key={audit.id} data-testid={`row-audit-${audit.id}`}>
+                        <TableCell>
+                          {getStatusBadge(audit.status, audit.testsPassed, audit.testsFailed)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{audit.runType}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono">
+                            {audit.testsPassed}/{audit.totalTests}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono">
+                            {audit.executionTimeMs
+                              ? `${(audit.executionTimeMs / 1000).toFixed(1)}s`
+                              : "-"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {format(new Date(audit.startedAt), "MMM d, yyyy HH:mm")}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {audit.triggeredBy}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            data-testid={`button-view-${audit.id}`}
+                            onClick={() => setSelectedAudit(audit)}
+                          >
+                            View Details
+                          </Button>
+                        </TableCell>
+                      </TableRow>
                     ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Audit Details Modal */}
+        {selectedAudit && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Audit Run Details</CardTitle>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedAudit(null)}>
+                    Close
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-sm text-muted-foreground">Status</div>
+                    <div className="mt-1">
+                      {getStatusBadge(
+                        selectedAudit.status,
+                        selectedAudit.testsPassed,
+                        selectedAudit.testsFailed
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Execution Time</div>
+                    <div className="mt-1 font-mono">
+                      {(selectedAudit.executionTimeMs / 1000).toFixed(2)}s
+                    </div>
                   </div>
                 </div>
-              )}
 
-              {selectedAudit.errorMessage && (
-                <div className="bg-destructive/10 p-4 rounded border border-destructive/20">
-                  <h3 className="font-semibold text-destructive mb-2">Error</h3>
-                  <pre className="text-sm whitespace-pre-wrap">{selectedAudit.errorMessage}</pre>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
+                {selectedAudit.modelPerformance && (
+                  <div>
+                    <h3 className="font-semibold mb-2">Model Performance</h3>
+                    <div className="grid grid-cols-3 gap-4">
+                      {Object.entries(selectedAudit.modelPerformance).map(
+                        ([model, perf]: [string, { accuracy: string; trainingTimeMs: number }]) => (
+                          <Card key={model}>
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-sm">{model.toUpperCase()}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-2xl font-bold">{perf.accuracy}</div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                {perf.trainingTimeMs}ms
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {selectedAudit.featureRankings && selectedAudit.featureRankings.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold mb-2">Feature Rankings</h3>
+                    <div className="space-y-2">
+                      {selectedAudit.featureRankings.map((ranking, i) => (
+                        <div key={i} className="flex items-center justify-between">
+                          <span className="text-sm">{ranking.sensor}</span>
+                          <Badge variant="outline">{ranking.confidence.toFixed(1)}%</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedAudit.errorMessage && (
+                  <div className="bg-destructive/10 p-4 rounded border border-destructive/20">
+                    <h3 className="font-semibold text-destructive mb-2">Error</h3>
+                    <pre className="text-sm whitespace-pre-wrap">{selectedAudit.errorMessage}</pre>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

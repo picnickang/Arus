@@ -13,11 +13,8 @@ export async function initializeSchedulers(isEmbedded: boolean): Promise<void> {
 
   console.log("→ Setting up schedulers...");
 
-  const {
-    setupInsightsSchedule,
-    setupPredictiveMaintenanceSchedule,
-    setupMLRetrainingSchedule,
-  } = await import("../insights-scheduler");
+  const { setupInsightsSchedule, setupPredictiveMaintenanceSchedule, setupMLRetrainingSchedule } =
+    await import("../insights-scheduler");
   const { setupVesselSchedules } = await import("../vessel-scheduler");
   const { setupOptimizationCleanupSchedule } = await import("../optimization-cleanup-scheduler");
   const { setupMaterializedViewRefresh } = await import("../materialized-view-scheduler");
@@ -44,13 +41,25 @@ function setupTwinRefreshSchedule(): void {
   setInterval(async () => {
     try {
       const { DEFAULT_ORG_ID } = await import("../../shared/config/tenant");
-      const { TwinUpdateService } = await import("../domains/pdm-platform/twin-updates/twin-update.service");
+      const { TwinUpdateService } = await import(
+        "../domains/pdm-platform/twin-updates/twin-update.service"
+      );
       const { TwinFreshnessAdapter } = await import("../domains/pdm-platform/twin-updates/adapter");
-      const { TwinDefinitionAdapter } = await import("../domains/pdm-platform/digital-twin/twin-definition/adapter");
-      const { TwinStateAdapter } = await import("../domains/pdm-platform/digital-twin/twin-state/adapter");
-      const { TwinStateService } = await import("../domains/pdm-platform/digital-twin/twin-state/twin-state.service");
-      const { ResidualAnalysisService } = await import("../domains/pdm-platform/digital-twin/residual-analysis/residual-analysis.service");
-      const { TelemetryAdapter } = await import("../domains/pdm-platform/feature-store/telemetry-adapter");
+      const { TwinDefinitionAdapter } = await import(
+        "../domains/pdm-platform/digital-twin/twin-definition/adapter"
+      );
+      const { TwinStateAdapter } = await import(
+        "../domains/pdm-platform/digital-twin/twin-state/adapter"
+      );
+      const { TwinStateService } = await import(
+        "../domains/pdm-platform/digital-twin/twin-state/twin-state.service"
+      );
+      const { ResidualAnalysisService } = await import(
+        "../domains/pdm-platform/digital-twin/residual-analysis/residual-analysis.service"
+      );
+      const { TelemetryAdapter } = await import(
+        "../domains/pdm-platform/feature-store/telemetry-adapter"
+      );
 
       const defAdapter = new TwinDefinitionAdapter();
       const stateAdapter = new TwinStateAdapter();
@@ -76,8 +85,12 @@ function setupPredictionExpirySchedule(): void {
   setInterval(async () => {
     try {
       const { DEFAULT_ORG_ID } = await import("../../shared/config/tenant");
-      const { PredictionGovernanceService } = await import("../domains/pdm-platform/prediction-governance/prediction-governance.service");
-      const { PredictionGovernanceAdapter } = await import("../domains/pdm-platform/prediction-governance/adapter");
+      const { PredictionGovernanceService } = await import(
+        "../domains/pdm-platform/prediction-governance/prediction-governance.service"
+      );
+      const { PredictionGovernanceAdapter } = await import(
+        "../domains/pdm-platform/prediction-governance/adapter"
+      );
       const adapter = new PredictionGovernanceAdapter();
       const service = new PredictionGovernanceService(adapter);
       const result = await service.expireStale(DEFAULT_ORG_ID);

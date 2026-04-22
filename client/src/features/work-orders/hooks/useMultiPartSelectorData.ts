@@ -50,8 +50,12 @@ export interface UseMultiPartSelectorDataReturn {
   existingParts: Array<{ partId: string; quantity: number; unitCost: number; totalCost: number }>;
   filteredParts: Part[];
   hasStockWarnings: boolean;
-  addPartsMutation: ReturnType<typeof useCustomMutation<SelectedPart[], { success: boolean; message?: string }>>;
-  removePartMutation: ReturnType<typeof useCustomMutation<string, { success: boolean; message?: string }>>;
+  addPartsMutation: ReturnType<
+    typeof useCustomMutation<SelectedPart[], { success: boolean; message?: string }>
+  >;
+  removePartMutation: ReturnType<
+    typeof useCustomMutation<string, { success: boolean; message?: string }>
+  >;
   addPartToSelection: (part: Part) => void;
   incrementPartQuantity: (partId: string) => void;
   decrementPartQuantity: (partId: string) => void;
@@ -60,7 +64,9 @@ export interface UseMultiPartSelectorDataReturn {
   removePartFromSelection: (partId: string) => void;
   getTotalCost: () => number;
   getStockStatus: (part: Part) => { status: string; color: string };
-  getStockWarning: (part: SelectedPart) => { message: string; severity: "error" | "warning" } | null;
+  getStockWarning: (
+    part: SelectedPart
+  ) => { message: string; severity: "error" | "warning" } | null;
   clearSelection: () => void;
 }
 
@@ -85,7 +91,10 @@ export function useMultiPartSelectorData(
     queryKey: ["/api/work-orders", workOrderId, "parts"],
   });
 
-  const addPartsMutation = useCustomMutation<SelectedPart[], { summary?: { added: number; updated: number; errors: number } }>({
+  const addPartsMutation = useCustomMutation<
+    SelectedPart[],
+    { summary?: { added: number; updated: number; errors: number } }
+  >({
     mutationFn: async (parts: SelectedPart[]) => {
       const payload = {
         parts: parts.map((part) => ({
@@ -138,71 +147,151 @@ export function useMultiPartSelectorData(
       if (existingIndex >= 0) {
         const updated = [...prev];
         updated[existingIndex].quantity += 1;
-        updated[existingIndex].totalCost = updated[existingIndex].quantity * updated[existingIndex].unitCost;
+        updated[existingIndex].totalCost =
+          updated[existingIndex].quantity * updated[existingIndex].unitCost;
         return updated;
       }
       const unitCost = part.stock?.unitCost || part.standardCost || 0;
       const availableStock = part.stock?.availableQuantity ?? 0;
-      return [...prev, { partId: part.id, partNumber: part.partNumber, partName: part.partName, quantity: 1, unitCost, totalCost: unitCost, availableStock }];
+      return [
+        ...prev,
+        {
+          partId: part.id,
+          partNumber: part.partNumber,
+          partName: part.partName,
+          quantity: 1,
+          unitCost,
+          totalCost: unitCost,
+          availableStock,
+        },
+      ];
     });
   }, []);
 
   const incrementPartQuantity = useCallback((partId: string) => {
     setSelectedParts((prev) =>
-      prev.map((part) => part.partId === partId ? { ...part, quantity: part.quantity + 1, totalCost: (part.quantity + 1) * part.unitCost } : part)
+      prev.map((part) =>
+        part.partId === partId
+          ? { ...part, quantity: part.quantity + 1, totalCost: (part.quantity + 1) * part.unitCost }
+          : part
+      )
     );
   }, []);
 
   const decrementPartQuantity = useCallback((partId: string) => {
     setSelectedParts((prev) => {
       const part = prev.find((p) => p.partId === partId);
-      if (!part || part.quantity <= 1) { return prev; }
-      return prev.map((p) => p.partId === partId ? { ...p, quantity: p.quantity - 1, totalCost: (p.quantity - 1) * p.unitCost } : p);
+      if (!part || part.quantity <= 1) {
+        return prev;
+      }
+      return prev.map((p) =>
+        p.partId === partId
+          ? { ...p, quantity: p.quantity - 1, totalCost: (p.quantity - 1) * p.unitCost }
+          : p
+      );
     });
   }, []);
 
   const updatePartQuantity = useCallback((partId: string, quantity: number) => {
     const safeQuantity = Math.max(1, Math.floor(quantity));
     setSelectedParts((prev) =>
-      prev.map((part) => part.partId === partId ? { ...part, quantity: safeQuantity, totalCost: safeQuantity * part.unitCost } : part)
+      prev.map((part) =>
+        part.partId === partId
+          ? { ...part, quantity: safeQuantity, totalCost: safeQuantity * part.unitCost }
+          : part
+      )
     );
   }, []);
 
   const updatePartNotes = useCallback((partId: string, notes: string) => {
-    setSelectedParts((prev) => prev.map((part) => (part.partId === partId ? { ...part, notes } : part)));
+    setSelectedParts((prev) =>
+      prev.map((part) => (part.partId === partId ? { ...part, notes } : part))
+    );
   }, []);
 
   const removePartFromSelection = useCallback((partId: string) => {
     setSelectedParts((prev) => prev.filter((p) => p.partId !== partId));
   }, []);
 
-  const getTotalCost = useCallback(() => selectedParts.reduce((total, part) => total + part.totalCost, 0), [selectedParts]);
+  const getTotalCost = useCallback(
+    () => selectedParts.reduce((total, part) => total + part.totalCost, 0),
+    [selectedParts]
+  );
 
   const getStockStatus = useCallback((part: Part) => {
-    if (!part.stock) { return { status: "unknown", color: "bg-gray-500" }; }
+    if (!part.stock) {
+      return { status: "unknown", color: "bg-gray-500" };
+    }
     const available = part.stock.availableQuantity;
-    if (available === 0) { return { status: "Out of Stock", color: "bg-red-500" }; }
-    if (available < 5) { return { status: "Low Stock", color: "bg-yellow-500" }; }
+    if (available === 0) {
+      return { status: "Out of Stock", color: "bg-red-500" };
+    }
+    if (available < 5) {
+      return { status: "Low Stock", color: "bg-yellow-500" };
+    }
     return { status: "In Stock", color: "bg-green-500" };
   }, []);
 
   const getStockWarning = useCallback((part: SelectedPart) => {
     const available = part.availableStock;
-    if (available === 0 && part.quantity > 0) { return { message: `Out of stock (0 available)`, severity: "error" as const }; }
-    if (part.quantity > available) { return { message: `Requested ${part.quantity} but only ${available} available`, severity: "error" as const }; }
-    if (available > 0 && part.quantity > available * 0.8) { return { message: `Using ${Math.round((part.quantity / available) * 100)}% of available stock`, severity: "warning" as const }; }
+    if (available === 0 && part.quantity > 0) {
+      return { message: `Out of stock (0 available)`, severity: "error" as const };
+    }
+    if (part.quantity > available) {
+      return {
+        message: `Requested ${part.quantity} but only ${available} available`,
+        severity: "error" as const,
+      };
+    }
+    if (available > 0 && part.quantity > available * 0.8) {
+      return {
+        message: `Using ${Math.round((part.quantity / available) * 100)}% of available stock`,
+        severity: "warning" as const,
+      };
+    }
     return null;
   }, []);
 
-  const hasStockWarnings = useMemo(() => selectedParts.some((part) => getStockWarning(part)?.severity === "error"), [selectedParts, getStockWarning]);
+  const hasStockWarnings = useMemo(
+    () => selectedParts.some((part) => getStockWarning(part)?.severity === "error"),
+    [selectedParts, getStockWarning]
+  );
 
-  const filteredParts = useMemo(() => (Array.isArray(availableParts) ? availableParts : []).filter((part) => part.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) || part.partName.toLowerCase().includes(searchTerm.toLowerCase())), [availableParts, searchTerm]);
+  const filteredParts = useMemo(
+    () =>
+      (Array.isArray(availableParts) ? availableParts : []).filter(
+        (part) =>
+          part.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          part.partName.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [availableParts, searchTerm]
+  );
 
   const clearSelection = useCallback(() => setSelectedParts([]), []);
 
   return {
-    searchTerm, setSearchTerm, selectedParts, usedBy, setUsedBy, availableParts: availableParts ?? [], isLoading, engineers, existingParts,
-    filteredParts, hasStockWarnings, addPartsMutation, removePartMutation, addPartToSelection, incrementPartQuantity, decrementPartQuantity,
-    updatePartQuantity, updatePartNotes, removePartFromSelection, getTotalCost, getStockStatus, getStockWarning, clearSelection,
+    searchTerm,
+    setSearchTerm,
+    selectedParts,
+    usedBy,
+    setUsedBy,
+    availableParts: availableParts ?? [],
+    isLoading,
+    engineers,
+    existingParts,
+    filteredParts,
+    hasStockWarnings,
+    addPartsMutation,
+    removePartMutation,
+    addPartToSelection,
+    incrementPartQuantity,
+    decrementPartQuantity,
+    updatePartQuantity,
+    updatePartNotes,
+    removePartFromSelection,
+    getTotalCost,
+    getStockStatus,
+    getStockWarning,
+    clearSelection,
   };
 }

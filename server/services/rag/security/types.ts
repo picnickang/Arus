@@ -10,7 +10,7 @@ export interface RagSecurityConfig {
     allowHeaderOrgId: boolean; // For dev mode only
     streamingTokenTTLSeconds: number;
   };
-  
+
   // Rate limiting settings
   rateLimiting: {
     enabled: boolean;
@@ -19,7 +19,7 @@ export interface RagSecurityConfig {
     windowSizeSeconds: number;
     useRedis: boolean;
   };
-  
+
   // Document ingestion settings
   ingestion: {
     maxFileSizeMB: number;
@@ -28,7 +28,7 @@ export interface RagSecurityConfig {
     enableMalwareScan: boolean;
     quarantineOnSuspicious: boolean;
   };
-  
+
   // Prompt injection protection
   promptSecurity: {
     enabled: boolean;
@@ -38,7 +38,7 @@ export interface RagSecurityConfig {
     maxQueryLength: number;
     blockedPatterns: string[];
   };
-  
+
   // Audit logging
   audit: {
     enabled: boolean;
@@ -65,19 +65,32 @@ export const DEFAULT_RAG_SECURITY_CONFIG: RagSecurityConfig = {
   ingestion: {
     maxFileSizeMB: 50,
     allowedMimeTypes: [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-excel',
-      'text/plain',
-      'text/markdown',
-      'text/csv',
-      'image/png',
-      'image/jpeg',
-      'image/webp',
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-excel",
+      "text/plain",
+      "text/markdown",
+      "text/csv",
+      "image/png",
+      "image/jpeg",
+      "image/webp",
     ],
-    allowedExtensions: ['.pdf', '.doc', '.docx', '.xlsx', '.xls', '.txt', '.md', '.csv', '.png', '.jpg', '.jpeg', '.webp'],
+    allowedExtensions: [
+      ".pdf",
+      ".doc",
+      ".docx",
+      ".xlsx",
+      ".xls",
+      ".txt",
+      ".md",
+      ".csv",
+      ".png",
+      ".jpg",
+      ".jpeg",
+      ".webp",
+    ],
     enableMalwareScan: false, // Requires external service
     quarantineOnSuspicious: true,
   },
@@ -88,21 +101,21 @@ export const DEFAULT_RAG_SECURITY_CONFIG: RagSecurityConfig = {
     filterOutputPatterns: true,
     maxQueryLength: 4000,
     blockedPatterns: [
-      'ignore previous instructions',
-      'ignore all previous',
-      'disregard above',
-      'forget everything',
-      'new instructions:',
-      'system prompt:',
-      'you are now',
-      'pretend you are',
-      'act as if',
-      'override your',
-      '\\[INST\\]',
-      '<<SYS>>',
-      '</s>',
-      '<|im_start|>',
-      '<|im_end|>',
+      "ignore previous instructions",
+      "ignore all previous",
+      "disregard above",
+      "forget everything",
+      "new instructions:",
+      "system prompt:",
+      "you are now",
+      "pretend you are",
+      "act as if",
+      "override your",
+      "\\[INST\\]",
+      "<<SYS>>",
+      "</s>",
+      "<|im_start|>",
+      "<|im_end|>",
     ],
   },
   audit: {

@@ -10,7 +10,9 @@ export { sqliteTable, text, integer, real, primaryKey, index };
 
 export const sqliteJsonHelpers = {
   parseArray: (value: string | null): string[] => {
-    if (!value) {return [];}
+    if (!value) {
+      return [];
+    }
     try {
       return JSON.parse(value);
     } catch {
@@ -19,7 +21,9 @@ export const sqliteJsonHelpers = {
   },
   stringifyArray: (arr: string[]): string => JSON.stringify(arr),
   parseJson: <T>(value: string | null): T | null => {
-    if (!value) {return null;}
+    if (!value) {
+      return null;
+    }
     try {
       return JSON.parse(value) as T;
     } catch {

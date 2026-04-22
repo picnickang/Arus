@@ -3,9 +3,9 @@
  * Implements IScheduleAssignmentRepository using existing storage
  */
 
-import type { IScheduleAssignmentRepository } from '../domain/ports.js';
-import type { ScheduleAssignmentEntity } from '../domain/types.js';
-import { dbSchedulerStorage } from '../../../repositories';
+import type { IScheduleAssignmentRepository } from "../domain/ports.js";
+import type { ScheduleAssignmentEntity } from "../domain/types.js";
+import { dbSchedulerStorage } from "../../../repositories";
 
 function mapToEntity(assignment: any): ScheduleAssignmentEntity {
   return {
@@ -22,7 +22,9 @@ function mapToEntity(assignment: any): ScheduleAssignmentEntity {
 }
 
 export class ScheduleAssignmentRepositoryAdapter implements IScheduleAssignmentRepository {
-  async createBulk(assignments: Omit<ScheduleAssignmentEntity, 'id' | 'createdAt'>[]): Promise<void> {
+  async createBulk(
+    assignments: Omit<ScheduleAssignmentEntity, "id" | "createdAt">[]
+  ): Promise<void> {
     await dbSchedulerStorage.createBulkScheduleAssignments(assignments as any[]);
   }
 
@@ -31,7 +33,11 @@ export class ScheduleAssignmentRepositoryAdapter implements IScheduleAssignmentR
     return assignments.map(mapToEntity);
   }
 
-  async findByDateRange(orgId: string, fromDate: Date, toDate: Date): Promise<ScheduleAssignmentEntity[]> {
+  async findByDateRange(
+    orgId: string,
+    fromDate: Date,
+    toDate: Date
+  ): Promise<ScheduleAssignmentEntity[]> {
     const assignments = await dbSchedulerStorage.getScheduleAssignments(orgId, fromDate, toDate);
     return assignments.map(mapToEntity);
   }

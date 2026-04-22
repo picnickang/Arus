@@ -51,7 +51,9 @@ router.get("/:scenarioId", async (req: Request, res: Response) => {
   try {
     const orgId = req.headers["x-org-id"] as string;
     const result = await scenarioAdapter.getScenario(orgId, req.params.scenarioId);
-    if (!result) {return res.status(404).json({ error: "Scenario not found" });}
+    if (!result) {
+      return res.status(404).json({ error: "Scenario not found" });
+    }
     res.json(result);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

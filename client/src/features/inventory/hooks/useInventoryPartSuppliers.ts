@@ -39,7 +39,7 @@ export function useInventoryPartSuppliers(
   options?: { enabled?: boolean }
 ) {
   const shouldFetch = options?.enabled !== undefined ? options.enabled : !!inventoryItemId;
-  
+
   return useQuery<SupplierLinkWithName[]>({
     queryKey: inventorySupplierKeys.forItem(inventoryItemId || ""),
     queryFn: () => apiRequest("GET", `/api/inventory/${inventoryItemId}/suppliers`),
@@ -99,8 +99,7 @@ export function useUnlinkSupplier(inventoryItemId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (linkId: string) =>
-      apiRequest("DELETE", `/api/inventory/supplier-links/${linkId}`),
+    mutationFn: (linkId: string) => apiRequest("DELETE", `/api/inventory/supplier-links/${linkId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: inventorySupplierKeys.forItem(inventoryItemId) });
     },

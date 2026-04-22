@@ -1,6 +1,6 @@
 /**
  * Weibull RUL Types
- * 
+ *
  * Type definitions for Weibull reliability analysis.
  */
 

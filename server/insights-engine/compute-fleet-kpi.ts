@@ -1,10 +1,16 @@
 /**
  * Fleet KPI Computation
- * 
+ *
  * Compute comprehensive fleet insights using ARUS data.
  */
 
-import { dbDevicesStorage, dbEquipmentStorage, dbAlertStorage, dbTelemetryStorage, vesselService } from "../repositories";
+import {
+  dbDevicesStorage,
+  dbEquipmentStorage,
+  dbAlertStorage,
+  dbTelemetryStorage,
+  vesselService,
+} from "../repositories";
 import type { FleetKPI, InsightBundle } from "./types.js";
 
 /**
@@ -69,13 +75,16 @@ export async function computeInsights(
         vesselId: "unassigned",
         vesselName: "Unassigned",
       };
-      if (!vesselTelemetry.has(meta.vesselId))
-        {vesselTelemetry.set(meta.vesselId, { name: meta.vesselName, points: [] as any });}
+      if (!vesselTelemetry.has(meta.vesselId)) {
+        vesselTelemetry.set(meta.vesselId, { name: meta.vesselName, points: [] as any });
+      }
       vesselTelemetry.get(meta.vesselId)!.points.push(t);
     }
 
     vesselTelemetry.forEach(({ name, points }, vId) => {
-      if (!vId || vId === "unassigned") {return;}
+      if (!vId || vId === "unassigned") {
+        return;
+      }
 
       const latestReading = points.reduce(
         (a, b) => (new Date(a.ts) > new Date(b.ts) ? a : b),
@@ -84,7 +93,9 @@ export async function computeInsights(
       const lastTsISO = latestReading ? new Date(latestReading.ts).toISOString() : null;
       const stale = lastTsISO ? new Date(lastTsISO) < staleCutoff : true;
 
-      if (stale) {latestGapVessels.push(name);}
+      if (stale) {
+        latestGapVessels.push(name);
+      }
 
       const vesselAlerts = recentAlerts.filter((a) => {
         const alertEq = equipment.find((e) => e.id === a.equipmentId);

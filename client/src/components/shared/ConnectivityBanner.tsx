@@ -59,13 +59,16 @@ export function ConnectivityBanner({ pendingSyncCount = 0, className }: Connecti
   }, [pendingSyncCount]);
 
   const schedulePolling = useCallback(() => {
-    if (intervalRef.current) {clearInterval(intervalRef.current);}
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
 
-    if (stateRef.current === "offline") {return;}
+    if (stateRef.current === "offline") {
+      return;
+    }
 
-    const interval = consecutiveSuccesses.current >= STABLE_THRESHOLD
-      ? SLOW_INTERVAL_MS
-      : FAST_INTERVAL_MS;
+    const interval =
+      consecutiveSuccesses.current >= STABLE_THRESHOLD ? SLOW_INTERVAL_MS : FAST_INTERVAL_MS;
 
     intervalRef.current = setInterval(() => {
       checkConnection().then(() => schedulePolling());
@@ -83,7 +86,9 @@ export function ConnectivityBanner({ pendingSyncCount = 0, className }: Connecti
       setState("offline");
       setDismissed(false);
       consecutiveSuccesses.current = 0;
-      if (intervalRef.current) {clearInterval(intervalRef.current);}
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     };
 
     window.addEventListener("online", handleOnline);
@@ -92,11 +97,15 @@ export function ConnectivityBanner({ pendingSyncCount = 0, className }: Connecti
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      if (intervalRef.current) {clearInterval(intervalRef.current);}
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     };
   }, [checkConnection, schedulePolling]);
 
-  if (state === "online" || dismissed) {return null;}
+  if (state === "online" || dismissed) {
+    return null;
+  }
 
   const config = {
     offline: {
@@ -129,13 +138,20 @@ export function ConnectivityBanner({ pendingSyncCount = 0, className }: Connecti
 
   return (
     <div
-      className={cn("flex items-center justify-between px-4 py-2 border-b text-sm", config.bg, className)}
+      className={cn(
+        "flex items-center justify-between px-4 py-2 border-b text-sm",
+        config.bg,
+        className
+      )}
       role="status"
       aria-live="polite"
     >
       <div className="flex items-center gap-2">
         <Icon className={cn("h-4 w-4", config.iconColor, state === "syncing" && "animate-spin")} />
-        <span className={cn("text-xs font-medium", config.textColor)} data-testid={`text-connectivity-${state}`}>
+        <span
+          className={cn("text-xs font-medium", config.textColor)}
+          data-testid={`text-connectivity-${state}`}
+        >
           {config.text}
         </span>
       </div>

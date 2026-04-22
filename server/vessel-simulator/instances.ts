@@ -1,6 +1,6 @@
 /**
  * Global Instance Management for Vessel Simulator Services
- * 
+ *
  * Provides singleton access to VesselSimulator and TelemetryStressTest instances.
  */
 

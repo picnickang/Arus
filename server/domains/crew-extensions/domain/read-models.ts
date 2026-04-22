@@ -11,11 +11,11 @@ export interface CrewMemberSummary {
   name: string;
   role: string;
   qualifications: string[];
-  certificationStatus: 'valid' | 'expiring' | 'expired';
+  certificationStatus: "valid" | "expiring" | "expired";
   hoursWorkedThisWeek: number;
   hoursWorkedThisMonth: number;
   isOnLeave: boolean;
-  availability: 'available' | 'limited' | 'unavailable';
+  availability: "available" | "limited" | "unavailable";
 }
 
 /**
@@ -26,7 +26,7 @@ export interface VesselSummary {
   name: string;
   requiredCrew: number;
   currentCrew: number;
-  operationalStatus: 'active' | 'docked' | 'maintenance';
+  operationalStatus: "active" | "docked" | "maintenance";
 }
 
 /**
@@ -34,17 +34,17 @@ export interface VesselSummary {
  */
 export interface ScheduleDayCell {
   date: string;
-  shift: 'day' | 'night' | 'full_day';
+  shift: "day" | "night" | "full_day";
   crewId: string;
   crewName: string;
   vesselId: string;
   vesselName: string;
   role: string | null;
-  status: 'proposed' | 'approved' | 'applied' | 'cancelled';
+  status: "proposed" | "approved" | "applied" | "cancelled";
   assignmentId: string;
   runId: string;
   hasViolation: boolean;
-  violationType?: 'hours' | 'rest' | 'qualification' | 'leave';
+  violationType?: "hours" | "rest" | "qualification" | "leave";
 }
 
 /**
@@ -83,7 +83,7 @@ export interface SchedulePlannerView {
  */
 export interface UnfilledShiftSummary {
   date: string;
-  shift: 'day' | 'night' | 'full_day';
+  shift: "day" | "night" | "full_day";
   vesselId: string;
   vesselName: string;
   role: string | null;
@@ -95,8 +95,8 @@ export interface UnfilledShiftSummary {
  * Schedule violation details
  */
 export interface ScheduleViolation {
-  type: 'hours' | 'rest' | 'qualification' | 'leave' | 'overlap';
-  severity: 'error' | 'warning';
+  type: "hours" | "rest" | "qualification" | "leave" | "overlap";
+  severity: "error" | "warning";
   message: string;
   affectedDates: string[];
   crewId: string;
@@ -113,9 +113,9 @@ export interface CrewAssignmentProjection {
   vesselId: string;
   vesselName: string;
   date: string;
-  shift: 'day' | 'night' | 'full_day';
+  shift: "day" | "night" | "full_day";
   role: string | null;
-  status: 'proposed' | 'approved' | 'applied' | 'cancelled';
+  status: "proposed" | "approved" | "applied" | "cancelled";
   runId: string;
   projectedAt: string;
 }
@@ -130,7 +130,7 @@ export interface SchedulePlannerFilter {
   vesselIds?: string[];
   crewIds?: string[];
   roles?: string[];
-  status?: ('proposed' | 'approved' | 'applied' | 'cancelled')[];
+  status?: ("proposed" | "approved" | "applied" | "cancelled")[];
   includeUnfilled?: boolean;
 }
 
@@ -138,7 +138,7 @@ export interface SchedulePlannerFilter {
  * Read model refresh event
  */
 export interface ReadModelRefreshEvent {
-  type: 'SCHEDULE_PLANNER_REFRESH';
+  type: "SCHEDULE_PLANNER_REFRESH";
   orgId: string;
   triggeredBy: string;
   timestamp: string;

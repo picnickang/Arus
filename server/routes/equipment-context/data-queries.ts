@@ -2,8 +2,8 @@
  * Equipment Context Data Queries - Database queries for context building
  */
 
-import { eq, and, gte, sql } from 'drizzle-orm';
-import { db } from '../../db';
+import { eq, and, gte, sql } from "drizzle-orm";
+import { db } from "../../db";
 import {
   equipmentTelemetry,
   alertNotifications,
@@ -14,8 +14,8 @@ import {
   maintenanceSchedules,
   kbDocs,
   actionableInsights,
-} from '@shared/schema-runtime';
-import type { ContextQueryOptions } from './types';
+} from "@shared/schema-runtime";
+import type { ContextQueryOptions } from "./types";
 
 export async function runParallelQueries(
   equipmentId: string,
@@ -37,8 +37,8 @@ export async function runParallelQueries(
   const queryMap: Record<string, number> = {};
   let queryIndex = 0;
 
-  if (options.includeTelemetry === 'true') {
-    queryMap['telemetry'] = queryIndex++;
+  if (options.includeTelemetry === "true") {
+    queryMap["telemetry"] = queryIndex++;
     parallelQueries.push(
       db
         .select()
@@ -55,8 +55,8 @@ export async function runParallelQueries(
     );
   }
 
-  if (options.includeAlerts === 'true') {
-    queryMap['activeAlerts'] = queryIndex++;
+  if (options.includeAlerts === "true") {
+    queryMap["activeAlerts"] = queryIndex++;
     parallelQueries.push(
       db
         .select()
@@ -72,7 +72,7 @@ export async function runParallelQueries(
         .limit(options.alertsLimit)
     );
 
-    queryMap['resolvedAlerts'] = queryIndex++;
+    queryMap["resolvedAlerts"] = queryIndex++;
     parallelQueries.push(
       db
         .select()
@@ -90,8 +90,8 @@ export async function runParallelQueries(
     );
   }
 
-  if (options.includePredictions === 'true') {
-    queryMap['failurePrediction'] = queryIndex++;
+  if (options.includePredictions === "true") {
+    queryMap["failurePrediction"] = queryIndex++;
     parallelQueries.push(
       db
         .select()
@@ -101,7 +101,7 @@ export async function runParallelQueries(
         .limit(1)
     );
 
-    queryMap['pdmScores'] = queryIndex++;
+    queryMap["pdmScores"] = queryIndex++;
     parallelQueries.push(
       db
         .select()
@@ -112,8 +112,8 @@ export async function runParallelQueries(
     );
   }
 
-  if (options.includeMaintenance === 'true') {
-    queryMap['openWorkOrders'] = queryIndex++;
+  if (options.includeMaintenance === "true") {
+    queryMap["openWorkOrders"] = queryIndex++;
     parallelQueries.push(
       db
         .select()
@@ -122,32 +122,38 @@ export async function runParallelQueries(
         .orderBy(sql`${workOrders.createdAt} DESC`)
     );
 
-    queryMap['schedules'] = queryIndex++;
+    queryMap["schedules"] = queryIndex++;
     parallelQueries.push(
       db
         .select()
         .from(maintenanceSchedules)
         .where(
-          and(eq(maintenanceSchedules.equipmentId, equipmentId), eq(maintenanceSchedules.orgId, orgId))
+          and(
+            eq(maintenanceSchedules.equipmentId, equipmentId),
+            eq(maintenanceSchedules.orgId, orgId)
+          )
         )
         .orderBy(sql`${maintenanceSchedules.scheduledDate} DESC`)
     );
   }
 
-  if (options.includeSensors === 'true') {
-    queryMap['sensors'] = queryIndex++;
+  if (options.includeSensors === "true") {
+    queryMap["sensors"] = queryIndex++;
     parallelQueries.push(
       db
         .select()
         .from(sensorConfigurations)
         .where(
-          and(eq(sensorConfigurations.equipmentId, equipmentId), eq(sensorConfigurations.orgId, orgId))
+          and(
+            eq(sensorConfigurations.equipmentId, equipmentId),
+            eq(sensorConfigurations.orgId, orgId)
+          )
         )
     );
   }
 
-  if (options.includeInsights === 'true') {
-    queryMap['insights'] = queryIndex++;
+  if (options.includeInsights === "true") {
+    queryMap["insights"] = queryIndex++;
     parallelQueries.push(
       db
         .select()
@@ -166,16 +172,20 @@ export async function runParallelQueries(
   const results = await Promise.all(parallelQueries);
 
   return {
-    telemetryData: queryMap['telemetry'] !== undefined ? results[queryMap['telemetry']] : [],
-    activeAlerts: queryMap['activeAlerts'] !== undefined ? results[queryMap['activeAlerts']] : [],
-    resolvedAlerts: queryMap['resolvedAlerts'] !== undefined ? results[queryMap['resolvedAlerts']] : [],
+    telemetryData: queryMap["telemetry"] !== undefined ? results[queryMap["telemetry"]] : [],
+    activeAlerts: queryMap["activeAlerts"] !== undefined ? results[queryMap["activeAlerts"]] : [],
+    resolvedAlerts:
+      queryMap["resolvedAlerts"] !== undefined ? results[queryMap["resolvedAlerts"]] : [],
     failurePrediction:
-      queryMap['failurePrediction'] !== undefined ? results[queryMap['failurePrediction']][0] : null,
-    pdmScores: queryMap['pdmScores'] !== undefined ? results[queryMap['pdmScores']] : [],
-    allWorkOrders: queryMap['openWorkOrders'] !== undefined ? results[queryMap['openWorkOrders']] : [],
-    schedules: queryMap['schedules'] !== undefined ? results[queryMap['schedules']] : [],
-    sensors: queryMap['sensors'] !== undefined ? results[queryMap['sensors']] : [],
-    insights: queryMap['insights'] !== undefined ? results[queryMap['insights']] : [],
+      queryMap["failurePrediction"] !== undefined
+        ? results[queryMap["failurePrediction"]][0]
+        : null,
+    pdmScores: queryMap["pdmScores"] !== undefined ? results[queryMap["pdmScores"]] : [],
+    allWorkOrders:
+      queryMap["openWorkOrders"] !== undefined ? results[queryMap["openWorkOrders"]] : [],
+    schedules: queryMap["schedules"] !== undefined ? results[queryMap["schedules"]] : [],
+    sensors: queryMap["sensors"] !== undefined ? results[queryMap["sensors"]] : [],
+    insights: queryMap["insights"] !== undefined ? results[queryMap["insights"]] : [],
   };
 }
 
@@ -189,8 +199,8 @@ export async function fetchKnowledgeData(
   const results = { relatedDocuments: [] as any[], semanticMatches: [] as any[] };
 
   try {
-    const equipmentType = equipmentRecord.type ?? '';
-    const equipmentName = equipmentRecord.name ?? '';
+    const equipmentType = equipmentRecord.type ?? "";
+    const equipmentName = equipmentRecord.name ?? "";
     const searchQuery = `${equipmentType} ${equipmentName} maintenance procedures troubleshooting`;
 
     const semanticResults = await searchKnowledgeBase({
@@ -211,7 +221,7 @@ export async function fetchKnowledgeData(
 
     results.relatedDocuments = linkedDocs;
   } catch (error) {
-    logger.warn('Knowledge search failed', { error, equipmentId });
+    logger.warn("Knowledge search failed", { error, equipmentId });
   }
 
   return results;

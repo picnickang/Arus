@@ -24,9 +24,14 @@ const createCharterSchema = z.object({
   vesselId: z.string().min(1),
   charterRef: z.string().min(1),
   chartererName: z.string().min(1),
-  charterType: z.enum(["time_charter", "voyage_charter", "bareboat", "spot"]).default("time_charter"),
+  charterType: z
+    .enum(["time_charter", "voyage_charter", "bareboat", "spot"])
+    .default("time_charter"),
   commencementDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  expiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  expiryDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   dailyRate: z.number().optional(),
   currency: z.string().default("USD"),
   targetAvailabilityPct: z.number().min(0).max(100).default(95),
@@ -62,9 +67,15 @@ router.get("/", requireOrgId, async (req: Request, res: Response) => {
       LEFT JOIN vessels v ON cp.vessel_id = v.id
       WHERE cp.org_id = ${getOrgId(req)}
     `;
-    if (vesselId) {q = sql`${q} AND cp.vessel_id = ${vesselId as string}`;}
-    if (status) {q = sql`${q} AND cp.status = ${status as string}`;}
-    if (charterer) {q = sql`${q} AND LOWER(cp.charterer_name) LIKE LOWER(${`%${  charterer  }%`})`;}
+    if (vesselId) {
+      q = sql`${q} AND cp.vessel_id = ${vesselId as string}`;
+    }
+    if (status) {
+      q = sql`${q} AND cp.status = ${status as string}`;
+    }
+    if (charterer) {
+      q = sql`${q} AND LOWER(cp.charterer_name) LIKE LOWER(${`%${charterer}%`})`;
+    }
     q = sql`${q} ORDER BY cp.commencement_date DESC`;
     const result = await db.execute(q);
     res.json(getRows(result));
@@ -103,7 +114,9 @@ router.post("/", requireOrgId, async (req: Request, res: Response) => {
 
     res.status(201).json(charter);
   } catch (err) {
-    if (err instanceof z.ZodError) {return res.status(400).json({ error: "Validation failed", details: err.flatten() });}
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation failed", details: err.flatten() });
+    }
     logger.error(MODULE, "Error creating charter", { error: err });
     res.status(500).json({ error: "Failed to create charter" });
   }
@@ -117,18 +130,23 @@ router.post("/kpi", requireOrgId, async (req: Request, res: Response) => {
       SELECT * FROM charter_parties WHERE id = ${data.charterId} AND org_id = ${getOrgId(req)}
     `);
     const charter = getFirstRow(charterResult);
-    if (!charter) {return res.status(404).json({ error: "Charter not found" });}
+    if (!charter) {
+      return res.status(404).json({ error: "Charter not found" });
+    }
 
     const c = charter as any;
-    const availCompliant = data.availabilityPct != null
-      ? data.availabilityPct >= (c.target_availability_pct || 0)
-      : null;
-    const fuelCompliant = data.fuelConsumptionMt != null && c.target_fuel_consumption
-      ? data.fuelConsumptionMt <= c.target_fuel_consumption
-      : null;
-    const dpCompliant = data.dpUptimePct != null && c.target_dp_uptime_pct
-      ? data.dpUptimePct >= c.target_dp_uptime_pct
-      : null;
+    const availCompliant =
+      data.availabilityPct != null
+        ? data.availabilityPct >= (c.target_availability_pct || 0)
+        : null;
+    const fuelCompliant =
+      data.fuelConsumptionMt != null && c.target_fuel_consumption
+        ? data.fuelConsumptionMt <= c.target_fuel_consumption
+        : null;
+    const dpCompliant =
+      data.dpUptimePct != null && c.target_dp_uptime_pct
+        ? data.dpUptimePct >= c.target_dp_uptime_pct
+        : null;
 
     const result = await db.execute(sql`
       INSERT INTO charter_kpi_logs (
@@ -162,7 +180,9 @@ router.post("/kpi", requireOrgId, async (req: Request, res: Response) => {
 
     res.status(201).json(getFirstRow(result));
   } catch (err) {
-    if (err instanceof z.ZodError) {return res.status(400).json({ error: "Validation failed", details: err.flatten() });}
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation failed", details: err.flatten() });
+    }
     res.status(500).json({ error: "Failed to log KPI" });
   }
 });
@@ -178,7 +198,9 @@ router.get("/:charterId/performance", requireOrgId, async (req: Request, res: Re
       WHERE cp.id = ${charterId} AND cp.org_id = ${getOrgId(req)}
     `);
     const charter = getFirstRow(charterResult);
-    if (!charter) {return res.status(404).json({ error: "Charter not found" });}
+    if (!charter) {
+      return res.status(404).json({ error: "Charter not found" });
+    }
 
     const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     const kpiResult = await db.execute(sql`
@@ -191,14 +213,16 @@ router.get("/:charterId/performance", requireOrgId, async (req: Request, res: Re
     const c = charter as any;
 
     const totalDays = kpis.length;
-    const avgAvailability = totalDays > 0
-      ? kpis.reduce((s, k) => s + (k.availability_pct || 0), 0) / totalDays : null;
+    const avgAvailability =
+      totalDays > 0 ? kpis.reduce((s, k) => s + (k.availability_pct || 0), 0) / totalDays : null;
     const totalOffHire = kpis.reduce((s, k) => s + (k.off_hire_hours || 0), 0);
-    const avgFuel = totalDays > 0
-      ? kpis.reduce((s, k) => s + (k.fuel_consumption_mt || 0), 0) / totalDays : null;
+    const avgFuel =
+      totalDays > 0 ? kpis.reduce((s, k) => s + (k.fuel_consumption_mt || 0), 0) / totalDays : null;
     const dpEntries = kpis.filter((k) => k.dp_uptime_pct != null);
-    const avgDpUptime = dpEntries.length > 0
-      ? dpEntries.reduce((s, k) => s + k.dp_uptime_pct, 0) / dpEntries.length : null;
+    const avgDpUptime =
+      dpEntries.length > 0
+        ? dpEntries.reduce((s, k) => s + k.dp_uptime_pct, 0) / dpEntries.length
+        : null;
 
     res.json({
       charter,
@@ -206,14 +230,21 @@ router.get("/:charterId/performance", requireOrgId, async (req: Request, res: Re
       kpiSummary: {
         avgAvailability,
         targetAvailability: c.target_availability_pct,
-        availabilityMet: avgAvailability != null ? avgAvailability >= (c.target_availability_pct || 0) : null,
+        availabilityMet:
+          avgAvailability != null ? avgAvailability >= (c.target_availability_pct || 0) : null,
         totalOffHireHours: totalOffHire,
         avgDailyFuelMt: avgFuel,
         targetDailyFuelMt: c.target_fuel_consumption,
-        fuelMet: avgFuel != null && c.target_fuel_consumption ? avgFuel <= c.target_fuel_consumption : null,
+        fuelMet:
+          avgFuel != null && c.target_fuel_consumption
+            ? avgFuel <= c.target_fuel_consumption
+            : null,
         avgDpUptime,
         targetDpUptime: c.target_dp_uptime_pct,
-        dpMet: avgDpUptime != null && c.target_dp_uptime_pct ? avgDpUptime >= c.target_dp_uptime_pct : null,
+        dpMet:
+          avgDpUptime != null && c.target_dp_uptime_pct
+            ? avgDpUptime >= c.target_dp_uptime_pct
+            : null,
       },
       daysNonCompliant: {
         availability: kpis.filter((k) => k.availability_compliant === false).length,
@@ -258,9 +289,10 @@ router.get("/fleet-overview", requireOrgId, async (req: Request, res: Response) 
       activeCharters: charters.length,
       charters: charters.map((c) => ({
         ...c,
-        availabilityCompliant: c.avg_availability_30d != null
-          ? c.avg_availability_30d >= (c.target_availability_pct || 0)
-          : null,
+        availabilityCompliant:
+          c.avg_availability_30d != null
+            ? c.avg_availability_30d >= (c.target_availability_pct || 0)
+            : null,
       })),
     });
   } catch (err) {

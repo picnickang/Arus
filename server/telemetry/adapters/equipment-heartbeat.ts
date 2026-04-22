@@ -1,25 +1,25 @@
-import { eq, sql, and, lt, desc } from 'drizzle-orm';
-import { db } from '../../db-config';
-import { equipmentHeartbeat, type EquipmentHeartbeat } from '@shared/schema/telemetry';
-import { logger } from '../../utils/logger';
-import client from 'prom-client';
+import { eq, sql, and, lt, desc } from "drizzle-orm";
+import { db } from "../../db-config";
+import { equipmentHeartbeat, type EquipmentHeartbeat } from "@shared/schema/telemetry";
+import { logger } from "../../utils/logger";
+import client from "prom-client";
 
 const heartbeatUpdatesTotal = new client.Counter({
-  name: 'arus_equipment_heartbeat_updates_total',
-  help: 'Total equipment heartbeat updates',
-  labelNames: ['status'],
+  name: "arus_equipment_heartbeat_updates_total",
+  help: "Total equipment heartbeat updates",
+  labelNames: ["status"],
 });
 
 const equipmentOnlineGauge = new client.Gauge({
-  name: 'arus_equipment_online_count',
-  help: 'Number of online equipment',
-  labelNames: ['org_id'],
+  name: "arus_equipment_online_count",
+  help: "Number of online equipment",
+  labelNames: ["org_id"],
 });
 
 const equipmentOfflineGauge = new client.Gauge({
-  name: 'arus_equipment_offline_count',
-  help: 'Number of offline equipment',
-  labelNames: ['org_id'],
+  name: "arus_equipment_offline_count",
+  help: "Number of offline equipment",
+  labelNames: ["org_id"],
 });
 
 export interface HeartbeatUpdate {
@@ -40,7 +40,7 @@ export class EquipmentHeartbeatAdapter {
 
   async updateHeartbeat(update: HeartbeatUpdate): Promise<void> {
     const now = new Date();
-    
+
     try {
       await db
         .insert(equipmentHeartbeat)
@@ -50,7 +50,7 @@ export class EquipmentHeartbeatAdapter {
           lastSeenAt: now,
           lastSignalType: update.signalType,
           lastValue: update.value,
-          onlineStatus: 'online',
+          onlineStatus: "online",
           lastProtocol: update.protocol,
           lastSource: update.source,
           updatedAt: now,
@@ -61,7 +61,7 @@ export class EquipmentHeartbeatAdapter {
             lastSeenAt: now,
             lastSignalType: update.signalType ?? sql`${equipmentHeartbeat.lastSignalType}`,
             lastValue: update.value ?? sql`${equipmentHeartbeat.lastValue}`,
-            onlineStatus: 'online',
+            onlineStatus: "online",
             lastProtocol: update.protocol ?? sql`${equipmentHeartbeat.lastProtocol}`,
             lastSource: update.source ?? sql`${equipmentHeartbeat.lastSource}`,
             signalCount24h: sql`COALESCE(${equipmentHeartbeat.signalCount24h}, 0) + 1`,
@@ -69,19 +69,21 @@ export class EquipmentHeartbeatAdapter {
           },
         });
 
-      heartbeatUpdatesTotal.inc({ status: 'success' });
+      heartbeatUpdatesTotal.inc({ status: "success" });
     } catch (error) {
-      heartbeatUpdatesTotal.inc({ status: 'error' });
-      logger.error('EquipmentHeartbeat', 'Failed to update heartbeat', { 
-        equipmentId: update.equipmentId, 
-        error 
+      heartbeatUpdatesTotal.inc({ status: "error" });
+      logger.error("EquipmentHeartbeat", "Failed to update heartbeat", {
+        equipmentId: update.equipmentId,
+        error,
       });
       throw error;
     }
   }
 
   async batchUpdateHeartbeats(updates: HeartbeatUpdate[]): Promise<void> {
-    if (updates.length === 0) {return;}
+    if (updates.length === 0) {
+      return;
+    }
 
     const uniqueUpdates = new Map<string, HeartbeatUpdate>();
     for (const update of updates) {
@@ -111,12 +113,7 @@ export class EquipmentHeartbeatAdapter {
     return db
       .select()
       .from(equipmentHeartbeat)
-      .where(
-        and(
-          eq(equipmentHeartbeat.orgId, orgId),
-          lt(equipmentHeartbeat.lastSeenAt, cutoff)
-        )
-      )
+      .where(and(eq(equipmentHeartbeat.orgId, orgId), lt(equipmentHeartbeat.lastSeenAt, cutoff)))
       .orderBy(desc(equipmentHeartbeat.lastSeenAt));
   }
 
@@ -128,10 +125,7 @@ export class EquipmentHeartbeatAdapter {
       .select()
       .from(equipmentHeartbeat)
       .where(
-        and(
-          eq(equipmentHeartbeat.orgId, orgId),
-          sql`${equipmentHeartbeat.lastSeenAt} >= ${cutoff}`
-        )
+        and(eq(equipmentHeartbeat.orgId, orgId), sql`${equipmentHeartbeat.lastSeenAt} >= ${cutoff}`)
       )
       .orderBy(desc(equipmentHeartbeat.lastSeenAt));
   }
@@ -142,12 +136,12 @@ export class EquipmentHeartbeatAdapter {
 
     await db
       .update(equipmentHeartbeat)
-      .set({ onlineStatus: 'online', updatedAt: new Date() })
+      .set({ onlineStatus: "online", updatedAt: new Date() })
       .where(sql`${equipmentHeartbeat.lastSeenAt} >= ${cutoff}`);
 
     await db
       .update(equipmentHeartbeat)
-      .set({ onlineStatus: 'offline', updatedAt: new Date() })
+      .set({ onlineStatus: "offline", updatedAt: new Date() })
       .where(
         and(
           lt(equipmentHeartbeat.lastSeenAt, cutoff),
@@ -157,7 +151,7 @@ export class EquipmentHeartbeatAdapter {
 
     await db
       .update(equipmentHeartbeat)
-      .set({ onlineStatus: 'stale', updatedAt: new Date() })
+      .set({ onlineStatus: "stale", updatedAt: new Date() })
       .where(lt(equipmentHeartbeat.lastSeenAt, staleCutoff));
 
     const statusCounts = await db
@@ -174,18 +168,16 @@ export class EquipmentHeartbeatAdapter {
     }
 
     return {
-      online: counts['online'] ?? 0,
-      offline: counts['offline'] ?? 0,
-      stale: counts['stale'] ?? 0,
+      online: counts["online"] ?? 0,
+      offline: counts["offline"] ?? 0,
+      stale: counts["stale"] ?? 0,
     };
   }
 
   async resetDailySignalCounts(): Promise<void> {
-    await db
-      .update(equipmentHeartbeat)
-      .set({ signalCount24h: 0, updatedAt: new Date() });
-    
-    logger.info('EquipmentHeartbeat', 'Reset daily signal counts');
+    await db.update(equipmentHeartbeat).set({ signalCount24h: 0, updatedAt: new Date() });
+
+    logger.info("EquipmentHeartbeat", "Reset daily signal counts");
   }
 
   async getMetricsByOrg(orgId: string): Promise<{
@@ -217,9 +209,9 @@ export class EquipmentHeartbeatAdapter {
       }
     }
 
-    const online = counts['online'] ?? 0;
-    const offline = counts['offline'] ?? 0;
-    const stale = counts['stale'] ?? 0;
+    const online = counts["online"] ?? 0;
+    const offline = counts["offline"] ?? 0;
+    const stale = counts["stale"] ?? 0;
 
     equipmentOnlineGauge.set({ org_id: orgId }, online);
     equipmentOfflineGauge.set({ org_id: orgId }, offline + stale);

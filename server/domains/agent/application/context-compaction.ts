@@ -16,9 +16,14 @@ export function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
-export function compactToolOutput(content: string, charLimit: number = DEFAULT_TOOL_OUTPUT_CHAR_LIMIT): string {
+export function compactToolOutput(
+  content: string,
+  charLimit: number = DEFAULT_TOOL_OUTPUT_CHAR_LIMIT
+): string {
   const TOOL_OUTPUT_CHAR_LIMIT = charLimit;
-  if (content.length <= TOOL_OUTPUT_CHAR_LIMIT) {return content;}
+  if (content.length <= TOOL_OUTPUT_CHAR_LIMIT) {
+    return content;
+  }
 
   let parsed: unknown;
   try {
@@ -63,7 +68,9 @@ export function compactToolOutput(content: string, charLimit: number = DEFAULT_T
     }
 
     const compacted = JSON.stringify(obj);
-    if (compacted.length <= TOOL_OUTPUT_CHAR_LIMIT) {return compacted;}
+    if (compacted.length <= TOOL_OUTPUT_CHAR_LIMIT) {
+      return compacted;
+    }
 
     const truncated = compacted.slice(0, TOOL_OUTPUT_CHAR_LIMIT);
     return `[Compacted: original ${content.length} chars]\n${truncated}\n[... truncated]`;
@@ -76,7 +83,7 @@ export function compactToolOutput(content: string, charLimit: number = DEFAULT_T
 export async function generateConversationSummary(
   client: OpenAI,
   messages: AgentMessage[],
-  _model: string,
+  _model: string
 ): Promise<string> {
   return generateProgressiveSummary(client, messages, null);
 }
@@ -84,14 +91,18 @@ export async function generateConversationSummary(
 export async function generateProgressiveSummary(
   client: OpenAI,
   messages: AgentMessage[],
-  existingSummary: string | null | undefined,
+  existingSummary: string | null | undefined
 ): Promise<string> {
-  const condensed = messages.map(m => {
-    const role = m.role;
-    let text = m.content || "";
-    if (text.length > 500) {text = `${text.slice(0, 500)  }...`;}
-    return `[${role}]: ${text}`;
-  }).join("\n");
+  const condensed = messages
+    .map((m) => {
+      const role = m.role;
+      let text = m.content || "";
+      if (text.length > 500) {
+        text = `${text.slice(0, 500)}...`;
+      }
+      return `[${role}]: ${text}`;
+    })
+    .join("\n");
 
   const priorContext = existingSummary
     ? `\nExisting summary of earlier messages:\n${existingSummary}\n\nNew messages to incorporate:\n`
@@ -112,7 +123,10 @@ ${condensed}`;
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are a conversation summarizer. Produce concise, factual summaries." },
+        {
+          role: "system",
+          content: "You are a conversation summarizer. Produce concise, factual summaries.",
+        },
         { role: "user", content: summaryPrompt },
       ],
       temperature: 0.2,
@@ -120,7 +134,10 @@ ${condensed}`;
     });
     return response.choices[0]?.message?.content || "No summary generated.";
   } catch (err) {
-    console.warn("[ContextCompaction] Summary generation failed:", err instanceof Error ? err.message : "unknown");
+    console.warn(
+      "[ContextCompaction] Summary generation failed:",
+      err instanceof Error ? err.message : "unknown"
+    );
     return "";
   }
 }
@@ -140,7 +157,7 @@ export function buildCompactedMessages(
   history: AgentMessage[],
   customPrompt: string | null | undefined,
   contextSummary: string | null | undefined,
-  compactionConfig: CompactionConfig,
+  compactionConfig: CompactionConfig
 ): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
   const result: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
     { role: "system", content: buildSystemPrompt(customPrompt) },
@@ -180,7 +197,8 @@ export function buildCompactedMessages(
         tool_call_id: ref?.toolCallId || "unknown",
       });
     } else if (m.role === "assistant" && m.toolCalls) {
-      const calls = m.toolCalls as unknown as OpenAI.Chat.Completions.ChatCompletionMessageToolCall[];
+      const calls =
+        m.toolCalls as unknown as OpenAI.Chat.Completions.ChatCompletionMessageToolCall[];
       mappedMessages.push({
         role: "assistant" as const,
         content: m.content || null,
@@ -214,16 +232,18 @@ export function buildCompactedMessages(
       let j = i + 1;
       while (j < mappedMessages.length && mappedMessages[j].role === "tool") {
         group.push(mappedMessages[j]);
-        const toolContent = typeof mappedMessages[j].content === "string"
-          ? mappedMessages[j].content as string
-          : JSON.stringify(mappedMessages[j].content || "");
+        const toolContent =
+          typeof mappedMessages[j].content === "string"
+            ? (mappedMessages[j].content as string)
+            : JSON.stringify(mappedMessages[j].content || "");
         groupTokens += estimateTokens(toolContent);
         j++;
       }
       groups.push({ messages: group, tokens: groupTokens });
       i = j;
     } else {
-      const text = typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content || "");
+      const text =
+        typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content || "");
       groups.push({ messages: [msg], tokens: estimateTokens(text) });
       i++;
     }
@@ -247,7 +267,7 @@ export function buildCompactedMessages(
 export function shouldSummarize(
   messageCount: number,
   summarizedUpTo: number,
-  threshold: number,
+  threshold: number
 ): boolean {
   const unsummarizedCount = messageCount - summarizedUpTo;
   return unsummarizedCount >= threshold;

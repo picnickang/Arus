@@ -1,9 +1,9 @@
 import { db } from "../db";
-import { 
-  vesselTrackLog, 
+import {
+  vesselTrackLog,
   equipmentTelemetry,
   equipment,
-  InsertVesselTrackLog
+  InsertVesselTrackLog,
 } from "@shared/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 
@@ -36,32 +36,28 @@ export interface Position {
 
 /**
  * Vessel Track Log Service
- * 
+ *
  * Provides:
  * 1. Position logging with intelligent deduplication
  * 2. Track history queries
  * 3. Export to GPX/KML formats
  */
 export class TrackLogService {
-  
   /**
    * Calculate distance between two positions using Haversine formula
    */
-  private calculateDistanceNm(
-    lat1: number, lon1: number,
-    lat2: number, lon2: number
-  ): number {
-    const toRad = (deg: number) => deg * Math.PI / 180;
-    
+  private calculateDistanceNm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
-    
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    
+
     return EARTH_RADIUS_NM * c;
   }
 
@@ -69,18 +65,19 @@ export class TrackLogService {
    * Determine navigation status from speed
    */
   private getNavStatus(sog: number | undefined): string {
-    if (!sog || sog < 0.5) { return 'anchored'; }
-    if (sog < 3) { return 'maneuvering'; }
-    return 'underway';
+    if (!sog || sog < 0.5) {
+      return "anchored";
+    }
+    if (sog < 3) {
+      return "maneuvering";
+    }
+    return "underway";
   }
 
   /**
    * Get the last logged position for a vessel
    */
-  async getLastPosition(
-    orgId: string,
-    vesselId: string
-  ): Promise<Position | null> {
+  async getLastPosition(orgId: string, vesselId: string): Promise<Position | null> {
     const lastPos = await db
       .select({
         latitude: vesselTrackLog.latitude,
@@ -93,16 +90,13 @@ export class TrackLogService {
         equipmentId: vesselTrackLog.equipmentId,
       })
       .from(vesselTrackLog)
-      .where(
-        and(
-          eq(vesselTrackLog.orgId, orgId),
-          eq(vesselTrackLog.vesselId, vesselId)
-        )
-      )
+      .where(and(eq(vesselTrackLog.orgId, orgId), eq(vesselTrackLog.vesselId, vesselId)))
       .orderBy(sql`${vesselTrackLog.timestamp} DESC`)
       .limit(1);
 
-    if (lastPos.length === 0) { return null; }
+    if (lastPos.length === 0) {
+      return null;
+    }
 
     return {
       latitude: lastPos[0].latitude,
@@ -127,11 +121,11 @@ export class TrackLogService {
   ): Promise<string | null> {
     // Get the last logged position
     const lastPosition = await this.getLastPosition(orgId, vesselId);
-    
+
     let distanceFromPrev: number | null = null;
     let timeFromPrevMinutes: number | null = null;
     let shouldLog = forceLog;
-    
+
     if (lastPosition) {
       distanceFromPrev = this.calculateDistanceNm(
         lastPosition.latitude,
@@ -139,20 +133,21 @@ export class TrackLogService {
         position.latitude,
         position.longitude
       );
-      
+
       timeFromPrevMinutes = Math.round(
         (position.timestamp.getTime() - lastPosition.timestamp.getTime()) / (1000 * 60)
       );
-      
+
       // Log if moved more than minimum distance OR time gap exceeded
-      shouldLog = forceLog || 
+      shouldLog =
+        forceLog ||
         distanceFromPrev >= MIN_DISTANCE_NM ||
         timeFromPrevMinutes >= MAX_TIME_GAP_MINUTES;
     } else {
       // Always log if no previous position
       shouldLog = true;
     }
-    
+
     if (!shouldLog) {
       return null;
     }
@@ -232,11 +227,15 @@ export class TrackLogService {
         const readings = telemetry.readings as Record<string, unknown>;
         const lat = Number.parseFloat(String(readings.latitude));
         const lon = Number.parseFloat(String(readings.longitude));
-        
-        if (Number.isNaN(lat) || Number.isNaN(lon)) { continue; }
-        
+
+        if (Number.isNaN(lat) || Number.isNaN(lon)) {
+          continue;
+        }
+
         // Validate coordinates
-        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) { continue; }
+        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+          continue;
+        }
 
         const position: Position = {
           latitude: lat,
@@ -245,12 +244,12 @@ export class TrackLogService {
           sog: readings.sog ? Number.parseFloat(String(readings.sog)) : undefined,
           cog: readings.cog ? Number.parseFloat(String(readings.cog)) : undefined,
           heading: readings.heading ? Number.parseFloat(String(readings.heading)) : undefined,
-          source: 'gps',
+          source: "gps",
           equipmentId: telemetry.equipmentId,
         };
 
         const logId = await this.logPosition(orgId, vesselId, position);
-        
+
         if (logId) {
           result.recordsCreated++;
         } else {
@@ -274,17 +273,19 @@ export class TrackLogService {
     startDate: Date,
     endDate: Date,
     limit?: number
-  ): Promise<Array<{
-    id: string;
-    timestamp: Date;
-    latitude: number;
-    longitude: number;
-    sog: number | null;
-    cog: number | null;
-    heading: number | null;
-    navStatus: string | null;
-    source: string;
-  }>> {
+  ): Promise<
+    Array<{
+      id: string;
+      timestamp: Date;
+      latitude: number;
+      longitude: number;
+      sog: number | null;
+      cog: number | null;
+      heading: number | null;
+      navStatus: string | null;
+      source: string;
+    }>
+  > {
     let query = db
       .select({
         id: vesselTrackLog.id,
@@ -326,14 +327,17 @@ export class TrackLogService {
     endDate: Date
   ): Promise<string> {
     const tracks = await this.getTrackHistory(orgId, vesselId, startDate, endDate);
-    
-    const trackpoints = tracks.map(t => `
+
+    const trackpoints = tracks
+      .map(
+        (t) => `
       <trkpt lat="${t.latitude}" lon="${t.longitude}">
         <time>${t.timestamp.toISOString()}</time>
-        ${t.sog ? `<speed>${(t.sog * 0.514444).toFixed(2)}</speed>` : ''}
-        ${t.cog ? `<course>${t.cog.toFixed(1)}</course>` : ''}
+        ${t.sog ? `<speed>${(t.sog * 0.514444).toFixed(2)}</speed>` : ""}
+        ${t.cog ? `<course>${t.cog.toFixed(1)}</course>` : ""}
       </trkpt>`
-    ).join('');
+      )
+      .join("");
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="ARUS Marine">

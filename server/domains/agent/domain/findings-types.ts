@@ -67,7 +67,7 @@ export interface FindingsAggregatorPort {
   getFindings(
     orgId: string,
     filter?: FindingsFilter,
-    pagination?: FindingsPagination,
+    pagination?: FindingsPagination
   ): Promise<FindingsResponse>;
 
   getSummary(orgId: string): Promise<FindingsSummary>;

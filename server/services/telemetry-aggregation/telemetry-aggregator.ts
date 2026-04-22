@@ -41,7 +41,7 @@ interface AggregatedReading {
   max: number;
   avg: number;
   stddev: number;
-  p50: number;   // median
+  p50: number; // median
   p95: number;
   p99: number;
   first: number;
@@ -102,24 +102,34 @@ function selectBucketSize(startDate: Date, endDate: Date): BucketSize {
   const rangeMs = endDate.getTime() - startDate.getTime();
   const rangeHours = rangeMs / (1000 * 60 * 60);
 
-  if (rangeHours <= 2) {return "1_minute";}     // ≤2 hours: 1-minute buckets
-  if (rangeHours <= 72) {return "1_hour";}       // ≤3 days: 1-hour buckets
-  return "1_day";                               // >3 days: 1-day buckets
+  if (rangeHours <= 2) {
+    return "1_minute";
+  } // ≤2 hours: 1-minute buckets
+  if (rangeHours <= 72) {
+    return "1_hour";
+  } // ≤3 days: 1-hour buckets
+  return "1_day"; // >3 days: 1-day buckets
 }
 
 function getBucketIntervalMs(bucket: BucketSize): number {
   switch (bucket) {
-    case "1_minute": return 60 * 1000;
-    case "1_hour": return 60 * 60 * 1000;
-    case "1_day": return 24 * 60 * 60 * 1000;
+    case "1_minute":
+      return 60 * 1000;
+    case "1_hour":
+      return 60 * 60 * 1000;
+    case "1_day":
+      return 24 * 60 * 60 * 1000;
   }
 }
 
 function getBucketTruncSQL(bucket: BucketSize): string {
   switch (bucket) {
-    case "1_minute": return "minute";
-    case "1_hour": return "hour";
-    case "1_day": return "day";
+    case "1_minute":
+      return "minute";
+    case "1_hour":
+      return "hour";
+    case "1_day":
+      return "day";
   }
 }
 
@@ -164,7 +174,11 @@ export class TelemetryAggregator {
     const startTime = Date.now();
     const truncFn = getBucketTruncSQL(bucketSize);
 
-    logger.info(LOG_CTX, `Aggregating ${bucketSize} buckets from ${startDate.toISOString()} to ${endDate.toISOString()}`, { orgId });
+    logger.info(
+      LOG_CTX,
+      `Aggregating ${bucketSize} buckets from ${startDate.toISOString()} to ${endDate.toISOString()}`,
+      { orgId }
+    );
 
     try {
       const { sql } = await import("drizzle-orm");
@@ -214,9 +228,19 @@ export class TelemetryAggregator {
       const bucketsCreated = result?.rowCount ?? 0;
       const durationMs = Date.now() - startTime;
 
-      logger.info(LOG_CTX, `Aggregated ${bucketsCreated} ${bucketSize} buckets in ${durationMs}ms`, { orgId });
+      logger.info(
+        LOG_CTX,
+        `Aggregated ${bucketsCreated} ${bucketSize} buckets in ${durationMs}ms`,
+        { orgId }
+      );
 
-      return { bucketsCreated, timeRangeStart: startDate, timeRangeEnd: endDate, bucketSize, durationMs };
+      return {
+        bucketsCreated,
+        timeRangeStart: startDate,
+        timeRangeEnd: endDate,
+        bucketSize,
+        durationMs,
+      };
     } catch (error) {
       logger.error(LOG_CTX, `Aggregation failed for ${bucketSize}`, error);
       throw error;
@@ -284,14 +308,17 @@ export class TelemetryAggregator {
    * Run all aggregation levels for the last N hours.
    * Designed for a scheduled job that runs every hour.
    */
-  async runScheduledAggregation(orgId: string, lookbackHours = 2): Promise<{
+  async runScheduledAggregation(
+    orgId: string,
+    lookbackHours = 2
+  ): Promise<{
     minute: AggregationResult;
     hour: AggregationResult;
     day: AggregationResult;
   }> {
     const now = new Date();
     const minuteStart = new Date(now.getTime() - lookbackHours * 60 * 60 * 1000);
-    const hourStart = new Date(now.getTime() - 25 * 60 * 60 * 1000);  // Last 25 hours (overlap for safety)
+    const hourStart = new Date(now.getTime() - 25 * 60 * 60 * 1000); // Last 25 hours (overlap for safety)
     const dayStart = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000); // Last 2 days
 
     const [minute, hour, day] = await Promise.all([
@@ -324,7 +351,10 @@ export class TelemetryAggregator {
     const minuteDeleted = minuteResult?.rowCount ?? 0;
     const hourDeleted = hourResult?.rowCount ?? 0;
 
-    logger.info(LOG_CTX, `Cleanup: removed ${minuteDeleted} minute + ${hourDeleted} hour aggregations`);
+    logger.info(
+      LOG_CTX,
+      `Cleanup: removed ${minuteDeleted} minute + ${hourDeleted} hour aggregations`
+    );
     return { minuteDeleted, hourDeleted };
   }
 }

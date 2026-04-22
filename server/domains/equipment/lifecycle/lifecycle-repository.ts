@@ -23,11 +23,7 @@ export class EquipmentLifecycleRepository {
     const results = await db
       .select()
       .from(equipment)
-      .where(and(
-        eq(equipment.id, id),
-        eq(equipment.orgId, orgId),
-        eq(equipment.isActive, true)
-      ))
+      .where(and(eq(equipment.id, id), eq(equipment.orgId, orgId), eq(equipment.isActive, true)))
       .limit(1);
     return results[0];
   }
@@ -36,11 +32,7 @@ export class EquipmentLifecycleRepository {
     const results = await db
       .select()
       .from(equipment)
-      .where(and(
-        eq(equipment.id, id),
-        eq(equipment.orgId, orgId),
-        eq(equipment.isActive, false)
-      ))
+      .where(and(eq(equipment.id, id), eq(equipment.orgId, orgId), eq(equipment.isActive, false)))
       .limit(1);
     return results[0];
   }
@@ -49,10 +41,7 @@ export class EquipmentLifecycleRepository {
     return db
       .select()
       .from(equipment)
-      .where(and(
-        eq(equipment.orgId, orgId),
-        eq(equipment.isActive, false)
-      ));
+      .where(and(eq(equipment.orgId, orgId), eq(equipment.isActive, false)));
   }
 
   async findDecommissionedEquipmentWithHistory(
@@ -68,10 +57,12 @@ export class EquipmentLifecycleRepository {
         const events = await db
           .select()
           .from(equipmentDecommissionEvents)
-          .where(and(
-            eq(equipmentDecommissionEvents.equipmentId, item.id),
-            eq(equipmentDecommissionEvents.orgId, orgId)
-          ))
+          .where(
+            and(
+              eq(equipmentDecommissionEvents.equipmentId, item.id),
+              eq(equipmentDecommissionEvents.orgId, orgId)
+            )
+          )
           .orderBy(sql`${equipmentDecommissionEvents.eventDate} DESC`);
         return { ...item, decommissionEvents: events };
       })
@@ -107,11 +98,7 @@ export class EquipmentLifecycleRepository {
     return results[0];
   }
 
-  async reinstateEquipment(
-    id: string,
-    orgId: string,
-    reinstatedBy: string
-  ): Promise<Equipment> {
+  async reinstateEquipment(id: string, orgId: string, reinstatedBy: string): Promise<Equipment> {
     const results = await db
       .update(equipment)
       .set({
@@ -136,10 +123,7 @@ export class EquipmentLifecycleRepository {
   async createDecommissionEvent(
     data: InsertDecommissionEvent
   ): Promise<EquipmentDecommissionEvent> {
-    const results = await db
-      .insert(equipmentDecommissionEvents)
-      .values(data)
-      .returning();
+    const results = await db.insert(equipmentDecommissionEvents).values(data).returning();
     return results[0];
   }
 
@@ -150,10 +134,12 @@ export class EquipmentLifecycleRepository {
     return db
       .select()
       .from(equipmentDecommissionEvents)
-      .where(and(
-        eq(equipmentDecommissionEvents.equipmentId, equipmentId),
-        eq(equipmentDecommissionEvents.orgId, orgId)
-      ))
+      .where(
+        and(
+          eq(equipmentDecommissionEvents.equipmentId, equipmentId),
+          eq(equipmentDecommissionEvents.orgId, orgId)
+        )
+      )
       .orderBy(sql`${equipmentDecommissionEvents.eventDate} DESC`);
   }
 
@@ -164,10 +150,9 @@ export class EquipmentLifecycleRepository {
     const results = await db
       .select()
       .from(equipmentDecommissionEvents)
-      .where(and(
-        eq(equipmentDecommissionEvents.id, id),
-        eq(equipmentDecommissionEvents.orgId, orgId)
-      ))
+      .where(
+        and(eq(equipmentDecommissionEvents.id, id), eq(equipmentDecommissionEvents.orgId, orgId))
+      )
       .limit(1);
     return results[0];
   }

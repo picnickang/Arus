@@ -42,11 +42,18 @@ export function recordExternalCircuitBreakerFailure(service: string) {
   externalCircuitBreakerFailures.inc({ service });
 }
 
-export function recordExternalServiceLatency(service: string, operation: string, durationMs: number) {
+export function recordExternalServiceLatency(
+  service: string,
+  operation: string,
+  durationMs: number
+) {
   externalServiceLatency.observe({ service, operation }, durationMs / 1000);
 }
 
-export function recordExternalServiceCall(service: string, status: "success" | "failure" | "circuit_open") {
+export function recordExternalServiceCall(
+  service: string,
+  status: "success" | "failure" | "circuit_open"
+) {
   externalServiceCallsTotal.inc({ service, status });
 }
 
@@ -62,12 +69,16 @@ export async function syncExternalCircuitBreakerMetrics() {
       const state = status.state === "OPEN" ? 1 : status.state === "HALF_OPEN" ? 2 : 0;
       setExternalCircuitBreakerState(service, state as 0 | 1 | 2);
     }
-    
+
     const { circuitBreakerRegistry } = await import("../ml-circuit-breaker");
     const mlStatuses = circuitBreakerRegistry.getAllStats();
     for (const [modelName, stats] of Object.entries(mlStatuses)) {
       const { setMlCircuitBreakerState } = await import("./ml-metrics");
-      const modelType = modelName.replace("ml_", "") as "lstm" | "random_forest" | "xgboost" | "ensemble";
+      const modelType = modelName.replace("ml_", "") as
+        | "lstm"
+        | "random_forest"
+        | "xgboost"
+        | "ensemble";
       const state = stats.state === "OPEN" ? 1 : stats.state === "HALF_OPEN" ? 2 : 0;
       setMlCircuitBreakerState(modelType, state as 0 | 1 | 2);
     }

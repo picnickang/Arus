@@ -13,7 +13,9 @@ export async function batchFetchTelemetry(
   endDate: Date,
   orgId: string
 ): Promise<EquipmentTelemetry[]> {
-  if (equipmentIds.length === 0) { return []; }
+  if (equipmentIds.length === 0) {
+    return [];
+  }
 
   const allTelemetry: EquipmentTelemetry[] = [];
   const batchSize = 10;
@@ -30,13 +32,13 @@ export async function batchFetchTelemetry(
           orgId
         );
       } catch (error) {
-        log('warn', 'Failed to get telemetry for equipment', {
+        log("warn", "Failed to get telemetry for equipment", {
           equipmentId,
           error: error instanceof Error ? error.message : String(error),
-          operation: 'batchFetchTelemetry',
+          operation: "batchFetchTelemetry",
           orgId,
-          vesselId: '',
-          logDate: '',
+          vesselId: "",
+          logDate: "",
         });
         return [];
       }
@@ -56,14 +58,18 @@ export function aggregateTelemetryByHour(
   hour: number
 ): Map<string, TelemetryAggregate> {
   const hourlyReadings = readings.filter((r) => {
-    if (!r.ts) { return false; }
+    if (!r.ts) {
+      return false;
+    }
     const readingHour = r.ts.getHours();
     return readingHour === hour;
   });
 
   const bySensorType = new Map<string, number[]>();
   for (const reading of hourlyReadings) {
-    if (!reading.sensorType || reading.value === null || reading.value === undefined) { continue; }
+    if (!reading.sensorType || reading.value === null || reading.value === undefined) {
+      continue;
+    }
     const sensorType = reading.sensorType.toLowerCase();
     if (!bySensorType.has(sensorType)) {
       bySensorType.set(sensorType, []);
@@ -73,7 +79,9 @@ export function aggregateTelemetryByHour(
 
   const aggregates = new Map<string, TelemetryAggregate>();
   for (const [sensorType, values] of bySensorType) {
-    if (values.length === 0) { continue; }
+    if (values.length === 0) {
+      continue;
+    }
 
     const sum = values.reduce((a, b) => a + b, 0);
     const avg = sum / values.length;

@@ -67,7 +67,10 @@ class SchedulingSettingsService {
     return this.getSettings(orgId);
   }
 
-  async getVesselSettings(orgId: string, vesselId: string): Promise<SelectSchedulingSettings | null> {
+  async getVesselSettings(
+    orgId: string,
+    vesselId: string
+  ): Promise<SelectSchedulingSettings | null> {
     return this.getSettings(orgId, vesselId);
   }
 
@@ -111,7 +114,9 @@ class SchedulingSettingsService {
     };
   }
 
-  async createOrUpdateSettings(settings: InsertSchedulingSettings): Promise<SelectSchedulingSettings> {
+  async createOrUpdateSettings(
+    settings: InsertSchedulingSettings
+  ): Promise<SelectSchedulingSettings> {
     const validated = insertSchedulingSettingsSchema.parse({
       ...settings,
       id: settings.id || randomUUID(),
@@ -129,17 +134,20 @@ class SchedulingSettingsService {
         })
         .where(eq(schedulingSettings.id, existing.id))
         .returning();
-      
-      logger.info("[SchedulingSettings] Updated settings", { id: existing.id, orgId: validated.orgId });
+
+      logger.info("[SchedulingSettings] Updated settings", {
+        id: existing.id,
+        orgId: validated.orgId,
+      });
       return updated;
     }
 
-    const [created] = await db
-      .insert(schedulingSettings)
-      .values(validated)
-      .returning();
+    const [created] = await db.insert(schedulingSettings).values(validated).returning();
 
-    logger.info("[SchedulingSettings] Created settings", { id: created.id, orgId: validated.orgId });
+    logger.info("[SchedulingSettings] Created settings", {
+      id: created.id,
+      orgId: validated.orgId,
+    });
     return created;
   }
 

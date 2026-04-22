@@ -1,6 +1,6 @@
 /**
  * ML Analytics - Insight Snapshot Routes
- * 
+ *
  * Routes for insight snapshots.
  */
 
@@ -11,7 +11,8 @@ import type { AuthenticatedRequest } from "../../../middleware/auth";
 import { analyticsInsightsAdapter, dbAnalyticsStorage } from "../../../repositories.js";
 
 export function registerInsightRoutes(app: Express, _config: MlAnalyticsConfig) {
-  app.get("/api/analytics/insight-snapshots",
+  app.get(
+    "/api/analytics/insight-snapshots",
     withErrorHandling("fetch insight snapshots", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, scope, limit } = req.query;
       if (!orgId) {
@@ -27,13 +28,17 @@ export function registerInsightRoutes(app: Express, _config: MlAnalyticsConfig) 
     })
   );
 
-  app.get("/api/analytics/insight-snapshots/latest",
+  app.get(
+    "/api/analytics/insight-snapshots/latest",
     withErrorHandling("fetch latest insight snapshot", async (req, res) => {
       const { scope = "fleet", orgId = (req as AuthenticatedRequest).orgId } = req.query;
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
-      const snapshot = await dbAnalyticsStorage.getLatestInsightSnapshot(orgId as string, scope as string);
+      const snapshot = await dbAnalyticsStorage.getLatestInsightSnapshot(
+        orgId as string,
+        scope as string
+      );
       if (!snapshot) {
         return sendNotFound(res, "Insight snapshot");
       }

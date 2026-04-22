@@ -1,17 +1,19 @@
 /**
  * Fleet Summary Context Builder
- * 
+ *
  * Build comprehensive context for fleet summary reports.
  */
 
-import { vesselService, dbEquipmentStorage, workOrderService, dbTelemetryStorage, dbAlertStorage } from "../repositories";
+import {
+  vesselService,
+  dbEquipmentStorage,
+  workOrderService,
+  dbTelemetryStorage,
+  dbAlertStorage,
+} from "../repositories";
 import { vesselIntelligence } from "../vessel-intelligence";
 import type { ReportContext, ContextBuilderOptions } from "./types.js";
-import {
-  fetchKBKnowledge,
-  buildCitations,
-  determinePriority,
-} from "./knowledge-citations.js";
+import { fetchKBKnowledge, buildCitations, determinePriority } from "./knowledge-citations.js";
 
 export async function buildFleetSummaryContext(
   orgId: string = "default-org",
@@ -79,7 +81,7 @@ export async function buildFleetSummaryContext(
   const citations = buildCitations(vessels[0], equipment, filteredWorkOrders);
   let knowledge;
   if (options.includeKnowledge) {
-    knowledge = await fetchKBKnowledge(orgId, equipment, 'fleet_summary');
+    knowledge = await fetchKBKnowledge(orgId, equipment, "fleet_summary");
   }
 
   return {

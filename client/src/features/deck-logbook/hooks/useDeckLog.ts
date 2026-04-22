@@ -1,19 +1,28 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import type { DeckLogComplete, DeckLogDaily, DeckLogHourly, DeckLogWatch, DeckLogEvent } from "../types";
+import type {
+  DeckLogComplete,
+  DeckLogDaily,
+  DeckLogHourly,
+  DeckLogWatch,
+  DeckLogEvent,
+} from "../types";
 
 export const deckLogKeys = {
   all: ["/api/logbook/deck"] as const,
   daily: (vesselId: string, date: string) => [...deckLogKeys.all, "daily", vesselId, date] as const,
-  complete: (vesselId: string, date: string) => [...deckLogKeys.all, "complete", vesselId, date] as const,
-  events: (vesselId: string, dayId: string) => [...deckLogKeys.all, "events", vesselId, dayId] as const,
+  complete: (vesselId: string, date: string) =>
+    [...deckLogKeys.all, "complete", vesselId, date] as const,
+  events: (vesselId: string, dayId: string) =>
+    [...deckLogKeys.all, "events", vesselId, dayId] as const,
   officers: () => ["/api/crew/officers"] as const,
 };
 
 export function useDeckLogComplete(vesselId: string | undefined, date: string) {
   return useQuery<DeckLogComplete>({
     queryKey: deckLogKeys.complete(vesselId || "", date),
-    queryFn: () => apiRequest("GET", `/api/logbook/deck/complete?vesselId=${vesselId}&date=${date}`),
+    queryFn: () =>
+      apiRequest("GET", `/api/logbook/deck/complete?vesselId=${vesselId}&date=${date}`),
     enabled: !!vesselId && !!date,
     staleTime: 30000,
   });
@@ -35,7 +44,7 @@ export function useDeckOfficers() {
 
 export function useSaveDeckLog() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: {
       daily: Partial<DeckLogDaily>;
@@ -59,9 +68,19 @@ export function useSaveDeckLog() {
 
 export function useSignDeckLog() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ dailyId, crewId, name, rank }: { dailyId: string; crewId: string; name: string; rank: string }) => {
+    mutationFn: async ({
+      dailyId,
+      crewId,
+      name,
+      rank,
+    }: {
+      dailyId: string;
+      crewId: string;
+      name: string;
+      rank: string;
+    }) => {
       return apiRequest("POST", `/api/logbook/deck/daily/${dailyId}/sign`, { crewId, name, rank });
     },
     onSuccess: () => {
@@ -72,7 +91,7 @@ export function useSignDeckLog() {
 
 export function useLockDeckLog() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ dailyId }: { dailyId: string }) => {
       return apiRequest("POST", `/api/logbook/deck/daily/${dailyId}/lock`, {});
@@ -85,7 +104,7 @@ export function useLockDeckLog() {
 
 export function useCreateDeckEvent() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (event: Omit<DeckLogEvent, "id">) => {
       return apiRequest("POST", "/api/logbook/deck/events", event);
@@ -98,7 +117,7 @@ export function useCreateDeckEvent() {
 
 export function useStormGeoAutofill() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ vesselId, date }: { vesselId: string; date: string }) => {
       return apiRequest("POST", "/api/stormgeo/autofill-daily", { vesselId, date });

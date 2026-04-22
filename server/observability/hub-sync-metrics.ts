@@ -58,7 +58,10 @@ export function setActiveDeviceCount(count: number) {
   deviceRegistryActiveDevices.set(count);
 }
 
-export function recordSheetLockOperation(operation: "acquire" | "release" | "check", crewId: string) {
+export function recordSheetLockOperation(
+  operation: "acquire" | "release" | "check",
+  crewId: string
+) {
   sheetLockOperationsTotal.inc({ operation, crew_id: crewId });
 }
 

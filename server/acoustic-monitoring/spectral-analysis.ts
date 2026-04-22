@@ -29,18 +29,24 @@ export function calculateSpectralRolloff(frequencies: number[], magnitudes: numb
   let cumulativeEnergy = 0;
   for (let i = 0; i < magnitudes.length; i++) {
     cumulativeEnergy += magnitudes[i];
-    if (cumulativeEnergy >= threshold) { return frequencies[i]; }
+    if (cumulativeEnergy >= threshold) {
+      return frequencies[i];
+    }
   }
   return frequencies[frequencies.length - 1];
 }
 
 export function calculateHarmonicRatio(magnitudes: number[], dominantIdx: number): number {
-  if (dominantIdx === 0) { return 0; }
+  if (dominantIdx === 0) {
+    return 0;
+  }
   const totalEnergy = magnitudes.reduce((sum, mag) => sum + mag, 0);
   let harmonicEnergy = magnitudes[dominantIdx];
   const harmonicIndices = [dominantIdx * 2, dominantIdx * 3, dominantIdx * 4];
   for (const idx of harmonicIndices) {
-    if (idx < magnitudes.length) { harmonicEnergy += magnitudes[idx]; }
+    if (idx < magnitudes.length) {
+      harmonicEnergy += magnitudes[idx];
+    }
   }
   return totalEnergy > 0 ? harmonicEnergy / totalEnergy : 0;
 }

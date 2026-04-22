@@ -42,12 +42,12 @@ setInterval(() => {
 }, 60000);
 
 // Secret key for signing tokens (should be from env in production)
-const SECRET_KEY = process.env.RAG_STREAMING_SECRET || crypto.randomBytes(32).toString('hex');
+const SECRET_KEY = process.env.RAG_STREAMING_SECRET || crypto.randomBytes(32).toString("hex");
 
 export class StreamingTokenService {
-  private config: RagSecurityConfig['auth'];
+  private config: RagSecurityConfig["auth"];
 
-  constructor(config: RagSecurityConfig['auth']) {
+  constructor(config: RagSecurityConfig["auth"]) {
     this.config = config;
   }
 
@@ -55,9 +55,9 @@ export class StreamingTokenService {
    * Generate a short-lived streaming token
    */
   generateToken(userId: string, orgId: string): string {
-    const nonce = crypto.randomBytes(16).toString('hex');
+    const nonce = crypto.randomBytes(16).toString("hex");
     const issuedAt = Date.now();
-    const expiresAt = issuedAt + (this.config.streamingTokenTTLSeconds * 1000);
+    const expiresAt = issuedAt + this.config.streamingTokenTTLSeconds * 1000;
 
     const payload: TokenPayload = {
       userId,
@@ -69,12 +69,9 @@ export class StreamingTokenService {
 
     // Create signed token
     const payloadStr = JSON.stringify(payload);
-    const signature = crypto
-      .createHmac('sha256', SECRET_KEY)
-      .update(payloadStr)
-      .digest('hex');
+    const signature = crypto.createHmac("sha256", SECRET_KEY).update(payloadStr).digest("hex");
 
-    const token = `${Buffer.from(payloadStr).toString('base64')  }.${  signature}`;
+    const token = `${Buffer.from(payloadStr).toString("base64")}.${signature}`;
 
     // Store for validation
     tokenStore.tokens.set(token, payload);
@@ -96,24 +93,26 @@ export class StreamingTokenService {
     }
 
     try {
-      const [encodedPayload, signature] = token.split('.');
+      const [encodedPayload, signature] = token.split(".");
       if (!encodedPayload || !signature) {
         logger.warn("StreamingToken", "Invalid token format");
         return null;
       }
 
-      const payloadStr = Buffer.from(encodedPayload, 'base64').toString('utf-8');
-      
+      const payloadStr = Buffer.from(encodedPayload, "base64").toString("utf-8");
+
       // Verify signature
       const expectedSignature = crypto
-        .createHmac('sha256', SECRET_KEY)
+        .createHmac("sha256", SECRET_KEY)
         .update(payloadStr)
-        .digest('hex');
+        .digest("hex");
 
-      if (!crypto.timingSafeEqual(
-        Buffer.from(signature, 'hex'),
-        Buffer.from(expectedSignature, 'hex')
-      )) {
+      if (
+        !crypto.timingSafeEqual(
+          Buffer.from(signature, "hex"),
+          Buffer.from(expectedSignature, "hex")
+        )
+      ) {
         logger.warn("StreamingToken", "Invalid token signature");
         return null;
       }
@@ -160,21 +159,21 @@ export class StreamingTokenService {
     return revoked;
   }
 
-  updateConfig(config: RagSecurityConfig['auth']): void {
+  updateConfig(config: RagSecurityConfig["auth"]): void {
     this.config = config;
   }
 }
 
 let instance: StreamingTokenService | null = null;
 
-export function getStreamingTokenService(config: RagSecurityConfig['auth']): StreamingTokenService {
+export function getStreamingTokenService(config: RagSecurityConfig["auth"]): StreamingTokenService {
   if (!instance) {
     instance = new StreamingTokenService(config);
   }
   return instance;
 }
 
-export function updateStreamingTokenConfig(config: RagSecurityConfig['auth']): void {
+export function updateStreamingTokenConfig(config: RagSecurityConfig["auth"]): void {
   if (instance) {
     instance.updateConfig(config);
   }

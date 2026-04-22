@@ -1,9 +1,13 @@
 import { formatDate } from "@/lib/formatters";
 
 export function formatAnalyticsDate(dateString: string | undefined | null): string {
-  if (!dateString) { return "N/A"; }
+  if (!dateString) {
+    return "N/A";
+  }
   const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) { return "N/A"; }
+  if (Number.isNaN(date.getTime())) {
+    return "N/A";
+  }
   return formatDate(date);
 }
 
@@ -29,11 +33,15 @@ export const MODEL_STATUS_OPTIONS = [
   { value: "deprecated", label: "Deprecated" },
 ] as const;
 
-export function createEquipmentLookup(equipment: Array<{ id: string; name?: string }>): Map<string, string> {
+export function createEquipmentLookup(
+  equipment: Array<{ id: string; name?: string }>
+): Map<string, string> {
   return new Map(equipment.map((eq) => [eq.id, eq.name || eq.id]));
 }
 
-export function createVesselLookup(vessels: Array<{ id: string; name: string }>): Map<string, string> {
+export function createVesselLookup(
+  vessels: Array<{ id: string; name: string }>
+): Map<string, string> {
   return new Map(vessels.map((v) => [v.id, v.name]));
 }
 
@@ -102,8 +110,14 @@ export function formatProbability(probability: number): string {
 }
 
 export function formatDaysToFailure(days: number | undefined): string {
-  if (days === undefined) { return "N/A"; }
-  if (days < 1) { return "< 1 day"; }
-  if (days === 1) { return "1 day"; }
+  if (days === undefined) {
+    return "N/A";
+  }
+  if (days < 1) {
+    return "< 1 day";
+  }
+  if (days === 1) {
+    return "1 day";
+  }
   return `${Math.round(days)} days`;
 }

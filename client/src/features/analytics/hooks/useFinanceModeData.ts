@@ -145,9 +145,7 @@ export function useFinanceModeData() {
     const downtimeCostPerHour = 500;
     const projectedDowntimeCost = estimatedFutureDowntime * downtimeCostPerHour;
 
-    const completedWorkOrders = workOrders.filter(
-      (wo: WorkOrderData) => wo.status === "completed"
-    );
+    const completedWorkOrders = workOrders.filter((wo: WorkOrderData) => wo.status === "completed");
     const actualDowntimeHours = completedWorkOrders.reduce(
       (sum: number, wo: WorkOrderData) => sum + (wo.actualDowntimeHours ?? 0),
       0
@@ -222,8 +220,11 @@ export function useFinanceModeData() {
       costSummary.reduce((acc: CostBreakdownItem[], summary: CostSummaryData) => {
         Object.entries(summary.costByType ?? {}).forEach(([type, amount]) => {
           const existing = acc.find((item) => item.name === type);
-          if (existing) {existing.value += amount;}
-          else {acc.push({ name: type, value: amount });}
+          if (existing) {
+            existing.value += amount;
+          } else {
+            acc.push({ name: type, value: amount });
+          }
         });
         return acc;
       }, []),

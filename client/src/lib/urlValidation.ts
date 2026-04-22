@@ -7,12 +7,18 @@ export interface UrlValidationResult {
 
 export function validateBackendUrl(raw: string): UrlValidationResult {
   const trimmed = raw.trim();
-  if (!trimmed) {return { valid: false, normalized: "", error: "URL is required" };}
+  if (!trimmed) {
+    return { valid: false, normalized: "", error: "URL is required" };
+  }
 
   try {
     const parsed = new URL(trimmed);
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return { valid: false, normalized: trimmed, error: "Only http:// and https:// URLs are supported" };
+      return {
+        valid: false,
+        normalized: trimmed,
+        error: "Only http:// and https:// URLs are supported",
+      };
     }
     if (!parsed.hostname) {
       return { valid: false, normalized: trimmed, error: "Invalid hostname" };
@@ -25,6 +31,10 @@ export function validateBackendUrl(raw: string): UrlValidationResult {
     const isInsecure = parsed.protocol === "http:" && !isLocalhost;
     return { valid: true, normalized, isInsecure };
   } catch {
-    return { valid: false, normalized: trimmed, error: "Invalid URL format. Example: http://localhost:5000" };
+    return {
+      valid: false,
+      normalized: trimmed,
+      error: "Invalid URL format. Example: http://localhost:5000",
+    };
   }
 }

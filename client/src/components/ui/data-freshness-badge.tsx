@@ -1,9 +1,4 @@
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getDataFreshness, type FreshnessLevel } from "@/lib/severity";
 import { Clock, AlertTriangle, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,11 +17,13 @@ const freshnessStyles: Record<FreshnessLevel, { icon: React.ElementType; badgeCl
   },
   stale: {
     icon: Clock,
-    badgeClass: "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-700",
+    badgeClass:
+      "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-700",
   },
   critical: {
     icon: AlertTriangle,
-    badgeClass: "bg-red-100 text-red-800 border-red-300 dark:bg-red-950/30 dark:text-red-400 dark:border-red-700",
+    badgeClass:
+      "bg-red-100 text-red-800 border-red-300 dark:bg-red-950/30 dark:text-red-400 dark:border-red-700",
   },
   unknown: {
     icon: HelpCircle,

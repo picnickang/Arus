@@ -1,4 +1,4 @@
 export {
   SchematicLayoutRepositoryAdapter,
   schematicLayoutRepository,
-} from './schematic-layout-repository';
+} from "./schematic-layout-repository";

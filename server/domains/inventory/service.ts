@@ -1,9 +1,4 @@
-import type {
-  Part,
-  PartsInventory,
-  InsertPartsInventory,
-  Equipment,
-} from "@shared/schema";
+import type { Part, PartsInventory, InsertPartsInventory, Equipment } from "@shared/schema";
 import { inventoryRepository } from "./repository";
 import { recordAndPublish } from "../../sync-events";
 import { dbInventoryStorage } from "../../repositories";
@@ -230,11 +225,20 @@ export class InventoryService {
     return inventoryRepository.findLowStockParts(orgId);
   }
 
-  async listPartsInventoryPaginated(orgId: string, options: {
-    limit?: number; offset?: number; search?: string; category?: string;
-    criticality?: string; stockStatus?: string; supplier?: string;
-    sortBy?: string; sortOrder?: "asc" | "desc";
-  }): Promise<{ items: any[]; total: number }> {
+  async listPartsInventoryPaginated(
+    orgId: string,
+    options: {
+      limit?: number;
+      offset?: number;
+      search?: string;
+      category?: string;
+      criticality?: string;
+      stockStatus?: string;
+      supplier?: string;
+      sortBy?: string;
+      sortOrder?: "asc" | "desc";
+    }
+  ): Promise<{ items: any[]; total: number }> {
     return dbInventoryStorage.getPartsInventoryPaginated(orgId, options);
   }
 }

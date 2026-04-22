@@ -67,21 +67,15 @@ describe("Schema-runtime file structural checks", () => {
     "failurePredictions",
   ];
 
-  test.each(criticalTables)(
-    "schema-runtime exports critical table '%s'",
-    (tableName) => {
-      const exportPattern = new RegExp(`export\\s+const\\s+${tableName}\\s*=`);
-      expect(exportPattern.test(runtimeContent)).toBe(true);
-    }
-  );
+  test.each(criticalTables)("schema-runtime exports critical table '%s'", (tableName) => {
+    const exportPattern = new RegExp(`export\\s+const\\s+${tableName}\\s*=`);
+    expect(exportPattern.test(runtimeContent)).toBe(true);
+  });
 });
 
 describe("PG and SQLite schema directories", () => {
   test("shared/schema/ directory has index.ts", () => {
-    const content = readFileSync(
-      join(process.cwd(), "shared", "schema", "index.ts"),
-      "utf-8"
-    );
+    const content = readFileSync(join(process.cwd(), "shared", "schema", "index.ts"), "utf-8");
     expect(content.length).toBeGreaterThan(0);
   });
 
@@ -101,16 +95,10 @@ describe("PG and SQLite schema directories", () => {
     "./inventory",
   ];
 
-  test.each(criticalDomainPaths)(
-    "PG schema barrel re-exports domain '%s'",
-    (domainPath) => {
-      const pgIndex = readFileSync(
-        join(process.cwd(), "shared", "schema", "index.ts"),
-        "utf-8"
-      );
-      expect(pgIndex).toContain(domainPath);
-    }
-  );
+  test.each(criticalDomainPaths)("PG schema barrel re-exports domain '%s'", (domainPath) => {
+    const pgIndex = readFileSync(join(process.cwd(), "shared", "schema", "index.ts"), "utf-8");
+    expect(pgIndex).toContain(domainPath);
+  });
 });
 
 describe("PG query shape smoke tests — critical domain paths", () => {
@@ -128,14 +116,20 @@ describe("PG query shape smoke tests — critical domain paths", () => {
       `  } catch(e) { const msg = e instanceof Error ? e.message : String(e); console.log(JSON.stringify({ ok: false, count: 0, keys: [], error: msg })); }`,
       `  process.exit(0);`,
       `})();`,
-    ].join('\n');
+    ].join("\n");
     writeFileSync(scriptFile, scriptContent);
     try {
-      const result = execSync(`npx tsx ${scriptFile}`, { encoding: "utf-8", timeout: 30000, cwd: process.cwd() });
+      const result = execSync(`npx tsx ${scriptFile}`, {
+        encoding: "utf-8",
+        timeout: 30000,
+        cwd: process.cwd(),
+      });
       const lines = result.trim().split("\n");
       return JSON.parse(lines[lines.length - 1]);
     } finally {
-      try { unlinkSync(scriptFile); } catch {}
+      try {
+        unlinkSync(scriptFile);
+      } catch {}
     }
   }
 
@@ -190,9 +184,24 @@ describe("PG query shape smoke tests — critical domain paths", () => {
 
 describe("SQLite schema structural parity", () => {
   const criticalColumnChecks = [
-    { table: "vessels", pgFile: "shared/schema/vessels.ts", sqliteFile: "shared/sqlite-schema/core.ts", fields: ["orgId", "name", "imo"] },
-    { table: "equipment", pgFile: "shared/schema/equipment.ts", sqliteFile: "shared/sqlite-schema/core.ts", fields: ["orgId", "name", "vesselId"] },
-    { table: "workOrders", pgFile: "shared/schema/work-orders.ts", sqliteFile: "shared/sqlite-schema/work-orders.ts", fields: ["orgId", "priority"] },
+    {
+      table: "vessels",
+      pgFile: "shared/schema/vessels.ts",
+      sqliteFile: "shared/sqlite-schema/core.ts",
+      fields: ["orgId", "name", "imo"],
+    },
+    {
+      table: "equipment",
+      pgFile: "shared/schema/equipment.ts",
+      sqliteFile: "shared/sqlite-schema/core.ts",
+      fields: ["orgId", "name", "vesselId"],
+    },
+    {
+      table: "workOrders",
+      pgFile: "shared/schema/work-orders.ts",
+      sqliteFile: "shared/sqlite-schema/work-orders.ts",
+      fields: ["orgId", "priority"],
+    },
   ];
 
   test.each(criticalColumnChecks)(
@@ -210,14 +219,20 @@ describe("SQLite schema structural parity", () => {
   );
 
   test("schema-runtime has sufficient ternary guards (>=40)", () => {
-    const runtimeContent = readFileSync(join(process.cwd(), "shared", "schema-runtime.ts"), "utf-8");
+    const runtimeContent = readFileSync(
+      join(process.cwd(), "shared", "schema-runtime.ts"),
+      "utf-8"
+    );
     const ternaryMatches = runtimeContent.match(/IS_POSTGRES\s*\?/g) ?? [];
     expect(ternaryMatches.length).toBeGreaterThanOrEqual(40);
   });
 
   test("PG and SQLite schemas both export critical shared domain modules", () => {
     const pgContent = readFileSync(join(process.cwd(), "shared", "schema", "index.ts"), "utf-8");
-    const sqliteContent = readFileSync(join(process.cwd(), "shared", "sqlite-schema", "index.ts"), "utf-8");
+    const sqliteContent = readFileSync(
+      join(process.cwd(), "shared", "sqlite-schema", "index.ts"),
+      "utf-8"
+    );
     const sharedDomains = ["work-orders", "inventory", "crew"];
     for (const domain of sharedDomains) {
       expect(pgContent).toContain(`./${domain}`);
@@ -226,7 +241,10 @@ describe("SQLite schema structural parity", () => {
   });
 
   test("critical PG tables have matching SQLite column definitions (>=100 pairs)", () => {
-    const result = execSync("node scripts/validate-dual-schema.mjs", { encoding: "utf-8", timeout: 15000 });
+    const result = execSync("node scripts/validate-dual-schema.mjs", {
+      encoding: "utf-8",
+      timeout: 15000,
+    });
     const pairsMatch = result.match(/Pairs with columns:\s+(\d+)/);
     expect(pairsMatch).not.toBeNull();
     const pairCount = parseInt((pairsMatch ?? ["", "0"])[1], 10);
@@ -234,13 +252,19 @@ describe("SQLite schema structural parity", () => {
   });
 
   test("no new schema drift beyond known allowlist", () => {
-    const result = execSync("node scripts/validate-dual-schema.mjs", { encoding: "utf-8", timeout: 15000 });
+    const result = execSync("node scripts/validate-dual-schema.mjs", {
+      encoding: "utf-8",
+      timeout: 15000,
+    });
     expect(result).toContain("New drift (blocking):  0");
     expect(result).toContain("Missing tables:        0");
   });
 
   test("drift count must never increase (monotonic guard)", () => {
-    const result = execSync("node scripts/validate-dual-schema.mjs", { encoding: "utf-8", timeout: 15000 });
+    const result = execSync("node scripts/validate-dual-schema.mjs", {
+      encoding: "utf-8",
+      timeout: 15000,
+    });
     const knownMatch = result.match(/Known drift \(allowed\):\s+(\d+)/);
     const knownCount = parseInt((knownMatch ?? ["", "999"])[1], 10);
     // Tightened from 116 → 115 after Step 1.75 cleanup verified the new floor.
@@ -259,40 +283,46 @@ describe("SQLite mode import resolution", () => {
       `import { ${tableName} } from '../../shared/schema-runtime';`,
       `const hasTable = !!${tableName};`,
       `console.log(JSON.stringify({ ok: true, hasTable }));`,
-    ].join('\n');
+    ].join("\n");
     writeFileSync(scriptFile, scriptContent);
     try {
-      const result = execSync(
-        `LOCAL_MODE=true npx tsx ${scriptFile}`,
-        { encoding: "utf-8", timeout: 30000, cwd: process.cwd() }
-      );
+      const result = execSync(`LOCAL_MODE=true npx tsx ${scriptFile}`, {
+        encoding: "utf-8",
+        timeout: 30000,
+        cwd: process.cwd(),
+      });
       const lines = result.trim().split("\n");
       return JSON.parse(lines[lines.length - 1]);
     } finally {
-      try { unlinkSync(scriptFile); } catch {}
+      try {
+        unlinkSync(scriptFile);
+      } catch {}
     }
   }
 
   const criticalTables = ["vessels", "equipment", "workOrders", "inventoryParts", "crew"];
 
-  test.each(criticalTables)(
-    "%s table resolves in LOCAL_MODE (SQLite mode)",
-    (tableName) => {
-      const parsed = verifyLocalModeImports(tableName);
-      expect(parsed.ok).toBe(true);
-      expect(parsed.hasTable).toBe(true);
-    }
-  );
+  test.each(criticalTables)("%s table resolves in LOCAL_MODE (SQLite mode)", (tableName) => {
+    const parsed = verifyLocalModeImports(tableName);
+    expect(parsed.ok).toBe(true);
+    expect(parsed.hasTable).toBe(true);
+  });
 });
 
 describe("Additional guardrail scripts", () => {
   test("check:route-registration guard passes", () => {
-    const result = execSync("node scripts/check-route-registration.mjs", { encoding: "utf-8", timeout: 15000 });
+    const result = execSync("node scripts/check-route-registration.mjs", {
+      encoding: "utf-8",
+      timeout: 15000,
+    });
     expect(result).toContain("All route registrations follow the domain router registry pattern");
   });
 
   test("check:domain-boundaries guard passes", () => {
-    const result = execSync("node scripts/check-domain-boundaries.mjs", { encoding: "utf-8", timeout: 15000 });
+    const result = execSync("node scripts/check-domain-boundaries.mjs", {
+      encoding: "utf-8",
+      timeout: 15000,
+    });
     expect(result).toContain("Domain boundary check passed");
   });
 });

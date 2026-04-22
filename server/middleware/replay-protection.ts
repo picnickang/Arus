@@ -32,7 +32,10 @@ export function replayProtection(options?: { windowMs?: number; required?: boole
     if (!timestamp && !nonce) {
       if (required) {
         res.status(400).json({
-          error: { code: "REPLAY_PROTECTION_REQUIRED", message: "X-Request-Timestamp and X-Request-Nonce headers are required" },
+          error: {
+            code: "REPLAY_PROTECTION_REQUIRED",
+            message: "X-Request-Timestamp and X-Request-Nonce headers are required",
+          },
         });
         return;
       }
@@ -45,15 +48,24 @@ export function replayProtection(options?: { windowMs?: number; required?: boole
 
       if (isNaN(requestTime)) {
         res.status(400).json({
-          error: { code: "INVALID_TIMESTAMP", message: "X-Request-Timestamp must be a valid ISO 8601 date" },
+          error: {
+            code: "INVALID_TIMESTAMP",
+            message: "X-Request-Timestamp must be a valid ISO 8601 date",
+          },
         });
         return;
       }
 
       if (Math.abs(now - requestTime) > windowMs) {
-        logger.warn(LOG_CTX, `Request timestamp outside window: ${timestamp} (drift: ${Math.abs(now - requestTime)}ms)`);
+        logger.warn(
+          LOG_CTX,
+          `Request timestamp outside window: ${timestamp} (drift: ${Math.abs(now - requestTime)}ms)`
+        );
         res.status(400).json({
-          error: { code: "REQUEST_EXPIRED", message: `Request timestamp must be within ${windowMs / 1000} seconds of server time` },
+          error: {
+            code: "REQUEST_EXPIRED",
+            message: `Request timestamp must be within ${windowMs / 1000} seconds of server time`,
+          },
         });
         return;
       }
@@ -63,7 +75,10 @@ export function replayProtection(options?: { windowMs?: number; required?: boole
       if (nonceStore.has(nonce)) {
         logger.warn(LOG_CTX, `Duplicate nonce detected: ${nonce.substring(0, 8)}...`);
         res.status(409).json({
-          error: { code: "DUPLICATE_REQUEST", message: "This request has already been processed (duplicate nonce)" },
+          error: {
+            code: "DUPLICATE_REQUEST",
+            message: "This request has already been processed (duplicate nonce)",
+          },
         });
         return;
       }

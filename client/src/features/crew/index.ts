@@ -1,7 +1,11 @@
 export * from "./types";
 export * from "./hooks/useCrew";
 export * from "./hooks/useCrewLifecycle";
-export type { FormerCrewMember, EmploymentHistoryRecord, UpdateEmploymentHistoryInput } from "./hooks/useCrewLifecycle";
+export type {
+  FormerCrewMember,
+  EmploymentHistoryRecord,
+  UpdateEmploymentHistoryInput,
+} from "./hooks/useCrewLifecycle";
 export * from "./hooks/useGridHistory";
 export * from "./hooks/useHoursOfRestData";
 export * from "./hooks/useHoursOfRestManagement";

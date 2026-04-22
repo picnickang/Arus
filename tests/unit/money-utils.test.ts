@@ -1,4 +1,10 @@
-import { toCents, toDollars, addDollars, multiplyDollars, percentageDollars } from "../../shared/money-utils";
+import {
+  toCents,
+  toDollars,
+  addDollars,
+  multiplyDollars,
+  percentageDollars,
+} from "../../shared/money-utils";
 
 describe("Money Utils", () => {
   describe("toCents", () => {
@@ -9,7 +15,7 @@ describe("Money Utils", () => {
     });
 
     it("converts negative dollars to cents", () => {
-      expect(toCents(-10.50)).toBe(-1050);
+      expect(toCents(-10.5)).toBe(-1050);
     });
 
     it("handles zero", () => {
@@ -56,7 +62,7 @@ describe("Money Utils", () => {
 
   describe("addDollars", () => {
     it("adds two dollar amounts precisely", () => {
-      expect(addDollars(19.99, 5.01)).toBe(25.00);
+      expect(addDollars(19.99, 5.01)).toBe(25.0);
     });
 
     it("avoids floating point errors", () => {
@@ -64,7 +70,7 @@ describe("Money Utils", () => {
     });
 
     it("handles negative amounts", () => {
-      expect(addDollars(100, -25.50)).toBe(74.5);
+      expect(addDollars(100, -25.5)).toBe(74.5);
     });
   });
 

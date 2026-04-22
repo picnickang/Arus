@@ -1,7 +1,7 @@
-import { eq, sql, and, desc } from 'drizzle-orm';
-import { db } from '../../db-config';
-import { telemetrySchemaRegistry, type TelemetrySchemaRegistry } from '@shared/schema/telemetry';
-import { logger } from '../../utils/logger';
+import { eq, sql, and, desc } from "drizzle-orm";
+import { db } from "../../db-config";
+import { telemetrySchemaRegistry, type TelemetrySchemaRegistry } from "@shared/schema/telemetry";
+import { logger } from "../../utils/logger";
 
 export interface SchemaDefinition {
   fields: Array<{
@@ -15,7 +15,7 @@ export interface SchemaDefinition {
 
 export interface ValidationRule {
   field: string;
-  rule: 'required' | 'range' | 'regex' | 'enum';
+  rule: "required" | "range" | "regex" | "enum";
   params?: Record<string, unknown>;
 }
 
@@ -56,7 +56,7 @@ export class TelemetrySchemaRegistryAdapter {
       })
       .returning();
 
-    logger.info('SchemaRegistry', 'Schema registered', {
+    logger.info("SchemaRegistry", "Schema registered", {
       protocol: input.protocol,
       version: input.version,
       schemaName: input.schemaName,
@@ -129,7 +129,7 @@ export class TelemetrySchemaRegistryAdapter {
         )
       );
 
-    logger.info('SchemaRegistry', 'Schema deprecated', { protocol, version });
+    logger.info("SchemaRegistry", "Schema deprecated", { protocol, version });
   }
 
   async activateSchema(protocol: string, version: number): Promise<void> {
@@ -151,12 +151,12 @@ export class TelemetrySchemaRegistryAdapter {
         )
       );
 
-    logger.info('SchemaRegistry', 'Schema activated', { protocol, version });
+    logger.info("SchemaRegistry", "Schema activated", { protocol, version });
   }
 
   async validatePayload(
-    protocol: string, 
-    version: number, 
+    protocol: string,
+    version: number,
     payload: Record<string, unknown>
   ): Promise<{ valid: boolean; errors: string[] }> {
     const schema = await this.getSchema(protocol, version);
@@ -176,15 +176,15 @@ export class TelemetrySchemaRegistryAdapter {
 
     for (const rule of rules) {
       const value = payload[rule.field];
-      
+
       switch (rule.rule) {
-        case 'required':
+        case "required":
           if (value === undefined || value === null) {
             errors.push(`Field ${rule.field} is required`);
           }
           break;
-        case 'range':
-          if (typeof value === 'number') {
+        case "range":
+          if (typeof value === "number") {
             const min = (rule.params?.min as number) ?? -Infinity;
             const max = (rule.params?.max as number) ?? Infinity;
             if (value < min || value > max) {
@@ -192,17 +192,19 @@ export class TelemetrySchemaRegistryAdapter {
             }
           }
           break;
-        case 'regex':
-          if (typeof value === 'string' && rule.params?.pattern) {
+        case "regex":
+          if (typeof value === "string" && rule.params?.pattern) {
             const regex = new RegExp(rule.params.pattern as string);
             if (!regex.test(value)) {
               errors.push(`Field ${rule.field} does not match pattern`);
             }
           }
           break;
-        case 'enum':
-          if (rule.params?.values && !((rule.params.values as unknown[]).includes(value))) {
-            errors.push(`Field ${rule.field} must be one of: ${(rule.params.values as unknown[]).join(', ')}`);
+        case "enum":
+          if (rule.params?.values && !(rule.params.values as unknown[]).includes(value)) {
+            errors.push(
+              `Field ${rule.field} must be one of: ${(rule.params.values as unknown[]).join(", ")}`
+            );
           }
           break;
       }
@@ -212,67 +214,77 @@ export class TelemetrySchemaRegistryAdapter {
   }
 
   async getDecoderConfig(protocol: string, version?: number): Promise<DecoderConfig | undefined> {
-    const schema = version 
+    const schema = version
       ? await this.getSchema(protocol, version)
       : await this.getActiveSchema(protocol);
-    
+
     return schema?.decoderConfig as DecoderConfig | undefined;
   }
 
   async seedDefaultSchemas(): Promise<void> {
-    const j1939Exists = await this.getSchema('J1939', 1);
+    const j1939Exists = await this.getSchema("J1939", 1);
     if (!j1939Exists) {
       await this.registerSchema({
-        protocol: 'J1939',
+        protocol: "J1939",
         version: 1,
-        schemaName: 'J1939 CAN Bus Protocol',
-        description: 'SAE J1939 CAN bus protocol for heavy-duty vehicles and marine engines',
+        schemaName: "J1939 CAN Bus Protocol",
+        description: "SAE J1939 CAN bus protocol for heavy-duty vehicles and marine engines",
         schemaDefinition: {
           fields: [
-            { name: 'pgn', type: 'integer', required: true, description: 'Parameter Group Number' },
-            { name: 'sourceAddress', type: 'integer', required: true, description: 'Source address (0-253)' },
-            { name: 'priority', type: 'integer', description: 'Message priority (0-7)' },
-            { name: 'data', type: 'bytes', required: true, description: 'CAN data payload (up to 8 bytes)' },
+            { name: "pgn", type: "integer", required: true, description: "Parameter Group Number" },
+            {
+              name: "sourceAddress",
+              type: "integer",
+              required: true,
+              description: "Source address (0-253)",
+            },
+            { name: "priority", type: "integer", description: "Message priority (0-7)" },
+            {
+              name: "data",
+              type: "bytes",
+              required: true,
+              description: "CAN data payload (up to 8 bytes)",
+            },
           ],
         },
         validationRules: [
-          { field: 'pgn', rule: 'range', params: { min: 0, max: 262143 } },
-          { field: 'sourceAddress', rule: 'range', params: { min: 0, max: 253 } },
+          { field: "pgn", rule: "range", params: { min: 0, max: 262143 } },
+          { field: "sourceAddress", rule: "range", params: { min: 0, max: 253 } },
         ],
         decoderConfig: {
-          decoderType: 'j1939',
-          params: { endianness: 'little' },
+          decoderType: "j1939",
+          params: { endianness: "little" },
         },
-        createdBy: 'system',
+        createdBy: "system",
       });
     }
 
-    const j1587Exists = await this.getSchema('J1587', 1);
+    const j1587Exists = await this.getSchema("J1587", 1);
     if (!j1587Exists) {
       await this.registerSchema({
-        protocol: 'J1587',
+        protocol: "J1587",
         version: 1,
-        schemaName: 'J1587 Serial Protocol',
-        description: 'SAE J1587/J1708 serial protocol for older heavy-duty vehicles',
+        schemaName: "J1587 Serial Protocol",
+        description: "SAE J1587/J1708 serial protocol for older heavy-duty vehicles",
         schemaDefinition: {
           fields: [
-            { name: 'mid', type: 'integer', required: true, description: 'Message ID' },
-            { name: 'pid', type: 'integer', required: true, description: 'Parameter ID' },
-            { name: 'data', type: 'bytes', required: true, description: 'Data payload' },
+            { name: "mid", type: "integer", required: true, description: "Message ID" },
+            { name: "pid", type: "integer", required: true, description: "Parameter ID" },
+            { name: "data", type: "bytes", required: true, description: "Data payload" },
           ],
         },
         validationRules: [
-          { field: 'mid', rule: 'range', params: { min: 0, max: 255 } },
-          { field: 'pid', rule: 'range', params: { min: 0, max: 511 } },
+          { field: "mid", rule: "range", params: { min: 0, max: 255 } },
+          { field: "pid", rule: "range", params: { min: 0, max: 511 } },
         ],
         decoderConfig: {
-          decoderType: 'j1587',
+          decoderType: "j1587",
         },
-        createdBy: 'system',
+        createdBy: "system",
       });
     }
 
-    logger.info('SchemaRegistry', 'Default schemas seeded');
+    logger.info("SchemaRegistry", "Default schemas seeded");
   }
 }
 

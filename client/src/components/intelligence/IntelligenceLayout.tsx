@@ -93,7 +93,10 @@ export function IntelligenceLayout({ children }: IntelligenceLayoutProps) {
           </div>
         </div>
 
-        <nav className="flex items-center gap-1 px-4 md:px-6 pb-2 overflow-x-auto" data-testid="intelligence-tabs">
+        <nav
+          className="flex items-center gap-1 px-4 md:px-6 pb-2 overflow-x-auto"
+          data-testid="intelligence-tabs"
+        >
           {tabs.map((tab) => {
             const active = isActiveTab(tab.href, location);
             return (

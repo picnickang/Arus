@@ -32,7 +32,7 @@ interface ConfigurationHubProps {
 
 function EmbeddedConfigurationHub() {
   const [location, setLocation] = useLocation();
-  
+
   const tabs: TabDefinition[] = [
     {
       id: "system-settings",
@@ -124,7 +124,11 @@ function EmbeddedConfigurationHub() {
 
   return (
     <div className="h-full flex flex-col">
-      <Tabs value={activeSubTab} onValueChange={handleSubTabChange} className="h-full flex flex-col">
+      <Tabs
+        value={activeSubTab}
+        onValueChange={handleSubTabChange}
+        className="h-full flex flex-col"
+      >
         <div className="border-b bg-background px-4 md:px-6">
           <TabsList className="h-auto bg-transparent p-0 flex w-full overflow-x-auto scrollbar-hide">
             {visibleTabs.map((tab) => {

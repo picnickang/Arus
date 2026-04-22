@@ -6,7 +6,14 @@
 
 import { dbVesselStorage } from "../../db/vessels/index.js";
 import { getWebSocketServer } from "../../websocket-server";
-import type { Vessel, InsertVessel, PortCall, InsertPortCall, DrydockWindow, InsertDrydockWindow } from "@shared/schema";
+import type {
+  Vessel,
+  InsertVessel,
+  PortCall,
+  InsertPortCall,
+  DrydockWindow,
+  InsertDrydockWindow,
+} from "@shared/schema";
 
 class VesselService {
   async getVessels(orgId?: string): Promise<Vessel[]> {
@@ -42,7 +49,11 @@ class VesselService {
   async createPortCall(portCallData: InsertPortCall): Promise<PortCall> {
     return dbVesselStorage.createPortCall(portCallData);
   }
-  async updatePortCall(id: string, updates: Partial<InsertPortCall>, orgId: string): Promise<PortCall> {
+  async updatePortCall(
+    id: string,
+    updates: Partial<InsertPortCall>,
+    orgId: string
+  ): Promise<PortCall> {
     return dbVesselStorage.updatePortCall(id, updates, orgId);
   }
   async deletePortCall(id: string, orgId: string): Promise<void> {
@@ -54,24 +65,47 @@ class VesselService {
   async createDrydockWindow(windowData: InsertDrydockWindow): Promise<DrydockWindow> {
     return dbVesselStorage.createDrydockWindow(windowData);
   }
-  async updateDrydockWindow(id: string, updates: Partial<InsertDrydockWindow>, orgId: string): Promise<DrydockWindow> {
+  async updateDrydockWindow(
+    id: string,
+    updates: Partial<InsertDrydockWindow>,
+    orgId: string
+  ): Promise<DrydockWindow> {
     return dbVesselStorage.updateDrydockWindow(id, updates, orgId);
   }
   async deleteDrydockWindow(id: string, orgId: string): Promise<void> {
     return dbVesselStorage.deleteDrydockWindow(id, orgId);
   }
-  async getVesselFleetOverview(orgId?: string): Promise<{ vessels: number; signalsMapped: number; signalsDiscovered: number; latestPerVessel: Array<{ vesselId: string; lastTs: string }>; dq7d: Record<string, number> }> {
+  async getVesselFleetOverview(
+    orgId?: string
+  ): Promise<{
+    vessels: number;
+    signalsMapped: number;
+    signalsDiscovered: number;
+    latestPerVessel: Array<{ vesselId: string; lastTs: string }>;
+    dq7d: Record<string, number>;
+  }> {
     const v = await this.getVessels(orgId);
-    return { vessels: v.length, signalsMapped: 0, signalsDiscovered: 0, latestPerVessel: v.map(x => ({ vesselId: x.id, lastTs: new Date().toISOString() })), dq7d: {} };
+    return {
+      vessels: v.length,
+      signalsMapped: 0,
+      signalsDiscovered: 0,
+      latestPerVessel: v.map((x) => ({ vesselId: x.id, lastTs: new Date().toISOString() })),
+      dq7d: {},
+    };
   }
 
   async exportVessel(vesselId: string, orgId: string): Promise<Record<string, unknown>> {
     const vessel = await dbVesselStorage.getVessel(vesselId, orgId);
-    if (!vessel) {throw new Error(`Vessel ${vesselId} not found`);}
+    if (!vessel) {
+      throw new Error(`Vessel ${vesselId} not found`);
+    }
     return { ...vessel };
   }
 
-  async importVessel(data: Record<string, unknown>, orgId: string): Promise<{ vesselId: string; equipmentCount: number; crewCount: number }> {
+  async importVessel(
+    data: Record<string, unknown>,
+    orgId: string
+  ): Promise<{ vesselId: string; equipmentCount: number; crewCount: number }> {
     const vesselData = { ...data, organizationId: orgId } as InsertVessel;
     const created = await dbVesselStorage.createVessel(vesselData);
     return { vesselId: created.id, equipmentCount: 0, crewCount: 0 };

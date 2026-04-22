@@ -1,6 +1,6 @@
 /**
  * Audit Trail Tab Component
- * 
+ *
  * Displays administrative actions and system events audit log.
  * Extracted from system-administration.tsx for better maintainability.
  */

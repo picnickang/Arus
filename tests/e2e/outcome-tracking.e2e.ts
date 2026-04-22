@@ -27,7 +27,9 @@ async function createSuggestion(overrides: Record<string, unknown> = {}) {
     status: "pending",
     ...overrides,
   });
-  if (status !== 201) {throw new Error(`Failed to create suggestion: ${status}`);}
+  if (status !== 201) {
+    throw new Error(`Failed to create suggestion: ${status}`);
+  }
   return data;
 }
 
@@ -112,10 +114,14 @@ describe("Outcome Tracking E2E", () => {
   });
 
   it("findings feed supports deferred status filter", async () => {
-    const { status, data } = await api("GET", "/api/agent/findings?source=suggestion&status=deferred");
+    const { status, data } = await api(
+      "GET",
+      "/api/agent/findings?source=suggestion&status=deferred"
+    );
 
     expect(status).toBe(200);
-    const deferredItems = data.items?.filter((i: { status: string }) => i.status === "deferred") || [];
+    const deferredItems =
+      data.items?.filter((i: { status: string }) => i.status === "deferred") || [];
     if (deferredItems.length > 0) {
       expect(deferredItems[0].status).toBe("deferred");
     }

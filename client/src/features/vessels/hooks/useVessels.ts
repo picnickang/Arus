@@ -78,7 +78,7 @@ export function useDevices() {
 
 export function useCreateVessel() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: Omit<Vessel, "id" | "createdAt" | "updatedAt">) => {
       return apiRequest("POST", "/api/vessels", data);
@@ -91,7 +91,7 @@ export function useCreateVessel() {
 
 export function useUpdateVessel() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<Vessel> & { id: string }) => {
       return apiRequest("PATCH", `/api/vessels/${id}`, data);
@@ -105,7 +105,7 @@ export function useUpdateVessel() {
 
 export function useCreateEquipment() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: Omit<Equipment, "id" | "createdAt" | "updatedAt">) => {
       return apiRequest("POST", "/api/equipment", data);
@@ -119,7 +119,7 @@ export function useCreateEquipment() {
 
 export function useUpdateEquipment() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<Equipment> & { id: string }) => {
       return apiRequest("PATCH", `/api/equipment/${id}`, data);
@@ -141,7 +141,7 @@ export function useExportVesselData() {
 
 export function useImportVesselData() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: FormData) => {
       return apiRequest("POST", "/api/vessels/import", data);

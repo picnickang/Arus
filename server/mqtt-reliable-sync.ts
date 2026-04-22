@@ -1,9 +1,9 @@
 /**
  * MQTT Reliable Sync - Backward Compatibility Shim
- * 
+ *
  * DEPRECATED: This file re-exports from the modular mqtt-reliable-sync/ directory.
  * New code should import directly from './mqtt-reliable-sync/index.js'.
- * 
+ *
  * Original: 1,067 lines → Modularized into 9 files:
  * - mqtt-reliable-sync/types.ts (~60 lines): Core types and interfaces
  * - mqtt-reliable-sync/config.ts (~75 lines): Configuration and topic definitions

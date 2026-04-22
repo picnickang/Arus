@@ -3,7 +3,7 @@ import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 /**
  * SINGLE-TENANT SYSTEM
- * 
+ *
  * This is a single-tenant, multi-vessel, multi-user system.
  * - No org isolation required (single tenant)
  * - Multi-vessel: Vessels are the organizational unit
@@ -30,16 +30,16 @@ export async function requireOrgId(req: Request, res: Response, next: NextFuncti
   if (req.method === "OPTIONS") {
     return next();
   }
-  
+
   const authReq = req as AuthenticatedRequest;
-  
+
   if (!authReq.user) {
-    return res.status(401).json({ 
+    return res.status(401).json({
       message: "Authentication required",
-      code: "UNAUTHENTICATED" 
+      code: "UNAUTHENTICATED",
     }) as any;
   }
-  
+
   authReq.orgId = DEFAULT_ORG_ID;
   next();
 }
@@ -56,22 +56,22 @@ export async function requireOrgIdAndValidateBody(
   if (req.method === "OPTIONS") {
     return next();
   }
-  
+
   const authReq = req as AuthenticatedRequest;
-  
+
   if (!authReq.user) {
-    return res.status(401).json({ 
+    return res.status(401).json({
       message: "Authentication required",
-      code: "UNAUTHENTICATED" 
+      code: "UNAUTHENTICATED",
     }) as any;
   }
-  
+
   authReq.orgId = DEFAULT_ORG_ID;
-  
+
   if (req.body) {
     req.body.orgId = DEFAULT_ORG_ID;
   }
-  
+
   next();
 }
 

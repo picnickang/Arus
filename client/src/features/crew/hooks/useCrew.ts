@@ -1,6 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import type { CrewMember, CrewCertification, CrewLeave, CrewAssignment, ShiftTemplate, CrewRestSheet, CrewRestDay } from "../types";
+import type {
+  CrewMember,
+  CrewCertification,
+  CrewLeave,
+  CrewAssignment,
+  ShiftTemplate,
+  CrewRestSheet,
+  CrewRestDay,
+} from "../types";
 
 export const crewKeys = {
   all: ["/api/crew"] as const,
@@ -78,7 +86,7 @@ export function useRestDays(sheetId: string | undefined) {
 
 export function useCreateCrew() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: Omit<CrewMember, "id" | "createdAt" | "updatedAt">) => {
       return apiRequest("POST", "/api/crew", data);
@@ -91,7 +99,7 @@ export function useCreateCrew() {
 
 export function useUpdateCrew() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<CrewMember> & { id: string }) => {
       return apiRequest("PATCH", `/api/crew/${id}`, data);
@@ -105,7 +113,7 @@ export function useUpdateCrew() {
 
 export function useCreateLeave() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: Omit<CrewLeave, "id">) => {
       return apiRequest("POST", "/api/crew/leave", data);
@@ -118,7 +126,7 @@ export function useCreateLeave() {
 
 export function useCreateAssignment() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: Omit<CrewAssignment, "id">) => {
       return apiRequest("POST", "/api/crew/assignments", data);
@@ -131,7 +139,7 @@ export function useCreateAssignment() {
 
 export function useSaveRestDay() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: CrewRestDay) => {
       return apiRequest("PUT", `/api/stcw/rest/days/${data.id}`, data);
@@ -144,7 +152,7 @@ export function useSaveRestDay() {
 
 export function useSubmitRestSheet() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ sheetId }: { sheetId: string }) => {
       return apiRequest("POST", `/api/stcw/rest/sheet/${sheetId}/submit`, {});

@@ -5,13 +5,29 @@
 import { randomUUID } from "node:crypto";
 import { eq, and, or, inArray, sql } from "drizzle-orm";
 import { db } from "../../db-config";
-import { suppliers, stock, partSubstitutions, parts, partsInventorySuppliers } from "@shared/schema-runtime";
-import type { Supplier, InsertSupplier, Stock, InsertStock, PartSubstitution, InsertPartSubstitution, Part } from "@shared/schema";
+import {
+  suppliers,
+  stock,
+  partSubstitutions,
+  parts,
+  partsInventorySuppliers,
+} from "@shared/schema-runtime";
+import type {
+  Supplier,
+  InsertSupplier,
+  Stock,
+  InsertStock,
+  PartSubstitution,
+  InsertPartSubstitution,
+  Part,
+} from "@shared/schema";
 import type { StockFilters } from "./types.js";
 
 export class DbStockStorage {
   private validateOrgId(orgId: string | undefined, method: string): void {
-    if (!orgId) { throw new Error(`[${method}] orgId is required`); }
+    if (!orgId) {
+      throw new Error(`[${method}] orgId is required`);
+    }
   }
 
   async getPartStockWithSupplierLeadTime(
@@ -36,7 +52,9 @@ export class DbStockStorage {
       .where(and(eq(parts.id, partId), eq(parts.orgId, orgId)))
       .limit(1);
 
-    if (!partRow) { return null; }
+    if (!partRow) {
+      return null;
+    }
 
     const stockRows = await db
       .select()
@@ -82,10 +100,7 @@ export class DbStockStorage {
         })
         .from(partsInventorySuppliers)
         .innerJoin(suppliers, eq(partsInventorySuppliers.supplierId, suppliers.id))
-        .innerJoin(
-          sql`parts_inventory pi`,
-          sql`pi.id = ${partsInventorySuppliers.inventoryItemId}`
-        )
+        .innerJoin(sql`parts_inventory pi`, sql`pi.id = ${partsInventorySuppliers.inventoryItemId}`)
         .where(
           and(
             sql`pi.part_number = ${partRow.partNo}`,
@@ -125,55 +140,98 @@ export class DbStockStorage {
   }
 
   async getSuppliers(orgId?: string): Promise<Supplier[]> {
-    if (orgId) { return db.select().from(suppliers).where(eq(suppliers.orgId, orgId)).orderBy(suppliers.name); }
+    if (orgId) {
+      return db.select().from(suppliers).where(eq(suppliers.orgId, orgId)).orderBy(suppliers.name);
+    }
     return db.select().from(suppliers).orderBy(suppliers.name);
   }
 
   async getSupplier(id: string, orgId?: string): Promise<Supplier | undefined> {
-    const conditions = orgId ? and(eq(suppliers.id, id), eq(suppliers.orgId, orgId)) : eq(suppliers.id, id);
+    const conditions = orgId
+      ? and(eq(suppliers.id, id), eq(suppliers.orgId, orgId))
+      : eq(suppliers.id, id);
     const [result] = await db.select().from(suppliers).where(conditions);
     return result;
   }
 
   async createSupplier(data: InsertSupplier): Promise<Supplier> {
-    const [n] = await db.insert(suppliers).values({ id: randomUUID(), ...data, createdAt: new Date(), updatedAt: new Date() }).returning();
+    const [n] = await db
+      .insert(suppliers)
+      .values({ id: randomUUID(), ...data, createdAt: new Date(), updatedAt: new Date() })
+      .returning();
     return n;
   }
 
-  async updateSupplier(id: string, updates: Partial<InsertSupplier>, orgId?: string): Promise<Supplier> {
+  async updateSupplier(
+    id: string,
+    updates: Partial<InsertSupplier>,
+    orgId?: string
+  ): Promise<Supplier> {
     this.validateOrgId(orgId, "updateSupplier");
-    const conditions = orgId ? and(eq(suppliers.id, id), eq(suppliers.orgId, orgId)) : eq(suppliers.id, id);
-    const [updated] = await db.update(suppliers).set({ ...updates, updatedAt: new Date() }).where(conditions).returning();
-    if (!updated) { throw new Error(`Supplier ${id} not found`); }
+    const conditions = orgId
+      ? and(eq(suppliers.id, id), eq(suppliers.orgId, orgId))
+      : eq(suppliers.id, id);
+    const [updated] = await db
+      .update(suppliers)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(conditions)
+      .returning();
+    if (!updated) {
+      throw new Error(`Supplier ${id} not found`);
+    }
     return updated;
   }
 
   async deleteSupplier(id: string, orgId?: string): Promise<void> {
     this.validateOrgId(orgId, "deleteSupplier");
-    const conditions = orgId ? and(eq(suppliers.id, id), eq(suppliers.orgId, orgId)) : eq(suppliers.id, id);
+    const conditions = orgId
+      ? and(eq(suppliers.id, id), eq(suppliers.orgId, orgId))
+      : eq(suppliers.id, id);
     await db.delete(suppliers).where(conditions);
   }
 
   async getStock(orgId?: string, filters?: StockFilters): Promise<Stock[]> {
     const conditions: any[] = [];
-    if (orgId) { conditions.push(eq(stock.orgId, orgId)); }
-    if (filters?.partId) { conditions.push(eq(stock.partId, filters.partId)); }
-    if (filters?.vesselId) { conditions.push(eq(stock.vesselId, filters.vesselId)); }
-    if (filters?.location) { conditions.push(eq(stock.location, filters.location)); }
-    if (conditions.length > 0) { return db.select().from(stock).where(and(...conditions)); }
+    if (orgId) {
+      conditions.push(eq(stock.orgId, orgId));
+    }
+    if (filters?.partId) {
+      conditions.push(eq(stock.partId, filters.partId));
+    }
+    if (filters?.vesselId) {
+      conditions.push(eq(stock.vesselId, filters.vesselId));
+    }
+    if (filters?.location) {
+      conditions.push(eq(stock.location, filters.location));
+    }
+    if (conditions.length > 0) {
+      return db
+        .select()
+        .from(stock)
+        .where(and(...conditions));
+    }
     return db.select().from(stock);
   }
 
   async createStock(data: InsertStock): Promise<Stock> {
-    const [n] = await db.insert(stock).values({ id: randomUUID(), ...data, createdAt: new Date(), updatedAt: new Date() }).returning();
+    const [n] = await db
+      .insert(stock)
+      .values({ id: randomUUID(), ...data, createdAt: new Date(), updatedAt: new Date() })
+      .returning();
     return n;
   }
 
   async updateStock(id: string, updates: Partial<InsertStock>, orgId?: string): Promise<Stock> {
     this.validateOrgId(orgId, "updateStock");
     const conditions = orgId ? and(eq(stock.id, id), eq(stock.orgId, orgId)) : eq(stock.id, id);
-    const [updated] = await db.update(stock).set({ ...updates, updatedAt: new Date() }).where(conditions).returning();
-    if (!updated) { throw new Error(`Stock ${id} not found`); }
+    const [updated] = await db
+      .update(stock)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(conditions)
+      .returning();
+    if (!updated) {
+      throw new Error(`Stock ${id} not found`);
+    }
     return updated;
   }
 
@@ -185,31 +243,63 @@ export class DbStockStorage {
 
   async getPartSubstitutions(partId: string, orgId: string): Promise<PartSubstitution[]> {
     this.validateOrgId(orgId, "getPartSubstitutions");
-    return db.select().from(partSubstitutions).where(and(eq(partSubstitutions.orgId, orgId), or(eq(partSubstitutions.originalPartId, partId), eq(partSubstitutions.substitutePartId, partId))));
+    return db
+      .select()
+      .from(partSubstitutions)
+      .where(
+        and(
+          eq(partSubstitutions.orgId, orgId),
+          or(
+            eq(partSubstitutions.originalPartId, partId),
+            eq(partSubstitutions.substitutePartId, partId)
+          )
+        )
+      );
   }
 
   async createPartSubstitution(sub: InsertPartSubstitution): Promise<PartSubstitution> {
-    const [n] = await db.insert(partSubstitutions).values({ id: randomUUID(), ...sub, createdAt: new Date(), updatedAt: new Date() }).returning();
+    const [n] = await db
+      .insert(partSubstitutions)
+      .values({ id: randomUUID(), ...sub, createdAt: new Date(), updatedAt: new Date() })
+      .returning();
     return n;
   }
 
   async suggestPartSubstitutions(partId: string, orgId: string): Promise<Part[]> {
     const subs = await this.getPartSubstitutions(partId, orgId);
-    if (subs.length === 0) { return []; }
-    const ids = subs.map((s) => s.originalPartId === partId ? s.substitutePartId : s.originalPartId);
-    return db.select().from(parts).where(and(inArray(parts.id, ids), eq(parts.orgId, orgId)));
+    if (subs.length === 0) {
+      return [];
+    }
+    const ids = subs.map((s) =>
+      s.originalPartId === partId ? s.substitutePartId : s.originalPartId
+    );
+    return db
+      .select()
+      .from(parts)
+      .where(and(inArray(parts.id, ids), eq(parts.orgId, orgId)));
   }
 
   async getPartByPartNo(partNo: string, orgId?: string): Promise<Part | undefined> {
     const conditions = [eq(parts.partNo, partNo)];
-    if (orgId) { conditions.push(eq(parts.orgId, orgId)); }
-    const [result] = await db.select().from(parts).where(and(...conditions)).limit(1);
+    if (orgId) {
+      conditions.push(eq(parts.orgId, orgId));
+    }
+    const [result] = await db
+      .select()
+      .from(parts)
+      .where(and(...conditions))
+      .limit(1);
     return result;
   }
 
   async getPartsByNumbers(partNumbers: string[], orgId: string): Promise<Part[]> {
-    if (partNumbers.length === 0) { return []; }
-    return db.select().from(parts).where(and(inArray(parts.partNo, partNumbers), eq(parts.orgId, orgId)));
+    if (partNumbers.length === 0) {
+      return [];
+    }
+    return db
+      .select()
+      .from(parts)
+      .where(and(inArray(parts.partNo, partNumbers), eq(parts.orgId, orgId)));
   }
 
   async deletePartCatalog(id: string): Promise<void> {
@@ -218,29 +308,54 @@ export class DbStockStorage {
 
   async syncPartCostToStock(partId: string): Promise<void> {
     const [part] = await db
-      .select({ id: parts.id, partNo: parts.partNo, standardCost: parts.standardCost, orgId: parts.orgId })
+      .select({
+        id: parts.id,
+        partNo: parts.partNo,
+        standardCost: parts.standardCost,
+        orgId: parts.orgId,
+      })
       .from(parts)
       .where(eq(parts.id, partId))
       .limit(1);
-    if (!part) { throw new Error(`Part ${partId} not found`); }
-    await db.update(stock).set({ unitCost: part.standardCost, updatedAt: new Date() }).where(and(eq(stock.partNo, part.partNo), eq(stock.orgId, part.orgId)));
+    if (!part) {
+      throw new Error(`Part ${partId} not found`);
+    }
+    await db
+      .update(stock)
+      .set({ unitCost: part.standardCost, updatedAt: new Date() })
+      .where(and(eq(stock.partNo, part.partNo), eq(stock.orgId, part.orgId)));
   }
 
   async getStockByPart(partId: string, orgId?: string): Promise<Stock[]> {
     const conditions = [eq(stock.partId, partId)];
-    if (orgId) { conditions.push(eq(stock.orgId, orgId)); }
-    return db.select().from(stock).where(and(...conditions));
+    if (orgId) {
+      conditions.push(eq(stock.orgId, orgId));
+    }
+    return db
+      .select()
+      .from(stock)
+      .where(and(...conditions));
   }
 
   async getStockByParts(partIds: string[], orgId: string): Promise<Stock[]> {
-    if (partIds.length === 0) { return []; }
-    return db.select().from(stock).where(and(inArray(stock.partId, partIds), eq(stock.orgId, orgId)));
+    if (partIds.length === 0) {
+      return [];
+    }
+    return db
+      .select()
+      .from(stock)
+      .where(and(inArray(stock.partId, partIds), eq(stock.orgId, orgId)));
   }
 
   async getPartSubstitutionsByPartNo(partNo: string, orgId?: string): Promise<PartSubstitution[]> {
     const conditions = [eq(partSubstitutions.primaryPartNo, partNo)];
-    if (orgId) { conditions.push(eq(partSubstitutions.orgId, orgId)); }
-    return db.select().from(partSubstitutions).where(and(...conditions));
+    if (orgId) {
+      conditions.push(eq(partSubstitutions.orgId, orgId));
+    }
+    return db
+      .select()
+      .from(partSubstitutions)
+      .where(and(...conditions));
   }
 
   async deletePartSubstitution(id: string): Promise<void> {

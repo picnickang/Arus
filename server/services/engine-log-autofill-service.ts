@@ -1,10 +1,10 @@
 /**
  * Engine Log Auto-Fill Service
- * 
+ *
  * BACKWARD COMPATIBILITY SHIM
  * This file re-exports from the modular engine-log-autofill/ directory.
  * New code should import directly from './engine-log-autofill/index.js'
- * 
+ *
  * Modularized into 9 files:
  * - types.ts (~95 lines): Type definitions and interfaces
  * - logging.ts (~30 lines): Structured logging utilities

@@ -8,4 +8,15 @@ export type InsertSyncJournal = typeof syncJournal.$inferInsert;
 export type SyncOutbox = typeof syncOutbox.$inferSelect;
 export type InsertSyncOutbox = typeof syncOutbox.$inferInsert;
 
-export type { Device, InsertDevice, SelectDeviceRegistry, InsertDeviceRegistry, SelectReplayIncoming, InsertReplayIncoming, SelectSheetLock, InsertSheetLock, SelectSheetVersion, InsertSheetVersion } from "@shared/schema-runtime";
+export type {
+  Device,
+  InsertDevice,
+  SelectDeviceRegistry,
+  InsertDeviceRegistry,
+  SelectReplayIncoming,
+  InsertReplayIncoming,
+  SelectSheetLock,
+  InsertSheetLock,
+  SelectSheetVersion,
+  InsertSheetVersion,
+} from "@shared/schema-runtime";

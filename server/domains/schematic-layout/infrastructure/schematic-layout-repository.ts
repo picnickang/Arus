@@ -1,9 +1,9 @@
-import type { ISchematicLayoutRepository } from '../domain/ports';
-import type { SchematicLayout } from '../domain/types';
-import { getDefaultLayout } from '../domain/types';
-import { db } from '../../../db';
-import { vessels } from '@shared/schema';
-import { eq, and } from 'drizzle-orm';
+import type { ISchematicLayoutRepository } from "../domain/ports";
+import type { SchematicLayout } from "../domain/types";
+import { getDefaultLayout } from "../domain/types";
+import { db } from "../../../db";
+import { vessels } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
 
 export class SchematicLayoutRepositoryAdapter implements ISchematicLayoutRepository {
   async vesselExists(vesselId: string, orgId: string): Promise<boolean> {
@@ -22,8 +22,12 @@ export class SchematicLayoutRepositoryAdapter implements ISchematicLayoutReposit
       .where(and(eq(vessels.id, vesselId), eq(vessels.orgId, orgId)))
       .limit(1);
 
-    if (!row) {return undefined;}
-    if (!row.schematicLayout) {return null;}
+    if (!row) {
+      return undefined;
+    }
+    if (!row.schematicLayout) {
+      return null;
+    }
     return row.schematicLayout as SchematicLayout;
   }
 

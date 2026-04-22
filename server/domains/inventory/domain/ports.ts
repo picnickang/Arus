@@ -11,8 +11,8 @@ import type {
   CreateInventoryItemCommand,
   UpdateInventoryItemCommand,
   RecordStockMovementCommand,
-} from './types.js';
-import type { InventoryDomainEvent } from './events.js';
+} from "./types.js";
+import type { InventoryDomainEvent } from "./events.js";
 
 export interface IPartRepository {
   findAll(orgId?: string): Promise<PartEntity[]>;
@@ -30,19 +30,27 @@ export interface IPartsInventoryRepository {
     orgId?: string,
     search?: string,
     sortBy?: string,
-    sortOrder?: 'asc' | 'desc'
+    sortOrder?: "asc" | "desc"
   ): Promise<PartsInventoryEntity[]>;
   findById(id: string, orgId?: string): Promise<PartsInventoryEntity | undefined>;
   findByPartNo(partNo: string, orgId?: string): Promise<PartsInventoryEntity[]>;
   findLowStock(orgId: string): Promise<PartsInventoryEntity[]>;
   create(command: CreateInventoryItemCommand): Promise<PartsInventoryEntity>;
-  update(id: string, updates: UpdateInventoryItemCommand, orgId?: string): Promise<PartsInventoryEntity>;
+  update(
+    id: string,
+    updates: UpdateInventoryItemCommand,
+    orgId?: string
+  ): Promise<PartsInventoryEntity>;
   delete(id: string, orgId: string): Promise<void>;
   updateQuantity(id: string, newQuantity: number, orgId?: string): Promise<PartsInventoryEntity>;
 }
 
 export interface IStockMovementRepository {
-  create(command: RecordStockMovementCommand, previousQuantity: number, newQuantity: number): Promise<StockMovementEntity>;
+  create(
+    command: RecordStockMovementCommand,
+    previousQuantity: number,
+    newQuantity: number
+  ): Promise<StockMovementEntity>;
   findByInventoryId(inventoryId: string): Promise<StockMovementEntity[]>;
   findByDateRange(orgId: string, startDate: Date, endDate: Date): Promise<StockMovementEntity[]>;
 }
@@ -74,5 +82,9 @@ export interface WorkOrderPartDemand {
 }
 
 export interface IWorkOrderDemandRepository {
-  getUpcomingDemand(orgId: string, daysAhead?: number, vesselId?: string): Promise<WorkOrderPartDemand[]>;
+  getUpcomingDemand(
+    orgId: string,
+    daysAhead?: number,
+    vesselId?: string
+  ): Promise<WorkOrderPartDemand[]>;
 }

@@ -1,11 +1,5 @@
-import type {
-  PartsInventorySupplier,
-  InsertPartsInventorySupplier,
-} from "@shared/schema";
-import {
-  inventorySupplierRepository,
-  type SupplierLinkWithDetails,
-} from "./supplier-repository";
+import type { PartsInventorySupplier, InsertPartsInventorySupplier } from "@shared/schema";
+import { inventorySupplierRepository, type SupplierLinkWithDetails } from "./supplier-repository";
 import { recordAndPublish } from "../../sync-events";
 
 /**
@@ -34,10 +28,7 @@ export class InventorySupplierService {
     data: InsertPartsInventorySupplier,
     userId?: string
   ): Promise<PartsInventorySupplier> {
-    const exists = await inventorySupplierRepository.exists(
-      data.inventoryItemId,
-      data.supplierId
-    );
+    const exists = await inventorySupplierRepository.exists(data.inventoryItemId, data.supplierId);
     if (exists) {
       throw new Error("Supplier is already linked to this inventory item");
     }
@@ -94,13 +85,7 @@ export class InventorySupplierService {
     const result = await inventorySupplierRepository.update(linkId, data);
 
     if (result) {
-      await recordAndPublish(
-        "inventory_supplier_link",
-        linkId,
-        "update",
-        data,
-        userId
-      );
+      await recordAndPublish("inventory_supplier_link", linkId, "update", data, userId);
     }
 
     return result;
@@ -113,13 +98,7 @@ export class InventorySupplierService {
     const deleted = await inventorySupplierRepository.delete(linkId);
 
     if (deleted) {
-      await recordAndPublish(
-        "inventory_supplier_link",
-        linkId,
-        "delete",
-        {},
-        userId
-      );
+      await recordAndPublish("inventory_supplier_link", linkId, "delete", {}, userId);
     }
 
     return deleted;

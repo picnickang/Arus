@@ -8,15 +8,32 @@ import type { Express, Request, Response } from "express";
 import { insertWorkOrderSchema, updateWorkOrderSchema } from "@shared/schema-runtime";
 import { workOrderAppService as workOrderService } from "../application";
 import { safeDbOperation } from "../../../error-handling";
-import { requireOrgId, requireOrgIdAndValidateBody, AuthenticatedRequest } from "../../../middleware/auth";
-import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../../lib/route-utils";
-import { parsePagination, paginatedResponse, parseDateRange, sendValidationError, sendBadRequest } from "../../../lib/api-helpers";
+import {
+  requireOrgId,
+  requireOrgIdAndValidateBody,
+  AuthenticatedRequest,
+} from "../../../middleware/auth";
+import {
+  withErrorHandling,
+  sendNotFound,
+  sendCreated,
+  sendDeleted,
+} from "../../../lib/route-utils";
+import {
+  parsePagination,
+  paginatedResponse,
+  parseDateRange,
+  sendValidationError,
+  sendBadRequest,
+} from "../../../lib/api-helpers";
 import type { RateLimitMiddleware } from "./types";
 
 export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware) {
   const { writeOperationRateLimit, criticalOperationRateLimit } = rateLimit;
 
-  app.get("/api/work-orders", requireOrgId,
+  app.get(
+    "/api/work-orders",
+    requireOrgId,
     withErrorHandling("fetch work orders", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const equipmentId = req.query.equipmentId as string;
@@ -38,11 +55,11 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
 
       if (isPaginated) {
         const paginationResult = parsePagination(req.query as Record<string, unknown>);
-        
+
         if (!paginationResult.success) {
           return sendValidationError(res, paginationResult.error, "Invalid pagination parameters");
         }
-        
+
         const pagination = paginationResult.params;
 
         if (pagination.limit < 1 || pagination.limit > 100) {
@@ -65,28 +82,42 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     })
   );
 
-  app.get("/api/work-orders/summary", requireOrgId,
+  app.get(
+    "/api/work-orders/summary",
+    requireOrgId,
     withErrorHandling("fetch work order summary", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const workOrders = await workOrderService.listWorkOrders(undefined, orgId);
       const now = new Date();
 
       const total = workOrders.length;
-      const open = workOrders.filter((wo: any) => wo.status === "open" || wo.status === "in_progress" || wo.status === "pending").length;
-      const completed = workOrders.filter((wo: any) => wo.status === "completed" || wo.status === "closed").length;
+      const open = workOrders.filter(
+        (wo: any) => wo.status === "open" || wo.status === "in_progress" || wo.status === "pending"
+      ).length;
+      const completed = workOrders.filter(
+        (wo: any) => wo.status === "completed" || wo.status === "closed"
+      ).length;
       const overdue = workOrders.filter((wo: any) => {
-        if (wo.status === "completed" || wo.status === "closed" || wo.status === "cancelled") {return false;}
-        if (!wo.nextScheduledDate && !wo.plannedEndDate) {return false;}
+        if (wo.status === "completed" || wo.status === "closed" || wo.status === "cancelled") {
+          return false;
+        }
+        if (!wo.nextScheduledDate && !wo.plannedEndDate) {
+          return false;
+        }
         const dueDate = new Date(wo.nextScheduledDate || wo.plannedEndDate);
         return dueDate < now;
       }).length;
-      const highPriority = workOrders.filter((wo: any) => wo.priority === 1 || wo.priority === "high" || wo.priority === "critical").length;
+      const highPriority = workOrders.filter(
+        (wo: any) => wo.priority === 1 || wo.priority === "high" || wo.priority === "critical"
+      ).length;
 
       res.json({ total, open, completed, overdue, overdueCount: overdue, highPriority });
     })
   );
 
-  app.get("/api/work-orders/:id", requireOrgId,
+  app.get(
+    "/api/work-orders/:id",
+    requireOrgId,
     withErrorHandling("fetch work order", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const workOrder = await workOrderService.getWorkOrderById(req.params.id, orgId);
@@ -99,11 +130,16 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     })
   );
 
-  app.post("/api/work-orders", requireOrgIdAndValidateBody, writeOperationRateLimit,
+  app.post(
+    "/api/work-orders",
+    requireOrgIdAndValidateBody,
+    writeOperationRateLimit,
     withErrorHandling("create work order", async (req: Request, res: Response) => {
       const processedBody = {
         ...req.body,
-        scheduledDate: req.body.nextScheduledDate ? new Date(req.body.nextScheduledDate) : undefined,
+        scheduledDate: req.body.nextScheduledDate
+          ? new Date(req.body.nextScheduledDate)
+          : undefined,
         completedDate: req.body.completedDate ? new Date(req.body.completedDate) : undefined,
         plannedStartDate: req.body.plannedStartDate
           ? new Date(req.body.plannedStartDate)
@@ -122,13 +158,21 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     })
   );
 
-  app.post("/api/work-orders/with-suggestions", requireOrgIdAndValidateBody, writeOperationRateLimit,
+  app.post(
+    "/api/work-orders/with-suggestions",
+    requireOrgIdAndValidateBody,
+    writeOperationRateLimit,
     withErrorHandling("create work order with suggestions", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const orderData = insertWorkOrderSchema.parse(req.body);
 
       const result = await safeDbOperation(
-        () => workOrderService.createWorkOrderWithSuggestions(orderData, orgId, (req as AuthenticatedRequest).user?.id),
+        () =>
+          workOrderService.createWorkOrderWithSuggestions(
+            orderData,
+            orgId,
+            (req as AuthenticatedRequest).user?.id
+          ),
         "createWorkOrderWithSuggestions"
       );
 
@@ -136,13 +180,23 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     })
   );
 
-  app.put("/api/work-orders/:id", requireOrgIdAndValidateBody, writeOperationRateLimit,
+  app.put(
+    "/api/work-orders/:id",
+    requireOrgIdAndValidateBody,
+    writeOperationRateLimit,
     withErrorHandling("update work order", async (req: Request, res: Response) => {
       const parsed = updateWorkOrderSchema.parse(req.body);
       const orderData: Record<string, any> = { ...parsed };
-      const dateFields = ["plannedStartDate", "plannedEndDate", "actualStartDate", "actualEndDate"] as const;
+      const dateFields = [
+        "plannedStartDate",
+        "plannedEndDate",
+        "actualStartDate",
+        "actualEndDate",
+      ] as const;
       for (const f of dateFields) {
-        if (orderData[f] != null) {orderData[f] = new Date(orderData[f]);}
+        if (orderData[f] != null) {
+          orderData[f] = new Date(orderData[f]);
+        }
       }
       const orgId = (req as AuthenticatedRequest).orgId;
       const workOrder = await workOrderService.updateWorkOrder(
@@ -156,10 +210,17 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     })
   );
 
-  app.delete("/api/work-orders/:id", requireOrgId, criticalOperationRateLimit,
+  app.delete(
+    "/api/work-orders/:id",
+    requireOrgId,
+    criticalOperationRateLimit,
     withErrorHandling("delete work order", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      await workOrderService.deleteWorkOrder(req.params.id, orgId, (req as AuthenticatedRequest).user?.id);
+      await workOrderService.deleteWorkOrder(
+        req.params.id,
+        orgId,
+        (req as AuthenticatedRequest).user?.id
+      );
       sendDeleted(res);
     })
   );

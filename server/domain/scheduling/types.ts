@@ -1,5 +1,12 @@
 export interface SchedulingConstraint {
-  type: "rest_hours" | "max_weekly" | "leave" | "certification" | "vessel_match" | "skill_match" | "overlap";
+  type:
+    | "rest_hours"
+    | "max_weekly"
+    | "leave"
+    | "certification"
+    | "vessel_match"
+    | "skill_match"
+    | "overlap";
   enforcement: "hard" | "soft";
   threshold?: number;
   description: string;

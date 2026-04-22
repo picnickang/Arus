@@ -42,12 +42,14 @@ export function calculateNewPosition(
   const lon1 = (position.longitude * Math.PI) / 180;
   const lat2 = Math.asin(
     Math.sin(lat1) * Math.cos(distanceNM / R) +
-    Math.cos(lat1) * Math.sin(distanceNM / R) * Math.cos(bearingRad)
+      Math.cos(lat1) * Math.sin(distanceNM / R) * Math.cos(bearingRad)
   );
-  const lon2 = lon1 + Math.atan2(
-    Math.sin(bearingRad) * Math.sin(distanceNM / R) * Math.cos(lat1),
-    Math.cos(distanceNM / R) - Math.sin(lat1) * Math.sin(lat2)
-  );
+  const lon2 =
+    lon1 +
+    Math.atan2(
+      Math.sin(bearingRad) * Math.sin(distanceNM / R) * Math.cos(lat1),
+      Math.cos(distanceNM / R) - Math.sin(lat1) * Math.sin(lat2)
+    );
   return { latitude: (lat2 * 180) / Math.PI, longitude: (lon2 * 180) / Math.PI };
 }
 
@@ -65,11 +67,15 @@ export function validateStateConsistency(state: TwinState): TwinState {
   return state;
 }
 
-export function calculateTwinAccuracy(telemetryData: Record<string, any>, twinState: TwinState): number {
+export function calculateTwinAccuracy(
+  telemetryData: Record<string, any>,
+  twinState: TwinState
+): number {
   let accuracySum = 0;
   let comparisonCount = 0;
   if (telemetryData.speed !== undefined && twinState.speed !== undefined) {
-    const speedError = Math.abs(telemetryData.speed - twinState.speed) / Math.max(telemetryData.speed, 1);
+    const speedError =
+      Math.abs(telemetryData.speed - twinState.speed) / Math.max(telemetryData.speed, 1);
     accuracySum += Math.max(0, 1 - speedError);
     comparisonCount++;
   }
@@ -77,7 +83,9 @@ export function calculateTwinAccuracy(telemetryData: Record<string, any>, twinSt
   if (telemetryData.engine_temperature && twinState.machinery.engines) {
     const engine = Object.values(twinState.machinery.engines)[0];
     if (engine) {
-      const tempError = Math.abs(telemetryData.engine_temperature - engine.temperature) / Math.max(telemetryData.engine_temperature, 1);
+      const tempError =
+        Math.abs(telemetryData.engine_temperature - engine.temperature) /
+        Math.max(telemetryData.engine_temperature, 1);
       accuracySum += Math.max(0, 1 - tempError);
       comparisonCount++;
     }
@@ -90,12 +98,20 @@ export function assimilateTelemetryData(
   telemetryData: Record<string, any>
 ): TwinState {
   const updatedState = { ...currentState };
-  if (telemetryData.position) { updatedState.position = telemetryData.position; }
-  if (telemetryData.speed !== undefined) { updatedState.speed = telemetryData.speed; }
-  if (telemetryData.heading !== undefined) { updatedState.heading = telemetryData.heading; }
+  if (telemetryData.position) {
+    updatedState.position = telemetryData.position;
+  }
+  if (telemetryData.speed !== undefined) {
+    updatedState.speed = telemetryData.speed;
+  }
+  if (telemetryData.heading !== undefined) {
+    updatedState.heading = telemetryData.heading;
+  }
   if (telemetryData.engine_temperature) {
     const engine = Object.values(updatedState.machinery.engines)[0];
-    if (engine) { engine.temperature = telemetryData.engine_temperature; }
+    if (engine) {
+      engine.temperature = telemetryData.engine_temperature;
+    }
   }
 
   if (telemetryData.engine_rpm) {

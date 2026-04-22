@@ -35,7 +35,9 @@ export default function StorageSettings() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-storage-title">Storage Settings</h1>
+          <h1 className="text-2xl font-semibold" data-testid="text-storage-title">
+            Storage Settings
+          </h1>
           <p className="text-muted-foreground">Configure database and file storage options</p>
         </div>
         <Button variant="outline" data-testid="button-refresh-storage">
@@ -62,7 +64,9 @@ export default function StorageSettings() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Primary Storage</span>
-              <span className="text-sm font-medium" data-testid="text-primary-storage">{config.primaryStorage}</span>
+              <span className="text-sm font-medium" data-testid="text-primary-storage">
+                {config.primaryStorage}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Sync Status</span>
@@ -74,7 +78,9 @@ export default function StorageSettings() {
                 ) : (
                   <RefreshCw className="h-4 w-4 animate-spin" />
                 )}
-                <span className="text-sm capitalize" data-testid="text-sync-status">{config.syncStatus}</span>
+                <span className="text-sm capitalize" data-testid="text-sync-status">
+                  {config.syncStatus}
+                </span>
               </div>
             </div>
           </CardContent>
@@ -91,15 +97,22 @@ export default function StorageSettings() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Used</span>
-              <span className="text-sm font-medium" data-testid="text-used-storage">{config.usedSize || "N/A"}</span>
+              <span className="text-sm font-medium" data-testid="text-used-storage">
+                {config.usedSize || "N/A"}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Total Available</span>
-              <span className="text-sm font-medium" data-testid="text-total-storage">{config.totalSize || "N/A"}</span>
+              <span className="text-sm font-medium" data-testid="text-total-storage">
+                {config.totalSize || "N/A"}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Backup Enabled</span>
-              <Badge variant={config.backupEnabled ? "default" : "secondary"} data-testid="badge-backup-status">
+              <Badge
+                variant={config.backupEnabled ? "default" : "secondary"}
+                data-testid="badge-backup-status"
+              >
                 {config.backupEnabled ? "Yes" : "No"}
               </Badge>
             </div>
@@ -123,7 +136,9 @@ export default function StorageSettings() {
                 Cloud storage is managed automatically by the platform
               </p>
             </div>
-            <Badge variant="outline" data-testid="badge-cloud-status">Connected</Badge>
+            <Badge variant="outline" data-testid="badge-cloud-status">
+              Connected
+            </Badge>
           </div>
         </CardContent>
       </Card>

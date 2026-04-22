@@ -120,7 +120,7 @@ const DEFAULT_ROTATION_TEMPLATES: RotationTemplate[] = [
 export function useSchedulingSettingsData() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [aiWeightsOpen, setAiWeightsOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<RotationTemplate | null>(null);
 
@@ -149,15 +149,25 @@ export function useSchedulingSettingsData() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/scheduling-settings"] });
-      toast({ title: "Notifications Updated", description: "Notification settings have been saved." });
+      toast({
+        title: "Notifications Updated",
+        description: "Notification settings have been saved.",
+      });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to update notification settings.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to update notification settings.",
+        variant: "destructive",
+      });
     },
   });
 
   const updateRulesMutation = useMutation({
-    mutationFn: async (data: { thresholds: RuleThresholds; enforcement: RuleEnforcementSettings }) => {
+    mutationFn: async (data: {
+      thresholds: RuleThresholds;
+      enforcement: RuleEnforcementSettings;
+    }) => {
       return apiRequest("/api/scheduling-settings/rules", {
         method: "PATCH",
         body: JSON.stringify(data),
@@ -168,7 +178,11 @@ export function useSchedulingSettingsData() {
       toast({ title: "Rules Updated", description: "Rule settings have been saved." });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to update rule settings.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to update rule settings.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -184,7 +198,11 @@ export function useSchedulingSettingsData() {
       toast({ title: "AI Weights Updated", description: "AI suggestion weights have been saved." });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to update AI weights.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to update AI weights.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -197,10 +215,17 @@ export function useSchedulingSettingsData() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/scheduling-settings"] });
-      toast({ title: "Publish Behavior Updated", description: "Publish settings have been saved." });
+      toast({
+        title: "Publish Behavior Updated",
+        description: "Publish settings have been saved.",
+      });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to update publish behavior.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to update publish behavior.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -216,7 +241,11 @@ export function useSchedulingSettingsData() {
       toast({ title: "Templates Updated", description: "Rotation templates have been saved." });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to update rotation templates.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to update rotation templates.",
+        variant: "destructive",
+      });
     },
   });
 

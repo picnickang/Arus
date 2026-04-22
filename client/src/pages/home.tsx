@@ -11,10 +11,12 @@ import { PendingApprovalsBanner } from "@/components/shared/PendingApprovalsBann
 import { QuickWorkOrderSheet } from "@/components/work-orders/QuickWorkOrderSheet";
 import { homePageGroups, type HomePageGroup } from "@/config/navigationConfig";
 import { trackPageVisit, getLastVisitTime, recordVisitTime } from "@/lib/pageTracking";
-import { getBriefingRedirect, markRoleJustSelected, clearRoleJustSelected } from "@/lib/briefing-redirect";
 import {
-  ChevronRight, History, Plus,
-} from "lucide-react";
+  getBriefingRedirect,
+  markRoleJustSelected,
+  clearRoleJustSelected,
+} from "@/lib/briefing-redirect";
+import { ChevronRight, History, Plus } from "lucide-react";
 import { ROLES, ROLE_STORAGE_KEY } from "@/config/roles";
 import type { RoleConfig } from "@/config/roles";
 
@@ -27,7 +29,9 @@ function RoleSelector({ onSelect }: { onSelect: (roleId: string) => void }) {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
       <div className="max-w-lg w-full text-center mb-8">
-        <h1 className="text-2xl font-bold mb-2" data-testid="text-welcome-title">Welcome to ARUS</h1>
+        <h1 className="text-2xl font-bold mb-2" data-testid="text-welcome-title">
+          Welcome to ARUS
+        </h1>
         <p className="text-muted-foreground">
           Choose your role to customize your home screen. You can change this anytime in Settings.
         </p>
@@ -84,17 +88,34 @@ function useAttentionItems() {
   });
 
   const attentionItems = useMemo(() => {
-    if (!summary) {return [];}
+    if (!summary) {
+      return [];
+    }
     const items: Array<{ label: string; count: number; severity: string; href: string }> = [];
 
     if (summary.overdueWorkOrders > 0) {
-      items.push({ label: "Overdue work orders", count: summary.overdueWorkOrders, severity: "critical", href: "/work-orders?status=overdue" });
+      items.push({
+        label: "Overdue work orders",
+        count: summary.overdueWorkOrders,
+        severity: "critical",
+        href: "/work-orders?status=overdue",
+      });
     }
     if (summary.unacknowledgedAlerts > 0) {
-      items.push({ label: "Unacknowledged alerts", count: summary.unacknowledgedAlerts, severity: "warning", href: "/dashboard" });
+      items.push({
+        label: "Unacknowledged alerts",
+        count: summary.unacknowledgedAlerts,
+        severity: "warning",
+        href: "/dashboard",
+      });
     }
     if (summary.highRiskEquipment > 0) {
-      items.push({ label: "High-risk equipment", count: summary.highRiskEquipment, severity: "warning", href: "/pdm-dashboard" });
+      items.push({
+        label: "High-risk equipment",
+        count: summary.highRiskEquipment,
+        severity: "warning",
+        href: "/pdm-dashboard",
+      });
     }
 
     return items;
@@ -103,9 +124,15 @@ function useAttentionItems() {
   return { attentionItems, sinceLastVisit: summary?.newSinceLastVisit };
 }
 
-function SinceLastVisit({ data }: { data: { newAlerts: number; newWorkOrders: number; completedWorkOrders: number } }) {
+function SinceLastVisit({
+  data,
+}: {
+  data: { newAlerts: number; newWorkOrders: number; completedWorkOrders: number };
+}) {
   const total = data.newAlerts + data.newWorkOrders + data.completedWorkOrders;
-  if (total === 0) {return null;}
+  if (total === 0) {
+    return null;
+  }
 
   return (
     <div className="mb-6 p-4 rounded-lg border bg-card" data-testid="section-since-last-visit">
@@ -116,19 +143,28 @@ function SinceLastVisit({ data }: { data: { newAlerts: number; newWorkOrders: nu
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {data.newAlerts > 0 && (
           <div className="text-center p-2 rounded bg-yellow-500/10">
-            <div className="text-lg font-bold text-yellow-600" data-testid="text-new-alerts">{data.newAlerts}</div>
+            <div className="text-lg font-bold text-yellow-600" data-testid="text-new-alerts">
+              {data.newAlerts}
+            </div>
             <div className="text-xs text-muted-foreground">New Alerts</div>
           </div>
         )}
         {data.newWorkOrders > 0 && (
           <div className="text-center p-2 rounded bg-blue-500/10">
-            <div className="text-lg font-bold text-blue-600" data-testid="text-new-work-orders">{data.newWorkOrders}</div>
+            <div className="text-lg font-bold text-blue-600" data-testid="text-new-work-orders">
+              {data.newWorkOrders}
+            </div>
             <div className="text-xs text-muted-foreground">New Work Orders</div>
           </div>
         )}
         {data.completedWorkOrders > 0 && (
           <div className="text-center p-2 rounded bg-green-500/10">
-            <div className="text-lg font-bold text-green-600" data-testid="text-completed-work-orders">{data.completedWorkOrders}</div>
+            <div
+              className="text-lg font-bold text-green-600"
+              data-testid="text-completed-work-orders"
+            >
+              {data.completedWorkOrders}
+            </div>
             <div className="text-xs text-muted-foreground">Completed</div>
           </div>
         )}
@@ -146,7 +182,9 @@ function MyTasks() {
   const [, setLocation] = useLocation();
   const tasks = Array.isArray(myWorkOrders) ? myWorkOrders.slice(0, 5) : [];
 
-  if (tasks.length === 0) {return null;}
+  if (tasks.length === 0) {
+    return null;
+  }
 
   return (
     <div className="mb-6">
@@ -169,11 +207,16 @@ function MyTasks() {
             className="w-full flex items-center gap-3 p-3 rounded-lg border border-border
                        bg-card hover:border-primary/50 transition-colors text-left touch-target"
           >
-            <div className={cn(
-              "w-2 h-2 rounded-full flex-shrink-0",
-              task.priority === 1 ? "bg-destructive" :
-              task.priority === 2 ? "bg-yellow-500" : "bg-muted-foreground"
-            )} />
+            <div
+              className={cn(
+                "w-2 h-2 rounded-full flex-shrink-0",
+                task.priority === 1
+                  ? "bg-destructive"
+                  : task.priority === 2
+                    ? "bg-yellow-500"
+                    : "bg-muted-foreground"
+              )}
+            />
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium truncate">{task.title}</div>
               <div className="text-xs text-muted-foreground">
@@ -193,7 +236,11 @@ function MyTasks() {
 export default function HomePage() {
   const [, navigate] = useLocation();
   const [role, setRole] = useState<string | null>(() => {
-    try { return localStorage.getItem(STORAGE_KEY); } catch { return null; }
+    try {
+      return localStorage.getItem(STORAGE_KEY);
+    } catch {
+      return null;
+    }
   });
   const [quickWoOpen, setQuickWoOpen] = useState(false);
 
@@ -257,13 +304,9 @@ export default function HomePage() {
       <PendingApprovalsBanner />
 
       <div className="px-4 lg:px-6 pt-2">
-        {attentionItems.length > 0 && (
-          <AttentionBanner items={attentionItems} className="mb-4" />
-        )}
+        {attentionItems.length > 0 && <AttentionBanner items={attentionItems} className="mb-4" />}
 
-        {roleConfig && (
-          <QuickActions actions={roleConfig.quickActions} className="mb-6" />
-        )}
+        {roleConfig && <QuickActions actions={roleConfig.quickActions} className="mb-6" />}
 
         {sinceLastVisit && <SinceLastVisit data={sinceLastVisit} />}
 

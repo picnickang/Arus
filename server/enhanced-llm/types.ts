@@ -1,6 +1,6 @@
 /**
  * Enhanced LLM - Types
- * 
+ *
  * Core types and interfaces for the enhanced LLM service.
  */
 

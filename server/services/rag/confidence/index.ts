@@ -251,19 +251,104 @@ export class ConfidenceDetector {
 
   private extractKeyTerms(query: string): string[] {
     const stopWords = new Set([
-      "the", "a", "an", "is", "are", "was", "were", "be", "been",
-      "being", "have", "has", "had", "do", "does", "did", "will",
-      "would", "could", "should", "may", "might", "must", "shall",
-      "can", "need", "dare", "ought", "used", "to", "of", "in",
-      "for", "on", "with", "at", "by", "from", "as", "into",
-      "through", "during", "before", "after", "above", "below",
-      "between", "under", "again", "further", "then", "once",
-      "here", "there", "when", "where", "why", "how", "all",
-      "each", "few", "more", "most", "other", "some", "such",
-      "no", "nor", "not", "only", "own", "same", "so", "than",
-      "too", "very", "just", "and", "but", "if", "or", "because",
-      "until", "while", "what", "which", "who", "whom", "this",
-      "that", "these", "those", "am", "it", "its", "i", "me", "my",
+      "the",
+      "a",
+      "an",
+      "is",
+      "are",
+      "was",
+      "were",
+      "be",
+      "been",
+      "being",
+      "have",
+      "has",
+      "had",
+      "do",
+      "does",
+      "did",
+      "will",
+      "would",
+      "could",
+      "should",
+      "may",
+      "might",
+      "must",
+      "shall",
+      "can",
+      "need",
+      "dare",
+      "ought",
+      "used",
+      "to",
+      "of",
+      "in",
+      "for",
+      "on",
+      "with",
+      "at",
+      "by",
+      "from",
+      "as",
+      "into",
+      "through",
+      "during",
+      "before",
+      "after",
+      "above",
+      "below",
+      "between",
+      "under",
+      "again",
+      "further",
+      "then",
+      "once",
+      "here",
+      "there",
+      "when",
+      "where",
+      "why",
+      "how",
+      "all",
+      "each",
+      "few",
+      "more",
+      "most",
+      "other",
+      "some",
+      "such",
+      "no",
+      "nor",
+      "not",
+      "only",
+      "own",
+      "same",
+      "so",
+      "than",
+      "too",
+      "very",
+      "just",
+      "and",
+      "but",
+      "if",
+      "or",
+      "because",
+      "until",
+      "while",
+      "what",
+      "which",
+      "who",
+      "whom",
+      "this",
+      "that",
+      "these",
+      "those",
+      "am",
+      "it",
+      "its",
+      "i",
+      "me",
+      "my",
     ]);
 
     return query
@@ -284,8 +369,12 @@ export class ConfidenceDetector {
   }
 
   private scoreToLevel(score: number): ConfidenceResult["level"] {
-    if (score >= 0.7) {return "high";}
-    if (score >= this.config.lowConfidenceThreshold) {return "medium";}
+    if (score >= 0.7) {
+      return "high";
+    }
+    if (score >= this.config.lowConfidenceThreshold) {
+      return "medium";
+    }
     return "low";
   }
 
@@ -293,7 +382,9 @@ export class ConfidenceDetector {
     level: ConfidenceResult["level"],
     factors: ConfidenceFactor[]
   ): string | undefined {
-    if (level === "high") {return undefined;}
+    if (level === "high") {
+      return undefined;
+    }
 
     const weakFactors = factors.filter((f) => f.score < 0.5).map((f) => f.name);
 

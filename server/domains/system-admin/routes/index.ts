@@ -16,10 +16,7 @@ import { registerMetricsRoutes } from "./metrics-routes.js";
 
 export type { SystemAdminDependencies, ThresholdCalibrator };
 
-export function registerSystemAdminRoutes(
-  app: Express,
-  deps: SystemAdminDependencies
-): void {
+export function registerSystemAdminRoutes(app: Express, deps: SystemAdminDependencies): void {
   registerAuthRoutes(app, deps);
   registerAuditRoutes(app, deps);
   registerSettingsRoutes(app, deps);
@@ -28,7 +25,10 @@ export function registerSystemAdminRoutes(
   registerWindowsRoutes(app, deps);
   registerMetricsRoutes(app, deps);
 
-  logger.info("SystemAdminRoutes", "Registered (auth: 2, audit: 4, settings: 7, integrations: 7, windows: 7, metrics: 4, simulation: 4)");
+  logger.info(
+    "SystemAdminRoutes",
+    "Registered (auth: 2, audit: 4, settings: 7, integrations: 7, windows: 7, metrics: 4, simulation: 4)"
+  );
 }
 
 export {

@@ -33,7 +33,9 @@ export default function PermissionsSettings() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-permissions-title">Permissions & Security</h1>
+          <h1 className="text-2xl font-semibold" data-testid="text-permissions-title">
+            Permissions & Security
+          </h1>
           <p className="text-muted-foreground">Manage roles, permissions, and access control</p>
         </div>
       </div>
@@ -45,7 +47,9 @@ export default function PermissionsSettings() {
             <Shield className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-total-roles">{roles.length}</div>
+            <div className="text-2xl font-bold" data-testid="text-total-roles">
+              {roles.length}
+            </div>
             <p className="text-sm text-muted-foreground">Active role definitions</p>
           </CardContent>
         </Card>
@@ -70,7 +74,9 @@ export default function PermissionsSettings() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <Badge variant="default" className="bg-green-600" data-testid="badge-security-status">Secure</Badge>
+              <Badge variant="default" className="bg-green-600" data-testid="badge-security-status">
+                Secure
+              </Badge>
             </div>
             <p className="text-sm text-muted-foreground mt-1">RBAC enforcement active</p>
           </CardContent>
@@ -116,16 +122,22 @@ export default function PermissionsSettings() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium">Authentication Mode</p>
-                <p className="text-sm text-muted-foreground">Development mode with automatic login</p>
+                <p className="text-sm text-muted-foreground">
+                  Development mode with automatic login
+                </p>
               </div>
-              <Badge variant="outline" data-testid="badge-auth-mode">Development</Badge>
+              <Badge variant="outline" data-testid="badge-auth-mode">
+                Development
+              </Badge>
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium">Tenant Isolation</p>
                 <p className="text-sm text-muted-foreground">Single-tenant architecture</p>
               </div>
-              <Badge variant="default" data-testid="badge-tenant-mode">Single-Tenant</Badge>
+              <Badge variant="default" data-testid="badge-tenant-mode">
+                Single-Tenant
+              </Badge>
             </div>
           </div>
         </CardContent>

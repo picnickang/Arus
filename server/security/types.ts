@@ -1,6 +1,6 @@
 /**
  * Security Types - Interfaces and type definitions
- * 
+ *
  * SINGLE-TENANT SYSTEM: orgId removed from user (uses default-org-id)
  */
 

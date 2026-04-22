@@ -13,7 +13,9 @@ import type { Request, Response } from "express";
 function mockReq(overrides: Record<string, any> = {}): Request {
   return {
     headers: {},
-    header (name: string) { return this.headers[name.toLowerCase()]; },
+    header(name: string) {
+      return this.headers[name.toLowerCase()];
+    },
     method: "GET",
     path: "/api/test",
     url: "/api/test",
@@ -28,12 +30,29 @@ function mockRes(): Response & { _headers: Record<string, string>; _status: numb
     _headers: {},
     _status: 200,
     _body: null,
-    setHeader(name: string, value: string) { this._headers[name.toLowerCase()] = value; return this; },
-    set(name: string, value: string) { this._headers[name.toLowerCase()] = value; return this; },
-    status(code: number) { this._status = code; return this; },
-    json(body: any) { this._body = body; return this; },
-    send(body: any) { this._body = body; return this; },
-    end() { return this; },
+    setHeader(name: string, value: string) {
+      this._headers[name.toLowerCase()] = value;
+      return this;
+    },
+    set(name: string, value: string) {
+      this._headers[name.toLowerCase()] = value;
+      return this;
+    },
+    status(code: number) {
+      this._status = code;
+      return this;
+    },
+    json(body: any) {
+      this._body = body;
+      return this;
+    },
+    send(body: any) {
+      this._body = body;
+      return this;
+    },
+    end() {
+      return this;
+    },
   };
   return res;
 }

@@ -15,13 +15,21 @@ export interface CrewRouteDeps {
   rateLimit: RateLimitMiddleware;
 }
 
-export function getExpiryUrgencyLevel(expiryDate: Date | string): 'critical' | 'warning' | 'notice' {
+export function getExpiryUrgencyLevel(
+  expiryDate: Date | string
+): "critical" | "warning" | "notice" {
   const daysUntilExpiry = Math.ceil(
     (new Date(expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
   );
 
-  if (daysUntilExpiry <= 0) { return 'critical'; }
-  if (daysUntilExpiry <= 30) { return 'critical'; }
-  if (daysUntilExpiry <= 60) { return 'warning'; }
-  return 'notice';
+  if (daysUntilExpiry <= 0) {
+    return "critical";
+  }
+  if (daysUntilExpiry <= 30) {
+    return "critical";
+  }
+  if (daysUntilExpiry <= 60) {
+    return "warning";
+  }
+  return "notice";
 }

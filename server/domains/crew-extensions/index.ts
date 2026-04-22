@@ -1,7 +1,7 @@
 /**
  * Crew Extensions Domain
  * DDD Modular Monolith with Hexagonal Architecture
- * 
+ *
  * Layers:
  * - domain/: Pure business logic (types, events, ports)
  * - application/: Use case orchestration (service with DI)

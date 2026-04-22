@@ -30,38 +30,50 @@ export class SafetyService {
   async checkTokenBudget(
     orgId: string,
     conversationId: string,
-    config: { maxTokensPerConversation?: number | null; dailyTokenLimit?: number | null; monthlyTokenLimit?: number | null },
+    config: {
+      maxTokensPerConversation?: number | null;
+      dailyTokenLimit?: number | null;
+      monthlyTokenLimit?: number | null;
+    }
   ): Promise<SafetyCheckResult> {
     const conv = await this.repo.conversations.get(conversationId, orgId);
     const convTokens = conv?.totalTokensUsed || 0;
     const maxConvTokens = config.maxTokensPerConversation || 50000;
 
     if (convTokens >= maxConvTokens) {
-      return { allowed: false, reason: "Conversation token limit reached. Start a new conversation.", remainingTokens: 0 };
+      return {
+        allowed: false,
+        reason: "Conversation token limit reached. Start a new conversation.",
+        remainingTokens: 0,
+      };
     }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const dailyResult = await db.execute(sql`
+    const dailyResult = (await db.execute(sql`
       SELECT COALESCE(SUM(m.token_count), 0)::int as total
       FROM agent_messages m
       JOIN agent_conversations c ON m.conversation_id = c.id
       WHERE c.org_id = ${orgId} AND m.created_at >= ${today}
-    `) as unknown as DbQueryResult;
+    `)) as unknown as DbQueryResult;
     const dailyTokens = Number(dailyResult.rows?.[0]?.total || 0);
     const dailyLimit = config.dailyTokenLimit || 500000;
 
     if (dailyTokens >= dailyLimit) {
-      return { allowed: false, reason: "Daily token limit reached. Try again tomorrow.", remainingTokens: 0 };
+      return {
+        allowed: false,
+        reason: "Daily token limit reached. Try again tomorrow.",
+        remainingTokens: 0,
+      };
     }
 
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const monthlyResult = await db.execute(sql`
+    const monthlyResult = (await db.execute(sql`
       SELECT COALESCE(SUM(m.token_count), 0)::int as total
       FROM agent_messages m
       JOIN agent_conversations c ON m.conversation_id = c.id
       WHERE c.org_id = ${orgId} AND m.created_at >= ${monthStart}
-    `) as unknown as DbQueryResult;
+    `)) as unknown as DbQueryResult;
     const monthlyTokens = Number(monthlyResult.rows?.[0]?.total || 0);
     const monthlyLimit = config.monthlyTokenLimit || 5000000;
 
@@ -109,7 +121,14 @@ export class SafetyService {
           COUNT(*) FILTER (WHERE status = 'pending')::int as pending
         FROM agent_drafts
         WHERE org_id = ${orgId} AND created_at >= ${since}
-      `) as unknown as { rows: Array<{ total?: string | number; approved?: string | number; rejected?: string | number; pending?: string | number }> },
+      `) as unknown as {
+        rows: Array<{
+          total?: string | number;
+          approved?: string | number;
+          rejected?: string | number;
+          pending?: string | number;
+        }>;
+      },
       db.execute(sql`
         SELECT COALESCE(SUM(estimated_cost), 0) as cost
         FROM llm_cost_tracking
@@ -136,11 +155,19 @@ export class SafetyService {
       conversationCount: convCount,
       messageCount: Number(convRow.msg_count || 0),
       totalTokens: tokenTotal,
-      toolCallCount: toolRows.reduce((sum: number, r: DbQueryRow) => sum + Number(r.call_count || 0), 0),
+      toolCallCount: toolRows.reduce(
+        (sum: number, r: DbQueryRow) => sum + Number(r.call_count || 0),
+        0
+      ),
       avgTokensPerConversation: convCount > 0 ? Math.round(tokenTotal / convCount) : 0,
-      topTools: toolRows.map((r: DbQueryRow) => ({ toolName: r.tool_name || "", count: Number(r.call_count) })),
+      topTools: toolRows.map((r: DbQueryRow) => ({
+        toolName: r.tool_name || "",
+        count: Number(r.call_count),
+      })),
       dailyUsage: dailyRows.map((r: DbQueryRow) => ({
-        date: String(r.day || ""), tokens: Number(r.tokens), messages: Number(r.messages),
+        date: String(r.day || ""),
+        tokens: Number(r.tokens),
+        messages: Number(r.messages),
       })),
       approvalStats: {
         total: totalDrafts,
@@ -154,20 +181,28 @@ export class SafetyService {
   }
 
   checkWriteToolAccess(toolName: string, userRole: string | undefined): boolean {
-    if (!WRITE_TOOLS.includes(toolName as typeof WRITE_TOOLS[number])) {return true;}
+    if (!WRITE_TOOLS.includes(toolName as (typeof WRITE_TOOLS)[number])) {
+      return true;
+    }
     const role = (userRole || "").toLowerCase();
-    if (role === "system") {return true;}
-    return MAINTENANCE_ROLES.includes(role as typeof MAINTENANCE_ROLES[number]);
+    if (role === "system") {
+      return true;
+    }
+    return MAINTENANCE_ROLES.includes(role as (typeof MAINTENANCE_ROLES)[number]);
   }
 
   shouldAutoApprove(
     toolRiskLevel: RiskLevel,
     permissionTier: PermissionTier,
-    userRole: string | undefined,
+    userRole: string | undefined
   ): boolean {
-    if (toolRiskLevel === "read") {return true;}
+    if (toolRiskLevel === "read") {
+      return true;
+    }
 
-    if (permissionTier === "strict") {return false;}
+    if (permissionTier === "strict") {
+      return false;
+    }
 
     if (permissionTier === "autonomous") {
       const role = (userRole || "").toLowerCase();
@@ -175,10 +210,14 @@ export class SafetyService {
     }
 
     if (permissionTier === "balanced") {
-      if (toolRiskLevel === "high-write") {return false;}
+      if (toolRiskLevel === "high-write") {
+        return false;
+      }
       const role = (userRole || "").toLowerCase();
-      if (role === "system") {return true;}
-      return MAINTENANCE_ROLES.includes(role as typeof MAINTENANCE_ROLES[number]);
+      if (role === "system") {
+        return true;
+      }
+      return MAINTENANCE_ROLES.includes(role as (typeof MAINTENANCE_ROLES)[number]);
     }
 
     return false;
@@ -190,7 +229,9 @@ export class SafetyService {
   }
 
   validateToolAccess(toolName: string, enabledTools: string[] | null | undefined): boolean {
-    if (!enabledTools || !Array.isArray(enabledTools)) {return true;}
+    if (!enabledTools || !Array.isArray(enabledTools)) {
+      return true;
+    }
     return enabledTools.includes(toolName);
   }
 }

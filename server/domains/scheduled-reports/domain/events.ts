@@ -3,7 +3,7 @@
  * Domain events for report lifecycle
  */
 
-import type { ReportType, ReportFormat } from './types.js';
+import type { ReportType, ReportFormat } from "./types.js";
 
 export interface DomainEvent {
   eventId: string;
@@ -14,7 +14,7 @@ export interface DomainEvent {
 }
 
 export interface ReportScheduleCreatedEvent extends DomainEvent {
-  eventType: 'ReportScheduleCreated';
+  eventType: "ReportScheduleCreated";
   payload: {
     scheduleId: string;
     reportType: ReportType;
@@ -25,7 +25,7 @@ export interface ReportScheduleCreatedEvent extends DomainEvent {
 }
 
 export interface ReportScheduleUpdatedEvent extends DomainEvent {
-  eventType: 'ReportScheduleUpdated';
+  eventType: "ReportScheduleUpdated";
   payload: {
     scheduleId: string;
     changes: Record<string, unknown>;
@@ -34,7 +34,7 @@ export interface ReportScheduleUpdatedEvent extends DomainEvent {
 }
 
 export interface ReportScheduleDeletedEvent extends DomainEvent {
-  eventType: 'ReportScheduleDeleted';
+  eventType: "ReportScheduleDeleted";
   payload: {
     scheduleId: string;
     deletedBy: string;
@@ -42,7 +42,7 @@ export interface ReportScheduleDeletedEvent extends DomainEvent {
 }
 
 export interface ReportGenerationStartedEvent extends DomainEvent {
-  eventType: 'ReportGenerationStarted';
+  eventType: "ReportGenerationStarted";
   payload: {
     reportId: string;
     scheduleId: string;
@@ -51,7 +51,7 @@ export interface ReportGenerationStartedEvent extends DomainEvent {
 }
 
 export interface ReportGeneratedEvent extends DomainEvent {
-  eventType: 'ReportGenerated';
+  eventType: "ReportGenerated";
   payload: {
     reportId: string;
     scheduleId: string;
@@ -64,7 +64,7 @@ export interface ReportGeneratedEvent extends DomainEvent {
 }
 
 export interface ReportGenerationFailedEvent extends DomainEvent {
-  eventType: 'ReportGenerationFailed';
+  eventType: "ReportGenerationFailed";
   payload: {
     reportId: string;
     scheduleId: string;
@@ -74,17 +74,17 @@ export interface ReportGenerationFailedEvent extends DomainEvent {
 }
 
 export interface ReportDeliveredEvent extends DomainEvent {
-  eventType: 'ReportDelivered';
+  eventType: "ReportDelivered";
   payload: {
     reportId: string;
     scheduleId: string;
     recipients: string[];
-    deliveryMethod: 'email' | 'download';
+    deliveryMethod: "email" | "download";
   };
 }
 
 export interface ReportDeliveryFailedEvent extends DomainEvent {
-  eventType: 'ReportDeliveryFailed';
+  eventType: "ReportDeliveryFailed";
   payload: {
     reportId: string;
     scheduleId: string;
@@ -108,9 +108,9 @@ export function createEventId(): string {
 }
 
 export function createEvent<T extends DomainEvent>(
-  eventType: T['eventType'],
+  eventType: T["eventType"],
   orgId: string,
-  payload: T['payload']
+  payload: T["payload"]
 ): T {
   return {
     eventId: createEventId(),

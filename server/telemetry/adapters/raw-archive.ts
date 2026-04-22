@@ -1,26 +1,26 @@
-import { randomUUID } from 'node:crypto';
-import { createHash } from 'node:crypto';
-import { eq, sql, and, desc, lt } from 'drizzle-orm';
-import { db } from '../../db-config';
-import { rawTelemetryArchive, type RawTelemetryArchive } from '@shared/schema/telemetry';
-import { logger } from '../../utils/logger';
-import client from 'prom-client';
+import { randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
+import { eq, sql, and, desc, lt } from "drizzle-orm";
+import { db } from "../../db-config";
+import { rawTelemetryArchive, type RawTelemetryArchive } from "@shared/schema/telemetry";
+import { logger } from "../../utils/logger";
+import client from "prom-client";
 
 const archiveWritesTotal = new client.Counter({
-  name: 'arus_telemetry_archive_writes_total',
-  help: 'Total raw telemetry archives written',
-  labelNames: ['protocol', 'status'],
+  name: "arus_telemetry_archive_writes_total",
+  help: "Total raw telemetry archives written",
+  labelNames: ["protocol", "status"],
 });
 
 const archiveDecodedTotal = new client.Counter({
-  name: 'arus_telemetry_archive_decoded_total',
-  help: 'Total raw telemetry archives decoded',
-  labelNames: ['protocol', 'status'],
+  name: "arus_telemetry_archive_decoded_total",
+  help: "Total raw telemetry archives decoded",
+  labelNames: ["protocol", "status"],
 });
 
 const archivePendingGauge = new client.Gauge({
-  name: 'arus_telemetry_archive_pending',
-  help: 'Number of pending archives awaiting decode',
+  name: "arus_telemetry_archive_pending",
+  help: "Number of pending archives awaiting decode",
 });
 
 export interface RawArchivePayload {
@@ -43,10 +43,10 @@ export interface RawArchiveResult {
 
 export class RawTelemetryArchiveAdapter {
   async archiveRawPayload(payload: RawArchivePayload): Promise<RawArchiveResult> {
-    const rawPayloadBase64 = payload.frames.map(f => f.toString('base64')).join('|');
-    const payloadHash = createHash('sha256')
+    const rawPayloadBase64 = payload.frames.map((f) => f.toString("base64")).join("|");
+    const payloadHash = createHash("sha256")
       .update(`${payload.orgId}:${payload.source}:${payload.protocol}:${rawPayloadBase64}`)
-      .digest('hex')
+      .digest("hex")
       .substring(0, 64);
 
     const existingDuplicate = await db
@@ -55,13 +55,16 @@ export class RawTelemetryArchiveAdapter {
       .where(
         and(
           eq(rawTelemetryArchive.payloadHash, payloadHash),
-          eq(rawTelemetryArchive.decodeStatus, 'pending')
+          eq(rawTelemetryArchive.decodeStatus, "pending")
         )
       )
       .limit(1);
 
     if (existingDuplicate.length > 0) {
-      logger.debug('RawArchive', 'Duplicate payload detected', { payloadHash, existingId: existingDuplicate[0].id });
+      logger.debug("RawArchive", "Duplicate payload detected", {
+        payloadHash,
+        existingId: existingDuplicate[0].id,
+      });
       return {
         archiveId: existingDuplicate[0].id,
         payloadHash,
@@ -82,14 +85,14 @@ export class RawTelemetryArchiveAdapter {
       rawPayload: rawPayloadBase64,
       payloadHash,
       frameCount: payload.frames.length,
-      decodeStatus: 'pending',
+      decodeStatus: "pending",
       metadata: payload.metadata as any,
     });
-    
-    archiveWritesTotal.inc({ protocol: payload.protocol, status: 'success' });
-    logger.info('RawArchive', 'Archived raw payload', { 
-      archiveId, 
-      payloadHash, 
+
+    archiveWritesTotal.inc({ protocol: payload.protocol, status: "success" });
+    logger.info("RawArchive", "Archived raw payload", {
+      archiveId,
+      payloadHash,
       frameCount: payload.frames.length,
       protocol: payload.protocol,
     });
@@ -102,13 +105,9 @@ export class RawTelemetryArchiveAdapter {
     };
   }
 
-  async markDecoded(
-    archiveId: string, 
-    readingsGenerated: number, 
-    error?: string
-  ): Promise<void> {
-    const status = error ? 'failed' : 'decoded';
-    
+  async markDecoded(archiveId: string, readingsGenerated: number, error?: string): Promise<void> {
+    const status = error ? "failed" : "decoded";
+
     await db
       .update(rawTelemetryArchive)
       .set({
@@ -120,20 +119,17 @@ export class RawTelemetryArchiveAdapter {
       .where(eq(rawTelemetryArchive.id, archiveId));
 
     const archive = await this.getById(archiveId);
-    archiveDecodedTotal.inc({ protocol: archive?.protocol ?? 'unknown', status });
-    
-    logger.info('RawArchive', `Archive marked as ${status}`, { 
-      archiveId, 
+    archiveDecodedTotal.inc({ protocol: archive?.protocol ?? "unknown", status });
+
+    logger.info("RawArchive", `Archive marked as ${status}`, {
+      archiveId,
       readingsGenerated,
       error,
     });
   }
 
   async getById(id: string): Promise<RawTelemetryArchive | undefined> {
-    const [row] = await db
-      .select()
-      .from(rawTelemetryArchive)
-      .where(eq(rawTelemetryArchive.id, id));
+    const [row] = await db.select().from(rawTelemetryArchive).where(eq(rawTelemetryArchive.id, id));
     return row;
   }
 
@@ -141,7 +137,7 @@ export class RawTelemetryArchiveAdapter {
     return db
       .select()
       .from(rawTelemetryArchive)
-      .where(eq(rawTelemetryArchive.decodeStatus, 'pending'))
+      .where(eq(rawTelemetryArchive.decodeStatus, "pending"))
       .orderBy(rawTelemetryArchive.receivedAt)
       .limit(limit);
   }
@@ -150,7 +146,7 @@ export class RawTelemetryArchiveAdapter {
     return db
       .select()
       .from(rawTelemetryArchive)
-      .where(eq(rawTelemetryArchive.decodeStatus, 'failed'))
+      .where(eq(rawTelemetryArchive.decodeStatus, "failed"))
       .orderBy(desc(rawTelemetryArchive.receivedAt))
       .limit(limit);
   }
@@ -159,13 +155,13 @@ export class RawTelemetryArchiveAdapter {
     await db
       .update(rawTelemetryArchive)
       .set({
-        decodeStatus: 'pending',
+        decodeStatus: "pending",
         decodeError: null,
         decodedAt: null,
       })
       .where(eq(rawTelemetryArchive.id, archiveId));
-    
-    logger.info('RawArchive', 'Archive marked for retry', { archiveId });
+
+    logger.info("RawArchive", "Archive marked for retry", { archiveId });
   }
 
   async pruneOldArchives(retentionDays: number = 30): Promise<number> {
@@ -177,7 +173,7 @@ export class RawTelemetryArchiveAdapter {
       .from(rawTelemetryArchive)
       .where(
         and(
-          eq(rawTelemetryArchive.decodeStatus, 'decoded'),
+          eq(rawTelemetryArchive.decodeStatus, "decoded"),
           lt(rawTelemetryArchive.receivedAt, cutoff)
         )
       );
@@ -186,13 +182,13 @@ export class RawTelemetryArchiveAdapter {
       .delete(rawTelemetryArchive)
       .where(
         and(
-          eq(rawTelemetryArchive.decodeStatus, 'decoded'),
+          eq(rawTelemetryArchive.decodeStatus, "decoded"),
           lt(rawTelemetryArchive.receivedAt, cutoff)
         )
       );
 
     const removed = Number(countResult[0]?.count ?? 0);
-    logger.info('RawArchive', 'Pruned old archives', { removed, retentionDays });
+    logger.info("RawArchive", "Pruned old archives", { removed, retentionDays });
     return removed;
   }
 
@@ -218,25 +214,25 @@ export class RawTelemetryArchiveAdapter {
     const oldestPending = await db
       .select({ receivedAt: rawTelemetryArchive.receivedAt })
       .from(rawTelemetryArchive)
-      .where(eq(rawTelemetryArchive.decodeStatus, 'pending'))
+      .where(eq(rawTelemetryArchive.decodeStatus, "pending"))
       .orderBy(rawTelemetryArchive.receivedAt)
       .limit(1);
 
-    const pending = statusMap['pending'] ?? 0;
+    const pending = statusMap["pending"] ?? 0;
     archivePendingGauge.set(pending);
 
     return {
       totalPending: pending,
-      totalDecoded: statusMap['decoded'] ?? 0,
-      totalFailed: statusMap['failed'] ?? 0,
-      oldestPendingAge: oldestPending[0]?.receivedAt 
-        ? Date.now() - oldestPending[0].receivedAt.getTime() 
+      totalDecoded: statusMap["decoded"] ?? 0,
+      totalFailed: statusMap["failed"] ?? 0,
+      oldestPendingAge: oldestPending[0]?.receivedAt
+        ? Date.now() - oldestPending[0].receivedAt.getTime()
         : null,
     };
   }
 
   parseRawPayload(rawPayload: string): Buffer[] {
-    return rawPayload.split('|').map(b64 => Buffer.from(b64, 'base64'));
+    return rawPayload.split("|").map((b64) => Buffer.from(b64, "base64"));
   }
 }
 

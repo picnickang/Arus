@@ -65,7 +65,9 @@ export class WorkOrderWorkflowRepositoryAdapter implements IWorkOrderWorkflowRep
       .where(and(eq(workOrders.id, id), eq(workOrders.orgId, orgId)))
       .limit(1);
 
-    if (!row) {return null;}
+    if (!row) {
+      return null;
+    }
 
     return {
       id: row.id,
@@ -88,7 +90,7 @@ export class WorkOrderWorkflowRepositoryAdapter implements IWorkOrderWorkflowRep
     id: string,
     orgId: string,
     newStatus: string,
-    _updatedBy?: string,
+    _updatedBy?: string
   ): Promise<boolean> {
     const result = await db
       .update(workOrders)
@@ -104,14 +106,18 @@ export class WorkOrderWorkflowRepositoryAdapter implements IWorkOrderWorkflowRep
   }
 
   async nextWorkOrderNumber(orgId: string): Promise<string> {
-    const [result] = await db.execute(sql`
+    const [result] = await db
+      .execute(
+        sql`
       SELECT COALESCE(
         MAX(CAST(SUBSTRING(wo_number FROM 'WO-([0-9]+)') AS INTEGER)),
         0
       ) + 1 AS next_num
       FROM work_orders
       WHERE org_id = ${orgId}
-    `).then((r: any) => r.rows || r);
+    `
+      )
+      .then((r: any) => r.rows || r);
 
     return `WO-${String(result?.next_num || 1).padStart(5, "0")}`;
   }
@@ -123,7 +129,9 @@ export class WorkOrderWorkflowRepositoryAdapter implements IWorkOrderWorkflowRep
       .where(and(eq(workOrders.id, id), eq(workOrders.orgId, orgId)))
       .limit(1);
 
-    if (row?.maintenanceType === "predictive") {return true;}
+    if (row?.maintenanceType === "predictive") {
+      return true;
+    }
 
     const [pred] = await db
       .select({ id: failurePredictions.id })
@@ -138,7 +146,7 @@ export class WorkOrderWorkflowRepositoryAdapter implements IWorkOrderWorkflowRep
 export class CostSavingsWorkflowAdapter implements ICostSavingsPort {
   async processCompletion(
     workOrderId: string,
-    orgId: string,
+    orgId: string
   ): Promise<{ saved: boolean; savingsId?: string }> {
     const result = await processWorkOrderCompletion(workOrderId, orgId);
     return { saved: result.saved };
@@ -148,7 +156,7 @@ export class CostSavingsWorkflowAdapter implements ICostSavingsPort {
     workOrderId: string,
     orgId: string,
     reason: string,
-    changedBy?: string,
+    changedBy?: string
   ): Promise<number> {
     const result = await db
       .update(costSavings)
@@ -162,8 +170,8 @@ export class CostSavingsWorkflowAdapter implements ICostSavingsPort {
         and(
           eq(costSavings.workOrderId, workOrderId),
           eq(costSavings.orgId, orgId),
-          ne(costSavings.validationStatus, "voided"),
-        ),
+          ne(costSavings.validationStatus, "voided")
+        )
       )
       .returning({ id: costSavings.id });
 
@@ -175,7 +183,7 @@ export class CostSavingsWorkflowAdapter implements ICostSavingsPort {
     orgId: string,
     status: "valid" | "disputed" | "voided",
     reason: string,
-    changedBy: string,
+    changedBy: string
   ): Promise<boolean> {
     const result = await db
       .update(costSavings)
@@ -185,12 +193,7 @@ export class CostSavingsWorkflowAdapter implements ICostSavingsPort {
         validationChangedBy: changedBy,
         validationChangedAt: new Date(),
       })
-      .where(
-        and(
-          eq(costSavings.workOrderId, workOrderId),
-          eq(costSavings.orgId, orgId),
-        ),
-      )
+      .where(and(eq(costSavings.workOrderId, workOrderId), eq(costSavings.orgId, orgId)))
       .returning({ id: costSavings.id });
 
     return result.length > 0;
@@ -198,7 +201,12 @@ export class CostSavingsWorkflowAdapter implements ICostSavingsPort {
 }
 
 export class LegacyCompletionAdapter implements ILegacyCompletionPort {
-  async completeWorkOrder(workOrderId: string, completionData: LegacyCompletionData, orgId: string, userId?: string): Promise<void> {
+  async completeWorkOrder(
+    workOrderId: string,
+    completionData: LegacyCompletionData,
+    orgId: string,
+    userId?: string
+  ): Promise<void> {
     const { workOrderService } = await import("../../../services/domains/work-order-service");
     const completionRecord = {
       workOrderId,
@@ -220,7 +228,13 @@ export class LegacyCompletionAdapter implements ILegacyCompletionPort {
 }
 
 export class WorkOrderEventAdapter implements IWorkOrderEventPort {
-  async emitCompleted(workOrderId: string, orgId: string, completedBy: string, actualHours?: number, completionNotes?: string): Promise<void> {
+  async emitCompleted(
+    workOrderId: string,
+    orgId: string,
+    completedBy: string,
+    actualHours?: number,
+    completionNotes?: string
+  ): Promise<void> {
     const { workOrderEventPublisher } = await import("./event-publisher-adapter");
     await workOrderEventPublisher.publish({
       type: "WORK_ORDER_COMPLETED",
@@ -233,7 +247,13 @@ export class WorkOrderEventAdapter implements IWorkOrderEventPort {
     });
   }
 
-  async emitStatusChanged(workOrderId: string, orgId: string, previousStatus: string, newStatus: string, changedBy?: string): Promise<void> {
+  async emitStatusChanged(
+    workOrderId: string,
+    orgId: string,
+    previousStatus: string,
+    newStatus: string,
+    changedBy?: string
+  ): Promise<void> {
     const { workOrderEventPublisher } = await import("./event-publisher-adapter");
     await workOrderEventPublisher.publish({
       type: "WORK_ORDER_STATUS_CHANGED",
@@ -251,7 +271,7 @@ export class PredictionFeedbackWorkflowAdapter implements IPredictionFeedbackPor
   async recordFeedback(
     feedback: CompletionPredictionFeedback,
     orgId: string,
-    userId: string,
+    userId: string
   ): Promise<void> {
     if (feedback.predictionId) {
       try {

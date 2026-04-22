@@ -1,6 +1,6 @@
 /**
  * Attack Detection - Pattern-based threat identification
- * 
+ *
  * SonarQube Fix: Reduced cognitive complexity through extraction and constants
  */
 
@@ -92,7 +92,11 @@ function updateIPTracking(clientIP: string): { shouldBlock: boolean; blockedUnti
 /**
  * Log security event with consistent format
  */
-function logSecurityEvent(level: "warn" | "error", message: string, context: Record<string, unknown>) {
+function logSecurityEvent(
+  level: "warn" | "error",
+  message: string,
+  context: Record<string, unknown>
+) {
   const logFn = level === "error" ? console.error : console.warn;
   logFn(`[SECURITY] ${message}`, context);
 }
@@ -163,7 +167,7 @@ function shouldSkipPath(path: string): boolean {
 
 /**
  * Main middleware: Detect attack patterns in incoming requests
- * 
+ *
  * Cognitive complexity reduced by extracting helper functions
  */
 export function detectAttackPatterns(req: Request, res: Response, next: NextFunction) {
@@ -187,7 +191,9 @@ export function detectAttackPatterns(req: Request, res: Response, next: NextFunc
 
   if (match) {
     const response = handleSuspiciousActivity(clientIP, match, req, res);
-    if (response) {return response;}
+    if (response) {
+      return response;
+    }
   }
 
   next();

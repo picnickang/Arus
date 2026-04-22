@@ -4,11 +4,11 @@
  * Previews expire after a configurable TTL (default 30 minutes)
  */
 
-import type { ISimulationPreviewStore } from '../domain/ports.js';
-import type { SimulationPreview } from '../domain/types.js';
-import { createLogger } from '../../../lib/structured-logger.js';
+import type { ISimulationPreviewStore } from "../domain/ports.js";
+import type { SimulationPreview } from "../domain/types.js";
+import { createLogger } from "../../../lib/structured-logger.js";
 
-const logger = createLogger('SimulationPreviewStore');
+const logger = createLogger("SimulationPreviewStore");
 
 const DEFAULT_TTL_MS = 30 * 60 * 1000;
 
@@ -29,7 +29,7 @@ class InMemorySimulationPreviewStore implements ISimulationPreviewStore {
   private startCleanupInterval(): void {
     this.cleanupInterval = setInterval(() => {
       this.deleteExpired().catch((err) => {
-        logger.error('[SimulationPreviewStore] Cleanup error:', err);
+        logger.error("[SimulationPreviewStore] Cleanup error:", err);
       });
     }, 60 * 1000);
   }
@@ -38,7 +38,7 @@ class InMemorySimulationPreviewStore implements ISimulationPreviewStore {
     const existing = await this.getLatest(preview.orgId);
     if (existing && existing.previewId !== preview.previewId) {
       await this.delete(existing.previewId, preview.orgId);
-      logger.info('[SimulationPreviewStore] Superseded previous preview', {
+      logger.info("[SimulationPreviewStore] Superseded previous preview", {
         previousId: existing.previewId,
         newId: preview.previewId,
         orgId: preview.orgId,
@@ -51,7 +51,7 @@ class InMemorySimulationPreviewStore implements ISimulationPreviewStore {
       createdAt: Date.now(),
     });
 
-    logger.info('[SimulationPreviewStore] Saved preview', {
+    logger.info("[SimulationPreviewStore] Saved preview", {
       previewId: preview.previewId,
       orgId: preview.orgId,
       proposedCount: preview.proposedAssignments.length,
@@ -61,10 +61,12 @@ class InMemorySimulationPreviewStore implements ISimulationPreviewStore {
 
   async get(previewId: string, orgId: string): Promise<SimulationPreview | undefined> {
     const stored = this.previews.get(previewId);
-    if (!stored) {return undefined;}
+    if (!stored) {
+      return undefined;
+    }
 
     if (stored.orgId !== orgId) {
-      logger.warn('[SimulationPreviewStore] Org mismatch on preview access', {
+      logger.warn("[SimulationPreviewStore] Org mismatch on preview access", {
         previewId,
         requestedOrgId: orgId,
         actualOrgId: stored.orgId,
@@ -84,8 +86,12 @@ class InMemorySimulationPreviewStore implements ISimulationPreviewStore {
     let latest: StoredPreview | undefined;
 
     for (const stored of this.previews.values()) {
-      if (stored.orgId !== orgId) {continue;}
-      if (new Date() > stored.preview.expiresAt) {continue;}
+      if (stored.orgId !== orgId) {
+        continue;
+      }
+      if (new Date() > stored.preview.expiresAt) {
+        continue;
+      }
       if (!latest || stored.createdAt > latest.createdAt) {
         latest = stored;
       }
@@ -96,10 +102,12 @@ class InMemorySimulationPreviewStore implements ISimulationPreviewStore {
 
   async delete(previewId: string, orgId: string): Promise<boolean> {
     const stored = this.previews.get(previewId);
-    if (!stored || stored.orgId !== orgId) {return false;}
+    if (!stored || stored.orgId !== orgId) {
+      return false;
+    }
 
     this.previews.delete(previewId);
-    logger.info('[SimulationPreviewStore] Deleted preview', { previewId, orgId });
+    logger.info("[SimulationPreviewStore] Deleted preview", { previewId, orgId });
     return true;
   }
 
@@ -115,7 +123,7 @@ class InMemorySimulationPreviewStore implements ISimulationPreviewStore {
     }
 
     if (count > 0) {
-      logger.info('[SimulationPreviewStore] Cleaned expired previews', { count });
+      logger.info("[SimulationPreviewStore] Cleaned expired previews", { count });
     }
 
     return count;

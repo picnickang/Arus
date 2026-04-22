@@ -1,6 +1,6 @@
 /**
  * API Helpers Unit Tests
- * 
+ *
  * Tests the utility functions in server/lib/api-helpers.ts
  * These don't require database connectivity
  */
@@ -89,9 +89,9 @@ describe("API Helpers", () => {
     it("should format paginated response correctly", () => {
       const data = [{ id: 1 }, { id: 2 }];
       const pagination = { page: 1, limit: 10, offset: 0 };
-      
+
       const result = paginatedResponse(data, pagination, 50);
-      
+
       expect(result.data).toEqual(data);
       expect(result.pagination.page).toBe(1);
       expect(result.pagination.limit).toBe(10);
@@ -102,18 +102,18 @@ describe("API Helpers", () => {
     it("should calculate hasMore without total", () => {
       const data = Array(10).fill({ id: 1 });
       const pagination = { page: 1, limit: 10, offset: 0 };
-      
+
       const result = paginatedResponse(data, pagination);
-      
+
       expect(result.pagination.hasMore).toBe(true);
     });
 
     it("should set hasMore false when data length is less than limit", () => {
       const data = [{ id: 1 }];
       const pagination = { page: 1, limit: 10, offset: 0 };
-      
+
       const result = paginatedResponse(data, pagination);
-      
+
       expect(result.pagination.hasMore).toBe(false);
     });
   });

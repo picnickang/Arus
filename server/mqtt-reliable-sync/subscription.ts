@@ -1,6 +1,6 @@
 /**
  * MQTT Reliable Sync - Subscription
- * 
+ *
  * Handles topic subscriptions and unsubscriptions.
  */
 
@@ -75,7 +75,11 @@ export async function subscribeToEntity(
         new Promise<void>((resolve, reject) => {
           client.subscribe(catchupTopic, { qos: 1 }, (catchupError) => {
             if (catchupError) {
-              logger.error("MqttReliableSync", "Failed to subscribe to catchup topic", catchupError);
+              logger.error(
+                "MqttReliableSync",
+                "Failed to subscribe to catchup topic",
+                catchupError
+              );
               reject(catchupError);
             } else {
               logger.debug("MqttReliableSync", `Subscribed to ${entityType} catchup`);
@@ -88,7 +92,10 @@ export async function subscribeToEntity(
 
     await Promise.all(subscribePromises);
   } else {
-    logger.debug("MqttReliableSync", `Subscriptions tracked for ${entityType} state/events${enableCatchup ? "/catchup" : ""} (will subscribe when connected)`);
+    logger.debug(
+      "MqttReliableSync",
+      `Subscriptions tracked for ${entityType} state/events${enableCatchup ? "/catchup" : ""} (will subscribe when connected)`
+    );
   }
 }
 
@@ -150,7 +157,9 @@ export function resubscribeAll(
   isConnected: boolean,
   subscriptions: Map<string, Set<(payload: any) => void>>
 ): void {
-  if (!client || !isConnected) { return; }
+  if (!client || !isConnected) {
+    return;
+  }
 
   logger.debug("MqttReliableSync", `Resubscribing to ${subscriptions.size} topics`);
 
@@ -170,12 +179,20 @@ export function topicMatches(pattern: string, topic: string): boolean {
   const patternParts = pattern.split("/");
   const topicParts = topic.split("/");
 
-  if (patternParts.length > topicParts.length) { return false; }
+  if (patternParts.length > topicParts.length) {
+    return false;
+  }
 
   for (let i = 0; i < patternParts.length; i++) {
-    if (patternParts[i] === "#") { return true; }
-    if (patternParts[i] === "+") { continue; }
-    if (patternParts[i] !== topicParts[i]) { return false; }
+    if (patternParts[i] === "#") {
+      return true;
+    }
+    if (patternParts[i] === "+") {
+      continue;
+    }
+    if (patternParts[i] !== topicParts[i]) {
+      return false;
+    }
   }
 
   return patternParts.length === topicParts.length;

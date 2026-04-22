@@ -1,6 +1,6 @@
 /**
  * Enhanced LLM - Provider Implementations
- * 
+ *
  * OpenAI and Anthropic-specific generation methods.
  */
 
@@ -25,7 +25,10 @@ export async function generateWithOpenAI(
 
   if (promptTemplate.fewShotExamples && promptTemplate.fewShotExamples.length > 0) {
     promptTemplate.fewShotExamples.forEach((example) => {
-      messages.push({ role: "user", content: example.input }, { role: "assistant", content: example.output });
+      messages.push(
+        { role: "user", content: example.input },
+        { role: "assistant", content: example.output }
+      );
     });
   }
 

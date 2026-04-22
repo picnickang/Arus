@@ -1,39 +1,62 @@
 import type { Request, Response, NextFunction } from "express";
 
 export function isLowBandwidth(req: Request): boolean {
-  return req.headers["x-bandwidth-mode"] === "low" ||
-    req.headers["x-bandwidth-mode"] === "satellite";
+  return (
+    req.headers["x-bandwidth-mode"] === "low" || req.headers["x-bandwidth-mode"] === "satellite"
+  );
 }
 
 export function compactResponse(data: unknown, maxStringLength = 100): unknown {
-  if (data === null || data === undefined) {return undefined;}
-  if (typeof data === "number" || typeof data === "boolean") {return data;}
+  if (data === null || data === undefined) {
+    return undefined;
+  }
+  if (typeof data === "number" || typeof data === "boolean") {
+    return data;
+  }
 
   if (typeof data === "string") {
     if (data.length > maxStringLength) {
-      return `${data.substring(0, maxStringLength)  }\u2026`;
+      return `${data.substring(0, maxStringLength)}\u2026`;
     }
     return data;
   }
 
   if (Array.isArray(data)) {
-    return data.map(item => compactResponse(item, maxStringLength)).filter(v => v !== undefined);
+    return data
+      .map((item) => compactResponse(item, maxStringLength))
+      .filter((v) => v !== undefined);
   }
 
   if (typeof data === "object") {
     const result: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(data)) {
-      if (value === null || value === undefined) {continue;}
+      if (value === null || value === undefined) {
+        continue;
+      }
 
-      if (["description", "notes", "details", "metadata", "supportingSignals",
-           "relatedProcedures", "hyperparameters", "featureImportance",
-           "performanceMetrics", "trainingData", "validationMetrics"].includes(key)) {
+      if (
+        [
+          "description",
+          "notes",
+          "details",
+          "metadata",
+          "supportingSignals",
+          "relatedProcedures",
+          "hyperparameters",
+          "featureImportance",
+          "performanceMetrics",
+          "trainingData",
+          "validationMetrics",
+        ].includes(key)
+      ) {
         if (typeof value === "string" && value.length > 50) {
-          result[key] = `${value.substring(0, 50)  }...`;
+          result[key] = `${value.substring(0, 50)}...`;
           continue;
         }
-        if (typeof value === "object") {continue;}
+        if (typeof value === "object") {
+          continue;
+        }
       }
 
       const compacted = compactResponse(value, maxStringLength);
@@ -49,7 +72,9 @@ export function compactResponse(data: unknown, maxStringLength = 100): unknown {
 }
 
 export function bandwidthAwareMiddleware(req: Request, res: Response, next: NextFunction): void {
-  if (!isLowBandwidth(req)) {return next();}
+  if (!isLowBandwidth(req)) {
+    return next();
+  }
 
   if (!req.query.pageSize) {
     (req.query as any).pageSize = "10";

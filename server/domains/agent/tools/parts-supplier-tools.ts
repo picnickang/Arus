@@ -46,14 +46,16 @@ interface PartAvailability {
 
 async function fetchPartAvailability(
   partNumber: string,
-  manufacturer?: string,
+  manufacturer?: string
 ): Promise<PartAvailability> {
   if (!PARTS_API_BASE || !PARTS_API_KEY) {
     throw new Error("PARTS_SUPPLIER_API_URL/KEY not configured");
   }
 
   const params = new URLSearchParams({ partNumber });
-  if (manufacturer) {params.set("manufacturer", manufacturer);}
+  if (manufacturer) {
+    params.set("manufacturer", manufacturer);
+  }
 
   const response = await fetch(`${PARTS_API_BASE}/parts/availability?${params}`, {
     headers: { Authorization: `Bearer ${PARTS_API_KEY}` },
@@ -67,7 +69,7 @@ async function fetchPartAvailability(
   const body = await response.json();
 
   const quotes = (body.quotes || []) as SupplierQuote[];
-  const inStockQuotes = quotes.filter(q => q.inStock);
+  const inStockQuotes = quotes.filter((q) => q.inStock);
   const sortedByPrice = [...quotes].sort((a, b) => a.unitPrice - b.unitPrice);
   const sortedByLead = [...quotes].sort((a, b) => a.leadTimeDays - b.leadTimeDays);
 
@@ -79,9 +81,10 @@ async function fetchPartAvailability(
     quotes,
     bestPrice: sortedByPrice[0] || null,
     fastestDelivery: sortedByLead[0] || null,
-    averageLeadTimeDays: quotes.length > 0
-      ? Math.round(quotes.reduce((s, q) => s + q.leadTimeDays, 0) / quotes.length)
-      : null,
+    averageLeadTimeDays:
+      quotes.length > 0
+        ? Math.round(quotes.reduce((s, q) => s + q.leadTimeDays, 0) / quotes.length)
+        : null,
     inStockCount: inStockQuotes.length,
   };
 }
@@ -134,7 +137,7 @@ registerTool({
       "parts",
       cacheKey,
       () => fetchPartAvailability(partNumber, manufacturer),
-      PARTS_CACHE_TTL_SEC,
+      PARTS_CACHE_TTL_SEC
     );
 
     const data = result.data;
@@ -181,7 +184,8 @@ registerTool({
       },
       includeSupplierData: {
         type: "boolean",
-        description: "Whether to fetch external supplier quotes (default true). Set false for faster offline-only results.",
+        description:
+          "Whether to fetch external supplier quotes (default true). Set false for faster offline-only results.",
       },
     },
     required: [],
@@ -207,7 +211,7 @@ registerTool({
         ORDER BY (min_stock_level - quantity_on_hand) DESC
         LIMIT ${limit}
       `);
-      lowStockParts = ((result as { rows?: Array<Record<string, unknown>> }).rows || []);
+      lowStockParts = (result as { rows?: Array<Record<string, unknown>> }).rows || [];
     } catch (err) {
       return {
         error: "Could not query inventory — parts_inventory table may not exist yet",
@@ -251,7 +255,7 @@ registerTool({
           "parts",
           cacheKey,
           () => fetchPartAvailability(partNumber, part.manufacturer as string | undefined),
-          PARTS_CACHE_TTL_SEC,
+          PARTS_CACHE_TTL_SEC
         ).catch(() => null);
 
         if (!cached || (cached.data as Record<string, unknown>)?.error) {
@@ -270,7 +274,7 @@ registerTool({
             stale: cached.stale,
           },
         };
-      }),
+      })
     );
 
     // Prioritise: critical items with long lead times first
@@ -289,13 +293,16 @@ registerTool({
       totalLowStock: enriched.length,
       supplierDataIncluded: includeSupplier,
       summary: {
-        criticalItems: enriched.filter(e => e.quantityOnHand === 0).length,
-        withSupplierQuotes: enriched.filter(e => e.supplierData && e.supplierData.quoteCount > 0).length,
+        criticalItems: enriched.filter((e) => e.quantityOnHand === 0).length,
+        withSupplierQuotes: enriched.filter((e) => e.supplierData && e.supplierData.quoteCount > 0)
+          .length,
         averageLeadDays: (() => {
           const leads = enriched
-            .map(e => e.supplierData?.averageLeadTimeDays)
+            .map((e) => e.supplierData?.averageLeadTimeDays)
             .filter((v): v is number => v != null);
-          return leads.length > 0 ? Math.round(leads.reduce((a, b) => a + b, 0) / leads.length) : null;
+          return leads.length > 0
+            ? Math.round(leads.reduce((a, b) => a + b, 0) / leads.length)
+            : null;
         })(),
       },
     };

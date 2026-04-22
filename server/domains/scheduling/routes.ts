@@ -14,7 +14,9 @@ interface SchedulingConfig {
 export function registerSchedulingRoutes(app: Express, config: SchedulingConfig) {
   const { requireOrgId, writeOperationRateLimit } = config;
 
-  app.get("/api/schedule", requireOrgId,
+  app.get(
+    "/api/schedule",
+    requireOrgId,
     withErrorHandling("fetch maintenance schedules", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const { vesselId, equipmentId, status, dateFrom, dateTo } = req.query;
@@ -26,25 +28,23 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
           status: status as string | undefined,
           startDate: dateFrom ? new Date(dateFrom as string) : undefined,
           endDate: dateTo ? new Date(dateTo as string) : undefined,
-        },
+        }
       );
       res.json(schedules);
     })
   );
 
-  app.get("/api/schedule/conflicts", requireOrgId,
+  app.get(
+    "/api/schedule/conflicts",
+    requireOrgId,
     withErrorHandling("detect conflicts", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const { dateFrom, dateTo, vesselId } = req.query;
-      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(
-        undefined,
-        orgId,
-        {
-          vesselId: vesselId as string | undefined,
-          startDate: dateFrom ? new Date(dateFrom as string) : undefined,
-          endDate: dateTo ? new Date(dateTo as string) : undefined,
-        },
-      );
+      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId, {
+        vesselId: vesselId as string | undefined,
+        startDate: dateFrom ? new Date(dateFrom as string) : undefined,
+        endDate: dateTo ? new Date(dateTo as string) : undefined,
+      });
 
       const conflicts: any[] = [];
       for (let i = 0; i < schedules.length; i++) {
@@ -68,7 +68,9 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     })
   );
 
-  app.get("/api/schedule/calendar", requireOrgId,
+  app.get(
+    "/api/schedule/calendar",
+    requireOrgId,
     withErrorHandling("fetch calendar data", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const { month, year, vesselId } = req.query;
@@ -78,20 +80,21 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const startDate = new Date(targetYear, targetMonth, 1);
       const endDate = new Date(targetYear, targetMonth + 1, 0);
 
-      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(
-        undefined,
-        orgId,
-        {
-          vesselId: vesselId as string | undefined,
-          startDate,
-          endDate,
-        },
-      );
+      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId, {
+        vesselId: vesselId as string | undefined,
+        startDate,
+        endDate,
+      });
 
       const calendarData: Record<string, any[]> = {};
       schedules.forEach((schedule: any) => {
         const raw = schedule.nextScheduledDate;
-        const dateKey = raw instanceof Date ? raw.toISOString().split("T")[0] : typeof raw === "string" ? raw.split("T")[0] : String(raw);
+        const dateKey =
+          raw instanceof Date
+            ? raw.toISOString().split("T")[0]
+            : typeof raw === "string"
+              ? raw.split("T")[0]
+              : String(raw);
         if (!calendarData[dateKey]) {
           calendarData[dateKey] = [];
         }
@@ -102,7 +105,9 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     })
   );
 
-  app.get("/api/schedule/stats", requireOrgId,
+  app.get(
+    "/api/schedule/stats",
+    requireOrgId,
     withErrorHandling("fetch schedule statistics", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const { vesselId, months } = req.query;
@@ -110,14 +115,10 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const cutoffDate = new Date();
       cutoffDate.setMonth(cutoffDate.getMonth() - monthsNum);
 
-      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(
-        undefined,
-        orgId,
-        {
-          vesselId: vesselId as string | undefined,
-          startDate: cutoffDate,
-        },
-      );
+      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId, {
+        vesselId: vesselId as string | undefined,
+        startDate: cutoffDate,
+      });
 
       const stats = {
         total: schedules.length,
@@ -133,16 +134,20 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
           medium: schedules.filter((s: any) => s.priority === "medium").length,
           low: schedules.filter((s: any) => s.priority === "low").length,
         },
-        completionRate: schedules.length > 0
-          ? (schedules.filter((s: any) => s.status === "completed").length / schedules.length) * 100
-          : 0,
+        completionRate:
+          schedules.length > 0
+            ? (schedules.filter((s: any) => s.status === "completed").length / schedules.length) *
+              100
+            : 0,
       };
 
       res.json(stats);
     })
   );
 
-  app.get("/api/schedule/upcoming", requireOrgId,
+  app.get(
+    "/api/schedule/upcoming",
+    requireOrgId,
     withErrorHandling("fetch upcoming maintenance", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const { days, vesselId, limit } = req.query;
@@ -152,26 +157,27 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const endDate = new Date();
       endDate.setDate(endDate.getDate() + daysNum);
 
-      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(
-        undefined,
-        orgId,
-        {
-          vesselId: vesselId as string | undefined,
-          status: "pending",
-          startDate: new Date(),
-          endDate,
-        },
-      );
+      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId, {
+        vesselId: vesselId as string | undefined,
+        status: "pending",
+        startDate: new Date(),
+        endDate,
+      });
 
       const upcoming = schedules
-        .sort((a: any, b: any) => new Date(a.nextScheduledDate).getTime() - new Date(b.nextScheduledDate).getTime())
+        .sort(
+          (a: any, b: any) =>
+            new Date(a.nextScheduledDate).getTime() - new Date(b.nextScheduledDate).getTime()
+        )
         .slice(0, limitNum);
 
       res.json(upcoming);
     })
   );
 
-  app.get("/api/schedule/:id", requireOrgId,
+  app.get(
+    "/api/schedule/:id",
+    requireOrgId,
     withErrorHandling("fetch schedule", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const schedule = await dbMaintenanceStorage.getMaintenanceSchedule(req.params.id, orgId);
@@ -182,7 +188,10 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     })
   );
 
-  app.post("/api/schedule", requireOrgId, writeOperationRateLimit,
+  app.post(
+    "/api/schedule",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("create schedule", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const scheduleData = { ...req.body, orgId };
@@ -191,15 +200,25 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     })
   );
 
-  app.put("/api/schedule/:id", requireOrgId, writeOperationRateLimit,
+  app.put(
+    "/api/schedule/:id",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("update schedule", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
-      const schedule = await dbMaintenanceStorage.updateMaintenanceSchedule(req.params.id, req.body, orgId);
+      const schedule = await dbMaintenanceStorage.updateMaintenanceSchedule(
+        req.params.id,
+        req.body,
+        orgId
+      );
       res.json(schedule);
     })
   );
 
-  app.delete("/api/schedule/:id", requireOrgId, writeOperationRateLimit,
+  app.delete(
+    "/api/schedule/:id",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("delete schedule", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       await dbMaintenanceStorage.deleteMaintenanceSchedule(req.params.id, orgId);
@@ -207,7 +226,10 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     })
   );
 
-  app.post("/api/schedule/bulk", requireOrgId, writeOperationRateLimit,
+  app.post(
+    "/api/schedule/bulk",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("create bulk schedules", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const { schedules } = req.body;
@@ -222,7 +244,9 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     })
   );
 
-  app.get("/api/optimization/configurations", requireOrgId,
+  app.get(
+    "/api/optimization/configurations",
+    requireOrgId,
     withErrorHandling("fetch optimization configurations", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const configs = await dbOptimizerStorage.getOptimizerConfigurations(orgId);
@@ -230,7 +254,10 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     })
   );
 
-  app.post("/api/optimization/configurations", requireOrgId, writeOperationRateLimit,
+  app.post(
+    "/api/optimization/configurations",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("create optimization configuration", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const config = await dbOptimizerStorage.createOptimizerConfiguration({ ...req.body, orgId });
@@ -238,20 +265,25 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     })
   );
 
-  app.get("/api/optimization/results", requireOrgId,
+  app.get(
+    "/api/optimization/results",
+    requireOrgId,
     withErrorHandling("fetch optimization results", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const { configId, dateFrom, dateTo } = req.query;
       const results = await dbOptimizerStorage.getOptimizationResults(
         orgId,
         dateFrom ? new Date(dateFrom as string) : undefined,
-        dateTo ? new Date(dateTo as string) : undefined,
+        dateTo ? new Date(dateTo as string) : undefined
       );
       res.json(results);
     })
   );
 
-  app.post("/api/optimization/results", requireOrgId, writeOperationRateLimit,
+  app.post(
+    "/api/optimization/results",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("create optimization result", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const result = await dbOptimizerStorage.createOptimizationResult({ ...req.body, orgId });
@@ -259,19 +291,18 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     })
   );
 
-  app.post("/api/optimization/run", requireOrgId, writeOperationRateLimit,
+  app.post(
+    "/api/optimization/run",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("run optimization", async (req: Request, res: Response) => {
       const { configId, targetDate } = req.body;
       const orgId = req.headers["x-org-id"] as string;
 
-      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(
-        undefined,
-        orgId,
-        {
-          startDate: new Date(),
-          endDate: targetDate ? new Date(targetDate) : undefined,
-        },
-      );
+      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId, {
+        startDate: new Date(),
+        endDate: targetDate ? new Date(targetDate) : undefined,
+      });
 
       const optimizedSchedules = schedules.map((s: any, index: number) => ({
         ...s,
@@ -294,14 +325,16 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     })
   );
 
-  app.get("/api/scheduling-settings", requireOrgId,
+  app.get(
+    "/api/scheduling-settings",
+    requireOrgId,
     withErrorHandling("fetch scheduling settings", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const vesselId = req.query.vesselId as string | undefined;
-      
+
       const effective = await schedulingSettingsService.resolveEffectiveSettings(orgId, vesselId);
       const settings = await schedulingSettingsService.getSettings(orgId, vesselId);
-      
+
       res.json({
         id: settings?.id || "",
         orgId,
@@ -317,95 +350,109 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     })
   );
 
-  app.patch("/api/scheduling-settings/notifications", requireOrgId, writeOperationRateLimit,
+  app.patch(
+    "/api/scheduling-settings/notifications",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("update notification settings", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const vesselId = req.query.vesselId as string | undefined;
-      
+
       const updated = await schedulingSettingsService.updateNotificationSettings(
         orgId,
         req.body,
         vesselId
       );
-      
+
       logger.info("[SchedulingSettings] Notifications updated", { orgId, vesselId });
       res.json(updated);
     })
   );
 
-  app.patch("/api/scheduling-settings/rules", requireOrgId, writeOperationRateLimit,
+  app.patch(
+    "/api/scheduling-settings/rules",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("update rule settings", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const vesselId = req.query.vesselId as string | undefined;
       const { thresholds, enforcement } = req.body;
-      
+
       const updated = await schedulingSettingsService.updateRuleThresholds(
         orgId,
         thresholds,
         enforcement,
         vesselId
       );
-      
+
       logger.info("[SchedulingSettings] Rules updated", { orgId, vesselId });
       res.json(updated);
     })
   );
 
-  app.patch("/api/scheduling-settings/ai-weights", requireOrgId, writeOperationRateLimit,
+  app.patch(
+    "/api/scheduling-settings/ai-weights",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("update AI weights", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const vesselId = req.query.vesselId as string | undefined;
-      
-      const updated = await schedulingSettingsService.updateAiWeights(
-        orgId,
-        req.body,
-        vesselId
-      );
-      
+
+      const updated = await schedulingSettingsService.updateAiWeights(orgId, req.body, vesselId);
+
       logger.info("[SchedulingSettings] AI weights updated", { orgId, vesselId });
       res.json(updated);
     })
   );
 
-  app.patch("/api/scheduling-settings/publish-behavior", requireOrgId, writeOperationRateLimit,
+  app.patch(
+    "/api/scheduling-settings/publish-behavior",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("update publish behavior", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const vesselId = req.query.vesselId as string | undefined;
-      
+
       const updated = await schedulingSettingsService.updatePublishBehavior(
         orgId,
         req.body,
         vesselId
       );
-      
+
       logger.info("[SchedulingSettings] Publish behavior updated", { orgId, vesselId });
       res.json(updated);
     })
   );
 
-  app.patch("/api/scheduling-settings/rotation-templates", requireOrgId, writeOperationRateLimit,
+  app.patch(
+    "/api/scheduling-settings/rotation-templates",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("update rotation templates", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const vesselId = req.query.vesselId as string | undefined;
-      
+
       const updated = await schedulingSettingsService.updateRotationTemplates(
         orgId,
         req.body,
         vesselId
       );
-      
+
       logger.info("[SchedulingSettings] Rotation templates updated", { orgId, vesselId });
       res.json(updated);
     })
   );
 
-  app.post("/api/scheduling-settings/reset", requireOrgId, writeOperationRateLimit,
+  app.post(
+    "/api/scheduling-settings/reset",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("reset scheduling settings", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const vesselId = req.query.vesselId as string | undefined;
-      
+
       const reset = await schedulingSettingsService.resetToDefaults(orgId, vesselId);
-      
+
       logger.info("[SchedulingSettings] Settings reset to defaults", { orgId, vesselId });
       res.json(reset);
     })

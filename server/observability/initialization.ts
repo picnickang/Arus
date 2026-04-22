@@ -1,7 +1,17 @@
 import client from "prom-client";
 import { structuredLog } from "../logging";
-import { checkResourceUsage, MEMORY_CHECK_INTERVAL, startEventLoopMonitoring } from "./core-metrics";
-import { syncExternalCircuitBreakerMetrics, setExternalCircuitBreakerState, recordExternalCircuitBreakerFailure, recordExternalServiceCall, recordExternalServiceLatency } from "./circuit-breaker-metrics";
+import {
+  checkResourceUsage,
+  MEMORY_CHECK_INTERVAL,
+  startEventLoopMonitoring,
+} from "./core-metrics";
+import {
+  syncExternalCircuitBreakerMetrics,
+  setExternalCircuitBreakerState,
+  recordExternalCircuitBreakerFailure,
+  recordExternalServiceCall,
+  recordExternalServiceLatency,
+} from "./circuit-breaker-metrics";
 import { initializeServiceMetrics } from "./service-metrics";
 
 export function initializeMetrics() {
@@ -11,7 +21,7 @@ export function initializeMetrics() {
   });
 
   initializeServiceMetrics().catch((err) => {
-    structuredLog('warn', 'Service metrics initialization error', { error: String(err) });
+    structuredLog("warn", "Service metrics initialization error", { error: String(err) });
   });
 
   try {
@@ -22,8 +32,7 @@ export function initializeMetrics() {
       onCall: recordExternalServiceCall,
       onLatency: recordExternalServiceLatency,
     });
-  } catch (error) {
-  }
+  } catch (error) {}
 
   structuredLog("info", "Observability metrics initialized", {
     operation: "startup",

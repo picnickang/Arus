@@ -1,6 +1,6 @@
 /**
  * Tenant-Scoped Repository Pattern (ADR 001 Implementation)
- * 
+ *
  * BACKWARD COMPATIBILITY SHIM
  * This file re-exports all tenant-scoped repositories from their modular files.
  * Original monolith: 908 lines → Modular structure: 6 files (~700 lines total)

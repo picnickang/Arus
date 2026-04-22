@@ -1,6 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { addDays, addWeeks, addMonths, format, startOfWeek, eachDayOfInterval, differenceInDays, parseISO, startOfDay } from "date-fns";
+import {
+  addDays,
+  addWeeks,
+  addMonths,
+  format,
+  startOfWeek,
+  eachDayOfInterval,
+  differenceInDays,
+  parseISO,
+  startOfDay,
+} from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -96,10 +106,14 @@ export type SyncStatus = "up_to_date" | "syncing" | "offline" | "error";
 
 function getDateRangeFromPreset(start: Date, preset: DateRangePreset): Date {
   switch (preset) {
-    case "2w": return addWeeks(start, 2);
-    case "1m": return addMonths(start, 1);
-    case "3m": return addMonths(start, 3);
-    default: return addWeeks(start, 2);
+    case "2w":
+      return addWeeks(start, 2);
+    case "1m":
+      return addMonths(start, 1);
+    case "3m":
+      return addMonths(start, 3);
+    default:
+      return addWeeks(start, 2);
   }
 }
 
@@ -137,13 +151,21 @@ export function useSchedulePlannerData() {
 
   // Load persisted filters on initial mount
   const persistedFilters = useMemo(() => loadPersistedFilters(), []);
-  
-  const [dateRangeStart, setDateRangeStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const [dateRangePreset, setDateRangePreset] = useState<DateRangePreset>(persistedFilters?.preset || "2w");
-  const [selectedVesselId, setSelectedVesselId] = useState<string | null>(persistedFilters?.vesselId || null);
+
+  const [dateRangeStart, setDateRangeStart] = useState(() =>
+    startOfWeek(new Date(), { weekStartsOn: 1 })
+  );
+  const [dateRangePreset, setDateRangePreset] = useState<DateRangePreset>(
+    persistedFilters?.preset || "2w"
+  );
+  const [selectedVesselId, setSelectedVesselId] = useState<string | null>(
+    persistedFilters?.vesselId || null
+  );
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [drawerTab, setDrawerTab] = useState<"details" | "constraints" | "suggestions" | "compliance">("details");
+  const [drawerTab, setDrawerTab] = useState<
+    "details" | "constraints" | "suggestions" | "compliance"
+  >("details");
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("up_to_date");
   const [pendingOperations, setPendingOperations] = useState<PendingOperation[]>([]);
   const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -155,8 +177,12 @@ export function useSchedulePlannerData() {
 
   // Compute sync status from pending operations and network state
   const computedSyncStatus = useMemo((): SyncStatus => {
-    if (!navigator.onLine) {return "offline";}
-    if (pendingOperations.length > 0) {return "syncing";}
+    if (!navigator.onLine) {
+      return "offline";
+    }
+    if (pendingOperations.length > 0) {
+      return "syncing";
+    }
     return syncStatus;
   }, [syncStatus, pendingOperations.length]);
 
@@ -175,14 +201,14 @@ export function useSchedulePlannerData() {
       }
     };
     const handleOffline = () => setSyncStatus("offline");
-    
+
     if (!navigator.onLine) {
       setSyncStatus("offline");
     }
-    
+
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
-    
+
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
@@ -190,37 +216,44 @@ export function useSchedulePlannerData() {
   }, [pendingOperations.length]);
 
   // Add operation to pending queue
-  const addPendingOperation = useCallback((op: Omit<PendingOperation, "id" | "timestamp" | "retryCount">) => {
-    const newOp: PendingOperation = {
-      ...op,
-      id: `op-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: Date.now(),
-      retryCount: 0,
-    };
-    setPendingOperations(prev => [...prev, newOp]);
-    return newOp.id;
-  }, []);
+  const addPendingOperation = useCallback(
+    (op: Omit<PendingOperation, "id" | "timestamp" | "retryCount">) => {
+      const newOp: PendingOperation = {
+        ...op,
+        id: `op-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: Date.now(),
+        retryCount: 0,
+      };
+      setPendingOperations((prev) => [...prev, newOp]);
+      return newOp.id;
+    },
+    []
+  );
 
   // Remove operation from pending queue
   const removePendingOperation = useCallback((opId: string) => {
-    setPendingOperations(prev => prev.filter(op => op.id !== opId));
+    setPendingOperations((prev) => prev.filter((op) => op.id !== opId));
   }, []);
 
   // Flush pending operations (called when coming back online)
   const flushPendingOperations = useCallback(async () => {
-    if (!navigator.onLine) {return;}
-    
+    if (!navigator.onLine) {
+      return;
+    }
+
     // Copy current operations to flush and clear the queue atomically
     let operationsToFlush: PendingOperation[] = [];
-    setPendingOperations(prev => {
+    setPendingOperations((prev) => {
       operationsToFlush = [...prev];
       return [];
     });
-    
-    if (operationsToFlush.length === 0) {return;}
-    
+
+    if (operationsToFlush.length === 0) {
+      return;
+    }
+
     const failedOps: PendingOperation[] = [];
-    
+
     for (const op of operationsToFlush) {
       try {
         if (op.type === "create") {
@@ -243,25 +276,25 @@ export function useSchedulePlannerData() {
         if (op.retryCount < 3) {
           failedOps.push({ ...op, retryCount: op.retryCount + 1 });
         } else {
-          toast({ 
-            title: "Sync Failed", 
+          toast({
+            title: "Sync Failed",
             description: "Some changes could not be saved. Please try again.",
-            variant: "destructive" 
+            variant: "destructive",
           });
         }
       }
     }
-    
+
     // Re-add failed ops back to queue
     if (failedOps.length > 0) {
-      setPendingOperations(prev => [...prev, ...failedOps]);
+      setPendingOperations((prev) => [...prev, ...failedOps]);
     }
-    
+
     // Invalidate queries and update status
     queryClient.invalidateQueries({ queryKey: ["/api/crew-extensions/assignments"] });
-    
+
     // Check final state after all operations
-    setPendingOperations(prev => {
+    setPendingOperations((prev) => {
       if (prev.length === 0) {
         setSyncStatus("up_to_date");
       }
@@ -269,7 +302,10 @@ export function useSchedulePlannerData() {
     });
   }, [queryClient, toast]);
 
-  const dateRangeEnd = useMemo(() => getDateRangeFromPreset(dateRangeStart, dateRangePreset), [dateRangeStart, dateRangePreset]);
+  const dateRangeEnd = useMemo(
+    () => getDateRangeFromPreset(dateRangeStart, dateRangePreset),
+    [dateRangeStart, dateRangePreset]
+  );
 
   const timelineDays = useMemo(() => {
     return eachDayOfInterval({ start: dateRangeStart, end: addDays(dateRangeEnd, -1) });
@@ -296,17 +332,24 @@ export function useSchedulePlannerData() {
     queryKey: ["/api/crew"],
   });
 
-  const { data: assignments = [], isLoading: isLoadingAssignments } = useQuery<ScheduleAssignment[]>({
-    queryKey: ["/api/crew-extensions/assignments", { 
-      from: format(dateRangeStart, "yyyy-MM-dd"), 
-      to: format(dateRangeEnd, "yyyy-MM-dd"),
-      vesselId: selectedVesselId
-    }],
+  const { data: assignments = [], isLoading: isLoadingAssignments } = useQuery<
+    ScheduleAssignment[]
+  >({
+    queryKey: [
+      "/api/crew-extensions/assignments",
+      {
+        from: format(dateRangeStart, "yyyy-MM-dd"),
+        to: format(dateRangeEnd, "yyyy-MM-dd"),
+        vesselId: selectedVesselId,
+      },
+    ],
   });
 
   const selectedAssignment = useMemo(() => {
-    if (!selectedAssignmentId) {return null;}
-    return assignments.find(a => a.id === selectedAssignmentId) || null;
+    if (!selectedAssignmentId) {
+      return null;
+    }
+    return assignments.find((a) => a.id === selectedAssignmentId) || null;
   }, [selectedAssignmentId, assignments]);
 
   const { data: constraintViolations = [] } = useQuery<ConstraintResult[]>({
@@ -321,21 +364,25 @@ export function useSchedulePlannerData() {
 
   // Fetch fatigue data for crew in current assignments
   const crewIdsInAssignments = useMemo(() => {
-    const ids = new Set(assignments.map(a => a.crewId));
+    const ids = new Set(assignments.map((a) => a.crewId));
     return Array.from(ids);
   }, [assignments]);
 
   const { data: fatigueData = {} } = useQuery<Record<string, FatigueResult>>({
     queryKey: ["/api/hor/fatigue/batch", crewIdsInAssignments],
     queryFn: async () => {
-      if (crewIdsInAssignments.length === 0) {return {};}
-      
+      if (crewIdsInAssignments.length === 0) {
+        return {};
+      }
+
       // Fetch fatigue for each crew member in parallel
       const results = await Promise.all(
         crewIdsInAssignments.map(async (crewId) => {
           try {
             const response = await fetch(`/api/hor/fatigue/${crewId}?days=14`);
-            if (!response.ok) {return null;}
+            if (!response.ok) {
+              return null;
+            }
             const data = await response.json();
             return { crewId, data };
           } catch {
@@ -343,7 +390,7 @@ export function useSchedulePlannerData() {
           }
         })
       );
-      
+
       // Build a map of crewId -> FatigueResult
       const fatigueMap: Record<string, FatigueResult> = {};
       for (const result of results) {
@@ -358,50 +405,64 @@ export function useSchedulePlannerData() {
   });
 
   // Get fatigue for a specific crew member
-  const getCrewFatigue = useCallback((crewId: string): FatigueResult | undefined => {
-    return fatigueData[crewId];
-  }, [fatigueData]);
+  const getCrewFatigue = useCallback(
+    (crewId: string): FatigueResult | undefined => {
+      return fatigueData[crewId];
+    },
+    [fatigueData]
+  );
 
   const filteredVessels = useMemo(() => {
-    if (!selectedVesselId) {return vessels;}
-    return vessels.filter(v => v.id === selectedVesselId);
+    if (!selectedVesselId) {
+      return vessels;
+    }
+    return vessels.filter((v) => v.id === selectedVesselId);
   }, [vessels, selectedVesselId]);
 
-  const getAssignmentsForVessel = useCallback((vesselId: string): ScheduleAssignment[] => {
-    return assignments.filter(a => a.vesselId === vesselId);
-  }, [assignments]);
+  const getAssignmentsForVessel = useCallback(
+    (vesselId: string): ScheduleAssignment[] => {
+      return assignments.filter((a) => a.vesselId === vesselId);
+    },
+    [assignments]
+  );
 
-  const calculateBlockPosition = useCallback((assignment: ScheduleAssignment) => {
-    const start = startOfDay(parseISO(assignment.startDate));
-    const end = startOfDay(parseISO(assignment.endDate));
-    const rangeStart = startOfDay(dateRangeStart);
-    const rangeEnd = startOfDay(dateRangeEnd);
+  const calculateBlockPosition = useCallback(
+    (assignment: ScheduleAssignment) => {
+      const start = startOfDay(parseISO(assignment.startDate));
+      const end = startOfDay(parseISO(assignment.endDate));
+      const rangeStart = startOfDay(dateRangeStart);
+      const rangeEnd = startOfDay(dateRangeEnd);
 
-    const effectiveStart = start < rangeStart ? rangeStart : start;
-    const effectiveEnd = end > rangeEnd ? rangeEnd : end;
+      const effectiveStart = start < rangeStart ? rangeStart : start;
+      const effectiveEnd = end > rangeEnd ? rangeEnd : end;
 
-    const startOffset = differenceInDays(effectiveStart, rangeStart);
-    const duration = differenceInDays(effectiveEnd, effectiveStart) + 1;
+      const startOffset = differenceInDays(effectiveStart, rangeStart);
+      const duration = differenceInDays(effectiveEnd, effectiveStart) + 1;
 
-    return {
-      startOffset: Math.max(0, startOffset),
-      duration: Math.max(1, duration),
-      startsBeforeRange: start < rangeStart,
-      endsAfterRange: end > rangeEnd,
-    };
-  }, [dateRangeStart, dateRangeEnd]);
+      return {
+        startOffset: Math.max(0, startOffset),
+        duration: Math.max(1, duration),
+        startsBeforeRange: start < rangeStart,
+        endsAfterRange: end > rangeEnd,
+      };
+    },
+    [dateRangeStart, dateRangeEnd]
+  );
 
-  const getConstraintSummary = useCallback((assignment: ScheduleAssignment): { hard: number; soft: number } => {
-    const constraints = assignment.constraints || [];
-    return {
-      hard: constraints.filter(c => c.severity === "HARD").length,
-      soft: constraints.filter(c => c.severity === "SOFT").length,
-    };
-  }, []);
+  const getConstraintSummary = useCallback(
+    (assignment: ScheduleAssignment): { hard: number; soft: number } => {
+      const constraints = assignment.constraints || [];
+      return {
+        hard: constraints.filter((c) => c.severity === "HARD").length,
+        soft: constraints.filter((c) => c.severity === "SOFT").length,
+      };
+    },
+    []
+  );
 
   const navigateRange = (direction: "prev" | "next") => {
     const days = dateRangePreset === "2w" ? 14 : dateRangePreset === "1m" ? 30 : 90;
-    setDateRangeStart(prev => addDays(prev, direction === "next" ? days : -days));
+    setDateRangeStart((prev) => addDays(prev, direction === "next" ? days : -days));
   };
 
   const goToToday = () => {
@@ -430,7 +491,10 @@ export function useSchedulePlannerData() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crew-extensions/assignments"] });
-      toast({ title: "Assignment Created", description: "Crew assignment has been created successfully." });
+      toast({
+        title: "Assignment Created",
+        description: "Crew assignment has been created successfully.",
+      });
       setSyncStatus("up_to_date");
     },
     onError: (_, data) => {
@@ -438,7 +502,11 @@ export function useSchedulePlannerData() {
         addPendingOperation({ type: "create", payload: data });
         toast({ title: "Saved Offline", description: "Will sync when back online." });
       } else {
-        toast({ title: "Error", description: "Failed to create assignment.", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: "Failed to create assignment.",
+          variant: "destructive",
+        });
         setSyncStatus("error");
       }
     },
@@ -463,7 +531,11 @@ export function useSchedulePlannerData() {
         addPendingOperation({ type: "update", payload: variables });
         toast({ title: "Saved Offline", description: "Will sync when back online." });
       } else {
-        toast({ title: "Error", description: "Failed to update assignment.", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: "Failed to update assignment.",
+          variant: "destructive",
+        });
         setSyncStatus("error");
       }
     },
@@ -489,16 +561,29 @@ export function useSchedulePlannerData() {
         addPendingOperation({ type: "delete", payload: { id } });
         toast({ title: "Saved Offline", description: "Will sync when back online." });
       } else {
-        toast({ title: "Error", description: "Failed to delete assignment.", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: "Failed to delete assignment.",
+          variant: "destructive",
+        });
         setSyncStatus("error");
       }
     },
   });
 
   const applySuggestionMutation = useMutation({
-    mutationFn: async ({ assignmentId, suggestedCrewId }: { assignmentId: string; suggestedCrewId: string }) => {
+    mutationFn: async ({
+      assignmentId,
+      suggestedCrewId,
+    }: {
+      assignmentId: string;
+      suggestedCrewId: string;
+    }) => {
       setSyncStatus("syncing");
-      return apiRequest("POST", `/api/crew-extensions/scheduler/apply-suggestion`, { assignmentId, suggestedCrewId });
+      return apiRequest("POST", `/api/crew-extensions/scheduler/apply-suggestion`, {
+        assignmentId,
+        suggestedCrewId,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crew-extensions/assignments"] });
@@ -536,7 +621,10 @@ export function useSchedulePlannerData() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crew"] });
-      toast({ title: "Roster Updated", description: "Crew member has been reassigned to the vessel." });
+      toast({
+        title: "Roster Updated",
+        description: "Crew member has been reassigned to the vessel.",
+      });
       setSyncStatus("up_to_date");
     },
     onError: () => {
@@ -545,8 +633,8 @@ export function useSchedulePlannerData() {
     },
   });
 
-  const draftCount = useMemo(() => 
-    assignments.filter(a => a.status === "draft").length, 
+  const draftCount = useMemo(
+    () => assignments.filter((a) => a.status === "draft").length,
     [assignments]
   );
 

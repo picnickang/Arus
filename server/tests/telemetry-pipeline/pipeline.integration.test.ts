@@ -1,6 +1,6 @@
 /**
  * Telemetry Pipeline Integration Tests
- * 
+ *
  * End-to-end tests for the telemetry ingestion pipeline:
  * - Frame decoding (J1939/J1587)
  * - Validation
@@ -100,8 +100,8 @@ describe("Telemetry Pipeline Integration", () => {
       }
 
       expect(allReadings.length).toBeGreaterThanOrEqual(5);
-      
-      const sensorTypes = new Set(allReadings.map(r => r.sensorType));
+
+      const sensorTypes = new Set(allReadings.map((r) => r.sensorType));
       expect(sensorTypes.has("ENGINE_SPEED_RPM")).toBe(true);
       expect(sensorTypes.has("ENGINE_COOLANT_TEMP_C")).toBe(true);
       expect(sensorTypes.has("ENGINE_OIL_PRESSURE_KPA")).toBe(true);
@@ -180,7 +180,12 @@ describe("Telemetry Pipeline Integration", () => {
         { equipmentId: TEST_EQUIPMENT_ID, sensorType: "RPM", value: 1500, timestamp: new Date() },
         { equipmentId: "", sensorType: "RPM", value: 1500, timestamp: new Date() },
         { equipmentId: TEST_EQUIPMENT_ID, sensorType: "TEMP", value: NaN, timestamp: new Date() },
-        { equipmentId: TEST_EQUIPMENT_ID, sensorType: "PRESSURE", value: 450, timestamp: new Date() },
+        {
+          equipmentId: TEST_EQUIPMENT_ID,
+          sensorType: "PRESSURE",
+          value: 450,
+          timestamp: new Date(),
+        },
       ];
 
       const valid = filterValidReadings(readings);
@@ -194,7 +199,7 @@ describe("Telemetry Pipeline Integration", () => {
       const readings = processor.process(frames);
 
       expect(readings.length).toBe(10);
-      
+
       for (const reading of readings) {
         expect(reading.orgId).toBe(TEST_ORG_ID);
         expect(reading.metadata?.idempotencyKey).toBeDefined();
@@ -238,7 +243,7 @@ describe("Telemetry Pipeline Integration", () => {
       for (let i = 0; i < frames.length; i++) {
         const frame = frames[i];
         const reading = readings[i];
-        
+
         const integrity = verifyReadingIntegrity(reading, TEST_EQUIPMENT_ID);
         expect(integrity.valid).toBe(true);
         if (!integrity.valid) {
@@ -257,22 +262,22 @@ describe("Telemetry Pipeline Integration", () => {
         const frames = [...testCase.frames].sort((a, b) => a.id - b.id);
         const readings = processor.process(frames);
 
-        const timestamps = readings.map(r => r.timestamp.getTime());
+        const timestamps = readings.map((r) => r.timestamp.getTime());
         const sortedTimestamps = [...timestamps].sort((a, b) => a - b);
-        
+
         expect(timestamps).toEqual(sortedTimestamps);
       }
     });
 
     it("should handle deduplication test cases correctly", () => {
       const testCases = createDeduplicationTestCases(650);
-      
+
       for (const testCase of testCases) {
         const readings = processor.process(testCase.frames);
-        
-        const idempotencyKeys = readings.map(r => r.metadata?.idempotencyKey);
+
+        const idempotencyKeys = readings.map((r) => r.metadata?.idempotencyKey);
         const uniqueKeys = new Set(idempotencyKeys);
-        
+
         expect(readings.length).toBeGreaterThan(0);
         expect(uniqueKeys.size).toBe(testCase.expectedUniqueCount);
       }
@@ -282,9 +287,9 @@ describe("Telemetry Pipeline Integration", () => {
       const frames = createBatchOfFrames(700, 100);
       const readings = processor.process(frames);
 
-      const keys = readings.map(r => r.metadata?.idempotencyKey);
+      const keys = readings.map((r) => r.metadata?.idempotencyKey);
       const uniqueKeys = new Set(keys);
-      
+
       expect(uniqueKeys.size).toBe(readings.length);
     });
   });
@@ -292,7 +297,7 @@ describe("Telemetry Pipeline Integration", () => {
   describe("High-Volume Processing", () => {
     it("should handle large batch without errors", () => {
       const frames = createBatchOfFrames(1000, 1000);
-      
+
       expect(() => {
         const readings = processor.process(frames);
         expect(readings.length).toBe(1000);
@@ -312,7 +317,7 @@ describe("Telemetry Pipeline Integration", () => {
 
       const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
       const maxTime = Math.max(...times);
-      
+
       expect(avgTime).toBeLessThan(100);
       expect(maxTime).toBeLessThan(avgTime * 5);
     });
@@ -322,7 +327,7 @@ describe("Telemetry Pipeline Integration", () => {
     it("should handle frame with zero timestamp gracefully", () => {
       const frame = createJ1939EngineSpeedFrame(3000, 1500, 0);
       const readings = decodeFrame(frame, { defaultEquipmentId: TEST_EQUIPMENT_ID });
-      
+
       if (readings.length > 0) {
         expect(validateReading(readings[0])).toBe(false);
       }
@@ -331,18 +336,18 @@ describe("Telemetry Pipeline Integration", () => {
     it("should handle frame with maximum valid values", () => {
       const frame = createJ1939EngineSpeedFrame(3001, 65535 * 0.125, Date.now());
       const readings = decodeFrame(frame, { defaultEquipmentId: TEST_EQUIPMENT_ID });
-      
+
       expect(readings.length).toBeGreaterThan(0);
     });
 
     it("should handle rapid sequential batches", () => {
       const allReadings: TelemetryReading[] = [];
-      
+
       for (let batch = 0; batch < 10; batch++) {
         const frames = createBatchOfFrames(4000 + batch * 100, 50);
         allReadings.push(...processor.process(frames));
       }
-      
+
       expect(allReadings.length).toBe(500);
     });
   });
@@ -353,9 +358,9 @@ describe("Protocol-Specific Decoding", () => {
     it("should extract correct PGN from CAN ID", () => {
       const frame = createJ1939EngineSpeedFrame(1, 1500);
       const readings = decodeFrame(frame, { defaultEquipmentId: TEST_EQUIPMENT_ID });
-      
+
       expect(readings.length).toBeGreaterThan(0);
-      expect(readings[0].metadata?.pgn).toBe(0xF004);
+      expect(readings[0].metadata?.pgn).toBe(0xf004);
     });
 
     it("should handle different source addresses", () => {
@@ -379,7 +384,7 @@ describe("Protocol-Specific Decoding", () => {
     it("should decode J1587 engine speed frame correctly", () => {
       const frame = createJ1587EngineSpeedFrame(100, 1500);
       const readings = decodeFrame(frame, { defaultEquipmentId: TEST_EQUIPMENT_ID });
-      
+
       expect(readings.length).toBe(1);
       expect(readings[0].sensorType).toBe("ENGINE_SPEED_RPM");
       expect(readings[0].value).toBeCloseTo(1500, -1);
@@ -391,7 +396,7 @@ describe("Protocol-Specific Decoding", () => {
     it("should decode J1587 coolant temperature frames", () => {
       const frame = createJ1587CoolantTempFrame(101, 85);
       const readings = decodeFrame(frame, { defaultEquipmentId: TEST_EQUIPMENT_ID });
-      
+
       expect(readings.length).toBe(1);
       expect(readings[0].sensorType).toBe("ENGINE_COOLANT_TEMP_C");
       expect(readings[0].value).toBe(85);
@@ -403,7 +408,7 @@ describe("Protocol-Specific Decoding", () => {
     it("should decode J1587 oil pressure frames", () => {
       const frame = createJ1587OilPressureFrame(102, 400);
       const readings = decodeFrame(frame, { defaultEquipmentId: TEST_EQUIPMENT_ID });
-      
+
       expect(readings.length).toBe(1);
       expect(readings[0].sensorType).toBe("ENGINE_OIL_PRESSURE_KPA");
       expect(readings[0].value).toBe(400);
@@ -415,7 +420,7 @@ describe("Protocol-Specific Decoding", () => {
     it("should reject J1587 frames with wrong payload version", () => {
       const frame = createJ1587EngineSpeedFrame(103, 1500);
       frame.payloadFormatVersion = 99;
-      
+
       const readings = decodeFrame(frame, { defaultEquipmentId: TEST_EQUIPMENT_ID });
       expect(readings).toEqual([]);
     });
@@ -433,12 +438,12 @@ describe("Protocol-Specific Decoding", () => {
         const readings = decodeFrame(frame, { defaultEquipmentId: TEST_EQUIPMENT_ID });
         allReadings.push(...readings);
       }
-      
+
       expect(allReadings.length).toBe(4);
-      
-      const j1939Readings = allReadings.filter(r => r.metadata?.pgn !== undefined);
-      const j1587Readings = allReadings.filter(r => r.metadata?.protocol === "J1587");
-      
+
+      const j1939Readings = allReadings.filter((r) => r.metadata?.pgn !== undefined);
+      const j1587Readings = allReadings.filter((r) => r.metadata?.protocol === "J1587");
+
       expect(j1939Readings.length).toBe(2);
       expect(j1587Readings.length).toBe(2);
     });
@@ -448,17 +453,17 @@ describe("Protocol-Specific Decoding", () => {
         defaultEquipmentId: TEST_EQUIPMENT_ID,
         defaultOrgId: TEST_ORG_ID,
       });
-      
+
       const frames = [
         createJ1587EngineSpeedFrame(300, 2000),
         createJ1587CoolantTempFrame(301, 75),
         createJ1587OilPressureFrame(302, 350),
       ];
-      
+
       const readings = processor.process(frames);
-      
+
       expect(readings.length).toBe(3);
-      readings.forEach(r => {
+      readings.forEach((r) => {
         expect(r.orgId).toBe(TEST_ORG_ID);
         expect(r.metadata?.protocol).toBe("J1587");
         expect(r.metadata?.idempotencyKey).toBeDefined();

@@ -1,24 +1,46 @@
 import { useState } from "react";
-import { Plus, Trash2, RotateCcw, Save, X, Pencil, ChevronUp, ChevronDown, AlertTriangle } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  RotateCcw,
+  Save,
+  X,
+  Pencil,
+  ChevronUp,
+  ChevronDown,
+  AlertTriangle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter,
-  DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import type { Equipment } from "@/features/vessels/types";
 import type { SchematicLayout, SchematicZone, SchematicSlot } from "@/hooks/useSchematicLayout";
 
 export const statusFill = (s: string) =>
-  s === "operational" ? "#22c55e" :
-  s === "degraded" || s === "warning" ? "#f59e0b" :
-  s === "critical" ? "#ef4444" : "#64748b";
+  s === "operational"
+    ? "#22c55e"
+    : s === "degraded" || s === "warning"
+      ? "#f59e0b"
+      : s === "critical"
+        ? "#ef4444"
+        : "#64748b";
 
-export const healthColor = (v: number) => v > 70 ? "#22c55e" : v > 40 ? "#f59e0b" : "#ef4444";
+export const healthColor = (v: number) => (v > 70 ? "#22c55e" : v > 40 ? "#f59e0b" : "#ef4444");
 
 export interface PositionedSlot extends SchematicSlot {
   x: number;
@@ -55,7 +77,9 @@ const SUPER_LEFT = 155;
 const SUPER_RIGHT = 190;
 
 function hullTopAt(x: number): number {
-  if (x >= SUPER_LEFT && x <= SUPER_RIGHT) {return SUPER_TOP;}
+  if (x >= SUPER_LEFT && x <= SUPER_RIGHT) {
+    return SUPER_TOP;
+  }
   if (x > SUPER_RIGHT) {
     const t = (x - SUPER_RIGHT) / (HULL_RIGHT - SUPER_RIGHT);
     return DECK_Y + t * (DECK_Y - HULL_TOP);
@@ -75,10 +99,15 @@ function hullBottomAt(x: number): number {
   return HULL_BOTTOM;
 }
 
-export function computeLayout(layout: SchematicLayout): { zones: ZoneRect[]; slots: PositionedSlot[] } {
+export function computeLayout(layout: SchematicLayout): {
+  zones: ZoneRect[];
+  slots: PositionedSlot[];
+} {
   const sortedZones = [...layout.zones].sort((a, b) => a.order - b.order);
   const zoneCount = sortedZones.length;
-  if (zoneCount === 0) {return { zones: [], slots: [] };}
+  if (zoneCount === 0) {
+    return { zones: [], slots: [] };
+  }
 
   const pad = 2;
   const usableW = HULL_W - pad * 2;
@@ -97,11 +126,13 @@ export function computeLayout(layout: SchematicLayout): { zones: ZoneRect[]; slo
     zoneRects.push({ zone, x: zx, y: zt, w: zoneW, h: zh });
 
     const slotDefs = zone.slotIds
-      .map(sid => layout.slots.find(s => s.slotId === sid))
+      .map((sid) => layout.slots.find((s) => s.slotId === sid))
       .filter(Boolean) as SchematicSlot[];
 
     const count = slotDefs.length;
-    if (count === 0) {return;}
+    if (count === 0) {
+      return;
+    }
 
     const innerPad = 1.5;
     const gutter = 1.5;
@@ -111,9 +142,15 @@ export function computeLayout(layout: SchematicLayout): { zones: ZoneRect[]; slo
     const availableW = zoneW - innerPad * 2;
 
     const cols = (() => {
-      if (count <= 2) {return 1;}
-      if (count <= 6) {return 2;}
-      if (count <= 12) {return 3;}
+      if (count <= 2) {
+        return 1;
+      }
+      if (count <= 6) {
+        return 2;
+      }
+      if (count <= 12) {
+        return 3;
+      }
       return Math.min(4, Math.ceil(Math.sqrt(count)));
     })();
     const rows = Math.ceil(count / cols);
@@ -137,16 +174,18 @@ export function assignEquipmentToSlots(
   positionedSlots: PositionedSlot[],
   equipment: Equipment[]
 ): SlotAssignment[] {
-  const assignments: SlotAssignment[] = positionedSlots.map(slot => ({ slot, equipment: null }));
+  const assignments: SlotAssignment[] = positionedSlots.map((slot) => ({ slot, equipment: null }));
   const assigned = new Set<string>();
 
   for (const eq of equipment) {
     const typeLower = (eq.type || "").toLowerCase();
     const nameLower = (eq.name || "").toLowerCase();
     for (const assignment of assignments) {
-      if (assignment.equipment) {continue;}
+      if (assignment.equipment) {
+        continue;
+      }
       const matches = assignment.slot.typeMatch.some(
-        t => typeLower.includes(t) || nameLower.includes(t)
+        (t) => typeLower.includes(t) || nameLower.includes(t)
       );
       if (matches && !assigned.has(eq.id)) {
         assignment.equipment = eq;
@@ -156,8 +195,8 @@ export function assignEquipmentToSlots(
     }
   }
 
-  const unmatched = equipment.filter(eq => !assigned.has(eq.id));
-  const emptySlots = assignments.filter(a => !a.equipment);
+  const unmatched = equipment.filter((eq) => !assigned.has(eq.id));
+  const emptySlots = assignments.filter((a) => !a.equipment);
   for (let i = 0; i < Math.min(unmatched.length, emptySlots.length); i++) {
     emptySlots[i].equipment = unmatched[i];
   }
@@ -180,7 +219,10 @@ function HullSVG({ zoneRects }: { zoneRects: ZoneRect[] }) {
         </linearGradient>
         <filter id="glow">
           <feGaussianBlur stdDeviation="1" result="blur" />
-          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
         </filter>
         <clipPath id="hull-clip">
           <path d={hullPath()} />
@@ -189,42 +231,95 @@ function HullSVG({ zoneRects }: { zoneRects: ZoneRect[] }) {
 
       <rect x="0" y={WATERLINE_Y} width={SVG_W} height={SVG_H - WATERLINE_Y} fill="url(#water)" />
 
-      <path d={hullPath()} fill="url(#hull-grad)" stroke="rgba(56,189,248,0.25)" strokeWidth="0.4" />
+      <path
+        d={hullPath()}
+        fill="url(#hull-grad)"
+        stroke="rgba(56,189,248,0.25)"
+        strokeWidth="0.4"
+      />
 
-      <line x1={HULL_LEFT} y1={WATERLINE_Y} x2={HULL_RIGHT} y2={WATERLINE_Y}
-        stroke="rgba(56,189,248,0.15)" strokeWidth="0.3" strokeDasharray="2 1.5" />
+      <line
+        x1={HULL_LEFT}
+        y1={WATERLINE_Y}
+        x2={HULL_RIGHT}
+        y2={WATERLINE_Y}
+        stroke="rgba(56,189,248,0.15)"
+        strokeWidth="0.3"
+        strokeDasharray="2 1.5"
+      />
 
-      <line x1={HULL_LEFT + 5} y1={DECK_Y} x2={SUPER_LEFT} y2={DECK_Y}
-        stroke="rgba(148,163,184,0.12)" strokeWidth="0.25" strokeDasharray="1.5 1" />
+      <line
+        x1={HULL_LEFT + 5}
+        y1={DECK_Y}
+        x2={SUPER_LEFT}
+        y2={DECK_Y}
+        stroke="rgba(148,163,184,0.12)"
+        strokeWidth="0.25"
+        strokeDasharray="1.5 1"
+      />
 
-      <rect x={SUPER_LEFT} y={SUPER_TOP} width={SUPER_RIGHT - SUPER_LEFT} height={SUPER_BOTTOM - SUPER_TOP}
-        rx="1.5" fill="#15243d" stroke="rgba(56,189,248,0.2)" strokeWidth="0.3" />
-      {[0, 1, 2, 3].map(i => (
-        <rect key={i} x={SUPER_LEFT + 2 + i * 8} y={SUPER_TOP + 2} width={6} height={3} rx={0.5}
-          fill="rgba(56,189,248,0.3)" />
+      <rect
+        x={SUPER_LEFT}
+        y={SUPER_TOP}
+        width={SUPER_RIGHT - SUPER_LEFT}
+        height={SUPER_BOTTOM - SUPER_TOP}
+        rx="1.5"
+        fill="#15243d"
+        stroke="rgba(56,189,248,0.2)"
+        strokeWidth="0.3"
+      />
+      {[0, 1, 2, 3].map((i) => (
+        <rect
+          key={i}
+          x={SUPER_LEFT + 2 + i * 8}
+          y={SUPER_TOP + 2}
+          width={6}
+          height={3}
+          rx={0.5}
+          fill="rgba(56,189,248,0.3)"
+        />
       ))}
 
-      <line x1={SUPER_LEFT + 17} y1={SUPER_TOP - 5} x2={SUPER_LEFT + 17} y2={SUPER_TOP}
-        stroke="rgba(148,163,184,0.4)" strokeWidth="0.4" />
+      <line
+        x1={SUPER_LEFT + 17}
+        y1={SUPER_TOP - 5}
+        x2={SUPER_LEFT + 17}
+        y2={SUPER_TOP}
+        stroke="rgba(148,163,184,0.4)"
+        strokeWidth="0.4"
+      />
       <circle cx={SUPER_LEFT + 17} cy={SUPER_TOP - 5.5} r="0.8" fill="#f59e0b" opacity={0.8}>
         <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite" />
       </circle>
 
-      {zoneRects.map((zr, i) => (
-        i > 0 && (
-          <line key={`div-${i}`}
-            x1={zr.x} y1={Math.max(hullTopAt(zr.x), SUPER_TOP) + 0.5}
-            x2={zr.x} y2={hullBottomAt(zr.x) - 0.5}
-            stroke="rgba(148,163,184,0.18)" strokeWidth="0.5" strokeDasharray="2 1" />
-        )
-      ))}
+      {zoneRects.map(
+        (zr, i) =>
+          i > 0 && (
+            <line
+              key={`div-${i}`}
+              x1={zr.x}
+              y1={Math.max(hullTopAt(zr.x), SUPER_TOP) + 0.5}
+              x2={zr.x}
+              y2={hullBottomAt(zr.x) - 0.5}
+              stroke="rgba(148,163,184,0.18)"
+              strokeWidth="0.5"
+              strokeDasharray="2 1"
+            />
+          )
+      )}
 
-      {zoneRects.map(zr => (
-        <text key={`zl-${zr.zone.zoneId}`}
-          x={zr.x + zr.w / 2} y={zr.y + zr.h - 1.5}
-          textAnchor="middle" fill="rgba(148,163,184,0.18)"
-          fontSize="2.5" fontWeight="700" fontFamily="monospace"
-          style={{ textTransform: "uppercase" as const }}>
+      {zoneRects.map((zr) => (
+        <text
+          key={`zl-${zr.zone.zoneId}`}
+          x={zr.x + zr.w / 2}
+          y={zr.y + zr.h - 1.5}
+          textAnchor="middle"
+          fill="rgba(148,163,184,0.18)"
+          fontSize="2.5"
+          fontWeight="700"
+          fontFamily="monospace"
+          style={{ textTransform: "uppercase" as const }}
+        >
           {zr.zone.label}
         </text>
       ))}
@@ -261,7 +356,9 @@ function SlotRect({
   const sc = eq ? statusFill(status) : "rgba(148,163,184,0.3)";
   const health = eq?.healthScore ?? 0;
   const displayName = eq
-    ? (eq.name.length > 14 ? `${eq.name.slice(0, 12)  }\u2026` : eq.name)
+    ? eq.name.length > 14
+      ? `${eq.name.slice(0, 12)}\u2026`
+      : eq.name
     : slot.label;
   const displaySub = eq
     ? [eq.manufacturer, eq.model].filter(Boolean).join(" ").slice(0, 16)
@@ -270,7 +367,11 @@ function SlotRect({
   return (
     <g onClick={onClick} style={{ cursor: "pointer" }} data-testid={`slot-${slot.slotId}`}>
       <rect
-        x={slot.x} y={slot.y} width={slot.w} height={slot.h} rx={1}
+        x={slot.x}
+        y={slot.y}
+        width={slot.w}
+        height={slot.h}
+        rx={1}
         fill={isSelected ? `${sc}22` : eq ? `${sc}10` : "rgba(148,163,184,0.03)"}
         stroke={isSelected ? sc : eq ? `${sc}66` : "rgba(148,163,184,0.15)"}
         strokeWidth={isSelected ? 0.7 : 0.35}
@@ -288,31 +389,72 @@ function SlotRect({
 
       {eq && (
         <>
-          <rect x={slot.x + 0.8} y={slot.y + 0.8} width={4.5} height={1.8} rx={0.5}
-            fill="rgba(34,197,94,0.2)" stroke="rgba(34,197,94,0.35)" strokeWidth="0.12" />
-          <text x={slot.x + 3.05} y={slot.y + 2} textAnchor="middle" fill="#22c55e"
-            fontSize="0.95" fontWeight="700" fontFamily="monospace">OK</text>
+          <rect
+            x={slot.x + 0.8}
+            y={slot.y + 0.8}
+            width={4.5}
+            height={1.8}
+            rx={0.5}
+            fill="rgba(34,197,94,0.2)"
+            stroke="rgba(34,197,94,0.35)"
+            strokeWidth="0.12"
+          />
+          <text
+            x={slot.x + 3.05}
+            y={slot.y + 2}
+            textAnchor="middle"
+            fill="#22c55e"
+            fontSize="0.95"
+            fontWeight="700"
+            fontFamily="monospace"
+          >
+            OK
+          </text>
         </>
       )}
 
-      <text x={slot.x + slot.w / 2} y={slot.y + slot.h / 2 - (eq ? 0.3 : 0)} textAnchor="middle"
+      <text
+        x={slot.x + slot.w / 2}
+        y={slot.y + slot.h / 2 - (eq ? 0.3 : 0)}
+        textAnchor="middle"
         fill={eq ? "rgba(226,232,240,0.9)" : "rgba(148,163,184,0.5)"}
-        fontSize="1.8" fontWeight={eq ? "600" : "400"} fontFamily="system-ui">
+        fontSize="1.8"
+        fontWeight={eq ? "600" : "400"}
+        fontFamily="system-ui"
+      >
         {displayName}
       </text>
 
-      <text x={slot.x + slot.w / 2} y={slot.y + slot.h / 2 + 1.8} textAnchor="middle"
-        fill="rgba(148,163,184,0.5)" fontSize="1.2" fontFamily="monospace">
+      <text
+        x={slot.x + slot.w / 2}
+        y={slot.y + slot.h / 2 + 1.8}
+        textAnchor="middle"
+        fill="rgba(148,163,184,0.5)"
+        fontSize="1.2"
+        fontFamily="monospace"
+      >
         {displaySub}
       </text>
 
       {eq && (
         <>
-          <rect x={slot.x + 1.2} y={slot.y + slot.h - 2.2} width={slot.w - 2.4} height={0.9} rx={0.4}
-            fill="rgba(255,255,255,0.06)" />
-          <rect x={slot.x + 1.2} y={slot.y + slot.h - 2.2}
-            width={(slot.w - 2.4) * health / 100} height={0.9} rx={0.4}
-            fill={sc} opacity={0.7} />
+          <rect
+            x={slot.x + 1.2}
+            y={slot.y + slot.h - 2.2}
+            width={slot.w - 2.4}
+            height={0.9}
+            rx={0.4}
+            fill="rgba(255,255,255,0.06)"
+          />
+          <rect
+            x={slot.x + 1.2}
+            y={slot.y + slot.h - 2.2}
+            width={((slot.w - 2.4) * health) / 100}
+            height={0.9}
+            rx={0.4}
+            fill={sc}
+            opacity={0.7}
+          />
         </>
       )}
     </g>
@@ -333,7 +475,7 @@ export function VesselSchematic({
   return (
     <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className="w-full h-full min-h-[240px] sm:min-h-[320px]">
       <HullSVG zoneRects={zoneRects} />
-      {slotAssignments.map(assignment => (
+      {slotAssignments.map((assignment) => (
         <SlotRect
           key={assignment.slot.slotId}
           assignment={assignment}
@@ -350,8 +492,8 @@ function generateLocalId(prefix: string): string {
 }
 
 function getUnassignedSlots(layout: SchematicLayout): SchematicSlot[] {
-  const assignedIds = new Set(layout.zones.flatMap(z => z.slotIds));
-  return layout.slots.filter(s => !assignedIds.has(s.slotId));
+  const assignedIds = new Set(layout.zones.flatMap((z) => z.slotIds));
+  return layout.slots.filter((s) => !assignedIds.has(s.slotId));
 }
 
 export function SchematicConfigPanel({
@@ -388,7 +530,7 @@ export function SchematicConfigPanel({
   const unassignedSlots = getUnassignedSlots(draft);
 
   const updateDraft = (fn: (d: SchematicLayout) => void) => {
-    setDraft(prev => {
+    setDraft((prev) => {
       const next = JSON.parse(JSON.stringify(prev));
       fn(next);
       onDraftChange?.(next);
@@ -397,27 +539,36 @@ export function SchematicConfigPanel({
   };
 
   const handleAddZone = () => {
-    if (!newZoneName.trim()) {return;}
-    updateDraft(d => {
-      d.zones.push({ zoneId: generateLocalId("zone"), label: newZoneName.trim(), order: d.zones.length, slotIds: [] });
+    if (!newZoneName.trim()) {
+      return;
+    }
+    updateDraft((d) => {
+      d.zones.push({
+        zoneId: generateLocalId("zone"),
+        label: newZoneName.trim(),
+        order: d.zones.length,
+        slotIds: [],
+      });
     });
     setNewZoneName("");
   };
 
   const handleRemoveZone = (zoneId: string) => {
-    updateDraft(d => {
-      const idx = d.zones.findIndex(z => z.zoneId === zoneId);
+    updateDraft((d) => {
+      const idx = d.zones.findIndex((z) => z.zoneId === zoneId);
       if (idx !== -1) {
         d.zones.splice(idx, 1);
-        d.zones.forEach((z, i) => { z.order = i; });
+        d.zones.forEach((z, i) => {
+          z.order = i;
+        });
       }
     });
   };
 
   const handleMoveZoneUp = (zoneId: string) => {
-    updateDraft(d => {
+    updateDraft((d) => {
       const sorted = d.zones.sort((a, b) => a.order - b.order);
-      const idx = sorted.findIndex(z => z.zoneId === zoneId);
+      const idx = sorted.findIndex((z) => z.zoneId === zoneId);
       if (idx > 0) {
         const tmp = sorted[idx].order;
         sorted[idx].order = sorted[idx - 1].order;
@@ -427,9 +578,9 @@ export function SchematicConfigPanel({
   };
 
   const handleMoveZoneDown = (zoneId: string) => {
-    updateDraft(d => {
+    updateDraft((d) => {
       const sorted = d.zones.sort((a, b) => a.order - b.order);
-      const idx = sorted.findIndex(z => z.zoneId === zoneId);
+      const idx = sorted.findIndex((z) => z.zoneId === zoneId);
       if (idx < sorted.length - 1) {
         const tmp = sorted[idx].order;
         sorted[idx].order = sorted[idx + 1].order;
@@ -439,13 +590,25 @@ export function SchematicConfigPanel({
   };
 
   const handleAddSlot = () => {
-    if (!newSlotName.trim() || !newSlotZone) {return;}
-    const tm = newSlotTypeMatch.split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+    if (!newSlotName.trim() || !newSlotZone) {
+      return;
+    }
+    const tm = newSlotTypeMatch
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
     const slotId = generateLocalId("slot");
-    updateDraft(d => {
-      d.slots.push({ slotId, label: newSlotName.trim(), category: newSlotCategory.trim() || "general", typeMatch: tm.length ? tm : [newSlotName.trim().toLowerCase()] });
-      const zone = d.zones.find(z => z.zoneId === newSlotZone);
-      if (zone) {zone.slotIds.push(slotId);}
+    updateDraft((d) => {
+      d.slots.push({
+        slotId,
+        label: newSlotName.trim(),
+        category: newSlotCategory.trim() || "general",
+        typeMatch: tm.length ? tm : [newSlotName.trim().toLowerCase()],
+      });
+      const zone = d.zones.find((z) => z.zoneId === newSlotZone);
+      if (zone) {
+        zone.slotIds.push(slotId);
+      }
     });
     setNewSlotName("");
     setNewSlotCategory("");
@@ -454,22 +617,26 @@ export function SchematicConfigPanel({
 
   const handleRemoveSlot = (slotId: string) => {
     const hasEquipment = equipmentSlotMap?.has(slotId);
-    if (hasEquipment) {return;}
-    updateDraft(d => {
-      d.slots = d.slots.filter(s => s.slotId !== slotId);
+    if (hasEquipment) {
+      return;
+    }
+    updateDraft((d) => {
+      d.slots = d.slots.filter((s) => s.slotId !== slotId);
       for (const zone of d.zones) {
-        zone.slotIds = zone.slotIds.filter(id => id !== slotId);
+        zone.slotIds = zone.slotIds.filter((id) => id !== slotId);
       }
     });
   };
 
   const handleMoveSlot = (slotId: string, targetZoneId: string) => {
-    updateDraft(d => {
+    updateDraft((d) => {
       for (const zone of d.zones) {
-        zone.slotIds = zone.slotIds.filter(id => id !== slotId);
+        zone.slotIds = zone.slotIds.filter((id) => id !== slotId);
       }
-      const target = d.zones.find(z => z.zoneId === targetZoneId);
-      if (target) {target.slotIds.push(slotId);}
+      const target = d.zones.find((z) => z.zoneId === targetZoneId);
+      if (target) {
+        target.slotIds.push(slotId);
+      }
     });
   };
 
@@ -486,26 +653,55 @@ export function SchematicConfigPanel({
     <div className="bg-[#0a1328] border border-slate-700/20 rounded-lg p-4 max-h-[70vh] overflow-y-auto">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wide">Schematic Configuration</h3>
-          {isDirty && <Badge variant="secondary" className="text-[9px] bg-amber-500/20 text-amber-400">Unsaved</Badge>}
+          <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wide">
+            Schematic Configuration
+          </h3>
+          {isDirty && (
+            <Badge variant="secondary" className="text-[9px] bg-amber-500/20 text-amber-400">
+              Unsaved
+            </Badge>
+          )}
         </div>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCancel} data-testid="btn-close-config">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={handleCancel}
+          data-testid="btn-close-config"
+        >
           <X className="h-4 w-4" />
         </Button>
       </div>
 
       <div className="mb-5">
-        <h4 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Zones</h4>
+        <h4 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+          Zones
+        </h4>
         <div className="space-y-1.5">
           {sortedZones.map((zone, zIdx) => (
-            <div key={zone.zoneId} className="flex items-center gap-2 p-2 rounded bg-slate-800/40 border border-slate-700/15">
+            <div
+              key={zone.zoneId}
+              className="flex items-center gap-2 p-2 rounded bg-slate-800/40 border border-slate-700/15"
+            >
               <div className="flex flex-col gap-0.5">
-                <Button size="sm" variant="ghost" className="h-4 w-4 p-0 text-slate-500 hover:text-slate-200" data-testid={`btn-zone-up-${zone.zoneId}`}
-                  disabled={zIdx === 0} onClick={() => handleMoveZoneUp(zone.zoneId)}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-4 w-4 p-0 text-slate-500 hover:text-slate-200"
+                  data-testid={`btn-zone-up-${zone.zoneId}`}
+                  disabled={zIdx === 0}
+                  onClick={() => handleMoveZoneUp(zone.zoneId)}
+                >
                   <ChevronUp className="h-3 w-3" />
                 </Button>
-                <Button size="sm" variant="ghost" className="h-4 w-4 p-0 text-slate-500 hover:text-slate-200" data-testid={`btn-zone-down-${zone.zoneId}`}
-                  disabled={zIdx === sortedZones.length - 1} onClick={() => handleMoveZoneDown(zone.zoneId)}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-4 w-4 p-0 text-slate-500 hover:text-slate-200"
+                  data-testid={`btn-zone-down-${zone.zoneId}`}
+                  disabled={zIdx === sortedZones.length - 1}
+                  onClick={() => handleMoveZoneDown(zone.zoneId)}
+                >
                   <ChevronDown className="h-3 w-3" />
                 </Button>
               </div>
@@ -513,35 +709,61 @@ export function SchematicConfigPanel({
                 <div className="flex items-center gap-1.5 flex-1">
                   <Input
                     value={editZoneName}
-                    onChange={e => setEditZoneName(e.target.value)}
+                    onChange={(e) => setEditZoneName(e.target.value)}
                     className="h-7 text-xs bg-slate-900/50 border-slate-700/30"
                     data-testid={`input-edit-zone-${zone.zoneId}`}
                   />
-                  <Button size="sm" variant="ghost" className="h-7 px-2 text-green-400" data-testid={`btn-save-zone-${zone.zoneId}`}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-green-400"
+                    data-testid={`btn-save-zone-${zone.zoneId}`}
                     onClick={() => {
-                      updateDraft(d => {
-                        const z = d.zones.find(z => z.zoneId === zone.zoneId);
-                        if (z) {z.label = editZoneName;}
+                      updateDraft((d) => {
+                        const z = d.zones.find((z) => z.zoneId === zone.zoneId);
+                        if (z) {
+                          z.label = editZoneName;
+                        }
                       });
                       setEditingZone(null);
-                    }}>
+                    }}
+                  >
                     <Save className="h-3 w-3" />
                   </Button>
-                  <Button size="sm" variant="ghost" className="h-7 px-2 text-slate-400"
-                    onClick={() => setEditingZone(null)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-slate-400"
+                    onClick={() => setEditingZone(null)}
+                  >
                     <X className="h-3 w-3" />
                   </Button>
                 </div>
               ) : (
                 <>
                   <span className="text-xs text-slate-200 flex-1">{zone.label}</span>
-                  <Badge variant="secondary" className="text-[9px] bg-slate-700/30">{zone.slotIds.length} slots</Badge>
-                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-400 hover:text-sky-400" data-testid={`btn-edit-zone-${zone.zoneId}`}
-                    onClick={() => { setEditingZone(zone.zoneId); setEditZoneName(zone.label); }}>
+                  <Badge variant="secondary" className="text-[9px] bg-slate-700/30">
+                    {zone.slotIds.length} slots
+                  </Badge>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0 text-slate-400 hover:text-sky-400"
+                    data-testid={`btn-edit-zone-${zone.zoneId}`}
+                    onClick={() => {
+                      setEditingZone(zone.zoneId);
+                      setEditZoneName(zone.label);
+                    }}
+                  >
                     <Pencil className="h-3 w-3" />
                   </Button>
-                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-400 hover:text-red-400" data-testid={`btn-remove-zone-${zone.zoneId}`}
-                    onClick={() => handleRemoveZone(zone.zoneId)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0 text-slate-400 hover:text-red-400"
+                    data-testid={`btn-remove-zone-${zone.zoneId}`}
+                    onClick={() => handleRemoveZone(zone.zoneId)}
+                  >
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </>
@@ -553,76 +775,131 @@ export function SchematicConfigPanel({
           <Input
             placeholder="New zone name"
             value={newZoneName}
-            onChange={e => setNewZoneName(e.target.value)}
+            onChange={(e) => setNewZoneName(e.target.value)}
             className="h-8 text-xs bg-slate-900/50 border-slate-700/30 flex-1"
             data-testid="input-new-zone"
-            onKeyDown={e => e.key === "Enter" && handleAddZone()}
+            onKeyDown={(e) => e.key === "Enter" && handleAddZone()}
           />
-          <Button size="sm" variant="outline" className="h-8 gap-1 text-xs border-sky-500/30 text-sky-400"
-            disabled={!newZoneName.trim()} onClick={handleAddZone} data-testid="btn-add-zone">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1 text-xs border-sky-500/30 text-sky-400"
+            disabled={!newZoneName.trim()}
+            onClick={handleAddZone}
+            data-testid="btn-add-zone"
+          >
             <Plus className="h-3 w-3" /> Add
           </Button>
         </div>
       </div>
 
       <div className="mb-5">
-        <h4 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Slots</h4>
+        <h4 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+          Slots
+        </h4>
         <div className="space-y-1.5">
-          {sortedZones.map(zone => (
+          {sortedZones.map((zone) => (
             <div key={zone.zoneId}>
-              <div className="text-[10px] text-slate-500 font-semibold uppercase mb-1 ml-1">{zone.label}</div>
-              {zone.slotIds.map(sid => {
-                const slot = draft.slots.find(s => s.slotId === sid);
-                if (!slot) {return null;}
+              <div className="text-[10px] text-slate-500 font-semibold uppercase mb-1 ml-1">
+                {zone.label}
+              </div>
+              {zone.slotIds.map((sid) => {
+                const slot = draft.slots.find((s) => s.slotId === sid);
+                if (!slot) {
+                  return null;
+                }
                 const hasEq = equipmentSlotMap?.has(sid);
                 return (
-                  <div key={sid} className="flex items-center gap-2 p-2 ml-3 rounded bg-slate-800/30 border border-slate-700/10 mb-1">
+                  <div
+                    key={sid}
+                    className="flex items-center gap-2 p-2 ml-3 rounded bg-slate-800/30 border border-slate-700/10 mb-1"
+                  >
                     {editingSlot === sid ? (
                       <div className="flex items-center gap-1.5 flex-1">
                         <Input
                           value={editSlotName}
-                          onChange={e => setEditSlotName(e.target.value)}
+                          onChange={(e) => setEditSlotName(e.target.value)}
                           className="h-7 text-xs bg-slate-900/50 border-slate-700/30"
                           data-testid={`input-edit-slot-${sid}`}
                         />
-                        <Button size="sm" variant="ghost" className="h-7 px-2 text-green-400" data-testid={`btn-save-slot-${sid}`}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-green-400"
+                          data-testid={`btn-save-slot-${sid}`}
                           onClick={() => {
-                            updateDraft(d => {
-                              const s = d.slots.find(s => s.slotId === sid);
-                              if (s) {s.label = editSlotName;}
+                            updateDraft((d) => {
+                              const s = d.slots.find((s) => s.slotId === sid);
+                              if (s) {
+                                s.label = editSlotName;
+                              }
                             });
                             setEditingSlot(null);
-                          }}>
+                          }}
+                        >
                           <Save className="h-3 w-3" />
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-7 px-2 text-slate-400"
-                          onClick={() => setEditingSlot(null)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-slate-400"
+                          onClick={() => setEditingSlot(null)}
+                        >
                           <X className="h-3 w-3" />
                         </Button>
                       </div>
                     ) : (
                       <>
                         <span className="text-xs text-slate-200 flex-1">{slot.label}</span>
-                        {hasEq && <Badge variant="secondary" className="text-[9px] bg-green-500/20 text-green-400">Installed</Badge>}
-                        <Badge variant="secondary" className="text-[9px] bg-slate-700/30">{slot.category}</Badge>
-                        <Select onValueChange={val => handleMoveSlot(sid, val)}>
-                          <SelectTrigger className="h-6 w-20 text-[10px] bg-slate-900/50 border-slate-700/30" data-testid={`select-move-slot-${sid}`}>
+                        {hasEq && (
+                          <Badge
+                            variant="secondary"
+                            className="text-[9px] bg-green-500/20 text-green-400"
+                          >
+                            Installed
+                          </Badge>
+                        )}
+                        <Badge variant="secondary" className="text-[9px] bg-slate-700/30">
+                          {slot.category}
+                        </Badge>
+                        <Select onValueChange={(val) => handleMoveSlot(sid, val)}>
+                          <SelectTrigger
+                            className="h-6 w-20 text-[10px] bg-slate-900/50 border-slate-700/30"
+                            data-testid={`select-move-slot-${sid}`}
+                          >
                             <SelectValue placeholder="Move" />
                           </SelectTrigger>
                           <SelectContent>
-                            {sortedZones.filter(z => z.zoneId !== zone.zoneId).map(z => (
-                              <SelectItem key={z.zoneId} value={z.zoneId}>{z.label}</SelectItem>
-                            ))}
+                            {sortedZones
+                              .filter((z) => z.zoneId !== zone.zoneId)
+                              .map((z) => (
+                                <SelectItem key={z.zoneId} value={z.zoneId}>
+                                  {z.label}
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
-                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-400 hover:text-sky-400" data-testid={`btn-edit-slot-${sid}`}
-                          onClick={() => { setEditingSlot(sid); setEditSlotName(slot.label); }}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0 text-slate-400 hover:text-sky-400"
+                          data-testid={`btn-edit-slot-${sid}`}
+                          onClick={() => {
+                            setEditingSlot(sid);
+                            setEditSlotName(slot.label);
+                          }}
+                        >
                           <Pencil className="h-3 w-3" />
                         </Button>
                         {hasEq ? (
                           <div className="relative group">
-                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-600 cursor-not-allowed" disabled
-                              data-testid={`btn-remove-slot-${sid}`}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0 text-slate-600 cursor-not-allowed"
+                              disabled
+                              data-testid={`btn-remove-slot-${sid}`}
+                            >
                               <Trash2 className="h-3 w-3" />
                             </Button>
                             <div className="absolute bottom-full right-0 mb-1 px-2 py-1 bg-slate-900 border border-amber-500/30 rounded text-[9px] text-amber-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
@@ -630,8 +907,13 @@ export function SchematicConfigPanel({
                             </div>
                           </div>
                         ) : (
-                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-400 hover:text-red-400" data-testid={`btn-remove-slot-${sid}`}
-                            onClick={() => handleRemoveSlot(sid)}>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0 text-slate-400 hover:text-red-400"
+                            data-testid={`btn-remove-slot-${sid}`}
+                            onClick={() => handleRemoveSlot(sid)}
+                          >
                             <Trash2 className="h-3 w-3" />
                           </Button>
                         )}
@@ -648,26 +930,46 @@ export function SchematicConfigPanel({
               <div className="text-[10px] text-amber-400/80 font-semibold uppercase mb-1 ml-1 flex items-center gap-1">
                 <AlertTriangle className="h-3 w-3" /> Unassigned Slots
               </div>
-              {unassignedSlots.map(slot => {
+              {unassignedSlots.map((slot) => {
                 const hasEq = equipmentSlotMap?.has(slot.slotId);
                 return (
-                  <div key={slot.slotId} className="flex items-center gap-2 p-2 ml-3 rounded bg-amber-500/5 border border-amber-500/15 mb-1">
+                  <div
+                    key={slot.slotId}
+                    className="flex items-center gap-2 p-2 ml-3 rounded bg-amber-500/5 border border-amber-500/15 mb-1"
+                  >
                     <span className="text-xs text-slate-200 flex-1">{slot.label}</span>
-                    {hasEq && <Badge variant="secondary" className="text-[9px] bg-green-500/20 text-green-400">Installed</Badge>}
-                    <Select onValueChange={val => handleMoveSlot(slot.slotId, val)}>
-                      <SelectTrigger className="h-6 w-24 text-[10px] bg-slate-900/50 border-amber-500/20" data-testid={`select-assign-slot-${slot.slotId}`}>
+                    {hasEq && (
+                      <Badge
+                        variant="secondary"
+                        className="text-[9px] bg-green-500/20 text-green-400"
+                      >
+                        Installed
+                      </Badge>
+                    )}
+                    <Select onValueChange={(val) => handleMoveSlot(slot.slotId, val)}>
+                      <SelectTrigger
+                        className="h-6 w-24 text-[10px] bg-slate-900/50 border-amber-500/20"
+                        data-testid={`select-assign-slot-${slot.slotId}`}
+                      >
                         <SelectValue placeholder="Assign to" />
                       </SelectTrigger>
                       <SelectContent>
-                        {sortedZones.map(z => (
-                          <SelectItem key={z.zoneId} value={z.zoneId}>{z.label}</SelectItem>
+                        {sortedZones.map((z) => (
+                          <SelectItem key={z.zoneId} value={z.zoneId}>
+                            {z.label}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     {hasEq ? (
                       <div className="relative group">
-                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-600 cursor-not-allowed" disabled
-                          data-testid={`btn-remove-slot-${slot.slotId}`}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0 text-slate-600 cursor-not-allowed"
+                          disabled
+                          data-testid={`btn-remove-slot-${slot.slotId}`}
+                        >
                           <Trash2 className="h-3 w-3" />
                         </Button>
                         <div className="absolute bottom-full right-0 mb-1 px-2 py-1 bg-slate-900 border border-amber-500/30 rounded text-[9px] text-amber-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
@@ -675,8 +977,13 @@ export function SchematicConfigPanel({
                         </div>
                       </div>
                     ) : (
-                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-400 hover:text-red-400" data-testid={`btn-remove-slot-${slot.slotId}`}
-                        onClick={() => handleRemoveSlot(slot.slotId)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 text-slate-400 hover:text-red-400"
+                        data-testid={`btn-remove-slot-${slot.slotId}`}
+                        onClick={() => handleRemoveSlot(slot.slotId)}
+                      >
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     )}
@@ -688,26 +995,52 @@ export function SchematicConfigPanel({
         </div>
         <div className="flex flex-col gap-1.5 mt-2 p-2 rounded bg-slate-800/20 border border-slate-700/10">
           <div className="flex gap-1.5">
-            <Input placeholder="Slot name" value={newSlotName} onChange={e => setNewSlotName(e.target.value)}
-              className="h-7 text-xs bg-slate-900/50 border-slate-700/30 flex-1" data-testid="input-new-slot-name" />
-            <Input placeholder="Category" value={newSlotCategory} onChange={e => setNewSlotCategory(e.target.value)}
-              className="h-7 text-xs bg-slate-900/50 border-slate-700/30 w-24" data-testid="input-new-slot-category" />
+            <Input
+              placeholder="Slot name"
+              value={newSlotName}
+              onChange={(e) => setNewSlotName(e.target.value)}
+              className="h-7 text-xs bg-slate-900/50 border-slate-700/30 flex-1"
+              data-testid="input-new-slot-name"
+            />
+            <Input
+              placeholder="Category"
+              value={newSlotCategory}
+              onChange={(e) => setNewSlotCategory(e.target.value)}
+              className="h-7 text-xs bg-slate-900/50 border-slate-700/30 w-24"
+              data-testid="input-new-slot-category"
+            />
           </div>
           <div className="flex gap-1.5">
-            <Input placeholder="Type matches (comma-sep)" value={newSlotTypeMatch} onChange={e => setNewSlotTypeMatch(e.target.value)}
-              className="h-7 text-xs bg-slate-900/50 border-slate-700/30 flex-1" data-testid="input-new-slot-typematch" />
+            <Input
+              placeholder="Type matches (comma-sep)"
+              value={newSlotTypeMatch}
+              onChange={(e) => setNewSlotTypeMatch(e.target.value)}
+              className="h-7 text-xs bg-slate-900/50 border-slate-700/30 flex-1"
+              data-testid="input-new-slot-typematch"
+            />
             <Select onValueChange={setNewSlotZone}>
-              <SelectTrigger className="h-7 w-28 text-[10px] bg-slate-900/50 border-slate-700/30" data-testid="select-new-slot-zone">
+              <SelectTrigger
+                className="h-7 w-28 text-[10px] bg-slate-900/50 border-slate-700/30"
+                data-testid="select-new-slot-zone"
+              >
                 <SelectValue placeholder="Zone" />
               </SelectTrigger>
               <SelectContent>
-                {sortedZones.map(z => (
-                  <SelectItem key={z.zoneId} value={z.zoneId}>{z.label}</SelectItem>
+                {sortedZones.map((z) => (
+                  <SelectItem key={z.zoneId} value={z.zoneId}>
+                    {z.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Button size="sm" variant="outline" className="h-7 gap-1 text-xs border-sky-500/30 text-sky-400"
-              disabled={!newSlotName.trim() || !newSlotZone} onClick={handleAddSlot} data-testid="btn-add-slot">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 gap-1 text-xs border-sky-500/30 text-sky-400"
+              disabled={!newSlotName.trim() || !newSlotZone}
+              onClick={handleAddSlot}
+              data-testid="btn-add-slot"
+            >
               <Plus className="h-3 w-3" /> Add
             </Button>
           </div>
@@ -715,17 +1048,33 @@ export function SchematicConfigPanel({
       </div>
 
       <div className="flex items-center gap-2 pt-3 border-t border-slate-700/15">
-        <Button variant="outline" size="sm" className="gap-1.5 text-xs border-red-500/20 text-red-400 hover:bg-red-500/10"
-          onClick={() => setConfirmReset(true)} disabled={isPending} data-testid="btn-reset-layout">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 text-xs border-red-500/20 text-red-400 hover:bg-red-500/10"
+          onClick={() => setConfirmReset(true)}
+          disabled={isPending}
+          data-testid="btn-reset-layout"
+        >
           <RotateCcw className="h-3 w-3" /> Reset to Default
         </Button>
         <div className="flex-1" />
-        <Button variant="outline" size="sm" className="text-xs border-slate-700/30 text-slate-300"
-          onClick={handleCancel} data-testid="btn-cancel-config">
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-xs border-slate-700/30 text-slate-300"
+          onClick={handleCancel}
+          data-testid="btn-cancel-config"
+        >
           Cancel
         </Button>
-        <Button size="sm" className="gap-1.5 text-xs bg-sky-500 hover:bg-sky-600 text-white"
-          onClick={handleSave} disabled={!isDirty || isPending} data-testid="btn-save-config">
+        <Button
+          size="sm"
+          className="gap-1.5 text-xs bg-sky-500 hover:bg-sky-600 text-white"
+          onClick={handleSave}
+          disabled={!isDirty || isPending}
+          data-testid="btn-save-config"
+        >
           <Save className="h-3 w-3" /> Save
         </Button>
       </div>
@@ -735,12 +1084,28 @@ export function SchematicConfigPanel({
           <DialogHeader>
             <DialogTitle className="text-slate-100">Reset Layout</DialogTitle>
             <DialogDescription className="text-slate-400">
-              This will reset all zones and slots back to the default configuration. Custom changes will be lost.
+              This will reset all zones and slots back to the default configuration. Custom changes
+              will be lost.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setConfirmReset(false)} className="border-slate-700/30 text-slate-300">Cancel</Button>
-            <Button variant="destructive" onClick={() => { onReset(); setConfirmReset(false); }} data-testid="btn-confirm-reset">Reset</Button>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmReset(false)}
+              className="border-slate-700/30 text-slate-300"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                onReset();
+                setConfirmReset(false);
+              }}
+              data-testid="btn-confirm-reset"
+            >
+              Reset
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -748,13 +1113,27 @@ export function SchematicConfigPanel({
   );
 }
 
-export function HealthBar({ value, width = 100, height = 6 }: { value: number; width?: number; height?: number }) {
+export function HealthBar({
+  value,
+  width = 100,
+  height = 6,
+}: {
+  value: number;
+  width?: number;
+  height?: number;
+}) {
   const color = healthColor(value);
   return (
     <svg width={width} height={height} className="rounded overflow-hidden">
       <rect width={width} height={height} fill="currentColor" className="text-white/5" rx={3} />
-      <rect width={width * value / 100} height={height} fill={color} rx={3}>
-        <animate attributeName="width" from="0" to={String(width * value / 100)} dur="0.8s" fill="freeze" />
+      <rect width={(width * value) / 100} height={height} fill={color} rx={3}>
+        <animate
+          attributeName="width"
+          from="0"
+          to={String((width * value) / 100)}
+          dur="0.8s"
+          fill="freeze"
+        />
       </rect>
     </svg>
   );
@@ -763,16 +1142,46 @@ export function HealthBar({ value, width = 100, height = 6 }: { value: number; w
 export function Pulse({ color, size = 8 }: { color: string; size?: number }) {
   return (
     <span className="relative inline-block" style={{ width: size, height: size }}>
-      <span className="absolute inset-0 rounded-full animate-ping" style={{ backgroundColor: color, opacity: 0.6 }} />
-      <span className="relative block rounded-full" style={{ width: size, height: size, backgroundColor: color }} />
+      <span
+        className="absolute inset-0 rounded-full animate-ping"
+        style={{ backgroundColor: color, opacity: 0.6 }}
+      />
+      <span
+        className="relative block rounded-full"
+        style={{ width: size, height: size, backgroundColor: color }}
+      />
     </span>
   );
 }
 
-export function StockBadge({ part }: { part: { minStockLevel?: number | null; reorderPoint?: number | null; criticality?: string | null } }) {
-  const qty = part.minStockLevel ? (part.reorderPoint || 1) : 1;
+export function StockBadge({
+  part,
+}: {
+  part: {
+    minStockLevel?: number | null;
+    reorderPoint?: number | null;
+    criticality?: string | null;
+  };
+}) {
+  const qty = part.minStockLevel ? part.reorderPoint || 1 : 1;
   const min = part.minStockLevel ?? 0;
-  if (qty === 0) {return <Badge variant="destructive" className="text-[10px]">Out of Stock</Badge>;}
-  if (min > 0 && qty <= min) {return <Badge variant="secondary" className="text-[10px] bg-yellow-500/15 text-yellow-500">Low Stock</Badge>;}
-  return <Badge variant="secondary" className="text-[10px] bg-green-500/15 text-green-500">In Stock</Badge>;
+  if (qty === 0) {
+    return (
+      <Badge variant="destructive" className="text-[10px]">
+        Out of Stock
+      </Badge>
+    );
+  }
+  if (min > 0 && qty <= min) {
+    return (
+      <Badge variant="secondary" className="text-[10px] bg-yellow-500/15 text-yellow-500">
+        Low Stock
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="secondary" className="text-[10px] bg-green-500/15 text-green-500">
+      In Stock
+    </Badge>
+  );
 }

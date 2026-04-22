@@ -184,7 +184,8 @@ const ALLOWED_FILES = new Set([
   "server/suppliers/routes.ts",
 ]);
 
-const DIRECT_SCHEMA_RE = /from\s+['"]@shared\/schema(?:\/[^"']*)?['"]|from\s+['"]@shared\/sqlite-schema(?:\/[^"']*)?['"]|from\s+['"]\.\.\/.*shared\/schema(?:\/[^"']*)?['"]|from\s+['"]\.\.\/.*shared\/sqlite-schema(?:\/[^"']*)?['"]/;
+const DIRECT_SCHEMA_RE =
+  /from\s+['"]@shared\/schema(?:\/[^"']*)?['"]|from\s+['"]@shared\/sqlite-schema(?:\/[^"']*)?['"]|from\s+['"]\.\.\/.*shared\/schema(?:\/[^"']*)?['"]|from\s+['"]\.\.\/.*shared\/sqlite-schema(?:\/[^"']*)?['"]/;
 const SCHEMA_RUNTIME_RE = /from\s+['"]@shared\/schema-runtime['"]/;
 
 function walkDir(dir) {
@@ -242,7 +243,9 @@ if (violations.length > 0) {
   for (const v of violations) {
     console.log(`  ✗ ${v}`);
   }
-  console.log("\nFix: Import from @shared/schema-runtime instead of @shared/schema/* or @shared/sqlite-schema/*");
+  console.log(
+    "\nFix: Import from @shared/schema-runtime instead of @shared/schema/* or @shared/sqlite-schema/*"
+  );
   console.log("Direct schema imports bypass the dual-DB mode switch.");
   process.exit(1);
 } else {

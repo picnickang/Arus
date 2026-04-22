@@ -15,7 +15,9 @@ export function useWorkOrderRequests(workOrderId: string) {
       const res = await fetch(`/api/work-orders/${workOrderId}/service-orders`, {
         headers: { "x-org-id": ORG_ID },
       });
-      if (!res.ok) {throw new Error("Failed to fetch service orders");}
+      if (!res.ok) {
+        throw new Error("Failed to fetch service orders");
+      }
       return res.json();
     },
   });
@@ -26,7 +28,9 @@ export function useWorkOrderRequests(workOrderId: string) {
       const res = await fetch(`/api/work-orders/${workOrderId}/purchase-requests`, {
         headers: { "x-org-id": ORG_ID },
       });
-      if (!res.ok) {throw new Error("Failed to fetch purchase requests");}
+      if (!res.ok) {
+        throw new Error("Failed to fetch purchase requests");
+      }
       return res.json();
     },
   });
@@ -56,20 +60,42 @@ export function useWorkOrderRequests(workOrderId: string) {
       return apiRequest("POST", `/api/work-orders/${workOrderId}/service-orders`, payload);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", workOrderId, "service-orders"] });
-      toast({ title: "Service Order Created", description: "The service order has been created successfully." });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/work-orders", workOrderId, "service-orders"],
+      });
+      toast({
+        title: "Service Order Created",
+        description: "The service order has been created successfully.",
+      });
     },
-    onError: (err) => toast({ title: "Error Creating Service Order", description: String(err), variant: "destructive" }),
+    onError: (err) =>
+      toast({
+        title: "Error Creating Service Order",
+        description: String(err),
+        variant: "destructive",
+      }),
   });
 
   const createPurchaseRequestMutation = useMutation({
-    mutationFn: (data: { notes?: string; items: Array<{ partId?: string; description: string; quantity: number; notes?: string }> }) =>
-      apiRequest("POST", `/api/work-orders/${workOrderId}/purchase-requests`, data),
+    mutationFn: (data: {
+      notes?: string;
+      items: Array<{ partId?: string; description: string; quantity: number; notes?: string }>;
+    }) => apiRequest("POST", `/api/work-orders/${workOrderId}/purchase-requests`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", workOrderId, "purchase-requests"] });
-      toast({ title: "Purchase Request Created", description: "The purchase request has been created successfully." });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/work-orders", workOrderId, "purchase-requests"],
+      });
+      toast({
+        title: "Purchase Request Created",
+        description: "The purchase request has been created successfully.",
+      });
     },
-    onError: (err) => toast({ title: "Error Creating Purchase Request", description: String(err), variant: "destructive" }),
+    onError: (err) =>
+      toast({
+        title: "Error Creating Purchase Request",
+        description: String(err),
+        variant: "destructive",
+      }),
   });
 
   const deleteServiceOrderMutation = useMutation({
@@ -85,10 +111,17 @@ export function useWorkOrderRequests(workOrderId: string) {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", workOrderId, "service-orders"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/work-orders", workOrderId, "service-orders"],
+      });
       toast({ title: "Service Order Deleted", description: "The service order has been deleted." });
     },
-    onError: (err) => toast({ title: "Error Deleting Service Order", description: String(err), variant: "destructive" }),
+    onError: (err) =>
+      toast({
+        title: "Error Deleting Service Order",
+        description: String(err),
+        variant: "destructive",
+      }),
   });
 
   const deletePurchaseRequestMutation = useMutation({
@@ -104,14 +137,32 @@ export function useWorkOrderRequests(workOrderId: string) {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", workOrderId, "purchase-requests"] });
-      toast({ title: "Purchase Request Deleted", description: "The purchase request has been deleted." });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/work-orders", workOrderId, "purchase-requests"],
+      });
+      toast({
+        title: "Purchase Request Deleted",
+        description: "The purchase request has been deleted.",
+      });
     },
-    onError: (err) => toast({ title: "Error Deleting Purchase Request", description: String(err), variant: "destructive" }),
+    onError: (err) =>
+      toast({
+        title: "Error Deleting Purchase Request",
+        description: String(err),
+        variant: "destructive",
+      }),
   });
 
   const fulfillItemMutation = useMutation({
-    mutationFn: async ({ prId, itemId, quantity }: { prId: string; itemId: string; quantity: number }) => {
+    mutationFn: async ({
+      prId,
+      itemId,
+      quantity,
+    }: {
+      prId: string;
+      itemId: string;
+      quantity: number;
+    }) => {
       const res = await fetch(`/api/purchase-requests/${prId}/items/${itemId}/fulfill`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-org-id": ORG_ID },
@@ -124,7 +175,9 @@ export function useWorkOrderRequests(workOrderId: string) {
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", workOrderId, "purchase-requests"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/work-orders", workOrderId, "purchase-requests"],
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       toast({
         title: "Item Fulfilled",
@@ -133,7 +186,8 @@ export function useWorkOrderRequests(workOrderId: string) {
           : `Fulfilled ${data.quantityFulfilled} units.`,
       });
     },
-    onError: (err) => toast({ title: "Error Fulfilling Item", description: String(err), variant: "destructive" }),
+    onError: (err) =>
+      toast({ title: "Error Fulfilling Item", description: String(err), variant: "destructive" }),
   });
 
   const updatePRStatusMutation = useMutation({
@@ -150,27 +204,52 @@ export function useWorkOrderRequests(workOrderId: string) {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", workOrderId, "purchase-requests"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/work-orders", workOrderId, "purchase-requests"],
+      });
       toast({ title: "Status Updated", description: "Purchase request status has been updated." });
     },
-    onError: (err) => toast({ title: "Error Updating Status", description: String(err), variant: "destructive" }),
+    onError: (err) =>
+      toast({ title: "Error Updating Status", description: String(err), variant: "destructive" }),
   });
 
   const updateServiceOrderMutation = useMutation({
     mutationFn: async ({ soId, data }: { soId: string; data: Record<string, unknown> }) => {
       const payload: Record<string, unknown> = {};
-      
-      if (data.serviceProviderId) {payload.serviceProviderId = data.serviceProviderId;}
-      if (data.requestedStartDate) {payload.scheduledStartDate = data.requestedStartDate;}
-      if (data.requestedEndDate) {payload.scheduledEndDate = data.requestedEndDate;}
-      if (data.symptomDescription || data.scope) {payload.scope = data.symptomDescription || data.scope;}
-      if (data.estimatedDurationHours) {payload.estimatedDurationHours = data.estimatedDurationHours;}
-      if (data.quotedAmount) {payload.quotedAmount = data.quotedAmount;}
-      if (data.notes) {payload.specialRequirements = data.notes;}
-      
-      if (data.equipmentIds || data.severity || data.assistanceTags || data.probableCause || 
-          data.actionTakenSoFar || data.isRecurringDefect !== undefined || 
-          data.mocRequired !== undefined || data.mocNumber || data.certificateItems) {
+
+      if (data.serviceProviderId) {
+        payload.serviceProviderId = data.serviceProviderId;
+      }
+      if (data.requestedStartDate) {
+        payload.scheduledStartDate = data.requestedStartDate;
+      }
+      if (data.requestedEndDate) {
+        payload.scheduledEndDate = data.requestedEndDate;
+      }
+      if (data.symptomDescription || data.scope) {
+        payload.scope = data.symptomDescription || data.scope;
+      }
+      if (data.estimatedDurationHours) {
+        payload.estimatedDurationHours = data.estimatedDurationHours;
+      }
+      if (data.quotedAmount) {
+        payload.quotedAmount = data.quotedAmount;
+      }
+      if (data.notes) {
+        payload.specialRequirements = data.notes;
+      }
+
+      if (
+        data.equipmentIds ||
+        data.severity ||
+        data.assistanceTags ||
+        data.probableCause ||
+        data.actionTakenSoFar ||
+        data.isRecurringDefect !== undefined ||
+        data.mocRequired !== undefined ||
+        data.mocNumber ||
+        data.certificateItems
+      ) {
         payload.serviceDetails = {
           equipmentIds: data.equipmentIds,
           severity: data.severity,
@@ -183,7 +262,7 @@ export function useWorkOrderRequests(workOrderId: string) {
           certificateItems: data.certificateItems,
         };
       }
-      
+
       const res = await fetch(`/api/service-orders/${soId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "x-org-id": ORG_ID },
@@ -196,10 +275,17 @@ export function useWorkOrderRequests(workOrderId: string) {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", workOrderId, "service-orders"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/work-orders", workOrderId, "service-orders"],
+      });
       toast({ title: "Service Order Updated", description: "The service order has been updated." });
     },
-    onError: (err) => toast({ title: "Error Updating Service Order", description: String(err), variant: "destructive" }),
+    onError: (err) =>
+      toast({
+        title: "Error Updating Service Order",
+        description: String(err),
+        variant: "destructive",
+      }),
   });
 
   const updatePurchaseRequestMutation = useMutation({
@@ -216,10 +302,20 @@ export function useWorkOrderRequests(workOrderId: string) {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", workOrderId, "purchase-requests"] });
-      toast({ title: "Purchase Request Updated", description: "The purchase request has been updated." });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/work-orders", workOrderId, "purchase-requests"],
+      });
+      toast({
+        title: "Purchase Request Updated",
+        description: "The purchase request has been updated.",
+      });
     },
-    onError: (err) => toast({ title: "Error Updating Purchase Request", description: String(err), variant: "destructive" }),
+    onError: (err) =>
+      toast({
+        title: "Error Updating Purchase Request",
+        description: String(err),
+        variant: "destructive",
+      }),
   });
 
   const bulkDeleteServiceOrdersMutation = useMutation({
@@ -235,13 +331,21 @@ export function useWorkOrderRequests(workOrderId: string) {
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", workOrderId, "service-orders"] });
-      const msg = data.skippedCount > 0
-        ? `Deleted ${data.deletedCount} service orders. ${data.skippedCount} could not be deleted.`
-        : `Deleted ${data.deletedCount} service orders.`;
+      queryClient.invalidateQueries({
+        queryKey: ["/api/work-orders", workOrderId, "service-orders"],
+      });
+      const msg =
+        data.skippedCount > 0
+          ? `Deleted ${data.deletedCount} service orders. ${data.skippedCount} could not be deleted.`
+          : `Deleted ${data.deletedCount} service orders.`;
       toast({ title: "Service Orders Cleared", description: msg });
     },
-    onError: (err) => toast({ title: "Error Clearing Service Orders", description: String(err), variant: "destructive" }),
+    onError: (err) =>
+      toast({
+        title: "Error Clearing Service Orders",
+        description: String(err),
+        variant: "destructive",
+      }),
   });
 
   const bulkDeletePurchaseRequestsMutation = useMutation({
@@ -257,13 +361,21 @@ export function useWorkOrderRequests(workOrderId: string) {
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", workOrderId, "purchase-requests"] });
-      const msg = data.skippedCount > 0
-        ? `Deleted ${data.deletedCount} purchase requests. ${data.skippedCount} could not be deleted.`
-        : `Deleted ${data.deletedCount} purchase requests.`;
+      queryClient.invalidateQueries({
+        queryKey: ["/api/work-orders", workOrderId, "purchase-requests"],
+      });
+      const msg =
+        data.skippedCount > 0
+          ? `Deleted ${data.deletedCount} purchase requests. ${data.skippedCount} could not be deleted.`
+          : `Deleted ${data.deletedCount} purchase requests.`;
       toast({ title: "Purchase Requests Cleared", description: msg });
     },
-    onError: (err) => toast({ title: "Error Clearing Purchase Requests", description: String(err), variant: "destructive" }),
+    onError: (err) =>
+      toast({
+        title: "Error Clearing Purchase Requests",
+        description: String(err),
+        variant: "destructive",
+      }),
   });
 
   return {

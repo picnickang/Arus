@@ -26,9 +26,9 @@ const LOG_CTX = "ModelEvaluationGate";
 // ============================================================================
 
 interface TestDataPoint {
-  features: Record<string, number>;  // sensor readings
-  label: 0 | 1;                      // 0 = no failure, 1 = failure
-  predictedProbability?: number;      // filled in by evaluation
+  features: Record<string, number>; // sensor readings
+  label: 0 | 1; // 0 = no failure, 1 = failure
+  predictedProbability?: number; // filled in by evaluation
 }
 
 interface EvaluationMetrics {
@@ -73,39 +73,50 @@ interface GateConfig {
 }
 
 const DEFAULT_CONFIG: GateConfig = {
-  minAccuracy: 0.70,
-  minPrecision: 0.60,
-  minRecall: 0.65,  // Higher recall requirement — missing failures is worse than false alarms
+  minAccuracy: 0.7,
+  minPrecision: 0.6,
+  minRecall: 0.65, // Higher recall requirement — missing failures is worse than false alarms
   minF1: 0.65,
   maxBrierScore: 0.25,
   minTestSamples: 50,
-  minImprovementF1: 0.0,  // 0 = just needs to be no worse; set to e.g. 0.02 to require improvement
+  minImprovementF1: 0.0, // 0 = just needs to be no worse; set to e.g. 0.02 to require improvement
 };
 
 // ============================================================================
 // Metric Computation
 // ============================================================================
 
-function computeMetrics(predictions: Array<{ predicted: number; actual: 0 | 1 }>, threshold = 0.5): EvaluationMetrics {
-  let tp = 0, fp = 0, tn = 0, fn = 0;
+function computeMetrics(
+  predictions: Array<{ predicted: number; actual: 0 | 1 }>,
+  threshold = 0.5
+): EvaluationMetrics {
+  let tp = 0,
+    fp = 0,
+    tn = 0,
+    fn = 0;
   let brierSum = 0;
 
   for (const { predicted, actual } of predictions) {
     const predictedClass = predicted >= threshold ? 1 : 0;
 
-    if (predictedClass === 1 && actual === 1) {tp++;}
-    else if (predictedClass === 1 && actual === 0) {fp++;}
-    else if (predictedClass === 0 && actual === 0) {tn++;}
-    else {fn++;}
+    if (predictedClass === 1 && actual === 1) {
+      tp++;
+    } else if (predictedClass === 1 && actual === 0) {
+      fp++;
+    } else if (predictedClass === 0 && actual === 0) {
+      tn++;
+    } else {
+      fn++;
+    }
 
     brierSum += (predicted - actual) ** 2;
   }
 
   const total = tp + fp + tn + fn;
   const accuracy = total > 0 ? (tp + tn) / total : 0;
-  const precision = (tp + fp) > 0 ? tp / (tp + fp) : 0;
-  const recall = (tp + fn) > 0 ? tp / (tp + fn) : 0;
-  const f1Score = (precision + recall) > 0 ? 2 * (precision * recall) / (precision + recall) : 0;
+  const precision = tp + fp > 0 ? tp / (tp + fp) : 0;
+  const recall = tp + fn > 0 ? tp / (tp + fn) : 0;
+  const f1Score = precision + recall > 0 ? (2 * (precision * recall)) / (precision + recall) : 0;
   const brierScore = total > 0 ? brierSum / total : 1;
 
   // AUROC approximation via trapezoidal rule on sorted thresholds
@@ -126,24 +137,33 @@ function computeMetrics(predictions: Array<{ predicted: number; actual: 0 | 1 }>
 function computeAUROC(predictions: Array<{ predicted: number; actual: 0 | 1 }>): number {
   const sorted = [...predictions].sort((a, b) => b.predicted - a.predicted);
 
-  const totalPositive = predictions.filter(p => p.actual === 1).length;
-  const totalNegative = predictions.filter(p => p.actual === 0).length;
+  const totalPositive = predictions.filter((p) => p.actual === 1).length;
+  const totalNegative = predictions.filter((p) => p.actual === 0).length;
 
-  if (totalPositive === 0 || totalNegative === 0) {return 0.5;} // undefined, return random
+  if (totalPositive === 0 || totalNegative === 0) {
+    return 0.5;
+  } // undefined, return random
 
-  let tpRate = 0, fpRate = 0, prevTpRate = 0, prevFpRate = 0;
+  let tpRate = 0,
+    fpRate = 0,
+    prevTpRate = 0,
+    prevFpRate = 0;
   let auc = 0;
-  let tp = 0, fp = 0;
+  let tp = 0,
+    fp = 0;
 
   for (let i = 0; i < sorted.length; i++) {
-    if (sorted[i].actual === 1) {tp++;}
-    else {fp++;}
+    if (sorted[i].actual === 1) {
+      tp++;
+    } else {
+      fp++;
+    }
 
     tpRate = tp / totalPositive;
     fpRate = fp / totalNegative;
 
     // Trapezoidal area
-    auc += (fpRate - prevFpRate) * (tpRate + prevTpRate) / 2;
+    auc += ((fpRate - prevFpRate) * (tpRate + prevTpRate)) / 2;
 
     prevTpRate = tpRate;
     prevFpRate = fpRate;
@@ -180,7 +200,9 @@ export class ModelEvaluationGate {
     testData: TestDataPoint[],
     predictFn: (features: Record<string, number>) => Promise<number>
   ): Promise<GateResult> {
-    logger.info(LOG_CTX, `Evaluating model ${newModelId} on ${testData.length} test samples`, { orgId });
+    logger.info(LOG_CTX, `Evaluating model ${newModelId} on ${testData.length} test samples`, {
+      orgId,
+    });
 
     // Validate test data size
     if (testData.length < this.config.minTestSamples) {
@@ -258,14 +280,30 @@ export class ModelEvaluationGate {
 
     let reason: string;
     if (approved) {
-      reason = `Model meets all thresholds${  currentMetrics ? ` and improves F1 by ${(improvements["f1Score"] * 100).toFixed(1)}%` : ""}`;
+      reason = `Model meets all thresholds${currentMetrics ? ` and improves F1 by ${(improvements["f1Score"] * 100).toFixed(1)}%` : ""}`;
     } else if (!meetsAbsoluteThreshold) {
       const failures: string[] = [];
-      if (newMetrics.accuracy < this.config.minAccuracy) {failures.push(`accuracy ${(newMetrics.accuracy * 100).toFixed(1)}% < ${(this.config.minAccuracy * 100)}%`);}
-      if (newMetrics.precision < this.config.minPrecision) {failures.push(`precision ${(newMetrics.precision * 100).toFixed(1)}% < ${(this.config.minPrecision * 100)}%`);}
-      if (newMetrics.recall < this.config.minRecall) {failures.push(`recall ${(newMetrics.recall * 100).toFixed(1)}% < ${(this.config.minRecall * 100)}%`);}
-      if (newMetrics.f1Score < this.config.minF1) {failures.push(`F1 ${(newMetrics.f1Score * 100).toFixed(1)}% < ${(this.config.minF1 * 100)}%`);}
-      if (newMetrics.brierScore > this.config.maxBrierScore) {failures.push(`Brier ${newMetrics.brierScore.toFixed(3)} > ${this.config.maxBrierScore}`);}
+      if (newMetrics.accuracy < this.config.minAccuracy) {
+        failures.push(
+          `accuracy ${(newMetrics.accuracy * 100).toFixed(1)}% < ${this.config.minAccuracy * 100}%`
+        );
+      }
+      if (newMetrics.precision < this.config.minPrecision) {
+        failures.push(
+          `precision ${(newMetrics.precision * 100).toFixed(1)}% < ${this.config.minPrecision * 100}%`
+        );
+      }
+      if (newMetrics.recall < this.config.minRecall) {
+        failures.push(
+          `recall ${(newMetrics.recall * 100).toFixed(1)}% < ${this.config.minRecall * 100}%`
+        );
+      }
+      if (newMetrics.f1Score < this.config.minF1) {
+        failures.push(`F1 ${(newMetrics.f1Score * 100).toFixed(1)}% < ${this.config.minF1 * 100}%`);
+      }
+      if (newMetrics.brierScore > this.config.maxBrierScore) {
+        failures.push(`Brier ${newMetrics.brierScore.toFixed(3)} > ${this.config.maxBrierScore}`);
+      }
       reason = `Below absolute thresholds: ${failures.join("; ")}`;
     } else {
       reason = `Does not improve over current model: F1 change = ${(improvements["f1Score"] * 100).toFixed(1)}% (need ≥${(this.config.minImprovementF1 * 100).toFixed(1)}%)`;
@@ -309,7 +347,10 @@ export class ModelEvaluationGate {
     };
   }
 
-  private async getCurrentModelMetrics(orgId: string, excludeModelId: string): Promise<EvaluationMetrics | null> {
+  private async getCurrentModelMetrics(
+    orgId: string,
+    excludeModelId: string
+  ): Promise<EvaluationMetrics | null> {
     try {
       const { modelPerformanceValidations, mlModels } = await import("@shared/schema");
       const { eq, and, not, sql } = await import("drizzle-orm");
@@ -318,14 +359,18 @@ export class ModelEvaluationGate {
       const [latestValidation] = await this.db
         .select()
         .from(modelPerformanceValidations)
-        .where(and(
-          eq(modelPerformanceValidations.orgId, orgId),
-          not(eq(modelPerformanceValidations.modelId, excludeModelId)),
-        ))
+        .where(
+          and(
+            eq(modelPerformanceValidations.orgId, orgId),
+            not(eq(modelPerformanceValidations.modelId, excludeModelId))
+          )
+        )
         .orderBy(sql`${modelPerformanceValidations.validatedAt} DESC`)
         .limit(1);
 
-      if (!latestValidation) {return null;}
+      if (!latestValidation) {
+        return null;
+      }
 
       return {
         accuracy: latestValidation.accuracy ?? 0,

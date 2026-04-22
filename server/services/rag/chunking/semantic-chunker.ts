@@ -102,7 +102,9 @@ export class SemanticChunker {
 
   private isHeading(text: string): boolean {
     const trimmed = text.trim();
-    if (trimmed.length > 100) {return false;}
+    if (trimmed.length > 100) {
+      return false;
+    }
 
     for (const pattern of HEADING_PATTERNS) {
       pattern.lastIndex = 0;
@@ -111,14 +113,10 @@ export class SemanticChunker {
       }
     }
 
-    return trimmed.length < 50 &&
-      trimmed === trimmed.toUpperCase() &&
-      /[A-Z]/.test(trimmed);
+    return trimmed.length < 50 && trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed);
   }
 
-  private groupIntoSections(
-    paragraphs: string[]
-  ): Array<{ heading?: string; content: string[] }> {
+  private groupIntoSections(paragraphs: string[]): Array<{ heading?: string; content: string[] }> {
     const sections: Array<{ heading?: string; content: string[] }> = [];
     let currentSection: { heading?: string; content: string[] } = { content: [] };
 
@@ -150,9 +148,7 @@ export class SemanticChunker {
       const sectionChunks = this.chunkSection(section, currentOffset);
       chunks.push(...sectionChunks);
 
-      const sectionText = [section.heading, ...section.content]
-        .filter(Boolean)
-        .join("\n\n");
+      const sectionText = [section.heading, ...section.content].filter(Boolean).join("\n\n");
       currentOffset += sectionText.length + 2;
     }
 
@@ -173,20 +169,22 @@ export class SemanticChunker {
 
     for (const paragraph of section.content) {
       const sentences = this.splitIntoSentences(paragraph);
-      const paragraphText = `${paragraph  }\n\n`;
+      const paragraphText = `${paragraph}\n\n`;
 
       if (
         currentContent.length + paragraphText.length > this.config.maxChunkSize &&
         currentContent.length >= this.config.minChunkSize
       ) {
-        chunks.push(this.createChunk(
-          currentContent.trim(),
-          chunkStartIndex,
-          chunkStartIndex + currentContent.length,
-          currentSentences,
-          currentParagraphs,
-          section.heading
-        ));
+        chunks.push(
+          this.createChunk(
+            currentContent.trim(),
+            chunkStartIndex,
+            chunkStartIndex + currentContent.length,
+            currentSentences,
+            currentParagraphs,
+            section.heading
+          )
+        );
 
         currentContent = headingPrefix;
         currentSentences = 0;
@@ -200,14 +198,16 @@ export class SemanticChunker {
             currentContent.length + sentence.length > this.config.maxChunkSize &&
             currentContent.length >= this.config.minChunkSize
           ) {
-            chunks.push(this.createChunk(
-              currentContent.trim(),
-              chunkStartIndex,
-              chunkStartIndex + currentContent.length,
-              currentSentences,
-              currentParagraphs,
-              section.heading
-            ));
+            chunks.push(
+              this.createChunk(
+                currentContent.trim(),
+                chunkStartIndex,
+                chunkStartIndex + currentContent.length,
+                currentSentences,
+                currentParagraphs,
+                section.heading
+              )
+            );
 
             currentContent = headingPrefix;
             currentSentences = 0;
@@ -215,7 +215,7 @@ export class SemanticChunker {
             chunkStartIndex = startOffset + currentContent.length;
           }
 
-          currentContent += `${sentence  } `;
+          currentContent += `${sentence} `;
           currentSentences++;
         }
         currentParagraphs++;
@@ -227,29 +227,33 @@ export class SemanticChunker {
     }
 
     if (currentContent.trim().length >= this.config.minChunkSize) {
-      chunks.push(this.createChunk(
-        currentContent.trim(),
-        chunkStartIndex,
-        chunkStartIndex + currentContent.length,
-        currentSentences,
-        currentParagraphs,
-        section.heading
-      ));
+      chunks.push(
+        this.createChunk(
+          currentContent.trim(),
+          chunkStartIndex,
+          chunkStartIndex + currentContent.length,
+          currentSentences,
+          currentParagraphs,
+          section.heading
+        )
+      );
     } else if (chunks.length > 0 && currentContent.trim().length > 0) {
       const lastChunk = chunks[chunks.length - 1];
-      lastChunk.content += `\n\n${  currentContent.trim()}`;
+      lastChunk.content += `\n\n${currentContent.trim()}`;
       lastChunk.endIndex = chunkStartIndex + currentContent.length;
       lastChunk.metadata.sentenceCount += currentSentences;
       lastChunk.metadata.paragraphCount += currentParagraphs;
     } else if (currentContent.trim().length > 0) {
-      chunks.push(this.createChunk(
-        currentContent.trim(),
-        chunkStartIndex,
-        chunkStartIndex + currentContent.length,
-        currentSentences,
-        currentParagraphs,
-        section.heading
-      ));
+      chunks.push(
+        this.createChunk(
+          currentContent.trim(),
+          chunkStartIndex,
+          chunkStartIndex + currentContent.length,
+          currentSentences,
+          currentParagraphs,
+          section.heading
+        )
+      );
     }
 
     return chunks;
@@ -289,9 +293,7 @@ export class SemanticChunker {
 
       if (i > 0) {
         const prevChunk = chunks[i - 1];
-        const overlapSize = Math.floor(
-          prevChunk.content.length * this.config.overlapPercentage
-        );
+        const overlapSize = Math.floor(prevChunk.content.length * this.config.overlapPercentage);
         const overlapText = this.getEndingContext(prevChunk.content, overlapSize);
         if (overlapText) {
           content = `...${overlapText}\n\n${content}`;
@@ -308,13 +310,15 @@ export class SemanticChunker {
   }
 
   private getEndingContext(text: string, targetLength: number): string {
-    if (targetLength <= 0) {return "";}
+    if (targetLength <= 0) {
+      return "";
+    }
 
     const sentences = this.splitIntoSentences(text);
     let context = "";
 
     for (let i = sentences.length - 1; i >= 0; i--) {
-      const potential = sentences[i] + (context ? ` ${  context}` : "");
+      const potential = sentences[i] + (context ? ` ${context}` : "");
       if (potential.length > targetLength) {
         break;
       }

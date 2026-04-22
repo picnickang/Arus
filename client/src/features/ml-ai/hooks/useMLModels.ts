@@ -52,7 +52,7 @@ export function useRULPredictions(equipmentId?: string) {
 
 export function useStartTraining() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (config: {
       modelType: string;
@@ -70,7 +70,7 @@ export function useStartTraining() {
 
 export function useCancelTraining() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (jobId: string) => {
       return apiRequest("POST", `/api/ml/training-jobs/${jobId}/cancel`);
@@ -83,7 +83,7 @@ export function useCancelTraining() {
 
 export function useActivateModel() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (modelId: string) => {
       return apiRequest("POST", `/api/ml/models/${modelId}/activate`);
@@ -96,7 +96,7 @@ export function useActivateModel() {
 
 export function useDeprecateModel() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (modelId: string) => {
       return apiRequest("POST", `/api/ml/models/${modelId}/deprecate`);
@@ -109,7 +109,7 @@ export function useDeprecateModel() {
 
 export function useGenerateInsightReport() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (config: { reportType: string; vesselId?: string; periodDays?: number }) => {
       return apiRequest("POST", "/api/insights/generate", config);

@@ -1,6 +1,12 @@
 import type { PartsInventoryItem } from "@/components/inventory/VirtualizedInventoryTable";
 
-export type StockStatus = "out_of_stock" | "critical" | "low_stock" | "adequate" | "excess_stock" | "unknown";
+export type StockStatus =
+  | "out_of_stock"
+  | "critical"
+  | "low_stock"
+  | "adequate"
+  | "excess_stock"
+  | "unknown";
 
 export function getStockStatus(part: PartsInventoryItem): StockStatus {
   if (!part.stock) {
@@ -65,9 +71,13 @@ export function calculateInventoryStats(parts: PartsInventoryItem[]): InventoryS
   parts.forEach((part) => {
     totalValue += getPartValue(part);
     const status = getStockStatus(part);
-    if (status === "out_of_stock" || status === "critical") { criticalCount++; }
-    else if (status === "low_stock") { lowStockCount++; }
-    else if (status === "adequate") { adequateCount++; }
+    if (status === "out_of_stock" || status === "critical") {
+      criticalCount++;
+    } else if (status === "low_stock") {
+      lowStockCount++;
+    } else if (status === "adequate") {
+      adequateCount++;
+    }
   });
 
   const categories = new Set(parts.map((part) => part.category)).size;
@@ -84,7 +94,14 @@ const STATUS_ORDER: Record<StockStatus, number> = {
   unknown: 5,
 };
 
-export type SortField = "partName" | "partNumber" | "category" | "available" | "unitCost" | "totalValue" | "status";
+export type SortField =
+  | "partName"
+  | "partNumber"
+  | "category"
+  | "available"
+  | "unitCost"
+  | "totalValue"
+  | "status";
 export type SortDirection = "asc" | "desc";
 
 export function sortParts(

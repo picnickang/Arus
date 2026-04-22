@@ -17,7 +17,10 @@ import { logger } from "../../../utils/logger.js";
 
 export type { CrewExtensionsRoutesConfig, AuthenticatedRequest } from "./types.js";
 
-export function registerCrewExtensionsRoutes(app: Express, config: CrewExtensionsRoutesConfig): void {
+export function registerCrewExtensionsRoutes(
+  app: Express,
+  config: CrewExtensionsRoutesConfig
+): void {
   logger.info("CrewExtensionsRoutes", "Registering crew extensions API endpoints");
   registerCertificationsRoutes(app, config);
   registerLeaveRoutes(app, config);
@@ -28,5 +31,8 @@ export function registerCrewExtensionsRoutes(app: Express, config: CrewExtension
 
   initPlannerViewEventHandler();
 
-  logger.info("CrewExtensionsRoutes", "Registered (certifications: 4, leave: 4, duty: 2, scheduler: 12, shifts: 4, assignments: 3)");
+  logger.info(
+    "CrewExtensionsRoutes",
+    "Registered (certifications: 4, leave: 4, duty: 2, scheduler: 12, shifts: 4, assignments: 3)"
+  );
 }

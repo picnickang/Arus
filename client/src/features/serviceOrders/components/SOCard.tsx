@@ -20,14 +20,28 @@ interface SOCardProps {
   isLoading?: boolean;
 }
 
-export function SOCard({ order, onView, onEdit, onSend, onConfirm, onStart, onComplete, onCancel, isLoading }: SOCardProps) {
+export function SOCard({
+  order,
+  onView,
+  onEdit,
+  onSend,
+  onConfirm,
+  onStart,
+  onComplete,
+  onCancel,
+  isLoading,
+}: SOCardProps) {
   const formatDate = (date: Date | string | null | undefined) => {
-    if (!date) {return "—";}
+    if (!date) {
+      return "—";
+    }
     return format(new Date(date), "MMM d, yyyy");
   };
 
   const formatCurrency = (amount: number | null | undefined) => {
-    if (amount == null) {return "—";}
+    if (amount == null) {
+      return "—";
+    }
     return `${order.currency || "USD"} ${formatNumber(amount)}`;
   };
 
@@ -39,7 +53,10 @@ export function SOCard({ order, onView, onEdit, onSend, onConfirm, onStart, onCo
             <CardTitle className="text-lg">{order.soNumber}</CardTitle>
             <div className="flex items-center gap-2 mt-1">
               {order.workOrderId ? (
-                <LinkedWorkOrderBadge workOrderId={order.workOrderId} workOrderNumber={order.workOrderNumber} />
+                <LinkedWorkOrderBadge
+                  workOrderId={order.workOrderId}
+                  workOrderNumber={order.workOrderNumber}
+                />
               ) : (
                 <p className="text-sm text-muted-foreground">{order.workOrderNumber || "—"}</p>
               )}
@@ -72,42 +89,76 @@ export function SOCard({ order, onView, onEdit, onSend, onConfirm, onStart, onCo
             <span>Quote: {formatCurrency(order.quotedAmount)}</span>
           </div>
         </div>
-        {order.scope && (
-          <p className="text-sm text-muted-foreground line-clamp-2">{order.scope}</p>
-        )}
+        {order.scope && <p className="text-sm text-muted-foreground line-clamp-2">{order.scope}</p>}
         <div className="flex gap-2 pt-2">
           {onView && (
-            <Button variant="outline" size="sm" onClick={() => onView(order)} data-testid={`button-view-so-${order.id}`}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onView(order)}
+              data-testid={`button-view-so-${order.id}`}
+            >
               View
             </Button>
           )}
           {order.status === "draft" && onEdit && (
-            <Button variant="outline" size="sm" onClick={() => onEdit(order)} data-testid={`button-edit-so-${order.id}`}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onEdit(order)}
+              data-testid={`button-edit-so-${order.id}`}
+            >
               Edit
             </Button>
           )}
           {order.status === "draft" && onSend && (
-            <Button size="sm" onClick={() => onSend(order.id)} disabled={isLoading} data-testid={`button-send-so-${order.id}`}>
+            <Button
+              size="sm"
+              onClick={() => onSend(order.id)}
+              disabled={isLoading}
+              data-testid={`button-send-so-${order.id}`}
+            >
               Send
             </Button>
           )}
           {order.status === "sent" && onConfirm && (
-            <Button size="sm" onClick={() => onConfirm(order.id)} disabled={isLoading} data-testid={`button-confirm-so-${order.id}`}>
+            <Button
+              size="sm"
+              onClick={() => onConfirm(order.id)}
+              disabled={isLoading}
+              data-testid={`button-confirm-so-${order.id}`}
+            >
               Confirm
             </Button>
           )}
           {order.status === "confirmed" && onStart && (
-            <Button size="sm" onClick={() => onStart(order.id)} disabled={isLoading} data-testid={`button-start-so-${order.id}`}>
+            <Button
+              size="sm"
+              onClick={() => onStart(order.id)}
+              disabled={isLoading}
+              data-testid={`button-start-so-${order.id}`}
+            >
               Start
             </Button>
           )}
           {order.status === "in_progress" && onComplete && (
-            <Button size="sm" onClick={() => onComplete(order.id)} disabled={isLoading} data-testid={`button-complete-so-${order.id}`}>
+            <Button
+              size="sm"
+              onClick={() => onComplete(order.id)}
+              disabled={isLoading}
+              data-testid={`button-complete-so-${order.id}`}
+            >
               Complete
             </Button>
           )}
           {!["completed", "cancelled"].includes(order.status) && onCancel && (
-            <Button variant="destructive" size="sm" onClick={() => onCancel(order.id)} disabled={isLoading} data-testid={`button-cancel-so-${order.id}`}>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => onCancel(order.id)}
+              disabled={isLoading}
+              data-testid={`button-cancel-so-${order.id}`}
+            >
               Cancel
             </Button>
           )}

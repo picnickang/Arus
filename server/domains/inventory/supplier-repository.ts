@@ -49,7 +49,9 @@ export class InventorySupplierRepository {
    * Find supplier links for multiple inventory items (bulk hydration)
    */
   async findByInventoryItemIds(inventoryItemIds: string[]): Promise<SupplierLinkWithDetails[]> {
-    if (inventoryItemIds.length === 0) {return [];}
+    if (inventoryItemIds.length === 0) {
+      return [];
+    }
 
     const links = await db
       .select({
@@ -70,10 +72,7 @@ export class InventorySupplierRepository {
    * Create a new supplier link
    */
   async create(data: InsertPartsInventorySupplier): Promise<PartsInventorySupplier> {
-    const [result] = await db
-      .insert(partsInventorySuppliers)
-      .values(data)
-      .returning();
+    const [result] = await db.insert(partsInventorySuppliers).values(data).returning();
     return result;
   }
 
@@ -81,12 +80,10 @@ export class InventorySupplierRepository {
    * Bulk create supplier links for an inventory item
    */
   async createMany(links: InsertPartsInventorySupplier[]): Promise<PartsInventorySupplier[]> {
-    if (links.length === 0) {return [];}
-    return await db
-      .insert(partsInventorySuppliers)
-      .values(links)
-      .onConflictDoNothing()
-      .returning();
+    if (links.length === 0) {
+      return [];
+    }
+    return await db.insert(partsInventorySuppliers).values(links).onConflictDoNothing().returning();
   }
 
   /**

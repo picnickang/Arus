@@ -1,15 +1,15 @@
 /**
  * Telemetry Rate Limiter Service
- * 
+ *
  * Enforces sensor rate limits and deadband filtering.
  * Caches sensor configurations for fast lookup.
- * 
+ *
  * Features:
  * - Per-sensor rate limiting (sampleRateHz)
  * - Deadband filtering (skip readings within threshold)
  * - Configuration caching with TTL
  * - Grace period multiplier for intermittent sensors
- * 
+ *
  * Module size: ~180 lines (target 100-250)
  */
 
@@ -155,7 +155,7 @@ export class TelemetryRateLimiter {
   updateConfig(equipmentId: string, sensorType: string, config: Partial<SensorRateConfig>): void {
     const key = this.getSensorKey(equipmentId, sensorType);
     const state = this.sensorStates.get(key);
-    
+
     if (state) {
       state.config = { ...state.config, ...config };
       state.configLoadedAt = Date.now();

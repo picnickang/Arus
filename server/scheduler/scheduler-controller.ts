@@ -1,5 +1,11 @@
 import crypto from "node:crypto";
-import { dbSchedulerStorage, dbCrewStorage, dbCrewExtensionsStorage, dbVesselStorage, vesselService } from "../repositories";
+import {
+  dbSchedulerStorage,
+  dbCrewStorage,
+  dbCrewExtensionsStorage,
+  dbVesselStorage,
+  vesselService,
+} from "../repositories";
 import { planShifts, generateDays } from "../crew-scheduler";
 import type {
   InsertSchedulerRun,
@@ -258,7 +264,9 @@ export async function planAndMaybeExecute({
 async function loadShiftTemplates(orgId: string, vessels?: string[]) {
   const allShifts = await dbCrewStorage.getShiftTemplates();
   const orgShifts = allShifts.filter((s: any) => !s.orgId || s.orgId === orgId);
-  if (!vessels || vessels.length === 0) { return orgShifts; }
+  if (!vessels || vessels.length === 0) {
+    return orgShifts;
+  }
   return orgShifts.filter((s) => !s.vesselId || vessels.includes(s.vesselId));
 }
 
@@ -280,13 +288,17 @@ async function loadCrewLeaves(orgId: string) {
 
 async function loadPortCalls(orgId: string, vessels?: string[]) {
   const allPortCalls = await dbVesselStorage.getAllPortCalls(orgId);
-  if (!vessels || vessels.length === 0) { return allPortCalls; }
+  if (!vessels || vessels.length === 0) {
+    return allPortCalls;
+  }
   return allPortCalls.filter((pc) => vessels.includes(pc.vesselId));
 }
 
 async function loadDrydocks(orgId: string, vessels?: string[]) {
   const allDrydocks = await dbVesselStorage.getAllDrydockWindows(orgId);
-  if (!vessels || vessels.length === 0) { return allDrydocks; }
+  if (!vessels || vessels.length === 0) {
+    return allDrydocks;
+  }
   return allDrydocks.filter((d) => vessels.includes(d.vesselId));
 }
 
@@ -353,16 +365,18 @@ export async function simulateSchedule({
   }
 
   // Filter existing to only published/confirmed if fillUnassignedOnly
-  const protectedAssignments = fillUnassignedOnly 
-    ? existing.filter((a) => a.status === "published" || a.status === "confirmed" || a.status === "scheduled")
+  const protectedAssignments = fillUnassignedOnly
+    ? existing.filter(
+        (a) => a.status === "published" || a.status === "confirmed" || a.status === "scheduled"
+      )
     : [];
 
   // Execute scheduling algorithm (in-memory)
   const { scheduled, unfilled, explanations } = planShiftsWithExplanations(
-    daysArr, 
-    shifts, 
-    crewList, 
-    leaves, 
+    daysArr,
+    shifts,
+    crewList,
+    leaves,
     protectedAssignments
   );
 
@@ -379,7 +393,8 @@ export async function simulateSchedule({
     const crew = crewMap.get(a.crewId);
     const vessel = vesselMap.get(a.vesselId || "");
 
-    const wouldCollide = !!existingAssignment && 
+    const wouldCollide =
+      !!existingAssignment &&
       (existingAssignment.status === "published" || existingAssignment.status === "confirmed");
 
     if (wouldCollide && existingAssignment) {
@@ -403,7 +418,8 @@ export async function simulateSchedule({
       start: a.start,
       end: a.end,
       role: a.role || "",
-      whySelected: explanations?.[a.crewId] || "Best available match based on skills and availability",
+      whySelected:
+        explanations?.[a.crewId] || "Best available match based on skills and availability",
       score: a.score || 0,
       isNew: !existingAssignment,
       wouldCollide,
@@ -461,17 +477,17 @@ export async function applySimulatedSchedule({
   }
 
   // Filter out collisions if requested (from the vessel-filtered subset)
-  const toApply = skipCollisions 
-    ? proposedSubset.filter((p) => !p.wouldCollide)
-    : proposedSubset;
+  const toApply = skipCollisions ? proposedSubset.filter((p) => !p.wouldCollide) : proposedSubset;
 
   // Calculate skipped from the vessel-filtered subset, not full proposed
   const skipped = proposedSubset.length - toApply.length;
 
   // Determine date range from proposed assignments
   const dates = toApply.map((p) => new Date(p.date));
-  const startDate = dates.length > 0 ? new Date(Math.min(...dates.map((d) => d.getTime()))) : new Date();
-  const endDate = dates.length > 0 ? new Date(Math.max(...dates.map((d) => d.getTime()))) : new Date();
+  const startDate =
+    dates.length > 0 ? new Date(Math.min(...dates.map((d) => d.getTime()))) : new Date();
+  const endDate =
+    dates.length > 0 ? new Date(Math.max(...dates.map((d) => d.getTime()))) : new Date();
 
   // Create a scheduler run record to track in Run History
   // When vesselIds filtering is applied, stats reflect the vessel subset
@@ -485,7 +501,7 @@ export async function applySimulatedSchedule({
       proposed: proposedSubset.length,
       applied: toApply.length,
       skipped,
-      collisions: proposedSubset.filter(p => p.wouldCollide).length,
+      collisions: proposedSubset.filter((p) => p.wouldCollide).length,
       unfilled: simulationResult.unfilled?.reduce((sum, u) => sum + (u.need || 1), 0) || 0,
     },
     success: true,
@@ -535,7 +551,7 @@ export async function revertGeneratedSchedule({
   runId: string;
 }): Promise<{ deleted: number }> {
   const deleted = await dbCrewStorage.deleteCrewAssignmentsByRunId(orgId, runId);
-  
+
   console.log(
     `[Scheduler] Reverted generated schedule: deleted ${deleted} draft assignments from run ${runId}`
   );
@@ -548,7 +564,10 @@ export async function revertGeneratedSchedule({
  * so its assignments become active. Wraps dbSchedulerStorage.publishSchedulerRun
  * with org-scoped ownership validation.
  */
-export async function applySchedule(runId: string, orgId: string): Promise<{ runId: string; status: string }> {
+export async function applySchedule(
+  runId: string,
+  orgId: string
+): Promise<{ runId: string; status: string }> {
   const run = await dbSchedulerStorage.getSchedulerRun(runId);
   if (!run || run.orgId !== orgId) {
     throw new Error(`Scheduler run ${runId} not found for org ${orgId}`);
@@ -562,14 +581,19 @@ export async function applySchedule(runId: string, orgId: string): Promise<{ run
  * Cancel a scheduler run - marks the run as cancelled and removes any
  * draft assignments that were generated from it. Org-scoped.
  */
-export async function cancelScheduleRun(runId: string, orgId: string): Promise<{ runId: string; status: string; deletedAssignments: number }> {
+export async function cancelScheduleRun(
+  runId: string,
+  orgId: string
+): Promise<{ runId: string; status: string; deletedAssignments: number }> {
   const run = await dbSchedulerStorage.getSchedulerRun(runId);
   if (!run || run.orgId !== orgId) {
     throw new Error(`Scheduler run ${runId} not found for org ${orgId}`);
   }
   const deletedAssignments = await dbCrewStorage.deleteCrewAssignmentsByRunId(orgId, runId);
   const updated = await dbSchedulerStorage.cancelSchedulerRun(runId);
-  console.log(`[Scheduler] Cancelled scheduler run ${runId}: removed ${deletedAssignments} draft assignments`);
+  console.log(
+    `[Scheduler] Cancelled scheduler run ${runId}: removed ${deletedAssignments} draft assignments`
+  );
   return { runId: updated.id, status: updated.status ?? "cancelled", deletedAssignments };
 }
 
@@ -594,7 +618,7 @@ export async function clearSchedulerRunHistory(orgId: string): Promise<{ deleted
 
   // 3. Finally delete the scheduler runs themselves
   await dbSchedulerStorage.deleteSchedulerRuns(orgId);
-  
+
   console.log(
     `[Scheduler] Cleared scheduler run history: deleted ${runs.length} runs and ${totalAssignmentsDeleted} associated crew assignments for org ${orgId}`
   );
@@ -627,7 +651,7 @@ function planShiftsWithExplanations(
 } {
   // Use the existing planShifts and add explanations
   const { scheduled, unfilled } = planShifts(daysArr, shifts, crew, leaves, existing);
-  
+
   // Build explanations for each scheduled crew member
   const explanations: Record<string, string> = {};
   for (const s of scheduled) {
@@ -643,9 +667,8 @@ function planShiftsWithExplanations(
       if (crewMember.rank) {
         reasons.push(`Rank: ${crewMember.rank}`);
       }
-      explanations[s.crewId] = reasons.length > 0 
-        ? reasons.join(", ")
-        : "Best available crew member";
+      explanations[s.crewId] =
+        reasons.length > 0 ? reasons.join(", ") : "Best available crew member";
     }
   }
 

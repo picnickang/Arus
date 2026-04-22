@@ -1,15 +1,15 @@
 /**
  * Telemetry Buffer Manager
- * 
+ *
  * Per-vessel buffer management with overflow protection.
  * Replaces single global buffer with isolated per-vessel buffers.
- * 
+ *
  * Features:
  * - Per-vessel isolation prevents cross-vessel interference
  * - Configurable buffer limits per vessel
  * - Ring buffer eviction under pressure
  * - Prometheus metrics for monitoring
- * 
+ *
  * Module size: ~150 lines (target 100-250)
  */
 
@@ -68,7 +68,7 @@ export class TelemetryBufferManager extends EventEmitter {
 
   queue(vesselId: string, reading: BufferedReading): void {
     let buffer = this.vesselBuffers.get(vesselId);
-    
+
     if (!buffer) {
       if (this.vesselBuffers.size >= this.config.maxVessels) {
         this.evictLeastActiveVessel();
@@ -117,7 +117,9 @@ export class TelemetryBufferManager extends EventEmitter {
 
   getVesselStats(vesselId: string): VesselBufferStats | null {
     const buffer = this.vesselBuffers.get(vesselId);
-    if (!buffer) {return null;}
+    if (!buffer) {
+      return null;
+    }
 
     return {
       vesselId,
@@ -152,7 +154,7 @@ export class TelemetryBufferManager extends EventEmitter {
 
   private evictLeastActiveVessel(): void {
     let oldest: { vesselId: string; lastActivity: Date } | null = null;
-    
+
     for (const [vesselId, buffer] of this.vesselBuffers) {
       if (!oldest || buffer.lastActivity < oldest.lastActivity) {
         oldest = { vesselId, lastActivity: buffer.lastActivity };

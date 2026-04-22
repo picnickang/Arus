@@ -1,6 +1,6 @@
 /**
  * Shared Route Utilities
- * 
+ *
  * Common patterns extracted from domain routes to reduce duplication.
  * Per SonarQube guidance: Extract Method for repeated error handling patterns.
  */
@@ -30,7 +30,7 @@ interface ErrorWithStatus extends Error {
  * Handle API errors consistently across routes.
  * Extracts the repeated try/catch error handling pattern.
  * Respects domain error status codes when present.
- * 
+ *
  * @param res - Express response object
  * @param error - The caught error
  * @param operation - Description of the failed operation (e.g., "fetch oil analyses")
@@ -53,7 +53,7 @@ export function handleApiError(
   // Check for domain-specific status codes (e.g., NotFound, Conflict)
   const statusError = error as ErrorWithStatus;
   const statusCode = statusError?.status || statusError?.statusCode;
-  
+
   if (statusCode && statusCode >= 400 && statusCode < 600) {
     if (statusCode >= 500) {
       const prefix = logPrefix ?? `Failed to ${operation}`;
@@ -77,13 +77,13 @@ export function handleApiError(
 /**
  * Wrap an async route handler with standard error handling.
  * Reduces boilerplate try/catch blocks in routes.
- * 
+ *
  * @param operation - Description of the operation
  * @param handler - The async handler function
  */
 export function withErrorHandling<
   Req extends Request = AuthenticatedRequest,
-  Res extends Response = Response
+  Res extends Response = Response,
 >(
   operation: string,
   handler: (req: Req, res: Res) => Promise<void | Response>

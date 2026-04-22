@@ -1,6 +1,6 @@
 /**
  * Schema Inventory - Parts, Suppliers, Stock, and Inventory Management
- * 
+ *
  * Inventory tracking, parts catalog, supplier management, and movements ledger.
  *
  * CONSOLIDATION NOTE (Task #8):
@@ -309,10 +309,12 @@ export const insertPartsInventorySchema = createInsertSchema(partsInventory).omi
   updatedAt: true,
 });
 
-export const insertPartsInventorySuppliersSchema = createInsertSchema(partsInventorySuppliers).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertPartsInventorySuppliersSchema = createInsertSchema(partsInventorySuppliers).omit(
+  {
+    id: true,
+    createdAt: true,
+  }
+);
 
 export const insertStockSchema = createInsertSchema(stock).omit({
   id: true,

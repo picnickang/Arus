@@ -1,11 +1,11 @@
 /**
  * API Helpers - Pagination & Validation Utilities
- * 
+ *
  * Provides standardized patterns for:
  * - Request pagination parsing
  * - Zod schema validation
  * - Common response formats
- * 
+ *
  * Note: For error handling and tenant guards, import directly from:
  * - ./route-utils.js (handleApiError, withErrorHandling, sendNotFound, etc.)
  * - ./tenant-guards.js (createTenantExtractor, createTenantRequirement, etc.)
@@ -36,17 +36,17 @@ const paginationSchema = z.object({
   offset: z.coerce.number().int().min(0).optional(),
 });
 
-export type PaginationResult = 
+export type PaginationResult =
   | { success: true; params: PaginationParams }
   | { success: false; error: ZodError };
 
 export function parsePagination(query: Record<string, unknown>): PaginationResult {
   const parsed = paginationSchema.safeParse(query);
-  
+
   if (!parsed.success) {
     return { success: false, error: parsed.error };
   }
-  
+
   const { page, limit, offset } = parsed.data;
   return {
     success: true,
@@ -59,11 +59,11 @@ export function parsePagination(query: Record<string, unknown>): PaginationResul
 }
 
 export function parsePaginationWithDefaults(
-  query: Record<string, unknown>, 
+  query: Record<string, unknown>,
   defaults: Partial<PaginationParams> = {}
 ): PaginationParams {
   const parsed = paginationSchema.safeParse(query);
-  
+
   if (!parsed.success) {
     return {
       page: defaults.page ?? 1,
@@ -71,7 +71,7 @@ export function parsePaginationWithDefaults(
       offset: defaults.offset ?? 0,
     };
   }
-  
+
   const { page, limit, offset } = parsed.data;
   return {
     page,
@@ -96,9 +96,7 @@ export function paginatedResponse<T>(
   };
 }
 
-export type ValidationResult<T> = 
-  | { success: true; data: T }
-  | { success: false; error: ZodError };
+export type ValidationResult<T> = { success: true; data: T } | { success: false; error: ZodError };
 
 export function validateBody<T>(req: Request, schema: ZodSchema<T>): ValidationResult<T> {
   return schema.safeParse(req.body);
@@ -112,7 +110,11 @@ export function validateParams<T>(req: Request, schema: ZodSchema<T>): Validatio
   return schema.safeParse(req.params);
 }
 
-export function sendValidationError(res: Response, error: ZodError, message = "Validation failed"): void {
+export function sendValidationError(
+  res: Response,
+  error: ZodError,
+  message = "Validation failed"
+): void {
   res.status(400).json({
     message,
     errors: error.flatten().fieldErrors,
@@ -124,7 +126,11 @@ export function sendSuccess<T>(res: Response, data: T, status = 200): void {
   res.status(status).json(data);
 }
 
-export function sendBadRequest(res: Response, message: string, details?: Record<string, unknown>): void {
+export function sendBadRequest(
+  res: Response,
+  message: string,
+  details?: Record<string, unknown>
+): void {
   const response: { message: string; details?: Record<string, unknown> } = { message };
   if (details) {
     response.details = details;
@@ -170,17 +176,24 @@ export function parseIntParam(value: unknown, defaultValue: number, max?: number
   } else {
     return defaultValue;
   }
-  if (isNaN(num) || num < 0) {return defaultValue;}
+  if (isNaN(num) || num < 0) {
+    return defaultValue;
+  }
   return max ? Math.min(num, max) : num;
 }
 
 export function parseUUID(value: unknown): string | null {
-  if (typeof value !== "string") {return null;}
+  if (typeof value !== "string") {
+    return null;
+  }
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   return uuidRegex.test(value) ? value : null;
 }
 
-export function parseDateRange(query: Record<string, unknown>): { startDate?: string; endDate?: string } {
+export function parseDateRange(query: Record<string, unknown>): {
+  startDate?: string;
+  endDate?: string;
+} {
   const startDate = typeof query.startDate === "string" ? query.startDate : undefined;
   const endDate = typeof query.endDate === "string" ? query.endDate : undefined;
   return { startDate, endDate };

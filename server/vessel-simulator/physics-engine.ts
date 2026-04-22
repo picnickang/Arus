@@ -1,6 +1,6 @@
 /**
  * Physics Engine for Vessel Telemetry Simulation
- * 
+ *
  * Contains physics utilities for realistic marine vessel telemetry generation.
  */
 

@@ -1,6 +1,6 @@
 /**
  * Vessel Health Context Builder
- * 
+ *
  * Build comprehensive context for vessel health reports.
  */
 
@@ -14,11 +14,7 @@ import {
   getVesselMaintenanceSchedules,
   getVesselAlerts,
 } from "./data-fetchers.js";
-import {
-  fetchKBKnowledge,
-  buildCitations,
-  determinePriority,
-} from "./knowledge-citations.js";
+import { fetchKBKnowledge, buildCitations, determinePriority } from "./knowledge-citations.js";
 
 export async function buildVesselHealthContext(
   vesselId: string,
@@ -92,7 +88,7 @@ export async function buildVesselHealthContext(
   const citations = buildCitations(vessel, equipment, workOrders);
   let knowledge;
   if (options.includeKnowledge) {
-    knowledge = await fetchKBKnowledge(orgId, equipment, 'health');
+    knowledge = await fetchKBKnowledge(orgId, equipment, "health");
   }
 
   return {

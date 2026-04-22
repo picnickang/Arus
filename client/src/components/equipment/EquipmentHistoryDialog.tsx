@@ -41,7 +41,9 @@ export function EquipmentHistoryDialog({
     enabled: isOpen && !!equipment?.id,
   });
 
-  if (!equipment) {return null;}
+  if (!equipment) {
+    return null;
+  }
 
   const getEventColor = (eventType: string) => {
     switch (eventType) {
@@ -68,9 +70,7 @@ export function EquipmentHistoryDialog({
             <History className="h-5 w-5" />
             Equipment History
           </DialogTitle>
-          <DialogDescription>
-            Lifecycle history for {equipment.name}
-          </DialogDescription>
+          <DialogDescription>Lifecycle history for {equipment.name}</DialogDescription>
         </DialogHeader>
 
         <div className="bg-muted/50 rounded-md p-4 space-y-2 text-sm">

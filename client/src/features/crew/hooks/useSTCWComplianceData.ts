@@ -90,10 +90,18 @@ export interface UseSTCWComplianceDataReturn {
   }>;
 }
 
-export function useSTCWComplianceData({ lookbackDays = 30, prefetchedSummary, prefetchedTrends }: UseSTCWComplianceDataProps = {}): UseSTCWComplianceDataReturn {
+export function useSTCWComplianceData({
+  lookbackDays = 30,
+  prefetchedSummary,
+  prefetchedTrends,
+}: UseSTCWComplianceDataProps = {}): UseSTCWComplianceDataReturn {
   const [expandedVessel, setExpandedVessel] = useState<string | null>(null);
 
-  const { data: summary, isLoading: isLoadingSummary, error: summaryError } = useQuery<FleetSummary>({
+  const {
+    data: summary,
+    isLoading: isLoadingSummary,
+    error: summaryError,
+  } = useQuery<FleetSummary>({
     queryKey: ["/api/dashboard/stcw-summary", { days: lookbackDays }],
     staleTime: 300000,
     refetchInterval: 300000,
@@ -112,17 +120,23 @@ export function useSTCWComplianceData({ lookbackDays = 30, prefetchedSummary, pr
   }, []);
 
   const hasIssues = useMemo(() => {
-    if (!summary) {return false;}
+    if (!summary) {
+      return false;
+    }
     return summary.fleet.totalViolations > 0 || summary.fleet.criticalFatigueCount > 0;
   }, [summary]);
 
   const sortedVessels = useMemo(() => {
-    if (!summary?.vessels) {return [];}
+    if (!summary?.vessels) {
+      return [];
+    }
     return [...summary.vessels].sort((a, b) => a.complianceRate - b.complianceRate);
   }, [summary?.vessels]);
 
   const formattedChartData = useMemo(() => {
-    if (!trends?.trends) {return [];}
+    if (!trends?.trends) {
+      return [];
+    }
     return trends.trends.map((t) => ({
       ...t,
       date: new Date(t.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),

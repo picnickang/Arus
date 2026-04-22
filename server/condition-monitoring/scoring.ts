@@ -28,9 +28,19 @@ export function generateMaintenanceRecommendations(conditionData: ConditionMonit
     let estimatedCost = 1000;
     let timeframe = "30 days";
 
-    if (condition.failureRisk === "critical") { priority = "critical"; estimatedCost = 5000; timeframe = "immediate"; }
-    else if (condition.failureRisk === "high") { priority = "high"; estimatedCost = 3000; timeframe = "1 week"; }
-    else if (condition.failureRisk === "medium") { priority = "medium"; estimatedCost = 2000; timeframe = "2 weeks"; }
+    if (condition.failureRisk === "critical") {
+      priority = "critical";
+      estimatedCost = 5000;
+      timeframe = "immediate";
+    } else if (condition.failureRisk === "high") {
+      priority = "high";
+      estimatedCost = 3000;
+      timeframe = "1 week";
+    } else if (condition.failureRisk === "medium") {
+      priority = "medium";
+      estimatedCost = 2000;
+      timeframe = "2 weeks";
+    }
 
     return {
       equipmentId: condition.equipmentId,

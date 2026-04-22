@@ -40,9 +40,18 @@ async function migrate() {
 
     const additiveCols = [
       { col: "manufacturer", def: "ALTER TABLE parts ADD COLUMN IF NOT EXISTS manufacturer TEXT" },
-      { col: "is_active", def: "ALTER TABLE parts ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true" },
-      { col: "last_usage_30d", def: "ALTER TABLE parts ADD COLUMN IF NOT EXISTS last_usage_30d INTEGER DEFAULT 0" },
-      { col: "risk_level", def: "ALTER TABLE parts ADD COLUMN IF NOT EXISTS risk_level TEXT DEFAULT 'medium'" },
+      {
+        col: "is_active",
+        def: "ALTER TABLE parts ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true",
+      },
+      {
+        col: "last_usage_30d",
+        def: "ALTER TABLE parts ADD COLUMN IF NOT EXISTS last_usage_30d INTEGER DEFAULT 0",
+      },
+      {
+        col: "risk_level",
+        def: "ALTER TABLE parts ADD COLUMN IF NOT EXISTS risk_level TEXT DEFAULT 'medium'",
+      },
     ];
     for (const c of additiveCols) {
       await client.query(c.def);
@@ -67,9 +76,10 @@ async function migrate() {
 
     for (const row of piRows.rows) {
       try {
-        await client.query(`SAVEPOINT sp_pi_${row.id.replace(/[^a-zA-Z0-9]/g, '_')}`);
+        await client.query(`SAVEPOINT sp_pi_${row.id.replace(/[^a-zA-Z0-9]/g, "_")}`);
 
-        const insertResult = await client.query(`
+        const insertResult = await client.query(
+          `
           INSERT INTO parts (
             id, org_id, part_no, name, description, category, unit_of_measure,
             min_stock_qty, max_stock_qty, standard_cost, lead_time_days,
@@ -85,29 +95,50 @@ async function migrate() {
             manufacturer = COALESCE(NULLIF(parts.manufacturer, ''), EXCLUDED.manufacturer),
             updated_at = NOW()
           RETURNING id, part_no, (xmax = 0) AS was_inserted
-        `, [
-          row.id,
-          row.org_id, row.part_number, row.part_name, row.description,
-          row.category, row.min_stock_level || 0, row.max_stock_level || 0,
-          row.unit_cost, row.lead_time_days || 7,
-          row.manufacturer, row.is_active ?? true,
-          row.created_at || new Date(), row.updated_at || new Date(),
-        ]);
+        `,
+          [
+            row.id,
+            row.org_id,
+            row.part_number,
+            row.part_name,
+            row.description,
+            row.category,
+            row.min_stock_level || 0,
+            row.max_stock_level || 0,
+            row.unit_cost,
+            row.lead_time_days || 7,
+            row.manufacturer,
+            row.is_active ?? true,
+            row.created_at || new Date(),
+            row.updated_at || new Date(),
+          ]
+        );
 
         const resultRow = insertResult.rows[0];
-        if (resultRow.was_inserted) { partsCreated++; } else { partsMerged++; }
+        if (resultRow.was_inserted) {
+          partsCreated++;
+        } else {
+          partsMerged++;
+        }
 
         if (!resultRow.was_inserted && resultRow.id !== row.id) {
-          const remap = await client.query(`
+          const remap = await client.query(
+            `
             UPDATE work_order_parts SET part_id = $1 WHERE part_id = $2 AND org_id = $3
-          `, [resultRow.id, row.id, row.org_id]);
-          const remapMov = await client.query(`
+          `,
+            [resultRow.id, row.id, row.org_id]
+          );
+          const remapMov = await client.query(
+            `
             UPDATE inventory_movements SET part_id = $1 WHERE part_id = $2 AND org_id = $3
-          `, [resultRow.id, row.id, row.org_id]);
+          `,
+            [resultRow.id, row.id, row.org_id]
+          );
           dependentRemapped += (remap.rowCount || 0) + (remapMov.rowCount || 0);
         }
 
-        const stockResult = await client.query(`
+        const stockResult = await client.query(
+          `
           INSERT INTO stock (
             org_id, part_id, part_no, location,
             quantity_on_hand, quantity_reserved, unit_cost,
@@ -123,29 +154,41 @@ async function migrate() {
             unit_cost = COALESCE(EXCLUDED.unit_cost, stock.unit_cost),
             updated_at = NOW()
           RETURNING (xmax = 0) AS was_inserted
-        `, [
-          row.org_id, resultRow.id, resultRow.part_no,
-          row.location || "MAIN",
-          row.quantity_on_hand || 0, row.quantity_reserved || 0,
-          row.unit_cost || 0,
-          new Date(), new Date(),
-        ]);
-        if (stockResult.rows[0]?.was_inserted) { stockCreated++; } else { stockMerged++; }
+        `,
+          [
+            row.org_id,
+            resultRow.id,
+            resultRow.part_no,
+            row.location || "MAIN",
+            row.quantity_on_hand || 0,
+            row.quantity_reserved || 0,
+            row.unit_cost || 0,
+            new Date(),
+            new Date(),
+          ]
+        );
+        if (stockResult.rows[0]?.was_inserted) {
+          stockCreated++;
+        } else {
+          stockMerged++;
+        }
 
         await client.query(
           `INSERT INTO _migration_004_processed (source_table, source_id) VALUES ('parts_inventory', $1) ON CONFLICT DO NOTHING`,
           [row.id]
         );
 
-        await client.query(`RELEASE SAVEPOINT sp_pi_${row.id.replace(/[^a-zA-Z0-9]/g, '_')}`);
+        await client.query(`RELEASE SAVEPOINT sp_pi_${row.id.replace(/[^a-zA-Z0-9]/g, "_")}`);
       } catch (err: unknown) {
-        await client.query(`ROLLBACK TO SAVEPOINT sp_pi_${row.id.replace(/[^a-zA-Z0-9]/g, '_')}`);
+        await client.query(`ROLLBACK TO SAVEPOINT sp_pi_${row.id.replace(/[^a-zA-Z0-9]/g, "_")}`);
         const msg = err instanceof Error ? err.message : String(err);
         console.warn(`[Migration] Skipped parts_inventory row ${row.id}: ${msg}`);
       }
     }
 
-    console.log(`  parts_inventory → parts: ${partsCreated} created, ${partsMerged} merged, ${dependentRemapped} dependent refs remapped`);
+    console.log(
+      `  parts_inventory → parts: ${partsCreated} created, ${partsMerged} merged, ${dependentRemapped} dependent refs remapped`
+    );
     console.log(`  parts_inventory → stock: ${stockCreated} created, ${stockMerged} merged`);
 
     console.log("[Migration] Phase 2: Migrate inventory_parts → parts + stock");
@@ -166,9 +209,10 @@ async function migrate() {
 
     for (const row of ipRows.rows) {
       try {
-        await client.query(`SAVEPOINT sp_ip_${row.id.toString().replace(/[^a-zA-Z0-9]/g, '_')}`);
+        await client.query(`SAVEPOINT sp_ip_${row.id.toString().replace(/[^a-zA-Z0-9]/g, "_")}`);
 
-        const insertResult = await client.query(`
+        const insertResult = await client.query(
+          `
           INSERT INTO parts (
             id, org_id, part_no, name, description, category, unit_of_measure,
             min_stock_qty, max_stock_qty, standard_cost, lead_time_days,
@@ -185,29 +229,49 @@ async function migrate() {
             last_usage_30d = GREATEST(COALESCE(parts.last_usage_30d, 0), EXCLUDED.last_usage_30d),
             updated_at = NOW()
           RETURNING id, part_no, (xmax = 0) AS was_inserted
-        `, [
-          row.id,
-          row.org_id, row.part_number, row.description, row.description,
-          row.min_stock_level, row.max_stock_level,
-          row.unit_cost || 0, row.lead_time_days,
-          row.risk_level || "low", row.last_usage_30d || 0,
-          row.created_at || new Date(), row.updated_at || new Date(),
-        ]);
+        `,
+          [
+            row.id,
+            row.org_id,
+            row.part_number,
+            row.description,
+            row.description,
+            row.min_stock_level,
+            row.max_stock_level,
+            row.unit_cost || 0,
+            row.lead_time_days,
+            row.risk_level || "low",
+            row.last_usage_30d || 0,
+            row.created_at || new Date(),
+            row.updated_at || new Date(),
+          ]
+        );
 
         const resultRow = insertResult.rows[0];
-        if (resultRow.was_inserted) { ipPartsCreated++; } else { ipPartsMerged++; }
+        if (resultRow.was_inserted) {
+          ipPartsCreated++;
+        } else {
+          ipPartsMerged++;
+        }
 
         if (!resultRow.was_inserted && resultRow.id !== row.id) {
-          const remap = await client.query(`
+          const remap = await client.query(
+            `
             UPDATE work_order_parts SET part_id = $1 WHERE part_id = $2 AND org_id = $3
-          `, [resultRow.id, row.id, row.org_id]);
-          const remapMov = await client.query(`
+          `,
+            [resultRow.id, row.id, row.org_id]
+          );
+          const remapMov = await client.query(
+            `
             UPDATE inventory_movements SET part_id = $1 WHERE part_id = $2 AND org_id = $3
-          `, [resultRow.id, row.id, row.org_id]);
+          `,
+            [resultRow.id, row.id, row.org_id]
+          );
           ipDependentRemapped += (remap.rowCount || 0) + (remapMov.rowCount || 0);
         }
 
-        const stockResult = await client.query(`
+        const stockResult = await client.query(
+          `
           INSERT INTO stock (
             org_id, part_id, part_no, location,
             quantity_on_hand, quantity_reserved, unit_cost,
@@ -222,27 +286,43 @@ async function migrate() {
             unit_cost = COALESCE(EXCLUDED.unit_cost, stock.unit_cost),
             updated_at = NOW()
           RETURNING (xmax = 0) AS was_inserted
-        `, [
-          row.org_id, resultRow.id, resultRow.part_no,
-          row.current_stock || 0, row.unit_cost || 0,
-          new Date(), new Date(),
-        ]);
-        if (stockResult.rows[0]?.was_inserted) { ipStockCreated++; } else { ipStockMerged++; }
+        `,
+          [
+            row.org_id,
+            resultRow.id,
+            resultRow.part_no,
+            row.current_stock || 0,
+            row.unit_cost || 0,
+            new Date(),
+            new Date(),
+          ]
+        );
+        if (stockResult.rows[0]?.was_inserted) {
+          ipStockCreated++;
+        } else {
+          ipStockMerged++;
+        }
 
         await client.query(
           `INSERT INTO _migration_004_processed (source_table, source_id) VALUES ('inventory_parts', $1) ON CONFLICT DO NOTHING`,
           [row.id]
         );
 
-        await client.query(`RELEASE SAVEPOINT sp_ip_${row.id.toString().replace(/[^a-zA-Z0-9]/g, '_')}`);
+        await client.query(
+          `RELEASE SAVEPOINT sp_ip_${row.id.toString().replace(/[^a-zA-Z0-9]/g, "_")}`
+        );
       } catch (err: unknown) {
-        await client.query(`ROLLBACK TO SAVEPOINT sp_ip_${row.id.toString().replace(/[^a-zA-Z0-9]/g, '_')}`);
+        await client.query(
+          `ROLLBACK TO SAVEPOINT sp_ip_${row.id.toString().replace(/[^a-zA-Z0-9]/g, "_")}`
+        );
         const msg = err instanceof Error ? err.message : String(err);
         console.warn(`[Migration] Skipped inventory_parts row ${row.id}: ${msg}`);
       }
     }
 
-    console.log(`  inventory_parts → parts: ${ipPartsCreated} created, ${ipPartsMerged} merged, ${ipDependentRemapped} dependent refs remapped`);
+    console.log(
+      `  inventory_parts → parts: ${ipPartsCreated} created, ${ipPartsMerged} merged, ${ipDependentRemapped} dependent refs remapped`
+    );
     console.log(`  inventory_parts → stock: ${ipStockCreated} created, ${ipStockMerged} merged`);
 
     console.log("[Migration] Phase 3: Merge columns from parts_inventory into existing parts");

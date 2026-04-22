@@ -31,23 +31,27 @@ export async function sendPR(prId: string, orgId: string, userId?: string): Prom
       .from(purchaseRequests)
       .where(and(eq(purchaseRequests.id, prId), eq(purchaseRequests.orgId, orgId)));
 
-    if (!pr)                  {throw new Error("Purchase request not found");}
-    if (pr.status !== "draft") {throw new Error("Can only send draft PRs");}
+    if (!pr) {
+      throw new Error("Purchase request not found");
+    }
+    if (pr.status !== "draft") {
+      throw new Error("Can only send draft PRs");
+    }
 
     const prItems = await tx
       .select({
-        id:           purchaseRequestItems.id,
-        orgId:        purchaseRequestItems.orgId,
-        prId:         purchaseRequestItems.prId,
-        partId:       purchaseRequestItems.partId,
-        supplierId:   purchaseRequestItems.supplierId,
-        quantity:     purchaseRequestItems.quantity,
-        robSnapshot:  purchaseRequestItems.robSnapshot,
-        uom:          purchaseRequestItems.uom,
-        remarks:      purchaseRequestItems.remarks,
-        createdAt:    purchaseRequestItems.createdAt,
-        partName:     parts.name,
-        partNumber:   parts.partNumber,
+        id: purchaseRequestItems.id,
+        orgId: purchaseRequestItems.orgId,
+        prId: purchaseRequestItems.prId,
+        partId: purchaseRequestItems.partId,
+        supplierId: purchaseRequestItems.supplierId,
+        quantity: purchaseRequestItems.quantity,
+        robSnapshot: purchaseRequestItems.robSnapshot,
+        uom: purchaseRequestItems.uom,
+        remarks: purchaseRequestItems.remarks,
+        createdAt: purchaseRequestItems.createdAt,
+        partName: parts.name,
+        partNumber: parts.partNumber,
         supplierName: suppliers.name,
       })
       .from(purchaseRequestItems)
@@ -55,9 +59,11 @@ export async function sendPR(prId: string, orgId: string, userId?: string): Prom
       .leftJoin(suppliers, eq(purchaseRequestItems.supplierId, suppliers.id))
       .where(eq(purchaseRequestItems.prId, prId));
 
-    if (!prItems.length) {throw new Error("Cannot send PR with no items");}
+    if (!prItems.length) {
+      throw new Error("Cannot send PR with no items");
+    }
 
-    type PRItem = typeof prItems[0];
+    type PRItem = (typeof prItems)[0];
     const itemsBySupplier = new Map<string, { supplierId: string; items: PRItem[] }>();
 
     for (const item of prItems) {
@@ -87,12 +93,14 @@ export async function sendPR(prId: string, orgId: string, userId?: string): Prom
         .select()
         .from(suppliers)
         .where(and(eq(suppliers.id, supplierId), eq(suppliers.orgId, orgId)));
-      if (!supplier) {throw new Error(`Supplier not found: ${supplierId}`);}
+      if (!supplier) {
+        throw new Error(`Supplier not found: ${supplierId}`);
+      }
 
       // Improvement #3: sequence-based PO number — no race condition
       const poNumber = await repo.generatePONumber(orgId, tx);
 
-      const itemsWithCosts: { item: typeof group.items[0]; unitCost: number }[] = [];
+      const itemsWithCosts: { item: (typeof group.items)[0]; unitCost: number }[] = [];
       for (const item of group.items) {
         const linked = await tx
           .select({ supplierId: itemSuppliers.supplierId, unitCost: itemSuppliers.unitCost })
@@ -112,43 +120,54 @@ export async function sendPR(prId: string, orgId: string, userId?: string): Prom
         .values({
           orgId,
           supplierId,
-          orderNumber:          poNumber,
-          status:               "sent",
+          orderNumber: poNumber,
+          status: "sent",
           totalAmount,
-          currency:             "USD",
-          createdBy:            userId || pr.requestedBy,
-          expectedDate:         pr.requiredByDate,
-          notes:                `Generated from PR ${pr.requestNumber}`,
+          currency: "USD",
+          createdBy: userId || pr.requestedBy,
+          expectedDate: pr.requiredByDate,
+          notes: `Generated from PR ${pr.requestNumber}`,
         })
         .returning();
 
       for (const { item, unitCost } of itemsWithCosts) {
         await tx.insert(purchaseOrderItems).values({
           orgId,
-          poId:             po.id,
-          partId:           item.partId,
-          quantity:         item.quantity,
-          unitPrice:        unitCost,
-          totalPrice:       (item.quantity || 0) * unitCost,
+          poId: po.id,
+          partId: item.partId,
+          quantity: item.quantity,
+          unitPrice: unitCost,
+          totalPrice: (item.quantity || 0) * unitCost,
           receivedQuantity: 0,
           rejectedQuantity: 0,
         });
       }
 
       await tx.insert(purchaseOrderEvents).values({
-        orgId, poId: po.id, eventType: "created", userId,
+        orgId,
+        poId: po.id,
+        eventType: "created",
+        userId,
         details: { prId, supplierId, itemCount: group.items.length },
       });
 
       if (supplier.email) {
-        const emailContent = await generatePOEmailHtmlWithTemplate(orgId, po, group.items, supplier, pr);
+        const emailContent = await generatePOEmailHtmlWithTemplate(
+          orgId,
+          po,
+          group.items,
+          supplier,
+          pr
+        );
         await tx.insert(emailQueue).values({
-          orgId, prId, supplierId,
+          orgId,
+          prId,
+          supplierId,
           recipientEmail: supplier.email,
-          recipientName:  supplier.contactName || supplier.name,
-          subject:        emailContent.subject,
-          htmlContent:    emailContent.body,
-          status:         "pending",
+          recipientName: supplier.contactName || supplier.name,
+          subject: emailContent.subject,
+          htmlContent: emailContent.body,
+          status: "pending",
         });
         emailsQueued++;
       }
@@ -162,7 +181,10 @@ export async function sendPR(prId: string, orgId: string, userId?: string): Prom
       .where(and(eq(purchaseRequests.id, prId), eq(purchaseRequests.orgId, orgId)));
 
     await tx.insert(purchaseRequestEvents).values({
-      orgId, prId, eventType: "sent", userId,
+      orgId,
+      prId,
+      eventType: "sent",
+      userId,
       details: { purchaseOrders: createdPOs, emailsQueued },
     });
 
@@ -172,7 +194,9 @@ export async function sendPR(prId: string, orgId: string, userId?: string): Prom
 
 export async function cancelPR(prId: string, orgId: string, userId?: string) {
   const pr = await repo.getPurchaseRequestById(prId, orgId);
-  if (!pr) {throw new Error("Purchase request not found");}
+  if (!pr) {
+    throw new Error("Purchase request not found");
+  }
   if (pr.status === "closed" || pr.status === "cancelled") {
     throw new Error("Cannot cancel a closed or already cancelled PR");
   }
@@ -183,9 +207,16 @@ export async function cancelPR(prId: string, orgId: string, userId?: string) {
 
 export async function closePR(prId: string, orgId: string, userId?: string) {
   const pr = await repo.getPurchaseRequestById(prId, orgId);
-  if (!pr)                 {throw new Error("Purchase request not found");}
-  if (pr.status !== "sent") {throw new Error("Can only close sent PRs");}
-  const updated = await repo.updatePurchaseRequest(prId, orgId, { status: "closed", closedAt: new Date() });
+  if (!pr) {
+    throw new Error("Purchase request not found");
+  }
+  if (pr.status !== "sent") {
+    throw new Error("Can only close sent PRs");
+  }
+  const updated = await repo.updatePurchaseRequest(prId, orgId, {
+    status: "closed",
+    closedAt: new Date(),
+  });
   await repo.createPREvent(orgId, prId, "closed", userId);
   return updated;
 }

@@ -36,13 +36,19 @@ export function CollapsibleSection({
               <div className="flex items-center gap-2 flex-wrap">
                 <CardTitle className="text-base sm:text-lg">{title}</CardTitle>
                 {badge && (
-                  <Badge variant="secondary" className="text-xs" data-testid={`badge-section-${title.toLowerCase().replace(/\s+/g, "-")}`}>
+                  <Badge
+                    variant="secondary"
+                    className="text-xs"
+                    data-testid={`badge-section-${title.toLowerCase().replace(/\s+/g, "-")}`}
+                  >
                     {badge}
                   </Badge>
                 )}
               </div>
               {(description || summary) && (
-                <CardDescription className="text-xs sm:text-sm mt-1">{description || summary}</CardDescription>
+                <CardDescription className="text-xs sm:text-sm mt-1">
+                  {description || summary}
+                </CardDescription>
               )}
             </div>
           </div>

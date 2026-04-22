@@ -1,10 +1,10 @@
-import type { TelemetryReading } from '../../telemetry-batch-writer';
+import type { TelemetryReading } from "../../telemetry-batch-writer";
 
-const MIN_TIMESTAMP = new Date('2000-01-01').getTime();
+const MIN_TIMESTAMP = new Date("2000-01-01").getTime();
 const MAX_FUTURE_MS = 5 * 60 * 1000;
 
 export function validateReading(r: TelemetryReading): boolean {
-  if (!r.equipmentId || r.equipmentId.trim() === '') {
+  if (!r.equipmentId || r.equipmentId.trim() === "") {
     return false;
   }
 

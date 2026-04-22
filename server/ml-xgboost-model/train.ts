@@ -15,7 +15,9 @@ export async function trainXGBoostModel(
   config: XGBoostConfig
 ): Promise<TrainedXGBoostModel> {
   console.log("[XGBoost] Starting training with config:", config);
-  if (trainData.length === 0) { throw new Error("Training data is empty"); }
+  if (trainData.length === 0) {
+    throw new Error("Training data is empty");
+  }
 
   const featureNames = Object.keys(trainData[0].features);
   const classLabels = Array.from(new Set(trainData.map((d) => d.label)));
@@ -60,15 +62,25 @@ export async function trainXGBoostModel(
       let correct = 0;
       for (let i = 0; i < X.length; i++) {
         const predClass = predictions[i].indexOf(Math.max(...predictions[i]));
-        if (predClass === y[i]) {correct++;}
+        if (predClass === y[i]) {
+          correct++;
+        }
       }
-      console.log(`[XGBoost] Round ${round + 1}/${config.numTrees} - Train Accuracy: ${((correct / X.length) * 100).toFixed(2)}%`);
+      console.log(
+        `[XGBoost] Round ${round + 1}/${config.numTrees} - Train Accuracy: ${((correct / X.length) * 100).toFixed(2)}%`
+      );
     }
   }
 
   const featureImportances = calculateFeatureImportances(trees, featureNames);
   console.log("[XGBoost] Training complete");
-  console.log("[XGBoost] Top 5 features:", Array.from(featureImportances.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([n, i]) => `${n}: ${(i * 100).toFixed(2)}%`));
+  console.log(
+    "[XGBoost] Top 5 features:",
+    Array.from(featureImportances.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([n, i]) => `${n}: ${(i * 100).toFixed(2)}%`)
+  );
 
   return { trees, config, featureNames, classLabels, baseScore, numClasses };
 }

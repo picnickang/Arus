@@ -15,13 +15,13 @@ export const VESSEL_CLASSES = [
 
 export const VESSEL_CONDITIONS = ["excellent", "good", "fair", "poor", "critical"] as const;
 
-export type VesselClass = typeof VESSEL_CLASSES[number];
-export type VesselCondition = typeof VESSEL_CONDITIONS[number];
+export type VesselClass = (typeof VESSEL_CLASSES)[number];
+export type VesselCondition = (typeof VESSEL_CONDITIONS)[number];
 
 export function formatVesselClass(className: string): string {
   return className
     .split("_")
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ");
 }
 
@@ -29,7 +29,9 @@ export function calculateUtilization(vessel: Vessel): number | null {
   const opDays = Number.parseFloat(vessel.operationDays || "0");
   const downDays = Number.parseFloat(vessel.downtimeDays || "0");
   const total = opDays + downDays;
-  if (total <= 0) {return null;}
+  if (total <= 0) {
+    return null;
+  }
   return (opDays / total) * 100;
 }
 
@@ -50,7 +52,9 @@ export function getConditionColor(condition: string): string {
   }
 }
 
-export function getConditionBadgeVariant(condition: string): "default" | "destructive" | "secondary" | "outline" {
+export function getConditionBadgeVariant(
+  condition: string
+): "default" | "destructive" | "secondary" | "outline" {
   switch (condition) {
     case "excellent":
     case "good":
@@ -66,21 +70,29 @@ export function getConditionBadgeVariant(condition: string): "default" | "destru
   }
 }
 
-export function getVesselHealthScore(equipmentHealth: Array<{ vesselId?: string; healthScore?: number }>, vesselId: string): number | null {
-  const vesselEquipment = equipmentHealth.filter(e => e.vesselId === vesselId);
-  if (vesselEquipment.length === 0) {return null;}
-  const scores = vesselEquipment.map(e => e.healthScore || 0);
+export function getVesselHealthScore(
+  equipmentHealth: Array<{ vesselId?: string; healthScore?: number }>,
+  vesselId: string
+): number | null {
+  const vesselEquipment = equipmentHealth.filter((e) => e.vesselId === vesselId);
+  if (vesselEquipment.length === 0) {
+    return null;
+  }
+  const scores = vesselEquipment.map((e) => e.healthScore || 0);
   return scores.reduce((a, b) => a + b, 0) / scores.length;
 }
 
-export function getActiveWorkOrderCount(workOrders: Array<{ vesselId?: string; status?: string }>, vesselId: string): number {
+export function getActiveWorkOrderCount(
+  workOrders: Array<{ vesselId?: string; status?: string }>,
+  vesselId: string
+): number {
   return workOrders.filter(
-    wo => wo.vesselId === vesselId && wo.status !== "completed" && wo.status !== "cancelled"
+    (wo) => wo.vesselId === vesselId && wo.status !== "completed" && wo.status !== "cancelled"
   ).length;
 }
 
 export function formatVesselExportData(vessels: Vessel[]) {
-  return vessels.map(v => ({
+  return vessels.map((v) => ({
     name: v.name,
     imo: v.imo || "",
     mmsi: v.mmsi || "",

@@ -1,6 +1,6 @@
 /**
  * Schema Sensors - Sensor Types, Mappings, Configurations, and Templates
- * 
+ *
  * Sensor management including types catalog, equipment mappings, and reusable templates.
  */
 
@@ -290,7 +290,9 @@ export const bulkSensorConfigItemSchema = insertSensorConfigSchema.omit({
 export const bulkSensorConfigSchema = z.object({
   equipmentId: z.string().min(1, "Equipment ID is required"),
   bundleId: z.string().optional(),
-  configs: z.array(bulkSensorConfigItemSchema).min(1, "At least one sensor configuration is required"),
+  configs: z
+    .array(bulkSensorConfigItemSchema)
+    .min(1, "At least one sensor configuration is required"),
   overwriteExisting: z.boolean().default(false),
 });
 

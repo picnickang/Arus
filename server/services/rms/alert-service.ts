@@ -36,21 +36,23 @@ class RmsAlertService {
 
   async processSnapshot(snapshot: FmccSnapshot): Promise<void> {
     const configs = await this.getVesselAlertConfigs(snapshot.orgId, snapshot.vesselId);
-    if (configs.length === 0) {return;}
+    if (configs.length === 0) {
+      return;
+    }
 
     for (const config of configs) {
       try {
         switch (config.alertType) {
-          case 'fuel_threshold':
+          case "fuel_threshold":
             await this.checkFuelThreshold(snapshot, config);
             break;
-          case 'daily_consumption':
+          case "daily_consumption":
             await this.checkDailyConsumption(snapshot, config);
             break;
-          case 'geofence':
+          case "geofence":
             await this.checkGeofence(snapshot, config);
             break;
-          case 'bunkering':
+          case "bunkering":
             await this.checkBunkering(snapshot, config);
             break;
         }
@@ -61,8 +63,14 @@ class RmsAlertService {
   }
 
   private async checkFuelThreshold(snapshot: FmccSnapshot, config: AlertConfig): Promise<void> {
-    const { engineKey, thresholdKgPerH, direction } = config.config as { engineKey?: string; thresholdKgPerH?: number; direction?: string };
-    if (!engineKey || thresholdKgPerH === undefined) {return;}
+    const { engineKey, thresholdKgPerH, direction } = config.config as {
+      engineKey?: string;
+      thresholdKgPerH?: number;
+      direction?: string;
+    };
+    if (!engineKey || thresholdKgPerH === undefined) {
+      return;
+    }
 
     const flowMap: Record<string, number | undefined> = {
       mainEngine: snapshot.fuel.mainEngineFlowKgPerH,
@@ -74,16 +82,19 @@ class RmsAlertService {
     };
 
     const currentFlow = flowMap[engineKey];
-    if (currentFlow === undefined) {return;}
+    if (currentFlow === undefined) {
+      return;
+    }
 
-    const triggered = direction === 'below'
-      ? currentFlow < thresholdKgPerH
-      : currentFlow > thresholdKgPerH;
+    const triggered =
+      direction === "below" ? currentFlow < thresholdKgPerH : currentFlow > thresholdKgPerH;
 
     if (triggered && this.canTrigger(config)) {
-      await this.triggerAlert(config, 'warning',
+      await this.triggerAlert(
+        config,
+        "warning",
         `Fuel Threshold: ${config.name}`,
-        `${engineKey} flow ${currentFlow.toFixed(1)} kg/h ${direction === 'below' ? 'below' : 'above'} threshold ${thresholdKgPerH} kg/h`,
+        `${engineKey} flow ${currentFlow.toFixed(1)} kg/h ${direction === "below" ? "below" : "above"} threshold ${thresholdKgPerH} kg/h`,
         { engineKey, currentFlow, thresholdKgPerH, direction }
       );
     }
@@ -91,9 +102,11 @@ class RmsAlertService {
 
   private async checkDailyConsumption(snapshot: FmccSnapshot, config: AlertConfig): Promise<void> {
     const { maxDailyMt } = config.config as { maxDailyMt?: number };
-    if (!maxDailyMt) {return;}
+    if (!maxDailyMt) {
+      return;
+    }
 
-    const fuelEquipmentId = `fmcc-fuel-${  snapshot.vesselId}`;
+    const fuelEquipmentId = `fmcc-fuel-${snapshot.vesselId}`;
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
@@ -113,14 +126,18 @@ class RmsAlertService {
       const hoursWithData = Number(row?.hours_with_data ?? 0);
       const avgFlowKgPerH = Number(row?.avg_flow_kg_per_h ?? 0);
 
-      if (hoursWithData < 1) {return;}
+      if (hoursWithData < 1) {
+        return;
+      }
 
       const actualConsumptionKg = avgFlowKgPerH * hoursWithData;
       const projectedDailyMt = (avgFlowKgPerH * 24) / 1000;
       const actualDailyMt = actualConsumptionKg / 1000;
 
       if (projectedDailyMt > maxDailyMt && this.canTrigger(config)) {
-        await this.triggerAlert(config, 'warning',
+        await this.triggerAlert(
+          config,
+          "warning",
           `Daily Consumption Alert: ${config.name}`,
           `Avg flow ${avgFlowKgPerH.toFixed(1)} kg/h over ${hoursWithData}h today (${actualDailyMt.toFixed(2)} MT so far) projects to ${projectedDailyMt.toFixed(2)} MT/day, exceeding limit of ${maxDailyMt} MT/day`,
           { avgFlowKgPerH, hoursWithData, actualDailyMt, projectedDailyMt, maxDailyMt }
@@ -133,10 +150,15 @@ class RmsAlertService {
 
   private async checkGeofence(snapshot: FmccSnapshot, config: AlertConfig): Promise<void> {
     const { centerLat, centerLon, radiusNm, polygon, triggerOn } = config.config as {
-      centerLat?: number; centerLon?: number; radiusNm?: number;
-      polygon?: Array<{ lat: number; lon: number }>; triggerOn?: string;
+      centerLat?: number;
+      centerLon?: number;
+      radiusNm?: number;
+      polygon?: Array<{ lat: number; lon: number }>;
+      triggerOn?: string;
     };
-    if (snapshot.navigation?.latDeg == null || snapshot.navigation?.lonDeg == null) {return;}
+    if (snapshot.navigation?.latDeg == null || snapshot.navigation?.lonDeg == null) {
+      return;
+    }
 
     const vesselLat = snapshot.navigation.latDeg;
     const vesselLon = snapshot.navigation.lonDeg;
@@ -159,31 +181,43 @@ class RmsAlertService {
     const crossed = wasInside !== undefined && wasInside !== inside;
     this.geofenceState.set(stateKey, inside);
 
-    if (!crossed) {return;}
+    if (!crossed) {
+      return;
+    }
 
-    const shouldTrigger = (triggerOn === 'enter' && inside) ||
-      (triggerOn === 'exit' && !inside) ||
-      (triggerOn === 'both');
+    const shouldTrigger =
+      (triggerOn === "enter" && inside) ||
+      (triggerOn === "exit" && !inside) ||
+      triggerOn === "both";
 
     if (shouldTrigger && this.canTrigger(config)) {
-      await this.triggerAlert(config, 'info',
-        `Geofence ${inside ? 'Entry' : 'Exit'}: ${config.name}`,
-        `Vessel ${inside ? 'entered' : 'exited'} geofence zone "${config.name}" (${detail})`,
+      await this.triggerAlert(
+        config,
+        "info",
+        `Geofence ${inside ? "Entry" : "Exit"}: ${config.name}`,
+        `Vessel ${inside ? "entered" : "exited"} geofence zone "${config.name}" (${detail})`,
         { lat: vesselLat, lon: vesselLon, inside }
       );
     }
   }
 
-  private bunkerAccumulators = new Map<string, { startTime: Date; accumulatedKg: number; lastPollTime: Date }>();
+  private bunkerAccumulators = new Map<
+    string,
+    { startTime: Date; accumulatedKg: number; lastPollTime: Date }
+  >();
 
   private async checkBunkering(snapshot: FmccSnapshot, config: AlertConfig): Promise<void> {
     const bunkerFlow = snapshot.fuel.bunkerFlowKgPerH;
-    if (bunkerFlow === undefined) {return;}
+    if (bunkerFlow === undefined) {
+      return;
+    }
 
     const { notifyOnStart, notifyOnEnd, minVolumeLitres } = config.config as {
-      notifyOnStart?: boolean; notifyOnEnd?: boolean; minVolumeLitres?: number;
+      notifyOnStart?: boolean;
+      notifyOnEnd?: boolean;
+      minVolumeLitres?: number;
     };
-    const minVolumeL = typeof minVolumeLitres === 'number' ? minVolumeLitres : 0;
+    const minVolumeL = typeof minVolumeLitres === "number" ? minVolumeLitres : 0;
     const BUNKERING_THRESHOLD = 500;
     const stateKey = `bunker:${config.id}:${snapshot.vesselId}`;
     const wasBunkering = this.bunkeringState.get(stateKey);
@@ -199,22 +233,44 @@ class RmsAlertService {
         acc.accumulatedKg += bunkerFlow * elapsedHours;
         acc.lastPollTime = now;
       } else {
-        this.bunkerAccumulators.set(stateKey, { startTime: now, accumulatedKg: 0, lastPollTime: now });
+        this.bunkerAccumulators.set(stateKey, {
+          startTime: now,
+          accumulatedKg: 0,
+          lastPollTime: now,
+        });
       }
     }
 
-    if (wasBunkering === undefined) {return;}
+    if (wasBunkering === undefined) {
+      return;
+    }
 
-    if (!wasBunkering && isBunkering && notifyOnStart && this.canTriggerKeyed(`${stateKey}:start`, config.cooldownMinutes)) {
-      this.bunkerAccumulators.set(stateKey, { startTime: new Date(), accumulatedKg: 0, lastPollTime: new Date() });
-      await this.triggerAlert(config, 'info',
+    if (
+      !wasBunkering &&
+      isBunkering &&
+      notifyOnStart &&
+      this.canTriggerKeyed(`${stateKey}:start`, config.cooldownMinutes)
+    ) {
+      this.bunkerAccumulators.set(stateKey, {
+        startTime: new Date(),
+        accumulatedKg: 0,
+        lastPollTime: new Date(),
+      });
+      await this.triggerAlert(
+        config,
+        "info",
         `Bunkering Detected: ${config.name}`,
         `Bunkering operation detected. Flow rate: ${bunkerFlow.toFixed(1)} kg/h`,
         { flowKgPerH: bunkerFlow }
       );
     }
 
-    if (wasBunkering && !isBunkering && notifyOnEnd && this.canTriggerKeyed(`${stateKey}:end`, config.cooldownMinutes)) {
+    if (
+      wasBunkering &&
+      !isBunkering &&
+      notifyOnEnd &&
+      this.canTriggerKeyed(`${stateKey}:end`, config.cooldownMinutes)
+    ) {
       const acc = this.bunkerAccumulators.get(stateKey);
       const accumulatedKg = acc?.accumulatedKg ?? 0;
       const densityKgPerM3 = snapshot.fuel.foDensity ?? 850;
@@ -224,12 +280,16 @@ class RmsAlertService {
 
       if (minVolumeL > 0 && estimatedLitres < minVolumeL) {
         logger.info(MODULE, "Bunkering end suppressed below minVolumeLitres", {
-          configId: config.id, estimatedLitres, minVolumeL,
+          configId: config.id,
+          estimatedLitres,
+          minVolumeL,
         });
         return;
       }
 
-      await this.triggerAlert(config, 'info',
+      await this.triggerAlert(
+        config,
+        "info",
         `Bunkering Ended: ${config.name}`,
         `Bunkering operation ended. Estimated volume: ${estimatedLitres.toFixed(0)} L (${(accumulatedKg / 1000).toFixed(2)} MT). Min volume filter: ${minVolumeL} L`,
         { flowKgPerH: bunkerFlow, estimatedLitres, accumulatedKg, minVolumeLitres: minVolumeL }
@@ -239,27 +299,37 @@ class RmsAlertService {
 
   private haversineNm(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 3440.065;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  private pointInPolygon(lat: number, lon: number, polygon: Array<{ lat: number; lon: number }>): boolean {
+  private pointInPolygon(
+    lat: number,
+    lon: number,
+    polygon: Array<{ lat: number; lon: number }>
+  ): boolean {
     let inside = false;
     for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-      const xi = polygon[i].lat, yi = polygon[i].lon;
-      const xj = polygon[j].lat, yj = polygon[j].lon;
-      const intersect = ((yi > lon) !== (yj > lon)) &&
-        (lat < (xj - xi) * (lon - yi) / (yj - yi) + xi);
-      if (intersect) {inside = !inside;}
+      const xi = polygon[i].lat,
+        yi = polygon[i].lon;
+      const xj = polygon[j].lat,
+        yj = polygon[j].lon;
+      const intersect = yi > lon !== yj > lon && lat < ((xj - xi) * (lon - yi)) / (yj - yi) + xi;
+      if (intersect) {
+        inside = !inside;
+      }
     }
     return inside;
   }
 
   private canTrigger(config: AlertConfig): boolean {
-    if (!config.lastTriggeredAt) {return true;}
+    if (!config.lastTriggeredAt) {
+      return true;
+    }
     const cooldownMs = config.cooldownMinutes * 60 * 1000;
     return Date.now() - new Date(config.lastTriggeredAt).getTime() > cooldownMs;
   }
@@ -268,15 +338,24 @@ class RmsAlertService {
 
   private canTriggerKeyed(key: string, cooldownMinutes: number): boolean {
     const lastMs = this.transitionCooldowns.get(key);
-    if (!lastMs) { this.transitionCooldowns.set(key, Date.now()); return true; }
+    if (!lastMs) {
+      this.transitionCooldowns.set(key, Date.now());
+      return true;
+    }
     const cooldownMs = cooldownMinutes * 60 * 1000;
-    if (Date.now() - lastMs > cooldownMs) { this.transitionCooldowns.set(key, Date.now()); return true; }
+    if (Date.now() - lastMs > cooldownMs) {
+      this.transitionCooldowns.set(key, Date.now());
+      return true;
+    }
     return false;
   }
 
   private async triggerAlert(
-    config: AlertConfig, severity: string,
-    title: string, message: string, data: Record<string, any>
+    config: AlertConfig,
+    severity: string,
+    title: string,
+    message: string,
+    data: Record<string, any>
   ): Promise<void> {
     try {
       const result = await db.execute(sql`
@@ -293,13 +372,25 @@ class RmsAlertService {
       config.lastTriggeredAt = new Date();
 
       const row = getFirstRow(result);
-      const alertLogId = row?.id || 'unknown';
+      const alertLogId = row?.id || "unknown";
 
-      domainEventBus.emit("rms.alert_triggered", createDomainEvent(
-        "rms.alert_triggered", config.orgId,
-        { alertLogId, configId: config.id, vesselId: config.vesselId, alertType: config.alertType, severity, title, message },
-        { aggregateId: alertLogId, aggregateType: "rms_alert" }
-      ));
+      domainEventBus.emit(
+        "rms.alert_triggered",
+        createDomainEvent(
+          "rms.alert_triggered",
+          config.orgId,
+          {
+            alertLogId,
+            configId: config.id,
+            vesselId: config.vesselId,
+            alertType: config.alertType,
+            severity,
+            title,
+            message,
+          },
+          { aggregateId: alertLogId, aggregateType: "rms_alert" }
+        )
+      );
 
       if (config.notifyInApp) {
         await this.createInAppNotification(config, severity, title, message);
@@ -320,7 +411,9 @@ class RmsAlertService {
       const result = await db.execute(sql`
         SELECT DISTINCT email FROM users WHERE org_id = ${orgId} AND email IS NOT NULL LIMIT 50
       `);
-      const emails = getRows(result).map((r: Record<string, unknown>) => r.email as string).filter(Boolean);
+      const emails = getRows(result)
+        .map((r: Record<string, unknown>) => r.email as string)
+        .filter(Boolean);
       return emails.length > 0 ? emails : [orgId];
     } catch {
       return [orgId];
@@ -328,7 +421,10 @@ class RmsAlertService {
   }
 
   private async createInAppNotification(
-    config: AlertConfig, severity: string, title: string, message: string
+    config: AlertConfig,
+    severity: string,
+    title: string,
+    message: string
   ): Promise<void> {
     try {
       const recipients = await this.getOrgRecipients(config.orgId);
@@ -346,7 +442,10 @@ class RmsAlertService {
   }
 
   private async queueEmailNotification(
-    config: AlertConfig, severity: string, title: string, message: string
+    config: AlertConfig,
+    severity: string,
+    title: string,
+    message: string
   ): Promise<void> {
     try {
       const recipients = await this.getOrgRecipients(config.orgId);

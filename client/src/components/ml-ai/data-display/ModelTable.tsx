@@ -17,25 +17,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ml-ai/utils/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  MoreVertical, 
-  Play, 
-  Archive, 
-  Eye, 
-  RefreshCw,
-  Trash2,
-  ArrowUpDown 
-} from "lucide-react";
+import { MoreVertical, Play, Archive, Eye, RefreshCw, Trash2, ArrowUpDown } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
 
 export interface Model {
   id: string;
   name: string;
-  modelType: 'lstm' | 'random-forest' | 'xgboost';
-  objective: 'health' | 'failure' | 'rul';
+  modelType: "lstm" | "random-forest" | "xgboost";
+  objective: "health" | "failure" | "rul";
   scope: string;
-  status: 'training' | 'deployed' | 'archived';
+  status: "training" | "deployed" | "archived";
   accuracy: number | null;
   lastValidation: Date | null;
   createdAt: Date;
@@ -50,22 +42,22 @@ interface ModelTableProps {
   onArchive: (modelId: string) => void;
   onDelete?: (modelId: string) => void;
   className?: string;
-  'data-testid'?: string;
+  "data-testid"?: string;
 }
 
-type SortField = 'name' | 'modelType' | 'accuracy' | 'lastValidation' | 'createdAt';
-type SortDirection = 'asc' | 'desc';
+type SortField = "name" | "modelType" | "accuracy" | "lastValidation" | "createdAt";
+type SortDirection = "asc" | "desc";
 
 const modelTypeLabels = {
-  'lstm': 'LSTM',
-  'random-forest': 'Random Forest',
-  'xgboost': 'XGBoost',
+  lstm: "LSTM",
+  "random-forest": "Random Forest",
+  xgboost: "XGBoost",
 };
 
 const objectiveLabels = {
-  'health': 'Health Score',
-  'failure': 'Failure Prediction',
-  'rul': 'RUL Estimation',
+  health: "Health Score",
+  failure: "Failure Prediction",
+  rul: "RUL Estimation",
 };
 
 export function ModelTable({
@@ -77,35 +69,39 @@ export function ModelTable({
   onArchive,
   onDelete,
   className,
-  'data-testid': testId,
+  "data-testid": testId,
 }: ModelTableProps) {
-  const [sortField, setSortField] = useState<SortField>('createdAt');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [sortField, setSortField] = useState<SortField>("createdAt");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
-      setSortDirection('asc');
+      setSortDirection("asc");
     }
   };
 
   const sortedModels = [...models].sort((a, b) => {
-    const multiplier = sortDirection === 'asc' ? 1 : -1;
-    
-    if (sortField === 'accuracy') {
+    const multiplier = sortDirection === "asc" ? 1 : -1;
+
+    if (sortField === "accuracy") {
       return ((a.accuracy || 0) - (b.accuracy || 0)) * multiplier;
     }
-    
-    if (sortField === 'lastValidation' || sortField === 'createdAt') {
-      const aDate = sortField === 'lastValidation' ? a.lastValidation : a.createdAt;
-      const bDate = sortField === 'lastValidation' ? b.lastValidation : b.createdAt;
-      if (!aDate) {return 1;}
-      if (!bDate) {return -1;}
+
+    if (sortField === "lastValidation" || sortField === "createdAt") {
+      const aDate = sortField === "lastValidation" ? a.lastValidation : a.createdAt;
+      const bDate = sortField === "lastValidation" ? b.lastValidation : b.createdAt;
+      if (!aDate) {
+        return 1;
+      }
+      if (!bDate) {
+        return -1;
+      }
       return (new Date(aDate).getTime() - new Date(bDate).getTime()) * multiplier;
     }
-    
+
     return String(a[sortField]).localeCompare(String(b[sortField])) * multiplier;
   });
 
@@ -147,7 +143,7 @@ export function ModelTable({
                 </div>
                 <StatusBadge status={model.status} size="sm" />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-muted-foreground">Objective:</span>
@@ -160,25 +156,24 @@ export function ModelTable({
                 <div>
                   <span className="text-muted-foreground">Accuracy:</span>
                   <span className="ml-1 font-medium">
-                    {model.accuracy !== null ? `${model.accuracy.toFixed(1)}%` : '—'}
+                    {model.accuracy !== null ? `${model.accuracy.toFixed(1)}%` : "—"}
                   </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Last Updated:</span>
                   <span className="ml-1 font-medium">
-                    {model.lastValidation 
+                    {model.lastValidation
                       ? formatDistanceToNow(new Date(model.lastValidation), { addSuffix: true })
-                      : '—'
-                    }
+                      : "—"}
                   </span>
                 </div>
               </div>
-              
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="w-full"
                     data-testid={`model-card-${index}-actions`}
                   >
@@ -190,32 +185,32 @@ export function ModelTable({
                     <Eye className="mr-2 h-4 w-4" />
                     View Details
                   </DropdownMenuItem>
-                  
-                  {model.status !== 'deployed' && (
+
+                  {model.status !== "deployed" && (
                     <DropdownMenuItem onClick={() => onDeploy(model.id)}>
                       <Play className="mr-2 h-4 w-4" />
                       Deploy Model
                     </DropdownMenuItem>
                   )}
-                  
+
                   {onTrain && (
                     <DropdownMenuItem onClick={() => onTrain(model.id)}>
                       <RefreshCw className="mr-2 h-4 w-4" />
                       Retrain
                     </DropdownMenuItem>
                   )}
-                  
-                  {model.status !== 'archived' && (
+
+                  {model.status !== "archived" && (
                     <DropdownMenuItem onClick={() => onArchive(model.id)}>
                       <Archive className="mr-2 h-4 w-4" />
                       Archive
                     </DropdownMenuItem>
                   )}
-                  
+
                   {onDelete && (
                     <>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => onDelete(model.id)}
                         className="text-destructive focus:text-destructive"
                       >
@@ -238,7 +233,7 @@ export function ModelTable({
             <TableRow>
               <TableHead className="w-[200px]">
                 <button
-                  onClick={() => handleSort('name')}
+                  onClick={() => handleSort("name")}
                   className="flex items-center gap-1 hover:text-foreground"
                   data-testid="sort-name"
                 >
@@ -248,7 +243,7 @@ export function ModelTable({
               </TableHead>
               <TableHead>
                 <button
-                  onClick={() => handleSort('modelType')}
+                  onClick={() => handleSort("modelType")}
                   className="flex items-center gap-1 hover:text-foreground"
                   data-testid="sort-type"
                 >
@@ -260,7 +255,7 @@ export function ModelTable({
               <TableHead>Scope</TableHead>
               <TableHead>
                 <button
-                  onClick={() => handleSort('accuracy')}
+                  onClick={() => handleSort("accuracy")}
                   className="flex items-center gap-1 hover:text-foreground"
                   data-testid="sort-accuracy"
                 >
@@ -271,7 +266,7 @@ export function ModelTable({
               <TableHead>Status</TableHead>
               <TableHead>
                 <button
-                  onClick={() => handleSort('lastValidation')}
+                  onClick={() => handleSort("lastValidation")}
                   className="flex items-center gap-1 hover:text-foreground"
                   data-testid="sort-last-validation"
                 >
@@ -292,22 +287,21 @@ export function ModelTable({
                 <TableCell>{objectiveLabels[model.objective]}</TableCell>
                 <TableCell className="max-w-[150px] truncate">{model.scope}</TableCell>
                 <TableCell>
-                  {model.accuracy !== null ? `${model.accuracy.toFixed(1)}%` : '—'}
+                  {model.accuracy !== null ? `${model.accuracy.toFixed(1)}%` : "—"}
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={model.status} size="sm" />
                 </TableCell>
                 <TableCell>
-                  {model.lastValidation 
+                  {model.lastValidation
                     ? formatDistanceToNow(new Date(model.lastValidation), { addSuffix: true })
-                    : '—'
-                  }
+                    : "—"}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="icon"
                         data-testid={`model-row-${index}-actions`}
                       >
@@ -319,32 +313,32 @@ export function ModelTable({
                         <Eye className="mr-2 h-4 w-4" />
                         View Details
                       </DropdownMenuItem>
-                      
-                      {model.status !== 'deployed' && (
+
+                      {model.status !== "deployed" && (
                         <DropdownMenuItem onClick={() => onDeploy(model.id)}>
                           <Play className="mr-2 h-4 w-4" />
                           Deploy Model
                         </DropdownMenuItem>
                       )}
-                      
+
                       {onTrain && (
                         <DropdownMenuItem onClick={() => onTrain(model.id)}>
                           <RefreshCw className="mr-2 h-4 w-4" />
                           Retrain
                         </DropdownMenuItem>
                       )}
-                      
-                      {model.status !== 'archived' && (
+
+                      {model.status !== "archived" && (
                         <DropdownMenuItem onClick={() => onArchive(model.id)}>
                           <Archive className="mr-2 h-4 w-4" />
                           Archive
                         </DropdownMenuItem>
                       )}
-                      
+
                       {onDelete && (
                         <>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => onDelete(model.id)}
                             className="text-destructive focus:text-destructive"
                           >

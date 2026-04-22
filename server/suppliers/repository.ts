@@ -52,7 +52,7 @@ export async function listSuppliers(filters: SupplierListFilters) {
     if (types.length === 1) {
       conditions.push(eq(suppliers.type, types[0]));
     } else {
-      conditions.push(or(...types.map(t => eq(suppliers.type, t)))!);
+      conditions.push(or(...types.map((t) => eq(suppliers.type, t)))!);
     }
   }
 
@@ -76,11 +76,7 @@ export async function listSuppliers(filters: SupplierListFilters) {
     .offset(filters.offset || 0);
 }
 
-export async function updateSupplier(
-  id: string,
-  orgId: string,
-  data: Partial<InsertSupplier>
-) {
+export async function updateSupplier(id: string, orgId: string, data: Partial<InsertSupplier>) {
   const [result] = await db
     .update(suppliers)
     .set({ ...data, updatedAt: new Date() })
@@ -103,7 +99,7 @@ export async function getSuppliersWithOrderStats(orgId: string): Promise<Supplie
     .from(suppliers)
     .where(eq(suppliers.orgId, orgId))
     .orderBy(sql`${suppliers.createdAt} DESC`);
-  
+
   const orderCounts = await db
     .select({
       supplierId: purchaseOrders.supplierId,
@@ -112,14 +108,14 @@ export async function getSuppliersWithOrderStats(orgId: string): Promise<Supplie
     .from(purchaseOrders)
     .where(eq(purchaseOrders.orgId, orgId))
     .groupBy(purchaseOrders.supplierId);
-  
+
   const orderCountMap = new Map<string, number>();
   for (const { supplierId, orderCount } of orderCounts) {
     if (supplierId) {
       orderCountMap.set(supplierId, orderCount);
     }
   }
-  
+
   return allSuppliers.map((supplier) => ({
     ...supplier,
     orderCount: orderCountMap.get(supplier.id) ?? 0,
@@ -139,12 +135,7 @@ export async function getPreferredSuppliers(orgId: string) {
     .select()
     .from(suppliers)
     .where(
-      and(
-        eq(suppliers.orgId, orgId),
-        eq(suppliers.isPreferred, true),
-        eq(suppliers.isActive, true)
-      )
+      and(eq(suppliers.orgId, orgId), eq(suppliers.isPreferred, true), eq(suppliers.isActive, true))
     )
     .orderBy(suppliers.name);
 }
-

@@ -1,9 +1,9 @@
 /**
  * Maintenance Service - Backward Compatibility Shim
- * 
+ *
  * This file maintains backward compatibility with existing code
  * while delegating to the new hexagonal application service.
- * 
+ *
  * Migration path:
  * 1. New code should import from './application'
  * 2. This shim will be deprecated once all consumers migrate

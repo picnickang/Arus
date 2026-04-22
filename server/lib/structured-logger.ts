@@ -1,6 +1,6 @@
 /**
  * Structured Logger
- * 
+ *
  * SonarQube Fix: Replace scattered console.log/warn/error calls with structured logging
  * Provides consistent log format, levels, and context for observability
  */
@@ -53,8 +53,10 @@ function getTimestamp(): string {
 
 /** Format error for logging */
 function formatError(error: unknown): LogEntry["error"] | undefined {
-  if (!error) {return undefined;}
-  
+  if (!error) {
+    return undefined;
+  }
+
   if (error instanceof Error) {
     return {
       name: error.name,
@@ -62,7 +64,7 @@ function formatError(error: unknown): LogEntry["error"] | undefined {
       stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     };
   }
-  
+
   return {
     name: "UnknownError",
     message: String(error),
@@ -71,18 +73,22 @@ function formatError(error: unknown): LogEntry["error"] | undefined {
 
 /** Get console function based on log level */
 function getLogFunction(level: LogLevel): typeof console.log {
-  if (level === "error") {return console.error;}
-  if (level === "warn") {return console.warn;}
+  if (level === "error") {
+    return console.error;
+  }
+  if (level === "warn") {
+    return console.warn;
+  }
   return console.log;
 }
 
 /** Output log entry to console */
 function outputLog(entry: LogEntry): void {
   const { timestamp, level, domain, message, context, error } = entry;
-  
+
   const prefix = `[${level.toUpperCase()}] ${timestamp} [${domain}]`;
   const logFn = getLogFunction(level);
-  
+
   if (context || error) {
     logFn(`${prefix} ${message}`, { ...(context || {}), ...(error ? { error } : {}) });
   } else {
@@ -92,7 +98,7 @@ function outputLog(entry: LogEntry): void {
 
 /**
  * Create a domain-specific logger
- * 
+ *
  * @example
  * const logger = createLogger("AuthService");
  * logger.info("User logged in", { userId: "123" });
@@ -100,8 +106,10 @@ function outputLog(entry: LogEntry): void {
  */
 export function createLogger(domain: string) {
   const log = (level: LogLevel, message: string, context?: LogContext, error?: unknown): void => {
-    if (!shouldLog(level)) {return;}
-    
+    if (!shouldLog(level)) {
+      return;
+    }
+
     const entry: LogEntry = {
       timestamp: getTimestamp(),
       level,
@@ -110,30 +118,39 @@ export function createLogger(domain: string) {
       context,
       error: formatError(error),
     };
-    
+
     outputLog(entry);
   };
 
   return {
     debug: (message: string, context?: LogContext) => log("debug", message, context),
     info: (message: string, context?: LogContext) => log("info", message, context),
-    warn: (message: string, context?: LogContext, error?: unknown) => log("warn", message, context, error),
-    error: (message: string, context?: LogContext, error?: unknown) => log("error", message, context, error),
-    
+    warn: (message: string, context?: LogContext, error?: unknown) =>
+      log("warn", message, context, error),
+    error: (message: string, context?: LogContext, error?: unknown) =>
+      log("error", message, context, error),
+
     /** Log with explicit level */
     log,
-    
+
     /** Create child logger with additional context */
     child: (childContext: LogContext) => {
-      const childLog = (level: LogLevel, message: string, context?: LogContext, error?: unknown) => {
+      const childLog = (
+        level: LogLevel,
+        message: string,
+        context?: LogContext,
+        error?: unknown
+      ) => {
         log(level, message, { ...childContext, ...context }, error);
       };
-      
+
       return {
         debug: (message: string, context?: LogContext) => childLog("debug", message, context),
         info: (message: string, context?: LogContext) => childLog("info", message, context),
-        warn: (message: string, context?: LogContext, error?: unknown) => childLog("warn", message, context, error),
-        error: (message: string, context?: LogContext, error?: unknown) => childLog("error", message, context, error),
+        warn: (message: string, context?: LogContext, error?: unknown) =>
+          childLog("warn", message, context, error),
+        error: (message: string, context?: LogContext, error?: unknown) =>
+          childLog("error", message, context, error),
       };
     },
   };

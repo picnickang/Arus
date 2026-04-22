@@ -1,16 +1,16 @@
 /**
  * Observability Module - Backward Compatibility Re-export
- * 
+ *
  * This file re-exports all observability metrics from modular domain-specific files.
- * 
+ *
  * MODULARIZATION COMPLETE:
  * - Original: 1,567 lines
  * - New: ~100 lines (re-exports only)
  * - Reduction: 94%
- * 
+ *
  * New code should import directly from './observability/index' or specific modules.
  * This file exists for backward compatibility with existing imports.
- * 
+ *
  * Module Structure (server/observability/):
  * - core-metrics.ts: Event loop, database, memory monitoring
  * - http-metrics.ts: HTTP request metrics and middleware
@@ -30,7 +30,7 @@
  * - health-endpoints.ts: Health check endpoints
  * - initialization.ts: Metrics initialization
  * - index.ts: Aggregator (this file re-exports from here)
- * 
+ *
  * Pre-existing modules:
  * - inventory-metrics.ts: Advanced inventory management metrics
  * - optimizer-metrics.ts: LP optimizer metrics

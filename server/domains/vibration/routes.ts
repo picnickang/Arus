@@ -119,11 +119,12 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
         },
         thresholds: limits,
         faultIndicators,
-        recommendation: severity === "critical"
-          ? "Immediate inspection recommended"
-          : severity === "warning"
-            ? "Schedule inspection within 7 days"
-            : "Continue normal monitoring",
+        recommendation:
+          severity === "critical"
+            ? "Immediate inspection recommended"
+            : severity === "warning"
+              ? "Schedule inspection within 7 days"
+              : "Continue normal monitoring",
         timestamp: new Date().toISOString(),
       });
     })
@@ -188,7 +189,9 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
 
       if (frequencies && amplitudes) {
         Object.entries(faultFrequencies).forEach(([faultType, targetFreq]) => {
-          if (targetFreq === 0) {return;}
+          if (targetFreq === 0) {
+            return;
+          }
 
           for (let harmonic = 1; harmonic <= 3; harmonic++) {
             const searchFreq = targetFreq * harmonic;

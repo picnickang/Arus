@@ -73,7 +73,8 @@ const METRICS = [
     name: "ts-expect-error",
     pattern: "@ts-expect-error",
     exclude: null,
-    description: "@ts-expect-error directives (better than @ts-ignore — tracks when the ignored error resolves)",
+    description:
+      "@ts-expect-error directives (better than @ts-ignore — tracks when the ignored error resolves)",
     goodIsHigher: true, // More @ts-expect-error vs @ts-ignore is an improvement
   },
   {
@@ -186,9 +187,7 @@ function renderTable(counts, baseline) {
     const current = counts[metric.name];
     const base = baseline?.counts?.[metric.name];
     const delta = formatDelta(current, base, metric.goodIsHigher);
-    lines.push(
-      `| \`${metric.name}\` | ${current} | ${delta} | ${metric.description} |`
-    );
+    lines.push(`| \`${metric.name}\` | ${current} | ${delta} | ${metric.description} |`);
   }
 
   return lines.join("\n");
@@ -274,9 +273,7 @@ if (isStrict && baseline) {
     const delta = current - base;
     const isRegression = metric.goodIsHigher ? delta < 0 : delta > 0;
     if (isRegression) {
-      console.error(
-        `\nREGRESSION: ${metric.name} went from ${base} to ${current}`
-      );
+      console.error(`\nREGRESSION: ${metric.name} went from ${base} to ${current}`);
       process.exit(1);
     }
   }

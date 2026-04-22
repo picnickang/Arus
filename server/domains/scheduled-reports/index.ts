@@ -3,22 +3,22 @@
  * Provides factory function to create and wire all domain components
  */
 
-import { ReportSchedulerService } from './application/report-scheduler-service.js';
-import { ReportGenerationService } from './application/report-generation-service.js';
+import { ReportSchedulerService } from "./application/report-scheduler-service.js";
+import { ReportGenerationService } from "./application/report-generation-service.js";
 import {
   ReportScheduleRepositoryAdapter,
   GeneratedReportRepositoryAdapter,
-} from './infrastructure/report-repository-adapter.js';
-import { PdfGeneratorAdapter } from './infrastructure/pdf-generator-adapter.js';
-import { EmailDeliveryAdapter } from './infrastructure/email-delivery-adapter.js';
-import { ReportStorageAdapter } from './infrastructure/storage-adapter.js';
-import { ReportEventPublisherAdapter } from './infrastructure/event-publisher-adapter.js';
-import { DefaultReportGeneratorRegistry } from './generators/index.js';
-import { createScheduledReportsRouter } from './interfaces/routes.js';
-import { isCloudMode, canUseCloudFeature } from '../../config/runtimeEnv.js';
-import { logger } from '../../utils/logger.js';
+} from "./infrastructure/report-repository-adapter.js";
+import { PdfGeneratorAdapter } from "./infrastructure/pdf-generator-adapter.js";
+import { EmailDeliveryAdapter } from "./infrastructure/email-delivery-adapter.js";
+import { ReportStorageAdapter } from "./infrastructure/storage-adapter.js";
+import { ReportEventPublisherAdapter } from "./infrastructure/event-publisher-adapter.js";
+import { DefaultReportGeneratorRegistry } from "./generators/index.js";
+import { createScheduledReportsRouter } from "./interfaces/routes.js";
+import { isCloudMode, canUseCloudFeature } from "../../config/runtimeEnv.js";
+import { logger } from "../../utils/logger.js";
 
-const LOG_CTX = 'ScheduledReportsDomain';
+const LOG_CTX = "ScheduledReportsDomain";
 
 export interface ScheduledReportsDomain {
   schedulerService: ReportSchedulerService;
@@ -66,16 +66,16 @@ export function createScheduledReportsDomain(): ScheduledReportsDomain {
     generationService,
     router,
     async initialize() {
-      if (!isCloudMode || !canUseCloudFeature('scheduledReports')) {
-        logger.info(LOG_CTX, 'Scheduled reports domain disabled (vessel mode)');
+      if (!isCloudMode || !canUseCloudFeature("scheduledReports")) {
+        logger.info(LOG_CTX, "Scheduled reports domain disabled (vessel mode)");
         return;
       }
       await schedulerService.initialize();
-      logger.info(LOG_CTX, 'Scheduled reports domain initialized');
+      logger.info(LOG_CTX, "Scheduled reports domain initialized");
     },
     async shutdown() {
       await schedulerService.shutdown();
-      logger.info(LOG_CTX, 'Scheduled reports domain shut down');
+      logger.info(LOG_CTX, "Scheduled reports domain shut down");
     },
   };
 
@@ -83,7 +83,7 @@ export function createScheduledReportsDomain(): ScheduledReportsDomain {
 }
 
 export function registerScheduledReportsRoutes(
-  app: import('express').Express,
+  app: import("express").Express,
   deps: { requireOrgId: any; generalApiRateLimit: any }
 ) {
   const domain = createScheduledReportsDomain();
@@ -92,5 +92,5 @@ export function registerScheduledReportsRoutes(
 }
 
 export { ReportSchedulerService, ReportGenerationService };
-export * from './domain/types.js';
-export * from './domain/events.js';
+export * from "./domain/types.js";
+export * from "./domain/events.js";

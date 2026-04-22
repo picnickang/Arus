@@ -2,8 +2,22 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DataWindowPreset, DataWindowTier } from "./DataWindowPreset";
 import { ModelTypeSelector } from "./ModelTypeSelector";
@@ -16,10 +30,14 @@ export type ModelType = "lstm" | "random-forest" | "xgboost";
 export type ModelObjective = "health" | "failure" | "rul";
 
 const trainingConfigSchema = z.object({
-  modelType: z.enum(["lstm", "random-forest", "xgboost"], { required_error: "Please select a model type" }),
+  modelType: z.enum(["lstm", "random-forest", "xgboost"], {
+    required_error: "Please select a model type",
+  }),
   objective: z.enum(["health", "failure", "rul"], { required_error: "Please select an objective" }),
   equipmentScope: z.string().min(1, "Please select equipment scope"),
-  dataWindow: z.enum(["bronze", "silver", "gold", "platinum"], { required_error: "Please select a data window" }),
+  dataWindow: z.enum(["bronze", "silver", "gold", "platinum"], {
+    required_error: "Please select a data window",
+  }),
   epochs: z.coerce.number().int().min(10).max(500).optional(),
   sequenceLength: z.coerce.number().int().min(5).max(50).optional(),
   learningRate: z.coerce.number().min(0.0001).max(0.1).optional(),
@@ -40,7 +58,10 @@ interface ModelTrainingFormProps {
   "data-testid"?: string;
 }
 
-const dataWindowPresets: Record<DataWindowTier, { days: number; label: string; description: string }> = {
+const dataWindowPresets: Record<
+  DataWindowTier,
+  { days: number; label: string; description: string }
+> = {
   bronze: { days: 90, label: "Bronze", description: "Quick training with 3 months of data" },
   silver: { days: 180, label: "Silver", description: "Balanced training with 6 months of data" },
   gold: { days: 365, label: "Gold", description: "Comprehensive training with 1 year of data" },
@@ -64,12 +85,25 @@ const defaultAdvanced: Partial<TrainingConfig> = {
   batchSize: 32,
 };
 
-export function ModelTrainingForm({ onSubmit, equipmentTypes, defaultValues, loading = false, "data-testid": testId }: ModelTrainingFormProps) {
+export function ModelTrainingForm({
+  onSubmit,
+  equipmentTypes,
+  defaultValues,
+  loading = false,
+  "data-testid": testId,
+}: ModelTrainingFormProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const form = useForm<TrainingConfig>({
     resolver: zodResolver(trainingConfigSchema),
-    defaultValues: { modelType: undefined, objective: undefined, equipmentScope: "", dataWindow: undefined, ...defaultAdvanced, ...defaultValues },
+    defaultValues: {
+      modelType: undefined,
+      objective: undefined,
+      equipmentScope: "",
+      dataWindow: undefined,
+      ...defaultAdvanced,
+      ...defaultValues,
+    },
   });
 
   const selectedModelType = form.watch("modelType");
@@ -80,7 +114,11 @@ export function ModelTrainingForm({ onSubmit, equipmentTypes, defaultValues, loa
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6" data-testid={testId}>
+      <form
+        onSubmit={form.handleSubmit(handleFormSubmit)}
+        className="space-y-6"
+        data-testid={testId}
+      >
         {/* Model Type Selection */}
         <FormField
           control={form.control}
@@ -114,7 +152,9 @@ export function ModelTrainingForm({ onSubmit, equipmentTypes, defaultValues, loa
                   <SelectContent>
                     <SelectItem value="all">All Equipment Types</SelectItem>
                     {equipmentTypes.map((type) => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -138,7 +178,9 @@ export function ModelTrainingForm({ onSubmit, equipmentTypes, defaultValues, loa
                   </FormControl>
                   <SelectContent>
                     {(Object.keys(objectiveLabels) as ModelObjective[]).map((obj) => (
-                      <SelectItem key={obj} value={obj}>{objectiveLabels[obj]}</SelectItem>
+                      <SelectItem key={obj} value={obj}>
+                        {objectiveLabels[obj]}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -183,9 +225,19 @@ export function ModelTrainingForm({ onSubmit, equipmentTypes, defaultValues, loa
         {/* Advanced Options */}
         <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
           <CollapsibleTrigger asChild>
-            <Button type="button" variant="ghost" className="w-full justify-between" data-testid="toggle-advanced-options">
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full justify-between"
+              data-testid="toggle-advanced-options"
+            >
               <span>Advanced Options</span>
-              <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", advancedOpen && "rotate-180")} />
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 transition-transform duration-200",
+                  advancedOpen && "rotate-180"
+                )}
+              />
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent>
@@ -195,7 +247,12 @@ export function ModelTrainingForm({ onSubmit, equipmentTypes, defaultValues, loa
 
         {/* Submit Button */}
         <div className="sticky bottom-0 bg-background p-4 border-t md:static md:p-0 md:border-0 -mx-4 md:mx-0">
-          <Button type="submit" className="w-full md:w-auto" disabled={loading} data-testid="button-submit-training">
+          <Button
+            type="submit"
+            className="w-full md:w-auto"
+            disabled={loading}
+            data-testid="button-submit-training"
+          >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {loading ? "Starting Training..." : "Start Training"}
           </Button>

@@ -13,11 +13,7 @@ import {
   ArrowUpCircle,
   Cloud,
 } from "lucide-react";
-import {
-  isDesktop,
-  getDesktopAPI,
-  type UpdateInfo,
-} from "@/lib/desktop";
+import { isDesktop, getDesktopAPI, type UpdateInfo } from "@/lib/desktop";
 import { ReleaseNotesMarkdown } from "@/components/ui/safe-markdown";
 
 type UpdateStatus =
@@ -55,7 +51,9 @@ export function DesktopUpdatePanel() {
 
   const handleCheckForUpdates = useCallback(async () => {
     const api = getDesktopAPI();
-    if (!api) {return;}
+    if (!api) {
+      return;
+    }
 
     setState((prev) => ({ ...prev, status: "checking", error: undefined }));
 
@@ -86,7 +84,9 @@ export function DesktopUpdatePanel() {
 
   const handleInstall = useCallback(async () => {
     const api = getDesktopAPI();
-    if (!api) {return;}
+    if (!api) {
+      return;
+    }
 
     setState((prev) => ({ ...prev, status: "downloading" }));
 
@@ -214,8 +214,8 @@ export function DesktopUpdatePanel() {
               <CheckCircle className="h-4 w-4 text-green-500" />
               <AlertTitle>Update Installed</AlertTitle>
               <AlertDescription>
-                Update v{state.availableVersion} has been installed. The application will restart
-                to apply changes.
+                Update v{state.availableVersion} has been installed. The application will restart to
+                apply changes.
               </AlertDescription>
             </Alert>
           </div>
@@ -228,11 +228,7 @@ export function DesktopUpdatePanel() {
               <AlertTitle>Update Error</AlertTitle>
               <AlertDescription>{state.error || "An unknown error occurred"}</AlertDescription>
             </Alert>
-            <Button
-              onClick={handleCheckForUpdates}
-              variant="outline"
-              data-testid="button-retry"
-            >
+            <Button onClick={handleCheckForUpdates} variant="outline" data-testid="button-retry">
               <RefreshCw className="mr-2 h-4 w-4" />
               Try Again
             </Button>

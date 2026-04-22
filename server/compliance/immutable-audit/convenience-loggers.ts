@@ -4,7 +4,7 @@
  * Pre-configured logging methods for common audit events.
  */
 
-import type { AuditEventInput, AuditRecord, AuditEventType } from './types';
+import type { AuditEventInput, AuditRecord, AuditEventType } from "./types";
 
 type LogEventFn = (input: AuditEventInput) => Promise<AuditRecord>;
 
@@ -23,13 +23,13 @@ export function createConvenienceLoggers(logEvent: LogEventFn) {
     ): Promise<AuditRecord> {
       return logEvent({
         orgId,
-        eventCategory: 'authentication',
-        eventType: success ? 'login' : 'login_failed',
-        entityType: 'user',
+        eventCategory: "authentication",
+        eventType: success ? "login" : "login_failed",
+        entityType: "user",
         entityId: userId,
         performedBy: userId,
         performedByName: userName,
-        performedByType: 'user',
+        performedByType: "user",
         ipAddress,
         deviceId,
         metadata: { success },
@@ -40,20 +40,21 @@ export function createConvenienceLoggers(logEvent: LogEventFn) {
       orgId: string,
       entityType: string,
       entityId: string,
-      eventType: 'create' | 'update' | 'delete',
+      eventType: "create" | "update" | "delete",
       performedBy: string,
       performedByName?: string,
       previousState?: T,
       newState?: T,
       ipAddress?: string
     ): Promise<AuditRecord> {
-      const changedFields = previousState && newState
-        ? Object.keys(newState).filter(k => previousState[k] !== newState[k])
-        : undefined;
+      const changedFields =
+        previousState && newState
+          ? Object.keys(newState).filter((k) => previousState[k] !== newState[k])
+          : undefined;
 
       return logEvent({
         orgId,
-        eventCategory: 'data_modification',
+        eventCategory: "data_modification",
         eventType,
         entityType,
         entityId,
@@ -62,7 +63,7 @@ export function createConvenienceLoggers(logEvent: LogEventFn) {
         changedFields,
         performedBy,
         performedByName,
-        performedByType: 'user',
+        performedByType: "user",
         ipAddress,
       });
     },
@@ -76,12 +77,12 @@ export function createConvenienceLoggers(logEvent: LogEventFn) {
     ): Promise<AuditRecord> {
       return logEvent({
         orgId,
-        eventCategory: 'ml_prediction',
-        eventType: 'prediction_generated',
-        entityType: 'equipment',
+        eventCategory: "ml_prediction",
+        eventType: "prediction_generated",
+        entityType: "equipment",
         entityId: equipmentId,
-        performedBy: 'ml_service',
-        performedByType: 'ml_service',
+        performedBy: "ml_service",
+        performedByType: "ml_service",
         newState: prediction,
         metadata: { predictionId, modelId },
       });
@@ -99,16 +100,16 @@ export function createConvenienceLoggers(logEvent: LogEventFn) {
     ): Promise<AuditRecord> {
       return logEvent({
         orgId,
-        eventCategory: 'ml_prediction',
-        eventType: 'prediction_overridden',
-        entityType: 'equipment',
+        eventCategory: "ml_prediction",
+        eventType: "prediction_overridden",
+        entityType: "equipment",
         entityId: equipmentId,
         previousState: originalPrediction,
         newState: newValues,
         performedBy: engineerId,
         performedByName: engineerName,
-        performedByType: 'user',
-        complianceStandard: 'ML_GOVERNANCE',
+        performedByType: "user",
+        complianceStandard: "ML_GOVERNANCE",
         metadata: { overrideId, justification },
       });
     },
@@ -116,7 +117,7 @@ export function createConvenienceLoggers(logEvent: LogEventFn) {
     async logWorkOrderAction(
       orgId: string,
       workOrderId: string,
-      eventType: 'work_order_created' | 'work_order_completed' | 'work_order_cancelled',
+      eventType: "work_order_created" | "work_order_completed" | "work_order_cancelled",
       performedBy: string,
       performedByName?: string,
       previousState?: Record<string, unknown>,
@@ -125,17 +126,17 @@ export function createConvenienceLoggers(logEvent: LogEventFn) {
     ): Promise<AuditRecord> {
       return logEvent({
         orgId,
-        eventCategory: 'maintenance_action',
+        eventCategory: "maintenance_action",
         eventType,
-        entityType: 'work_order',
+        entityType: "work_order",
         entityId: workOrderId,
         previousState,
         newState,
         performedBy,
         performedByName,
-        performedByType: 'user',
+        performedByType: "user",
         vesselId,
-        complianceStandard: 'ISM_CODE',
+        complianceStandard: "ISM_CODE",
       });
     },
 
@@ -150,14 +151,14 @@ export function createConvenienceLoggers(logEvent: LogEventFn) {
     ): Promise<AuditRecord> {
       return logEvent({
         orgId,
-        eventCategory: 'security_event',
+        eventCategory: "security_event",
         eventType,
         entityType,
         entityId,
         performedBy,
-        performedByType: 'system',
+        performedByType: "system",
         ipAddress,
-        complianceStandard: 'IMO_2021_CYBER',
+        complianceStandard: "IMO_2021_CYBER",
         metadata,
       });
     },
@@ -173,12 +174,12 @@ export function createConvenienceLoggers(logEvent: LogEventFn) {
     ): Promise<AuditRecord> {
       return logEvent({
         orgId,
-        eventCategory: 'compliance_event',
+        eventCategory: "compliance_event",
         eventType,
         entityType,
         entityId,
         performedBy,
-        performedByType: 'user',
+        performedByType: "user",
         complianceStandard,
         retentionRequired: true,
         metadata,

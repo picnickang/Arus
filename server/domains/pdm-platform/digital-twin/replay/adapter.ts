@@ -32,7 +32,13 @@ export class ReplayAdapter implements ReplayPort {
       .orderBy(desc(twinEvents.timestamp))
       .limit(limit);
 
-    const telemetryEntries = await this.getTelemetryContext(orgId, twinId, startTime, endTime, Math.max(50, limit));
+    const telemetryEntries = await this.getTelemetryContext(
+      orgId,
+      twinId,
+      startTime,
+      endTime,
+      Math.max(50, limit)
+    );
 
     const merged: TimelineEntry[] = [
       ...events.map((e) => ({
@@ -78,7 +84,9 @@ export class ReplayAdapter implements ReplayPort {
         .where(and(eq(assetTwins.orgId, orgId), eq(assetTwins.id, twinId)))
         .limit(1);
 
-      if (!twin) {return [];}
+      if (!twin) {
+        return [];
+      }
 
       const telemetry = await db
         .select()

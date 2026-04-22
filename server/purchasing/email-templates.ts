@@ -3,15 +3,19 @@
  * Email HTML generation for purchase orders
  */
 
-import { emailTemplatesService } from '../domains/alerts/email-templates-service';
+import { emailTemplatesService } from "../domains/alerts/email-templates-service";
 
 function formatDate(date: Date | string | null | undefined): string {
-  if (!date) {return "";}
+  if (!date) {
+    return "";
+  }
   const d = typeof date === "string" ? new Date(date) : date;
   return d.toLocaleDateString();
 }
 
-function buildItemsTableHtml(items: { partName?: string; partNumber?: string; quantity: number }[]): string {
+function buildItemsTableHtml(
+  items: { partName?: string; partNumber?: string; quantity: number }[]
+): string {
   const itemsHtml = items
     .map(
       (item) => `
@@ -60,18 +64,18 @@ export async function generatePOEmailHtmlWithTemplate(
 ): Promise<{ subject: string; body: string }> {
   const templates = await emailTemplatesService.getTemplates(orgId);
   const template = templates.purchaseOrder;
-  
+
   const placeholderData: Record<string, string> = {
     orderNumber: po.orderNumber,
     supplierName: supplier.name,
     requestNumber: pr.requestNumber,
-    requiredByDate: pr.requiredByDate 
-      ? `<p><strong>Required By:</strong> ${formatDate(pr.requiredByDate)}</p>` 
-      : '',
+    requiredByDate: pr.requiredByDate
+      ? `<p><strong>Required By:</strong> ${formatDate(pr.requiredByDate)}</p>`
+      : "",
     itemsTable: buildItemsTableHtml(items),
     quotationRequestBox: buildQuotationRequestBox(),
   };
-  
+
   return {
     subject: emailTemplatesService.renderTemplate(template.subject, placeholderData),
     body: emailTemplatesService.renderTemplate(template.body, placeholderData),

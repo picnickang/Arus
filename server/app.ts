@@ -1,6 +1,6 @@
 /**
  * Express App Factory
- * 
+ *
  * Creates and configures the Express application for testing and production use.
  * Separates app creation from server startup for testability.
  */

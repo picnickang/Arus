@@ -1,6 +1,6 @@
 // Stub file - ingestion worker consolidated
 export async function startIngestionWorker(): Promise<void> {
-  console.log('[Ingestion Worker] Worker startup skipped - Phase A uses sqlite-bridge only');
+  console.log("[Ingestion Worker] Worker startup skipped - Phase A uses sqlite-bridge only");
 }
 
 export async function stopIngestionWorker(): Promise<void> {

@@ -11,23 +11,37 @@ export class AgentTaskRepositoryAdapter implements AgentTaskRepositoryPort {
   }
 
   async getById(id: string, orgId: string): Promise<AgentTask | null> {
-    const [task] = await db.select().from(agentTasks)
+    const [task] = await db
+      .select()
+      .from(agentTasks)
       .where(and(eq(agentTasks.id, id), eq(agentTasks.orgId, orgId)));
     return task ?? null;
   }
 
   async list(orgId: string, filter?: AgentTaskFilter): Promise<AgentTask[]> {
     const conditions = [eq(agentTasks.orgId, orgId)];
-    if (filter?.status) {conditions.push(eq(agentTasks.status, filter.status));}
-    if (filter?.priority) {conditions.push(eq(agentTasks.priority, filter.priority));}
-    if (filter?.source) {conditions.push(eq(agentTasks.source, filter.source));}
-    if (filter?.equipmentId) {conditions.push(eq(agentTasks.equipmentId, filter.equipmentId));}
-    if (filter?.vesselId) {conditions.push(eq(agentTasks.vesselId, filter.vesselId));}
+    if (filter?.status) {
+      conditions.push(eq(agentTasks.status, filter.status));
+    }
+    if (filter?.priority) {
+      conditions.push(eq(agentTasks.priority, filter.priority));
+    }
+    if (filter?.source) {
+      conditions.push(eq(agentTasks.source, filter.source));
+    }
+    if (filter?.equipmentId) {
+      conditions.push(eq(agentTasks.equipmentId, filter.equipmentId));
+    }
+    if (filter?.vesselId) {
+      conditions.push(eq(agentTasks.vesselId, filter.vesselId));
+    }
 
     const limit = filter?.limit ?? 50;
     const offset = filter?.offset ?? 0;
 
-    return db.select().from(agentTasks)
+    return db
+      .select()
+      .from(agentTasks)
       .where(and(...conditions))
       .orderBy(desc(agentTasks.createdAt))
       .limit(limit)
@@ -35,7 +49,8 @@ export class AgentTaskRepositoryAdapter implements AgentTaskRepositoryPort {
   }
 
   async update(id: string, data: Partial<AgentTask>): Promise<AgentTask> {
-    const [task] = await db.update(agentTasks)
+    const [task] = await db
+      .update(agentTasks)
       .set({ ...data, updatedAt: new Date() })
       .where(eq(agentTasks.id, id))
       .returning();

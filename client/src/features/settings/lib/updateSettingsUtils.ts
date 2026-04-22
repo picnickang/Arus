@@ -5,8 +5,14 @@ export const updateSettingsSchema = z.object({
   autoUpdateCriticalOnly: z.boolean().default(true),
   updateChannel: z.enum(["alpha", "beta", "stable"]).default("stable"),
   checkInterval: z.number().min(3600).max(604800).default(21600),
-  maintenanceWindowStart: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-  maintenanceWindowEnd: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  maintenanceWindowStart: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional(),
+  maintenanceWindowEnd: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional(),
   maintenanceWindowTimezone: z.string().default("UTC"),
   deferUpdatesUntilPort: z.boolean().default(false),
   maxDownloadBandwidthKbps: z.number().min(0).max(100000).optional(),
@@ -70,7 +76,9 @@ export function createDefaultUpdateSettings(): UpdateSettingsForm {
 
 export function formatCheckInterval(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
-  if (hours < 24) {return `${hours} hour${hours !== 1 ? "s" : ""}`;}
+  if (hours < 24) {
+    return `${hours} hour${hours !== 1 ? "s" : ""}`;
+  }
   const days = Math.floor(hours / 24);
   return `${days} day${days !== 1 ? "s" : ""}`;
 }
@@ -133,15 +141,23 @@ export function getDeviceStatusLabel(status: string): string {
 }
 
 export function formatLastSeen(date: string | null): string {
-  if (!date) {return "Never";}
+  if (!date) {
+    return "Never";
+  }
   const d = new Date(date);
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
   const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1) {return "Just now";}
-  if (diffMins < 60) {return `${diffMins}m ago`;}
+  if (diffMins < 1) {
+    return "Just now";
+  }
+  if (diffMins < 60) {
+    return `${diffMins}m ago`;
+  }
   const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) {return `${diffHours}h ago`;}
+  if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  }
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays}d ago`;
 }

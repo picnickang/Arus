@@ -1,6 +1,6 @@
 /**
  * Weibull Parameter Estimation
- * 
+ *
  * Statistical estimation of Weibull distribution parameters using MLE.
  */
 
@@ -33,10 +33,7 @@ export function estimateWeibullParameters(lifeData: EquipmentLifeData[]): Weibul
 
     const sumLogT = failureTimes.reduce((sum, t) => sum + Math.log(t), 0);
     const sumTBeta = failureTimes.reduce((sum, t) => sum + Math.pow(t, shape), 0);
-    const sumTBetaLogT = failureTimes.reduce(
-      (sum, t) => sum + Math.pow(t, shape) * Math.log(t),
-      0
-    );
+    const sumTBetaLogT = failureTimes.reduce((sum, t) => sum + Math.pow(t, shape) * Math.log(t), 0);
     const sumTBetaLogT2 = failureTimes.reduce(
       (sum, t) => sum + Math.pow(t, shape) * Math.pow(Math.log(t), 2),
       0
@@ -86,8 +83,12 @@ export function estimateWeibullParameters(lifeData: EquipmentLifeData[]): Weibul
 }
 
 export function estimateInitialShape(failureTimes: number[], cv: number): number {
-  if (cv < 0.3) {return 3.5;}
-  if (cv < 0.8) {return 2;}
+  if (cv < 0.3) {
+    return 3.5;
+  }
+  if (cv < 0.8) {
+    return 2;
+  }
   return 1;
 }
 
@@ -108,7 +109,9 @@ export function calculateWeibullGoodnessOfFit(
   location: number
 ): number {
   const n = failureTimes.length;
-  if (n < 3) {return 0.5;}
+  if (n < 3) {
+    return 0.5;
+  }
 
   let sumXY = 0,
     sumX = 0,
@@ -134,9 +137,17 @@ export function calculateWeibullGoodnessOfFit(
 }
 
 export function gammaFunction(x: number): number {
-  if (x === 1) {return 1;}
-  if (x === 1.5) {return Math.sqrt(Math.PI) / 2;}
-  if (x === 2) {return 1;}
-  if (x === 2.5) {return (3 * Math.sqrt(Math.PI)) / 4;}
+  if (x === 1) {
+    return 1;
+  }
+  if (x === 1.5) {
+    return Math.sqrt(Math.PI) / 2;
+  }
+  if (x === 2) {
+    return 1;
+  }
+  if (x === 2.5) {
+    return (3 * Math.sqrt(Math.PI)) / 4;
+  }
   return Math.sqrt((2 * Math.PI) / x) * Math.pow(x / Math.E, x);
 }

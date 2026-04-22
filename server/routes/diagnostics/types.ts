@@ -3,7 +3,7 @@
  */
 
 export interface HealthCheckResult {
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   timestamp: string;
   version: string;
   uptime: number;
@@ -16,7 +16,7 @@ export interface HealthCheckResult {
 }
 
 export interface CheckResult {
-  status: 'pass' | 'warn' | 'fail';
+  status: "pass" | "warn" | "fail";
   responseTimeMs?: number;
   message?: string;
   details?: Record<string, any>;
@@ -24,7 +24,7 @@ export interface CheckResult {
 
 export interface ServiceStatus {
   name: string;
-  status: 'running' | 'stopped' | 'error';
+  status: "running" | "stopped" | "error";
   lastHealthCheck?: string;
   details?: Record<string, any>;
 }

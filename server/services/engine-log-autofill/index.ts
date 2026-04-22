@@ -1,7 +1,7 @@
 /**
  * Engine Log Auto-Fill Service - Index Aggregator
  * Combines all modular auto-fill functionality
- * 
+ *
  * Modularized into 8 files:
  * - types.ts (~95 lines): Type definitions and interfaces
  * - logging.ts (~30 lines): Structured logging utilities
@@ -17,7 +17,11 @@
 export * from "./types.js";
 export { log } from "./logging.js";
 export { DEFAULT_TELEMETRY_MAPPING, GENERATOR_TELEMETRY_MAPPING } from "./mappings.js";
-export { ENGINE_ANOMALY_THRESHOLDS, GENERATOR_ANOMALY_THRESHOLDS, checkAnomaly } from "./thresholds.js";
+export {
+  ENGINE_ANOMALY_THRESHOLDS,
+  GENERATOR_ANOMALY_THRESHOLDS,
+  checkAnomaly,
+} from "./thresholds.js";
 export { batchFetchTelemetry, aggregateTelemetryByHour } from "./telemetry-fetcher.js";
 export { fetchFMCCFuelForDay, updateDailyLogWithFMCCFuel } from "./fmcc-integration.js";
 export { autoFillFromTelemetry } from "./engine-autofill.js";

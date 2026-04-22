@@ -63,13 +63,17 @@ export function countWorkHours(day: RestDay): number {
   let work = 0;
   for (let h = 0; h < 24; h++) {
     const isRest = Number.parseInt(String(day[`h${h}` as keyof RestDay] || 0)) === 1;
-    if (!isRest) {work++;}
+    if (!isRest) {
+      work++;
+    }
   }
   return work;
 }
 
 export function findLongestRestBlock(day: RestDay): number {
   const chunks = chunksFromDay(day);
-  if (chunks.length === 0) {return 0;}
-  return Math.max(...chunks.map(c => c.end - c.start));
+  if (chunks.length === 0) {
+    return 0;
+  }
+  return Math.max(...chunks.map((c) => c.end - c.start));
 }

@@ -1,6 +1,6 @@
 /**
  * Report Context Knowledge & Citations
- * 
+ *
  * KB knowledge fetching and citation building.
  */
 
@@ -17,37 +17,43 @@ export async function fetchKBKnowledge(
   reportType: string
 ): Promise<ReportContext["knowledge"]> {
   if (!db) {
-    console.info('[Context] KB knowledge skipped: database not available (offline mode)');
+    console.info("[Context] KB knowledge skipped: database not available (offline mode)");
     return { documents: [], semanticMatches: [] };
   }
 
   try {
-    const equipmentTypes = [...new Set(equipment.map(e => e.type).filter(Boolean))];
-    const equipmentNames = equipment.slice(0, 5).map(e => e.name).filter(Boolean);
-    const equipmentSystems = [...new Set(equipment.map(e => e.system).filter(Boolean))];
-    const criticalEquipment = equipment.filter(e => e.criticality === 'critical' || e.criticality === 'high');
-    const criticalTypes = [...new Set(criticalEquipment.map(e => e.type).filter(Boolean))];
-    
-    const typeContext = equipmentTypes.slice(0, 3).join(' ');
-    const nameContext = equipmentNames.slice(0, 2).join(' ');
-    const systemContext = equipmentSystems.slice(0, 2).join(' ');
-    const criticalContext = criticalTypes.slice(0, 2).join(' ');
-    
+    const equipmentTypes = [...new Set(equipment.map((e) => e.type).filter(Boolean))];
+    const equipmentNames = equipment
+      .slice(0, 5)
+      .map((e) => e.name)
+      .filter(Boolean);
+    const equipmentSystems = [...new Set(equipment.map((e) => e.system).filter(Boolean))];
+    const criticalEquipment = equipment.filter(
+      (e) => e.criticality === "critical" || e.criticality === "high"
+    );
+    const criticalTypes = [...new Set(criticalEquipment.map((e) => e.type).filter(Boolean))];
+
+    const typeContext = equipmentTypes.slice(0, 3).join(" ");
+    const nameContext = equipmentNames.slice(0, 2).join(" ");
+    const systemContext = equipmentSystems.slice(0, 2).join(" ");
+    const criticalContext = criticalTypes.slice(0, 2).join(" ");
+
     const searchQueryTemplates: Record<string, string> = {
-      health: `equipment health monitoring diagnostics ${typeContext} ${nameContext} ${criticalContext ? `critical ${criticalContext}` : ''} condition assessment failure indicators`,
+      health: `equipment health monitoring diagnostics ${typeContext} ${nameContext} ${criticalContext ? `critical ${criticalContext}` : ""} condition assessment failure indicators`,
       maintenance: `maintenance procedures preventive corrective ${typeContext} ${nameContext} ${systemContext} service intervals troubleshooting spare parts`,
       fleet_summary: `fleet operations vessel performance ${typeContext} ${systemContext} maintenance summary operational efficiency fuel consumption`,
       compliance: `regulatory compliance SOLAS MARPOL class survey certification inspection ${typeContext} ${criticalContext} safety requirements ISM code`,
     };
-    const defaultQuery = (typeContext || nameContext || systemContext)
-      ? `marine equipment ${typeContext} ${nameContext} ${systemContext} operations maintenance procedures`
-      : 'marine equipment maintenance operations procedures safety vessel systems';
+    const defaultQuery =
+      typeContext || nameContext || systemContext
+        ? `marine equipment ${typeContext} ${nameContext} ${systemContext} operations maintenance procedures`
+        : "marine equipment maintenance operations procedures safety vessel systems";
     const searchQuery = (searchQueryTemplates[reportType] ?? defaultQuery).trim();
 
-    const orgEquipment = equipment.filter(e => !e.orgId || e.orgId === orgId);
-    const equipmentIds = orgEquipment.map(e => e.id).filter(Boolean);
+    const orgEquipment = equipment.filter((e) => !e.orgId || e.orgId === orgId);
+    const equipmentIds = orgEquipment.map((e) => e.id).filter(Boolean);
     let linkedDocuments: any[] = [];
-    
+
     if (equipmentIds.length > 0 && kbDocs) {
       try {
         linkedDocuments = await db
@@ -58,15 +64,10 @@ export async function fetchKBKnowledge(
             extractedText: kbDocs.extractedText,
           })
           .from(kbDocs)
-          .where(
-            and(
-              eq(kbDocs.orgId, orgId),
-              inArray(kbDocs.equipmentId, equipmentIds)
-            )
-          )
+          .where(and(eq(kbDocs.orgId, orgId), inArray(kbDocs.equipmentId, equipmentIds)))
           .limit(10);
       } catch (dbError) {
-        console.warn('[Context] Failed to fetch linked KB docs:', dbError);
+        console.warn("[Context] Failed to fetch linked KB docs:", dbError);
       }
     }
 
@@ -78,18 +79,18 @@ export async function fetchKBKnowledge(
         limit: 5,
       });
     } catch (searchError) {
-      console.warn('[Context] KB semantic search failed:', searchError);
+      console.warn("[Context] KB semantic search failed:", searchError);
     }
 
     const documents = linkedDocuments.map((doc, index) => ({
       docId: doc.id,
-      name: doc.name || 'Untitled Document',
+      name: doc.name || "Untitled Document",
       equipmentId: doc.equipmentId,
       text: doc.extractedText?.substring(0, 500),
       relevance: Math.max(0.7, 1 - index * 0.05),
     }));
 
-    const semanticMatches = semanticResults.map(r => ({
+    const semanticMatches = semanticResults.map((r) => ({
       docId: r.docId,
       text: r.text,
       score: r.score,
@@ -100,7 +101,7 @@ export async function fetchKBKnowledge(
       semanticMatches,
     };
   } catch (error) {
-    console.error('[Context] Failed to fetch KB knowledge:', error);
+    console.error("[Context] Failed to fetch KB knowledge:", error);
     return { documents: [], semanticMatches: [] };
   }
 }
@@ -154,8 +155,14 @@ export function determinePriority(
   const urgentOrders = workOrders.filter((wo) => wo.priority === "urgent").length;
   const criticalAlerts = alerts.filter((a) => a.severity === "critical").length;
 
-  if (criticalOrders > 0 || criticalAlerts > 2) {return "critical";}
-  if (urgentOrders > 2 || criticalAlerts > 0) {return "high";}
-  if (urgentOrders > 0 || alerts.length > 5) {return "medium";}
+  if (criticalOrders > 0 || criticalAlerts > 2) {
+    return "critical";
+  }
+  if (urgentOrders > 2 || criticalAlerts > 0) {
+    return "high";
+  }
+  if (urgentOrders > 0 || alerts.length > 5) {
+    return "medium";
+  }
   return "low";
 }

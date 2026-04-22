@@ -32,7 +32,8 @@ export function calculateFleetBenchmarks(
   const rankedEquipment = equipmentHealthData
     .map((eq) => ({
       ...eq,
-      alertCount: equipmentDossiers.find((d: any) => d.id === eq.id)?.context.alertPattern.total || 0,
+      alertCount:
+        equipmentDossiers.find((d: any) => d.id === eq.id)?.context.alertPattern.total || 0,
     }))
     .sort((a, b) => b.healthIndex - a.healthIndex);
 

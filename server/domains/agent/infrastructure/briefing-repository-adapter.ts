@@ -11,7 +11,9 @@ export class BriefingRepositoryAdapter implements BriefingRepositoryPort {
   }
 
   async getById(id: string, orgId: string): Promise<AgentBriefing | null> {
-    const [briefing] = await db.select().from(agentBriefings)
+    const [briefing] = await db
+      .select()
+      .from(agentBriefings)
       .where(and(eq(agentBriefings.id, id), eq(agentBriefings.orgId, orgId)));
     return briefing || null;
   }
@@ -22,20 +24,26 @@ export class BriefingRepositoryAdapter implements BriefingRepositoryPort {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    const [briefing] = await db.select().from(agentBriefings)
-      .where(and(
-        eq(agentBriefings.orgId, orgId),
-        eq(agentBriefings.status, "ready"),
-        gte(agentBriefings.generatedAt, todayStart),
-        lte(agentBriefings.generatedAt, todayEnd),
-      ))
+    const [briefing] = await db
+      .select()
+      .from(agentBriefings)
+      .where(
+        and(
+          eq(agentBriefings.orgId, orgId),
+          eq(agentBriefings.status, "ready"),
+          gte(agentBriefings.generatedAt, todayStart),
+          lte(agentBriefings.generatedAt, todayEnd)
+        )
+      )
       .orderBy(desc(agentBriefings.generatedAt))
       .limit(1);
     return briefing || null;
   }
 
   async list(orgId: string, limit = 30): Promise<AgentBriefing[]> {
-    return db.select().from(agentBriefings)
+    return db
+      .select()
+      .from(agentBriefings)
       .where(eq(agentBriefings.orgId, orgId))
       .orderBy(desc(agentBriefings.generatedAt))
       .limit(limit);
@@ -47,17 +55,22 @@ export class BriefingRepositoryAdapter implements BriefingRepositoryPort {
     const dayEnd = new Date(date);
     dayEnd.setHours(23, 59, 59, 999);
 
-    return db.select().from(agentBriefings)
-      .where(and(
-        eq(agentBriefings.orgId, orgId),
-        gte(agentBriefings.generatedAt, dayStart),
-        lte(agentBriefings.generatedAt, dayEnd),
-      ))
+    return db
+      .select()
+      .from(agentBriefings)
+      .where(
+        and(
+          eq(agentBriefings.orgId, orgId),
+          gte(agentBriefings.generatedAt, dayStart),
+          lte(agentBriefings.generatedAt, dayEnd)
+        )
+      )
       .orderBy(desc(agentBriefings.generatedAt));
   }
 
   async update(id: string, data: Partial<AgentBriefing>): Promise<AgentBriefing> {
-    const [briefing] = await db.update(agentBriefings)
+    const [briefing] = await db
+      .update(agentBriefings)
       .set(data)
       .where(eq(agentBriefings.id, id))
       .returning();

@@ -1,22 +1,20 @@
 /**
  * Compliance Context Builder
- * 
+ *
  * Build comprehensive context for compliance reports.
  */
 
-import { vesselService, dbCrewStorage, dbEquipmentStorage, workOrderService, dbStcwStorage } from "../repositories";
+import {
+  vesselService,
+  dbCrewStorage,
+  dbEquipmentStorage,
+  workOrderService,
+  dbStcwStorage,
+} from "../repositories";
 import type { Vessel as SelectVessel } from "@shared/schema";
 import type { ReportContext, ContextBuilderOptions } from "./types.js";
-import {
-  getCrewCertifications,
-  getCrewRestSheets,
-  getComplianceLogs,
-} from "./data-fetchers.js";
-import {
-  fetchKBKnowledge,
-  buildCitations,
-  determinePriority,
-} from "./knowledge-citations.js";
+import { getCrewCertifications, getCrewRestSheets, getComplianceLogs } from "./data-fetchers.js";
+import { fetchKBKnowledge, buildCitations, determinePriority } from "./knowledge-citations.js";
 
 export async function buildComplianceContext(
   vesselId: string | undefined,
@@ -63,7 +61,7 @@ export async function buildComplianceContext(
   let knowledge;
   if (options.includeKnowledge) {
     const equipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
-    knowledge = await fetchKBKnowledge(orgId, equipment, 'compliance');
+    knowledge = await fetchKBKnowledge(orgId, equipment, "compliance");
   }
 
   return {

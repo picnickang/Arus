@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  ReactNode,
+} from "react";
 
 interface Organization {
   id: string;
@@ -27,17 +35,23 @@ interface StoredUser {
 
 const devFallbackWarningShown = false;
 
-interface JWTPayload { orgId?: string; organizationName?: string; exp?: number; }
+interface JWTPayload {
+  orgId?: string;
+  organizationName?: string;
+  exp?: number;
+}
 function parseJWT(token: string): JWTPayload | null {
   try {
     const base64Url = token.split(".")[1];
-    if (!base64Url) { return null; }
+    if (!base64Url) {
+      return null;
+    }
 
-    const base64 = base64Url.replaceAll('-', "+").replaceAll('_', "/");
+    const base64 = base64Url.replaceAll("-", "+").replaceAll("_", "/");
     const jsonPayload = decodeURIComponent(
       atob(base64)
         .split("")
-        .map((c) => `%${  (`00${  c.charCodeAt(0).toString(16)}`).slice(-2)}`)
+        .map((c) => `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`)
         .join("")
     );
 
@@ -105,7 +119,9 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   }, [loadOrgContext]);
 
   useEffect(() => {
-    if (typeof globalThis === "undefined") { return; }
+    if (typeof globalThis === "undefined") {
+      return;
+    }
 
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === USER_STORAGE_KEY || e.key === TOKEN_STORAGE_KEY) {
@@ -143,20 +159,19 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const value = useMemo(() => ({
-    currentOrgId,
-    setCurrentOrgId,
-    organizations,
-    isLoading,
-    isReady,
-    error: _error,
-  }), [currentOrgId, setCurrentOrgId, organizations, isLoading, isReady, _error]);
-
-  return (
-    <OrganizationContext.Provider value={value}>
-      {children}
-    </OrganizationContext.Provider>
+  const value = useMemo(
+    () => ({
+      currentOrgId,
+      setCurrentOrgId,
+      organizations,
+      isLoading,
+      isReady,
+      error: _error,
+    }),
+    [currentOrgId, setCurrentOrgId, organizations, isLoading, isReady, _error]
   );
+
+  return <OrganizationContext.Provider value={value}>{children}</OrganizationContext.Provider>;
 }
 
 export function useOrganization() {

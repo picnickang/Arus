@@ -37,8 +37,10 @@ class TelemetryThrottler {
 
   start(broadcastFn: (channel: string, data: BroadcastPayload) => void): void {
     this.broadcastFn = broadcastFn;
-    if (this.intervalId) { return; }
-    
+    if (this.intervalId) {
+      return;
+    }
+
     this.intervalId = setInterval(() => {
       this.flush();
     }, this.intervalMs);
@@ -56,7 +58,9 @@ class TelemetryThrottler {
   }
 
   private flush(): void {
-    if (this.pendingUpdates.size === 0 || !this.broadcastFn) { return; }
+    if (this.pendingUpdates.size === 0 || !this.broadcastFn) {
+      return;
+    }
 
     const batch = Array.from(this.pendingUpdates.values());
     this.pendingUpdates.clear();
@@ -83,7 +87,7 @@ class TelemetryWebSocketServer {
 
   constructor(server: Server) {
     this.wss = new WebSocketServer({ server, path: "/ws" });
-    
+
     // PERFORMANCE: Initialize throttled telemetry broadcasting (250ms batches)
     this.telemetryThrottler = new TelemetryThrottler(250);
     this.telemetryThrottler.start((channel, data) => this.broadcast(channel, data));
@@ -225,7 +229,7 @@ class TelemetryWebSocketServer {
       data: alert,
       timestamp: new Date().toISOString(),
     });
-    log(`Broadcasted new alert: ${alert.message ?? 'unknown'}`);
+    log(`Broadcasted new alert: ${alert.message ?? "unknown"}`);
   }
 
   // Broadcast alert acknowledgment to all alert subscribers
@@ -248,7 +252,11 @@ class TelemetryWebSocketServer {
   }
 
   // Broadcast data change events for multi-device synchronization
-  public broadcastDataChange(entity: string, operation: "create" | "update" | "delete", data: BroadcastPayload & { id?: string }) {
+  public broadcastDataChange(
+    entity: string,
+    operation: "create" | "update" | "delete",
+    data: BroadcastPayload & { id?: string }
+  ) {
     const message = {
       type: "data_change",
       entity,
@@ -267,15 +275,24 @@ class TelemetryWebSocketServer {
   }
 
   // Convenience methods for specific entities
-  public broadcastWorkOrderChange(operation: "create" | "update" | "delete", workOrder: BroadcastPayload) {
+  public broadcastWorkOrderChange(
+    operation: "create" | "update" | "delete",
+    workOrder: BroadcastPayload
+  ) {
     this.broadcastDataChange("work_orders", operation, workOrder);
   }
 
-  public broadcastEquipmentChange(operation: "create" | "update" | "delete", equipment: BroadcastPayload) {
+  public broadcastEquipmentChange(
+    operation: "create" | "update" | "delete",
+    equipment: BroadcastPayload
+  ) {
     this.broadcastDataChange("equipment", operation, equipment);
   }
 
-  public broadcastVesselChange(operation: "create" | "update" | "delete", vessel: BroadcastPayload) {
+  public broadcastVesselChange(
+    operation: "create" | "update" | "delete",
+    vessel: BroadcastPayload
+  ) {
     this.broadcastDataChange("vessels", operation, vessel);
   }
 
@@ -290,7 +307,10 @@ class TelemetryWebSocketServer {
     this.broadcastDataChange("maintenance_schedules", operation, schedule);
   }
 
-  public broadcastCrewAssignmentChange(operation: "create" | "update" | "delete", assignment: BroadcastPayload) {
+  public broadcastCrewAssignmentChange(
+    operation: "create" | "update" | "delete",
+    assignment: BroadcastPayload
+  ) {
     this.broadcastDataChange("crew_assignments", operation, assignment);
   }
 
@@ -305,7 +325,12 @@ class TelemetryWebSocketServer {
   // Broadcast software update notification to all update subscribers
   public broadcastUpdateNotification(updateNotification: {
     id: string;
-    type: "update_available" | "update_started" | "update_completed" | "update_failed" | "update_rollback";
+    type:
+      | "update_available"
+      | "update_started"
+      | "update_completed"
+      | "update_failed"
+      | "update_rollback";
     deviceId?: string;
     version?: string;
     previousVersion?: string;
@@ -323,7 +348,9 @@ class TelemetryWebSocketServer {
       },
       timestamp: new Date().toISOString(),
     });
-    log(`Broadcasted update notification: ${updateNotification.type} - ${updateNotification.message}`);
+    log(
+      `Broadcasted update notification: ${updateNotification.type} - ${updateNotification.message}`
+    );
   }
 
   // Broadcast alert suppression to all alert subscribers
@@ -341,7 +368,10 @@ class TelemetryWebSocketServer {
     this.broadcastDataChange("work_orders", "create", workOrder);
   }
 
-  public broadcastScheduleSimulation(eventType: 'preview_created' | 'committed' | 'discarded' | 'expired', data: BroadcastPayload) {
+  public broadcastScheduleSimulation(
+    eventType: "preview_created" | "committed" | "discarded" | "expired",
+    data: BroadcastPayload
+  ) {
     this.broadcast("schedule_simulation", {
       type: `simulation_${eventType}`,
       data,
@@ -350,7 +380,10 @@ class TelemetryWebSocketServer {
     log(`Broadcasted schedule simulation event: ${eventType}`);
   }
 
-  public broadcastSchedulePlannerUpdate(updateType: 'refresh' | 'assignment_changed' | 'violation_detected', data: BroadcastPayload) {
+  public broadcastSchedulePlannerUpdate(
+    updateType: "refresh" | "assignment_changed" | "violation_detected",
+    data: BroadcastPayload
+  ) {
     this.broadcast("schedule_planner", {
       type: `planner_${updateType}`,
       data,
@@ -387,7 +420,7 @@ class TelemetryWebSocketServer {
   public destroy() {
     // PERFORMANCE: Stop throttler before closing connections
     this.telemetryThrottler.stop();
-    
+
     this.clients.forEach((client) => {
       client.ws.close();
     });

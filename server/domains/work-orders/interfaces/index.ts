@@ -29,10 +29,7 @@ import { WorkOrderWorkflowService } from "../application/wo-workflow-service";
 import type { RateLimitMiddleware } from "./types";
 import { logger } from "../../../utils/logger.js";
 
-export function registerWorkOrderRoutes(
-  app: Express,
-  rateLimit: RateLimitMiddleware
-) {
+export function registerWorkOrderRoutes(app: Express, rateLimit: RateLimitMiddleware) {
   registerCoreRoutes(app, rateLimit);
   registerTasksRoutes(app, rateLimit);
   registerCompletionRoutes(app, rateLimit);
@@ -45,10 +42,19 @@ export function registerWorkOrderRoutes(
   const predictionFeedback = new PredictionFeedbackWorkflowAdapter();
   const legacyCompletion = new LegacyCompletionAdapter();
   const events = new WorkOrderEventAdapter();
-  const workflowService = new WorkOrderWorkflowService(woRepo, savings, predictionFeedback, legacyCompletion, events);
+  const workflowService = new WorkOrderWorkflowService(
+    woRepo,
+    savings,
+    predictionFeedback,
+    legacyCompletion,
+    events
+  );
   registerWorkOrderWorkflowRoutes(app, workflowService, rateLimit);
 
-  logger.info("WorkOrdersRoutes", "Extended routes registered (clone, history, costs, parts, completions, enriched, workflow)");
+  logger.info(
+    "WorkOrdersRoutes",
+    "Extended routes registered (clone, history, costs, parts, completions, enriched, workflow)"
+  );
 }
 
 export type { RateLimitMiddleware } from "./types";

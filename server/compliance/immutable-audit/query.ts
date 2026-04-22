@@ -4,17 +4,17 @@
  * Query and filter audit records from the immutable trail.
  */
 
-import { db } from '../../db';
-import { immutableAuditTrail } from '@shared/schema-runtime';
-import { eq, sql, and, gte, lte } from 'drizzle-orm';
-import { parseJsonField, parseChangedFields } from './hashing';
+import { db } from "../../db";
+import { immutableAuditTrail } from "@shared/schema-runtime";
+import { eq, sql, and, gte, lte } from "drizzle-orm";
+import { parseJsonField, parseChangedFields } from "./hashing";
 import type {
   AuditRecord,
   AuditQueryOptions,
   AuditEventCategory,
   AuditEventType,
   PerformerType,
-} from './types';
+} from "./types";
 
 /**
  * Query audit records with filtering options
@@ -64,11 +64,11 @@ export async function queryAuditEvents(options: AuditQueryOptions): Promise<Audi
 
   const results = await query;
 
-  return results.map(r => ({
+  return results.map((r) => ({
     ...r,
     eventCategory: r.eventCategory as AuditEventCategory,
     eventType: r.eventType as AuditEventType,
-    performedByType: (r.performedByType ?? 'user') as PerformerType,
+    performedByType: (r.performedByType ?? "user") as PerformerType,
     previousState: parseJsonField(r.previousState),
     newState: parseJsonField(r.newState),
     changedFields: parseChangedFields(r.changedFields),

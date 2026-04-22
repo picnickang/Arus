@@ -4,7 +4,7 @@ export async function getEquipmentHealthScore(_equipmentId: string): Promise<num
 }
 
 export async function getEquipmentAnalytics(_equipmentId: string): Promise<any> {
-  return { score: 100, status: 'healthy' };
+  return { score: 100, status: "healthy" };
 }
 
 export function trackEquipmentMetric(_equipmentId: string, _metric: string, _value: number): void {}

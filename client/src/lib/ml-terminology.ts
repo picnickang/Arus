@@ -115,7 +115,7 @@ export const ML_TERMINOLOGY: Record<string, MLTerm> = {
  * Get friendly name for a model type
  */
 export function getFriendlyModelName(modelType: string): string {
-  const key = modelType.toLowerCase().replaceAll('_', "_");
+  const key = modelType.toLowerCase().replaceAll("_", "_");
   return ML_TERMINOLOGY[key]?.friendly || modelType;
 }
 
@@ -123,7 +123,7 @@ export function getFriendlyModelName(modelType: string): string {
  * Get description for a technical term
  */
 export function getTermDescription(term: string): string {
-  const key = term.toLowerCase().replaceAll(' ', "_");
+  const key = term.toLowerCase().replaceAll(" ", "_");
   return ML_TERMINOLOGY[key]?.description || "";
 }
 
@@ -141,26 +141,27 @@ export function getConfidenceDescription(confidence: number): {
       color: "bg-green-500",
       description: "The AI found very strong patterns and is highly certain about this prediction.",
     };
-  } if (confidence >= 0.7) {
+  }
+  if (confidence >= 0.7) {
     return {
       label: "Confident",
       color: "bg-blue-500",
       description: "The AI found clear patterns and is reasonably certain about this prediction.",
     };
-  } if (confidence >= 0.5) {
+  }
+  if (confidence >= 0.5) {
     return {
       label: "Moderately Confident",
       color: "bg-yellow-500",
       description: "The AI sees some patterns but recommends monitoring closely for confirmation.",
     };
-  } 
-    return {
-      label: "Low Confidence",
-      color: "bg-red-500",
-      description:
-        "Limited data available. The AI suggests gathering more information before acting.",
-    };
-  
+  }
+  return {
+    label: "Low Confidence",
+    color: "bg-red-500",
+    description:
+      "Limited data available. The AI suggests gathering more information before acting.",
+  };
 }
 
 /**
@@ -180,27 +181,28 @@ export function getAccuracyDescription(accuracy: number): {
       description:
         "AI predictions are highly reliable. You can trust these forecasts for planning maintenance.",
     };
-  } if (percent >= 80) {
+  }
+  if (percent >= 80) {
     return {
       label: "Good",
       color: "bg-blue-500",
       description:
         "AI predictions are reliable. Good enough for most maintenance planning decisions.",
     };
-  } if (percent >= 70) {
+  }
+  if (percent >= 70) {
     return {
       label: "Fair",
       color: "bg-yellow-500",
       description:
         "AI predictions are somewhat reliable. Use as one factor among several when planning.",
     };
-  } 
-    return {
-      label: "Poor",
-      color: "bg-red-500",
-      description: "AI predictions need improvement. More training data or model tuning required.",
-    };
-  
+  }
+  return {
+    label: "Poor",
+    color: "bg-red-500",
+    description: "AI predictions need improvement. More training data or model tuning required.",
+  };
 }
 
 /**
@@ -209,18 +211,21 @@ export function getAccuracyDescription(accuracy: number): {
 export function formatTimeToFailure(days: number): string {
   if (days < 1) {
     return "Less than 1 day";
-  } if (days === 1) {
+  }
+  if (days === 1) {
     return "1 day";
-  } if (days < 7) {
+  }
+  if (days < 7) {
     return `${Math.round(days)} days`;
-  } if (days < 30) {
+  }
+  if (days < 30) {
     const weeks = Math.round(days / 7);
     return `${weeks} week${weeks > 1 ? "s" : ""} (${Math.round(days)} days)`;
-  } if (days < 365) {
+  }
+  if (days < 365) {
     const months = Math.round(days / 30);
     return `${months} month${months > 1 ? "s" : ""} (${Math.round(days)} days)`;
-  } 
-    const years = Math.round(days / 365);
-    return `${years} year${years > 1 ? "s" : ""} (${Math.round(days)} days)`;
-  
+  }
+  const years = Math.round(days / 365);
+  return `${years} year${years > 1 ? "s" : ""} (${Math.round(days)} days)`;
 }

@@ -1,6 +1,6 @@
 /**
  * Authorization Middleware - Role validation
- * 
+ *
  * SINGLE-TENANT SYSTEM: Org validation removed (uses default-org-id)
  * User roles still enforced for access control
  */
@@ -33,7 +33,7 @@ export function requireAdminRole(req: Request, res: Response, next: NextFunction
 export function validateOrganizationAccess(req: Request, _res: Response, next: NextFunction) {
   // SINGLE-TENANT: Set default org ID
   req.orgId = DEFAULT_ORG_ID;
-  
+
   if (req.method === "GET" && req.query) {
     req.query.orgId = DEFAULT_ORG_ID;
   } else if (req.body && typeof req.body === "object") {

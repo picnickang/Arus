@@ -2,7 +2,17 @@
  * Crew Extensions - Types
  */
 
-export type { SelectCrewCertification, InsertCrewCertification, SelectCrewDocument, InsertCrewDocument, CrewNotificationSettings, SelectPortCall, InsertPortCall, SelectDrydockWindow, InsertDrydockWindow } from "@shared/schema";
+export type {
+  SelectCrewCertification,
+  InsertCrewCertification,
+  SelectCrewDocument,
+  InsertCrewDocument,
+  CrewNotificationSettings,
+  SelectPortCall,
+  InsertPortCall,
+  SelectDrydockWindow,
+  InsertDrydockWindow,
+} from "@shared/schema";
 
 export interface AlertScanResult {
   scanned: number;

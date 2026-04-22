@@ -1,1 +1,1 @@
-export { CertificateApplicationService } from './certificate-service';
+export { CertificateApplicationService } from "./certificate-service";

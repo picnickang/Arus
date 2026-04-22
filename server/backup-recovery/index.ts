@@ -1,6 +1,6 @@
 /**
  * Backup Recovery Module - Backward-compatible re-exports
- * 
+ *
  * MODULARIZED: 669 lines → 7 focused modules (~40-180 lines each)
  */
 

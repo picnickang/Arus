@@ -91,11 +91,33 @@ export function generateDayRange(days: number): string[] {
   return dayList;
 }
 
-interface ComplianceRow { date: string; workHours: number; restHours: number; violations: string[]; }
-interface PerCrewPreference { crewId: string; maxNights?: number; preferredShifts?: string[]; }
-interface RawScheduleResponse { engine?: string; scheduled?: unknown[]; unfilled?: unknown[]; compliance?: EnhancedSchedulePlanResponse["compliance"]; summary?: { totalShifts?: number; scheduledAssignments?: number; unfilledPositions?: number; coverage?: number; }; }
+interface ComplianceRow {
+  date: string;
+  workHours: number;
+  restHours: number;
+  violations: string[];
+}
+interface PerCrewPreference {
+  crewId: string;
+  maxNights?: number;
+  preferredShifts?: string[];
+}
+interface RawScheduleResponse {
+  engine?: string;
+  scheduled?: unknown[];
+  unfilled?: unknown[];
+  compliance?: EnhancedSchedulePlanResponse["compliance"];
+  summary?: {
+    totalShifts?: number;
+    scheduledAssignments?: number;
+    unfilledPositions?: number;
+    coverage?: number;
+  };
+}
 
-export function parseEnhancedScheduleResponse(data: RawScheduleResponse): EnhancedSchedulePlanResponse {
+export function parseEnhancedScheduleResponse(
+  data: RawScheduleResponse
+): EnhancedSchedulePlanResponse {
   if (!data || typeof data !== "object") {
     throw new Error("Invalid response format: not an object");
   }
@@ -119,12 +141,15 @@ export function parseEnhancedScheduleResponse(data: RawScheduleResponse): Enhanc
 }
 
 export function calculateCoverage(summary: EnhancedSchedulePlanResponse["summary"]): number {
-  return summary.coverage || (summary.totalShifts > 0
-    ? (summary.scheduledAssignments / summary.totalShifts) * 100
-    : 0);
+  return (
+    summary.coverage ||
+    (summary.totalShifts > 0 ? (summary.scheduledAssignments / summary.totalShifts) * 100 : 0)
+  );
 }
 
-export function saveProposedRowsToStorage(compliance: EnhancedSchedulePlanResponse["compliance"]): void {
+export function saveProposedRowsToStorage(
+  compliance: EnhancedSchedulePlanResponse["compliance"]
+): void {
   if (compliance?.rows_by_crew) {
     try {
       localStorage.setItem("hor_proposed_rows", JSON.stringify(compliance.rows_by_crew));
@@ -138,20 +163,53 @@ export function getShiftTimeRange(start: string, end: string): string {
   return `${start.slice(0, 5)} - ${end.slice(0, 5)}`;
 }
 
-interface CertificationRecord { crewId: string; id?: string; cert?: string; expiresAt?: string; }
+interface CertificationRecord {
+  crewId: string;
+  id?: string;
+  cert?: string;
+  expiresAt?: string;
+}
 
-export function groupCertificationsByCrew(certifications: CertificationRecord[]): { [crewId: string]: CertificationRecord[] } {
+export function groupCertificationsByCrew(certifications: CertificationRecord[]): {
+  [crewId: string]: CertificationRecord[];
+} {
   return certifications.reduce((acc: Record<string, CertificationRecord[]>, cert) => {
     (acc[cert.crewId] ||= []).push(cert);
     return acc;
   }, {});
 }
 
-interface ShiftData { id: string; vesselId?: string; role: string; start: string; end: string; }
-interface CrewData { id: string; name: string; rank: string; vesselId?: string; skills: string[]; }
-interface LeaveData { crewId: string; start: string; end: string; }
-interface PortCallData { vesselId: string; port: string; start: string; end: string; }
-interface DrydockData { vesselId: string; description: string; start: string; end: string; }
+interface ShiftData {
+  id: string;
+  vesselId?: string;
+  role: string;
+  start: string;
+  end: string;
+}
+interface CrewData {
+  id: string;
+  name: string;
+  rank: string;
+  vesselId?: string;
+  skills: string[];
+}
+interface LeaveData {
+  crewId: string;
+  start: string;
+  end: string;
+}
+interface PortCallData {
+  vesselId: string;
+  port: string;
+  start: string;
+  end: string;
+}
+interface DrydockData {
+  vesselId: string;
+  description: string;
+  start: string;
+  end: string;
+}
 
 export function buildEnhancedPlanPayload(options: {
   engine: string;
@@ -183,7 +241,10 @@ export const shiftFormSchema = insertShiftTemplateSchema.extend({
   role: z.string().min(1, "Role is required"),
   start: z.string().min(1, "Start time is required"),
   end: z.string().min(1, "End time is required"),
-  durationH: z.coerce.number().min(0.5, "Duration must be at least 0.5 hours").max(24, "Duration cannot exceed 24 hours"),
+  durationH: z.coerce
+    .number()
+    .min(0.5, "Duration must be at least 0.5 hours")
+    .max(24, "Duration cannot exceed 24 hours"),
 });
 
 export type ShiftFormData = z.infer<typeof shiftFormSchema>;

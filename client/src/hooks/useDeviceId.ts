@@ -10,7 +10,7 @@ const DEVICE_ID_KEY = "arus-device-id";
 // Generate a simple device ID using cryptographically secure random
 function generateDeviceId(): string {
   const timestamp = Date.now().toString(36);
-  const random = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+  const random = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
   return `device-${timestamp}-${random}`;
 }
 

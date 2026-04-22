@@ -6,7 +6,14 @@ import type {
   WorkOrderTask,
   InsertWorkOrderTask,
 } from "@shared/schema";
-import { workOrderService, dbWorkOrderStorage, dbChecklistsStorage, dbInventoryStorage, dbMaintenanceStorage, dbEquipmentStorage } from "../../repositories";
+import {
+  workOrderService,
+  dbWorkOrderStorage,
+  dbChecklistsStorage,
+  dbInventoryStorage,
+  dbMaintenanceStorage,
+  dbEquipmentStorage,
+} from "../../repositories";
 import type { WorkOrderFilters } from "../../db/workorders/types";
 
 export class WorkOrderRepository {
@@ -85,7 +92,10 @@ export class WorkOrderRepository {
     return dbChecklistsStorage.createWorkOrderTask(data);
   }
 
-  async updateWorkOrderTask(id: string, data: Partial<InsertWorkOrderTask>): Promise<WorkOrderTask> {
+  async updateWorkOrderTask(
+    id: string,
+    data: Partial<InsertWorkOrderTask>
+  ): Promise<WorkOrderTask> {
     return dbChecklistsStorage.updateWorkOrderTask(id, data);
   }
 
@@ -123,7 +133,9 @@ export class WorkOrderRepository {
   }
 
   async getWorkOrderParts(workOrderId: string, orgId: string): Promise<any[]> {
-    return workOrderId ? dbWorkOrderStorage.getWorkOrderParts(workOrderId, orgId) : Promise.resolve([]);
+    return workOrderId
+      ? dbWorkOrderStorage.getWorkOrderParts(workOrderId, orgId)
+      : Promise.resolve([]);
   }
 
   async addPartToWorkOrder(data: any): Promise<any> {
@@ -146,7 +158,11 @@ export class WorkOrderRepository {
     return dbInventoryStorage.removePartFromWorkOrder(partId, orgId);
   }
 
-  async removePartAndRestoreInventory(workOrderPartId: string, orgId: string, performedBy: string): Promise<void> {
+  async removePartAndRestoreInventory(
+    workOrderPartId: string,
+    orgId: string,
+    performedBy: string
+  ): Promise<void> {
     return dbInventoryStorage.removePartAndRestoreInventory(workOrderPartId, orgId, performedBy);
   }
 

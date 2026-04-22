@@ -1,8 +1,8 @@
 /**
  * Email Notification - Index
- * 
+ *
  * Modularized Email Notification Service
- * 
+ *
  * Original: 880 lines
  * Modularized into 8 files:
  * - types.ts (~55 lines): Types and configuration
@@ -16,12 +16,7 @@
 
 export { emailNotificationService } from "./service.js";
 
-export type {
-  CrewNotificationCheck,
-  EmailPayload,
-  SendResult,
-  RetryConfig,
-} from "./types.js";
+export type { CrewNotificationCheck, EmailPayload, SendResult, RetryConfig } from "./types.js";
 
 export {
   DEFAULT_RETRY_CONFIG,

@@ -1,5 +1,9 @@
 import type { FailurePrediction } from "@shared/schema";
-import type { IPredictionGovernanceStorage, GovernanceListOptions, GovernanceDetails } from "./ports";
+import type {
+  IPredictionGovernanceStorage,
+  GovernanceListOptions,
+  GovernanceDetails,
+} from "./ports";
 import { logger } from "../../../utils/logger";
 
 const MODULE = "PredictionGovernance";
@@ -15,7 +19,11 @@ export class PredictionGovernanceService {
     return this.storage.getById(orgId, id);
   }
 
-  async reviewPrediction(orgId: string, id: number, reviewedBy: string): Promise<FailurePrediction | null> {
+  async reviewPrediction(
+    orgId: string,
+    id: number,
+    reviewedBy: string
+  ): Promise<FailurePrediction | null> {
     const result = await this.storage.updateReviewStatus(orgId, id, "reviewed", reviewedBy);
     if (result) {
       logger.info(MODULE, `Prediction ${id} reviewed by ${reviewedBy}`, { orgId, id, reviewedBy });
@@ -23,7 +31,11 @@ export class PredictionGovernanceService {
     return result;
   }
 
-  async approvePrediction(orgId: string, id: number, reviewedBy: string): Promise<FailurePrediction | null> {
+  async approvePrediction(
+    orgId: string,
+    id: number,
+    reviewedBy: string
+  ): Promise<FailurePrediction | null> {
     const result = await this.storage.updateReviewStatus(orgId, id, "approved", reviewedBy);
     if (result) {
       logger.info(MODULE, `Prediction ${id} approved by ${reviewedBy}`, { orgId, id, reviewedBy });
@@ -37,9 +49,20 @@ export class PredictionGovernanceService {
     reviewedBy: string,
     reason: string
   ): Promise<FailurePrediction | null> {
-    const result = await this.storage.updateReviewStatus(orgId, id, "suppressed", reviewedBy, reason);
+    const result = await this.storage.updateReviewStatus(
+      orgId,
+      id,
+      "suppressed",
+      reviewedBy,
+      reason
+    );
     if (result) {
-      logger.info(MODULE, `Prediction ${id} suppressed by ${reviewedBy}: ${reason}`, { orgId, id, reviewedBy, reason });
+      logger.info(MODULE, `Prediction ${id} suppressed by ${reviewedBy}: ${reason}`, {
+        orgId,
+        id,
+        reviewedBy,
+        reason,
+      });
     }
     return result;
   }

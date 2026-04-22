@@ -24,53 +24,68 @@ function round(v: number): number {
 }
 
 function percentile(sorted: number[], p: number): number {
-  if (sorted.length === 0) {return 0;}
+  if (sorted.length === 0) {
+    return 0;
+  }
   const idx = (p / 100) * (sorted.length - 1);
   const lower = Math.floor(idx);
   const upper = Math.ceil(idx);
-  if (lower === upper) {return sorted[lower];}
+  if (lower === upper) {
+    return sorted[lower];
+  }
   return sorted[lower] + (idx - lower) * (sorted[upper] - sorted[lower]);
 }
 
 export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
   async computeBaselines(orgId: string, equipmentType: string): Promise<FleetBaseline[]> {
-    const matchingEquipment = await db.select({ id: equipment.id })
+    const matchingEquipment = await db
+      .select({ id: equipment.id })
       .from(equipment)
       .where(and(eq(equipment.orgId, orgId), eq(equipment.type, equipmentType)));
 
-    const equipmentIds = matchingEquipment.map(e => e.id);
+    const equipmentIds = matchingEquipment.map((e) => e.id);
 
     let allFeatures;
     if (equipmentIds.length > 0) {
-      allFeatures = await db.select()
+      allFeatures = await db
+        .select()
         .from(equipmentFeatures)
-        .where(and(
-          eq(equipmentFeatures.orgId, orgId),
-          inArray(equipmentFeatures.equipmentId, equipmentIds),
-        ))
+        .where(
+          and(
+            eq(equipmentFeatures.orgId, orgId),
+            inArray(equipmentFeatures.equipmentId, equipmentIds)
+          )
+        )
         .orderBy(desc(equipmentFeatures.timestamp))
         .limit(2000);
     } else {
-      allFeatures = await db.select()
+      allFeatures = await db
+        .select()
         .from(equipmentFeatures)
         .where(eq(equipmentFeatures.orgId, orgId))
         .orderBy(desc(equipmentFeatures.timestamp))
         .limit(2000);
-      logger.warn("[FleetAnalytics] No equipment found for type, using all features as fallback", { orgId, equipmentType });
+      logger.warn("[FleetAnalytics] No equipment found for type, using all features as fallback", {
+        orgId,
+        equipmentType,
+      });
     }
 
     if (allFeatures.length === 0) {
-      logger.warn("[FleetAnalytics] No feature records found for baseline computation", { orgId, equipmentType });
+      logger.warn("[FleetAnalytics] No feature records found for baseline computation", {
+        orgId,
+        equipmentType,
+      });
       return [];
     }
 
     const results: FleetBaseline[] = [];
     for (const [featureName, extractor] of Object.entries(FEATURE_EXTRACTORS)) {
-      const values = allFeatures
-        .map(extractor)
-        .filter((v): v is number => v != null && !isNaN(v));
+      const values = allFeatures.map(extractor).filter((v): v is number => v != null && !isNaN(v));
 
-      if (values.length < 3) {continue;}
+      if (values.length < 3) {
+        continue;
+      }
 
       const sorted = [...values].sort((a, b) => a - b);
       const n = values.length;
@@ -91,37 +106,62 @@ export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
         sampleSize: n,
       };
 
-      const [result] = await db.insert(fleetBaselines)
+      const [result] = await db
+        .insert(fleetBaselines)
         .values(baseline)
         .onConflictDoUpdate({
           target: [fleetBaselines.orgId, fleetBaselines.equipmentType, fleetBaselines.featureName],
-          set: { mean: baseline.mean, stddev: baseline.stddev, p5: baseline.p5, p95: baseline.p95, sampleSize: baseline.sampleSize, computedAt: new Date() },
+          set: {
+            mean: baseline.mean,
+            stddev: baseline.stddev,
+            p5: baseline.p5,
+            p95: baseline.p95,
+            sampleSize: baseline.sampleSize,
+            computedAt: new Date(),
+          },
         })
         .returning();
       results.push(result);
     }
 
-    logger.info("[FleetAnalytics] Baselines computed from feature records", { orgId, equipmentType, count: results.length, sourceRecords: allFeatures.length });
+    logger.info("[FleetAnalytics] Baselines computed from feature records", {
+      orgId,
+      equipmentType,
+      count: results.length,
+      sourceRecords: allFeatures.length,
+    });
     return results;
   }
 
   async getBaselines(orgId: string, equipmentType: string): Promise<FleetBaseline[]> {
-    return db.select()
+    return db
+      .select()
       .from(fleetBaselines)
       .where(and(eq(fleetBaselines.orgId, orgId), eq(fleetBaselines.equipmentType, equipmentType)));
   }
 
-  async compareToFleet(orgId: string, equipmentId: string, equipmentType: string): Promise<FleetComparisonResult[]> {
+  async compareToFleet(
+    orgId: string,
+    equipmentId: string,
+    equipmentType: string
+  ): Promise<FleetComparisonResult[]> {
     const baselines = await this.getBaselines(orgId, equipmentType);
-    if (baselines.length === 0) {return [];}
+    if (baselines.length === 0) {
+      return [];
+    }
 
-    const [latestFeatures] = await db.select()
+    const [latestFeatures] = await db
+      .select()
       .from(equipmentFeatures)
-      .where(and(eq(equipmentFeatures.orgId, orgId), eq(equipmentFeatures.equipmentId, equipmentId)))
+      .where(
+        and(eq(equipmentFeatures.orgId, orgId), eq(equipmentFeatures.equipmentId, equipmentId))
+      )
       .orderBy(desc(equipmentFeatures.timestamp))
       .limit(1);
 
-    if (!latestFeatures) {return [];}
+    if (!latestFeatures) {
+      return [];
+    }
 
     const featureMap: Record<string, number | null> = {};
     for (const [name, extractor] of Object.entries(FEATURE_EXTRACTORS)) {
@@ -129,8 +169,8 @@ export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
     }
 
     return baselines
-      .filter(b => featureMap[b.featureName] != null)
-      .map(b => {
+      .filter((b) => featureMap[b.featureName] != null)
+      .map((b) => {
         const value = featureMap[b.featureName]!;
         const zScore = b.stddev && b.stddev > 0 ? (value - (b.mean ?? 0)) / b.stddev : 0;
         const absZ = Math.abs(zScore);
@@ -147,7 +187,12 @@ export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
           zScore: round(zScore),
           percentile: round(pctl),
           aboveFleetAvg: aboveFleet,
-          status: absZ > 3 ? "critical" as const : absZ > 2 ? "warning" as const : "normal" as const,
+          status:
+            absZ > 3
+              ? ("critical" as const)
+              : absZ > 2
+                ? ("warning" as const)
+                : ("normal" as const),
         };
       });
   }
@@ -155,7 +200,11 @@ export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
   private zToPercentile(z: number): number {
     const t = 1 / (1 + 0.2316419 * Math.abs(z));
     const d = 0.3989422804014327;
-    const p = d * Math.exp(-z * z / 2) * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+    const p =
+      d *
+      Math.exp((-z * z) / 2) *
+      t *
+      (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
     return z > 0 ? (1 - p) * 100 : p * 100;
   }
 }

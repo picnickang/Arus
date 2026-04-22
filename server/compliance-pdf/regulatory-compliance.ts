@@ -5,9 +5,9 @@
 import type { WorkOrder } from "@shared/schema";
 import type { EquipmentHealth } from "../db/equipment/types.js";
 
-import { MARITIME_STANDARDS } from '../compliance.js';
-import type { ComplianceDeps, ReportingPeriod, RegulatoryFramework } from './types';
-import { FRAMEWORK_STANDARDS } from './types';
+import { MARITIME_STANDARDS } from "../compliance.js";
+import type { ComplianceDeps, ReportingPeriod, RegulatoryFramework } from "./types";
+import { FRAMEWORK_STANDARDS } from "./types";
 import {
   createPDFContext,
   formatDate,
@@ -18,7 +18,7 @@ import {
   drawText,
   addSpacing,
   COLORS,
-} from './utils';
+} from "./utils";
 
 export async function generateRegulatoryCompliancePDF(
   storage: ComplianceDeps,
@@ -31,7 +31,7 @@ export async function generateRegulatoryCompliancePDF(
     `[Compliance PDF] Generating regulatory compliance for framework: ${regulatoryFramework}`
   );
 
-  const standardCodes = FRAMEWORK_STANDARDS[regulatoryFramework] || ['ABS-A1-MACHINERY'];
+  const standardCodes = FRAMEWORK_STANDARDS[regulatoryFramework] || ["ABS-A1-MACHINERY"];
 
   const equipmentHealth = await storage.getEquipmentHealth(orgId);
   const filteredEquipment =
@@ -59,14 +59,14 @@ async function renderRegulatoryCompliancePDF(
   const ctx = await createPDFContext();
   const counts = countByStatus(equipment);
   const complianceRate =
-    equipment.length > 0 ? ((counts.healthy / equipment.length) * 100).toFixed(1) : 'N/A';
+    equipment.length > 0 ? ((counts.healthy / equipment.length) * 100).toFixed(1) : "N/A";
 
   drawTitle(ctx, `${framework} Regulatory Compliance Report`);
 
   drawText(ctx, `Period: ${formatDate(period.startDate)} to ${formatDate(period.endDate)}`);
   addSpacing(ctx, 10);
 
-  drawSectionHeader(ctx, 'COMPLIANCE STATUS');
+  drawSectionHeader(ctx, "COMPLIANCE STATUS");
 
   ctx.page.drawText(`Compliance Rate: ${complianceRate}%`, {
     x: 50,
@@ -96,7 +96,7 @@ async function renderRegulatoryCompliancePDF(
   });
   ctx.yPosition -= 30;
 
-  drawSectionHeader(ctx, 'APPLICABLE STANDARDS');
+  drawSectionHeader(ctx, "APPLICABLE STANDARDS");
 
   for (const code of standardCodes) {
     const standard = MARITIME_STANDARDS.find((s) => s.code === code);

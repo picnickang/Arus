@@ -1,6 +1,6 @@
 /**
  * Schema Compliance - Regulatory Audit and Compliance Tracking
- * 
+ *
  * Compliance audit logs, bundles, and immutable audit trails for ISM/Class compliance.
  */
 

@@ -3,7 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronsUpDown, Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useSupplierPerformance, SupplierSelectOption } from "@/features/suppliers";
@@ -121,12 +128,14 @@ export function SupplierMultiSelect({
                       data-testid={`option-supplier-${supplier.id}`}
                     >
                       <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          isSelected ? "opacity-100" : "opacity-0"
-                        )}
+                        className={cn("mr-2 h-4 w-4", isSelected ? "opacity-100" : "opacity-0")}
                       />
-                      <SupplierSelectOption supplierId={supplier.id} name={supplier.name} code={supplier.code} performance={perfMap.get(supplier.id)} />
+                      <SupplierSelectOption
+                        supplierId={supplier.id}
+                        name={supplier.name}
+                        code={supplier.code}
+                        performance={perfMap.get(supplier.id)}
+                      />
                     </CommandItem>
                   );
                 })}

@@ -1,6 +1,6 @@
 /**
  * Jest Test Setup
- * 
+ *
  * Configures test environment for server-side integration tests.
  */
 
@@ -22,8 +22,7 @@ afterAll(async () => {
   console.log("[Test Setup] Cleaning up test environment...");
 });
 
-beforeEach(() => {
-});
+beforeEach(() => {});
 
 afterEach(() => {
   jest.clearAllMocks();

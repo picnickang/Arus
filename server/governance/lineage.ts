@@ -30,7 +30,13 @@ export async function sha256File(filePath: string): Promise<string> {
  */
 export function sha256(data: string | Record<string, any>): string {
   const h = createHash("sha256");
-  const content = typeof data === "string" ? data : JSON.stringify(data, Object.keys(data).sort((a, b) => a.localeCompare(b)));
+  const content =
+    typeof data === "string"
+      ? data
+      : JSON.stringify(
+          data,
+          Object.keys(data).sort((a, b) => a.localeCompare(b))
+        );
   h.update(content);
   return h.digest("hex");
 }
@@ -41,7 +47,7 @@ export function sha256(data: string | Record<string, any>): string {
 export async function appendLineage(rec: LineageRecord | LineageDelta): Promise<void> {
   try {
     await fs.mkdir(path.dirname(LINEAGE_FILE), { recursive: true });
-    await fs.appendFile(LINEAGE_FILE, `${JSON.stringify(rec)  }\n`, "utf8");
+    await fs.appendFile(LINEAGE_FILE, `${JSON.stringify(rec)}\n`, "utf8");
     console.log(`[Lineage] Recorded: ${JSON.stringify(rec).substring(0, 100)}...`);
   } catch (error) {
     console.error("[Lineage] Failed to append lineage:", error);
@@ -134,7 +140,9 @@ export async function getLineageRecords(filters?: {
     // SECURITY: Apply deltas with tenant isolation validation
     deltas.forEach((delta) => {
       const rec = recordMap.get(delta.modelId);
-      if (!rec) { return; }
+      if (!rec) {
+        return;
+      }
 
       // SECURITY: Ignore deltas from different organizations (prevent cross-tenant tampering)
       if (delta.orgId !== rec.orgId) {
@@ -192,7 +200,8 @@ export async function getLineageRecords(filters?: {
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   } catch (error: unknown) {
-    const errorCode = error instanceof Error && 'code' in error ? (error as { code: string }).code : undefined;
+    const errorCode =
+      error instanceof Error && "code" in error ? (error as { code: string }).code : undefined;
     if (errorCode === "ENOENT") {
       return [];
     }

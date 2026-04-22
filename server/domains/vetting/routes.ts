@@ -43,7 +43,10 @@ const findingSchema = z.object({
   rootCause: z.string().optional(),
   correctiveAction: z.string().optional(),
   responsiblePerson: z.string().optional(),
-  targetCloseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  targetCloseDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
 });
 
 router.get("/", requireOrgId, async (req: Request, res: Response) => {
@@ -54,9 +57,15 @@ router.get("/", requireOrgId, async (req: Request, res: Response) => {
       FROM vetting_inspections vi LEFT JOIN vessels v ON vi.vessel_id = v.id
       WHERE vi.org_id = ${getOrgId(req)}
     `;
-    if (vesselId) {q = sql`${q} AND vi.vessel_id = ${vesselId as string}`;}
-    if (type) {q = sql`${q} AND vi.inspection_type = ${type as string}`;}
-    if (status) {q = sql`${q} AND vi.status = ${status as string}`;}
+    if (vesselId) {
+      q = sql`${q} AND vi.vessel_id = ${vesselId as string}`;
+    }
+    if (type) {
+      q = sql`${q} AND vi.inspection_type = ${type as string}`;
+    }
+    if (status) {
+      q = sql`${q} AND vi.status = ${status as string}`;
+    }
     q = sql`${q} ORDER BY vi.inspection_date DESC`;
     const result = await db.execute(q);
     res.json(getRows(result));
@@ -85,8 +94,12 @@ router.post("/", requireOrgId, async (req: Request, res: Response) => {
     const inspection = getFirstRow(result);
 
     if (data.overallRating) {
-      const vstatus = data.overallRating === "unacceptable" ? "conditional"
-        : data.overallRating === "acceptable" ? "valid" : "conditional";
+      const vstatus =
+        data.overallRating === "unacceptable"
+          ? "conditional"
+          : data.overallRating === "acceptable"
+            ? "valid"
+            : "conditional";
       await db.execute(sql`
         UPDATE vessels SET vetting_status = ${vstatus},
           last_vetting_date = ${new Date(data.inspectionDate)}
@@ -96,7 +109,9 @@ router.post("/", requireOrgId, async (req: Request, res: Response) => {
 
     res.status(201).json(inspection);
   } catch (err) {
-    if (err instanceof z.ZodError) {return res.status(400).json({ error: "Validation failed", details: err.flatten() });}
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation failed", details: err.flatten() });
+    }
     res.status(500).json({ error: "Failed to create inspection" });
   }
 });
@@ -134,7 +149,9 @@ router.post("/:inspectionId/findings", requireOrgId, async (req: Request, res: R
 
     res.status(201).json(getFirstRow(result));
   } catch (err) {
-    if (err instanceof z.ZodError) {return res.status(400).json({ error: "Validation failed", details: err.flatten() });}
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation failed", details: err.flatten() });
+    }
     res.status(500).json({ error: "Failed to add finding" });
   }
 });
@@ -152,14 +169,19 @@ router.get("/:inspectionId/findings", requireOrgId, async (req: Request, res: Re
   }
 });
 
-router.patch("/:inspectionId/findings/:findingId/close", requireOrgId, async (req: Request, res: Response) => {
-  try {
-    const { evidenceUrl, verifiedBy } = z.object({
-      evidenceUrl: z.string().optional(),
-      verifiedBy: z.string().optional(),
-    }).parse(req.body);
+router.patch(
+  "/:inspectionId/findings/:findingId/close",
+  requireOrgId,
+  async (req: Request, res: Response) => {
+    try {
+      const { evidenceUrl, verifiedBy } = z
+        .object({
+          evidenceUrl: z.string().optional(),
+          verifiedBy: z.string().optional(),
+        })
+        .parse(req.body);
 
-    await db.execute(sql`
+      await db.execute(sql`
       UPDATE vetting_findings SET
         status = 'closed', actual_close_date = CURRENT_DATE,
         evidence_url = ${evidenceUrl || null},
@@ -169,27 +191,28 @@ router.patch("/:inspectionId/findings/:findingId/close", requireOrgId, async (re
       WHERE id = ${req.params.findingId} AND org_id = ${getOrgId(req)}
     `);
 
-    const openResult = await db.execute(sql`
+      const openResult = await db.execute(sql`
       SELECT COUNT(*) as open_count FROM vetting_findings
       WHERE inspection_id = ${req.params.inspectionId}
         AND org_id = ${getOrgId(req)} AND status NOT IN ('closed', 'verified')
     `);
-    const openCount = Number(getFirstRow(openResult)?.open_count || 0);
+      const openCount = Number(getFirstRow(openResult)?.open_count || 0);
 
-    if (openCount === 0) {
-      await db.execute(sql`
+      if (openCount === 0) {
+        await db.execute(sql`
         UPDATE vetting_inspections SET
           all_findings_closed = true, status = 'closed_out',
           closed_out_date = CURRENT_DATE, updated_at = NOW()
         WHERE id = ${req.params.inspectionId} AND org_id = ${getOrgId(req)}
       `);
-    }
+      }
 
-    res.json({ success: true, allFindingsClosed: openCount === 0 });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to close finding" });
+      res.json({ success: true, allFindingsClosed: openCount === 0 });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to close finding" });
+    }
   }
-});
+);
 
 router.get("/fleet-readiness", requireOrgId, async (req: Request, res: Response) => {
   try {
@@ -220,7 +243,9 @@ router.get("/fleet-readiness", requireOrgId, async (req: Request, res: Response)
     res.json({
       totalVessels: vessels.length,
       vettedAndValid: vessels.filter((v) => v.vetting_status === "valid").length,
-      needsVetting: vessels.filter((v) => v.vetting_status === "not_vetted" || v.vetting_status === "expired").length,
+      needsVetting: vessels.filter(
+        (v) => v.vetting_status === "not_vetted" || v.vetting_status === "expired"
+      ).length,
       openFindings: vessels.reduce((s, v) => s + Number(v.open_findings || 0), 0),
       vessels,
     });

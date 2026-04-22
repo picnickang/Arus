@@ -35,7 +35,9 @@ export function ThemeProvider({
     return defaultTheme;
   });
 
-  const [resolvedTheme, setResolvedTheme] = React.useState<"light" | "dark" | "bridge" | "daylight">("dark");
+  const [resolvedTheme, setResolvedTheme] = React.useState<
+    "light" | "dark" | "bridge" | "daylight"
+  >("dark");
 
   React.useEffect(() => {
     const root = globalThis.document.documentElement;

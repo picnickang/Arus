@@ -2,25 +2,25 @@
  * Equipment Context Routes - Route handlers
  */
 
-import type { Express } from 'express';
-import { eq, and } from 'drizzle-orm';
-import { db } from '../../db';
-import { equipment } from '@shared/schema-runtime';
-import { logger } from '../../utils/logger.js';
-import { generalApiRateLimit } from '../../config/rate-limits';
-import { contextQuerySchema } from './types';
-import { buildEquipmentContext } from './context-builder';
-import { handleEquipmentSummary } from './summary-handler';
+import type { Express } from "express";
+import { eq, and } from "drizzle-orm";
+import { db } from "../../db";
+import { equipment } from "@shared/schema-runtime";
+import { logger } from "../../utils/logger.js";
+import { generalApiRateLimit } from "../../config/rate-limits";
+import { contextQuerySchema } from "./types";
+import { buildEquipmentContext } from "./context-builder";
+import { handleEquipmentSummary } from "./summary-handler";
 
 export function registerEquipmentContextRoutes(app: Express) {
-  app.get('/api/context/equipment/:equipmentId', generalApiRateLimit, async (req, res) => {
+  app.get("/api/context/equipment/:equipmentId", generalApiRateLimit, async (req, res) => {
     try {
       const { equipmentId } = req.params;
       const queryResult = contextQuerySchema.safeParse(req.query);
 
       if (!queryResult.success) {
         return res.status(400).json({
-          error: 'Invalid query parameters',
+          error: "Invalid query parameters",
           details: queryResult.error.issues,
         });
       }
@@ -35,7 +35,7 @@ export function registerEquipmentContextRoutes(app: Express) {
         .limit(1);
 
       if (!equipmentRecord) {
-        return res.status(404).json({ error: 'Equipment not found or access denied' });
+        return res.status(404).json({ error: "Equipment not found or access denied" });
       }
 
       const timeframeStart = new Date();
@@ -49,7 +49,7 @@ export function registerEquipmentContextRoutes(app: Express) {
         options
       );
 
-      logger.info('Equipment context generated', {
+      logger.info("Equipment context generated", {
         equipmentId,
         orgId,
         dataCompleteness: context.metadata.dataCompleteness,
@@ -59,14 +59,20 @@ export function registerEquipmentContextRoutes(app: Express) {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;
-      logger.error('Failed to generate equipment context', {
+      logger.error("Failed to generate equipment context", {
         error: errorMessage,
         stack: errorStack,
         equipmentId: req.params.equipmentId,
       });
-      res.status(500).json({ error: 'Failed to generate equipment context', details: errorMessage });
+      res
+        .status(500)
+        .json({ error: "Failed to generate equipment context", details: errorMessage });
     }
   });
 
-  app.get('/api/context/equipment/:equipmentId/summary', generalApiRateLimit, handleEquipmentSummary);
+  app.get(
+    "/api/context/equipment/:equipmentId/summary",
+    generalApiRateLimit,
+    handleEquipmentSummary
+  );
 }

@@ -1,6 +1,6 @@
 /**
  * Weibull Reliability Calculations
- * 
+ *
  * Calculate reliability, RUL, confidence intervals, and failure probability.
  */
 

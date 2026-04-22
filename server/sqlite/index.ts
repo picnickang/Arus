@@ -1,6 +1,6 @@
 /**
  * SQLite Modular Initialization - Aggregator
- * 
+ *
  * Composes all domain-specific table and index definitions for SQLite initialization.
  * Each domain module exports getXxxTablesSql() and getXxxIndexesSql() functions.
  */
@@ -18,7 +18,10 @@ import { getSensorTablesSql, getSensorIndexesSql } from "./sensor-tables.js";
 import { getTelemetryTablesSql, getTelemetryIndexesSql } from "./telemetry-tables.js";
 import { getInsightsTablesSql, getInsightsIndexesSql } from "./insights-tables.js";
 import { getSystemTablesSql, getSystemIndexesSql } from "./system-tables.js";
-import { getConditionMonitoringTablesSql, getConditionMonitoringIndexesSql } from "./condition-monitoring-tables.js";
+import {
+  getConditionMonitoringTablesSql,
+  getConditionMonitoringIndexesSql,
+} from "./condition-monitoring-tables.js";
 import { getDtcTablesSql, getDtcIndexesSql } from "./dtc-tables.js";
 import { getDigitalTwinTablesSql, getDigitalTwinIndexesSql } from "./digital-twin-tables.js";
 import { getSyncTablesSql, getSyncIndexesSql } from "./sync-tables.js";
@@ -72,22 +75,40 @@ export function getAllIndexesSql(): SQL[] {
 }
 
 export {
-  getCoreTablesSql, getCoreIndexesSql,
-  getVesselTablesSql, getVesselIndexesSql,
-  getWorkOrderTablesSql, getWorkOrderIndexesSql,
-  getMaintenanceTablesSql, getMaintenanceIndexesSql,
-  getInventoryTablesSql, getInventoryIndexesSql,
-  getCrewTablesSql, getCrewIndexesSql,
-  getAlertTablesSql, getAlertIndexesSql,
-  getMlTablesSql, getMlIndexesSql,
-  getSensorTablesSql, getSensorIndexesSql,
-  getTelemetryTablesSql, getTelemetryIndexesSql,
-  getInsightsTablesSql, getInsightsIndexesSql,
-  getSystemTablesSql, getSystemIndexesSql,
-  getConditionMonitoringTablesSql, getConditionMonitoringIndexesSql,
-  getDtcTablesSql, getDtcIndexesSql,
-  getDigitalTwinTablesSql, getDigitalTwinIndexesSql,
-  getSyncTablesSql, getSyncIndexesSql,
-  getOptimizationTablesSql, getOptimizationIndexesSql,
-  getLogbookTablesSql, getLogbookIndexesSql,
+  getCoreTablesSql,
+  getCoreIndexesSql,
+  getVesselTablesSql,
+  getVesselIndexesSql,
+  getWorkOrderTablesSql,
+  getWorkOrderIndexesSql,
+  getMaintenanceTablesSql,
+  getMaintenanceIndexesSql,
+  getInventoryTablesSql,
+  getInventoryIndexesSql,
+  getCrewTablesSql,
+  getCrewIndexesSql,
+  getAlertTablesSql,
+  getAlertIndexesSql,
+  getMlTablesSql,
+  getMlIndexesSql,
+  getSensorTablesSql,
+  getSensorIndexesSql,
+  getTelemetryTablesSql,
+  getTelemetryIndexesSql,
+  getInsightsTablesSql,
+  getInsightsIndexesSql,
+  getSystemTablesSql,
+  getSystemIndexesSql,
+  getConditionMonitoringTablesSql,
+  getConditionMonitoringIndexesSql,
+  getDtcTablesSql,
+  getDtcIndexesSql,
+  getDigitalTwinTablesSql,
+  getDigitalTwinIndexesSql,
+  getSyncTablesSql,
+  getSyncIndexesSql,
+  getOptimizationTablesSql,
+  getOptimizationIndexesSql,
+  getLogbookTablesSql,
+  getLogbookIndexesSql,
 };

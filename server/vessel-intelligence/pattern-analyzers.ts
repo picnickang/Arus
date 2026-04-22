@@ -1,14 +1,10 @@
 /**
  * Vessel Intelligence Pattern Analyzers
- * 
+ *
  * Failure and maintenance pattern analysis functions.
  */
 
-import type {
-  EquipmentTelemetry,
-  WorkOrder,
-  MaintenanceSchedule,
-} from "@shared/schema";
+import type { EquipmentTelemetry, WorkOrder, MaintenanceSchedule } from "@shared/schema";
 import type { VesselPattern } from "./types.js";
 import {
   calculateAverageDaysBetween,
@@ -54,11 +50,7 @@ export function analyzeFailurePatterns(
         lastObserved: new Date(orders[0].createdAt),
         affectedEquipment: [equipmentId],
         correlatedMetrics,
-        recommendedActions: generateFailureRecommendations(
-          eq?.type,
-          orders.length,
-          avgDaysBetween
-        ),
+        recommendedActions: generateFailureRecommendations(eq?.type, orders.length, avgDaysBetween),
       });
     }
   });
@@ -78,8 +70,7 @@ export function analyzeMaintenancePatterns(
 
   if (scheduledWork.length > 0) {
     const adherenceRate =
-      (scheduledWork.filter((wo) => wo.status === "completed").length / scheduledWork.length) *
-      100;
+      (scheduledWork.filter((wo) => wo.status === "completed").length / scheduledWork.length) * 100;
     const avgCompletionTime = calculateAverageResolutionTime(
       scheduledWork.filter((wo) => wo.status === "completed")
     );

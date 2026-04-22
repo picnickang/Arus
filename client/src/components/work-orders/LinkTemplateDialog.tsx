@@ -51,9 +51,8 @@ export function LinkTemplateDialog({
   });
 
   const filteredTemplates = equipmentType
-    ? templates.filter((t) => 
-        t.isActive && 
-        t.equipmentType?.toLowerCase() === equipmentType.toLowerCase()
+    ? templates.filter(
+        (t) => t.isActive && t.equipmentType?.toLowerCase() === equipmentType.toLowerCase()
       )
     : templates.filter((t) => t.isActive);
 
@@ -113,29 +112,24 @@ export function LinkTemplateDialog({
             <div className="text-center py-6 text-muted-foreground">
               <AlertCircle className="h-10 w-10 mx-auto mb-2 opacity-50" />
               <p className="text-sm">
-                {equipmentType 
+                {equipmentType
                   ? `No active templates found for ${equipmentType} equipment.`
                   : "No active templates available."}
               </p>
-              <p className="text-xs mt-1">
-                Create templates in the Maintenance Templates page.
-              </p>
+              <p className="text-xs mt-1">Create templates in the Maintenance Templates page.</p>
             </div>
           ) : (
             <>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Select Template</label>
-                <Select
-                  value={selectedTemplateId}
-                  onValueChange={setSelectedTemplateId}
-                >
+                <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
                   <SelectTrigger data-testid="select-link-template">
                     <SelectValue placeholder="Choose a template..." />
                   </SelectTrigger>
                   <SelectContent>
                     {filteredTemplates.map((template) => (
-                      <SelectItem 
-                        key={template.id} 
+                      <SelectItem
+                        key={template.id}
                         value={template.id}
                         data-testid={`template-option-${template.id}`}
                       >
@@ -154,7 +148,10 @@ export function LinkTemplateDialog({
               </div>
 
               {selectedTemplate && (
-                <div className="rounded-lg border p-3 bg-muted/30 space-y-2" data-testid="template-preview">
+                <div
+                  className="rounded-lg border p-3 bg-muted/30 space-y-2"
+                  data-testid="template-preview"
+                >
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-sm">{selectedTemplate.name}</span>
                     {selectedTemplate.estimatedDurationHours && (
@@ -165,9 +162,7 @@ export function LinkTemplateDialog({
                     )}
                   </div>
                   {selectedTemplate.description && (
-                    <p className="text-xs text-muted-foreground">
-                      {selectedTemplate.description}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{selectedTemplate.description}</p>
                   )}
                   <div className="flex gap-2 flex-wrap">
                     {selectedTemplate.maintenanceType && (

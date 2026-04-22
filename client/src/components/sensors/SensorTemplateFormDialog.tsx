@@ -63,10 +63,7 @@ const EQUIPMENT_TYPES = [
 type SensorTemplateFormDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-} & (
-  | { mode: "create"; template?: never }
-  | { mode: "edit"; template: SensorTemplate }
-);
+} & ({ mode: "create"; template?: never } | { mode: "edit"; template: SensorTemplate });
 
 export function SensorTemplateFormDialog({
   open,
@@ -244,7 +241,12 @@ export function SensorTemplateFormDialog({
                           {kind}
                           {SENSOR_KIND_PRESETS[kind as keyof typeof SENSOR_KIND_PRESETS] && (
                             <span className="text-xs text-muted-foreground">
-                              ({SENSOR_KIND_PRESETS[kind as keyof typeof SENSOR_KIND_PRESETS].defaultUnit})
+                              (
+                              {
+                                SENSOR_KIND_PRESETS[kind as keyof typeof SENSOR_KIND_PRESETS]
+                                  .defaultUnit
+                              }
+                              )
                             </span>
                           )}
                         </div>
@@ -253,9 +255,13 @@ export function SensorTemplateFormDialog({
                   </SelectContent>
                 </Select>
                 {formData.kind &&
-                  SENSOR_KIND_PRESETS[formData.kind as keyof typeof SENSOR_KIND_PRESETS]?.description && (
+                  SENSOR_KIND_PRESETS[formData.kind as keyof typeof SENSOR_KIND_PRESETS]
+                    ?.description && (
                     <p className="text-xs text-muted-foreground">
-                      {SENSOR_KIND_PRESETS[formData.kind as keyof typeof SENSOR_KIND_PRESETS].description}
+                      {
+                        SENSOR_KIND_PRESETS[formData.kind as keyof typeof SENSOR_KIND_PRESETS]
+                          .description
+                      }
                     </p>
                   )}
               </div>
@@ -407,7 +413,9 @@ export function SensorTemplateFormDialog({
             variant="outline"
             onClick={() => {
               onOpenChange(false);
-              if (isCreate) {resetForm();}
+              if (isCreate) {
+                resetForm();
+              }
             }}
             data-testid={`button-cancel-${isCreate ? "create" : "edit"}`}
           >

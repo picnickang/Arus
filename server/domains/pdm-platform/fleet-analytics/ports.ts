@@ -16,5 +16,9 @@ export interface FleetComparisonResult {
 export interface FleetAnalyticsPort {
   computeBaselines(orgId: string, equipmentType: string): Promise<FleetBaseline[]>;
   getBaselines(orgId: string, equipmentType: string): Promise<FleetBaseline[]>;
-  compareToFleet(orgId: string, equipmentId: string, equipmentType: string): Promise<FleetComparisonResult[]>;
+  compareToFleet(
+    orgId: string,
+    equipmentId: string,
+    equipmentType: string
+  ): Promise<FleetComparisonResult[]>;
 }

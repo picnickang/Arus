@@ -43,10 +43,10 @@ export function DecommissionedEquipmentTable({
       <TableBody>
         {equipment.map((item: Equipment) => {
           const vesselInfo = getVesselInfo(item, vessels);
-          const decommissionedDate = item.decommissionedAt 
+          const decommissionedDate = item.decommissionedAt
             ? format(new Date(item.decommissionedAt), "MMM d, yyyy")
             : "Unknown";
-          
+
           return (
             <TableRow key={item.id} data-testid={`row-decommissioned-${item.id}`}>
               <TableCell className="font-medium" data-testid={`text-name-${item.id}`}>

@@ -21,7 +21,12 @@ export class CircuitBreaker {
 
   private getState(serviceName: string): CircuitBreakerState {
     if (!circuitBreakers.has(serviceName)) {
-      circuitBreakers.set(serviceName, { failures: 0, lastFailureTime: 0, state: "CLOSED", successCount: 0 });
+      circuitBreakers.set(serviceName, {
+        failures: 0,
+        lastFailureTime: 0,
+        state: "CLOSED",
+        successCount: 0,
+      });
     }
     return circuitBreakers.get(serviceName)!;
   }
@@ -37,7 +42,11 @@ export class CircuitBreaker {
     }
   }
 
-  async execute<T>(serviceName: string, operation: () => Promise<T>, fallback?: () => Promise<T>): Promise<T> {
+  async execute<T>(
+    serviceName: string,
+    operation: () => Promise<T>,
+    fallback?: () => Promise<T>
+  ): Promise<T> {
     const state = this.getState(serviceName);
     const now = Date.now();
 
@@ -83,7 +92,10 @@ export class CircuitBreaker {
 
       if (newFailures >= ERROR_HANDLING_CONFIG.CIRCUIT_BREAKER.FAILURE_THRESHOLD) {
         this.updateState(serviceName, { state: "OPEN" });
-        structuredLog("error", `Circuit breaker OPEN for ${serviceName}`, { operation: "circuit_breaker", metadata: { failures: newFailures, serviceName } });
+        structuredLog("error", `Circuit breaker OPEN for ${serviceName}`, {
+          operation: "circuit_breaker",
+          metadata: { failures: newFailures, serviceName },
+        });
       }
 
       if (fallback && state.state === "OPEN") {

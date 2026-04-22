@@ -66,7 +66,10 @@ inventorySupplierRouter.post(
         { inventoryItemId, ...data },
         userId
       );
-      logger.info("Linked supplier to inventory item", { inventoryItemId, supplierId: data.supplierId });
+      logger.info("Linked supplier to inventory item", {
+        inventoryItemId,
+        supplierId: data.supplierId,
+      });
       res.status(201).json(link);
     } catch (error) {
       if (error instanceof Error && error.message.includes("already linked")) {
@@ -87,8 +90,15 @@ inventorySupplierRouter.post(
     const { supplierIds } = bulkLinkSchema.parse(req.body);
     const userId = (req as AuthenticatedRequest).user?.id;
 
-    const links = await inventorySupplierService.bulkLinkSuppliers(inventoryItemId, supplierIds, userId);
-    logger.info("Bulk linked suppliers to inventory item", { inventoryItemId, count: links.length });
+    const links = await inventorySupplierService.bulkLinkSuppliers(
+      inventoryItemId,
+      supplierIds,
+      userId
+    );
+    logger.info("Bulk linked suppliers to inventory item", {
+      inventoryItemId,
+      count: links.length,
+    });
     res.status(201).json(links);
   })
 );
@@ -102,8 +112,15 @@ inventorySupplierRouter.put(
     const { supplierIds } = z.object({ supplierIds: z.array(z.string()) }).parse(req.body);
     const userId = (req as AuthenticatedRequest).user?.id;
 
-    const links = await inventorySupplierService.replaceSupplierLinks(inventoryItemId, supplierIds, userId);
-    logger.info("Replaced supplier links for inventory item", { inventoryItemId, count: links.length });
+    const links = await inventorySupplierService.replaceSupplierLinks(
+      inventoryItemId,
+      supplierIds,
+      userId
+    );
+    logger.info("Replaced supplier links for inventory item", {
+      inventoryItemId,
+      count: links.length,
+    });
     res.json(links);
   })
 );
@@ -121,13 +138,25 @@ inventorySupplierRouter.put(
     const { supplierIds, preferredSupplierId } = schema.parse(req.body);
     const userId = (req as AuthenticatedRequest).user?.id;
 
-    const links = await inventorySupplierService.replaceSupplierLinks(inventoryItemId, supplierIds, userId);
+    const links = await inventorySupplierService.replaceSupplierLinks(
+      inventoryItemId,
+      supplierIds,
+      userId
+    );
 
     if (preferredSupplierId && supplierIds.includes(preferredSupplierId)) {
-      await inventorySupplierService.setPreferredSupplier(inventoryItemId, preferredSupplierId, userId);
+      await inventorySupplierService.setPreferredSupplier(
+        inventoryItemId,
+        preferredSupplierId,
+        userId
+      );
     }
 
-    logger.info("Updated supplier links for inventory item", { inventoryItemId, count: links.length, preferredSupplierId });
+    logger.info("Updated supplier links for inventory item", {
+      inventoryItemId,
+      count: links.length,
+      preferredSupplierId,
+    });
     res.json(links);
   })
 );

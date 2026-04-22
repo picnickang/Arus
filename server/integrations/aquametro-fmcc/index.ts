@@ -1,8 +1,8 @@
 /**
  * Aquametro FMCC - Index
- * 
+ *
  * Modularized Aquametro FMCC Integration
- * 
+ *
  * Original: 858 lines
  * Modularized into 9 files:
  * - types.ts (~108 lines): Configuration and data types

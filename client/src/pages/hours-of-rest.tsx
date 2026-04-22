@@ -10,7 +10,10 @@ export default function HoursOfRestPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("action") === "record") {
-      toast({ title: "Record Rest Hours", description: "Select a crew member and tap the grid cells to record rest and work periods." });
+      toast({
+        title: "Record Rest Hours",
+        description: "Select a crew member and tap the grid cells to record rest and work periods.",
+      });
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);

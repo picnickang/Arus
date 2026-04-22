@@ -12,8 +12,17 @@ function getOrgId(req: Request): string {
 }
 
 const SENSOR_TYPES = [
-  "vibration", "temperature", "pressure", "flow", "level",
-  "rpm", "torque", "humidity", "exhaust_gas", "fuel_flow", "other",
+  "vibration",
+  "temperature",
+  "pressure",
+  "flow",
+  "level",
+  "rpm",
+  "torque",
+  "humidity",
+  "exhaust_gas",
+  "fuel_flow",
+  "other",
 ] as const;
 
 const createSensorSchema = z.object({
@@ -26,7 +35,10 @@ const createSensorSchema = z.object({
   model: z.string().optional(),
   serialNumber: z.string().optional(),
   calibrationIntervalDays: z.number().int().min(1).default(365),
-  lastCalibrationDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  lastCalibrationDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   calibrationStandard: z.string().optional(),
   measurementRangeMin: z.number().optional(),
   measurementRangeMax: z.number().optional(),
@@ -35,7 +47,10 @@ const createSensorSchema = z.object({
   alarmHigh: z.number().optional().nullable(),
   tripLow: z.number().optional().nullable(),
   tripHigh: z.number().optional().nullable(),
-  installedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  installedDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   notes: z.string().optional(),
 });
 
@@ -91,17 +106,26 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
     for (const row of rows as any[]) {
       const count = Number(row.count);
       summary.total += count;
-      if (row.calibration_status === "calibrated") {summary.calibrated += count;}
-      if (row.calibration_status === "due") {summary.due += count;}
-      if (row.calibration_status === "overdue") {summary.overdue += count;}
-      if (row.calibration_status === "failed") {summary.failed += count;}
-      if (row.calibration_status === "unknown") {summary.unknown += count;}
+      if (row.calibration_status === "calibrated") {
+        summary.calibrated += count;
+      }
+      if (row.calibration_status === "due") {
+        summary.due += count;
+      }
+      if (row.calibration_status === "overdue") {
+        summary.overdue += count;
+      }
+      if (row.calibration_status === "failed") {
+        summary.failed += count;
+      }
+      if (row.calibration_status === "unknown") {
+        summary.unknown += count;
+      }
       summary.byType[row.sensorType] = (summary.byType[row.sensorType] || 0) + count;
     }
 
-    summary.dataQualityScore = summary.total > 0
-      ? Math.round((summary.calibrated / summary.total) * 100)
-      : 0;
+    summary.dataQualityScore =
+      summary.total > 0 ? Math.round((summary.calibrated / summary.total) * 100) : 0;
 
     res.json(summary);
   } catch (err) {
@@ -147,10 +171,18 @@ router.get("/", requireOrgId, async (req: Request, res: Response) => {
       WHERE sc.org_id = ${orgId}
     `;
 
-    if (vesselId) {query = sql`${query} AND sc.vessel_id = ${vesselId as string}`;}
-    if (equipmentId) {query = sql`${query} AND sc.equipment_id = ${equipmentId as string}`;}
-    if (sensorType) {query = sql`${query} AND sc.sensor_type = ${sensorType as string}`;}
-    if (status) {query = sql`${query} AND sc.calibration_status = ${status as string}`;}
+    if (vesselId) {
+      query = sql`${query} AND sc.vessel_id = ${vesselId as string}`;
+    }
+    if (equipmentId) {
+      query = sql`${query} AND sc.equipment_id = ${equipmentId as string}`;
+    }
+    if (sensorType) {
+      query = sql`${query} AND sc.sensor_type = ${sensorType as string}`;
+    }
+    if (status) {
+      query = sql`${query} AND sc.calibration_status = ${status as string}`;
+    }
 
     query = sql`${query} ORDER BY sc.next_calibration_due ASC NULLS LAST`;
 
@@ -176,11 +208,11 @@ router.get("/:id", requireOrgId, async (req: Request, res: Response) => {
       WHERE sc.id = ${req.params.id} AND sc.org_id = ${orgId}
     `);
 
-    const sensor = Array.isArray(sensorResult)
-      ? sensorResult[0]
-      : (sensorResult as any)?.rows?.[0];
+    const sensor = Array.isArray(sensorResult) ? sensorResult[0] : (sensorResult as any)?.rows?.[0];
 
-    if (!sensor) {return res.status(404).json({ error: "Sensor not found" });}
+    if (!sensor) {
+      return res.status(404).json({ error: "Sensor not found" });
+    }
 
     const historyResult = await db.execute(sql`
       SELECT * FROM sensor_calibration_events
@@ -209,9 +241,11 @@ router.post("/", requireOrgId, async (req: Request, res: Response) => {
       ? new Date(lastCalDate.getTime() + data.calibrationIntervalDays * 24 * 60 * 60 * 1000)
       : null;
 
-    const status = !lastCalDate ? "unknown"
-      : nextDue && nextDue < new Date() ? "overdue"
-      : "calibrated";
+    const status = !lastCalDate
+      ? "unknown"
+      : nextDue && nextDue < new Date()
+        ? "overdue"
+        : "calibrated";
 
     const result = await db.execute(sql`
       INSERT INTO sensor_calibrations (
@@ -259,11 +293,11 @@ router.post("/:id/calibrate", requireOrgId, async (req: Request, res: Response) 
       SELECT * FROM sensor_calibrations
       WHERE id = ${req.params.id} AND org_id = ${orgId}
     `);
-    const sensor = Array.isArray(sensorResult)
-      ? sensorResult[0]
-      : (sensorResult as any)?.rows?.[0];
+    const sensor = Array.isArray(sensorResult) ? sensorResult[0] : (sensorResult as any)?.rows?.[0];
 
-    if (!sensor) {return res.status(404).json({ error: "Sensor not found" });}
+    if (!sensor) {
+      return res.status(404).json({ error: "Sensor not found" });
+    }
 
     await db.execute(sql`
       INSERT INTO sensor_calibration_events (
@@ -287,9 +321,8 @@ router.post("/:id/calibrate", requireOrgId, async (req: Request, res: Response) 
       calDate.getTime() + (sensor as any).calibration_interval_days * 24 * 60 * 60 * 1000
     );
 
-    const newStatus = data.status === "fail" ? "failed"
-      : data.status === "replaced" ? "calibrated"
-      : "calibrated";
+    const newStatus =
+      data.status === "fail" ? "failed" : data.status === "replaced" ? "calibrated" : "calibrated";
 
     await db.execute(sql`
       UPDATE sensor_calibrations

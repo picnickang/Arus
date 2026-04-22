@@ -20,11 +20,14 @@ export function useScheduledReportsSettingsData() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: settingsResponse, isLoading: isLoadingSettings } = useQuery<{ data: ScheduledReportsSettings }>({
+  const { data: settingsResponse, isLoading: isLoadingSettings } = useQuery<{
+    data: ScheduledReportsSettings;
+  }>({
     queryKey: ["/api/scheduled-reports/settings"],
   });
 
-  const settings: ScheduledReportsSettings = settingsResponse?.data || DEFAULT_SCHEDULED_REPORTS_SETTINGS;
+  const settings: ScheduledReportsSettings =
+    settingsResponse?.data || DEFAULT_SCHEDULED_REPORTS_SETTINGS;
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: Partial<ScheduledReportsSettings>) => {
@@ -32,7 +35,10 @@ export function useScheduledReportsSettingsData() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/scheduled-reports/settings"] });
-      toast({ title: "Settings Updated", description: "Scheduled reports settings have been saved." });
+      toast({
+        title: "Settings Updated",
+        description: "Scheduled reports settings have been saved.",
+      });
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to update settings.", variant: "destructive" });

@@ -74,22 +74,11 @@ export const schedulePlannerDebounceSkipped = new client.Counter({
   labelNames: ["org_id"],
 });
 
-export function recordViewQuery(
-  orgId: string,
-  operation: string,
-  durationMs: number
-): void {
-  schedulePlannerViewLatency.observe(
-    { org_id: orgId, operation },
-    durationMs / 1000
-  );
+export function recordViewQuery(orgId: string, operation: string, durationMs: number): void {
+  schedulePlannerViewLatency.observe({ org_id: orgId, operation }, durationMs / 1000);
 }
 
-export function recordRefresh(
-  orgId: string,
-  triggeredBy: string,
-  durationMs: number
-): void {
+export function recordRefresh(orgId: string, triggeredBy: string, durationMs: number): void {
   schedulePlannerRefreshLatency.observe(
     { org_id: orgId, triggered_by: triggeredBy },
     durationMs / 1000
@@ -139,9 +128,6 @@ export function updateViewStats(
 
   violationCounts.forEach((count, key) => {
     const [type, severity] = key.split(":");
-    schedulePlannerViolationCount.set(
-      { org_id: orgId, violation_type: type, severity },
-      count
-    );
+    schedulePlannerViolationCount.set({ org_id: orgId, violation_type: type, severity }, count);
   });
 }

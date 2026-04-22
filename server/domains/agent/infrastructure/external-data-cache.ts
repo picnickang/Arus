@@ -21,7 +21,7 @@ export interface CachedResult<T = Record<string, unknown>> {
 export async function getCachedExternal<T = Record<string, unknown>>(
   orgId: string,
   provider: string,
-  cacheKey: string,
+  cacheKey: string
 ): Promise<CachedResult<T> | null> {
   const [row] = await db
     .select()
@@ -30,12 +30,14 @@ export async function getCachedExternal<T = Record<string, unknown>>(
       and(
         eq(externalDataCache.orgId, orgId),
         eq(externalDataCache.provider, provider),
-        eq(externalDataCache.cacheKey, cacheKey),
-      ),
+        eq(externalDataCache.cacheKey, cacheKey)
+      )
     )
     .limit(1);
 
-  if (!row) {return null;}
+  if (!row) {
+    return null;
+  }
 
   const fetchedAt = row.fetchedAt ?? new Date(0);
   const ageSec = Math.floor((Date.now() - fetchedAt.getTime()) / 1000);
@@ -64,7 +66,7 @@ export async function setCachedExternal(
   data: Record<string, unknown>,
   ttlSeconds = 3600,
   fetchStatus = "ok",
-  fetchError?: string,
+  fetchError?: string
 ): Promise<void> {
   const existing = await db
     .select({ id: externalDataCache.id })
@@ -73,8 +75,8 @@ export async function setCachedExternal(
       and(
         eq(externalDataCache.orgId, orgId),
         eq(externalDataCache.provider, provider),
-        eq(externalDataCache.cacheKey, cacheKey),
-      ),
+        eq(externalDataCache.cacheKey, cacheKey)
+      )
     )
     .limit(1);
 
@@ -112,11 +114,17 @@ export async function fetchWithCacheFallback<T = Record<string, unknown>>(
   provider: string,
   cacheKey: string,
   fetchFn: () => Promise<T>,
-  ttlSeconds = 3600,
+  ttlSeconds = 3600
 ): Promise<CachedResult<T>> {
   try {
     const freshData = await fetchFn();
-    await setCachedExternal(orgId, provider, cacheKey, freshData as Record<string, unknown>, ttlSeconds);
+    await setCachedExternal(
+      orgId,
+      provider,
+      cacheKey,
+      freshData as Record<string, unknown>,
+      ttlSeconds
+    );
     return {
       data: freshData,
       fetchedAt: new Date(),
@@ -161,7 +169,7 @@ export async function purgeStaleCache(maxAgeDays = 30): Promise<number> {
   const { sql } = await import("drizzle-orm");
   const cutoff = new Date(Date.now() - maxAgeDays * 86400000);
   const result = await db.execute(
-    sql`DELETE FROM external_data_cache WHERE fetched_at < ${cutoff} RETURNING id`,
+    sql`DELETE FROM external_data_cache WHERE fetched_at < ${cutoff} RETURNING id`
   );
   return (result as { rows?: unknown[] }).rows?.length ?? 0;
 }
@@ -170,7 +178,7 @@ async function recordFetchError(
   orgId: string,
   provider: string,
   cacheKey: string,
-  errorMsg: string,
+  errorMsg: string
 ): Promise<void> {
   const existing = await db
     .select({ id: externalDataCache.id })
@@ -179,8 +187,8 @@ async function recordFetchError(
       and(
         eq(externalDataCache.orgId, orgId),
         eq(externalDataCache.provider, provider),
-        eq(externalDataCache.cacheKey, cacheKey),
-      ),
+        eq(externalDataCache.cacheKey, cacheKey)
+      )
     )
     .limit(1);
 
@@ -199,9 +207,15 @@ async function recordFetchError(
 // ───── Helpers ─────
 
 function formatAge(seconds: number): string {
-  if (seconds < 60) {return "just now";}
-  if (seconds < 3600) {return `${Math.floor(seconds / 60)} min ago`;}
-  if (seconds < 86400) {return `${Math.floor(seconds / 3600)} hr ago`;}
+  if (seconds < 60) {
+    return "just now";
+  }
+  if (seconds < 3600) {
+    return `${Math.floor(seconds / 60)} min ago`;
+  }
+  if (seconds < 86400) {
+    return `${Math.floor(seconds / 3600)} hr ago`;
+  }
   const days = Math.floor(seconds / 86400);
   return `${days} day${days !== 1 ? "s" : ""} ago`;
 }

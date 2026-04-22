@@ -2,25 +2,25 @@
  * Equipment Summary Handler - Lightweight equipment summary endpoint
  */
 
-import { Request, Response } from 'express';
-import { eq, and, sql } from 'drizzle-orm';
-import { db } from '../../db';
+import { Request, Response } from "express";
+import { eq, and, sql } from "drizzle-orm";
+import { db } from "../../db";
 import {
   equipment,
   alertNotifications,
   failurePredictions,
   pdmScoreLogs,
   actionableInsights,
-} from '@shared/schema-runtime';
-import { logger } from '../../utils/logger.js';
+} from "@shared/schema-runtime";
+import { logger } from "../../utils/logger.js";
 
 export async function handleEquipmentSummary(req: Request, res: Response) {
   try {
     const { equipmentId } = req.params;
     const { orgId } = req.query;
 
-    if (!orgId || typeof orgId !== 'string') {
-      return res.status(400).json({ error: 'orgId is required' });
+    if (!orgId || typeof orgId !== "string") {
+      return res.status(400).json({ error: "orgId is required" });
     }
 
     const equipmentResults = await db
@@ -31,7 +31,7 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
     const equipmentRecord = equipmentResults[0];
 
     if (!equipmentRecord) {
-      return res.status(404).json({ error: 'Equipment not found or access denied' });
+      return res.status(404).json({ error: "Equipment not found or access denied" });
     }
 
     let alertCount = 0;
@@ -52,7 +52,7 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
         );
       alertCount = alertResult.length;
     } catch {
-      logger.warn('Summary alert query failed', {
+      logger.warn("Summary alert query failed", {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),
       });
@@ -71,7 +71,7 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
         );
       insightCount = insightResult.length;
     } catch {
-      logger.warn('Summary insight query failed', {
+      logger.warn("Summary insight query failed", {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),
       });
@@ -86,7 +86,7 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
         .limit(1);
       pdmScore = pdmResult[0]?.healthIdx ?? null;
     } catch {
-      logger.warn('Summary PDM score query failed', {
+      logger.warn("Summary PDM score query failed", {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),
       });
@@ -104,7 +104,7 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
         .limit(1);
       latestPrediction = predResult[0] ?? null;
     } catch {
-      logger.warn('Summary prediction query failed', {
+      logger.warn("Summary prediction query failed", {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),
       });
@@ -121,22 +121,22 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
         healthStatus:
           pdmScore !== null
             ? pdmScore >= 80
-              ? 'healthy'
+              ? "healthy"
               : pdmScore >= 60
-                ? 'warning'
-                : 'critical'
-            : 'unknown',
+                ? "warning"
+                : "critical"
+            : "unknown",
       },
       generatedAt: new Date().toISOString(),
     });
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    logger.error('Failed to generate equipment summary', {
+    logger.error("Failed to generate equipment summary", {
       message: err.message,
       stack: err.stack,
       equipmentId: req.params.equipmentId,
       orgId: req.query.orgId,
     });
-    res.status(500).json({ error: 'Failed to generate equipment summary' });
+    res.status(500).json({ error: "Failed to generate equipment summary" });
   }
 }

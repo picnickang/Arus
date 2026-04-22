@@ -18,7 +18,7 @@ export interface CertificateEntity {
   nextSurveyDue: Date | null;
   surveyWindowStart: Date | null;
   surveyWindowEnd: Date | null;
-  status: 'valid' | 'expired' | 'suspended' | 'withdrawn' | 'pending_renewal';
+  status: "valid" | "expired" | "suspended" | "withdrawn" | "pending_renewal";
   conditionsOfClass: ConditionOfClass[];
   endorsements: FlagStateEndorsement[];
   surveyId: string | null;
@@ -35,7 +35,7 @@ export interface ConditionOfClass {
   id: string;
   description: string;
   dueDate: string;
-  status: 'open' | 'closed' | 'overdue';
+  status: "open" | "closed" | "overdue";
   imposedDate: string;
   closedDate?: string;
   closedBy?: string;

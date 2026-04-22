@@ -23,9 +23,7 @@ export class TwinDefinitionAdapter implements TwinDefinitionPort {
     const [result] = await db
       .select()
       .from(assetTwinTemplates)
-      .where(
-        and(eq(assetTwinTemplates.orgId, orgId), eq(assetTwinTemplates.id, templateId))
-      );
+      .where(and(eq(assetTwinTemplates.orgId, orgId), eq(assetTwinTemplates.id, templateId)));
     return result ?? null;
   }
 

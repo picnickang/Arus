@@ -1,6 +1,6 @@
 // Stub file - optimization cleanup scheduler consolidated
 export function setupOptimizationCleanupSchedule(): void {
-  console.log('[Cleanup Scheduler] Optimization cleanup schedule configured (stub)');
+  console.log("[Cleanup Scheduler] Optimization cleanup schedule configured (stub)");
 }
 
 export function runCleanup(): Promise<void> {

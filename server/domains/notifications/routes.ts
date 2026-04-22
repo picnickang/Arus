@@ -10,38 +10,43 @@ interface RateLimiters {
 }
 
 export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimiters): void {
-  const writeOperationRateLimit = rateLimiters?.writeOperationRateLimit || ((req: any, res: any, next: any) => next());
+  const writeOperationRateLimit =
+    rateLimiters?.writeOperationRateLimit || ((req: any, res: any, next: any) => next());
 
   // ===== NOTIFICATION SETTINGS ROUTES =====
 
-  app.get("/api/notifications/settings",
+  app.get(
+    "/api/notifications/settings",
     withErrorHandling("get notification settings", async (req, res) => {
       const orgId = req.orgId;
       const filters = {
         vesselId: req.query.vesselId as string | undefined,
         notificationType: req.query.notificationType as string | undefined,
       };
-      
+
       const settings = await dbNotificationsStorage.getNotificationSettings(orgId);
       res.json(settings);
     })
   );
 
-  app.get("/api/notifications/settings/:id",
+  app.get(
+    "/api/notifications/settings/:id",
     withErrorHandling("get notification setting", async (req, res) => {
       const orgId = req.orgId;
       const all = await dbNotificationsStorage.getNotificationSettings(orgId);
       const setting = all.find((s) => s.id === req.params.id);
-      
+
       if (!setting) {
         return sendNotFound(res, "Notification setting");
       }
-      
+
       res.json(setting);
     })
   );
 
-  app.post("/api/notifications/settings", writeOperationRateLimit,
+  app.post(
+    "/api/notifications/settings",
+    writeOperationRateLimit,
     withErrorHandling("create notification setting", async (req, res) => {
       const orgId = req.orgId;
       const setting = await dbNotificationsStorage.createNotificationSettings({
@@ -52,7 +57,9 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
     })
   );
 
-  app.patch("/api/notifications/settings/:id", writeOperationRateLimit,
+  app.patch(
+    "/api/notifications/settings/:id",
+    writeOperationRateLimit,
     withErrorHandling("update notification setting", async (req, res) => {
       const orgId = req.orgId;
       const all = await dbNotificationsStorage.getNotificationSettings(orgId);
@@ -60,12 +67,18 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       if (!existing) {
         return sendNotFound(res, "Notification setting");
       }
-      const setting = await dbNotificationsStorage.updateNotificationSettings(req.params.id, req.body, orgId);
+      const setting = await dbNotificationsStorage.updateNotificationSettings(
+        req.params.id,
+        req.body,
+        orgId
+      );
       res.json(setting);
     })
   );
 
-  app.delete("/api/notifications/settings/:id", writeOperationRateLimit,
+  app.delete(
+    "/api/notifications/settings/:id",
+    writeOperationRateLimit,
     withErrorHandling("delete notification setting", async (req, res) => {
       const orgId = req.orgId;
       const all = await dbNotificationsStorage.getNotificationSettings(orgId);
@@ -80,21 +93,30 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
 
   // ===== NOTIFICATION QUEUE ROUTES =====
 
-  app.get("/api/notifications/queue",
+  app.get(
+    "/api/notifications/queue",
     withErrorHandling("get notification queue", async (req, res) => {
       const orgId = req.orgId;
       const filters = {
         status: req.query.status as string | undefined,
         notificationType: req.query.notificationType as string | undefined,
-        scheduledBefore: req.query.scheduledBefore ? new Date(req.query.scheduledBefore as string) : undefined,
+        scheduledBefore: req.query.scheduledBefore
+          ? new Date(req.query.scheduledBefore as string)
+          : undefined,
       };
-      
-      const queue = await dbNotificationsStorage.getEmailQueue(filters?.status as string | undefined, undefined, orgId);
+
+      const queue = await dbNotificationsStorage.getEmailQueue(
+        filters?.status as string | undefined,
+        undefined,
+        orgId
+      );
       res.json(queue);
     })
   );
 
-  app.post("/api/notifications/queue", writeOperationRateLimit,
+  app.post(
+    "/api/notifications/queue",
+    writeOperationRateLimit,
     withErrorHandling("create notification queue item", async (req, res) => {
       const orgId = req.orgId;
       const item = await dbNotificationsStorage.createEmailQueueItem({
@@ -105,7 +127,9 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
     })
   );
 
-  app.delete("/api/notifications/queue/:id", writeOperationRateLimit,
+  app.delete(
+    "/api/notifications/queue/:id",
+    writeOperationRateLimit,
     withErrorHandling("delete notification queue item", async (req, res) => {
       const orgId = req.orgId;
       await dbNotificationsStorage.deleteEmailQueueItem(req.params.id, orgId);
@@ -115,37 +139,50 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
 
   // ===== EMAIL NOTIFICATION ROUTES =====
 
-  app.get("/api/notifications/email/status",
+  app.get(
+    "/api/notifications/email/status",
     withErrorHandling("get email notification status", async (req, res) => {
-      const { emailNotificationService } = await import("../../services/email-notification-service");
+      const { emailNotificationService } = await import(
+        "../../services/email-notification-service"
+      );
       res.json(emailNotificationService.getStatus());
     })
   );
 
-  app.post("/api/notifications/email/process-digest", writeOperationRateLimit,
+  app.post(
+    "/api/notifications/email/process-digest",
+    writeOperationRateLimit,
     withErrorHandling("process digest queue", async (req, res) => {
-      const { emailNotificationService } = await import("../../services/email-notification-service");
+      const { emailNotificationService } = await import(
+        "../../services/email-notification-service"
+      );
       const processedCount = await emailNotificationService.processDigestQueue();
       res.json({ success: true, processedCount });
     })
   );
 
-  app.post("/api/notifications/email/retry-failed", writeOperationRateLimit,
+  app.post(
+    "/api/notifications/email/retry-failed",
+    writeOperationRateLimit,
     withErrorHandling("retry failed notifications", async (req, res) => {
-      const { emailNotificationService } = await import("../../services/email-notification-service");
+      const { emailNotificationService } = await import(
+        "../../services/email-notification-service"
+      );
       const maxAttempts = Number(req.query.maxAttempts) || 3;
       const retryCount = await emailNotificationService.retryFailedNotifications(maxAttempts);
       res.json({ success: true, retryCount });
     })
   );
 
-  app.post("/api/notifications/email/test", writeOperationRateLimit,
+  app.post(
+    "/api/notifications/email/test",
+    writeOperationRateLimit,
     withErrorHandling("send test notification", async (req, res) => {
       const { email, subject, message } = req.body;
       if (!email) {
         return res.status(400).json({ error: "Email address required" });
       }
-      
+
       const orgId = req.orgId;
       const item = await dbNotificationsStorage.createEmailQueueItem({
         orgId,
@@ -156,20 +193,22 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
         recipients: [email],
         status: "pending",
       });
-      
-      const { emailNotificationService } = await import("../../services/email-notification-service");
+
+      const { emailNotificationService } = await import(
+        "../../services/email-notification-service"
+      );
       const status = emailNotificationService.getStatus();
-      
+
       if (status.enabled) {
         await emailNotificationService.retryFailedNotifications(1);
       }
-      
-      res.json({ 
-        success: true, 
+
+      res.json({
+        success: true,
         queued: true,
         emailEnabled: status.enabled,
-        message: status.enabled 
-          ? "Test notification sent" 
+        message: status.enabled
+          ? "Test notification sent"
           : "Test notification queued (email not configured - check logs)",
       });
     })

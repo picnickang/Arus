@@ -31,7 +31,11 @@ interface WorkOrderRequestsTabProps {
   requireAdvancedOptions?: boolean;
 }
 
-export function WorkOrderRequestsTab({ workOrderId, isReadOnly = false, requireAdvancedOptions = false }: WorkOrderRequestsTabProps) {
+export function WorkOrderRequestsTab({
+  workOrderId,
+  isReadOnly = false,
+  requireAdvancedOptions = false,
+}: WorkOrderRequestsTabProps) {
   const [soDialogOpen, setSoDialogOpen] = useState(false);
   const [prDialogOpen, setPrDialogOpen] = useState(false);
   const [editingSO, setEditingSO] = useState<ServiceOrderCardData | null>(null);
@@ -76,12 +80,15 @@ export function WorkOrderRequestsTab({ workOrderId, isReadOnly = false, requireA
 
   const handleCreateServiceOrder = (data: Record<string, unknown>) => {
     if (editingSO) {
-      updateServiceOrder({ soId: editingSO.id, data }, {
-        onSuccess: () => {
-          setSoDialogOpen(false);
-          setEditingSO(null);
-        },
-      });
+      updateServiceOrder(
+        { soId: editingSO.id, data },
+        {
+          onSuccess: () => {
+            setSoDialogOpen(false);
+            setEditingSO(null);
+          },
+        }
+      );
     } else {
       createServiceOrder(data, {
         onSuccess: () => setSoDialogOpen(false),
@@ -89,7 +96,10 @@ export function WorkOrderRequestsTab({ workOrderId, isReadOnly = false, requireA
     }
   };
 
-  const handleCreatePurchaseRequest = (data: { notes?: string; items: Array<{ partId?: string; description: string; quantity: number; notes?: string }> }) => {
+  const handleCreatePurchaseRequest = (data: {
+    notes?: string;
+    items: Array<{ partId?: string; description: string; quantity: number; notes?: string }>;
+  }) => {
     createPurchaseRequest(data, {
       onSuccess: () => setPrDialogOpen(false),
     });
@@ -119,8 +129,18 @@ export function WorkOrderRequestsTab({ workOrderId, isReadOnly = false, requireA
               {!isReadOnly && serviceOrders.length > 0 && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="outline" className="text-destructive" disabled={isBulkDeletingServiceOrders} data-testid="btn-clear-all-so">
-                      {isBulkDeletingServiceOrders ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trash2 className="h-4 w-4 mr-1" />}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-destructive"
+                      disabled={isBulkDeletingServiceOrders}
+                      data-testid="btn-clear-all-so"
+                    >
+                      {isBulkDeletingServiceOrders ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 mr-1" />
+                      )}
                       Clear All
                     </Button>
                   </AlertDialogTrigger>
@@ -128,12 +148,16 @@ export function WorkOrderRequestsTab({ workOrderId, isReadOnly = false, requireA
                     <AlertDialogHeader>
                       <AlertDialogTitle>Clear All Service Orders?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will delete all draft and cancelled service orders for this work order. Orders that have been sent or are in progress cannot be deleted.
+                        This will delete all draft and cancelled service orders for this work order.
+                        Orders that have been sent or are in progress cannot be deleted.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => bulkDeleteServiceOrders()} className="bg-destructive text-destructive-foreground">
+                      <AlertDialogAction
+                        onClick={() => bulkDeleteServiceOrders()}
+                        className="bg-destructive text-destructive-foreground"
+                      >
                         Clear All
                       </AlertDialogAction>
                     </AlertDialogFooter>
@@ -141,7 +165,12 @@ export function WorkOrderRequestsTab({ workOrderId, isReadOnly = false, requireA
                 </AlertDialog>
               )}
               {!isReadOnly && (
-                <Button size="sm" variant="outline" onClick={() => setSoDialogOpen(true)} data-testid="btn-request-service">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSoDialogOpen(true)}
+                  data-testid="btn-request-service"
+                >
                   <Plus className="h-4 w-4 mr-1" /> Request Service
                 </Button>
               )}
@@ -150,9 +179,13 @@ export function WorkOrderRequestsTab({ workOrderId, isReadOnly = false, requireA
         </CardHeader>
         <CardContent>
           {isLoadingServiceOrders ? (
-            <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin" /></div>
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
           ) : serviceOrders.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No external services requested</p>
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No external services requested
+            </p>
           ) : (
             <div className="space-y-3">
               {serviceOrders.map((so) => (
@@ -182,8 +215,18 @@ export function WorkOrderRequestsTab({ workOrderId, isReadOnly = false, requireA
               {!isReadOnly && purchaseRequests.length > 0 && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="outline" className="text-destructive" disabled={isBulkDeletingPurchaseRequests} data-testid="btn-clear-all-pr">
-                      {isBulkDeletingPurchaseRequests ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trash2 className="h-4 w-4 mr-1" />}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-destructive"
+                      disabled={isBulkDeletingPurchaseRequests}
+                      data-testid="btn-clear-all-pr"
+                    >
+                      {isBulkDeletingPurchaseRequests ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 mr-1" />
+                      )}
                       Clear All
                     </Button>
                   </AlertDialogTrigger>
@@ -191,12 +234,16 @@ export function WorkOrderRequestsTab({ workOrderId, isReadOnly = false, requireA
                     <AlertDialogHeader>
                       <AlertDialogTitle>Clear All Purchase Requests?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will delete all draft and cancelled purchase requests for this work order. Submitted or approved requests cannot be deleted.
+                        This will delete all draft and cancelled purchase requests for this work
+                        order. Submitted or approved requests cannot be deleted.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => bulkDeletePurchaseRequests()} className="bg-destructive text-destructive-foreground">
+                      <AlertDialogAction
+                        onClick={() => bulkDeletePurchaseRequests()}
+                        className="bg-destructive text-destructive-foreground"
+                      >
                         Clear All
                       </AlertDialogAction>
                     </AlertDialogFooter>
@@ -204,7 +251,12 @@ export function WorkOrderRequestsTab({ workOrderId, isReadOnly = false, requireA
                 </AlertDialog>
               )}
               {!isReadOnly && (
-                <Button size="sm" variant="outline" onClick={() => setPrDialogOpen(true)} data-testid="btn-request-parts">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPrDialogOpen(true)}
+                  data-testid="btn-request-parts"
+                >
                   <Plus className="h-4 w-4 mr-1" /> New Purchase Request
                 </Button>
               )}
@@ -213,7 +265,9 @@ export function WorkOrderRequestsTab({ workOrderId, isReadOnly = false, requireA
         </CardHeader>
         <CardContent>
           {isLoadingPurchaseRequests ? (
-            <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin" /></div>
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
           ) : purchaseRequests.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">No purchase requests</p>
           ) : (
@@ -223,7 +277,9 @@ export function WorkOrderRequestsTab({ workOrderId, isReadOnly = false, requireA
                   key={pr.id}
                   purchaseRequest={pr}
                   onDelete={deletePurchaseRequest}
-                  onFulfillItem={(prId, itemId, qty) => fulfillItem({ prId, itemId, quantity: qty })}
+                  onFulfillItem={(prId, itemId, qty) =>
+                    fulfillItem({ prId, itemId, quantity: qty })
+                  }
                   onUpdateStatus={(prId, status) => updatePRStatus({ prId, status })}
                   isDeleting={isDeletingPurchaseRequest && deletingPurchaseRequestId === pr.id}
                   isFulfilling={isFulfillingItem}
@@ -243,13 +299,17 @@ export function WorkOrderRequestsTab({ workOrderId, isReadOnly = false, requireA
         onOpenChange={handleSoDialogClose}
         onSubmit={handleCreateServiceOrder}
         isPending={editingSO ? isUpdatingServiceOrder : isCreatingServiceOrder}
-        initialData={editingSO ? {
-          serviceProviderId: editingSO.serviceProviderId,
-          scope: editingSO.scope,
-          scheduledStartDate: editingSO.scheduledStartDate,
-          scheduledEndDate: editingSO.scheduledEndDate,
-          estimatedDurationHours: editingSO.estimatedDurationHours,
-        } : undefined}
+        initialData={
+          editingSO
+            ? {
+                serviceProviderId: editingSO.serviceProviderId,
+                scope: editingSO.scope,
+                scheduledStartDate: editingSO.scheduledStartDate,
+                scheduledEndDate: editingSO.scheduledEndDate,
+                estimatedDurationHours: editingSO.estimatedDurationHours,
+              }
+            : undefined
+        }
         isEditing={!!editingSO}
         defaultExpanded={requireAdvancedOptions}
       />

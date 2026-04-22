@@ -48,10 +48,10 @@ function fitPlattScaling(
 /** Brier score: mean squared error of probability predictions */
 function brierScore(data: Array<{ predicted: number; actual: 0 | 1 }>): number {
   const n = data.length;
-  if (n === 0) {return 0;}
-  return data.reduce((sum, { predicted, actual }) =>
-    sum + Math.pow(predicted - actual, 2), 0
-  ) / n;
+  if (n === 0) {
+    return 0;
+  }
+  return data.reduce((sum, { predicted, actual }) => sum + Math.pow(predicted - actual, 2), 0) / n;
 }
 
 /** Isotonic regression (pool adjacent violators algorithm) */
@@ -83,7 +83,7 @@ function fitIsotonicRegression(
     }
   }
 
-  return blocks.map(b => ({
+  return blocks.map((b) => ({
     threshold: b.maxPredicted,
     value: b.sum / b.count,
   }));
@@ -93,9 +93,13 @@ function calibrateIsotonic(
   raw: number,
   mapping: Array<{ threshold: number; value: number }>
 ): number {
-  if (mapping.length === 0) {return raw;}
+  if (mapping.length === 0) {
+    return raw;
+  }
   for (let i = 0; i < mapping.length; i++) {
-    if (raw <= mapping[i].threshold) {return mapping[i].value;}
+    if (raw <= mapping[i].threshold) {
+      return mapping[i].value;
+    }
   }
   return mapping[mapping.length - 1].value;
 }
@@ -124,9 +128,8 @@ describe("Prediction Calibration", () => {
 
       const { a, b } = fitPlattScaling(data, 1000, 0.01);
 
-      const avgCalibrated = data.reduce(
-        (sum, d) => sum + plattSigmoid(d.predicted, a, b), 0
-      ) / data.length;
+      const avgCalibrated =
+        data.reduce((sum, d) => sum + plattSigmoid(d.predicted, a, b), 0) / data.length;
 
       expect(avgCalibrated).toBeGreaterThan(0.1);
       expect(avgCalibrated).toBeLessThan(0.95);
@@ -142,7 +145,7 @@ describe("Prediction Calibration", () => {
         500,
         0.01
       );
-      const calibrated = rawScores.map(p => plattSigmoid(p, a, b));
+      const calibrated = rawScores.map((p) => plattSigmoid(p, a, b));
 
       for (let i = 1; i < calibrated.length; i++) {
         expect(calibrated[i]).toBeGreaterThanOrEqual(calibrated[i - 1] - 0.1);

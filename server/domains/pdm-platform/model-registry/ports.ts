@@ -6,6 +6,11 @@ export interface ModelRegistryPort {
   listVersions(orgId: string, modelId: string): Promise<ModelVersion[]>;
   createVersion(data: InsertModelVersion): Promise<ModelVersion>;
   getActiveDeployment(orgId: string, modelId: string): Promise<ModelDeployment | null>;
-  deploy(orgId: string, modelId: string, modelVersionId: string, target: string): Promise<ModelDeployment>;
+  deploy(
+    orgId: string,
+    modelId: string,
+    modelVersionId: string,
+    target: string
+  ): Promise<ModelDeployment>;
   rollback(orgId: string, deploymentId: number): Promise<ModelDeployment>;
 }

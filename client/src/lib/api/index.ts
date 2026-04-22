@@ -32,11 +32,7 @@ export {
   fetchRulBatchPredictions,
 } from "./equipment";
 
-export {
-  fetchWorkOrders,
-  createWorkOrder,
-  updateWorkOrder,
-} from "./work-orders";
+export { fetchWorkOrders, createWorkOrder, updateWorkOrder } from "./work-orders";
 
 export {
   fetchAnomalyDetections,

@@ -34,7 +34,9 @@ interface LinkedWorkOrderBadgePropsWithData {
   workOrderNumber: string | null | undefined;
 }
 
-type LinkedWorkOrderBadgeProps = LinkedWorkOrderBadgePropsWithFetch | LinkedWorkOrderBadgePropsWithData;
+type LinkedWorkOrderBadgeProps =
+  | LinkedWorkOrderBadgePropsWithFetch
+  | LinkedWorkOrderBadgePropsWithData;
 
 // ─── Compact badge (for use in card views and tables) ───────────────────────
 
@@ -99,7 +101,10 @@ export function LinkedWorkOrderPanel({ serviceOrderId }: { serviceOrderId: strin
 
   if (!data?.linked || !data.workOrder) {
     return (
-      <div className="text-center py-3 text-muted-foreground text-xs border rounded-lg" data-testid="no-linked-wo">
+      <div
+        className="text-center py-3 text-muted-foreground text-xs border rounded-lg"
+        data-testid="no-linked-wo"
+      >
         <LinkIcon className="h-4 w-4 mx-auto mb-1 opacity-50" />
         No linked work order
       </div>
@@ -122,13 +127,20 @@ export function LinkedWorkOrderPanel({ serviceOrderId }: { serviceOrderId: strin
         <h3 className="text-sm font-semibold">Originating Work Order</h3>
       </div>
 
-      <div className="p-3 rounded-lg border hover:bg-accent/30 transition-colors" data-testid={`linked-wo-detail-${wo.id}`}>
+      <div
+        className="p-3 rounded-lg border hover:bg-accent/30 transition-colors"
+        data-testid={`linked-wo-detail-${wo.id}`}
+      >
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">{wo.workOrderNumber}</span>
             <Badge className={`text-[10px] ${statusColors[wo.status] || ""}`}>{wo.status}</Badge>
           </div>
-          <Link href={`/work-orders?id=${wo.id}`} className="text-xs text-primary hover:underline flex items-center gap-1" data-testid={`link-wo-${wo.id}`}>
+          <Link
+            href={`/work-orders?id=${wo.id}`}
+            className="text-xs text-primary hover:underline flex items-center gap-1"
+            data-testid={`link-wo-${wo.id}`}
+          >
             Open <ExternalLink className="h-3 w-3" />
           </Link>
         </div>

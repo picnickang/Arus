@@ -2,7 +2,7 @@
  * Context-Aware Logger
  * Provides proper log levels and deployment-mode-aware filtering
  * to reduce noise and highlight actual errors
- * 
+ *
  * Includes correlation ID support for distributed tracing
  */
 
@@ -28,11 +28,14 @@ class Logger {
   private config: LoggerConfig;
 
   constructor() {
-    const isEmbedded = process.env.DEPLOYMENT_MODE === "VESSEL" || process.env.IS_EMBEDDED === "true";
+    const isEmbedded =
+      process.env.DEPLOYMENT_MODE === "VESSEL" || process.env.IS_EMBEDDED === "true";
     const isLocalMode = !process.env.DATABASE_URL;
-    
+
     this.config = {
-      level: (process.env.LOG_LEVEL as LogLevel) || (process.env.NODE_ENV === "development" ? "debug" : "info"),
+      level:
+        (process.env.LOG_LEVEL as LogLevel) ||
+        (process.env.NODE_ENV === "development" ? "debug" : "info"),
       isEmbedded,
       isLocalMode,
       includeCorrelationId: process.env.LOG_CORRELATION_ID !== "false",
@@ -46,7 +49,7 @@ class Logger {
   private formatMessage(level: LogLevel, module: string, message: string): string {
     const timestamp = new Date().toISOString();
     const levelStr = level.toUpperCase().padEnd(5);
-    
+
     if (this.config.includeCorrelationId) {
       const correlationId = getCorrelationId();
       if (correlationId && correlationId !== "no-context") {
@@ -54,17 +57,21 @@ class Logger {
         return `[${levelStr}] ${timestamp} [${module}] [${shortId}] ${message}`;
       }
     }
-    
+
     return `[${levelStr}] ${timestamp} [${module}] ${message}`;
   }
 
   debug(module: string, message: string, data?: unknown) {
-    if (!this.shouldLog("debug")) { return; }
+    if (!this.shouldLog("debug")) {
+      return;
+    }
     console.log(this.formatMessage("debug", module, message), data ?? "");
   }
 
   info(module: string, message: string, data?: unknown) {
-    if (!this.shouldLog("info")) { return; }
+    if (!this.shouldLog("info")) {
+      return;
+    }
     console.log(this.formatMessage("info", module, message), data ?? "");
   }
 
@@ -73,14 +80,16 @@ class Logger {
    * Suppresses expected warnings in embedded/offline mode
    */
   warn(module: string, message: string, data?: unknown, suppressInEmbedded = false) {
-    if (!this.shouldLog("warn")) { return; }
-    
+    if (!this.shouldLog("warn")) {
+      return;
+    }
+
     // Suppress expected warnings in embedded mode
     if (suppressInEmbedded && this.config.isEmbedded) {
       this.debug(module, `[Suppressed] ${message}`, data);
       return;
     }
-    
+
     console.warn(this.formatMessage("warn", module, message), data ?? "");
   }
 
@@ -88,7 +97,9 @@ class Logger {
    * Error for actual failures requiring attention
    */
   error(module: string, message: string, error?: unknown) {
-    if (!this.shouldLog("error")) { return; }
+    if (!this.shouldLog("error")) {
+      return;
+    }
     console.error(this.formatMessage("error", module, message));
     if (error) {
       if (error instanceof Error) {
@@ -114,7 +125,7 @@ class Logger {
 
     console.log(`ℹ️  ${module}: ${message}`);
     if (details) {
-      details.forEach(detail => console.log(`   ${detail}`));
+      details.forEach((detail) => console.log(`   ${detail}`));
     }
   }
 
@@ -122,7 +133,9 @@ class Logger {
    * Success/completion messages
    */
   success(module: string, message: string) {
-    if (!this.shouldLog("info")) { return; }
+    if (!this.shouldLog("info")) {
+      return;
+    }
     console.log(`✓ ${module}: ${message}`);
   }
 }
@@ -147,7 +160,7 @@ export function logDeploymentInfo(module: string, message: string, isOptional = 
  */
 export function logExpectedLimitation(module: string, message: string, details?: string[]) {
   const isEmbedded = process.env.DEPLOYMENT_MODE === "VESSEL" || process.env.IS_EMBEDDED === "true";
-  
+
   if (isEmbedded) {
     // In embedded mode, this is expected - log as notice only
     logger.notice(module, message, details);

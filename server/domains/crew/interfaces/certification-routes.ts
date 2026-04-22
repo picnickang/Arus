@@ -24,45 +24,74 @@ function coerceDates(body: Record<string, unknown>): Record<string, unknown> {
 export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): void {
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimit;
 
-  app.get("/api/crew-certifications", requireOrgId, generalApiRateLimit,
+  app.get(
+    "/api/crew-certifications",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("fetch crew certifications", async (req, res) => {
       const { crewId } = req.query;
       const orgId = req.orgId;
-      const certifications = await crewService.listCertifications(crewId as string | undefined, orgId);
+      const certifications = await crewService.listCertifications(
+        crewId as string | undefined,
+        orgId
+      );
       res.json(certifications);
     })
   );
 
-  app.post("/api/crew-certifications", requireOrgIdAndValidateBody, writeOperationRateLimit,
+  app.post(
+    "/api/crew-certifications",
+    requireOrgIdAndValidateBody,
+    writeOperationRateLimit,
     withErrorHandling("create certification", async (req, res) => {
-      const certData = insertCrewCertificationSchema.parse(coerceDates({ ...req.body, orgId: req.orgId }));
+      const certData = insertCrewCertificationSchema.parse(
+        coerceDates({ ...req.body, orgId: req.orgId })
+      );
       const cert = await crewService.createCertification(certData, req.user?.id);
       sendCreated(res, cert);
     })
   );
 
-  app.put("/api/crew-certifications/:id", requireOrgIdAndValidateBody, writeOperationRateLimit,
+  app.put(
+    "/api/crew-certifications/:id",
+    requireOrgIdAndValidateBody,
+    writeOperationRateLimit,
     withErrorHandling("update certification", async (req, res) => {
       const certData = insertCrewCertificationSchema.partial().parse(coerceDates(req.body));
-      const cert = await crewService.updateCertification(req.params.id, certData, req.user?.id, req.orgId);
+      const cert = await crewService.updateCertification(
+        req.params.id,
+        certData,
+        req.user?.id,
+        req.orgId
+      );
       res.json(cert);
     })
   );
 
-  app.delete("/api/crew-certifications/:id", requireOrgId, criticalOperationRateLimit,
+  app.delete(
+    "/api/crew-certifications/:id",
+    requireOrgId,
+    criticalOperationRateLimit,
     withErrorHandling("delete certification", async (req, res) => {
       await crewService.deleteCertification(req.params.id, req.user?.id, req.orgId);
       sendDeleted(res);
     })
   );
 
-  app.get("/api/crew-certifications/expiring", requireOrgId, generalApiRateLimit,
+  app.get(
+    "/api/crew-certifications/expiring",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("fetch expiring certifications", async (req, res) => {
       const orgId = req.headers["x-org-id"] as string;
       const daysAhead = Number.parseInt(req.query.daysAhead as string) || 90;
       const includeAcknowledged = req.query.includeAcknowledged === "true";
 
-      const expiringCerts = await crewService.getCertificationsExpiring(orgId, daysAhead, includeAcknowledged);
+      const expiringCerts = await crewService.getCertificationsExpiring(
+        orgId,
+        daysAhead,
+        includeAcknowledged
+      );
 
       const enrichedCerts = await Promise.all(
         expiringCerts.map(async (cert) => {
@@ -95,7 +124,10 @@ export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): 
     notes: z.string().max(1000).optional(),
   });
 
-  app.post("/api/crew-certifications/:id/acknowledge-alert", requireOrgIdAndValidateBody, writeOperationRateLimit,
+  app.post(
+    "/api/crew-certifications/:id/acknowledge-alert",
+    requireOrgIdAndValidateBody,
+    writeOperationRateLimit,
     withErrorHandling("acknowledge certification alert", async (req, res) => {
       const certId = req.params.id;
       const userId = req.user?.id;
@@ -106,7 +138,10 @@ export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): 
     })
   );
 
-  app.post("/api/crew-certifications/scan-expiry", requireOrgId, criticalOperationRateLimit,
+  app.post(
+    "/api/crew-certifications/scan-expiry",
+    requireOrgId,
+    criticalOperationRateLimit,
     withErrorHandling("scan for expiring certifications", async (req, res) => {
       const orgId = req.headers["x-org-id"] as string;
       const result = await crewService.scanAndFlagExpiringCertifications(orgId);

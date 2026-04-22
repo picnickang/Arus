@@ -7,7 +7,7 @@ export interface FuelEmissionsResult {
   recordsCreated: number;
   recordsUpdated: number;
   errors: string[];
-  dataSource?: 'fmcc' | 'telemetry' | 'mixed';
+  dataSource?: "fmcc" | "telemetry" | "mixed";
   fmccRecords?: number;
   telemetryRecords?: number;
 }

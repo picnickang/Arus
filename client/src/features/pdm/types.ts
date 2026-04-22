@@ -1,5 +1,5 @@
-export type RiskLevel = 'critical' | 'high' | 'medium' | 'low';
-export type AlertStatus = 'new' | 'active' | 'acknowledged' | 'resolved';
+export type RiskLevel = "critical" | "high" | "medium" | "low";
+export type AlertStatus = "new" | "active" | "acknowledged" | "resolved";
 
 export interface RulConfidenceInterval {
   lowDays: number;
@@ -8,7 +8,7 @@ export interface RulConfidenceInterval {
 
 export interface EvidenceChip {
   label: string;
-  type: 'trend' | 'threshold' | 'anomaly' | 'pattern';
+  type: "trend" | "threshold" | "anomaly" | "pattern";
 }
 
 export interface RiskQueueItem {
@@ -152,15 +152,15 @@ export interface TelemetryTrend {
   lastReading: string | Date;
 }
 
-export type ScheduledTaskStatus = 'draft' | 'scheduled' | 'blocked' | 'escalated' | 'wo_created';
+export type ScheduledTaskStatus = "draft" | "scheduled" | "blocked" | "escalated" | "wo_created";
 
-export type BlockReason = 
-  | 'capacity' 
-  | 'parts_lead_time' 
-  | 'vessel_unavailable' 
-  | 'telemetry_stale' 
-  | 'insufficient_confidence'
-  | 'scheduling_conflict';
+export type BlockReason =
+  | "capacity"
+  | "parts_lead_time"
+  | "vessel_unavailable"
+  | "telemetry_stale"
+  | "insufficient_confidence"
+  | "scheduling_conflict";
 
 export interface SchedulingWindow {
   earliestStart: string | Date;

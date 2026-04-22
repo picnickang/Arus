@@ -100,5 +100,5 @@ export const PART_CATEGORIES = [
 
 export const CRITICALITY_LEVELS = ["low", "medium", "high", "critical"] as const;
 
-export type PartCategory = typeof PART_CATEGORIES[number];
-export type CriticalityLevel = typeof CRITICALITY_LEVELS[number];
+export type PartCategory = (typeof PART_CATEGORIES)[number];
+export type CriticalityLevel = (typeof CRITICALITY_LEVELS)[number];

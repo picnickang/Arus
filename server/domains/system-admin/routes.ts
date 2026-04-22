@@ -1,10 +1,10 @@
 /**
  * System Administration Domain Routes
- * 
+ *
  * BACKWARD COMPATIBILITY SHIM
  * This file re-exports from the modular routes/ directory.
  * New code should import directly from './routes/index.js'
- * 
+ *
  * Modularized into 8 files:
  * - types.ts (65 lines): Shared interfaces and dependencies
  * - auth-routes.ts (159 lines): Admin authentication

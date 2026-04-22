@@ -1,6 +1,6 @@
 /**
  * RAG Query Rewriter Service
- * 
+ *
  * Uses LLM to expand and improve user queries for better retrieval.
  * Features:
  * - Query expansion for better recall
@@ -9,9 +9,9 @@
  * - Domain-specific term normalization
  */
 
-import { createOpenAIClient } from '../../openai/client';
-import type { QueryRewriteResult } from './types';
-import { logger } from '../../utils/logger';
+import { createOpenAIClient } from "../../openai/client";
+import type { QueryRewriteResult } from "./types";
+import { logger } from "../../utils/logger";
 
 const REWRITE_SYSTEM_PROMPT = `You are a query optimization assistant for a marine fleet management system.
 Your task is to improve search queries for a knowledge base containing:
@@ -46,7 +46,7 @@ export class QueryRewriter {
   private maxExpansions: number;
 
   constructor(config: QueryRewriterConfig = {}) {
-    this.model = config.model || 'gpt-4o-mini';
+    this.model = config.model || "gpt-4o-mini";
     this.enabled = config.enabled ?? true;
     this.maxExpansions = config.maxExpansions || 3;
   }
@@ -61,7 +61,7 @@ export class QueryRewriter {
 
     const openai = await createOpenAIClient();
     if (!openai) {
-      logger.warn('[QueryRewriter] OpenAI unavailable, returning original query');
+      logger.warn("[QueryRewriter] OpenAI unavailable, returning original query");
       return {
         originalQuery: query,
         rewrittenQuery: query,
@@ -72,21 +72,21 @@ export class QueryRewriter {
       const response = await openai.chat.completions.create({
         model: this.model,
         messages: [
-          { role: 'system', content: REWRITE_SYSTEM_PROMPT },
-          { role: 'user', content: query },
+          { role: "system", content: REWRITE_SYSTEM_PROMPT },
+          { role: "user", content: query },
         ],
         temperature: 0.2,
         max_tokens: 300,
-        response_format: { type: 'json_object' },
+        response_format: { type: "json_object" },
       });
 
       const content = response.choices[0]?.message?.content;
       if (!content) {
-        throw new Error('Empty response from LLM');
+        throw new Error("Empty response from LLM");
       }
 
       const parsed = JSON.parse(content);
-      
+
       logger.info(`[QueryRewriter] Rewrote "${query}" -> "${parsed.rewritten}"`);
 
       return {
@@ -96,7 +96,7 @@ export class QueryRewriter {
         intent: parsed.intent,
       };
     } catch (error) {
-      logger.error('[QueryRewriter] Failed to rewrite query:', error);
+      logger.error("[QueryRewriter] Failed to rewrite query:", error);
       return {
         originalQuery: query,
         rewrittenQuery: query,
@@ -105,7 +105,7 @@ export class QueryRewriter {
   }
 
   async rewriteMultiple(queries: string[]): Promise<QueryRewriteResult[]> {
-    return Promise.all(queries.map(q => this.rewrite(q)));
+    return Promise.all(queries.map((q) => this.rewrite(q)));
   }
 }
 

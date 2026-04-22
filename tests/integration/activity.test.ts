@@ -134,7 +134,9 @@ describe("Agent Activity API", () => {
     });
 
     it("filters by triggerType=scheduled", async () => {
-      const { status, body } = await get<ActivityItem[]>("/api/agent/activity?triggerType=scheduled");
+      const { status, body } = await get<ActivityItem[]>(
+        "/api/agent/activity?triggerType=scheduled"
+      );
       expect(status).toBe(200);
       for (const item of body) {
         expect(item.triggerType).toBe("scheduled");
@@ -157,16 +159,22 @@ describe("Agent Activity API", () => {
 
     it("filters by startDate and endDate", async () => {
       const futureDate = new Date(Date.now() + 86400000).toISOString();
-      const { body: empty } = await get<ActivityItem[]>(`/api/agent/activity?startDate=${futureDate}`);
+      const { body: empty } = await get<ActivityItem[]>(
+        `/api/agent/activity?startDate=${futureDate}`
+      );
       expect(empty.length).toBe(0);
 
       const pastDate = new Date("2020-01-01").toISOString();
-      const { body: withPast } = await get<ActivityItem[]>(`/api/agent/activity?startDate=${pastDate}`);
+      const { body: withPast } = await get<ActivityItem[]>(
+        `/api/agent/activity?startDate=${pastDate}`
+      );
       expect(withPast.length).toBeGreaterThanOrEqual(0);
 
       const recent = new Date(Date.now() - 30 * 86400000).toISOString();
       const now = new Date().toISOString();
-      const { body: ranged } = await get<ActivityItem[]>(`/api/agent/activity?startDate=${recent}&endDate=${now}`);
+      const { body: ranged } = await get<ActivityItem[]>(
+        `/api/agent/activity?startDate=${recent}&endDate=${now}`
+      );
       expect(Array.isArray(ranged)).toBe(true);
     });
 

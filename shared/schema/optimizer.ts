@@ -1,6 +1,6 @@
 /**
  * Schema Optimizer - Scheduling Optimization Configuration and Results
- * 
+ *
  * Optimizer configurations, resource constraints, and optimization results.
  */
 
@@ -171,7 +171,9 @@ export const insertOptimizerConfigurationSchema = createInsertSchema(optimizerCo
   .omit({ id: true, createdAt: true, updatedAt: true })
   .extend({
     algorithmType: z.enum(["greedy", "genetic", "simulated_annealing"]).default("greedy"),
-    conflictResolutionStrategy: z.enum(["priority_based", "cost_based", "earliest_first"]).default("priority_based"),
+    conflictResolutionStrategy: z
+      .enum(["priority_based", "cost_based", "earliest_first"])
+      .default("priority_based"),
   });
 
 export const insertResourceConstraintSchema = createInsertSchema(resourceConstraints)

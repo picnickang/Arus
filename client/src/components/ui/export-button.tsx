@@ -54,7 +54,9 @@ export function ExportButton({
   const { toast } = useToast();
 
   const handleExport = async (format: ExportFormat) => {
-    if (!data || isExporting) {return;}
+    if (!data || isExporting) {
+      return;
+    }
 
     setIsExporting(true);
 

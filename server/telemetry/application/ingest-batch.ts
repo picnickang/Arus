@@ -1,11 +1,11 @@
-import type { RawFrame } from '../decode/types';
-import type { TelemetryReading } from '../../telemetry-batch-writer';
-import type { ITelemetryPersistence, IDeadLetterQueue, IMetricsEmitter } from '../ports/outbound';
-import type { IngestBatchResult, IBatchProcessor } from '../ports/inbound';
-import { logger } from '../../utils/logger';
-import type { RawTelemetryArchiveAdapter } from '../adapters/raw-archive';
-import type { EquipmentHeartbeatAdapter, HeartbeatUpdate } from '../adapters/equipment-heartbeat';
-import type { TelemetryBatchAckAdapter } from '../adapters/batch-ack';
+import type { RawFrame } from "../decode/types";
+import type { TelemetryReading } from "../../telemetry-batch-writer";
+import type { ITelemetryPersistence, IDeadLetterQueue, IMetricsEmitter } from "../ports/outbound";
+import type { IngestBatchResult, IBatchProcessor } from "../ports/inbound";
+import { logger } from "../../utils/logger";
+import type { RawTelemetryArchiveAdapter } from "../adapters/raw-archive";
+import type { EquipmentHeartbeatAdapter, HeartbeatUpdate } from "../adapters/equipment-heartbeat";
+import type { TelemetryBatchAckAdapter } from "../adapters/batch-ack";
 
 export interface IngestTelemetryBatchConfig {
   persistence: ITelemetryPersistence;
@@ -49,41 +49,44 @@ export class IngestTelemetryBatch {
 
     if (this.config.rawArchive && this.config.orgId) {
       try {
-        const protocol = frames[0]?.protocol ?? 'unknown';
-        const source = frames[0]?.source ?? 'unknown';
+        const protocol = frames[0]?.protocol ?? "unknown";
+        const source = frames[0]?.source ?? "unknown";
         const archiveResult = await this.config.rawArchive.archiveRawPayload({
           orgId: this.config.orgId,
           source,
           protocol,
           schemaVersion: frames[0]?.payloadFormatVersion ?? 1,
-          frames: frames.map(f => f.payload),
+          frames: frames.map((f) => f.payload),
         });
         result.archiveId = archiveResult.archiveId;
-        
+
         if (archiveResult.isDuplicate) {
-          logger.debug('IngestTelemetryBatch', 'Duplicate archive detected', { 
-            archiveId: archiveResult.archiveId 
+          logger.debug("IngestTelemetryBatch", "Duplicate archive detected", {
+            archiveId: archiveResult.archiveId,
           });
         }
       } catch (err) {
-        logger.error('IngestTelemetryBatch', 'Failed to archive raw payload', { error: err });
+        logger.error("IngestTelemetryBatch", "Failed to archive raw payload", { error: err });
       }
     }
 
-    const shouldTrackBatch = this.config.batchAck && this.config.orgId && batchId && batchId.length > 0;
+    const shouldTrackBatch =
+      this.config.batchAck && this.config.orgId && batchId && batchId.length > 0;
     if (shouldTrackBatch) {
       try {
-        const timestamps = frames.map(f => new Date(f.ts)).sort((a, b) => a.getTime() - b.getTime());
+        const timestamps = frames
+          .map((f) => new Date(f.ts))
+          .sort((a, b) => a.getTime() - b.getTime());
         await this.config.batchAck.receiveBatch({
           batchId,
           orgId: this.config.orgId!,
-          source: frames[0]?.source ?? 'unknown',
+          source: frames[0]?.source ?? "unknown",
           frameCount: frames.length,
           firstFrameTs: timestamps[0],
           lastFrameTs: timestamps[timestamps.length - 1],
         });
       } catch (err) {
-        logger.error('IngestTelemetryBatch', 'Failed to register batch', { error: err });
+        logger.error("IngestTelemetryBatch", "Failed to register batch", { error: err });
       }
     }
 
@@ -98,15 +101,15 @@ export class IngestTelemetryBatch {
     const frameIds = frames.map((f) => f.id);
 
     if (this.config.circuitBreaker?.isOpen()) {
-      logger.warn('IngestTelemetryBatch', 'Circuit breaker open, sending to DLQ', {
+      logger.warn("IngestTelemetryBatch", "Circuit breaker open, sending to DLQ", {
         readingsCount: readings.length,
       });
       this.config.deadLetterQueue.add(
         { readings, frameIds },
-        'Circuit breaker open - persistence unavailable',
-        'ingest-batch'
+        "Circuit breaker open - persistence unavailable",
+        "ingest-batch"
       );
-      this.config.metrics.incDLQAdded('circuit-open');
+      this.config.metrics.incDLQAdded("circuit-open");
       result.failedToDeadLetter = readings.length;
       return result;
     }
@@ -151,7 +154,7 @@ export class IngestTelemetryBatch {
       }
 
       result.readingsPersisted = uniqueReadings.length;
-      logger.debug('IngestTelemetryBatch', 'Batch persisted', {
+      logger.debug("IngestTelemetryBatch", "Batch persisted", {
         count: uniqueReadings.length,
         latencyMs: commitLatency,
       });
@@ -160,7 +163,7 @@ export class IngestTelemetryBatch {
         try {
           const heartbeatUpdates: HeartbeatUpdate[] = [];
           const seenEquipment = new Set<string>();
-          
+
           for (const reading of uniqueReadings) {
             if (reading.equipmentId && !seenEquipment.has(reading.equipmentId)) {
               seenEquipment.add(reading.equipmentId);
@@ -174,12 +177,12 @@ export class IngestTelemetryBatch {
               });
             }
           }
-          
+
           if (heartbeatUpdates.length > 0) {
             await this.config.heartbeat.batchUpdateHeartbeats(heartbeatUpdates);
           }
         } catch (err) {
-          logger.error('IngestTelemetryBatch', 'Failed to update heartbeats', { error: err });
+          logger.error("IngestTelemetryBatch", "Failed to update heartbeats", { error: err });
         }
       }
 
@@ -194,7 +197,7 @@ export class IngestTelemetryBatch {
             processingTimeMs,
           });
         } catch (err) {
-          logger.error('IngestTelemetryBatch', 'Failed to acknowledge batch', { error: err });
+          logger.error("IngestTelemetryBatch", "Failed to acknowledge batch", { error: err });
         }
       }
 
@@ -202,26 +205,30 @@ export class IngestTelemetryBatch {
         try {
           await this.config.rawArchive.markDecoded(result.archiveId, uniqueReadings.length);
         } catch (err) {
-          logger.error('IngestTelemetryBatch', 'Failed to mark archive as decoded', { error: err });
+          logger.error("IngestTelemetryBatch", "Failed to mark archive as decoded", { error: err });
         }
       }
     } catch (err) {
-      logger.error('IngestTelemetryBatch', 'Failed to persist batch', { error: err });
+      logger.error("IngestTelemetryBatch", "Failed to persist batch", { error: err });
 
       this.config.deadLetterQueue.add(
         { readings: uniqueReadings, frameIds },
         err instanceof Error ? err.message : String(err),
-        'ingest-batch'
+        "ingest-batch"
       );
-      this.config.metrics.incDLQAdded('persist-error');
+      this.config.metrics.incDLQAdded("persist-error");
       result.failedToDeadLetter = uniqueReadings.length;
 
       if (shouldTrackBatch && batchId) {
-        await this.config.batchAck!.markFailed(batchId, err instanceof Error ? err.message : String(err)).catch(() => {});
+        await this.config
+          .batchAck!.markFailed(batchId, err instanceof Error ? err.message : String(err))
+          .catch(() => {});
       }
 
       if (this.config.rawArchive && result.archiveId) {
-        await this.config.rawArchive.markDecoded(result.archiveId, 0, err instanceof Error ? err.message : String(err)).catch(() => {});
+        await this.config.rawArchive
+          .markDecoded(result.archiveId, 0, err instanceof Error ? err.message : String(err))
+          .catch(() => {});
       }
     }
 
@@ -229,6 +236,8 @@ export class IngestTelemetryBatch {
   }
 }
 
-export function createIngestTelemetryBatch(config: IngestTelemetryBatchConfig): IngestTelemetryBatch {
+export function createIngestTelemetryBatch(
+  config: IngestTelemetryBatchConfig
+): IngestTelemetryBatch {
   return new IngestTelemetryBatch(config);
 }

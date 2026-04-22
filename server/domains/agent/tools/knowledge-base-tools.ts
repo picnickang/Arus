@@ -5,13 +5,15 @@ registerTool({
   name: "searchKnowledgeBase",
   category: "knowledge-base",
   riskLevel: "read",
-  description: "Search the organization's Knowledge Base for information from uploaded documents such as maintenance manuals, technical specifications, regulatory procedures, equipment guides, and other reference materials. Returns an AI-generated answer with citations referencing the source documents. Use this tool when the user asks about procedures, regulations, technical specs, or any topic that may be covered in uploaded documentation rather than live operational data.",
+  description:
+    "Search the organization's Knowledge Base for information from uploaded documents such as maintenance manuals, technical specifications, regulatory procedures, equipment guides, and other reference materials. Returns an AI-generated answer with citations referencing the source documents. Use this tool when the user asks about procedures, regulations, technical specs, or any topic that may be covered in uploaded documentation rather than live operational data.",
   parameters: {
     type: "object",
     properties: {
       query: {
         type: "string",
-        description: "The search query — a question or topic to look up in the knowledge base documents",
+        description:
+          "The search query — a question or topic to look up in the knowledge base documents",
       },
       maxSources: {
         type: "number",
@@ -40,7 +42,8 @@ registerTool({
       return {
         error: result.error,
         documentsFound: 0,
-        suggestion: "The Knowledge Base search encountered an error. Please try again or contact an administrator.",
+        suggestion:
+          "The Knowledge Base search encountered an error. Please try again or contact an administrator.",
       };
     }
 
@@ -48,7 +51,8 @@ registerTool({
       return {
         answer: result.answer,
         documentsFound: 0,
-        suggestion: "No matching documents found. Try rephrasing your query or check if relevant documents have been uploaded to the Knowledge Base.",
+        suggestion:
+          "No matching documents found. Try rephrasing your query or check if relevant documents have been uploaded to the Knowledge Base.",
       };
     }
 
@@ -56,7 +60,7 @@ registerTool({
       ref: `[${i + 1}]`,
       document: c.docName,
       relevance: `${(c.relevance * 100).toFixed(0)}%`,
-      excerpt: c.text.length > 200 ? `${c.text.slice(0, 200)  }...` : c.text,
+      excerpt: c.text.length > 200 ? `${c.text.slice(0, 200)}...` : c.text,
     }));
 
     return {
@@ -73,7 +77,8 @@ registerTool({
   name: "listKnowledgeBaseDocs",
   category: "knowledge-base",
   riskLevel: "read",
-  description: "List all documents available in the organization's Knowledge Base. Shows document names, types, upload dates, and chunk counts. Use this tool when the user asks what documents or reference materials are available, or wants to know what's been uploaded to the knowledge base.",
+  description:
+    "List all documents available in the organization's Knowledge Base. Shows document names, types, upload dates, and chunk counts. Use this tool when the user asks what documents or reference materials are available, or wants to know what's been uploaded to the knowledge base.",
   parameters: {
     type: "object",
     properties: {},

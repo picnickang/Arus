@@ -36,7 +36,7 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
   protected orgIdColumn: string;
   protected idColumn: string;
   protected updatedAtColumn: string | null;
-  
+
   constructor(
     protected table: PgTableWithColumns<any>,
     config: ColumnConfig = {}
@@ -44,26 +44,32 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
     this.orgIdColumn = config.orgIdColumn ?? "orgId";
     this.idColumn = config.idColumn ?? "id";
     this.updatedAtColumn = config.updatedAtColumn ?? "updatedAt";
-    
+
     this.validateColumns();
   }
-  
+
   private validateColumns(): void {
     const tableColumns = this.table as any;
     if (!tableColumns[this.orgIdColumn]) {
-      throw new Error(`BaseRepository: table missing required column '${this.orgIdColumn}' (orgId). ` +
-        `Available columns: ${Object.keys(tableColumns).filter(k => !k.startsWith('_')).join(', ')}`);
+      throw new Error(
+        `BaseRepository: table missing required column '${this.orgIdColumn}' (orgId). ` +
+          `Available columns: ${Object.keys(tableColumns)
+            .filter((k) => !k.startsWith("_"))
+            .join(", ")}`
+      );
     }
     if (!tableColumns[this.idColumn]) {
-      throw new Error(`BaseRepository: table missing required column '${this.idColumn}' (id). ` +
-        `Available columns: ${Object.keys(tableColumns).filter(k => !k.startsWith('_')).join(', ')}`);
+      throw new Error(
+        `BaseRepository: table missing required column '${this.idColumn}' (id). ` +
+          `Available columns: ${Object.keys(tableColumns)
+            .filter((k) => !k.startsWith("_"))
+            .join(", ")}`
+      );
     }
   }
 
   async list(orgId: string, filters?: FilterOptions): Promise<T[]> {
-    const conditions: SQL[] = [
-      eq((this.table as any)[this.orgIdColumn], orgId),
-    ];
+    const conditions: SQL[] = [eq((this.table as any)[this.orgIdColumn], orgId)];
 
     if (filters) {
       for (const [key, value] of Object.entries(filters)) {
@@ -95,9 +101,7 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
     const pageSize = pagination.pageSize ?? pagination.limit ?? 20;
     const offset = pagination.offset ?? (page - 1) * pageSize;
 
-    const conditions: SQL[] = [
-      eq((this.table as any)[this.orgIdColumn], orgId),
-    ];
+    const conditions: SQL[] = [eq((this.table as any)[this.orgIdColumn], orgId)];
 
     if (filters) {
       for (const [key, value] of Object.entries(filters)) {
@@ -120,16 +124,13 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
 
     const total = countResult[0]?.count ?? 0;
 
-    let query = db
-      .select()
-      .from(this.table)
-      .where(whereClause)
-      .limit(pageSize)
-      .offset(offset);
+    let query = db.select().from(this.table).where(whereClause).limit(pageSize).offset(offset);
 
     if (sort?.sortBy && (this.table as any)[sort.sortBy]) {
       const sortColumn = (this.table as any)[sort.sortBy];
-      query = query.orderBy(sort.sortOrder === "desc" ? desc(sortColumn) : asc(sortColumn)) as typeof query;
+      query = query.orderBy(
+        sort.sortOrder === "desc" ? desc(sortColumn) : asc(sortColumn)
+      ) as typeof query;
     }
 
     const items = await query;
@@ -169,11 +170,11 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
 
   async update(id: string, data: Partial<InsertT>, orgId: string): Promise<T> {
     const updateData: Record<string, unknown> = { ...data };
-    
+
     if (this.updatedAtColumn && (this.table as any)[this.updatedAtColumn]) {
       updateData[this.updatedAtColumn] = new Date();
     }
-    
+
     const result = await db
       .update(this.table)
       .set(updateData as any)
@@ -222,9 +223,7 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
   }
 
   async count(orgId: string, filters?: FilterOptions): Promise<number> {
-    const conditions: SQL[] = [
-      eq((this.table as any)[this.orgIdColumn], orgId),
-    ];
+    const conditions: SQL[] = [eq((this.table as any)[this.orgIdColumn], orgId)];
 
     if (filters) {
       for (const [key, value] of Object.entries(filters)) {
@@ -243,7 +242,9 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
   }
 
   async bulkCreate(items: InsertT[]): Promise<T[]> {
-    if (items.length === 0) {return [];}
+    if (items.length === 0) {
+      return [];
+    }
 
     const result = await db
       .insert(this.table)
@@ -254,12 +255,16 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
   }
 
   async bulkDelete(ids: string[], orgId: string): Promise<number> {
-    if (ids.length === 0) {return 0;}
+    if (ids.length === 0) {
+      return 0;
+    }
 
     let deleted = 0;
     for (const id of ids) {
       const success = await this.delete(id, orgId);
-      if (success) {deleted++;}
+      if (success) {
+        deleted++;
+      }
     }
 
     return deleted;

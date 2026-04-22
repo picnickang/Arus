@@ -98,10 +98,7 @@ export class ReplenishmentSuggestionService {
       const critWeight = CRITICALITY_WEIGHT[criticality] ?? 25;
       const stockDeficitRatio = minLevel > 0 ? Math.max(0, (minLevel - currentQty) / minLevel) : 0;
       const urgencyScore =
-        critWeight +
-        (uniqueWOIds.length * 20) +
-        (stockDeficitRatio * 50) +
-        (currentQty === 0 ? 30 : 0);
+        critWeight + uniqueWOIds.length * 20 + stockDeficitRatio * 50 + (currentQty === 0 ? 30 : 0);
 
       return {
         partId: part.id,
@@ -127,7 +124,9 @@ export class ReplenishmentSuggestionService {
     suggestions.sort((a, b) => {
       const aDemand = a.upcomingWOCount > 0 ? 1 : 0;
       const bDemand = b.upcomingWOCount > 0 ? 1 : 0;
-      if (aDemand !== bDemand) {return bDemand - aDemand;}
+      if (aDemand !== bDemand) {
+        return bDemand - aDemand;
+      }
       return b.urgencyScore - a.urgencyScore;
     });
 

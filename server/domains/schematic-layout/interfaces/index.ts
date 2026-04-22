@@ -1,1 +1,1 @@
-export { registerSchematicLayoutRoutes } from './routes';
+export { registerSchematicLayoutRoutes } from "./routes";

@@ -119,21 +119,28 @@ export function MultiSensorChart({
     [sensors, visibleSensors]
   );
 
-  const chartData = useMemo(
-    () => mergeTimeSeriesData(visibleSensorData),
-    [visibleSensorData]
-  );
+  const chartData = useMemo(() => mergeTimeSeriesData(visibleSensorData), [visibleSensorData]);
 
-  const uniqueUnits = useMemo(
-    () => getUniqueUnits(visibleSensorData),
-    [visibleSensorData]
-  );
+  const uniqueUnits = useMemo(() => getUniqueUnits(visibleSensorData), [visibleSensorData]);
 
   const isEmpty = !sensors.length || !chartData.length;
 
-  interface TooltipPayloadEntry { dataKey: string; color: string; value: number | null; payload: { timestamp: string }; }
-  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: TooltipPayloadEntry[] }) => {
-    if (!active || !payload?.length) {return null;}
+  interface TooltipPayloadEntry {
+    dataKey: string;
+    color: string;
+    value: number | null;
+    payload: { timestamp: string };
+  }
+  const CustomTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: TooltipPayloadEntry[];
+  }) => {
+    if (!active || !payload?.length) {
+      return null;
+    }
 
     const timestamp = payload[0]?.payload?.timestamp;
 
@@ -144,22 +151,11 @@ export function MultiSensorChart({
         </p>
         <div className="space-y-1">
           {payload.map((entry) => {
-            const sensor = sensors.find(
-              (s) => s.sensorType === entry.dataKey
-            );
+            const sensor = sensors.find((s) => s.sensorType === entry.dataKey);
             return (
-              <div
-                key={entry.dataKey}
-                className="flex items-center justify-between gap-4"
-              >
-                <span
-                  className="text-sm flex items-center gap-2"
-                  style={{ color: entry.color }}
-                >
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: entry.color }}
-                  />
+              <div key={entry.dataKey} className="flex items-center justify-between gap-4">
+                <span className="text-sm flex items-center gap-2" style={{ color: entry.color }}>
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
                   {entry.dataKey}
                 </span>
                 <span className="text-sm font-medium">
@@ -200,21 +196,13 @@ export function MultiSensorChart({
     >
       <div className="flex flex-col h-full">
         <div className="flex flex-wrap items-center gap-4 mb-4 pb-3 border-b">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleAll}
-            data-testid="btn-toggle-all"
-          >
+          <Button variant="outline" size="sm" onClick={toggleAll} data-testid="btn-toggle-all">
             {visibleSensors.size === sensors.length ? "Hide All" : "Show All"}
           </Button>
 
           <div className="flex flex-wrap gap-4">
             {sensors.map((sensor, idx) => (
-              <div
-                key={sensor.sensorType}
-                className="flex items-center gap-2"
-              >
+              <div key={sensor.sensorType} className="flex items-center gap-2">
                 <Checkbox
                   id={`sensor-${sensor.sensorType}`}
                   checked={visibleSensors.has(sensor.sensorType)}
@@ -228,8 +216,7 @@ export function MultiSensorChart({
                   <span
                     className="w-3 h-3 rounded-full"
                     style={{
-                      backgroundColor:
-                        sensor.color || CHART_COLORS[idx % CHART_COLORS.length],
+                      backgroundColor: sensor.color || CHART_COLORS[idx % CHART_COLORS.length],
                     }}
                   />
                   <span style={{ color: sensor.color || CHART_COLORS[idx % CHART_COLORS.length] }}>
@@ -243,10 +230,7 @@ export function MultiSensorChart({
         </div>
 
         <ResponsiveContainer width="100%" height={280}>
-          <LineChart
-            data={chartData}
-            margin={{ top: 5, right: 60, left: 20, bottom: 5 }}
-          >
+          <LineChart data={chartData} margin={{ top: 5, right: 60, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis
               dataKey="timestamp"
@@ -302,9 +286,7 @@ export function MultiSensorChart({
                   type="monotone"
                   dataKey={sensor.sensorType}
                   name={`${sensor.sensorType} (${sensor.unit})`}
-                  stroke={
-                    sensor.color || CHART_COLORS[index % CHART_COLORS.length]
-                  }
+                  stroke={sensor.color || CHART_COLORS[index % CHART_COLORS.length]}
                   strokeWidth={2}
                   dot={false}
                   activeDot={{ r: 4 }}

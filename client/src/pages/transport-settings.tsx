@@ -12,8 +12,12 @@ export default function TransportSettings({ embedded }: TransportSettingsProps) 
       <div className="space-y-6">
         {!embedded && (
           <div>
-            <h1 className="text-2xl font-bold" data-testid="text-transport-title">Data & Transport Settings</h1>
-            <p className="text-muted-foreground">Configure data synchronization and transport protocols</p>
+            <h1 className="text-2xl font-bold" data-testid="text-transport-title">
+              Data & Transport Settings
+            </h1>
+            <p className="text-muted-foreground">
+              Configure data synchronization and transport protocols
+            </p>
           </div>
         )}
 

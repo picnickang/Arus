@@ -43,7 +43,9 @@ export class CrewLifecycleRepository {
       .where(and(eq(crew.orgId, orgId), eq(crew.active, false)));
   }
 
-  async findFormerCrewWithHistory(orgId: string): Promise<Array<SelectCrew & { employmentPeriods: SelectCrewEmploymentHistory[] }>> {
+  async findFormerCrewWithHistory(
+    orgId: string
+  ): Promise<Array<SelectCrew & { employmentPeriods: SelectCrewEmploymentHistory[] }>> {
     const formerCrewMembers = await db
       .select()
       .from(crew)
@@ -54,7 +56,9 @@ export class CrewLifecycleRepository {
         const periods = await db
           .select()
           .from(crewEmploymentHistory)
-          .where(and(eq(crewEmploymentHistory.crewId, member.id), eq(crewEmploymentHistory.orgId, orgId)))
+          .where(
+            and(eq(crewEmploymentHistory.crewId, member.id), eq(crewEmploymentHistory.orgId, orgId))
+          )
           .orderBy(sql`${crewEmploymentHistory.endDate} DESC`);
         return { ...member, employmentPeriods: periods };
       })
@@ -118,14 +122,14 @@ export class CrewLifecycleRepository {
   async createEmploymentHistory(
     data: InsertCrewEmploymentHistory
   ): Promise<SelectCrewEmploymentHistory> {
-    const results = await db
-      .insert(crewEmploymentHistory)
-      .values(data)
-      .returning();
+    const results = await db.insert(crewEmploymentHistory).values(data).returning();
     return results[0];
   }
 
-  async getEmploymentHistory(crewId: string, orgId: string): Promise<SelectCrewEmploymentHistory[]> {
+  async getEmploymentHistory(
+    crewId: string,
+    orgId: string
+  ): Promise<SelectCrewEmploymentHistory[]> {
     return db
       .select()
       .from(crewEmploymentHistory)
@@ -133,7 +137,10 @@ export class CrewLifecycleRepository {
       .orderBy(sql`${crewEmploymentHistory.endDate} DESC`);
   }
 
-  async findEmploymentHistoryById(id: string, orgId: string): Promise<SelectCrewEmploymentHistory | undefined> {
+  async findEmploymentHistoryById(
+    id: string,
+    orgId: string
+  ): Promise<SelectCrewEmploymentHistory | undefined> {
     const results = await db
       .select()
       .from(crewEmploymentHistory)
@@ -166,15 +173,13 @@ export class CrewLifecycleRepository {
   }
 
   async bulkDeleteCrew(ids: string[], orgId: string): Promise<number> {
-    if (ids.length === 0) {return 0;}
+    if (ids.length === 0) {
+      return 0;
+    }
 
     const result = await db
       .delete(crew)
-      .where(and(
-        inArray(crew.id, ids),
-        eq(crew.orgId, orgId),
-        eq(crew.active, false)
-      ));
+      .where(and(inArray(crew.id, ids), eq(crew.orgId, orgId), eq(crew.active, false)));
 
     return (result as { rowCount?: number }).rowCount ?? 0;
   }

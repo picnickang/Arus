@@ -17,16 +17,16 @@ export async function fetchFMCCFuelForDay(
     const fmccService = getFMCCService();
 
     if (!fmccService.isEnabled() || !fmccService.isReady()) {
-      log('info', 'FMCC not available, skipping fuel fetch', {
+      log("info", "FMCC not available, skipping fuel fetch", {
         vesselId,
         logDate,
         orgId,
-        operation: 'fetchFMCCFuel',
+        operation: "fetchFMCCFuel",
       });
-      return { success: false, source: 'none', error: 'FMCC integration not enabled or not ready' };
+      return { success: false, source: "none", error: "FMCC integration not enabled or not ready" };
     }
 
-    const dateParts = logDate.split('-');
+    const dateParts = logDate.split("-");
     const year = Number.parseInt(dateParts[0], 10);
     const month = Number.parseInt(dateParts[1], 10) - 1;
     const day = Number.parseInt(dateParts[2], 10);
@@ -34,35 +34,35 @@ export async function fetchFMCCFuelForDay(
     const periodStart = new Date(year, month, day, 0, 0, 0, 0);
     const periodEnd = new Date(year, month, day, 23, 59, 59, 999);
 
-    log('info', 'Fetching FMCC fuel data for day', {
+    log("info", "Fetching FMCC fuel data for day", {
       vesselId,
       logDate,
       periodStart: periodStart.toISOString(),
       periodEnd: periodEnd.toISOString(),
-      operation: 'fetchFMCCFuel',
+      operation: "fetchFMCCFuel",
       orgId,
     });
 
     const result = await fmccService.getCumulativeFuelCounters(vesselId, periodStart, periodEnd);
 
     if (!result.success || !result.data) {
-      log('warn', 'FMCC fuel fetch failed', {
+      log("warn", "FMCC fuel fetch failed", {
         vesselId,
         logDate,
         error: result.error,
-        operation: 'fetchFMCCFuel',
+        operation: "fetchFMCCFuel",
         orgId,
       });
       return {
         success: false,
-        source: 'none',
-        error: result.error || 'Failed to retrieve FMCC data',
+        source: "none",
+        error: result.error || "Failed to retrieve FMCC data",
       };
     }
 
     const fmccData = result.data;
 
-    log('info', 'FMCC fuel data retrieved successfully', {
+    log("info", "FMCC fuel data retrieved successfully", {
       vesselId,
       logDate,
       source: result.source,
@@ -70,13 +70,13 @@ export async function fetchFMCCFuelForDay(
       doConsumedMt: fmccData.doConsumedMt,
       totalFuelMt: fmccData.totalFuelMt,
       dataPoints: fmccData.dataPoints,
-      operation: 'fetchFMCCFuel',
+      operation: "fetchFMCCFuel",
       orgId,
     });
 
     return {
       success: true,
-      source: 'fmcc',
+      source: "fmcc",
       fuelMeConsumption: fmccData.foConsumedMt,
       fuelDgConsumption: fmccData.doConsumedMt,
       fuelTotalConsumption: fmccData.totalFuelMt,
@@ -86,17 +86,17 @@ export async function fetchFMCCFuelForDay(
       dataCompleteness: fmccData.dataCompleteness,
     };
   } catch (error) {
-    log('error', 'Exception in FMCC fuel fetch', {
+    log("error", "Exception in FMCC fuel fetch", {
       vesselId,
       logDate,
       error: error instanceof Error ? error.message : String(error),
-      operation: 'fetchFMCCFuel',
+      operation: "fetchFMCCFuel",
       orgId,
     });
     return {
       success: false,
-      source: 'none',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      source: "none",
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
@@ -106,7 +106,7 @@ export async function updateDailyLogWithFMCCFuel(
   fmccData: FMCCFuelResult,
   orgId: string
 ): Promise<boolean> {
-  if (!fmccData.success || fmccData.source !== 'fmcc') {
+  if (!fmccData.success || fmccData.source !== "fmcc") {
     return false;
   }
 
@@ -121,26 +121,26 @@ export async function updateDailyLogWithFMCCFuel(
       orgId
     );
 
-    log('info', 'Daily log updated with FMCC fuel data', {
+    log("info", "Daily log updated with FMCC fuel data", {
       dailyLogId,
       fuelMeConsumption: fmccData.fuelMeConsumption,
       fuelDgConsumption: fmccData.fuelDgConsumption,
       fuelTotalConsumption: fmccData.fuelTotalConsumption,
-      operation: 'updateDailyLogWithFMCCFuel',
+      operation: "updateDailyLogWithFMCCFuel",
       orgId,
-      vesselId: '',
-      logDate: '',
+      vesselId: "",
+      logDate: "",
     });
 
     return true;
   } catch (error) {
-    log('error', 'Failed to update daily log with FMCC data', {
+    log("error", "Failed to update daily log with FMCC data", {
       dailyLogId,
       error: error instanceof Error ? error.message : String(error),
-      operation: 'updateDailyLogWithFMCCFuel',
+      operation: "updateDailyLogWithFMCCFuel",
       orgId,
-      vesselId: '',
-      logDate: '',
+      vesselId: "",
+      logDate: "",
     });
     return false;
   }

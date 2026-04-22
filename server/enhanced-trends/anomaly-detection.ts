@@ -11,9 +11,15 @@ export function classifyAnomalySeverity(
   scale: number
 ): "mild" | "moderate" | "severe" | "extreme" {
   const ratio = deviation / scale;
-  if (ratio < 2) { return "mild"; }
-  if (ratio < 3) { return "moderate"; }
-  if (ratio < 5) { return "severe"; }
+  if (ratio < 2) {
+    return "mild";
+  }
+  if (ratio < 3) {
+    return "moderate";
+  }
+  if (ratio < 5) {
+    return "severe";
+  }
   return "extreme";
 }
 
@@ -85,7 +91,9 @@ export function detectIsolationAnomalies(values: number[], timestamps: Date[]): 
     const windowStd = standardDeviation(window);
     const currentValue = values[i];
 
-    if (windowStd === 0) { continue; }
+    if (windowStd === 0) {
+      continue;
+    }
     const isolationScore = Math.abs((currentValue - windowMean) / windowStd);
 
     if (isolationScore > 3) {
@@ -135,11 +143,7 @@ export function detectAnomalies(values: number[], timestamps: Date[]): AnomalyAn
   const zScoreAnomalies = detectZScoreAnomalies(values, timestamps);
   const isolationAnomalies = detectIsolationAnomalies(values, timestamps);
 
-  const combinedAnomalies = combineAnomalies([
-    iqrAnomalies,
-    zScoreAnomalies,
-    isolationAnomalies,
-  ]);
+  const combinedAnomalies = combineAnomalies([iqrAnomalies, zScoreAnomalies, isolationAnomalies]);
 
   const totalAnomalies = combinedAnomalies.length;
   const anomalyRate = totalAnomalies / values.length;
@@ -152,10 +156,12 @@ export function detectAnomalies(values: number[], timestamps: Date[]): AnomalyAn
     recommendation = "Equipment operating within normal parameters. Continue routine monitoring.";
   } else if (anomalyRate < 0.15) {
     severity = "medium";
-    recommendation = "Moderate anomaly rate detected. Increase monitoring frequency and investigate patterns.";
+    recommendation =
+      "Moderate anomaly rate detected. Increase monitoring frequency and investigate patterns.";
   } else if (anomalyRate < 0.3) {
     severity = "high";
-    recommendation = "High anomaly rate indicates potential equipment degradation. Schedule diagnostic maintenance.";
+    recommendation =
+      "High anomaly rate indicates potential equipment degradation. Schedule diagnostic maintenance.";
   } else {
     severity = "critical";
     recommendation = "Critical anomaly rate detected. Immediate maintenance intervention required.";

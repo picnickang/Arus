@@ -17,7 +17,9 @@ let eventLoopMonitorStartTime: number = 0;
 const WARMUP_PERIOD_MS = 30_000;
 
 export function startEventLoopMonitoring(intervalMs: number = 1000): void {
-  if (eventLoopMonitorId) { return; }
+  if (eventLoopMonitorId) {
+    return;
+  }
   eventLoopMonitorStartTime = Date.now();
 
   const measure = () => {
@@ -26,10 +28,10 @@ export function startEventLoopMonitoring(intervalMs: number = 1000): void {
       const lag = Date.now() - start;
       eventLoopLag.observe(lag);
       eventLoopLagCurrent.set(lag);
-      
+
       const timeSinceStart = Date.now() - eventLoopMonitorStartTime;
       const isWarmingUp = timeSinceStart < WARMUP_PERIOD_MS;
-      
+
       if (lag > 100 && !isWarmingUp) {
         console.warn(`[Performance] Event loop lag: ${lag}ms (threshold: 100ms)`);
       } else if (lag > 500 && isWarmingUp) {
@@ -39,7 +41,9 @@ export function startEventLoopMonitoring(intervalMs: number = 1000): void {
   };
 
   eventLoopMonitorId = setInterval(measure, intervalMs);
-  console.log(`[Performance] Event loop monitoring started (interval: ${intervalMs}ms, warm-up: ${WARMUP_PERIOD_MS / 1000}s)`);
+  console.log(
+    `[Performance] Event loop monitoring started (interval: ${intervalMs}ms, warm-up: ${WARMUP_PERIOD_MS / 1000}s)`
+  );
 }
 
 export function stopEventLoopMonitoring(): void {
@@ -97,12 +101,14 @@ const MEMORY_WARNING_COOLDOWN = 300000;
 export function checkResourceUsage(): void {
   const memUsage = process.memoryUsage();
   const heapUsedMB = memUsage.heapUsed / 1024 / 1024;
-  
+
   if (heapUsedMB > PERFORMANCE_THRESHOLDS.CRITICAL_MEMORY_MB) {
     const now = Date.now();
     if (now - lastMemoryWarningTime > MEMORY_WARNING_COOLDOWN) {
       lastMemoryWarningTime = now;
-      console.warn(`[Performance] CRITICAL: High memory usage - ${heapUsedMB.toFixed(0)}MB (threshold: ${PERFORMANCE_THRESHOLDS.CRITICAL_MEMORY_MB}MB)`);
+      console.warn(
+        `[Performance] CRITICAL: High memory usage - ${heapUsedMB.toFixed(0)}MB (threshold: ${PERFORMANCE_THRESHOLDS.CRITICAL_MEMORY_MB}MB)`
+      );
       if (global.gc) {
         console.log("[Performance] Triggering garbage collection...");
         global.gc();

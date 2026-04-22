@@ -1,6 +1,6 @@
 /**
  * ML Ensemble Persistence
- * 
+ *
  * Store predictions and emit events.
  */
 
@@ -23,9 +23,7 @@ export interface PersistenceInput {
   recommendations: string[];
 }
 
-export async function persistPrediction(
-  input: PersistenceInput
-): Promise<void> {
+export async function persistPrediction(input: PersistenceInput): Promise<void> {
   const {
     orgId,
     equipmentId,
@@ -87,13 +85,16 @@ export async function persistPrediction(
             : finalPrediction >= 0.2
               ? "medium"
               : "low";
-      domainEventBus.emit("pdm.rul.updated", createDomainEvent("pdm.rul.updated", orgId, {
-        vesselId: equipment.vesselId || "unknown",
-        equipmentId,
-        remainingDays: daysToFailure || 30,
-        riskLevel,
-        operatingMode: equipment.operatingMode,
-      }));
+      domainEventBus.emit(
+        "pdm.rul.updated",
+        createDomainEvent("pdm.rul.updated", orgId, {
+          vesselId: equipment.vesselId || "unknown",
+          equipmentId,
+          remainingDays: daysToFailure || 30,
+          riskLevel,
+          operatingMode: equipment.operatingMode,
+        })
+      );
     }
   } catch (eventError) {
     logger.error("MlEnsemble", "Failed to emit RUL event", eventError);

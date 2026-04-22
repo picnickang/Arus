@@ -1,13 +1,17 @@
 import { useState, useCallback, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Loader2, CheckCircle, Wrench } from "lucide-react";
 
@@ -38,7 +42,11 @@ export function QuickWorkOrderSheet({
     queryKey: ["/api/equipment", vesselId ? { vesselId } : {}],
     staleTime: 5 * 60 * 1000,
   });
-  const equipment: Array<{ id: string; name: string; equipmentType?: string }> = Array.isArray(equipmentRaw) ? equipmentRaw : [];
+  const equipment: Array<{ id: string; name: string; equipmentType?: string }> = Array.isArray(
+    equipmentRaw
+  )
+    ? equipmentRaw
+    : [];
 
   const createMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/work-orders/quick", data),
@@ -70,7 +78,9 @@ export function QuickWorkOrderSheet({
 
   const handlePhoto = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) {return;}
+    if (!file) {
+      return;
+    }
 
     const url = URL.createObjectURL(file);
     setPhotoPreview(url);
@@ -84,7 +94,9 @@ export function QuickWorkOrderSheet({
   }, []);
 
   const handleSubmit = useCallback(() => {
-    if (!equipmentId || !description.trim()) {return;}
+    if (!equipmentId || !description.trim()) {
+      return;
+    }
 
     createMutation.mutate({
       equipmentId,
@@ -98,14 +110,30 @@ export function QuickWorkOrderSheet({
   const canSubmit = equipmentId && description.trim().length > 0 && !createMutation.isPending;
 
   const priorityOptions = [
-    { value: "low" as const, label: "Low", color: "bg-green-500/10 text-green-600 border-green-500/30" },
-    { value: "medium" as const, label: "Med", color: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30" },
-    { value: "high" as const, label: "High", color: "bg-red-500/10 text-red-600 border-red-500/30" },
+    {
+      value: "low" as const,
+      label: "Low",
+      color: "bg-green-500/10 text-green-600 border-green-500/30",
+    },
+    {
+      value: "medium" as const,
+      label: "Med",
+      color: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30",
+    },
+    {
+      value: "high" as const,
+      label: "High",
+      color: "bg-red-500/10 text-red-600 border-red-500/30",
+    },
   ];
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="bottom" className="max-h-[85vh] rounded-t-2xl" data-testid="quick-wo-sheet">
+      <SheetContent
+        side="bottom"
+        className="max-h-[85vh] rounded-t-2xl"
+        data-testid="quick-wo-sheet"
+      >
         <SheetHeader className="pb-2">
           <SheetTitle className="flex items-center gap-2 text-lg">
             <Wrench className="h-5 w-5" />
@@ -180,7 +208,10 @@ export function QuickWorkOrderSheet({
                 />
                 <button
                   type="button"
-                  onClick={() => { setPhotoPreview(null); setPhotoBase64(null); }}
+                  onClick={() => {
+                    setPhotoPreview(null);
+                    setPhotoBase64(null);
+                  }}
                   className="absolute top-2 right-2 h-6 w-6 rounded-full bg-black/60 text-white flex items-center justify-center text-xs"
                   data-testid="quick-wo-remove-photo"
                 >

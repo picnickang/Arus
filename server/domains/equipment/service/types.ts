@@ -2,13 +2,12 @@
  * Equipment Service - Type Definitions
  */
 
-
 export interface PaginationOptions {
   page: number;
   pageSize: number;
   search?: string;
   type?: string;
-  status?: 'active' | 'inactive';
+  status?: "active" | "inactive";
   vesselId?: string;
   manufacturer?: string;
 }
@@ -51,32 +50,35 @@ export interface SensorSetupResult {
   }>;
 }
 
-export const DEFAULT_SENSORS: Record<string, Array<{ type: string; critical: boolean; min?: number; max?: number }>> = {
+export const DEFAULT_SENSORS: Record<
+  string,
+  Array<{ type: string; critical: boolean; min?: number; max?: number }>
+> = {
   engine: [
-    { type: 'temperature', critical: true, min: 0, max: 120 },
-    { type: 'pressure', critical: true, min: 0, max: 100 },
-    { type: 'vibration', critical: true, min: 0, max: 50 },
-    { type: 'rpm', critical: true, min: 0, max: 5000 },
+    { type: "temperature", critical: true, min: 0, max: 120 },
+    { type: "pressure", critical: true, min: 0, max: 100 },
+    { type: "vibration", critical: true, min: 0, max: 50 },
+    { type: "rpm", critical: true, min: 0, max: 5000 },
   ],
   pump: [
-    { type: 'temperature', critical: true, min: 0, max: 100 },
-    { type: 'pressure', critical: true, min: 0, max: 150 },
-    { type: 'vibration', critical: true, min: 0, max: 30 },
-    { type: 'flow_rate', critical: false, min: 0, max: 1000 },
+    { type: "temperature", critical: true, min: 0, max: 100 },
+    { type: "pressure", critical: true, min: 0, max: 150 },
+    { type: "vibration", critical: true, min: 0, max: 30 },
+    { type: "flow_rate", critical: false, min: 0, max: 1000 },
   ],
   compressor: [
-    { type: 'temperature', critical: true, min: 0, max: 120 },
-    { type: 'pressure', critical: true, min: 0, max: 200 },
-    { type: 'vibration', critical: true, min: 0, max: 40 },
+    { type: "temperature", critical: true, min: 0, max: 120 },
+    { type: "pressure", critical: true, min: 0, max: 200 },
+    { type: "vibration", critical: true, min: 0, max: 40 },
   ],
   generator: [
-    { type: 'temperature', critical: true, min: 0, max: 100 },
-    { type: 'voltage', critical: true, min: 0, max: 500 },
-    { type: 'current', critical: true, min: 0, max: 1000 },
-    { type: 'frequency', critical: true, min: 50, max: 60 },
+    { type: "temperature", critical: true, min: 0, max: 100 },
+    { type: "voltage", critical: true, min: 0, max: 500 },
+    { type: "current", critical: true, min: 0, max: 1000 },
+    { type: "frequency", critical: true, min: 50, max: 60 },
   ],
   default: [
-    { type: 'temperature', critical: true, min: 0, max: 100 },
-    { type: 'vibration', critical: false, min: 0, max: 50 },
+    { type: "temperature", critical: true, min: 0, max: 100 },
+    { type: "vibration", critical: false, min: 0, max: 50 },
   ],
 };

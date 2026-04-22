@@ -1,6 +1,6 @@
 /**
  * ML Ensemble Model Loaders
- * 
+ *
  * Lazy loading of individual model predictions.
  */
 
@@ -23,13 +23,18 @@ export async function loadLstmPrediction(
 ): Promise<{ probability: number; confidence?: number } | null> {
   try {
     const lstmModelPath = await getBestModel(orgId, equipmentType, "lstm");
-    if (!lstmModelPath) {return null;}
+    if (!lstmModelPath) {
+      return null;
+    }
 
     const { loadLSTMModel, predictWithLSTM } = await import("../ml-lstm-model.js");
     const lstmModel = await loadLSTMModel(lstmModelPath);
     const lstmPred = await predictWithLSTM(lstmModel, recentData);
 
-    logger.debug("MlEnsemble", `LSTM prediction: ${(lstmPred.failureProbability * 100).toFixed(1)}%`);
+    logger.debug(
+      "MlEnsemble",
+      `LSTM prediction: ${(lstmPred.failureProbability * 100).toFixed(1)}%`
+    );
 
     return {
       probability: lstmPred.failureProbability,
@@ -49,7 +54,9 @@ export async function loadRfPrediction(
 ): Promise<{ probability: number; confidence?: number } | null> {
   try {
     const rfModelPath = await getBestModel(orgId, equipmentType, "random_forest");
-    if (!rfModelPath) {return null;}
+    if (!rfModelPath) {
+      return null;
+    }
 
     const { loadRandomForest, predictWithRandomForest } = await import("../ml-random-forest.js");
     const rfModel = await loadRandomForest(rfModelPath);
@@ -66,7 +73,8 @@ export async function loadRfPrediction(
 
     return {
       probability: failureProb,
-      confidence: typeof (rfPred as any).confidence === "number" ? (rfPred as any).confidence : undefined,
+      confidence:
+        typeof (rfPred as any).confidence === "number" ? (rfPred as any).confidence : undefined,
     };
   } catch (error) {
     logger.warn("MlEnsemble", "Random Forest prediction failed", error);
@@ -82,7 +90,9 @@ export async function loadXgbPrediction(
 ): Promise<{ probability: number; confidence?: number } | null> {
   try {
     const xgbModelPath = await getBestModel(orgId, equipmentType, "xgboost");
-    if (!xgbModelPath) {return null;}
+    if (!xgbModelPath) {
+      return null;
+    }
 
     const { loadXGBoostModel, predictWithXGBoost } = await import("../ml-xgboost-model.js");
     const xgbModel = await loadXGBoostModel(xgbModelPath);
@@ -99,7 +109,8 @@ export async function loadXgbPrediction(
 
     return {
       probability: failureProb,
-      confidence: typeof (xgbPred as any).confidence === "number" ? (xgbPred as any).confidence : undefined,
+      confidence:
+        typeof (xgbPred as any).confidence === "number" ? (xgbPred as any).confidence : undefined,
     };
   } catch (error) {
     logger.warn("MlEnsemble", "XGBoost prediction failed", error);

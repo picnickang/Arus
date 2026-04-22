@@ -1,6 +1,6 @@
 /**
  * Deck Logbook Rule Evaluators
- * 
+ *
  * Compliance rule evaluators for deck logbook entries.
  */
 
@@ -10,7 +10,9 @@ import type { RuleContext, RuleResult } from "./types.js";
 
 async function getDeckLogByVesselAndDate(vesselId: string, logDate: string, orgId: string) {
   const daily = await deckLogStorage.getDeckLogDailyByDate(vesselId, logDate, orgId);
-  if (!daily) {return undefined;}
+  if (!daily) {
+    return undefined;
+  }
   return deckLogStorage.getDeckLogComplete(daily.id, orgId);
 }
 

@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { X, Activity, Timer, RefreshCw, MemoryStick, ChevronDown, ChevronUp } from 'lucide-react';
-import { getPerfSummary, isPerfDebugEnabled, setPerfDebug } from '@/utils/perfLog';
-import { useLocation } from 'wouter';
+import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { X, Activity, Timer, RefreshCw, MemoryStick, ChevronDown, ChevronUp } from "lucide-react";
+import { getPerfSummary, isPerfDebugEnabled, setPerfDebug } from "@/utils/perfLog";
+import { useLocation } from "wouter";
 
 interface ApiLatency {
   endpoint: string;
@@ -40,13 +40,13 @@ declare global {
 const API_HISTORY_LIMIT = 20;
 const ROUTE_HISTORY_LIMIT = 10;
 
-const WRAPPER_SYMBOL = Symbol.for('__devPerfFetchWrapper');
+const WRAPPER_SYMBOL = Symbol.for("__devPerfFetchWrapper");
 
 const apiLatenciesRef: { current: ApiLatency[] } = { current: [] };
 let apiLatencyListeners: ((latencies: ApiLatency[]) => void)[] = [];
 
 function notifyApiLatencyListeners() {
-  apiLatencyListeners.forEach(listener => listener([...apiLatenciesRef.current]));
+  apiLatencyListeners.forEach((listener) => listener([...apiLatenciesRef.current]));
 }
 
 function addApiLatency(latency: ApiLatency) {
@@ -54,93 +54,112 @@ function addApiLatency(latency: ApiLatency) {
   notifyApiLatencyListeners();
 }
 
-export const FETCH_WRAPPER_SYMBOL = Symbol.for('__devPerfFetchWrapper');
+export const FETCH_WRAPPER_SYMBOL = Symbol.for("__devPerfFetchWrapper");
 
 export function installFetchInterceptor(): boolean {
-  if (!import.meta.env.DEV) {return false;}
-  if (typeof window === 'undefined') {return false;}
-  
-  if (window.__devPerfInterceptorInstalled) {return false;}
-  
+  if (!import.meta.env.DEV) {
+    return false;
+  }
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  if (window.__devPerfInterceptorInstalled) {
+    return false;
+  }
+
   const currentFetch = window.fetch;
   if ((currentFetch as unknown as Record<symbol, boolean>)[FETCH_WRAPPER_SYMBOL]) {
     return false;
   }
-  
+
   window.__devPerfOriginalFetch = currentFetch;
   window.__devPerfInterceptorInstalled = true;
-  
+
   const wrappedFetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
     const originalFetch = window.__devPerfOriginalFetch!;
-    
+
     // Wrap ENTIRE interceptor logic in try/catch - if anything fails, just call original fetch
     try {
       let url: string | undefined;
       try {
         const input = args[0];
-        if (typeof input === 'string') {
+        if (typeof input === "string") {
           url = input;
         } else if (input instanceof Request) {
           url = input.url;
         } else if (input instanceof URL) {
           url = input.toString();
-        } else if (input && typeof input === 'object' && 'toString' in input) {
+        } else if (input && typeof input === "object" && "toString" in input) {
           url = String(input);
         }
       } catch {
         // URL extraction failed - just pass through to original fetch
         return originalFetch.apply(window, args);
       }
-      
+
       // Skip non-API calls
-      if (!url || typeof url !== 'string' || !url.includes('/api/')) {
+      if (!url || typeof url !== "string" || !url.includes("/api/")) {
         return originalFetch.apply(window, args);
       }
 
-      const method = (args[1]?.method || 'GET').toUpperCase();
+      const method = (args[1]?.method || "GET").toUpperCase();
       const start = performance.now();
-      
+
       try {
         const response = await originalFetch.apply(window, args);
         const duration = performance.now() - start;
-        
+
         try {
-          const endpoint = url.replace(/^https?:\/\/[^/]+/, '');
-          addApiLatency({ endpoint, method, duration, status: response.status, timestamp: Date.now() });
+          const endpoint = url.replace(/^https?:\/\/[^/]+/, "");
+          addApiLatency({
+            endpoint,
+            method,
+            duration,
+            status: response.status,
+            timestamp: Date.now(),
+          });
         } catch {
           // Latency tracking failed - don't block the response
         }
-        
+
         return response;
       } catch (error) {
         const duration = performance.now() - start;
-        
+
         try {
-          const endpoint = url.replace(/^https?:\/\/[^/]+/, '');
+          const endpoint = url.replace(/^https?:\/\/[^/]+/, "");
           addApiLatency({ endpoint, method, duration, status: 0, timestamp: Date.now() });
         } catch {
           // Latency tracking failed - don't block the error
         }
-        
+
         throw error;
       }
     } catch (interceptorError) {
       // If ANY part of the interceptor fails, fall back to original fetch
       // This ensures the interceptor never breaks the application
-      console.warn('[DevPerformanceOverlay] Fetch interceptor error, falling back:', interceptorError);
+      console.warn(
+        "[DevPerformanceOverlay] Fetch interceptor error, falling back:",
+        interceptorError
+      );
       return originalFetch.apply(window, args);
     }
   };
-  
+
   (wrappedFetch as unknown as Record<symbol, boolean>)[FETCH_WRAPPER_SYMBOL] = true;
   window.fetch = wrappedFetch;
   return true;
 }
 
 export function uninstallFetchInterceptor(): void {
-  if (!import.meta.env.DEV) {return;}
-  if (typeof window === 'undefined') {return;}
-  
+  if (!import.meta.env.DEV) {
+    return;
+  }
+  if (typeof window === "undefined") {
+    return;
+  }
+
   if (window.__devPerfOriginalFetch) {
     window.fetch = window.__devPerfOriginalFetch;
     window.__devPerfOriginalFetch = undefined;
@@ -168,39 +187,45 @@ export function DevPerformanceOverlay() {
   const isDev = import.meta.env.DEV;
 
   useEffect(() => {
-    if (!isDev) {return;}
-    
+    if (!isDev) {
+      return;
+    }
+
     installFetchInterceptor();
-    
+
     const listener = (latencies: ApiLatency[]) => setApiLatencies(latencies);
     apiLatencyListeners.push(listener);
-    
+
     setApiLatencies([...apiLatenciesRef.current]);
-    
+
     return () => {
-      apiLatencyListeners = apiLatencyListeners.filter(l => l !== listener);
+      apiLatencyListeners = apiLatencyListeners.filter((l) => l !== listener);
     };
   }, [isDev]);
 
   useEffect(() => {
-    if (!isDev) {return;}
+    if (!isDev) {
+      return;
+    }
     if (lastLocationRef.current !== location) {
       const duration = performance.now() - navigationStartRef.current;
-      
-      setRouteNavigations(prev => {
+
+      setRouteNavigations((prev) => {
         return [
           { from: lastLocationRef.current, to: location, duration, timestamp: Date.now() },
-          ...prev
+          ...prev,
         ].slice(0, ROUTE_HISTORY_LIMIT);
       });
-      
+
       lastLocationRef.current = location;
     }
     navigationStartRef.current = performance.now();
   }, [location, isDev]);
 
   useEffect(() => {
-    if (!isDev || !isVisible) {return;}
+    if (!isDev || !isVisible) {
+      return;
+    }
 
     const updateMemory = () => {
       if (performance.memory) {
@@ -229,50 +254,66 @@ export function DevPerformanceOverlay() {
   }, [isVisible]);
 
   useEffect(() => {
-    if (!isDev) {return;}
+    if (!isDev) {
+      return;
+    }
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+      if (e.ctrlKey && e.shiftKey && e.key === "P") {
         e.preventDefault();
-        setIsVisible(prev => !prev);
+        setIsVisible((prev) => !prev);
         if (!isPerfDebugEnabled()) {
           setPerfDebug(true);
         }
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isDev]);
 
-  if (!isDev) {return null;}
+  if (!isDev) {
+    return null;
+  }
 
   const formatBytes = (bytes: number) => {
-    if (bytes === 0) {return '0 B';}
+    if (bytes === 0) {
+      return "0 B";
+    }
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))  } ${  sizes[i]}`;
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
   };
 
   const formatDuration = (ms: number) => {
-    if (ms < 1) {return '<1ms';}
-    if (ms < 1000) {return `${Math.round(ms)}ms`;}
+    if (ms < 1) {
+      return "<1ms";
+    }
+    if (ms < 1000) {
+      return `${Math.round(ms)}ms`;
+    }
     return `${(ms / 1000).toFixed(2)}s`;
   };
 
   const getLatencyColor = (ms: number) => {
-    if (ms < 100) {return 'text-green-600 dark:text-green-400';}
-    if (ms < 300) {return 'text-yellow-600 dark:text-yellow-400';}
-    return 'text-red-600 dark:text-red-400';
+    if (ms < 100) {
+      return "text-green-600 dark:text-green-400";
+    }
+    if (ms < 300) {
+      return "text-yellow-600 dark:text-yellow-400";
+    }
+    return "text-red-600 dark:text-red-400";
   };
 
-  const avgApiLatency = apiLatencies.length > 0
-    ? apiLatencies.reduce((sum, a) => sum + a.duration, 0) / apiLatencies.length
-    : 0;
+  const avgApiLatency =
+    apiLatencies.length > 0
+      ? apiLatencies.reduce((sum, a) => sum + a.duration, 0) / apiLatencies.length
+      : 0;
 
-  const avgRouteTime = routeNavigations.length > 0
-    ? routeNavigations.reduce((sum, r) => sum + r.duration, 0) / routeNavigations.length
-    : 0;
+  const avgRouteTime =
+    routeNavigations.length > 0
+      ? routeNavigations.reduce((sum, r) => sum + r.duration, 0) / routeNavigations.length
+      : 0;
 
   const topRenderCounts = Object.entries(renderCounts)
     .sort((a, b) => b[1] - a[1])
@@ -356,7 +397,8 @@ export function DevPerformanceOverlay() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="font-mono">
-                    {formatBytes(memoryInfo.usedJSHeapSize)} / {formatBytes(memoryInfo.totalJSHeapSize)}
+                    {formatBytes(memoryInfo.usedJSHeapSize)} /{" "}
+                    {formatBytes(memoryInfo.totalJSHeapSize)}
                   </span>
                   <span className="text-muted-foreground">
                     ({Math.round((memoryInfo.usedJSHeapSize / memoryInfo.jsHeapSizeLimit) * 100)}%)
@@ -392,18 +434,20 @@ export function DevPerformanceOverlay() {
                           {api.method}
                         </Badge>
                         <span className="truncate text-muted-foreground max-w-[120px]">
-                          {api.endpoint.replace('/api/', '')}
+                          {api.endpoint.replace("/api/", "")}
                         </span>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         <span className={`font-mono ${getLatencyColor(api.duration)}`}>
                           {formatDuration(api.duration)}
                         </span>
-                        <Badge 
-                          variant={api.status >= 200 && api.status < 300 ? 'default' : 'destructive'}
+                        <Badge
+                          variant={
+                            api.status >= 200 && api.status < 300 ? "default" : "destructive"
+                          }
                           className="text-[10px] px-1"
                         >
-                          {api.status || 'ERR'}
+                          {api.status || "ERR"}
                         </Badge>
                       </div>
                     </div>
@@ -418,9 +462,7 @@ export function DevPerformanceOverlay() {
                 <div className="space-y-1 max-h-24 overflow-y-auto">
                   {routeNavigations.slice(0, 5).map((nav, i) => (
                     <div key={i} className="flex items-center justify-between gap-1">
-                      <span className="truncate max-w-[180px] text-muted-foreground">
-                        {nav.to}
-                      </span>
+                      <span className="truncate max-w-[180px] text-muted-foreground">{nav.to}</span>
                       <span className={`font-mono shrink-0 ${getLatencyColor(nav.duration)}`}>
                         {formatDuration(nav.duration)}
                       </span>
@@ -431,7 +473,8 @@ export function DevPerformanceOverlay() {
             )}
 
             <div className="pt-2 border-t text-muted-foreground text-center">
-              Press <kbd className="px-1 py-0.5 bg-muted rounded text-[10px]">Ctrl+Shift+P</kbd> to toggle
+              Press <kbd className="px-1 py-0.5 bg-muted rounded text-[10px]">Ctrl+Shift+P</kbd> to
+              toggle
             </div>
           </div>
         )}

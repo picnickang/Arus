@@ -18,11 +18,13 @@ export type SettingsAccessor = () => Promise<{ openaiApiKey?: string | null }>;
  * 1. User-configured key in settings (database)
  * 2. OPENAI_API_KEY environment variable
  * 3. AI_INTEGRATIONS_OPENAI_API_KEY (Replit AI Integrations)
- * 
+ *
  * @param getSettingsFn Optional settings accessor function for dependency injection.
  *                      If not provided, uses the global storage singleton.
  */
-export async function getOpenAIApiKey(getSettingsFn?: SettingsAccessor): Promise<string | undefined> {
+export async function getOpenAIApiKey(
+  getSettingsFn?: SettingsAccessor
+): Promise<string | undefined> {
   try {
     const settingsAccessor = getSettingsFn || (async () => dbSystemAdminStorage.getSettings());
     const settings = await settingsAccessor();
@@ -32,12 +34,9 @@ export async function getOpenAIApiKey(getSettingsFn?: SettingsAccessor): Promise
   } catch (error) {
     console.error("Failed to get API key from settings, falling back to environment:", error);
   }
-  
+
   // Check environment variables in priority order
-  return (
-    process.env.OPENAI_API_KEY ||
-    process.env.AI_INTEGRATIONS_OPENAI_API_KEY
-  );
+  return process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
 }
 
 /**

@@ -1,18 +1,14 @@
 /**
  * Aquametro FMCC - Efficiency Calculator
- * 
+ *
  * Engine fuel efficiency calculations.
  */
 
-import type {
-  FMCCCumulativeCounters,
-  FMCCEngineEfficiency,
-  FMCCServiceResult,
-} from "./types.js";
+import type { FMCCCumulativeCounters, FMCCEngineEfficiency, FMCCServiceResult } from "./types.js";
 
 /**
  * Calculate engine efficiency from cumulative fuel counters
- * 
+ *
  * @param counters Cumulative fuel counter data
  * @param countersSource Source of counters data (mock/fmcc)
  * @param vesselId Vessel identifier

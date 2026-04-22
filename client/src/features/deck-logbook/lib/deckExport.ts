@@ -71,7 +71,16 @@ export interface ExportDeckExcelData {
 }
 
 export function exportDeckToPDF(data: ExportDeckPDFData): void {
-  const { vesselName, date, dailySummary, hourlyEntries, watchAssignments, events, daily, getEventTypeConfig } = data;
+  const {
+    vesselName,
+    date,
+    dailySummary,
+    hourlyEntries,
+    watchAssignments,
+    events,
+    daily,
+    getEventTypeConfig,
+  } = data;
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   let yPos = 15;
@@ -95,11 +104,17 @@ export function exportDeckToPDF(data: ExportDeckPDFData): void {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   const summaryData = [
-    [`Noon Position: ${dailySummary.noonPositionLat || "N/A"} / ${dailySummary.noonPositionLon || "N/A"}`],
-    [`Distance Made: ${dailySummary.distanceMade || "N/A"} nm | Distance to Go: ${dailySummary.distanceToGo || "N/A"} nm | Avg Speed: ${dailySummary.avgSpeed || "N/A"} kn`],
-    [`Steaming Time: ${dailySummary.steamingTime || "N/A"} hrs | Next Port: ${dailySummary.nextPort || "N/A"} | ETA: ${dailySummary.eta || "N/A"}`],
+    [
+      `Noon Position: ${dailySummary.noonPositionLat || "N/A"} / ${dailySummary.noonPositionLon || "N/A"}`,
+    ],
+    [
+      `Distance Made: ${dailySummary.distanceMade || "N/A"} nm | Distance to Go: ${dailySummary.distanceToGo || "N/A"} nm | Avg Speed: ${dailySummary.avgSpeed || "N/A"} kn`,
+    ],
+    [
+      `Steaming Time: ${dailySummary.steamingTime || "N/A"} hrs | Next Port: ${dailySummary.nextPort || "N/A"} | ETA: ${dailySummary.eta || "N/A"}`,
+    ],
   ];
-  summaryData.forEach(row => {
+  summaryData.forEach((row) => {
     doc.text(row[0], 14, yPos);
     yPos += 5;
   });
@@ -127,7 +142,20 @@ export function exportDeckToPDF(data: ExportDeckPDFData): void {
   });
 
   autoTable(doc, {
-    head: [["Hour", "Course", "Wind Dir", "Wind Force", "Sea State", "Visibility", "Baro (mb)", "Air °C", "Sea °C", "Remarks"]],
+    head: [
+      [
+        "Hour",
+        "Course",
+        "Wind Dir",
+        "Wind Force",
+        "Sea State",
+        "Visibility",
+        "Baro (mb)",
+        "Air °C",
+        "Sea °C",
+        "Remarks",
+      ],
+    ],
     body: hourlyRows,
     startY: yPos,
     theme: "grid",
@@ -146,12 +174,14 @@ export function exportDeckToPDF(data: ExportDeckPDFData): void {
   yPos += 6;
 
   if (events?.length > 0) {
-    const eventRows = events.map(event => [
+    const eventRows = events.map((event) => [
       format(new Date(event.timestamp), "HH:mm"),
       getEventTypeConfig(event.eventType).label,
       event.summary,
       event.source,
-      event.positionLat && event.positionLon ? `${event.positionLat.toFixed(4)}, ${event.positionLon.toFixed(4)}` : "-",
+      event.positionLat && event.positionLon
+        ? `${event.positionLat.toFixed(4)}, ${event.positionLon.toFixed(4)}`
+        : "-",
     ]);
 
     autoTable(doc, {
@@ -162,7 +192,7 @@ export function exportDeckToPDF(data: ExportDeckPDFData): void {
       headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
       styles: { fontSize: 9, cellPadding: 3 },
     });
-    
+
     yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
   } else {
     doc.setFont("helvetica", "normal");
@@ -176,7 +206,7 @@ export function exportDeckToPDF(data: ExportDeckPDFData): void {
   doc.text("WATCH ASSIGNMENTS", 14, yPos);
   yPos += 6;
 
-  const watchRows = WATCH_PERIODS.map(period => {
+  const watchRows = WATCH_PERIODS.map((period) => {
     const watch = watchAssignments.get(period) ?? {};
     return [
       period,
@@ -205,7 +235,9 @@ export function exportDeckToPDF(data: ExportDeckPDFData): void {
   yPos += 6;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text(dailySummary.remarks || "No remarks recorded for this day.", 14, yPos, { maxWidth: pageWidth - 28 });
+  doc.text(dailySummary.remarks || "No remarks recorded for this day.", 14, yPos, {
+    maxWidth: pageWidth - 28,
+  });
   yPos += 15;
 
   doc.setFontSize(11);
@@ -215,22 +247,44 @@ export function exportDeckToPDF(data: ExportDeckPDFData): void {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   if (daily.status === "signed") {
-    doc.text(`Signed by: ${daily.signedByName || "N/A"} (${daily.signedByRank || "N/A"})`, 14, yPos);
+    doc.text(
+      `Signed by: ${daily.signedByName || "N/A"} (${daily.signedByRank || "N/A"})`,
+      14,
+      yPos
+    );
     yPos += 5;
-    doc.text(`Signed at: ${daily.signedAt ? format(new Date(daily.signedAt), "PPpp") : "N/A"}`, 14, yPos);
+    doc.text(
+      `Signed at: ${daily.signedAt ? format(new Date(daily.signedAt), "PPpp") : "N/A"}`,
+      14,
+      yPos
+    );
   } else {
     doc.text("Status: DRAFT - Not yet signed", 14, yPos);
   }
 
   doc.setFontSize(8);
   doc.setTextColor(100);
-  doc.text(`Generated: ${format(new Date(), "PPpp")} | ARUS Digital Deck Logbook`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: "center" });
+  doc.text(
+    `Generated: ${format(new Date(), "PPpp")} | ARUS Digital Deck Logbook`,
+    pageWidth / 2,
+    doc.internal.pageSize.getHeight() - 10,
+    { align: "center" }
+  );
 
   doc.save(`deck-log-${vesselName}-${date}.pdf`);
 }
 
 export function exportDeckToExcel(data: ExportDeckExcelData): void {
-  const { vesselName, date, dailySummary, hourlyEntries, watchAssignments, events, daily, getEventTypeConfig } = data;
+  const {
+    vesselName,
+    date,
+    dailySummary,
+    hourlyEntries,
+    watchAssignments,
+    events,
+    daily,
+    getEventTypeConfig,
+  } = data;
   const wb = XLSX.utils.book_new();
 
   const summaryData = [
@@ -262,7 +316,18 @@ export function exportDeckToExcel(data: ExportDeckExcelData): void {
   wsSummary["!cols"] = [{ wch: 25 }, { wch: 40 }];
   XLSX.utils.book_append_sheet(wb, wsSummary, "Daily Summary");
 
-  const hourlyHeaders = ["Hour (UTC)", "Course", "Wind Direction", "Wind Force (Bf)", "Sea State", "Visibility", "Barometer (mb)", "Air Temp (°C)", "Sea Temp (°C)", "Remarks"];
+  const hourlyHeaders = [
+    "Hour (UTC)",
+    "Course",
+    "Wind Direction",
+    "Wind Force (Bf)",
+    "Sea State",
+    "Visibility",
+    "Barometer (mb)",
+    "Air Temp (°C)",
+    "Sea Temp (°C)",
+    "Remarks",
+  ];
   const hourlyData: (string | number | undefined)[][] = [hourlyHeaders];
   for (let i = 0; i < 24; i++) {
     const entry = hourlyEntries.get(i) ?? {};
@@ -283,8 +348,10 @@ export function exportDeckToExcel(data: ExportDeckExcelData): void {
   wsHourly["!cols"] = Array(10).fill({ wch: 15 });
   XLSX.utils.book_append_sheet(wb, wsHourly, "Hourly Log");
 
-  const watchData: (string | undefined)[][] = [["Watch Period", "Officer of Watch", "Rank", "Helmsman", "Lookout", "Remarks"]];
-  WATCH_PERIODS.forEach(period => {
+  const watchData: (string | undefined)[][] = [
+    ["Watch Period", "Officer of Watch", "Rank", "Helmsman", "Lookout", "Remarks"],
+  ];
+  WATCH_PERIODS.forEach((period) => {
     const watch = watchAssignments.get(period) ?? {};
     watchData.push([
       period,
@@ -300,8 +367,10 @@ export function exportDeckToExcel(data: ExportDeckExcelData): void {
   XLSX.utils.book_append_sheet(wb, wsWatch, "Watch Assignments");
 
   if (events?.length > 0) {
-    const eventData: (string | number | undefined)[][] = [["Time", "Event Type", "Description", "Source", "Latitude", "Longitude"]];
-    events.forEach(event => {
+    const eventData: (string | number | undefined)[][] = [
+      ["Time", "Event Type", "Description", "Source", "Latitude", "Longitude"],
+    ];
+    events.forEach((event) => {
       eventData.push([
         format(new Date(event.timestamp), "HH:mm"),
         getEventTypeConfig(event.eventType).label,
@@ -312,7 +381,14 @@ export function exportDeckToExcel(data: ExportDeckExcelData): void {
       ]);
     });
     const wsEvents = XLSX.utils.aoa_to_sheet(eventData);
-    wsEvents["!cols"] = [{ wch: 10 }, { wch: 15 }, { wch: 40 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
+    wsEvents["!cols"] = [
+      { wch: 10 },
+      { wch: 15 },
+      { wch: 40 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 12 },
+    ];
     XLSX.utils.book_append_sheet(wb, wsEvents, "Events");
   }
 

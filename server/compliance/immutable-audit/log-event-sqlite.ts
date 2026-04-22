@@ -4,24 +4,22 @@
  * Uses BEGIN IMMEDIATE for exclusive write locking and chain integrity.
  */
 
-import { libsqlClient } from '../../db';
-import { computeAuditHash } from './hashing';
-import type { AuditEventInput, AuditRecord } from './types';
+import { libsqlClient } from "../../db";
+import { computeAuditHash } from "./hashing";
+import type { AuditEventInput, AuditRecord } from "./types";
 
 /**
  * Log audit event with SQLite exclusive transaction for chain integrity
  */
-export async function logEventSqlite(
-  input: AuditEventInput
-): Promise<AuditRecord> {
+export async function logEventSqlite(input: AuditEventInput): Promise<AuditRecord> {
   if (!libsqlClient) {
-    throw new Error('SQLite client not available in local mode');
+    throw new Error("SQLite client not available in local mode");
   }
 
   const id = crypto.randomUUID();
 
   try {
-    await libsqlClient.execute('BEGIN IMMEDIATE');
+    await libsqlClient.execute("BEGIN IMMEDIATE");
 
     const eventTimestamp = new Date();
     const serverTimestamp = new Date();
@@ -31,10 +29,10 @@ export async function logEventSqlite(
             WHERE org_id = ? 
             ORDER BY event_timestamp DESC 
             LIMIT 1`,
-      args: [input.orgId]
+      args: [input.orgId],
     });
 
-    const prevHash = latestResult.rows[0]?.hash as string | null ?? null;
+    const prevHash = (latestResult.rows[0]?.hash as string | null) ?? null;
 
     const hash = computeAuditHash(
       prevHash,
@@ -67,7 +65,7 @@ export async function logEventSqlite(
         input.newState ? JSON.stringify(input.newState) : null,
         input.changedFields ? JSON.stringify(input.changedFields) : null,
         input.performedBy,
-        input.performedByType ?? 'user',
+        input.performedByType ?? "user",
         input.performedByName ?? null,
         input.performedByRole ?? null,
         input.ipAddress ?? null,
@@ -78,13 +76,13 @@ export async function logEventSqlite(
         prevHash,
         hash,
         input.complianceStandard ?? null,
-        input.retentionRequired ?? true ? 1 : 0,
+        (input.retentionRequired ?? true) ? 1 : 0,
         input.retentionExpiresAt?.toISOString() ?? null,
         input.metadata ? JSON.stringify(input.metadata) : null,
-      ]
+      ],
     });
 
-    await libsqlClient.execute('COMMIT');
+    await libsqlClient.execute("COMMIT");
 
     return {
       id,
@@ -97,7 +95,7 @@ export async function logEventSqlite(
       newState: input.newState,
       changedFields: input.changedFields,
       performedBy: input.performedBy,
-      performedByType: input.performedByType ?? 'user',
+      performedByType: input.performedByType ?? "user",
       performedByName: input.performedByName,
       performedByRole: input.performedByRole,
       ipAddress: input.ipAddress,
@@ -113,7 +111,7 @@ export async function logEventSqlite(
       metadata: input.metadata,
     };
   } catch (error) {
-    await libsqlClient.execute('ROLLBACK');
+    await libsqlClient.execute("ROLLBACK");
     throw error;
   }
 }

@@ -1,6 +1,6 @@
 /**
  * Maintenance Report Routes
- * 
+ *
  * Maintenance report generation endpoint.
  */
 
@@ -17,7 +17,9 @@ export function registerMaintenanceReportRoutes(
 ) {
   const { generalApiRateLimit } = rateLimiters;
 
-  app.post("/api/report/maintenance", generalApiRateLimit,
+  app.post(
+    "/api/report/maintenance",
+    generalApiRateLimit,
     withErrorHandling("generate maintenance report", async (req, res) => {
       const { vesselId, equipmentId } = req.body;
 

@@ -20,5 +20,8 @@ export function registerSensorManagementRoutes(app: Express, config: SensorManag
   registerSensorStatusRoutes(app, config);
   registerSensorOptimizationRoutes(app, config);
   registerJ1939Routes(app, config);
-  logger.info("SensorManagementRoutes", "Registered (configs, tuning, optimization, J1939, states)");
+  logger.info(
+    "SensorManagementRoutes",
+    "Registered (configs, tuning, optimization, J1939, states)"
+  );
 }

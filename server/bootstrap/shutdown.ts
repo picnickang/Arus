@@ -56,7 +56,9 @@ async function shutdown(sig: string): Promise<void> {
       for (const socket of activeConnections) {
         try {
           socket.destroy();
-        } catch { /* socket already destroyed */ }
+        } catch {
+          /* socket already destroyed */
+        }
       }
       activeConnections.clear();
     }
@@ -68,31 +70,41 @@ async function shutdown(sig: string): Promise<void> {
       const { mqttReliableSync } = await import("../mqtt-reliable-sync");
       await withTimeout(mqttReliableSync.stop(), 3000);
       console.log("  ✓ MQTT sync stopped");
-    } catch { /* module not loaded or already stopped */ }
+    } catch {
+      /* module not loaded or already stopped */
+    }
 
     try {
       const { telemetryPruningService } = await import("../telemetry-pruning-service");
       await withTimeout(telemetryPruningService.stop?.() || Promise.resolve(), 2000);
       console.log("  ✓ Telemetry pruning stopped");
-    } catch { /* module not loaded or already stopped */ }
+    } catch {
+      /* module not loaded or already stopped */
+    }
 
     try {
       const { telemetryBatchWriter } = await import("../telemetry-batch-writer");
       await withTimeout(telemetryBatchWriter.stop(), 5000);
       console.log("  ✓ Telemetry batch writer flushed");
-    } catch { /* module not loaded or already stopped */ }
+    } catch {
+      /* module not loaded or already stopped */
+    }
 
     try {
       const { mlTrainingQueue } = await import("../ml-training-queue");
       await withTimeout(mlTrainingQueue.shutdown(), 3000);
       console.log("  ✓ ML training queue stopped");
-    } catch { /* module not loaded or already stopped */ }
+    } catch {
+      /* module not loaded or already stopped */
+    }
 
     try {
       const { stopEventLoopMonitoring } = await import("../observability");
       stopEventLoopMonitoring();
       console.log("  ✓ Observability stopped");
-    } catch { /* module not loaded or already stopped */ }
+    } catch {
+      /* module not loaded or already stopped */
+    }
 
     const shutdownDuration = Date.now() - shutdownStart;
     console.log(`✓ Graceful shutdown complete in ${shutdownDuration}ms`);

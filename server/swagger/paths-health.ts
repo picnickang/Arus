@@ -1,6 +1,6 @@
 /**
  * OpenAPI Spec - Health Endpoint Paths
- * 
+ *
  * Health check and observability endpoints.
  */
 
@@ -16,12 +16,12 @@ export const healthPaths = {
           description: "Application is healthy",
           content: {
             "application/json": {
-              schema: { "$ref": "#/components/schemas/HealthResponse" }
-            }
-          }
-        }
-      }
-    }
+              schema: { $ref: "#/components/schemas/HealthResponse" },
+            },
+          },
+        },
+      },
+    },
   },
   "/healthz": {
     get: {
@@ -30,9 +30,9 @@ export const healthPaths = {
       description: "Simple liveness check for container orchestration",
       security: [],
       responses: {
-        "200": { description: "Service is alive" }
-      }
-    }
+        "200": { description: "Service is alive" },
+      },
+    },
   },
   "/readyz": {
     get: {
@@ -42,9 +42,9 @@ export const healthPaths = {
       security: [],
       responses: {
         "200": { description: "Service is ready" },
-        "503": { description: "Service is not ready" }
-      }
-    }
+        "503": { description: "Service is not ready" },
+      },
+    },
   },
   "/metrics": {
     get: {
@@ -55,11 +55,11 @@ export const healthPaths = {
       responses: {
         "200": {
           description: "Prometheus metrics",
-          content: { "text/plain": { schema: { type: "string" } } }
-        }
-      }
-    }
-  }
+          content: { "text/plain": { schema: { type: "string" } } },
+        },
+      },
+    },
+  },
 };
 
 export const dashboardPaths = {
@@ -73,12 +73,12 @@ export const dashboardPaths = {
           description: "Dashboard data",
           content: {
             "application/json": {
-              schema: { "$ref": "#/components/schemas/DashboardData" }
-            }
-          }
-        }
-      }
-    }
+              schema: { $ref: "#/components/schemas/DashboardData" },
+            },
+          },
+        },
+      },
+    },
   },
   "/fleet/overview": {
     get: {
@@ -88,9 +88,9 @@ export const dashboardPaths = {
       responses: {
         "200": {
           description: "Fleet overview data",
-          content: { "application/json": { schema: { type: "object" } } }
-        }
-      }
-    }
-  }
+          content: { "application/json": { schema: { type: "object" } } },
+        },
+      },
+    },
+  },
 };

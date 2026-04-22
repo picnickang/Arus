@@ -16,7 +16,10 @@ export function OfflineSyncIndicator({ state, onSyncClick }: OfflineSyncIndicato
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex items-center gap-1.5 text-muted-foreground" data-testid="sync-indicator-online">
+          <div
+            className="flex items-center gap-1.5 text-muted-foreground"
+            data-testid="sync-indicator-online"
+          >
             <Cloud className="h-4 w-4" />
             <span className="text-sm">Online</span>
           </div>
@@ -78,9 +81,9 @@ export function OfflineSyncIndicator({ state, onSyncClick }: OfflineSyncIndicato
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onSyncClick}
             className="flex items-center gap-1.5"
             data-testid="sync-indicator-pending"

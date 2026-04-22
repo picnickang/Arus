@@ -1,6 +1,6 @@
 /**
  * Rate Limit Factory - Centralized rate limiting configuration
- * 
+ *
  * SonarQube Fix: Eliminates duplicated keyGenerator functions and magic numbers
  * Previously: 7 rate limiters with identical keyGenerator code blocks
  * Now: Single factory with shared configuration constants
@@ -48,11 +48,11 @@ export const RATE_LIMIT_ERROR_CODES = {
 export function createKeyGenerator(includeUserAgent = true): (req: Request) => string {
   return (req: Request): string => {
     const ip = ipKeyGenerator(req);
-    
+
     if (!includeUserAgent) {
       return ip;
     }
-    
+
     const userAgent = req.get("User-Agent")?.slice(0, 50) || "unknown";
     return `${ip}-${userAgent}`;
   };
@@ -90,9 +90,9 @@ export function createRateLimiter(config: RateLimitConfig) {
   const isDevelopment = process.env.NODE_ENV === "development";
   const isEmbedded = process.env.EMBEDDED_MODE === "true";
   const relaxLimits = isDevelopment || isEmbedded;
-  
-  const effectiveMax = relaxLimits 
-    ? config.max * RATE_LIMIT_DEFAULTS.DEVELOPMENT_MULTIPLIER 
+
+  const effectiveMax = relaxLimits
+    ? config.max * RATE_LIMIT_DEFAULTS.DEVELOPMENT_MULTIPLIER
     : config.max;
 
   const options: Partial<RateLimitOptions> = {
@@ -117,53 +117,64 @@ export function createRateLimiter(config: RateLimitConfig) {
 
 /** Pre-configured rate limiters for common use cases */
 export const RateLimiters = {
-  general: () => createRateLimiter({
-    windowMs: RATE_LIMIT_WINDOWS.ONE_MINUTE,
-    max: RATE_LIMIT_DEFAULTS.GENERAL_API,
-    message: "Too many API requests. Please reduce request frequency.",
-    code: RATE_LIMIT_ERROR_CODES.GENERAL,
-  }),
+  general: () =>
+    createRateLimiter({
+      windowMs: RATE_LIMIT_WINDOWS.ONE_MINUTE,
+      max: RATE_LIMIT_DEFAULTS.GENERAL_API,
+      message: "Too many API requests. Please reduce request frequency.",
+      code: RATE_LIMIT_ERROR_CODES.GENERAL,
+    }),
 
-  write: () => createRateLimiter({
-    windowMs: RATE_LIMIT_WINDOWS.ONE_MINUTE,
-    max: RATE_LIMIT_DEFAULTS.WRITE_OPERATIONS,
-    message: "Too many write operations. Please slow down data modifications.",
-    code: RATE_LIMIT_ERROR_CODES.WRITE,
-  }),
+  write: () =>
+    createRateLimiter({
+      windowMs: RATE_LIMIT_WINDOWS.ONE_MINUTE,
+      max: RATE_LIMIT_DEFAULTS.WRITE_OPERATIONS,
+      message: "Too many write operations. Please slow down data modifications.",
+      code: RATE_LIMIT_ERROR_CODES.WRITE,
+    }),
 
-  critical: () => createRateLimiter({
-    windowMs: RATE_LIMIT_WINDOWS.FIVE_MINUTES,
-    max: RATE_LIMIT_DEFAULTS.CRITICAL_OPERATIONS,
-    message: "Too many critical operations. Critical system operations are heavily rate limited for safety.",
-    code: RATE_LIMIT_ERROR_CODES.CRITICAL,
-  }),
+  critical: () =>
+    createRateLimiter({
+      windowMs: RATE_LIMIT_WINDOWS.FIVE_MINUTES,
+      max: RATE_LIMIT_DEFAULTS.CRITICAL_OPERATIONS,
+      message:
+        "Too many critical operations. Critical system operations are heavily rate limited for safety.",
+      code: RATE_LIMIT_ERROR_CODES.CRITICAL,
+    }),
 
-  telemetry: () => createRateLimiter({
-    windowMs: RATE_LIMIT_WINDOWS.ONE_MINUTE,
-    max: RATE_LIMIT_DEFAULTS.TELEMETRY,
-    message: "Too many telemetry requests. Marine equipment should limit data transmission to 10 readings per second maximum.",
-    code: RATE_LIMIT_ERROR_CODES.TELEMETRY,
-    useDeviceKey: true,
-  }),
+  telemetry: () =>
+    createRateLimiter({
+      windowMs: RATE_LIMIT_WINDOWS.ONE_MINUTE,
+      max: RATE_LIMIT_DEFAULTS.TELEMETRY,
+      message:
+        "Too many telemetry requests. Marine equipment should limit data transmission to 10 readings per second maximum.",
+      code: RATE_LIMIT_ERROR_CODES.TELEMETRY,
+      useDeviceKey: true,
+    }),
 
-  bulkImport: () => createRateLimiter({
-    windowMs: RATE_LIMIT_WINDOWS.FIVE_MINUTES,
-    max: RATE_LIMIT_DEFAULTS.BULK_IMPORT,
-    message: "Too many bulk import requests. Bulk telemetry imports are limited to prevent system overload.",
-    code: RATE_LIMIT_ERROR_CODES.BULK_IMPORT,
-  }),
+  bulkImport: () =>
+    createRateLimiter({
+      windowMs: RATE_LIMIT_WINDOWS.FIVE_MINUTES,
+      max: RATE_LIMIT_DEFAULTS.BULK_IMPORT,
+      message:
+        "Too many bulk import requests. Bulk telemetry imports are limited to prevent system overload.",
+      code: RATE_LIMIT_ERROR_CODES.BULK_IMPORT,
+    }),
 
-  report: () => createRateLimiter({
-    windowMs: RATE_LIMIT_WINDOWS.FIVE_MINUTES,
-    max: RATE_LIMIT_DEFAULTS.REPORT_GENERATION,
-    message: "Too many report generation requests. AI-powered reports are limited to prevent resource exhaustion.",
-    code: RATE_LIMIT_ERROR_CODES.REPORT,
-  }),
+  report: () =>
+    createRateLimiter({
+      windowMs: RATE_LIMIT_WINDOWS.FIVE_MINUTES,
+      max: RATE_LIMIT_DEFAULTS.REPORT_GENERATION,
+      message:
+        "Too many report generation requests. AI-powered reports are limited to prevent resource exhaustion.",
+      code: RATE_LIMIT_ERROR_CODES.REPORT,
+    }),
 
-  crew: () => createRateLimiter({
-    windowMs: RATE_LIMIT_WINDOWS.ONE_MINUTE,
-    max: RATE_LIMIT_DEFAULTS.CREW_OPERATIONS,
-    message: "Too many crew operations. Please slow down crew management activities.",
-    code: RATE_LIMIT_ERROR_CODES.CREW,
-  }),
+  crew: () =>
+    createRateLimiter({
+      windowMs: RATE_LIMIT_WINDOWS.ONE_MINUTE,
+      max: RATE_LIMIT_DEFAULTS.CREW_OPERATIONS,
+      message: "Too many crew operations. Please slow down crew management activities.",
+      code: RATE_LIMIT_ERROR_CODES.CREW,
+    }),
 } as const;

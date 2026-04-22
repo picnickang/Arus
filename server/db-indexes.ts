@@ -21,7 +21,7 @@ export interface IndexVerificationResult {
 export async function verifyDatabaseIndexes(): Promise<IndexVerificationResult> {
   const isProduction = process.env.NODE_ENV === "production";
   const selfHealEnabled = process.env.DEV_SELF_HEAL === "true";
-  
+
   const verified: string[] = [];
   const missing: string[] = [];
 
@@ -33,7 +33,7 @@ export async function verifyDatabaseIndexes(): Promise<IndexVerificationResult> 
         sql.raw(`SELECT to_regclass('public.${indexName}') AS exists`)
       );
       const exists = result.rows?.[0]?.exists !== null;
-      
+
       if (exists) {
         verified.push(indexName);
       } else {
@@ -61,7 +61,9 @@ export async function verifyDatabaseIndexes(): Promise<IndexVerificationResult> 
   }
 
   if (selfHealEnabled) {
-    console.log(`[DB Indexes] DEV_SELF_HEAL=true - Auto-creating ${missing.length} missing indexes...`);
+    console.log(
+      `[DB Indexes] DEV_SELF_HEAL=true - Auto-creating ${missing.length} missing indexes...`
+    );
     await autoCreateMissingIndexes(missing);
     return { ok: true, verified: [...verified, ...missing], missing: [], lastCheckedAt };
   }
@@ -69,14 +71,17 @@ export async function verifyDatabaseIndexes(): Promise<IndexVerificationResult> 
   console.warn(`[DB Indexes] WARN: ${missing.length} missing indexes in development`);
   console.warn(`[DB Indexes] Missing: ${missing.join(", ")}`);
   console.warn(`[DB Indexes] Run 'npm run db:migrate' to create them, or set DEV_SELF_HEAL=true`);
-  
+
   return { ok: false, verified, missing, lastCheckedAt };
 }
 
 async function autoCreateMissingIndexes(missing: string[]): Promise<void> {
   const INDEX_DEFINITIONS: Record<string, { table: string; columns: string }> = {
     idx_equipment_vessel_created: { table: "equipment", columns: "vessel_id, created_at DESC" },
-    idx_maintenance_records_equipment_date: { table: "maintenance_records", columns: "equipment_id, actual_start_time DESC" },
+    idx_maintenance_records_equipment_date: {
+      table: "maintenance_records",
+      columns: "equipment_id, actual_start_time DESC",
+    },
     idx_maintenance_records_org_id: { table: "maintenance_records", columns: "org_id" },
     idx_raw_telemetry_equipment_ts: { table: "raw_telemetry", columns: "src, ts DESC" },
     idx_ml_models_org_status: { table: "ml_models", columns: "org_id, status" },
@@ -86,7 +91,9 @@ async function autoCreateMissingIndexes(missing: string[]): Promise<void> {
 
   for (const indexName of missing) {
     const def = INDEX_DEFINITIONS[indexName];
-    if (!def) {continue;}
+    if (!def) {
+      continue;
+    }
 
     try {
       await db.execute(

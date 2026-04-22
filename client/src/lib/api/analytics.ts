@@ -21,10 +21,18 @@ export async function fetchAnomalyDetections(params?: {
   limit?: number;
 }): Promise<AnomalyDetectionListResponse> {
   const queryParams = new URLSearchParams();
-  if (params?.equipmentId) {queryParams.append("equipmentId", params.equipmentId);}
-  if (params?.severity) {queryParams.append("severity", params.severity);}
-  if (params?.page) {queryParams.append("page", params.page.toString());}
-  if (params?.limit) {queryParams.append("limit", params.limit.toString());}
+  if (params?.equipmentId) {
+    queryParams.append("equipmentId", params.equipmentId);
+  }
+  if (params?.severity) {
+    queryParams.append("severity", params.severity);
+  }
+  if (params?.page) {
+    queryParams.append("page", params.page.toString());
+  }
+  if (params?.limit) {
+    queryParams.append("limit", params.limit.toString());
+  }
   const url = `/api/analytics/anomalies${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
   const response = await apiRequest("GET", url);
   const result = anomalyDetectionListResponseSchema.safeParse(response);
@@ -42,10 +50,18 @@ export async function fetchFailurePredictions(params?: {
   limit?: number;
 }): Promise<FailurePredictionListResponse> {
   const queryParams = new URLSearchParams();
-  if (params?.equipmentId) {queryParams.append("equipmentId", params.equipmentId);}
-  if (params?.riskLevel) {queryParams.append("riskLevel", params.riskLevel);}
-  if (params?.page) {queryParams.append("page", params.page.toString());}
-  if (params?.limit) {queryParams.append("limit", params.limit.toString());}
+  if (params?.equipmentId) {
+    queryParams.append("equipmentId", params.equipmentId);
+  }
+  if (params?.riskLevel) {
+    queryParams.append("riskLevel", params.riskLevel);
+  }
+  if (params?.page) {
+    queryParams.append("page", params.page.toString());
+  }
+  if (params?.limit) {
+    queryParams.append("limit", params.limit.toString());
+  }
   const url = `/api/analytics/predictions${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
   const response = await apiRequest("GET", url);
   const result = failurePredictionListResponseSchema.safeParse(response);
@@ -62,9 +78,15 @@ export async function fetchModelPerformance(params?: {
   limit?: number;
 }): Promise<ModelPerformanceListResponse> {
   const queryParams = new URLSearchParams();
-  if (params?.modelType) {queryParams.append("modelType", params.modelType);}
-  if (params?.page) {queryParams.append("page", params.page.toString());}
-  if (params?.limit) {queryParams.append("limit", params.limit.toString());}
+  if (params?.modelType) {
+    queryParams.append("modelType", params.modelType);
+  }
+  if (params?.page) {
+    queryParams.append("page", params.page.toString());
+  }
+  if (params?.limit) {
+    queryParams.append("limit", params.limit.toString());
+  }
   const url = `/api/analytics/ml/performance${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
   const response = await apiRequest("GET", url);
   const result = modelPerformanceListResponseSchema.safeParse(response);
@@ -79,7 +101,9 @@ export async function fetchModelPerformanceSummary(params?: {
   modelId?: string;
 }): Promise<ModelPerformanceSummaryResponse> {
   const queryParams = new URLSearchParams();
-  if (params?.modelId) {queryParams.append("modelId", params.modelId);}
+  if (params?.modelId) {
+    queryParams.append("modelId", params.modelId);
+  }
   const url = `/api/analytics/model-performance/summary${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
   const response = await apiRequest("GET", url);
   const result = modelPerformanceSummaryResponseSchema.safeParse(response);

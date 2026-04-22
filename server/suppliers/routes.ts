@@ -52,8 +52,14 @@ router.get("/suppliers", async (req: Request, res: Response) => {
     const filters: SupplierListFilters = {
       orgId,
       search: req.query.search as string | undefined,
-      isActive: req.query.isActive === "true" ? true : req.query.isActive === "false" ? false : undefined,
-      isPreferred: req.query.isPreferred === "true" ? true : req.query.isPreferred === "false" ? false : undefined,
+      isActive:
+        req.query.isActive === "true" ? true : req.query.isActive === "false" ? false : undefined,
+      isPreferred:
+        req.query.isPreferred === "true"
+          ? true
+          : req.query.isPreferred === "false"
+            ? false
+            : undefined,
       type,
       limit: req.query.limit ? Number.parseInt(req.query.limit as string, 10) : 50,
       offset: req.query.offset ? Number.parseInt(req.query.offset as string, 10) : 0,

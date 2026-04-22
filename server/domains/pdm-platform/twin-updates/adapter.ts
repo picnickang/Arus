@@ -1,11 +1,6 @@
 import { eq, and, desc } from "drizzle-orm";
 import { db } from "../../../db";
-import {
-  assetTwins,
-  assetTwinState,
-  twinResiduals,
-  type AssetTwin,
-} from "@shared/schema";
+import { assetTwins, assetTwinState, twinResiduals, type AssetTwin } from "@shared/schema";
 import type { ITwinFreshnessStorage } from "./ports";
 
 export class TwinFreshnessAdapter implements ITwinFreshnessStorage {

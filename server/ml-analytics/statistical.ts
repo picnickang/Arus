@@ -6,7 +6,9 @@
  */
 
 export function calculateTrend(values: number[]): "increasing" | "decreasing" | "stable" {
-  if (values.length < 3) { return "stable"; }
+  if (values.length < 3) {
+    return "stable";
+  }
 
   const firstHalf = values.slice(0, Math.floor(values.length / 2));
   const secondHalf = values.slice(Math.floor(values.length / 2));
@@ -16,19 +18,25 @@ export function calculateTrend(values: number[]): "increasing" | "decreasing" | 
 
   const changePercent = Math.abs((secondAvg - firstAvg) / firstAvg) * 100;
 
-  if (changePercent < 5) { return "stable"; }
+  if (changePercent < 5) {
+    return "stable";
+  }
   return secondAvg > firstAvg ? "increasing" : "decreasing";
 }
 
 export function detectSeasonality(values: number[]): boolean {
-  if (values.length < 24) { return false; }
+  if (values.length < 24) {
+    return false;
+  }
 
   const lag24 = calculateAutocorrelation(values, 24);
   return lag24 > 0.3;
 }
 
 export function calculateAutocorrelation(values: number[], lag: number): number {
-  if (lag >= values.length) { return 0; }
+  if (lag >= values.length) {
+    return 0;
+  }
 
   const n = values.length - lag;
   const mean = values.reduce((sum, v) => sum + v, 0) / values.length;

@@ -1,6 +1,6 @@
 /**
  * Inventory Engine - Stock Status
- * 
+ *
  * Stock status classification logic.
  */
 
@@ -29,7 +29,9 @@ export function calculateStockStatus(
 ): PartAvailability["stockStatus"] {
   const available = Math.max(0, onHand - reserved);
 
-  if (available <= 0) { return "critical"; }
+  if (available <= 0) {
+    return "critical";
+  }
 
   if (minStock <= 0) {
     if (maxStock > 0 && available > Math.ceil(maxStock * 1.2)) {

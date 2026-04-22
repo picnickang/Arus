@@ -35,5 +35,10 @@ export interface ConditionTrend {
   wearTrend: "improving" | "stable" | "degrading";
   overallTrend: "improving" | "stable" | "degrading";
   trendConfidence: number;
-  keyIndicators: Array<{ parameter: string; value: number; trend: "improving" | "stable" | "degrading"; significance: "low" | "medium" | "high" }>;
+  keyIndicators: Array<{
+    parameter: string;
+    value: number;
+    trend: "improving" | "stable" | "degrading";
+    significance: "low" | "medium" | "high";
+  }>;
 }

@@ -1,6 +1,6 @@
 /**
  * Aquametro FMCC - Service Operations
- * 
+ *
  * Data fetching operations for fuel flow, counters, and meter status.
  */
 
@@ -196,7 +196,12 @@ export class AquametroFMCCService extends AquametroFMCCServiceCore {
           firmwareVersion: "2.5.1",
           calibrationDue: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
         };
-        return { success: true, data: mockStatus, source: "mock", responseTimeMs: Date.now() - startTime };
+        return {
+          success: true,
+          data: mockStatus,
+          source: "mock",
+          responseTimeMs: Date.now() - startTime,
+        };
       }
 
       if (this.restClient) {
@@ -240,7 +245,12 @@ export class AquametroFMCCService extends AquametroFMCCServiceCore {
       const flowResult = await this.getInstantFuelFlow(vesselId);
 
       if (!flowResult.success) {
-        return { success: false, error: flowResult.error, source: flowResult.source, responseTimeMs: Date.now() - startTime };
+        return {
+          success: false,
+          error: flowResult.error,
+          source: flowResult.source,
+          responseTimeMs: Date.now() - startTime,
+        };
       }
 
       const sample: FMCCRawSample = {
@@ -258,7 +268,12 @@ export class AquametroFMCCService extends AquametroFMCCServiceCore {
         rawJson: flowResult.data,
       };
 
-      return { success: true, data: sample, source: flowResult.source, responseTimeMs: Date.now() - startTime };
+      return {
+        success: true,
+        data: sample,
+        source: flowResult.source,
+        responseTimeMs: Date.now() - startTime,
+      };
     } catch (error) {
       console.error("[FMCC] Error getting raw sample:", error);
       return {

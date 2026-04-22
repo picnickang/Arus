@@ -12,7 +12,9 @@ interface PRCardProps {
 }
 
 function formatDate(date: Date | string | null | undefined): string {
-  if (!date) {return "-";}
+  if (!date) {
+    return "-";
+  }
   const d = typeof date === "string" ? new Date(date) : date;
   return format(d, "MMM d, yyyy");
 }
@@ -53,13 +55,23 @@ export function PRCard({ pr, onView, onEdit }: PRCardProps) {
         </div>
         <div className="flex gap-2 pt-3 border-t">
           {onView && (
-            <Button variant="outline" size="sm" onClick={() => onView(pr)} data-testid={`button-view-pr-${pr.id}`}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onView(pr)}
+              data-testid={`button-view-pr-${pr.id}`}
+            >
               <Eye className="h-4 w-4 mr-1" />
               View
             </Button>
           )}
           {isEditable && onEdit && (
-            <Button variant="outline" size="sm" onClick={() => onEdit(pr)} data-testid={`button-edit-pr-${pr.id}`}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onEdit(pr)}
+              data-testid={`button-edit-pr-${pr.id}`}
+            >
               <Edit className="h-4 w-4 mr-1" />
               Edit
             </Button>

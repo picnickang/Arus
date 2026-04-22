@@ -3,7 +3,13 @@
  */
 
 import { db } from "../db";
-import { workOrders, failurePredictions, equipment, organizations, costModel } from "@shared/schema-runtime";
+import {
+  workOrders,
+  failurePredictions,
+  equipment,
+  organizations,
+  costModel,
+} from "@shared/schema-runtime";
 import { eq, and } from "drizzle-orm";
 import type { SavingsCalculation } from "./types";
 
@@ -38,12 +44,15 @@ export async function calculateWorkOrderSavings(
     return null;
   }
 
-  let maintenanceType: SavingsCalculation["maintenanceType"] = (workOrder.maintenanceType as any) || "corrective";
+  let maintenanceType: SavingsCalculation["maintenanceType"] =
+    (workOrder.maintenanceType as any) || "corrective";
   let triggeredBy: SavingsCalculation["triggeredBy"] = "manual";
   let predictionId: number | null = null;
   let confidenceScore: number | null = null;
 
-  console.log(`[Cost Savings Debug] Work Order ${workOrderId}: maintenanceType="${maintenanceType}", status="${workOrder.status}"`);
+  console.log(
+    `[Cost Savings Debug] Work Order ${workOrderId}: maintenanceType="${maintenanceType}", status="${workOrder.status}"`
+  );
 
   const [linkedPrediction] = await db
     .select()
@@ -64,7 +73,9 @@ export async function calculateWorkOrderSavings(
   }
 
   if (maintenanceType === "corrective" || maintenanceType === "emergency") {
-    console.log(`[Cost Savings Debug] Skipping work order ${workOrderId}: maintenanceType="${maintenanceType}" is corrective/emergency`);
+    console.log(
+      `[Cost Savings Debug] Skipping work order ${workOrderId}: maintenanceType="${maintenanceType}" is corrective/emergency`
+    );
     return null;
   }
 
@@ -75,26 +86,37 @@ export async function calculateWorkOrderSavings(
   const [activeCostModel] = await db
     .select()
     .from(costModel)
-    .where(and(
-      eq(costModel.orgId, orgId),
-      eq(costModel.isActive, true)
-    ))
+    .where(and(eq(costModel.orgId, orgId), eq(costModel.isActive, true)))
     .limit(1);
 
-  const downtimeCostPerHour = workOrder.downtimeCostPerHour
-    ?? equipmentDetails?.downtimeCostPerHour
-    ?? activeCostModel?.downtimePerHour
-    ?? 1000;
+  const downtimeCostPerHour =
+    workOrder.downtimeCostPerHour ??
+    equipmentDetails?.downtimeCostPerHour ??
+    activeCostModel?.downtimePerHour ??
+    1000;
   const actualDowntimeCost = actualDowntimeHours * downtimeCostPerHour;
   const actualCost = actualLaborCost + actualPartsCost + actualDowntimeCost;
 
-  const emergencyLaborMultiplier = options.emergencyLaborMultiplier ?? equipmentDetails?.emergencyLaborMultiplier ?? org?.emergencyLaborMultiplier ?? 3;
-  const emergencyPartsMultiplier = options.emergencyPartsMultiplier ?? equipmentDetails?.emergencyPartsMultiplier ?? org?.emergencyPartsMultiplier ?? 1.5;
-  const emergencyDowntimeMultiplier = options.emergencyDowntimeMultiplier ?? equipmentDetails?.emergencyDowntimeMultiplier ?? org?.emergencyDowntimeMultiplier ?? 3;
+  const emergencyLaborMultiplier =
+    options.emergencyLaborMultiplier ??
+    equipmentDetails?.emergencyLaborMultiplier ??
+    org?.emergencyLaborMultiplier ??
+    3;
+  const emergencyPartsMultiplier =
+    options.emergencyPartsMultiplier ??
+    equipmentDetails?.emergencyPartsMultiplier ??
+    org?.emergencyPartsMultiplier ??
+    1.5;
+  const emergencyDowntimeMultiplier =
+    options.emergencyDowntimeMultiplier ??
+    equipmentDetails?.emergencyDowntimeMultiplier ??
+    org?.emergencyDowntimeMultiplier ??
+    3;
 
   const emergencyLaborCost = actualLaborCost * emergencyLaborMultiplier;
   const emergencyPartsCost = actualPartsCost * emergencyPartsMultiplier;
-  const emergencyDowntimeHours = actualDowntimeHours > 0 ? actualDowntimeHours * emergencyDowntimeMultiplier : 24;
+  const emergencyDowntimeHours =
+    actualDowntimeHours > 0 ? actualDowntimeHours * emergencyDowntimeMultiplier : 24;
   const emergencyDowntimeCost = emergencyDowntimeHours * downtimeCostPerHour;
 
   const avoidedCost = emergencyLaborCost + emergencyPartsCost + emergencyDowntimeCost;

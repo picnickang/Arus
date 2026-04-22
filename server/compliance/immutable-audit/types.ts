@@ -6,27 +6,45 @@
  */
 
 export type AuditEventCategory =
-  | 'system'
-  | 'authentication'
-  | 'data_modification'
-  | 'configuration_change'
-  | 'ml_prediction'
-  | 'maintenance_action'
-  | 'compliance_event'
-  | 'security_event';
+  | "system"
+  | "authentication"
+  | "data_modification"
+  | "configuration_change"
+  | "ml_prediction"
+  | "maintenance_action"
+  | "compliance_event"
+  | "security_event";
 
 export type AuditEventType =
-  | 'create' | 'update' | 'delete' | 'read'
-  | 'login' | 'logout' | 'login_failed' | 'session_expired'
-  | 'prediction_generated' | 'prediction_overridden'
-  | 'work_order_created' | 'work_order_completed' | 'work_order_cancelled'
-  | 'equipment_status_change' | 'alert_triggered' | 'alert_acknowledged'
-  | 'model_trained' | 'model_deployed' | 'model_retired'
-  | 'config_updated' | 'permission_changed'
-  | 'data_export' | 'data_import' | 'dsar_request' | 'data_deletion'
-  | 'vessel_sync' | 'sync_conflict';
+  | "create"
+  | "update"
+  | "delete"
+  | "read"
+  | "login"
+  | "logout"
+  | "login_failed"
+  | "session_expired"
+  | "prediction_generated"
+  | "prediction_overridden"
+  | "work_order_created"
+  | "work_order_completed"
+  | "work_order_cancelled"
+  | "equipment_status_change"
+  | "alert_triggered"
+  | "alert_acknowledged"
+  | "model_trained"
+  | "model_deployed"
+  | "model_retired"
+  | "config_updated"
+  | "permission_changed"
+  | "data_export"
+  | "data_import"
+  | "dsar_request"
+  | "data_deletion"
+  | "vessel_sync"
+  | "sync_conflict";
 
-export type PerformerType = 'user' | 'system' | 'cron' | 'ml_service' | 'edge_device';
+export type PerformerType = "user" | "system" | "cron" | "ml_service" | "edge_device";
 
 export interface AuditEventInput {
   orgId: string;

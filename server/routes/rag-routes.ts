@@ -1,13 +1,13 @@
 /**
  * RAG API Routes
- * 
+ *
  * API endpoints for the RAG (Retrieval-Augmented Generation) system.
  * Provides endpoints for:
  * - Asking questions and getting AI-powered answers
  * - Managing conversations
  * - Submitting feedback
  * - Cache management
- * 
+ *
  * Security hardened with:
  * - Session-based authentication (with streaming token support for SSE)
  * - Per-user rate limiting with Redis backing
@@ -15,35 +15,32 @@
  * - Audit logging for all operations
  */
 
-import { Express, Request, Response } from 'express';
-import { z } from 'zod';
-import { RateLimitRequestHandler } from 'express-rate-limit';
-import { withErrorHandling } from '../lib/route-utils';
-import { 
+import { Express, Request, Response } from "express";
+import { z } from "zod";
+import { RateLimitRequestHandler } from "express-rate-limit";
+import { withErrorHandling } from "../lib/route-utils";
+import {
   getRagOrchestrator,
   getConversationService,
   getFeedbackService,
   getSemanticCache,
-} from '../services/rag';
-import { logger } from '../utils/logger';
-import { streamingService } from '../services/rag/streaming';
-import { suggestionEngine } from '../services/rag/suggestions';
-import { exportService } from '../services/rag/export';
-import { analyticsAggregator } from '../services/rag/analytics';
-import { confidenceDetector } from '../services/rag/confidence';
-import { comparisonService } from '../services/rag/comparison';
-import { getOpenAIApiKey } from '../openai/client';
-import { searchKnowledgeBase } from '../vector-search-service';
-import { 
-  ragAuthMiddleware, 
-  ragRateLimitMiddleware, 
+} from "../services/rag";
+import { logger } from "../utils/logger";
+import { streamingService } from "../services/rag/streaming";
+import { suggestionEngine } from "../services/rag/suggestions";
+import { exportService } from "../services/rag/export";
+import { analyticsAggregator } from "../services/rag/analytics";
+import { confidenceDetector } from "../services/rag/confidence";
+import { comparisonService } from "../services/rag/comparison";
+import { getOpenAIApiKey } from "../openai/client";
+import { searchKnowledgeBase } from "../vector-search-service";
+import {
+  ragAuthMiddleware,
+  ragRateLimitMiddleware,
   ragInputSanitizationMiddleware,
-  type RagSecuredRequest 
-} from '../services/rag/security/middleware';
-import { 
-  initializeRagSecurity, 
-  getRagSecurityServices 
-} from '../services/rag/security';
+  type RagSecuredRequest,
+} from "../services/rag/security/middleware";
+import { initializeRagSecurity, getRagSecurityServices } from "../services/rag/security";
 
 const askRequestSchema = z.object({
   query: z.string().min(1).max(2000),
@@ -57,7 +54,7 @@ const askRequestSchema = z.object({
 const feedbackSchema = z.object({
   messageId: z.string().optional(),
   chunkId: z.string().optional(),
-  feedbackType: z.enum(['helpful', 'not_helpful', 'inaccurate', 'missing_info', 'outdated']),
+  feedbackType: z.enum(["helpful", "not_helpful", "inaccurate", "missing_info", "outdated"]),
   rating: z.number().min(1).max(5).optional(),
   comment: z.string().max(1000).optional(),
   queryText: z.string().optional(),
@@ -84,21 +81,23 @@ export function registerRagRoutes(
   const getOrgContext = (req: Request) => {
     const securedReq = req as RagSecuredRequest;
     return {
-      orgId: securedReq.ragContext?.orgId || req.headers['x-org-id'] as string || 'default-org-id',
-      userId: securedReq.ragContext?.userId || req.headers['x-user-id'] as string || undefined,
-      userRoles: req.headers['x-user-roles'] 
-        ? (req.headers['x-user-roles'] as string).split(',') 
+      orgId:
+        securedReq.ragContext?.orgId || (req.headers["x-org-id"] as string) || "default-org-id",
+      userId: securedReq.ragContext?.userId || (req.headers["x-user-id"] as string) || undefined,
+      userRoles: req.headers["x-user-roles"]
+        ? (req.headers["x-user-roles"] as string).split(",")
         : undefined,
     };
   };
 
   // Apply security middleware to all RAG routes
-  app.use('/api/rag', ragAuthMiddleware as any);
+  app.use("/api/rag", ragAuthMiddleware as any);
 
-  app.post('/api/rag/ask', 
+  app.post(
+    "/api/rag/ask",
     ragRateLimitMiddleware as any,
     ragInputSanitizationMiddleware as any,
-    withErrorHandling('ask RAG question', async (req, res) => {
+    withErrorHandling("ask RAG question", async (req, res) => {
       const { orgId, userId, userRoles } = getOrgContext(req);
       const { auditLogger } = getRagSecurityServices();
       const startTime = Date.now();
@@ -107,7 +106,7 @@ export function registerRagRoutes(
       const securedReq = req as RagSecuredRequest;
       const parsed = askRequestSchema.parse(req.body);
       const query = securedReq.ragContext?.sanitizedQuery || parsed.query;
-      
+
       const orchestrator = getRagOrchestrator();
       const response = await orchestrator.ask({
         orgId,
@@ -125,7 +124,7 @@ export function registerRagRoutes(
       auditLogger.logResponse({
         userId,
         orgId,
-        conversationId: response.conversationId || 'direct',
+        conversationId: response.conversationId || "direct",
         responseLength: response.answer?.length || 0,
         chunksUsed: response.sources?.length || 0,
         confidence: response.confidence?.score,
@@ -137,10 +136,12 @@ export function registerRagRoutes(
     })
   );
 
-  app.post('/api/rag/conversations', generalApiRateLimit,
-    withErrorHandling('create RAG conversation', async (req, res) => {
-      const orgId = req.headers['x-org-id'] as string || 'default-org-id';
-      const userId = req.headers['x-user-id'] as string || undefined;
+  app.post(
+    "/api/rag/conversations",
+    generalApiRateLimit,
+    withErrorHandling("create RAG conversation", async (req, res) => {
+      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+      const userId = (req.headers["x-user-id"] as string) || undefined;
       const { title } = req.body;
 
       const conversationService = getConversationService();
@@ -154,10 +155,12 @@ export function registerRagRoutes(
     })
   );
 
-  app.get('/api/rag/conversations', generalApiRateLimit,
-    withErrorHandling('list RAG conversations', async (req, res) => {
-      const orgId = req.headers['x-org-id'] as string || 'default-org-id';
-      const userId = req.headers['x-user-id'] as string || undefined;
+  app.get(
+    "/api/rag/conversations",
+    generalApiRateLimit,
+    withErrorHandling("list RAG conversations", async (req, res) => {
+      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+      const userId = (req.headers["x-user-id"] as string) || undefined;
       const limit = parseInt(req.query.limit as string) || 20;
 
       const conversationService = getConversationService();
@@ -172,20 +175,22 @@ export function registerRagRoutes(
     })
   );
 
-  app.get('/api/rag/conversations/:id', generalApiRateLimit,
-    withErrorHandling('get RAG conversation', async (req, res) => {
+  app.get(
+    "/api/rag/conversations/:id",
+    generalApiRateLimit,
+    withErrorHandling("get RAG conversation", async (req, res) => {
       const { id } = req.params;
-      const orgId = req.headers['x-org-id'] as string || (req as any).orgId || 'default-org-id';
+      const orgId = (req.headers["x-org-id"] as string) || (req as any).orgId || "default-org-id";
 
       const conversationService = getConversationService();
       const conversation = await conversationService.getConversation(id);
 
       if (!conversation) {
-        return res.status(404).json({ message: 'Conversation not found' });
+        return res.status(404).json({ message: "Conversation not found" });
       }
 
       if (conversation.orgId && conversation.orgId !== orgId) {
-        return res.status(403).json({ message: 'Access denied' });
+        return res.status(403).json({ message: "Access denied" });
       }
 
       const messages = await conversationService.getMessages(id, 100);
@@ -193,8 +198,10 @@ export function registerRagRoutes(
     })
   );
 
-  app.get('/api/rag/conversations/:id/messages', generalApiRateLimit,
-    withErrorHandling('get conversation messages', async (req, res) => {
+  app.get(
+    "/api/rag/conversations/:id/messages",
+    generalApiRateLimit,
+    withErrorHandling("get conversation messages", async (req, res) => {
       const { id } = req.params;
       const limit = parseInt(req.query.limit as string) || 100;
 
@@ -205,8 +212,10 @@ export function registerRagRoutes(
     })
   );
 
-  app.patch('/api/rag/conversations/:id', generalApiRateLimit,
-    withErrorHandling('update RAG conversation', async (req, res) => {
+  app.patch(
+    "/api/rag/conversations/:id",
+    generalApiRateLimit,
+    withErrorHandling("update RAG conversation", async (req, res) => {
       const { id } = req.params;
       const parsed = conversationUpdateSchema.parse(req.body);
 
@@ -214,35 +223,39 @@ export function registerRagRoutes(
       const updated = await conversationService.updateConversation(id, parsed);
 
       if (!updated) {
-        return res.status(404).json({ message: 'Conversation not found' });
+        return res.status(404).json({ message: "Conversation not found" });
       }
 
       res.json(updated);
     })
   );
 
-  app.delete('/api/rag/conversations/:id', generalApiRateLimit,
-    withErrorHandling('delete RAG conversation', async (req, res) => {
+  app.delete(
+    "/api/rag/conversations/:id",
+    generalApiRateLimit,
+    withErrorHandling("delete RAG conversation", async (req, res) => {
       const { id } = req.params;
 
       const conversationService = getConversationService();
       const deleted = await conversationService.deleteConversation(id);
 
       if (!deleted) {
-        return res.status(404).json({ message: 'Conversation not found' });
+        return res.status(404).json({ message: "Conversation not found" });
       }
 
       res.status(204).send();
     })
   );
 
-  app.post('/api/rag/feedback', generalApiRateLimit,
-    withErrorHandling('submit RAG feedback', async (req, res) => {
-      const orgId = req.headers['x-org-id'] as string || 'default-org-id';
-      const userId = req.headers['x-user-id'] as string || undefined;
+  app.post(
+    "/api/rag/feedback",
+    generalApiRateLimit,
+    withErrorHandling("submit RAG feedback", async (req, res) => {
+      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+      const userId = (req.headers["x-user-id"] as string) || undefined;
 
       const parsed = feedbackSchema.parse(req.body);
-      
+
       const orchestrator = getRagOrchestrator();
       await orchestrator.submitFeedback({
         orgId,
@@ -254,9 +267,11 @@ export function registerRagRoutes(
     })
   );
 
-  app.get('/api/rag/feedback/stats', generalApiRateLimit,
-    withErrorHandling('get RAG feedback stats', async (req, res) => {
-      const orgId = req.headers['x-org-id'] as string || 'default-org-id';
+  app.get(
+    "/api/rag/feedback/stats",
+    generalApiRateLimit,
+    withErrorHandling("get RAG feedback stats", async (req, res) => {
+      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
 
       const feedbackService = getFeedbackService();
       const stats = await feedbackService.getOrgStats(orgId);
@@ -265,9 +280,11 @@ export function registerRagRoutes(
     })
   );
 
-  app.get('/api/rag/cache/stats', generalApiRateLimit,
-    withErrorHandling('get RAG cache stats', async (req, res) => {
-      const orgId = req.headers['x-org-id'] as string || 'default-org-id';
+  app.get(
+    "/api/rag/cache/stats",
+    generalApiRateLimit,
+    withErrorHandling("get RAG cache stats", async (req, res) => {
+      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
 
       const cache = getSemanticCache();
       const stats = await cache.getStats(orgId);
@@ -276,8 +293,10 @@ export function registerRagRoutes(
     })
   );
 
-  app.post('/api/rag/cache/cleanup', generalApiRateLimit,
-    withErrorHandling('cleanup RAG cache', async (req, res) => {
+  app.post(
+    "/api/rag/cache/cleanup",
+    generalApiRateLimit,
+    withErrorHandling("cleanup RAG cache", async (req, res) => {
       const cache = getSemanticCache();
       const cleaned = await cache.cleanup();
 
@@ -285,9 +304,11 @@ export function registerRagRoutes(
     })
   );
 
-  app.delete('/api/rag/cache', generalApiRateLimit,
-    withErrorHandling('invalidate RAG cache', async (req, res) => {
-      const orgId = req.headers['x-org-id'] as string || 'default-org-id';
+  app.delete(
+    "/api/rag/cache",
+    generalApiRateLimit,
+    withErrorHandling("invalidate RAG cache", async (req, res) => {
+      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
       const { query } = req.query;
 
       const cache = getSemanticCache();
@@ -300,55 +321,59 @@ export function registerRagRoutes(
   // === STREAMING ENDPOINT ===
   // Uses orchestrator for tenant isolation and persistence
   // Uses streaming tokens for SSE authentication (EventSource can't send headers)
-  app.get('/api/rag/ask-stream', 
+  app.get(
+    "/api/rag/ask-stream",
     ragRateLimitMiddleware as any,
     async (req: Request, res: Response) => {
       const { auditLogger, sanitizer, tokenService, config } = getRagSecurityServices();
-      
+
       // Track client disconnect
       let isClientConnected = true;
-      req.on('close', () => {
+      req.on("close", () => {
         isClientConnected = false;
-        logger.info('[RAG Stream] Client disconnected');
+        logger.info("[RAG Stream] Client disconnected");
       });
 
       try {
         // Authenticate via streaming token (preferred) or session
         let orgId: string;
         let userId: string | undefined;
-        
+
         const streamingToken = req.query.token as string;
         if (streamingToken) {
           const tokenPayload = tokenService.validateToken(streamingToken);
           if (!tokenPayload) {
             auditLogger.logAuthFailure({
               ipAddress: req.ip,
-              userAgent: req.get('user-agent'),
-              reason: 'Invalid or expired streaming token',
+              userAgent: req.get("user-agent"),
+              reason: "Invalid or expired streaming token",
             });
-            res.status(401).json({ error: 'Invalid or expired streaming token' });
+            res.status(401).json({ error: "Invalid or expired streaming token" });
             return;
           }
           orgId = tokenPayload.orgId;
           userId = tokenPayload.userId;
-        } else if (config.auth.allowHeaderOrgId && process.env.NODE_ENV === 'development') {
-          orgId = (req.query.orgId as string) || 
-                        (req.headers['x-org-id'] as string) || 
-                        'default-org-id';
-          userId = (req.query.userId as string) ||
-                         (req.headers['x-user-id'] as string) || 
-                         undefined;
-          logger.warn('[RAG Stream] Using dev-mode auth fallback — NOT for production');
+        } else if (config.auth.allowHeaderOrgId && process.env.NODE_ENV === "development") {
+          orgId =
+            (req.query.orgId as string) || (req.headers["x-org-id"] as string) || "default-org-id";
+          userId =
+            (req.query.userId as string) || (req.headers["x-user-id"] as string) || undefined;
+          logger.warn("[RAG Stream] Using dev-mode auth fallback — NOT for production");
         } else {
-          res.status(401).json({ error: 'Streaming token required. Use POST /api/rag/security/streaming-token to obtain one.' });
+          res
+            .status(401)
+            .json({
+              error:
+                "Streaming token required. Use POST /api/rag/security/streaming-token to obtain one.",
+            });
           return;
         }
-        
+
         let query = req.query.query as string;
         const conversationId = req.query.conversationId as string | undefined;
 
         // Sanitize query
-        const sanitizeResult = sanitizer.sanitize(query || '');
+        const sanitizeResult = sanitizer.sanitize(query || "");
         if (sanitizeResult.blockedPatterns.length > 0) {
           auditLogger.logPromptInjectionAttempt({
             userId,
@@ -361,13 +386,13 @@ export function registerRagRoutes(
         query = sanitizeResult.sanitized;
 
         if (!query) {
-          res.status(400).json({ error: 'Query is required' });
+          res.status(400).json({ error: "Query is required" });
           return;
         }
 
         const apiKey = await getOpenAIApiKey();
         if (!apiKey) {
-          res.status(503).json({ error: 'OpenAI API key not configured' });
+          res.status(503).json({ error: "OpenAI API key not configured" });
           return;
         }
 
@@ -378,7 +403,7 @@ export function registerRagRoutes(
         // Use orchestrator for proper tenant-scoped search
         const orchestrator = getRagOrchestrator();
         const searchResults = await searchKnowledgeBase(query, orgId, 5, 0.5);
-        
+
         const relevantChunks = searchResults.map((r: any) => ({
           content: r.content,
           documentId: r.documentId,
@@ -398,58 +423,60 @@ export function registerRagRoutes(
         }
 
         // Set SSE headers
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.setHeader('X-Accel-Buffering', 'no');
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        res.setHeader("X-Accel-Buffering", "no");
         res.flushHeaders();
 
         // Accumulate full response for persistence
-        let fullResponse = '';
-        
+        let fullResponse = "";
+
         await streamingService.streamResponse(
           { query, relevantChunks, conversationHistory },
           res,
           async (chunk) => {
             // Check if client disconnected
             if (!isClientConnected) {
-              logger.warn('[RAG Stream] Skipping chunk - client disconnected');
+              logger.warn("[RAG Stream] Skipping chunk - client disconnected");
               return;
             }
 
             // Accumulate content for persistence
-            if (chunk.type === 'content' && chunk.content) {
+            if (chunk.type === "content" && chunk.content) {
               fullResponse += chunk.content;
             }
 
             // On completion, persist the full message if conversation exists
-            if (chunk.type === 'done' && conversationId && fullResponse) {
+            if (chunk.type === "done" && conversationId && fullResponse) {
               try {
                 const conversationService = getConversationService();
                 // Add user's query first
                 await conversationService.addMessage(conversationId, {
-                  role: 'user',
+                  role: "user",
                   content: query,
                 });
                 // Add full AI response
                 await conversationService.addMessage(conversationId, {
-                  role: 'assistant',
+                  role: "assistant",
                   content: fullResponse,
                 });
-                logger.info(`[RAG Stream] Persisted ${fullResponse.length} chars to conversation ${conversationId}`);
+                logger.info(
+                  `[RAG Stream] Persisted ${fullResponse.length} chars to conversation ${conversationId}`
+                );
               } catch (persistError) {
-                logger.warn('[RAG Stream] Failed to persist message:', persistError);
+                logger.warn("[RAG Stream] Failed to persist message:", persistError);
               }
             }
           }
         );
       } catch (error: any) {
-        logger.error('[RAG Stream] Error:', error);
+        logger.error("[RAG Stream] Error:", error);
         if (!res.headersSent) {
-          res.status(500).json({ error: error.message || 'Streaming failed' });
+          res.status(500).json({ error: error.message || "Streaming failed" });
         } else {
           // Send error event through SSE
-          res.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`);
+          res.write(`data: ${JSON.stringify({ type: "error", error: error.message })}\n\n`);
           res.end();
         }
       }
@@ -457,9 +484,11 @@ export function registerRagRoutes(
   );
 
   // === SUGGESTIONS ENDPOINT ===
-  app.get('/api/rag/suggestions', generalApiRateLimit,
-    withErrorHandling('get RAG suggestions', async (req, res) => {
-      const orgId = req.headers['x-org-id'] as string || 'default-org-id';
+  app.get(
+    "/api/rag/suggestions",
+    generalApiRateLimit,
+    withErrorHandling("get RAG suggestions", async (req, res) => {
+      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
       const conversationId = req.query.conversationId as string | undefined;
 
       const apiKey = await getOpenAIApiKey();
@@ -467,37 +496,42 @@ export function registerRagRoutes(
         await suggestionEngine.initialize(apiKey);
       }
 
-      const suggestions = await suggestionEngine.generateSuggestions({
-        documentTopics: ['marine maintenance', 'engine systems', 'safety procedures'],
-      }, 5);
+      const suggestions = await suggestionEngine.generateSuggestions(
+        {
+          documentTopics: ["marine maintenance", "engine systems", "safety procedures"],
+        },
+        5
+      );
 
       res.json({ success: true, suggestions });
     })
   );
 
   // === EXPORT ENDPOINT ===
-  app.get('/api/rag/conversations/:id/export', generalApiRateLimit,
-    withErrorHandling('export conversation', async (req, res) => {
+  app.get(
+    "/api/rag/conversations/:id/export",
+    generalApiRateLimit,
+    withErrorHandling("export conversation", async (req, res) => {
       const { id } = req.params;
-      const format = (req.query.format as 'pdf' | 'markdown') || 'markdown';
-      const includeCitations = req.query.includeCitations !== 'false';
-      const includeTimestamps = req.query.includeTimestamps !== 'false';
+      const format = (req.query.format as "pdf" | "markdown") || "markdown";
+      const includeCitations = req.query.includeCitations !== "false";
+      const includeTimestamps = req.query.includeTimestamps !== "false";
 
       const conversationService = getConversationService();
       const conversation = await conversationService.getConversation(id);
 
       if (!conversation) {
-        return res.status(404).json({ error: 'Conversation not found' });
+        return res.status(404).json({ error: "Conversation not found" });
       }
 
       const messages = await conversationService.getMessages(id, 1000);
 
       const exportData = {
         id: conversation.conversation.id,
-        title: conversation.conversation.title || 'Untitled Conversation',
+        title: conversation.conversation.title || "Untitled Conversation",
         createdAt: new Date(conversation.conversation.createdAt),
         messages: messages.map((m: any) => ({
-          role: m.role as 'user' | 'assistant',
+          role: m.role as "user" | "assistant",
           content: m.content,
           timestamp: new Date(m.createdAt),
           citations: m.citations,
@@ -510,16 +544,18 @@ export function registerRagRoutes(
         includeTimestamps,
       });
 
-      res.setHeader('Content-Type', result.mimeType);
-      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      res.setHeader("Content-Type", result.mimeType);
+      res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
       res.send(result.data);
     })
   );
 
   // === ANALYTICS ENDPOINT ===
-  app.get('/api/rag/analytics', generalApiRateLimit,
-    withErrorHandling('get RAG analytics', async (req, res) => {
-      const orgId = req.headers['x-org-id'] as string || 'default-org-id';
+  app.get(
+    "/api/rag/analytics",
+    generalApiRateLimit,
+    withErrorHandling("get RAG analytics", async (req, res) => {
+      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
 
       const analytics = await analyticsAggregator.getSummary(orgId);
 
@@ -534,14 +570,16 @@ export function registerRagRoutes(
     maxChunksPerDoc: z.number().optional(),
   });
 
-  app.post('/api/rag/compare', reportGenerationRateLimit,
-    withErrorHandling('compare documents', async (req, res) => {
-      const orgId = req.headers['x-org-id'] as string || 'default-org-id';
+  app.post(
+    "/api/rag/compare",
+    reportGenerationRateLimit,
+    withErrorHandling("compare documents", async (req, res) => {
+      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
       const parsed = comparisonSchema.parse(req.body);
 
       const apiKey = await getOpenAIApiKey();
       if (!apiKey) {
-        return res.status(503).json({ error: 'OpenAI API key not configured' });
+        return res.status(503).json({ error: "OpenAI API key not configured" });
       }
 
       if (!comparisonService.isInitialized()) {
@@ -555,10 +593,12 @@ export function registerRagRoutes(
   );
 
   // === CONFIDENCE ALERTS ENDPOINT ===
-  app.get('/api/rag/alerts', generalApiRateLimit,
-    withErrorHandling('get confidence alerts', async (req, res) => {
-      const orgId = req.headers['x-org-id'] as string || 'default-org-id';
-      const includeAcknowledged = req.query.includeAcknowledged === 'true';
+  app.get(
+    "/api/rag/alerts",
+    generalApiRateLimit,
+    withErrorHandling("get confidence alerts", async (req, res) => {
+      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+      const includeAcknowledged = req.query.includeAcknowledged === "true";
 
       const alerts = confidenceDetector.getAlerts(orgId, includeAcknowledged);
 
@@ -566,19 +606,23 @@ export function registerRagRoutes(
     })
   );
 
-  app.post('/api/rag/alerts/:alertId/acknowledge', generalApiRateLimit,
-    withErrorHandling('acknowledge alert', async (req, res) => {
+  app.post(
+    "/api/rag/alerts/:alertId/acknowledge",
+    generalApiRateLimit,
+    withErrorHandling("acknowledge alert", async (req, res) => {
       const { alertId } = req.params;
 
       const acknowledged = confidenceDetector.acknowledgeAlert(alertId);
 
       if (!acknowledged) {
-        return res.status(404).json({ error: 'Alert not found' });
+        return res.status(404).json({ error: "Alert not found" });
       }
 
       res.json({ success: true });
     })
   );
 
-  logger.info('[RAG Routes] Registered (ask, ask-stream, conversations, feedback, cache, suggestions, export, analytics, compare, alerts)');
+  logger.info(
+    "[RAG Routes] Registered (ask, ask-stream, conversations, feedback, cache, suggestions, export, analytics, compare, alerts)"
+  );
 }

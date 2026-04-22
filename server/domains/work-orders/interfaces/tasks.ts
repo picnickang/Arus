@@ -8,14 +8,21 @@ import type { Express, Request, Response } from "express";
 import { workOrderAppService as workOrderService } from "../application";
 import { requireOrgId, AuthenticatedRequest } from "../../../middleware/auth";
 import { createTaskSchema, updateTaskSchema } from "./schemas";
-import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../../lib/route-utils";
+import {
+  withErrorHandling,
+  sendNotFound,
+  sendCreated,
+  sendDeleted,
+} from "../../../lib/route-utils";
 import { validateBody, sendValidationError } from "../../../lib/api-helpers";
 import type { RateLimitMiddleware } from "./types";
 
 export function registerTasksRoutes(app: Express, rateLimit: RateLimitMiddleware) {
   const { writeOperationRateLimit } = rateLimit;
 
-  app.get("/api/work-orders/:id/tasks", requireOrgId,
+  app.get(
+    "/api/work-orders/:id/tasks",
+    requireOrgId,
     withErrorHandling("fetch work order tasks", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const tasks = await workOrderService.getWorkOrderTasks(req.params.id, orgId);
@@ -23,7 +30,10 @@ export function registerTasksRoutes(app: Express, rateLimit: RateLimitMiddleware
     })
   );
 
-  app.post("/api/work-orders/:id/tasks", requireOrgId, writeOperationRateLimit,
+  app.post(
+    "/api/work-orders/:id/tasks",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("create work order task", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const workOrderId = req.params.id;
@@ -51,7 +61,10 @@ export function registerTasksRoutes(app: Express, rateLimit: RateLimitMiddleware
     })
   );
 
-  app.patch("/api/work-orders/:id/tasks/:taskId", requireOrgId, writeOperationRateLimit,
+  app.patch(
+    "/api/work-orders/:id/tasks/:taskId",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("update work order task", async (req: Request, res: Response) => {
       const { taskId } = req.params;
 
@@ -63,7 +76,9 @@ export function registerTasksRoutes(app: Express, rateLimit: RateLimitMiddleware
       const validatedData = validation.data;
       const updateData: Record<string, any> = {};
 
-      if (validatedData.description !== undefined) { updateData.description = validatedData.description; }
+      if (validatedData.description !== undefined) {
+        updateData.description = validatedData.description;
+      }
       if (validatedData.isCompleted !== undefined) {
         updateData.isCompleted = validatedData.isCompleted;
         if (validatedData.isCompleted) {
@@ -77,14 +92,19 @@ export function registerTasksRoutes(app: Express, rateLimit: RateLimitMiddleware
         }
       }
 
-      if (validatedData.sortOrder !== undefined) { updateData.sortOrder = validatedData.sortOrder; }
+      if (validatedData.sortOrder !== undefined) {
+        updateData.sortOrder = validatedData.sortOrder;
+      }
 
       const task = await workOrderService.updateWorkOrderTask(taskId, updateData);
       res.json(task);
     })
   );
 
-  app.delete("/api/work-orders/:id/tasks/:taskId", requireOrgId, writeOperationRateLimit,
+  app.delete(
+    "/api/work-orders/:id/tasks/:taskId",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("delete work order task", async (req: Request, res: Response) => {
       const { taskId } = req.params;
       await workOrderService.deleteWorkOrderTask(taskId);

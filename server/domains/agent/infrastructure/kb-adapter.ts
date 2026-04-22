@@ -1,9 +1,6 @@
 import { db } from "../../../db";
 import { eq, count } from "drizzle-orm";
-import type {
-  KnowledgeBasePort,
-  KnowledgeBaseCitation,
-} from "../domain/ports";
+import type { KnowledgeBasePort, KnowledgeBaseCitation } from "../domain/ports";
 
 export function createKnowledgeBaseAdapter(): KnowledgeBasePort {
   return {
@@ -81,7 +78,10 @@ export function createKnowledgeBaseAdapter(): KnowledgeBasePort {
           status: d.status,
         }));
       } catch (err) {
-        console.warn("[KBAdapter] listDocuments failed:", err instanceof Error ? err.message : "unknown");
+        console.warn(
+          "[KBAdapter] listDocuments failed:",
+          err instanceof Error ? err.message : "unknown"
+        );
         return [];
       }
     },
@@ -106,7 +106,10 @@ export function createKnowledgeBaseAdapter(): KnowledgeBasePort {
           totalChunks: chunkCount?.total ?? 0,
         };
       } catch (err) {
-        console.warn("[KBAdapter] getStats failed:", err instanceof Error ? err.message : "unknown");
+        console.warn(
+          "[KBAdapter] getStats failed:",
+          err instanceof Error ? err.message : "unknown"
+        );
         return { totalDocs: 0, totalChunks: 0 };
       }
     },
@@ -114,7 +117,16 @@ export function createKnowledgeBaseAdapter(): KnowledgeBasePort {
     async ingestDocument(orgId, fileName, fileBuffer, fileType, uploadedBy) {
       const { ingestDocument } = await import("../../../services/document-ingestion");
       type SupportedFileType = "pdf" | "png" | "jpg" | "jpeg" | "docx" | "xlsx" | "txt" | "md";
-      const supportedTypes: SupportedFileType[] = ["pdf", "png", "jpg", "jpeg", "docx", "xlsx", "txt", "md"];
+      const supportedTypes: SupportedFileType[] = [
+        "pdf",
+        "png",
+        "jpg",
+        "jpeg",
+        "docx",
+        "xlsx",
+        "txt",
+        "md",
+      ];
       const normalizedType = fileType.toLowerCase().replace(/^\./, "");
 
       function isSupportedFileType(t: string): t is SupportedFileType {
@@ -125,13 +137,16 @@ export function createKnowledgeBaseAdapter(): KnowledgeBasePort {
         throw new Error(`Unsupported file type for KB ingestion: ${fileType}`);
       }
 
-      const result = await ingestDocument({
-        orgId,
-        fileName,
-        fileBuffer,
-        fileType: normalizedType,
-        uploadedBy,
-      }, { skipValidation: false });
+      const result = await ingestDocument(
+        {
+          orgId,
+          fileName,
+          fileBuffer,
+          fileType: normalizedType,
+          uploadedBy,
+        },
+        { skipValidation: false }
+      );
 
       return {
         docId: result.docId,

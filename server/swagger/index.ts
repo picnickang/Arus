@@ -1,8 +1,8 @@
 /**
  * Swagger Module - Aggregator
- * 
+ *
  * Re-exports all swagger modules for convenient imports.
- * 
+ *
  * Module structure (1,050 lines → 12 modules):
  * - spec-info.ts (~70 lines): Info, servers, tags
  * - schemas.ts (~190 lines): Component schemas
@@ -28,6 +28,13 @@ export { vesselsPaths } from "./paths-vessels.js";
 export { telemetryPaths } from "./paths-telemetry.js";
 export { pdmPaths } from "./paths-pdm.js";
 export { workOrdersPaths } from "./paths-workorders.js";
-export { partsPaths, mlPaths, analyticsPaths, syncPaths, organizationsPaths, adminPaths } from "./paths-misc.js";
+export {
+  partsPaths,
+  mlPaths,
+  analyticsPaths,
+  syncPaths,
+  organizationsPaths,
+  adminPaths,
+} from "./paths-misc.js";
 export { generateSwaggerUI } from "./ui-generator.js";
 export { openApiSpec, registerSwaggerRoutes } from "./swagger.js";

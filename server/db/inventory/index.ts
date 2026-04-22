@@ -17,8 +17,25 @@
 import { randomUUID } from "node:crypto";
 import { eq, and, or, ilike, sql, desc, asc, type SQL } from "drizzle-orm";
 import { db, type DbTransaction } from "../../db-config";
-import { workOrderParts, workOrderHistory, inventoryMovements, workOrders, stock } from "@shared/schema-runtime";
-import type { WorkOrderParts, WorkOrderHistory, InsertWorkOrderHistory, InventoryMovement, PartsInventory, Part, Stock, InsertStock, InsertSupplier, InsertPartSubstitution } from "@shared/schema";
+import {
+  workOrderParts,
+  workOrderHistory,
+  inventoryMovements,
+  workOrders,
+  stock,
+} from "@shared/schema-runtime";
+import type {
+  WorkOrderParts,
+  WorkOrderHistory,
+  InsertWorkOrderHistory,
+  InventoryMovement,
+  PartsInventory,
+  Part,
+  Stock,
+  InsertStock,
+  InsertSupplier,
+  InsertPartSubstitution,
+} from "@shared/schema";
 import { DbPartsStorage } from "./db-parts.js";
 import { DbStockStorage } from "./db-stock.js";
 
@@ -45,7 +62,9 @@ async function allocateReservation(
     .from(stock)
     .where(and(eq(stock.partId, partId), eq(stock.orgId, orgId)))
     .orderBy(sql`(${stock.quantityOnHand} - ${stock.quantityReserved}) DESC`);
-  if (allStock.length === 0) {throw new Error(`Part ${partId} not found in stock`);}
+  if (allStock.length === 0) {
+    throw new Error(`Part ${partId} not found in stock`);
+  }
   const totalAvailable = allStock.reduce(
     (s: number, r: Stock) => s + Math.max(0, (r.quantityOnHand ?? 0) - (r.quantityReserved ?? 0)),
     0
@@ -55,10 +74,13 @@ async function allocateReservation(
       `Insufficient stock for part ${partId}: available=${totalAvailable}, requested=${quantity}`
     );
   }
-  const allocated: { stockId: string; reserved: number; onHand: number; prevReserved: number }[] = [];
+  const allocated: { stockId: string; reserved: number; onHand: number; prevReserved: number }[] =
+    [];
   let remaining = quantity;
   for (const row of allStock) {
-    if (remaining <= 0) {break;}
+    if (remaining <= 0) {
+      break;
+    }
     const avail = Math.max(0, (row.quantityOnHand ?? 0) - (row.quantityReserved ?? 0));
     const toReserve = Math.min(remaining, avail);
     if (toReserve > 0) {
@@ -93,17 +115,16 @@ async function distributeRelease(
     .select()
     .from(stock)
     .where(
-      and(
-        eq(stock.partId, partId),
-        eq(stock.orgId, orgId),
-        sql`${stock.quantityReserved} > 0`
-      )
+      and(eq(stock.partId, partId), eq(stock.orgId, orgId), sql`${stock.quantityReserved} > 0`)
     )
     .orderBy(sql`${stock.quantityReserved} DESC`);
-  const released: { stockId: string; released: number; onHand: number; prevReserved: number }[] = [];
+  const released: { stockId: string; released: number; onHand: number; prevReserved: number }[] =
+    [];
   let remaining = quantity;
   for (const row of allStock) {
-    if (remaining <= 0) {break;}
+    if (remaining <= 0) {
+      break;
+    }
     const reserved = row.quantityReserved ?? 0;
     const toRelease = Math.min(remaining, reserved);
     if (toRelease > 0) {
@@ -218,14 +239,20 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     const { partAndStockToPartsInventory } = await import("./db-parts.js");
     const { parts: partsTable } = await import("@shared/schema-runtime");
     const conditions: SQL<unknown>[] = [];
-    if (orgId) {conditions.push(eq(partsTable.orgId, orgId));}
-    if (opts?.category) {conditions.push(eq(partsTable.category, opts.category));}
+    if (orgId) {
+      conditions.push(eq(partsTable.orgId, orgId));
+    }
+    if (opts?.category) {
+      conditions.push(eq(partsTable.category, opts.category));
+    }
     if (opts?.search) {
       const searchCond = or(
         ilike(partsTable.name, `%${opts.search}%`),
         ilike(partsTable.partNo, `%${opts.search}%`)
       );
-      if (searchCond) {conditions.push(searchCond);}
+      if (searchCond) {
+        conditions.push(searchCond);
+      }
     }
     const orderCol =
       opts?.sortBy === "partName"
@@ -236,13 +263,21 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     const orderFn = opts?.sortOrder === "desc" ? desc(orderCol) : asc(orderCol);
 
     let partsQuery = db.select().from(partsTable);
-    if (conditions.length > 0) {partsQuery = partsQuery.where(and(...conditions)) as typeof partsQuery;}
+    if (conditions.length > 0) {
+      partsQuery = partsQuery.where(and(...conditions)) as typeof partsQuery;
+    }
     let orderedParts = partsQuery.orderBy(orderFn);
-    if (opts?.limit) {orderedParts = orderedParts.limit(opts.limit) as typeof orderedParts;}
-    if (opts?.offset) {orderedParts = orderedParts.offset(opts.offset) as typeof orderedParts;}
+    if (opts?.limit) {
+      orderedParts = orderedParts.limit(opts.limit) as typeof orderedParts;
+    }
+    if (opts?.offset) {
+      orderedParts = orderedParts.offset(opts.offset) as typeof orderedParts;
+    }
     const partRows = await orderedParts;
 
-    if (partRows.length === 0) {return [];}
+    if (partRows.length === 0) {
+      return [];
+    }
 
     const partIds = partRows.map((p: Part) => p.id);
     const partIdsArray = sql`ARRAY[${sql.join(
@@ -280,7 +315,9 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     const { limit = 25, offset = 0, search, category, stockStatus, sortBy, sortOrder } = options;
 
     const stockStatusFilter = (item: PartsInventory): boolean => {
-      if (!stockStatus || stockStatus === "all") {return true;}
+      if (!stockStatus || stockStatus === "all") {
+        return true;
+      }
       const onHand = item.quantityOnHand || 0;
       const min = item.minStockLevel || 1;
       const max = item.maxStockLevel || 100;
@@ -321,13 +358,17 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     });
     const { parts: partsTable } = await import("@shared/schema-runtime");
     const pConditions: SQL<unknown>[] = [eq(partsTable.orgId, orgId)];
-    if (category) {pConditions.push(eq(partsTable.category, category));}
+    if (category) {
+      pConditions.push(eq(partsTable.category, category));
+    }
     if (search) {
       const searchCond = or(
         ilike(partsTable.name, `%${search}%`),
         ilike(partsTable.partNo, `%${search}%`)
       );
-      if (searchCond) {pConditions.push(searchCond);}
+      if (searchCond) {
+        pConditions.push(searchCond);
+      }
     }
     const [countResult] = await db
       .select({ count: sql<number>`count(*)` })
@@ -347,7 +388,9 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       .from(partsTable)
       .leftJoin(stock, eq(partsTable.id, stock.partId))
       .where(conditions);
-    if (rows.length === 0) {return undefined;}
+    if (rows.length === 0) {
+      return undefined;
+    }
     const stockRows = rows.map((r) => r.stock).filter((s): s is Stock => s !== null);
     return partAndStockToPartsInventory(rows[0].parts, stockRows);
   }
@@ -366,15 +409,22 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       .from(stock)
       .where(conditions)
       .orderBy(sql`(${stock.quantityOnHand} - ${stock.quantityReserved}) DESC`);
-    if (allStock.length === 0) {throw new Error(`Part ${partId} not found in stock`);}
+    if (allStock.length === 0) {
+      throw new Error(`Part ${partId} not found in stock`);
+    }
     const totalAvailable = allStock.reduce(
-      (sum: number, s: Stock) => sum + Math.max(0, (s.quantityOnHand ?? 0) - (s.quantityReserved ?? 0)),
+      (sum: number, s: Stock) =>
+        sum + Math.max(0, (s.quantityOnHand ?? 0) - (s.quantityReserved ?? 0)),
       0
     );
-    if (totalAvailable < quantity) {throw new Error(`Insufficient stock for part ${partId}`);}
+    if (totalAvailable < quantity) {
+      throw new Error(`Insufficient stock for part ${partId}`);
+    }
     let remaining = quantity;
     for (const row of allStock) {
-      if (remaining <= 0) {break;}
+      if (remaining <= 0) {
+        break;
+      }
       const rowAvailable = Math.max(0, (row.quantityOnHand ?? 0) - (row.quantityReserved ?? 0));
       const toReserve = Math.min(remaining, rowAvailable);
       if (toReserve > 0) {
@@ -389,7 +439,9 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       }
     }
     const result = await this.getPartById(partId, orgId);
-    if (!result) {throw new Error(`Part ${partId} not found`);}
+    if (!result) {
+      throw new Error(`Part ${partId} not found`);
+    }
     return result;
   }
 
@@ -402,7 +454,9 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       ? and(eq(stock.partId, partId), eq(stock.orgId, orgId))
       : eq(stock.partId, partId);
     const allStock = await db.select().from(stock).where(conditions);
-    if (allStock.length === 0) {return { available: false, onHand: 0, reserved: 0 };}
+    if (allStock.length === 0) {
+      return { available: false, onHand: 0, reserved: 0 };
+    }
     const onHand = allStock.reduce((sum: number, s: Stock) => sum + (s.quantityOnHand ?? 0), 0);
     const reserved = allStock.reduce((sum: number, s: Stock) => sum + (s.quantityReserved ?? 0), 0);
     return { available: onHand - reserved >= quantity, onHand, reserved };
@@ -411,7 +465,9 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
   async syncStockCostFromPart(partId: string): Promise<void> {
     const { parts: partsTable } = await import("@shared/schema-runtime");
     const [part] = await db.select().from(partsTable).where(eq(partsTable.id, partId));
-    if (!part) {return;}
+    if (!part) {
+      return;
+    }
     await db
       .update(stock)
       .set({ unitCost: part.standardCost, updatedAt: new Date() })
@@ -431,16 +487,23 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     reserved?: number,
     orgId?: string
   ): Promise<Stock> {
-    const updates: Partial<{ quantityOnHand: number; quantityReserved: number; updatedAt: Date }> = {
-      updatedAt: new Date(),
-    };
-    if (onHand !== undefined) {updates.quantityOnHand = onHand;}
-    if (reserved !== undefined) {updates.quantityReserved = reserved;}
+    const updates: Partial<{ quantityOnHand: number; quantityReserved: number; updatedAt: Date }> =
+      {
+        updatedAt: new Date(),
+      };
+    if (onHand !== undefined) {
+      updates.quantityOnHand = onHand;
+    }
+    if (reserved !== undefined) {
+      updates.quantityReserved = reserved;
+    }
     const conditions = orgId
       ? and(eq(stock.id, stockId), eq(stock.orgId, orgId))
       : eq(stock.id, stockId);
     const [updated] = await db.update(stock).set(updates).where(conditions).returning();
-    if (!updated) {throw new Error(`Stock ${stockId} not found`);}
+    if (!updated) {
+      throw new Error(`Stock ${stockId} not found`);
+    }
     return updated;
   }
 
@@ -449,7 +512,9 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     partsToAdd: Array<{ partId: string; quantity: number; usedBy: string; notes?: string }>,
     orgId: string
   ): Promise<{ added: WorkOrderParts[]; updated: WorkOrderParts[]; errors: string[] }> {
-    if (!orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     const result = {
       added: [] as WorkOrderParts[],
       updated: [] as WorkOrderParts[],
@@ -460,9 +525,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       const existingParts = await tx
         .select()
         .from(workOrderParts)
-        .where(
-          and(eq(workOrderParts.workOrderId, workOrderId), eq(workOrderParts.orgId, orgId))
-        );
+        .where(and(eq(workOrderParts.workOrderId, workOrderId), eq(workOrderParts.orgId, orgId)));
       const existingMap = new Map<string, WorkOrderParts>(
         existingParts.map((p: WorkOrderParts) => [p.partId, p] as [string, WorkOrderParts])
       );
@@ -491,9 +554,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                   : existing.notes,
                 updatedAt: new Date(),
               })
-              .where(
-                and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId))
-              )
+              .where(and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId)))
               .returning();
             result.updated.push(updated);
             existingMap.set(partToAdd.partId, updated);
@@ -529,15 +590,15 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
   }
 
   async reservePartsForWorkOrder(workOrderId: string, orgId: string): Promise<void> {
-    if (!orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
 
     await db.transaction(async (tx) => {
       const woParts = await tx
         .select()
         .from(workOrderParts)
-        .where(
-          and(eq(workOrderParts.workOrderId, workOrderId), eq(workOrderParts.orgId, orgId))
-        );
+        .where(and(eq(workOrderParts.workOrderId, workOrderId), eq(workOrderParts.orgId, orgId)));
 
       const partQuantities = new Map<string, number>();
       for (const woPart of woParts) {
@@ -576,7 +637,9 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     partsToAdd: Array<{ partId: string; quantity: number; usedBy: string; notes?: string }>,
     orgId: string
   ): Promise<{ added: WorkOrderParts[]; updated: WorkOrderParts[]; errors: string[] }> {
-    if (!orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     const result = {
       added: [] as WorkOrderParts[],
       updated: [] as WorkOrderParts[],
@@ -587,9 +650,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       const existingParts = await tx
         .select()
         .from(workOrderParts)
-        .where(
-          and(eq(workOrderParts.workOrderId, workOrderId), eq(workOrderParts.orgId, orgId))
-        );
+        .where(and(eq(workOrderParts.workOrderId, workOrderId), eq(workOrderParts.orgId, orgId)));
       const existingMap = new Map<string, WorkOrderParts>(
         existingParts.map((p: WorkOrderParts) => [p.partId, p] as [string, WorkOrderParts])
       );
@@ -618,9 +679,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                   : existing.notes,
                 updatedAt: new Date(),
               })
-              .where(
-                and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId))
-              )
+              .where(and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId)))
               .returning();
             result.updated.push(updated);
             existingMap.set(partToAdd.partId, updated);
@@ -655,9 +714,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
         const allWoParts = await tx
           .select()
           .from(workOrderParts)
-          .where(
-            and(eq(workOrderParts.workOrderId, workOrderId), eq(workOrderParts.orgId, orgId))
-          );
+          .where(and(eq(workOrderParts.workOrderId, workOrderId), eq(workOrderParts.orgId, orgId)));
 
         const partQuantities = new Map<string, number>();
         for (const woPart of allWoParts) {
@@ -694,15 +751,15 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
   }
 
   async releasePartsFromWorkOrder(workOrderId: string, orgId: string): Promise<void> {
-    if (!orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
 
     await db.transaction(async (tx) => {
       const woParts = await tx
         .select()
         .from(workOrderParts)
-        .where(
-          and(eq(workOrderParts.workOrderId, workOrderId), eq(workOrderParts.orgId, orgId))
-        );
+        .where(and(eq(workOrderParts.workOrderId, workOrderId), eq(workOrderParts.orgId, orgId)));
 
       const partQuantities = new Map<string, number>();
       for (const woPart of woParts) {
@@ -736,13 +793,13 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
   }
 
   async getWorkOrderHistory(workOrderId: string, orgId: string): Promise<WorkOrderHistory[]> {
-    if (!orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     return db
       .select()
       .from(workOrderHistory)
-      .where(
-        and(eq(workOrderHistory.workOrderId, workOrderId), eq(workOrderHistory.orgId, orgId))
-      )
+      .where(and(eq(workOrderHistory.workOrderId, workOrderId), eq(workOrderHistory.orgId, orgId)))
       .orderBy(desc(workOrderHistory.createdAt));
   }
 
@@ -758,15 +815,14 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     workOrderId: string,
     orgId: string
   ): Promise<InventoryMovement[]> {
-    if (!orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     return db
       .select()
       .from(inventoryMovements)
       .where(
-        and(
-          eq(inventoryMovements.workOrderId, workOrderId),
-          eq(inventoryMovements.orgId, orgId)
-        )
+        and(eq(inventoryMovements.workOrderId, workOrderId), eq(inventoryMovements.orgId, orgId))
       )
       .orderBy(desc(inventoryMovements.createdAt));
   }
@@ -775,7 +831,9 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     orgId: string,
     equipmentId: string
   ): Promise<WorkOrderParts[]> {
-    if (!orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     const result = await db
       .select({ workOrderParts })
       .from(workOrderParts)
@@ -785,7 +843,9 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
   }
 
   async getWorkOrderPartsByPartId(orgId: string, partId: string): Promise<WorkOrderParts[]> {
-    if (!orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     return db
       .select()
       .from(workOrderParts)
@@ -804,15 +864,17 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     orgId: string,
     performedBy: string
   ): Promise<void> {
-    if (!orgId) {throw new Error("orgId is required for tenant isolation");}
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
     await db.transaction(async (tx) => {
       const [woPart] = await tx
         .select()
         .from(workOrderParts)
-        .where(
-          and(eq(workOrderParts.id, workOrderPartId), eq(workOrderParts.orgId, orgId))
-        );
-      if (!woPart) {throw new Error(`Work order part ${workOrderPartId} not found`);}
+        .where(and(eq(workOrderParts.id, workOrderPartId), eq(workOrderParts.orgId, orgId)));
+      if (!woPart) {
+        throw new Error(`Work order part ${workOrderPartId} not found`);
+      }
 
       const { rows } = await distributeRelease(tx, woPart.partId, orgId, woPart.quantityUsed ?? 0);
       for (const rel of rows) {
@@ -835,25 +897,18 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
 
       await tx
         .delete(workOrderParts)
-        .where(
-          and(eq(workOrderParts.id, workOrderPartId), eq(workOrderParts.orgId, orgId))
-        );
+        .where(and(eq(workOrderParts.id, workOrderPartId), eq(workOrderParts.orgId, orgId)));
 
       const [wo] = await tx
         .select()
         .from(workOrders)
-        .where(
-          and(eq(workOrders.id, woPart.workOrderId), eq(workOrders.orgId, orgId))
-        );
+        .where(and(eq(workOrders.id, woPart.workOrderId), eq(workOrders.orgId, orgId)));
       if (wo) {
         const remainingParts = await tx
           .select()
           .from(workOrderParts)
           .where(
-            and(
-              eq(workOrderParts.workOrderId, woPart.workOrderId),
-              eq(workOrderParts.orgId, orgId)
-            )
+            and(eq(workOrderParts.workOrderId, woPart.workOrderId), eq(workOrderParts.orgId, orgId))
           );
         const totalPartsCost = remainingParts.reduce(
           (sum: number, p: WorkOrderParts) => sum + (p.totalCost || 0),
@@ -866,9 +921,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
             totalCost: totalPartsCost + (wo.totalLaborCost || 0),
             updatedAt: new Date(),
           })
-          .where(
-            and(eq(workOrders.id, woPart.workOrderId), eq(workOrders.orgId, orgId))
-          );
+          .where(and(eq(workOrders.id, woPart.workOrderId), eq(workOrders.orgId, orgId)));
       }
     });
   }

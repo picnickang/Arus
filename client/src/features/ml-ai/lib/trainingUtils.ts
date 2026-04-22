@@ -55,7 +55,10 @@ export interface RandomForestConfig {
   bootstrapSampleRatio: number;
 }
 
-export function createDefaultLstmConfig(epochs: number = 50, sequenceLength: number = 10): LstmConfig {
+export function createDefaultLstmConfig(
+  epochs: number = 50,
+  sequenceLength: number = 10
+): LstmConfig {
   return {
     sequenceLength,
     featureCount: 0,
@@ -86,25 +89,37 @@ export const DATA_QUALITY_TIERS = [
 
 export function getTierIcon(tier: string): string {
   switch (tier) {
-    case "bronze": return "🥉";
-    case "silver": return "🥈";
-    case "gold": return "🥇";
-    case "platinum": return "💎";
-    default: return "📊";
+    case "bronze":
+      return "🥉";
+    case "silver":
+      return "🥈";
+    case "gold":
+      return "🥇";
+    case "platinum":
+      return "💎";
+    default:
+      return "📊";
   }
 }
 
 export function getTierColor(tier: string): string {
   switch (tier) {
-    case "bronze": return "text-amber-700 dark:text-amber-400";
-    case "silver": return "text-gray-500 dark:text-gray-400";
-    case "gold": return "text-yellow-600 dark:text-yellow-400";
-    case "platinum": return "text-cyan-600 dark:text-cyan-400";
-    default: return "text-gray-600 dark:text-gray-400";
+    case "bronze":
+      return "text-amber-700 dark:text-amber-400";
+    case "silver":
+      return "text-gray-500 dark:text-gray-400";
+    case "gold":
+      return "text-yellow-600 dark:text-yellow-400";
+    case "platinum":
+      return "text-cyan-600 dark:text-cyan-400";
+    default:
+      return "text-gray-600 dark:text-gray-400";
   }
 }
 
-export function getModelStatusBadgeVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
+export function getModelStatusBadgeVariant(
+  status: string
+): "default" | "secondary" | "destructive" | "outline" {
   switch (status) {
     case "deployed":
     case "active":
@@ -120,7 +135,9 @@ export function getModelStatusBadgeVariant(status: string): "default" | "seconda
 }
 
 export function formatModelAccuracy(accuracy: number | undefined): string {
-  if (accuracy === undefined) {return "N/A";}
+  if (accuracy === undefined) {
+    return "N/A";
+  }
   return `${(accuracy * 100).toFixed(1)}%`;
 }
 
@@ -133,7 +150,10 @@ export function parseAcousticData(input: string): number[] {
 
 export function validateAcousticData(data: number[]): { valid: boolean; error?: string } {
   if (data.length === 0) {
-    return { valid: false, error: "Invalid acoustic data. Please provide comma-separated numbers." };
+    return {
+      valid: false,
+      error: "Invalid acoustic data. Please provide comma-separated numbers.",
+    };
   }
   return { valid: true };
 }

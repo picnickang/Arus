@@ -70,30 +70,66 @@ const RENAMES = [
 // can audit each call site individually.
 const MANUAL_RENAMES = [
   // RED — semantic changes that silently alter business logic:
-  ["preventiveSavings", "predictiveSavings", "RED: distinct cost categories — would alter financial reports"],
+  [
+    "preventiveSavings",
+    "predictiveSavings",
+    "RED: distinct cost categories — would alter financial reports",
+  ],
   ["estimatedCost", "estimatedHours", "RED: cost (money) vs hours (duration) — different units"],
   ["metricDate", "metricType", "RED: date value vs enum type — breaks date arithmetic"],
   ["detectedValue", "expectedValue", "RED: opposite meanings — breaks anomaly/deviation logic"],
-  ["foConsumptionMt", "consumptionMt", "RED: FO-specific data merged — fuel-type traceability lost"],
-  ["doConsumptionMt", "consumptionMt", "RED: DO-specific data merged — fuel-type traceability lost"],
+  [
+    "foConsumptionMt",
+    "consumptionMt",
+    "RED: FO-specific data merged — fuel-type traceability lost",
+  ],
+  [
+    "doConsumptionMt",
+    "consumptionMt",
+    "RED: DO-specific data merged — fuel-type traceability lost",
+  ],
   // YELLOW — boolean → timestamp semantic shift:
-  ["acknowledged", "acknowledgedAt", "YELLOW: boolean→timestamp; breaks `if (alert.acknowledged)` checks"],
+  [
+    "acknowledged",
+    "acknowledgedAt",
+    "YELLOW: boolean→timestamp; breaks `if (alert.acknowledged)` checks",
+  ],
   ["resolved", "resolvedAt", "YELLOW: boolean→timestamp; breaks `if (insight.resolved)` checks"],
   // YELLOW — too-generic names that risk clobbering unrelated code:
   ["completedJobs", "completed", "YELLOW: `.completed` is a common name across the codebase"],
   ["kpis", "kpi", "YELLOW: plural array → singular object; `.kpis[0]` breaks"],
   ["resourceId", "resourceCode", "YELLOW: id (UUID) vs code (string) often coexist on same table"],
   // Original manual list (verbatim):
-  ["quantityUsed", "quantity", "work_order_parts.quantityUsed vs work_order_parts.quantity — verify which schema"],
+  [
+    "quantityUsed",
+    "quantity",
+    "work_order_parts.quantityUsed vs work_order_parts.quantity — verify which schema",
+  ],
   ["quantityRequired", "quantityUsed", "only some call sites — verify per usage"],
-  ["completedByName", "completedBy", "schema now has BOTH columns — remove only when truly redundant"],
+  [
+    "completedByName",
+    "completedBy",
+    "schema now has BOTH columns — remove only when truly redundant",
+  ],
   ["uploadedAt", "uploadedBy", "semantic change (timestamp → user) — review every call site"],
-  ["soxEmissionsKg", "sox_emissionsMt", "unit change (kg → metric tons) — conversion factor needed"],
-  ["noxEmissionsKg", "nox_emissionsMt", "unit change (kg → metric tons) — conversion factor needed"],
+  [
+    "soxEmissionsKg",
+    "sox_emissionsMt",
+    "unit change (kg → metric tons) — conversion factor needed",
+  ],
+  [
+    "noxEmissionsKg",
+    "nox_emissionsMt",
+    "unit change (kg → metric tons) — conversion factor needed",
+  ],
   ["getPartSubstitutions", "suggestPartSubstitutions", "different return type — check each caller"],
   ["setCrewSkill", "getCrewSkills", "setter → getter (looks wrong) — TS hint may be misleading"],
   ["deleteCrewSkill", "getCrewSkills", "destructive → read-only — TS hint may be misleading"],
-  ["deleteInventoryItem", "createInventoryItem", "delete → create — TS hint misleading, real fix unknown"],
+  [
+    "deleteInventoryItem",
+    "createInventoryItem",
+    "delete → create — TS hint misleading, real fix unknown",
+  ],
   ["vessel", "vesselId", "bare identifier — too risky to automate"],
   ["shift", "shiftId", "bare identifier — too risky to automate"],
   ["roles", "role", "singularization of 'roles' local var is a bug — review each site"],

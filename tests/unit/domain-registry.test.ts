@@ -90,8 +90,15 @@ describe("Domain Router Registry", () => {
 
   it("core domains are registered", () => {
     const requiredDomains = [
-      "WorkOrder", "Equipment", "Maintenance", "Crew", "Telemetry",
-      "Alerts", "Compliance", "Permissions", "SystemAdmin",
+      "WorkOrder",
+      "Equipment",
+      "Maintenance",
+      "Crew",
+      "Telemetry",
+      "Alerts",
+      "Compliance",
+      "Permissions",
+      "SystemAdmin",
     ];
     for (const domain of requiredDomains) {
       expect(registrySource).toContain(`name: "${domain}"`);
@@ -100,8 +107,12 @@ describe("Domain Router Registry", () => {
 
   it("PdM platform domains are registered", () => {
     const pdmDomains = [
-      "PdmDashboard", "PdmFeatureStore", "PdmModelRegistry",
-      "PdmInference", "PdmMonitoring", "TrainingPipeline",
+      "PdmDashboard",
+      "PdmFeatureStore",
+      "PdmModelRegistry",
+      "PdmInference",
+      "PdmMonitoring",
+      "TrainingPipeline",
     ];
     for (const domain of pdmDomains) {
       expect(registrySource).toContain(`name: "${domain}"`);
@@ -110,7 +121,11 @@ describe("Domain Router Registry", () => {
 
   it("Digital Twin domains are registered", () => {
     const twinDomains = [
-      "TwinDefinition", "TwinState", "ResidualAnalysis", "ScenarioSim", "Replay",
+      "TwinDefinition",
+      "TwinState",
+      "ResidualAnalysis",
+      "ScenarioSim",
+      "Replay",
     ];
     for (const domain of twinDomains) {
       expect(registrySource).toContain(`name: "${domain}"`);

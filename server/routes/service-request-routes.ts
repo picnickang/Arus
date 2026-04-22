@@ -10,12 +10,14 @@ import { createServiceOrderFromWorkOrder } from "./wo-so-bridge-routes";
 
 function getOrgId(req: Request): string {
   const orgId = (req as any).orgId || req.headers["x-org-id"];
-  if (!orgId) {throw new Error("Missing orgId");}
+  if (!orgId) {
+    throw new Error("Missing orgId");
+  }
   return orgId as string;
 }
 
 function getUserId(req: Request): string {
-  return (req as any).user?.id || req.headers["x-user-id"] as string || "system";
+  return (req as any).user?.id || (req.headers["x-user-id"] as string) || "system";
 }
 
 export function registerServiceRequestRoutes(
@@ -105,7 +107,9 @@ export function registerServiceRequestRoutes(
     generalApiRateLimit,
     withErrorHandling("get service request", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
-      const [row] = await db.execute(sql`
+      const [row] = await db
+        .execute(
+          sql`
         SELECT
           sr.*,
           wo.wo_number AS "workOrderNumber",
@@ -117,9 +121,13 @@ export function registerServiceRequestRoutes(
         LEFT JOIN equipment e ON e.id = wo.equipment_id
         LEFT JOIN vessels v ON v.id = wo.vessel_id
         WHERE sr.id = ${req.params.id} AND sr.org_id = ${orgId}
-      `).then((r) => r.rows || r);
+      `
+        )
+        .then((r) => r.rows || r);
 
-      if (!row) {return sendNotFound(res, "Service Request");}
+      if (!row) {
+        return sendNotFound(res, "Service Request");
+      }
       res.json(row);
     })
   );
@@ -133,32 +141,53 @@ export function registerServiceRequestRoutes(
       const orgId = getOrgId(req);
       const userId = getUserId(req);
 
-      const [sr] = await db.execute(sql`
+      const [sr] = await db
+        .execute(
+          sql`
         SELECT id, status FROM service_requests
         WHERE id = ${req.params.id} AND org_id = ${orgId}
-      `).then((r) => r.rows || r);
+      `
+        )
+        .then((r) => r.rows || r);
 
-      if (!sr) {return sendNotFound(res, "Service Request");}
+      if (!sr) {
+        return sendNotFound(res, "Service Request");
+      }
 
       if (sr.status === "converted" || sr.status === "rejected") {
         return res.status(400).json({ error: `Cannot edit a request in '${sr.status}' status` });
       }
 
-      const { title, description, urgency, estimatedCost, serviceDetails, specialRequirements } = req.body;
+      const { title, description, urgency, estimatedCost, serviceDetails, specialRequirements } =
+        req.body;
 
       const updates: Record<string, string | number | null> = {};
-      if (title !== undefined) {updates.title = title;}
-      if (description !== undefined) {updates.description = description || null;}
-      if (urgency !== undefined) {updates.urgency = urgency;}
-      if (estimatedCost !== undefined) {updates.estimated_cost = estimatedCost ? Number(estimatedCost) : null;}
-      if (serviceDetails !== undefined) {updates.service_details = serviceDetails || null;}
-      if (specialRequirements !== undefined) {updates.special_requirements = specialRequirements || null;}
+      if (title !== undefined) {
+        updates.title = title;
+      }
+      if (description !== undefined) {
+        updates.description = description || null;
+      }
+      if (urgency !== undefined) {
+        updates.urgency = urgency;
+      }
+      if (estimatedCost !== undefined) {
+        updates.estimated_cost = estimatedCost ? Number(estimatedCost) : null;
+      }
+      if (serviceDetails !== undefined) {
+        updates.service_details = serviceDetails || null;
+      }
+      if (specialRequirements !== undefined) {
+        updates.special_requirements = specialRequirements || null;
+      }
 
       if (Object.keys(updates).length === 0) {
         return res.status(400).json({ error: "No fields to update" });
       }
 
-      const [updated] = await db.execute(sql`
+      const [updated] = await db
+        .execute(
+          sql`
         UPDATE service_requests
         SET
           title = ${updates.title !== undefined ? updates.title : sql`title`},
@@ -171,7 +200,9 @@ export function registerServiceRequestRoutes(
           updated_at = NOW()
         WHERE id = ${req.params.id} AND org_id = ${orgId}
         RETURNING *
-      `).then((r) => r.rows || r);
+      `
+        )
+        .then((r) => r.rows || r);
 
       res.json(updated);
     })
@@ -182,57 +213,80 @@ export function registerServiceRequestRoutes(
     requireOrgIdAndValidateBody,
     checkPermissionInDev("service_requests", "create"),
     writeOperationRateLimit,
-    withErrorHandling("create service request from work order", async (req: Request, res: Response) => {
-      const orgId = getOrgId(req);
-      const workOrderId = req.params.id;
-      const userId = getUserId(req);
+    withErrorHandling(
+      "create service request from work order",
+      async (req: Request, res: Response) => {
+        const orgId = getOrgId(req);
+        const workOrderId = req.params.id;
+        const userId = getUserId(req);
 
-      const [wo] = await db.execute(sql`
+        const [wo] = await db
+          .execute(
+            sql`
         SELECT id, wo_number, description, vessel_id, status
         FROM work_orders
         WHERE id = ${workOrderId} AND org_id = ${orgId}
-      `).then((r) => r.rows || r);
+      `
+          )
+          .then((r) => r.rows || r);
 
-      if (!wo) {return sendNotFound(res, "Work Order");}
+        if (!wo) {
+          return sendNotFound(res, "Work Order");
+        }
 
-      if (wo.status === "completed" || wo.status === "cancelled") {
-        return res.status(400).json({ error: `Cannot create a service request for a ${wo.status} work order` });
-      }
+        if (wo.status === "completed" || wo.status === "cancelled") {
+          return res
+            .status(400)
+            .json({ error: `Cannot create a service request for a ${wo.status} work order` });
+        }
 
-      const [existingActive] = await db.execute(sql`
+        const [existingActive] = await db
+          .execute(
+            sql`
         SELECT id, request_number, status
         FROM service_requests
         WHERE work_order_id = ${workOrderId} AND org_id = ${orgId}
           AND status NOT IN ('rejected', 'converted')
         LIMIT 1
-      `).then((r) => r.rows || r);
+      `
+          )
+          .then((r) => r.rows || r);
 
-      if (existingActive) {
-        return res.status(409).json({
-          error: `This work order already has an active service request (${existingActive.request_number}, status: ${existingActive.status}). Reject or convert it before creating a new one.`,
-        });
-      }
+        if (existingActive) {
+          return res.status(409).json({
+            error: `This work order already has an active service request (${existingActive.request_number}, status: ${existingActive.status}). Reject or convert it before creating a new one.`,
+          });
+        }
 
-      const { title, description, urgency, estimatedCost, serviceDetails, specialRequirements } = req.body;
-      if (!title) {return res.status(400).json({ error: "title is required" });}
+        const { title, description, urgency, estimatedCost, serviceDetails, specialRequirements } =
+          req.body;
+        if (!title) {
+          return res.status(400).json({ error: "title is required" });
+        }
 
-      const previousWoStatus = wo.status;
+        const previousWoStatus = wo.status;
 
-      let newSr: any;
-      const MAX_RETRIES = 3;
-      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-        try {
-          const [seqResult] = await db.execute(sql`
+        let newSr: any;
+        const MAX_RETRIES = 3;
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+          try {
+            const [seqResult] = await db
+              .execute(
+                sql`
             SELECT COALESCE(
               MAX(CAST(SUBSTRING(request_number FROM 'SR-([0-9]+)') AS INTEGER)),
               0
             ) + 1 AS next_num
             FROM service_requests
             WHERE org_id = ${orgId}
-          `).then((r) => r.rows || r);
-          const requestNumber = `SR-${String(seqResult?.next_num || 1).padStart(4, "0")}`;
+          `
+              )
+              .then((r) => r.rows || r);
+            const requestNumber = `SR-${String(seqResult?.next_num || 1).padStart(4, "0")}`;
 
-          const [inserted] = await db.execute(sql`
+            const [inserted] = await db
+              .execute(
+                sql`
             INSERT INTO service_requests (
               id, org_id, work_order_id, request_number,
               title, description, urgency, estimated_cost,
@@ -258,46 +312,62 @@ export function registerServiceRequestRoutes(
               NOW()
             )
             RETURNING *
-          `).then((r) => r.rows || r);
-          newSr = inserted;
-          break;
-        } catch (err: any) {
-          if (err.code === "23505" && err.constraint?.includes("service_requests") && attempt < MAX_RETRIES - 1) {
-            logger.warn(`SR number collision on attempt ${attempt + 1}, retrying...`);
-            continue;
+          `
+              )
+              .then((r) => r.rows || r);
+            newSr = inserted;
+            break;
+          } catch (err: any) {
+            if (
+              err.code === "23505" &&
+              err.constraint?.includes("service_requests") &&
+              attempt < MAX_RETRIES - 1
+            ) {
+              logger.warn(`SR number collision on attempt ${attempt + 1}, retrying...`);
+              continue;
+            }
+            throw err;
           }
-          throw err;
         }
-      }
 
-      if (!newSr) {
-        return res.status(500).json({ error: "Failed to generate unique request number after retries" });
-      }
+        if (!newSr) {
+          return res
+            .status(500)
+            .json({ error: "Failed to generate unique request number after retries" });
+        }
 
-      const requestNumber = newSr.request_number;
+        const requestNumber = newSr.request_number;
 
-      await db.execute(sql`
+        await db.execute(sql`
         UPDATE work_orders
         SET status = 'awaiting_service', updated_at = NOW()
         WHERE id = ${workOrderId} AND org_id = ${orgId}
           AND status NOT IN ('completed', 'cancelled', 'awaiting_service')
       `);
 
-      domainEventBus.emit(
-        "service_request.created",
-        createDomainEvent("service_request.created", orgId, {
-          serviceRequestId: newSr.id,
-          requestNumber,
-          workOrderId,
-          title,
-          urgency: urgency || "medium",
-          requestedBy: userId,
-        }, { userId, aggregateId: newSr.id, aggregateType: "ServiceRequest" })
-      );
+        domainEventBus.emit(
+          "service_request.created",
+          createDomainEvent(
+            "service_request.created",
+            orgId,
+            {
+              serviceRequestId: newSr.id,
+              requestNumber,
+              workOrderId,
+              title,
+              urgency: urgency || "medium",
+              requestedBy: userId,
+            },
+            { userId, aggregateId: newSr.id, aggregateType: "ServiceRequest" }
+          )
+        );
 
-      logger.info(`Created service request ${requestNumber} from work order ${workOrderId}, WO status changed to awaiting_service (was: ${previousWoStatus})`);
-      sendCreated(res, newSr);
-    })
+        logger.info(
+          `Created service request ${requestNumber} from work order ${workOrderId}, WO status changed to awaiting_service (was: ${previousWoStatus})`
+        );
+        sendCreated(res, newSr);
+      }
+    )
   );
 
   app.post(
@@ -309,23 +379,33 @@ export function registerServiceRequestRoutes(
       const orgId = getOrgId(req);
       const userId = getUserId(req);
 
-      const [sr] = await db.execute(sql`
+      const [sr] = await db
+        .execute(
+          sql`
         SELECT id, status, work_order_id, request_number FROM service_requests
         WHERE id = ${req.params.id} AND org_id = ${orgId}
-      `).then((r) => r.rows || r);
+      `
+        )
+        .then((r) => r.rows || r);
 
-      if (!sr) {return sendNotFound(res, "Service Request");}
+      if (!sr) {
+        return sendNotFound(res, "Service Request");
+      }
 
       if (sr.status !== "pending_review") {
         return res.status(400).json({ error: `Cannot review a request in '${sr.status}' status` });
       }
 
-      const [updated] = await db.execute(sql`
+      const [updated] = await db
+        .execute(
+          sql`
         UPDATE service_requests
         SET status = 'under_review', reviewed_by = ${userId}, updated_at = NOW()
         WHERE id = ${req.params.id} AND org_id = ${orgId}
         RETURNING *
-      `).then((r) => r.rows || r);
+      `
+        )
+        .then((r) => r.rows || r);
 
       res.json(updated);
     })
@@ -340,33 +420,48 @@ export function registerServiceRequestRoutes(
       const orgId = getOrgId(req);
       const userId = getUserId(req);
 
-      const [sr] = await db.execute(sql`
+      const [sr] = await db
+        .execute(
+          sql`
         SELECT id, status, work_order_id, title, description, estimated_cost, request_number
         FROM service_requests
         WHERE id = ${req.params.id} AND org_id = ${orgId}
-      `).then((r) => r.rows || r);
+      `
+        )
+        .then((r) => r.rows || r);
 
-      if (!sr) {return sendNotFound(res, "Service Request");}
+      if (!sr) {
+        return sendNotFound(res, "Service Request");
+      }
 
       if (sr.status !== "pending_review" && sr.status !== "under_review") {
         return res.status(400).json({ error: `Cannot approve a request in '${sr.status}' status` });
       }
 
-      const [updated] = await db.execute(sql`
+      const [updated] = await db
+        .execute(
+          sql`
         UPDATE service_requests
         SET status = 'approved', reviewed_by = ${userId}, reviewed_at = NOW(), updated_at = NOW()
         WHERE id = ${req.params.id} AND org_id = ${orgId}
         RETURNING *
-      `).then((r) => r.rows || r);
+      `
+        )
+        .then((r) => r.rows || r);
 
       domainEventBus.emit(
         "service_request.approved",
-        createDomainEvent("service_request.approved", orgId, {
-          serviceRequestId: sr.id,
-          requestNumber: sr.request_number,
-          workOrderId: sr.work_order_id,
-          approvedBy: userId,
-        }, { userId, aggregateId: sr.id, aggregateType: "ServiceRequest" })
+        createDomainEvent(
+          "service_request.approved",
+          orgId,
+          {
+            serviceRequestId: sr.id,
+            requestNumber: sr.request_number,
+            workOrderId: sr.work_order_id,
+            approvedBy: userId,
+          },
+          { userId, aggregateId: sr.id, aggregateType: "ServiceRequest" }
+        )
       );
 
       res.json(updated);
@@ -382,13 +477,19 @@ export function registerServiceRequestRoutes(
       const orgId = getOrgId(req);
       const userId = getUserId(req);
 
-      const [sr] = await db.execute(sql`
+      const [sr] = await db
+        .execute(
+          sql`
         SELECT id, status, work_order_id, request_number, previous_wo_status
         FROM service_requests
         WHERE id = ${req.params.id} AND org_id = ${orgId}
-      `).then((r) => r.rows || r);
+      `
+        )
+        .then((r) => r.rows || r);
 
-      if (!sr) {return sendNotFound(res, "Service Request");}
+      if (!sr) {
+        return sendNotFound(res, "Service Request");
+      }
 
       if (sr.status !== "pending_review" && sr.status !== "under_review") {
         return res.status(400).json({ error: `Cannot reject a request in '${sr.status}' status` });
@@ -396,7 +497,9 @@ export function registerServiceRequestRoutes(
 
       const { reason } = req.body;
 
-      const [updated] = await db.execute(sql`
+      const [updated] = await db
+        .execute(
+          sql`
         UPDATE service_requests
         SET
           status = 'rejected',
@@ -406,15 +509,21 @@ export function registerServiceRequestRoutes(
           updated_at = NOW()
         WHERE id = ${req.params.id} AND org_id = ${orgId}
         RETURNING *
-      `).then((r) => r.rows || r);
+      `
+        )
+        .then((r) => r.rows || r);
 
-      const [otherActiveSr] = await db.execute(sql`
+      const [otherActiveSr] = await db
+        .execute(
+          sql`
         SELECT id FROM service_requests
         WHERE work_order_id = ${sr.work_order_id} AND org_id = ${orgId}
           AND id != ${sr.id}
           AND status NOT IN ('rejected', 'converted')
         LIMIT 1
-      `).then((r) => r.rows || r);
+      `
+        )
+        .then((r) => r.rows || r);
 
       if (!otherActiveSr) {
         const restoreStatus = sr.previous_wo_status || "open";
@@ -428,18 +537,25 @@ export function registerServiceRequestRoutes(
         `);
         logger.info(`WO status restored to '${restoreStatus}' (no other active SRs)`);
       } else {
-        logger.info(`WO status kept as 'awaiting_service' — other active SR ${otherActiveSr.id} remains`);
+        logger.info(
+          `WO status kept as 'awaiting_service' — other active SR ${otherActiveSr.id} remains`
+        );
       }
 
       domainEventBus.emit(
         "service_request.rejected",
-        createDomainEvent("service_request.rejected", orgId, {
-          serviceRequestId: sr.id,
-          requestNumber: sr.request_number,
-          workOrderId: sr.work_order_id,
-          rejectedBy: userId,
-          reason: reason || undefined,
-        }, { userId, aggregateId: sr.id, aggregateType: "ServiceRequest" })
+        createDomainEvent(
+          "service_request.rejected",
+          orgId,
+          {
+            serviceRequestId: sr.id,
+            requestNumber: sr.request_number,
+            workOrderId: sr.work_order_id,
+            rejectedBy: userId,
+            reason: reason || undefined,
+          },
+          { userId, aggregateId: sr.id, aggregateType: "ServiceRequest" }
+        )
       );
 
       logger.info(`Service request ${req.params.id} rejected by ${userId}`);
@@ -452,11 +568,15 @@ export function registerServiceRequestRoutes(
     requireOrgIdAndValidateBody,
     checkPermissionInDev("service_requests", "approve"),
     writeOperationRateLimit,
-    withErrorHandling("convert service request to service order", async (req: Request, res: Response) => {
-      const orgId = getOrgId(req);
-      const userId = getUserId(req);
+    withErrorHandling(
+      "convert service request to service order",
+      async (req: Request, res: Response) => {
+        const orgId = getOrgId(req);
+        const userId = getUserId(req);
 
-      const [sr] = await db.execute(sql`
+        const [sr] = await db
+          .execute(
+            sql`
         SELECT sr.id, sr.status, sr.work_order_id, sr.title, sr.description,
                sr.estimated_cost, sr.request_number, sr.service_details, sr.special_requirements,
                wo.wo_number, wo.description AS wo_description,
@@ -464,55 +584,74 @@ export function registerServiceRequestRoutes(
         FROM service_requests sr
         JOIN work_orders wo ON wo.id = sr.work_order_id AND wo.org_id = ${orgId}
         WHERE sr.id = ${req.params.id} AND sr.org_id = ${orgId}
-      `).then((r) => r.rows || r);
+      `
+          )
+          .then((r) => r.rows || r);
 
-      if (!sr) {return sendNotFound(res, "Service Request");}
+        if (!sr) {
+          return sendNotFound(res, "Service Request");
+        }
 
-      if (sr.status !== "approved") {
-        return res.status(400).json({ error: `Can only convert approved requests. Current status: '${sr.status}'` });
-      }
+        if (sr.status !== "approved") {
+          return res
+            .status(400)
+            .json({ error: `Can only convert approved requests. Current status: '${sr.status}'` });
+        }
 
-      const [wo] = await db.execute(sql`
+        const [wo] = await db
+          .execute(
+            sql`
         SELECT id, status FROM work_orders
         WHERE id = ${sr.work_order_id} AND org_id = ${orgId}
-      `).then((r) => r.rows || r);
+      `
+          )
+          .then((r) => r.rows || r);
 
-      if (!wo) {return sendNotFound(res, "Work Order");}
-
-      if (wo.status === "completed" || wo.status === "cancelled") {
-        return res.status(400).json({ error: `Cannot convert — the linked work order is already '${wo.status}'` });
-      }
-
-      const { serviceProviderId, scope, estimatedCost, scheduledStartDate, scheduledEndDate } = req.body;
-
-      if (!serviceProviderId) {
-        return res.status(400).json({ error: "serviceProviderId is required for conversion" });
-      }
-
-      if (scheduledStartDate && scheduledEndDate) {
-        const start = new Date(scheduledStartDate);
-        const end = new Date(scheduledEndDate);
-        if (end <= start) {
-          return res.status(400).json({ error: "Scheduled end date must be after start date" });
+        if (!wo) {
+          return sendNotFound(res, "Work Order");
         }
-      }
 
-      const newSo = await createServiceOrderFromWorkOrder(db, {
-        orgId,
-        workOrderId: sr.work_order_id,
-        woNumber: sr.wo_number,
-        woDescription: sr.wo_description,
-        serviceProviderId,
-        scope: scope || sr.description || sr.wo_description || null,
-        estimatedCost: estimatedCost ? Number(estimatedCost) : sr.estimated_cost ? Number(sr.estimated_cost) : null,
-        scheduledStartDate: scheduledStartDate || null,
-        scheduledEndDate: scheduledEndDate || null,
-        serviceDetails: sr.service_details || null,
-        specialRequirements: sr.special_requirements || null,
-        updateWorkOrderStatus: true,
-      });
+        if (wo.status === "completed" || wo.status === "cancelled") {
+          return res
+            .status(400)
+            .json({ error: `Cannot convert — the linked work order is already '${wo.status}'` });
+        }
 
-      await db.execute(sql`
+        const { serviceProviderId, scope, estimatedCost, scheduledStartDate, scheduledEndDate } =
+          req.body;
+
+        if (!serviceProviderId) {
+          return res.status(400).json({ error: "serviceProviderId is required for conversion" });
+        }
+
+        if (scheduledStartDate && scheduledEndDate) {
+          const start = new Date(scheduledStartDate);
+          const end = new Date(scheduledEndDate);
+          if (end <= start) {
+            return res.status(400).json({ error: "Scheduled end date must be after start date" });
+          }
+        }
+
+        const newSo = await createServiceOrderFromWorkOrder(db, {
+          orgId,
+          workOrderId: sr.work_order_id,
+          woNumber: sr.wo_number,
+          woDescription: sr.wo_description,
+          serviceProviderId,
+          scope: scope || sr.description || sr.wo_description || null,
+          estimatedCost: estimatedCost
+            ? Number(estimatedCost)
+            : sr.estimated_cost
+              ? Number(sr.estimated_cost)
+              : null,
+          scheduledStartDate: scheduledStartDate || null,
+          scheduledEndDate: scheduledEndDate || null,
+          serviceDetails: sr.service_details || null,
+          specialRequirements: sr.special_requirements || null,
+          updateWorkOrderStatus: true,
+        });
+
+        await db.execute(sql`
         UPDATE service_requests
         SET
           status = 'converted',
@@ -524,32 +663,45 @@ export function registerServiceRequestRoutes(
         WHERE id = ${req.params.id} AND org_id = ${orgId}
       `);
 
-      domainEventBus.emit(
-        "service_request.converted",
-        createDomainEvent("service_request.converted", orgId, {
-          serviceRequestId: sr.id,
-          requestNumber: sr.request_number,
-          workOrderId: sr.work_order_id,
-          serviceOrderId: newSo.id,
-          soNumber: newSo.so_number,
-          convertedBy: userId,
-        }, { userId, aggregateId: sr.id, aggregateType: "ServiceRequest" })
-      );
+        domainEventBus.emit(
+          "service_request.converted",
+          createDomainEvent(
+            "service_request.converted",
+            orgId,
+            {
+              serviceRequestId: sr.id,
+              requestNumber: sr.request_number,
+              workOrderId: sr.work_order_id,
+              serviceOrderId: newSo.id,
+              soNumber: newSo.so_number,
+              convertedBy: userId,
+            },
+            { userId, aggregateId: sr.id, aggregateType: "ServiceRequest" }
+          )
+        );
 
-      logger.info(`Service request ${req.params.id} converted to SO ${newSo.so_number} by ${userId}`);
-      res.json({ serviceRequest: { id: req.params.id, status: "converted", serviceOrderId: newSo.id }, serviceOrder: newSo });
-    })
+        logger.info(
+          `Service request ${req.params.id} converted to SO ${newSo.so_number} by ${userId}`
+        );
+        res.json({
+          serviceRequest: { id: req.params.id, status: "converted", serviceOrderId: newSo.id },
+          serviceOrder: newSo,
+        });
+      }
+    )
   );
 
   app.get(
     "/api/work-orders/:id/service-requests",
     requireOrgId,
     generalApiRateLimit,
-    withErrorHandling("get service requests for work order", async (req: Request, res: Response) => {
-      const orgId = getOrgId(req);
-      const workOrderId = req.params.id;
+    withErrorHandling(
+      "get service requests for work order",
+      async (req: Request, res: Response) => {
+        const orgId = getOrgId(req);
+        const workOrderId = req.params.id;
 
-      const rows = await db.execute(sql`
+        const rows = await db.execute(sql`
         SELECT
           sr.id,
           sr.request_number AS "requestNumber",
@@ -573,11 +725,12 @@ export function registerServiceRequestRoutes(
         ORDER BY sr.created_at DESC
       `);
 
-      res.json({
-        workOrderId,
-        serviceRequests: rows.rows || rows,
-        count: (rows.rows || rows).length,
-      });
-    })
+        res.json({
+          workOrderId,
+          serviceRequests: rows.rows || rows,
+          count: (rows.rows || rows).length,
+        });
+      }
+    )
   );
 }

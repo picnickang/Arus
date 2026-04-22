@@ -33,7 +33,7 @@ interface PermissionsContextType {
 
 function useDevModeState(): boolean {
   const [devMode, setDevMode] = useState(() => getDevModeOverride());
-  
+
   useEffect(() => {
     const handleChange = () => setDevMode(getDevModeOverride());
     window.addEventListener("devModeChange", handleChange);
@@ -43,7 +43,7 @@ function useDevModeState(): boolean {
       window.removeEventListener("storage", handleChange);
     };
   }, []);
-  
+
   return devMode;
 }
 
@@ -70,7 +70,7 @@ interface PermissionsResponse {
 
 export function PermissionsProvider({ children }: { children: React.ReactNode }) {
   const clientDevMode = useDevModeState();
-  
+
   const { data, isLoading, error } = useQuery<PermissionsResponse>({
     queryKey: ["/api/permissions/me"],
     staleTime: 5 * 60 * 1000,
@@ -79,7 +79,8 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
   });
 
   const isViteDev = import.meta.env.DEV === true;
-  const effectiveDevMode = clientDevMode || (data?.isDevMode === true) || (isViteDev && !data && !!error);
+  const effectiveDevMode =
+    clientDevMode || data?.isDevMode === true || (isViteDev && !data && !!error);
 
   const permissions: UserPermissions = useMemo(() => {
     if (isLoading) {
@@ -89,7 +90,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
       return {
         ...defaultPermissions,
         isLoading: false,
-        error: error ? (error) : null,
+        error: error ? error : null,
         isDevMode: effectiveDevMode,
       };
     }
@@ -106,21 +107,35 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
   }, [data, isLoading, error, effectiveDevMode, clientDevMode, isViteDev]);
 
   const hasPermission = (resource: string, action: string): boolean => {
-    if (import.meta.env.DEV && permissions.isDevMode) {return true;}
-    if (permissions.isLoading) {return false;}
+    if (import.meta.env.DEV && permissions.isDevMode) {
+      return true;
+    }
+    if (permissions.isLoading) {
+      return false;
+    }
     return permissions.permissions[resource]?.[action] === true;
   };
 
   const hasAnyPermission = (resource: string, actions: string[]): boolean => {
-    if (import.meta.env.DEV && permissions.isDevMode) {return true;}
-    if (permissions.isLoading) {return false;}
+    if (import.meta.env.DEV && permissions.isDevMode) {
+      return true;
+    }
+    if (permissions.isLoading) {
+      return false;
+    }
     return actions.some((action) => permissions.permissions[resource]?.[action] === true);
   };
 
   const hasAllPermissions = (checks: Array<{ resource: string; action: string }>): boolean => {
-    if (import.meta.env.DEV && permissions.isDevMode) {return true;}
-    if (permissions.isLoading) {return false;}
-    return checks.every((check) => permissions.permissions[check.resource]?.[check.action] === true);
+    if (import.meta.env.DEV && permissions.isDevMode) {
+      return true;
+    }
+    if (permissions.isLoading) {
+      return false;
+    }
+    return checks.every(
+      (check) => permissions.permissions[check.resource]?.[check.action] === true
+    );
   };
 
   const canView = (resource: string) => hasPermission(resource, "view");
@@ -141,11 +156,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
     canExport,
   };
 
-  return (
-    <PermissionsContext.Provider value={value}>
-      {children}
-    </PermissionsContext.Provider>
-  );
+  return <PermissionsContext.Provider value={value}>{children}</PermissionsContext.Provider>;
 }
 
 export function usePermissions() {

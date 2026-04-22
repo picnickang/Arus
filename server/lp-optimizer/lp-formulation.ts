@@ -26,7 +26,9 @@ function initializeConstraintMap(
 
   for (let day = 0; day < constraints.timeHorizonDays; day++) {
     for (let hour = 8; hour <= 16; hour++) {
-      constraintMap.set(`concurrent_limit_d${day}_h${hour}`, { max: constraints.maxConcurrentJobs });
+      constraintMap.set(`concurrent_limit_d${day}_h${hour}`, {
+        max: constraints.maxConcurrentJobs,
+      });
     }
   }
 
@@ -59,11 +61,15 @@ function initializeConstraintMap(
 function buildPartsStock(jobs: MaintenanceJob[], partsData: any[]): Map<string, number> {
   const partsStock = new Map<string, number>();
   partsData.forEach((part) => {
-    if (part.quantity) { partsStock.set(part.id, part.quantity); }
+    if (part.quantity) {
+      partsStock.set(part.id, part.quantity);
+    }
   });
   jobs.forEach((job) => {
     job.parts.forEach((part) => {
-      if (!partsStock.has(part.partId)) { partsStock.set(part.partId, 999); }
+      if (!partsStock.has(part.partId)) {
+        partsStock.set(part.partId, 999);
+      }
     });
   });
   return partsStock;
@@ -78,11 +84,17 @@ function createJobVariable(
   hour: number,
   constraints: OptimizationConstraints
 ): { varName: string; coeffs: any } | null {
-  const dayName = new Date(Date.now() + day * 24 * 60 * 60 * 1000).toLocaleDateString("en-US", { weekday: "long" });
-  if (!crew.availableDays.includes(dayName)) { return null; }
+  const dayName = new Date(Date.now() + day * 24 * 60 * 60 * 1000).toLocaleDateString("en-US", {
+    weekday: "long",
+  });
+  if (!crew.availableDays.includes(dayName)) {
+    return null;
+  }
 
   const jobDurationHours = job.estimatedDurationHours / 60;
-  if (hour + Math.ceil(jobDurationHours) > 17) { return null; }
+  if (hour + Math.ceil(jobDurationHours) > 17) {
+    return null;
+  }
 
   const varName = `j${jobIdx}_c${crewIdx}_d${day}_h${hour}`;
 
@@ -93,7 +105,9 @@ function createJobVariable(
   const scheduledDate = new Date(Date.now() + day * 24 * 60 * 60 * 1000);
   let latenessPenalty = 0;
   if (job.deadline && scheduledDate > job.deadline) {
-    const daysLate = Math.ceil((scheduledDate.getTime() - job.deadline.getTime()) / (24 * 60 * 60 * 1000));
+    const daysLate = Math.ceil(
+      (scheduledDate.getTime() - job.deadline.getTime()) / (24 * 60 * 60 * 1000)
+    );
     latenessPenalty = daysLate * 100;
   }
 
@@ -124,7 +138,9 @@ function buildVariables(jobs: MaintenanceJob[], constraints: OptimizationConstra
 
     for (let crewIdx = 0; crewIdx < constraints.crewAvailability.length; crewIdx++) {
       const crew = constraints.crewAvailability[crewIdx];
-      if (crew.skillLevel < job.requiredSkillLevel) { continue; }
+      if (crew.skillLevel < job.requiredSkillLevel) {
+        continue;
+      }
 
       for (let day = 0; day < constraints.timeHorizonDays; day++) {
         for (let hour = 8; hour <= 16; hour++) {
@@ -136,7 +152,10 @@ function buildVariables(jobs: MaintenanceJob[], constraints: OptimizationConstra
       }
     }
 
-    variables[`slack_unassigned_j${jobIdx}`] = { objective: 10000, [`job_assignment_${jobIdx}`]: 1 };
+    variables[`slack_unassigned_j${jobIdx}`] = {
+      objective: 10000,
+      [`job_assignment_${jobIdx}`]: 1,
+    };
   }
 
   return variables;
@@ -156,7 +175,9 @@ export function formulateLinearProgram(
 
   const variables = buildVariables(jobs, constraints);
 
-  console.log(`[LP Optimizer] Formulated problem: ${Object.keys(variables).length} variables, ${Object.keys(constraintDefs).length} constraints`);
+  console.log(
+    `[LP Optimizer] Formulated problem: ${Object.keys(variables).length} variables, ${Object.keys(constraintDefs).length} constraints`
+  );
 
   return {
     optimize: "objective",
@@ -209,10 +230,14 @@ function extractScheduleFromSolution(
   }
 
   for (const [varName, value] of Object.entries(solution.result)) {
-    if (META_KEYS.has(varName) || value !== 1) { continue; }
+    if (META_KEYS.has(varName) || value !== 1) {
+      continue;
+    }
 
     const match = varName.match(/j(\d+)_c(\d+)_d(\d+)_h(\d+)/);
-    if (!match) { continue; }
+    if (!match) {
+      continue;
+    }
 
     const [, jobIdxStr, crewIdxStr, dayStr, hourStr] = match;
     const jobIdx = Number(jobIdxStr);
@@ -222,7 +247,9 @@ function extractScheduleFromSolution(
 
     const job = jobs[jobIdx];
     const crew = constraints.crewAvailability[crewIdx];
-    if (!job || !crew) { continue; }
+    if (!job || !crew) {
+      continue;
+    }
 
     const scheduledDate = new Date(Date.now() + day * 24 * 60 * 60 * 1000);
     const laborCost = (job.estimatedDurationHours / 60) * crew.hourlyRate;
@@ -287,10 +314,14 @@ export function processSolution(
     violations.push("Some constraints were relaxed to find a feasible solution");
   }
   if (partsUsedBudget > constraints.partsBudget) {
-    violations.push(`Parts budget exceeded by $${(partsUsedBudget - constraints.partsBudget).toFixed(2)}`);
+    violations.push(
+      `Parts budget exceeded by $${(partsUsedBudget - constraints.partsBudget).toFixed(2)}`
+    );
   }
 
-  console.log(`[LP Optimizer] Optimization completed: ${schedule.length} jobs scheduled, total cost: $${totalCost.toFixed(2)}`);
+  console.log(
+    `[LP Optimizer] Optimization completed: ${schedule.length} jobs scheduled, total cost: $${totalCost.toFixed(2)}`
+  );
 
   return {
     success: solution.feasible ?? false,

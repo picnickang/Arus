@@ -1,6 +1,6 @@
 /**
  * Rate Limiting Middleware
- * 
+ *
  * SonarQube Fix: Removed duplicated keyGenerator functions (5 instances)
  * Now uses centralized rate-limit-factory for consistency
  */

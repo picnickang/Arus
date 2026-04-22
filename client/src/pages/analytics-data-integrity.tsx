@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
 const DataIntegrityDashboard = lazy(() =>
-  import("@/components/analytics/DataIntegrityDashboard").then((m) => ({ default: m.DataIntegrityDashboard }))
+  import("@/components/analytics/DataIntegrityDashboard").then((m) => ({
+    default: m.DataIntegrityDashboard,
+  }))
 );
 
 export default function AnalyticsDataIntegrityPage() {
@@ -20,7 +22,13 @@ export default function AnalyticsDataIntegrityPage() {
         <h1 className="text-lg font-bold">Data Integrity</h1>
       </div>
       <div className="p-4 lg:p-6">
-        <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          }
+        >
           <DataIntegrityDashboard />
         </Suspense>
       </div>

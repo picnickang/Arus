@@ -39,10 +39,7 @@ export interface UseOfflineSyncResult {
     payload: Record<string, unknown>,
     lastModifiedAt?: string
   ) => Promise<void>;
-  queueDelete: (
-    entityType: EntityType,
-    entityId: string
-  ) => Promise<void>;
+  queueDelete: (entityType: EntityType, entityId: string) => Promise<void>;
   syncNow: () => Promise<void>;
   getPending: () => Promise<PendingOperation[]>;
   getConflictList: () => Promise<SyncConflict[]>;
@@ -59,7 +56,7 @@ export function useOfflineSync(): UseOfflineSyncResult {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const syncIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   const [state, setState] = useState<OfflineSyncState>({
     isOnline: isOnline(),
     pendingCount: 0,
@@ -69,10 +66,7 @@ export function useOfflineSync(): UseOfflineSyncResult {
   });
 
   const updateCounts = useCallback(async () => {
-    const [pending, conflicts] = await Promise.all([
-      getPendingCount(),
-      hasConflicts(),
-    ]);
+    const [pending, conflicts] = await Promise.all([getPendingCount(), hasConflicts()]);
     setState((prev) => ({
       ...prev,
       pendingCount: pending,
@@ -99,17 +93,15 @@ export function useOfflineSync(): UseOfflineSyncResult {
         if (op.operationType === "create") {
           await apiRequest("POST", baseUrl, op.payload);
           return { success: true };
-        } if (op.operationType === "update") {
-          await apiRequest(
-            "PATCH",
-            `${baseUrl}/${op.entityId}`,
-            {
-              ...op.payload,
-              lastModifiedAt: op.lastModifiedAt,
-            }
-          );
+        }
+        if (op.operationType === "update") {
+          await apiRequest("PATCH", `${baseUrl}/${op.entityId}`, {
+            ...op.payload,
+            lastModifiedAt: op.lastModifiedAt,
+          });
           return { success: true };
-        } if (op.operationType === "delete") {
+        }
+        if (op.operationType === "delete") {
           await apiRequest("DELETE", `${baseUrl}/${op.entityId}`);
           return { success: true };
         }
@@ -117,10 +109,10 @@ export function useOfflineSync(): UseOfflineSyncResult {
         return { success: false };
       } catch (error: unknown) {
         const errorObj = error as { status?: number; response?: Response; message?: string };
-        
-        if (errorObj.status === 409 || (errorObj.message?.includes("409"))) {
+
+        if (errorObj.status === 409 || errorObj.message?.includes("409")) {
           let serverVersion: Record<string, unknown> = {};
-          
+
           if (errorObj.response) {
             try {
               const data = await errorObj.response.json();
@@ -129,10 +121,10 @@ export function useOfflineSync(): UseOfflineSyncResult {
               serverVersion = { conflictDetected: true };
             }
           }
-          
+
           return { success: false, serverVersion };
         }
-        
+
         throw error;
       }
     },
@@ -140,7 +132,9 @@ export function useOfflineSync(): UseOfflineSyncResult {
   );
 
   const syncNow = useCallback(async () => {
-    if (!isOnline() || state.isSyncing) {return;}
+    if (!isOnline() || state.isSyncing) {
+      return;
+    }
 
     setState((prev) => ({ ...prev, isSyncing: true }));
 
@@ -184,8 +178,7 @@ export function useOfflineSync(): UseOfflineSyncResult {
       setState((prev) => ({ ...prev, isSyncing: false }));
       toast({
         title: "Sync Failed",
-        description:
-          error instanceof Error ? error.message : "Unknown error occurred",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
     }
@@ -199,13 +192,7 @@ export function useOfflineSync(): UseOfflineSyncResult {
       payload: Record<string, unknown>,
       lastModifiedAt?: string
     ) => {
-      await queueOperation(
-        entityType,
-        entityId,
-        operationType,
-        payload,
-        lastModifiedAt
-      );
+      await queueOperation(entityType, entityId, operationType, payload, lastModifiedAt);
       await updateCounts();
 
       if (isOnline()) {
@@ -216,11 +203,7 @@ export function useOfflineSync(): UseOfflineSyncResult {
   );
 
   const queueCreate = useCallback(
-    async (
-      entityType: EntityType,
-      entityId: string,
-      payload: Record<string, unknown>
-    ) => {
+    async (entityType: EntityType, entityId: string, payload: Record<string, unknown>) => {
       await queueAndOptimistic(entityType, entityId, "create", payload);
     },
     [queueAndOptimistic]
@@ -233,13 +216,7 @@ export function useOfflineSync(): UseOfflineSyncResult {
       payload: Record<string, unknown>,
       lastModifiedAt?: string
     ) => {
-      await queueAndOptimistic(
-        entityType,
-        entityId,
-        "update",
-        payload,
-        lastModifiedAt
-      );
+      await queueAndOptimistic(entityType, entityId, "update", payload, lastModifiedAt);
     },
     [queueAndOptimistic]
   );

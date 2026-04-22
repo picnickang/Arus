@@ -48,6 +48,12 @@ export interface VesselOperationsPort {
 }
 
 export interface EventPublisherPort {
-  publish(entity: string, entityId: string, action: string, data: Record<string, unknown>, userId?: string): Promise<void>;
+  publish(
+    entity: string,
+    entityId: string,
+    action: string,
+    data: Record<string, unknown>,
+    userId?: string
+  ): Promise<void>;
   publishVesselMqtt(action: string, vessel: Vessel | { id: string }): void;
 }

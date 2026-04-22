@@ -109,7 +109,22 @@ export class EquipmentRepository extends TenantScopedRepository {
    * conditionMonitoring, oilAnalysis, wearParticleAnalysis, dtcFaults
    */
   async delete(equipmentId: string) {
-    const { equipment, alertConfigurations, sensorConfigurations, sensorStates, equipmentTelemetry, pdmScoreLogs, anomalyDetections, failurePredictions, vibrationFeatures, vibrationAnalysis, conditionMonitoring, oilAnalysis, wearParticleAnalysis, dtcFaults } = await import("@shared/schema");
+    const {
+      equipment,
+      alertConfigurations,
+      sensorConfigurations,
+      sensorStates,
+      equipmentTelemetry,
+      pdmScoreLogs,
+      anomalyDetections,
+      failurePredictions,
+      vibrationFeatures,
+      vibrationAnalysis,
+      conditionMonitoring,
+      oilAnalysis,
+      wearParticleAnalysis,
+      dtcFaults,
+    } = await import("@shared/schema");
 
     const existing = await this.getById(equipmentId);
     if (!existing) {
@@ -117,10 +132,12 @@ export class EquipmentRepository extends TenantScopedRepository {
     }
 
     const orgId = this.orgId;
-    
+
     await db.transaction(async (tx) => {
       await tx.delete(alertConfigurations).where(eq(alertConfigurations.equipmentId, equipmentId));
-      await tx.delete(sensorConfigurations).where(eq(sensorConfigurations.equipmentId, equipmentId));
+      await tx
+        .delete(sensorConfigurations)
+        .where(eq(sensorConfigurations.equipmentId, equipmentId));
       await tx.delete(sensorStates).where(eq(sensorStates.equipmentId, equipmentId));
       await tx.delete(equipmentTelemetry).where(eq(equipmentTelemetry.equipmentId, equipmentId));
       await tx.delete(pdmScoreLogs).where(eq(pdmScoreLogs.equipmentId, equipmentId));
@@ -130,9 +147,13 @@ export class EquipmentRepository extends TenantScopedRepository {
       await tx.delete(vibrationAnalysis).where(eq(vibrationAnalysis.equipmentId, equipmentId));
       await tx.delete(conditionMonitoring).where(eq(conditionMonitoring.equipmentId, equipmentId));
       await tx.delete(oilAnalysis).where(eq(oilAnalysis.equipmentId, equipmentId));
-      await tx.delete(wearParticleAnalysis).where(eq(wearParticleAnalysis.equipmentId, equipmentId));
+      await tx
+        .delete(wearParticleAnalysis)
+        .where(eq(wearParticleAnalysis.equipmentId, equipmentId));
       await tx.delete(dtcFaults).where(eq(dtcFaults.equipmentId, equipmentId));
-      await tx.delete(equipment).where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, orgId)));
+      await tx
+        .delete(equipment)
+        .where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, orgId)));
     });
 
     return true;
@@ -187,15 +208,7 @@ export class EquipmentRepository extends TenantScopedRepository {
     return db
       .select()
       .from(equipment)
-      .where(
-        this.orgWhere(
-          equipment,
-          and(
-            ne(equipment.id, equipmentId),
-            or(...orConditions)
-          )
-        )
-      )
+      .where(this.orgWhere(equipment, and(ne(equipment.id, equipmentId), or(...orConditions))))
       .orderBy(equipment.name);
   }
 

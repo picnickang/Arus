@@ -1,6 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import type { Part, InventoryPart, Stock, InventoryMovement, Supplier, PurchaseOrder } from "../types";
+import type {
+  Part,
+  InventoryPart,
+  Stock,
+  InventoryMovement,
+  Supplier,
+  PurchaseOrder,
+} from "../types";
 
 export const inventoryKeys = {
   all: ["/api/parts-inventory"] as const,
@@ -16,7 +23,11 @@ export const inventoryKeys = {
 export function useParts(searchTerm?: string) {
   return useQuery<Part[]>({
     queryKey: [...inventoryKeys.parts(), searchTerm ?? "all"],
-    queryFn: () => apiRequest("GET", `/api/parts${searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : ""}`),
+    queryFn: () =>
+      apiRequest(
+        "GET",
+        `/api/parts${searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : ""}`
+      ),
   });
 }
 
@@ -32,8 +43,11 @@ export function useInventoryParts(vesselId?: string) {
   return useQuery<InventoryPart[]>({
     queryKey: inventoryKeys.stock(vesselId ?? "all"),
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api/parts-inventory${vesselId ? `?vesselId=${vesselId}` : ""}`);
-      return Array.isArray(response) ? response : response?.items ?? [];
+      const response = await apiRequest(
+        "GET",
+        `/api/parts-inventory${vesselId ? `?vesselId=${vesselId}` : ""}`
+      );
+      return Array.isArray(response) ? response : (response?.items ?? []);
     },
   });
 }
@@ -55,7 +69,8 @@ export function useLowStockItems() {
 export function useInventoryMovements(partId?: string) {
   return useQuery<InventoryMovement[]>({
     queryKey: inventoryKeys.movements(partId ?? ""),
-    queryFn: () => apiRequest("GET", `/api/inventory-movements${partId ? `?partId=${partId}` : ""}`),
+    queryFn: () =>
+      apiRequest("GET", `/api/inventory-movements${partId ? `?partId=${partId}` : ""}`),
     enabled: !!partId,
   });
 }
@@ -76,7 +91,7 @@ export function usePurchaseOrders(status?: string) {
 
 export function useCreatePart() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: Omit<Part, "id" | "createdAt" | "updatedAt">) => {
       return apiRequest("POST", "/api/parts", data);
@@ -89,7 +104,7 @@ export function useCreatePart() {
 
 export function useUpdatePart() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<Part> & { id: string }) => {
       return apiRequest("PATCH", `/api/parts/${id}`, data);
@@ -103,9 +118,14 @@ export function useUpdatePart() {
 
 export function useAdjustStock() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async (data: { partId: string; vesselId?: string; adjustment: number; reason: string }) => {
+    mutationFn: async (data: {
+      partId: string;
+      vesselId?: string;
+      adjustment: number;
+      reason: string;
+    }) => {
       return apiRequest("POST", "/api/stock/adjust", data);
     },
     onSuccess: () => {
@@ -116,9 +136,14 @@ export function useAdjustStock() {
 
 export function useTransferStock() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async (data: { partId: string; fromVesselId: string; toVesselId: string; quantity: number }) => {
+    mutationFn: async (data: {
+      partId: string;
+      fromVesselId: string;
+      toVesselId: string;
+      quantity: number;
+    }) => {
       return apiRequest("POST", "/api/stock/transfer", data);
     },
     onSuccess: () => {
@@ -129,7 +154,7 @@ export function useTransferStock() {
 
 export function useCreatePurchaseOrder() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: Omit<PurchaseOrder, "id">) => {
       return apiRequest("POST", "/api/purchase-orders", data);

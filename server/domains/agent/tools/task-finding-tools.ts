@@ -14,14 +14,23 @@ registerTool({
   name: "createAgentTask",
   category: "maintenance",
   riskLevel: "low-write",
-  description: "Create a durable agent task to track an investigation, action item, or multi-step workflow. Tasks persist across conversations and can have sub-tasks, linked entities, and status tracking.",
+  description:
+    "Create a durable agent task to track an investigation, action item, or multi-step workflow. Tasks persist across conversations and can have sub-tasks, linked entities, and status tracking.",
   parameters: {
     type: "object",
     properties: {
       title: { type: "string", description: "Short descriptive title for the task" },
       description: { type: "string", description: "Detailed description of what needs to be done" },
-      priority: { type: "string", enum: ["low", "medium", "high", "critical"], description: "Task priority level" },
-      source: { type: "string", enum: ["suggestion", "signal", "user", "scheduled"], description: "What triggered this task" },
+      priority: {
+        type: "string",
+        enum: ["low", "medium", "high", "critical"],
+        description: "Task priority level",
+      },
+      source: {
+        type: "string",
+        enum: ["suggestion", "signal", "user", "scheduled"],
+        description: "What triggered this task",
+      },
       equipmentId: { type: "string", description: "Related equipment ID if applicable" },
       vesselId: { type: "string", description: "Related vessel ID if applicable" },
       predictionId: { type: "string", description: "Related prediction ID if applicable" },
@@ -71,19 +80,31 @@ registerTool({
   name: "recordFinding",
   category: "analytics",
   riskLevel: "low-write",
-  description: "Record a structured finding from an investigation — anomaly, recommendation, risk assessment, or compliance gap. Findings are linked to tasks and surface in the Findings Feed.",
+  description:
+    "Record a structured finding from an investigation — anomaly, recommendation, risk assessment, or compliance gap. Findings are linked to tasks and surface in the Findings Feed.",
   parameters: {
     type: "object",
     properties: {
       title: { type: "string", description: "Short title summarizing the finding" },
-      findingType: { type: "string", enum: ["anomaly", "recommendation", "risk", "compliance_gap"], description: "Classification of the finding" },
-      severity: { type: "string", enum: ["info", "warning", "critical"], description: "Severity level" },
+      findingType: {
+        type: "string",
+        enum: ["anomaly", "recommendation", "risk", "compliance_gap"],
+        description: "Classification of the finding",
+      },
+      severity: {
+        type: "string",
+        enum: ["info", "warning", "critical"],
+        description: "Severity level",
+      },
       evidenceSummary: { type: "string", description: "Evidence and data supporting this finding" },
       recommendedAction: { type: "string", description: "Recommended next steps or actions" },
       taskId: { type: "string", description: "ID of the parent task this finding belongs to" },
       equipmentId: { type: "string", description: "Related equipment ID" },
       vesselId: { type: "string", description: "Related vessel ID" },
-      entityType: { type: "string", description: "Type of related entity (e.g., work_order, alert)" },
+      entityType: {
+        type: "string",
+        description: "Type of related entity (e.g., work_order, alert)",
+      },
       entityId: { type: "string", description: "ID of the related entity" },
     },
     required: ["title"],

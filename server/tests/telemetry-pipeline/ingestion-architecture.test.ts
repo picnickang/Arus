@@ -1,11 +1,11 @@
-import { describe, it, expect, jest } from '@jest/globals';
+import { describe, it, expect, jest } from "@jest/globals";
 
-describe('Telemetry Ingestion Architecture', () => {
-  describe('IngestBatchResult Interface', () => {
-    it('should include archiveId and batchId fields in result type', async () => {
-      const { IngestTelemetryBatch } = await import('../../telemetry/application/ingest-batch');
-      const { BridgeProcessor } = await import('../../services/sqlite-bridge/bridgeProcessor');
-      
+describe("Telemetry Ingestion Architecture", () => {
+  describe("IngestBatchResult Interface", () => {
+    it("should include archiveId and batchId fields in result type", async () => {
+      const { IngestTelemetryBatch } = await import("../../telemetry/application/ingest-batch");
+      const { BridgeProcessor } = await import("../../services/sqlite-bridge/bridgeProcessor");
+
       const mockPersistence = {
         writeBatch: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
         checkIdempotency: jest.fn<() => Promise<boolean>>().mockResolvedValue(false),
@@ -13,20 +13,30 @@ describe('Telemetry Ingestion Architecture', () => {
       };
 
       const mockDLQ = {
-        add: jest.fn().mockReturnValue({ id: 'test' }),
+        add: jest.fn().mockReturnValue({ id: "test" }),
         get: jest.fn(),
         list: jest.fn().mockReturnValue([]),
         replay: jest.fn(),
         replayAll: jest.fn(),
         prune: jest.fn().mockReturnValue(0),
         clear: jest.fn().mockReturnValue(0),
-        getMetrics: jest.fn<() => { totalEntries: number; totalAdded: number; totalReplayed: number; totalFailed: number; oldestEntryAge: number | null }>().mockReturnValue({ 
-          totalEntries: 0, 
-          totalAdded: 0, 
-          totalReplayed: 0, 
-          totalFailed: 0, 
-          oldestEntryAge: null 
-        }),
+        getMetrics: jest
+          .fn<
+            () => {
+              totalEntries: number;
+              totalAdded: number;
+              totalReplayed: number;
+              totalFailed: number;
+              oldestEntryAge: number | null;
+            }
+          >()
+          .mockReturnValue({
+            totalEntries: 0,
+            totalAdded: 0,
+            totalReplayed: 0,
+            totalFailed: 0,
+            oldestEntryAge: null,
+          }),
       };
 
       const mockMetrics = {
@@ -42,7 +52,7 @@ describe('Telemetry Ingestion Architecture', () => {
         incDLQAdded: jest.fn(),
       };
 
-      const processor = new BridgeProcessor({ defaultEquipmentId: 'test-equipment' });
+      const processor = new BridgeProcessor({ defaultEquipmentId: "test-equipment" });
 
       const useCase = new IngestTelemetryBatch({
         persistence: mockPersistence,
@@ -51,17 +61,17 @@ describe('Telemetry Ingestion Architecture', () => {
         processor,
       });
 
-      const result = await useCase.execute([], 'test-batch-123');
-      
-      expect(result).toHaveProperty('archiveId');
-      expect(result).toHaveProperty('batchId');
-      expect(result.batchId).toBe('test-batch-123');
+      const result = await useCase.execute([], "test-batch-123");
+
+      expect(result).toHaveProperty("archiveId");
+      expect(result).toHaveProperty("batchId");
+      expect(result.batchId).toBe("test-batch-123");
     });
 
-    it('should return empty batchId when not provided', async () => {
-      const { IngestTelemetryBatch } = await import('../../telemetry/application/ingest-batch');
-      const { BridgeProcessor } = await import('../../services/sqlite-bridge/bridgeProcessor');
-      
+    it("should return empty batchId when not provided", async () => {
+      const { IngestTelemetryBatch } = await import("../../telemetry/application/ingest-batch");
+      const { BridgeProcessor } = await import("../../services/sqlite-bridge/bridgeProcessor");
+
       const mockPersistence = {
         writeBatch: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
         checkIdempotency: jest.fn<() => Promise<boolean>>().mockResolvedValue(false),
@@ -69,20 +79,30 @@ describe('Telemetry Ingestion Architecture', () => {
       };
 
       const mockDLQ = {
-        add: jest.fn().mockReturnValue({ id: 'test' }),
+        add: jest.fn().mockReturnValue({ id: "test" }),
         get: jest.fn(),
         list: jest.fn().mockReturnValue([]),
         replay: jest.fn(),
         replayAll: jest.fn(),
         prune: jest.fn().mockReturnValue(0),
         clear: jest.fn().mockReturnValue(0),
-        getMetrics: jest.fn<() => { totalEntries: number; totalAdded: number; totalReplayed: number; totalFailed: number; oldestEntryAge: number | null }>().mockReturnValue({ 
-          totalEntries: 0, 
-          totalAdded: 0, 
-          totalReplayed: 0, 
-          totalFailed: 0, 
-          oldestEntryAge: null 
-        }),
+        getMetrics: jest
+          .fn<
+            () => {
+              totalEntries: number;
+              totalAdded: number;
+              totalReplayed: number;
+              totalFailed: number;
+              oldestEntryAge: number | null;
+            }
+          >()
+          .mockReturnValue({
+            totalEntries: 0,
+            totalAdded: 0,
+            totalReplayed: 0,
+            totalFailed: 0,
+            oldestEntryAge: null,
+          }),
       };
 
       const mockMetrics = {
@@ -98,7 +118,7 @@ describe('Telemetry Ingestion Architecture', () => {
         incDLQAdded: jest.fn(),
       };
 
-      const processor = new BridgeProcessor({ defaultEquipmentId: 'test-equipment' });
+      const processor = new BridgeProcessor({ defaultEquipmentId: "test-equipment" });
 
       const useCase = new IngestTelemetryBatch({
         persistence: mockPersistence,
@@ -108,17 +128,17 @@ describe('Telemetry Ingestion Architecture', () => {
       });
 
       const result = await useCase.execute([]);
-      
+
       expect(result.batchId).toBeUndefined();
       expect(result.archiveId).toBeUndefined();
     });
   });
 
-  describe('IngestBatchResult with config options', () => {
-    it('should support raw archive, heartbeat, and batch ack config options', async () => {
-      const { IngestTelemetryBatch } = await import('../../telemetry/application/ingest-batch');
-      const { BridgeProcessor } = await import('../../services/sqlite-bridge/bridgeProcessor');
-      
+  describe("IngestBatchResult with config options", () => {
+    it("should support raw archive, heartbeat, and batch ack config options", async () => {
+      const { IngestTelemetryBatch } = await import("../../telemetry/application/ingest-batch");
+      const { BridgeProcessor } = await import("../../services/sqlite-bridge/bridgeProcessor");
+
       const mockPersistence = {
         writeBatch: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
         checkIdempotency: jest.fn<() => Promise<boolean>>().mockResolvedValue(false),
@@ -126,20 +146,30 @@ describe('Telemetry Ingestion Architecture', () => {
       };
 
       const mockDLQ = {
-        add: jest.fn().mockReturnValue({ id: 'test' }),
+        add: jest.fn().mockReturnValue({ id: "test" }),
         get: jest.fn(),
         list: jest.fn().mockReturnValue([]),
         replay: jest.fn(),
         replayAll: jest.fn(),
         prune: jest.fn().mockReturnValue(0),
         clear: jest.fn().mockReturnValue(0),
-        getMetrics: jest.fn<() => { totalEntries: number; totalAdded: number; totalReplayed: number; totalFailed: number; oldestEntryAge: number | null }>().mockReturnValue({ 
-          totalEntries: 0, 
-          totalAdded: 0, 
-          totalReplayed: 0, 
-          totalFailed: 0, 
-          oldestEntryAge: null 
-        }),
+        getMetrics: jest
+          .fn<
+            () => {
+              totalEntries: number;
+              totalAdded: number;
+              totalReplayed: number;
+              totalFailed: number;
+              oldestEntryAge: number | null;
+            }
+          >()
+          .mockReturnValue({
+            totalEntries: 0,
+            totalAdded: 0,
+            totalReplayed: 0,
+            totalFailed: 0,
+            oldestEntryAge: null,
+          }),
       };
 
       const mockMetrics = {
@@ -156,7 +186,9 @@ describe('Telemetry Ingestion Architecture', () => {
       };
 
       const mockRawArchive = {
-        archiveRawPayload: jest.fn<() => Promise<{ archiveId: string; isDuplicate: boolean }>>().mockResolvedValue({ archiveId: 'archive-123', isDuplicate: false }),
+        archiveRawPayload: jest
+          .fn<() => Promise<{ archiveId: string; isDuplicate: boolean }>>()
+          .mockResolvedValue({ archiveId: "archive-123", isDuplicate: false }),
         markDecoded: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
         getPendingArchives: jest.fn(),
         getFailedArchives: jest.fn(),
@@ -189,7 +221,7 @@ describe('Telemetry Ingestion Architecture', () => {
         getMetrics: jest.fn(),
       };
 
-      const processor = new BridgeProcessor({ defaultEquipmentId: 'test-equipment' });
+      const processor = new BridgeProcessor({ defaultEquipmentId: "test-equipment" });
 
       const useCase = new IngestTelemetryBatch({
         persistence: mockPersistence,
@@ -199,29 +231,29 @@ describe('Telemetry Ingestion Architecture', () => {
         rawArchive: mockRawArchive,
         heartbeat: mockHeartbeat,
         batchAck: mockBatchAck,
-        orgId: 'test-org',
+        orgId: "test-org",
       });
 
       expect(useCase).toBeDefined();
     });
   });
 
-  describe('Inbound Port Interface', () => {
-    it('should have archiveId and batchId in IngestBatchResult', async () => {
-      const inbound = await import('../../telemetry/ports/inbound');
-      
-      const result: typeof import('../../telemetry/ports/inbound').IngestBatchResult = {
+  describe("Inbound Port Interface", () => {
+    it("should have archiveId and batchId in IngestBatchResult", async () => {
+      const inbound = await import("../../telemetry/ports/inbound");
+
+      const result: typeof import("../../telemetry/ports/inbound").IngestBatchResult = {
         framesProcessed: 0,
         readingsDecoded: 0,
         readingsPersisted: 0,
         duplicatesSkipped: 0,
         failedToDeadLetter: 0,
-        archiveId: 'test-archive-id',
-        batchId: 'test-batch-id',
+        archiveId: "test-archive-id",
+        batchId: "test-batch-id",
       };
 
-      expect(result.archiveId).toBe('test-archive-id');
-      expect(result.batchId).toBe('test-batch-id');
+      expect(result.archiveId).toBe("test-archive-id");
+      expect(result.batchId).toBe("test-batch-id");
     });
   });
 });

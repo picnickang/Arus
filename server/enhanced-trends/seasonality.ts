@@ -6,7 +6,9 @@ import { mean } from "simple-statistics";
 import type { SeasonalityAnalysis, SeasonalCycle } from "./types";
 
 export function calculateAutocorrelation(values: number[], lag: number): number {
-  if (lag >= values.length - 1) { return 0; }
+  if (lag >= values.length - 1) {
+    return 0;
+  }
 
   const n = values.length - lag;
   const mean1 = mean(values.slice(0, n));
@@ -25,13 +27,17 @@ export function calculateAutocorrelation(values: number[], lag: number): number 
     denom2 += diff2 * diff2;
   }
 
-  if (denom1 === 0 || denom2 === 0) { return 0; }
+  if (denom1 === 0 || denom2 === 0) {
+    return 0;
+  }
   return numerator / Math.sqrt(denom1 * denom2);
 }
 
 export function calculateSeasonalAmplitude(values: number[], period: number): number {
   const segments = Math.floor(values.length / period);
-  if (segments < 2) { return 0; }
+  if (segments < 2) {
+    return 0;
+  }
 
   const seasonalMeans = [];
   for (let s = 0; s < segments; s++) {
@@ -46,9 +52,15 @@ export function calculateSeasonalAmplitude(values: number[], period: number): nu
   return mean(deviations);
 }
 
-export function calculateSeasonalPhase(values: number[], timestamps: Date[], period: number): number {
+export function calculateSeasonalPhase(
+  values: number[],
+  timestamps: Date[],
+  period: number
+): number {
   const segments = Math.floor(values.length / period);
-  if (segments < 2) { return 0; }
+  if (segments < 2) {
+    return 0;
+  }
 
   let maxCorr = 0;
   let bestPhase = 0;
@@ -91,7 +103,9 @@ export function analyzeSeasonality(values: number[], timestamps: Date[]): Season
   let maxStrength = 0;
 
   for (const testPeriod of testPeriods) {
-    if (values.length < testPeriod.hours * 2) { continue; }
+    if (values.length < testPeriod.hours * 2) {
+      continue;
+    }
 
     const autocorr = calculateAutocorrelation(values, Math.floor(testPeriod.hours));
     const strength = Math.abs(autocorr);

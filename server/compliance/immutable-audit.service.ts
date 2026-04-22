@@ -14,5 +14,5 @@
  * @see ./immutable-audit/convenience-loggers.ts - Pre-configured loggers
  */
 
-export * from './immutable-audit/index';
-export { default, auditService } from './immutable-audit/index';
+export * from "./immutable-audit/index";
+export { default, auditService } from "./immutable-audit/index";

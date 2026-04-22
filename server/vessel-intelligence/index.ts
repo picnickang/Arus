@@ -1,6 +1,6 @@
 /**
  * Vessel Intelligence Module
- * 
+ *
  * Re-exports public API for vessel intelligence functionality.
  * Internal helpers are not exported to preserve encapsulation.
  */

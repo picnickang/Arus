@@ -30,7 +30,10 @@ registerTool({
         lowStockCount: Number(row.low_stock_count || 0),
       };
     } catch (err) {
-      console.warn("[Agent] Inventory query failed:", err instanceof Error ? err.message : "unknown");
+      console.warn(
+        "[Agent] Inventory query failed:",
+        err instanceof Error ? err.message : "unknown"
+      );
       return { note: "Inventory data unavailable or table does not exist yet" };
     }
   },

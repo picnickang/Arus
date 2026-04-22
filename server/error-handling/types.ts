@@ -17,11 +17,21 @@ export const ERROR_HANDLING_CONFIG = {
 
 function getDeploymentContext(): Record<string, any> {
   const isLocalMode = process.env.LOCAL_MODE === "true" || process.env.EMBEDDED_MODE === "true";
-  return { deploymentMode: isLocalMode ? "VESSEL" : "CLOUD", databaseType: isLocalMode ? "SQLite" : "PostgreSQL", environment: process.env.NODE_ENV || "development" };
+  return {
+    deploymentMode: isLocalMode ? "VESSEL" : "CLOUD",
+    databaseType: isLocalMode ? "SQLite" : "PostgreSQL",
+    environment: process.env.NODE_ENV || "development",
+  };
 }
 
 export class AppError extends Error {
-  constructor(message: string, public statusCode: number = 500, public code: string = "INTERNAL_ERROR", public context?: Record<string, any>, public isOperational: boolean = true) {
+  constructor(
+    message: string,
+    public statusCode: number = 500,
+    public code: string = "INTERNAL_ERROR",
+    public context?: Record<string, any>,
+    public isOperational: boolean = true
+  ) {
     super(message);
     this.name = "AppError";
     this.context = { ...getDeploymentContext(), ...context };
@@ -49,6 +59,8 @@ export class ExternalServiceError extends AppError {
 
 export class CircuitBreakerError extends AppError {
   constructor(service: string) {
-    super(`Circuit breaker is open for service: ${service}`, 503, "CIRCUIT_BREAKER_OPEN", { service });
+    super(`Circuit breaker is open for service: ${service}`, 503, "CIRCUIT_BREAKER_OPEN", {
+      service,
+    });
   }
 }

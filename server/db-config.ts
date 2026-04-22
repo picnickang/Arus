@@ -17,7 +17,7 @@ import { logExpectedLimitation } from "./utils/logger.js";
 function detectDatabaseType(url: string): "neon" | "standard" {
   try {
     const parsed = new URL(url);
-    if (parsed.hostname.endsWith('.neon.tech')) {
+    if (parsed.hostname.endsWith(".neon.tech")) {
       return "neon";
     }
   } catch {
@@ -68,7 +68,9 @@ neonConfig.wsProxy = (host) => `${host}`; // Use direct connection
  */
 const isEmbedded = process.env.EMBEDDED_MODE === "true";
 if (isEmbedded && !process.env.DATABASE_URL && process.env.LOCAL_MODE !== "true") {
-  console.warn("⚠️ [DB Config] Embedded mode: DATABASE_URL missing, auto-switching to local SQLite mode");
+  console.warn(
+    "⚠️ [DB Config] Embedded mode: DATABASE_URL missing, auto-switching to local SQLite mode"
+  );
   process.env.LOCAL_MODE = "true";
 }
 
@@ -85,7 +87,11 @@ console.log(`Deployment Mode: ${deploymentMode}`);
 
 // Cloud PostgreSQL Database (Shore office / always-online deployments)
 let pgPool: NeonPool | PgPool | null = null;
-let cloudDatabase: ReturnType<typeof drizzlePgWs> | ReturnType<typeof drizzlePgHttp> | ReturnType<typeof drizzlePgNode> | null = null;
+let cloudDatabase:
+  | ReturnType<typeof drizzlePgWs>
+  | ReturnType<typeof drizzlePgHttp>
+  | ReturnType<typeof drizzlePgNode>
+  | null = null;
 export let connectionMode: "http" | "websocket" | "standard" | "sqlite" = "sqlite";
 
 if (!isLocalMode) {
@@ -97,64 +103,64 @@ if (!isLocalMode) {
   }
 
   const dbType = detectDatabaseType(process.env.DATABASE_URL);
-  
+
   if (dbType === "standard") {
     // Use standard node-postgres for non-Neon databases (Replit, AWS RDS, etc.)
     console.log("ℹ️ Standard PostgreSQL detected: Using node-postgres driver");
-    
+
     pgPool = new PgPool({
       connectionString: process.env.DATABASE_URL,
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
     });
-    
+
     // Handle pool errors gracefully
-    pgPool.on('error', (err) => {
-      console.error('[DB Pool] Error:', err.message);
+    pgPool.on("error", (err) => {
+      console.error("[DB Pool] Error:", err.message);
     });
 
     // Configure drizzle with node-postgres driver
     cloudDatabase = drizzlePgNode(pgPool, { schema });
     connectionMode = "standard";
-    
+
     console.log("✓ Cloud PostgreSQL: Connected (standard mode)");
   } else if (isReplitEnvironment) {
     // Use HTTP driver in Replit for Neon - WebSocket connections are killed by Replit's proxy after ~20s
     console.log("ℹ️ Replit + Neon detected: Using Neon HTTP driver (WebSocket proxy incompatible)");
-    
+
     const sql = neon(process.env.DATABASE_URL);
     cloudDatabase = drizzlePgHttp(sql, { schema });
     connectionMode = "http";
-    
+
     console.log("✓ Cloud PostgreSQL: Connected (HTTP mode)");
   } else {
     // Use WebSocket driver for Neon in production/desktop - supports transactions
     console.log("ℹ️ Neon detected: Using Neon WebSocket driver (full transaction support)");
-    
+
     const connectionUrl = new URL(process.env.DATABASE_URL);
-    if (!connectionUrl.searchParams.has('connect_timeout')) {
-      connectionUrl.searchParams.set('connect_timeout', '15');
+    if (!connectionUrl.searchParams.has("connect_timeout")) {
+      connectionUrl.searchParams.set("connect_timeout", "15");
     }
-    
+
     pgPool = new NeonPool({
       connectionString: connectionUrl.toString(),
       max: 20,
       idleTimeoutMillis: 60000,
       connectionTimeoutMillis: 15000,
     });
-    
-    pgPool.on('error', (err) => {
-      if (err.message?.includes('WebSocket')) {
-        console.warn('⚠️ Neon WebSocket connection error (transient, retrying...)');
+
+    pgPool.on("error", (err) => {
+      if (err.message?.includes("WebSocket")) {
+        console.warn("⚠️ Neon WebSocket connection error (transient, retrying...)");
       } else {
-        console.error('[DB Pool] Unexpected error:', err.message);
+        console.error("[DB Pool] Unexpected error:", err.message);
       }
     });
 
     cloudDatabase = drizzlePgWs(pgPool, { schema });
     connectionMode = "websocket";
-    
+
     console.log("✓ Cloud PostgreSQL: Connected (WebSocket mode)");
   }
 }
@@ -195,14 +201,10 @@ async function initializeLocalDatabase() {
       encryptionKey: process.env.LOCAL_DB_KEY, // Optional encryption at rest
     });
   } else {
-    logExpectedLimitation(
-      "Turso Sync",
-      "Cloud sync not configured - running offline-only",
-      [
-        "Set TURSO_SYNC_URL and TURSO_AUTH_TOKEN to enable cloud sync",
-        "Offline-only mode is normal for desktop/vessel deployments"
-      ]
-    );
+    logExpectedLimitation("Turso Sync", "Cloud sync not configured - running offline-only", [
+      "Set TURSO_SYNC_URL and TURSO_AUTH_TOKEN to enable cloud sync",
+      "Offline-only mode is normal for desktop/vessel deployments",
+    ]);
 
     // Create local-only libSQL client (no sync)
     localClient = createClient({
@@ -253,13 +255,14 @@ async function initializeLocalDatabase() {
     ...schemaSqliteVessel,
   };
   localDatabase = drizzleSqlite(localClient, { schema: sqliteSchema });
-  
+
   // CRITICAL: Update the exported db variable after initialization
   dbInstance = localDatabase;
-  
+
   console.log(`✓ Local SQLite: ${localDbPath}`);
 
-  const { initializeSqliteDatabase, isSqliteDatabaseInitialized, applyInventoryMigrations } = await import("./sqlite-init");
+  const { initializeSqliteDatabase, isSqliteDatabaseInitialized, applyInventoryMigrations } =
+    await import("./sqlite-init");
   const isInitialized = await isSqliteDatabaseInitialized();
 
   if (!isInitialized) {
@@ -293,8 +296,12 @@ async function initializeLocalDatabase() {
 export { initializeLocalDatabase };
 
 // Mutable database instance that gets set after initialization
-let dbInstance: ReturnType<typeof drizzlePgWs> | ReturnType<typeof drizzlePgHttp> | ReturnType<typeof drizzlePgNode> | ReturnType<typeof drizzleSqlite> | null = 
-  isLocalMode ? localDatabase : cloudDatabase;
+let dbInstance:
+  | ReturnType<typeof drizzlePgWs>
+  | ReturnType<typeof drizzlePgHttp>
+  | ReturnType<typeof drizzlePgNode>
+  | ReturnType<typeof drizzleSqlite>
+  | null = isLocalMode ? localDatabase : cloudDatabase;
 
 // Type alias: expose the PG-WebSocket variant as the canonical query-builder type.
 // All three PG drivers (ws, http, node) share the same query-builder API, and
@@ -307,29 +314,37 @@ type DbType = ReturnType<typeof drizzlePgWs<typeof schema>>;
 export const db = new Proxy({} as any, {
   get(target, prop) {
     if (!dbInstance) {
-      throw new Error(`Database not initialized. In ${isLocalMode ? 'local' : 'cloud'} mode, ensure initializeLocalDatabase() is called before accessing db.`);
+      throw new Error(
+        `Database not initialized. In ${isLocalMode ? "local" : "cloud"} mode, ensure initializeLocalDatabase() is called before accessing db.`
+      );
     }
     const value = (dbInstance as any)[prop];
     // If it's a function, bind it to the dbInstance to preserve 'this' context
-    if (typeof value === 'function') {
+    if (typeof value === "function") {
       return value.bind(dbInstance);
     }
     return value;
   },
   // Handle property checks (for 'in' operator and hasOwnProperty)
   has(target, prop) {
-    if (!dbInstance) {return false;}
+    if (!dbInstance) {
+      return false;
+    }
     return prop in dbInstance;
   },
   // Handle Object.keys, Object.getOwnPropertyNames, etc.
   ownKeys(target) {
-    if (!dbInstance) {return [];}
+    if (!dbInstance) {
+      return [];
+    }
     return Reflect.ownKeys(dbInstance);
   },
   getOwnPropertyDescriptor(target, prop) {
-    if (!dbInstance) {return undefined;}
+    if (!dbInstance) {
+      return undefined;
+    }
     return Reflect.getOwnPropertyDescriptor(dbInstance, prop);
-  }
+  },
 }) as DbType;
 
 // Helper alias for transaction callback parameter typing.

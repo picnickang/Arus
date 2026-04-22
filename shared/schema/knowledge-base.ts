@@ -1,6 +1,6 @@
 /**
  * Schema Knowledge Base - RAG Search and Content Management
- * 
+ *
  * Knowledge base items, RAG search queries, and content sources
  * for enhanced LLM report citations and semantic search.
  */

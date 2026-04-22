@@ -22,15 +22,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import {
-  MessageSquare,
-  Zap,
-  Database,
-  ThumbsUp,
-  FileText,
-  Clock,
-  TrendingUp,
-} from "lucide-react";
+import { MessageSquare, Zap, Database, ThumbsUp, FileText, Clock, TrendingUp } from "lucide-react";
 
 interface AnalyticsSummary {
   queries: {
@@ -119,10 +111,7 @@ export function RagAnalyticsDashboard() {
   if (analyticsQuery.isLoading) {
     return (
       <div className="p-6 space-y-6">
-        <PageHeader
-          title="RAG Analytics"
-          description="Knowledge Base performance metrics"
-        />
+        <PageHeader title="RAG Analytics" description="Knowledge Base performance metrics" />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i}>
@@ -140,13 +129,8 @@ export function RagAnalyticsDashboard() {
   if (!analytics) {
     return (
       <div className="p-6">
-        <PageHeader
-          title="RAG Analytics"
-          description="Knowledge Base performance metrics"
-        />
-        <div className="text-center text-muted-foreground py-12">
-          Unable to load analytics data
-        </div>
+        <PageHeader title="RAG Analytics" description="Knowledge Base performance metrics" />
+        <div className="text-center text-muted-foreground py-12">Unable to load analytics data</div>
       </div>
     );
   }
@@ -243,11 +227,7 @@ export function RagAnalyticsDashboard() {
                     }
                   />
                   <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip
-                    labelFormatter={(value) =>
-                      new Date(value).toLocaleDateString()
-                    }
-                  />
+                  <Tooltip labelFormatter={(value) => new Date(value).toLocaleDateString()} />
                   <Line
                     type="monotone"
                     dataKey="count"
@@ -282,9 +262,7 @@ export function RagAnalyticsDashboard() {
                       outerRadius={90}
                       paddingAngle={5}
                       dataKey="value"
-                      label={({ name, percent }) =>
-                        `${name}: ${(percent * 100).toFixed(0)}%`
-                      }
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                     >
                       {feedbackPieData.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={CHART_COLORS[index]} />
@@ -322,11 +300,7 @@ export function RagAnalyticsDashboard() {
                     }
                   />
                   <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip
-                    labelFormatter={(value) =>
-                      new Date(value).toLocaleDateString()
-                    }
-                  />
+                  <Tooltip labelFormatter={(value) => new Date(value).toLocaleDateString()} />
                   <Bar dataKey="helpful" name="Helpful" fill="#22c55e" />
                   <Bar dataKey="notHelpful" name="Not Helpful" fill="#ef4444" />
                 </BarChart>
@@ -347,9 +321,7 @@ export function RagAnalyticsDashboard() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm">Hit Rate</span>
-                <Badge variant="secondary">
-                  {Math.round(analytics.cache.hitRate * 100)}%
-                </Badge>
+                <Badge variant="secondary">{Math.round(analytics.cache.hitRate * 100)}%</Badge>
               </div>
               <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div

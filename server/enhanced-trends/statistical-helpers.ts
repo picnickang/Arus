@@ -22,13 +22,17 @@ export function calculateSkewness(values: number[], meanVal: number, stdDev: num
 export function calculateKurtosis(values: number[], meanVal: number, stdDev: number): number {
   const n = values.length;
   const sum = values.reduce((acc, val) => acc + Math.pow((val - meanVal) / stdDev, 4), 0);
-  return ((n * (n + 1)) / ((n - 1) * (n - 2) * (n - 3))) * sum -
-    (3 * (n - 1) * (n - 1)) / ((n - 2) * (n - 3));
+  return (
+    ((n * (n + 1)) / ((n - 1) * (n - 2) * (n - 3))) * sum -
+    (3 * (n - 1) * (n - 1)) / ((n - 2) * (n - 3))
+  );
 }
 
 export function shapiroWilkTest(values: number[]): { isNormal: boolean; confidence: number } {
   const n = values.length;
-  if (n < 8) { return { isNormal: false, confidence: 0 }; }
+  if (n < 8) {
+    return { isNormal: false, confidence: 0 };
+  }
 
   const meanVal = values.reduce((sum, val) => sum + val, 0) / n;
   const variance = values.reduce((sum, val) => sum + Math.pow(val - meanVal, 2), 0) / (n - 1);
@@ -39,8 +43,12 @@ export function shapiroWilkTest(values: number[]): { isNormal: boolean; confiden
 
   values.forEach((val) => {
     const z = Math.abs((val - meanVal) / stdDev);
-    if (z <= 1) {withinOneSigma++;}
-    if (z <= 2) {withinTwoSigma++;}
+    if (z <= 1) {
+      withinOneSigma++;
+    }
+    if (z <= 2) {
+      withinTwoSigma++;
+    }
   });
 
   const pctOneSigma = withinOneSigma / n;
@@ -90,7 +98,10 @@ export function calculateTrend(values: number[], timestamps: Date[]): TrendResul
   return { slope, rSquared, pValue, trendType };
 }
 
-export function calculateStatisticalSummary(values: number[], timestamps: Date[]): StatisticalSummary {
+export function calculateStatisticalSummary(
+  values: number[],
+  timestamps: Date[]
+): StatisticalSummary {
   const meanValue = mean(values);
   const stdDev = standardDeviation(values);
   const sortedValues = [...values].sort((a, b) => a - b);
@@ -128,7 +139,9 @@ export function calculateStatisticalSummary(values: number[], timestamps: Date[]
 }
 
 export function calculatePearsonCorrelation(x: number[], y: number[]): number {
-  if (x.length !== y.length || x.length === 0) { return 0; }
+  if (x.length !== y.length || x.length === 0) {
+    return 0;
+  }
 
   const n = x.length;
   const meanX = mean(x);
@@ -146,12 +159,16 @@ export function calculatePearsonCorrelation(x: number[], y: number[]): number {
     denomY += diffY * diffY;
   }
 
-  if (denomX === 0 || denomY === 0) { return 0; }
+  if (denomX === 0 || denomY === 0) {
+    return 0;
+  }
   return numerator / Math.sqrt(denomX * denomY);
 }
 
 export function correlationSignificance(correlation: number, n: number): number {
-  if (n < 3) { return 1; }
+  if (n < 3) {
+    return 1;
+  }
   const t = correlation * Math.sqrt((n - 2) / (1 - correlation * correlation));
   const df = n - 2;
   return 2 * (1 - studentTCDF(Math.abs(t), df));

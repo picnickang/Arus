@@ -34,7 +34,9 @@ export interface SensorStatusInfo {
 }
 
 export function formatType(type: string | null): string {
-  if (!type) {return "-";}
+  if (!type) {
+    return "-";
+  }
   return type
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
@@ -42,7 +44,9 @@ export function formatType(type: string | null): string {
 }
 
 export function formatLocation(location: string | null): string {
-  if (!location) {return "-";}
+  if (!location) {
+    return "-";
+  }
   return location
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
@@ -124,7 +128,9 @@ export function getStatusBadgeVariant(
 }
 
 export function formatOptimalRange(param: OperatingParam): string | null {
-  if (param.optimalMin === null && param.optimalMax === null) {return null;}
+  if (param.optimalMin === null && param.optimalMax === null) {
+    return null;
+  }
   const unit = param.unit || "";
   if (param.optimalMin !== null && param.optimalMax !== null) {
     return `${param.optimalMin} - ${param.optimalMax} ${unit}`;
@@ -137,7 +143,9 @@ export function formatOptimalRange(param: OperatingParam): string | null {
 }
 
 export function formatCriticalRange(param: OperatingParam): string | null {
-  if (param.criticalMin === null && param.criticalMax === null) {return null;}
+  if (param.criticalMin === null && param.criticalMax === null) {
+    return null;
+  }
   const unit = param.unit || "";
   if (param.criticalMin !== null && param.criticalMax !== null) {
     return `${param.criticalMin} - ${param.criticalMax} ${unit}`;

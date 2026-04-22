@@ -31,7 +31,11 @@ interface ActivityItem {
   toolCalls: Array<{ toolName: string; inputSummary?: string | null; status: string }>;
   response?: string | null;
   error?: string | null;
-  triggerContext?: { scheduleName?: string | null; scheduleId?: string | null; conversationId?: string | null } | null;
+  triggerContext?: {
+    scheduleName?: string | null;
+    scheduleId?: string | null;
+    conversationId?: string | null;
+  } | null;
 }
 
 interface ActivitySummary {
@@ -86,11 +90,12 @@ describe("Agent Activity E2E", () => {
       expect(Array.isArray(data)).toBe(true);
 
       for (let i = 1; i < data.length; i++) {
-        expect(new Date(data[i - 1].startedAt).getTime())
-          .toBeGreaterThanOrEqual(new Date(data[i].startedAt).getTime());
+        expect(new Date(data[i - 1].startedAt).getTime()).toBeGreaterThanOrEqual(
+          new Date(data[i].startedAt).getTime()
+        );
       }
 
-      const withResponse = data.filter(i => i.response);
+      const withResponse = data.filter((i) => i.response);
       if (withResponse.length > 0) {
         expect(typeof withResponse[0].response).toBe("string");
       }
@@ -98,7 +103,7 @@ describe("Agent Activity E2E", () => {
 
     it("tool calls include input summaries", async () => {
       const { data } = await fetchJson<ActivityItem[]>("/api/agent/activity?triggerType=user");
-      const withTools = data.filter(i => i.toolCallCount > 0 && i.toolCalls.length > 0);
+      const withTools = data.filter((i) => i.toolCallCount > 0 && i.toolCalls.length > 0);
       if (withTools.length > 0) {
         expect(withTools[0].toolCalls[0]).toHaveProperty("toolName");
         expect(withTools[0].toolCalls[0]).toHaveProperty("inputSummary");
@@ -108,18 +113,24 @@ describe("Agent Activity E2E", () => {
 
   describe("Filtering", () => {
     it("filters by trigger type", async () => {
-      const { data: userRuns } = await fetchJson<ActivityItem[]>("/api/agent/activity?triggerType=user");
+      const { data: userRuns } = await fetchJson<ActivityItem[]>(
+        "/api/agent/activity?triggerType=user"
+      );
       for (const item of userRuns) {
         expect(item.triggerType).toBe("user");
       }
-      const { data: schedRuns } = await fetchJson<ActivityItem[]>("/api/agent/activity?triggerType=scheduled");
+      const { data: schedRuns } = await fetchJson<ActivityItem[]>(
+        "/api/agent/activity?triggerType=scheduled"
+      );
       for (const item of schedRuns) {
         expect(item.triggerType).toBe("scheduled");
       }
     });
 
     it("filters by status", async () => {
-      const { data: completed } = await fetchJson<ActivityItem[]>("/api/agent/activity?status=completed");
+      const { data: completed } = await fetchJson<ActivityItem[]>(
+        "/api/agent/activity?status=completed"
+      );
       for (const item of completed) {
         expect(item.status).toBe("completed");
       }
@@ -131,7 +142,9 @@ describe("Agent Activity E2E", () => {
 
     it("filters by date range", async () => {
       const futureDate = new Date(Date.now() + 86400000).toISOString();
-      const { data: empty } = await fetchJson<ActivityItem[]>(`/api/agent/activity?startDate=${futureDate}`);
+      const { data: empty } = await fetchJson<ActivityItem[]>(
+        `/api/agent/activity?startDate=${futureDate}`
+      );
       expect(empty.length).toBe(0);
     });
 
@@ -143,7 +156,9 @@ describe("Agent Activity E2E", () => {
     it("supports pagination with offset", async () => {
       const { data: all } = await fetchJson<ActivityItem[]>("/api/agent/activity?limit=50");
       if (all.length >= 2) {
-        const { data: page2 } = await fetchJson<ActivityItem[]>("/api/agent/activity?limit=1&offset=1");
+        const { data: page2 } = await fetchJson<ActivityItem[]>(
+          "/api/agent/activity?limit=1&offset=1"
+        );
         expect(page2.length).toBeLessThanOrEqual(1);
         if (page2.length > 0) {
           expect(page2[0].id).toBe(all[1].id);

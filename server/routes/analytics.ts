@@ -4,4 +4,10 @@
  * This file re-exports for backward compatibility
  */
 
-export { mountAnalyticsRoutes, getOrgId, sendValidatedResponse, handleError, toFailurePredictionUuid } from "./analytics/index.js";
+export {
+  mountAnalyticsRoutes,
+  getOrgId,
+  sendValidatedResponse,
+  handleError,
+  toFailurePredictionUuid,
+} from "./analytics/index.js";

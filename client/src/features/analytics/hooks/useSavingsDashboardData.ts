@@ -7,7 +7,12 @@ export interface SavingsSummary {
   savingsByType: { labor: number; parts: number; downtime: number };
   savingsCount: number;
   avgSavingsPerIncident: number;
-  topSavings: Array<{ workOrderId: string; equipmentName: string; savings: number; downtimePrevented: number }>;
+  topSavings: Array<{
+    workOrderId: string;
+    equipmentName: string;
+    savings: number;
+    downtimePrevented: number;
+  }>;
 }
 
 export interface SavingsTrend {
@@ -44,27 +49,45 @@ export const savingsDashboardKeys = {
 };
 
 export function useSavingsDashboardData() {
-  const { data: summary, isLoading: summaryLoading, error: summaryError } = useQuery<SavingsSummary>({
+  const {
+    data: summary,
+    isLoading: summaryLoading,
+    error: summaryError,
+  } = useQuery<SavingsSummary>({
     queryKey: savingsDashboardKeys.summary,
     refetchInterval: 60000,
   });
 
-  const { data: trend, isLoading: trendLoading, error: trendError } = useQuery<SavingsTrend[]>({
+  const {
+    data: trend,
+    isLoading: trendLoading,
+    error: trendError,
+  } = useQuery<SavingsTrend[]>({
     queryKey: savingsDashboardKeys.trend,
     refetchInterval: 60000,
   });
 
-  const { data: equipmentFinancials, isLoading: financialsLoading, error: financialsError } = useQuery<EquipmentFinancials>({
+  const {
+    data: equipmentFinancials,
+    isLoading: financialsLoading,
+    error: financialsError,
+  } = useQuery<EquipmentFinancials>({
     queryKey: savingsDashboardKeys.equipmentFinancials,
     refetchInterval: 60000,
   });
 
   const pieData = useMemo(() => {
-    if (!summary) {return [];}
+    if (!summary) {
+      return [];
+    }
     return [
       { name: "Labor Savings", value: summary.savingsByType.labor, color: SAVINGS_COLORS.labor },
       { name: "Parts Savings", value: summary.savingsByType.parts, color: SAVINGS_COLORS.parts },
-      { name: "Downtime Savings", value: summary.savingsByType.downtime, color: SAVINGS_COLORS.downtime },
+      {
+        name: "Downtime Savings",
+        value: summary.savingsByType.downtime,
+        color: SAVINGS_COLORS.downtime,
+      },
     ].filter((item) => item.value > 0);
   }, [summary]);
 

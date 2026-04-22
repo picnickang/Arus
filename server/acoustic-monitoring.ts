@@ -9,7 +9,4 @@ export type {
   AcousticAnalysisResult,
 } from "./acoustic-monitoring/index.js";
 
-export {
-  analyzeAcoustic,
-  performAcousticAnalysis,
-} from "./acoustic-monitoring/index.js";
+export { analyzeAcoustic, performAcousticAnalysis } from "./acoustic-monitoring/index.js";

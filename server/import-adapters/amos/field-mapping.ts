@@ -30,18 +30,21 @@ export interface FieldMapping {
 // ============================================================================
 
 const parseDate = (v: string): Date | null => {
-  if (!v || v === "" || v === "NULL") {return null;}
+  if (!v || v === "" || v === "NULL") {
+    return null;
+  }
   // AMOS uses DD/MM/YYYY, DD.MM.YYYY, or YYYY-MM-DD
   const formats = [
     /^(\d{2})[\/\.](\d{2})[\/\.](\d{4})$/, // DD/MM/YYYY or DD.MM.YYYY
-    /^(\d{4})-(\d{2})-(\d{2})$/,             // YYYY-MM-DD
+    /^(\d{4})-(\d{2})-(\d{2})$/, // YYYY-MM-DD
   ];
   for (const fmt of formats) {
     const m = v.match(fmt);
     if (m) {
-      const d = m[1].length === 4
-        ? new Date(`${m[1]}-${m[2]}-${m[3]}`)
-        : new Date(`${m[3]}-${m[2]}-${m[1]}`);
+      const d =
+        m[1].length === 4
+          ? new Date(`${m[1]}-${m[2]}-${m[3]}`)
+          : new Date(`${m[3]}-${m[2]}-${m[1]}`);
       return isNaN(d.getTime()) ? null : d;
     }
   }
@@ -50,7 +53,9 @@ const parseDate = (v: string): Date | null => {
 };
 
 const parseNumber = (v: string): number | null => {
-  if (!v || v === "" || v === "NULL") {return null;}
+  if (!v || v === "" || v === "NULL") {
+    return null;
+  }
   const n = Number(v.replace(",", "."));
   return isNaN(n) ? null : n;
 };
@@ -60,7 +65,9 @@ const parseBoolean = (v: string): boolean => {
 };
 
 const cleanString = (v: string): string | null => {
-  if (!v || v === "NULL" || v.trim() === "") {return null;}
+  if (!v || v === "NULL" || v.trim() === "") {
+    return null;
+  }
   return v.trim();
 };
 
@@ -70,51 +77,51 @@ const mapCriticality = (v: string): string => {
     "2": "high",
     "3": "medium",
     "4": "low",
-    "A": "critical",
-    "B": "high",
-    "C": "medium",
-    "D": "low",
-    "VITAL": "critical",
-    "IMPORTANT": "high",
-    "NEEDED": "medium",
-    "DESIRABLE": "low",
+    A: "critical",
+    B: "high",
+    C: "medium",
+    D: "low",
+    VITAL: "critical",
+    IMPORTANT: "high",
+    NEEDED: "medium",
+    DESIRABLE: "low",
   };
   return map[v.toUpperCase()] || "medium";
 };
 
 const mapWorkOrderStatus = (v: string): string => {
   const map: Record<string, string> = {
-    "OPEN": "open",
-    "PLANNED": "planned",
+    OPEN: "open",
+    PLANNED: "planned",
     "IN PROGRESS": "in_progress",
     "IN-PROGRESS": "in_progress",
-    "STARTED": "in_progress",
-    "COMPLETED": "completed",
-    "DONE": "completed",
-    "CLOSED": "closed",
-    "CANCELLED": "cancelled",
-    "CANCELED": "cancelled",
-    "OVERDUE": "overdue",
-    "POSTPONED": "deferred",
+    STARTED: "in_progress",
+    COMPLETED: "completed",
+    DONE: "completed",
+    CLOSED: "closed",
+    CANCELLED: "cancelled",
+    CANCELED: "cancelled",
+    OVERDUE: "overdue",
+    POSTPONED: "deferred",
   };
   return map[v.toUpperCase().trim()] || "open";
 };
 
 const mapMaintenanceType = (v: string): string => {
   const map: Record<string, string> = {
-    "PM": "preventive",
-    "PREVENTIVE": "preventive",
-    "PLANNED": "preventive",
-    "CM": "corrective",
-    "CORRECTIVE": "corrective",
-    "BREAKDOWN": "corrective",
-    "PD": "predictive",
-    "PREDICTIVE": "predictive",
-    "CONDITION": "predictive",
-    "EM": "emergency",
-    "EMERGENCY": "emergency",
-    "MODIFICATION": "modification",
-    "MOD": "modification",
+    PM: "preventive",
+    PREVENTIVE: "preventive",
+    PLANNED: "preventive",
+    CM: "corrective",
+    CORRECTIVE: "corrective",
+    BREAKDOWN: "corrective",
+    PD: "predictive",
+    PREDICTIVE: "predictive",
+    CONDITION: "predictive",
+    EM: "emergency",
+    EMERGENCY: "emergency",
+    MODIFICATION: "modification",
+    MOD: "modification",
   };
   return map[v.toUpperCase().trim()] || "preventive";
 };
@@ -146,13 +153,30 @@ export const EQUIPMENT_FIELD_MAP: FieldMapping[] = [
   { amosField: "SERIAL_NO", arusField: "serialNumber", transform: cleanString },
 
   // Dates — stored in specifications JSONB (no dedicated columns)
-  { amosField: "INSTALL_DATE", arusField: "_spec_installDate", transform: (v) => parseDate(v)?.toISOString() ?? null },
-  { amosField: "WARRANTY_EXPIRY", arusField: "_spec_warrantyExpiry", transform: (v) => parseDate(v)?.toISOString() ?? null },
-  { amosField: "LAST_MAINTENANCE_DATE", arusField: "_spec_lastMaintenanceDate", transform: (v) => parseDate(v)?.toISOString() ?? null },
+  {
+    amosField: "INSTALL_DATE",
+    arusField: "_spec_installDate",
+    transform: (v) => parseDate(v)?.toISOString() ?? null,
+  },
+  {
+    amosField: "WARRANTY_EXPIRY",
+    arusField: "_spec_warrantyExpiry",
+    transform: (v) => parseDate(v)?.toISOString() ?? null,
+  },
+  {
+    amosField: "LAST_MAINTENANCE_DATE",
+    arusField: "_spec_lastMaintenanceDate",
+    transform: (v) => parseDate(v)?.toISOString() ?? null,
+  },
 
   // Operating parameters — stored in specifications JSONB
   { amosField: "RUNNING_HOURS", arusField: "_spec_runningHours", transform: (v) => parseNumber(v) },
-  { amosField: "IS_ACTIVE", arusField: "isActive", transform: (v) => parseBoolean(v), defaultValue: true },
+  {
+    amosField: "IS_ACTIVE",
+    arusField: "isActive",
+    transform: (v) => parseBoolean(v),
+    defaultValue: true,
+  },
 
   // Specifications (AMOS has these as separate columns, we pack into JSONB)
   { amosField: "POWER_KW", arusField: "_spec_powerKw", transform: (v) => parseNumber(v) },
@@ -171,10 +195,24 @@ export const WORK_ORDER_FIELD_MAP: FieldMapping[] = [
   { amosField: "LONG_DESCRIPTION", arusField: "reason", transform: cleanString },
   { amosField: "EQUIPMENT_NO", arusField: "equipmentId", required: true },
   { amosField: "VESSEL_CODE", arusField: "vesselId", transform: cleanString },
-  { amosField: "STATUS", arusField: "status", transform: (v) => mapWorkOrderStatus(v), defaultValue: "open" },
-  { amosField: "MAINTENANCE_TYPE", arusField: "maintenanceType", transform: (v) => mapMaintenanceType(v), defaultValue: "preventive" },
+  {
+    amosField: "STATUS",
+    arusField: "status",
+    transform: (v) => mapWorkOrderStatus(v),
+    defaultValue: "open",
+  },
+  {
+    amosField: "MAINTENANCE_TYPE",
+    arusField: "maintenanceType",
+    transform: (v) => mapMaintenanceType(v),
+    defaultValue: "preventive",
+  },
   { amosField: "PRIORITY", arusField: "priority", transform: (v) => parseNumber(v) ?? 3 },
-  { amosField: "PLANNED_START_DATE", arusField: "plannedStartDate", transform: (v) => parseDate(v) },
+  {
+    amosField: "PLANNED_START_DATE",
+    arusField: "plannedStartDate",
+    transform: (v) => parseDate(v),
+  },
   { amosField: "PLANNED_END_DATE", arusField: "plannedEndDate", transform: (v) => parseDate(v) },
   { amosField: "ACTUAL_START_DATE", arusField: "actualStartDate", transform: (v) => parseDate(v) },
   { amosField: "ACTUAL_END_DATE", arusField: "actualEndDate", transform: (v) => parseDate(v) },
@@ -201,8 +239,17 @@ export const PARTS_FIELD_MAP: FieldMapping[] = [
   { amosField: "CRITICALITY", arusField: "criticality", transform: (v) => mapCriticality(v) },
   { amosField: "MIN_STOCK", arusField: "minStockQty", transform: (v) => parseNumber(v) ?? 0 },
   { amosField: "MAX_STOCK", arusField: "maxStockQty", transform: (v) => parseNumber(v) ?? 0 },
-  { amosField: "CURRENT_STOCK", arusField: "_stock_quantityOnHand", transform: (v) => parseNumber(v) ?? 0 },
-  { amosField: "LOCATION", arusField: "_stock_location", transform: cleanString, defaultValue: "MAIN" },
+  {
+    amosField: "CURRENT_STOCK",
+    arusField: "_stock_quantityOnHand",
+    transform: (v) => parseNumber(v) ?? 0,
+  },
+  {
+    amosField: "LOCATION",
+    arusField: "_stock_location",
+    transform: cleanString,
+    defaultValue: "MAIN",
+  },
   { amosField: "BIN_LOCATION", arusField: "_stock_binLocation", transform: cleanString },
   { amosField: "UNIT_COST", arusField: "_stock_unitCost", transform: (v) => parseNumber(v) ?? 0 },
   { amosField: "SUPPLIER_CODE", arusField: "_supplier_code", transform: cleanString },
@@ -219,7 +266,11 @@ export const MAINTENANCE_PLAN_FIELD_MAP: FieldMapping[] = [
   { amosField: "EQUIPMENT_NO", arusField: "equipmentId", required: true },
   { amosField: "FREQUENCY_DAYS", arusField: "frequencyDays", transform: (v) => parseNumber(v) },
   { amosField: "FREQUENCY_HOURS", arusField: "frequencyHours", transform: (v) => parseNumber(v) },
-  { amosField: "MAINTENANCE_TYPE", arusField: "maintenanceType", transform: (v) => mapMaintenanceType(v) },
+  {
+    amosField: "MAINTENANCE_TYPE",
+    arusField: "maintenanceType",
+    transform: (v) => mapMaintenanceType(v),
+  },
   { amosField: "LAST_DONE_DATE", arusField: "lastDoneDate", transform: (v) => parseDate(v) },
   { amosField: "NEXT_DUE_DATE", arusField: "nextDueDate", transform: (v) => parseDate(v) },
   { amosField: "TASK_LIST", arusField: "_tasks", transform: cleanString },

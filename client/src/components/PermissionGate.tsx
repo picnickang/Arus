@@ -7,7 +7,8 @@ export function PagePermissionDenied() {
       <ShieldX className="h-16 w-16 text-muted-foreground/50 mb-4" />
       <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
       <p className="text-muted-foreground text-center max-w-md">
-        You do not have permission to view this page. Please contact your administrator if you believe this is an error.
+        You do not have permission to view this page. Please contact your administrator if you
+        believe this is an error.
       </p>
     </div>
   );
@@ -125,7 +126,10 @@ export function PermissionGatedButton({
   );
 }
 
-export function usePermissionGate(resource: string, action: string): {
+export function usePermissionGate(
+  resource: string,
+  action: string
+): {
   hasAccess: boolean;
   isLoading: boolean;
   isDevMode: boolean;
@@ -139,7 +143,10 @@ export function usePermissionGate(resource: string, action: string): {
   };
 }
 
-export function useMultiPermissionGate(checks: Array<{ resource: string; action: string }>, requireAll = true): {
+export function useMultiPermissionGate(
+  checks: Array<{ resource: string; action: string }>,
+  requireAll = true
+): {
   hasAccess: boolean;
   isLoading: boolean;
   isDevMode: boolean;

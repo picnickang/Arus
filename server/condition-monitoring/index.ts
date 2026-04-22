@@ -7,4 +7,8 @@ export type { OilConditionAssessment, WearAssessment, ConditionTrend } from "./t
 export { assessOilCondition } from "./oil-assessment.js";
 export { assessWearCondition } from "./wear-assessment.js";
 export { generateConditionAssessment } from "./condition-assessment.js";
-export { calculateOilQualityScore, calculateWearScore, generateMaintenanceRecommendations } from "./scoring.js";
+export {
+  calculateOilQualityScore,
+  calculateWearScore,
+  generateMaintenanceRecommendations,
+} from "./scoring.js";

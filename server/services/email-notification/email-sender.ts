@@ -63,19 +63,18 @@ export class EmailSender {
         const messageId = response.headers.get("x-message-id") || `sg-${Date.now()}`;
         log("info", "Email sent successfully", { messageId, recipients: payload.to.length });
         return { success: true, messageId };
-      } 
-        const isRetriable = RETRYABLE_STATUS_CODES.includes(response.status);
-        log("warn", "SendGrid API error", {
-          status: response.status,
-          retriable: isRetriable,
-          attempt,
-        });
-        return {
-          success: false,
-          error: `SendGrid error: ${response.status}`,
-          retriable: isRetriable,
-        };
-      
+      }
+      const isRetriable = RETRYABLE_STATUS_CODES.includes(response.status);
+      log("warn", "SendGrid API error", {
+        status: response.status,
+        retriable: isRetriable,
+        attempt,
+      });
+      return {
+        success: false,
+        error: `SendGrid error: ${response.status}`,
+        retriable: isRetriable,
+      };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       const isNetworkError =

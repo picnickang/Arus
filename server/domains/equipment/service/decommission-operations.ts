@@ -3,13 +3,13 @@
  */
 
 import type { InsertDecommissionEvent, EquipmentDecommissionEvent } from "@shared/schema";
-import { db } from '../../../db';
-import { equipment, equipmentDecommissionEvents } from '@shared/schema-runtime';
-import { eq, and, isNotNull, sql } from 'drizzle-orm';
+import { db } from "../../../db";
+import { equipment, equipmentDecommissionEvents } from "@shared/schema-runtime";
+import { eq, and, isNotNull, sql } from "drizzle-orm";
 import { logger } from "../../../utils/logger.js";
-import { recordAndPublish } from '../../../sync-events';
-import { DualWriteAdapter } from '../../../infrastructure/DualWriteAdapter';
-import * as crud from './crud-operations.js';
+import { recordAndPublish } from "../../../sync-events";
+import { DualWriteAdapter } from "../../../infrastructure/DualWriteAdapter";
+import * as crud from "./crud-operations.js";
 
 export interface DecommissionResult {
   event: EquipmentDecommissionEvent;
@@ -43,11 +43,11 @@ export async function decommissionEquipment(
 ): Promise<DecommissionResult> {
   const existingEquipment = await crud.getEquipmentById(adapter, equipmentId, orgId);
   if (!existingEquipment) {
-    throw new Error('Equipment not found');
+    throw new Error("Equipment not found");
   }
 
   if (existingEquipment.decommissionedAt) {
-    throw new Error('Equipment is already decommissioned');
+    throw new Error("Equipment is already decommissioned");
   }
 
   const [decommissionEvent] = await db
@@ -83,7 +83,7 @@ export async function decommissionEquipment(
 
   logger.info("EquipmentDecommission", `Equipment ${equipmentId} decommissioned: ${data.reason}`);
 
-  await recordAndPublish('equipment', equipmentId, 'update', {
+  await recordAndPublish("equipment", equipmentId, "update", {
     ...updatedEquipment,
     decommissioned: true,
     decommissionReason: data.reason,
@@ -100,7 +100,9 @@ export async function decommissionEquipment(
   };
 }
 
-export async function listDecommissionedEquipment(orgId: string): Promise<DecommissionedEquipmentWithEvent[]> {
+export async function listDecommissionedEquipment(
+  orgId: string
+): Promise<DecommissionedEquipmentWithEvent[]> {
   return await db
     .select({
       equipment: {
@@ -120,12 +122,7 @@ export async function listDecommissionedEquipment(orgId: string): Promise<Decomm
       equipmentDecommissionEvents,
       eq(equipment.decommissionEventId, equipmentDecommissionEvents.id)
     )
-    .where(
-      and(
-        eq(equipment.orgId, orgId),
-        isNotNull(equipment.decommissionedAt)
-      )
-    )
+    .where(and(eq(equipment.orgId, orgId), isNotNull(equipment.decommissionedAt)))
     .orderBy(sql`${equipment.decommissionedAt} DESC`);
 }
 
@@ -137,10 +134,7 @@ export async function getDecommissionEvent(
     .select()
     .from(equipmentDecommissionEvents)
     .where(
-      and(
-        eq(equipmentDecommissionEvents.id, eventId),
-        eq(equipmentDecommissionEvents.orgId, orgId)
-      )
+      and(eq(equipmentDecommissionEvents.id, eventId), eq(equipmentDecommissionEvents.orgId, orgId))
     );
 
   return event;
@@ -172,7 +166,11 @@ export async function getEquipmentFinancialSummary(orgId: string): Promise<{
       .from(equipmentDecommissionEvents)
       .where(eq(equipmentDecommissionEvents.orgId, orgId));
   } catch (error) {
-    logger.warn("getEquipmentFinancialSummary", "Failed to fetch decommission events, using empty array", { error });
+    logger.warn(
+      "getEquipmentFinancialSummary",
+      "Failed to fetch decommission events, using empty array",
+      { error }
+    );
   }
 
   let totalFleetValue = 0;
@@ -189,8 +187,10 @@ export async function getEquipmentFinancialSummary(orgId: string): Promise<{
       if (eq.purchaseValue) {
         totalFleetValue += eq.purchaseValue;
         if (eq.purchaseDate) {
-          const purchaseDate = typeof eq.purchaseDate === 'string' ? new Date(eq.purchaseDate) : eq.purchaseDate;
-          const yearsOwned = (now.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+          const purchaseDate =
+            typeof eq.purchaseDate === "string" ? new Date(eq.purchaseDate) : eq.purchaseDate;
+          const yearsOwned =
+            (now.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
           const depreciationRate = 1 / usefulLifeYears;
           const bookValue = eq.purchaseValue * (1 - Math.min(yearsOwned * depreciationRate, 1));
           totalBookValue += Math.max(0, bookValue);
@@ -205,9 +205,9 @@ export async function getEquipmentFinancialSummary(orgId: string): Promise<{
 
   let totalCapitalRecovered = 0;
   for (const event of decommissionEvents) {
-    if (event.saleDetails && typeof event.saleDetails === 'object') {
+    if (event.saleDetails && typeof event.saleDetails === "object") {
       const saleDetails = event.saleDetails as Record<string, unknown>;
-      if (typeof saleDetails.salePrice === 'number') {
+      if (typeof saleDetails.salePrice === "number") {
         totalCapitalRecovered += saleDetails.salePrice;
       }
     }

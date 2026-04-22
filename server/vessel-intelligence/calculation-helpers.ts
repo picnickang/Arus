@@ -1,14 +1,10 @@
 /**
  * Vessel Intelligence Calculation Helpers
- * 
+ *
  * Utility functions for vessel metrics, performance, and trend calculations.
  */
 
-import type {
-  EquipmentTelemetry,
-  WorkOrder,
-  Vessel as SelectVessel,
-} from "@shared/schema";
+import type { EquipmentTelemetry, WorkOrder, Vessel as SelectVessel } from "@shared/schema";
 import type { VesselLearnings, HistoricalContext } from "./types.js";
 
 export function calculateOperatingHours(vessel: SelectVessel): number {
@@ -28,7 +24,9 @@ export function calculateVesselAge(vessel: SelectVessel): number {
 
 export function calculateAverageResolutionTime(workOrders: WorkOrder[]): number {
   const completed = workOrders.filter((wo) => wo.status === "completed" && wo.completedAt);
-  if (completed.length === 0) {return 0;}
+  if (completed.length === 0) {
+    return 0;
+  }
 
   const totalHours = completed.reduce((sum, wo) => {
     const start = new Date(wo.createdAt).getTime();
@@ -52,8 +50,7 @@ export function calculatePerformanceMetrics(
 
   const analysisPeriodHours = 30 * 24;
   const operatingHours = Math.max(0, analysisPeriodHours - totalDowntimeHours);
-  const availability =
-    analysisPeriodHours > 0 ? (operatingHours / analysisPeriodHours) * 100 : 100;
+  const availability = analysisPeriodHours > 0 ? (operatingHours / analysisPeriodHours) * 100 : 100;
 
   const failureOrders = recentWorkOrders.filter(
     (wo) => wo.type === "corrective" || wo.priority === "critical" || wo.priority === "urgent"
@@ -69,9 +66,7 @@ export function calculatePerformanceMetrics(
 
   const avgResolutionTime = calculateAverageResolutionTime(recentWorkOrders);
   const maintainability =
-    avgResolutionTime > 0
-      ? Math.max(0, 100 - (avgResolutionTime / 48) * 50)
-      : 100;
+    avgResolutionTime > 0 ? Math.max(0, 100 - (avgResolutionTime / 48) * 50) : 100;
 
   return {
     availability: Math.round(availability),
@@ -85,10 +80,15 @@ export function analyzeEquipmentHealth(equipment: any[]): HistoricalContext["equ
 
   equipment.forEach((eq) => {
     const healthScore = eq.healthScore || 75;
-    if (healthScore >= 90) {health.excellent++;}
-    else if (healthScore >= 70) {health.normal++;}
-    else if (healthScore >= 50) {health.warning++;}
-    else {health.critical++;}
+    if (healthScore >= 90) {
+      health.excellent++;
+    } else if (healthScore >= 70) {
+      health.normal++;
+    } else if (healthScore >= 50) {
+      health.warning++;
+    } else {
+      health.critical++;
+    }
   });
 
   return health;
@@ -99,7 +99,9 @@ export function calculateComplianceScore(
   history: HistoricalContext["maintenanceHistory"]
 ): number {
   const total = history.scheduled + history.preventive + history.unscheduled;
-  if (total === 0) {return 100;}
+  if (total === 0) {
+    return 100;
+  }
 
   const planned = history.scheduled + history.preventive;
   const complianceRate = (planned / total) * 100;
@@ -112,7 +114,9 @@ export function byCreatedAtAsc(a: WorkOrder, b: WorkOrder): number {
 }
 
 export function calculateAverageDaysBetween(orders: WorkOrder[]): number {
-  if (orders.length < 2) {return 0;}
+  if (orders.length < 2) {
+    return 0;
+  }
 
   const sorted = [...orders].sort(byCreatedAtAsc);
   let totalDays = 0;
@@ -158,7 +162,10 @@ export function generateFailureRecommendations(
   }
 
   if (avgDays < 90) {
-    recommendations.push("Increase preventive maintenance frequency", "Implement condition-based monitoring");
+    recommendations.push(
+      "Increase preventive maintenance frequency",
+      "Implement condition-based monitoring"
+    );
   }
 
   recommendations.push(`Schedule inspection every ${Math.floor(avgDays * 0.7)} days`);
@@ -232,8 +239,12 @@ export function identifyEnvironmentalFactors(
   return factors;
 }
 
-export function determineCostTrend(ordersWithCost: WorkOrder[]): "increasing" | "decreasing" | "stable" {
-  if (ordersWithCost.length < 4) {return "stable";}
+export function determineCostTrend(
+  ordersWithCost: WorkOrder[]
+): "increasing" | "decreasing" | "stable" {
+  if (ordersWithCost.length < 4) {
+    return "stable";
+  }
 
   const sorted = [...ordersWithCost].sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -249,7 +260,9 @@ export function determineCostTrend(ordersWithCost: WorkOrder[]): "increasing" | 
 
   const change = ((avgLast - avgFirst) / avgFirst) * 100;
 
-  if (Math.abs(change) < 15) {return "stable";}
+  if (Math.abs(change) < 15) {
+    return "stable";
+  }
   return change > 0 ? "increasing" : "decreasing";
 }
 
@@ -257,7 +270,9 @@ export function calculatePredictiveLeadTime(
   readings: EquipmentTelemetry[],
   failures: WorkOrder[]
 ): number {
-  if (failures.length === 0 || readings.length < 10) {return 0;}
+  if (failures.length === 0 || readings.length < 10) {
+    return 0;
+  }
 
   const leadTimes: number[] = [];
 
@@ -283,6 +298,8 @@ export function calculatePredictiveLeadTime(
     }
   });
 
-  if (leadTimes.length === 0) {return 0;}
+  if (leadTimes.length === 0) {
+    return 0;
+  }
   return Math.round(leadTimes.reduce((sum, t) => sum + t, 0) / leadTimes.length);
 }

@@ -21,11 +21,10 @@ import { resolve, relative } from "node:path";
 const BASELINE_PATH = resolve("scripts/lint-warnings-baseline.json");
 
 function runLint() {
-  const res = spawnSync(
-    "npx",
-    ["--no-install", "eslint", ".", "--format=json"],
-    { encoding: "utf8", maxBuffer: 128 * 1024 * 1024 },
-  );
+  const res = spawnSync("npx", ["--no-install", "eslint", ".", "--format=json"], {
+    encoding: "utf8",
+    maxBuffer: 128 * 1024 * 1024,
+  });
   // eslint exit codes:
   //   0 — clean
   //   1 — lint issues found (errors and/or warnings) — JSON still on stdout
@@ -78,8 +77,7 @@ function summarize(issues) {
     byRule.set(i.rule, (byRule.get(i.rule) || 0) + 1);
     byFile.set(i.file, (byFile.get(i.file) || 0) + 1);
   }
-  const top = (m, n = 15) =>
-    [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
+  const top = (m, n = 15) => [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
   return {
     byTopRules: Object.fromEntries(top(byRule)),
     byTopFiles: Object.fromEntries(top(byFile, 10)),
@@ -123,7 +121,7 @@ async function main() {
     };
     await writeFile(BASELINE_PATH, JSON.stringify(payload, null, 2) + "\n");
     console.log(
-      `\n✓ Baseline written: ${relative(process.cwd(), BASELINE_PATH)} (errors=${errors}, warnings=${warnings})`,
+      `\n✓ Baseline written: ${relative(process.cwd(), BASELINE_PATH)} (errors=${errors}, warnings=${warnings})`
     );
     return;
   }
@@ -132,37 +130,33 @@ async function main() {
   try {
     baseline = JSON.parse(await readFile(BASELINE_PATH, "utf8"));
   } catch {
-    console.warn(
-      "\n⚠️  No baseline found. Run with --write-baseline to create one.",
-    );
+    console.warn("\n⚠️  No baseline found. Run with --write-baseline to create one.");
     return;
   }
 
   let regressed = false;
   if (errors > baseline.errors) {
     console.error(
-      `\n❌ ESLint error count INCREASED: ${baseline.errors} → ${errors} (+${errors - baseline.errors})`,
+      `\n❌ ESLint error count INCREASED: ${baseline.errors} → ${errors} (+${errors - baseline.errors})`
     );
     regressed = true;
   }
   if (warnings > baseline.warnings) {
     console.error(
-      `\n❌ ESLint warning count INCREASED: ${baseline.warnings} → ${warnings} (+${warnings - baseline.warnings})`,
+      `\n❌ ESLint warning count INCREASED: ${baseline.warnings} → ${warnings} (+${warnings - baseline.warnings})`
     );
     regressed = true;
   }
 
   if (regressed) {
-    console.error(
-      "\nFix the regression, or — if intentional — update the baseline:",
-    );
+    console.error("\nFix the regression, or — if intentional — update the baseline:");
     console.error("  node scripts/check-lint-warnings.mjs --write-baseline");
     process.exit(1);
   }
 
   if (errors < baseline.errors || warnings < baseline.warnings) {
     console.log(
-      `\n✓ Reduction: errors ${baseline.errors} → ${errors} (-${baseline.errors - errors}), warnings ${baseline.warnings} → ${warnings} (-${baseline.warnings - warnings}). Consider regenerating the baseline.`,
+      `\n✓ Reduction: errors ${baseline.errors} → ${errors} (-${baseline.errors - errors}), warnings ${baseline.warnings} → ${warnings} (-${baseline.warnings - warnings}). Consider regenerating the baseline.`
     );
   } else {
     console.log("\n✓ ESLint counts at baseline.");

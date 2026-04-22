@@ -60,14 +60,22 @@ export interface LineageDelta {
  * Data status for ML governance - differentiates "no data" from "low risk"
  * CRITICAL: Prevents conflating missing telemetry with healthy equipment
  */
-export type DataStatus = 
-  | "sufficient_data"    // Enough telemetry for confident prediction
-  | "limited_data"       // Some data but below ideal thresholds
-  | "no_data"            // Insufficient or no data to make a prediction
-  | "stale_data";        // Data exists but is too old for reliable prediction
+export type DataStatus =
+  | "sufficient_data" // Enough telemetry for confident prediction
+  | "limited_data" // Some data but below ideal thresholds
+  | "no_data" // Insufficient or no data to make a prediction
+  | "stale_data"; // Data exists but is too old for reliable prediction
 
 export interface ProvenanceEvent {
-  type: "prediction" | "alert" | "anomaly" | "work_order" | "training" | "engineer_override" | "override_outcome" | "rul_prediction";
+  type:
+    | "prediction"
+    | "alert"
+    | "anomaly"
+    | "work_order"
+    | "training"
+    | "engineer_override"
+    | "override_outcome"
+    | "rul_prediction";
   ts: string;
   prevHash: string | null;
   hash?: string;
@@ -81,7 +89,7 @@ export interface ProvenanceEvent {
   contributors?: Array<{ sensor: string; weight: number }>;
   rawSliceHash?: string;
   engine?: "tfjs" | "onnx" | "xgboost" | "rf";
-  
+
   // RUL Prediction fields (ML Governance)
   remainingDays?: number;
   riskLevel?: string;
@@ -115,7 +123,7 @@ export interface ProvenanceEvent {
   engineerName?: string;
   engineerCertifications?: string[];
   originalPrediction?: Record<string, unknown>;
-  
+
   // Override outcome fields (ML Governance lifecycle tracking)
   outcomeStatus?: "pending" | "validated" | "failure_prevented" | "failure_occurred";
   outcomeNotes?: string;

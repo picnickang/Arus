@@ -12,11 +12,7 @@ const logOutputs: Record<LogLevel, (msg: string) => void> = {
   info: (msg) => console.log(msg),
 };
 
-export function log(
-  level: LogLevel,
-  message: string,
-  context: Record<string, unknown> = {}
-): void {
+export function log(level: LogLevel, message: string, context: Record<string, unknown> = {}): void {
   const timestamp = new Date().toISOString();
   const prefix = `[EmailNotification]`;
   const contextStr = Object.entries(context)

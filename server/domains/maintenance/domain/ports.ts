@@ -10,8 +10,8 @@ import type {
   UpdateScheduleCommand,
   CreateTemplateCommand,
   UpdateTemplateCommand,
-} from './types';
-import type { MaintenanceDomainEvent } from './events';
+} from "./types";
+import type { MaintenanceDomainEvent } from "./events";
 
 /**
  * Port for maintenance schedule persistence
@@ -23,17 +23,28 @@ export interface IMaintenanceScheduleRepository {
   create(schedule: CreateScheduleCommand): Promise<MaintenanceScheduleEntity>;
   update(id: string, updates: UpdateScheduleCommand): Promise<MaintenanceScheduleEntity>;
   delete(id: string): Promise<void>;
-  autoScheduleForEquipment(equipmentId: string, pdmScore: number): Promise<MaintenanceScheduleEntity>;
+  autoScheduleForEquipment(
+    equipmentId: string,
+    pdmScore: number
+  ): Promise<MaintenanceScheduleEntity>;
 }
 
 /**
  * Port for maintenance template persistence
  */
 export interface IMaintenanceTemplateRepository {
-  findAll(orgId?: string, equipmentType?: string, isActive?: boolean): Promise<MaintenanceTemplateEntity[]>;
+  findAll(
+    orgId?: string,
+    equipmentType?: string,
+    isActive?: boolean
+  ): Promise<MaintenanceTemplateEntity[]>;
   findById(id: string, orgId?: string): Promise<MaintenanceTemplateEntity | undefined>;
   create(template: CreateTemplateCommand): Promise<MaintenanceTemplateEntity>;
-  update(id: string, updates: UpdateTemplateCommand, orgId?: string): Promise<MaintenanceTemplateEntity>;
+  update(
+    id: string,
+    updates: UpdateTemplateCommand,
+    orgId?: string
+  ): Promise<MaintenanceTemplateEntity>;
   delete(id: string, orgId?: string): Promise<void>;
 }
 
@@ -51,7 +62,7 @@ export interface IEventPublisher {
 export interface IRealtimeSyncPort {
   publishChange(params: {
     entityType: string;
-    operation: 'create' | 'update' | 'delete';
+    operation: "create" | "update" | "delete";
     entityId: string;
     payload: unknown;
   }): Promise<void>;

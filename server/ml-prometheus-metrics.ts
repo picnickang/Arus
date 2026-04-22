@@ -22,15 +22,12 @@ export function recordTechnicianInsight(
   _orgId: string,
   _statusLevel: string,
   _durationMs: number,
-  _success: boolean,
+  _success: boolean
 ): void {
   // no-op
 }
 
-export function recordTechnicianInsightFallback(
-  _orgId: string,
-  _reason: string,
-): void {
+export function recordTechnicianInsightFallback(_orgId: string, _reason: string): void {
   // no-op
 }
 
@@ -38,7 +35,7 @@ export function recordFleetTechnicianInsight(
   _orgId: string,
   _count: number,
   _durationMs: number,
-  _success: boolean,
+  _success: boolean
 ): void {
   // no-op
 }

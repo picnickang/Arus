@@ -65,7 +65,13 @@ export interface TwinState {
 }
 
 export interface SimulationScenario {
-  scenarioType: "maintenance" | "failure" | "optimization" | "training" | "weather" | "route_planning";
+  scenarioType:
+    | "maintenance"
+    | "failure"
+    | "optimization"
+    | "training"
+    | "weather"
+    | "route_planning";
   parameters: Record<string, any>;
   duration: number;
   timeStep: number;

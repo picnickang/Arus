@@ -30,10 +30,31 @@ function scheduleWithORTools(
   preferences?: SchedulingPreferences
 ): ScheduleResult {
   try {
-    return scheduleWithConstraints(days, shifts, crew, leaves, portCalls, drydocks, certifications, preferences);
+    return scheduleWithConstraints(
+      days,
+      shifts,
+      crew,
+      leaves,
+      portCalls,
+      drydocks,
+      certifications,
+      preferences
+    );
   } catch (error) {
-    console.warn("Constraint scheduling failed, falling back to greedy scheduler:", error instanceof Error ? error.message : String(error));
-    return scheduleWithGreedy(days, shifts, crew, leaves, portCalls, drydocks, certifications, preferences);
+    console.warn(
+      "Constraint scheduling failed, falling back to greedy scheduler:",
+      error instanceof Error ? error.message : String(error)
+    );
+    return scheduleWithGreedy(
+      days,
+      shifts,
+      crew,
+      leaves,
+      portCalls,
+      drydocks,
+      certifications,
+      preferences
+    );
   }
 }
 
@@ -49,7 +70,9 @@ function scheduleWithGreedy(
 ): ScheduleResult {
   const availableShifts = shifts.filter((shift) => {
     const vesselId = shift.vesselId || "";
-    return days.some((day) => isWindowAllowed(day, shift.start, shift.end, vesselId, portCalls, drydocks));
+    return days.some((day) =>
+      isWindowAllowed(day, shift.start, shift.end, vesselId, portCalls, drydocks)
+    );
   });
 
   const enhancedCrew = crew.map((crewMember) => ({
@@ -61,11 +84,29 @@ function scheduleWithGreedy(
 }
 
 export function planWithEngine(request: ConstraintScheduleRequest): ScheduleResult {
-  const { engine, days, shifts, crew, leaves, portCalls, drydocks, certifications, preferences } = request;
+  const { engine, days, shifts, crew, leaves, portCalls, drydocks, certifications, preferences } =
+    request;
 
   if (engine === ENGINE_OR_TOOLS) {
-    return scheduleWithORTools(days, shifts, crew, leaves, portCalls, drydocks, certifications, preferences);
-  } 
-    return scheduleWithGreedy(days, shifts, crew, leaves, portCalls, drydocks, certifications, preferences);
-  
+    return scheduleWithORTools(
+      days,
+      shifts,
+      crew,
+      leaves,
+      portCalls,
+      drydocks,
+      certifications,
+      preferences
+    );
+  }
+  return scheduleWithGreedy(
+    days,
+    shifts,
+    crew,
+    leaves,
+    portCalls,
+    drydocks,
+    certifications,
+    preferences
+  );
 }

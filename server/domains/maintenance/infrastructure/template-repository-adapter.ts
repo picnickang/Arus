@@ -3,13 +3,13 @@
  * Implements IMaintenanceTemplateRepository port using storage layer
  */
 
-import type { IMaintenanceTemplateRepository } from '../domain/ports';
+import type { IMaintenanceTemplateRepository } from "../domain/ports";
 import type {
   MaintenanceTemplateEntity,
   CreateTemplateCommand,
   UpdateTemplateCommand,
-} from '../domain/types';
-import { dbMaintenanceTemplatesStorage } from '../../../repositories';
+} from "../domain/types";
+import { dbMaintenanceTemplatesStorage } from "../../../repositories";
 
 /**
  * PostgreSQL/Storage adapter for MaintenanceTemplateRepository
@@ -20,7 +20,11 @@ export class MaintenanceTemplateRepositoryAdapter implements IMaintenanceTemplat
     equipmentType?: string,
     isActive?: boolean
   ): Promise<MaintenanceTemplateEntity[]> {
-    const templates = await dbMaintenanceTemplatesStorage.getMaintenanceTemplates(orgId, equipmentType, isActive);
+    const templates = await dbMaintenanceTemplatesStorage.getMaintenanceTemplates(
+      orgId,
+      equipmentType,
+      isActive
+    );
     return templates.map(this.mapToEntity);
   }
 
@@ -39,7 +43,11 @@ export class MaintenanceTemplateRepositoryAdapter implements IMaintenanceTemplat
     updates: UpdateTemplateCommand,
     orgId?: string
   ): Promise<MaintenanceTemplateEntity> {
-    const template = await dbMaintenanceTemplatesStorage.updateMaintenanceTemplate(id, updates as any, orgId);
+    const template = await dbMaintenanceTemplatesStorage.updateMaintenanceTemplate(
+      id,
+      updates as any,
+      orgId
+    );
     return this.mapToEntity(template);
   }
 

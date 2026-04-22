@@ -13,17 +13,8 @@ import {
   PackageCheck,
   CheckCircle2,
 } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow, format } from "date-fns";
@@ -45,25 +36,29 @@ const STAGE_ICONS: Record<string, typeof FileText> = {
   fulfilled: CheckCircle2,
 };
 
-function StageIcon({
-  stageKey,
-  status,
-}: {
-  stageKey: string;
-  status: PipelineStage["status"];
-}) {
-  if (status === "completed") {return <Check className="h-4 w-4" />;}
-  if (status === "current") {return <Clock className="h-4 w-4" />;}
+function StageIcon({ stageKey, status }: { stageKey: string; status: PipelineStage["status"] }) {
+  if (status === "completed") {
+    return <Check className="h-4 w-4" />;
+  }
+  if (status === "current") {
+    return <Clock className="h-4 w-4" />;
+  }
   const Icon = STAGE_ICONS[stageKey] || Circle;
   return <Icon className="h-3.5 w-3.5" />;
 }
 
 function formatDetails(details: Record<string, unknown> | null): string[] {
-  if (!details) {return [];}
+  if (!details) {
+    return [];
+  }
   const lines: string[] = [];
   for (const [key, value] of Object.entries(details)) {
-    if (value === null || value === undefined) {continue;}
-    if (typeof value === "object") {continue;}
+    if (value === null || value === undefined) {
+      continue;
+    }
+    if (typeof value === "object") {
+      continue;
+    }
     const label = key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase());
     lines.push(`${label}: ${String(value)}`);
   }
@@ -77,9 +72,7 @@ function StageDetailContent({ stage }: { stage: PipelineStage }) {
       <p className="font-semibold">{stage.label}</p>
       <p className="text-muted-foreground">{stage.description}</p>
       {stage.timestamp && (
-        <p className="mt-1">
-          {format(new Date(stage.timestamp), "MMM d, yyyy HH:mm")}
-        </p>
+        <p className="mt-1">{format(new Date(stage.timestamp), "MMM d, yyyy HH:mm")}</p>
       )}
       {(stage.actorName || stage.actor) && (
         <p className="text-muted-foreground">By: {stage.actorName || stage.actor}</p>
@@ -87,7 +80,9 @@ function StageDetailContent({ stage }: { stage: PipelineStage }) {
       {detailLines.length > 0 && (
         <div className="mt-1.5 pt-1.5 border-t border-border space-y-0.5">
           {detailLines.map((line) => (
-            <p key={line} className="text-muted-foreground">{line}</p>
+            <p key={line} className="text-muted-foreground">
+              {line}
+            </p>
           ))}
         </div>
       )}
@@ -114,8 +109,7 @@ function DesktopPipeline({ stages }: { stages: PipelineStage[] }) {
                   <div
                     className={cn(
                       "w-9 h-9 rounded-full flex items-center justify-center transition-colors shrink-0",
-                      stage.status === "completed" &&
-                        "bg-green-500 text-white",
+                      stage.status === "completed" && "bg-green-500 text-white",
                       stage.status === "current" &&
                         "bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2 ring-offset-background",
                       stage.status === "upcoming" &&
@@ -129,8 +123,7 @@ function DesktopPipeline({ stages }: { stages: PipelineStage[] }) {
                     className={cn(
                       "text-[10px] font-medium text-center leading-tight w-full px-0.5",
                       stage.status === "current" && "text-primary",
-                      stage.status === "completed" &&
-                        "text-green-600 dark:text-green-400",
+                      stage.status === "completed" && "text-green-600 dark:text-green-400",
                       stage.status === "upcoming" && "text-muted-foreground"
                     )}
                   >
@@ -173,7 +166,10 @@ function MobilePipeline({ stages }: { stages: PipelineStage[] }) {
     <div className="md:hidden flex items-center gap-1 overflow-x-auto pb-1">
       {stages.map((stage, index) => (
         <div key={stage.key} className="flex items-center flex-shrink-0">
-          <Popover open={openStage === stage.key} onOpenChange={(open) => setOpenStage(open ? stage.key : null)}>
+          <Popover
+            open={openStage === stage.key}
+            onOpenChange={(open) => setOpenStage(open ? stage.key : null)}
+          >
             <PopoverTrigger asChild>
               <button
                 type="button"
@@ -186,14 +182,11 @@ function MobilePipeline({ stages }: { stages: PipelineStage[] }) {
                     "text-[10px] px-2 py-0.5 whitespace-nowrap cursor-pointer",
                     stage.status === "completed" &&
                       "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30",
-                    stage.status === "current" &&
-                      "bg-primary/20 text-primary border-primary/30",
+                    stage.status === "current" && "bg-primary/20 text-primary border-primary/30",
                     stage.status === "upcoming" && "opacity-40"
                   )}
                 >
-                  {stage.status === "completed" && (
-                    <Check className="h-3 w-3 mr-0.5" />
-                  )}
+                  {stage.status === "completed" && <Check className="h-3 w-3 mr-0.5" />}
                   {stage.label}
                 </Badge>
               </button>
@@ -227,10 +220,7 @@ function PipelineSkeleton() {
   );
 }
 
-export function PurchasePipelineStrip({
-  prId,
-  className,
-}: PurchasePipelineStripProps) {
+export function PurchasePipelineStrip({ prId, className }: PurchasePipelineStripProps) {
   const { data: pipeline, isLoading, error } = usePurchasePipeline(prId);
 
   if (isLoading) {

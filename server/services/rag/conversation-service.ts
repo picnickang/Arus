@@ -1,6 +1,6 @@
 /**
  * RAG Conversation Service
- * 
+ *
  * Manages multi-turn conversations with context memory.
  * Features:
  * - Conversation CRUD operations
@@ -9,12 +9,12 @@
  * - Conversation summarization for long histories
  */
 
-import { db } from '../../db';
-import { sql, eq, and } from 'drizzle-orm';
-import { ragConversations, ragMessages } from '@shared/schema-runtime';
-import type { RagConversation, RagMessage } from '@shared/schema';
-import type { ConversationMessage, ConversationContext, Citation } from './types';
-import { logger } from '../../utils/logger';
+import { db } from "../../db";
+import { sql, eq, and } from "drizzle-orm";
+import { ragConversations, ragMessages } from "@shared/schema-runtime";
+import type { RagConversation, RagMessage } from "@shared/schema";
+import type { ConversationMessage, ConversationContext, Citation } from "./types";
+import { logger } from "../../utils/logger";
 
 const MAX_CONTEXT_MESSAGES = 10;
 const MAX_CONTEXT_TOKENS = 4000;
@@ -39,7 +39,7 @@ export class ConversationService {
       .values({
         orgId: params.orgId,
         userId: params.userId,
-        title: params.title || 'New Conversation',
+        title: params.title || "New Conversation",
         context: params.context || {},
         messageCount: 0,
         isActive: true,
@@ -67,7 +67,7 @@ export class ConversationService {
     activeOnly?: boolean;
   }): Promise<RagConversation[]> {
     const conditions = [eq(ragConversations.orgId, params.orgId)];
-    
+
     if (params.userId) {
       conditions.push(eq(ragConversations.userId, params.userId));
     }
@@ -85,7 +85,7 @@ export class ConversationService {
 
   async updateConversation(
     conversationId: string,
-    updates: Partial<Pick<RagConversation, 'title' | 'context' | 'isActive'>>
+    updates: Partial<Pick<RagConversation, "title" | "context" | "isActive">>
   ): Promise<RagConversation | null> {
     const [updated] = await db
       .update(ragConversations)
@@ -110,7 +110,7 @@ export class ConversationService {
 
   async addMessage(params: {
     conversationId: string;
-    role: 'user' | 'assistant' | 'system';
+    role: "user" | "assistant" | "system";
     content: string;
     sourceChunkIds?: string[];
     citations?: Citation[];
@@ -141,7 +141,9 @@ export class ConversationService {
       })
       .where(eq(ragConversations.id, params.conversationId));
 
-    logger.info(`[ConversationService] Added ${params.role} message to conversation ${params.conversationId}`);
+    logger.info(
+      `[ConversationService] Added ${params.role} message to conversation ${params.conversationId}`
+    );
     return message;
   }
 
@@ -156,17 +158,17 @@ export class ConversationService {
 
   async getConversationContext(conversationId: string): Promise<ConversationContext> {
     const messages = await this.getMessages(conversationId, this.maxContextMessages);
-    
+
     const contextMessages: ConversationMessage[] = [];
     let estimatedTokens = 0;
 
     for (let i = messages.length - 1; i >= 0 && estimatedTokens < this.maxContextTokens; i--) {
       const msg = messages[i];
       const msgTokens = Math.ceil(msg.content.length / 4);
-      
+
       if (estimatedTokens + msgTokens <= this.maxContextTokens) {
         contextMessages.unshift({
-          role: msg.role as 'user' | 'assistant' | 'system',
+          role: msg.role as "user" | "assistant" | "system",
           content: msg.content,
         });
         estimatedTokens += msgTokens;
@@ -177,7 +179,7 @@ export class ConversationService {
 
     return {
       messages: contextMessages,
-      metadata: conversation?.context as Record<string, any> || {},
+      metadata: (conversation?.context as Record<string, any>) || {},
     };
   }
 
@@ -204,22 +206,25 @@ export class ConversationService {
   async generateTitle(conversationId: string): Promise<string> {
     const messages = await this.getMessages(conversationId, 3);
     if (messages.length === 0) {
-      return 'New Conversation';
+      return "New Conversation";
     }
 
-    const firstUserMessage = messages.find(m => m.role === 'user');
+    const firstUserMessage = messages.find((m) => m.role === "user");
     if (!firstUserMessage) {
-      return 'New Conversation';
+      return "New Conversation";
     }
 
     const title = firstUserMessage.content.substring(0, 50).trim();
-    return title + (firstUserMessage.content.length > 50 ? '...' : '');
+    return title + (firstUserMessage.content.length > 50 ? "..." : "");
   }
 }
 
 let defaultInstance: ConversationService | null = null;
 
-export function getConversationService(config?: { maxContextMessages?: number; maxContextTokens?: number }): ConversationService {
+export function getConversationService(config?: {
+  maxContextMessages?: number;
+  maxContextTokens?: number;
+}): ConversationService {
   if (!defaultInstance || config) {
     defaultInstance = new ConversationService(config);
   }

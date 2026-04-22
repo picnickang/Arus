@@ -5,7 +5,6 @@
  * MODULARIZED: 647 lines → 9 focused modules (~20-100 lines each)
  */
 
-
 declare global {
   namespace Express {
     interface Request {
@@ -36,6 +35,10 @@ export { secureErrorHandler } from "./security/error-handler";
 
 export { requireAuthentication } from "./security/authentication";
 
-export { requireAdminRole, validateOrganizationAccess, requireAdminAuth } from "./security/authorization";
+export {
+  requireAdminRole,
+  validateOrganizationAccess,
+  requireAdminAuth,
+} from "./security/authorization";
 
 export { auditAdminAction } from "./security/audit";

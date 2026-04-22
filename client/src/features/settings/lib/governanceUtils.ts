@@ -104,12 +104,19 @@ export function formatModelVersion(version: string): string {
 }
 
 export function truncateHash(hash: string, length: number = 8): string {
-  if (hash.length <= length) {return hash;}
+  if (hash.length <= length) {
+    return hash;
+  }
   return `${hash.substring(0, length)}...`;
 }
 
 export function formatMetricValue(key: string, value: number): string {
-  if (key.includes("accuracy") || key.includes("rate") || key.includes("recall") || key.includes("precision")) {
+  if (
+    key.includes("accuracy") ||
+    key.includes("rate") ||
+    key.includes("recall") ||
+    key.includes("precision")
+  ) {
     return `${(value * 100).toFixed(1)}%`;
   }
 
@@ -119,7 +126,9 @@ export function formatMetricValue(key: string, value: number): string {
   return value.toFixed(4);
 }
 
-export function getModelStageBadgeVariant(stage: string): "default" | "secondary" | "destructive" | "outline" {
+export function getModelStageBadgeVariant(
+  stage: string
+): "default" | "secondary" | "destructive" | "outline" {
   switch (stage) {
     case "production":
       return "default";

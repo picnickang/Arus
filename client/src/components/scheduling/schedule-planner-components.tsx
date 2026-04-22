@@ -8,12 +8,30 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
-  ChevronLeft, ChevronRight, Ship, Users, AlertTriangle, Sparkles,
-  CheckCircle2, Clock, Shield, RefreshCw, CloudOff, AlertCircle,
-  User, Move, ChevronRight as ChevronRightIcon
+  ChevronLeft,
+  ChevronRight,
+  Ship,
+  Users,
+  AlertTriangle,
+  Sparkles,
+  CheckCircle2,
+  Clock,
+  Shield,
+  RefreshCw,
+  CloudOff,
+  AlertCircle,
+  User,
+  Move,
+  ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 import { format, isToday, isSameDay, parseISO } from "date-fns";
 import {
@@ -25,7 +43,7 @@ import {
   type CrewMember,
   type Vessel,
   type FatigueRiskLevel,
-  type FatigueResult
+  type FatigueResult,
 } from "@/features/crew/hooks/useSchedulePlannerData";
 import { type ProjectionViolation } from "@/features/crew/hooks/useHoRSync";
 import { cn } from "@/lib/utils";
@@ -35,7 +53,12 @@ import {
   MOBILE_LONG_PRESS_MS,
   type DragState,
 } from "./schedule-planner-utils";
-import { FatigueRiskBadge, DetailsTab, ConstraintsTab, SuggestionsTab } from "./schedule-planner-tabs";
+import {
+  FatigueRiskBadge,
+  DetailsTab,
+  ConstraintsTab,
+  SuggestionsTab,
+} from "./schedule-planner-tabs";
 
 export interface DragCompliancePreview {
   canAssign: boolean;
@@ -44,18 +67,30 @@ export interface DragCompliancePreview {
   isLoading: boolean;
 }
 
-export function SyncStatusIndicator({ status, pendingCount = 0 }: { status: SyncStatus; pendingCount?: number }) {
+export function SyncStatusIndicator({
+  status,
+  pendingCount = 0,
+}: {
+  status: SyncStatus;
+  pendingCount?: number;
+}) {
   switch (status) {
     case "up_to_date":
       return (
-        <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400" data-testid="sync-status-up-to-date">
+        <div
+          className="flex items-center gap-1.5 text-green-600 dark:text-green-400"
+          data-testid="sync-status-up-to-date"
+        >
           <CheckCircle2 className="h-4 w-4" />
           <span className="text-sm">Up to date</span>
         </div>
       );
     case "syncing":
       return (
-        <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400" data-testid="sync-status-syncing">
+        <div
+          className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400"
+          data-testid="sync-status-syncing"
+        >
           <RefreshCw className="h-4 w-4 animate-spin" />
           <span className="text-sm">
             {pendingCount > 0 ? `Syncing ${pendingCount} pending` : "Syncing"}
@@ -64,7 +99,10 @@ export function SyncStatusIndicator({ status, pendingCount = 0 }: { status: Sync
       );
     case "offline":
       return (
-        <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400" data-testid="sync-status-offline">
+        <div
+          className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400"
+          data-testid="sync-status-offline"
+        >
           <CloudOff className="h-4 w-4" />
           <span className="text-sm">
             {pendingCount > 0 ? `Offline (${pendingCount} pending)` : "Offline"}
@@ -73,7 +111,10 @@ export function SyncStatusIndicator({ status, pendingCount = 0 }: { status: Sync
       );
     case "error":
       return (
-        <div className="flex items-center gap-1.5 text-red-600 dark:text-red-400" data-testid="sync-status-error">
+        <div
+          className="flex items-center gap-1.5 text-red-600 dark:text-red-400"
+          data-testid="sync-status-error"
+        >
           <AlertCircle className="h-4 w-4" />
           <span className="text-sm">Sync Error</span>
         </div>
@@ -100,25 +141,33 @@ export function MobileCrewRosterDrawer({
 
   const uniqueRanks = useMemo(() => {
     const ranks = new Set<string>();
-    crew.forEach(c => ranks.add(c.rank));
+    crew.forEach((c) => ranks.add(c.rank));
     return Array.from(ranks).sort();
   }, [crew]);
 
   const filteredCrew = useMemo(() => {
-    return crew.filter(c => {
-      if (searchQuery && !c.name.toLowerCase().includes(searchQuery.toLowerCase())) {return false;}
-      if (rankFilter && c.rank !== rankFilter) {return false;}
+    return crew.filter((c) => {
+      if (searchQuery && !c.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false;
+      }
+      if (rankFilter && c.rank !== rankFilter) {
+        return false;
+      }
       if (availabilityFilter) {
         const status = c.availability || (c.onLeave ? "leave" : "available");
-        if (status !== availabilityFilter) {return false;}
+        if (status !== availabilityFilter) {
+          return false;
+        }
       }
       return c.active;
     });
   }, [crew, searchQuery, rankFilter, availabilityFilter]);
 
   const getVesselName = (vesselId?: string) => {
-    if (!vesselId) {return "Unassigned";}
-    const vessel = vessels.find(v => v.id === vesselId);
+    if (!vesselId) {
+      return "Unassigned";
+    }
+    const vessel = vessels.find((v) => v.id === vesselId);
     return vessel?.name || "Unknown Vessel";
   };
 
@@ -126,13 +175,29 @@ export function MobileCrewRosterDrawer({
     const status = member.availability || (member.onLeave ? "leave" : "available");
     switch (status) {
       case "available":
-        return <Badge variant="outline" className="text-green-600 border-green-600 text-[10px]">Available</Badge>;
+        return (
+          <Badge variant="outline" className="text-green-600 border-green-600 text-[10px]">
+            Available
+          </Badge>
+        );
       case "on_duty":
-        return <Badge variant="outline" className="text-blue-600 border-blue-600 text-[10px]">On Duty</Badge>;
+        return (
+          <Badge variant="outline" className="text-blue-600 border-blue-600 text-[10px]">
+            On Duty
+          </Badge>
+        );
       case "leave":
-        return <Badge variant="outline" className="text-amber-600 border-amber-600 text-[10px]">On Leave</Badge>;
+        return (
+          <Badge variant="outline" className="text-amber-600 border-amber-600 text-[10px]">
+            On Leave
+          </Badge>
+        );
       case "pending":
-        return <Badge variant="outline" className="text-muted-foreground text-[10px]">Pending</Badge>;
+        return (
+          <Badge variant="outline" className="text-muted-foreground text-[10px]">
+            Pending
+          </Badge>
+        );
       default:
         return null;
     }
@@ -157,18 +222,26 @@ export function MobileCrewRosterDrawer({
             data-testid="input-crew-search"
           />
           <div className="flex gap-2">
-            <Select value={rankFilter || "__all__"} onValueChange={(v) => setRankFilter(v === "__all__" ? null : v)}>
+            <Select
+              value={rankFilter || "__all__"}
+              onValueChange={(v) => setRankFilter(v === "__all__" ? null : v)}
+            >
               <SelectTrigger className="flex-1 h-9" data-testid="select-rank-filter">
                 <SelectValue placeholder="All Ranks" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">All Ranks</SelectItem>
-                {uniqueRanks.map(rank => (
-                  <SelectItem key={rank} value={rank}>{rank}</SelectItem>
+                {uniqueRanks.map((rank) => (
+                  <SelectItem key={rank} value={rank}>
+                    {rank}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select value={availabilityFilter || "__all__"} onValueChange={(v) => setAvailabilityFilter(v === "__all__" ? null : v)}>
+            <Select
+              value={availabilityFilter || "__all__"}
+              onValueChange={(v) => setAvailabilityFilter(v === "__all__" ? null : v)}
+            >
               <SelectTrigger className="flex-1 h-9" data-testid="select-availability-filter">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
@@ -190,7 +263,7 @@ export function MobileCrewRosterDrawer({
             </div>
           ) : (
             <div className="divide-y">
-              {filteredCrew.map(member => (
+              {filteredCrew.map((member) => (
                 <button
                   key={member.id}
                   className="w-full text-left p-3 hover-elevate active-elevate-2 flex items-center gap-3"
@@ -202,7 +275,11 @@ export function MobileCrewRosterDrawer({
                 >
                   <Avatar className="h-10 w-10">
                     <AvatarFallback className={cn("text-white text-xs", getRoleColor(member.rank))}>
-                      {member.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
+                      {member.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
@@ -224,7 +301,7 @@ export function MobileCrewRosterDrawer({
         </ScrollArea>
 
         <div className="p-3 border-t bg-muted/30 text-xs text-muted-foreground text-center">
-          {filteredCrew.length} of {crew.filter(c => c.active).length} crew members
+          {filteredCrew.length} of {crew.filter((c) => c.active).length} crew members
         </div>
       </SheetContent>
     </Sheet>
@@ -249,18 +326,28 @@ export function DateRangeSelector({
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <div className="flex items-center border rounded-md">
-        <Button variant="ghost" size="sm" onClick={() => onNavigate("prev")} data-testid="button-prev-range">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onNavigate("prev")}
+          data-testid="button-prev-range"
+        >
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <Button variant="ghost" size="sm" onClick={onToday} data-testid="button-today">
           Today
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => onNavigate("next")} data-testid="button-next-range">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onNavigate("next")}
+          data-testid="button-next-range"
+        >
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
       <div className="flex items-center gap-1 border rounded-md">
-        {(["2w", "1m", "3m"] as DateRangePreset[]).map(p => (
+        {(["2w", "1m", "3m"] as DateRangePreset[]).map((p) => (
           <Button
             key={p}
             variant={preset === p ? "secondary" : "ghost"}
@@ -282,10 +369,12 @@ export function DateRangeSelector({
 export function TimelineHeader({ days, isMobile = false }: { days: Date[]; isMobile?: boolean }) {
   return (
     <div className="flex border-b sticky top-0 z-20 bg-background">
-      <div className={cn(
-        "shrink-0 border-r bg-background p-2 md:p-3 font-medium text-xs md:text-sm sticky left-0 z-30",
-        isMobile ? "w-28" : "w-48"
-      )}>
+      <div
+        className={cn(
+          "shrink-0 border-r bg-background p-2 md:p-3 font-medium text-xs md:text-sm sticky left-0 z-30",
+          isMobile ? "w-28" : "w-48"
+        )}
+      >
         Vessels
       </div>
       <div className="flex-1 flex">
@@ -298,11 +387,15 @@ export function TimelineHeader({ days, isMobile = false }: { days: Date[]; isMob
               isToday(day) && "bg-primary/5"
             )}
           >
-            <div className="text-[10px] md:text-xs font-medium">{format(day, isMobile ? "E" : "EEE")}</div>
-            <div className={cn(
-              "text-[10px] md:text-xs",
-              isToday(day) ? "text-primary font-semibold" : "text-muted-foreground"
-            )}>
+            <div className="text-[10px] md:text-xs font-medium">
+              {format(day, isMobile ? "E" : "EEE")}
+            </div>
+            <div
+              className={cn(
+                "text-[10px] md:text-xs",
+                isToday(day) ? "text-primary font-semibold" : "text-muted-foreground"
+              )}
+            >
               {format(day, isMobile ? "d" : "MMM d")}
             </div>
           </div>
@@ -345,37 +438,52 @@ export function DragGhostPreview({
       {isLoading ? (
         <RefreshCw className="h-3 w-3 animate-spin shrink-0" />
       ) : (
-        <div className={cn(
-          "w-3 h-3 rounded-full shrink-0",
-          canAssign ? "bg-green-400" : "bg-red-400"
-        )} />
+        <div
+          className={cn("w-3 h-3 rounded-full shrink-0", canAssign ? "bg-green-400" : "bg-red-400")}
+        />
       )}
       {!isLoading && projectedRestHours !== undefined && (
-        <span className="text-xs opacity-80">
-          {projectedRestHours}h rest
-        </span>
+        <span className="text-xs opacity-80">{projectedRestHours}h rest</span>
       )}
     </div>
   );
 }
 
 export function ComplianceTab({
-  fatigue
+  fatigue,
 }: {
   assignment: ScheduleAssignment;
   fatigue?: FatigueResult;
 }) {
   const getComplianceStatus = () => {
-    if (!fatigue) {return { status: "UNKNOWN", color: "text-muted-foreground", bg: "bg-muted" };}
+    if (!fatigue) {
+      return { status: "UNKNOWN", color: "text-muted-foreground", bg: "bg-muted" };
+    }
     switch (fatigue.riskLevel) {
       case "critical":
-        return { status: "NON-COMPLIANT", color: "text-red-600", bg: "bg-red-100 dark:bg-red-900/30" };
+        return {
+          status: "NON-COMPLIANT",
+          color: "text-red-600",
+          bg: "bg-red-100 dark:bg-red-900/30",
+        };
       case "high":
-        return { status: "AT RISK", color: "text-orange-600", bg: "bg-orange-100 dark:bg-orange-900/30" };
+        return {
+          status: "AT RISK",
+          color: "text-orange-600",
+          bg: "bg-orange-100 dark:bg-orange-900/30",
+        };
       case "medium":
-        return { status: "CAUTION", color: "text-yellow-600", bg: "bg-yellow-100 dark:bg-yellow-900/30" };
+        return {
+          status: "CAUTION",
+          color: "text-yellow-600",
+          bg: "bg-yellow-100 dark:bg-yellow-900/30",
+        };
       case "low":
-        return { status: "LEGAL", color: "text-green-600", bg: "bg-green-100 dark:bg-green-900/30" };
+        return {
+          status: "LEGAL",
+          color: "text-green-600",
+          bg: "bg-green-100 dark:bg-green-900/30",
+        };
       default:
         return { status: "UNKNOWN", color: "text-muted-foreground", bg: "bg-muted" };
     }
@@ -408,23 +516,45 @@ export function ComplianceTab({
                 </div>
                 <Separator />
                 <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Rest Hour Metrics (14-day lookback)</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                    Rest Hour Metrics (14-day lookback)
+                  </p>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
                       <p className="text-muted-foreground">Avg Rest/24h</p>
-                      <p className="font-medium">{fatigue.metrics.avgRestPer24h?.toFixed(1) || "N/A"}h <span className="text-xs text-muted-foreground">(min: 10h)</span></p>
+                      <p className="font-medium">
+                        {fatigue.metrics.avgRestPer24h?.toFixed(1) || "N/A"}h{" "}
+                        <span className="text-xs text-muted-foreground">(min: 10h)</span>
+                      </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Avg Rest/7d</p>
-                      <p className="font-medium">{fatigue.metrics.avgRestPer7d?.toFixed(1) || "N/A"}h <span className="text-xs text-muted-foreground">(max work: 77h)</span></p>
+                      <p className="font-medium">
+                        {fatigue.metrics.avgRestPer7d?.toFixed(1) || "N/A"}h{" "}
+                        <span className="text-xs text-muted-foreground">(max work: 77h)</span>
+                      </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Sleep Debt (24h)</p>
-                      <p className={cn("font-medium", fatigue.metrics.sleepDebt24h > 2 ? "text-red-500" : "")}>{fatigue.metrics.sleepDebt24h?.toFixed(1) || 0}h</p>
+                      <p
+                        className={cn(
+                          "font-medium",
+                          fatigue.metrics.sleepDebt24h > 2 ? "text-red-500" : ""
+                        )}
+                      >
+                        {fatigue.metrics.sleepDebt24h?.toFixed(1) || 0}h
+                      </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Sleep Debt (7d)</p>
-                      <p className={cn("font-medium", fatigue.metrics.sleepDebt7d > 10 ? "text-red-500" : "")}>{fatigue.metrics.sleepDebt7d?.toFixed(1) || 0}h</p>
+                      <p
+                        className={cn(
+                          "font-medium",
+                          fatigue.metrics.sleepDebt7d > 10 ? "text-red-500" : ""
+                        )}
+                      >
+                        {fatigue.metrics.sleepDebt7d?.toFixed(1) || 0}h
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -434,7 +564,9 @@ export function ComplianceTab({
             {fatigue.factors.length > 0 && (
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Contributing Factors</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">
+                    Contributing Factors
+                  </p>
                   <ul className="space-y-1">
                     {fatigue.factors.map((factor, i) => (
                       <li key={i} className="text-sm flex items-start gap-2">
@@ -450,7 +582,9 @@ export function ComplianceTab({
             {fatigue.recommendations.length > 0 && (
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Recommendations</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">
+                    Recommendations
+                  </p>
                   <ul className="space-y-1">
                     {fatigue.recommendations.map((rec, i) => (
                       <li key={i} className="text-sm flex items-start gap-2">
@@ -509,31 +643,53 @@ export function AssignmentDrawerContent({
   isSaving: boolean;
   isSuggestionsLoading?: boolean;
 }) {
-  const hardCount = violations.filter(v => v.severity === "HARD").length;
-  const softCount = violations.filter(v => v.severity === "SOFT").length;
+  const hardCount = violations.filter((v) => v.severity === "HARD").length;
+  const softCount = violations.filter((v) => v.severity === "SOFT").length;
 
   return (
     <>
-      <Tabs value={activeTab} onValueChange={v => onTabChange(v as typeof activeTab)} className="flex-1">
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => onTabChange(v as typeof activeTab)}
+        className="flex-1"
+      >
         <TabsList className="w-full justify-start rounded-none border-b h-auto p-0">
-          <TabsTrigger value="details" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary" data-testid="tab-details">
+          <TabsTrigger
+            value="details"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
+            data-testid="tab-details"
+          >
             Details
           </TabsTrigger>
-          <TabsTrigger value="constraints" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary gap-1" data-testid="tab-constraints">
+          <TabsTrigger
+            value="constraints"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary gap-1"
+            data-testid="tab-constraints"
+          >
             Constraints
             {(hardCount > 0 || softCount > 0) && (
-              <span className={cn(
-                "ml-1 px-1.5 py-0.5 rounded-full text-[10px]",
-                hardCount > 0 ? "bg-red-500 text-white" : "bg-amber-500 text-white"
-              )}>
+              <span
+                className={cn(
+                  "ml-1 px-1.5 py-0.5 rounded-full text-[10px]",
+                  hardCount > 0 ? "bg-red-500 text-white" : "bg-amber-500 text-white"
+                )}
+              >
                 {hardCount + softCount}
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="suggestions" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary" data-testid="tab-suggestions">
+          <TabsTrigger
+            value="suggestions"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
+            data-testid="tab-suggestions"
+          >
             AI
           </TabsTrigger>
-          <TabsTrigger value="compliance" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary" data-testid="tab-compliance">
+          <TabsTrigger
+            value="compliance"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
+            data-testid="tab-compliance"
+          >
             Compliance
           </TabsTrigger>
         </TabsList>
@@ -547,7 +703,11 @@ export function AssignmentDrawerContent({
         </TabsContent>
 
         <TabsContent value="suggestions" className="flex-1 mt-0">
-          <SuggestionsTab suggestions={suggestions} onApply={onApplySuggestion} isPending={isSuggestionsLoading} />
+          <SuggestionsTab
+            suggestions={suggestions}
+            onApply={onApplySuggestion}
+            isPending={isSuggestionsLoading}
+          />
         </TabsContent>
 
         <TabsContent value="compliance" className="flex-1 mt-0">
@@ -556,10 +716,20 @@ export function AssignmentDrawerContent({
       </Tabs>
 
       <div className="p-4 border-t flex gap-2">
-        <Button variant="outline" onClick={onClose} className="flex-1" data-testid="button-cancel-drawer">
+        <Button
+          variant="outline"
+          onClick={onClose}
+          className="flex-1"
+          data-testid="button-cancel-drawer"
+        >
           Cancel
         </Button>
-        <Button onClick={onApplyChanges} className="flex-1" disabled={isSaving} data-testid="button-apply-changes">
+        <Button
+          onClick={onApplyChanges}
+          className="flex-1"
+          disabled={isSaving}
+          data-testid="button-apply-changes"
+        >
           {isSaving ? "Saving..." : "Apply Changes"}
         </Button>
       </div>
@@ -600,7 +770,8 @@ export function AssignmentBlock({
   const widthPercent = (duration / totalDays) * 100;
   const roleColor = getRoleColor(assignment.role);
   const isDraft = assignment.status === "draft";
-  const isGeneratedDraft = isDraft && (assignment.source === "generator" || !!assignment.generatedByRunId);
+  const isGeneratedDraft =
+    isDraft && (assignment.source === "generator" || !!assignment.generatedByRunId);
   const [showMobileTooltip, setShowMobileTooltip] = useState(false);
   const tooltipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -610,13 +781,19 @@ export function AssignmentBlock({
 
   useEffect(() => {
     return () => {
-      if (tooltipTimeoutRef.current) {clearTimeout(tooltipTimeoutRef.current);}
-      if (longPressTimerRef.current) {clearTimeout(longPressTimerRef.current);}
+      if (tooltipTimeoutRef.current) {
+        clearTimeout(tooltipTimeoutRef.current);
+      }
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+      }
     };
   }, []);
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (isDragging) {return;}
+    if (isDragging) {
+      return;
+    }
 
     pointerDownRef.current = { x: e.clientX, y: e.clientY, time: Date.now() };
     hasDragStartedRef.current = false;
@@ -633,7 +810,9 @@ export function AssignmentBlock({
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!pointerDownRef.current || hasDragStartedRef.current || isDragging) {return;}
+    if (!pointerDownRef.current || hasDragStartedRef.current || isDragging) {
+      return;
+    }
 
     const deltaX = Math.abs(e.clientX - pointerDownRef.current.x);
     const deltaY = Math.abs(e.clientY - pointerDownRef.current.y);
@@ -641,7 +820,9 @@ export function AssignmentBlock({
 
     if (isMobile) {
       if (distance > DRAG_THRESHOLD_PX) {
-        if (longPressTimerRef.current) {clearTimeout(longPressTimerRef.current);}
+        if (longPressTimerRef.current) {
+          clearTimeout(longPressTimerRef.current);
+        }
         pointerDownRef.current = null;
       }
     } else {
@@ -654,7 +835,9 @@ export function AssignmentBlock({
   };
 
   const handlePointerUp = () => {
-    if (longPressTimerRef.current) {clearTimeout(longPressTimerRef.current);}
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+    }
 
     const wasClick = pointerDownRef.current && !hasDragStartedRef.current;
     const elapsed = pointerDownRef.current ? Date.now() - pointerDownRef.current.time : 0;
@@ -664,7 +847,9 @@ export function AssignmentBlock({
     if (wasClick && elapsed < 300) {
       if (isMobile) {
         setShowMobileTooltip(!showMobileTooltip);
-        if (tooltipTimeoutRef.current) {clearTimeout(tooltipTimeoutRef.current);}
+        if (tooltipTimeoutRef.current) {
+          clearTimeout(tooltipTimeoutRef.current);
+        }
         tooltipTimeoutRef.current = setTimeout(() => setShowMobileTooltip(false), 3000);
       }
       onClick();
@@ -672,7 +857,9 @@ export function AssignmentBlock({
   };
 
   const handlePointerCancel = () => {
-    if (longPressTimerRef.current) {clearTimeout(longPressTimerRef.current);}
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+    }
     pointerDownRef.current = null;
     hasDragStartedRef.current = false;
   };
@@ -694,8 +881,11 @@ export function AssignmentBlock({
         isMobile ? "h-12 px-1.5" : "h-10 px-2",
         isDragging && "opacity-50 cursor-grabbing ring-2 ring-white/50",
         isLongPressActive && "ring-2 ring-white animate-pulse",
-        hasHardViolations && "hover:ring-2 hover:ring-red-500 hover:ring-offset-1 hover:ring-offset-background",
-        hasViolations && !hasHardViolations && "hover:ring-2 hover:ring-amber-400 hover:ring-offset-1 hover:ring-offset-background"
+        hasHardViolations &&
+          "hover:ring-2 hover:ring-red-500 hover:ring-offset-1 hover:ring-offset-background",
+        hasViolations &&
+          !hasHardViolations &&
+          "hover:ring-2 hover:ring-amber-400 hover:ring-offset-1 hover:ring-offset-background"
       )}
       style={{
         left: `${leftPercent}%`,
@@ -705,33 +895,37 @@ export function AssignmentBlock({
       data-testid={`assignment-block-${assignment.id}`}
       data-assignment-id={assignment.id}
     >
-      {!isMobile && (
-        <Move className="h-3 w-3 shrink-0 opacity-60" />
-      )}
+      {!isMobile && <Move className="h-3 w-3 shrink-0 opacity-60" />}
       {fatigueRisk && <FatigueRiskBadge riskLevel={fatigueRisk} compact />}
       {isGeneratedDraft && <Sparkles className="h-3 w-3 shrink-0 text-amber-300" />}
       <span className="truncate flex-1 text-left">{assignment.crewName}</span>
       {dragCompliancePreview && !dragCompliancePreview.isLoading && (
-        <span className={cn(
-          "w-2 h-2 rounded-full shrink-0",
-          dragCompliancePreview.canAssign ? "bg-green-400" : "bg-red-400"
-        )} />
+        <span
+          className={cn(
+            "w-2 h-2 rounded-full shrink-0",
+            dragCompliancePreview.canAssign ? "bg-green-400" : "bg-red-400"
+          )}
+        />
       )}
       {(hardViolations > 0 || softViolations > 0) && !dragCompliancePreview && (
         <div className="flex items-center gap-0.5 shrink-0">
           {hardViolations > 0 && (
-            <span className={cn(
-              "flex items-center justify-center rounded-full bg-red-600",
-              isMobile ? "w-5 h-5 text-[11px]" : "w-4 h-4 text-[10px]"
-            )}>
+            <span
+              className={cn(
+                "flex items-center justify-center rounded-full bg-red-600",
+                isMobile ? "w-5 h-5 text-[11px]" : "w-4 h-4 text-[10px]"
+              )}
+            >
               {hardViolations}
             </span>
           )}
           {softViolations > 0 && (
-            <span className={cn(
-              "flex items-center justify-center rounded-full bg-amber-500",
-              isMobile ? "w-5 h-5 text-[11px]" : "w-4 h-4 text-[10px]"
-            )}>
+            <span
+              className={cn(
+                "flex items-center justify-center rounded-full bg-amber-500",
+                isMobile ? "w-5 h-5 text-[11px]" : "w-4 h-4 text-[10px]"
+              )}
+            >
               {softViolations}
             </span>
           )}
@@ -751,7 +945,10 @@ export function AssignmentBlock({
           >
             <p className="font-medium text-sm">{assignment.crewName}</p>
             <p className="text-xs text-muted-foreground">{assignment.role}</p>
-            <p className="text-xs mt-1">{format(parseISO(assignment.startDate), "MMM d")} - {format(parseISO(assignment.endDate), "MMM d")}</p>
+            <p className="text-xs mt-1">
+              {format(parseISO(assignment.startDate), "MMM d")} -{" "}
+              {format(parseISO(assignment.endDate), "MMM d")}
+            </p>
           </div>
         )}
       </div>
@@ -760,14 +957,15 @@ export function AssignmentBlock({
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        {blockContent}
-      </TooltipTrigger>
+      <TooltipTrigger asChild>{blockContent}</TooltipTrigger>
       <TooltipContent side="top" className="max-w-xs">
         <div className="space-y-1">
           <p className="font-medium">{assignment.crewName}</p>
           <p className="text-xs text-muted-foreground">{assignment.role}</p>
-          <p className="text-xs">{format(parseISO(assignment.startDate), "MMM d")} - {format(parseISO(assignment.endDate), "MMM d")}</p>
+          <p className="text-xs">
+            {format(parseISO(assignment.startDate), "MMM d")} -{" "}
+            {format(parseISO(assignment.endDate), "MMM d")}
+          </p>
           {fatigueRisk && (
             <div className="flex items-center gap-1 pt-1 border-t">
               <span className="text-xs text-muted-foreground">Fatigue:</span>
@@ -776,8 +974,12 @@ export function AssignmentBlock({
           )}
           {(hardViolations > 0 || softViolations > 0) && (
             <div className="flex gap-2 pt-1 border-t">
-              {hardViolations > 0 && <span className="text-xs text-red-500">{hardViolations} hard constraint(s)</span>}
-              {softViolations > 0 && <span className="text-xs text-amber-500">{softViolations} soft warning(s)</span>}
+              {hardViolations > 0 && (
+                <span className="text-xs text-red-500">{hardViolations} hard constraint(s)</span>
+              )}
+              {softViolations > 0 && (
+                <span className="text-xs text-amber-500">{softViolations} soft warning(s)</span>
+              )}
             </div>
           )}
         </div>
@@ -819,14 +1021,14 @@ export function VesselRow({
 }) {
   const totalDays = timelineDays.length;
   const uniqueRoles = useMemo(() => {
-    const roles = new Set(assignments.map(a => a.role));
+    const roles = new Set(assignments.map((a) => a.role));
     return Array.from(roles);
   }, [assignments]);
 
   const assignmentsByRole = useMemo(() => {
     const map: Record<string, ScheduleAssignment[]> = {};
     for (const role of uniqueRoles) {
-      map[role] = assignments.filter(a => a.role === role);
+      map[role] = assignments.filter((a) => a.role === role);
     }
     return map;
   }, [assignments, uniqueRoles]);
@@ -834,29 +1036,38 @@ export function VesselRow({
   const isRowHighlighted = dragState && dragTargetVesselId === vessel.id;
 
   return (
-    <div className={cn("border-b transition-colors", isRowHighlighted && "bg-primary/5")} data-testid={`vessel-row-${vessel.id}`}>
+    <div
+      className={cn("border-b transition-colors", isRowHighlighted && "bg-primary/5")}
+      data-testid={`vessel-row-${vessel.id}`}
+    >
       <div className="flex">
-        <div className={cn(
-          "shrink-0 border-r bg-muted/30 p-2 md:p-3 sticky left-0 z-10",
-          isMobile ? "w-28" : "w-48"
-        )}>
+        <div
+          className={cn(
+            "shrink-0 border-r bg-muted/30 p-2 md:p-3 sticky left-0 z-10",
+            isMobile ? "w-28" : "w-48"
+          )}
+        >
           <div className="flex items-center gap-2">
             <Ship className="h-4 w-4 text-muted-foreground shrink-0" />
             <div className="min-w-0">
               <p className="font-medium text-xs md:text-sm truncate">{vessel.name}</p>
-              {vessel.type && !isMobile && <p className="text-xs text-muted-foreground">{vessel.type}</p>}
+              {vessel.type && !isMobile && (
+                <p className="text-xs text-muted-foreground">{vessel.type}</p>
+              )}
             </div>
           </div>
           {!isMobile && (
             <div className="mt-2 space-y-1">
-              {uniqueRoles.slice(0, 3).map(role => (
+              {uniqueRoles.slice(0, 3).map((role) => (
                 <div key={role} className="flex items-center gap-1.5">
                   <div className={cn("w-2 h-2 rounded-full", getRoleColor(role))} />
                   <span className="text-xs text-muted-foreground truncate">{role}</span>
                 </div>
               ))}
               {uniqueRoles.length > 3 && (
-                <span className="text-xs text-muted-foreground">+{uniqueRoles.length - 3} more</span>
+                <span className="text-xs text-muted-foreground">
+                  +{uniqueRoles.length - 3} more
+                </span>
               )}
             </div>
           )}
@@ -864,7 +1075,8 @@ export function VesselRow({
         <div className={cn("flex-1 relative", isMobile ? "min-h-[80px]" : "min-h-[100px]")}>
           <div className="absolute inset-0 flex">
             {timelineDays.map((day, i) => {
-              const isCellTarget = dragState &&
+              const isCellTarget =
+                dragState &&
                 dragTargetVesselId === vessel.id &&
                 dragTargetDate &&
                 isSameDay(day, dragTargetDate);
@@ -887,8 +1099,12 @@ export function VesselRow({
           </div>
           <div className="relative p-1 space-y-1 pointer-events-none">
             {Object.entries(assignmentsByRole).map(([role, roleAssignments], rowIndex) => (
-              <div key={role} className={cn("relative", isMobile ? "h-14" : "h-12")} style={{ marginTop: rowIndex > 0 ? "2px" : 0 }}>
-                {roleAssignments.map(assignment => {
+              <div
+                key={role}
+                className={cn("relative", isMobile ? "h-14" : "h-12")}
+                style={{ marginTop: rowIndex > 0 ? "2px" : 0 }}
+              >
+                {roleAssignments.map((assignment) => {
                   const pos = calculateBlockPosition(assignment);
                   const summary = getConstraintSummary(assignment);
                   const fatigue = getCrewFatigue(assignment.crewId);
@@ -915,7 +1131,12 @@ export function VesselRow({
               </div>
             ))}
             {assignments.length === 0 && (
-              <div className={cn("flex items-center justify-center text-xs text-muted-foreground pointer-events-none", isMobile ? "h-14" : "h-12")}>
+              <div
+                className={cn(
+                  "flex items-center justify-center text-xs text-muted-foreground pointer-events-none",
+                  isMobile ? "h-14" : "h-12"
+                )}
+              >
                 Tap a date to add assignment
               </div>
             )}

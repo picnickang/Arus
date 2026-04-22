@@ -1,6 +1,6 @@
 /**
  * MQTT Reliable Sync - Message Queue
- * 
+ *
  * In-memory message queue with size limits and persistence.
  */
 
@@ -57,10 +57,14 @@ export async function flushMessageQueue(
   metrics: MqttMetrics,
   emit: (event: string, data: any) => boolean
 ): Promise<void> {
-  if (!client || !isConnected) {return;}
+  if (!client || !isConnected) {
+    return;
+  }
 
   const queueSize = queue.length;
-  if (queueSize === 0) {return;}
+  if (queueSize === 0) {
+    return;
+  }
 
   logger.info("MqttReliableSync", `Flushing ${queueSize} queued messages`);
 
@@ -95,7 +99,10 @@ export async function flushMessageQueue(
     }
   }
 
-  logger.info("MqttReliableSync", `Queue flush complete: ${successCount} sent, ${failureCount} failed`);
+  logger.info(
+    "MqttReliableSync",
+    `Queue flush complete: ${successCount} sent, ${failureCount} failed`
+  );
 
   if (successCount > 0) {
     metrics.queueFlushes++;

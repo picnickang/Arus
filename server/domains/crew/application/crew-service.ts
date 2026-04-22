@@ -3,12 +3,7 @@
  * Orchestrates use cases with dependency injection
  */
 
-import type {
-  ICrewMemberRepository,
-  ICrewEventPublisher,
-  SelectCrew,
-  InsertCrew,
-} from "../domain";
+import type { ICrewMemberRepository, ICrewEventPublisher, SelectCrew, InsertCrew } from "../domain";
 import { dbCrewExtensionsStorage, dbCrewStorage } from "../../../repositories";
 import { db } from "../../../db-config";
 import { skills } from "@shared/schema-runtime";
@@ -40,7 +35,7 @@ export class CrewApplicationService {
       vesselId: data.vesselId || null,
       roleId: data.roleId || null,
     };
-    
+
     const crew = await this.deps.crewMemberRepository.createCrew(sanitizedData);
 
     await this.deps.eventPublisher.publish({
@@ -54,13 +49,18 @@ export class CrewApplicationService {
     return crew;
   }
 
-  async updateCrew(id: string, data: Partial<InsertCrew>, userId?: string, orgId?: string): Promise<SelectCrew> {
+  async updateCrew(
+    id: string,
+    data: Partial<InsertCrew>,
+    userId?: string,
+    orgId?: string
+  ): Promise<SelectCrew> {
     const sanitizedData = {
       ...data,
       ...(data.vesselId !== undefined && { vesselId: data.vesselId || null }),
       ...(data.roleId !== undefined && { roleId: data.roleId || null }),
     };
-    
+
     const crew = await this.deps.crewMemberRepository.updateCrew(id, sanitizedData, orgId);
 
     await this.deps.eventPublisher.publish({
@@ -105,7 +105,11 @@ export class CrewApplicationService {
     return dbCrewExtensionsStorage.deleteCrewCertification(id, orgId || "");
   }
 
-  async getCertificationsExpiring(orgId: string, daysAhead: number = 90, includeAcknowledged: boolean = false) {
+  async getCertificationsExpiring(
+    orgId: string,
+    daysAhead: number = 90,
+    includeAcknowledged: boolean = false
+  ) {
     return dbCrewExtensionsStorage.getCertificationsExpiring(orgId, daysAhead, includeAcknowledged);
   }
 
@@ -134,7 +138,11 @@ export class CrewApplicationService {
     return dbCrewExtensionsStorage.deleteCrewDocument(id, orgId || "");
   }
 
-  async getDocumentsExpiring(orgId: string, daysAhead: number = 90, includeAcknowledged: boolean = false) {
+  async getDocumentsExpiring(
+    orgId: string,
+    daysAhead: number = 90,
+    includeAcknowledged: boolean = false
+  ) {
     return dbCrewExtensionsStorage.getDocumentsExpiring(orgId, daysAhead, includeAcknowledged);
   }
 
@@ -169,9 +177,7 @@ export class CrewApplicationService {
   }
 
   async deleteSkill(id: string, orgId?: string) {
-    const conditions = orgId
-      ? and(eq(skills.id, id), eq(skills.orgId, orgId))
-      : eq(skills.id, id);
+    const conditions = orgId ? and(eq(skills.id, id), eq(skills.orgId, orgId)) : eq(skills.id, id);
     await db.delete(skills).where(conditions);
   }
 

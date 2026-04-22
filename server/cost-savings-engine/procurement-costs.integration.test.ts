@@ -56,8 +56,12 @@ describe("Procurement Cost → Work Order Integration", () => {
   });
 
   afterAll(async () => {
-    if (testSoId) {await api("DELETE", `/api/service-orders/${testSoId}`);}
-    if (testWoId) {await api("DELETE", `/api/work-orders/${testWoId}`);}
+    if (testSoId) {
+      await api("DELETE", `/api/service-orders/${testSoId}`);
+    }
+    if (testWoId) {
+      await api("DELETE", `/api/work-orders/${testWoId}`);
+    }
   });
 
   it("should return zero serviceOrderCosts for draft SOs", async () => {

@@ -3,8 +3,14 @@
  */
 
 export interface ReconciliationIssue {
-  type: 'missing_equipment' | 'invalid_sensor' | 'data_quality' | 'org_mismatch' | 'timestamp_anomaly' | 'orphaned_record';
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  type:
+    | "missing_equipment"
+    | "invalid_sensor"
+    | "data_quality"
+    | "org_mismatch"
+    | "timestamp_anomaly"
+    | "orphaned_record";
+  severity: "low" | "medium" | "high" | "critical";
   recordId: string;
   equipmentId?: string;
   orgId: string;

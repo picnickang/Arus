@@ -1,6 +1,6 @@
 /**
  * RAG Orchestrator
- * 
+ *
  * Unified entry point that combines all RAG services into a cohesive pipeline.
  * Features:
  * - Query rewriting for improved retrieval
@@ -10,18 +10,13 @@
  * - Feedback-based re-ranking
  */
 
-import { getAnswerGenerator, type AnswerGenerator } from './answer-generator';
-import { getQueryRewriter, type QueryRewriter } from './query-rewriter';
-import { getConversationService, type ConversationService } from './conversation-service';
-import { getSemanticCache, type SemanticCache } from './semantic-cache';
-import { getFeedbackService, type FeedbackService } from './feedback-service';
-import type {
-  RagAnswerRequest,
-  RagAnswerResponse,
-  FeedbackInput,
-  RagServiceConfig,
-} from './types';
-import { logger } from '../../utils/logger';
+import { getAnswerGenerator, type AnswerGenerator } from "./answer-generator";
+import { getQueryRewriter, type QueryRewriter } from "./query-rewriter";
+import { getConversationService, type ConversationService } from "./conversation-service";
+import { getSemanticCache, type SemanticCache } from "./semantic-cache";
+import { getFeedbackService, type FeedbackService } from "./feedback-service";
+import type { RagAnswerRequest, RagAnswerResponse, FeedbackInput, RagServiceConfig } from "./types";
+import { logger } from "../../utils/logger";
 
 export interface OrchestratorConfig {
   enableQueryRewrite?: boolean;
@@ -93,7 +88,7 @@ export class RagOrchestrator {
 
       await this.conversationService.addMessage({
         conversationId: conversation.id,
-        role: 'user',
+        role: "user",
         content: query,
       });
     }
@@ -106,7 +101,7 @@ export class RagOrchestrator {
     if (this.config.enableConversationContext && conversation) {
       const message = await this.conversationService.addMessage({
         conversationId: conversation.id,
-        role: 'assistant',
+        role: "assistant",
         content: response.answer,
         sourceChunkIds: response.sourceChunkIds,
         citations: response.citations,
@@ -155,7 +150,7 @@ export class RagOrchestrator {
   async submitFeedback(input: FeedbackInput): Promise<void> {
     await this.feedbackService.submitFeedback(input);
 
-    if (input.feedbackType === 'inaccurate' || input.feedbackType === 'outdated') {
+    if (input.feedbackType === "inaccurate" || input.feedbackType === "outdated") {
       await this.semanticCache.invalidate(input.orgId, input.queryText);
       logger.info(`[RagOrchestrator] Invalidated cache due to ${input.feedbackType} feedback`);
     }
@@ -165,11 +160,7 @@ export class RagOrchestrator {
     return this.conversationService.getMessages(conversationId);
   }
 
-  async listConversations(params: {
-    orgId: string;
-    userId?: string;
-    limit?: number;
-  }) {
+  async listConversations(params: { orgId: string; userId?: string; limit?: number }) {
     return this.conversationService.listConversations({
       orgId: params.orgId,
       userId: params.userId,

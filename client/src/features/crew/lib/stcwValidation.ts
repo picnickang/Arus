@@ -40,7 +40,10 @@ export function calculateDayCompliance(rows: DayRow[]): DayCompliance[] {
   }));
 }
 
-export function calculateSummaryStats(rows: DayRow[], compliance: DayCompliance[]): STCWSummaryStats {
+export function calculateSummaryStats(
+  rows: DayRow[],
+  compliance: DayCompliance[]
+): STCWSummaryStats {
   const compliantDays = compliance.filter((c) => c.dayOK).length;
   const totalDays = rows.length;
   const violations = compliance.filter((c) => !c.dayOK);
@@ -50,11 +53,16 @@ export function calculateSummaryStats(rows: DayRow[], compliance: DayCompliance[
   let longestWork = 0;
   rows.forEach((r) => {
     const workChunks = chunks(r).filter(([a, b]) => {
-      const hours = Array.from({ length: b - a }, (_, i) => (r as Record<string, number | string | undefined>)[`h${a + i}`]);
+      const hours = Array.from(
+        { length: b - a },
+        (_, i) => (r as Record<string, number | string | undefined>)[`h${a + i}`]
+      );
       return hours.some((h) => h === 0);
     });
     workChunks.forEach(([a, b]) => {
-      if (b - a > longestWork) { longestWork = b - a; }
+      if (b - a > longestWork) {
+        longestWork = b - a;
+      }
     });
   });
 
@@ -66,22 +74,31 @@ export function calculateSummaryStats(rows: DayRow[], compliance: DayCompliance[
     avgRest: avgRest.toFixed(1),
     totalRest,
     longestWork,
-    criticalViolations: violations.filter((v) => v.minRest24 < STCW_RULES.CRITICAL_REST_THRESHOLD).length,
+    criticalViolations: violations.filter((v) => v.minRest24 < STCW_RULES.CRITICAL_REST_THRESHOLD)
+      .length,
   };
 }
 
 export function timeToHourPattern(startTime: string, endTime: string): number[] {
   const pattern = new Array(24).fill(0);
-  if (!startTime || !endTime) { return pattern; }
+  if (!startTime || !endTime) {
+    return pattern;
+  }
 
   const [startHour] = startTime.split(":").map(Number);
   const [endHour] = endTime.split(":").map(Number);
 
   if (endHour <= startHour) {
-    for (let h = startHour; h < 24; h++) {pattern[h] = 1;}
-    for (let h = 0; h < endHour; h++) {pattern[h] = 1;}
+    for (let h = startHour; h < 24; h++) {
+      pattern[h] = 1;
+    }
+    for (let h = 0; h < endHour; h++) {
+      pattern[h] = 1;
+    }
   } else {
-    for (let h = startHour; h < endHour; h++) {pattern[h] = 1;}
+    for (let h = startHour; h < endHour; h++) {
+      pattern[h] = 1;
+    }
   }
   return pattern;
 }
@@ -100,6 +117,8 @@ export function getSevenDayRestTotal(dayIndex: number, rows: DayRow[]): number {
 }
 
 export function check7DayCompliance(dayIndex: number, rows: DayRow[]): boolean {
-  if (dayIndex < 6) { return true; }
+  if (dayIndex < 6) {
+    return true;
+  }
   return getSevenDayRestTotal(dayIndex, rows) >= STCW_RULES.MIN_REST_7D;
 }

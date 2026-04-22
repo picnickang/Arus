@@ -1,6 +1,6 @@
 /**
  * Schema Telemetry - Telemetry Data, Retention, and Rollups
- * 
+ *
  * Equipment telemetry, raw telemetry imports, retention policies, and aggregates.
  */
 
@@ -350,7 +350,10 @@ export const rawTelemetryArchive = pgTable(
   },
   (table) => ({
     orgReceivedIdx: index("idx_raw_archive_org_received").on(table.orgId, table.receivedAt),
-    deviceReceivedIdx: index("idx_raw_archive_device_received").on(table.deviceId, table.receivedAt),
+    deviceReceivedIdx: index("idx_raw_archive_device_received").on(
+      table.deviceId,
+      table.receivedAt
+    ),
     statusIdx: index("idx_raw_archive_status").on(table.decodeStatus),
     payloadHashIdx: sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_raw_archive_payload_hash ON raw_telemetry_archive (payload_hash) WHERE decode_status = 'pending'`,
   })
@@ -450,10 +453,12 @@ export const insertTelemetryBatchAckSchema = createInsertSchema(telemetryBatchAc
   receivedAt: true,
 });
 
-export const insertTelemetrySchemaRegistrySchema = createInsertSchema(telemetrySchemaRegistry).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertTelemetrySchemaRegistrySchema = createInsertSchema(telemetrySchemaRegistry).omit(
+  {
+    id: true,
+    createdAt: true,
+  }
+);
 
 // Types for new tables
 export type RawTelemetryArchive = typeof rawTelemetryArchive.$inferSelect;

@@ -1,9 +1,9 @@
 /**
  * Safe SQL Execution Helper
- * 
+ *
  * Provides mode-aware SQL execution that works in both cloud (PostgreSQL/libSQL)
  * and vessel (SQLite) deployment modes.
- * 
+ *
  * Use this instead of raw `db.execute()` calls for dual-mode compatibility.
  */
 
@@ -13,7 +13,7 @@ import { hasPostgresFeatures, isVesselMode } from "../config/runtimeEnv";
 export interface SafeSqlOptions {
   /** Skip execution in vessel mode instead of attempting fallback */
   skipInVesselMode?: boolean;
-  
+
   /** Log message when skipping in vessel mode */
   skipMessage?: string;
 }
@@ -26,19 +26,19 @@ interface DrizzleDbLike {
 
 /**
  * Execute SQL safely across deployment modes
- * 
+ *
  * @param db - Drizzle database instance
  * @param sqlQuery - SQL query to execute
  * @param options - Execution options
  * @returns Query result or empty object if skipped
- * 
+ *
  * @example
  * // Cloud-only operation (skip in vessel mode)
  * await safeSql(db, sql`SELECT * FROM hypertables`, {
  *   skipInVesselMode: true,
  *   skipMessage: "TimescaleDB query skipped in SQLite mode"
  * });
- * 
+ *
  * @example
  * // Dual-mode operation (use fallback in vessel mode)
  * const result = await safeSql(db, sql`SELECT 1 as health_check`);

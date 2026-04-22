@@ -1,6 +1,6 @@
 /**
  * Telemetry Export
- * 
+ *
  * Chunked telemetry export with tenant isolation validation.
  */
 
@@ -9,7 +9,11 @@ import * as path from "node:path";
 import { createWriteStream } from "node:fs";
 
 import { dbEquipmentStorage, dbTelemetryStorage } from "../../repositories";
-import { DataAnonymizationService, AnonymizationConfig, AnonymizationResult } from "../../compliance/data-anonymization.service";
+import {
+  DataAnonymizationService,
+  AnonymizationConfig,
+  AnonymizationResult,
+} from "../../compliance/data-anonymization.service";
 
 import { TELEMETRY_CHUNK_SIZE } from "./constants";
 import type { ExportOptions, EntityExportResult } from "./types";
@@ -34,18 +38,19 @@ export async function exportTelemetryChunked(
   const totalAnonymizationResult: AnonymizationResult = {
     originalFieldCount: 0,
     anonymizedFieldCount: 0,
-    skippedFieldCount: 0
+    skippedFieldCount: 0,
   };
 
-  const anonymizationConfig: AnonymizationConfig | null = anonymizationService && options?.anonymize !== "none"
-    ? {
-        level: options?.anonymize || "none",
-        preserveIds: options?.anonymizationConfig?.preserveIds ?? true,
-        preserveTimestamps: options?.anonymizationConfig?.preserveTimestamps ?? true,
-        preserveTechnicalData: false,
-        salt: anonymizationService.getSalt()
-      }
-    : null;
+  const anonymizationConfig: AnonymizationConfig | null =
+    anonymizationService && options?.anonymize !== "none"
+      ? {
+          level: options?.anonymize || "none",
+          preserveIds: options?.anonymizationConfig?.preserveIds ?? true,
+          preserveTimestamps: options?.anonymizationConfig?.preserveTimestamps ?? true,
+          preserveTechnicalData: false,
+          salt: anonymizationService.getSalt(),
+        }
+      : null;
 
   try {
     const cutoffDate = new Date();
@@ -66,7 +71,9 @@ export async function exportTelemetryChunked(
           .filter((t) => t.orgId === orgId);
       }
 
-      if (telemetry.length === 0) { continue; }
+      if (telemetry.length === 0) {
+        continue;
+      }
 
       for (let i = 0; i < telemetry.length; i += TELEMETRY_CHUNK_SIZE) {
         const chunk = telemetry.slice(i, i + TELEMETRY_CHUNK_SIZE);
@@ -75,18 +82,22 @@ export async function exportTelemetryChunked(
 
         const writeStream = createWriteStream(chunkPath);
         let chunkWritten = 0;
-        
+
         for (const record of chunk) {
           if (!equipmentIdSet.has(record.equipmentId)) {
-            console.warn(`[DataExport] Skipping telemetry with non-org equipmentId: ${record.equipmentId}`);
+            console.warn(
+              `[DataExport] Skipping telemetry with non-org equipmentId: ${record.equipmentId}`
+            );
             continue;
           }
 
           if (record.orgId !== orgId) {
-            console.warn(`[DataExport] Skipping telemetry with non-matching orgId: ${record.orgId}`);
+            console.warn(
+              `[DataExport] Skipping telemetry with non-matching orgId: ${record.orgId}`
+            );
             continue;
           }
-          
+
           let outputRecord = record;
           if (anonymizationService && anonymizationConfig) {
             const { record: anonymized, result } = anonymizationService.anonymizeRecord(
@@ -99,8 +110,8 @@ export async function exportTelemetryChunked(
             totalAnonymizationResult.anonymizedFieldCount += result.anonymizedFieldCount;
             totalAnonymizationResult.skippedFieldCount += result.skippedFieldCount;
           }
-          
-          writeStream.write(`${JSON.stringify(outputRecord)  }\n`);
+
+          writeStream.write(`${JSON.stringify(outputRecord)}\n`);
           chunkWritten++;
         }
         writeStream.end();
@@ -116,10 +127,13 @@ export async function exportTelemetryChunked(
       }
     }
 
-    const anonymizationInfo = anonymizationService && options?.anonymize !== "none"
-      ? ` (anonymized: ${totalAnonymizationResult.anonymizedFieldCount} fields)`
-      : "";
-    console.log(`[DataExport] Exported ${entityName}: ${totalCount} records in ${files.length} chunks${anonymizationInfo}`);
+    const anonymizationInfo =
+      anonymizationService && options?.anonymize !== "none"
+        ? ` (anonymized: ${totalAnonymizationResult.anonymizedFieldCount} fields)`
+        : "";
+    console.log(
+      `[DataExport] Exported ${entityName}: ${totalCount} records in ${files.length} chunks${anonymizationInfo}`
+    );
 
     return {
       count: totalCount,
@@ -127,7 +141,7 @@ export async function exportTelemetryChunked(
       chunked: true,
       chunkSize: TELEMETRY_CHUNK_SIZE,
       files,
-      anonymizationResult: anonymizationService ? totalAnonymizationResult : undefined
+      anonymizationResult: anonymizationService ? totalAnonymizationResult : undefined,
     };
   } catch (error) {
     console.warn(`[DataExport] Failed to export telemetry ${entityName}:`, error);

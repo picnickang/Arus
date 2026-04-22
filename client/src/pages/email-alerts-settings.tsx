@@ -4,7 +4,9 @@ export default function EmailAlertsSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base" data-testid="text-email-alerts-title">Alert Rules</CardTitle>
+        <CardTitle className="text-base" data-testid="text-email-alerts-title">
+          Alert Rules
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground" data-testid="text-email-alerts-desc">

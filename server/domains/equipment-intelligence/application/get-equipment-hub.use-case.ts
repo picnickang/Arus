@@ -7,9 +7,15 @@ export function createGetEquipmentHubUseCase(repo: EquipmentHubRepository) {
       return repo.getHubAggregate(orgId, equipmentId);
     },
 
-    async runDiagnostic(orgId: string, equipmentId: string, analysisType: string): Promise<DiagnosticRunSummary | null> {
+    async runDiagnostic(
+      orgId: string,
+      equipmentId: string,
+      analysisType: string
+    ): Promise<DiagnosticRunSummary | null> {
       const hub = await repo.getHubAggregate(orgId, equipmentId);
-      if (!hub) {return null;}
+      if (!hub) {
+        return null;
+      }
       const summary = generateDiagnosticSummary(analysisType, hub);
       const results = generateDiagnosticResults(analysisType, hub);
       return repo.saveDiagnosticRun(orgId, equipmentId, analysisType, results, summary);
@@ -21,7 +27,12 @@ function generateDiagnosticSummary(analysisType: string, hub: EquipmentHubAggreg
   const health = hub.health;
   const rul = hub.rul;
   const trend = hub.trend;
-  const trendLabel = trend === "declining" ? "declining trend detected" : trend === "improving" ? "improving trend observed" : "stable trend";
+  const trendLabel =
+    trend === "declining"
+      ? "declining trend detected"
+      : trend === "improving"
+        ? "improving trend observed"
+        : "stable trend";
 
   switch (analysisType) {
     case "bearing": {
@@ -45,7 +56,10 @@ function generateDiagnosticSummary(analysisType: string, hub: EquipmentHubAggreg
     case "general":
     default: {
       const signalCount = hub.signals.length;
-      const signalNote = signalCount > 0 ? ` ${signalCount} active signal${signalCount > 1 ? "s" : ""} detected.` : " No active signals.";
+      const signalNote =
+        signalCount > 0
+          ? ` ${signalCount} active signal${signalCount > 1 ? "s" : ""} detected.`
+          : " No active signals.";
       if (health < 40) {
         return `General health assessment for ${hub.name}. Health at ${health}% with ${rul} days RUL — ${hub.risk} risk.${signalNote} ${trendLabel}. Immediate action required.`;
       }
@@ -57,7 +71,10 @@ function generateDiagnosticSummary(analysisType: string, hub: EquipmentHubAggreg
   }
 }
 
-function generateDiagnosticResults(analysisType: string, hub: EquipmentHubAggregate): Record<string, unknown> {
+function generateDiagnosticResults(
+  analysisType: string,
+  hub: EquipmentHubAggregate
+): Record<string, unknown> {
   const baseContext = {
     equipmentName: hub.name,
     equipmentType: hub.type,

@@ -56,7 +56,8 @@ const MOVEMENT_TYPE_CONFIG: Record<string, { icon: LucideIcon; color: string; la
 export function WorkOrderHistoryTab({ workOrderId }: WorkOrderHistoryTabProps) {
   const { data, isLoading, error } = useQuery<WorkOrderHistoryResponse>({
     queryKey: ["/api/work-orders", workOrderId, "history"],
-    queryFn: () => apiRequest<WorkOrderHistoryResponse>("GET", `/api/work-orders/${workOrderId}/history`),
+    queryFn: () =>
+      apiRequest<WorkOrderHistoryResponse>("GET", `/api/work-orders/${workOrderId}/history`),
     enabled: !!workOrderId,
   });
 
@@ -128,7 +129,7 @@ export function WorkOrderHistoryTab({ workOrderId }: WorkOrderHistoryTabProps) {
 
       <div className="relative">
         <div className="absolute left-[19px] top-0 bottom-0 w-px bg-border" />
-        
+
         <div className="space-y-6">
           {combinedTimeline.map((item, index) => (
             <TimelineItem
@@ -149,7 +150,11 @@ function TimelineItem({
   isFirst,
   isLast: _isLast,
 }: {
-  item: { type: "history" | "inventory"; date: Date | null; data: WorkOrderHistory | InventoryMovement };
+  item: {
+    type: "history" | "inventory";
+    date: Date | null;
+    data: WorkOrderHistory | InventoryMovement;
+  };
   isFirst: boolean;
   isLast: boolean;
 }) {
@@ -159,13 +164,7 @@ function TimelineItem({
   return <InventoryTimelineItem movement={item.data as InventoryMovement} isFirst={isFirst} />;
 }
 
-function HistoryTimelineItem({
-  entry,
-  isFirst,
-}: {
-  entry: WorkOrderHistory;
-  isFirst: boolean;
-}) {
+function HistoryTimelineItem({ entry, isFirst }: { entry: WorkOrderHistory; isFirst: boolean }) {
   const config = EVENT_TYPE_CONFIG[entry.eventType] || {
     icon: Edit3,
     color: "text-gray-500",
@@ -183,7 +182,7 @@ function HistoryTimelineItem({
       >
         <Icon className={cn("h-4 w-4", config.color)} />
       </div>
-      
+
       <div className="flex-1 min-w-0 pt-1">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium text-sm">{config.label}</span>
@@ -193,16 +192,16 @@ function HistoryTimelineItem({
             </span>
           )}
         </div>
-        
-        <p className="text-sm text-muted-foreground mt-0.5">
-          {entry.description}
-        </p>
-        
+
+        <p className="text-sm text-muted-foreground mt-0.5">{entry.description}</p>
+
         <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
           <span>{entry.performedByName || entry.performedBy}</span>
           <span>•</span>
           <span title={entry.createdAt ? format(new Date(entry.createdAt), "PPpp") : "Unknown"}>
-            {entry.createdAt ? formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true }) : "Unknown"}
+            {entry.createdAt
+              ? formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })
+              : "Unknown"}
           </span>
         </div>
       </div>
@@ -237,25 +236,30 @@ function InventoryTimelineItem({
       >
         <Icon className={cn("h-4 w-4", config.color)} />
       </div>
-      
+
       <div className="flex-1 min-w-0 pt-1">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium text-sm">Inventory {config.label}</span>
           <Badge variant={isPositive ? "default" : "secondary"} className="text-xs">
-            {isPositive ? "+" : ""}{quantityChange}
+            {isPositive ? "+" : ""}
+            {quantityChange}
           </Badge>
         </div>
-        
+
         <p className="text-sm text-muted-foreground mt-0.5">
           Stock: {movement.quantityBefore} → {movement.quantityAfter}
           {movement.notes && ` — ${movement.notes}`}
         </p>
-        
+
         <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
           <span>{movement.performedBy}</span>
           <span>•</span>
-          <span title={movement.createdAt ? format(new Date(movement.createdAt), "PPpp") : "Unknown"}>
-            {movement.createdAt ? formatDistanceToNow(new Date(movement.createdAt), { addSuffix: true }) : "Unknown"}
+          <span
+            title={movement.createdAt ? format(new Date(movement.createdAt), "PPpp") : "Unknown"}
+          >
+            {movement.createdAt
+              ? formatDistanceToNow(new Date(movement.createdAt), { addSuffix: true })
+              : "Unknown"}
           </span>
         </div>
       </div>

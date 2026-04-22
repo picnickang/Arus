@@ -68,5 +68,5 @@ export interface RULPrediction {
 export const MODEL_TYPES = ["lstm", "xgboost", "random_forest", "ensemble"] as const;
 export const MODEL_STATUSES = ["training", "validating", "active", "deprecated", "failed"] as const;
 
-export type ModelType = typeof MODEL_TYPES[number];
-export type ModelStatus = typeof MODEL_STATUSES[number];
+export type ModelType = (typeof MODEL_TYPES)[number];
+export type ModelStatus = (typeof MODEL_STATUSES)[number];

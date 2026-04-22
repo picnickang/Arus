@@ -1,10 +1,15 @@
 /**
  * Maintenance Context Builder
- * 
+ *
  * Build comprehensive context for maintenance reports.
  */
 
-import { vesselService, dbEquipmentStorage, workOrderService, dbMaintenanceStorage } from "../repositories";
+import {
+  vesselService,
+  dbEquipmentStorage,
+  workOrderService,
+  dbMaintenanceStorage,
+} from "../repositories";
 import { vesselIntelligence } from "../vessel-intelligence";
 import type { Vessel as SelectVessel, WorkOrder } from "@shared/schema";
 import type { ReportContext, ContextBuilderOptions } from "./types.js";
@@ -13,11 +18,7 @@ import {
   getVesselWorkOrders,
   getVesselMaintenanceSchedules,
 } from "./data-fetchers.js";
-import {
-  fetchKBKnowledge,
-  buildCitations,
-  determinePriority,
-} from "./knowledge-citations.js";
+import { fetchKBKnowledge, buildCitations, determinePriority } from "./knowledge-citations.js";
 
 export async function buildMaintenanceContext(
   vesselId: string | undefined,
@@ -64,7 +65,7 @@ export async function buildMaintenanceContext(
   const citations = buildCitations(vessels[0], equipment, workOrders);
   let knowledge;
   if (options.includeKnowledge) {
-    knowledge = await fetchKBKnowledge(orgId, equipment, 'maintenance');
+    knowledge = await fetchKBKnowledge(orgId, equipment, "maintenance");
   }
 
   return {

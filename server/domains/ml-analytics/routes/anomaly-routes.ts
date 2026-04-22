@@ -1,6 +1,6 @@
 /**
  * ML Analytics - Anomaly Detection Routes
- * 
+ *
  * CRUD operations for anomaly detections.
  */
 
@@ -16,7 +16,8 @@ import { dbMlAnalyticsStorage, dbEquipmentStorage } from "../../../repositories.
 export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
   const { writeOperationRateLimit } = config;
 
-  app.get("/api/analytics/anomaly-detections",
+  app.get(
+    "/api/analytics/anomaly-detections",
     withErrorHandling("fetch anomaly detections", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, equipmentId, severity } = req.query;
       if (!orgId) {
@@ -32,13 +33,17 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
     })
   );
 
-  app.get("/api/analytics/anomaly-detections/:id",
+  app.get(
+    "/api/analytics/anomaly-detections/:id",
     withErrorHandling("fetch anomaly detection", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId } = req.query;
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
-      const detection = await dbMlAnalyticsStorage.getAnomalyDetection(Number.parseInt(req.params.id), orgId as string);
+      const detection = await dbMlAnalyticsStorage.getAnomalyDetection(
+        Number.parseInt(req.params.id),
+        orgId as string
+      );
       if (!detection) {
         return sendNotFound(res, "Anomaly detection");
       }
@@ -47,7 +52,9 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
     })
   );
 
-  app.post("/api/analytics/anomaly-detections", writeOperationRateLimit,
+  app.post(
+    "/api/analytics/anomaly-detections",
+    writeOperationRateLimit,
     withErrorHandling("create anomaly detection", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, ...detectionData } = req.body;
       if (!orgId) {
@@ -58,14 +65,20 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
 
       if (detection.severity === "high" || detection.severity === "critical") {
         try {
-          const equipment = await dbEquipmentStorage.getEquipment(orgId as string, detection.equipmentId);
+          const equipment = await dbEquipmentStorage.getEquipment(
+            orgId as string,
+            detection.equipmentId
+          );
           if (equipment) {
-            domainEventBus.emit("pdm.anomaly.created", createDomainEvent("pdm.anomaly.created", orgId as string, {
-              vesselId: equipment.vesselId || "unknown",
-              equipmentId: detection.equipmentId,
-              severity: detection.severity as "low" | "medium" | "high" | "critical",
-              anomalyType: detection.anomalyType || "unknown",
-            }));
+            domainEventBus.emit(
+              "pdm.anomaly.created",
+              createDomainEvent("pdm.anomaly.created", orgId as string, {
+                vesselId: equipment.vesselId || "unknown",
+                equipmentId: detection.equipmentId,
+                severity: detection.severity as "low" | "medium" | "high" | "critical",
+                anomalyType: detection.anomalyType || "unknown",
+              })
+            );
           }
         } catch (eventError) {
           logger.error("AnomalyRoutes", "Failed to emit anomaly event", eventError);
@@ -77,7 +90,9 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
     })
   );
 
-  app.patch("/api/analytics/anomaly-detections/:id/acknowledge", writeOperationRateLimit,
+  app.patch(
+    "/api/analytics/anomaly-detections/:id/acknowledge",
+    writeOperationRateLimit,
     withErrorHandling("acknowledge anomaly", async (req, res) => {
       const { acknowledgedBy, orgId = (req as AuthenticatedRequest).orgId } = req.body;
       if (!acknowledgedBy) {
@@ -86,7 +101,11 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
-      const detection = await dbMlAnalyticsStorage.acknowledgeAnomaly(Number.parseInt(req.params.id), acknowledgedBy, orgId);
+      const detection = await dbMlAnalyticsStorage.acknowledgeAnomaly(
+        Number.parseInt(req.params.id),
+        acknowledgedBy,
+        orgId
+      );
       const { normalizeAnomalyDetection } = await import("../../../analytics-data-normalizer.js");
       res.json(normalizeAnomalyDetection(detection));
     })

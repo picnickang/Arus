@@ -1,8 +1,8 @@
 /**
  * MQTT Reliable Sync - Module Aggregator
- * 
+ *
  * Re-exports all MQTT reliable sync modules for convenient imports.
- * 
+ *
  * Module structure (1,067 lines → 9 modules):
  * - types.ts (~60 lines): Core types and interfaces
  * - config.ts (~75 lines): Configuration and topic definitions
@@ -19,7 +19,12 @@ export * from "./types.js";
 export { createDefaultConfig, topics, getTopicForEntity } from "./config.js";
 export { initializeQueueDirectory, loadPersistedQueue, persistQueue } from "./queue-persistence.js";
 export { enqueueMessage, flushMessageQueue } from "./message-queue.js";
-export { subscribeToEntity, unsubscribeFromEntity, resubscribeAll, topicMatches } from "./subscription.js";
+export {
+  subscribeToEntity,
+  unsubscribeFromEntity,
+  resubscribeAll,
+  topicMatches,
+} from "./subscription.js";
 export { publishDataChange } from "./publishing.js";
 export { publishCatchupMessages } from "./catchup.js";
 export { MqttReliableSyncService, mqttReliableSync } from "./mqtt-reliable-sync.js";

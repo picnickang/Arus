@@ -70,7 +70,9 @@ export async function configureStaticServing(app: Express, server: any): Promise
     }
 
     if (!staticRoot) {
-      console.warn("[Static] ❌ No valid frontend build directory found - SPA UI will not be served");
+      console.warn(
+        "[Static] ❌ No valid frontend build directory found - SPA UI will not be served"
+      );
       console.warn("[Static] To fix: Run 'npm run build' or 'vite build' to build the frontend");
       return;
     }

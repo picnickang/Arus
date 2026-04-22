@@ -1,6 +1,6 @@
 /**
  * Enhanced LLM Service
- * 
+ *
  * Main service class for generating AI-powered reports and analysis.
  */
 
@@ -21,7 +21,12 @@ import { getModelConfig } from "./model-config.js";
 import { getAudiencePromptTemplate } from "./prompt-templates.js";
 import { logCostTracking } from "./cost-tracking.js";
 import { enrichContextWithRAG, serializeContext, buildCitations } from "./context-enrichment.js";
-import { generateScenarios, calculateROI, calculateConfidence, generateFallbackAnalysis } from "./scenario-analysis.js";
+import {
+  generateScenarios,
+  calculateROI,
+  calculateConfidence,
+  generateFallbackAnalysis,
+} from "./scenario-analysis.js";
 import { generateWithOpenAI, generateWithAnthropic } from "./providers.js";
 
 export class EnhancedLLMService {
@@ -89,8 +94,15 @@ export class EnhancedLLMService {
       vesselId,
     };
 
-    const analysis = await this.generateWithModel(enrichedContext, promptTemplate, modelConfig, costContext);
-    const scenarios = options.includeScenarios ? await generateScenarios(context, modelConfig) : undefined;
+    const analysis = await this.generateWithModel(
+      enrichedContext,
+      promptTemplate,
+      modelConfig,
+      costContext
+    );
+    const scenarios = options.includeScenarios
+      ? await generateScenarios(context, modelConfig)
+      : undefined;
     const roi = options.includeROI ? await calculateROI(context, scenarios) : undefined;
     const citations = buildCitations(context, enrichedContext);
 
@@ -133,8 +145,15 @@ export class EnhancedLLMService {
       audience,
     };
 
-    const analysis = await this.generateWithModel(enrichedContext, promptTemplate, modelConfig, costContext);
-    const scenarios = options.includeScenarios ? await generateScenarios(context, modelConfig) : undefined;
+    const analysis = await this.generateWithModel(
+      enrichedContext,
+      promptTemplate,
+      modelConfig,
+      costContext
+    );
+    const scenarios = options.includeScenarios
+      ? await generateScenarios(context, modelConfig)
+      : undefined;
     const roi = options.includeROI ? await calculateROI(context, scenarios) : undefined;
     const citations = buildCitations(context, enrichedContext);
 
@@ -177,8 +196,15 @@ export class EnhancedLLMService {
       audience,
     };
 
-    const analysis = await this.generateWithModel(enrichedContext, promptTemplate, modelConfig, costContext);
-    const scenarios = options.includeScenarios ? await generateScenarios(context, modelConfig) : undefined;
+    const analysis = await this.generateWithModel(
+      enrichedContext,
+      promptTemplate,
+      modelConfig,
+      costContext
+    );
+    const scenarios = options.includeScenarios
+      ? await generateScenarios(context, modelConfig)
+      : undefined;
     const citations = buildCitations(context, enrichedContext);
 
     return {
@@ -218,7 +244,12 @@ export class EnhancedLLMService {
       audience,
     };
 
-    const analysis = await this.generateWithModel(enrichedContext, promptTemplate, modelConfig, costContext);
+    const analysis = await this.generateWithModel(
+      enrichedContext,
+      promptTemplate,
+      modelConfig,
+      costContext
+    );
     const citations = buildCitations(context, enrichedContext);
 
     return {
@@ -251,7 +282,9 @@ export class EnhancedLLMService {
       let result: string;
 
       if (modelConfig.provider === "openai") {
-        if (!this.openaiClient) { throw new Error("OpenAI client not initialized"); }
+        if (!this.openaiClient) {
+          throw new Error("OpenAI client not initialized");
+        }
         result = await generateWithOpenAI(
           this.openaiClient,
           promptTemplate.systemPrompt,
@@ -262,7 +295,9 @@ export class EnhancedLLMService {
           startTime
         );
       } else if (modelConfig.provider === "anthropic") {
-        if (!this.anthropicClient) { throw new Error("Anthropic client not initialized"); }
+        if (!this.anthropicClient) {
+          throw new Error("Anthropic client not initialized");
+        }
         result = await generateWithAnthropic(
           this.anthropicClient,
           promptTemplate.systemPrompt,
@@ -290,7 +325,10 @@ export class EnhancedLLMService {
         errorMessage: error instanceof Error ? error.message : "Unknown error",
       });
 
-      console.error(`[Enhanced LLM] Error with ${modelConfig.provider}/${modelConfig.model}:`, error);
+      console.error(
+        `[Enhanced LLM] Error with ${modelConfig.provider}/${modelConfig.model}:`,
+        error
+      );
 
       if (modelConfig.fallbackModel) {
         return this.generateWithModel(context, promptTemplate, modelConfig.fallbackModel, {

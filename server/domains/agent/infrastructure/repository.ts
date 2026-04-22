@@ -39,27 +39,35 @@ export function createAgentRepository(): AgentRepositoryPort {
         return conv;
       },
       async get(id: string, orgId: string): Promise<AgentConversation | undefined> {
-        const [conv] = await db.select().from(agentConversations)
+        const [conv] = await db
+          .select()
+          .from(agentConversations)
           .where(and(eq(agentConversations.id, id), eq(agentConversations.orgId, orgId)));
         return conv;
       },
       async list(orgId: string, userId?: string, limit = 50): Promise<AgentConversation[]> {
-        return db.select().from(agentConversations)
-          .where(userId
-            ? and(eq(agentConversations.orgId, orgId), eq(agentConversations.userId, userId))
-            : eq(agentConversations.orgId, orgId))
+        return db
+          .select()
+          .from(agentConversations)
+          .where(
+            userId
+              ? and(eq(agentConversations.orgId, orgId), eq(agentConversations.userId, userId))
+              : eq(agentConversations.orgId, orgId)
+          )
           .orderBy(desc(agentConversations.updatedAt))
           .limit(limit);
       },
       async update(id: string, data: Partial<AgentConversation>): Promise<AgentConversation> {
-        const [conv] = await db.update(agentConversations)
+        const [conv] = await db
+          .update(agentConversations)
           .set({ ...data, updatedAt: new Date() })
           .where(eq(agentConversations.id, id))
           .returning();
         return conv;
       },
       async incrementMessageCount(id: string, tokenCount = 0): Promise<void> {
-        await db.update(agentConversations)
+        await db
+          .update(agentConversations)
           .set({
             messageCount: sql`${agentConversations.messageCount} + 1`,
             totalTokensUsed: sql`COALESCE(${agentConversations.totalTokensUsed}, 0) + ${tokenCount}`,
@@ -82,13 +90,17 @@ export function createAgentRepository(): AgentRepositoryPort {
         return msg;
       },
       async list(conversationId: string, limit = 50): Promise<AgentMessage[]> {
-        return db.select().from(agentMessages)
+        return db
+          .select()
+          .from(agentMessages)
           .where(eq(agentMessages.conversationId, conversationId))
           .orderBy(agentMessages.createdAt)
           .limit(limit);
       },
       async listRecent(conversationId: string, limit = 50): Promise<AgentMessage[]> {
-        const rows = await db.select().from(agentMessages)
+        const rows = await db
+          .select()
+          .from(agentMessages)
           .where(eq(agentMessages.conversationId, conversationId))
           .orderBy(desc(agentMessages.createdAt))
           .limit(limit);
@@ -102,7 +114,9 @@ export function createAgentRepository(): AgentRepositoryPort {
         return tc;
       },
       async list(conversationId: string) {
-        return db.select().from(agentToolCalls)
+        return db
+          .select()
+          .from(agentToolCalls)
           .where(eq(agentToolCalls.conversationId, conversationId))
           .orderBy(agentToolCalls.createdAt);
       },
@@ -114,19 +128,26 @@ export function createAgentRepository(): AgentRepositoryPort {
         return draft;
       },
       async get(id: string, orgId: string): Promise<AgentDraft | undefined> {
-        const [draft] = await db.select().from(agentDrafts)
+        const [draft] = await db
+          .select()
+          .from(agentDrafts)
           .where(and(eq(agentDrafts.id, id), eq(agentDrafts.orgId, orgId)));
         return draft;
       },
       async list(orgId: string, status?: string): Promise<AgentDraft[]> {
-        return db.select().from(agentDrafts)
-          .where(status
-            ? and(eq(agentDrafts.orgId, orgId), eq(agentDrafts.status, status))
-            : eq(agentDrafts.orgId, orgId))
+        return db
+          .select()
+          .from(agentDrafts)
+          .where(
+            status
+              ? and(eq(agentDrafts.orgId, orgId), eq(agentDrafts.status, status))
+              : eq(agentDrafts.orgId, orgId)
+          )
           .orderBy(desc(agentDrafts.createdAt));
       },
       async update(id: string, data: Partial<AgentDraft>): Promise<AgentDraft> {
-        const [draft] = await db.update(agentDrafts)
+        const [draft] = await db
+          .update(agentDrafts)
           .set({ ...data, updatedAt: new Date() })
           .where(eq(agentDrafts.id, id))
           .returning();
@@ -140,25 +161,31 @@ export function createAgentRepository(): AgentRepositoryPort {
         return approval;
       },
       async list(orgId: string, draftId?: string): Promise<AgentApproval[]> {
-        return db.select().from(agentApprovals)
-          .where(draftId
-            ? and(eq(agentApprovals.orgId, orgId), eq(agentApprovals.draftId, draftId))
-            : eq(agentApprovals.orgId, orgId))
+        return db
+          .select()
+          .from(agentApprovals)
+          .where(
+            draftId
+              ? and(eq(agentApprovals.orgId, orgId), eq(agentApprovals.draftId, draftId))
+              : eq(agentApprovals.orgId, orgId)
+          )
           .orderBy(desc(agentApprovals.createdAt));
       },
     },
 
     config: {
       async get(orgId: string): Promise<AgentConfigType | undefined> {
-        const [config] = await db.select().from(agentConfig)
-          .where(eq(agentConfig.orgId, orgId));
+        const [config] = await db.select().from(agentConfig).where(eq(agentConfig.orgId, orgId));
         return config;
       },
       async upsert(data: InsertAgentConfig): Promise<AgentConfigType> {
-        const [existing] = await db.select().from(agentConfig)
+        const [existing] = await db
+          .select()
+          .from(agentConfig)
           .where(eq(agentConfig.orgId, data.orgId));
         if (existing) {
-          const [config] = await db.update(agentConfig)
+          const [config] = await db
+            .update(agentConfig)
             .set({ ...data, updatedAt: new Date() })
             .where(eq(agentConfig.id, existing.id))
             .returning();
@@ -175,43 +202,61 @@ export function createAgentRepository(): AgentRepositoryPort {
         return sug;
       },
       async list(orgId: string, status?: string, limit = 50): Promise<AgentSuggestion[]> {
-        return db.select().from(agentSuggestions)
-          .where(status
-            ? and(eq(agentSuggestions.orgId, orgId), eq(agentSuggestions.status, status))
-            : eq(agentSuggestions.orgId, orgId))
+        return db
+          .select()
+          .from(agentSuggestions)
+          .where(
+            status
+              ? and(eq(agentSuggestions.orgId, orgId), eq(agentSuggestions.status, status))
+              : eq(agentSuggestions.orgId, orgId)
+          )
           .orderBy(desc(agentSuggestions.createdAt))
           .limit(limit);
       },
       async getById(id: string): Promise<AgentSuggestion | null> {
-        const [sug] = await db.select().from(agentSuggestions)
+        const [sug] = await db
+          .select()
+          .from(agentSuggestions)
           .where(eq(agentSuggestions.id, id))
           .limit(1);
         return sug || null;
       },
       async update(id: string, data: Partial<AgentSuggestion>): Promise<AgentSuggestion> {
-        const [sug] = await db.update(agentSuggestions)
+        const [sug] = await db
+          .update(agentSuggestions)
           .set(data)
           .where(eq(agentSuggestions.id, id))
           .returning();
         return sug;
       },
       async listResolved(orgId: string, since: Date): Promise<AgentSuggestion[]> {
-        return db.select().from(agentSuggestions)
+        return db
+          .select()
+          .from(agentSuggestions)
           .where(
             and(
               eq(agentSuggestions.orgId, orgId),
               sql`${agentSuggestions.status} IN ('acted', 'dismissed', 'deferred')`,
-              gte(sql`COALESCE(${agentSuggestions.outcomeAt}, ${agentSuggestions.createdAt})`, since),
-            ),
+              gte(
+                sql`COALESCE(${agentSuggestions.outcomeAt}, ${agentSuggestions.createdAt})`,
+                since
+              )
+            )
           );
       },
       async getPreferences(orgId: string, userId?: string): Promise<SuggestionPreferences | null> {
-        const config = await db.select().from(agentConfig)
+        const config = await db
+          .select()
+          .from(agentConfig)
           .where(eq(agentConfig.orgId, orgId))
           .limit(1);
-        if (!config[0]) {return null;}
+        if (!config[0]) {
+          return null;
+        }
         const allPrefs = config[0].suggestionPreferences as Record<string, unknown> | null;
-        if (!allPrefs || typeof allPrefs !== "object") {return null;}
+        if (!allPrefs || typeof allPrefs !== "object") {
+          return null;
+        }
         const key = userId || "__org_default";
         const userPrefs = allPrefs[key];
         if (userPrefs && typeof userPrefs === "object") {
@@ -222,22 +267,39 @@ export function createAgentRepository(): AgentRepositoryPort {
         }
         return null;
       },
-      async savePreferences(orgId: string, prefs: Partial<SuggestionPreferences>, userId?: string): Promise<SuggestionPreferences> {
+      async savePreferences(
+        orgId: string,
+        prefs: Partial<SuggestionPreferences>,
+        userId?: string
+      ): Promise<SuggestionPreferences> {
         const defaults: SuggestionPreferences = {
-          maintenance: true, predictions: true, crew: true,
-          inventory: true, alerts: true, minSeverity: "info",
+          maintenance: true,
+          predictions: true,
+          crew: true,
+          inventory: true,
+          alerts: true,
+          minSeverity: "info",
         };
         const existing = await this.getPreferences(orgId, userId);
         const merged = { ...defaults, ...existing, ...prefs };
         const key = userId || "__org_default";
-        const config = await db.select().from(agentConfig)
+        const config = await db
+          .select()
+          .from(agentConfig)
           .where(eq(agentConfig.orgId, orgId))
           .limit(1);
         if (config[0]) {
-          const currentAllPrefs = (config[0].suggestionPreferences || {}) as Record<string, unknown>;
+          const currentAllPrefs = (config[0].suggestionPreferences || {}) as Record<
+            string,
+            unknown
+          >;
           const updated = { ...currentAllPrefs, [key]: merged };
-          await db.update(agentConfig)
-            .set({ suggestionPreferences: updated as unknown as Record<string, unknown>, updatedAt: new Date() })
+          await db
+            .update(agentConfig)
+            .set({
+              suggestionPreferences: updated as unknown as Record<string, unknown>,
+              updatedAt: new Date(),
+            })
             .where(eq(agentConfig.id, config[0].id));
         } else {
           await db.insert(agentConfig).values({
@@ -255,17 +317,22 @@ export function createAgentRepository(): AgentRepositoryPort {
         return sched;
       },
       async get(id: string, orgId: string): Promise<AgentSchedule | undefined> {
-        const [sched] = await db.select().from(agentSchedules)
+        const [sched] = await db
+          .select()
+          .from(agentSchedules)
           .where(and(eq(agentSchedules.id, id), eq(agentSchedules.orgId, orgId)));
         return sched;
       },
       async list(orgId: string): Promise<AgentSchedule[]> {
-        return db.select().from(agentSchedules)
+        return db
+          .select()
+          .from(agentSchedules)
           .where(eq(agentSchedules.orgId, orgId))
           .orderBy(desc(agentSchedules.createdAt));
       },
       async update(id: string, data: Partial<AgentSchedule>): Promise<AgentSchedule> {
-        const [sched] = await db.update(agentSchedules)
+        const [sched] = await db
+          .update(agentSchedules)
           .set({ ...data, updatedAt: new Date() })
           .where(eq(agentSchedules.id, id))
           .returning();
@@ -279,13 +346,16 @@ export function createAgentRepository(): AgentRepositoryPort {
         return run;
       },
       async getRuns(scheduleId: string, limit = 20): Promise<AgentScheduleRun[]> {
-        return db.select().from(agentScheduleRuns)
+        return db
+          .select()
+          .from(agentScheduleRuns)
           .where(eq(agentScheduleRuns.scheduleId, scheduleId))
           .orderBy(desc(agentScheduleRuns.startedAt))
           .limit(limit);
       },
       async updateRun(id: string, data: Partial<AgentScheduleRun>): Promise<AgentScheduleRun> {
-        const [run] = await db.update(agentScheduleRuns)
+        const [run] = await db
+          .update(agentScheduleRuns)
           .set(data)
           .where(eq(agentScheduleRuns.id, id))
           .returning();

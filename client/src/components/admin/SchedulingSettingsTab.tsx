@@ -7,31 +7,116 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Bell, Shield, Calendar, Sparkles, Send, ChevronDown, Plus, Trash2, Star, AlertTriangle, Check } from "lucide-react";
-import { useSchedulingSettingsData, type NotificationSettings, type RuleThresholds, type RuleEnforcementSettings } from "@/features/settings/hooks/useSchedulingSettingsData";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Bell,
+  Shield,
+  Calendar,
+  Sparkles,
+  Send,
+  ChevronDown,
+  Plus,
+  Trash2,
+  Star,
+  AlertTriangle,
+  Check,
+} from "lucide-react";
+import {
+  useSchedulingSettingsData,
+  type NotificationSettings,
+  type RuleThresholds,
+  type RuleEnforcementSettings,
+} from "@/features/settings/hooks/useSchedulingSettingsData";
 import { cn } from "@/lib/utils";
 
-const NOTIFICATION_EVENTS: Array<{ key: keyof NotificationSettings; label: string; description: string }> = [
-  { key: "schedulePublished", label: "Schedule Published", description: "When a new schedule is published" },
-  { key: "assignmentChanged", label: "Assignment Changed", description: "When crew assignment is modified" },
+const NOTIFICATION_EVENTS: Array<{
+  key: keyof NotificationSettings;
+  label: string;
+  description: string;
+}> = [
+  {
+    key: "schedulePublished",
+    label: "Schedule Published",
+    description: "When a new schedule is published",
+  },
+  {
+    key: "assignmentChanged",
+    label: "Assignment Changed",
+    description: "When crew assignment is modified",
+  },
   { key: "leaveApproved", label: "Leave Approved", description: "When leave request is approved" },
-  { key: "conflictDetected", label: "Conflict Detected", description: "When scheduling conflict occurs" },
-  { key: "certExpiring", label: "Certification Expiring", description: "When cert is about to expire" },
+  {
+    key: "conflictDetected",
+    label: "Conflict Detected",
+    description: "When scheduling conflict occurs",
+  },
+  {
+    key: "certExpiring",
+    label: "Certification Expiring",
+    description: "When cert is about to expire",
+  },
   { key: "rotationReminder", label: "Rotation Reminder", description: "Upcoming rotation change" },
 ];
 
-const RULE_CONFIGS: Array<{ key: keyof RuleEnforcementSettings; label: string; thresholdKey?: keyof RuleThresholds; thresholdLabel?: string; unit?: string; min?: number; max?: number }> = [
-  { key: "restHours", label: "Minimum Rest Hours (24h)", thresholdKey: "minRestHours24h", thresholdLabel: "Hours", unit: "h", min: 6, max: 14 },
-  { key: "maxWeekly", label: "Maximum Work Hours (7 days)", thresholdKey: "maxWorkHours7d", thresholdLabel: "Hours", unit: "h", min: 40, max: 100 },
-  { key: "certification", label: "Certification Required", thresholdKey: "certExpiryWarningDays", thresholdLabel: "Warning days", unit: "days", min: 7, max: 90 },
+const RULE_CONFIGS: Array<{
+  key: keyof RuleEnforcementSettings;
+  label: string;
+  thresholdKey?: keyof RuleThresholds;
+  thresholdLabel?: string;
+  unit?: string;
+  min?: number;
+  max?: number;
+}> = [
+  {
+    key: "restHours",
+    label: "Minimum Rest Hours (24h)",
+    thresholdKey: "minRestHours24h",
+    thresholdLabel: "Hours",
+    unit: "h",
+    min: 6,
+    max: 14,
+  },
+  {
+    key: "maxWeekly",
+    label: "Maximum Work Hours (7 days)",
+    thresholdKey: "maxWorkHours7d",
+    thresholdLabel: "Hours",
+    unit: "h",
+    min: 40,
+    max: 100,
+  },
+  {
+    key: "certification",
+    label: "Certification Required",
+    thresholdKey: "certExpiryWarningDays",
+    thresholdLabel: "Warning days",
+    unit: "days",
+    min: 7,
+    max: 90,
+  },
   { key: "vesselMatch", label: "Vessel Assignment Match" },
   { key: "skillMatch", label: "Skill Requirements Match" },
-  { key: "overlap", label: "Assignment Overlap Buffer", thresholdKey: "overlapBufferHours", thresholdLabel: "Buffer", unit: "h", min: 0, max: 24 },
+  {
+    key: "overlap",
+    label: "Assignment Overlap Buffer",
+    thresholdKey: "overlapBufferHours",
+    thresholdLabel: "Buffer",
+    unit: "h",
+    min: 0,
+    max: 24,
+  },
 ];
 
 function NotificationsSection() {
-  const { settings, handleToggleNotification, updateNotificationsMutation } = useSchedulingSettingsData();
+  const { settings, handleToggleNotification, updateNotificationsMutation } =
+    useSchedulingSettingsData();
   const isSaving = updateNotificationsMutation.isPending;
 
   return (
@@ -41,7 +126,9 @@ function NotificationsSection() {
           <Bell className="h-5 w-5" />
           Notification Settings
         </CardTitle>
-        <CardDescription>Configure who receives notifications for scheduling events</CardDescription>
+        <CardDescription>
+          Configure who receives notifications for scheduling events
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
@@ -105,7 +192,8 @@ function NotificationsSection() {
 }
 
 function RulesSection() {
-  const { settings, handleUpdateThreshold, handleToggleEnforcement, updateRulesMutation } = useSchedulingSettingsData();
+  const { settings, handleUpdateThreshold, handleToggleEnforcement, updateRulesMutation } =
+    useSchedulingSettingsData();
   const isSaving = updateRulesMutation.isPending;
 
   return (
@@ -188,7 +276,14 @@ function RulesSection() {
 }
 
 function RotationTemplatesSection() {
-  const { settings, handleAddTemplate, handleUpdateTemplate, handleDeleteTemplate, handleSetDefaultTemplate, updateRotationTemplatesMutation } = useSchedulingSettingsData();
+  const {
+    settings,
+    handleAddTemplate,
+    handleUpdateTemplate,
+    handleDeleteTemplate,
+    handleSetDefaultTemplate,
+    updateRotationTemplatesMutation,
+  } = useSchedulingSettingsData();
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newTemplate, setNewTemplate] = useState({ name: "", onDays: 28, offDays: 28 });
   const isSaving = updateRotationTemplatesMutation.isPending;
@@ -212,11 +307,12 @@ function RotationTemplatesSection() {
       </CardHeader>
       <CardContent className="space-y-3">
         {settings.rotationTemplates.map((template) => (
-          <div key={template.id} className="flex items-center justify-between gap-4 p-3 border rounded-lg">
+          <div
+            key={template.id}
+            className="flex items-center justify-between gap-4 p-3 border rounded-lg"
+          >
             <div className="flex items-center gap-3">
-              {template.isDefault && (
-                <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-              )}
+              {template.isDefault && <Star className="h-4 w-4 text-amber-500 fill-amber-500" />}
               <div>
                 <div className="font-medium">{template.name}</div>
                 <div className="text-sm text-muted-foreground">
@@ -263,7 +359,9 @@ function RotationTemplatesSection() {
                 <Input
                   type="number"
                   value={newTemplate.onDays}
-                  onChange={(e) => setNewTemplate({ ...newTemplate, onDays: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setNewTemplate({ ...newTemplate, onDays: Number(e.target.value) })
+                  }
                   min={1}
                   max={120}
                   data-testid="input-template-onDays"
@@ -274,7 +372,9 @@ function RotationTemplatesSection() {
                 <Input
                   type="number"
                   value={newTemplate.offDays}
-                  onChange={(e) => setNewTemplate({ ...newTemplate, offDays: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setNewTemplate({ ...newTemplate, offDays: Number(e.target.value) })
+                  }
                   min={1}
                   max={120}
                   data-testid="input-template-offDays"
@@ -282,16 +382,31 @@ function RotationTemplatesSection() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button size="sm" onClick={handleAdd} disabled={!newTemplate.name.trim() || isSaving} data-testid="button-save-template">
+              <Button
+                size="sm"
+                onClick={handleAdd}
+                disabled={!newTemplate.name.trim() || isSaving}
+                data-testid="button-save-template"
+              >
                 Save
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setIsAddingNew(false)} data-testid="button-cancel-template">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsAddingNew(false)}
+                data-testid="button-cancel-template"
+              >
                 Cancel
               </Button>
             </div>
           </div>
         ) : (
-          <Button variant="outline" className="w-full" onClick={() => setIsAddingNew(true)} data-testid="button-add-template">
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => setIsAddingNew(true)}
+            data-testid="button-add-template"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Template
           </Button>
@@ -302,11 +417,25 @@ function RotationTemplatesSection() {
 }
 
 function AiWeightsSection() {
-  const { settings, aiWeightsOpen, setAiWeightsOpen, handleUpdateAiWeight, updateAiWeightsMutation } = useSchedulingSettingsData();
+  const {
+    settings,
+    aiWeightsOpen,
+    setAiWeightsOpen,
+    handleUpdateAiWeight,
+    updateAiWeightsMutation,
+  } = useSchedulingSettingsData();
   const isSaving = updateAiWeightsMutation.isPending;
 
-  const weights: Array<{ key: keyof typeof settings.aiWeights; label: string; description: string }> = [
-    { key: "skillMatch", label: "Skill Match", description: "How well crew skills match requirements" },
+  const weights: Array<{
+    key: keyof typeof settings.aiWeights;
+    label: string;
+    description: string;
+  }> = [
+    {
+      key: "skillMatch",
+      label: "Skill Match",
+      description: "How well crew skills match requirements",
+    },
     { key: "availability", label: "Availability", description: "Rest periods and schedule gaps" },
     { key: "fatigue", label: "Fatigue Score", description: "Recent workload and fatigue levels" },
     { key: "experience", label: "Experience", description: "Vessel and role experience" },
@@ -323,15 +452,20 @@ function AiWeightsSection() {
                 <Sparkles className="h-5 w-5" />
                 AI Suggestion Weights
               </div>
-              <ChevronDown className={cn("h-5 w-5 transition-transform", aiWeightsOpen && "rotate-180")} />
+              <ChevronDown
+                className={cn("h-5 w-5 transition-transform", aiWeightsOpen && "rotate-180")}
+              />
             </CardTitle>
-            <CardDescription>Configure how AI ranks crew suggestions (explanations only, not decisions)</CardDescription>
+            <CardDescription>
+              Configure how AI ranks crew suggestions (explanations only, not decisions)
+            </CardDescription>
           </CardHeader>
         </CollapsibleTrigger>
         <CollapsibleContent>
           <CardContent className="space-y-4 pt-0">
             <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-              These weights affect how AI explains crew suggestions. All constraint checking and ranking remains deterministic.
+              These weights affect how AI explains crew suggestions. All constraint checking and
+              ranking remains deterministic.
             </div>
             {weights.map(({ key, label, description }) => (
               <div key={key} className="space-y-2">
@@ -361,7 +495,8 @@ function AiWeightsSection() {
 }
 
 function PublishBehaviorSection() {
-  const { settings, handleTogglePublishBehavior, updatePublishBehaviorMutation } = useSchedulingSettingsData();
+  const { settings, handleTogglePublishBehavior, updatePublishBehaviorMutation } =
+    useSchedulingSettingsData();
   const isSaving = updatePublishBehaviorMutation.isPending;
 
   return (
@@ -377,7 +512,9 @@ function PublishBehaviorSection() {
         <div className="flex items-center justify-between p-3 border rounded-lg">
           <div>
             <Label className="font-medium">Require Approval</Label>
-            <p className="text-xs text-muted-foreground">Schedules must be approved before publishing</p>
+            <p className="text-xs text-muted-foreground">
+              Schedules must be approved before publishing
+            </p>
           </div>
           <Switch
             checked={settings.publishBehavior.requireApproval}
@@ -390,7 +527,9 @@ function PublishBehaviorSection() {
         <div className="flex items-center justify-between p-3 border rounded-lg">
           <div>
             <Label className="font-medium">Notify on Publish</Label>
-            <p className="text-xs text-muted-foreground">Send notifications when schedule is published</p>
+            <p className="text-xs text-muted-foreground">
+              Send notifications when schedule is published
+            </p>
           </div>
           <Switch
             checked={settings.publishBehavior.notifyOnPublish}
@@ -422,7 +561,9 @@ function PublishBehaviorSection() {
             <Input
               type="number"
               value={settings.publishBehavior.autoArchiveDays}
-              onChange={(e) => handleTogglePublishBehavior("autoArchiveDays", Number(e.target.value))}
+              onChange={(e) =>
+                handleTogglePublishBehavior("autoArchiveDays", Number(e.target.value))
+              }
               className="w-20 h-8"
               min={30}
               max={365}

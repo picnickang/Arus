@@ -10,8 +10,8 @@ import { withErrorHandling } from "../../../lib/route-utils.js";
 import { dbCrewStorage } from "../../../db/crew/index.js";
 
 export function registerShiftsRoutes(app: Express, config: CrewExtensionsRoutesConfig) {
-
-  app.get("/api/shifts",
+  app.get(
+    "/api/shifts",
     withErrorHandling("fetch shift templates", async (req: AuthenticatedRequest, res: Response) => {
       const { vessel_id } = req.query;
       const shifts = await dbCrewStorage.getShiftTemplates(vessel_id as string | undefined);
@@ -21,7 +21,8 @@ export function registerShiftsRoutes(app: Express, config: CrewExtensionsRoutesC
     })
   );
 
-  app.post("/api/shifts",
+  app.post(
+    "/api/shifts",
     withErrorHandling("create shift template", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
       const shiftData = insertShiftTemplateSchema.parse({ ...req.body, orgId });
@@ -30,7 +31,8 @@ export function registerShiftsRoutes(app: Express, config: CrewExtensionsRoutesC
     })
   );
 
-  app.put("/api/shifts/:id",
+  app.put(
+    "/api/shifts/:id",
     withErrorHandling("update shift template", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
       const shiftData = insertShiftTemplateSchema.partial().parse(req.body);
@@ -40,7 +42,8 @@ export function registerShiftsRoutes(app: Express, config: CrewExtensionsRoutesC
     })
   );
 
-  app.delete("/api/shifts/:id",
+  app.delete(
+    "/api/shifts/:id",
     withErrorHandling("delete shift template", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
       await dbCrewStorage.deleteShiftTemplate(req.params.id, orgId);

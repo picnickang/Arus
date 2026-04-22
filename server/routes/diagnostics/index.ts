@@ -9,7 +9,13 @@ import { registerMetricsRoutes } from "./metrics-routes.js";
 import { registerTestsRoutes } from "./tests-routes.js";
 import { registerConfigRoutes } from "./config-routes.js";
 
-export type { HealthCheckResult, CheckResult, ServiceStatus, SystemMetrics, SmokeSuite } from "./types.js";
+export type {
+  HealthCheckResult,
+  CheckResult,
+  ServiceStatus,
+  SystemMetrics,
+  SmokeSuite,
+} from "./types.js";
 
 const router = Router();
 

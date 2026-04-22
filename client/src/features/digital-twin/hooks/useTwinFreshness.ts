@@ -8,7 +8,9 @@ function orgHeaders(orgId: string) {
 
 async function fetchJson(url: string, orgId: string) {
   const res = await fetch(url, { headers: orgHeaders(orgId) });
-  if (!res.ok) {throw new Error(`Failed: ${res.statusText}`);}
+  if (!res.ok) {
+    throw new Error(`Failed: ${res.statusText}`);
+  }
   return res.json();
 }
 
@@ -45,8 +47,7 @@ export function useSingleTwinFreshness(twinId: string) {
 export function useRefreshTwin() {
   const { currentOrgId } = useOrganization();
   return useMutation({
-    mutationFn: (twinId: string) =>
-      apiRequest("POST", `/api/pdm/twin/updates/refresh/${twinId}`),
+    mutationFn: (twinId: string) => apiRequest("POST", `/api/pdm/twin/updates/refresh/${twinId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/pdm/twin/updates/freshness"] });
       queryClient.invalidateQueries({ queryKey: ["/api/pdm/twin/state/latest"] });
@@ -58,8 +59,7 @@ export function useRefreshTwin() {
 export function useRefreshAllTwins() {
   const { currentOrgId } = useOrganization();
   return useMutation({
-    mutationFn: () =>
-      apiRequest("POST", "/api/pdm/twin/updates/refresh-all"),
+    mutationFn: () => apiRequest("POST", "/api/pdm/twin/updates/refresh-all"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/pdm/twin/updates/freshness"] });
       queryClient.invalidateQueries({ queryKey: ["/api/pdm/twin/state/latest"] });

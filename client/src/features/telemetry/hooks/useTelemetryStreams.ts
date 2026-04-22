@@ -1,6 +1,6 @@
 /**
  * useTelemetryStreams Hook
- * 
+ *
  * Fetches and merges telemetry trends with anomalies for unified display.
  * Supports vessel/equipment filtering and time range selection.
  */
@@ -43,12 +43,13 @@ export function useTelemetryStreams(options: UseTelemetryStreamsOptions = {}) {
 
   const anomaliesQuery = useQuery({
     queryKey: ["/api/analytics/anomalies", vesselId, equipmentId],
-    queryFn: () => fetchAnomalyDetections({ 
-      page: 1, 
-      limit: 100,
-      ...(vesselId && { vesselId }),
-      ...(equipmentId && { equipmentId }),
-    }),
+    queryFn: () =>
+      fetchAnomalyDetections({
+        page: 1,
+        limit: 100,
+        ...(vesselId && { vesselId }),
+        ...(equipmentId && { equipmentId }),
+      }),
     refetchInterval: enabled ? refreshInterval : false,
     staleTime: 0,
     enabled,
@@ -80,10 +81,18 @@ export function useTelemetryStreams(options: UseTelemetryStreamsOptions = {}) {
   }
 
   const sortedStreams = [...streams].sort((a, b) => {
-    if (a.hasAnomaly && !b.hasAnomaly) {return -1;}
-    if (!a.hasAnomaly && b.hasAnomaly) {return 1;}
-    if (a.status === "critical" && b.status !== "critical") {return -1;}
-    if (a.status !== "critical" && b.status === "critical") {return 1;}
+    if (a.hasAnomaly && !b.hasAnomaly) {
+      return -1;
+    }
+    if (!a.hasAnomaly && b.hasAnomaly) {
+      return 1;
+    }
+    if (a.status === "critical" && b.status !== "critical") {
+      return -1;
+    }
+    if (a.status !== "critical" && b.status === "critical") {
+      return 1;
+    }
     return 0;
   });
 

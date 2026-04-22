@@ -2,7 +2,12 @@
  * STCW Compliance Checker
  */
 
-import type { RestDay, DayComplianceResult, RollingComplianceResult, MonthComplianceResult } from "./types";
+import type {
+  RestDay,
+  DayComplianceResult,
+  RollingComplianceResult,
+  MonthComplianceResult,
+} from "./types";
 import { STCW_MIN_REST_24, STCW_MIN_REST_7D } from "./types";
 import { chunksFromDay, restHoursInWindow } from "./rest-utils";
 
@@ -28,7 +33,9 @@ export function checkMonthCompliance(days: RestDay[]): MonthComplianceResult {
     let minRest24 = 999;
     for (let hh = dayIndex * 24 + 1; hh <= dayIndex * 24 + 24; hh++) {
       const restInWindow = restHoursInWindow(days, hh);
-      if (restInWindow < minRest24) {minRest24 = restInWindow;}
+      if (restInWindow < minRest24) {
+        minRest24 = restInWindow;
+      }
     }
 
     const dayOk = minRest24 >= STCW_MIN_REST_24 && splitOk;

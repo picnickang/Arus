@@ -1,6 +1,6 @@
 /**
  * ML Ensemble Batch Processing
- * 
+ *
  * Batch predictions for multiple equipment with memory management.
  */
 
@@ -17,7 +17,10 @@ export async function batchEnsemblePredict(
 ): Promise<Map<string, EnsemblePrediction>> {
   const results = new Map<string, EnsemblePrediction>();
 
-  logger.info("MlEnsemble", `Batch predicting for ${equipmentIds.length} equipment (batch size: ${batchSize})`);
+  logger.info(
+    "MlEnsemble",
+    `Batch predicting for ${equipmentIds.length} equipment (batch size: ${batchSize})`
+  );
 
   const tf = await import("@tensorflow/tfjs-node");
 
@@ -65,14 +68,23 @@ export async function batchEnsemblePredict(
     const tensorsAfter = tf.memory().numTensors;
     const tensorLeak = tensorsAfter - tensorsBefore;
     if (tensorLeak > 10) {
-      logger.warn("MlEnsemble", `Potential tensor leak detected: ${tensorLeak} tensors not disposed after batch ${Math.floor(i / batchSize) + 1}`);
+      logger.warn(
+        "MlEnsemble",
+        `Potential tensor leak detected: ${tensorLeak} tensors not disposed after batch ${Math.floor(i / batchSize) + 1}`
+      );
       logger.warn("MlEnsemble", `Memory: ${JSON.stringify(tf.memory())}`);
     }
 
-    logger.debug("MlEnsemble", `Completed batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(equipmentIds.length / batchSize)} (tensors: ${tensorsAfter})`);
+    logger.debug(
+      "MlEnsemble",
+      `Completed batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(equipmentIds.length / batchSize)} (tensors: ${tensorsAfter})`
+    );
   }
 
-  logger.info("MlEnsemble", `Batch prediction complete: ${results.size}/${equipmentIds.length} successful`);
+  logger.info(
+    "MlEnsemble",
+    `Batch prediction complete: ${results.size}/${equipmentIds.length} successful`
+  );
 
   return results;
 }

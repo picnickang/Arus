@@ -151,7 +151,9 @@ class SchedulerEventBus extends EventEmitter {
     this.emit("simulation.discarded", event);
   }
 
-  onSimulationPreviewCreated(handler: (event: SimulationPreviewCreatedEvent) => Promise<void> | void): void {
+  onSimulationPreviewCreated(
+    handler: (event: SimulationPreviewCreatedEvent) => Promise<void> | void
+  ): void {
     this.on("simulation.preview.created", handler);
   }
 

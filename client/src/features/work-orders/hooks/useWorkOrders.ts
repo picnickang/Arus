@@ -11,14 +11,24 @@ export const workOrderKeys = {
   worklogs: (id: string) => [...workOrderKeys.all, id, "worklogs"] as const,
 };
 
-export function useWorkOrders(filters?: { status?: string; equipmentId?: string; vesselId?: string }) {
+export function useWorkOrders(filters?: {
+  status?: string;
+  equipmentId?: string;
+  vesselId?: string;
+}) {
   const params = new URLSearchParams();
-  if (filters?.status) { params.append("status", filters.status); }
-  if (filters?.equipmentId) { params.append("equipmentId", filters.equipmentId); }
-  if (filters?.vesselId) { params.append("vesselId", filters.vesselId); }
+  if (filters?.status) {
+    params.append("status", filters.status);
+  }
+  if (filters?.equipmentId) {
+    params.append("equipmentId", filters.equipmentId);
+  }
+  if (filters?.vesselId) {
+    params.append("vesselId", filters.vesselId);
+  }
   const queryString = params.toString();
   const filterKey = `${filters?.status ?? "all"}_${filters?.equipmentId ?? "all"}_${filters?.vesselId ?? "all"}`;
-  
+
   return useQuery<WorkOrder[]>({
     queryKey: [...workOrderKeys.list(), filterKey],
     queryFn: () => apiRequest("GET", `/api/work-orders${queryString ? `?${queryString}` : ""}`),
@@ -61,7 +71,7 @@ export function useWorkOrderWorklogs(workOrderId: string | undefined) {
 
 export function useCreateWorkOrder() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: Omit<WorkOrder, "id" | "createdAt" | "updatedAt">) => {
       return apiRequest("POST", "/api/work-orders", data);
@@ -74,7 +84,7 @@ export function useCreateWorkOrder() {
 
 export function useUpdateWorkOrder() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<WorkOrder> & { id: string }) => {
       return apiRequest("PATCH", `/api/work-orders/${id}`, data);
@@ -100,9 +110,14 @@ export interface CompleteWorkOrderInput {
 
 export function useCompleteWorkOrder() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ id, completionNotes, actualHours, predictionFeedback }: CompleteWorkOrderInput) => {
+    mutationFn: async ({
+      id,
+      completionNotes,
+      actualHours,
+      predictionFeedback,
+    }: CompleteWorkOrderInput) => {
       return apiRequest("POST", `/api/work-orders/${id}/complete-with-feedback`, {
         completionNotes,
         actualHours,
@@ -119,9 +134,12 @@ export function useCompleteWorkOrder() {
 
 export function useAddWorkOrderPart() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ workOrderId, ...data }: Omit<WorkOrderPart, "id"> & { workOrderId: string }) => {
+    mutationFn: async ({
+      workOrderId,
+      ...data
+    }: Omit<WorkOrderPart, "id"> & { workOrderId: string }) => {
       return apiRequest("POST", `/api/work-orders/${workOrderId}/parts`, data);
     },
     onSuccess: (_, variables) => {
@@ -132,9 +150,12 @@ export function useAddWorkOrderPart() {
 
 export function useAddWorklog() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ workOrderId, ...data }: Omit<WorkOrderWorklog, "id" | "createdAt"> & { workOrderId: string }) => {
+    mutationFn: async ({
+      workOrderId,
+      ...data
+    }: Omit<WorkOrderWorklog, "id" | "createdAt"> & { workOrderId: string }) => {
       return apiRequest("POST", `/api/work-orders/${workOrderId}/worklogs`, data);
     },
     onSuccess: (_, variables) => {
@@ -145,7 +166,7 @@ export function useAddWorklog() {
 
 export function useCloneWorkOrder() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
       return apiRequest("POST", `/api/work-orders/${id}/clone`);

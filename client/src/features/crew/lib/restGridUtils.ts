@@ -1,6 +1,6 @@
 /**
  * Rest Grid Utilities
- * 
+ *
  * Re-exports shared rest grid utilities for backward compatibility.
  * See @shared/lib/rest-grid-utils.ts for implementation.
  */

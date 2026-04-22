@@ -54,25 +54,35 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-red-100 text-red-800",
 };
 
-export function ServiceOrderCard({ serviceOrder, onDelete, onEdit, isDeleting, isReadOnly = false, canApprove = false, canEditPermission = false }: ServiceOrderCardProps) {
+export function ServiceOrderCard({
+  serviceOrder,
+  onDelete,
+  onEdit,
+  isDeleting,
+  isReadOnly = false,
+  canApprove = false,
+  canEditPermission = false,
+}: ServiceOrderCardProps) {
   const isDraft = serviceOrder.status === "draft";
   const isDraftOrCancelled = isDraft || serviceOrder.status === "cancelled";
   const canDelete = isDraftOrCancelled ? canEditPermission : canApprove;
   const canEditRecord = isDraft ? canEditPermission : canApprove;
-  
+
   return (
     <div className="p-4 rounded-lg border bg-muted/30" data-testid={`so-item-${serviceOrder.id}`}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-sm">{serviceOrder.soNumber}</span>
-            <Badge className={STATUS_COLORS[serviceOrder.status] || "bg-gray-100"}>{serviceOrder.status.replace("_", " ")}</Badge>
+            <Badge className={STATUS_COLORS[serviceOrder.status] || "bg-gray-100"}>
+              {serviceOrder.status.replace("_", " ")}
+            </Badge>
           </div>
-          
+
           {serviceOrder.scope && (
             <p className="text-sm text-foreground line-clamp-2">{serviceOrder.scope}</p>
           )}
-          
+
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
             {serviceOrder.serviceProviderName && (
               <span className="flex items-center gap-1">
@@ -81,9 +91,7 @@ export function ServiceOrderCard({ serviceOrder, onDelete, onEdit, isDeleting, i
               </span>
             )}
             {serviceOrder.equipmentName && (
-              <span className="flex items-center gap-1">
-                {serviceOrder.equipmentName}
-              </span>
+              <span className="flex items-center gap-1">{serviceOrder.equipmentName}</span>
             )}
             {serviceOrder.scheduledStartDate && (
               <span className="flex items-center gap-1">
@@ -99,13 +107,13 @@ export function ServiceOrderCard({ serviceOrder, onDelete, onEdit, isDeleting, i
             )}
           </div>
         </div>
-        
+
         <div className="flex items-center gap-1 shrink-0">
           {!isReadOnly && canEditRecord && onEdit && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8" 
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
               onClick={() => onEdit(serviceOrder)}
               data-testid={`btn-edit-so-${serviceOrder.id}`}
             >
@@ -115,20 +123,34 @@ export function ServiceOrderCard({ serviceOrder, onDelete, onEdit, isDeleting, i
           {!isReadOnly && canDelete && onDelete && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" disabled={isDeleting} data-testid={`btn-delete-so-${serviceOrder.id}`}>
-                  {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive"
+                  disabled={isDeleting}
+                  data-testid={`btn-delete-so-${serviceOrder.id}`}
+                >
+                  {isDeleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete Service Order?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently delete service order {serviceOrder.soNumber}. This action cannot be undone.
+                    This will permanently delete service order {serviceOrder.soNumber}. This action
+                    cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => onDelete(serviceOrder.id)} className="bg-destructive text-destructive-foreground">
+                  <AlertDialogAction
+                    onClick={() => onDelete(serviceOrder.id)}
+                    className="bg-destructive text-destructive-foreground"
+                  >
                     Delete
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -137,7 +159,12 @@ export function ServiceOrderCard({ serviceOrder, onDelete, onEdit, isDeleting, i
           )}
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`btn-view-so-${serviceOrder.id}`}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                data-testid={`btn-view-so-${serviceOrder.id}`}
+              >
                 <Eye className="h-4 w-4" />
               </Button>
             </DialogTrigger>
@@ -179,14 +206,17 @@ export function ServiceOrderCard({ serviceOrder, onDelete, onEdit, isDeleting, i
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm">
                       Scheduled: {format(new Date(serviceOrder.scheduledStartDate), "MMM d, yyyy")}
-                      {serviceOrder.scheduledEndDate && ` - ${format(new Date(serviceOrder.scheduledEndDate), "MMM d, yyyy")}`}
+                      {serviceOrder.scheduledEndDate &&
+                        ` - ${format(new Date(serviceOrder.scheduledEndDate), "MMM d, yyyy")}`}
                     </span>
                   </div>
                 )}
                 {serviceOrder.estimatedDurationHours && (
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{serviceOrder.estimatedDurationHours} hours estimated</span>
+                    <span className="text-sm">
+                      {serviceOrder.estimatedDurationHours} hours estimated
+                    </span>
                   </div>
                 )}
               </div>

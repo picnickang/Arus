@@ -1,6 +1,6 @@
 /**
  * Sensor Mappings and Signal Configuration
- * 
+ *
  * Maps simulated data points to telemetry sensor types and provides
  * vessel-specific signal configurations.
  */

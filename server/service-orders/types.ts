@@ -5,7 +5,13 @@ export type ServiceOrder = typeof serviceOrders.$inferSelect;
 export type InsertServiceOrder = z.infer<typeof insertServiceOrderSchema>;
 export type ServiceOrderEvent = typeof serviceOrderEvents.$inferSelect;
 
-export type ServiceOrderStatus = "draft" | "sent" | "confirmed" | "in_progress" | "completed" | "cancelled";
+export type ServiceOrderStatus =
+  | "draft"
+  | "sent"
+  | "confirmed"
+  | "in_progress"
+  | "completed"
+  | "cancelled";
 
 export const SERVICE_ORDER_STATUSES: ServiceOrderStatus[] = [
   "draft",

@@ -14,7 +14,7 @@ function getUserId(req: any): string {
 export function registerWorkOrderWorkflowRoutes(
   app: Express,
   service: WorkOrderWorkflowService,
-  rateLimiters: { writeOperationRateLimit: any; generalApiRateLimit: any },
+  rateLimiters: { writeOperationRateLimit: any; generalApiRateLimit: any }
 ) {
   const { writeOperationRateLimit, generalApiRateLimit } = rateLimiters;
 
@@ -47,7 +47,7 @@ export function registerWorkOrderWorkflowRoutes(
       });
 
       sendCreated(res, result);
-    }),
+    })
   );
 
   app.post(
@@ -59,11 +59,7 @@ export function registerWorkOrderWorkflowRoutes(
       const userId = getUserId(req);
       const workOrderId = req.params.id;
 
-      const {
-        completionNotes,
-        actualHours,
-        predictionFeedback,
-      } = req.body;
+      const { completionNotes, actualHours, predictionFeedback } = req.body;
 
       if (predictionFeedback) {
         const validOutcomes = ["confirmed", "partial", "false_alarm"];
@@ -89,7 +85,7 @@ export function registerWorkOrderWorkflowRoutes(
               }
             : undefined,
         },
-        userId,
+        userId
       );
 
       if (!result.completed) {
@@ -100,7 +96,7 @@ export function registerWorkOrderWorkflowRoutes(
       }
 
       res.json(result);
-    }),
+    })
   );
 
   app.post(
@@ -127,7 +123,7 @@ export function registerWorkOrderWorkflowRoutes(
       }
 
       res.json({ cancelled: result.cancelled, savingsVoided: result.savingsVoided });
-    }),
+    })
   );
 
   app.get(
@@ -140,6 +136,6 @@ export function registerWorkOrderWorkflowRoutes(
 
       const isPredictive = await service.woRepo.isPredictive(workOrderId, orgId);
       res.json({ workOrderId, isPredictive });
-    }),
+    })
   );
 }

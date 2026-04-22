@@ -1,13 +1,13 @@
 /**
  * Rate Limiting Middleware
  * Protects write endpoints from abuse
- * 
+ *
  * SonarQube Fix: Uses centralized factory instead of duplicated config
  */
 
-import { 
-  createRateLimiter, 
-  RATE_LIMIT_WINDOWS, 
+import {
+  createRateLimiter,
+  RATE_LIMIT_WINDOWS,
   RATE_LIMIT_DEFAULTS,
   RATE_LIMIT_ERROR_CODES,
 } from "../lib/rate-limit-factory";

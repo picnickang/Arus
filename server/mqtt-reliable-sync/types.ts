@@ -1,6 +1,6 @@
 /**
  * MQTT Reliable Sync - Types
- * 
+ *
  * Core types and interfaces for the MQTT reliable sync service.
  */
 

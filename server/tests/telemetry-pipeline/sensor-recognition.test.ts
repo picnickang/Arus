@@ -1,6 +1,6 @@
 /**
  * Comprehensive Sensor Recognition Tests
- * 
+ *
  * Tests telemetry recognition across all supported sensor types
  * for both J1939 and J1587 protocols.
  */
@@ -163,11 +163,11 @@ describe("Sensor Recognition - All Sensor Types", () => {
       const readings = processor.process(frames);
 
       expect(readings.length).toBe(j1939TestCases.length);
-      
-      const sensorTypes = new Set(readings.map(r => r.sensorType));
+
+      const sensorTypes = new Set(readings.map((r) => r.sensorType));
       expect(sensorTypes.size).toBe(j1939TestCases.length);
-      
-      readings.forEach(r => {
+
+      readings.forEach((r) => {
         expect(r.orgId).toBe(TEST_ORG_ID);
         expect(r.equipmentId).toBe(TEST_EQUIPMENT_ID);
         expect(r.metadata?.idempotencyKey).toBeDefined();
@@ -279,7 +279,14 @@ describe("Sensor Recognition - All Sensor Types", () => {
 
     it.each(j1587TestCases)(
       "should decode $name sensor correctly",
-      ({ createFrame, expectedSensorType, expectedValue, expectedPid, expectedUnit, tolerance }) => {
+      ({
+        createFrame,
+        expectedSensorType,
+        expectedValue,
+        expectedPid,
+        expectedUnit,
+        tolerance,
+      }) => {
         const frame = createFrame();
         const readings = decodeFrame(frame, { defaultEquipmentId: TEST_EQUIPMENT_ID });
 
@@ -304,11 +311,11 @@ describe("Sensor Recognition - All Sensor Types", () => {
       const readings = processor.process(frames);
 
       expect(readings.length).toBe(j1587TestCases.length);
-      
-      const sensorTypes = new Set(readings.map(r => r.sensorType));
+
+      const sensorTypes = new Set(readings.map((r) => r.sensorType));
       expect(sensorTypes.size).toBe(j1587TestCases.length);
-      
-      readings.forEach(r => {
+
+      readings.forEach((r) => {
         expect(r.orgId).toBe(TEST_ORG_ID);
         expect(r.metadata?.protocol).toBe("J1587");
         expect(r.metadata?.idempotencyKey).toBeDefined();
@@ -342,25 +349,25 @@ describe("Sensor Recognition - All Sensor Types", () => {
       const readings = processor.process(mixedFrames);
 
       expect(readings.length).toBe(6);
-      
-      const j1939Readings = readings.filter(r => r.metadata?.pgn !== undefined);
-      const j1587Readings = readings.filter(r => r.metadata?.protocol === "J1587");
-      
+
+      const j1939Readings = readings.filter((r) => r.metadata?.pgn !== undefined);
+      const j1587Readings = readings.filter((r) => r.metadata?.protocol === "J1587");
+
       expect(j1939Readings.length).toBe(3);
       expect(j1587Readings.length).toBe(3);
     });
 
     it("should correctly identify all registered PGNs", () => {
       const registeredPgns = getRegisteredPgns();
-      
+
       expect(registeredPgns.length).toBeGreaterThanOrEqual(11);
-      
-      expect(registeredPgns).toContain(0x00F004);
-      expect(registeredPgns).toContain(0x00FEEE);
-      expect(registeredPgns).toContain(0x00FEEF);
-      expect(registeredPgns).toContain(0x00FEE9);
-      expect(registeredPgns).toContain(0x00FEE5);
-      expect(registeredPgns).toContain(0x00FEF7);
+
+      expect(registeredPgns).toContain(0x00f004);
+      expect(registeredPgns).toContain(0x00feee);
+      expect(registeredPgns).toContain(0x00feef);
+      expect(registeredPgns).toContain(0x00fee9);
+      expect(registeredPgns).toContain(0x00fee5);
+      expect(registeredPgns).toContain(0x00fef7);
     });
   });
 
@@ -374,9 +381,9 @@ describe("Sensor Recognition - All Sensor Types", () => {
       ];
 
       const readings = processor.process(frames);
-      
+
       expect(readings.length).toBe(4);
-      readings.forEach(r => {
+      readings.forEach((r) => {
         expect(Number.isFinite(r.value)).toBe(true);
       });
     });
@@ -390,9 +397,9 @@ describe("Sensor Recognition - All Sensor Types", () => {
       ];
 
       const readings = processor.process(frames);
-      
+
       expect(readings.length).toBe(4);
-      readings.forEach(r => {
+      readings.forEach((r) => {
         expect(Number.isFinite(r.value)).toBe(true);
       });
     });
@@ -450,8 +457,8 @@ describe("Sensor Recognition - All Sensor Types", () => {
       expect(j1939Readings.length).toBe(11);
       expect(j1587Readings.length).toBe(11);
 
-      const j1939SensorTypes = j1939Readings.map(r => r.sensorType).sort();
-      const j1587SensorTypes = j1587Readings.map(r => r.sensorType).sort();
+      const j1939SensorTypes = j1939Readings.map((r) => r.sensorType).sort();
+      const j1587SensorTypes = j1587Readings.map((r) => r.sensorType).sort();
 
       expect(j1939SensorTypes).toEqual(j1587SensorTypes);
     });

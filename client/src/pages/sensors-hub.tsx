@@ -22,7 +22,9 @@ function PageLoader() {
 }
 
 function getTabFromUrl(): string {
-  if (typeof window === "undefined") {return "optimization";}
+  if (typeof window === "undefined") {
+    return "optimization";
+  }
   const params = new URLSearchParams(window.location.search);
   return params.get("tab") || "optimization";
 }
@@ -51,40 +53,52 @@ export default function SensorsHub() {
     <div className="flex flex-col h-full">
       <PageHeader title="Sensors" />
       <div className="p-4">
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="optimization" className="flex items-center gap-2" data-testid="tab-optimization">
-            <Brain className="h-4 w-4" />
-            <span className="hidden sm:inline">AI Optimization</span>
-          </TabsTrigger>
-          <TabsTrigger value="management" className="flex items-center gap-2" data-testid="tab-management">
-            <Activity className="h-4 w-4" />
-            <span className="hidden sm:inline">Management</span>
-          </TabsTrigger>
-          <TabsTrigger value="templates" className="flex items-center gap-2" data-testid="tab-templates">
-            <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">Templates</span>
-          </TabsTrigger>
-        </TabsList>
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+          <TabsList className="grid w-full max-w-md grid-cols-3">
+            <TabsTrigger
+              value="optimization"
+              className="flex items-center gap-2"
+              data-testid="tab-optimization"
+            >
+              <Brain className="h-4 w-4" />
+              <span className="hidden sm:inline">AI Optimization</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="management"
+              className="flex items-center gap-2"
+              data-testid="tab-management"
+            >
+              <Activity className="h-4 w-4" />
+              <span className="hidden sm:inline">Management</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="templates"
+              className="flex items-center gap-2"
+              data-testid="tab-templates"
+            >
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Templates</span>
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="optimization" className="mt-4">
-          <Suspense fallback={<PageLoader />}>
-            <SensorOptimization />
-          </Suspense>
-        </TabsContent>
+          <TabsContent value="optimization" className="mt-4">
+            <Suspense fallback={<PageLoader />}>
+              <SensorOptimization />
+            </Suspense>
+          </TabsContent>
 
-        <TabsContent value="management" className="mt-4">
-          <Suspense fallback={<PageLoader />}>
-            <SensorManagement />
-          </Suspense>
-        </TabsContent>
+          <TabsContent value="management" className="mt-4">
+            <Suspense fallback={<PageLoader />}>
+              <SensorManagement />
+            </Suspense>
+          </TabsContent>
 
-        <TabsContent value="templates" className="mt-4">
-          <Suspense fallback={<PageLoader />}>
-            <SensorTemplatesPage />
-          </Suspense>
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="templates" className="mt-4">
+            <Suspense fallback={<PageLoader />}>
+              <SensorTemplatesPage />
+            </Suspense>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

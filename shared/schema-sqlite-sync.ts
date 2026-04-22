@@ -69,7 +69,9 @@ export const sqliteJsonHelpers = {
 
   // Parse JSON string from storage
   parse: <T = any>(str: string | null): T | null => {
-    if (!str) {return null;}
+    if (!str) {
+      return null;
+    }
     try {
       return JSON.parse(str) as T;
     } catch {

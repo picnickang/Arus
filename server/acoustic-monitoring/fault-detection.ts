@@ -3,8 +3,14 @@
  * Equipment fault detection from acoustic signatures
  */
 
-export function detectBearingFault(frequencies: number[], magnitudes: number[], rpm?: number): { detected: boolean; confidence: number; frequency: number | null } {
-  if (!rpm || rpm <= 0) { return { detected: false, confidence: 0, frequency: null }; }
+export function detectBearingFault(
+  frequencies: number[],
+  magnitudes: number[],
+  rpm?: number
+): { detected: boolean; confidence: number; frequency: number | null } {
+  if (!rpm || rpm <= 0) {
+    return { detected: false, confidence: 0, frequency: null };
+  }
   const rotationFreq = rpm / 60;
   const bearingBandLow = rotationFreq * 2;
   const bearingBandHigh = rotationFreq * 10;
@@ -12,7 +18,10 @@ export function detectBearingFault(frequencies: number[], magnitudes: number[], 
   let faultFreq = null;
   for (let i = 0; i < frequencies.length; i++) {
     if (frequencies[i] >= bearingBandLow && frequencies[i] <= bearingBandHigh) {
-      if (magnitudes[i] > maxMagnitude) { maxMagnitude = magnitudes[i]; faultFreq = frequencies[i]; }
+      if (magnitudes[i] > maxMagnitude) {
+        maxMagnitude = magnitudes[i];
+        faultFreq = frequencies[i];
+      }
     }
   }
   const avgMagnitude = magnitudes.reduce((sum, mag) => sum + mag, 0) / magnitudes.length;
@@ -22,8 +31,14 @@ export function detectBearingFault(frequencies: number[], magnitudes: number[], 
   return { detected, confidence, frequency: faultFreq };
 }
 
-export function detectGearFault(frequencies: number[], magnitudes: number[], rpm?: number): { detected: boolean; confidence: number; frequency: number | null } {
-  if (!rpm || rpm <= 0) { return { detected: false, confidence: 0, frequency: null }; }
+export function detectGearFault(
+  frequencies: number[],
+  magnitudes: number[],
+  rpm?: number
+): { detected: boolean; confidence: number; frequency: number | null } {
+  if (!rpm || rpm <= 0) {
+    return { detected: false, confidence: 0, frequency: null };
+  }
   const rotationFreq = rpm / 60;
   const gearBandLow = rotationFreq * 10;
   const gearBandHigh = rotationFreq * 50;
@@ -31,7 +46,10 @@ export function detectGearFault(frequencies: number[], magnitudes: number[], rpm
   let faultFreq = null;
   for (let i = 0; i < frequencies.length; i++) {
     if (frequencies[i] >= gearBandLow && frequencies[i] <= gearBandHigh) {
-      if (magnitudes[i] > maxMagnitude) { maxMagnitude = magnitudes[i]; faultFreq = frequencies[i]; }
+      if (magnitudes[i] > maxMagnitude) {
+        maxMagnitude = magnitudes[i];
+        faultFreq = frequencies[i];
+      }
     }
   }
   const avgMagnitude = magnitudes.reduce((sum, mag) => sum + mag, 0) / magnitudes.length;
@@ -41,12 +59,17 @@ export function detectGearFault(frequencies: number[], magnitudes: number[], rpm
   return { detected, confidence, frequency: faultFreq };
 }
 
-export function detectCavitation(frequencies: number[], magnitudes: number[]): { detected: boolean; confidence: number; intensity: number } {
+export function detectCavitation(
+  frequencies: number[],
+  magnitudes: number[]
+): { detected: boolean; confidence: number; intensity: number } {
   const cavitationBandLow = 2000;
   const cavitationBandHigh = 10000;
   let bandEnergy = 0;
   for (let i = 0; i < frequencies.length; i++) {
-    if (frequencies[i] >= cavitationBandLow && frequencies[i] <= cavitationBandHigh) { bandEnergy += magnitudes[i]; }
+    if (frequencies[i] >= cavitationBandLow && frequencies[i] <= cavitationBandHigh) {
+      bandEnergy += magnitudes[i];
+    }
   }
   const totalEnergy = magnitudes.reduce((sum, mag) => sum + mag, 0);
   const bandRatio = totalEnergy > 0 ? bandEnergy / totalEnergy : 0;
@@ -55,28 +78,43 @@ export function detectCavitation(frequencies: number[], magnitudes: number[]): {
   return { detected, confidence, intensity: bandRatio };
 }
 
-export function detectLeakage(frequencies: number[], magnitudes: number[]): { detected: boolean; confidence: number; location: "possible" | "likely" | "unknown" } {
+export function detectLeakage(
+  frequencies: number[],
+  magnitudes: number[]
+): { detected: boolean; confidence: number; location: "possible" | "likely" | "unknown" } {
   const ultrasonicThreshold = 10000;
   let ultrasonicEnergy = 0;
   for (let i = 0; i < frequencies.length; i++) {
-    if (frequencies[i] >= ultrasonicThreshold) { ultrasonicEnergy += magnitudes[i]; }
+    if (frequencies[i] >= ultrasonicThreshold) {
+      ultrasonicEnergy += magnitudes[i];
+    }
   }
   const totalEnergy = magnitudes.reduce((sum, mag) => sum + mag, 0);
   const ultrasonicRatio = totalEnergy > 0 ? ultrasonicEnergy / totalEnergy : 0;
   const detected = ultrasonicRatio > 0.15;
   const confidence = Math.min(1, ultrasonicRatio * 5);
   let location: "possible" | "likely" | "unknown" = "unknown";
-  if (detected) { location = ultrasonicRatio > 0.25 ? "likely" : "possible"; }
+  if (detected) {
+    location = ultrasonicRatio > 0.25 ? "likely" : "possible";
+  }
   return { detected, confidence, location };
 }
 
-export function detectImbalance(frequencies: number[], magnitudes: number[], rpm?: number): { detected: boolean; confidence: number } {
-  if (!rpm || rpm <= 0) { return { detected: false, confidence: 0 }; }
+export function detectImbalance(
+  frequencies: number[],
+  magnitudes: number[],
+  rpm?: number
+): { detected: boolean; confidence: number } {
+  if (!rpm || rpm <= 0) {
+    return { detected: false, confidence: 0 };
+  }
   const rotationFreq = rpm / 60;
   const tolerance = rotationFreq * 0.1;
   let maxMagnitude = 0;
   for (let i = 0; i < frequencies.length; i++) {
-    if (Math.abs(frequencies[i] - rotationFreq) < tolerance) { maxMagnitude = Math.max(maxMagnitude, magnitudes[i]); }
+    if (Math.abs(frequencies[i] - rotationFreq) < tolerance) {
+      maxMagnitude = Math.max(maxMagnitude, magnitudes[i]);
+    }
   }
   const avgMagnitude = magnitudes.reduce((sum, mag) => sum + mag, 0) / magnitudes.length;
   const threshold = avgMagnitude * 4;

@@ -12,13 +12,9 @@ const MAX_PASSWORD_LENGTH = 128;
 function isLocalhostOrTauri(req: Request): boolean {
   const ip = req.ip || "";
   const isLocalIp =
-    ip === "127.0.0.1" ||
-    ip === "::1" ||
-    ip === "::ffff:127.0.0.1" ||
-    ip === "localhost";
+    ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1" || ip === "localhost";
   const origin = req.headers.origin || "";
-  const isTauriOrigin =
-    origin === "tauri://localhost" || origin === "https://tauri.localhost";
+  const isTauriOrigin = origin === "tauri://localhost" || origin === "https://tauri.localhost";
   return isLocalIp || isTauriOrigin;
 }
 
@@ -97,7 +93,11 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
             delete process.env.ADMIN_TOKEN;
             logger.info("AdminAuth", "Migrated legacy ADMIN_TOKEN to ADMIN_TOKEN_HASH");
           } catch (migrationError) {
-            logger.warn("AdminAuth", "Failed to migrate legacy ADMIN_TOKEN to hash", migrationError);
+            logger.warn(
+              "AdminAuth",
+              "Failed to migrate legacy ADMIN_TOKEN to hash",
+              migrationError
+            );
           }
         }
       }

@@ -5,7 +5,10 @@
 
 import { emailSender } from "../email-notification/email-sender.js";
 import { dbSchedulerStorage, dbUserStorage, dbCrewStorage } from "../../repositories.js";
-import type { NotificationSettings, NotificationRecipient } from "../../../shared/schema/scheduling-settings.js";
+import type {
+  NotificationSettings,
+  NotificationRecipient,
+} from "../../../shared/schema/scheduling-settings.js";
 import { DEFAULT_NOTIFICATION_SETTINGS } from "../../../shared/schema/scheduling-settings.js";
 
 interface ScheduleNotificationContext {
@@ -29,10 +32,16 @@ interface AssignmentInfo {
 
 type NotificationEvent = keyof NotificationSettings;
 
-async function getNotificationSettings(orgId: string, vesselId?: string): Promise<NotificationSettings> {
+async function getNotificationSettings(
+  orgId: string,
+  vesselId?: string
+): Promise<NotificationSettings> {
   try {
     if (vesselId) {
-      const vesselSettings = await dbSchedulerStorage.getSchedulingSettingsByVessel(orgId, vesselId);
+      const vesselSettings = await dbSchedulerStorage.getSchedulingSettingsByVessel(
+        orgId,
+        vesselId
+      );
       if (vesselSettings?.notificationSettings) {
         return vesselSettings.notificationSettings;
       }
@@ -113,7 +122,7 @@ export async function sendSchedulePublishedNotification(
 ): Promise<{ success: boolean; sentCount: number }> {
   const settings = await getNotificationSettings(context.orgId, context.vesselId);
   const recipient = settings.schedulePublished;
-  
+
   if (recipient === "none" || assignments.length === 0) {
     return { success: true, sentCount: 0 };
   }
@@ -121,13 +130,13 @@ export async function sendSchedulePublishedNotification(
   const adminEmails = await getAdminEmails(context.orgId);
   let sentCount = 0;
 
-  const uniqueCrewIds = [...new Set(assignments.map(a => a.crewId))];
-  
+  const uniqueCrewIds = [...new Set(assignments.map((a) => a.crewId))];
+
   for (const crewId of uniqueCrewIds) {
-    const crewAssignments = assignments.filter(a => a.crewId === crewId);
+    const crewAssignments = assignments.filter((a) => a.crewId === crewId);
     const crewEmail = await getCrewEmail(crewId);
     const crewName = crewAssignments[0]?.crewName || "Crew Member";
-    
+
     const emails = await getRecipientEmails(recipient, {
       ...context,
       crewId,
@@ -135,10 +144,15 @@ export async function sendSchedulePublishedNotification(
       adminEmails,
     });
 
-    if (emails.length === 0) {continue;}
+    if (emails.length === 0) {
+      continue;
+    }
 
     const assignmentList = crewAssignments
-      .map(a => `- ${a.vesselName || a.vesselId}: ${formatDate(a.startDate)} to ${formatDate(a.endDate)}`)
+      .map(
+        (a) =>
+          `- ${a.vesselName || a.vesselId}: ${formatDate(a.startDate)} to ${formatDate(a.endDate)}`
+      )
       .join("\n");
 
     const subject = `Schedule Published: ${formatDate(dateRange.from)} - ${formatDate(dateRange.to)}`;
@@ -162,7 +176,7 @@ ARUS Scheduling System`;
 <strong>${formatDate(dateRange.from)} - ${formatDate(dateRange.to)}</strong></p>
 <h3>Your Assignments:</h3>
 <ul>
-${crewAssignments.map(a => `<li><strong>${a.vesselName || a.vesselId}:</strong> ${formatDate(a.startDate)} to ${formatDate(a.endDate)}</li>`).join("")}
+${crewAssignments.map((a) => `<li><strong>${a.vesselName || a.vesselId}:</strong> ${formatDate(a.startDate)} to ${formatDate(a.endDate)}</li>`).join("")}
 </ul>
 <p>Please review your schedule and contact your supervisor if you have any questions.</p>
 <p>Best regards,<br>ARUS Scheduling System</p>`;
@@ -174,7 +188,9 @@ ${crewAssignments.map(a => `<li><strong>${a.vesselName || a.vesselId}:</strong> 
       html,
     });
 
-    if (result.success) {sentCount++;}
+    if (result.success) {
+      sentCount++;
+    }
   }
 
   return { success: true, sentCount };
@@ -186,14 +202,14 @@ export async function sendAssignmentCreatedNotification(
 ): Promise<{ success: boolean }> {
   const settings = await getNotificationSettings(context.orgId, assignment.vesselId);
   const recipient = settings.assignmentCreated;
-  
+
   if (recipient === "none") {
     return { success: true };
   }
 
   const crewEmail = await getCrewEmail(assignment.crewId);
   const adminEmails = await getAdminEmails(context.orgId);
-  
+
   const emails = await getRecipientEmails(recipient, {
     ...context,
     crewId: assignment.crewId,
@@ -236,14 +252,14 @@ export async function sendComplianceWarningNotification(
 ): Promise<{ success: boolean }> {
   const settings = await getNotificationSettings(context.orgId, context.vesselId);
   const recipient = settings.complianceWarning;
-  
+
   if (recipient === "none" || violations.length === 0) {
     return { success: true };
   }
 
   const crewEmail = await getCrewEmail(crewId);
   const adminEmails = await getAdminEmails(context.orgId);
-  
+
   const emails = await getRecipientEmails(recipient, {
     ...context,
     crewId,
@@ -256,7 +272,7 @@ export async function sendComplianceWarningNotification(
   }
 
   const violationList = violations
-    .map(v => `- [${v.severity.toUpperCase()}] ${v.type}: ${v.description}`)
+    .map((v) => `- [${v.severity.toUpperCase()}] ${v.type}: ${v.description}`)
     .join("\n");
 
   const subject = `Compliance Warning: ${crewName}`;
@@ -289,14 +305,14 @@ export async function sendRestHoursViolationNotification(
 ): Promise<{ success: boolean }> {
   const settings = await getNotificationSettings(context.orgId, context.vesselId);
   const recipient = settings.restHoursViolation;
-  
+
   if (recipient === "none") {
     return { success: true };
   }
 
   const crewEmail = await getCrewEmail(crewId);
   const adminEmails = await getAdminEmails(context.orgId);
-  
+
   const emails = await getRecipientEmails(recipient, {
     ...context,
     crewId,

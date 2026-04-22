@@ -1,6 +1,6 @@
 /**
  * RAG Conversation System Integration Tests
- * 
+ *
  * Tests the RAG (Retrieval-Augmented Generation) functionality including:
  * - Question answering
  * - Conversation management
@@ -24,21 +24,17 @@ describe("RAG Conversations API", () => {
     app = await createTestApp();
   }, 60000);
 
-  afterAll(async () => {
-  });
+  afterAll(async () => {});
 
   describe("POST /api/rag/ask", () => {
     it("should handle a question", async () => {
-      const response = await request(app)
-        .post("/api/rag/ask")
-        .set("x-org-id", TEST_ORG_ID)
-        .send({
-          question: "What is the maintenance schedule for main engines?",
-          userId: TEST_USER_ID,
-        });
+      const response = await request(app).post("/api/rag/ask").set("x-org-id", TEST_ORG_ID).send({
+        question: "What is the maintenance schedule for main engines?",
+        userId: TEST_USER_ID,
+      });
 
       expect([200, 400, 404, 503]).toContain(response.status);
-      
+
       if (response.status === 200) {
         expect(response.body).toBeDefined();
         if (response.body.conversationId) {
@@ -53,14 +49,11 @@ describe("RAG Conversations API", () => {
         return;
       }
 
-      const response = await request(app)
-        .post("/api/rag/ask")
-        .set("x-org-id", TEST_ORG_ID)
-        .send({
-          question: "What are the specific intervals?",
-          userId: TEST_USER_ID,
-          conversationId,
-        });
+      const response = await request(app).post("/api/rag/ask").set("x-org-id", TEST_ORG_ID).send({
+        question: "What are the specific intervals?",
+        userId: TEST_USER_ID,
+        conversationId,
+      });
 
       expect([200, 400, 404, 503]).toContain(response.status);
     });
@@ -113,9 +106,7 @@ describe("RAG Conversations API", () => {
 
   describe("GET /api/rag/suggestions", () => {
     it("should return query suggestions", async () => {
-      const response = await request(app)
-        .get("/api/rag/suggestions")
-        .set("x-org-id", TEST_ORG_ID);
+      const response = await request(app).get("/api/rag/suggestions").set("x-org-id", TEST_ORG_ID);
 
       expect([200, 404]).toContain(response.status);
     });
@@ -123,9 +114,7 @@ describe("RAG Conversations API", () => {
 
   describe("GET /api/rag/analytics", () => {
     it("should return RAG analytics", async () => {
-      const response = await request(app)
-        .get("/api/rag/analytics")
-        .set("x-org-id", TEST_ORG_ID);
+      const response = await request(app).get("/api/rag/analytics").set("x-org-id", TEST_ORG_ID);
 
       expect([200, 404]).toContain(response.status);
     });

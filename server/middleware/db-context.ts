@@ -1,9 +1,9 @@
 /**
  * Database Context Middleware for Row-Level Security
  * Sets the current organization ID in the database session
- * 
+ *
  * SINGLE-TENANT SYSTEM: Always uses default-org-id
- * 
+ *
  * NOTE: This middleware is PostgreSQL-specific and is skipped in SQLite mode
  */
 

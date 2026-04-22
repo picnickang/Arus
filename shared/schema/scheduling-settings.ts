@@ -124,7 +124,10 @@ export const DEFAULT_ROTATION_TEMPLATES: RotationTemplate[] = [
   { id: "35-35", name: "35/35 Rotation", daysOn: 35, daysOff: 35, isDefault: false },
 ];
 
-export function createDefaultSchedulingSettings(orgId: string, id: string): InsertSchedulingSettings {
+export function createDefaultSchedulingSettings(
+  orgId: string,
+  id: string
+): InsertSchedulingSettings {
   return {
     id,
     orgId,

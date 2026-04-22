@@ -83,11 +83,7 @@ export class StreamingService {
     res.flushHeaders();
 
     const systemPrompt = this.buildSystemPrompt(context.relevantChunks);
-    const messages = this.buildMessages(
-      systemPrompt,
-      context.query,
-      context.conversationHistory
-    );
+    const messages = this.buildMessages(systemPrompt, context.query, context.conversationHistory);
 
     try {
       const stream = await this.openai.chat.completions.create({
@@ -175,11 +171,7 @@ export class StreamingService {
     console.log(`[StreamingService] Falling back to ${fallbackModel}`);
 
     const systemPrompt = this.buildSystemPrompt(context.relevantChunks);
-    const messages = this.buildMessages(
-      systemPrompt,
-      context.query,
-      context.conversationHistory
-    );
+    const messages = this.buildMessages(systemPrompt, context.query, context.conversationHistory);
 
     const stream = await this.openai!.chat.completions.create({
       model: fallbackModel,
@@ -236,13 +228,10 @@ export class StreamingService {
     res.write(`data: ${JSON.stringify(chunk)}\n\n`);
   }
 
-  private buildSystemPrompt(
-    chunks: Array<{ content: string; documentTitle?: string }>
-  ): string {
+  private buildSystemPrompt(chunks: Array<{ content: string; documentTitle?: string }>): string {
     const contextText = chunks
       .map(
-        (c, i) =>
-          `[Source ${i + 1}${c.documentTitle ? `: ${c.documentTitle}` : ""}]\n${c.content}`
+        (c, i) => `[Source ${i + 1}${c.documentTitle ? `: ${c.documentTitle}` : ""}]\n${c.content}`
       )
       .join("\n\n---\n\n");
 
@@ -289,7 +278,7 @@ If the documentation doesn't contain relevant information, say so clearly and pr
     return chunks.slice(0, 5).map((chunk) => ({
       documentId: chunk.documentId,
       documentTitle: chunk.documentTitle || "Unknown Document",
-      excerpt: `${chunk.content.substring(0, 200)  }...`,
+      excerpt: `${chunk.content.substring(0, 200)}...`,
     }));
   }
 }

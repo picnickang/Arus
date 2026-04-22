@@ -121,7 +121,10 @@ export interface ShipmateImportResult {
  * about. Caller should surface the message to the UI rather than swallowing.
  */
 export class VesselResolutionError extends Error {
-  constructor(message: string, public readonly candidates: string[] = []) {
+  constructor(
+    message: string,
+    public readonly candidates: string[] = []
+  ) {
     super(message);
     this.name = "VesselResolutionError";
   }
@@ -146,25 +149,26 @@ async function resolveVesselId(
   vesselId?: string
 ): Promise<string | null> {
   // Explicit vessel ID wins — caller took responsibility.
-  if (vesselId) {return vesselId;}
+  if (vesselId) {
+    return vesselId;
+  }
 
   // No name supplied → no resolution possible. Not an error; some
   // imports legitimately have no vessel scope.
-  if (!vesselName) {return null;}
+  if (!vesselName) {
+    return null;
+  }
 
   const trimmedName = vesselName.trim();
-  if (!trimmedName) {return null;}
+  if (!trimmedName) {
+    return null;
+  }
 
   // EXACT case-insensitive match only. No LIKE, no partial, no substring.
   const matches = await db
     .select({ id: vessels.id, name: vessels.name })
     .from(vessels)
-    .where(
-      and(
-        eq(vessels.orgId, orgId),
-        sql`LOWER(${vessels.name}) = LOWER(${trimmedName})`
-      )
-    );
+    .where(and(eq(vessels.orgId, orgId), sql`LOWER(${vessels.name}) = LOWER(${trimmedName})`));
 
   if (matches.length === 1) {
     return matches[0].id;
@@ -178,10 +182,7 @@ async function resolveVesselId(
       .select({ name: vessels.name })
       .from(vessels)
       .where(
-        and(
-          eq(vessels.orgId, orgId),
-          sql`LOWER(${vessels.name}) LIKE LOWER(${`%${  trimmedName  }%`})`
-        )
+        and(eq(vessels.orgId, orgId), sql`LOWER(${vessels.name}) LIKE LOWER(${`%${trimmedName}%`})`)
       )
       .limit(10);
 
@@ -191,10 +192,7 @@ async function resolveVesselId(
         ? ` Similar vessels in this org: ${candidateNames.join(", ")}.`
         : " No similar vessels found — create the vessel in ARUS before importing.";
 
-    throw new VesselResolutionError(
-      `Vessel "${vesselName}" not found.${hint}`,
-      candidateNames
-    );
+    throw new VesselResolutionError(`Vessel "${vesselName}" not found.${hint}`, candidateNames);
   }
 
   // matches.length > 1 — should be rare but possible if the name column
@@ -261,7 +259,9 @@ class ShipmateImportService {
     const mappedRows = normalizedRows.map((row, i) => {
       const { data, errors, warnings } = applyMapping(row, mapping);
       data.orgId = orgId;
-      if (resolvedVesselId && !data.vesselId) {data.vesselId = resolvedVesselId;}
+      if (resolvedVesselId && !data.vesselId) {
+        data.vesselId = resolvedVesselId;
+      }
       return { rowNum: i + 2, data, errors, warnings };
     });
 
@@ -269,9 +269,7 @@ class ShipmateImportService {
     let hierarchyLevelsDetected = 0;
     if (options.module === "pms_equipment") {
       const depths = normalizedRows
-        .map((r) =>
-          (r["Component No"] || r["Component Number"] || "").split(".").length
-        )
+        .map((r) => (r["Component No"] || r["Component Number"] || "").split(".").length)
         .filter((d) => d > 0);
       hierarchyLevelsDetected = Math.max(0, ...depths);
     }
@@ -347,8 +345,7 @@ class ShipmateImportService {
             rowsImported: 0,
             rowsUpdated: 0,
             rowsSkipped: skipped,
-            firstErrors:
-              importErrors.length > 0 ? importErrors.slice(0, 20) : null,
+            firstErrors: importErrors.length > 0 ? importErrors.slice(0, 20) : null,
             initiatedBy: options.initiatedBy ?? null,
           })
           .returning({ id: importManifest.id });
@@ -358,15 +355,14 @@ class ShipmateImportService {
         // Upsert each valid row within the same transaction.
         for (const row of validRows) {
           try {
-            const result = await this.upsertRow(
-              tx,
-              orgId,
-              options.module,
-              row.data
-            );
-            if (result === "inserted") {imported++;}
-            else if (result === "updated") {updated++;}
-            else {skipped++;}
+            const result = await this.upsertRow(tx, orgId, options.module, row.data);
+            if (result === "inserted") {
+              imported++;
+            } else if (result === "updated") {
+              updated++;
+            } else {
+              skipped++;
+            }
           } catch (err) {
             // Row-level error. Two options:
             //   (a) Record and continue (best-effort import)
@@ -404,8 +400,7 @@ class ShipmateImportService {
       // the rolled-back transaction so the operator can see the attempt.
       // Use a separate insert (not update), since the running row was
       // rolled back with everything else.
-      const errMsg =
-        txError instanceof Error ? txError.message : String(txError);
+      const errMsg = txError instanceof Error ? txError.message : String(txError);
       logger.error("SHIPMATE import transaction failed", {
         orgId,
         module: options.module,
@@ -439,10 +434,7 @@ class ShipmateImportService {
         // gets a response. This shouldn't happen unless the manifest
         // table itself is broken.
         logger.error("Failed to record import failure in manifest", {
-          error:
-            manifestErr instanceof Error
-              ? manifestErr.message
-              : String(manifestErr),
+          error: manifestErr instanceof Error ? manifestErr.message : String(manifestErr),
         });
       }
 
@@ -453,9 +445,9 @@ class ShipmateImportService {
         imported: 0,
         updated: 0,
         skipped: parsed.rowCount,
-        errors: importErrors.slice(0, 50).concat([
-          { row: 0, message: `Transaction rolled back: ${errMsg}` },
-        ]),
+        errors: importErrors
+          .slice(0, 50)
+          .concat([{ row: 0, message: `Transaction rolled back: ${errMsg}` }]),
         warnings: parsed.warnings.concat(mappedRows.flatMap((r) => r.warnings)),
         ragDocumentsCreated: 0,
         vesselResolved: resolvedVesselId,
@@ -468,7 +460,10 @@ class ShipmateImportService {
 
     // Step 10: Sync running hours (outside the transaction — non-critical)
     if (options.syncRunningHours && options.module === "pms_equipment") {
-      await this.syncRunningHours(orgId, validRows.map((r) => r.data));
+      await this.syncRunningHours(
+        orgId,
+        validRows.map((r) => r.data)
+      );
     }
 
     // Step 11: Feed to RAG (outside the transaction — it hits an external API)
@@ -518,15 +513,15 @@ class ShipmateImportService {
   // Hierarchy sort (parents before children)
   // ============================================================================
 
-  private sortByHierarchy(
-    rows: Array<{ rowNum: number; data: Record<string, unknown> }>
-  ): void {
+  private sortByHierarchy(rows: Array<{ rowNum: number; data: Record<string, unknown> }>): void {
     rows.sort((a, b) => {
       const aId = (a.data.id as string) || "";
       const bId = (b.data.id as string) || "";
       const aDepth = aId.split(".").length;
       const bDepth = bId.split(".").length;
-      if (aDepth !== bDepth) {return aDepth - bDepth;}
+      if (aDepth !== bDepth) {
+        return aDepth - bDepth;
+      }
       return aId.localeCompare(bId);
     });
   }
@@ -587,7 +582,9 @@ class ShipmateImportService {
     cleanData.sourceSystem = "shipmate";
 
     const equipmentId = cleanData.id as string;
-    if (!equipmentId) {return "skipped";}
+    if (!equipmentId) {
+      return "skipped";
+    }
 
     const [existing] = await tx
       .select({ id: equipment.id })
@@ -621,7 +618,9 @@ class ShipmateImportService {
 
     for (const [key, value] of Object.entries(data)) {
       if (key.startsWith("_")) {
-        if (value != null) {metadata[key.replace("_", "")] = value;}
+        if (value != null) {
+          metadata[key.replace("_", "")] = value;
+        }
       } else {
         cleanData[key] = value;
       }
@@ -634,23 +633,21 @@ class ShipmateImportService {
     }
 
     const woNumber = cleanData.woNumber as string;
-    if (!woNumber) {return "skipped";}
+    if (!woNumber) {
+      return "skipped";
+    }
 
     const [existing] = await tx
       .select({ id: workOrders.id })
       .from(workOrders)
-      .where(
-        and(eq(workOrders.woNumber, woNumber), eq(workOrders.orgId, orgId))
-      )
+      .where(and(eq(workOrders.woNumber, woNumber), eq(workOrders.orgId, orgId)))
       .limit(1);
 
     if (existing) {
       await tx
         .update(workOrders)
         .set({ ...cleanData, updatedAt: new Date() })
-        .where(
-          and(eq(workOrders.woNumber, woNumber), eq(workOrders.orgId, orgId))
-        );
+        .where(and(eq(workOrders.woNumber, woNumber), eq(workOrders.orgId, orgId)));
       return "updated";
     }
 
@@ -682,7 +679,9 @@ class ShipmateImportService {
     cleanData.sourceSystem = "shipmate";
 
     const partNo = cleanData.partNo as string;
-    if (!partNo) {return "skipped";}
+    if (!partNo) {
+      return "skipped";
+    }
 
     const [existing] = await tx
       .select({ id: parts.id })
@@ -717,13 +716,7 @@ class ShipmateImportService {
       const [existingStock] = await tx
         .select({ id: stock.id })
         .from(stock)
-        .where(
-          and(
-            eq(stock.orgId, orgId),
-            eq(stock.partId, partId),
-            eq(stock.location, location)
-          )
-        )
+        .where(and(eq(stock.orgId, orgId), eq(stock.partId, partId), eq(stock.location, location)))
         .limit(1);
 
       if (existingStock) {
@@ -756,15 +749,14 @@ class ShipmateImportService {
   // Running hours sync (non-transactional — supplemental data)
   // ============================================================================
 
-  private async syncRunningHours(
-    orgId: string,
-    rows: Record<string, unknown>[]
-  ): Promise<void> {
+  private async syncRunningHours(orgId: string, rows: Record<string, unknown>[]): Promise<void> {
     let synced = 0;
     for (const row of rows) {
       const id = row.id as string;
       const hours = row.runningHours as number;
-      if (!id || hours == null) {continue;}
+      if (!id || hours == null) {
+        continue;
+      }
 
       try {
         await db
@@ -793,7 +785,9 @@ class ShipmateImportService {
     filename?: string
   ): Promise<number> {
     const docs = this.generateRagDocs(module, rows, vesselName);
-    if (docs.length === 0) {return 0;}
+    if (docs.length === 0) {
+      return 0;
+    }
 
     let created = 0;
     try {
@@ -818,7 +812,9 @@ class ShipmateImportService {
               },
             }),
           });
-          if (res.ok) {created++;}
+          if (res.ok) {
+            created++;
+          }
         } catch {
           // Non-fatal
         }
@@ -854,7 +850,9 @@ class ShipmateImportService {
     const bySystem = new Map<string, Record<string, unknown>[]>();
     for (const row of rows) {
       const system = (row.systemType as string) || "General";
-      if (!bySystem.has(system)) {bySystem.set(system, []);}
+      if (!bySystem.has(system)) {
+        bySystem.set(system, []);
+      }
       bySystem.get(system)!.push(row);
     }
 
@@ -894,16 +892,16 @@ class ShipmateImportService {
     const byEquipment = new Map<string, Record<string, unknown>[]>();
     for (const row of rows) {
       const eqId = (row.equipmentId as string) || "unknown";
-      if (!byEquipment.has(eqId)) {byEquipment.set(eqId, []);}
+      if (!byEquipment.has(eqId)) {
+        byEquipment.set(eqId, []);
+      }
       byEquipment.get(eqId)!.push(row);
     }
 
     return [...byEquipment.entries()].map(([eqId, jobs]) => {
       jobs.sort((a, b) => {
         const da = a.completedAt ? new Date(a.completedAt as string).getTime() : 0;
-        const dbTime = b.completedAt
-          ? new Date(b.completedAt as string).getTime()
-          : 0;
+        const dbTime = b.completedAt ? new Date(b.completedAt as string).getTime() : 0;
         return dbTime - da;
       });
 
@@ -913,22 +911,20 @@ class ShipmateImportService {
           `# Maintenance History: Component ${eqId} (${vesselName})`,
           `Source: SHIPMATE PMS. ${jobs.length} job records.`,
           "",
-          ...jobs.slice(0, 50).map((job) =>
-            [
-              `## ${job.woNumber}: ${job.title}`,
-              `Type: ${job.maintenanceType || "N/A"} | Status: ${
-                job.status || "N/A"
-              }`,
-              job.completedAt &&
-                `Completed: ${new Date(
-                  job.completedAt as string
-                ).toLocaleDateString()}`,
-              job.actualHours && `Hours: ${job.actualHours}`,
-              job.notes && `Notes: ${job.notes}`,
-            ]
-              .filter(Boolean)
-              .join("\n")
-          ),
+          ...jobs
+            .slice(0, 50)
+            .map((job) =>
+              [
+                `## ${job.woNumber}: ${job.title}`,
+                `Type: ${job.maintenanceType || "N/A"} | Status: ${job.status || "N/A"}`,
+                job.completedAt &&
+                  `Completed: ${new Date(job.completedAt as string).toLocaleDateString()}`,
+                job.actualHours && `Hours: ${job.actualHours}`,
+                job.notes && `Notes: ${job.notes}`,
+              ]
+                .filter(Boolean)
+                .join("\n")
+            ),
         ].join("\n\n"),
         metadata: {
           entityType: "maintenance_history",
@@ -947,7 +943,9 @@ class ShipmateImportService {
     const byCategory = new Map<string, Record<string, unknown>[]>();
     for (const row of rows) {
       const cat = (row.category as string) || "General";
-      if (!byCategory.has(cat)) {byCategory.set(cat, []);}
+      if (!byCategory.has(cat)) {
+        byCategory.set(cat, []);
+      }
       byCategory.get(cat)!.push(row);
     }
 
@@ -959,8 +957,8 @@ class ShipmateImportService {
         "",
         ...items.map(
           (item) =>
-            `- **${item.partNo}**: ${item.name}${ 
-            item.manufacturer ? ` (${item.manufacturer})` : "" 
+            `- **${item.partNo}**: ${item.name}${
+              item.manufacturer ? ` (${item.manufacturer})` : ""
             }${item.criticality ? ` [${item.criticality}]` : ""}`
         ),
       ].join("\n"),
@@ -977,12 +975,12 @@ class ShipmateImportService {
   // Helpers
   // ============================================================================
 
-  private extractVesselNameFromRows(
-    rows: Record<string, string>[]
-  ): string | undefined {
+  private extractVesselNameFromRows(rows: Record<string, string>[]): string | undefined {
     for (const row of rows) {
       const name = row["Vessel"] || row["Vessel Name"] || row["Vessel Code"];
-      if (name && name.trim()) {return name.trim();}
+      if (name && name.trim()) {
+        return name.trim();
+      }
     }
     return undefined;
   }
@@ -999,9 +997,7 @@ class ShipmateImportService {
       imported: 0,
       updated: 0,
       skipped: 0,
-      errors: [
-        { row: 0, message: `No data rows found. ${  warnings.join("; ")}` },
-      ],
+      errors: [{ row: 0, message: `No data rows found. ${warnings.join("; ")}` }],
       warnings,
       ragDocumentsCreated: 0,
       vesselResolved: null,

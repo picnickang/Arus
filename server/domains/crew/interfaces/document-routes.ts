@@ -14,14 +14,20 @@ import { getExpiryUrgencyLevel } from "./types.js";
 export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void {
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimit;
 
-  app.get("/api/crew/:crewId/documents", requireOrgId, generalApiRateLimit,
+  app.get(
+    "/api/crew/:crewId/documents",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("fetch crew documents", async (req, res) => {
       const documents = await crewService.getCrewDocuments(req.params.crewId, req.orgId);
       res.json(documents);
     })
   );
 
-  app.post("/api/crew/:crewId/documents", requireOrgIdAndValidateBody, writeOperationRateLimit,
+  app.post(
+    "/api/crew/:crewId/documents",
+    requireOrgIdAndValidateBody,
+    writeOperationRateLimit,
     withErrorHandling("create crew document", async (req, res) => {
       const orgId = req.headers["x-org-id"] as string;
       const body = { ...req.body };
@@ -44,7 +50,10 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
     })
   );
 
-  app.put("/api/crew-documents/:id", requireOrgIdAndValidateBody, writeOperationRateLimit,
+  app.put(
+    "/api/crew-documents/:id",
+    requireOrgIdAndValidateBody,
+    writeOperationRateLimit,
     withErrorHandling("update crew document", async (req, res) => {
       const body = { ...req.body };
 
@@ -57,25 +66,40 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
       }
 
       const docData = insertCrewDocumentSchema.partial().parse(body);
-      const document = await crewService.updateCrewDocument(req.params.id, docData, req.user?.id, req.orgId);
+      const document = await crewService.updateCrewDocument(
+        req.params.id,
+        docData,
+        req.user?.id,
+        req.orgId
+      );
       res.json(document);
     })
   );
 
-  app.delete("/api/crew-documents/:id", requireOrgId, criticalOperationRateLimit,
+  app.delete(
+    "/api/crew-documents/:id",
+    requireOrgId,
+    criticalOperationRateLimit,
     withErrorHandling("delete crew document", async (req, res) => {
       await crewService.deleteCrewDocument(req.params.id, req.user?.id, req.orgId);
       sendDeleted(res);
     })
   );
 
-  app.get("/api/crew-documents/expiring", requireOrgId, generalApiRateLimit,
+  app.get(
+    "/api/crew-documents/expiring",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("fetch expiring documents", async (req, res) => {
       const orgId = req.headers["x-org-id"] as string;
       const daysAhead = Number.parseInt(req.query.daysAhead as string) || 90;
       const includeAcknowledged = req.query.includeAcknowledged === "true";
 
-      const expiringDocs = await crewService.getDocumentsExpiring(orgId, daysAhead, includeAcknowledged);
+      const expiringDocs = await crewService.getDocumentsExpiring(
+        orgId,
+        daysAhead,
+        includeAcknowledged
+      );
 
       const enrichedDocs = await Promise.all(
         expiringDocs.map(async (doc) => {
@@ -108,7 +132,10 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
     notes: z.string().max(1000).optional(),
   });
 
-  app.post("/api/crew-documents/:id/acknowledge-alert", requireOrgIdAndValidateBody, writeOperationRateLimit,
+  app.post(
+    "/api/crew-documents/:id/acknowledge-alert",
+    requireOrgIdAndValidateBody,
+    writeOperationRateLimit,
     withErrorHandling("acknowledge document alert", async (req, res) => {
       const docId = req.params.id;
       const userId = req.user?.id;
@@ -119,7 +146,10 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
     })
   );
 
-  app.post("/api/crew-documents/scan-expiry", requireOrgId, criticalOperationRateLimit,
+  app.post(
+    "/api/crew-documents/scan-expiry",
+    requireOrgId,
+    criticalOperationRateLimit,
     withErrorHandling("scan for expiring documents", async (req, res) => {
       const orgId = req.headers["x-org-id"] as string;
       const result = await crewService.scanAndFlagExpiringDocuments(orgId);

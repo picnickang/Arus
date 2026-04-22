@@ -42,7 +42,11 @@ export class TrainingPipelineService {
 
   async createDataset(data: InsertTrainingDataset): Promise<TrainingDataset> {
     const result = await this.datasets.create(data);
-    logger.info("[TrainingPipeline]", "Dataset created", { id: result.id, name: result.name, orgId: result.orgId });
+    logger.info("[TrainingPipeline]", "Dataset created", {
+      id: result.id,
+      name: result.name,
+      orgId: result.orgId,
+    });
     return result;
   }
 
@@ -62,7 +66,9 @@ export class TrainingPipelineService {
     initiatedBy?: string
   ): Promise<TrainingRun> {
     const dataset = await this.datasets.getById(orgId, datasetId);
-    if (!dataset) {throw new Error(`Dataset ${datasetId} not found`);}
+    if (!dataset) {
+      throw new Error(`Dataset ${datasetId} not found`);
+    }
 
     const run = await this.runs.create({
       orgId,
@@ -107,7 +113,10 @@ export class TrainingPipelineService {
         finishedAt: new Date(),
       } as any);
 
-      logger.info("[TrainingPipeline]", "Training run completed", { runId, artifactId: artifact.id });
+      logger.info("[TrainingPipeline]", "Training run completed", {
+        runId,
+        artifactId: artifact.id,
+      });
     } catch (error: any) {
       await this.runs.update(orgId, runId, {
         status: "failed",
@@ -122,7 +131,10 @@ export class TrainingPipelineService {
     return this.runs.getById(orgId, runId);
   }
 
-  async listRuns(orgId: string, filters?: { status?: string; datasetId?: string }): Promise<TrainingRun[]> {
+  async listRuns(
+    orgId: string,
+    filters?: { status?: string; datasetId?: string }
+  ): Promise<TrainingRun[]> {
     return this.runs.list(orgId, filters);
   }
 
@@ -134,8 +146,12 @@ export class TrainingPipelineService {
     changelog?: string
   ): Promise<ModelVersion> {
     const run = await this.runs.getById(orgId, runId);
-    if (!run) {throw new Error(`Training run ${runId} not found`);}
-    if (run.status !== "completed") {throw new Error(`Training run ${runId} is not completed (status: ${run.status})`);}
+    if (!run) {
+      throw new Error(`Training run ${runId} not found`);
+    }
+    if (run.status !== "completed") {
+      throw new Error(`Training run ${runId} is not completed (status: ${run.status})`);
+    }
 
     const modelVersion = await this.registry.createVersion({
       orgId,

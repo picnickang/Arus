@@ -131,18 +131,17 @@ export class PredictionOutcomeTracker {
 
     // 3. Compute accuracy metrics
     const cm = this.computeConfusionMatrix(outcomes);
-    const accuracy = outcomes.length > 0
-      ? (cm.truePositive + cm.trueNegative) / outcomes.length
-      : 0;
-    const precision = (cm.truePositive + cm.falsePositive) > 0
-      ? cm.truePositive / (cm.truePositive + cm.falsePositive)
-      : 0;
-    const recall = (cm.truePositive + cm.falseNegative) > 0
-      ? cm.truePositive / (cm.truePositive + cm.falseNegative)
-      : 0;
-    const f1Score = (precision + recall) > 0
-      ? 2 * (precision * recall) / (precision + recall)
-      : 0;
+    const accuracy =
+      outcomes.length > 0 ? (cm.truePositive + cm.trueNegative) / outcomes.length : 0;
+    const precision =
+      cm.truePositive + cm.falsePositive > 0
+        ? cm.truePositive / (cm.truePositive + cm.falsePositive)
+        : 0;
+    const recall =
+      cm.truePositive + cm.falseNegative > 0
+        ? cm.truePositive / (cm.truePositive + cm.falseNegative)
+        : 0;
+    const f1Score = precision + recall > 0 ? (2 * (precision * recall)) / (precision + recall) : 0;
 
     // 4. Per-model accuracy
     const modelAccuracies = this.computePerModelAccuracy(outcomes);
@@ -155,7 +154,10 @@ export class PredictionOutcomeTracker {
       .filter(([, stats]) => stats.shouldRetrain)
       .map(([modelId]) => modelId);
 
-    if (accuracy < this.config.retrainAccuracyThreshold && outcomes.length >= this.config.minPredictionsForEval) {
+    if (
+      accuracy < this.config.retrainAccuracyThreshold &&
+      outcomes.length >= this.config.minPredictionsForEval
+    ) {
       retrainingTriggered = true;
       retrainingReason = `Overall accuracy ${(accuracy * 100).toFixed(1)}% below threshold ${(this.config.retrainAccuracyThreshold * 100).toFixed(0)}%`;
     } else if (modelsNeedingRetrain.length > 0) {
@@ -187,7 +189,11 @@ export class PredictionOutcomeTracker {
       modelAccuracies,
     };
 
-    logger.info(LOG_CTX, `Evaluation complete: ${outcomes.length} predictions, accuracy=${(accuracy * 100).toFixed(1)}%, retrain=${retrainingTriggered}`, { orgId });
+    logger.info(
+      LOG_CTX,
+      `Evaluation complete: ${outcomes.length} predictions, accuracy=${(accuracy * 100).toFixed(1)}%, retrain=${retrainingTriggered}`,
+      { orgId }
+    );
 
     return report;
   }
@@ -207,15 +213,20 @@ export class PredictionOutcomeTracker {
     return this.db
       .select()
       .from(failurePredictions)
-      .where(and(
-        eq(failurePredictions.orgId, orgId),
-        lte(failurePredictions.predictedFailureDate, cutoff),
-      ))
+      .where(
+        and(
+          eq(failurePredictions.orgId, orgId),
+          lte(failurePredictions.predictedFailureDate, cutoff)
+        )
+      )
       .orderBy(sql`${failurePredictions.predictionTimestamp} DESC`)
       .limit(500); // Process in batches
   }
 
-  private async getExistingOutcome(predictionId: number, orgId: string): Promise<PredictionOutcome | null> {
+  private async getExistingOutcome(
+    predictionId: number,
+    orgId: string
+  ): Promise<PredictionOutcome | null> {
     try {
       const { predictionFeedback } = await import("@shared/schema");
       const { eq, and } = await import("drizzle-orm");
@@ -223,14 +234,18 @@ export class PredictionOutcomeTracker {
       const [existing] = await this.db
         .select()
         .from(predictionFeedback)
-        .where(and(
-          eq(predictionFeedback.predictionId, predictionId.toString()),
-          eq(predictionFeedback.orgId, orgId),
-          eq(predictionFeedback.feedbackType, "outcome_tracked"),
-        ))
+        .where(
+          and(
+            eq(predictionFeedback.predictionId, predictionId.toString()),
+            eq(predictionFeedback.orgId, orgId),
+            eq(predictionFeedback.feedbackType, "outcome_tracked")
+          )
+        )
         .limit(1);
 
-      if (!existing) {return null;}
+      if (!existing) {
+        return null;
+      }
 
       return {
         predictionId,
@@ -261,8 +276,12 @@ export class PredictionOutcomeTracker {
    */
   private async determineOutcome(prediction: any, orgId: string): Promise<PredictionOutcome> {
     const predictedDate = new Date(prediction.predictedFailureDate);
-    const windowStart = new Date(predictedDate.getTime() - this.config.matchWindowDays * 24 * 60 * 60 * 1000);
-    const windowEnd = new Date(predictedDate.getTime() + this.config.matchWindowDays * 24 * 60 * 60 * 1000);
+    const windowStart = new Date(
+      predictedDate.getTime() - this.config.matchWindowDays * 24 * 60 * 60 * 1000
+    );
+    const windowEnd = new Date(
+      predictedDate.getTime() + this.config.matchWindowDays * 24 * 60 * 60 * 1000
+    );
 
     const predicted = (prediction.failureProbability ?? 0) >= 0.5;
 
@@ -274,8 +293,11 @@ export class PredictionOutcomeTracker {
       const workOrders = await this.deps.getWorkOrders(prediction.equipmentId, orgId);
       const relevantWOs = (workOrders || []).filter((wo: any) => {
         const woDate = new Date(wo.createdAt);
-        return woDate >= windowStart && woDate <= windowEnd &&
-          (wo.type === "corrective" || wo.type === "emergency" || wo.priority === 1);
+        return (
+          woDate >= windowStart &&
+          woDate <= windowEnd &&
+          (wo.type === "corrective" || wo.type === "emergency" || wo.priority === 1)
+        );
       });
 
       if (relevantWOs.length > 0) {
@@ -291,9 +313,12 @@ export class PredictionOutcomeTracker {
         const alerts = await this.deps.getAlertNotifications(false, orgId);
         const relevantAlerts = (alerts || []).filter((alert: any) => {
           const alertDate = new Date(alert.createdAt);
-          return alert.equipmentId === prediction.equipmentId &&
-            alertDate >= windowStart && alertDate <= windowEnd &&
-            (alert.severity === "critical" || alert.severity === "high");
+          return (
+            alert.equipmentId === prediction.equipmentId &&
+            alertDate >= windowStart &&
+            alertDate <= windowEnd &&
+            (alert.severity === "critical" || alert.severity === "high")
+          );
         });
 
         if (relevantAlerts.length > 0) {
@@ -306,10 +331,15 @@ export class PredictionOutcomeTracker {
 
     // Classify outcome
     let actualOutcome: PredictionOutcome["actualOutcome"];
-    if (predicted && failureOccurred) {actualOutcome = "true_positive";}
-    else if (predicted && !failureOccurred) {actualOutcome = "false_positive";}
-    else if (!predicted && failureOccurred) {actualOutcome = "false_negative";}
-    else {actualOutcome = "true_negative";}
+    if (predicted && failureOccurred) {
+      actualOutcome = "true_positive";
+    } else if (predicted && !failureOccurred) {
+      actualOutcome = "false_positive";
+    } else if (!predicted && failureOccurred) {
+      actualOutcome = "false_negative";
+    } else {
+      actualOutcome = "true_negative";
+    }
 
     return {
       predictionId: prediction.id,
@@ -337,42 +367,54 @@ export class PredictionOutcomeTracker {
         equipmentId: outcome.equipmentId,
         modelId: outcome.modelId,
         feedbackType: "outcome_tracked",
-        rating: outcome.actualOutcome === "true_positive" || outcome.actualOutcome === "true_negative" ? 1 : 0,
+        rating:
+          outcome.actualOutcome === "true_positive" || outcome.actualOutcome === "true_negative"
+            ? 1
+            : 0,
         comment: `Auto-tracked: ${outcome.actualOutcome}`,
         queryText: `Prediction ${outcome.predictionId}: prob=${outcome.predictedProbability.toFixed(3)}, outcome=${outcome.actualOutcome}`,
         submittedAt: outcome.outcomeRecordedAt,
       });
     } catch (error) {
-      logger.warn(LOG_CTX, `Failed to record outcome for prediction ${outcome.predictionId}`, error);
+      logger.warn(
+        LOG_CTX,
+        `Failed to record outcome for prediction ${outcome.predictionId}`,
+        error
+      );
     }
   }
 
   private computeConfusionMatrix(outcomes: PredictionOutcome[]) {
     return {
-      truePositive: outcomes.filter(o => o.actualOutcome === "true_positive").length,
-      trueNegative: outcomes.filter(o => o.actualOutcome === "true_negative").length,
-      falsePositive: outcomes.filter(o => o.actualOutcome === "false_positive").length,
-      falseNegative: outcomes.filter(o => o.actualOutcome === "false_negative").length,
+      truePositive: outcomes.filter((o) => o.actualOutcome === "true_positive").length,
+      trueNegative: outcomes.filter((o) => o.actualOutcome === "true_negative").length,
+      falsePositive: outcomes.filter((o) => o.actualOutcome === "false_positive").length,
+      falseNegative: outcomes.filter((o) => o.actualOutcome === "false_negative").length,
     };
   }
 
-  private computePerModelAccuracy(outcomes: PredictionOutcome[]): Record<string, { accuracy: number; total: number; shouldRetrain: boolean }> {
+  private computePerModelAccuracy(
+    outcomes: PredictionOutcome[]
+  ): Record<string, { accuracy: number; total: number; shouldRetrain: boolean }> {
     const byModel = new Map<string, PredictionOutcome[]>();
 
     for (const outcome of outcomes) {
       const key = outcome.modelId || "unknown";
-      if (!byModel.has(key)) {byModel.set(key, []);}
+      if (!byModel.has(key)) {
+        byModel.set(key, []);
+      }
       byModel.get(key)!.push(outcome);
     }
 
     const result: Record<string, { accuracy: number; total: number; shouldRetrain: boolean }> = {};
 
     for (const [modelId, modelOutcomes] of byModel) {
-      const correct = modelOutcomes.filter(o =>
-        o.actualOutcome === "true_positive" || o.actualOutcome === "true_negative"
+      const correct = modelOutcomes.filter(
+        (o) => o.actualOutcome === "true_positive" || o.actualOutcome === "true_negative"
       ).length;
       const accuracy = modelOutcomes.length > 0 ? correct / modelOutcomes.length : 0;
-      const shouldRetrain = modelOutcomes.length >= this.config.minPredictionsForEval &&
+      const shouldRetrain =
+        modelOutcomes.length >= this.config.minPredictionsForEval &&
         accuracy < this.config.retrainAccuracyThreshold;
 
       result[modelId] = { accuracy, total: modelOutcomes.length, shouldRetrain };
@@ -384,38 +426,56 @@ export class PredictionOutcomeTracker {
   private async recordPerformanceValidations(
     orgId: string,
     modelAccuracies: Record<string, { accuracy: number; total: number }>,
-    cm: { truePositive: number; trueNegative: number; falsePositive: number; falseNegative: number },
+    cm: {
+      truePositive: number;
+      trueNegative: number;
+      falsePositive: number;
+      falseNegative: number;
+    },
     evaluatedAt: Date
   ): Promise<void> {
     try {
       const { modelPerformanceValidations } = await import("@shared/schema");
 
       for (const [modelId, stats] of Object.entries(modelAccuracies)) {
-        if (modelId === "unknown" || stats.total < 5) {continue;}
+        if (modelId === "unknown" || stats.total < 5) {
+          continue;
+        }
 
-        const precision = (cm.truePositive + cm.falsePositive) > 0
-          ? cm.truePositive / (cm.truePositive + cm.falsePositive) : 0;
-        const recall = (cm.truePositive + cm.falseNegative) > 0
-          ? cm.truePositive / (cm.truePositive + cm.falseNegative) : 0;
+        const precision =
+          cm.truePositive + cm.falsePositive > 0
+            ? cm.truePositive / (cm.truePositive + cm.falsePositive)
+            : 0;
+        const recall =
+          cm.truePositive + cm.falseNegative > 0
+            ? cm.truePositive / (cm.truePositive + cm.falseNegative)
+            : 0;
 
-        await this.db.insert(modelPerformanceValidations).values({
-          orgId,
-          modelId,
-          accuracy: stats.accuracy,
-          precision,
-          recall,
-          f1Score: (precision + recall) > 0 ? 2 * (precision * recall) / (precision + recall) : 0,
-          wasCorrect: stats.accuracy >= this.config.retrainAccuracyThreshold,
-          validatedAt: evaluatedAt,
-          createdAt: evaluatedAt,
-        }).onConflictDoNothing();
+        await this.db
+          .insert(modelPerformanceValidations)
+          .values({
+            orgId,
+            modelId,
+            accuracy: stats.accuracy,
+            precision,
+            recall,
+            f1Score: precision + recall > 0 ? (2 * (precision * recall)) / (precision + recall) : 0,
+            wasCorrect: stats.accuracy >= this.config.retrainAccuracyThreshold,
+            validatedAt: evaluatedAt,
+            createdAt: evaluatedAt,
+          })
+          .onConflictDoNothing();
       }
     } catch (error) {
       logger.warn(LOG_CTX, "Failed to record performance validations", error);
     }
   }
 
-  private async triggerRetraining(orgId: string, modelIds: string[], reason: string): Promise<void> {
+  private async triggerRetraining(
+    orgId: string,
+    modelIds: string[],
+    reason: string
+  ): Promise<void> {
     logger.warn(LOG_CTX, `Triggering retraining: ${reason}`, { orgId, modelIds });
 
     try {

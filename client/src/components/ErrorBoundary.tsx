@@ -104,7 +104,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 </summary>
                 <pre className="mt-2 p-3 bg-muted rounded text-xs overflow-auto max-h-40">
                   {this.state.error.toString()}
-                  {this.state.error.stack && `\n\n${  this.state.error.stack}`}
+                  {this.state.error.stack && `\n\n${this.state.error.stack}`}
                 </pre>
               </details>
             )}

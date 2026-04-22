@@ -1,6 +1,6 @@
 /**
  * Schema DTC - Diagnostic Trouble Codes (J1939)
- * 
+ *
  * DTC definitions and fault tracking for marine equipment diagnostics.
  */
 
@@ -59,10 +59,18 @@ export type InsertDtcDefinition = z.infer<typeof insertDtcDefinitionSchema>;
 export const dtcFaults = pgTable(
   "dtc_faults",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    equipmentId: varchar("equipment_id").notNull().references(() => equipment.id),
-    deviceId: varchar("device_id").notNull().references(() => devices.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    equipmentId: varchar("equipment_id")
+      .notNull()
+      .references(() => equipment.id),
+    deviceId: varchar("device_id")
+      .notNull()
+      .references(() => devices.id),
     spn: integer("spn").notNull(),
     fmi: integer("fmi").notNull(),
     oc: integer("oc"),

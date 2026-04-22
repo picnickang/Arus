@@ -4,7 +4,12 @@
  */
 
 import { Express, Request, Response, SystemAdminDependencies } from "./types.js";
-import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../../lib/route-utils.js";
+import {
+  withErrorHandling,
+  sendNotFound,
+  sendCreated,
+  sendDeleted,
+} from "../../../lib/route-utils.js";
 import { dbSystemAdminStorage } from "../../../db/system-admin/index.js";
 
 export function registerIntegrationsRoutes(app: Express, deps: SystemAdminDependencies): void {
@@ -24,7 +29,10 @@ export function registerIntegrationsRoutes(app: Express, deps: SystemAdminDepend
     auditAdminAction("VIEW_INTEGRATION_CONFIGS"),
     withErrorHandling("fetch integration configs", async (req: Request, res: Response) => {
       const { orgId, type } = req.query;
-      const integrations = await dbSystemAdminStorage.getIntegrationConfigs(orgId as string, type as string);
+      const integrations = await dbSystemAdminStorage.getIntegrationConfigs(
+        orgId as string,
+        type as string
+      );
       res.json(integrations);
     })
   );
@@ -90,7 +98,11 @@ export function registerIntegrationsRoutes(app: Express, deps: SystemAdminDepend
     withErrorHandling("update integration health", async (req: Request, res: Response) => {
       const { id } = req.params;
       const { healthStatus, errorMessage } = req.body;
-      const integration = await dbSystemAdminStorage.updateIntegrationHealth(id, healthStatus, errorMessage);
+      const integration = await dbSystemAdminStorage.updateIntegrationHealth(
+        id,
+        healthStatus,
+        errorMessage
+      );
       res.json(integration);
     })
   );

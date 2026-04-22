@@ -3,18 +3,18 @@
  * Combines all settings modules into a single repository class
  */
 
-export type { ClaimResult, CooldownSnapshot, EmailLogOptions } from './types.js';
-export * from './org-settings.js';
-export * from './thresholds.js';
-export * from './email-logs.js';
-export * from './crew-settings.js';
-export * from './cooldown.js';
+export type { ClaimResult, CooldownSnapshot, EmailLogOptions } from "./types.js";
+export * from "./org-settings.js";
+export * from "./thresholds.js";
+export * from "./email-logs.js";
+export * from "./crew-settings.js";
+export * from "./cooldown.js";
 
-import * as orgSettings from './org-settings.js';
-import * as thresholds from './thresholds.js';
-import * as emailLogs from './email-logs.js';
-import * as crewSettings from './crew-settings.js';
-import * as cooldown from './cooldown.js';
+import * as orgSettings from "./org-settings.js";
+import * as thresholds from "./thresholds.js";
+import * as emailLogs from "./email-logs.js";
+import * as crewSettings from "./crew-settings.js";
+import * as cooldown from "./cooldown.js";
 
 export class AlertSettingsRepository {
   getOrgSettings = orgSettings.getOrgSettings;

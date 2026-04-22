@@ -10,7 +10,9 @@ router.post("/events", async (req: Request, res: Response) => {
   try {
     const orgId = req.headers["x-org-id"] as string;
     const parsed = insertTwinEventSchema.safeParse({ ...req.body, orgId });
-    if (!parsed.success) {return res.status(400).json({ error: parsed.error.flatten().fieldErrors });}
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+    }
     const result = await adapter.logEvent(parsed.data);
     res.status(201).json(result);
   } catch (error: any) {
@@ -29,7 +31,9 @@ router.get("/timeline", async (req: Request, res: Response) => {
   try {
     const orgId = req.headers["x-org-id"] as string;
     const parsed = timelineQuerySchema.safeParse(req.query);
-    if (!parsed.success) {return res.status(400).json({ error: parsed.error.flatten().fieldErrors });}
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+    }
     const { twinId, startTime, endTime, limit } = parsed.data;
     const result = await adapter.getTimeline({
       orgId,
@@ -54,7 +58,9 @@ router.get("/timeline/anomaly", async (req: Request, res: Response) => {
   try {
     const orgId = req.headers["x-org-id"] as string;
     const parsed = anomalyQuerySchema.safeParse(req.query);
-    if (!parsed.success) {return res.status(400).json({ error: parsed.error.flatten().fieldErrors });}
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+    }
     const { twinId, anomalyTimestamp, windowMinutes } = parsed.data;
     const result = await adapter.getTimelineAroundAnomaly({
       orgId,

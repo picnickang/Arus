@@ -1,6 +1,6 @@
 /**
  * Schema StormGeo - Weather/Routing Integration Tables
- * 
+ *
  * StormGeo settings, snapshots, and import history for weather routing.
  */
 
@@ -120,7 +120,10 @@ export const stormgeoSnapshots = pgTable(
     vesselIdIdx: index("idx_stormgeo_snapshots_vessel").on(table.vesselId),
     forecastTimeIdx: index("idx_stormgeo_snapshots_forecast").on(table.forecastTime),
     routeIdIdx: index("idx_stormgeo_snapshots_route").on(table.routeId),
-    vesselForecastIdx: index("idx_stormgeo_snapshots_vessel_forecast").on(table.vesselId, table.forecastTime),
+    vesselForecastIdx: index("idx_stormgeo_snapshots_vessel_forecast").on(
+      table.vesselId,
+      table.forecastTime
+    ),
   })
 );
 

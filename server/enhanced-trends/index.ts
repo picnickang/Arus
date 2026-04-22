@@ -18,7 +18,11 @@ export { detectAnomalies } from "./anomaly-detection";
 export { performForecasting } from "./forecasting";
 export { analyzeSeasonality } from "./seasonality";
 export { alignTimeSeries, buildCorrelationAnalysis } from "./correlation";
-export { aggregateFleetMetrics, rankEquipmentByRisk, generateFleetRecommendations } from "./fleet-analysis";
+export {
+  aggregateFleetMetrics,
+  rankEquipmentByRisk,
+  generateFleetRecommendations,
+} from "./fleet-analysis";
 
 import type {
   TrendAnalysisResult,
@@ -102,17 +106,26 @@ export class EnhancedTrendsAnalyzer {
     for (const sensor of otherSensors) {
       try {
         const sensorData = await this.getTelemetryData(orgId, equipmentId, sensor, hours);
-        if (sensorData.length < 10) { continue; }
+        if (sensorData.length < 10) {
+          continue;
+        }
 
         const targetData = await this.getTelemetryData(orgId, equipmentId, targetSensor, hours);
 
         const alignedData = alignTimeSeries(targetData, sensorData);
-        if (alignedData.length < 10) { continue; }
+        if (alignedData.length < 10) {
+          continue;
+        }
 
         const targetValues = alignedData.map((d) => d.target);
         const sensorValues = alignedData.map((d) => d.sensor);
 
-        const correlation = buildCorrelationAnalysis(targetSensor, sensor, targetValues, sensorValues);
+        const correlation = buildCorrelationAnalysis(
+          targetSensor,
+          sensor,
+          targetValues,
+          sensorValues
+        );
         if (correlation) {
           correlations.push(correlation);
         }

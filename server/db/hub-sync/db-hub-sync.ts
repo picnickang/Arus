@@ -26,9 +26,27 @@
 
 import { eq, and, desc, sql } from "drizzle-orm";
 import { db } from "../../db-config";
-import { syncJournal, syncOutbox, devices, deviceRegistry, replayIncoming, sheetLock, sheetVersion, // Corrected type imports (no Select* prefix):
-  type DeviceRegistry } from "@shared/schema-runtime";
-import type { Device, InsertDevice, InsertDeviceRegistry, ReplayIncoming, InsertReplayIncoming, SheetLock, InsertSheetLock, SheetVersion, InsertSheetVersion } from "@shared/schema";
+import {
+  syncJournal,
+  syncOutbox,
+  devices,
+  deviceRegistry,
+  replayIncoming,
+  sheetLock,
+  sheetVersion, // Corrected type imports (no Select* prefix):
+  type DeviceRegistry,
+} from "@shared/schema-runtime";
+import type {
+  Device,
+  InsertDevice,
+  InsertDeviceRegistry,
+  ReplayIncoming,
+  InsertReplayIncoming,
+  SheetLock,
+  InsertSheetLock,
+  SheetVersion,
+  InsertSheetVersion,
+} from "@shared/schema";
 import type { SyncJournal, InsertSyncJournal, SyncOutbox, InsertSyncOutbox } from "./types.js";
 
 export class DatabaseHubSyncStorage {
@@ -42,17 +60,28 @@ export class DatabaseHubSyncStorage {
     limit?: number
   ): Promise<SyncJournal[]> {
     const c = [];
-    if (vesselId) {c.push(eq(syncJournal.vesselId, vesselId));}
-    if (syncType) {c.push(eq(syncJournal.syncType, syncType));}
+    if (vesselId) {
+      c.push(eq(syncJournal.vesselId, vesselId));
+    }
+    if (syncType) {
+      c.push(eq(syncJournal.syncType, syncType));
+    }
     let q = db.select().from(syncJournal);
-    if (c.length > 0) {q = q.where(and(...c)) as typeof q;}
+    if (c.length > 0) {
+      q = q.where(and(...c)) as typeof q;
+    }
     q = q.orderBy(desc(syncJournal.createdAt)) as typeof q;
-    if (limit) {q = q.limit(limit) as typeof q;}
+    if (limit) {
+      q = q.limit(limit) as typeof q;
+    }
     return q as unknown as Promise<SyncJournal[]>;
   }
 
   async createSyncJournalEntry(entry: InsertSyncJournal): Promise<SyncJournal> {
-    const [n] = await db.insert(syncJournal).values(entry as any).returning();
+    const [n] = await db
+      .insert(syncJournal)
+      .values(entry as any)
+      .returning();
     return n as unknown as SyncJournal;
   }
 
@@ -65,7 +94,9 @@ export class DatabaseHubSyncStorage {
       .set({ ...(updates as any), updatedAt: new Date() })
       .where(eq(syncJournal.id, id))
       .returning();
-    if (!u) {throw new Error(`Sync journal entry ${id} not found`);}
+    if (!u) {
+      throw new Error(`Sync journal entry ${id} not found`);
+    }
     return u as unknown as SyncJournal;
   }
 
@@ -75,19 +106,15 @@ export class DatabaseHubSyncStorage {
     failedSyncs: number;
     lastSync: Date | null;
   }> {
-    const entries = await db
-      .select()
-      .from(syncJournal)
-      .where(eq(syncJournal.vesselId, vesselId));
+    const entries = await db.select().from(syncJournal).where(eq(syncJournal.vesselId, vesselId));
     const successful = entries.filter(
       (e) => e.status === "completed" || e.status === "synced"
     ).length;
     const failed = entries.filter((e) => e.status === "failed").length;
     const lastSync =
       entries.length > 0
-        ? entries.sort(
-            (a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)
-          )[0].createdAt
+        ? entries.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0))[0]
+            .createdAt
         : null;
     return {
       totalEntries: entries.length,
@@ -103,28 +130,36 @@ export class DatabaseHubSyncStorage {
 
   async getSyncOutboxItems(vesselId?: string, status?: string): Promise<SyncOutbox[]> {
     const c = [];
-    if (vesselId) {c.push(eq(syncOutbox.vesselId, vesselId));}
-    if (status) {c.push(eq(syncOutbox.status, status));}
+    if (vesselId) {
+      c.push(eq(syncOutbox.vesselId, vesselId));
+    }
+    if (status) {
+      c.push(eq(syncOutbox.status, status));
+    }
     let q = db.select().from(syncOutbox);
-    if (c.length > 0) {q = q.where(and(...c)) as typeof q;}
+    if (c.length > 0) {
+      q = q.where(and(...c)) as typeof q;
+    }
     return q.orderBy(syncOutbox.priority, syncOutbox.createdAt) as unknown as Promise<SyncOutbox[]>;
   }
 
   async createSyncOutboxItem(item: InsertSyncOutbox): Promise<SyncOutbox> {
-    const [n] = await db.insert(syncOutbox).values(item as any).returning();
+    const [n] = await db
+      .insert(syncOutbox)
+      .values(item as any)
+      .returning();
     return n as unknown as SyncOutbox;
   }
 
-  async updateSyncOutboxItem(
-    id: string,
-    updates: Partial<InsertSyncOutbox>
-  ): Promise<SyncOutbox> {
+  async updateSyncOutboxItem(id: string, updates: Partial<InsertSyncOutbox>): Promise<SyncOutbox> {
     const [u] = await db
       .update(syncOutbox)
       .set({ ...(updates as any), updatedAt: new Date() })
       .where(eq(syncOutbox.id, id))
       .returning();
-    if (!u) {throw new Error(`Sync outbox item ${id} not found`);}
+    if (!u) {
+      throw new Error(`Sync outbox item ${id} not found`);
+    }
     return u as unknown as SyncOutbox;
   }
 
@@ -138,12 +173,16 @@ export class DatabaseHubSyncStorage {
       .from(syncOutbox)
       .where(and(eq(syncOutbox.vesselId, vesselId), eq(syncOutbox.status, "pending")))
       .orderBy(syncOutbox.priority, syncOutbox.createdAt);
-    if (limit) {q = q.limit(limit) as typeof q;}
+    if (limit) {
+      q = q.limit(limit) as typeof q;
+    }
     return q as unknown as Promise<SyncOutbox[]>;
   }
 
   async markOutboxItemsSynced(ids: string[]): Promise<void> {
-    if (ids.length === 0) {return;}
+    if (ids.length === 0) {
+      return;
+    }
     const idsArray = sql`ARRAY[${sql.join(
       ids.map((id) => sql`${id}`),
       sql`, `
@@ -189,7 +228,9 @@ export class DatabaseHubSyncStorage {
 
   async getReplayRequests(deviceId: string, status?: string): Promise<ReplayIncoming[]> {
     const c = [eq(replayIncoming.deviceId, deviceId)];
-    if (status) {c.push(eq(replayIncoming.status, status));}
+    if (status) {
+      c.push(eq(replayIncoming.status, status));
+    }
     return db
       .select()
       .from(replayIncoming)
@@ -211,7 +252,9 @@ export class DatabaseHubSyncStorage {
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(replayIncoming.id, id))
       .returning();
-    if (!r) {throw new Error(`Replay request ${id} not found`);}
+    if (!r) {
+      throw new Error(`Replay request ${id} not found`);
+    }
     return r;
   }
 
@@ -270,11 +313,16 @@ export class DatabaseHubSyncStorage {
           lastModifiedDevice: data.lastModifiedDevice,
           updatedAt: new Date(),
         })
-        .where(and(eq(sheetVersion.sheetType, data.sheetType), eq(sheetVersion.sheetId, data.sheetId)))
+        .where(
+          and(eq(sheetVersion.sheetType, data.sheetType), eq(sheetVersion.sheetId, data.sheetId))
+        )
         .returning();
       return r;
     }
-    const [r] = await db.insert(sheetVersion).values({ ...data, version: 1 }).returning();
+    const [r] = await db
+      .insert(sheetVersion)
+      .values({ ...data, version: 1 })
+      .returning();
     return r;
   }
 
@@ -284,10 +332,16 @@ export class DatabaseHubSyncStorage {
 
   async getDevices(orgId?: string, vesselId?: string): Promise<Device[]> {
     const c = [];
-    if (orgId) {c.push(eq(devices.orgId, orgId));}
-    if (vesselId) {c.push(eq(devices.vesselId, vesselId));}
+    if (orgId) {
+      c.push(eq(devices.orgId, orgId));
+    }
+    if (vesselId) {
+      c.push(eq(devices.vesselId, vesselId));
+    }
     let q = db.select().from(devices);
-    if (c.length > 0) {q = q.where(and(...c)) as typeof q;}
+    if (c.length > 0) {
+      q = q.where(and(...c)) as typeof q;
+    }
     return q.orderBy(devices.name);
   }
 
@@ -312,7 +366,9 @@ export class DatabaseHubSyncStorage {
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(devices.id, id))
       .returning();
-    if (!u) {throw new Error(`Device ${id} not found`);}
+    if (!u) {
+      throw new Error(`Device ${id} not found`);
+    }
     return u;
   }
 

@@ -1,15 +1,12 @@
 /**
  * Technician Insight Generation
- * 
+ *
  * Generate plain-language insights for equipment technicians.
  */
 
 import { dbEquipmentStorage, dbTelemetryStorage, vesselService } from "../repositories";
 import { predictWithEnsemble } from "../ml-prediction";
-import {
-  recordTechnicianInsight,
-  recordTechnicianInsightFallback,
-} from "../ml-prometheus-metrics";
+import { recordTechnicianInsight, recordTechnicianInsightFallback } from "../ml-prometheus-metrics";
 import {
   determineStatusLevel,
   getPriorityFromStatus,
@@ -40,10 +37,7 @@ export async function generateTechnicianInsight(
 
     const prediction = await predictWithEnsemble(equipmentId, orgId);
 
-    const telemetry = await dbTelemetryStorage.getLatestTelemetryReadings(
-      equipmentId,
-      100
-    );
+    const telemetry = await dbTelemetryStorage.getLatestTelemetryReadings(equipmentId, 100);
 
     const statusLevel = determineStatusLevel(
       prediction?.failureProbability ?? 0,
@@ -56,7 +50,9 @@ export async function generateTechnicianInsight(
 
     for (const reading of telemetry) {
       const val = Number(reading.value);
-      if (!Number.isFinite(val)) {continue;}
+      if (!Number.isFinite(val)) {
+        continue;
+      }
       if (reading.status === "warning" || reading.status === "critical") {
         const thr = Number.isFinite(reading.threshold) ? Number(reading.threshold) : null;
         const deviation =

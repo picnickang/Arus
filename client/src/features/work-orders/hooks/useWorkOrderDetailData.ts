@@ -59,7 +59,9 @@ export interface UseWorkOrderDetailDataReturn {
   invalidateChecklist: () => void;
 }
 
-export function useWorkOrderDetailData({ workOrder }: UseWorkOrderDetailDataProps): UseWorkOrderDetailDataReturn {
+export function useWorkOrderDetailData({
+  workOrder,
+}: UseWorkOrderDetailDataProps): UseWorkOrderDetailDataReturn {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("details");
   const [linkTemplateDialogOpen, setLinkTemplateDialogOpen] = useState(false);
@@ -74,10 +76,11 @@ export function useWorkOrderDetailData({ workOrder }: UseWorkOrderDetailDataProp
     enabled: !!workOrder?.id,
   });
 
-  const { data: procurementCosts = null, isLoading: isLoadingProcurement } = useQuery<ProcurementCosts>({
-    queryKey: ["/api/work-orders", workOrder?.id, "procurement-costs"],
-    enabled: !!workOrder?.id,
-  });
+  const { data: procurementCosts = null, isLoading: isLoadingProcurement } =
+    useQuery<ProcurementCosts>({
+      queryKey: ["/api/work-orders", workOrder?.id, "procurement-costs"],
+      enabled: !!workOrder?.id,
+    });
 
   const totalPartsCost = useMemo(() => {
     return workOrderParts.reduce((sum, part) => sum + (part.totalCost || 0), 0);
@@ -93,9 +96,14 @@ export function useWorkOrderDetailData({ workOrder }: UseWorkOrderDetailDataProp
 
   const downtimeCost = useMemo(() => {
     const hours = workOrder?.actualDowntimeHours ?? 0;
-    const rate = procurementCosts?.resolvedDowntimeCostPerHour ?? workOrder?.downtimeCostPerHour ?? 0;
+    const rate =
+      procurementCosts?.resolvedDowntimeCostPerHour ?? workOrder?.downtimeCostPerHour ?? 0;
     return hours * rate;
-  }, [workOrder?.actualDowntimeHours, workOrder?.downtimeCostPerHour, procurementCosts?.resolvedDowntimeCostPerHour]);
+  }, [
+    workOrder?.actualDowntimeHours,
+    workOrder?.downtimeCostPerHour,
+    procurementCosts?.resolvedDowntimeCostPerHour,
+  ]);
 
   const grandTotal = useMemo(() => {
     return totalLaborCost + totalPartsCost + totalProcurementCost + downtimeCost;

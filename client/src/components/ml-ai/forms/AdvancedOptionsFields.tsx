@@ -8,7 +8,13 @@ interface AdvancedOptionsFieldsProps {
   selectedModelType: ModelType | undefined;
 }
 
-function NumberField({ form, name, label, step, testId }: {
+function NumberField({
+  form,
+  name,
+  label,
+  step,
+  testId,
+}: {
   form: UseFormReturn<TrainingConfig>;
   name: keyof TrainingConfig;
   label: string;
@@ -47,19 +53,41 @@ export function AdvancedOptionsFields({ form, selectedModelType }: AdvancedOptio
         <>
           <NumberField form={form} name="epochs" label="Epochs" testId="input-epochs" />
           <NumberField form={form} name="lstmUnits" label="LSTM Units" testId="input-lstm-units" />
-          <NumberField form={form} name="sequenceLength" label="Sequence Length" testId="input-sequence-length" />
-          <NumberField form={form} name="dropoutRate" label="Dropout Rate" step="0.1" testId="input-dropout-rate" />
+          <NumberField
+            form={form}
+            name="sequenceLength"
+            label="Sequence Length"
+            testId="input-sequence-length"
+          />
+          <NumberField
+            form={form}
+            name="dropoutRate"
+            label="Dropout Rate"
+            step="0.1"
+            testId="input-dropout-rate"
+          />
         </>
       )}
 
       {(selectedModelType === "random-forest" || selectedModelType === "xgboost") && (
         <>
-          <NumberField form={form} name="numTrees" label="Number of Trees" testId="input-num-trees" />
+          <NumberField
+            form={form}
+            name="numTrees"
+            label="Number of Trees"
+            testId="input-num-trees"
+          />
           <NumberField form={form} name="maxDepth" label="Max Depth" testId="input-max-depth" />
         </>
       )}
 
-      <NumberField form={form} name="learningRate" label="Learning Rate" step="0.001" testId="input-learning-rate" />
+      <NumberField
+        form={form}
+        name="learningRate"
+        label="Learning Rate"
+        step="0.001"
+        testId="input-learning-rate"
+      />
       <NumberField form={form} name="batchSize" label="Batch Size" testId="input-batch-size" />
     </div>
   );

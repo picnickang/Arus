@@ -1,6 +1,6 @@
 /**
  * Engine Room Logbook Rule Evaluators
- * 
+ *
  * Compliance rule evaluators for engine room logbook entries.
  */
 
@@ -10,7 +10,9 @@ import type { RuleContext, RuleResult } from "./types.js";
 
 async function getEngineLogByVesselAndDate(vesselId: string, logDate: string, orgId: string) {
   const daily = await engineLogStorage.getEngineLogDailyByDate(vesselId, logDate, orgId);
-  if (!daily) {return undefined;}
+  if (!daily) {
+    return undefined;
+  }
   return engineLogStorage.getEngineLogComplete(daily.id, orgId);
 }
 
@@ -137,11 +139,17 @@ export async function evaluateLowFuel(
   }
 
   const lowFuelTypes: string[] = [];
-  if (engineLogComplete.daily.fuelHfoRob !== null && engineLogComplete.daily.fuelHfoRob < minHfoRob) {
+  if (
+    engineLogComplete.daily.fuelHfoRob !== null &&
+    engineLogComplete.daily.fuelHfoRob < minHfoRob
+  ) {
     lowFuelTypes.push(`HFO (${engineLogComplete.daily.fuelHfoRob}MT < ${minHfoRob}MT)`);
   }
 
-  if (engineLogComplete.daily.fuelMdoRob !== null && engineLogComplete.daily.fuelMdoRob < minMdoRob) {
+  if (
+    engineLogComplete.daily.fuelMdoRob !== null &&
+    engineLogComplete.daily.fuelMdoRob < minMdoRob
+  ) {
     lowFuelTypes.push(`MDO (${engineLogComplete.daily.fuelMdoRob}MT < ${minMdoRob}MT)`);
   }
 
@@ -155,7 +163,10 @@ export async function evaluateLowFuel(
         category: "operational",
         severity: "warning",
         message: `Low fuel remaining on board: ${lowFuelTypes.join(", ")}`,
-        context: { hfoRob: engineLogComplete.daily.fuelHfoRob, mdoRob: engineLogComplete.daily.fuelMdoRob },
+        context: {
+          hfoRob: engineLogComplete.daily.fuelHfoRob,
+          mdoRob: engineLogComplete.daily.fuelMdoRob,
+        },
         linkedEngineLogDayId: engineLogComplete.daily.id,
         status: "open",
       },
@@ -247,7 +258,10 @@ export async function evaluateBilgeHigh(
     return { triggered: false, skipped: true, skipReason: "No engine log record for this date" };
   }
 
-  if (engineLogComplete.daily.bilgeLevel !== null && engineLogComplete.daily.bilgeLevel > maxBilgeLevel) {
+  if (
+    engineLogComplete.daily.bilgeLevel !== null &&
+    engineLogComplete.daily.bilgeLevel > maxBilgeLevel
+  ) {
     return {
       triggered: true,
       finding: {

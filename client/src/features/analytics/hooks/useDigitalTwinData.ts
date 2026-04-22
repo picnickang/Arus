@@ -2,11 +2,25 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 export interface DigitalTwin {
-  id: string; vesselId: string; twinType: string; name: string; specifications: Record<string, unknown>; currentState: Record<string, unknown>; validationStatus: string; accuracy: number; lastUpdate: string;
+  id: string;
+  vesselId: string;
+  twinType: string;
+  name: string;
+  specifications: Record<string, unknown>;
+  currentState: Record<string, unknown>;
+  validationStatus: string;
+  accuracy: number;
+  lastUpdate: string;
 }
 
 export interface TwinSimulation {
-  id: string; scenarioName: string; scenarioType: string; status: string; progressPercentage: number; startTime: string; endTime?: string;
+  id: string;
+  scenarioName: string;
+  scenarioType: string;
+  status: string;
+  progressPercentage: number;
+  startTime: string;
+  endTime?: string;
 }
 
 export function useDigitalTwinData() {
@@ -15,17 +29,33 @@ export function useDigitalTwinData() {
   const [isSimulating, setIsSimulating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const { data: twins = [], isLoading: twinsLoading } = useQuery({ queryKey: ["/api/digital-twins"], staleTime: 60000, refetchInterval: 60000 });
+  const { data: twins = [], isLoading: twinsLoading } = useQuery({
+    queryKey: ["/api/digital-twins"],
+    staleTime: 60000,
+    refetchInterval: 60000,
+  });
 
-  const { data: simulations = [] } = useQuery({ queryKey: ["/api/digital-twins", selectedTwin, "simulations"], enabled: !!selectedTwin, staleTime: 10000, refetchInterval: isSimulating ? 10000 : 30000 });
+  const { data: simulations = [] } = useQuery({
+    queryKey: ["/api/digital-twins", selectedTwin, "simulations"],
+    enabled: !!selectedTwin,
+    staleTime: 10000,
+    refetchInterval: isSimulating ? 10000 : 30000,
+  });
 
-  const selectedTwinData = useMemo(() => twins.find((t: DigitalTwin) => t.id === selectedTwin), [twins, selectedTwin]);
+  const selectedTwinData = useMemo(
+    () => twins.find((t: DigitalTwin) => t.id === selectedTwin),
+    [twins, selectedTwin]
+  );
 
   const initializeViewer = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) {return;}
+    if (!canvas) {
+      return;
+    }
     const ctx = canvas.getContext("2d");
-    if (!ctx) {return;}
+    if (!ctx) {
+      return;
+    }
     canvas.width = 800;
     canvas.height = 600;
     ctx.fillStyle = "#0f172a";
@@ -58,30 +88,99 @@ export function useDigitalTwinData() {
     ctx.fillText(`Heading: ${selectedTwinData?.currentState?.heading || 0}°`, 20, 50);
   }, [selectedTwinData]);
 
-  useEffect(() => { if (viewMode === "3d" && canvasRef.current && selectedTwinData) {initializeViewer();} }, [viewMode, selectedTwinData, initializeViewer]);
+  useEffect(() => {
+    if (viewMode === "3d" && canvasRef.current && selectedTwinData) {
+      initializeViewer();
+    }
+  }, [viewMode, selectedTwinData, initializeViewer]);
 
   const getScenarioParameters = useCallback((scenarioType: string) => {
     switch (scenarioType) {
-      case "maintenance": return { maintenance: { maintenanceAction: "overhaul", duration: 480, degradationRate: 0.02 } };
-      case "failure": return { failure: { component: "main_engine", failureTime: 60, severity: "high" } };
-      case "optimization": return { optimization: { targetSpeed: 10, targetEfficiency: 0.92 } };
-      default: return {};
+      case "maintenance":
+        return {
+          maintenance: { maintenanceAction: "overhaul", duration: 480, degradationRate: 0.02 },
+        };
+      case "failure":
+        return { failure: { component: "main_engine", failureTime: 60, severity: "high" } };
+      case "optimization":
+        return { optimization: { targetSpeed: 10, targetEfficiency: 0.92 } };
+      default:
+        return {};
     }
   }, []);
 
-  const startSimulation = useCallback(async (scenarioType: string) => {
-    if (!selectedTwin) {return;}
-    const scenario = { scenarioType, parameters: getScenarioParameters(scenarioType), duration: 240, timeStep: 5, environmentalConditions: { seaState: 3, windSpeed: 15, windDirection: 180, visibility: 10, temperature: 20 } };
-    try {
-      setIsSimulating(true);
-      await fetch(`/api/digital-twins/${selectedTwin}/simulate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scenarioName: `${scenarioType}_simulation_${Date.now()}`, scenario }) });
-    } catch (error) { console.error("Failed to start simulation:", error); } finally { setIsSimulating(false); }
-  }, [selectedTwin, getScenarioParameters]);
+  const startSimulation = useCallback(
+    async (scenarioType: string) => {
+      if (!selectedTwin) {
+        return;
+      }
+      const scenario = {
+        scenarioType,
+        parameters: getScenarioParameters(scenarioType),
+        duration: 240,
+        timeStep: 5,
+        environmentalConditions: {
+          seaState: 3,
+          windSpeed: 15,
+          windDirection: 180,
+          visibility: 10,
+          temperature: 20,
+        },
+      };
+      try {
+        setIsSimulating(true);
+        await fetch(`/api/digital-twins/${selectedTwin}/simulate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            scenarioName: `${scenarioType}_simulation_${Date.now()}`,
+            scenario,
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to start simulation:", error);
+      } finally {
+        setIsSimulating(false);
+      }
+    },
+    [selectedTwin, getScenarioParameters]
+  );
 
-  const formatState = useCallback((state: { speed?: number; heading?: number; fuel?: { currentLevel?: number; totalCapacity?: number }; crew?: { onboard?: number } } | null) => {
-    if (!state) {return {};}
-    return { speed: `${state.speed || 0} knots`, heading: `${state.heading || 0}°`, fuel: `${state.fuel?.currentLevel || 0}/${state.fuel?.totalCapacity || 0} tons`, crew: `${state.crew?.onboard || 0} crew members` };
-  }, []);
+  const formatState = useCallback(
+    (
+      state: {
+        speed?: number;
+        heading?: number;
+        fuel?: { currentLevel?: number; totalCapacity?: number };
+        crew?: { onboard?: number };
+      } | null
+    ) => {
+      if (!state) {
+        return {};
+      }
+      return {
+        speed: `${state.speed || 0} knots`,
+        heading: `${state.heading || 0}°`,
+        fuel: `${state.fuel?.currentLevel || 0}/${state.fuel?.totalCapacity || 0} tons`,
+        crew: `${state.crew?.onboard || 0} crew members`,
+      };
+    },
+    []
+  );
 
-  return { selectedTwin, setSelectedTwin, viewMode, setViewMode, isSimulating, canvasRef, twins, twinsLoading, simulations, selectedTwinData, initializeViewer, startSimulation, formatState };
+  return {
+    selectedTwin,
+    setSelectedTwin,
+    viewMode,
+    setViewMode,
+    isSimulating,
+    canvasRef,
+    twins,
+    twinsLoading,
+    simulations,
+    selectedTwinData,
+    initializeViewer,
+    startSimulation,
+    formatState,
+  };
 }

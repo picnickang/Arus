@@ -72,11 +72,13 @@ export function createDefaultChecklistItemValues(): Partial<ChecklistItemFormDat
 }
 
 export function getFrequencyLabel(frequency: string): string {
-  const option = FREQUENCY_OPTIONS.find(o => o.value === frequency);
+  const option = FREQUENCY_OPTIONS.find((o) => o.value === frequency);
   return option?.label || frequency;
 }
 
-export function getPriorityBadgeVariant(priority: string): "default" | "destructive" | "secondary" | "outline" {
+export function getPriorityBadgeVariant(
+  priority: string
+): "default" | "destructive" | "secondary" | "outline" {
   switch (priority) {
     case "critical":
       return "destructive";
@@ -102,6 +104,6 @@ export function formatDuration(minutes: number): string {
 }
 
 export function getEquipmentTypeLabel(type: string): string {
-  const option = EQUIPMENT_TYPES.find(o => o.value === type);
+  const option = EQUIPMENT_TYPES.find((o) => o.value === type);
   return option?.label || type;
 }

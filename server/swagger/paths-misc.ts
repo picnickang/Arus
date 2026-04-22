@@ -1,6 +1,6 @@
 /**
  * OpenAPI Spec - Miscellaneous Endpoint Paths
- * 
+ *
  * Parts, ML, Analytics, Sync, Organizations, and Admin endpoints.
  */
 
@@ -10,10 +10,10 @@ export const partsPaths = {
       tags: ["Parts"],
       summary: "List parts inventory",
       parameters: [
-        { "$ref": "#/components/parameters/pageParam" },
-        { "$ref": "#/components/parameters/limitParam" },
+        { $ref: "#/components/parameters/pageParam" },
+        { $ref: "#/components/parameters/limitParam" },
         { name: "category", in: "query", schema: { type: "string" } },
-        { name: "lowStock", in: "query", schema: { type: "boolean" } }
+        { name: "lowStock", in: "query", schema: { type: "boolean" } },
       ],
       responses: {
         "200": {
@@ -22,14 +22,14 @@ export const partsPaths = {
             "application/json": {
               schema: {
                 type: "array",
-                items: { "$ref": "#/components/schemas/Part" }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
+                items: { $ref: "#/components/schemas/Part" },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
 };
 
 export const mlPaths = {
@@ -45,13 +45,13 @@ export const mlPaths = {
             "application/json": {
               schema: {
                 type: "array",
-                items: { "$ref": "#/components/schemas/MlModel" }
-              }
-            }
-          }
-        }
-      }
-    }
+                items: { $ref: "#/components/schemas/MlModel" },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   "/ml/health": {
     get: {
@@ -61,11 +61,11 @@ export const mlPaths = {
       responses: {
         "200": {
           description: "ML service health",
-          content: { "application/json": { schema: { type: "object" } } }
-        }
-      }
-    }
-  }
+          content: { "application/json": { schema: { type: "object" } } },
+        },
+      },
+    },
+  },
 };
 
 export const analyticsPaths = {
@@ -76,16 +76,16 @@ export const analyticsPaths = {
       description: "Returns fleet-wide analytics and statistics",
       parameters: [
         { name: "startDate", in: "query", schema: { type: "string", format: "date" } },
-        { name: "endDate", in: "query", schema: { type: "string", format: "date" } }
+        { name: "endDate", in: "query", schema: { type: "string", format: "date" } },
       ],
       responses: {
         "200": {
           description: "Fleet analytics",
-          content: { "application/json": { schema: { type: "object" } } }
-        }
-      }
-    }
-  }
+          content: { "application/json": { schema: { type: "object" } } },
+        },
+      },
+    },
+  },
 };
 
 export const syncPaths = {
@@ -97,10 +97,10 @@ export const syncPaths = {
       responses: {
         "200": {
           description: "Sync status",
-          content: { "application/json": { schema: { type: "object" } } }
-        }
-      }
-    }
+          content: { "application/json": { schema: { type: "object" } } },
+        },
+      },
+    },
   },
   "/sync/reconcile": {
     post: {
@@ -108,10 +108,10 @@ export const syncPaths = {
       summary: "Trigger data reconciliation",
       description: "Initiates data reconciliation between cloud and offline databases",
       responses: {
-        "200": { description: "Reconciliation started" }
-      }
-    }
-  }
+        "200": { description: "Reconciliation started" },
+      },
+    },
+  },
 };
 
 export const organizationsPaths = {
@@ -124,11 +124,11 @@ export const organizationsPaths = {
       responses: {
         "200": {
           description: "Organizations list",
-          content: { "application/json": { schema: { type: "array" } } }
-        }
-      }
-    }
-  }
+          content: { "application/json": { schema: { type: "array" } } },
+        },
+      },
+    },
+  },
 };
 
 export const adminPaths = {
@@ -143,16 +143,16 @@ export const adminPaths = {
             schema: {
               type: "object",
               properties: {
-                token: { type: "string" }
-              }
-            }
-          }
-        }
+                token: { type: "string" },
+              },
+            },
+          },
+        },
       },
       responses: {
         "200": { description: "Authentication successful" },
-        "401": { description: "Invalid credentials" }
-      }
-    }
-  }
+        "401": { description: "Invalid credentials" },
+      },
+    },
+  },
 };

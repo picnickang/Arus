@@ -1,6 +1,6 @@
 /**
  * Compliance API Routes - Modular Architecture
- * 
+ *
  * This file re-exports the modular compliance routes for backward compatibility.
  * Routes are now organized into domain-specific modules:
  * - audit-routes.ts: Audit trail queries, verification, reports
@@ -10,6 +10,6 @@
  * - ml-governance-routes.ts: ML overrides, provenance
  */
 
-import complianceRouter from './routes/index';
+import complianceRouter from "./routes/index";
 
 export default complianceRouter;

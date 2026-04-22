@@ -1,7 +1,7 @@
 /**
  * Inventory Optimization Domain Routes
  * Extracted from routes.ts for Phase 4 modularization
- * 
+ *
  * Advanced inventory optimization, cost planning, and supplier performance
  * Refactored using Extract Method pattern per SonarQube guidance
  */
@@ -26,7 +26,9 @@ export function registerInventoryOptimizationRoutes(
 ): void {
   const { generalApiRateLimit, writeOperationRateLimit } = deps;
 
-  app.post("/api/parts/:id/sync-costs-legacy", writeOperationRateLimit,
+  app.post(
+    "/api/parts/:id/sync-costs-legacy",
+    writeOperationRateLimit,
     withErrorHandling("sync part costs", async (req, res) => {
       const { id } = req.params;
       try {
@@ -45,14 +47,16 @@ export function registerInventoryOptimizationRoutes(
     })
   );
 
-  app.post("/api/inventory/cost-planning", generalApiRateLimit,
+  app.post(
+    "/api/inventory/cost-planning",
+    generalApiRateLimit,
     withErrorHandling("plan maintenance costs", async (req, res) => {
       const { workOrderIds } = req.body;
       const orgId = (req as AuthenticatedRequest).orgId;
 
       const allOrders = await workOrderService.getWorkOrdersWithDetails(undefined, orgId);
       const workOrderIdSet = new Set(workOrderIds as string[]);
-      const validWorkOrders = allOrders.filter(wo => workOrderIdSet.has(wo.id));
+      const validWorkOrders = allOrders.filter((wo) => workOrderIdSet.has(wo.id));
 
       const { planMaintenanceCosts } = await import("../../inventory");
       const costPlan = await planMaintenanceCosts(validWorkOrders, dbInventoryStorage, orgId);
@@ -61,12 +65,15 @@ export function registerInventoryOptimizationRoutes(
     })
   );
 
-  app.get("/api/inventory/substitutions/:partNo", generalApiRateLimit,
+  app.get(
+    "/api/inventory/substitutions/:partNo",
+    generalApiRateLimit,
     async (req: Request, res: Response, next) => {
       const { cacheMiddleware } = await import("../../middleware/cache-middleware");
       return cacheMiddleware({
         ttl: 900,
-        keyGenerator: (r: Request) => `substitutions:${r.params.partNo}:${(r as AuthenticatedRequest).orgId}`,
+        keyGenerator: (r: Request) =>
+          `substitutions:${r.params.partNo}:${(r as AuthenticatedRequest).orgId}`,
       })(req, res, next);
     },
     withErrorHandling("find part substitutions", async (req, res) => {
@@ -80,7 +87,9 @@ export function registerInventoryOptimizationRoutes(
     })
   );
 
-  app.post("/api/inventory/optimize", generalApiRateLimit,
+  app.post(
+    "/api/inventory/optimize",
+    generalApiRateLimit,
     withErrorHandling("optimize inventory levels", async (req, res) => {
       const { partNumbers, usageHistory, costs, currentStock, options } = req.body;
       const orgId = (req as AuthenticatedRequest).orgId;
@@ -90,7 +99,9 @@ export function registerInventoryOptimizationRoutes(
       }
 
       const parts = await Promise.all(
-        partNumbers.map((partNo: string) => orgId ? dbInventoryStorage.getPartByPartNumber(partNo, orgId) : Promise.resolve(undefined))
+        partNumbers.map((partNo: string) =>
+          orgId ? dbInventoryStorage.getPartByPartNumber(partNo, orgId) : Promise.resolve(undefined)
+        )
       );
       const validParts = parts.filter((p) => p !== null);
 
@@ -121,13 +132,18 @@ export function registerInventoryOptimizationRoutes(
     })
   );
 
-  app.post("/api/inventory/optimize/auto", generalApiRateLimit,
+  app.post(
+    "/api/inventory/optimize/auto",
+    generalApiRateLimit,
     withErrorHandling("auto-optimize inventory", async (req, res) => {
       const { partNumbers, daysHistory } = req.body;
       const orgId = (req as AuthenticatedRequest).orgId;
 
       if (!partNumbers || !Array.isArray(partNumbers)) {
-        return sendBadRequest(res, "Missing or invalid required field: partNumbers (must be an array)");
+        return sendBadRequest(
+          res,
+          "Missing or invalid required field: partNumbers (must be an array)"
+        );
       }
 
       if (partNumbers.length > 100) {
@@ -166,17 +182,27 @@ export function registerInventoryOptimizationRoutes(
     })
   );
 
-  app.post("/api/inventory/suppliers/performance", generalApiRateLimit,
+  app.post(
+    "/api/inventory/suppliers/performance",
+    generalApiRateLimit,
     withErrorHandling("analyze supplier performance", async (req, res) => {
       const { supplierIds, dateRange } = req.body;
       const orgId = (req as AuthenticatedRequest).orgId;
 
       const { analyzeSupplierPerformance } = await import("../../inventory/supplier-analytics");
-      const performance = await analyzeSupplierPerformance(orgId, supplierIds, dateRange, dbInventoryStorage);
+      const performance = await analyzeSupplierPerformance(
+        orgId,
+        supplierIds,
+        dateRange,
+        dbInventoryStorage
+      );
 
       res.json(performance);
     })
   );
 
-  logger.info("InventoryOptimizationRoutes", "Registered (cost-planning: 2, substitutions: 1, optimize: 2, suppliers: 1)");
+  logger.info(
+    "InventoryOptimizationRoutes",
+    "Registered (cost-planning: 2, substitutions: 1, optimize: 2, suppliers: 1)"
+  );
 }

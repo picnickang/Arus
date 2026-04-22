@@ -1,11 +1,11 @@
 /**
  * ARUS Storage Interface Types
- * 
+ *
  * BACKWARD COMPATIBILITY SHIM
- * 
+ *
  * This file maintains backward compatibility by re-exporting all types
  * from the modularized domain files in ./domains/
- * 
+ *
  * The IStorage interface has been split into 19 domain-specific interfaces:
  * - ICoreStorage: Organizations, Users, Settings (~45 lines)
  * - IDeviceStorage: Devices, Heartbeats, Registry (~75 lines)
@@ -26,7 +26,7 @@
  * - IAdminStorage: Audit, Sessions, Health (~90 lines)
  * - ISchedulingStorage: Scheduler, Assignments (~35 lines)
  * - IExternalStorage: StormGeo Integration (~40 lines)
- * 
+ *
  * Original file: 897 lines → 19 modules (avg ~60 lines each, max ~115 lines)
  */
 

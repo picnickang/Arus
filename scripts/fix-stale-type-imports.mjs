@@ -28,7 +28,8 @@ const ROOT = process.cwd();
 function readExportedNames(filePath) {
   const content = fs.readFileSync(filePath, "utf-8");
   const names = new Set();
-  const decl = /export\s+(?:declare\s+)?(?:const|let|var|function|class|enum|interface|type|abstract\s+class)\s+([A-Za-z_$][\w$]*)/g;
+  const decl =
+    /export\s+(?:declare\s+)?(?:const|let|var|function|class|enum|interface|type|abstract\s+class)\s+([A-Za-z_$][\w$]*)/g;
   for (const m of content.matchAll(decl)) names.add(m[1]);
   const grouped = /export\s*(?:type\s+)?\{([^}]+)\}/g;
   for (const m of content.matchAll(grouped)) {
@@ -91,9 +92,9 @@ for (const dir of SCAN_DIRS) {
 
       // Mode A: pure type-only block, no stale → leave alone.
       if (isTypeOnlyKeyword) {
-        const namesInBlock = items.map(
-          (p) => p.replace(/^type\s+/, "").match(/^([A-Za-z_$][\w$]*)/)?.[1]
-        ).filter(Boolean);
+        const namesInBlock = items
+          .map((p) => p.replace(/^type\s+/, "").match(/^([A-Za-z_$][\w$]*)/)?.[1])
+          .filter(Boolean);
         const hasStale = namesInBlock.some((n) => !runtimeExports.has(n));
         if (!hasStale) return match;
         modified = true;
@@ -106,9 +107,10 @@ for (const dir of SCAN_DIRS) {
 
       modified = true;
       mixedSplit++;
-      const valuePart = valueItems.length > 0
-        ? `import { ${valueItems.join(", ")} } from "@shared/schema-runtime";`
-        : "";
+      const valuePart =
+        valueItems.length > 0
+          ? `import { ${valueItems.join(", ")} } from "@shared/schema-runtime";`
+          : "";
       const typePart = `import type { ${typeItems.join(", ")} } from "@shared/schema";`;
       return [valuePart, typePart].filter(Boolean).join("\n");
     });

@@ -1,6 +1,6 @@
 /**
  * Aquametro FMCC - Service Core
- * 
+ *
  * Core service class with initialization and status methods.
  */
 
@@ -33,12 +33,17 @@ export class AquametroFMCCServiceCore {
   }
 
   isReady(): boolean {
-    if (!this.config.enabled) { return false; }
-    if (this.useMockData) { return true; }
+    if (!this.config.enabled) {
+      return false;
+    }
+    if (this.useMockData) {
+      return true;
+    }
 
     if (this.config.protocol === "rest") {
       return !!this.config.restConfig?.baseUrl;
-    } if (this.config.protocol === "modbus") {
+    }
+    if (this.config.protocol === "modbus") {
       return !!this.config.modbusConfig?.host;
     }
 

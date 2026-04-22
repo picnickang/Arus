@@ -127,7 +127,9 @@ export function QuickReorderButton({
   };
 
   const handleReorder = () => {
-    if (quantity <= 0) {return;}
+    if (quantity <= 0) {
+      return;
+    }
     handleCreatePR({
       partId: part.id,
       quantity,
@@ -285,9 +287,7 @@ function ReorderDialog({
               )}
             </div>
             {part.supplierName && (
-              <p className="text-xs text-muted-foreground">
-                Supplier: {part.supplierName}
-              </p>
+              <p className="text-xs text-muted-foreground">Supplier: {part.supplierName}</p>
             )}
           </div>
 

@@ -10,11 +10,7 @@
  * without duplicating business logic.
  */
 
-import type {
-  Part,
-  Stock,
-  PartSubstitution,
-} from "@shared/schema";
+import type { Part, Stock, PartSubstitution } from "@shared/schema";
 import type { IStorage } from "../storage/interfaces/storage.types";
 
 /**
@@ -91,7 +87,9 @@ export class InventoryStorageAdapter implements InventoryStorage {
    * OPTIMIZATION: Prevents N+1 query antipattern
    */
   async getPartsByNumbers(partNos: string[], orgId: string): Promise<Part[]> {
-    if (partNos.length === 0) { return []; }
+    if (partNos.length === 0) {
+      return [];
+    }
 
     // Use existing storage method for each part (storage layer should batch internally)
     // If storage doesn't support batching, this still prevents caller-level N+1
@@ -108,7 +106,9 @@ export class InventoryStorageAdapter implements InventoryStorage {
   async getStockByPart(partNo: string, orgId: string): Promise<Stock[]> {
     // First get the part to get its ID
     const part = await this.storage.getPartByNumber(partNo, orgId);
-    if (!part) { return []; }
+    if (!part) {
+      return [];
+    }
 
     // Then get stock by part ID
     return this.storage.getStockByPart(part.id, orgId);
@@ -119,7 +119,9 @@ export class InventoryStorageAdapter implements InventoryStorage {
    * OPTIMIZATION: Prevents N+1 query antipattern
    */
   async getStockByParts(partNos: string[], orgId: string): Promise<Stock[]> {
-    if (partNos.length === 0) { return []; }
+    if (partNos.length === 0) {
+      return [];
+    }
 
     // Get all parts first to resolve IDs
     const parts = await this.getPartsByNumbers(partNos, orgId);
@@ -139,7 +141,9 @@ export class InventoryStorageAdapter implements InventoryStorage {
   async getPartSubstitutions(partNo: string, orgId: string): Promise<PartSubstitution[]> {
     // Get the part first to resolve ID
     const part = await this.storage.getPartByNumber(partNo, orgId);
-    if (!part) { return []; }
+    if (!part) {
+      return [];
+    }
 
     // Get substitutions by part ID
     return this.storage.getPartSubstitutions(part.id, orgId);

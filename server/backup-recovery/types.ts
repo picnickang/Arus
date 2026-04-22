@@ -1,6 +1,6 @@
 /**
  * Backup Types - Interfaces and configuration for backup/recovery system
- * 
+ *
  * Security Note (S5443 - publicly writable directories):
  * Default backup directory is /tmp for development convenience.
  * In production, BACKUP_DIR environment variable should point to a secure,

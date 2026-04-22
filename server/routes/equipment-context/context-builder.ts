@@ -2,10 +2,10 @@
  * Equipment Context Builder - Assembles equipment context from query results
  */
 
-import type { EquipmentContext, ContextQueryOptions } from './types';
-import { runParallelQueries, fetchKnowledgeData } from './data-queries';
-import { searchKnowledgeBase } from '../../vector-search-service';
-import { logger } from '../../utils/logger.js';
+import type { EquipmentContext, ContextQueryOptions } from "./types";
+import { runParallelQueries, fetchKnowledgeData } from "./data-queries";
+import { searchKnowledgeBase } from "../../vector-search-service";
+import { logger } from "../../utils/logger.js";
 
 export async function buildEquipmentContext(
   equipmentId: string,
@@ -17,7 +17,7 @@ export async function buildEquipmentContext(
   const queryResults = await runParallelQueries(equipmentId, orgId, timeframeStart, options);
 
   let knowledgeResults = { relatedDocuments: [] as any[], semanticMatches: [] as any[] };
-  if (options.includeKnowledge === 'true') {
+  if (options.includeKnowledge === "true") {
     knowledgeResults = await fetchKnowledgeData(
       equipmentId,
       orgId,
@@ -40,46 +40,54 @@ export async function buildEquipmentContext(
   } = queryResults;
 
   const openWorkOrders = allWorkOrders.filter(
-    (wo: any) => wo.status === 'open' || wo.status === 'in_progress' || wo.status === 'pending'
+    (wo: any) => wo.status === "open" || wo.status === "in_progress" || wo.status === "pending"
   );
   const completedWorkOrders = allWorkOrders
-    .filter((wo: any) => wo.status === 'completed')
+    .filter((wo: any) => wo.status === "completed")
     .slice(0, 5);
 
   const now = new Date();
   const upcomingSchedules = schedules.filter(
-    (s: any) => s.nextScheduledDate && new Date(s.nextScheduledDate) >= now && s.status !== 'completed'
+    (s: any) =>
+      s.nextScheduledDate && new Date(s.nextScheduledDate) >= now && s.status !== "completed"
   );
   const overdueSchedules = schedules.filter(
-    (s: any) => s.nextScheduledDate && new Date(s.nextScheduledDate) < now && s.status !== 'completed'
+    (s: any) =>
+      s.nextScheduledDate && new Date(s.nextScheduledDate) < now && s.status !== "completed"
   );
 
-  let pdmTrend: 'improving' | 'stable' | 'declining' | null = null;
+  let pdmTrend: "improving" | "stable" | "declining" | null = null;
   if (pdmScores.length >= 2) {
     const recent = pdmScores[0]?.healthIdx ?? 0;
     const older = pdmScores[pdmScores.length - 1]?.healthIdx ?? 0;
     const diff = recent - older;
-    if (diff > 5) { pdmTrend = 'improving'; }
-    else if (diff < -5) { pdmTrend = 'declining'; }
-    else { pdmTrend = 'stable'; }
+    if (diff > 5) {
+      pdmTrend = "improving";
+    } else if (diff < -5) {
+      pdmTrend = "declining";
+    } else {
+      pdmTrend = "stable";
+    }
   }
 
   const activeSensors = sensors.filter((s: any) => s.isActive !== false);
   const sensorTypes = [...new Set(sensors.map((s: any) => s.sensorType).filter(Boolean))];
-  const telemetrySensorTypes = [...new Set(telemetryData.map((t: any) => t.sensorType).filter(Boolean))];
+  const telemetrySensorTypes = [
+    ...new Set(telemetryData.map((t: any) => t.sensorType).filter(Boolean)),
+  ];
 
-  const criticalAlerts = activeAlerts.filter((a: any) => a.severity === 'critical').length;
+  const criticalAlerts = activeAlerts.filter((a: any) => a.severity === "critical").length;
   const warningAlerts = activeAlerts.filter(
-    (a: any) => a.severity === 'warning' || a.severity === 'high'
+    (a: any) => a.severity === "warning" || a.severity === "high"
   ).length;
   const infoAlerts = activeAlerts.filter(
-    (a: any) => a.severity === 'info' || a.severity === 'low'
+    (a: any) => a.severity === "info" || a.severity === "low"
   ).length;
 
-  const criticalInsights = insights.filter((i: any) => i.severity === 'critical').length;
-  const highInsights = insights.filter((i: any) => i.severity === 'high').length;
-  const mediumInsights = insights.filter((i: any) => i.severity === 'medium').length;
-  const lowInsights = insights.filter((i: any) => i.severity === 'low').length;
+  const criticalInsights = insights.filter((i: any) => i.severity === "critical").length;
+  const highInsights = insights.filter((i: any) => i.severity === "high").length;
+  const mediumInsights = insights.filter((i: any) => i.severity === "medium").length;
+  const lowInsights = insights.filter((i: any) => i.severity === "low").length;
 
   return {
     equipment: {
@@ -177,7 +185,8 @@ export async function buildEquipmentContext(
         hasMaintenance: allWorkOrders.length > 0 || schedules.length > 0,
         hasSensors: sensors.length > 0,
         hasKnowledge:
-          knowledgeResults.relatedDocuments.length > 0 || knowledgeResults.semanticMatches.length > 0,
+          knowledgeResults.relatedDocuments.length > 0 ||
+          knowledgeResults.semanticMatches.length > 0,
       },
     },
   };

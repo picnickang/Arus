@@ -32,7 +32,9 @@ export class InventoryRiskAnalyzer {
     console.log(`[Inventory Risk] Analyzing inventory risk for org: ${orgId}`);
 
     const parts = await this.storage.getPartsInventory(orgId, includeInactive);
-    if (parts.length === 0) {return this.createEmptyRiskSummary();}
+    if (parts.length === 0) {
+      return this.createEmptyRiskSummary();
+    }
 
     const partRisks = await Promise.all(parts.map((p) => this.calculatePartRisk(orgId, p)));
     const supplierConcentration = calculateSupplierRisk(partRisks);
@@ -51,10 +53,14 @@ export class InventoryRiskAnalyzer {
     console.log(`[Inventory Risk] Analyzing parts risk for equipment: ${equipmentId}`);
 
     const equipment = await this.storage.getEquipment(orgId, equipmentId);
-    if (!equipment) {return null;}
+    if (!equipment) {
+      return null;
+    }
 
     const workOrderParts = await this.storage.getWorkOrderPartsByEquipment(orgId, equipmentId);
-    if (workOrderParts.length === 0) {return this.createEmptyEquipmentRisk(equipment);}
+    if (workOrderParts.length === 0) {
+      return this.createEmptyEquipmentRisk(equipment);
+    }
 
     const uniquePartIds = [...new Set(workOrderParts.map((wp) => wp.partId))];
     const parts = await Promise.all(
@@ -70,7 +76,9 @@ export class InventoryRiskAnalyzer {
     console.log(`[Inventory Risk] Finding critical parts with risk >= ${riskThreshold}`);
 
     const parts = await this.storage.getPartsInventory(orgId, false);
-    if (parts.length === 0) {return [];}
+    if (parts.length === 0) {
+      return [];
+    }
 
     const partRisks = await Promise.all(parts.map((p) => this.calculatePartRisk(orgId, p)));
     return partRisks
@@ -134,7 +142,9 @@ export class InventoryRiskAnalyzer {
 
       for (const workOrderId of workOrderIds) {
         const workOrder = await this.storage.getWorkOrder(orgId, workOrderId);
-        if (workOrder?.equipmentId) {equipmentIds.push(workOrder.equipmentId);}
+        if (workOrder?.equipmentId) {
+          equipmentIds.push(workOrder.equipmentId);
+        }
       }
 
       return [...new Set(equipmentIds)];

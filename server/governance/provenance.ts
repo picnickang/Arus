@@ -24,12 +24,15 @@ async function lastHash(): Promise<string | null> {
   try {
     const text = await fs.readFile(PROV_FILE, "utf8");
     const lines = text.trim().split("\n").filter(Boolean);
-    if (lines.length === 0) { return null; }
+    if (lines.length === 0) {
+      return null;
+    }
 
     const last = JSON.parse(lines[lines.length - 1]);
     return last.hash as string;
   } catch (error: unknown) {
-    const errorCode = error instanceof Error && 'code' in error ? (error as { code: string }).code : undefined;
+    const errorCode =
+      error instanceof Error && "code" in error ? (error as { code: string }).code : undefined;
     if (errorCode === "ENOENT") {
       return null;
     }
@@ -58,7 +61,7 @@ export async function appendProvenance(
     const hash = sha256(JSON.stringify(payload));
     const row: ProvenanceEvent = { ...payload, hash };
 
-    await fs.appendFile(PROV_FILE, `${JSON.stringify(row)  }\n`, "utf8");
+    await fs.appendFile(PROV_FILE, `${JSON.stringify(row)}\n`, "utf8");
 
     console.log(`[Provenance] Recorded ${event.type} event (hash: ${hash.substring(0, 8)}...)`);
 
@@ -160,7 +163,7 @@ export async function recordTraining(params: {
 
 /**
  * Record a RUL prediction event (ML Governance)
- * 
+ *
  * Captures RUL predictions with data status for governance transparency.
  * CRITICAL: dataStatus differentiates "no data" from "low risk"
  * - Allows auditors to verify predictions were based on actual telemetry
@@ -195,12 +198,12 @@ export async function recordRulPrediction(params: {
 
 /**
  * Record an engineer override event (ML Governance)
- * 
+ *
  * Captures when an engineer overrides an ML prediction, including:
  * - Original prediction details for audit trail
  * - Override type and justification
  * - Engineer credentials at time of override
- * 
+ *
  * CRITICAL: This is immutable for regulatory compliance (ISM/Class/Flag)
  */
 export async function recordEngineerOverride(params: {
@@ -221,8 +224,10 @@ export async function recordEngineerOverride(params: {
   modelId?: string;
   orgId: string;
 }): Promise<ProvenanceEvent> {
-  console.log(`[Provenance] Recording engineer override: ${params.overrideType} by ${params.engineerName}`);
-  
+  console.log(
+    `[Provenance] Recording engineer override: ${params.overrideType} by ${params.engineerName}`
+  );
+
   return appendProvenance({
     type: "engineer_override",
     ...params,
@@ -231,12 +236,12 @@ export async function recordEngineerOverride(params: {
 
 /**
  * Record an engineer override outcome update event (ML Governance lifecycle)
- * 
+ *
  * Tracks the lifecycle of an override decision:
  * - pending → validated (decision was correct)
  * - pending → failure_prevented (override prevented a failure)
  * - pending → failure_occurred (override was wrong, failure happened)
- * 
+ *
  * CRITICAL: This is immutable for regulatory compliance (ISM/Class/Flag)
  */
 export async function recordOverrideOutcome(params: {
@@ -251,8 +256,10 @@ export async function recordOverrideOutcome(params: {
   engineerName: string;
   orgId: string;
 }): Promise<ProvenanceEvent> {
-  console.log(`[Provenance] Recording override outcome: ${params.outcomeStatus} for override ${params.overrideId}`);
-  
+  console.log(
+    `[Provenance] Recording override outcome: ${params.outcomeStatus} for override ${params.overrideId}`
+  );
+
   return appendProvenance({
     type: "override_outcome",
     ...params,
@@ -277,10 +284,10 @@ export async function getEngineerOverrides(filters?: {
     type: "engineer_override",
     ...filters,
   });
-  
+
   // Additional filtering for engineer override-specific fields
   let events = result.events;
-  
+
   if (filters?.engineerId) {
     events = events.filter((e) => e.engineerId === filters.engineerId);
   }
@@ -288,7 +295,7 @@ export async function getEngineerOverrides(filters?: {
   if (filters?.overrideType) {
     events = events.filter((e) => e.overrideType === filters.overrideType);
   }
-  
+
   return { events, total: events.length };
 }
 
@@ -348,7 +355,8 @@ export async function getProvenanceEvents(filters?: {
 
     return { events, total };
   } catch (error: unknown) {
-    const errorCode = error instanceof Error && 'code' in error ? (error as { code: string }).code : undefined;
+    const errorCode =
+      error instanceof Error && "code" in error ? (error as { code: string }).code : undefined;
     if (errorCode === "ENOENT") {
       return { events: [], total: 0 };
     }

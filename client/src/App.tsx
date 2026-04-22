@@ -17,7 +17,11 @@ import { CopilotFab } from "@/components/agent/CopilotFab";
 import { useEffect, lazy, Suspense, useState, useCallback, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { isDesktop } from "@/lib/desktop";
-import { isDesktopSetupCompleteSync, bootstrapDesktopBackend, markSetupComplete } from "@/lib/desktopFetch";
+import {
+  isDesktopSetupCompleteSync,
+  bootstrapDesktopBackend,
+  markSetupComplete,
+} from "@/lib/desktopFetch";
 import { trackPageVisit } from "@/lib/pageTracking";
 
 const HomePage = lazy(() => import("@/pages/home"));
@@ -25,7 +29,11 @@ const NotFound = lazy(() => import("@/pages/not-found"));
 const DesktopSetup = lazy(() => import("@/pages/desktop-setup"));
 
 const DevPerformanceOverlay = import.meta.env.DEV
-  ? lazy(() => import("@/components/DevPerformanceOverlay").then(m => ({ default: m.DevPerformanceOverlay })))
+  ? lazy(() =>
+      import("@/components/DevPerformanceOverlay").then((m) => ({
+        default: m.DevPerformanceOverlay,
+      }))
+    )
   : () => null;
 
 import { operationsRoutes } from "@/routes/operations";
@@ -94,7 +102,7 @@ function ConnectivityBannerWithSync() {
   useEffect(() => {
     const cache = queryClient.getMutationCache();
     return cache.subscribe(() => {
-      const pending = cache.getAll().filter(m => m.state.status === "pending").length;
+      const pending = cache.getAll().filter((m) => m.state.status === "pending").length;
       setPendingCount(pending);
     });
   }, []);
@@ -172,7 +180,9 @@ const SETUP_TIMEOUT_MS = 10000;
 
 function App() {
   const [setupState, setSetupState] = useState<"loading" | "setup" | "ready">(() => {
-    if (!isDesktop()) {return "ready";}
+    if (!isDesktop()) {
+      return "ready";
+    }
     return isDesktopSetupCompleteSync() ? "ready" : "loading";
   });
 
@@ -181,7 +191,9 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (setupState !== "loading") {return;}
+    if (setupState !== "loading") {
+      return;
+    }
 
     const timeout = setTimeout(() => {
       setSetupState("setup");

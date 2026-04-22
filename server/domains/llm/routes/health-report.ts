@@ -1,6 +1,6 @@
 /**
  * Health Report Routes
- * 
+ *
  * Fleet health report generation endpoint.
  */
 
@@ -9,7 +9,12 @@ import { RateLimitRequestHandler } from "express-rate-limit";
 import { analyzeFleetHealth } from "../../../openai";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { logger } from "../../../utils/logger.js";
-import { dbEquipmentStorage, dbTelemetryStorage, dbAlertStorage, workOrderService } from "../../../repositories";
+import {
+  dbEquipmentStorage,
+  dbTelemetryStorage,
+  dbAlertStorage,
+  workOrderService,
+} from "../../../repositories";
 
 export function registerHealthReportRoutes(
   app: Express,
@@ -19,7 +24,9 @@ export function registerHealthReportRoutes(
 ) {
   const { generalApiRateLimit } = rateLimiters;
 
-  app.post("/api/report/health", generalApiRateLimit,
+  app.post(
+    "/api/report/health",
+    generalApiRateLimit,
     withErrorHandling("generate health report", async (req, res) => {
       const { vesselId, equipmentId, lookbackHours = 24 } = req.body;
 

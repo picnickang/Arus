@@ -1,7 +1,4 @@
-import type {
-  SelectCrew,
-  SelectCrewEmploymentHistory,
-} from "@shared/schema";
+import type { SelectCrew, SelectCrewEmploymentHistory } from "@shared/schema";
 import { crewLifecycleRepository } from "./lifecycle-repository";
 import { recordAndPublish } from "../../../sync-events";
 import { mqttReliableSync } from "../../../mqtt-reliable-sync";
@@ -123,7 +120,12 @@ export class CrewLifecycleService {
     const startDate = input.startDate ? new Date(input.startDate) : new Date();
     const reinstatedBy = input.reinstatedBy || userId;
 
-    const updatedCrew = await crewLifecycleRepository.reinstateCrew(id, orgId, startDate, reinstatedBy);
+    const updatedCrew = await crewLifecycleRepository.reinstateCrew(
+      id,
+      orgId,
+      startDate,
+      reinstatedBy
+    );
 
     await recordAndPublish("crew", id, "update", updatedCrew, userId);
     mqttReliableSync.publishCrewChange("update", updatedCrew).catch((err) => {
@@ -141,7 +143,10 @@ export class CrewLifecycleService {
     return crewLifecycleRepository.findFormerCrewWithHistory(orgId);
   }
 
-  async getEmploymentHistory(crewId: string, orgId: string): Promise<SelectCrewEmploymentHistory[]> {
+  async getEmploymentHistory(
+    crewId: string,
+    orgId: string
+  ): Promise<SelectCrewEmploymentHistory[]> {
     return crewLifecycleRepository.getEmploymentHistory(crewId, orgId);
   }
 
@@ -156,13 +161,27 @@ export class CrewLifecycleService {
     }
 
     const updateData: Record<string, unknown> = {};
-    if (input.startDate) {updateData.startDate = new Date(input.startDate);}
-    if (input.endDate) {updateData.endDate = new Date(input.endDate);}
-    if (input.terminationType !== undefined) {updateData.terminationType = input.terminationType;}
-    if (input.terminationNotes !== undefined) {updateData.terminationNotes = input.terminationNotes;}
-    if (input.contractPenalty !== undefined) {updateData.contractPenalty = input.contractPenalty;}
-    if (input.vesselId !== undefined) {updateData.vesselId = input.vesselId;}
-    if (input.rank !== undefined) {updateData.rank = input.rank;}
+    if (input.startDate) {
+      updateData.startDate = new Date(input.startDate);
+    }
+    if (input.endDate) {
+      updateData.endDate = new Date(input.endDate);
+    }
+    if (input.terminationType !== undefined) {
+      updateData.terminationType = input.terminationType;
+    }
+    if (input.terminationNotes !== undefined) {
+      updateData.terminationNotes = input.terminationNotes;
+    }
+    if (input.contractPenalty !== undefined) {
+      updateData.contractPenalty = input.contractPenalty;
+    }
+    if (input.vesselId !== undefined) {
+      updateData.vesselId = input.vesselId;
+    }
+    if (input.rank !== undefined) {
+      updateData.rank = input.rank;
+    }
 
     return crewLifecycleRepository.updateEmploymentHistory(id, orgId, updateData);
   }

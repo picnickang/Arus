@@ -38,16 +38,34 @@ type RestHourFlags = {
 
 export function initializeRestHours(): RestHourFlags {
   return {
-    h0: 1, h1: 1, h2: 1, h3: 1, h4: 1, h5: 1, h6: 1, h7: 1,
-    h8: 1, h9: 1, h10: 1, h11: 1, h12: 1, h13: 1, h14: 1, h15: 1,
-    h16: 1, h17: 1, h18: 1, h19: 1, h20: 1, h21: 1, h22: 1, h23: 1,
+    h0: 1,
+    h1: 1,
+    h2: 1,
+    h3: 1,
+    h4: 1,
+    h5: 1,
+    h6: 1,
+    h7: 1,
+    h8: 1,
+    h9: 1,
+    h10: 1,
+    h11: 1,
+    h12: 1,
+    h13: 1,
+    h14: 1,
+    h15: 1,
+    h16: 1,
+    h17: 1,
+    h18: 1,
+    h19: 1,
+    h20: 1,
+    h21: 1,
+    h22: 1,
+    h23: 1,
   };
 }
 
-export function markWorkHoursForDay(
-  flags: RestHourFlags,
-  workHours: number[]
-): RestHourFlags {
+export function markWorkHoursForDay(flags: RestHourFlags, workHours: number[]): RestHourFlags {
   const result = { ...flags };
   for (const h of workHours) {
     if (h >= 0 && h <= 23) {
@@ -58,52 +76,52 @@ export function markWorkHoursForDay(
   return result;
 }
 
-export function getWorkHoursForDate(
-  start: Date,
-  end: Date,
-  targetDateStr: string
-): number[] {
+export function getWorkHoursForDate(start: Date, end: Date, targetDateStr: string): number[] {
   const workHours: number[] = [];
-  
-  const targetDayStart = new Date(`${targetDateStr  }T00:00:00`);
-  const targetDayEnd = new Date(`${targetDateStr  }T23:59:59.999`);
-  
+
+  const targetDayStart = new Date(`${targetDateStr}T00:00:00`);
+  const targetDayEnd = new Date(`${targetDateStr}T23:59:59.999`);
+
   const effectiveStart = start < targetDayStart ? targetDayStart : start;
-  
+
   let effectiveEnd: Date;
   if (end > targetDayEnd) {
-    effectiveEnd = new Date(`${targetDateStr  }T23:59:59.999`);
+    effectiveEnd = new Date(`${targetDateStr}T23:59:59.999`);
   } else {
     effectiveEnd = end;
   }
-  
+
   if (effectiveStart >= effectiveEnd) {
     return workHours;
   }
-  
+
   const effectiveEndDate = new Date(targetDateStr);
   effectiveEndDate.setHours(0, 0, 0, 0);
   const endDateOnly = new Date(effectiveEnd);
   endDateOnly.setHours(0, 0, 0, 0);
-  
-  if (effectiveEnd.getHours() === 0 && 
-      effectiveEnd.getMinutes() === 0 && 
-      effectiveEnd.getSeconds() === 0 &&
-      endDateOnly.getTime() > effectiveEndDate.getTime()) {
+
+  if (
+    effectiveEnd.getHours() === 0 &&
+    effectiveEnd.getMinutes() === 0 &&
+    effectiveEnd.getSeconds() === 0 &&
+    endDateOnly.getTime() > effectiveEndDate.getTime()
+  ) {
     return workHours;
   }
 
   const startHour = effectiveStart.getHours();
-  
+
   let lastWorkHour: number;
-  if (effectiveEnd.getTime() > targetDayEnd.getTime() || 
-      (effectiveEnd.getHours() === 23 && effectiveEnd.getMinutes() >= 59)) {
+  if (
+    effectiveEnd.getTime() > targetDayEnd.getTime() ||
+    (effectiveEnd.getHours() === 23 && effectiveEnd.getMinutes() >= 59)
+  ) {
     lastWorkHour = 23;
   } else {
     const endHour = effectiveEnd.getHours();
     const endMinutes = effectiveEnd.getMinutes();
     const endSeconds = effectiveEnd.getSeconds();
-    
+
     if (endMinutes === 0 && endSeconds === 0) {
       lastWorkHour = endHour - 1;
     } else {
@@ -124,7 +142,7 @@ export function getDatesInRange(start: Date, end: Date): string[] {
   const dates: string[] = [];
   const current = new Date(start);
   current.setHours(0, 0, 0, 0);
-  
+
   const endDate = new Date(end);
   endDate.setHours(0, 0, 0, 0);
 
@@ -138,8 +156,18 @@ export function getDatesInRange(start: Date, end: Date): string[] {
 
 function getMonthName(month: number): string {
   const months = [
-    "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
-    "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"
+    "JANUARY",
+    "FEBRUARY",
+    "MARCH",
+    "APRIL",
+    "MAY",
+    "JUNE",
+    "JULY",
+    "AUGUST",
+    "SEPTEMBER",
+    "OCTOBER",
+    "NOVEMBER",
+    "DECEMBER",
   ];
   return months[month];
 }
@@ -195,9 +223,9 @@ export async function generateHoRFromSchedule(
     for (const assignment of assignments) {
       const startTime = new Date(assignment.start);
       const endTime = new Date(assignment.end);
-      
+
       const datesAffected = getDatesInRange(startTime, endTime);
-      
+
       for (const dateStr of datesAffected) {
         const [yearStr, monthStr] = dateStr.split("-");
         const year = Number.parseInt(yearStr);
@@ -205,7 +233,7 @@ export async function generateHoRFromSchedule(
         const monthName = getMonthName(monthNum);
 
         const key = `${assignment.crewId}_${year}_${monthName}`;
-        
+
         if (!sheetDataMap.has(key)) {
           const crewInfo = crewMap.get(assignment.crewId);
           sheetDataMap.set(key, {
@@ -226,7 +254,7 @@ export async function generateHoRFromSchedule(
         }
 
         const workHours = getWorkHoursForDate(startTime, endTime, dateStr);
-        
+
         const currentFlags = sheetData.days.get(dateStr)!;
         sheetData.days.set(dateStr, markWorkHoursForDay(currentFlags, workHours));
       }
@@ -277,7 +305,9 @@ export async function generateHoRFromSchedule(
   }
 }
 
-async function buildCrewLookup(orgId: string): Promise<Map<string, { name: string; rank: string | null }>> {
+async function buildCrewLookup(
+  orgId: string
+): Promise<Map<string, { name: string; rank: string | null }>> {
   const crewMembers = await dbCrewStorage.getCrew(orgId);
   const lookup = new Map<string, { name: string; rank: string | null }>();
   for (const c of crewMembers) {

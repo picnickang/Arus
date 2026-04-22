@@ -82,7 +82,9 @@ export class MlTrainingJobQueue {
    * Call this once on server startup.
    */
   async registerWorker(): Promise<void> {
-    if (this.isWorkerRegistered) {return;}
+    if (this.isWorkerRegistered) {
+      return;
+    }
 
     await this.boss.work(
       QUEUE_NAME,
@@ -119,7 +121,9 @@ export class MlTrainingJobQueue {
    */
   async getJobStatus(jobId: string): Promise<MlJobStatus | null> {
     const job = await this.boss.getJobById(jobId);
-    if (!job) {return null;}
+    if (!job) {
+      return null;
+    }
 
     return {
       jobId: job.id,
@@ -170,7 +174,9 @@ export class MlTrainingJobQueue {
     const data = job.data as MlTrainingJobData;
     const startTime = Date.now();
 
-    logger.info(LOG_CTX, `Processing training job ${job.id}: ${data.modelType}`, { orgId: data.orgId });
+    logger.info(LOG_CTX, `Processing training job ${job.id}: ${data.modelType}`, {
+      orgId: data.orgId,
+    });
 
     try {
       let result: any;
@@ -222,7 +228,9 @@ export class MlTrainingJobQueue {
       // Notify via WebSocket
       this.notifyCompletion(data.orgId, job.id, data.modelType, true, durationMs);
 
-      logger.info(LOG_CTX, `Training job ${job.id} completed in ${durationMs}ms`, { orgId: data.orgId });
+      logger.info(LOG_CTX, `Training job ${job.id} completed in ${durationMs}ms`, {
+        orgId: data.orgId,
+      });
 
       return {
         modelType: data.modelType,
@@ -257,7 +265,9 @@ export class MlTrainingJobQueue {
     durationMs: number,
     error?: string
   ): void {
-    if (!this.wsServer) {return;}
+    if (!this.wsServer) {
+      return;
+    }
 
     try {
       this.wsServer.broadcast?.({

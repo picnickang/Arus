@@ -21,17 +21,17 @@ interface RateLimitResult {
 }
 
 export class EnhancedRateLimiter {
-  private config: RagSecurityConfig['rateLimiting'];
+  private config: RagSecurityConfig["rateLimiting"];
   private memoryStore: Map<string, RateLimitEntry> = new Map();
   private redis: any = null;
   private redisAvailable: boolean = false;
 
-  constructor(config: RagSecurityConfig['rateLimiting']) {
+  constructor(config: RagSecurityConfig["rateLimiting"]) {
     this.config = config;
     if (config.useRedis && isRedisEnabled()) {
       this.initRedis();
     }
-    
+
     setInterval(() => this.cleanupMemoryStore(), 60000);
   }
 
@@ -55,7 +55,11 @@ export class EnhancedRateLimiter {
    */
   async checkLimit(identifier: string): Promise<RateLimitResult> {
     if (!this.config.enabled) {
-      return { allowed: true, remaining: this.config.requestsPerMinute, resetAt: Date.now() + 60000 };
+      return {
+        allowed: true,
+        remaining: this.config.requestsPerMinute,
+        resetAt: Date.now() + 60000,
+      };
     }
 
     const key = `rag:ratelimit:${identifier}`;
@@ -77,7 +81,7 @@ export class EnhancedRateLimiter {
       const multi = this.redis.multi();
       multi.incr(windowKey);
       multi.pttl(windowKey);
-      
+
       const results = await multi.exec();
       const count = results[0][1] as number;
       const ttl = results[1][1] as number;
@@ -129,7 +133,7 @@ export class EnhancedRateLimiter {
 
     // Existing window
     entry.requests++;
-    
+
     if (entry.requests > this.config.requestsPerMinute) {
       const resetAt = entry.lastRefill + windowMs;
       return {
@@ -163,7 +167,7 @@ export class EnhancedRateLimiter {
         const windowStart = Math.floor(now / windowMs) * windowMs;
         const windowKey = `${key}:${windowStart}`;
         const count = await this.redis.get(windowKey);
-        const remaining = Math.max(0, this.config.requestsPerMinute - (parseInt(count || '0', 10)));
+        const remaining = Math.max(0, this.config.requestsPerMinute - parseInt(count || "0", 10));
         return { remaining, resetAt: windowStart + windowMs };
       } catch {
         // Fall through to memory
@@ -215,7 +219,7 @@ export class EnhancedRateLimiter {
     }
   }
 
-  updateConfig(config: RagSecurityConfig['rateLimiting']): void {
+  updateConfig(config: RagSecurityConfig["rateLimiting"]): void {
     this.config = config;
     if (config.useRedis && !this.redisAvailable) {
       this.initRedis();
@@ -231,14 +235,16 @@ export class EnhancedRateLimiter {
 
 let instance: EnhancedRateLimiter | null = null;
 
-export function getEnhancedRateLimiter(config: RagSecurityConfig['rateLimiting']): EnhancedRateLimiter {
+export function getEnhancedRateLimiter(
+  config: RagSecurityConfig["rateLimiting"]
+): EnhancedRateLimiter {
   if (!instance) {
     instance = new EnhancedRateLimiter(config);
   }
   return instance;
 }
 
-export function updateRateLimiterConfig(config: RagSecurityConfig['rateLimiting']): void {
+export function updateRateLimiterConfig(config: RagSecurityConfig["rateLimiting"]): void {
   if (instance) {
     instance.updateConfig(config);
   }

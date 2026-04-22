@@ -16,9 +16,15 @@ import { equipment } from "./equipment";
 export const equipmentFeatures = pgTable(
   "equipment_features",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    equipmentId: varchar("equipment_id").notNull().references(() => equipment.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    equipmentId: varchar("equipment_id")
+      .notNull()
+      .references(() => equipment.id),
     timestamp: timestamp("timestamp", { withTimezone: true }).notNull(),
     meanTemp: real("mean_temp"),
     stdTemp: real("std_temp"),
@@ -35,7 +41,11 @@ export const equipmentFeatures = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({
-    orgEquipTimeIdx: index("idx_equip_features_org_equip_time").on(table.orgId, table.equipmentId, table.timestamp),
+    orgEquipTimeIdx: index("idx_equip_features_org_equip_time").on(
+      table.orgId,
+      table.equipmentId,
+      table.timestamp
+    ),
     equipTimeIdx: index("idx_equip_features_equip_time").on(table.equipmentId, table.timestamp),
   })
 );
@@ -43,8 +53,12 @@ export const equipmentFeatures = pgTable(
 export const fleetBaselines = pgTable(
   "fleet_baselines",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     equipmentType: varchar("equipment_type", { length: 100 }).notNull(),
     featureName: varchar("feature_name", { length: 100 }).notNull(),
     mean: real("mean").notNull(),
@@ -55,13 +69,27 @@ export const fleetBaselines = pgTable(
     computedAt: timestamp("computed_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({
-    orgTypeFeatureIdx: index("idx_fleet_baselines_org_type_feature").on(table.orgId, table.equipmentType, table.featureName),
-    uniqueOrgTypeFeature: unique("uq_fleet_baselines_org_type_feature").on(table.orgId, table.equipmentType, table.featureName),
+    orgTypeFeatureIdx: index("idx_fleet_baselines_org_type_feature").on(
+      table.orgId,
+      table.equipmentType,
+      table.featureName
+    ),
+    uniqueOrgTypeFeature: unique("uq_fleet_baselines_org_type_feature").on(
+      table.orgId,
+      table.equipmentType,
+      table.featureName
+    ),
   })
 );
 
-export const insertEquipmentFeatureSchema = createInsertSchema(equipmentFeatures).omit({ id: true, createdAt: true });
-export const insertFleetBaselineSchema = createInsertSchema(fleetBaselines).omit({ id: true, computedAt: true });
+export const insertEquipmentFeatureSchema = createInsertSchema(equipmentFeatures).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertFleetBaselineSchema = createInsertSchema(fleetBaselines).omit({
+  id: true,
+  computedAt: true,
+});
 
 export type EquipmentFeature = typeof equipmentFeatures.$inferSelect;
 export type InsertEquipmentFeature = z.infer<typeof insertEquipmentFeatureSchema>;

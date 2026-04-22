@@ -36,7 +36,7 @@ interface PlattParameters {
 
 interface IsotonicMapping {
   thresholds: number[]; // sorted predicted probabilities
-  values: number[];     // corresponding calibrated probabilities
+  values: number[]; // corresponding calibrated probabilities
 }
 
 interface CalibrationModel {
@@ -110,7 +110,9 @@ function fitPlattScaling(data: CalibrationDataPoint[], maxIter = 100, lr = 0.01)
     b -= lr * gradB;
 
     // Early stopping if gradients are tiny
-    if (Math.abs(gradA) < 1e-8 && Math.abs(gradB) < 1e-8) {break;}
+    if (Math.abs(gradA) < 1e-8 && Math.abs(gradB) < 1e-8) {
+      break;
+    }
   }
 
   return { a, b };
@@ -136,7 +138,7 @@ function fitIsotonicRegression(data: CalibrationDataPoint[]): IsotonicMapping {
 
   // PAV algorithm
   const n = sorted.length;
-  const values = sorted.map(d => d.actualOutcome as number);
+  const values = sorted.map((d) => d.actualOutcome as number);
   const weights = new Array(n).fill(1);
 
   // Pool adjacent violators
@@ -156,14 +158,16 @@ function fitIsotonicRegression(data: CalibrationDataPoint[]): IsotonicMapping {
       sorted.splice(i + 1, 1);
 
       // Check backwards for violations
-      if (i > 0) {i--;}
+      if (i > 0) {
+        i--;
+      }
     } else {
       i++;
     }
   }
 
   return {
-    thresholds: sorted.map(d => d.predictedProbability),
+    thresholds: sorted.map((d) => d.predictedProbability),
     values,
   };
 }
@@ -171,17 +175,26 @@ function fitIsotonicRegression(data: CalibrationDataPoint[]): IsotonicMapping {
 function applyIsotonicRegression(rawProbability: number, mapping: IsotonicMapping): number {
   const { thresholds, values } = mapping;
 
-  if (thresholds.length === 0) {return rawProbability;}
-  if (rawProbability <= thresholds[0]) {return values[0];}
-  if (rawProbability >= thresholds[thresholds.length - 1]) {return values[values.length - 1];}
+  if (thresholds.length === 0) {
+    return rawProbability;
+  }
+  if (rawProbability <= thresholds[0]) {
+    return values[0];
+  }
+  if (rawProbability >= thresholds[thresholds.length - 1]) {
+    return values[values.length - 1];
+  }
 
   // Binary search for the right interval
   let lo = 0;
   let hi = thresholds.length - 1;
   while (lo < hi - 1) {
     const mid = Math.floor((lo + hi) / 2);
-    if (thresholds[mid] <= rawProbability) {lo = mid;}
-    else {hi = mid;}
+    if (thresholds[mid] <= rawProbability) {
+      lo = mid;
+    } else {
+      hi = mid;
+    }
   }
 
   // Linear interpolation between the two nearest points
@@ -194,7 +207,10 @@ function applyIsotonicRegression(rawProbability: number, mapping: IsotonicMappin
 // Calibration Metrics
 // ============================================================================
 
-function computeBrierScore(data: CalibrationDataPoint[], calibrateFn?: (p: number) => number): number {
+function computeBrierScore(
+  data: CalibrationDataPoint[],
+  calibrateFn?: (p: number) => number
+): number {
   let sum = 0;
   for (const { predictedProbability, actualOutcome } of data) {
     const p = calibrateFn ? calibrateFn(predictedProbability) : predictedProbability;
@@ -203,27 +219,39 @@ function computeBrierScore(data: CalibrationDataPoint[], calibrateFn?: (p: numbe
   return sum / data.length;
 }
 
-function computeCalibrationBins(data: CalibrationDataPoint[], numBins = 10, calibrateFn?: (p: number) => number): CalibrationBin[] {
+function computeCalibrationBins(
+  data: CalibrationDataPoint[],
+  numBins = 10,
+  calibrateFn?: (p: number) => number
+): CalibrationBin[] {
   const bins: CalibrationBin[] = [];
 
   for (let i = 0; i < numBins; i++) {
     const binStart = i / numBins;
     const binEnd = (i + 1) / numBins;
 
-    const binData = data.filter(d => {
+    const binData = data.filter((d) => {
       const p = calibrateFn ? calibrateFn(d.predictedProbability) : d.predictedProbability;
       return p >= binStart && (i === numBins - 1 ? p <= binEnd : p < binEnd);
     });
 
     if (binData.length === 0) {
-      bins.push({ binStart, binEnd, avgPredicted: (binStart + binEnd) / 2, avgActual: 0, count: 0, gap: 0 });
+      bins.push({
+        binStart,
+        binEnd,
+        avgPredicted: (binStart + binEnd) / 2,
+        avgActual: 0,
+        count: 0,
+        gap: 0,
+      });
       continue;
     }
 
-    const avgPredicted = binData.reduce((s, d) => {
-      const p = calibrateFn ? calibrateFn(d.predictedProbability) : d.predictedProbability;
-      return s + p;
-    }, 0) / binData.length;
+    const avgPredicted =
+      binData.reduce((s, d) => {
+        const p = calibrateFn ? calibrateFn(d.predictedProbability) : d.predictedProbability;
+        return s + p;
+      }, 0) / binData.length;
 
     const avgActual = binData.reduce((s, d) => s + d.actualOutcome, 0) / binData.length;
 
@@ -243,14 +271,16 @@ function computeCalibrationBins(data: CalibrationDataPoint[], numBins = 10, cali
 function computeECE(bins: CalibrationBin[], totalPoints: number): number {
   let ece = 0;
   for (const bin of bins) {
-    if (bin.count === 0) {continue;}
+    if (bin.count === 0) {
+      continue;
+    }
     ece += (bin.count / totalPoints) * bin.gap;
   }
   return ece;
 }
 
 function computeMCE(bins: CalibrationBin[]): number {
-  return Math.max(...bins.filter(b => b.count > 0).map(b => b.gap), 0);
+  return Math.max(...bins.filter((b) => b.count > 0).map((b) => b.gap), 0);
 }
 
 // ============================================================================
@@ -293,16 +323,22 @@ export class PredictionCalibrator {
     const data = await this.fetchCalibrationData(orgId, modelId);
 
     if (data.length < minDataPoints) {
-      logger.warn("PredictionCalibrator", `Insufficient data for calibration: ${data.length} points (need ${minDataPoints})`, { orgId, modelId });
+      logger.warn(
+        "PredictionCalibrator",
+        `Insufficient data for calibration: ${data.length} points (need ${minDataPoints})`,
+        { orgId, modelId }
+      );
       return null;
     }
 
     // Choose method
-    const selectedMethod = method === "auto"
-      ? (data.length >= 500 ? "isotonic" : "platt")
-      : method;
+    const selectedMethod = method === "auto" ? (data.length >= 500 ? "isotonic" : "platt") : method;
 
-    logger.info("PredictionCalibrator", `Fitting ${selectedMethod} calibration on ${data.length} data points`, { orgId, modelId });
+    logger.info(
+      "PredictionCalibrator",
+      `Fitting ${selectedMethod} calibration on ${data.length} data points`,
+      { orgId, modelId }
+    );
 
     // Compute pre-calibration metrics
     const brierBefore = computeBrierScore(data);
@@ -344,7 +380,11 @@ export class PredictionCalibrator {
     const cacheKey = `${orgId}:${modelId || "all"}`;
     calibrationCache.set(cacheKey, model);
 
-    logger.info("PredictionCalibrator", `Calibration fitted. Brier: ${brierBefore.toFixed(4)} → ${brierAfter.toFixed(4)}, ECE: ${ece.toFixed(4)}`, { orgId, modelId });
+    logger.info(
+      "PredictionCalibrator",
+      `Calibration fitted. Brier: ${brierBefore.toFixed(4)} → ${brierAfter.toFixed(4)}, ECE: ${ece.toFixed(4)}`,
+      { orgId, modelId }
+    );
 
     return model;
   }
@@ -357,7 +397,9 @@ export class PredictionCalibrator {
     const cacheKey = `${orgId}:${modelId || "all"}`;
     const model = calibrationCache.get(cacheKey);
 
-    if (!model) {return rawProbability;}
+    if (!model) {
+      return rawProbability;
+    }
 
     if (model.method === "platt" && model.plattParams) {
       return applyPlattScaling(rawProbability, model.plattParams);
@@ -377,7 +419,9 @@ export class PredictionCalibrator {
     const cacheKey = `${orgId}:${modelId || "all"}`;
     const model = calibrationCache.get(cacheKey);
 
-    if (!model) {return null;}
+    if (!model) {
+      return null;
+    }
 
     const data = await this.fetchCalibrationData(orgId, modelId);
     const calibrateFn = this.getCalibrateFn(model);
@@ -431,7 +475,10 @@ export class PredictionCalibrator {
    *    for that equipment within the predicted time window
    * 3. Return pairs of (predicted_probability, actual_outcome)
    */
-  private async fetchCalibrationData(orgId: string, modelId?: string): Promise<CalibrationDataPoint[]> {
+  private async fetchCalibrationData(
+    orgId: string,
+    modelId?: string
+  ): Promise<CalibrationDataPoint[]> {
     try {
       const { failurePredictions, workOrders } = await import("@shared/schema");
       const { eq, and, sql, gte, lte } = await import("drizzle-orm");
@@ -452,13 +499,17 @@ export class PredictionCalibrator {
 
       for (const pred of predictions) {
         // Skip predictions without a predicted failure date (can't verify outcome)
-        if (!pred.predictedFailureDate) {continue;}
+        if (!pred.predictedFailureDate) {
+          continue;
+        }
 
         const predictedDate = new Date(pred.predictedFailureDate);
         const predictionDate = new Date(pred.predictionTimestamp || pred.createdAt);
 
         // Only use predictions whose window has already passed (we know the outcome)
-        if (predictedDate > new Date()) {continue;}
+        if (predictedDate > new Date()) {
+          continue;
+        }
 
         // Check if a corrective/emergency work order was created for this equipment
         // within a window around the predicted failure date (±7 days)
@@ -468,12 +519,14 @@ export class PredictionCalibrator {
         const relatedWorkOrders = await this.db
           .select()
           .from(workOrders)
-          .where(and(
-            eq(workOrders.equipmentId, pred.equipmentId),
-            eq(workOrders.orgId, orgId),
-            gte(workOrders.createdAt, windowStart),
-            lte(workOrders.createdAt, windowEnd),
-          ))
+          .where(
+            and(
+              eq(workOrders.equipmentId, pred.equipmentId),
+              eq(workOrders.orgId, orgId),
+              gte(workOrders.createdAt, windowStart),
+              lte(workOrders.createdAt, windowEnd)
+            )
+          )
           .limit(1);
 
         const actualOutcome: 0 | 1 = relatedWorkOrders.length > 0 ? 1 : 0;

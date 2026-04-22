@@ -1,6 +1,6 @@
 /**
  * ML Analytics - Partial Export Routes
- * 
+ *
  * Individual export routes for ML models, telemetry, and predictions.
  */
 
@@ -14,7 +14,8 @@ import { dbTelemetryStorage } from "../../../db/telemetry/index.js";
 export function registerExportPartialRoutes(app: Express, config: MlAnalyticsConfig) {
   const { adaptiveTrainingWindow } = config;
 
-  app.get("/api/analytics/export/ml-models",
+  app.get(
+    "/api/analytics/export/ml-models",
     withErrorHandling("export ML models", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, format = "json" } = req.query;
       if (!orgId) {
@@ -65,7 +66,10 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
         ].join("\n");
 
         res.setHeader("Content-Type", "text/csv");
-        res.setHeader("Content-Disposition", `attachment; filename="ml-models-export-${Date.now()}.csv"`);
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="ml-models-export-${Date.now()}.csv"`
+        );
         return res.send(csvData);
       }
 
@@ -73,18 +77,31 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
     })
   );
 
-  app.get("/api/analytics/export/telemetry",
+  app.get(
+    "/api/analytics/export/telemetry",
     withErrorHandling("export telemetry", async (req, res) => {
-      const { orgId = (req as AuthenticatedRequest).orgId, equipmentId, startDate, endDate, format = "json" } = req.query;
+      const {
+        orgId = (req as AuthenticatedRequest).orgId,
+        equipmentId,
+        startDate,
+        endDate,
+        format = "json",
+      } = req.query;
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
 
-      const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const start = startDate
+        ? new Date(startDate as string)
+        : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       const end = endDate ? new Date(endDate as string) : new Date();
 
       const telemetry = equipmentId
-        ? await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(equipmentId as string, start, end)
+        ? await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(
+            equipmentId as string,
+            start,
+            end
+          )
         : await dbTelemetryStorage.getTelemetryByDateRange(start, end, orgId as string);
 
       const exportData = {
@@ -115,7 +132,10 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
         ].join("\n");
 
         res.setHeader("Content-Type", "text/csv");
-        res.setHeader("Content-Disposition", `attachment; filename="telemetry-export-${Date.now()}.csv"`);
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="telemetry-export-${Date.now()}.csv"`
+        );
         return res.send(csvData);
       }
 
@@ -123,7 +143,8 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
     })
   );
 
-  app.get("/api/analytics/export/predictions",
+  app.get(
+    "/api/analytics/export/predictions",
     withErrorHandling("export predictions", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, format = "json" } = req.query;
       if (!orgId) {
@@ -160,7 +181,10 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
         ].join("\n");
 
         res.setHeader("Content-Type", "text/csv");
-        res.setHeader("Content-Disposition", `attachment; filename="predictions-export-${Date.now()}.csv"`);
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="predictions-export-${Date.now()}.csv"`
+        );
         return res.send(csvData);
       }
 

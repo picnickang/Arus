@@ -3,23 +3,23 @@
  * Typed discriminated unions for event-driven architecture
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
 export type CrewExtensionsEventType =
-  | 'SchedulerRunCreated'
-  | 'SchedulerRunApproved'
-  | 'SchedulerRunApplied'
-  | 'SchedulerRunCancelled'
-  | 'ScheduleAssignmentsCreated'
-  | 'HoRGeneratedFromSchedule'
-  | 'SimulationPreviewCreated'
-  | 'SimulationCommitted'
-  | 'SimulationDiscarded';
+  | "SchedulerRunCreated"
+  | "SchedulerRunApproved"
+  | "SchedulerRunApplied"
+  | "SchedulerRunCancelled"
+  | "ScheduleAssignmentsCreated"
+  | "HoRGeneratedFromSchedule"
+  | "SimulationPreviewCreated"
+  | "SimulationCommitted"
+  | "SimulationDiscarded";
 
 interface BaseCrewExtensionsEvent {
   eventId: string;
   aggregateId: string;
-  aggregateType: 'SchedulerRun' | 'ScheduleAssignment';
+  aggregateType: "SchedulerRun" | "ScheduleAssignment";
   occurredAt: Date;
   userId?: string;
   orgId: string;
@@ -27,7 +27,7 @@ interface BaseCrewExtensionsEvent {
 }
 
 export interface SchedulerRunCreatedEvent extends BaseCrewExtensionsEvent {
-  eventType: 'SchedulerRunCreated';
+  eventType: "SchedulerRunCreated";
   payload: {
     status: string;
     startDate: Date | null;
@@ -37,7 +37,7 @@ export interface SchedulerRunCreatedEvent extends BaseCrewExtensionsEvent {
 }
 
 export interface SchedulerRunApprovedEvent extends BaseCrewExtensionsEvent {
-  eventType: 'SchedulerRunApproved';
+  eventType: "SchedulerRunApproved";
   payload: {
     previousStatus: string;
     approvedBy: string | null;
@@ -45,7 +45,7 @@ export interface SchedulerRunApprovedEvent extends BaseCrewExtensionsEvent {
 }
 
 export interface SchedulerRunAppliedEvent extends BaseCrewExtensionsEvent {
-  eventType: 'SchedulerRunApplied';
+  eventType: "SchedulerRunApplied";
   payload: {
     assignmentCount: number;
     unfilledCount: number;
@@ -53,7 +53,7 @@ export interface SchedulerRunAppliedEvent extends BaseCrewExtensionsEvent {
 }
 
 export interface SchedulerRunCancelledEvent extends BaseCrewExtensionsEvent {
-  eventType: 'SchedulerRunCancelled';
+  eventType: "SchedulerRunCancelled";
   payload: {
     previousStatus: string;
     reason?: string;
@@ -61,7 +61,7 @@ export interface SchedulerRunCancelledEvent extends BaseCrewExtensionsEvent {
 }
 
 export interface ScheduleAssignmentsCreatedEvent extends BaseCrewExtensionsEvent {
-  eventType: 'ScheduleAssignmentsCreated';
+  eventType: "ScheduleAssignmentsCreated";
   payload: {
     runId: string;
     assignmentCount: number;
@@ -70,7 +70,7 @@ export interface ScheduleAssignmentsCreatedEvent extends BaseCrewExtensionsEvent
 }
 
 export interface HoRGeneratedFromScheduleEvent extends BaseCrewExtensionsEvent {
-  eventType: 'HoRGeneratedFromSchedule';
+  eventType: "HoRGeneratedFromSchedule";
   payload: {
     runId: string;
     sheetsCreated: number;
@@ -79,8 +79,8 @@ export interface HoRGeneratedFromScheduleEvent extends BaseCrewExtensionsEvent {
 }
 
 export interface SimulationPreviewCreatedEvent extends BaseCrewExtensionsEvent {
-  eventType: 'SimulationPreviewCreated';
-  aggregateType: 'SimulationPreview';
+  eventType: "SimulationPreviewCreated";
+  aggregateType: "SimulationPreview";
   payload: {
     previewId: string;
     proposedCount: number;
@@ -92,8 +92,8 @@ export interface SimulationPreviewCreatedEvent extends BaseCrewExtensionsEvent {
 }
 
 export interface SimulationCommittedEvent extends BaseCrewExtensionsEvent {
-  eventType: 'SimulationCommitted';
-  aggregateType: 'SimulationPreview';
+  eventType: "SimulationCommitted";
+  aggregateType: "SimulationPreview";
   payload: {
     previewId: string;
     runId: string;
@@ -103,11 +103,11 @@ export interface SimulationCommittedEvent extends BaseCrewExtensionsEvent {
 }
 
 export interface SimulationDiscardedEvent extends BaseCrewExtensionsEvent {
-  eventType: 'SimulationDiscarded';
-  aggregateType: 'SimulationPreview';
+  eventType: "SimulationDiscarded";
+  aggregateType: "SimulationPreview";
   payload: {
     previewId: string;
-    reason: 'manual' | 'expired' | 'superseded';
+    reason: "manual" | "expired" | "superseded";
   };
 }
 

@@ -4,7 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useScheduledReportsSettingsData } from "@/features/settings";
 import { useState, useEffect } from "react";
 
@@ -62,7 +68,9 @@ export default function ScheduledReportsSettingsPage() {
         </div>
         <div>
           <h1 className="text-2xl font-semibold">Scheduled Reports Settings</h1>
-          <p className="text-muted-foreground">Configure report generation and delivery preferences</p>
+          <p className="text-muted-foreground">
+            Configure report generation and delivery preferences
+          </p>
         </div>
       </div>
 
@@ -70,11 +78,15 @@ export default function ScheduledReportsSettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Report Retention</CardTitle>
-            <CardDescription>How long to keep generated reports before automatic cleanup</CardDescription>
+            <CardDescription>
+              How long to keep generated reports before automatic cleanup
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
-              <Label htmlFor="retention-days" className="w-32">Retention Period</Label>
+              <Label htmlFor="retention-days" className="w-32">
+                Retention Period
+              </Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="retention-days"
@@ -84,7 +96,11 @@ export default function ScheduledReportsSettingsPage() {
                   value={retentionDays}
                   onChange={(e) => setRetentionDays(Number(e.target.value))}
                   onBlur={() => {
-                    if (retentionDays !== settings.reportRetentionDays && retentionDays >= 1 && retentionDays <= 365) {
+                    if (
+                      retentionDays !== settings.reportRetentionDays &&
+                      retentionDays >= 1 &&
+                      retentionDays <= 365
+                    ) {
                       handleUpdateRetentionDays(retentionDays);
                     }
                   }}
@@ -107,7 +123,9 @@ export default function ScheduledReportsSettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
-              <Label htmlFor="timezone" className="w-32">Timezone</Label>
+              <Label htmlFor="timezone" className="w-32">
+                Timezone
+              </Label>
               <Select
                 value={settings.defaultTimezone}
                 onValueChange={(value) => handleUpdateDefaultTimezone(value)}
@@ -125,7 +143,8 @@ export default function ScheduledReportsSettingsPage() {
               </Select>
             </div>
             <p className="text-sm text-muted-foreground">
-              This is the default timezone for new scheduled reports. Individual schedules can override this.
+              This is the default timezone for new scheduled reports. Individual schedules can
+              override this.
             </p>
           </CardContent>
         </Card>
@@ -133,11 +152,15 @@ export default function ScheduledReportsSettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Email Recipients Limit</CardTitle>
-            <CardDescription>Maximum number of email recipients per report schedule</CardDescription>
+            <CardDescription>
+              Maximum number of email recipients per report schedule
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
-              <Label htmlFor="max-recipients" className="w-32">Max Recipients</Label>
+              <Label htmlFor="max-recipients" className="w-32">
+                Max Recipients
+              </Label>
               <Input
                 id="max-recipients"
                 type="number"
@@ -146,7 +169,11 @@ export default function ScheduledReportsSettingsPage() {
                 value={maxRecipients}
                 onChange={(e) => setMaxRecipients(Number(e.target.value))}
                 onBlur={() => {
-                  if (maxRecipients !== settings.maxRecipientsPerSchedule && maxRecipients >= 1 && maxRecipients <= 50) {
+                  if (
+                    maxRecipients !== settings.maxRecipientsPerSchedule &&
+                    maxRecipients >= 1 &&
+                    maxRecipients <= 50
+                  ) {
                     handleUpdateMaxRecipients(maxRecipients);
                   }
                 }}
@@ -155,7 +182,8 @@ export default function ScheduledReportsSettingsPage() {
               />
             </div>
             <p className="text-sm text-muted-foreground">
-              Limits the number of email addresses that can receive a single report. Valid range: 1-50.
+              Limits the number of email addresses that can receive a single report. Valid range:
+              1-50.
             </p>
           </CardContent>
         </Card>
@@ -167,7 +195,9 @@ export default function ScheduledReportsSettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
-              <Label htmlFor="timeout" className="w-32">Timeout</Label>
+              <Label htmlFor="timeout" className="w-32">
+                Timeout
+              </Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="timeout"
@@ -177,7 +207,11 @@ export default function ScheduledReportsSettingsPage() {
                   value={timeout}
                   onChange={(e) => setTimeout(Number(e.target.value))}
                   onBlur={() => {
-                    if (timeout !== settings.reportGenerationTimeoutSeconds && timeout >= 30 && timeout <= 600) {
+                    if (
+                      timeout !== settings.reportGenerationTimeoutSeconds &&
+                      timeout >= 30 &&
+                      timeout <= 600
+                    ) {
                       handleUpdateTimeout(timeout);
                     }
                   }}
@@ -188,7 +222,8 @@ export default function ScheduledReportsSettingsPage() {
               </div>
             </div>
             <p className="text-sm text-muted-foreground">
-              If a report takes longer than this to generate, it will be marked as failed. Valid range: 30-600 seconds.
+              If a report takes longer than this to generate, it will be marked as failed. Valid
+              range: 30-600 seconds.
             </p>
           </CardContent>
         </Card>

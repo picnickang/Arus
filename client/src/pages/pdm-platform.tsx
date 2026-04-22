@@ -6,17 +6,79 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IntelligenceLayout } from "@/components/intelligence/IntelligenceLayout";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Database, BarChart3, Box, Zap, AlertTriangle, TrendingUp, TrendingDown, Minus, RefreshCw, ArrowUp, ArrowDown, CheckCircle2, Play, Upload, FlaskConical, FileBox, Shield, Eye, CheckCheck, XCircle, Wrench, ExternalLink, Clock } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Loader2,
+  Database,
+  BarChart3,
+  Box,
+  Zap,
+  AlertTriangle,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  RefreshCw,
+  ArrowUp,
+  ArrowDown,
+  CheckCircle2,
+  Play,
+  Upload,
+  FlaskConical,
+  FileBox,
+  Shield,
+  Eye,
+  CheckCheck,
+  XCircle,
+  Wrench,
+  ExternalLink,
+  Clock,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLatestFeatures, useComputeFeatures } from "@/features/pdm/hooks/use-feature-store";
-import { useFleetBaselines, useFleetComparison, useComputeBaselines } from "@/features/pdm/hooks/use-fleet-analytics";
-import { useModels, useModelVersions, useActiveDeployment } from "@/features/pdm/hooks/use-model-registry";
+import {
+  useFleetBaselines,
+  useFleetComparison,
+  useComputeBaselines,
+} from "@/features/pdm/hooks/use-fleet-analytics";
+import {
+  useModels,
+  useModelVersions,
+  useActiveDeployment,
+} from "@/features/pdm/hooks/use-model-registry";
 import { useRunInference, usePredictionExplanations } from "@/features/pdm/hooks/use-inference";
-import { useModelDrift, useComputeDrift, useDriftSummary } from "@/features/pdm/hooks/use-model-monitoring";
-import { useTrainingDatasets, useTrainingRuns, useCreateDataset, useStartTrainingRun, usePromoteRun, useTrainingArtifacts } from "@/features/ml-ai/hooks/useTrainingPipeline";
-import { usePredictionGovernance, useGovernanceDetail, useReviewPrediction, useApprovePrediction, useSuppressPrediction } from "@/features/pdm/hooks/usePredictionGovernance";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  useModelDrift,
+  useComputeDrift,
+  useDriftSummary,
+} from "@/features/pdm/hooks/use-model-monitoring";
+import {
+  useTrainingDatasets,
+  useTrainingRuns,
+  useCreateDataset,
+  useStartTrainingRun,
+  usePromoteRun,
+  useTrainingArtifacts,
+} from "@/features/ml-ai/hooks/useTrainingPipeline";
+import {
+  usePredictionGovernance,
+  useGovernanceDetail,
+  useReviewPrediction,
+  useApprovePrediction,
+  useSuppressPrediction,
+} from "@/features/pdm/hooks/usePredictionGovernance";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { EquipmentSelector } from "@/components/shared/EquipmentSelector";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -30,12 +92,17 @@ interface Equipment {
   vesselId?: string;
 }
 
-interface Vessel { id: string; name: string; }
+interface Vessel {
+  id: string;
+  name: string;
+}
 
 function useEquipmentTypes() {
   const { data: equipment = [] } = useQuery<Equipment[]>({ queryKey: ["/api/equipment"] });
   const types = Array.from(new Set(equipment.map((e) => e.type).filter(Boolean))) as string[];
-  return types.length > 0 ? types : ["engine", "pump", "compressor", "generator", "bearing", "turbine"];
+  return types.length > 0
+    ? types
+    : ["engine", "pump", "compressor", "generator", "bearing", "turbine"];
 }
 
 function EquipmentLink({ equipmentId }: { equipmentId: string }) {
@@ -54,7 +121,9 @@ function EquipmentLink({ equipmentId }: { equipmentId: string }) {
 }
 
 function TimestampBadge({ label, timestamp }: { label: string; timestamp?: string | Date | null }) {
-  if (!timestamp) {return null;}
+  if (!timestamp) {
+    return null;
+  }
   const d = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
   const relative = getRelativeTime(d);
   return (
@@ -69,10 +138,16 @@ function getRelativeTime(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) {return "just now";}
-  if (diffMin < 60) {return `${diffMin}m ago`;}
+  if (diffMin < 1) {
+    return "just now";
+  }
+  if (diffMin < 60) {
+    return `${diffMin}m ago`;
+  }
   const diffHrs = Math.floor(diffMin / 60);
-  if (diffHrs < 24) {return `${diffHrs}h ago`;}
+  if (diffHrs < 24) {
+    return `${diffHrs}h ago`;
+  }
   const diffDays = Math.floor(diffHrs / 24);
   return `${diffDays}d ago`;
 }
@@ -104,7 +179,9 @@ function SummaryDashboard() {
       <Card>
         <CardContent className="p-4">
           <div className="text-xs text-muted-foreground">Deployed Models</div>
-          <div className="text-2xl font-bold" data-testid="text-summary-deployed">{deployedCount}</div>
+          <div className="text-2xl font-bold" data-testid="text-summary-deployed">
+            {deployedCount}
+          </div>
           <div className="text-xs text-muted-foreground">{totalModels} total registered</div>
         </CardContent>
       </Card>
@@ -114,21 +191,29 @@ function SummaryDashboard() {
           <div className="text-2xl font-bold" data-testid="text-summary-drift-alerts">
             {driftAlertCount}
           </div>
-          <div className="text-xs text-muted-foreground">{monitoredVersions} versions monitored</div>
+          <div className="text-xs text-muted-foreground">
+            {monitoredVersions} versions monitored
+          </div>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="p-4">
           <div className="text-xs text-muted-foreground">Pending Reviews</div>
-          <div className="text-2xl font-bold" data-testid="text-summary-pending">{pendingCount}</div>
+          <div className="text-2xl font-bold" data-testid="text-summary-pending">
+            {pendingCount}
+          </div>
           <div className="text-xs text-muted-foreground">governance queue</div>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="p-4">
           <div className="text-xs text-muted-foreground">Recent Predictions</div>
-          <div className="text-2xl font-bold" data-testid="text-summary-recent-predictions">{recentPredictions}</div>
-          <div className="text-xs text-muted-foreground">{totalPredictions} total (last 7 days)</div>
+          <div className="text-2xl font-bold" data-testid="text-summary-recent-predictions">
+            {recentPredictions}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {totalPredictions} total (last 7 days)
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -143,7 +228,9 @@ function FeatureStoreTab() {
   const equipmentName = useEquipmentName(equipmentId);
 
   const handleCompute = async () => {
-    if (!equipmentId) {return;}
+    if (!equipmentId) {
+      return;
+    }
     try {
       await computeMutation.mutateAsync({ equipmentId });
       toast({ title: "Features computed successfully" });
@@ -157,18 +244,20 @@ function FeatureStoreTab() {
   const sampleCount = hasFeatures ? features.sampleCount : 0;
   const dataSource = sampleCount > 0 ? "telemetry" : "stub";
 
-  const featureEntries = hasFeatures ? [
-    { name: "Mean Temperature", value: features.meanTemp, unit: "°C" },
-    { name: "Std Temperature", value: features.stdTemp, unit: "°C" },
-    { name: "Mean Vibration", value: features.meanVibration, unit: "mm/s" },
-    { name: "Std Vibration", value: features.stdVibration, unit: "mm/s" },
-    { name: "Mean Pressure", value: features.meanPressure, unit: "bar" },
-    { name: "Std Pressure", value: features.stdPressure, unit: "bar" },
-    { name: "RMS Vibration", value: features.rmsVibration, unit: "mm/s" },
-    { name: "Peak-to-Peak", value: features.peakToPeak, unit: "mm/s" },
-    { name: "Kurtosis", value: features.kurtosis, unit: "" },
-    { name: "Skewness", value: features.skewness, unit: "" },
-  ] : [];
+  const featureEntries = hasFeatures
+    ? [
+        { name: "Mean Temperature", value: features.meanTemp, unit: "°C" },
+        { name: "Std Temperature", value: features.stdTemp, unit: "°C" },
+        { name: "Mean Vibration", value: features.meanVibration, unit: "mm/s" },
+        { name: "Std Vibration", value: features.stdVibration, unit: "mm/s" },
+        { name: "Mean Pressure", value: features.meanPressure, unit: "bar" },
+        { name: "Std Pressure", value: features.stdPressure, unit: "bar" },
+        { name: "RMS Vibration", value: features.rmsVibration, unit: "mm/s" },
+        { name: "Peak-to-Peak", value: features.peakToPeak, unit: "mm/s" },
+        { name: "Kurtosis", value: features.kurtosis, unit: "" },
+        { name: "Skewness", value: features.skewness, unit: "" },
+      ]
+    : [];
 
   return (
     <div className="space-y-4">
@@ -181,25 +270,45 @@ function FeatureStoreTab() {
             data-testid="input-equipment-id-features"
           />
         </div>
-        <Button data-testid="button-compute-features" onClick={handleCompute} disabled={!equipmentId || computeMutation.isPending}>
-          {computeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+        <Button
+          data-testid="button-compute-features"
+          onClick={handleCompute}
+          disabled={!equipmentId || computeMutation.isPending}
+        >
+          {computeMutation.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+          ) : (
+            <RefreshCw className="w-4 h-4 mr-2" />
+          )}
           Compute Features
         </Button>
       </div>
 
-      {isLoading && <div className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading features...</div>}
+      {isLoading && (
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" /> Loading features...
+        </div>
+      )}
 
       {featureEntries.length > 0 && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle data-testid="text-features-title" className="text-lg flex items-center gap-2">
+                <CardTitle
+                  data-testid="text-features-title"
+                  className="text-lg flex items-center gap-2"
+                >
                   Features: <EquipmentLink equipmentId={equipmentId} />
                 </CardTitle>
                 <CardDescription className="flex items-center gap-3">
-                  <span>Window: {features.windowMinutes ?? 60} min | Samples: {sampleCount}</span>
-                  <TimestampBadge label="Computed" timestamp={features.computedAt || features.createdAt} />
+                  <span>
+                    Window: {features.windowMinutes ?? 60} min | Samples: {sampleCount}
+                  </span>
+                  <TimestampBadge
+                    label="Computed"
+                    timestamp={features.computedAt || features.createdAt}
+                  />
                 </CardDescription>
               </div>
               <Badge
@@ -215,8 +324,12 @@ function FeatureStoreTab() {
               {featureEntries.map((f) => (
                 <div key={f.name} className="p-3 rounded-lg border bg-muted/50">
                   <div className="text-xs text-muted-foreground">{f.name}</div>
-                  <div className="text-lg font-semibold" data-testid={`text-feature-${f.name.toLowerCase().replace(/\s/g, '-')}`}>
-                    {f.value != null ? Number(f.value).toFixed(2) : "—"} <span className="text-xs text-muted-foreground">{f.unit}</span>
+                  <div
+                    className="text-lg font-semibold"
+                    data-testid={`text-feature-${f.name.toLowerCase().replace(/\s/g, "-")}`}
+                  >
+                    {f.value != null ? Number(f.value).toFixed(2) : "—"}{" "}
+                    <span className="text-xs text-muted-foreground">{f.unit}</span>
                   </div>
                 </div>
               ))}
@@ -226,7 +339,11 @@ function FeatureStoreTab() {
       )}
 
       {equipmentId && !isLoading && featureEntries.length === 0 && (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">No features computed yet for {equipmentName}. Click "Compute Features" to start.</CardContent></Card>
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            No features computed yet for {equipmentName}. Click "Compute Features" to start.
+          </CardContent>
+        </Card>
       )}
     </div>
   );
@@ -242,7 +359,8 @@ function FleetAnalyticsTab() {
   const equipmentTypes = useEquipmentTypes();
   const vesselName = useEquipmentVesselName(equipmentId);
 
-  const statusColor = (status: string) => status === "critical" ? "destructive" : status === "warning" ? "secondary" : "default";
+  const statusColor = (status: string) =>
+    status === "critical" ? "destructive" : status === "warning" ? "secondary" : "default";
 
   return (
     <div className="space-y-4">
@@ -254,12 +372,23 @@ function FleetAnalyticsTab() {
             </SelectTrigger>
             <SelectContent>
               {equipmentTypes.map((t) => (
-                <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>
+                <SelectItem key={t} value={t}>
+                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-        <Button data-testid="button-compute-baselines" onClick={() => computeMutation.mutateAsync(equipmentType).then(() => toast({ title: "Baselines computed from feature records" })).catch(() => toast({ title: "Failed to compute baselines", variant: "destructive" }))} disabled={!equipmentType || computeMutation.isPending}>
+        <Button
+          data-testid="button-compute-baselines"
+          onClick={() =>
+            computeMutation
+              .mutateAsync(equipmentType)
+              .then(() => toast({ title: "Baselines computed from feature records" }))
+              .catch(() => toast({ title: "Failed to compute baselines", variant: "destructive" }))
+          }
+          disabled={!equipmentType || computeMutation.isPending}
+        >
           {computeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
           Compute Baselines
         </Button>
@@ -273,25 +402,49 @@ function FleetAnalyticsTab() {
         </div>
       </div>
 
-      {baselinesLoading && <div className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading baselines...</div>}
+      {baselinesLoading && (
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" /> Loading baselines...
+        </div>
+      )}
 
       {Array.isArray(baselines) && baselines.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-lg">Fleet Baselines: {equipmentType.charAt(0).toUpperCase() + equipmentType.slice(1)}</CardTitle><CardDescription>{baselines[0]?.sampleSize ?? 0} source records</CardDescription></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-lg">
+              Fleet Baselines: {equipmentType.charAt(0).toUpperCase() + equipmentType.slice(1)}
+            </CardTitle>
+            <CardDescription>{baselines[0]?.sampleSize ?? 0} source records</CardDescription>
+          </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead><tr className="border-b"><th className="text-left p-2">Feature</th><th className="text-right p-2">Mean</th><th className="text-right p-2">Std Dev</th><th className="text-right p-2">P5</th><th className="text-right p-2">P95</th><th className="text-right p-2">Samples</th></tr></thead>
-                <tbody>{baselines.map((b: any) => (
-                  <tr key={b.id} className="border-b" data-testid={`row-baseline-${b.featureName}`}>
-                    <td className="p-2 font-medium">{b.featureName}</td>
-                    <td className="p-2 text-right">{b.mean?.toFixed(2)}</td>
-                    <td className="p-2 text-right">{b.stddev?.toFixed(2)}</td>
-                    <td className="p-2 text-right">{b.p5?.toFixed(2)}</td>
-                    <td className="p-2 text-right">{b.p95?.toFixed(2)}</td>
-                    <td className="p-2 text-right">{b.sampleSize}</td>
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-2">Feature</th>
+                    <th className="text-right p-2">Mean</th>
+                    <th className="text-right p-2">Std Dev</th>
+                    <th className="text-right p-2">P5</th>
+                    <th className="text-right p-2">P95</th>
+                    <th className="text-right p-2">Samples</th>
                   </tr>
-                ))}</tbody>
+                </thead>
+                <tbody>
+                  {baselines.map((b: any) => (
+                    <tr
+                      key={b.id}
+                      className="border-b"
+                      data-testid={`row-baseline-${b.featureName}`}
+                    >
+                      <td className="p-2 font-medium">{b.featureName}</td>
+                      <td className="p-2 text-right">{b.mean?.toFixed(2)}</td>
+                      <td className="p-2 text-right">{b.stddev?.toFixed(2)}</td>
+                      <td className="p-2 text-right">{b.p5?.toFixed(2)}</td>
+                      <td className="p-2 text-right">{b.p95?.toFixed(2)}</td>
+                      <td className="p-2 text-right">{b.sampleSize}</td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
             </div>
           </CardContent>
@@ -303,22 +456,36 @@ function FleetAnalyticsTab() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               Fleet Comparison: <EquipmentLink equipmentId={equipmentId} />
-              {vesselName && <span className="text-sm font-normal text-muted-foreground">— {vesselName}</span>}
+              {vesselName && (
+                <span className="text-sm font-normal text-muted-foreground">— {vesselName}</span>
+              )}
             </CardTitle>
-            <CardDescription>Equipment vs fleet average with z-scores and percentiles</CardDescription>
+            <CardDescription>
+              Equipment vs fleet average with z-scores and percentiles
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {comparison.map((c: any) => (
-                <div key={c.featureName} className="flex items-center justify-between p-3 rounded-lg border" data-testid={`row-comparison-${c.featureName}`}>
+                <div
+                  key={c.featureName}
+                  className="flex items-center justify-between p-3 rounded-lg border"
+                  data-testid={`row-comparison-${c.featureName}`}
+                >
                   <div className="font-medium w-32">{c.featureName}</div>
                   <div className="flex items-center gap-4 text-sm flex-wrap">
                     <span className="font-mono">{c.equipmentValue?.toFixed(2)}</span>
-                    <span className="text-muted-foreground">Fleet: {c.fleetMean?.toFixed(2)} ± {c.fleetStddev?.toFixed(2)}</span>
+                    <span className="text-muted-foreground">
+                      Fleet: {c.fleetMean?.toFixed(2)} ± {c.fleetStddev?.toFixed(2)}
+                    </span>
                     <span className="font-mono">Z: {c.zScore?.toFixed(2)}</span>
                     <span className="text-muted-foreground">P{c.percentile?.toFixed(0)}</span>
                     <span className="flex items-center gap-1">
-                      {c.aboveFleetAvg ? <ArrowUp className="w-3 h-3 text-orange-500" /> : <ArrowDown className="w-3 h-3 text-blue-500" />}
+                      {c.aboveFleetAvg ? (
+                        <ArrowUp className="w-3 h-3 text-orange-500" />
+                      ) : (
+                        <ArrowDown className="w-3 h-3 text-blue-500" />
+                      )}
                       <span className="text-xs">{c.aboveFleetAvg ? "Above" : "Below"}</span>
                     </span>
                     <Badge variant={statusColor(c.status)}>{c.status}</Badge>
@@ -345,7 +512,13 @@ function ModelRegistryTab({ highlightedVersionId }: { highlightedVersionId?: str
   const { data: deployment } = useActiveDeployment(selectedModelId ?? "");
 
   useEffect(() => {
-    if (!highlightedVersionId || highlightedVersionId === resolvedRef.current || modelsList.length === 0) {return;}
+    if (
+      !highlightedVersionId ||
+      highlightedVersionId === resolvedRef.current ||
+      modelsList.length === 0
+    ) {
+      return;
+    }
     resolvedRef.current = highlightedVersionId;
     const resolveParentModel = async () => {
       for (const m of modelsList) {
@@ -353,13 +526,20 @@ function ModelRegistryTab({ highlightedVersionId }: { highlightedVersionId?: str
           const res = await fetch(`/api/pdm/models/${m.id}/versions`, {
             headers: { "x-org-id": currentOrgId },
           });
-          if (!res.ok) {continue;}
+          if (!res.ok) {
+            continue;
+          }
           const versionsList = await res.json();
-          if (Array.isArray(versionsList) && versionsList.some((v: any) => v.id === highlightedVersionId)) {
+          if (
+            Array.isArray(versionsList) &&
+            versionsList.some((v: any) => v.id === highlightedVersionId)
+          ) {
             setSelectedModelId(m.id);
             return;
           }
-        } catch { continue; }
+        } catch {
+          continue;
+        }
       }
       if (!selectedModelId && modelsList.length > 0) {
         setSelectedModelId(modelsList[0].id);
@@ -370,42 +550,75 @@ function ModelRegistryTab({ highlightedVersionId }: { highlightedVersionId?: str
 
   return (
     <div className="space-y-4">
-      {isLoading && <div className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading models...</div>}
+      {isLoading && (
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" /> Loading models...
+        </div>
+      )}
 
       {Array.isArray(models) && models.length > 0 ? (
         <div className="grid gap-3">
           {models.map((m: any) => (
-            <Card key={m.id} className={`cursor-pointer transition-colors ${selectedModelId === m.id ? 'ring-2 ring-primary' : ''}`} onClick={() => setSelectedModelId(m.id)} data-testid={`card-model-${m.id}`}>
+            <Card
+              key={m.id}
+              className={`cursor-pointer transition-colors ${selectedModelId === m.id ? "ring-2 ring-primary" : ""}`}
+              onClick={() => setSelectedModelId(m.id)}
+              data-testid={`card-model-${m.id}`}
+            >
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <div className="font-semibold">{m.name}</div>
-                  <div className="text-sm text-muted-foreground">{m.type} • {m.equipmentType || "all"}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {m.type} • {m.equipmentType || "all"}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant={m.status === "deployed" ? "default" : "secondary"}>{m.status}</Badge>
-                  {m.accuracy && <span className="text-sm">Acc: {parseFloat(m.accuracy).toFixed(1)}%</span>}
+                  <Badge variant={m.status === "deployed" ? "default" : "secondary"}>
+                    {m.status}
+                  </Badge>
+                  {m.accuracy && (
+                    <span className="text-sm">Acc: {parseFloat(m.accuracy).toFixed(1)}%</span>
+                  )}
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       ) : !isLoading ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">No models registered yet.</CardContent></Card>
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            No models registered yet.
+          </CardContent>
+        </Card>
       ) : null}
 
       {selectedModelId && Array.isArray(versions) && versions.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-lg">Versions</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-lg">Versions</CardTitle>
+          </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {versions.map((v: any) => (
-                <div key={v.id} className={`flex items-center justify-between p-3 rounded-lg border ${highlightedVersionId === v.id ? 'ring-2 ring-primary bg-primary/5' : ''}`} data-testid={`row-version-${v.id}`}>
+                <div
+                  key={v.id}
+                  className={`flex items-center justify-between p-3 rounded-lg border ${highlightedVersionId === v.id ? "ring-2 ring-primary bg-primary/5" : ""}`}
+                  data-testid={`row-version-${v.id}`}
+                >
                   <div>
                     <span className="font-medium">v{v.version}</span>
-                    <span className="text-sm text-muted-foreground ml-2">{v.artifactPath || "no artifact"}</span>
-                    {v.trainingDataPoints && <span className="text-xs text-muted-foreground ml-2">({v.trainingDataPoints} training pts)</span>}
+                    <span className="text-sm text-muted-foreground ml-2">
+                      {v.artifactPath || "no artifact"}
+                    </span>
+                    {v.trainingDataPoints && (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        ({v.trainingDataPoints} training pts)
+                      </span>
+                    )}
                   </div>
-                  <Badge variant={v.status === "production" ? "default" : "secondary"}>{v.status}</Badge>
+                  <Badge variant={v.status === "production" ? "default" : "secondary"}>
+                    {v.status}
+                  </Badge>
                 </div>
               ))}
             </div>
@@ -415,13 +628,26 @@ function ModelRegistryTab({ highlightedVersionId }: { highlightedVersionId?: str
 
       {selectedModelId && deployment && !deployment.message && (
         <Card>
-          <CardHeader><CardTitle className="text-lg">Active Deployment</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-lg">Active Deployment</CardTitle>
+          </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-              <div><span className="text-muted-foreground">Target:</span> {deployment.deploymentTarget}</div>
-              <div><span className="text-muted-foreground">Status:</span> <Badge>{deployment.deploymentStatus}</Badge></div>
-              <div><span className="text-muted-foreground">Traffic:</span> {deployment.trafficPercentage}%</div>
-              <div><span className="text-muted-foreground">Deployed:</span> {new Date(deployment.deployedOn).toLocaleDateString()}</div>
+              <div>
+                <span className="text-muted-foreground">Target:</span> {deployment.deploymentTarget}
+              </div>
+              <div>
+                <span className="text-muted-foreground">Status:</span>{" "}
+                <Badge>{deployment.deploymentStatus}</Badge>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Traffic:</span>{" "}
+                {deployment.trafficPercentage}%
+              </div>
+              <div>
+                <span className="text-muted-foreground">Deployed:</span>{" "}
+                {new Date(deployment.deployedOn).toLocaleDateString()}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -442,20 +668,25 @@ function InferenceTab() {
   const [, navigate] = useLocation();
 
   const handleInference = async () => {
-    if (!equipmentId) {return;}
+    if (!equipmentId) {
+      return;
+    }
     try {
       const result = await inferenceMutation.mutateAsync({ equipmentId });
       setLastResult(result);
       setLastInferredEquipmentId(equipmentId);
       setInferenceTime(new Date());
-      if (result.inferenceRun?.predictionId) {setLastPredictionId(result.inferenceRun.predictionId);}
+      if (result.inferenceRun?.predictionId) {
+        setLastPredictionId(result.inferenceRun.predictionId);
+      }
       toast({ title: "Inference completed" });
     } catch {
       toast({ title: "Inference failed", variant: "destructive" });
     }
   };
 
-  const riskColor = (level: string) => level === "critical" ? "destructive" : level === "high" ? "secondary" : "default";
+  const riskColor = (level: string) =>
+    level === "critical" ? "destructive" : level === "high" ? "secondary" : "default";
 
   return (
     <div className="space-y-4">
@@ -468,8 +699,16 @@ function InferenceTab() {
             data-testid="input-equipment-id-inference"
           />
         </div>
-        <Button data-testid="button-run-inference" onClick={handleInference} disabled={!equipmentId || inferenceMutation.isPending}>
-          {inferenceMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
+        <Button
+          data-testid="button-run-inference"
+          onClick={handleInference}
+          disabled={!equipmentId || inferenceMutation.isPending}
+        >
+          {inferenceMutation.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+          ) : (
+            <Zap className="w-4 h-4 mr-2" />
+          )}
           Run Inference
         </Button>
       </div>
@@ -488,7 +727,9 @@ function InferenceTab() {
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="text-xs">
-                  {lastResult.inferenceRun?.status === "completed" ? <CheckCircle2 className="w-3 h-3 mr-1" /> : null}
+                  {lastResult.inferenceRun?.status === "completed" ? (
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                  ) : null}
                   {lastResult.inferenceRun?.status}
                 </Badge>
               </div>
@@ -498,15 +739,25 @@ function InferenceTab() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="p-3 rounded-lg border bg-muted/50">
                 <div className="text-xs text-muted-foreground">Failure Probability</div>
-                <div className="text-2xl font-bold" data-testid="text-failure-probability">{(lastResult.prediction.failureProbability * 100).toFixed(1)}%</div>
+                <div className="text-2xl font-bold" data-testid="text-failure-probability">
+                  {(lastResult.prediction.failureProbability * 100).toFixed(1)}%
+                </div>
               </div>
               <div className="p-3 rounded-lg border bg-muted/50">
                 <div className="text-xs text-muted-foreground">Risk Level</div>
-                <Badge variant={riskColor(lastResult.prediction.riskLevel)} data-testid="text-risk-level" className="mt-1">{lastResult.prediction.riskLevel}</Badge>
+                <Badge
+                  variant={riskColor(lastResult.prediction.riskLevel)}
+                  data-testid="text-risk-level"
+                  className="mt-1"
+                >
+                  {lastResult.prediction.riskLevel}
+                </Badge>
               </div>
               <div className="p-3 rounded-lg border bg-muted/50">
                 <div className="text-xs text-muted-foreground">Remaining Useful Life</div>
-                <div className="text-2xl font-bold" data-testid="text-rul">{lastResult.prediction.remainingUsefulLife}d</div>
+                <div className="text-2xl font-bold" data-testid="text-rul">
+                  {lastResult.prediction.remainingUsefulLife}d
+                </div>
               </div>
               <div className="p-3 rounded-lg border bg-muted/50">
                 <div className="text-xs text-muted-foreground">Latency</div>
@@ -518,7 +769,9 @@ function InferenceTab() {
               <Button
                 data-testid="button-create-wo-inference"
                 variant="outline"
-                onClick={() => navigate(`/work-orders?action=create&equipmentId=${lastInferredEquipmentId}`)}
+                onClick={() =>
+                  navigate(`/work-orders?action=create&equipmentId=${lastInferredEquipmentId}`)
+                }
               >
                 <Wrench className="w-4 h-4 mr-2" />
                 Create Work Order
@@ -529,7 +782,9 @@ function InferenceTab() {
               <div className="mt-4">
                 <div className="text-sm font-medium mb-2">Recommendations:</div>
                 <ul className="list-disc list-inside text-sm text-muted-foreground">
-                  {lastResult.prediction.recommendations.map((r: string, i: number) => <li key={i}>{r}</li>)}
+                  {lastResult.prediction.recommendations.map((r: string, i: number) => (
+                    <li key={i}>{r}</li>
+                  ))}
                 </ul>
               </div>
             )}
@@ -539,20 +794,39 @@ function InferenceTab() {
 
       {Array.isArray(explanations) && explanations.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-lg">Prediction Explanations</CardTitle><CardDescription>Feature contributions to prediction — normalized importance with deviation direction</CardDescription></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-lg">Prediction Explanations</CardTitle>
+            <CardDescription>
+              Feature contributions to prediction — normalized importance with deviation direction
+            </CardDescription>
+          </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {explanations.map((e: any) => (
-                <div key={e.id} className="flex items-center gap-3 p-2 rounded border" data-testid={`row-explanation-${e.featureName}`}>
+                <div
+                  key={e.id}
+                  className="flex items-center gap-3 p-2 rounded border"
+                  data-testid={`row-explanation-${e.featureName}`}
+                >
                   <div className="w-32 font-medium text-sm">{e.featureName}</div>
                   <div className="flex-1 bg-muted rounded-full h-3 overflow-hidden">
-                    <div className="bg-primary h-full rounded-full transition-all" style={{ width: `${e.importance * 100}%` }} />
+                    <div
+                      className="bg-primary h-full rounded-full transition-all"
+                      style={{ width: `${e.importance * 100}%` }}
+                    />
                   </div>
                   <div className="text-sm text-right w-16">{(e.importance * 100).toFixed(1)}%</div>
                   <div className="text-sm text-muted-foreground w-24 text-right">
-                    {e.featureValue?.toFixed(2)} <span className="text-xs">/ {e.baselineValue?.toFixed(2)}</span>
+                    {e.featureValue?.toFixed(2)}{" "}
+                    <span className="text-xs">/ {e.baselineValue?.toFixed(2)}</span>
                   </div>
-                  {e.direction === "increasing" ? <TrendingUp className="w-4 h-4 text-red-500" /> : e.direction === "decreasing" ? <TrendingDown className="w-4 h-4 text-blue-500" /> : <Minus className="w-4 h-4 text-muted-foreground" />}
+                  {e.direction === "increasing" ? (
+                    <TrendingUp className="w-4 h-4 text-red-500" />
+                  ) : e.direction === "decreasing" ? (
+                    <TrendingDown className="w-4 h-4 text-blue-500" />
+                  ) : (
+                    <Minus className="w-4 h-4 text-muted-foreground" />
+                  )}
                 </div>
               ))}
             </div>
@@ -575,20 +849,30 @@ function DriftMonitoringTab() {
   const modelsList = Array.isArray(models) ? models : [];
   const versionsList = Array.isArray(versions) ? versions : [];
 
-  const driftedCount = Array.isArray(driftMetrics) ? driftMetrics.filter((d: any) => d.driftDetected).length : 0;
+  const driftedCount = Array.isArray(driftMetrics)
+    ? driftMetrics.filter((d: any) => d.driftDetected).length
+    : 0;
   const totalCount = Array.isArray(driftMetrics) ? driftMetrics.length : 0;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 flex-wrap">
         <div className="w-64">
-          <Select value={selectedModelId} onValueChange={(v) => { setSelectedModelId(v); setSelectedVersionId(""); }}>
+          <Select
+            value={selectedModelId}
+            onValueChange={(v) => {
+              setSelectedModelId(v);
+              setSelectedVersionId("");
+            }}
+          >
             <SelectTrigger data-testid="select-drift-model">
               <SelectValue placeholder="Select model" />
             </SelectTrigger>
             <SelectContent>
               {modelsList.map((m: any) => (
-                <SelectItem key={m.id} value={m.id}>{m.name} ({m.type})</SelectItem>
+                <SelectItem key={m.id} value={m.id}>
+                  {m.name} ({m.type})
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -601,47 +885,94 @@ function DriftMonitoringTab() {
               </SelectTrigger>
               <SelectContent>
                 {versionsList.map((v: any) => (
-                  <SelectItem key={v.id} value={v.id}>v{v.version} — {v.status}</SelectItem>
+                  <SelectItem key={v.id} value={v.id}>
+                    v{v.version} — {v.status}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
         )}
-        <Button data-testid="button-compute-drift" onClick={() => computeMutation.mutateAsync({ modelVersionId: selectedVersionId }).then(() => toast({ title: "Drift computed (normalized mean shift)" })).catch(() => toast({ title: "Failed to compute drift", variant: "destructive" }))} disabled={!selectedVersionId || computeMutation.isPending}>
+        <Button
+          data-testid="button-compute-drift"
+          onClick={() =>
+            computeMutation
+              .mutateAsync({ modelVersionId: selectedVersionId })
+              .then(() => toast({ title: "Drift computed (normalized mean shift)" }))
+              .catch(() => toast({ title: "Failed to compute drift", variant: "destructive" }))
+          }
+          disabled={!selectedVersionId || computeMutation.isPending}
+        >
           {computeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
           Compute Drift
         </Button>
       </div>
 
-      {isLoading && <div className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading drift metrics...</div>}
+      {isLoading && (
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" /> Loading drift metrics...
+        </div>
+      )}
 
       {totalCount > 0 && (
         <>
           <div className="flex items-center gap-3">
-            <Badge variant={driftedCount > 0 ? "destructive" : "default"} data-testid="badge-drift-summary">
+            <Badge
+              variant={driftedCount > 0 ? "destructive" : "default"}
+              data-testid="badge-drift-summary"
+            >
               {driftedCount}/{totalCount} features drifted
             </Badge>
-            <span className="text-xs text-muted-foreground">Method: normalized mean shift (|μ_live - μ_train| / σ_train) &gt; 2.0</span>
+            <span className="text-xs text-muted-foreground">
+              Method: normalized mean shift (|μ_live - μ_train| / σ_train) &gt; 2.0
+            </span>
           </div>
           <Card>
-            <CardHeader><CardTitle className="text-lg">Drift Metrics</CardTitle><CardDescription>Feature distribution shifts — training vs live</CardDescription></CardHeader>
+            <CardHeader>
+              <CardTitle className="text-lg">Drift Metrics</CardTitle>
+              <CardDescription>Feature distribution shifts — training vs live</CardDescription>
+            </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead><tr className="border-b"><th className="text-left p-2">Feature</th><th className="text-right p-2">Training μ</th><th className="text-right p-2">Training σ</th><th className="text-right p-2">Live μ</th><th className="text-right p-2">Live σ</th><th className="text-right p-2">Drift Score</th><th className="text-center p-2">Status</th></tr></thead>
-                  <tbody>{driftMetrics.map((d: any) => (
-                    <tr key={d.id} className="border-b" data-testid={`row-drift-${d.featureName}`}>
-                      <td className="p-2 font-medium">{d.featureName}</td>
-                      <td className="p-2 text-right font-mono">{d.trainingMean?.toFixed(2)}</td>
-                      <td className="p-2 text-right font-mono text-muted-foreground">{d.trainingStd?.toFixed(2)}</td>
-                      <td className="p-2 text-right font-mono">{d.liveMean?.toFixed(2)}</td>
-                      <td className="p-2 text-right font-mono text-muted-foreground">{d.liveStd?.toFixed(2)}</td>
-                      <td className="p-2 text-right font-mono font-semibold">{d.driftScore?.toFixed(2)}</td>
-                      <td className="p-2 text-center">
-                        <Badge variant={d.driftDetected ? "destructive" : "default"}>{d.driftDetected ? "DRIFT" : "OK"}</Badge>
-                      </td>
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2">Feature</th>
+                      <th className="text-right p-2">Training μ</th>
+                      <th className="text-right p-2">Training σ</th>
+                      <th className="text-right p-2">Live μ</th>
+                      <th className="text-right p-2">Live σ</th>
+                      <th className="text-right p-2">Drift Score</th>
+                      <th className="text-center p-2">Status</th>
                     </tr>
-                  ))}</tbody>
+                  </thead>
+                  <tbody>
+                    {driftMetrics.map((d: any) => (
+                      <tr
+                        key={d.id}
+                        className="border-b"
+                        data-testid={`row-drift-${d.featureName}`}
+                      >
+                        <td className="p-2 font-medium">{d.featureName}</td>
+                        <td className="p-2 text-right font-mono">{d.trainingMean?.toFixed(2)}</td>
+                        <td className="p-2 text-right font-mono text-muted-foreground">
+                          {d.trainingStd?.toFixed(2)}
+                        </td>
+                        <td className="p-2 text-right font-mono">{d.liveMean?.toFixed(2)}</td>
+                        <td className="p-2 text-right font-mono text-muted-foreground">
+                          {d.liveStd?.toFixed(2)}
+                        </td>
+                        <td className="p-2 text-right font-mono font-semibold">
+                          {d.driftScore?.toFixed(2)}
+                        </td>
+                        <td className="p-2 text-center">
+                          <Badge variant={d.driftDetected ? "destructive" : "default"}>
+                            {d.driftDetected ? "DRIFT" : "OK"}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
                 </table>
               </div>
             </CardContent>
@@ -655,22 +986,40 @@ function DriftMonitoringTab() {
 function ArtifactsViewer({ modelVersionId }: { modelVersionId: string }) {
   const { data: artifacts, isLoading } = useTrainingArtifacts(modelVersionId);
 
-  if (isLoading) {return <div className="flex items-center gap-2 py-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading artifacts...</div>;}
-  if (!Array.isArray(artifacts) || artifacts.length === 0) {return <div className="text-sm text-muted-foreground py-2">No artifacts found.</div>;}
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 py-2">
+        <Loader2 className="w-4 h-4 animate-spin" /> Loading artifacts...
+      </div>
+    );
+  }
+  if (!Array.isArray(artifacts) || artifacts.length === 0) {
+    return <div className="text-sm text-muted-foreground py-2">No artifacts found.</div>;
+  }
 
   return (
     <div className="space-y-2">
       {artifacts.map((a: any) => (
-        <div key={a.id} className="flex items-center justify-between p-3 rounded-lg border" data-testid={`row-artifact-${a.id}`}>
+        <div
+          key={a.id}
+          className="flex items-center justify-between p-3 rounded-lg border"
+          data-testid={`row-artifact-${a.id}`}
+        >
           <div className="flex items-center gap-2">
             <FileBox className="w-4 h-4 text-muted-foreground" />
             <div>
               <div className="text-sm font-medium">{a.artifactType}</div>
-              <div className="text-xs text-muted-foreground">{a.framework} / {a.format}</div>
+              <div className="text-xs text-muted-foreground">
+                {a.framework} / {a.format}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {a.sizeBytes && <span className="text-xs text-muted-foreground">{(a.sizeBytes / 1024 / 1024).toFixed(1)} MB</span>}
+            {a.sizeBytes && (
+              <span className="text-xs text-muted-foreground">
+                {(a.sizeBytes / 1024 / 1024).toFixed(1)} MB
+              </span>
+            )}
             <Badge variant="outline">{a.status || "stored"}</Badge>
           </div>
         </div>
@@ -680,7 +1029,11 @@ function ArtifactsViewer({ modelVersionId }: { modelVersionId: string }) {
 }
 
 function TrainingPipelineTab() {
-  const { data: datasets, isLoading: datasetsLoading, error: datasetsError } = useTrainingDatasets();
+  const {
+    data: datasets,
+    isLoading: datasetsLoading,
+    error: datasetsError,
+  } = useTrainingDatasets();
   const { data: runs, isLoading: runsLoading, error: runsError } = useTrainingRuns();
   const createDatasetMutation = useCreateDataset();
   const startRunMutation = useStartTrainingRun();
@@ -693,8 +1046,19 @@ function TrainingPipelineTab() {
   const [showPromote, setShowPromote] = useState<string | null>(null);
   const [expandedRunArtifact, setExpandedRunArtifact] = useState<string | null>(null);
 
-  const [datasetForm, setDatasetForm] = useState({ name: "", sourceType: "telemetry", description: "", labelColumn: "failure", rowCount: "" });
-  const [runForm, setRunForm] = useState({ datasetId: "", learningRate: "0.001", epochs: "50", batchSize: "32" });
+  const [datasetForm, setDatasetForm] = useState({
+    name: "",
+    sourceType: "telemetry",
+    description: "",
+    labelColumn: "failure",
+    rowCount: "",
+  });
+  const [runForm, setRunForm] = useState({
+    datasetId: "",
+    learningRate: "0.001",
+    epochs: "50",
+    batchSize: "32",
+  });
   const [promoteForm, setPromoteForm] = useState({ modelId: "", version: "", changelog: "" });
 
   const modelsList = Array.isArray(models) ? models : [];
@@ -710,7 +1074,13 @@ function TrainingPipelineTab() {
       });
       toast({ title: "Dataset created successfully" });
       setShowCreateDataset(false);
-      setDatasetForm({ name: "", sourceType: "telemetry", description: "", labelColumn: "failure", rowCount: "" });
+      setDatasetForm({
+        name: "",
+        sourceType: "telemetry",
+        description: "",
+        labelColumn: "failure",
+        rowCount: "",
+      });
     } catch {
       toast({ title: "Failed to create dataset", variant: "destructive" });
     }
@@ -752,10 +1122,14 @@ function TrainingPipelineTab() {
 
   const statusVariant = (status: string) => {
     switch (status) {
-      case "completed": return "default" as const;
-      case "running": return "secondary" as const;
-      case "failed": return "destructive" as const;
-      default: return "outline" as const;
+      case "completed":
+        return "default" as const;
+      case "running":
+        return "secondary" as const;
+      case "failed":
+        return "destructive" as const;
+      default:
+        return "outline" as const;
     }
   };
 
@@ -765,7 +1139,9 @@ function TrainingPipelineTab() {
         <CardHeader>
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div>
-              <CardTitle className="text-lg" data-testid="text-datasets-title">Training Datasets</CardTitle>
+              <CardTitle className="text-lg" data-testid="text-datasets-title">
+                Training Datasets
+              </CardTitle>
               <CardDescription>Manage datasets for model training</CardDescription>
             </div>
             <Button data-testid="button-create-dataset" onClick={() => setShowCreateDataset(true)}>
@@ -775,22 +1151,47 @@ function TrainingPipelineTab() {
           </div>
         </CardHeader>
         <CardContent>
-          {datasetsLoading && <div className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading datasets...</div>}
-          {datasetsError && <div className="text-destructive text-sm" data-testid="text-datasets-error">Failed to load datasets</div>}
+          {datasetsLoading && (
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" /> Loading datasets...
+            </div>
+          )}
+          {datasetsError && (
+            <div className="text-destructive text-sm" data-testid="text-datasets-error">
+              Failed to load datasets
+            </div>
+          )}
           {!datasetsLoading && Array.isArray(datasets) && datasets.length === 0 && (
-            <div className="py-8 text-center text-muted-foreground" data-testid="text-datasets-empty">No datasets created yet. Click "New Dataset" to get started.</div>
+            <div
+              className="py-8 text-center text-muted-foreground"
+              data-testid="text-datasets-empty"
+            >
+              No datasets created yet. Click "New Dataset" to get started.
+            </div>
           )}
           {Array.isArray(datasets) && datasets.length > 0 && (
             <div className="space-y-2">
               {datasets.map((d: any) => (
-                <div key={d.id} className="flex items-center justify-between p-3 rounded-lg border" data-testid={`row-dataset-${d.id}`}>
+                <div
+                  key={d.id}
+                  className="flex items-center justify-between p-3 rounded-lg border"
+                  data-testid={`row-dataset-${d.id}`}
+                >
                   <div>
-                    <div className="font-medium" data-testid={`text-dataset-name-${d.id}`}>{d.name}</div>
+                    <div className="font-medium" data-testid={`text-dataset-name-${d.id}`}>
+                      {d.name}
+                    </div>
                     <div className="text-sm text-muted-foreground">
-                      {d.sourceType} {d.rowCount ? `| ${d.rowCount.toLocaleString()} rows` : ""} | Created {new Date(d.createdAt).toLocaleDateString()}
+                      {d.sourceType} {d.rowCount ? `| ${d.rowCount.toLocaleString()} rows` : ""} |
+                      Created {new Date(d.createdAt).toLocaleDateString()}
                     </div>
                   </div>
-                  <Badge variant={statusVariant(d.status)} data-testid={`badge-dataset-status-${d.id}`}>{d.status}</Badge>
+                  <Badge
+                    variant={statusVariant(d.status)}
+                    data-testid={`badge-dataset-status-${d.id}`}
+                  >
+                    {d.status}
+                  </Badge>
                 </div>
               ))}
             </div>
@@ -802,7 +1203,9 @@ function TrainingPipelineTab() {
         <CardHeader>
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div>
-              <CardTitle className="text-lg" data-testid="text-runs-title">Training Runs</CardTitle>
+              <CardTitle className="text-lg" data-testid="text-runs-title">
+                Training Runs
+              </CardTitle>
               <CardDescription>Track model training runs, metrics, and promotions</CardDescription>
             </div>
             <Button data-testid="button-start-run" onClick={() => setShowStartRun(true)}>
@@ -812,10 +1215,20 @@ function TrainingPipelineTab() {
           </div>
         </CardHeader>
         <CardContent>
-          {runsLoading && <div className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading runs...</div>}
-          {runsError && <div className="text-destructive text-sm" data-testid="text-runs-error">Failed to load training runs</div>}
+          {runsLoading && (
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" /> Loading runs...
+            </div>
+          )}
+          {runsError && (
+            <div className="text-destructive text-sm" data-testid="text-runs-error">
+              Failed to load training runs
+            </div>
+          )}
           {!runsLoading && Array.isArray(runs) && runs.length === 0 && (
-            <div className="py-8 text-center text-muted-foreground" data-testid="text-runs-empty">No training runs yet. Start a new run to begin training.</div>
+            <div className="py-8 text-center text-muted-foreground" data-testid="text-runs-empty">
+              No training runs yet. Start a new run to begin training.
+            </div>
           )}
           {Array.isArray(runs) && runs.length > 0 && (
             <div className="space-y-3">
@@ -831,13 +1244,24 @@ function TrainingPipelineTab() {
                           <div className="text-xs text-muted-foreground">
                             Dataset: {r.datasetId?.substring(0, 8)}...
                             {r.startedAt && ` | Started: ${new Date(r.startedAt).toLocaleString()}`}
-                            {r.finishedAt && ` | Finished: ${new Date(r.finishedAt).toLocaleString()}`}
+                            {r.finishedAt &&
+                              ` | Finished: ${new Date(r.finishedAt).toLocaleString()}`}
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant={statusVariant(r.status)} data-testid={`badge-run-status-${r.id}`}>{r.status}</Badge>
+                          <Badge
+                            variant={statusVariant(r.status)}
+                            data-testid={`badge-run-status-${r.id}`}
+                          >
+                            {r.status}
+                          </Badge>
                           {r.status === "completed" && (
-                            <Button size="sm" variant="outline" data-testid={`button-promote-${r.id}`} onClick={() => setShowPromote(r.id)}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              data-testid={`button-promote-${r.id}`}
+                              onClick={() => setShowPromote(r.id)}
+                            >
                               <Upload className="w-3 h-3 mr-1" />
                               Promote
                             </Button>
@@ -847,7 +1271,11 @@ function TrainingPipelineTab() {
                               size="sm"
                               variant="ghost"
                               data-testid={`button-artifacts-${r.id}`}
-                              onClick={() => setExpandedRunArtifact(expandedRunArtifact === r.modelVersionId ? null : r.modelVersionId)}
+                              onClick={() =>
+                                setExpandedRunArtifact(
+                                  expandedRunArtifact === r.modelVersionId ? null : r.modelVersionId
+                                )
+                              }
                             >
                               <FileBox className="w-3 h-3 mr-1" />
                               Artifacts
@@ -861,7 +1289,10 @@ function TrainingPipelineTab() {
                           {Object.entries(metrics).map(([key, val]) => (
                             <div key={key} className="text-xs px-2 py-1 rounded-md bg-muted">
                               <span className="text-muted-foreground">{key}:</span>{" "}
-                              <span className="font-mono font-medium" data-testid={`text-metric-${key}-${r.id}`}>
+                              <span
+                                className="font-mono font-medium"
+                                data-testid={`text-metric-${key}-${r.id}`}
+                              >
                                 {typeof val === "number" ? val.toFixed(4) : String(val)}
                               </span>
                             </div>
@@ -872,13 +1303,20 @@ function TrainingPipelineTab() {
                       {hyperparams && Object.keys(hyperparams).length > 0 && (
                         <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
                           {Object.entries(hyperparams).map(([key, val]) => (
-                            <span key={key}>{key}: {String(val)}</span>
+                            <span key={key}>
+                              {key}: {String(val)}
+                            </span>
                           ))}
                         </div>
                       )}
 
                       {r.errorMessage && (
-                        <div className="text-sm text-destructive" data-testid={`text-error-${r.id}`}>{r.errorMessage}</div>
+                        <div
+                          className="text-sm text-destructive"
+                          data-testid={`text-error-${r.id}`}
+                        >
+                          {r.errorMessage}
+                        </div>
                       )}
 
                       {expandedRunArtifact === r.modelVersionId && r.modelVersionId && (
@@ -958,8 +1396,20 @@ function TrainingPipelineTab() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDataset(false)} data-testid="button-cancel-dataset">Cancel</Button>
-            <Button onClick={handleCreateDataset} disabled={!datasetForm.name || !datasetForm.sourceType || createDatasetMutation.isPending} data-testid="button-submit-dataset">
+            <Button
+              variant="outline"
+              onClick={() => setShowCreateDataset(false)}
+              data-testid="button-cancel-dataset"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateDataset}
+              disabled={
+                !datasetForm.name || !datasetForm.sourceType || createDatasetMutation.isPending
+              }
+              data-testid="button-submit-dataset"
+            >
               {createDatasetMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               Create Dataset
             </Button>
@@ -984,7 +1434,9 @@ function TrainingPipelineTab() {
                 >
                   <option value="">Select a dataset</option>
                   {datasets.map((d: any) => (
-                    <option key={d.id} value={d.id}>{d.name} ({d.status})</option>
+                    <option key={d.id} value={d.id}>
+                      {d.name} ({d.status})
+                    </option>
                   ))}
                 </select>
               ) : (
@@ -1032,8 +1484,18 @@ function TrainingPipelineTab() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowStartRun(false)} data-testid="button-cancel-run">Cancel</Button>
-            <Button onClick={handleStartRun} disabled={!runForm.datasetId || startRunMutation.isPending} data-testid="button-submit-run">
+            <Button
+              variant="outline"
+              onClick={() => setShowStartRun(false)}
+              data-testid="button-cancel-run"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleStartRun}
+              disabled={!runForm.datasetId || startRunMutation.isPending}
+              data-testid="button-submit-run"
+            >
               {startRunMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               Start Training
             </Button>
@@ -1050,13 +1512,18 @@ function TrainingPipelineTab() {
             <div>
               <label className="text-sm font-medium">Target Model</label>
               {modelsList.length > 0 ? (
-                <Select value={promoteForm.modelId} onValueChange={(v) => setPromoteForm({ ...promoteForm, modelId: v })}>
+                <Select
+                  value={promoteForm.modelId}
+                  onValueChange={(v) => setPromoteForm({ ...promoteForm, modelId: v })}
+                >
                   <SelectTrigger data-testid="input-promote-model-id" className="mt-1">
                     <SelectValue placeholder="Select model" />
                   </SelectTrigger>
                   <SelectContent>
                     {modelsList.map((m: any) => (
-                      <SelectItem key={m.id} value={m.id}>{m.name} ({m.type})</SelectItem>
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.name} ({m.type})
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -1095,8 +1562,18 @@ function TrainingPipelineTab() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPromote(null)} data-testid="button-cancel-promote">Cancel</Button>
-            <Button onClick={() => showPromote && handlePromote(showPromote)} disabled={!promoteForm.modelId || !promoteForm.version || promoteMutation.isPending} data-testid="button-submit-promote">
+            <Button
+              variant="outline"
+              onClick={() => setShowPromote(null)}
+              data-testid="button-cancel-promote"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => showPromote && handlePromote(showPromote)}
+              disabled={!promoteForm.modelId || !promoteForm.version || promoteMutation.isPending}
+              data-testid="button-submit-promote"
+            >
               {promoteMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               Promote
             </Button>
@@ -1123,17 +1600,31 @@ function GovernanceTab({ onSwitchToModels }: { onSwitchToModels: (modelId: strin
   const approveMutation = useApprovePrediction();
   const suppressMutation = useSuppressPrediction();
 
-  const statusBadgeVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
-    if (status === "approved") {return "default";}
-    if (status === "suppressed") {return "destructive";}
-    if (status === "expired") {return "outline";}
-    if (status === "reviewed") {return "secondary";}
+  const statusBadgeVariant = (
+    status: string
+  ): "default" | "secondary" | "destructive" | "outline" => {
+    if (status === "approved") {
+      return "default";
+    }
+    if (status === "suppressed") {
+      return "destructive";
+    }
+    if (status === "expired") {
+      return "outline";
+    }
+    if (status === "reviewed") {
+      return "secondary";
+    }
     return "secondary";
   };
 
   const riskBadgeVariant = (level: string): "default" | "secondary" | "destructive" | "outline" => {
-    if (level === "critical") {return "destructive";}
-    if (level === "high") {return "secondary";}
+    if (level === "critical") {
+      return "destructive";
+    }
+    if (level === "high") {
+      return "secondary";
+    }
     return "default";
   };
 
@@ -1162,7 +1653,9 @@ function GovernanceTab({ onSwitchToModels }: { onSwitchToModels: (modelId: strin
   };
 
   const handleSuppressConfirm = async () => {
-    if (!suppressTargetId || !suppressReason.trim()) {return;}
+    if (!suppressTargetId || !suppressReason.trim()) {
+      return;
+    }
     try {
       await suppressMutation.mutateAsync({ id: suppressTargetId, reason: suppressReason });
       toast({ title: "Prediction suppressed" });
@@ -1179,17 +1672,33 @@ function GovernanceTab({ onSwitchToModels }: { onSwitchToModels: (modelId: strin
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 flex-wrap">
-        <Select value={statusFilter} onValueChange={setStatusFilter} data-testid="select-governance-status">
+        <Select
+          value={statusFilter}
+          onValueChange={setStatusFilter}
+          data-testid="select-governance-status"
+        >
           <SelectTrigger className="w-48" data-testid="select-trigger-governance-status">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all" data-testid="select-item-all">All Statuses</SelectItem>
-            <SelectItem value="pending" data-testid="select-item-pending">Pending</SelectItem>
-            <SelectItem value="reviewed" data-testid="select-item-reviewed">Reviewed</SelectItem>
-            <SelectItem value="approved" data-testid="select-item-approved">Approved</SelectItem>
-            <SelectItem value="suppressed" data-testid="select-item-suppressed">Suppressed</SelectItem>
-            <SelectItem value="expired" data-testid="select-item-expired">Expired</SelectItem>
+            <SelectItem value="all" data-testid="select-item-all">
+              All Statuses
+            </SelectItem>
+            <SelectItem value="pending" data-testid="select-item-pending">
+              Pending
+            </SelectItem>
+            <SelectItem value="reviewed" data-testid="select-item-reviewed">
+              Reviewed
+            </SelectItem>
+            <SelectItem value="approved" data-testid="select-item-approved">
+              Approved
+            </SelectItem>
+            <SelectItem value="suppressed" data-testid="select-item-suppressed">
+              Suppressed
+            </SelectItem>
+            <SelectItem value="expired" data-testid="select-item-expired">
+              Expired
+            </SelectItem>
           </SelectContent>
         </Select>
         <span className="text-sm text-muted-foreground" data-testid="text-governance-count">
@@ -1197,32 +1706,62 @@ function GovernanceTab({ onSwitchToModels }: { onSwitchToModels: (modelId: strin
         </span>
       </div>
 
-      {isLoading && <div className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading governance predictions...</div>}
+      {isLoading && (
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" /> Loading governance predictions...
+        </div>
+      )}
 
       {!isLoading && predictionsList.length === 0 && (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">No predictions found for the selected filter.</CardContent></Card>
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            No predictions found for the selected filter.
+          </CardContent>
+        </Card>
       )}
 
       <div className="grid gap-3">
         {predictionsList.map((p: any) => (
-          <Card key={p.id} className={`cursor-pointer transition-colors ${selectedPredictionId === p.id ? 'ring-2 ring-primary' : ''}`} onClick={() => setSelectedPredictionId(p.id)} data-testid={`card-governance-prediction-${p.id}`}>
+          <Card
+            key={p.id}
+            className={`cursor-pointer transition-colors ${selectedPredictionId === p.id ? "ring-2 ring-primary" : ""}`}
+            onClick={() => setSelectedPredictionId(p.id)}
+            data-testid={`card-governance-prediction-${p.id}`}
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <EquipmentLink equipmentId={p.equipmentId} />
-                    <Badge variant={riskBadgeVariant(p.riskLevel)} data-testid={`badge-risk-${p.id}`}>{p.riskLevel}</Badge>
-                    <Badge variant={statusBadgeVariant(p.reviewStatus || "pending")} data-testid={`badge-status-${p.id}`}>{p.reviewStatus || "pending"}</Badge>
+                    <Badge
+                      variant={riskBadgeVariant(p.riskLevel)}
+                      data-testid={`badge-risk-${p.id}`}
+                    >
+                      {p.riskLevel}
+                    </Badge>
+                    <Badge
+                      variant={statusBadgeVariant(p.reviewStatus || "pending")}
+                      data-testid={`badge-status-${p.id}`}
+                    >
+                      {p.reviewStatus || "pending"}
+                    </Badge>
                   </div>
                   <div className="text-sm text-muted-foreground mt-1 flex items-center gap-4 flex-wrap">
                     <span>Probability: {((p.failureProbability ?? 0) * 100).toFixed(1)}%</span>
                     {p.remainingUsefulLife != null && <span>RUL: {p.remainingUsefulLife}d</span>}
-                    {p.predictionValidUntil && <span>Valid until: {new Date(p.predictionValidUntil).toLocaleDateString()}</span>}
+                    {p.predictionValidUntil && (
+                      <span>
+                        Valid until: {new Date(p.predictionValidUntil).toLocaleDateString()}
+                      </span>
+                    )}
                     {p.modelVersionId && (
                       <button
                         className="text-primary hover:underline inline-flex items-center gap-1"
                         data-testid={`link-model-${p.id}`}
-                        onClick={(e) => { e.stopPropagation(); onSwitchToModels(p.modelVersionId); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSwitchToModels(p.modelVersionId);
+                        }}
                       >
                         Model: {p.modelVersionId.slice(0, 8)}
                         <ExternalLink className="w-3 h-3" />
@@ -1233,17 +1772,43 @@ function GovernanceTab({ onSwitchToModels }: { onSwitchToModels: (modelId: strin
                 </div>
                 <div className="flex items-center gap-2">
                   {(!p.reviewStatus || p.reviewStatus === "pending") && (
-                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleReview(p.id); }} disabled={reviewMutation.isPending} data-testid={`button-review-${p.id}`}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleReview(p.id);
+                      }}
+                      disabled={reviewMutation.isPending}
+                      data-testid={`button-review-${p.id}`}
+                    >
                       <Eye className="w-4 h-4 mr-1" /> Review
                     </Button>
                   )}
                   {(p.reviewStatus === "pending" || p.reviewStatus === "reviewed") && (
-                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleApprove(p.id); }} disabled={approveMutation.isPending} data-testid={`button-approve-${p.id}`}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleApprove(p.id);
+                      }}
+                      disabled={approveMutation.isPending}
+                      data-testid={`button-approve-${p.id}`}
+                    >
                       <CheckCheck className="w-4 h-4 mr-1" /> Approve
                     </Button>
                   )}
                   {p.reviewStatus !== "suppressed" && (
-                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleSuppressOpen(p.id); }} data-testid={`button-suppress-${p.id}`}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSuppressOpen(p.id);
+                      }}
+                      data-testid={`button-suppress-${p.id}`}
+                    >
                       <XCircle className="w-4 h-4 mr-1" /> Suppress
                     </Button>
                   )}
@@ -1251,7 +1816,10 @@ function GovernanceTab({ onSwitchToModels }: { onSwitchToModels: (modelId: strin
                     size="sm"
                     variant="outline"
                     data-testid={`button-create-wo-governance-${p.id}`}
-                    onClick={(e) => { e.stopPropagation(); navigate(`/work-orders?action=create&equipmentId=${p.equipmentId}`); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/work-orders?action=create&equipmentId=${p.equipmentId}`);
+                    }}
                   >
                     <Wrench className="w-4 h-4 mr-1" /> Work Order
                   </Button>
@@ -1274,27 +1842,51 @@ function GovernanceTab({ onSwitchToModels }: { onSwitchToModels: (modelId: strin
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
               <div>
                 <div className="text-muted-foreground">Risk Level</div>
-                <Badge variant={riskBadgeVariant(detail.riskLevel)} data-testid="text-provenance-risk">{detail.riskLevel}</Badge>
+                <Badge
+                  variant={riskBadgeVariant(detail.riskLevel)}
+                  data-testid="text-provenance-risk"
+                >
+                  {detail.riskLevel}
+                </Badge>
               </div>
               <div>
                 <div className="text-muted-foreground">Review Status</div>
-                <Badge variant={statusBadgeVariant(detail.reviewStatus || "pending")} data-testid="text-provenance-status">{detail.reviewStatus || "pending"}</Badge>
+                <Badge
+                  variant={statusBadgeVariant(detail.reviewStatus || "pending")}
+                  data-testid="text-provenance-status"
+                >
+                  {detail.reviewStatus || "pending"}
+                </Badge>
               </div>
               <div>
                 <div className="text-muted-foreground">Failure Probability</div>
-                <div className="font-medium">{((detail.failureProbability ?? 0) * 100).toFixed(1)}%</div>
+                <div className="font-medium">
+                  {((detail.failureProbability ?? 0) * 100).toFixed(1)}%
+                </div>
               </div>
               <div>
                 <div className="text-muted-foreground">RUL</div>
-                <div className="font-medium">{detail.remainingUsefulLife != null ? `${detail.remainingUsefulLife} days` : "N/A"}</div>
+                <div className="font-medium">
+                  {detail.remainingUsefulLife != null
+                    ? `${detail.remainingUsefulLife} days`
+                    : "N/A"}
+                </div>
               </div>
               <div>
                 <div className="text-muted-foreground">Prediction Date</div>
-                <div className="font-medium">{detail.predictionTimestamp ? new Date(detail.predictionTimestamp).toLocaleString() : "N/A"}</div>
+                <div className="font-medium">
+                  {detail.predictionTimestamp
+                    ? new Date(detail.predictionTimestamp).toLocaleString()
+                    : "N/A"}
+                </div>
               </div>
               <div>
                 <div className="text-muted-foreground">Valid Until</div>
-                <div className="font-medium" data-testid="text-provenance-valid-until">{detail.predictionValidUntil ? new Date(detail.predictionValidUntil).toLocaleString() : "No expiry"}</div>
+                <div className="font-medium" data-testid="text-provenance-valid-until">
+                  {detail.predictionValidUntil
+                    ? new Date(detail.predictionValidUntil).toLocaleString()
+                    : "No expiry"}
+                </div>
               </div>
               <div>
                 <div className="text-muted-foreground">Model Version</div>
@@ -1308,12 +1900,16 @@ function GovernanceTab({ onSwitchToModels }: { onSwitchToModels: (modelId: strin
                       {detail.modelVersionId.slice(0, 12)}
                       <ExternalLink className="w-3 h-3" />
                     </button>
-                  ) : "N/A"}
+                  ) : (
+                    "N/A"
+                  )}
                 </div>
               </div>
               <div>
                 <div className="text-muted-foreground">Feature Set Version</div>
-                <div className="font-medium" data-testid="text-provenance-feature-set">{detail.featureSetVersion || "N/A"}</div>
+                <div className="font-medium" data-testid="text-provenance-feature-set">
+                  {detail.featureSetVersion || "N/A"}
+                </div>
               </div>
               {detail.reviewedBy && (
                 <div>
@@ -1339,7 +1935,9 @@ function GovernanceTab({ onSwitchToModels }: { onSwitchToModels: (modelId: strin
                 <Button
                   variant="default"
                   data-testid="button-create-wo-detail"
-                  onClick={() => navigate(`/work-orders?action=create&equipmentId=${detail.equipmentId}`)}
+                  onClick={() =>
+                    navigate(`/work-orders?action=create&equipmentId=${detail.equipmentId}`)
+                  }
                 >
                   <Wrench className="w-4 h-4 mr-2" />
                   Create Work Order
@@ -1357,7 +1955,8 @@ function GovernanceTab({ onSwitchToModels }: { onSwitchToModels: (modelId: strin
           </DialogHeader>
           <div className="space-y-4">
             <div className="text-sm text-muted-foreground">
-              Provide a reason for suppressing prediction #{suppressTargetId}. This action will mark the prediction as suppressed and remove it from active monitoring.
+              Provide a reason for suppressing prediction #{suppressTargetId}. This action will mark
+              the prediction as suppressed and remove it from active monitoring.
             </div>
             <Textarea
               data-testid="input-suppress-reason"
@@ -1368,9 +1967,21 @@ function GovernanceTab({ onSwitchToModels }: { onSwitchToModels: (modelId: strin
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSuppressDialogOpen(false)} data-testid="button-suppress-cancel">Cancel</Button>
-            <Button onClick={handleSuppressConfirm} disabled={!suppressReason.trim() || suppressMutation.isPending} data-testid="button-suppress-confirm">
-              {suppressMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            <Button
+              variant="outline"
+              onClick={() => setSuppressDialogOpen(false)}
+              data-testid="button-suppress-cancel"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSuppressConfirm}
+              disabled={!suppressReason.trim() || suppressMutation.isPending}
+              data-testid="button-suppress-confirm"
+            >
+              {suppressMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
               Suppress
             </Button>
           </DialogFooter>
@@ -1392,29 +2003,60 @@ export default function PdmPlatformPage() {
   return (
     <IntelligenceLayout>
       <div className="container mx-auto p-4 md:p-6 space-y-6">
-      <p className="text-xs text-slate-500">Manage predictive models, monitor fleet equipment health, review inference results, and govern maintenance decisions</p>
+        <p className="text-xs text-slate-500">
+          Manage predictive models, monitor fleet equipment health, review inference results, and
+          govern maintenance decisions
+        </p>
 
-      <SummaryDashboard />
+        <SummaryDashboard />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="flex w-full overflow-x-auto">
-          <TabsTrigger value="features" data-testid="tab-features"><Database className="w-4 h-4 mr-1" /> Features</TabsTrigger>
-          <TabsTrigger value="fleet" data-testid="tab-fleet"><BarChart3 className="w-4 h-4 mr-1" /> Fleet</TabsTrigger>
-          <TabsTrigger value="models" data-testid="tab-models"><Box className="w-4 h-4 mr-1" /> Models</TabsTrigger>
-          <TabsTrigger value="training" data-testid="tab-training"><FlaskConical className="w-4 h-4 mr-1" /> Training</TabsTrigger>
-          <TabsTrigger value="inference" data-testid="tab-inference"><Zap className="w-4 h-4 mr-1" /> Inference</TabsTrigger>
-          <TabsTrigger value="drift" data-testid="tab-drift"><AlertTriangle className="w-4 h-4 mr-1" /> Drift</TabsTrigger>
-          <TabsTrigger value="governance" data-testid="tab-governance"><Shield className="w-4 h-4 mr-1" /> Governance</TabsTrigger>
-        </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="flex w-full overflow-x-auto">
+            <TabsTrigger value="features" data-testid="tab-features">
+              <Database className="w-4 h-4 mr-1" /> Features
+            </TabsTrigger>
+            <TabsTrigger value="fleet" data-testid="tab-fleet">
+              <BarChart3 className="w-4 h-4 mr-1" /> Fleet
+            </TabsTrigger>
+            <TabsTrigger value="models" data-testid="tab-models">
+              <Box className="w-4 h-4 mr-1" /> Models
+            </TabsTrigger>
+            <TabsTrigger value="training" data-testid="tab-training">
+              <FlaskConical className="w-4 h-4 mr-1" /> Training
+            </TabsTrigger>
+            <TabsTrigger value="inference" data-testid="tab-inference">
+              <Zap className="w-4 h-4 mr-1" /> Inference
+            </TabsTrigger>
+            <TabsTrigger value="drift" data-testid="tab-drift">
+              <AlertTriangle className="w-4 h-4 mr-1" /> Drift
+            </TabsTrigger>
+            <TabsTrigger value="governance" data-testid="tab-governance">
+              <Shield className="w-4 h-4 mr-1" /> Governance
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="features" className="mt-4"><FeatureStoreTab /></TabsContent>
-        <TabsContent value="fleet" className="mt-4"><FleetAnalyticsTab /></TabsContent>
-        <TabsContent value="models" className="mt-4"><ModelRegistryTab highlightedVersionId={highlightedModelVersionId} /></TabsContent>
-        <TabsContent value="training" className="mt-4"><TrainingPipelineTab /></TabsContent>
-        <TabsContent value="inference" className="mt-4"><InferenceTab /></TabsContent>
-        <TabsContent value="drift" className="mt-4"><DriftMonitoringTab /></TabsContent>
-        <TabsContent value="governance" className="mt-4"><GovernanceTab onSwitchToModels={handleSwitchToModels} /></TabsContent>
-      </Tabs>
+          <TabsContent value="features" className="mt-4">
+            <FeatureStoreTab />
+          </TabsContent>
+          <TabsContent value="fleet" className="mt-4">
+            <FleetAnalyticsTab />
+          </TabsContent>
+          <TabsContent value="models" className="mt-4">
+            <ModelRegistryTab highlightedVersionId={highlightedModelVersionId} />
+          </TabsContent>
+          <TabsContent value="training" className="mt-4">
+            <TrainingPipelineTab />
+          </TabsContent>
+          <TabsContent value="inference" className="mt-4">
+            <InferenceTab />
+          </TabsContent>
+          <TabsContent value="drift" className="mt-4">
+            <DriftMonitoringTab />
+          </TabsContent>
+          <TabsContent value="governance" className="mt-4">
+            <GovernanceTab onSwitchToModels={handleSwitchToModels} />
+          </TabsContent>
+        </Tabs>
       </div>
     </IntelligenceLayout>
   );

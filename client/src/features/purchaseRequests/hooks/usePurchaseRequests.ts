@@ -1,6 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import type { PurchaseRequest, PRWithItems, PRFilters, PRFormData, PRItemFormData, PRSendResult } from "../types";
+import type {
+  PurchaseRequest,
+  PRWithItems,
+  PRFilters,
+  PRFormData,
+  PRItemFormData,
+  PRSendResult,
+} from "../types";
 
 export const prKeys = {
   all: ["/api/purchase-requests"] as const,
@@ -10,13 +17,27 @@ export const prKeys = {
 
 export function usePurchaseRequests(filters?: PRFilters) {
   const queryParams = new URLSearchParams();
-  if (filters?.status) {queryParams.append("status", filters.status);}
-  if (filters?.vesselId) {queryParams.append("vesselId", filters.vesselId);}
-  if (filters?.requestedBy) {queryParams.append("requestedBy", filters.requestedBy);}
-  if (filters?.fromDate) {queryParams.append("fromDate", filters.fromDate.toISOString());}
-  if (filters?.toDate) {queryParams.append("toDate", filters.toDate.toISOString());}
-  if (filters?.limit) {queryParams.append("limit", String(filters.limit));}
-  if (filters?.offset) {queryParams.append("offset", String(filters.offset));}
+  if (filters?.status) {
+    queryParams.append("status", filters.status);
+  }
+  if (filters?.vesselId) {
+    queryParams.append("vesselId", filters.vesselId);
+  }
+  if (filters?.requestedBy) {
+    queryParams.append("requestedBy", filters.requestedBy);
+  }
+  if (filters?.fromDate) {
+    queryParams.append("fromDate", filters.fromDate.toISOString());
+  }
+  if (filters?.toDate) {
+    queryParams.append("toDate", filters.toDate.toISOString());
+  }
+  if (filters?.limit) {
+    queryParams.append("limit", String(filters.limit));
+  }
+  if (filters?.offset) {
+    queryParams.append("offset", String(filters.offset));
+  }
 
   const queryString = queryParams.toString();
   const url = `/api/purchase-requests${queryString ? `?${queryString}` : ""}`;
@@ -46,7 +67,7 @@ export function useCreatePR() {
 export function useUpdatePR() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...data }: Partial<PRFormData> & { id: string }) => 
+    mutationFn: ({ id, ...data }: Partial<PRFormData> & { id: string }) =>
       apiRequest("PATCH", `/api/purchase-requests/${id}`, data),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: prKeys.detail(vars.id) });

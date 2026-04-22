@@ -107,9 +107,7 @@ describe("Export Utilities - CSV Generation Logic", () => {
       .map(escapeCSVValue)
       .join(",");
 
-    const dataRows = data.map((row) =>
-      columns.map((col) => escapeCSVValue(row[col])).join(",")
-    );
+    const dataRows = data.map((row) => columns.map((col) => escapeCSVValue(row[col])).join(","));
 
     return [headerRow, ...dataRows].join("\n");
   }
@@ -151,9 +149,7 @@ describe("Export Utilities - CSV Generation Logic", () => {
   });
 
   it("should handle complex values with special characters", () => {
-    const data = [
-      { id: "1", description: 'Equipment "A", Model X' },
-    ];
+    const data = [{ id: "1", description: 'Equipment "A", Model X' }];
     const columns = ["id", "description"];
     const headers = {};
 

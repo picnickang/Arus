@@ -61,7 +61,9 @@ export function PredictionFeedbackForm({
 
   const isPredictive = !!predictionId || predictiveCheck?.isPredictive;
 
-  if (!isPredictive) {return null;}
+  if (!isPredictive) {
+    return null;
+  }
 
   const handleSelect = (outcome: PredictionFeedback["outcome"]) => {
     setSelected(outcome);
@@ -87,7 +89,9 @@ export function PredictionFeedbackForm({
     <div className={`space-y-3 ${className}`} data-testid="prediction-feedback-form">
       <div className="flex items-center gap-2">
         <Label className="text-sm font-semibold">Was the predicted failure confirmed?</Label>
-        <Badge variant="outline" className="text-[9px]">Required for predictive WOs</Badge>
+        <Badge variant="outline" className="text-[9px]">
+          Required for predictive WOs
+        </Badge>
       </div>
 
       <div className="space-y-2">
@@ -107,14 +111,16 @@ export function PredictionFeedbackForm({
               data-testid={`feedback-option-${option.value}`}
             >
               <div className="flex items-start gap-3">
-                <Icon className={`h-5 w-5 mt-0.5 shrink-0 ${isSelected ? option.color : "text-muted-foreground"}`} />
+                <Icon
+                  className={`h-5 w-5 mt-0.5 shrink-0 ${isSelected ? option.color : "text-muted-foreground"}`}
+                />
                 <div>
-                  <div className={`text-sm font-medium ${isSelected ? option.color : "text-foreground"}`}>
+                  <div
+                    className={`text-sm font-medium ${isSelected ? option.color : "text-foreground"}`}
+                  >
                     {option.label}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    {option.description}
-                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{option.description}</div>
                 </div>
               </div>
             </button>
@@ -123,8 +129,12 @@ export function PredictionFeedbackForm({
       </div>
 
       {selected === "false_alarm" && (
-        <div className="p-2.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600 dark:text-amber-400" data-testid="false-alarm-warning">
-          This will flag the associated savings claim for review. The PdM team will be notified to investigate model accuracy for this equipment.
+        <div
+          className="p-2.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600 dark:text-amber-400"
+          data-testid="false-alarm-warning"
+        >
+          This will flag the associated savings claim for review. The PdM team will be notified to
+          investigate model accuracy for this equipment.
         </div>
       )}
 

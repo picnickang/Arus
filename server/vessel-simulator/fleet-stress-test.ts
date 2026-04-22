@@ -1,6 +1,6 @@
 /**
  * Fleet-Scale Telemetry Stress Test
- * 
+ *
  * Simulates 20 vessels with 30 sensors each (600 total sensors)
  * to measure telemetry ingestion performance at scale.
  */
@@ -74,7 +74,7 @@ const SENSOR_TYPES = [
   { type: "draft_aft", unit: "m", baseValue: 4.8, variance: 0.3 },
 ];
 
-function generateSensorValue(sensor: typeof SENSOR_TYPES[0], t: number): number {
+function generateSensorValue(sensor: (typeof SENSOR_TYPES)[0], t: number): number {
   const drift = Math.sin(t / 100) * sensor.variance * 0.3;
   const noise = (cryptoRandom() - 0.5) * sensor.variance;
   return sensor.baseValue + drift + noise;
@@ -128,7 +128,7 @@ export class FleetStressTest {
       const vesselPromises = Array.from({ length: config.vesselCount }, async (_, vesselIndex) => {
         const vesselId = `stress-vessel-${String(vesselIndex + 1).padStart(2, "0")}`;
         const sensors = SENSOR_TYPES.slice(0, config.sensorsPerVessel);
-        
+
         let msgCount = 0;
         let errors = 0;
         const latencies: number[] = [];
@@ -147,8 +147,8 @@ export class FleetStressTest {
                 timestamp: new Date(),
                 orgId: config.orgId,
                 unit: sensor.unit,
-                metadata: { 
-                  stressTest: true, 
+                metadata: {
+                  stressTest: true,
                   vesselId,
                   sensorIndex: SENSOR_TYPES.indexOf(sensor),
                 },
@@ -179,9 +179,8 @@ export class FleetStressTest {
           }
         }
 
-        const avgLatency = latencies.length > 0 
-          ? latencies.reduce((a, b) => a + b, 0) / latencies.length 
-          : 0;
+        const avgLatency =
+          latencies.length > 0 ? latencies.reduce((a, b) => a + b, 0) / latencies.length : 0;
 
         return {
           vesselId,
@@ -192,9 +191,12 @@ export class FleetStressTest {
       });
 
       const sampleInterval = setInterval(() => {
-        if (!this.isRunning) {return;}
+        if (!this.isRunning) {
+          return;
+        }
         const elapsed = (Date.now() - startTime) / 1000;
-        const currentTotal = vesselMetrics.reduce((sum, v) => sum + v.messagesGenerated, 0) + totalMessages;
+        const currentTotal =
+          vesselMetrics.reduce((sum, v) => sum + v.messagesGenerated, 0) + totalMessages;
         this.throughputSamples.push(currentTotal / elapsed);
       }, 1000);
 
@@ -225,22 +227,28 @@ export class FleetStressTest {
         errors: totalErrors,
         dropped: totalDropped,
         vesselMetrics,
-        memoryUsageMB: Math.round((endMemory - startMemory) / 1024 / 1024 * 100) / 100,
+        memoryUsageMB: Math.round(((endMemory - startMemory) / 1024 / 1024) * 100) / 100,
         cpuTimeMs: Math.round((endCpuTime.user + endCpuTime.system) / 1000),
         peakThroughput: this.throughputSamples.length > 0 ? Math.max(...this.throughputSamples) : 0,
-        minThroughput: this.throughputSamples.filter(t => t > 0).length > 0 
-          ? Math.min(...this.throughputSamples.filter(t => t > 0)) 
-          : 0,
-        avgLatencyMs: this.latencySamples.length > 0
-          ? Math.round(this.latencySamples.reduce((a, b) => a + b, 0) / this.latencySamples.length * 100) / 100
-          : 0,
+        minThroughput:
+          this.throughputSamples.filter((t) => t > 0).length > 0
+            ? Math.min(...this.throughputSamples.filter((t) => t > 0))
+            : 0,
+        avgLatencyMs:
+          this.latencySamples.length > 0
+            ? Math.round(
+                (this.latencySamples.reduce((a, b) => a + b, 0) / this.latencySamples.length) * 100
+              ) / 100
+            : 0,
       };
 
       console.log(`[FleetStressTest] Complete:`);
       console.log(`  Total messages: ${result.totalMessages}`);
       console.log(`  Actual throughput: ${result.actualMsgPerSec} msg/sec`);
       console.log(`  Target throughput: ${result.targetMsgPerSec} msg/sec`);
-      console.log(`  Efficiency: ${Math.round(result.actualMsgPerSec / result.targetMsgPerSec * 100)}%`);
+      console.log(
+        `  Efficiency: ${Math.round((result.actualMsgPerSec / result.targetMsgPerSec) * 100)}%`
+      );
       console.log(`  Errors: ${result.errors}`);
       console.log(`  Dropped: ${result.dropped}`);
       console.log(`  Memory delta: ${result.memoryUsageMB} MB`);

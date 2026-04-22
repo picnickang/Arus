@@ -13,20 +13,32 @@ import { dbSensorsStorage } from "../../../db/sensors/index.js";
 export function registerSensorOptimizationRoutes(app: Express, config: SensorManagementConfig) {
   const { requireOrgId, writeOperationRateLimit } = config;
 
-  app.get("/api/sensor-optimization", requireOrgId,
+  app.get(
+    "/api/sensor-optimization",
+    requireOrgId,
     withErrorHandling("fetch threshold optimizations", async (req, res) => {
       const { equipmentId, sensorType, status } = req.query;
       const orgId = (req as AuthenticatedRequest).orgId;
-      const optimizations = await dbMlAnalyticsStorage.getThresholdOptimizations(orgId, equipmentId as string, sensorType as string, status as string);
+      const optimizations = await dbMlAnalyticsStorage.getThresholdOptimizations(
+        orgId,
+        equipmentId as string,
+        sensorType as string,
+        status as string
+      );
       res.json(optimizations);
     })
   );
 
-  app.get("/api/sensor-optimization/:optimizationId", requireOrgId,
+  app.get(
+    "/api/sensor-optimization/:optimizationId",
+    requireOrgId,
     withErrorHandling("fetch threshold optimization", async (req, res) => {
       const { optimizationId } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
-      const optimization = await dbMlAnalyticsStorage.getThresholdOptimization(Number.parseInt(optimizationId), orgId);
+      const optimization = await dbMlAnalyticsStorage.getThresholdOptimization(
+        Number.parseInt(optimizationId),
+        orgId
+      );
       if (!optimization) {
         return sendNotFound(res, "Threshold optimization");
       }
@@ -34,26 +46,41 @@ export function registerSensorOptimizationRoutes(app: Express, config: SensorMan
     })
   );
 
-  app.post("/api/sensor-optimization/apply/:optimizationId", requireOrgId, writeOperationRateLimit,
+  app.post(
+    "/api/sensor-optimization/apply/:optimizationId",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("apply optimization", async (req, res) => {
       const { optimizationId } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
-      const result = await dbMlAnalyticsStorage.applyThresholdOptimization(Number.parseInt(optimizationId), orgId);
+      const result = await dbMlAnalyticsStorage.applyThresholdOptimization(
+        Number.parseInt(optimizationId),
+        orgId
+      );
       res.json({ success: true, applied: result });
     })
   );
 
-  app.post("/api/sensor-optimization/reject/:optimizationId", requireOrgId, writeOperationRateLimit,
+  app.post(
+    "/api/sensor-optimization/reject/:optimizationId",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("reject optimization", async (req, res) => {
       const { optimizationId } = req.params;
       const { reason } = req.body;
       const orgId = (req as AuthenticatedRequest).orgId;
-      const result = await dbMlAnalyticsStorage.rejectThresholdOptimization(Number.parseInt(optimizationId), reason, orgId);
+      const result = await dbMlAnalyticsStorage.rejectThresholdOptimization(
+        Number.parseInt(optimizationId),
+        reason,
+        orgId
+      );
       res.json({ success: true, rejected: result });
     })
   );
 
-  app.get("/api/sensor-tuning/recommendations/:equipmentId", requireOrgId,
+  app.get(
+    "/api/sensor-tuning/recommendations/:equipmentId",
+    requireOrgId,
     withErrorHandling("get AI recommendations", async (req, res) => {
       const { equipmentId } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
@@ -63,12 +90,18 @@ export function registerSensorOptimizationRoutes(app: Express, config: SensorMan
     })
   );
 
-  app.get("/api/sensor-tuning/recommendations/:equipmentId/:sensorType", requireOrgId,
+  app.get(
+    "/api/sensor-tuning/recommendations/:equipmentId/:sensorType",
+    requireOrgId,
     withErrorHandling("get sensor recommendation", async (req, res) => {
       const { equipmentId, sensorType } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
       const { llmSensorTuningService } = await import("../../../llm-sensor-tuning.js");
-      const recommendation = await llmSensorTuningService.getSensorRecommendation(equipmentId, sensorType, orgId);
+      const recommendation = await llmSensorTuningService.getSensorRecommendation(
+        equipmentId,
+        sensorType,
+        orgId
+      );
       if (!recommendation) {
         return sendNotFound(res, "Recommendation for this sensor");
       }
@@ -76,12 +109,18 @@ export function registerSensorOptimizationRoutes(app: Express, config: SensorMan
     })
   );
 
-  app.get("/api/sensor-tuning/compare/:equipmentId/:sensorType", requireOrgId,
+  app.get(
+    "/api/sensor-tuning/compare/:equipmentId/:sensorType",
+    requireOrgId,
     withErrorHandling("compare configurations", async (req, res) => {
       const { equipmentId, sensorType } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
       const { llmSensorTuningService } = await import("../../../llm-sensor-tuning.js");
-      const comparison = await llmSensorTuningService.compareConfiguration(equipmentId, sensorType, orgId);
+      const comparison = await llmSensorTuningService.compareConfiguration(
+        equipmentId,
+        sensorType,
+        orgId
+      );
       if (!comparison) {
         return sendNotFound(res, "Comparison");
       }
@@ -89,14 +128,22 @@ export function registerSensorOptimizationRoutes(app: Express, config: SensorMan
     })
   );
 
-  app.post("/api/sensor-tuning/apply/:equipmentId/:sensorType", requireOrgId, writeOperationRateLimit,
+  app.post(
+    "/api/sensor-tuning/apply/:equipmentId/:sensorType",
+    requireOrgId,
+    writeOperationRateLimit,
     withErrorHandling("apply AI recommendations", async (req, res) => {
       const { equipmentId, sensorType } = req.params;
       const { parameters } = req.body;
       const orgId = (req as AuthenticatedRequest).orgId;
       let configuration;
       try {
-        configuration = await dbSensorsStorage.updateSensorConfiguration(equipmentId, sensorType, parameters, orgId);
+        configuration = await dbSensorsStorage.updateSensorConfiguration(
+          equipmentId,
+          sensorType,
+          parameters,
+          orgId
+        );
       } catch (updateError) {
         if (updateError instanceof Error && updateError.message?.includes("not found")) {
           configuration = await dbSensorsStorage.createSensorConfiguration({
@@ -104,7 +151,7 @@ export function registerSensorOptimizationRoutes(app: Express, config: SensorMan
             sensorType,
             orgId,
             enabled: true,
-            ...parameters
+            ...parameters,
           });
         } else {
           throw updateError;

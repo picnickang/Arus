@@ -3,7 +3,7 @@
  * Implements ICertificateRepository using Drizzle ORM
  */
 
-import type { ICertificateRepository, ICertificateEventRepository } from '../domain/ports';
+import type { ICertificateRepository, ICertificateEventRepository } from "../domain/ports";
 import type {
   CertificateEntity,
   CreateCertificateCommand,
@@ -12,27 +12,36 @@ import type {
   CertificateSummary,
   ConditionOfClass,
   FlagStateEndorsement,
-} from '../domain/types';
-import { db } from '../../../db';
+} from "../domain/types";
+import { db } from "../../../db";
 import {
   vesselCertificates,
   certificateEvents,
   vessels,
   type VesselCertificate,
   type InsertVesselCertificate,
-} from '@shared/schema';
-import { eq, and, lte, gte, desc } from 'drizzle-orm';
+} from "@shared/schema";
+import { eq, and, lte, gte, desc } from "drizzle-orm";
 
 export class CertificateRepositoryAdapter implements ICertificateRepository {
-  async findAll(orgId: string, filters?: {
-    vesselId?: string;
-    type?: string;
-    status?: string;
-  }) {
+  async findAll(
+    orgId: string,
+    filters?: {
+      vesselId?: string;
+      type?: string;
+      status?: string;
+    }
+  ) {
     const conditions = [eq(vesselCertificates.orgId, orgId)];
-    if (filters?.vesselId) {conditions.push(eq(vesselCertificates.vesselId, filters.vesselId));}
-    if (filters?.type) {conditions.push(eq(vesselCertificates.certificateType, filters.type));}
-    if (filters?.status) {conditions.push(eq(vesselCertificates.status, filters.status));}
+    if (filters?.vesselId) {
+      conditions.push(eq(vesselCertificates.vesselId, filters.vesselId));
+    }
+    if (filters?.type) {
+      conditions.push(eq(vesselCertificates.certificateType, filters.type));
+    }
+    if (filters?.status) {
+      conditions.push(eq(vesselCertificates.status, filters.status));
+    }
 
     const rows = await db
       .select({
@@ -61,7 +70,9 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
       .where(and(eq(vesselCertificates.id, id), eq(vesselCertificates.orgId, orgId)))
       .limit(1);
 
-    if (!row) {return undefined;}
+    if (!row) {
+      return undefined;
+    }
 
     return {
       ...this.mapToEntity(row.cert),
@@ -101,7 +112,9 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
 
   async getSummary(orgId: string, vesselId?: string): Promise<CertificateSummary> {
     const conditions = [eq(vesselCertificates.orgId, orgId)];
-    if (vesselId) {conditions.push(eq(vesselCertificates.vesselId, vesselId));}
+    if (vesselId) {
+      conditions.push(eq(vesselCertificates.vesselId, vesselId));
+    }
 
     const certs = await db
       .select()
@@ -112,17 +125,27 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
     const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     const ninetyDays = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
 
-    const expired = certs.filter((c) =>
-      c.status === "expired" || (c.expiryDate && new Date(c.expiryDate) < now && c.status === "valid")
+    const expired = certs.filter(
+      (c) =>
+        c.status === "expired" ||
+        (c.expiryDate && new Date(c.expiryDate) < now && c.status === "valid")
     );
-    const expiringIn30 = certs.filter((c) =>
-      c.status === "valid" && c.expiryDate && new Date(c.expiryDate) >= now && new Date(c.expiryDate) <= thirtyDays
+    const expiringIn30 = certs.filter(
+      (c) =>
+        c.status === "valid" &&
+        c.expiryDate &&
+        new Date(c.expiryDate) >= now &&
+        new Date(c.expiryDate) <= thirtyDays
     );
-    const expiringIn90 = certs.filter((c) =>
-      c.status === "valid" && c.expiryDate && new Date(c.expiryDate) >= now && new Date(c.expiryDate) <= ninetyDays
+    const expiringIn90 = certs.filter(
+      (c) =>
+        c.status === "valid" &&
+        c.expiryDate &&
+        new Date(c.expiryDate) >= now &&
+        new Date(c.expiryDate) <= ninetyDays
     );
-    const surveysDue = certs.filter((c) =>
-      c.nextSurveyDue && new Date(c.nextSurveyDue) <= ninetyDays && c.status === "valid"
+    const surveysDue = certs.filter(
+      (c) => c.nextSurveyDue && new Date(c.nextSurveyDue) <= ninetyDays && c.status === "valid"
     );
 
     let openConditions = 0;
@@ -174,10 +197,7 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
       status: "valid",
     };
 
-    const [cert] = await db
-      .insert(vesselCertificates)
-      .values(insertValues)
-      .returning();
+    const [cert] = await db.insert(vesselCertificates).values(insertValues).returning();
 
     return this.mapToEntity(cert);
   }
@@ -188,16 +208,40 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
       updatedBy: updatedBy ?? null,
     };
 
-    if (updates.status !== undefined) {updateValues.status = updates.status;}
-    if (updates.certificateNumber !== undefined) {updateValues.certificateNumber = updates.certificateNumber;}
-    if (updates.expiryDate !== undefined) {updateValues.expiryDate = updates.expiryDate ? new Date(updates.expiryDate) : null;}
-    if (updates.nextSurveyDue !== undefined) {updateValues.nextSurveyDue = updates.nextSurveyDue ? new Date(updates.nextSurveyDue) : null;}
-    if (updates.lastSurveyDate !== undefined) {updateValues.lastSurveyDate = new Date(updates.lastSurveyDate);}
-    if (updates.surveyWindowStart !== undefined) {updateValues.surveyWindowStart = updates.surveyWindowStart ? new Date(updates.surveyWindowStart) : null;}
-    if (updates.surveyWindowEnd !== undefined) {updateValues.surveyWindowEnd = updates.surveyWindowEnd ? new Date(updates.surveyWindowEnd) : null;}
-    if (updates.surveyId !== undefined) {updateValues.surveyId = updates.surveyId;}
-    if (updates.notes !== undefined) {updateValues.notes = updates.notes;}
-    if (updates.documentUrl !== undefined) {updateValues.documentUrl = updates.documentUrl;}
+    if (updates.status !== undefined) {
+      updateValues.status = updates.status;
+    }
+    if (updates.certificateNumber !== undefined) {
+      updateValues.certificateNumber = updates.certificateNumber;
+    }
+    if (updates.expiryDate !== undefined) {
+      updateValues.expiryDate = updates.expiryDate ? new Date(updates.expiryDate) : null;
+    }
+    if (updates.nextSurveyDue !== undefined) {
+      updateValues.nextSurveyDue = updates.nextSurveyDue ? new Date(updates.nextSurveyDue) : null;
+    }
+    if (updates.lastSurveyDate !== undefined) {
+      updateValues.lastSurveyDate = new Date(updates.lastSurveyDate);
+    }
+    if (updates.surveyWindowStart !== undefined) {
+      updateValues.surveyWindowStart = updates.surveyWindowStart
+        ? new Date(updates.surveyWindowStart)
+        : null;
+    }
+    if (updates.surveyWindowEnd !== undefined) {
+      updateValues.surveyWindowEnd = updates.surveyWindowEnd
+        ? new Date(updates.surveyWindowEnd)
+        : null;
+    }
+    if (updates.surveyId !== undefined) {
+      updateValues.surveyId = updates.surveyId;
+    }
+    if (updates.notes !== undefined) {
+      updateValues.notes = updates.notes;
+    }
+    if (updates.documentUrl !== undefined) {
+      updateValues.documentUrl = updates.documentUrl;
+    }
 
     const [updated] = await db
       .update(vesselCertificates)
@@ -253,7 +297,7 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
       nextSurveyDue: row.nextSurveyDue,
       surveyWindowStart: row.surveyWindowStart,
       surveyWindowEnd: row.surveyWindowEnd,
-      status: row.status as CertificateEntity['status'],
+      status: row.status as CertificateEntity["status"],
       conditionsOfClass: Array.isArray(row.conditionsOfClass)
         ? (row.conditionsOfClass as ConditionOfClass[])
         : [],
@@ -273,9 +317,14 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
 }
 
 export class CertificateEventRepositoryAdapter implements ICertificateEventRepository {
-  async findByCertificateId(certificateId: string, orgId?: string): Promise<CertificateEventEntity[]> {
+  async findByCertificateId(
+    certificateId: string,
+    orgId?: string
+  ): Promise<CertificateEventEntity[]> {
     const conditions = [eq(certificateEvents.certificateId, certificateId)];
-    if (orgId) {conditions.push(eq(certificateEvents.orgId, orgId));}
+    if (orgId) {
+      conditions.push(eq(certificateEvents.orgId, orgId));
+    }
 
     const events = await db
       .select()

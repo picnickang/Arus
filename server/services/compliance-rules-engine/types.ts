@@ -1,6 +1,6 @@
 /**
  * Compliance Rules Engine Types
- * 
+ *
  * Type definitions for compliance rule evaluation.
  */
 
@@ -20,4 +20,7 @@ export interface RuleResult {
   finding?: Omit<InsertComplianceFinding, "orgId">;
 }
 
-export type RuleEvaluator = (ctx: RuleContext, config: Record<string, unknown>) => Promise<RuleResult>;
+export type RuleEvaluator = (
+  ctx: RuleContext,
+  config: Record<string, unknown>
+) => Promise<RuleResult>;

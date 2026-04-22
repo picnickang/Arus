@@ -1,10 +1,10 @@
 /**
  * RAG Service Types
- * 
+ *
  * Shared type definitions for all RAG services.
  */
 
-import type { SearchResult } from '../../vector-search-service';
+import type { SearchResult } from "../../vector-search-service";
 
 export interface Citation {
   docId: string;
@@ -42,7 +42,7 @@ export interface RagAnswerResponse {
 }
 
 export interface ConversationMessage {
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
 }
 
@@ -75,7 +75,7 @@ export interface FeedbackInput {
   messageId?: string;
   chunkId?: string;
   userId?: string;
-  feedbackType: 'helpful' | 'not_helpful' | 'inaccurate' | 'missing_info' | 'outdated';
+  feedbackType: "helpful" | "not_helpful" | "inaccurate" | "missing_info" | "outdated";
   rating?: number;
   comment?: string;
   queryText?: string;
@@ -93,8 +93,8 @@ export interface RagServiceConfig {
 }
 
 export const DEFAULT_RAG_CONFIG: RagServiceConfig = {
-  defaultModel: 'gpt-4o',
-  fallbackModel: 'gpt-4o-mini',
+  defaultModel: "gpt-4o",
+  fallbackModel: "gpt-4o-mini",
   maxTokens: 2048,
   temperature: 0.3,
   maxSources: 5,

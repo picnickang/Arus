@@ -1,6 +1,6 @@
 /**
  * Beast Mode API Routes - Modular Architecture
- * 
+ *
  * Refactored from 1867-line monolith to 7 domain-specific modules:
  * - config-routes.ts (~80 lines) - Feature configuration & health
  * - vibration-routes.ts (~75 lines) - Vibration analysis
@@ -9,7 +9,7 @@
  * - trends-routes.ts (~120 lines) - Enhanced trends analysis
  * - inventory-risk-routes.ts (~70 lines) - Inventory risk analysis
  * - compliance-export-routes.ts (~140 lines) - PDF/Excel exports
- * 
+ *
  * Total: ~620 lines (67% reduction)
  */
 

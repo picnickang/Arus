@@ -4,10 +4,14 @@ import { getCurrentOrgId } from "@/contexts/OrganizationContext";
 import { getBackendUrlSync } from "@/lib/desktopFetch";
 
 export function resolveUrl(url: string): string {
-  if (url.startsWith('http://') || url.startsWith('https://')) {return url;}
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
   const base = getBackendUrlSync();
-  if (!base) {return url;}
-  const separator = url.startsWith('/') ? '' : '/';
+  if (!base) {
+    return url;
+  }
+  const separator = url.startsWith("/") ? "" : "/";
   return `${base}${separator}${url}`;
 }
 
@@ -25,7 +29,10 @@ async function throwIfResNotOk(res: Response) {
 
     if (errorData.errors && Array.isArray(errorData.errors)) {
       const fieldErrors = errorData.errors
-        .map((err: { path?: string[]; message: string }) => `${err.path?.join(".") || "Field"}: ${err.message}`)
+        .map(
+          (err: { path?: string[]; message: string }) =>
+            `${err.path?.join(".") || "Field"}: ${err.message}`
+        )
         .join(", ");
       throw new Error(`${statusPrefix}: ${fieldErrors || errorData.message || text}`);
     }
@@ -81,11 +88,11 @@ export async function apiRequest<T = unknown>(
 
   const text = await res.text();
   const result = text ? JSON.parse(text) : null;
-  
-  if (result && typeof result === 'object' && 'success' in result && 'data' in result) {
+
+  if (result && typeof result === "object" && "success" in result && "data" in result) {
     return result.data as T;
   }
-  
+
   return result as T;
 }
 
@@ -113,7 +120,9 @@ export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryF
     } else {
       url = queryKey.join("/");
       if (process.env.NODE_ENV === "development") {
-        console.warn(`[QueryClient] Legacy queryKey format detected: ${url}. Use array segments for proper cache invalidation.`);
+        console.warn(
+          `[QueryClient] Legacy queryKey format detected: ${url}. Use array segments for proper cache invalidation.`
+        );
       }
     }
 
@@ -128,11 +137,11 @@ export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryF
 
     await throwIfResNotOk(res);
     const result = await res.json();
-    
-    if (result && typeof result === 'object' && 'success' in result && 'data' in result) {
+
+    if (result && typeof result === "object" && "success" in result && "data" in result) {
       return result.data;
     }
-    
+
     return result;
   };
 

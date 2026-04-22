@@ -1,6 +1,6 @@
 /**
  * Weibull Data Extraction
- * 
+ *
  * Extract equipment life data and degradation metrics.
  */
 
@@ -111,7 +111,9 @@ export function groupTelemetryByDay(telemetry: any[]): Map<string, any[]> {
 }
 
 export function calculateDegradationMetric(dayData: any[]): number {
-  if (dayData.length === 0) {return 0;}
+  if (dayData.length === 0) {
+    return 0;
+  }
 
   const weights = {
     temperature: 0.3,

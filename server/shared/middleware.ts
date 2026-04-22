@@ -13,15 +13,18 @@ declare global {
 
 export function createOrgIdMiddleware(): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
-    const orgId = (req.headers["x-org-id"] as string) || 
-                  (req.query.orgId as string) ||
-                  (req.body?.orgId as string);
-    
+    const orgId =
+      (req.headers["x-org-id"] as string) ||
+      (req.query.orgId as string) ||
+      (req.body?.orgId as string);
+
     if (orgId) {
       req.orgId = orgId;
-      console.log(`[TENANT_ISOLATION_SUCCESS] { timestamp: '${new Date().toISOString()}', domain: 'middleware', operation: 'requireOrgId', orgId: '${orgId}' }`);
+      console.log(
+        `[TENANT_ISOLATION_SUCCESS] { timestamp: '${new Date().toISOString()}', domain: 'middleware', operation: 'requireOrgId', orgId: '${orgId}' }`
+      );
     }
-    
+
     next();
   };
 }
@@ -84,21 +87,21 @@ export function createLoggerMiddleware(domain: string): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
     const startTime = Date.now();
     const requestId = req.headers["x-request-id"] || crypto.randomUUID().slice(0, 8);
-    
+
     res.on("finish", () => {
       const duration = Date.now() - startTime;
       const logLevel = res.statusCode >= 500 ? "ERROR" : res.statusCode >= 400 ? "WARN" : "INFO";
-      
-      console.log(`[${requestId}] ${req.method} ${req.path} ${res.statusCode} in ${duration}ms :: ${logLevel}`);
+
+      console.log(
+        `[${requestId}] ${req.method} ${req.path} ${res.statusCode} in ${duration}ms :: ${logLevel}`
+      );
     });
-    
+
     next();
   };
 }
 
-export function createAuthorizationMiddleware(
-  requiredRoles?: string[]
-): RequestHandler {
+export function createAuthorizationMiddleware(requiredRoles?: string[]): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.userId) {
       handleRouteError(
@@ -108,7 +111,7 @@ export function createAuthorizationMiddleware(
       );
       return;
     }
-    
+
     next();
   };
 }
@@ -133,7 +136,7 @@ export function composeMiddleware(...middlewares: RequestHandler[]): RequestHand
       if (index >= middlewares.length) {
         return next();
       }
-      
+
       const middleware = middlewares[index];
       middleware(req, res, (err?: unknown) => {
         if (err) {
@@ -142,31 +145,25 @@ export function composeMiddleware(...middlewares: RequestHandler[]): RequestHand
         runMiddleware(index + 1);
       });
     };
-    
+
     runMiddleware(0);
   };
 }
 
 export function createTenantMiddlewareChain(): RequestHandler {
-  return composeMiddleware(
-    createOrgIdMiddleware(),
-    requireOrgIdMiddleware()
-  );
+  return composeMiddleware(createOrgIdMiddleware(), requireOrgIdMiddleware());
 }
 
 export function createProtectedMiddlewareChain(options?: {
   requireAdmin?: boolean;
   rateLimitConfig?: RateLimitConfig;
 }): RequestHandler {
-  const middlewares: RequestHandler[] = [
-    createOrgIdMiddleware(),
-    requireOrgIdMiddleware(),
-  ];
-  
+  const middlewares: RequestHandler[] = [createOrgIdMiddleware(), requireOrgIdMiddleware()];
+
   if (options?.requireAdmin) {
     middlewares.push(createAdminMiddleware());
   }
-  
+
   return composeMiddleware(...middlewares);
 }
 

@@ -1,10 +1,10 @@
-import type { Express } from 'express';
-import { z } from 'zod';
-import { eq, and, sql } from 'drizzle-orm';
-import { db } from '../db';
-import { actionableInsights, equipment } from '@shared/schema-runtime';
-import { InsightEngine } from '../core/insights/insightEngine';
-import { logger } from '../utils/logger.js';
+import type { Express } from "express";
+import { z } from "zod";
+import { eq, and, sql } from "drizzle-orm";
+import { db } from "../db";
+import { actionableInsights, equipment } from "@shared/schema-runtime";
+import { InsightEngine } from "../core/insights/insightEngine";
+import { logger } from "../utils/logger.js";
 
 const acknowledgeInsightSchema = z.object({
   orgId: z.string().optional().default("default-org"),
@@ -19,7 +19,7 @@ const resolveInsightSchema = z.object({
 });
 
 export function registerInsightsRoutes(app: Express) {
-  app.get('/api/insights', async (req, res) => {
+  app.get("/api/insights", async (req, res) => {
     try {
       const orgId = req.headers["x-org-id"] as string;
       if (!orgId) {
@@ -28,11 +28,21 @@ export function registerInsightsRoutes(app: Express) {
       const { vesselId, equipmentId, severity, resolved, acknowledged } = req.query;
 
       const conditions = [eq(actionableInsights.orgId, orgId)];
-      if (vesselId) {conditions.push(eq(actionableInsights.vesselId, vesselId as string));}
-      if (equipmentId) {conditions.push(eq(actionableInsights.equipmentId, equipmentId as string));}
-      if (severity) {conditions.push(eq(actionableInsights.severity, severity as string));}
-      if (resolved !== undefined) {conditions.push(eq(actionableInsights.resolved, resolved === 'true'));}
-      if (acknowledged !== undefined) {conditions.push(eq(actionableInsights.acknowledged, acknowledged === 'true'));}
+      if (vesselId) {
+        conditions.push(eq(actionableInsights.vesselId, vesselId as string));
+      }
+      if (equipmentId) {
+        conditions.push(eq(actionableInsights.equipmentId, equipmentId as string));
+      }
+      if (severity) {
+        conditions.push(eq(actionableInsights.severity, severity as string));
+      }
+      if (resolved !== undefined) {
+        conditions.push(eq(actionableInsights.resolved, resolved === "true"));
+      }
+      if (acknowledged !== undefined) {
+        conditions.push(eq(actionableInsights.acknowledged, acknowledged === "true"));
+      }
 
       const results = await db
         .select({
@@ -62,54 +72,61 @@ export function registerInsightsRoutes(app: Express) {
 
       res.json(insights);
     } catch (error) {
-      logger.error('Failed to fetch insights', { error });
-      res.status(500).json({ error: 'Failed to fetch insights' });
+      logger.error("Failed to fetch insights", { error });
+      res.status(500).json({ error: "Failed to fetch insights" });
     }
   });
 
   // Note: These specific routes MUST be registered BEFORE the /:id catch-all route
   // to prevent "snapshots" from being treated as an ID parameter
-  app.get('/api/insights/snapshots', async (req, res) => {
+  app.get("/api/insights/snapshots", async (req, res) => {
     try {
       const orgId = req.headers["x-org-id"] as string;
       if (!orgId) {
         return res.status(400).json({ error: "Organization ID (x-org-id header) is required" });
       }
       const { scope } = req.query;
-      const { insightSnapshots } = await import('@shared/schema-runtime');
+      const { insightSnapshots } = await import("@shared/schema-runtime");
       const conditions = [eq(insightSnapshots.orgId, orgId)];
-      if (scope) {conditions.push(eq(insightSnapshots.scope, scope as string));}
-      const snapshots = await db.select().from(insightSnapshots)
+      if (scope) {
+        conditions.push(eq(insightSnapshots.scope, scope as string));
+      }
+      const snapshots = await db
+        .select()
+        .from(insightSnapshots)
         .where(and(...conditions))
-        .orderBy(sql`${insightSnapshots.createdAt} DESC`).limit(100);
+        .orderBy(sql`${insightSnapshots.createdAt} DESC`)
+        .limit(100);
       res.json(snapshots);
     } catch (error) {
-      logger.error('Failed to fetch insight snapshots', { error });
-      res.status(500).json({ error: 'Failed to fetch insight snapshots' });
+      logger.error("Failed to fetch insight snapshots", { error });
+      res.status(500).json({ error: "Failed to fetch insight snapshots" });
     }
   });
 
-  app.get('/api/insights/snapshots/latest', async (req, res) => {
+  app.get("/api/insights/snapshots/latest", async (req, res) => {
     try {
       const orgId = req.headers["x-org-id"] as string;
       if (!orgId) {
         return res.status(400).json({ error: "Organization ID (x-org-id header) is required" });
       }
-      const { scope = 'fleet' } = req.query;
-      const { insightSnapshots } = await import('@shared/schema-runtime');
-      const [snapshot] = await db.select().from(insightSnapshots)
+      const { scope = "fleet" } = req.query;
+      const { insightSnapshots } = await import("@shared/schema-runtime");
+      const [snapshot] = await db
+        .select()
+        .from(insightSnapshots)
         .where(and(eq(insightSnapshots.orgId, orgId), eq(insightSnapshots.scope, scope as string)))
         .orderBy(sql`${insightSnapshots.createdAt} DESC`)
         .limit(1);
       // Return null if no snapshot found - frontend handles empty state
       res.json(snapshot || null);
     } catch (error) {
-      logger.error('Failed to fetch latest insight snapshot', { error });
-      res.status(500).json({ error: 'Failed to fetch latest insight snapshot' });
+      logger.error("Failed to fetch latest insight snapshot", { error });
+      res.status(500).json({ error: "Failed to fetch latest insight snapshot" });
     }
   });
 
-  app.get('/api/insights/:id', async (req, res) => {
+  app.get("/api/insights/:id", async (req, res) => {
     try {
       const orgId = req.headers["x-org-id"] as string;
       if (!orgId) {
@@ -135,7 +152,7 @@ export function registerInsightsRoutes(app: Express) {
         .limit(1);
 
       if (!result) {
-        return res.status(403).json({ error: 'Insight not found or access denied' });
+        return res.status(403).json({ error: "Insight not found or access denied" });
       }
 
       const insight = {
@@ -151,12 +168,12 @@ export function registerInsightsRoutes(app: Express) {
 
       res.json(insight);
     } catch (error) {
-      logger.error('Failed to fetch insight', { error });
-      res.status(500).json({ error: 'Failed to fetch insight' });
+      logger.error("Failed to fetch insight", { error });
+      res.status(500).json({ error: "Failed to fetch insight" });
     }
   });
 
-  app.post('/api/insights/evaluate/:equipmentId', async (req, res) => {
+  app.post("/api/insights/evaluate/:equipmentId", async (req, res) => {
     try {
       const orgId = req.headers["x-org-id"] as string;
       if (!orgId) {
@@ -172,14 +189,10 @@ export function registerInsightsRoutes(app: Express) {
         .limit(1);
 
       if (!equipmentRecord) {
-        return res.status(403).json({ error: 'Equipment not found or access denied' });
+        return res.status(403).json({ error: "Equipment not found or access denied" });
       }
 
-      const insightIds = await InsightEngine.evaluateAndStoreInsights(
-        equipmentId,
-        orgId,
-        vesselId
-      );
+      const insightIds = await InsightEngine.evaluateAndStoreInsights(equipmentId, orgId, vesselId);
 
       res.json({
         success: true,
@@ -188,12 +201,12 @@ export function registerInsightsRoutes(app: Express) {
         insightIds,
       });
     } catch (error) {
-      logger.error('Failed to evaluate equipment', { error });
-      res.status(500).json({ error: 'Failed to evaluate equipment' });
+      logger.error("Failed to evaluate equipment", { error });
+      res.status(500).json({ error: "Failed to evaluate equipment" });
     }
   });
 
-  app.patch('/api/insights/:id/acknowledge', async (req, res) => {
+  app.patch("/api/insights/:id/acknowledge", async (req, res) => {
     try {
       const orgId = req.headers["x-org-id"] as string;
       if (!orgId) {
@@ -213,17 +226,17 @@ export function registerInsightsRoutes(app: Express) {
         .returning();
 
       if (!updated) {
-        return res.status(403).json({ error: 'Insight not found or access denied' });
+        return res.status(403).json({ error: "Insight not found or access denied" });
       }
 
       res.json(updated);
     } catch (error) {
-      logger.error('Failed to acknowledge insight', { error });
-      res.status(500).json({ error: 'Failed to acknowledge insight' });
+      logger.error("Failed to acknowledge insight", { error });
+      res.status(500).json({ error: "Failed to acknowledge insight" });
     }
   });
 
-  app.patch('/api/insights/:id/resolve', async (req, res) => {
+  app.patch("/api/insights/:id/resolve", async (req, res) => {
     try {
       const orgId = req.headers["x-org-id"] as string;
       if (!orgId) {
@@ -245,17 +258,17 @@ export function registerInsightsRoutes(app: Express) {
         .returning();
 
       if (!updated) {
-        return res.status(403).json({ error: 'Insight not found or access denied' });
+        return res.status(403).json({ error: "Insight not found or access denied" });
       }
 
       res.json(updated);
     } catch (error) {
-      logger.error('Failed to resolve insight', { error });
-      res.status(500).json({ error: 'Failed to resolve insight' });
+      logger.error("Failed to resolve insight", { error });
+      res.status(500).json({ error: "Failed to resolve insight" });
     }
   });
 
-  app.get('/api/insights/stats/summary', async (req, res) => {
+  app.get("/api/insights/stats/summary", async (req, res) => {
     try {
       const orgId = req.headers["x-org-id"] as string;
       if (!orgId) {
@@ -264,13 +277,15 @@ export function registerInsightsRoutes(app: Express) {
       const { vesselId } = req.query;
 
       const conditions = [eq(actionableInsights.orgId, orgId)];
-      if (vesselId) {conditions.push(eq(actionableInsights.vesselId, vesselId as string));}
+      if (vesselId) {
+        conditions.push(eq(actionableInsights.vesselId, vesselId as string));
+      }
 
       const stats = await db
         .select({
           severity: actionableInsights.severity,
           resolved: actionableInsights.resolved,
-          count: sql<number>`count(*)`.as('count'),
+          count: sql<number>`count(*)`.as("count"),
         })
         .from(actionableInsights)
         .where(and(...conditions))
@@ -290,19 +305,19 @@ export function registerInsightsRoutes(app: Express) {
         const count = Number(stat.count);
         summary.total += count;
 
-        if (stat.severity === 'critical') {
+        if (stat.severity === "critical") {
           summary.critical += count;
         }
 
-        if (stat.severity === 'high') {
+        if (stat.severity === "high") {
           summary.high += count;
         }
 
-        if (stat.severity === 'medium') {
+        if (stat.severity === "medium") {
           summary.medium += count;
         }
 
-        if (stat.severity === 'low') {
+        if (stat.severity === "low") {
           summary.low += count;
         }
 
@@ -315,10 +330,10 @@ export function registerInsightsRoutes(app: Express) {
 
       res.json(summary);
     } catch (error) {
-      logger.error('Failed to fetch insight stats', { error });
-      res.status(500).json({ error: 'Failed to fetch insight stats' });
+      logger.error("Failed to fetch insight stats", { error });
+      res.status(500).json({ error: "Failed to fetch insight stats" });
     }
   });
 
-  logger.info('Actionable Insights API routes registered');
+  logger.info("Actionable Insights API routes registered");
 }

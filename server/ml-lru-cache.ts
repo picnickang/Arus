@@ -24,7 +24,9 @@ export function createModelCache<V = unknown>(maxEntries: number): ModelCache<V>
 
   return {
     get(key) {
-      if (!store.has(key)) {return undefined;}
+      if (!store.has(key)) {
+        return undefined;
+      }
       const value = store.get(key) as V;
       store.delete(key);
       store.set(key, value);
@@ -35,7 +37,9 @@ export function createModelCache<V = unknown>(maxEntries: number): ModelCache<V>
         store.delete(key);
       } else if (store.size >= maxEntries) {
         const oldestKey = store.keys().next().value;
-        if (oldestKey !== undefined) {store.delete(oldestKey);}
+        if (oldestKey !== undefined) {
+          store.delete(oldestKey);
+        }
       }
       store.set(key, value);
     },

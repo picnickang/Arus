@@ -10,11 +10,11 @@ import type {
   EquipmentComplianceOptions,
   MaintenanceComplianceOptions,
   RegulatoryFramework,
-} from './types';
-import { generateEquipmentCompliancePDF } from './equipment-compliance';
-import { generateMaintenanceCompliancePDF } from './maintenance-compliance';
-import { generateRegulatoryCompliancePDF } from './regulatory-compliance';
-import { generateFleetComplianceOverviewPDF } from './fleet-compliance';
+} from "./types";
+import { generateEquipmentCompliancePDF } from "./equipment-compliance";
+import { generateMaintenanceCompliancePDF } from "./maintenance-compliance";
+import { generateRegulatoryCompliancePDF } from "./regulatory-compliance";
+import { generateFleetComplianceOverviewPDF } from "./fleet-compliance";
 
 export type {
   ReportingPeriod,
@@ -23,9 +23,9 @@ export type {
   RegulatoryFramework,
   CompliancePDFOptions,
   CompliancePDFResult,
-} from './types';
+} from "./types";
 
-export { FRAMEWORK_STANDARDS } from './types';
+export { FRAMEWORK_STANDARDS } from "./types";
 
 export class CompliancePDFGenerator {
   constructor(private storage: ComplianceDeps) {}
@@ -71,7 +71,10 @@ export class CompliancePDFGenerator {
     );
   }
 
-  async generateFleetComplianceOverviewPDF(orgId: string, period: ReportingPeriod): Promise<Uint8Array> {
+  async generateFleetComplianceOverviewPDF(
+    orgId: string,
+    period: ReportingPeriod
+  ): Promise<Uint8Array> {
     return generateFleetComplianceOverviewPDF(this.storage, orgId, period);
   }
 }

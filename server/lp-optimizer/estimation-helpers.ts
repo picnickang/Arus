@@ -13,9 +13,15 @@ export function getPriorityCost(
 }
 
 export function getRequiredSkillLevel(maintenanceType: string, equipmentType: string): number {
-  if (equipmentType === "engine" && maintenanceType === "corrective") { return 4; }
-  if (equipmentType === "engine") { return 3; }
-  if (maintenanceType === "corrective") { return 3; }
+  if (equipmentType === "engine" && maintenanceType === "corrective") {
+    return 4;
+  }
+  if (equipmentType === "engine") {
+    return 3;
+  }
+  if (maintenanceType === "corrective") {
+    return 3;
+  }
   return 2;
 }
 
@@ -29,9 +35,15 @@ export function estimateWorkOrderDuration(description: string, priority: number)
   const keywords = (description || "").toLowerCase();
   let multiplier = 1;
 
-  if (keywords.includes("replace") || keywords.includes("overhaul")) { multiplier = 2; }
-  if (keywords.includes("inspect") || keywords.includes("check")) { multiplier = 0.5; }
-  if (keywords.includes("complex") || keywords.includes("rebuild")) { multiplier = 3; }
+  if (keywords.includes("replace") || keywords.includes("overhaul")) {
+    multiplier = 2;
+  }
+  if (keywords.includes("inspect") || keywords.includes("check")) {
+    multiplier = 0.5;
+  }
+  if (keywords.includes("complex") || keywords.includes("rebuild")) {
+    multiplier = 3;
+  }
 
   return Math.round(baseTime * multiplier);
 }
@@ -45,7 +57,10 @@ export function estimatePartsRequired(
 
   if (maintenanceType === "preventive") {
     if (equipmentType === "engine") {
-      parts.push({ partId: "filter-oil", quantity: 1, unitCost: 25 }, { partId: "oil", quantity: 5, unitCost: 8 });
+      parts.push(
+        { partId: "filter-oil", quantity: 1, unitCost: 25 },
+        { partId: "oil", quantity: 5, unitCost: 8 }
+      );
     }
   } else if (maintenanceType === "corrective") {
     parts.push({ partId: "spare-parts-general", quantity: 1, unitCost: 100 });

@@ -1,6 +1,6 @@
 /**
  * Inventory Engine - Availability
- * 
+ *
  * Parts availability checking and substitution lookups.
  */
 
@@ -33,7 +33,9 @@ export async function checkPartsAvailability(
   storage: InventoryStorage,
   orgId: string
 ): Promise<PartAvailability[]> {
-  if (partNumbers.length === 0) {return [];}
+  if (partNumbers.length === 0) {
+    return [];
+  }
 
   const startTime = Date.now();
   const batchSizeBucket = getBatchSizeBucket(partNumbers.length);
@@ -184,7 +186,9 @@ export async function findPartSubstitutions(
   const result = substituteParts.length > 0 ? "found" : "none";
   inventorySubstitutionLookups.inc({ org_id: orgId, result });
 
-  if (substituteParts.length === 0) {return [];}
+  if (substituteParts.length === 0) {
+    return [];
+  }
 
   const availability = await checkPartsAvailability(substituteParts, storage, orgId);
 

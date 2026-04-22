@@ -1,6 +1,6 @@
 /**
  * RAG Feedback Service
- * 
+ *
  * Tracks user feedback on RAG responses for quality improvement.
  * Features:
  * - Feedback collection (helpful, not helpful, inaccurate, etc.)
@@ -8,12 +8,12 @@
  * - Re-ranking signals based on feedback
  */
 
-import { db } from '../../db';
-import { sql, eq, and } from 'drizzle-orm';
-import { ragFeedback } from '@shared/schema-runtime';
-import type { RagFeedback } from '@shared/schema';
-import type { FeedbackInput } from './types';
-import { logger } from '../../utils/logger';
+import { db } from "../../db";
+import { sql, eq, and } from "drizzle-orm";
+import { ragFeedback } from "@shared/schema-runtime";
+import type { RagFeedback } from "@shared/schema";
+import type { FeedbackInput } from "./types";
+import { logger } from "../../utils/logger";
 
 export interface FeedbackStats {
   totalFeedback: number;
@@ -58,7 +58,7 @@ export class FeedbackService {
     limit?: number;
   }): Promise<RagFeedback[]> {
     const conditions = [eq(ragFeedback.orgId, params.orgId)];
-    
+
     if (params.messageId) {
       conditions.push(eq(ragFeedback.messageId, params.messageId));
     }
@@ -94,15 +94,18 @@ export class FeedbackService {
 
     const row = stats.rows[0];
     return {
-      totalFeedback: parseInt(row?.total_feedback || '0', 10),
-      helpfulCount: parseInt(row?.helpful_count || '0', 10),
-      notHelpfulCount: parseInt(row?.not_helpful_count || '0', 10),
-      inaccurateCount: parseInt(row?.inaccurate_count || '0', 10),
+      totalFeedback: parseInt(row?.total_feedback || "0", 10),
+      helpfulCount: parseInt(row?.helpful_count || "0", 10),
+      notHelpfulCount: parseInt(row?.not_helpful_count || "0", 10),
+      inaccurateCount: parseInt(row?.inaccurate_count || "0", 10),
       averageRating: row?.avg_rating ? parseFloat(row.avg_rating) : null,
     };
   }
 
-  async getChunkFeedbackStats(orgId: string, chunkIds: string[]): Promise<Map<string, ChunkFeedbackStats>> {
+  async getChunkFeedbackStats(
+    orgId: string,
+    chunkIds: string[]
+  ): Promise<Map<string, ChunkFeedbackStats>> {
     if (chunkIds.length === 0) {
       return new Map();
     }
@@ -129,7 +132,7 @@ export class FeedbackService {
       const helpful = parseInt(row.helpful_count, 10);
       const notHelpful = parseInt(row.not_helpful_count, 10);
       const total = parseInt(row.total_feedback, 10);
-      
+
       const score = total > 0 ? (helpful - notHelpful) / total : 0;
 
       result.set(row.chunk_id, {
@@ -181,7 +184,7 @@ export class FeedbackService {
       LIMIT ${limit}
     `);
 
-    return stats.rows.map(row => ({
+    return stats.rows.map((row) => ({
       chunkId: row.chunk_id,
       helpfulCount: parseInt(row.helpful_count, 10),
       notHelpfulCount: parseInt(row.not_helpful_count, 10),
@@ -215,7 +218,7 @@ export class FeedbackService {
       LIMIT ${limit}
     `);
 
-    return stats.rows.map(row => ({
+    return stats.rows.map((row) => ({
       chunkId: row.chunk_id,
       helpfulCount: parseInt(row.helpful_count, 10),
       notHelpfulCount: parseInt(row.not_helpful_count, 10),

@@ -9,8 +9,7 @@ export function trackPageVisit(path: string): void {
     const filtered = recent.filter((p) => p !== path);
     filtered.unshift(path);
     localStorage.setItem(RECENT_PAGES_KEY, JSON.stringify(filtered.slice(0, MAX_RECENT)));
-  } catch {
-  }
+  } catch {}
 }
 
 export function getRecentPages(): string[] {
@@ -33,13 +32,11 @@ export function getLastVisitTime(): string | null {
 export function recordVisitTime(): void {
   try {
     localStorage.setItem(LAST_VISIT_KEY, new Date().toISOString());
-  } catch {
-  }
+  } catch {}
 }
 
 export function clearRecentPages(): void {
   try {
     localStorage.removeItem(RECENT_PAGES_KEY);
-  } catch {
-  }
+  } catch {}
 }

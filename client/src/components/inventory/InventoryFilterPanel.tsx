@@ -13,11 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Search,
   Filter,
@@ -119,7 +115,10 @@ export function InventoryFilterPanel({
   const hasActiveFilters = activeFilterCount > 0;
 
   return (
-    <div className={cn("flex flex-col h-full bg-background", className)} data-testid="inventory-filter-panel">
+    <div
+      className={cn("flex flex-col h-full bg-background", className)}
+      data-testid="inventory-filter-panel"
+    >
       <div className="p-4 border-b">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -204,10 +203,7 @@ export function InventoryFilterPanel({
                   <p className="text-sm text-muted-foreground py-2">No categories available</p>
                 ) : (
                   filterOptions.categories.map((option) => (
-                    <div
-                      key={option.value}
-                      className="flex items-center space-x-2"
-                    >
+                    <div key={option.value} className="flex items-center space-x-2">
                       <Checkbox
                         id={`category-${option.value}`}
                         checked={filters.categories.includes(option.value)}
@@ -242,10 +238,7 @@ export function InventoryFilterPanel({
             <CollapsibleContent className="pt-2">
               <div className="space-y-2">
                 {CRITICALITY_OPTIONS.map((option) => (
-                  <div
-                    key={option.value}
-                    className="flex items-center space-x-2"
-                  >
+                  <div key={option.value} className="flex items-center space-x-2">
                     <Checkbox
                       id={`criticality-${option.value}`}
                       checked={filters.criticalities.includes(option.value)}
@@ -277,10 +270,7 @@ export function InventoryFilterPanel({
                   <p className="text-sm text-muted-foreground py-2">No suppliers available</p>
                 ) : (
                   filterOptions.suppliers.map((option) => (
-                    <div
-                      key={option.value}
-                      className="flex items-center space-x-2"
-                    >
+                    <div key={option.value} className="flex items-center space-x-2">
                       <Checkbox
                         id={`supplier-${option.value}`}
                         checked={filters.suppliers.includes(option.value)}

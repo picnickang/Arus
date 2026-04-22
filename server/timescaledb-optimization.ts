@@ -1,6 +1,6 @@
 // Stub file - TimescaleDB optimization consolidated
 export async function applyTimescaleOptimizations(): Promise<void> {
-  console.log('[TimescaleDB] Optimizations skipped - standard PostgreSQL mode');
+  console.log("[TimescaleDB] Optimizations skipped - standard PostgreSQL mode");
 }
 
 export async function configureChunkTimeInterval(): Promise<void> {

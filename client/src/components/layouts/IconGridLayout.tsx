@@ -1,4 +1,12 @@
-import { useState, useEffect, useMemo, lazy, Suspense, type ReactNode, type ComponentType } from "react";
+import {
+  useState,
+  useEffect,
+  useMemo,
+  lazy,
+  Suspense,
+  type ReactNode,
+  type ComponentType,
+} from "react";
 import { useLocation, useSearch, Link } from "wouter";
 import { ChevronLeft, ChevronRight, Home, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -102,9 +110,13 @@ function GridItemCard({
 
 function useDeferredComponent(item: GridItem | undefined) {
   return useMemo(() => {
-    if (!item) {return null;}
+    if (!item) {
+      return null;
+    }
 
-    if (item.component) {return item.component;}
+    if (item.component) {
+      return item.component;
+    }
 
     if (item.load) {
       const LazyComponent = lazy(item.load);
@@ -189,23 +201,38 @@ export function IconGridLayout({
             <nav aria-label="Breadcrumb" data-testid="breadcrumb-nav">
               <ol className="flex items-center gap-1 text-sm text-muted-foreground">
                 <li>
-                  <Link href="/" className="hover:text-foreground transition-colors inline-flex items-center gap-1" aria-label="Home" data-testid="breadcrumb-home">
+                  <Link
+                    href="/"
+                    className="hover:text-foreground transition-colors inline-flex items-center gap-1"
+                    aria-label="Home"
+                    data-testid="breadcrumb-home"
+                  >
                     <Home className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">Home</span>
                   </Link>
                 </li>
-                <li aria-hidden="true"><ChevronRight className="h-3.5 w-3.5" /></li>
+                <li aria-hidden="true">
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </li>
                 {selectedItem ? (
                   <>
                     <li>
                       <span className="text-foreground">{title}</span>
                     </li>
-                    <li aria-hidden="true"><ChevronRight className="h-3.5 w-3.5" /></li>
-                    <li><span className="font-medium text-foreground" aria-current="page">{selectedItem.label}</span></li>
+                    <li aria-hidden="true">
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </li>
+                    <li>
+                      <span className="font-medium text-foreground" aria-current="page">
+                        {selectedItem.label}
+                      </span>
+                    </li>
                   </>
                 ) : (
                   <li>
-                    <span className="font-medium text-foreground" aria-current="page">{title}</span>
+                    <span className="font-medium text-foreground" aria-current="page">
+                      {title}
+                    </span>
                   </li>
                 )}
               </ol>
@@ -217,10 +244,7 @@ export function IconGridLayout({
               {title}
             </h1>
             {description && !isMobile && (
-              <p
-                className="text-sm text-muted-foreground"
-                data-testid="grid-page-description"
-              >
+              <p className="text-sm text-muted-foreground" data-testid="grid-page-description">
                 {description}
               </p>
             )}

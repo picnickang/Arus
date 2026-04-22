@@ -3,18 +3,18 @@
  * Core domain types for report scheduling and generation
  */
 
-export type ReportType = 
-  | 'fleet_health'
-  | 'maintenance_due'
-  | 'inventory_status'
-  | 'crew_compliance'
-  | 'cost_summary';
+export type ReportType =
+  | "fleet_health"
+  | "maintenance_due"
+  | "inventory_status"
+  | "crew_compliance"
+  | "cost_summary";
 
-export type ReportFrequency = 'daily' | 'weekly' | 'monthly' | 'custom';
+export type ReportFrequency = "daily" | "weekly" | "monthly" | "custom";
 
-export type ReportFormat = 'pdf' | 'csv' | 'json';
+export type ReportFormat = "pdf" | "csv" | "json";
 
-export type ReportStatus = 'pending' | 'generating' | 'completed' | 'failed' | 'delivered';
+export type ReportStatus = "pending" | "generating" | "completed" | "failed" | "delivered";
 
 export interface ReportScheduleConfig {
   id: string;
@@ -75,7 +75,7 @@ export interface ReportData {
 
 export interface ReportSection {
   title: string;
-  type: 'table' | 'chart' | 'text' | 'list';
+  type: "table" | "chart" | "text" | "list";
   data: unknown;
 }
 
@@ -108,7 +108,7 @@ export interface EquipmentAlert {
   equipmentId: string;
   equipmentName: string;
   vesselName: string;
-  severity: 'critical' | 'warning';
+  severity: "critical" | "warning";
   issue: string;
   predictedFailure: Date | null;
 }
@@ -176,7 +176,7 @@ export interface CrewChange {
   crewId: string;
   crewName: string;
   vesselName: string;
-  changeType: 'embark' | 'disembark';
+  changeType: "embark" | "disembark";
   date: Date;
 }
 

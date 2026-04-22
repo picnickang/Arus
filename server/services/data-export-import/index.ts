@@ -1,6 +1,6 @@
 /**
  * Data Export/Import Service
- * 
+ *
  * Re-exports all modules and provides backward-compatible service class.
  */
 
@@ -46,10 +46,7 @@ export class DataExportImportService {
     return exportOrg(this.exportDir, orgId, options, exportedBy);
   }
 
-  async importData(
-    archivePath: string,
-    options: ImportOptions = {}
-  ): Promise<ImportResult> {
+  async importData(archivePath: string, options: ImportOptions = {}): Promise<ImportResult> {
     return importData(this.exportDir, archivePath, options);
   }
 

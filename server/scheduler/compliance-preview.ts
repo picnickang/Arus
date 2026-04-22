@@ -1,10 +1,10 @@
 import { dbCrewStorage } from "../repositories";
 import { checkMonthCompliance, type RestDay } from "../stcw-compliance";
-import { 
-  initializeRestHours, 
-  markWorkHoursForDay, 
-  getWorkHoursForDate, 
-  getDatesInRange 
+import {
+  initializeRestHours,
+  markWorkHoursForDay,
+  getWorkHoursForDate,
+  getDatesInRange,
 } from "./hor-generator";
 
 interface ScheduleAssignment {
@@ -21,9 +21,9 @@ export interface ComplianceViolation {
   crewId: string;
   crewName: string;
   date: string;
-  rule: '10h_24h' | '77h_7d' | 'split_rest' | 'consecutive_days';
+  rule: "10h_24h" | "77h_7d" | "split_rest" | "consecutive_days";
   description: string;
-  severity: 'warning' | 'violation';
+  severity: "warning" | "violation";
   restHours?: number;
   requiredHours?: number;
 }
@@ -88,27 +88,27 @@ function buildCrewRestDaysFromAssignments(
   for (const assignment of assignments) {
     const startTime = new Date(assignment.start);
     const endTime = new Date(assignment.end);
-    
+
     const datesAffected = getDatesInRange(startTime, endTime);
-    
+
     for (const dateStr of datesAffected) {
       if (!crewDaysMap.has(assignment.crewId)) {
         crewDaysMap.set(assignment.crewId, new Map());
       }
-      
+
       const crewDays = crewDaysMap.get(assignment.crewId)!;
-      
+
       if (!crewDays.has(dateStr)) {
         crewDays.set(dateStr, initializeRestHours());
       }
-      
+
       const workHours = getWorkHoursForDate(startTime, endTime, dateStr);
       const currentFlags = crewDays.get(dateStr)!;
       const updatedFlags = markWorkHoursForDay(currentFlags, workHours);
       crewDays.set(dateStr, updatedFlags);
     }
   }
-  
+
   return crewDaysMap;
 }
 
@@ -128,20 +128,20 @@ function add24hViolation(
   detail: CrewDetail
 ): void {
   const deficit = 10 - dayResult.min_rest_24;
-  const severity: 'warning' | 'violation' = deficit >= 3 ? 'violation' : 'warning';
+  const severity: "warning" | "violation" = deficit >= 3 ? "violation" : "warning";
 
   violations.push({
     crewId,
     crewName,
     date: dayResult.date,
-    rule: '10h_24h',
+    rule: "10h_24h",
     description: `Only ${dayResult.min_rest_24}h rest in 24h period (minimum 10h required)`,
     severity,
     restHours: dayResult.min_rest_24,
     requiredHours: 10,
   });
 
-  if (severity === 'violation') {
+  if (severity === "violation") {
     detail.violationCount++;
   } else {
     detail.warningCount++;
@@ -161,9 +161,9 @@ function addSplitViolation(
     crewId,
     crewName,
     date: dayResult.date,
-    rule: 'split_rest',
+    rule: "split_rest",
     description: `Rest period split rule violated: ${dayResult.chunks.length} periods, longest ${longestChunk}h (must have ≤2 periods, one ≥6h)`,
-    severity: 'warning',
+    severity: "warning",
   });
   detail.warningCount++;
   detail.isCompliant = false;
@@ -177,20 +177,20 @@ function add7dViolation(
   detail: CrewDetail
 ): void {
   const deficit = 77 - rolling.rest_7d;
-  const severity: 'warning' | 'violation' = deficit >= 10 ? 'violation' : 'warning';
+  const severity: "warning" | "violation" = deficit >= 10 ? "violation" : "warning";
 
   violations.push({
     crewId,
     crewName,
     date: rolling.end_date,
-    rule: '77h_7d',
+    rule: "77h_7d",
     description: `Only ${rolling.rest_7d}h rest in 7-day period ending ${rolling.end_date} (minimum 77h required)`,
     severity,
     restHours: rolling.rest_7d,
     requiredHours: 77,
   });
 
-  if (severity === 'violation') {
+  if (severity === "violation") {
     detail.violationCount++;
   } else {
     detail.warningCount++;
@@ -214,7 +214,9 @@ function processCrewCompliance(
   });
 
   const sortedDates = Array.from(daysMap.keys()).sort((a, b) => a.localeCompare(b));
-  if (sortedDates.length === 0) {return;}
+  if (sortedDates.length === 0) {
+    return;
+  }
 
   const startDate = new Date(sortedDates[0]);
   const endDate = new Date(sortedDates[sortedDates.length - 1]);
@@ -258,20 +260,20 @@ export async function previewScheduleCompliance(
 
   const enrichedAssignments: ScheduleAssignment[] = assignments.map((a) => ({
     ...a,
-    crewName: a.crewName || crewLookup.get(a.crewId) || 'Unknown',
+    crewName: a.crewName || crewLookup.get(a.crewId) || "Unknown",
   }));
 
   const crewDaysMap = buildCrewRestDaysFromAssignments(enrichedAssignments);
 
   for (const [crewId, daysMap] of crewDaysMap) {
-    const crewName = crewLookup.get(crewId) || 'Unknown';
+    const crewName = crewLookup.get(crewId) || "Unknown";
     processCrewCompliance(crewId, crewName, daysMap, violations, crewDetailsMap);
   }
 
   const crewDetails = Array.from(crewDetailsMap.values());
   const compliantCrew = crewDetails.filter((c) => c.isCompliant).length;
-  const violationCount = violations.filter((v) => v.severity === 'violation').length;
-  const warningCount = violations.filter((v) => v.severity === 'warning').length;
+  const violationCount = violations.filter((v) => v.severity === "violation").length;
+  const warningCount = violations.filter((v) => v.severity === "warning").length;
 
   return {
     isCompliant: violations.length === 0,

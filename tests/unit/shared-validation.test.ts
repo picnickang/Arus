@@ -69,7 +69,8 @@ describe("Marine Validation", () => {
 describe("Telemetry Validation", () => {
   it("validates telemetry payload if schema exists", () => {
     if ("telemetryPayloadSchema" in validators || "telemetryRecordSchema" in validators) {
-      const schema = (validators as any).telemetryPayloadSchema || (validators as any).telemetryRecordSchema;
+      const schema =
+        (validators as any).telemetryPayloadSchema || (validators as any).telemetryRecordSchema;
       // Telemetry typically needs: sensorId, value, timestamp
       const valid = schema.safeParse({
         sensorId: "sensor-001",

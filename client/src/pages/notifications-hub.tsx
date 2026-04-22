@@ -19,7 +19,9 @@ function TabLoader() {
 }
 
 function getTabFromUrl(): string {
-  if (typeof window === "undefined") {return "preferences";}
+  if (typeof window === "undefined") {
+    return "preferences";
+  }
   const params = new URLSearchParams(window.location.search);
   return params.get("tab") || "preferences";
 }
@@ -50,19 +52,35 @@ export default function NotificationsHub() {
       <div className="p-4">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
           <TabsList className="grid w-full max-w-xl grid-cols-4">
-            <TabsTrigger value="preferences" className="flex items-center gap-2" data-testid="tab-preferences">
+            <TabsTrigger
+              value="preferences"
+              className="flex items-center gap-2"
+              data-testid="tab-preferences"
+            >
               <Bell className="h-4 w-4" />
               <span className="hidden sm:inline">Preferences</span>
             </TabsTrigger>
-            <TabsTrigger value="ai-suggestions" className="flex items-center gap-2" data-testid="tab-ai-suggestions">
+            <TabsTrigger
+              value="ai-suggestions"
+              className="flex items-center gap-2"
+              data-testid="tab-ai-suggestions"
+            >
               <Bot className="h-4 w-4" />
               <span className="hidden sm:inline">AI Suggestions</span>
             </TabsTrigger>
-            <TabsTrigger value="alert-rules" className="flex items-center gap-2" data-testid="tab-alert-rules">
+            <TabsTrigger
+              value="alert-rules"
+              className="flex items-center gap-2"
+              data-testid="tab-alert-rules"
+            >
               <AlertTriangle className="h-4 w-4" />
               <span className="hidden sm:inline">Alert Rules</span>
             </TabsTrigger>
-            <TabsTrigger value="templates" className="flex items-center gap-2" data-testid="tab-templates">
+            <TabsTrigger
+              value="templates"
+              className="flex items-center gap-2"
+              data-testid="tab-templates"
+            >
               <Mail className="h-4 w-4" />
               <span className="hidden sm:inline">Templates</span>
             </TabsTrigger>

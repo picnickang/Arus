@@ -15,11 +15,7 @@ export class DomainError extends Error {
 
 export class NotFoundError extends DomainError {
   constructor(resource: string, id?: string) {
-    super(
-      id ? `${resource} with id ${id} not found` : `${resource} not found`,
-      "NOT_FOUND",
-      404
-    );
+    super(id ? `${resource} with id ${id} not found` : `${resource} not found`, "NOT_FOUND", 404);
     this.name = "NotFoundError";
   }
 }
@@ -99,30 +95,30 @@ export function mapStorageError(error: unknown, context: string): DomainError {
   if (error instanceof DomainError) {
     return error;
   }
-  
+
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
-    
+
     if (message.includes("unique constraint") || message.includes("duplicate key")) {
       const match = message.match(/key \((\w+)\)/);
       return new UniqueConstraintError(match?.[1] || "field");
     }
-    
+
     if (message.includes("foreign key") || message.includes("violates foreign key")) {
       return new ValidationError("Referenced resource does not exist");
     }
-    
+
     if (message.includes("not found") || message.includes("no rows")) {
       return new NotFoundError(context);
     }
-    
+
     if (message.includes("permission denied") || message.includes("access denied")) {
       return new ForbiddenError();
     }
-    
+
     return new StorageError(context, { originalMessage: error.message });
   }
-  
+
   return new StorageError(context);
 }
 
@@ -132,11 +128,7 @@ export interface ErrorResponse {
   errors?: unknown;
 }
 
-export function handleRouteError(
-  error: unknown,
-  res: Response,
-  context: string
-): void {
+export function handleRouteError(error: unknown, res: Response, context: string): void {
   console.error(`[${context}] Error:`, error);
 
   if (error instanceof z.ZodError) {
@@ -196,7 +188,11 @@ export function createTenantMiddleware(): RequestHandler {
   return (req: Request & { orgId?: string }, res: Response, next: NextFunction) => {
     const orgId = req.headers["x-org-id"] as string;
     if (!orgId) {
-      handleRouteError(new AuthorizationError("Missing organization context"), res, "TenantMiddleware");
+      handleRouteError(
+        new AuthorizationError("Missing organization context"),
+        res,
+        "TenantMiddleware"
+      );
       return;
     }
     req.orgId = orgId;

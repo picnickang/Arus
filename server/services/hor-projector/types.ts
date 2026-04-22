@@ -37,7 +37,13 @@ export interface ProjectionViolation {
   crewId: string;
   crewName?: string;
   date: string;
-  rule: "10h_24h" | "77h_7d" | "split_rest" | "overlap" | "max_consecutive" | "vessel_roster_mismatch";
+  rule:
+    | "10h_24h"
+    | "77h_7d"
+    | "split_rest"
+    | "overlap"
+    | "max_consecutive"
+    | "vessel_roster_mismatch";
   severity: "warning" | "error";
   description: string;
   currentValue?: number;

@@ -1,6 +1,6 @@
 /**
  * Insights Engine Types
- * 
+ *
  * Type definitions for fleet KPI analysis and risk assessment.
  */
 

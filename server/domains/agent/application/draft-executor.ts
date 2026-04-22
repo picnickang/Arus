@@ -44,17 +44,11 @@ export async function executeDraftAction(
     const sendErrors: string[] = [];
     for (const recipient of recipients) {
       try {
-        await emailSender.sendWithAttachment(
-          recipient,
-          subject,
-          bodyText,
-          `<p>${bodyText}</p>`,
-          {
-            filename: reportArtifact.fileName,
-            content: fileContent,
-            contentType: mimeMap[reportArtifact.format] || "application/octet-stream",
-          }
-        );
+        await emailSender.sendWithAttachment(recipient, subject, bodyText, `<p>${bodyText}</p>`, {
+          filename: reportArtifact.fileName,
+          content: fileContent,
+          contentType: mimeMap[reportArtifact.format] || "application/octet-stream",
+        });
       } catch (err) {
         sendErrors.push(`${recipient}: ${err instanceof Error ? err.message : "send failed"}`);
       }

@@ -4,7 +4,11 @@ import { workOrders, workOrderParts } from "@shared/schema";
 import type { IWorkOrderDemandRepository, WorkOrderPartDemand } from "../domain/ports";
 
 export class WorkOrderDemandRepositoryAdapter implements IWorkOrderDemandRepository {
-  async getUpcomingDemand(orgId: string, daysAhead = 30, vesselId?: string): Promise<WorkOrderPartDemand[]> {
+  async getUpcomingDemand(
+    orgId: string,
+    daysAhead = 30,
+    vesselId?: string
+  ): Promise<WorkOrderPartDemand[]> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() + daysAhead);
 

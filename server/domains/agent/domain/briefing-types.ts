@@ -28,7 +28,7 @@ export const BRIEFING_SECTION_KEYS = [
   "equipment_health",
 ] as const;
 
-export type BriefingSectionKey = typeof BRIEFING_SECTION_KEYS[number];
+export type BriefingSectionKey = (typeof BRIEFING_SECTION_KEYS)[number];
 
 export interface BriefingRepositoryPort {
   create(data: InsertAgentBriefing): Promise<AgentBriefing>;

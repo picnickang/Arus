@@ -3,7 +3,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Activity, Database, Cpu, Clock, AlertTriangle, CheckCircle2, XCircle, Gauge } from "lucide-react";
+import {
+  Activity,
+  Database,
+  Cpu,
+  Clock,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  Gauge,
+} from "lucide-react";
 
 interface TelemetryHealth {
   status: "healthy" | "degraded" | "unhealthy";
@@ -22,7 +31,11 @@ interface TelemetryHealth {
 }
 
 export function TelemetryHealthMonitor() {
-  const { data: health, isLoading, error } = useQuery<TelemetryHealth>({
+  const {
+    data: health,
+    isLoading,
+    error,
+  } = useQuery<TelemetryHealth>({
     queryKey: ["/api/telemetry/health"],
     refetchInterval: 60000,
   });
@@ -36,7 +49,9 @@ export function TelemetryHealthMonitor() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-4">
-              {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-20" />)}
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-20" />
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -55,17 +70,21 @@ export function TelemetryHealthMonitor() {
     );
   }
 
-  const statusIcon = health.status === "healthy" 
-    ? <CheckCircle2 className="h-5 w-5 text-green-500" />
-    : health.status === "degraded"
-    ? <AlertTriangle className="h-5 w-5 text-amber-500" />
-    : <XCircle className="h-5 w-5 text-destructive" />;
+  const statusIcon =
+    health.status === "healthy" ? (
+      <CheckCircle2 className="h-5 w-5 text-green-500" />
+    ) : health.status === "degraded" ? (
+      <AlertTriangle className="h-5 w-5 text-amber-500" />
+    ) : (
+      <XCircle className="h-5 w-5 text-destructive" />
+    );
 
-  const statusColor = health.status === "healthy" 
-    ? "bg-green-500/10 text-green-500 border-green-500/30"
-    : health.status === "degraded"
-    ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
-    : "bg-destructive/10 text-destructive border-destructive/30";
+  const statusColor =
+    health.status === "healthy"
+      ? "bg-green-500/10 text-green-500 border-green-500/30"
+      : health.status === "degraded"
+        ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
+        : "bg-destructive/10 text-destructive border-destructive/30";
 
   return (
     <div className="space-y-4">
@@ -77,7 +96,9 @@ export function TelemetryHealthMonitor() {
                 <Activity className="h-5 w-5" />
                 Telemetry System Health
               </CardTitle>
-              <CardDescription>Real-time monitoring of telemetry ingestion pipeline</CardDescription>
+              <CardDescription>
+                Real-time monitoring of telemetry ingestion pipeline
+              </CardDescription>
             </div>
             <Badge variant="outline" className={statusColor}>
               {statusIcon}
@@ -117,7 +138,9 @@ export function TelemetryHealthMonitor() {
           {health.droppedMessages > 0 && (
             <div className="mt-4 flex items-center gap-2 text-sm text-amber-500">
               <AlertTriangle className="h-4 w-4" />
-              <span>{health.droppedMessages.toLocaleString()} messages dropped due to buffer overflow</span>
+              <span>
+                {health.droppedMessages.toLocaleString()} messages dropped due to buffer overflow
+              </span>
             </div>
           )}
         </CardContent>
@@ -148,8 +171,8 @@ export function TelemetryHealthMonitor() {
                       vessel.status === "online"
                         ? "bg-green-500/10 text-green-500 border-green-500/30"
                         : vessel.status === "stale"
-                        ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
-                        : "bg-muted text-muted-foreground"
+                          ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
+                          : "bg-muted text-muted-foreground"
                     }
                   >
                     {vessel.status}

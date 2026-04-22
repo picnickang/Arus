@@ -14,7 +14,8 @@ const crewIdSchema = z.object({ id: z.string().uuid("Invalid crew ID format") })
 export function registerDutyRoutes(app: Express, config: CrewExtensionsRoutesConfig) {
   const { crewOperationRateLimit } = config;
 
-  app.get("/api/crew/:id/toggle-duty",
+  app.get(
+    "/api/crew/:id/toggle-duty",
     withErrorHandling("toggle duty status", async (req: Request, res: Response) => {
       const { id } = crewIdSchema.parse(req.params);
       const orgId = (req as any).orgId;
@@ -27,7 +28,9 @@ export function registerDutyRoutes(app: Express, config: CrewExtensionsRoutesCon
     })
   );
 
-  app.post("/api/crew/:id/toggle-duty", crewOperationRateLimit,
+  app.post(
+    "/api/crew/:id/toggle-duty",
+    crewOperationRateLimit,
     withErrorHandling("toggle duty status", async (req: Request, res: Response) => {
       const { id } = crewIdSchema.parse(req.params);
       const orgId = (req as any).orgId;
@@ -36,11 +39,15 @@ export function registerDutyRoutes(app: Express, config: CrewExtensionsRoutesCon
         return sendNotFound(res, "Crew member");
       }
       const newDutyStatus = !crew.onDuty;
-      const updatedCrew = await dbCrewStorage.updateCrewMember(id, { onDuty: newDutyStatus }, orgId);
+      const updatedCrew = await dbCrewStorage.updateCrewMember(
+        id,
+        { onDuty: newDutyStatus },
+        orgId
+      );
       res.json({
         success: true,
         crew: updatedCrew,
-        message: `${crew.name} is now ${newDutyStatus ? "on duty" : "off duty"}`
+        message: `${crew.name} is now ${newDutyStatus ? "on duty" : "off duty"}`,
       });
     })
   );

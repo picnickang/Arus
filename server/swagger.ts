@@ -1,9 +1,9 @@
 /**
  * OpenAPI/Swagger Specification - Backward Compatibility Shim
- * 
+ *
  * DEPRECATED: This file re-exports from the modular swagger/ directory.
  * New code should import directly from './swagger/index.js'.
- * 
+ *
  * Original: 1,050 lines → Modularized into 12 files:
  * - swagger/spec-info.ts (~70 lines): Info, servers, tags
  * - swagger/schemas.ts (~190 lines): Component schemas

@@ -34,7 +34,14 @@ export function recordTenantIsolationDenied(orgRequested: string, userOrg: strin
   crossOrgAccessBlockedTotal.inc();
 }
 
-export function recordAuthFailure(reason: "missing_org_id" | "invalid_token" | "expired_session" | "unauthenticated" | "invalid_org_id_format") {
+export function recordAuthFailure(
+  reason:
+    | "missing_org_id"
+    | "invalid_token"
+    | "expired_session"
+    | "unauthenticated"
+    | "invalid_org_id_format"
+) {
   authFailureTotal.inc({ reason });
 }
 

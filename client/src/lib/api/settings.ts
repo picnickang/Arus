@@ -25,7 +25,13 @@ export interface DashboardSummary {
   vessels: Array<{ id: string; name: string; imo?: string; vesselType?: string }>;
   devices: Array<{ id: string; name: string; status?: string; vesselId?: string }>;
   equipmentHealth: Array<{ id: string; name?: string; healthIndex: number; status?: string }>;
-  workOrders: Array<{ id: string; title?: string; priority?: string | number; status?: string; equipmentId?: string }>;
+  workOrders: Array<{
+    id: string;
+    title?: string;
+    priority?: string | number;
+    status?: string;
+    equipmentId?: string;
+  }>;
   equipment: Array<{ id: string; name: string; type?: string; vesselId?: string }>;
   timestamp: string;
 }

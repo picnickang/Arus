@@ -3,11 +3,26 @@ import { useParams, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Plus, Send, XCircle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
-import { usePurchaseRequest, useAddPRItem, useRemovePRItem, useSendPR, useCancelPR } from "../hooks/usePurchaseRequests";
+import {
+  usePurchaseRequest,
+  useAddPRItem,
+  useRemovePRItem,
+  useSendPR,
+  useCancelPR,
+} from "../hooks/usePurchaseRequests";
 import { PRStatusBadge } from "../components/PRStatusBadge";
 import { PurchasePipelineStrip } from "../components/PurchasePipelineStrip";
 import { PRItemsTable } from "../components/PRItemsTable";
@@ -30,26 +45,37 @@ export function PRDetailPage() {
   const cancelMutation = useCancelPR();
 
   const handleAddItem = (data: PRItemFormData) => {
-    addItemMutation.mutate({ prId: id, ...data }, {
-      onSuccess: () => {
-        toast({ title: "Item added" });
-        setIsAddItemOpen(false);
-      },
-      onError: (err) => toast({ title: "Error", description: String(err), variant: "destructive" }),
-    });
+    addItemMutation.mutate(
+      { prId: id, ...data },
+      {
+        onSuccess: () => {
+          toast({ title: "Item added" });
+          setIsAddItemOpen(false);
+        },
+        onError: (err) =>
+          toast({ title: "Error", description: String(err), variant: "destructive" }),
+      }
+    );
   };
 
   const handleRemoveItem = (itemId: string) => {
-    removeItemMutation.mutate({ prId: id, itemId }, {
-      onSuccess: () => toast({ title: "Item removed" }),
-      onError: (err) => toast({ title: "Error", description: String(err), variant: "destructive" }),
-    });
+    removeItemMutation.mutate(
+      { prId: id, itemId },
+      {
+        onSuccess: () => toast({ title: "Item removed" }),
+        onError: (err) =>
+          toast({ title: "Error", description: String(err), variant: "destructive" }),
+      }
+    );
   };
 
   const handleSend = () => {
     sendMutation.mutate(id, {
       onSuccess: (result) => {
-        toast({ title: "Purchase Request Sent", description: `Created ${result.purchaseOrders.length} POs, ${result.emailsQueued} emails queued` });
+        toast({
+          title: "Purchase Request Sent",
+          description: `Created ${result.purchaseOrders.length} POs, ${result.emailsQueued} emails queued`,
+        });
         setIsSendDialogOpen(false);
       },
       onError: (err) => toast({ title: "Error", description: String(err), variant: "destructive" }),
@@ -82,7 +108,11 @@ export function PRDetailPage() {
     return (
       <div className="p-6 space-y-4">
         <Skeleton className="h-8 w-48" />
-        <Card><CardContent className="pt-6"><Skeleton className="h-32 w-full" /></CardContent></Card>
+        <Card>
+          <CardContent className="pt-6">
+            <Skeleton className="h-32 w-full" />
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -93,24 +123,40 @@ export function PRDetailPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => setLocation("/inventory-management?tab=purchasing")} data-testid="button-back">
+        <Button
+          variant="ghost"
+          onClick={() => setLocation("/inventory-management?tab=purchasing")}
+          data-testid="button-back"
+        >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold" data-testid="text-pr-number">{pr.prNumber}</h1>
+            <h1 className="text-2xl font-bold" data-testid="text-pr-number">
+              {pr.prNumber}
+            </h1>
             <PRStatusBadge status={pr.status} />
           </div>
-          <p className="text-muted-foreground">Requested by {pr.requestedBy} on {format(new Date(pr.createdAt), "MMM d, yyyy")}</p>
+          <p className="text-muted-foreground">
+            Requested by {pr.requestedBy} on {format(new Date(pr.createdAt), "MMM d, yyyy")}
+          </p>
         </div>
         {isEditable && (
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setIsCancelDialogOpen(true)} data-testid="button-cancel-pr">
+            <Button
+              variant="outline"
+              onClick={() => setIsCancelDialogOpen(true)}
+              data-testid="button-cancel-pr"
+            >
               <XCircle className="h-4 w-4 mr-2" />
               Cancel
             </Button>
-            <Button onClick={() => setIsSendDialogOpen(true)} disabled={!canSend} data-testid="button-send-pr">
+            <Button
+              onClick={() => setIsSendDialogOpen(true)}
+              disabled={!canSend}
+              data-testid="button-send-pr"
+            >
               <Send className="h-4 w-4 mr-2" />
               Send to Suppliers
             </Button>
@@ -136,21 +182,36 @@ export function PRDetailPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <PRItemsTable items={pr.items ?? []} isEditable={isEditable} onRemove={handleRemoveItem} isRemoving={removeItemMutation.isPending} />
+          <PRItemsTable
+            items={pr.items ?? []}
+            isEditable={isEditable}
+            onRemove={handleRemoveItem}
+            isRemoving={removeItemMutation.isPending}
+          />
         </CardContent>
       </Card>
-      <AddItemDialog open={isAddItemOpen} onOpenChange={setIsAddItemOpen} onSubmit={handleAddItem} isPending={addItemMutation.isPending} />
+      <AddItemDialog
+        open={isAddItemOpen}
+        onOpenChange={setIsAddItemOpen}
+        onSubmit={handleAddItem}
+        isPending={addItemMutation.isPending}
+      />
       <AlertDialog open={isSendDialogOpen} onOpenChange={setIsSendDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Send Purchase Request?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will convert your request into purchase orders grouped by supplier and queue emails to be sent.
+              This will convert your request into purchase orders grouped by supplier and queue
+              emails to be sent.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSend} disabled={sendMutation.isPending} data-testid="button-confirm-send">
+            <AlertDialogAction
+              onClick={handleSend}
+              disabled={sendMutation.isPending}
+              data-testid="button-confirm-send"
+            >
               {sendMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Send
             </AlertDialogAction>
@@ -165,7 +226,11 @@ export function PRDetailPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep</AlertDialogCancel>
-            <AlertDialogAction onClick={handleCancel} className="bg-destructive text-destructive-foreground" data-testid="button-confirm-cancel">
+            <AlertDialogAction
+              onClick={handleCancel}
+              className="bg-destructive text-destructive-foreground"
+              data-testid="button-confirm-cancel"
+            >
               Cancel Request
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -10,20 +10,20 @@ import type {
   EquipmentComplianceOptions,
   MaintenanceComplianceOptions,
   RegulatoryFramework,
-} from './types';
-import { generateEquipmentComplianceExcel } from './equipment-compliance';
-import { generateMaintenanceComplianceExcel } from './maintenance-compliance';
-import { generateRegulatoryComplianceExcel } from './regulatory-compliance';
-import { generateFleetComplianceOverviewExcel } from './fleet-compliance';
+} from "./types";
+import { generateEquipmentComplianceExcel } from "./equipment-compliance";
+import { generateMaintenanceComplianceExcel } from "./maintenance-compliance";
+import { generateRegulatoryComplianceExcel } from "./regulatory-compliance";
+import { generateFleetComplianceOverviewExcel } from "./fleet-compliance";
 
 export type {
   ReportingPeriod,
   EquipmentComplianceOptions,
   MaintenanceComplianceOptions,
   RegulatoryFramework,
-} from './types';
+} from "./types";
 
-export { FRAMEWORK_STANDARDS } from './types';
+export { FRAMEWORK_STANDARDS } from "./types";
 
 export class ComplianceExcelGenerator {
   constructor(private storage: ComplianceDeps) {}
@@ -69,7 +69,10 @@ export class ComplianceExcelGenerator {
     );
   }
 
-  async generateFleetComplianceOverviewExcel(orgId: string, period: ReportingPeriod): Promise<Buffer> {
+  async generateFleetComplianceOverviewExcel(
+    orgId: string,
+    period: ReportingPeriod
+  ): Promise<Buffer> {
     return generateFleetComplianceOverviewExcel(this.storage, orgId, period);
   }
 }

@@ -2,7 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Bot, AlertTriangle, Wrench, Package, Users, Shield } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
@@ -18,11 +24,36 @@ interface Preferences {
 }
 
 const CATEGORIES = [
-  { key: "predictions" as const, label: "Failure Predictions", description: "High-risk equipment failure predictions", icon: AlertTriangle },
-  { key: "maintenance" as const, label: "Overdue Maintenance", description: "Maintenance tasks that are past due", icon: Wrench },
-  { key: "alerts" as const, label: "Critical Alerts", description: "Unacknowledged critical equipment alerts", icon: Shield },
-  { key: "crew" as const, label: "Crew Certifications", description: "Expiring crew certifications within 30 days", icon: Users },
-  { key: "inventory" as const, label: "Low Inventory", description: "Parts below minimum stock levels", icon: Package },
+  {
+    key: "predictions" as const,
+    label: "Failure Predictions",
+    description: "High-risk equipment failure predictions",
+    icon: AlertTriangle,
+  },
+  {
+    key: "maintenance" as const,
+    label: "Overdue Maintenance",
+    description: "Maintenance tasks that are past due",
+    icon: Wrench,
+  },
+  {
+    key: "alerts" as const,
+    label: "Critical Alerts",
+    description: "Unacknowledged critical equipment alerts",
+    icon: Shield,
+  },
+  {
+    key: "crew" as const,
+    label: "Crew Certifications",
+    description: "Expiring crew certifications within 30 days",
+    icon: Users,
+  },
+  {
+    key: "inventory" as const,
+    label: "Low Inventory",
+    description: "Parts below minimum stock levels",
+    icon: Package,
+  },
 ];
 
 export function SuggestionPreferences() {
@@ -45,15 +76,23 @@ export function SuggestionPreferences() {
   if (isLoading) {
     return (
       <Card>
-        <CardHeader><Skeleton className="h-6 w-48" /></CardHeader>
-        <CardContent><Skeleton className="h-40 w-full" /></CardContent>
+        <CardHeader>
+          <Skeleton className="h-6 w-48" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-40 w-full" />
+        </CardContent>
       </Card>
     );
   }
 
   const currentPrefs: Preferences = prefs || {
-    maintenance: true, predictions: true, crew: true,
-    inventory: true, alerts: true, minSeverity: "info",
+    maintenance: true,
+    predictions: true,
+    crew: true,
+    inventory: true,
+    alerts: true,
+    minSeverity: "info",
   };
 
   return (
@@ -64,15 +103,20 @@ export function SuggestionPreferences() {
           AI Suggestion Preferences
         </CardTitle>
         <CardDescription>
-          Control which types of AI suggestions you receive. The agent evaluates these conditions periodically and creates actionable notifications.
+          Control which types of AI suggestions you receive. The agent evaluates these conditions
+          periodically and creates actionable notifications.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
-          {CATEGORIES.map(cat => {
+          {CATEGORIES.map((cat) => {
             const Icon = cat.icon;
             return (
-              <div key={cat.key} className="flex items-center justify-between gap-4" data-testid={`pref-toggle-${cat.key}`}>
+              <div
+                key={cat.key}
+                className="flex items-center justify-between gap-4"
+                data-testid={`pref-toggle-${cat.key}`}
+              >
                 <div className="flex items-center gap-3">
                   <Icon className="h-4 w-4 text-muted-foreground" />
                   <div>
@@ -97,7 +141,9 @@ export function SuggestionPreferences() {
           </p>
           <Select
             value={currentPrefs.minSeverity}
-            onValueChange={(v) => updateMutation.mutate({ minSeverity: v as Preferences["minSeverity"] })}
+            onValueChange={(v) =>
+              updateMutation.mutate({ minSeverity: v as Preferences["minSeverity"] })
+            }
           >
             <SelectTrigger className="w-40" data-testid="select-min-severity">
               <SelectValue />

@@ -1,6 +1,6 @@
 /**
  * Schema Admin - System Administration, Audit, Health Monitoring
- * 
+ *
  * Includes admin sessions, audit events, system settings, integrations,
  * maintenance windows, health checks, and performance metrics.
  */
@@ -32,8 +32,12 @@ import { suppliers } from "./inventory";
 // ============================================================================
 
 export const adminAuditEvents = pgTable("admin_audit_events", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull().references(() => organizations.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id")
+    .notNull()
+    .references(() => organizations.id),
   userId: varchar("user_id").references(() => users.id),
   action: text("action").notNull(),
   resourceType: text("resource_type").notNull(),
@@ -69,8 +73,12 @@ export type InsertAdminAuditEvent = z.infer<typeof insertAdminAuditEventSchema>;
 export const adminSessions = pgTable(
   "admin_sessions",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     sessionToken: varchar("session_token", { length: 255 }).notNull().unique(),
     userId: varchar("user_id").references(() => users.id),
     adminEmail: varchar("admin_email", { length: 255 }),
@@ -102,8 +110,12 @@ export type InsertAdminSession = z.infer<typeof insertAdminSessionSchema>;
 export const adminSystemSettings = pgTable(
   "admin_system_settings",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     category: text("category").notNull(),
     key: text("key").notNull(),
     value: jsonb("value").notNull(),
@@ -142,8 +154,12 @@ export type InsertAdminSystemSetting = z.infer<typeof insertAdminSystemSettingSc
 // ============================================================================
 
 export const integrationConfigs = pgTable("integration_configs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull().references(() => organizations.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id")
+    .notNull()
+    .references(() => organizations.id),
   name: text("name").notNull(),
   type: text("type").notNull(),
   status: text("status").notNull().default("inactive"),
@@ -181,8 +197,12 @@ export type InsertIntegrationConfig = z.infer<typeof insertIntegrationConfigSche
 // ============================================================================
 
 export const maintenanceWindows = pgTable("maintenance_windows", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull().references(() => organizations.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id")
+    .notNull()
+    .references(() => organizations.id),
   title: text("title").notNull(),
   description: text("description"),
   type: text("type").notNull(),
@@ -224,8 +244,12 @@ export type InsertMaintenanceWindow = z.infer<typeof insertMaintenanceWindowSche
 // ============================================================================
 
 export const systemPerformanceMetrics = pgTable("system_performance_metrics", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull().references(() => organizations.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id")
+    .notNull()
+    .references(() => organizations.id),
   metricName: text("metric_name").notNull(),
   category: text("category").notNull(),
   value: real("value").notNull(),
@@ -258,8 +282,12 @@ export type InsertSystemPerformanceMetric = z.infer<typeof insertSystemPerforman
 // ============================================================================
 
 export const systemHealthChecks = pgTable("system_health_checks", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull().references(() => organizations.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id")
+    .notNull()
+    .references(() => organizations.id),
   checkName: text("check_name").notNull(),
   category: text("category").notNull(),
   status: text("status").notNull(),
@@ -297,8 +325,12 @@ export type InsertSystemHealthCheck = z.infer<typeof insertSystemHealthCheckSche
 export const configAuditLog = pgTable(
   "config_audit_log",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     key: varchar("key", { length: 255 }).notNull(),
     oldValue: text("old_value"),
     newValue: text("new_value"),
@@ -463,8 +495,12 @@ export type InsertNotificationQueue = z.infer<typeof insertNotificationQueueSche
 export const auditRuns = pgTable(
   "audit_runs",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     runType: varchar("run_type", { length: 50 }).notNull().default("manual"),
     status: varchar("status", { length: 20 }).notNull(),
     testResults: jsonb("test_results").notNull(),
@@ -504,8 +540,12 @@ export type InsertAuditRun = z.infer<typeof insertAuditRunSchema>;
 export const auditWebhookSubscriptions = pgTable(
   "audit_webhook_subscriptions",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     url: text("url").notNull(),
     isActive: boolean("is_active").notNull().default(true),
     createdBy: varchar("created_by", { length: 255 }),
@@ -640,7 +680,9 @@ export const updateSettings = pgTable(
     checkInterval: integer("check_interval").default(21600),
     maintenanceWindowStart: varchar("maintenance_window_start", { length: 5 }),
     maintenanceWindowEnd: varchar("maintenance_window_end", { length: 5 }),
-    maintenanceWindowTimezone: varchar("maintenance_window_timezone", { length: 50 }).default("UTC"),
+    maintenanceWindowTimezone: varchar("maintenance_window_timezone", { length: 50 }).default(
+      "UTC"
+    ),
     deferUpdatesUntilPort: boolean("defer_updates_until_port").default(false),
     maxDownloadBandwidthKbps: integer("max_download_bandwidth_kbps"),
     requireManualApproval: boolean("require_manual_approval").default(false),

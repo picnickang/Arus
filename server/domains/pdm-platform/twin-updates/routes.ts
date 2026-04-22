@@ -21,7 +21,9 @@ router.post("/refresh/:twinId", async (req: Request, res: Response) => {
   try {
     const orgId = req.headers["x-org-id"] as string;
     const { twinId } = req.params;
-    if (!twinId) {return res.status(400).json({ error: "twinId is required" });}
+    if (!twinId) {
+      return res.status(400).json({ error: "twinId is required" });
+    }
     const result = await updateService.refreshOneTwin(orgId, twinId);
     res.json({
       success: true,
@@ -63,7 +65,9 @@ router.get("/freshness/:twinId", async (req: Request, res: Response) => {
     const orgId = req.headers["x-org-id"] as string;
     const { twinId } = req.params;
     const freshness = await updateService.getTwinFreshness(orgId, twinId);
-    if (!freshness) {return res.status(404).json({ error: "Twin not found or not active" });}
+    if (!freshness) {
+      return res.status(404).json({ error: "Twin not found or not active" });
+    }
     res.json(freshness);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

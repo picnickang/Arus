@@ -30,7 +30,11 @@ import type { DashboardMetrics } from "../../domains/analytics-insights-adapter.
 export interface IAnalyticsStorage {
   // Dashboard Metrics
   getDashboardMetrics(orgId: string): Promise<DashboardMetrics>;
-  recordMetricsHistory(orgId: string, metrics: Omit<DashboardMetrics, "trends">, equipmentStats: { total: number; healthy: number; warning: number; critical: number }): Promise<void>;
+  recordMetricsHistory(
+    orgId: string,
+    metrics: Omit<DashboardMetrics, "trends">,
+    equipmentStats: { total: number; healthy: number; warning: number; critical: number }
+  ): Promise<void>;
   getMetricsHistory(orgId: string, days?: number): Promise<any[]>;
 
   // Insights
@@ -41,14 +45,34 @@ export interface IAnalyticsStorage {
   createInsightReport(orgId: string, report: InsertInsightReport): Promise<InsightReport>;
 
   // Knowledge Base
-  searchKnowledgeBase(query: string, filters?: { contentType?: string[]; orgId?: string; equipmentId?: string }): Promise<KnowledgeBaseItem[]>;
+  searchKnowledgeBase(
+    query: string,
+    filters?: { contentType?: string[]; orgId?: string; equipmentId?: string }
+  ): Promise<KnowledgeBaseItem[]>;
   createKnowledgeBaseItem(item: InsertKnowledgeBaseItem): Promise<KnowledgeBaseItem>;
-  updateKnowledgeBaseItem(id: string, item: Partial<InsertKnowledgeBaseItem>): Promise<KnowledgeBaseItem>;
+  updateKnowledgeBaseItem(
+    id: string,
+    item: Partial<InsertKnowledgeBaseItem>
+  ): Promise<KnowledgeBaseItem>;
   deleteKnowledgeBaseItem(id: string): Promise<void>;
   getKnowledgeBaseItems(orgId?: string, contentType?: string): Promise<KnowledgeBaseItem[]>;
-  semanticSearch(query: string, orgId: string, contentTypes?: string[], limit?: number): Promise<{ items: KnowledgeBaseItem[]; citations: ContentSource[] }>;
-  indexContent(sourceType: string, sourceId: string, content: string, metadata?: Record<string, any>, orgId?: string): Promise<KnowledgeBaseItem>;
-  refreshContentIndex(orgId?: string, sourceTypes?: string[]): Promise<{ indexed: number; updated: number }>;
+  semanticSearch(
+    query: string,
+    orgId: string,
+    contentTypes?: string[],
+    limit?: number
+  ): Promise<{ items: KnowledgeBaseItem[]; citations: ContentSource[] }>;
+  indexContent(
+    sourceType: string,
+    sourceId: string,
+    content: string,
+    metadata?: Record<string, any>,
+    orgId?: string
+  ): Promise<KnowledgeBaseItem>;
+  refreshContentIndex(
+    orgId?: string,
+    sourceTypes?: string[]
+  ): Promise<{ indexed: number; updated: number }>;
 
   // Content Sources
   getContentSources(orgId?: string, sourceType?: string): Promise<ContentSource[]>;
@@ -61,18 +85,30 @@ export interface IAnalyticsStorage {
 
   // Optimizer Configurations
   getOptimizerConfigurations(orgId?: string): Promise<OptimizerConfiguration[]>;
-  createOptimizerConfiguration(config: InsertOptimizerConfiguration): Promise<OptimizerConfiguration>;
-  updateOptimizerConfiguration(id: string, config: Partial<InsertOptimizerConfiguration>): Promise<OptimizerConfiguration>;
+  createOptimizerConfiguration(
+    config: InsertOptimizerConfiguration
+  ): Promise<OptimizerConfiguration>;
+  updateOptimizerConfiguration(
+    id: string,
+    config: Partial<InsertOptimizerConfiguration>
+  ): Promise<OptimizerConfiguration>;
   deleteOptimizerConfiguration(id: string): Promise<void>;
 
   // Resource Constraints
   getResourceConstraints(resourceType?: string, orgId?: string): Promise<ResourceConstraint[]>;
   createResourceConstraint(constraint: InsertResourceConstraint): Promise<ResourceConstraint>;
-  updateResourceConstraint(id: string, constraint: Partial<InsertResourceConstraint>): Promise<ResourceConstraint>;
+  updateResourceConstraint(
+    id: string,
+    constraint: Partial<InsertResourceConstraint>
+  ): Promise<ResourceConstraint>;
   deleteResourceConstraint(id: string): Promise<void>;
 
   // Optimization Results
-  runOptimization(configId: string, equipmentScope?: string[], timeHorizon?: number): Promise<OptimizationResult>;
+  runOptimization(
+    configId: string,
+    equipmentScope?: string[],
+    timeHorizon?: number
+  ): Promise<OptimizationResult>;
   getOptimizationResults(orgId?: string, limit?: number): Promise<OptimizationResult[]>;
   getOptimizationResult(id: string): Promise<OptimizationResult | undefined>;
   cancelOptimization(optimizationId: string): Promise<OptimizationResult>;
@@ -83,6 +119,12 @@ export interface IAnalyticsStorage {
   // Schedule Optimizations
   getScheduleOptimizations(optimizationResultId: string): Promise<ScheduleOptimization[]>;
   applyScheduleOptimization(optimizationId: string): Promise<MaintenanceSchedule>;
-  rejectScheduleOptimization(optimizationId: string, reason?: string): Promise<ScheduleOptimization>;
-  getOptimizationRecommendations(equipmentId?: string, timeHorizon?: number): Promise<ScheduleOptimization[]>;
+  rejectScheduleOptimization(
+    optimizationId: string,
+    reason?: string
+  ): Promise<ScheduleOptimization>;
+  getOptimizationRecommendations(
+    equipmentId?: string,
+    timeHorizon?: number
+  ): Promise<ScheduleOptimization[]>;
 }

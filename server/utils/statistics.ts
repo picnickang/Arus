@@ -49,7 +49,9 @@ export function calculateSummaryStats(values: number[]) {
  * Calculate percentile (0-1 scale)
  */
 export function percentile(values: number[], p: number): number {
-  if (values.length === 0) { return 0; }
+  if (values.length === 0) {
+    return 0;
+  }
   return quantile(values, p);
 }
 
@@ -57,7 +59,9 @@ export function percentile(values: number[], p: number): number {
  * Calculate standard deviation
  */
 export function calculateStd(values: number[]): number {
-  if (values.length === 0) { return 0; }
+  if (values.length === 0) {
+    return 0;
+  }
   const avg = mean(values);
   const variance = values.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / values.length;
   return Math.sqrt(variance);
@@ -73,7 +77,9 @@ export function calculateStd(values: number[]): number {
  */
 export function calculateKurtosis(values: number[]): number {
   const n = values.length;
-  if (n < 4) { return 0; }
+  if (n < 4) {
+    return 0;
+  }
 
   const avg = mean(values);
   const std = standardDeviation(values) || 1e-9; // prevent division by zero
@@ -91,14 +97,18 @@ export function calculateKurtosis(values: number[]): number {
  */
 export function calculateSkewness(values: number[]): number {
   const n = values.length;
-  if (n < 3) { return 0; }
+  if (n < 3) {
+    return 0;
+  }
 
   const avg = mean(values);
   const std = standardDeviation(values) || 1e-9;
 
-  return values.reduce((sum, val) => {
+  return (
+    values.reduce((sum, val) => {
       return sum + Math.pow((val - avg) / std, 3);
-    }, 0) / n;
+    }, 0) / n
+  );
 }
 
 // ============================================================================
@@ -151,7 +161,9 @@ export function detectZScoreAnomalies(values: number[], threshold: number = 3) {
  * Calculate Z-score for a single value against a baseline
  */
 export function zScore(value: number, baseline: number, baselineStd: number): number {
-  if (baselineStd === 0) { return 0; }
+  if (baselineStd === 0) {
+    return 0;
+  }
   return (value - baseline) / baselineStd;
 }
 
@@ -159,7 +171,9 @@ export function zScore(value: number, baseline: number, baselineStd: number): nu
  * Clamp Z-score to reasonable bounds to prevent numerical issues
  */
 export function clampSigma(z: number): number {
-  if (!Number.isFinite(z)) { return 0; }
+  if (!Number.isFinite(z)) {
+    return 0;
+  }
   return Math.max(-10, Math.min(10, z));
 }
 
@@ -172,7 +186,9 @@ export function clampSigma(z: number): number {
  * Standard measure for vibration analysis
  */
 export function calculateRMS(values: number[]): number {
-  if (values.length === 0) { return 0; }
+  if (values.length === 0) {
+    return 0;
+  }
   const sumOfSquares = values.reduce((sum, val) => sum + val * val, 0);
   return Math.sqrt(sumOfSquares / values.length);
 }
@@ -182,7 +198,9 @@ export function calculateRMS(values: number[]): number {
  * Detects impulse patterns typical in bearing defects
  */
 export function absEnvelope(x: Series, windowSize: number = 5): number[] {
-  if (!x.length) { return []; }
+  if (!x.length) {
+    return [];
+  }
 
   const rectified = x.map((val) => Math.abs(val));
   const envelope: number[] = [];
@@ -279,7 +297,9 @@ export function movingAverage(values: number[], windowSize: number): number[] {
  * Exponential moving average
  */
 export function exponentialMovingAverage(values: number[], alpha: number = 0.3): number[] {
-  if (values.length === 0) { return []; }
+  if (values.length === 0) {
+    return [];
+  }
 
   const result: number[] = [values[0]];
   for (let i = 1; i < values.length; i++) {
@@ -293,7 +313,9 @@ export function exponentialMovingAverage(values: number[], alpha: number = 0.3):
  */
 export function calculateAutocorrelation(values: number[], lag: number): number {
   const n = values.length;
-  if (lag >= n || lag < 0) { return 0; }
+  if (lag >= n || lag < 0) {
+    return 0;
+  }
 
   const meanVal = mean(values);
 
@@ -320,7 +342,9 @@ export function calculateAutocorrelation(values: number[], lag: number): number 
  */
 export function calculatePearsonCorrelation(x: number[], y: number[]): number {
   const n = Math.min(x.length, y.length);
-  if (n === 0) { return 0; }
+  if (n === 0) {
+    return 0;
+  }
 
   const meanX = mean(x.slice(0, n));
   const meanY = mean(y.slice(0, n));
@@ -348,10 +372,18 @@ export function classifyCorrelationStrength(
   correlation: number
 ): "none" | "weak" | "moderate" | "strong" | "very-strong" {
   const abs = Math.abs(correlation);
-  if (abs < 0.2) { return "none"; }
-  if (abs < 0.4) { return "weak"; }
-  if (abs < 0.6) { return "moderate"; }
-  if (abs < 0.8) { return "strong"; }
+  if (abs < 0.2) {
+    return "none";
+  }
+  if (abs < 0.4) {
+    return "weak";
+  }
+  if (abs < 0.6) {
+    return "moderate";
+  }
+  if (abs < 0.8) {
+    return "strong";
+  }
   return "very-strong";
 }
 
@@ -365,7 +397,9 @@ export function classifyCorrelationStrength(
  */
 export function shapiroWilkTest(values: number[]): { isNormal: boolean; confidence: number } {
   const n = values.length;
-  if (n < 3) { return { isNormal: true, confidence: 0 }; }
+  if (n < 3) {
+    return { isNormal: true, confidence: 0 };
+  }
 
   // Calculate skewness and kurtosis
   const skew = calculateSkewness(values);
@@ -410,7 +444,9 @@ export function linearForecast(values: number[], steps: number): number[] {
  * Exponential smoothing forecast
  */
 export function exponentialSmoothing(values: number[], alpha: number, steps: number): number[] {
-  if (values.length === 0) { return []; }
+  if (values.length === 0) {
+    return [];
+  }
 
   const smoothed = exponentialMovingAverage(values, alpha);
   const lastValue = smoothed[smoothed.length - 1];
@@ -428,7 +464,9 @@ export function exponentialSmoothing(values: number[], alpha: number, steps: num
  */
 export function calculateMAE(actual: number[], predicted: number[]): number {
   const n = Math.min(actual.length, predicted.length);
-  if (n === 0) { return 0; }
+  if (n === 0) {
+    return 0;
+  }
 
   let sum = 0;
   for (let i = 0; i < n; i++) {
@@ -443,7 +481,9 @@ export function calculateMAE(actual: number[], predicted: number[]): number {
  */
 export function calculateRMSE(actual: number[], predicted: number[]): number {
   const n = Math.min(actual.length, predicted.length);
-  if (n === 0) { return 0; }
+  if (n === 0) {
+    return 0;
+  }
 
   let sum = 0;
   for (let i = 0; i < n; i++) {
@@ -458,7 +498,9 @@ export function calculateRMSE(actual: number[], predicted: number[]): number {
  */
 export function calculateMAPE(actual: number[], predicted: number[]): number {
   const n = Math.min(actual.length, predicted.length);
-  if (n === 0) { return 0; }
+  if (n === 0) {
+    return 0;
+  }
 
   let sum = 0;
   let count = 0;

@@ -187,7 +187,9 @@ export class AnalyticsAggregator {
     }
   }
 
-  private async getDocumentStats(orgId: string | undefined): Promise<AnalyticsSummary["documents"]> {
+  private async getDocumentStats(
+    orgId: string | undefined
+  ): Promise<AnalyticsSummary["documents"]> {
     try {
       const docCondition = orgId ? eq(kbDocs.orgId, orgId) : sql`1=1`;
       const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);

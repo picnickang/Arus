@@ -6,9 +6,15 @@ export const srKeys = {
   all: ["/api/service-requests"] as const,
   list: (filters?: SRFilters) => {
     const params = new URLSearchParams();
-    if (filters?.status) {params.set("status", filters.status);}
-    if (filters?.workOrderId) {params.set("workOrderId", filters.workOrderId);}
-    if (filters?.sortBy) {params.set("sortBy", filters.sortBy);}
+    if (filters?.status) {
+      params.set("status", filters.status);
+    }
+    if (filters?.workOrderId) {
+      params.set("workOrderId", filters.workOrderId);
+    }
+    if (filters?.sortBy) {
+      params.set("sortBy", filters.sortBy);
+    }
     const qs = params.toString();
     return ["/api/service-requests", qs ? `?${qs}` : ""] as const;
   },
@@ -18,9 +24,15 @@ export const srKeys = {
 
 export function useServiceRequests(filters: SRFilters = {}) {
   const params = new URLSearchParams();
-  if (filters.status) {params.set("status", filters.status);}
-  if (filters.workOrderId) {params.set("workOrderId", filters.workOrderId);}
-  if (filters.sortBy) {params.set("sortBy", filters.sortBy);}
+  if (filters.status) {
+    params.set("status", filters.status);
+  }
+  if (filters.workOrderId) {
+    params.set("workOrderId", filters.workOrderId);
+  }
+  if (filters.sortBy) {
+    params.set("sortBy", filters.sortBy);
+  }
   const qs = params.toString();
 
   return useQuery<ServiceRequest[]>({
@@ -40,8 +52,13 @@ export function useWorkOrderServiceRequests(workOrderId: string | null | undefin
 
 export function useCreateServiceRequest() {
   return useMutation({
-    mutationFn: ({ workOrderId, data }: { workOrderId: string; data: { title: string; description?: string; urgency?: string; estimatedCost?: number } }) =>
-      apiRequest("POST", `/api/work-orders/${workOrderId}/service-requests`, data),
+    mutationFn: ({
+      workOrderId,
+      data,
+    }: {
+      workOrderId: string;
+      data: { title: string; description?: string; urgency?: string; estimatedCost?: number };
+    }) => apiRequest("POST", `/api/work-orders/${workOrderId}/service-requests`, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: srKeys.all });
       queryClient.invalidateQueries({ queryKey: srKeys.forWorkOrder(variables.workOrderId) });
@@ -52,11 +69,20 @@ export function useCreateServiceRequest() {
 
 export function useUpdateServiceRequest() {
   return useMutation({
-    mutationFn: ({ id, data }: {
+    mutationFn: ({
+      id,
+      data,
+    }: {
       id: string;
-      data: { title?: string; description?: string; urgency?: string; estimatedCost?: number; serviceDetails?: string; specialRequirements?: string };
-    }) =>
-      apiRequest("PATCH", `/api/service-requests/${id}`, data),
+      data: {
+        title?: string;
+        description?: string;
+        urgency?: string;
+        estimatedCost?: number;
+        serviceDetails?: string;
+        specialRequirements?: string;
+      };
+    }) => apiRequest("PATCH", `/api/service-requests/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: srKeys.all });
     },
@@ -94,11 +120,19 @@ export function useRejectServiceRequest() {
 
 export function useConvertServiceRequest() {
   return useMutation({
-    mutationFn: ({ id, data }: {
+    mutationFn: ({
+      id,
+      data,
+    }: {
       id: string;
-      data: { serviceProviderId: string; scope?: string; estimatedCost?: number; scheduledStartDate?: string; scheduledEndDate?: string };
-    }) =>
-      apiRequest("POST", `/api/service-requests/${id}/convert`, data),
+      data: {
+        serviceProviderId: string;
+        scope?: string;
+        estimatedCost?: number;
+        scheduledStartDate?: string;
+        scheduledEndDate?: string;
+      };
+    }) => apiRequest("POST", `/api/service-requests/${id}/convert`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: srKeys.all });
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });

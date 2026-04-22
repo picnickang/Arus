@@ -5,14 +5,21 @@
 
 import { insertSkillSchema } from "@shared/schema-runtime";
 import { crewAppService as crewService } from "../application/index.js";
-import { requireOrgId, requireOrgIdAndValidateBody, AuthenticatedRequest } from "../../../middleware/auth";
+import {
+  requireOrgId,
+  requireOrgIdAndValidateBody,
+  AuthenticatedRequest,
+} from "../../../middleware/auth";
 import { withErrorHandling, sendCreated, sendDeleted } from "../../../lib/route-utils.js";
 import type { CrewRouteDeps } from "./types.js";
 
 export function registerSkillsRoutes({ app, rateLimit }: CrewRouteDeps): void {
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimit;
 
-  app.get("/api/skills", requireOrgId, generalApiRateLimit,
+  app.get(
+    "/api/skills",
+    requireOrgId,
+    generalApiRateLimit,
     withErrorHandling("fetch skills", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const skills = await crewService.listSkills(orgId);
@@ -20,7 +27,10 @@ export function registerSkillsRoutes({ app, rateLimit }: CrewRouteDeps): void {
     })
   );
 
-  app.post("/api/skills", requireOrgIdAndValidateBody, writeOperationRateLimit,
+  app.post(
+    "/api/skills",
+    requireOrgIdAndValidateBody,
+    writeOperationRateLimit,
     withErrorHandling("create skill", async (req, res) => {
       const skillData = insertSkillSchema.parse(req.body);
       const skill = await crewService.createSkill(skillData, req.user?.id);
@@ -28,14 +38,20 @@ export function registerSkillsRoutes({ app, rateLimit }: CrewRouteDeps): void {
     })
   );
 
-  app.delete("/api/skills/:id", requireOrgId, criticalOperationRateLimit,
+  app.delete(
+    "/api/skills/:id",
+    requireOrgId,
+    criticalOperationRateLimit,
     withErrorHandling("delete skill", async (req: any, res) => {
       await crewService.deleteSkill(req.params.id, req.orgId);
       sendDeleted(res);
     })
   );
 
-  app.post("/api/crew/:crewId/skills/:skillId", requireOrgIdAndValidateBody, writeOperationRateLimit,
+  app.post(
+    "/api/crew/:crewId/skills/:skillId",
+    requireOrgIdAndValidateBody,
+    writeOperationRateLimit,
     withErrorHandling("assign skill to crew member", async (req, res) => {
       const { crewId, skillId } = req.params;
       const { level } = req.body;
@@ -52,7 +68,10 @@ export function registerSkillsRoutes({ app, rateLimit }: CrewRouteDeps): void {
     })
   );
 
-  app.delete("/api/crew/:crewId/skills/:skillId", requireOrgId, criticalOperationRateLimit,
+  app.delete(
+    "/api/crew/:crewId/skills/:skillId",
+    requireOrgId,
+    criticalOperationRateLimit,
     withErrorHandling("remove skill from crew member", async (req, res) => {
       const { crewId, skillId } = req.params;
       await crewService.removeSkillFromCrew(crewId, skillId, req.user?.id);
@@ -60,7 +79,9 @@ export function registerSkillsRoutes({ app, rateLimit }: CrewRouteDeps): void {
     })
   );
 
-  app.get("/api/crew/:id/skills", generalApiRateLimit,
+  app.get(
+    "/api/crew/:id/skills",
+    generalApiRateLimit,
     withErrorHandling("fetch crew skills", async (req, res) => {
       const skills = await crewService.getCrewSkills(req.params.id);
       res.json(skills);

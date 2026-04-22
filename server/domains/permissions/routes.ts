@@ -1,6 +1,6 @@
 /**
  * Permission Routes - API Endpoints for Permission Management
- * 
+ *
  * CRUD operations for roles, permissions, and user assignments.
  */
 
@@ -9,7 +9,10 @@ import { permissionRepository } from "./repository";
 import { permissionService, compileUserPermissions } from "./service";
 import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";
 import { withErrorHandling, sendCreated, sendDeleted } from "../../lib/route-utils";
-import { insertRoleSchema, insertUserRoleAssignmentSchema } from "../../../shared/schema/permissions";
+import {
+  insertRoleSchema,
+  insertUserRoleAssignmentSchema,
+} from "../../../shared/schema/permissions";
 import { RESOURCES, ACTIONS, RESOURCE_CATEGORIES } from "../../config/permission-registry";
 import { z } from "zod";
 
@@ -18,11 +21,13 @@ const DEV_ORG_ID = "default-org-id";
 const DEV_USER_ID = "dev-user-id";
 
 export function registerPermissionRoutes(app: Express) {
-  app.get("/api/permissions/me", requireOrgId,
+  app.get(
+    "/api/permissions/me",
+    requireOrgId,
     withErrorHandling("get current user permissions", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId || DEV_ORG_ID;
       const userId = (req as AuthenticatedRequest).user?.id || DEV_USER_ID;
-      
+
       if (DEV_MODE) {
         const allPermissions: Record<string, Record<string, boolean>> = {};
         for (const resource of RESOURCES) {
@@ -39,7 +44,7 @@ export function registerPermissionRoutes(app: Express) {
           isDevMode: true,
         });
       }
-      
+
       const compiled = await compileUserPermissions(userId, orgId);
       res.json({
         ...compiled,
@@ -48,21 +53,27 @@ export function registerPermissionRoutes(app: Express) {
     })
   );
 
-  app.get("/api/permissions/resources", requireOrgId,
+  app.get(
+    "/api/permissions/resources",
+    requireOrgId,
     withErrorHandling("list permission resources", async (_req: Request, res: Response) => {
       const resources = await permissionRepository.listResources();
       res.json(resources);
     })
   );
 
-  app.get("/api/permissions/actions", requireOrgId,
+  app.get(
+    "/api/permissions/actions",
+    requireOrgId,
     withErrorHandling("list permission actions", async (_req: Request, res: Response) => {
       const actions = await permissionRepository.listActions();
       res.json(actions);
     })
   );
 
-  app.get("/api/permissions/registry", requireOrgId,
+  app.get(
+    "/api/permissions/registry",
+    requireOrgId,
     withErrorHandling("get permission registry", async (_req: Request, res: Response) => {
       res.json({
         resources: RESOURCES,
@@ -72,7 +83,9 @@ export function registerPermissionRoutes(app: Express) {
     })
   );
 
-  app.get("/api/permissions/roles", requireOrgId,
+  app.get(
+    "/api/permissions/roles",
+    requireOrgId,
     withErrorHandling("list roles", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const roles = await permissionRepository.listRoles(orgId);
@@ -80,7 +93,9 @@ export function registerPermissionRoutes(app: Express) {
     })
   );
 
-  app.get("/api/permissions/roles/:id", requireOrgId,
+  app.get(
+    "/api/permissions/roles/:id",
+    requireOrgId,
     withErrorHandling("get role", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const role = await permissionRepository.getRoleById(req.params.id, orgId);
@@ -91,12 +106,14 @@ export function registerPermissionRoutes(app: Express) {
     })
   );
 
-  app.post("/api/permissions/roles", requireOrgId,
+  app.post(
+    "/api/permissions/roles",
+    requireOrgId,
     withErrorHandling("create role", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const data = insertRoleSchema.parse({ ...req.body, orgId });
       const role = await permissionRepository.createRole(data);
-      
+
       const authReq = req as AuthenticatedRequest;
       await permissionRepository.logPermissionChange(
         orgId,
@@ -107,12 +124,14 @@ export function registerPermissionRoutes(app: Express) {
         null,
         JSON.stringify({ name: role.name, displayName: role.displayName })
       );
-      
+
       sendCreated(res, role);
     })
   );
 
-  app.put("/api/permissions/roles/:id", requireOrgId,
+  app.put(
+    "/api/permissions/roles/:id",
+    requireOrgId,
     withErrorHandling("update role", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const existing = await permissionRepository.getRoleById(req.params.id, orgId);
@@ -142,7 +161,9 @@ export function registerPermissionRoutes(app: Express) {
     })
   );
 
-  app.patch("/api/permissions/roles/:id", requireOrgId,
+  app.patch(
+    "/api/permissions/roles/:id",
+    requireOrgId,
     withErrorHandling("partial update role", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const existing = await permissionRepository.getRoleById(req.params.id, orgId);
@@ -176,7 +197,9 @@ export function registerPermissionRoutes(app: Express) {
     })
   );
 
-  app.delete("/api/permissions/roles/:id", requireOrgId,
+  app.delete(
+    "/api/permissions/roles/:id",
+    requireOrgId,
     withErrorHandling("delete role", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const existing = await permissionRepository.getRoleById(req.params.id, orgId);
@@ -191,9 +214,9 @@ export function registerPermissionRoutes(app: Express) {
       // Check if any crew members are assigned to this role
       const crewWithRole = await permissionRepository.getCrewCountByRoleId(req.params.id, orgId);
       if (crewWithRole > 0) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           message: `Cannot delete role: ${crewWithRole} crew member(s) are currently assigned to this role. Please reassign them first.`,
-          crewCount: crewWithRole
+          crewCount: crewWithRole,
         });
       }
 
@@ -216,7 +239,9 @@ export function registerPermissionRoutes(app: Express) {
     })
   );
 
-  app.get("/api/permissions/roles/:id/grants", requireOrgId,
+  app.get(
+    "/api/permissions/roles/:id/grants",
+    requireOrgId,
     withErrorHandling("get role permission grants", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const grants = await permissionRepository.getPermissionGrantsForRole(req.params.id, orgId);
@@ -230,7 +255,9 @@ export function registerPermissionRoutes(app: Express) {
     isGranted: z.boolean(),
   });
 
-  app.put("/api/permissions/roles/:id/grants", requireOrgId,
+  app.put(
+    "/api/permissions/roles/:id/grants",
+    requireOrgId,
     withErrorHandling("update role permission grants", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const role = await permissionRepository.getRoleById(req.params.id, orgId);
@@ -259,14 +286,18 @@ export function registerPermissionRoutes(app: Express) {
     })
   );
 
-  app.get("/api/permissions/templates", requireOrgId,
+  app.get(
+    "/api/permissions/templates",
+    requireOrgId,
     withErrorHandling("list role templates", async (_req: Request, res: Response) => {
       const templates = await permissionRepository.listRoleTemplates();
       res.json(templates);
     })
   );
 
-  app.post("/api/permissions/roles/from-template", requireOrgId,
+  app.post(
+    "/api/permissions/roles/from-template",
+    requireOrgId,
     withErrorHandling("create role from template", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { templateId, overrides } = req.body;
@@ -292,7 +323,9 @@ export function registerPermissionRoutes(app: Express) {
     })
   );
 
-  app.get("/api/permissions/users/:userId/assignments", requireOrgId,
+  app.get(
+    "/api/permissions/users/:userId/assignments",
+    requireOrgId,
     withErrorHandling("list user role assignments", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const assignments = await permissionRepository.listUserRoleAssignments(
@@ -303,7 +336,9 @@ export function registerPermissionRoutes(app: Express) {
     })
   );
 
-  app.post("/api/permissions/users/:userId/assignments", requireOrgId,
+  app.post(
+    "/api/permissions/users/:userId/assignments",
+    requireOrgId,
     withErrorHandling("assign role to user", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const authReq = req as AuthenticatedRequest;
@@ -333,7 +368,9 @@ export function registerPermissionRoutes(app: Express) {
     })
   );
 
-  app.delete("/api/permissions/users/:userId/assignments/:roleId", requireOrgId,
+  app.delete(
+    "/api/permissions/users/:userId/assignments/:roleId",
+    requireOrgId,
     withErrorHandling("remove role from user", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const authReq = req as AuthenticatedRequest;
@@ -356,7 +393,9 @@ export function registerPermissionRoutes(app: Express) {
     })
   );
 
-  app.get("/api/permissions/users-with-roles", requireOrgId,
+  app.get(
+    "/api/permissions/users-with-roles",
+    requireOrgId,
     withErrorHandling("list users with role assignments", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const usersWithRoles = await permissionRepository.listUsersWithRoles(orgId);
@@ -364,7 +403,9 @@ export function registerPermissionRoutes(app: Express) {
     })
   );
 
-  app.get("/api/permissions/audit", requireOrgId,
+  app.get(
+    "/api/permissions/audit",
+    requireOrgId,
     withErrorHandling("get permission audit log", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
@@ -373,32 +414,38 @@ export function registerPermissionRoutes(app: Express) {
     })
   );
 
-  app.post("/api/permissions/seed", requireOrgId,
+  app.post(
+    "/api/permissions/seed",
+    requireOrgId,
     withErrorHandling("seed permission resources", async (_req: Request, res: Response) => {
       await permissionRepository.seedResourcesAndActions();
       res.json({ success: true, message: "Permission resources seeded" });
     })
   );
 
-  app.post("/api/permissions/seed-templates", requireOrgId,
+  app.post(
+    "/api/permissions/seed-templates",
+    requireOrgId,
     withErrorHandling("seed default role templates", async (_req: Request, res: Response) => {
       const result = await permissionRepository.seedDefaultRoleTemplates();
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: `Role templates seeded: ${result.created} created, ${result.skipped} skipped`,
-        ...result 
+        ...result,
       });
     })
   );
 
-  app.post("/api/permissions/setup", requireOrgId,
+  app.post(
+    "/api/permissions/setup",
+    requireOrgId,
     withErrorHandling("initial permission setup", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const authReq = req as AuthenticatedRequest;
-      
+
       await permissionRepository.seedResourcesAndActions();
       const templatesResult = await permissionRepository.seedDefaultRoleTemplates();
-      
+
       await permissionRepository.logPermissionChange(
         orgId,
         authReq.user?.id || "system",
@@ -408,7 +455,7 @@ export function registerPermissionRoutes(app: Express) {
         null,
         JSON.stringify({ templatesCreated: templatesResult.created })
       );
-      
+
       res.json({
         success: true,
         message: "Permission system initialized",

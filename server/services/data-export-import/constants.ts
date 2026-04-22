@@ -1,6 +1,6 @@
 /**
  * Data Export/Import Constants
- * 
+ *
  * Version information and entity configuration for exports.
  */
 
@@ -37,10 +37,7 @@ export const ENTITY_EXPORT_ORDER = [
 /**
  * Telemetry entities - exported in chunks due to large size
  */
-export const TELEMETRY_ENTITIES = [
-  "equipment_telemetry",
-  "raw_telemetry",
-] as const;
+export const TELEMETRY_ENTITIES = ["equipment_telemetry", "raw_telemetry"] as const;
 
 /**
  * Foreign key mappings - defines relationships between entities
@@ -63,13 +60,30 @@ export const FK_MAPPINGS: Record<string, Record<string, string>> = {
  * Date fields that need to be converted during import
  */
 export const DATE_FIELDS = [
-  'createdAt', 'updatedAt', 'ts', 'timestamp',
-  'plannedStartDate', 'plannedEndDate', 'actualStartDate', 'actualEndDate',
-  'completedAt', 'dueDate', 'lastMaintenanceDate', 'nextDueDate',
-  'issuedDate', 'expiryDate', 'startDate', 'endDate',
-  'vesselDowntimeStartedAt', 'vesselDowntimeEndedAt',
-  'resolvedAt', 'acknowledgedAt', 'lastSyncAt', 'syncedAt', 'lastUpdatedAt'
+  "createdAt",
+  "updatedAt",
+  "ts",
+  "timestamp",
+  "plannedStartDate",
+  "plannedEndDate",
+  "actualStartDate",
+  "actualEndDate",
+  "completedAt",
+  "dueDate",
+  "lastMaintenanceDate",
+  "nextDueDate",
+  "issuedDate",
+  "expiryDate",
+  "startDate",
+  "endDate",
+  "vesselDowntimeStartedAt",
+  "vesselDowntimeEndedAt",
+  "resolvedAt",
+  "acknowledgedAt",
+  "lastSyncAt",
+  "syncedAt",
+  "lastUpdatedAt",
 ] as const;
 
-export type EntityName = typeof ENTITY_EXPORT_ORDER[number];
-export type TelemetryEntityName = typeof TELEMETRY_ENTITIES[number];
+export type EntityName = (typeof ENTITY_EXPORT_ORDER)[number];
+export type TelemetryEntityName = (typeof TELEMETRY_ENTITIES)[number];

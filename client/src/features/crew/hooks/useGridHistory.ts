@@ -17,7 +17,7 @@ export interface GridHistoryState {
 export function useGridHistory(initialRows: DayRow[]): GridHistoryState {
   const [history, setHistory] = useState<DayRow[][]>([JSON.parse(JSON.stringify(initialRows))]);
   const [historyIndex, setHistoryIndex] = useState(0);
-  
+
   const historyRef = useRef<DayRow[][]>(history);
   const historyIndexRef = useRef(historyIndex);
 
@@ -73,10 +73,7 @@ export function useGridHistory(initialRows: DayRow[]): GridHistoryState {
   };
 }
 
-export function useUndoRedoKeyboard(
-  undo: () => void,
-  redo: () => void
-): void {
+export function useUndoRedoKeyboard(undo: () => void, redo: () => void): void {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {

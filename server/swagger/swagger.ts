@@ -1,6 +1,6 @@
 /**
  * OpenAPI/Swagger Specification for ARUS Marine API
- * 
+ *
  * Main module that assembles the OpenAPI spec from domain-specific modules.
  */
 
@@ -14,7 +14,14 @@ import { vesselsPaths } from "./paths-vessels.js";
 import { telemetryPaths } from "./paths-telemetry.js";
 import { pdmPaths } from "./paths-pdm.js";
 import { workOrdersPaths } from "./paths-workorders.js";
-import { partsPaths, mlPaths, analyticsPaths, syncPaths, organizationsPaths, adminPaths } from "./paths-misc.js";
+import {
+  partsPaths,
+  mlPaths,
+  analyticsPaths,
+  syncPaths,
+  organizationsPaths,
+  adminPaths,
+} from "./paths-misc.js";
 import { generateSwaggerUI } from "./ui-generator.js";
 
 /**
@@ -26,7 +33,7 @@ export const openApiSpec = {
     securitySchemes,
     schemas,
     parameters,
-    responses
+    responses,
   },
   security: [{ orgId: [] }],
   paths: {
@@ -42,8 +49,8 @@ export const openApiSpec = {
     ...analyticsPaths,
     ...syncPaths,
     ...organizationsPaths,
-    ...adminPaths
-  }
+    ...adminPaths,
+  },
 };
 
 /**

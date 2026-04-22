@@ -2,7 +2,12 @@
  * LP Optimizer - Job Loading
  */
 
-import { dbMaintenanceStorage, dbEquipmentStorage, dbInventoryStorage, workOrderService } from "../repositories.js";
+import {
+  dbMaintenanceStorage,
+  dbEquipmentStorage,
+  dbInventoryStorage,
+  workOrderService,
+} from "../repositories.js";
 import type { MaintenanceJob } from "./types.js";
 import {
   getRequiredSkillLevel,
@@ -23,13 +28,15 @@ export async function getPendingMaintenanceJobs(orgId: string): Promise<Maintena
     const equipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
     const equipmentMap = new Map(equipment.map((eq) => [eq.id, eq]));
 
-    const partsInventory = await dbInventoryStorage.getPartsInventory(undefined, orgId) ?? [];
+    const partsInventory = (await dbInventoryStorage.getPartsInventory(undefined, orgId)) ?? [];
 
     const jobs: MaintenanceJob[] = [];
 
     for (const schedule of pendingSchedules) {
       const equip = equipmentMap.get(schedule.equipmentId);
-      if (!equip) { continue; }
+      if (!equip) {
+        continue;
+      }
 
       const job: MaintenanceJob = {
         id: schedule.id,
@@ -49,9 +56,13 @@ export async function getPendingMaintenanceJobs(orgId: string): Promise<Maintena
 
     for (const workOrder of pendingOrders) {
       const equip = equipmentMap.get(workOrder.equipmentId);
-      if (!equip) { continue; }
+      if (!equip) {
+        continue;
+      }
 
-      if (pendingSchedules.some((s) => s.equipmentId === workOrder.equipmentId)) { continue; }
+      if (pendingSchedules.some((s) => s.equipmentId === workOrder.equipmentId)) {
+        continue;
+      }
 
       const job: MaintenanceJob = {
         id: `wo-${workOrder.id}`,
@@ -78,7 +89,7 @@ export async function getPendingMaintenanceJobs(orgId: string): Promise<Maintena
 
 export async function getPartsAvailability(orgId: string): Promise<any[]> {
   try {
-    return await dbInventoryStorage.getPartsInventory(undefined, orgId) ?? [];
+    return (await dbInventoryStorage.getPartsInventory(undefined, orgId)) ?? [];
   } catch {
     return [];
   }

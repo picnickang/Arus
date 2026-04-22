@@ -25,7 +25,7 @@ export type WorkOrder = SelectWorkOrder;
 export type WorkOrderPart = SelectWorkOrderPart;
 export type WorkOrderTask = SelectWorkOrderTask;
 
-export type WorkOrderStatus = 
+export type WorkOrderStatus =
   | "draft"
   | "pending"
   | "in_progress"

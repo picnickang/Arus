@@ -1,7 +1,12 @@
 import { apiRequest } from "../queryClient";
 import type { EquipmentTelemetry, InsertTelemetry, TelemetryTrend } from "@shared/schema";
 
-export interface EquipmentHealth { equipmentId: string; healthScore: number; status: string; [key: string]: unknown }
+export interface EquipmentHealth {
+  equipmentId: string;
+  healthScore: number;
+  status: string;
+  [key: string]: unknown;
+}
 import {
   equipmentHealthResponseSchema,
   type EquipmentHealthResponse,
@@ -13,7 +18,9 @@ import {
 
 export async function fetchEquipmentHealth(vesselId?: string): Promise<EquipmentHealth[]> {
   const params = new URLSearchParams();
-  if (vesselId) {params.append("vesselId", vesselId);}
+  if (vesselId) {
+    params.append("vesselId", vesselId);
+  }
   const url = `/api/equipment/health${params.toString() ? `?${params.toString()}` : ""}`;
   return apiRequest("GET", url);
 }
@@ -30,10 +37,18 @@ export async function fetchLatestTelemetryReadings(
   limit?: number
 ) {
   const params = new URLSearchParams();
-  if (vesselId) {params.set("vesselId", vesselId);}
-  if (equipmentId) {params.set("equipmentId", equipmentId);}
-  if (sensorType) {params.set("sensorType", sensorType);}
-  if (limit) {params.set("limit", limit.toString());}
+  if (vesselId) {
+    params.set("vesselId", vesselId);
+  }
+  if (equipmentId) {
+    params.set("equipmentId", equipmentId);
+  }
+  if (sensorType) {
+    params.set("sensorType", sensorType);
+  }
+  if (limit) {
+    params.set("limit", limit.toString());
+  }
   const url = `/api/telemetry/latest${params.toString() ? `?${params.toString()}` : ""}`;
   return apiRequest("GET", url);
 }
@@ -44,14 +59,22 @@ export async function fetchTelemetryTrends(
   hours?: number
 ): Promise<TelemetryTrend[]> {
   const params = new URLSearchParams();
-  if (vesselId) {params.set("vesselId", vesselId);}
-  if (equipmentId) {params.set("equipmentId", equipmentId);}
-  if (hours) {params.set("hours", hours.toString());}
+  if (vesselId) {
+    params.set("vesselId", vesselId);
+  }
+  if (equipmentId) {
+    params.set("equipmentId", equipmentId);
+  }
+  if (hours) {
+    params.set("hours", hours.toString());
+  }
   const url = `/api/telemetry/trends${params.toString() ? `?${params.toString()}` : ""}`;
   return await apiRequest("GET", url);
 }
 
-export async function createTelemetryReading(reading: InsertTelemetry): Promise<EquipmentTelemetry> {
+export async function createTelemetryReading(
+  reading: InsertTelemetry
+): Promise<EquipmentTelemetry> {
   return await apiRequest("POST", "/api/telemetry/readings", reading);
 }
 
@@ -60,7 +83,10 @@ export async function fetchTelemetryHistory(
   sensorType: string,
   hours: number = 24
 ): Promise<EquipmentTelemetry[]> {
-  return await apiRequest("GET", `/api/telemetry/history/${equipmentId}/${sensorType}?hours=${hours}`);
+  return await apiRequest(
+    "GET",
+    `/api/telemetry/history/${equipmentId}/${sensorType}?hours=${hours}`
+  );
 }
 
 export async function fetchEquipmentReport(equipmentId: string): Promise<unknown> {
@@ -68,31 +94,59 @@ export async function fetchEquipmentReport(equipmentId: string): Promise<unknown
 }
 
 function isValidUuid(value: unknown): value is string {
-  if (typeof value !== "string") {return false;}
+  if (typeof value !== "string") {
+    return false;
+  }
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return uuidRegex.test(value);
 }
 
-function mapHealthToCondition(healthIndex: number | null | undefined): "excellent" | "good" | "fair" | "poor" | "critical" {
-  if (healthIndex == null) {return "fair";}
-  if (healthIndex >= 90) {return "excellent";}
-  if (healthIndex >= 75) {return "good";}
-  if (healthIndex >= 50) {return "fair";}
-  if (healthIndex >= 25) {return "poor";}
+function mapHealthToCondition(
+  healthIndex: number | null | undefined
+): "excellent" | "good" | "fair" | "poor" | "critical" {
+  if (healthIndex == null) {
+    return "fair";
+  }
+  if (healthIndex >= 90) {
+    return "excellent";
+  }
+  if (healthIndex >= 75) {
+    return "good";
+  }
+  if (healthIndex >= 50) {
+    return "fair";
+  }
+  if (healthIndex >= 25) {
+    return "poor";
+  }
   return "critical";
 }
 
-function mapHealthToRiskLevel(healthIndex: number | null | undefined): "low" | "medium" | "high" | "critical" {
-  if (healthIndex == null) {return "medium";}
-  if (healthIndex >= 75) {return "low";}
-  if (healthIndex >= 50) {return "medium";}
-  if (healthIndex >= 25) {return "high";}
+function mapHealthToRiskLevel(
+  healthIndex: number | null | undefined
+): "low" | "medium" | "high" | "critical" {
+  if (healthIndex == null) {
+    return "medium";
+  }
+  if (healthIndex >= 75) {
+    return "low";
+  }
+  if (healthIndex >= 50) {
+    return "medium";
+  }
+  if (healthIndex >= 25) {
+    return "high";
+  }
   return "critical";
 }
 
-export async function fetchEquipmentHealthTyped(vesselId?: string): Promise<EquipmentHealthResponse> {
+export async function fetchEquipmentHealthTyped(
+  vesselId?: string
+): Promise<EquipmentHealthResponse> {
   const params = new URLSearchParams();
-  if (vesselId) {params.append("vesselId", vesselId);}
+  if (vesselId) {
+    params.append("vesselId", vesselId);
+  }
   const url = `/api/equipment/health${params.toString() ? `?${params.toString()}` : ""}`;
   const response = await apiRequest("GET", url);
 
@@ -103,7 +157,11 @@ export async function fetchEquipmentHealthTyped(vesselId?: string): Promise<Equi
         id: item.id as string,
         name: item.name as string,
         type: item.type as string,
-        vesselId: isValidUuid(item.vesselId) ? (item.vesselId) : (isValidUuid(item.vessel) ? (item.vessel) : null),
+        vesselId: isValidUuid(item.vesselId)
+          ? item.vesselId
+          : isValidUuid(item.vessel)
+            ? item.vessel
+            : null,
         vesselName: item.vesselName as string | undefined,
         condition: mapHealthToCondition(item.healthIndex as number | null),
         healthScore: (item.healthIndex as number) ?? 0,
@@ -133,7 +191,10 @@ export async function fetchEquipmentHealthTyped(vesselId?: string): Promise<Equi
 
   const result = equipmentHealthResponseSchema.safeParse(normalizedResponse);
   if (!result.success) {
-    console.warn("[API] Equipment health response validation issues (non-blocking):", JSON.stringify(result.error.issues, null, 2));
+    console.warn(
+      "[API] Equipment health response validation issues (non-blocking):",
+      JSON.stringify(result.error.issues, null, 2)
+    );
     return normalizedResponse;
   }
   return result.data;

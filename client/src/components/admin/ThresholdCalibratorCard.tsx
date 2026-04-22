@@ -1,6 +1,6 @@
 /**
  * Threshold Calibrator Card Component
- * 
+ *
  * Admin tool for calibrating prediction thresholds based on historical data.
  */
 
@@ -65,7 +65,9 @@ export function ThresholdCalibratorCard() {
     }
 
     const selectedEq = equipment.find((e) => e.id === selectedEquipment);
-    if (!selectedEq) {return;}
+    if (!selectedEq) {
+      return;
+    }
 
     try {
       setCalibrating(true);

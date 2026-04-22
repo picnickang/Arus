@@ -78,7 +78,11 @@ function walkDir(dir) {
       const full = join(dir, entry.name);
       if (entry.isDirectory()) {
         results.push(...walkDir(full));
-      } else if (entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts") && !entry.name.endsWith(".test.ts")) {
+      } else if (
+        entry.name.endsWith(".ts") &&
+        !entry.name.endsWith(".d.ts") &&
+        !entry.name.endsWith(".test.ts")
+      ) {
         results.push(full);
       }
     }
@@ -113,7 +117,9 @@ if (violations.length > 0) {
   for (const v of violations) {
     console.log(`  ✗ ${v}`);
   }
-  console.log("\nFix: Move route registration to a domain module or add to domain-router-registry.ts");
+  console.log(
+    "\nFix: Move route registration to a domain module or add to domain-router-registry.ts"
+  );
   console.log("See server/routes/domain-router-registry.ts for the canonical pattern.");
   process.exit(1);
 } else {

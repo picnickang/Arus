@@ -4,15 +4,24 @@
  */
 
 import { engineLogStorage, vesselService } from "../../repositories.js";
-import { ENGINE_ANOMALY_THRESHOLDS, GENERATOR_ANOMALY_THRESHOLDS, checkAnomaly } from "./thresholds.js";
+import {
+  ENGINE_ANOMALY_THRESHOLDS,
+  GENERATOR_ANOMALY_THRESHOLDS,
+  checkAnomaly,
+} from "./thresholds.js";
 import type { AnomalySummary, UnsignedLogInfo } from "./types.js";
 
-export async function getAnomalySummary(dailyLogId: string, orgId: string): Promise<AnomalySummary> {
+export async function getAnomalySummary(
+  dailyLogId: string,
+  orgId: string
+): Promise<AnomalySummary> {
   const hourly = await engineLogStorage.getEngineLogHourly(dailyLogId, orgId);
   const generators = await engineLogStorage.getEngineLogGenerator(dailyLogId, orgId);
 
-  const byField: Record<string, { count: number; severity: 'warning' | 'critical'; values: number[] }> =
-    {};
+  const byField: Record<
+    string,
+    { count: number; severity: "warning" | "critical"; values: number[] }
+  > = {};
   let criticalCount = 0;
   let warningCount = 0;
 
@@ -28,8 +37,11 @@ export async function getAnomalySummary(dailyLogId: string, orgId: string): Prom
         byField[field].count++;
         byField[field].values.push(value);
 
-        if (check.severity === 'critical') { criticalCount++; }
-        else { warningCount++; }
+        if (check.severity === "critical") {
+          criticalCount++;
+        } else {
+          warningCount++;
+        }
       }
     }
   }
@@ -47,8 +59,11 @@ export async function getAnomalySummary(dailyLogId: string, orgId: string): Prom
         byField[fieldKey].count++;
         byField[fieldKey].values.push(value);
 
-        if (check.severity === 'critical') { criticalCount++; }
-        else { warningCount++; }
+        if (check.severity === "critical") {
+          criticalCount++;
+        } else {
+          warningCount++;
+        }
       }
     }
   }
@@ -69,14 +84,14 @@ export async function getUnsignedLogs(
 
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - daysBack);
-  const startDateStr = startDate.toISOString().split('T')[0];
+  const startDateStr = startDate.toISOString().split("T")[0];
 
   const dailyLogs = await engineLogStorage.getEngineLogDaily(orgId, {
     vesselId,
     startDate: startDateStr,
   });
 
-  const unsignedLogs = dailyLogs.filter((log) => log.status === 'open' || log.status === 'draft');
+  const unsignedLogs = dailyLogs.filter((log) => log.status === "open" || log.status === "draft");
 
   const results: UnsignedLogInfo[] = [];
   for (const log of unsignedLogs) {

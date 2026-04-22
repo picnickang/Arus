@@ -5,7 +5,13 @@ import { mqttReliableSync } from "../../../mqtt-reliable-sync";
 import { logger } from "../../../utils/logger.js";
 
 export class EventPublisherAdapter implements EventPublisherPort {
-  async publish(entity: string, entityId: string, action: string, data: Record<string, unknown>, userId?: string) {
+  async publish(
+    entity: string,
+    entityId: string,
+    action: string,
+    data: Record<string, unknown>,
+    userId?: string
+  ) {
     await recordAndPublish(entity, entityId, action, data, userId);
   }
 

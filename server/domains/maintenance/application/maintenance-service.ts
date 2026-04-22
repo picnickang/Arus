@@ -8,7 +8,7 @@ import type {
   IMaintenanceScheduleRepository,
   IMaintenanceTemplateRepository,
   IEventPublisher,
-} from '../domain/ports';
+} from "../domain/ports";
 import type {
   MaintenanceScheduleEntity,
   MaintenanceTemplateEntity,
@@ -16,7 +16,7 @@ import type {
   UpdateScheduleCommand,
   CreateTemplateCommand,
   UpdateTemplateCommand,
-} from '../domain/types';
+} from "../domain/types";
 import type {
   MaintenanceScheduleCreatedEvent,
   MaintenanceScheduleUpdatedEvent,
@@ -25,8 +25,8 @@ import type {
   MaintenanceTemplateCreatedEvent,
   MaintenanceTemplateUpdatedEvent,
   MaintenanceTemplateDeletedEvent,
-} from '../domain/events';
-import { createEventId } from '../domain/events';
+} from "../domain/events";
+import { createEventId } from "../domain/events";
 
 /**
  * Application service for maintenance domain
@@ -57,9 +57,9 @@ export class MaintenanceApplicationService {
 
     const event: MaintenanceScheduleCreatedEvent = {
       eventId: createEventId(),
-      eventType: 'MaintenanceScheduleCreated',
+      eventType: "MaintenanceScheduleCreated",
       aggregateId: schedule.id,
-      aggregateType: 'MaintenanceSchedule',
+      aggregateType: "MaintenanceSchedule",
       occurredAt: new Date(),
       userId,
       orgId: schedule.orgId,
@@ -84,11 +84,11 @@ export class MaintenanceApplicationService {
     userId?: string
   ): Promise<MaintenanceScheduleEntity> {
     const previousSchedule = await this.scheduleRepository.findById(id, orgId);
-    
+
     if (!previousSchedule) {
       throw new Error(`Schedule ${id} not found in org ${orgId}`);
     }
-    
+
     const schedule = await this.scheduleRepository.update(id, updates);
 
     const changedFields = Object.keys(updates).filter(
@@ -97,9 +97,9 @@ export class MaintenanceApplicationService {
 
     const event: MaintenanceScheduleUpdatedEvent = {
       eventId: createEventId(),
-      eventType: 'MaintenanceScheduleUpdated',
+      eventType: "MaintenanceScheduleUpdated",
       aggregateId: schedule.id,
-      aggregateType: 'MaintenanceSchedule',
+      aggregateType: "MaintenanceSchedule",
       occurredAt: new Date(),
       userId,
       orgId,
@@ -127,9 +127,9 @@ export class MaintenanceApplicationService {
 
     const event: MaintenanceScheduleDeletedEvent = {
       eventId: createEventId(),
-      eventType: 'MaintenanceScheduleDeleted',
+      eventType: "MaintenanceScheduleDeleted",
       aggregateId: id,
-      aggregateType: 'MaintenanceSchedule',
+      aggregateType: "MaintenanceSchedule",
       occurredAt: new Date(),
       userId,
       orgId,
@@ -143,7 +143,10 @@ export class MaintenanceApplicationService {
     await this.eventPublisher.publish(event);
   }
 
-  async getUpcomingSchedules(orgId: string, daysAhead: number = 30): Promise<MaintenanceScheduleEntity[]> {
+  async getUpcomingSchedules(
+    orgId: string,
+    daysAhead: number = 30
+  ): Promise<MaintenanceScheduleEntity[]> {
     return this.scheduleRepository.findUpcoming(orgId, daysAhead);
   }
 
@@ -156,9 +159,9 @@ export class MaintenanceApplicationService {
 
     const event: MaintenanceAutoScheduledEvent = {
       eventId: createEventId(),
-      eventType: 'MaintenanceAutoScheduled',
+      eventType: "MaintenanceAutoScheduled",
       aggregateId: schedule.id,
-      aggregateType: 'MaintenanceSchedule',
+      aggregateType: "MaintenanceSchedule",
       occurredAt: new Date(),
       userId,
       orgId: schedule.orgId,
@@ -167,7 +170,7 @@ export class MaintenanceApplicationService {
         equipmentId: schedule.equipmentId,
         scheduledDate: schedule.nextScheduledDate,
         pdmScore,
-        triggerSource: 'pdm_prediction',
+        triggerSource: "pdm_prediction",
       },
     };
 
@@ -198,9 +201,9 @@ export class MaintenanceApplicationService {
 
     const event: MaintenanceTemplateCreatedEvent = {
       eventId: createEventId(),
-      eventType: 'MaintenanceTemplateCreated',
+      eventType: "MaintenanceTemplateCreated",
       aggregateId: template.id,
-      aggregateType: 'MaintenanceTemplate',
+      aggregateType: "MaintenanceTemplate",
       occurredAt: new Date(),
       userId,
       orgId: template.orgId,
@@ -232,9 +235,9 @@ export class MaintenanceApplicationService {
 
     const event: MaintenanceTemplateUpdatedEvent = {
       eventId: createEventId(),
-      eventType: 'MaintenanceTemplateUpdated',
+      eventType: "MaintenanceTemplateUpdated",
       aggregateId: template.id,
-      aggregateType: 'MaintenanceTemplate',
+      aggregateType: "MaintenanceTemplate",
       occurredAt: new Date(),
       userId,
       orgId: template.orgId,
@@ -262,9 +265,9 @@ export class MaintenanceApplicationService {
 
     const event: MaintenanceTemplateDeletedEvent = {
       eventId: createEventId(),
-      eventType: 'MaintenanceTemplateDeleted',
+      eventType: "MaintenanceTemplateDeleted",
       aggregateId: id,
-      aggregateType: 'MaintenanceTemplate',
+      aggregateType: "MaintenanceTemplate",
       occurredAt: new Date(),
       userId,
       orgId,

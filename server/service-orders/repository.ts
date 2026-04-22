@@ -1,7 +1,20 @@
 import { db } from "../db";
-import { serviceOrders, serviceOrderEvents, workOrders, suppliers, vessels, equipment } from "@shared/schema";
+import {
+  serviceOrders,
+  serviceOrderEvents,
+  workOrders,
+  suppliers,
+  vessels,
+  equipment,
+} from "@shared/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
-import { ServiceOrder, InsertServiceOrder, ServiceOrderWithDetails, ServiceOrderListFilters, ServiceOrderStatus } from "./types";
+import {
+  ServiceOrder,
+  InsertServiceOrder,
+  ServiceOrderWithDetails,
+  ServiceOrderListFilters,
+  ServiceOrderStatus,
+} from "./types";
 
 export async function generateSoNumber(orgId: string): Promise<string> {
   const lockKey = Buffer.from(`so_num:${orgId}`).reduce((a, b) => (a * 31 + b) & 0x7fffffff, 0);
@@ -10,11 +23,15 @@ export async function generateSoNumber(orgId: string): Promise<string> {
         COALESCE(MAX(CAST(SUBSTRING(so_number FROM 4) AS INTEGER)), 0) + 1 AS next_val
         FROM service_orders WHERE org_id = ${orgId} AND so_number ~ '^SO-[0-9]+$'`
   );
-  const nextNum = Number((result as { rows?: Array<{ next_val: string }> }).rows?.[0]?.next_val ?? 1);
+  const nextNum = Number(
+    (result as { rows?: Array<{ next_val: string }> }).rows?.[0]?.next_val ?? 1
+  );
   return `SO-${String(nextNum).padStart(3, "0")}`;
 }
 
-export async function createServiceOrder(data: InsertServiceOrder & { soNumber: string }): Promise<ServiceOrder> {
+export async function createServiceOrder(
+  data: InsertServiceOrder & { soNumber: string }
+): Promise<ServiceOrder> {
   const [so] = await db.insert(serviceOrders).values(data).returning();
   await db.insert(serviceOrderEvents).values({
     orgId: data.orgId,
@@ -25,7 +42,10 @@ export async function createServiceOrder(data: InsertServiceOrder & { soNumber: 
   return so;
 }
 
-export async function getServiceOrderById(id: string, orgId: string): Promise<ServiceOrderWithDetails | null> {
+export async function getServiceOrderById(
+  id: string,
+  orgId: string
+): Promise<ServiceOrderWithDetails | null> {
   const result = await db
     .select({
       so: serviceOrders,
@@ -44,7 +64,9 @@ export async function getServiceOrderById(id: string, orgId: string): Promise<Se
     .where(and(eq(serviceOrders.id, id), eq(serviceOrders.orgId, orgId)))
     .limit(1);
 
-  if (result.length === 0) { return null; }
+  if (result.length === 0) {
+    return null;
+  }
   const row = result[0];
   return {
     ...row.so,
@@ -63,11 +85,21 @@ export async function listServiceOrders(
 ): Promise<ServiceOrderWithDetails[]> {
   const conditions = [eq(serviceOrders.orgId, orgId)];
 
-  if (filters.status) { conditions.push(eq(serviceOrders.status, filters.status)); }
-  if (filters.serviceProviderId) { conditions.push(eq(serviceOrders.serviceProviderId, filters.serviceProviderId)); }
-  if (filters.workOrderId) { conditions.push(eq(serviceOrders.workOrderId, filters.workOrderId)); }
-  if (filters.dateFrom) { conditions.push(gte(serviceOrders.scheduledStartDate, filters.dateFrom)); }
-  if (filters.dateTo) { conditions.push(lte(serviceOrders.scheduledEndDate, filters.dateTo)); }
+  if (filters.status) {
+    conditions.push(eq(serviceOrders.status, filters.status));
+  }
+  if (filters.serviceProviderId) {
+    conditions.push(eq(serviceOrders.serviceProviderId, filters.serviceProviderId));
+  }
+  if (filters.workOrderId) {
+    conditions.push(eq(serviceOrders.workOrderId, filters.workOrderId));
+  }
+  if (filters.dateFrom) {
+    conditions.push(gte(serviceOrders.scheduledStartDate, filters.dateFrom));
+  }
+  if (filters.dateTo) {
+    conditions.push(lte(serviceOrders.scheduledEndDate, filters.dateTo));
+  }
 
   const rows = await db
     .select({
@@ -121,15 +153,20 @@ export async function updateServiceOrderStatus(
   const now = new Date();
   const updates: Partial<ServiceOrder> = { status, updatedAt: now };
 
-  if (status === "sent") { updates.sentAt = now; }
-  else if (status === "confirmed") { updates.confirmedAt = now; }
-  else if (status === "in_progress") { updates.actualStartDate = now; }
-  else if (status === "completed") {
+  if (status === "sent") {
+    updates.sentAt = now;
+  } else if (status === "confirmed") {
+    updates.confirmedAt = now;
+  } else if (status === "in_progress") {
+    updates.actualStartDate = now;
+  } else if (status === "completed") {
     updates.completedAt = now;
     updates.actualEndDate = now;
   } else if (status === "cancelled") {
     updates.cancelledAt = now;
-    if (details?.reason) { updates.cancellationReason = details.reason as string; }
+    if (details?.reason) {
+      updates.cancellationReason = details.reason as string;
+    }
   }
 
   const [updated] = await db
@@ -141,7 +178,11 @@ export async function updateServiceOrderStatus(
   if (updated) {
     const eventType = status === "in_progress" ? "started" : status;
     await db.insert(serviceOrderEvents).values({
-      orgId, soId: id, eventType, userId, details: details ?? { status },
+      orgId,
+      soId: id,
+      eventType,
+      userId,
+      details: details ?? { status },
     });
   }
 
@@ -161,19 +202,21 @@ export async function deleteServiceOrder(
   orgId: string
 ): Promise<{ success: boolean; error?: string }> {
   const existing = await getServiceOrderById(id, orgId);
-  if (!existing) { return { success: false, error: "Service order not found" }; }
+  if (!existing) {
+    return { success: false, error: "Service order not found" };
+  }
 
   const status = existing.status;
   if (status !== "draft" && status !== "cancelled") {
     return { success: false, error: "Only draft or cancelled service orders can be deleted" };
   }
 
-  await db.delete(serviceOrderEvents).where(
-    and(eq(serviceOrderEvents.soId, id), eq(serviceOrderEvents.orgId, orgId))
-  );
-  await db.delete(serviceOrders).where(
-    and(eq(serviceOrders.id, id), eq(serviceOrders.orgId, orgId))
-  );
+  await db
+    .delete(serviceOrderEvents)
+    .where(and(eq(serviceOrderEvents.soId, id), eq(serviceOrderEvents.orgId, orgId)));
+  await db
+    .delete(serviceOrders)
+    .where(and(eq(serviceOrders.id, id), eq(serviceOrders.orgId, orgId)));
 
   return { success: true };
 }
@@ -193,7 +236,9 @@ export async function deleteAllServiceOrdersByWorkOrder(
       deletedCount++;
     } else {
       skippedCount++;
-      if (result.error) { errors.push(`${order.soNumber}: ${result.error}`); }
+      if (result.error) {
+        errors.push(`${order.soNumber}: ${result.error}`);
+      }
     }
   }
 

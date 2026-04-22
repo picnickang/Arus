@@ -1,6 +1,6 @@
 /**
  * Centralized Runtime Environment Configuration
- * 
+ *
  * Determines deployment mode and provides environment-aware feature flags.
  * This module is the single source of truth for:
  * - Deployment mode detection (VESSEL vs CLOUD)
@@ -15,13 +15,13 @@
 /**
  * Detect if running in LOCAL/EMBEDDED mode (vessel/desktop deployment)
  * Checks environment variables set by Tauri or vessel configuration
- * 
+ *
  * IMPORTANT: This module is PURE (no side effects). The auto-fallback logic
  * for EMBEDDED_MODE is handled by db-config.ts BEFORE importing this module.
  * This ensures proper initialization order and prevents repeated side effects.
  */
-export const isLocalMode = 
-  process.env.LOCAL_MODE === "true" || 
+export const isLocalMode =
+  process.env.LOCAL_MODE === "true" ||
   process.env.EMBEDDED_MODE === "true" ||
   process.env.DEPLOYMENT_MODE === "VESSEL";
 
@@ -29,8 +29,7 @@ export const isLocalMode =
  * Detect if running in VESSEL mode specifically (offline-first vessel deployment)
  */
 export const isVesselMode =
-  process.env.DEPLOYMENT_MODE === "VESSEL" ||
-  process.env.EMBEDDED_MODE === "true";
+  process.env.DEPLOYMENT_MODE === "VESSEL" || process.env.EMBEDDED_MODE === "true";
 
 /**
  * Detect if running in CLOUD mode (server deployment with PostgreSQL/libSQL)
@@ -51,7 +50,7 @@ export const deploymentMode: "VESSEL" | "CLOUD" = isVesselMode ? "VESSEL" : "CLO
  * Based on presence of DATABASE_URL environment variable
  */
 export const canUseCloudDb = !!(
-  process.env.DATABASE_URL || 
+  process.env.DATABASE_URL ||
   process.env.TURSO_DB_URL ||
   process.env.NEON_DATABASE_URL
 );
@@ -72,10 +71,7 @@ export const hasPostgresFeatures = canUseCloudDb && isCloudMode;
  * Check if libSQL-specific features are available (db.execute, etc.)
  * Only true when using Turso/libSQL client
  */
-export const hasLibSQLFeatures = !!(
-  process.env.TURSO_DB_URL && 
-  process.env.TURSO_AUTH_TOKEN
-);
+export const hasLibSQLFeatures = !!(process.env.TURSO_DB_URL && process.env.TURSO_AUTH_TOKEN);
 
 // ============================================================================
 // FEATURE FLAGS BASED ON DEPLOYMENT MODE
@@ -87,25 +83,25 @@ export const hasLibSQLFeatures = !!(
 export const cloudOnlyFeatures = {
   /** Connection pool health monitoring (requires db.execute) */
   connectionPoolHealthCheck: hasLibSQLFeatures && isCloudMode,
-  
+
   /** TimescaleDB optimizations (compression, retention policies) */
   timescaleDbOptimization: hasPostgresFeatures,
-  
+
   /** Materialized view refresh scheduling */
   materializedViewScheduler: hasPostgresFeatures,
-  
+
   /** Vector similarity search (pgvector) */
   vectorSearch: hasPostgresFeatures,
-  
+
   /** Update scheduler (software patches) */
   updateScheduler: isCloudMode,
-  
+
   /** Sync manager (vessel → cloud synchronization) */
   syncManager: isCloudMode,
-  
+
   /** Telemetry pruning service (large-scale data cleanup) */
   telemetryPruning: hasPostgresFeatures,
-  
+
   /** Scheduled reports with email delivery */
   scheduledReports: isCloudMode,
 };
@@ -116,10 +112,10 @@ export const cloudOnlyFeatures = {
 export const vesselOnlyFeatures = {
   /** Offline-first data buffering */
   offlineBuffering: isVesselMode,
-  
+
   /** Local MQTT broker for equipment telemetry */
   localMqttBroker: isVesselMode,
-  
+
   /** Vessel-specific sync conflict resolution */
   syncConflictResolution: isVesselMode,
 };
@@ -130,13 +126,13 @@ export const vesselOnlyFeatures = {
 export const sharedFeatures = {
   /** Equipment health monitoring */
   equipmentHealthMonitoring: true,
-  
+
   /** Maintenance scheduling */
   maintenanceScheduling: true,
-  
+
   /** Real-time WebSocket updates */
   websocketUpdates: true,
-  
+
   /** AI-powered insights */
   aiInsights: true,
 };

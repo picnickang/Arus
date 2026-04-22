@@ -1,6 +1,6 @@
 /**
  * Schema Sync - Synchronization Journal and Outbox
- * 
+ *
  * Tables for event sourcing, sync tracking, and idempotency.
  */
 
@@ -123,9 +123,18 @@ export const sheetVersion = pgTable("sheet_version", {
 });
 
 // Insert schemas
-export const insertSyncJournalSchema = createInsertSchema(syncJournal).omit({ id: true, createdAt: true });
-export const insertSyncOutboxSchema = createInsertSchema(syncOutbox).omit({ id: true, createdAt: true });
-export const insertRequestIdempotencySchema = createInsertSchema(requestIdempotency).omit({ id: true, createdAt: true });
+export const insertSyncJournalSchema = createInsertSchema(syncJournal).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertSyncOutboxSchema = createInsertSchema(syncOutbox).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertRequestIdempotencySchema = createInsertSchema(requestIdempotency).omit({
+  id: true,
+  createdAt: true,
+});
 
 // Types
 export type SyncJournal = typeof syncJournal.$inferSelect;

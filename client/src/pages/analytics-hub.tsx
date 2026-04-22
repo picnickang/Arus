@@ -2,8 +2,14 @@ import { useMemo } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Heart, AlertTriangle, Wrench, DollarSign, Shield,
-  ChevronRight, Activity, Sparkles,
+  Heart,
+  AlertTriangle,
+  Wrench,
+  DollarSign,
+  Shield,
+  ChevronRight,
+  Activity,
+  Sparkles,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +17,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PermissionGate, PagePermissionDenied } from "@/components/PermissionGate";
 
 function HeadlineMetric({
-  label, value, icon: Icon, color, domain, testId,
+  label,
+  value,
+  icon: Icon,
+  color,
+  domain,
+  testId,
 }: {
   label: string;
   value: string | number;
@@ -21,7 +32,10 @@ function HeadlineMetric({
   testId: string;
 }) {
   return (
-    <div className="text-center p-3 rounded-lg border bg-card hover:bg-accent/30 transition-colors cursor-default" data-testid={testId}>
+    <div
+      className="text-center p-3 rounded-lg border bg-card hover:bg-accent/30 transition-colors cursor-default"
+      data-testid={testId}
+    >
       <Icon className={`h-4 w-4 mx-auto mb-1 ${color}`} />
       <div className={`text-xl font-bold ${color}`}>{value}</div>
       <div className="text-[10px] text-muted-foreground font-medium">{label}</div>
@@ -31,7 +45,12 @@ function HeadlineMetric({
 }
 
 function DomainStrip({
-  title, icon: Icon, stats, href, color, testId,
+  title,
+  icon: Icon,
+  stats,
+  href,
+  color,
+  testId,
 }: {
   title: string;
   icon: React.ElementType;
@@ -41,16 +60,22 @@ function DomainStrip({
   testId: string;
 }) {
   return (
-    <div className={`flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/30 transition-colors`} data-testid={testId}>
+    <div
+      className={`flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/30 transition-colors`}
+      data-testid={testId}
+    >
       <Icon className={`h-5 w-5 ${color} shrink-0`} />
       <div className="flex-1 min-w-0">
         <div className="font-semibold text-sm text-foreground">{title}</div>
-        <div className="text-xs text-muted-foreground mt-0.5">
-          {stats.join(" · ")}
-        </div>
+        <div className="text-xs text-muted-foreground mt-0.5">{stats.join(" · ")}</div>
       </div>
       <Link href={href}>
-        <Button variant="outline" size="sm" className="shrink-0 text-xs gap-1" data-testid={`${testId}-open`}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="shrink-0 text-xs gap-1"
+          data-testid={`${testId}-open`}
+        >
           Open <ChevronRight className="h-3 w-3" />
         </Button>
       </Link>
@@ -71,7 +96,9 @@ function KeyFindings({
 }) {
   const findings: string[] = [];
 
-  const criticalCount = equipmentHealth.filter((e) => (e.healthIndex ?? e.healthScore ?? 100) < 40).length;
+  const criticalCount = equipmentHealth.filter(
+    (e) => (e.healthIndex ?? e.healthScore ?? 100) < 40
+  ).length;
   const warningCount = equipmentHealth.filter((e) => {
     const h = e.healthIndex ?? e.healthScore ?? 100;
     return h >= 40 && h < 70;
@@ -127,7 +154,11 @@ function KeyFindings({
         <CardContent className="p-4">
           <ul className="space-y-2">
             {findings.slice(0, 5).map((finding, i) => (
-              <li key={i} className="text-sm text-foreground flex items-start gap-2" data-testid={`finding-${i}`}>
+              <li
+                key={i}
+                className="text-sm text-foreground flex items-start gap-2"
+                data-testid={`finding-${i}`}
+              >
                 <span className="text-sky-500 mt-0.5 shrink-0">•</span>
                 <span>{finding}</span>
               </li>
@@ -140,7 +171,11 @@ function KeyFindings({
 }
 
 export default function AnalyticsHub() {
-  const { data: equipmentHealth = [], isLoading: healthLoading, error: healthError } = useQuery<any[]>({
+  const {
+    data: equipmentHealth = [],
+    isLoading: healthLoading,
+    error: healthError,
+  } = useQuery<any[]>({
     queryKey: ["/api/equipment/health"],
     staleTime: 60000,
   });
@@ -163,12 +198,19 @@ export default function AnalyticsHub() {
   const hasErrors = healthError || woError || costError || integrityError;
 
   const avgHealth = useMemo(() => {
-    if (!equipmentHealth || equipmentHealth.length === 0) {return 0;}
-    const sum = equipmentHealth.reduce((s: number, e: any) => s + (e.healthIndex ?? e.healthScore ?? 100), 0);
+    if (!equipmentHealth || equipmentHealth.length === 0) {
+      return 0;
+    }
+    const sum = equipmentHealth.reduce(
+      (s: number, e: any) => s + (e.healthIndex ?? e.healthScore ?? 100),
+      0
+    );
     return Math.round(sum / equipmentHealth.length);
   }, [equipmentHealth]);
 
-  const criticalCount = equipmentHealth.filter((e: any) => (e.healthIndex ?? e.healthScore ?? 100) < 40).length;
+  const criticalCount = equipmentHealth.filter(
+    (e: any) => (e.healthIndex ?? e.healthScore ?? 100) < 40
+  ).length;
 
   const openWOs = workOrderSummary?.openCount ?? workOrderSummary?.open ?? 0;
   const overdueWOs = workOrderSummary?.overdueCount ?? workOrderSummary?.overdue ?? 0;
@@ -186,7 +228,9 @@ export default function AnalyticsHub() {
       <div className="p-6 space-y-6">
         <Skeleton className="h-8 w-48" />
         <div className="grid grid-cols-5 gap-4">
-          {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-24" />)}
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
         </div>
         <Skeleton className="h-32" />
         <Skeleton className="h-20" />
@@ -198,7 +242,11 @@ export default function AnalyticsHub() {
   }
 
   return (
-    <PermissionGate resource="analytics_dashboard" action="view" fallback={<PagePermissionDenied />}>
+    <PermissionGate
+      resource="analytics_dashboard"
+      action="view"
+      fallback={<PagePermissionDenied />}
+    >
       <div className="p-4 lg:p-6 space-y-6" data-testid="analytics-hub">
         <div>
           <h1 className="text-xl font-bold">Analytics & Reports</h1>
@@ -208,12 +256,25 @@ export default function AnalyticsHub() {
         </div>
 
         {hasErrors && (
-          <div className="flex items-start gap-3 p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10" data-testid="error-banner">
+          <div
+            className="flex items-start gap-3 p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10"
+            data-testid="error-banner"
+          >
             <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-yellow-700 dark:text-yellow-300">Some data could not be loaded</p>
+              <p className="text-sm font-medium text-yellow-700 dark:text-yellow-300">
+                Some data could not be loaded
+              </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {[healthError && "equipment health", woError && "work orders", costError && "cost savings", integrityError && "data integrity"].filter(Boolean).join(", ")} — values shown may be incomplete. Data will retry automatically.
+                {[
+                  healthError && "equipment health",
+                  woError && "work orders",
+                  costError && "cost savings",
+                  integrityError && "data integrity",
+                ]
+                  .filter(Boolean)
+                  .join(", ")}{" "}
+                — values shown may be incomplete. Data will retry automatically.
               </p>
             </div>
           </div>
@@ -224,7 +285,13 @@ export default function AnalyticsHub() {
             label="Fleet Health"
             value={`${avgHealth}%`}
             icon={Heart}
-            color={avgHealth >= 80 ? "text-green-600" : avgHealth >= 60 ? "text-yellow-600" : "text-red-600"}
+            color={
+              avgHealth >= 80
+                ? "text-green-600"
+                : avgHealth >= 60
+                  ? "text-yellow-600"
+                  : "text-red-600"
+            }
             domain="Operations"
             testId="headline-health"
           />
@@ -303,7 +370,9 @@ export default function AnalyticsHub() {
             icon={DollarSign}
             stats={[
               `$${(monthlySpend / 1000).toFixed(0)}k monthly${monthlyChange !== 0 ? ` (${monthlyChange > 0 ? "+" : ""}${monthlyChange.toFixed(0)}%)` : ""}`,
-              totalSavings > 0 ? `$${(totalSavings / 1000).toFixed(0)}k total savings` : "No savings data",
+              totalSavings > 0
+                ? `$${(totalSavings / 1000).toFixed(0)}k total savings`
+                : "No savings data",
             ]}
             href="/analytics/finance"
             color="text-green-600"

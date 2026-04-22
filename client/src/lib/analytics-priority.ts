@@ -44,10 +44,32 @@ export function calculatePriorityScore(alert: {
   return Math.round(severityWeight + freshnessWeight + financialWeight);
 }
 
-interface EquipmentHealthInput { id: string; name?: string; healthIndex: number; }
-interface AnomalyInput { equipmentId: string; equipmentName?: string; sensorType: string; value: number; unit?: string; zscore?: number; timestamp: string; }
-interface CostTrendInput { totalCost?: number; }
-interface WorkOrderInput { id: string; status: string; priority: number; createdAt?: string; reason?: string; equipmentId?: string; estimatedDowntimeHours?: number; }
+interface EquipmentHealthInput {
+  id: string;
+  name?: string;
+  healthIndex: number;
+}
+interface AnomalyInput {
+  equipmentId: string;
+  equipmentName?: string;
+  sensorType: string;
+  value: number;
+  unit?: string;
+  zscore?: number;
+  timestamp: string;
+}
+interface CostTrendInput {
+  totalCost?: number;
+}
+interface WorkOrderInput {
+  id: string;
+  status: string;
+  priority: number;
+  createdAt?: string;
+  reason?: string;
+  equipmentId?: string;
+  estimatedDowntimeHours?: number;
+}
 
 /**
  * Generate priority alerts from equipment health data
@@ -120,7 +142,9 @@ export function generateAnomalyAlerts(anomalies: AnomalyInput[]): PriorityAlert[
  * Generate priority alerts from cost data
  */
 export function generateCostAlerts(costTrends: CostTrendInput[]): PriorityAlert[] {
-  if (!costTrends || costTrends.length < 2) {return [];}
+  if (!costTrends || costTrends.length < 2) {
+    return [];
+  }
 
   const alerts: PriorityAlert[] = [];
   const latestMonth = costTrends[costTrends.length - 1];

@@ -3,12 +3,12 @@
  * Delivers reports via the existing email notification system
  */
 
-import type { IReportDeliveryAdapter } from '../domain/ports.js';
-import type { GeneratedReport } from '../domain/types.js';
-import { emailSender } from '../../../services/email-notification/email-sender.js';
-import { logger } from '../../../utils/logger.js';
+import type { IReportDeliveryAdapter } from "../domain/ports.js";
+import type { GeneratedReport } from "../domain/types.js";
+import { emailSender } from "../../../services/email-notification/email-sender.js";
+import { logger } from "../../../utils/logger.js";
 
-const LOG_CTX = 'EmailDeliveryAdapter';
+const LOG_CTX = "EmailDeliveryAdapter";
 
 export class EmailDeliveryAdapter implements IReportDeliveryAdapter {
   async deliver(
@@ -27,13 +27,7 @@ export class EmailDeliveryAdapter implements IReportDeliveryAdapter {
       };
 
       for (const recipient of recipients) {
-        await emailSender.sendWithAttachment(
-          recipient,
-          subject,
-          text,
-          html,
-          attachment
-        );
+        await emailSender.sendWithAttachment(recipient, subject, text, html, attachment);
 
         logger.info(LOG_CTX, `Report delivered to ${recipient}`, report.id);
       }
@@ -48,14 +42,14 @@ export class EmailDeliveryAdapter implements IReportDeliveryAdapter {
 
   private buildSubject(report: GeneratedReport): string {
     const typeLabels: Record<string, string> = {
-      fleet_health: 'Fleet Health Summary',
-      maintenance_due: 'Maintenance Due Report',
-      inventory_status: 'Inventory Status Report',
-      crew_compliance: 'Crew Compliance Report',
-      cost_summary: 'Cost Summary Report',
+      fleet_health: "Fleet Health Summary",
+      maintenance_due: "Maintenance Due Report",
+      inventory_status: "Inventory Status Report",
+      crew_compliance: "Crew Compliance Report",
+      cost_summary: "Cost Summary Report",
     };
 
-    const label = typeLabels[report.reportType] || 'Report';
+    const label = typeLabels[report.reportType] || "Report";
     const date = report.generatedAt.toLocaleDateString();
     return `[ARUS] ${label} - ${date}`;
   }
@@ -124,27 +118,31 @@ This is an automated message from ARUS Marine PdM.
 
   private formatReportType(type: string): string {
     return type
-      .split('_')
+      .split("_")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+      .join(" ");
   }
 
   private formatFileSize(bytes: number): string {
-    if (bytes < 1024) {return `${bytes} B`;}
-    if (bytes < 1024 * 1024) {return `${(bytes / 1024).toFixed(1)} KB`;}
+    if (bytes < 1024) {
+      return `${bytes} B`;
+    }
+    if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    }
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   private getContentType(format: string): string {
     switch (format) {
-      case 'pdf':
-        return 'application/pdf';
-      case 'csv':
-        return 'text/csv';
-      case 'json':
-        return 'application/json';
+      case "pdf":
+        return "application/pdf";
+      case "csv":
+        return "text/csv";
+      case "json":
+        return "application/json";
       default:
-        return 'application/octet-stream';
+        return "application/octet-stream";
     }
   }
 }
