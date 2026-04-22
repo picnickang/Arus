@@ -56,7 +56,12 @@ const METRICS = [
     name: "console-log",
     pattern: "console\\.(log|debug)\\b",
     exclude: null,
-    description: "console.log/debug calls (should use structured logger)",
+    // Scope to client/src + shared only. Server-side `console.log` is
+    // explicitly allowed by ESLint Stage 3 config (operational logging),
+    // so counting it here was noise. Client and shared are where
+    // `console.log` is genuinely banned and the metric is actionable.
+    paths: "client/src shared",
+    description: "console.log/debug calls in client/src + shared (server allows them)",
   },
   {
     name: "ts-ignore",
@@ -116,8 +121,9 @@ function countMatches(metric) {
   // Build grep command. We use -c to count matching lines per file, then sum.
   const include = `--include="*.ts" --include="*.tsx"`;
   const excludeClause = metric.exclude ? ` | grep -v -E "${metric.exclude}"` : "";
+  const paths = metric.paths || SEARCH_PATHS;
 
-  const cmd = `grep -rnE "${metric.pattern}" ${include} ${SEARCH_PATHS} 2>/dev/null${excludeClause} | wc -l`;
+  const cmd = `grep -rnE "${metric.pattern}" ${include} ${paths} 2>/dev/null${excludeClause} | wc -l`;
   const out = run(cmd).trim();
   return Number.parseInt(out, 10) || 0;
 }
