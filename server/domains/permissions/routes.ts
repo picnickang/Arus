@@ -54,14 +54,43 @@ export function registerPermissionRoutes(app: Express) {
       }
 
       const compiled = await compileUserPermissions(userId, orgId);
-      // NOTE: Pre-existing shape mismatch with client expectations:
-      // compileUserPermissions() returns { roles: string[], grants: matrix },
-      // but the client (PermissionsContext) and the dev-mode payload above
-      // expect { roles: {id,name,displayName}[], permissions: boolean matrix }.
-      // Until that mapping is added (separate task — needs role-name lookup
-      // + grants→boolean-matrix flattening), we cannot validate this path
-      // against permissionsMeResponseSchema without throwing in dev/test.
-      res.json({ ...compiled, isDevMode: false });
+
+      // Map the compiled output (roles: string[] of IDs, grants: nested
+      // {allowed,conditions} matrix) into the contract shape the client
+      // (PermissionsContext) expects: roles as {id,name,displayName} objects
+      // and permissions as a flat boolean matrix.
+      const orgRoles = await permissionRepository.listRoles(orgId);
+      const roleById = new Map(
+        orgRoles.map((r) => [
+          r.id,
+          { id: r.id, name: r.name, displayName: r.displayName },
+        ])
+      );
+      const roles = compiled.roles
+        .map((roleId) => roleById.get(roleId))
+        .filter((r): r is { id: string; name: string; displayName: string } => r !== undefined);
+
+      const permissions: Record<string, Record<string, boolean>> = {};
+      for (const [resource, actions] of Object.entries(compiled.grants)) {
+        permissions[resource] = {};
+        for (const [action, grant] of Object.entries(actions)) {
+          permissions[resource][action] = grant?.allowed === true;
+        }
+      }
+
+      res.json(
+        validateResponse(
+          permissionsMeResponseSchema,
+          {
+            userId: compiled.userId,
+            orgId: compiled.orgId,
+            roles,
+            permissions,
+            isDevMode: false,
+          },
+          "GET /api/permissions/me"
+        )
+      );
     })
   );
 

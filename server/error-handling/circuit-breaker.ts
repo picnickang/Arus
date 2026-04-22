@@ -36,7 +36,11 @@ export class CircuitBreaker {
     const previousState = current.state;
     circuitBreakers.set(serviceName, { ...current, ...state });
 
-    if (state.state?.state !== previousState) {
+    // Only emit the state-change metric when the state actually transitions.
+    // (Previously this read `state.state?.state` — a typo that double-derefs
+    // a string and always returned undefined, firing the callback on every
+    // partial update including ones that don't change `state`.)
+    if (state.state !== undefined && state.state !== previousState) {
       const stateValue = state.state === "OPEN" ? 1 : state.state === "HALF_OPEN" ? 2 : 0;
       this.metricsCallbacks.onStateChange?.(serviceName, stateValue as 0 | 1 | 2);
     }
@@ -72,8 +76,11 @@ export class CircuitBreaker {
       this.metricsCallbacks.onCall?.(serviceName, "success");
       this.metricsCallbacks.onLatency?.(serviceName, "execute", durationMs);
 
-      if (state.state === "HALF_OPEN") {
-        const newSuccessCount = state.successCount + 1;
+      // Re-read state for the success path: another concurrent call may have
+      // transitioned us out of HALF_OPEN since `state` was captured at entry.
+      const liveState = this.getState(serviceName);
+      if (liveState.state === "HALF_OPEN") {
+        const newSuccessCount = liveState.successCount + 1;
         if (newSuccessCount >= ERROR_HANDLING_CONFIG.CIRCUIT_BREAKER.SUCCESS_THRESHOLD) {
           this.updateState(serviceName, { state: "CLOSED", failures: 0, successCount: 0 });
           structuredLog("info", `Circuit breaker CLOSED for ${serviceName}`);
