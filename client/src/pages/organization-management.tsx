@@ -110,7 +110,7 @@ export default function OrganizationManagement() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {m.filteredOrganizations.map((org) => (
+                      {m.filteredOrganizations.map((org: (typeof m.filteredOrganizations)[number]) => (
                         <TableRow
                           key={org.id}
                           className="cursor-pointer hover:bg-muted/50"
@@ -170,7 +170,7 @@ export default function OrganizationManagement() {
                   </Table>
                 </div>
                 <div className="md:hidden space-y-3">
-                  {m.filteredOrganizations.map((org) => (
+                  {m.filteredOrganizations.map((org: (typeof m.filteredOrganizations)[number]) => (
                     <Card
                       key={org.id}
                       role="button"
@@ -286,7 +286,7 @@ export default function OrganizationManagement() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {m.filteredUsers.map((user) => (
+                        {m.filteredUsers.map((user: (typeof m.filteredUsers)[number]) => (
                           <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
                             <TableCell className="font-medium">{user.name}</TableCell>
                             <TableCell>{user.email}</TableCell>
@@ -340,7 +340,7 @@ export default function OrganizationManagement() {
                     </Table>
                   </div>
                   <div className="md:hidden space-y-3">
-                    {m.filteredUsers.map((user) => (
+                    {m.filteredUsers.map((user: (typeof m.filteredUsers)[number]) => (
                       <Card key={user.id} data-testid={`card-user-${user.id}`}>
                         <CardContent className="p-4">
                           <div className="flex flex-col space-y-3">

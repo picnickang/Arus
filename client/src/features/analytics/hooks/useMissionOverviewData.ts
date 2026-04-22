@@ -102,12 +102,20 @@ export function useMissionOverviewData() {
     const recentCosts = costTrends.slice(-2);
     const historicalAvg =
       costTrends.length > 2
-        ? costTrends.slice(0, -2).reduce((sum, t) => sum + (t.totalCost || 0), 0) /
+        ? costTrends
+            .slice(0, -2)
+            .reduce(
+              (sum: number, t: (typeof costTrends)[number]) => sum + (t.totalCost || 0),
+              0
+            ) /
           (costTrends.length - 2)
         : 0;
     const recentAvg =
       recentCosts.length > 0
-        ? recentCosts.reduce((sum, t) => sum + (t.totalCost || 0), 0) / recentCosts.length
+        ? recentCosts.reduce(
+            (sum: number, t: (typeof recentCosts)[number]) => sum + (t.totalCost || 0),
+            0
+          ) / recentCosts.length
         : 0;
     const costSpike = historicalAvg > 0 ? ((recentAvg - historicalAvg) / historicalAvg) * 100 : 0;
     const hasCostSpike = costSpike > 20;

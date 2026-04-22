@@ -101,7 +101,7 @@ export default function ReportsTab() {
                   <SelectValue placeholder="Select vessel" />
                 </SelectTrigger>
                 <SelectContent>
-                  {vessels
+                  {(vessels as Array<{ id: string; name: string }>)
                     .filter((v) => v.id)
                     .map((vessel) => (
                       <SelectItem key={vessel.id} value={vessel.id}>
@@ -247,7 +247,16 @@ export default function ReportsTab() {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <div className="space-y-4">
-                          {generatedReport.content.scenarios.map((scenario, idx) => (
+                          {generatedReport.content.scenarios.map(
+                            (
+                              scenario: {
+                                impact: string;
+                                probability: number;
+                                scenario: string;
+                                recommendations: string[];
+                              },
+                              idx: number
+                            ) => (
                             <Card
                               key={`scenario-${idx}`}
                               className="border-l-4"
@@ -274,7 +283,7 @@ export default function ReportsTab() {
                                 <p className="font-medium mb-2 text-sm">{scenario.scenario}</p>
                                 {scenario.recommendations.length > 0 && (
                                   <ul className="space-y-1 mt-2">
-                                    {scenario.recommendations.map((rec, i) => (
+                                    {scenario.recommendations.map((rec: string, i: number) => (
                                       <li key={i} className="flex items-start gap-2">
                                         <CheckCircle2 className="h-3 w-3 text-primary mt-0.5 flex-shrink-0" />
                                         <span className="text-xs text-muted-foreground">{rec}</span>
@@ -284,7 +293,8 @@ export default function ReportsTab() {
                                 )}
                               </CardContent>
                             </Card>
-                          ))}
+                          )
+                          )}
                         </div>
                       </CollapsibleContent>
                     </Collapsible>
@@ -364,7 +374,11 @@ export default function ReportsTab() {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <div className="space-y-2">
-                          {generatedReport.content.citations.map((citation, idx) => (
+                          {generatedReport.content.citations.map(
+                            (
+                              citation: { relevance: number; source: string; snippet: string },
+                              idx: number
+                            ) => (
                             <Card key={`citation-${idx}`}>
                               <CardContent className="pt-3 pb-3">
                                 <div className="flex items-start gap-2">

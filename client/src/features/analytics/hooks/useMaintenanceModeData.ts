@@ -85,8 +85,8 @@ export function useMaintenanceModeData() {
   const equipmentHealth: EquipmentHealth[] = equipmentHealthResponse?.results ?? [];
 
   const metrics = useMemo(() => {
-    const openOrders = workOrders.filter((wo) => wo.status !== "completed").length;
-    const overdueOrders = workOrders.filter((wo) => {
+    const openOrders = workOrders.filter((wo: WorkOrderData) => wo.status !== "completed").length;
+    const overdueOrders = workOrders.filter((wo: WorkOrderData) => {
       if (wo.status === "completed" || !wo.createdAt) {
         return false;
       }
@@ -98,13 +98,18 @@ export function useMaintenanceModeData() {
         (wo.priority === 3 && ageHours > 168)
       );
     }).length;
-    const highRiskEquipment = pdmScores.filter((score) => score.failureRisk > 70).length;
-    const completedOrders = workOrders.filter((wo) => wo.status === "completed");
-    const ordersWithTimestamps = completedOrders.filter((wo) => wo.createdAt && wo.completedAt);
+    const highRiskEquipment = pdmScores.filter(
+      (score: PdmScoreData) => score.failureRisk > 70
+    ).length;
+    const completedOrders = workOrders.filter((wo: WorkOrderData) => wo.status === "completed");
+    const ordersWithTimestamps = completedOrders.filter(
+      (wo: WorkOrderData) => wo.createdAt && wo.completedAt
+    );
     const avgCompletionTimeHours =
       ordersWithTimestamps.length > 0
         ? ordersWithTimestamps.reduce(
-            (sum, wo) => sum + differenceInHours(new Date(wo.completedAt), new Date(wo.createdAt)),
+            (sum: number, wo: WorkOrderData) =>
+              sum + differenceInHours(new Date(wo.completedAt!), new Date(wo.createdAt!)),
             0
           ) / ordersWithTimestamps.length
         : 0;
@@ -138,8 +143,14 @@ export function useMaintenanceModeData() {
   );
 
   const failureMetrics = useMemo(() => {
-    const totalFailures = failurePatterns.reduce((sum, p) => sum + (p.totalFailures ?? 0), 0);
-    const totalPrevented = failurePatterns.reduce((sum, p) => sum + (p.preventedFailures ?? 0), 0);
+    const totalFailures = failurePatterns.reduce(
+      (sum: number, p: FailurePatternData) => sum + (p.totalFailures ?? 0),
+      0
+    );
+    const totalPrevented = failurePatterns.reduce(
+      (sum: number, p: FailurePatternData) => sum + (p.preventedFailures ?? 0),
+      0
+    );
     const preventionRate =
       totalFailures > 0 ? (totalPrevented / (totalFailures + totalPrevented)) * 100 : 0;
     return { totalFailures, totalPrevented, preventionRate };
@@ -148,8 +159,8 @@ export function useMaintenanceModeData() {
   const schedulingSuggestions: SchedulingSuggestion[] = useMemo(
     () =>
       pdmScores
-        .filter((score) => score.failureRisk >= 50 && score.failureRisk < 90)
-        .map((score) => {
+        .filter((score: PdmScoreData) => score.failureRisk >= 50 && score.failureRisk < 90)
+        .map((score: PdmScoreData) => {
           const riskLevel = score.failureRisk;
           const daysUntilCritical = riskLevel >= 70 ? 7 : riskLevel >= 60 ? 14 : 30;
           return {
@@ -160,14 +171,14 @@ export function useMaintenanceModeData() {
             priority: riskLevel >= 70 ? "High" : riskLevel >= 60 ? "Medium" : "Low",
           };
         })
-        .sort((a, b) => b.failureRisk - a.failureRisk),
+        .sort((a: SchedulingSuggestion, b: SchedulingSuggestion) => b.failureRisk - a.failureRisk),
     [pdmScores]
   );
 
   const overdueWorkOrders = useMemo(
     () =>
       workOrders
-        .filter((wo) => {
+        .filter((wo: WorkOrderData) => {
           if (wo.status === "completed" || !wo.createdAt) {
             return false;
           }
@@ -184,7 +195,7 @@ export function useMaintenanceModeData() {
   );
 
   const highRiskPdmScores = useMemo(
-    () => pdmScores.filter((score) => score.failureRisk > 70).slice(0, 10),
+    () => pdmScores.filter((score: PdmScoreData) => score.failureRisk > 70).slice(0, 10),
     [pdmScores]
   );
 
