@@ -90,13 +90,13 @@ export class StormGeoIntegrationService {
         },
         orgId
       );
-    } catch (_error) {
+    } catch (error) {
       return dbStormGeoStorage.createStormgeoImportHistory(
         importRecord.id,
         {
           status: "failed",
           errorDetails: [
-            { row: 0, error: _error instanceof Error ? _error.message : "Import failed" },
+            { row: 0, error: error instanceof Error ? error.message : "Import failed" },
           ],
           completedAt: new Date(),
           durationMs: Date.now() - startTime,
@@ -173,13 +173,13 @@ export class StormGeoIntegrationService {
         },
         orgId
       );
-    } catch (_error) {
+    } catch (error) {
       return dbStormGeoStorage.createStormgeoImportHistory(
         importRecord.id,
         {
           status: "failed",
           errorDetails: [
-            { row: 0, error: _error instanceof Error ? _error.message : "Import failed" },
+            { row: 0, error: error instanceof Error ? error.message : "Import failed" },
           ],
           completedAt: new Date(),
           durationMs: Date.now() - startTime,

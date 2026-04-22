@@ -16,6 +16,12 @@ import { createCreateWorkOrderFromRiskUseCase } from "./application/create-work-
 import { createGetScheduleUseCase } from "./application/get-schedule.use-case";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 import type { RiskQueueItem } from "./domain/types";
+import {
+  pdmDashboardResponseSchema,
+  pdmFilterOptionsResponseSchema,
+  pdmRiskQueueResponseSchema,
+} from "./domain/response-schemas";
+import { validateResponse } from "../lib/api-helpers";
 import { DatabaseTelemetryStorage } from "../db/telemetry/db-telemetry";
 
 const router = Router();
@@ -108,7 +114,7 @@ router.get("/dashboard", async (req, res) => {
       dashboardData.riskQueue.resolved = filterRiskQueue(dashboardData.riskQueue.resolved, filters);
     }
 
-    res.json(dashboardData);
+    res.json(validateResponse(pdmDashboardResponseSchema, dashboardData, "GET /api/pdm/dashboard"));
   } catch (error) {
     logger.error("Error fetching PdM dashboard data:", error);
     res.status(500).json({ error: "Failed to fetch dashboard data" });
@@ -124,7 +130,13 @@ router.get("/filter-options", async (req, res) => {
       pdmPostgresRepository.getEquipmentTypes(orgId),
     ]);
 
-    res.json({ vessels, equipmentTypes });
+    res.json(
+      validateResponse(
+        pdmFilterOptionsResponseSchema,
+        { vessels, equipmentTypes },
+        "GET /api/pdm/filter-options"
+      )
+    );
   } catch (error) {
     logger.error("Error fetching filter options:", error);
     res.status(500).json({ error: "Failed to fetch filter options" });
@@ -139,7 +151,9 @@ router.get("/risk-queue/:status", async (req, res) => {
       return res.status(400).json({ error: "Invalid status. Must be new, active, or resolved." });
     }
     const items = await getRiskQueueUseCase.execute({ orgId, status: statusResult.data });
-    res.json(items);
+    res.json(
+      validateResponse(pdmRiskQueueResponseSchema, items, "GET /api/pdm/risk-queue/:status")
+    );
   } catch (error) {
     logger.error("Error fetching risk queue:", error);
     res.status(500).json({ error: "Failed to fetch risk queue" });

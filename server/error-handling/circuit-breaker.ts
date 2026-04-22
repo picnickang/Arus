@@ -84,7 +84,7 @@ export class CircuitBreaker {
         this.updateState(serviceName, { failures: 0 });
       }
       return result;
-    } catch (_error) {
+    } catch (error) {
       this.metricsCallbacks.onCall?.(serviceName, "failure");
       this.metricsCallbacks.onFailure?.(serviceName);
       const newFailures = state.failures + 1;
@@ -102,7 +102,7 @@ export class CircuitBreaker {
         structuredLog("warn", `Using fallback for failed ${serviceName}`);
         return fallback();
       }
-      throw _error;
+      throw error;
     }
   }
 

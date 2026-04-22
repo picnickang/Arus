@@ -52,6 +52,7 @@ Developed with Express.js and TypeScript, offering RESTful APIs with Zod validat
 -   **Daily Operations Briefing**: Automated shift-start summary persisted as structured entity with key operational sections and AI-generated executive summary.
 -   **Financial Layer**: Three-part cost integrity system covering procurement to WO cost flow, decision-point cost context for AI suggestions, and savings claim integrity with validation.
 -   **Prediction Lineage**: Every `failurePredictions` row now carries `modelVersionId`, `featureSetVersion`, and `featureSnapshotId` — a FK-capable pointer to the exact `equipmentFeatures` row used at inference time. Lineage query endpoint at `GET /api/pdm/infer/predictions/:id/lineage` returns the prediction, model version, feature set version, and full snapshot values for audit and reproducibility.
+-   **API Response Contracts**: `validateResponse<T>(schema, payload, context)` helper in `server/lib/api-helpers.ts` validates outbound responses against Zod schemas — throws in dev/test, logs+passes-through in production. First exemplar wired into `/api/pdm/dashboard`, `/api/pdm/filter-options`, and `/api/pdm/risk-queue/:status` with schemas in `server/pdm/domain/response-schemas.ts`. Pattern is the rollout template for high-traffic endpoints. Date fields use `z.union([z.date(), z.string().datetime({ offset: true })])` to support both in-process Date objects and ISO-serialized strings.
 
 ## System Design Choices
 
