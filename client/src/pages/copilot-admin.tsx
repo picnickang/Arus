@@ -364,7 +364,7 @@ function SchedulesList({
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5">
                   {cronLabel(s.cronExpression)}
-                  {s.lastRun && ` · Last: ${new Date(s.lastRunAt).toLocaleDateString()}`}
+                  {s.lastRunAt && ` · Last: ${new Date(s.lastRunAt).toLocaleDateString()}`}
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">

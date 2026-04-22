@@ -101,10 +101,10 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
         if (wo.status === "completed" || wo.status === "closed" || wo.status === "cancelled") {
           return false;
         }
-        if (!wo.nextScheduledDate && !wo.plannedEndDate) {
+        if (!wo.scheduledDate && !wo.plannedEndDate) {
           return false;
         }
-        const dueDate = new Date(wo.nextScheduledDate || wo.plannedEndDate);
+        const dueDate = new Date(wo.scheduledDate || wo.plannedEndDate);
         return dueDate < now;
       }).length;
       const highPriority = workOrders.filter(
@@ -137,8 +137,8 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     withErrorHandling("create work order", async (req: Request, res: Response) => {
       const processedBody = {
         ...req.body,
-        scheduledDate: req.body.nextScheduledDate
-          ? new Date(req.body.nextScheduledDate)
+        scheduledDate: req.body.scheduledDate
+          ? new Date(req.body.scheduledDate)
           : undefined,
         completedDate: req.body.completedDate ? new Date(req.body.completedDate) : undefined,
         plannedStartDate: req.body.plannedStartDate

@@ -41,7 +41,7 @@ registerTool({
       .select()
       .from(maintenanceSchedules)
       .where(and(...conditions))
-      .orderBy(desc(maintenanceSchedules.nextScheduledDate))
+      .orderBy(desc(maintenanceSchedules.scheduledDate))
       .limit(input.limit || 20);
 
     return {
@@ -52,7 +52,7 @@ registerTool({
         description: s.description,
         status: s.status,
         priority: s.priority,
-        scheduledDate: s.nextScheduledDate,
+        scheduledDate: s.scheduledDate,
         maintenanceType: s.maintenanceType,
         assignedTo: s.assignedTo,
         pdmScore: s.pdmScore,

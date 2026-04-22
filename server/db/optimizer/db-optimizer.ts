@@ -167,7 +167,7 @@ export class DbOptimizerStorage {
       .select()
       .from(scheduleOptimizations)
       .where(eq(scheduleOptimizations.optimizationResultId, optimizationResultId))
-      .orderBy(asc(scheduleOptimizations.nextScheduledDate));
+      .orderBy(asc(scheduleOptimizations.scheduledDate));
   }
   async createScheduleOptimization(
     optimization: InsertScheduleOptimization

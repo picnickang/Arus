@@ -1180,7 +1180,7 @@ export default function VesselDashboard() {
                             <Badge variant="outline" className="text-[9px] mr-1.5">
                               {s.isPredictive ? "Predictive" : "Scheduled"}
                             </Badge>
-                            {new Date(s.nextScheduledDate).toLocaleDateString()}
+                            {new Date(s.scheduledDate).toLocaleDateString()}
                           </div>
                         </div>
                       ))}

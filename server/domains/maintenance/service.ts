@@ -42,7 +42,7 @@ export class MaintenanceService {
       {
         orgId: data.orgId,
         equipmentId: data.equipmentId,
-        scheduledDate: data.nextScheduledDate,
+        scheduledDate: data.scheduledDate,
         status: data.status,
         priority: data.priority,
         maintenanceType: data.maintenanceType,
@@ -64,7 +64,7 @@ export class MaintenanceService {
     const entity = await maintenanceAppService.updateSchedule(
       id,
       {
-        scheduledDate: data.nextScheduledDate,
+        scheduledDate: data.scheduledDate,
         status: data.status,
         priority: data.priority,
         maintenanceType: data.maintenanceType,

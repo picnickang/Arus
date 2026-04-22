@@ -475,10 +475,10 @@ function GanttScheduleView({
 
                 const tasksByDate = new Map<string, PdmScheduledTask[]>();
                 vesselTasks.forEach((task) => {
-                  const taskDate = task.nextScheduledDate
-                    ? typeof task.nextScheduledDate === "string"
-                      ? parseISO(task.nextScheduledDate)
-                      : task.nextScheduledDate
+                  const taskDate = task.scheduledDate
+                    ? typeof task.scheduledDate === "string"
+                      ? parseISO(task.scheduledDate)
+                      : task.scheduledDate
                     : typeof task.schedulingWindow.preferredDate === "string"
                       ? parseISO(task.schedulingWindow.preferredDate)
                       : task.schedulingWindow.preferredDate;
@@ -524,10 +524,10 @@ function GanttScheduleView({
                       })}
 
                       {vesselTasks.map((task) => {
-                        const taskDate = task.nextScheduledDate
-                          ? typeof task.nextScheduledDate === "string"
-                            ? parseISO(task.nextScheduledDate)
-                            : task.nextScheduledDate
+                        const taskDate = task.scheduledDate
+                          ? typeof task.scheduledDate === "string"
+                            ? parseISO(task.scheduledDate)
+                            : task.scheduledDate
                           : typeof task.schedulingWindow.preferredDate === "string"
                             ? parseISO(task.schedulingWindow.preferredDate)
                             : task.schedulingWindow.preferredDate;
@@ -903,14 +903,14 @@ function TaskDetailPanel({ task, isOpen, onClose, onMoveTask }: TaskDetailPanelP
                   )}
                 </span>
               </div>
-              {task.nextScheduledDate && (
+              {task.scheduledDate && (
                 <div className="flex justify-between pt-2 border-t">
                   <span className="text-muted-foreground">Scheduled:</span>
                   <span className="font-medium text-primary">
                     {format(
-                      typeof task.nextScheduledDate === "string"
-                        ? parseISO(task.nextScheduledDate)
-                        : task.nextScheduledDate,
+                      typeof task.scheduledDate === "string"
+                        ? parseISO(task.scheduledDate)
+                        : task.scheduledDate,
                       "MMM d, yyyy"
                     )}
                   </span>

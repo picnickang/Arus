@@ -49,11 +49,11 @@ export async function buildEquipmentContext(
   const now = new Date();
   const upcomingSchedules = schedules.filter(
     (s: any) =>
-      s.nextScheduledDate && new Date(s.nextScheduledDate) >= now && s.status !== "completed"
+      s.scheduledDate && new Date(s.scheduledDate) >= now && s.status !== "completed"
   );
   const overdueSchedules = schedules.filter(
     (s: any) =>
-      s.nextScheduledDate && new Date(s.nextScheduledDate) < now && s.status !== "completed"
+      s.scheduledDate && new Date(s.scheduledDate) < now && s.status !== "completed"
   );
 
   let pdmTrend: "improving" | "stable" | "declining" | null = null;

@@ -56,7 +56,7 @@ export class ReportScheduleRepositoryAdapter implements IReportScheduleRepositor
         ${record.frequency}, ${record.cronExpression}, ${record.timezone},
         ${record.format}, ${JSON.stringify(record.recipients)},
         ${record.vesselIds ? JSON.stringify(record.vesselIds) : null},
-        ${record.enabled}, ${record.lastRun}, ${record.nextRunAt},
+        ${record.enabled}, ${record.lastRunAt}, ${record.nextRunAt},
         ${record.createdBy}, ${record.createdAt}, ${record.updatedAt}
       )
     `);

@@ -61,7 +61,7 @@ function CalendarView({ schedules, onScheduleClick, getEquipmentName }: Calendar
   const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });
   const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
   const getSchedulesForDay = (day: Date) =>
-    schedules.filter((schedule) => isSameDay(new Date(schedule.nextScheduledDate), day));
+    schedules.filter((schedule) => isSameDay(new Date(schedule.scheduledDate), day));
 
   return (
     <Card>
@@ -133,7 +133,7 @@ function CalendarView({ schedules, onScheduleClick, getEquipmentName }: Calendar
                         {getEquipmentName(schedule.equipmentId)}
                       </div>
                       <div className="text-xs opacity-75 mt-0.5">
-                        {format(new Date(schedule.nextScheduledDate), "h:mm a")}
+                        {format(new Date(schedule.scheduledDate), "h:mm a")}
                       </div>
                     </button>
                   ))}
@@ -346,7 +346,7 @@ export default function MaintenanceSchedules() {
                     header: "Date & Time",
                     accessor: (schedule: MaintenanceSchedule) => {
                       const isOverdue =
-                        isPast(new Date(schedule.nextScheduledDate)) &&
+                        isPast(new Date(schedule.scheduledDate)) &&
                         schedule.status !== "completed";
                       return (
                         <div>
@@ -355,7 +355,7 @@ export default function MaintenanceSchedules() {
                               className="font-medium"
                               data-testid={`text-scheduled-date-${schedule.id}`}
                             >
-                              {format(new Date(schedule.nextScheduledDate), "MMM d, yyyy")}
+                              {format(new Date(schedule.scheduledDate), "MMM d, yyyy")}
                             </div>
                             {isOverdue && (
                               <Badge
@@ -368,7 +368,7 @@ export default function MaintenanceSchedules() {
                             )}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {format(new Date(schedule.nextScheduledDate), "h:mm a")}
+                            {format(new Date(schedule.scheduledDate), "h:mm a")}
                           </div>
                         </div>
                       );
@@ -459,7 +459,7 @@ export default function MaintenanceSchedules() {
                     Scheduled Date
                   </Label>
                   <p className="text-base font-medium mt-1">
-                    {format(new Date(m.selectedSchedule.nextScheduledDate), "MMM d, yyyy h:mm a")}
+                    {format(new Date(m.selectedSchedule.scheduledDate), "MMM d, yyyy h:mm a")}
                   </p>
                 </div>
                 <div>
@@ -545,10 +545,10 @@ export default function MaintenanceSchedules() {
                   id="create-date"
                   type="datetime-local"
                   value={
-                    m.createForm.nextScheduledDate
-                      ? typeof m.createForm.nextScheduledDate === "string"
-                        ? m.createForm.nextScheduledDate
-                        : new Date(m.createForm.nextScheduledDate).toISOString().slice(0, 16)
+                    m.createForm.scheduledDate
+                      ? typeof m.createForm.scheduledDate === "string"
+                        ? m.createForm.scheduledDate
+                        : new Date(m.createForm.scheduledDate).toISOString().slice(0, 16)
                       : ""
                   }
                   onChange={(e) =>
@@ -674,10 +674,10 @@ export default function MaintenanceSchedules() {
                   id="edit-date"
                   type="datetime-local"
                   value={
-                    m.editForm.nextScheduledDate
-                      ? typeof m.editForm.nextScheduledDate === "string"
-                        ? m.editForm.nextScheduledDate
-                        : new Date(m.editForm.nextScheduledDate).toISOString().slice(0, 16)
+                    m.editForm.scheduledDate
+                      ? typeof m.editForm.scheduledDate === "string"
+                        ? m.editForm.scheduledDate
+                        : new Date(m.editForm.scheduledDate).toISOString().slice(0, 16)
                       : ""
                   }
                   onChange={(e) =>

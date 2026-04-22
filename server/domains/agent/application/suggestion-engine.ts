@@ -298,7 +298,7 @@ export class SuggestionEngine {
       .select({
         id: maintenanceSchedules.id,
         equipmentId: maintenanceSchedules.equipmentId,
-        scheduledDate: maintenanceSchedules.nextScheduledDate,
+        scheduledDate: maintenanceSchedules.scheduledDate,
         maintenanceType: maintenanceSchedules.maintenanceType,
         description: maintenanceSchedules.description,
       })
@@ -307,7 +307,7 @@ export class SuggestionEngine {
         and(
           eq(maintenanceSchedules.orgId, orgId),
           eq(maintenanceSchedules.status, "scheduled"),
-          lte(maintenanceSchedules.nextScheduledDate, new Date(Date.now() - 24 * 60 * 60 * 1000))
+          lte(maintenanceSchedules.scheduledDate, new Date(Date.now() - 24 * 60 * 60 * 1000))
         )
       )
       .limit(10);
@@ -318,7 +318,7 @@ export class SuggestionEngine {
         continue;
       }
       const daysOverdue = Math.floor(
-        (Date.now() - new Date(maint.nextScheduledDate).getTime()) / (24 * 60 * 60 * 1000)
+        (Date.now() - new Date(maint.scheduledDate).getTime()) / (24 * 60 * 60 * 1000)
       );
       const severity = daysOverdue > 7 ? "critical" : "warning";
       if (!meetsMinSeverity(severity, minSeverity)) {

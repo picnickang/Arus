@@ -259,7 +259,7 @@ export interface MaintenanceCompletedPayload {
   actualDuration?: number;
   findings?: string[];
   notes?: string;
-  nextScheduledDate?: Date;
+  scheduledDate?: Date;
 }
 
 export interface MaintenanceOverduePayload {

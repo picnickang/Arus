@@ -1,19 +1,19 @@
 {
   "_comment": "TypeScript error burndown baseline. Total must monotonically decrease. Regenerate with: node scripts/check-ts-burndown.mjs --write-baseline",
-  "generatedAt": "2026-04-22T08:33:34.723Z",
-  "total": 3063,
+  "generatedAt": "2026-04-22T09:01:37.677Z",
+  "total": 2971,
   "summary": {
     "byCode": {
       "TS2339": 1004,
-      "TS2322": 387,
+      "TS2322": 389,
       "TS2345": 366,
-      "TS2769": 278,
-      "TS2551": 167,
+      "TS2769": 277,
       "TS2304": 116,
       "TS2554": 101,
       "TS2353": 96,
       "TS7006": 88,
-      "TS2307": 86
+      "TS2307": 86,
+      "TS2551": 73
     },
     "byTopFiles": {
       "server/domains/alerts/settings-service.ts": 35,
@@ -33,11 +33,11 @@
       "client/src/features/work-orders/hooks/useWorkOrdersPageData.ts": 22
     },
     "byTopDirs": {
-      "client/src": 998,
-      "server/domains": 675,
-      "server/services": 288,
-      "server/db": 205,
+      "client/src": 957,
+      "server/domains": 644,
+      "server/services": 285,
       "server/routes": 200,
+      "server/db": 198,
       "server/compliance": 49,
       "server/beast": 45,
       "server/vessel-simulator": 44,

@@ -358,7 +358,7 @@ abstract class BaseMaintenanceSchedulingAdapter implements IMaintenanceSchedulin
     if (decision.shouldSchedule) {
       return this.deps.createSchedule({
         equipmentId,
-        scheduledDate: decision.nextScheduledDate,
+        scheduledDate: decision.scheduledDate,
         maintenanceType: decision.maintenanceType,
         priority: decision.priority,
         status: "scheduled",

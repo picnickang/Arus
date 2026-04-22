@@ -52,7 +52,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
           const s1 = schedules[i];
           const s2 = schedules[j];
           if (
-            s1.nextScheduledDate === s2.nextScheduledDate &&
+            s1.scheduledDate === s2.scheduledDate &&
             s1.assignedCrewId === s2.assignedCrewId
           ) {
             conflicts.push({
@@ -88,7 +88,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
 
       const calendarData: Record<string, any[]> = {};
       schedules.forEach((schedule: any) => {
-        const raw = schedule.nextScheduledDate;
+        const raw = schedule.scheduledDate;
         const dateKey =
           raw instanceof Date
             ? raw.toISOString().split("T")[0]
@@ -125,7 +125,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         completed: schedules.filter((s: any) => s.status === "completed").length,
         pending: schedules.filter((s: any) => s.status === "pending").length,
         overdue: schedules.filter((s: any) => {
-          const dueDate = new Date(s.nextScheduledDate);
+          const dueDate = new Date(s.scheduledDate);
           return s.status !== "completed" && dueDate < new Date();
         }).length,
         byPriority: {
@@ -167,7 +167,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const upcoming = schedules
         .sort(
           (a: any, b: any) =>
-            new Date(a.nextScheduledDate).getTime() - new Date(b.nextScheduledDate).getTime()
+            new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime()
         )
         .slice(0, limitNum);
 
@@ -307,7 +307,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const optimizedSchedules = schedules.map((s: any, index: number) => ({
         ...s,
         optimizedScore: (index % 10) * 10 + 5,
-        suggestedDate: s.nextScheduledDate,
+        suggestedDate: s.scheduledDate,
         suggestedCrew: s.assignedCrewId,
       }));
 

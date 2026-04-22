@@ -10,7 +10,7 @@ export interface MaintenanceSchedule {
   intervalHours?: number;
   conditionTrigger?: string;
   lastCompletedDate?: Date;
-  nextScheduledDate: Date;
+  scheduledDate: Date;
   priority: "low" | "medium" | "high" | "critical";
   estimatedDuration?: number;
   assignedTo?: string;

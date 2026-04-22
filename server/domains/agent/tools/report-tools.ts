@@ -79,7 +79,7 @@ registerTool({
           equipmentId: maintenanceSchedules.equipmentId,
           maintenanceType: maintenanceSchedules.maintenanceType,
           status: maintenanceSchedules.status,
-          scheduledDate: maintenanceSchedules.nextScheduledDate,
+          scheduledDate: maintenanceSchedules.scheduledDate,
           priority: maintenanceSchedules.priority,
         })
         .from(maintenanceSchedules)
@@ -89,7 +89,7 @@ registerTool({
             eq(maintenanceSchedules.status, "scheduled")
           )
         )
-        .orderBy(maintenanceSchedules.nextScheduledDate)
+        .orderBy(maintenanceSchedules.scheduledDate)
         .limit(30),
 
       db

@@ -263,7 +263,7 @@ export default function ScheduledReports() {
             "/api/scheduled-reports/schedules",
           ]);
           const updated = fresh?.data?.find((s) => s.id === scheduleId);
-          if (updated?.lastRun && updated.lastRun !== initialLastRunAt) {
+          if (updated?.lastRunAt && updated.lastRunAt !== initialLastRunAt) {
             clearInterval(timer);
             pollingTimersRef.current.delete(scheduleId);
             toast({
@@ -288,7 +288,7 @@ export default function ScheduledReports() {
     },
     onSuccess: (schedule) => {
       toast({ title: "Report generating", description: "Your report is being generated." });
-      pollForCompletion(schedule.id, schedule.lastRun);
+      pollForCompletion(schedule.id, schedule.lastRunAt);
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to run report.", variant: "destructive" });
@@ -544,7 +544,7 @@ export default function ScheduledReports() {
                     </Badge>
                   </div>
                   <div className="text-sm text-muted-foreground space-y-1">
-                    <p>Last run: {formatDate(schedule.lastRun)}</p>
+                    <p>Last run: {formatDate(schedule.lastRunAt)}</p>
                     <p>Next run: {formatDate(schedule.nextRunAt)}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -552,7 +552,7 @@ export default function ScheduledReports() {
                       size="sm"
                       variant="outline"
                       onClick={() =>
-                        runNowMutation.mutate({ id: schedule.id, lastRunAt: schedule.lastRun })
+                        runNowMutation.mutate({ id: schedule.id, lastRunAt: schedule.lastRunAt })
                       }
                       disabled={runNowMutation.isPending}
                       data-testid={`button-run-${schedule.id}`}

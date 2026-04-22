@@ -77,9 +77,9 @@ export function useMaintenanceSchedulesData() {
     setEditForm({
       equipmentId: schedule.equipmentId,
       scheduledDate:
-        typeof schedule.nextScheduledDate === "string"
-          ? schedule.nextScheduledDate
-          : new Date(schedule.nextScheduledDate).toISOString().slice(0, 16),
+        typeof schedule.scheduledDate === "string"
+          ? schedule.scheduledDate
+          : new Date(schedule.scheduledDate).toISOString().slice(0, 16),
       maintenanceType: schedule.maintenanceType,
       priority: schedule.priority,
       status: schedule.status,
@@ -96,14 +96,14 @@ export function useMaintenanceSchedulesData() {
   };
 
   const handleCreateSubmit = () => {
-    if (!createForm.equipmentId || !createForm.nextScheduledDate || !createForm.maintenanceType) {
+    if (!createForm.equipmentId || !createForm.scheduledDate || !createForm.maintenanceType) {
       toast({ title: "Please fill in all required fields", variant: "destructive" });
       return;
     }
     const payload: InsertMaintenanceSchedule = {
       ...createForm,
       orgId: getCurrentOrgId(),
-      scheduledDate: new Date(createForm.nextScheduledDate),
+      scheduledDate: new Date(createForm.scheduledDate),
       equipmentId: createForm.equipmentId,
       maintenanceType: createForm.maintenanceType,
       priority: createForm.priority || 2,
@@ -115,7 +115,7 @@ export function useMaintenanceSchedulesData() {
     if (
       !selectedSchedule ||
       !editForm.equipmentId ||
-      !editForm.nextScheduledDate ||
+      !editForm.scheduledDate ||
       !editForm.maintenanceType
     ) {
       toast({ title: "Please fill in all required fields", variant: "destructive" });
@@ -123,7 +123,7 @@ export function useMaintenanceSchedulesData() {
     }
     const updates = {
       ...editForm,
-      scheduledDate: editForm.nextScheduledDate ? new Date(editForm.nextScheduledDate) : undefined,
+      scheduledDate: editForm.scheduledDate ? new Date(editForm.scheduledDate) : undefined,
     };
     updateMutation.mutate({
       id: selectedSchedule.id,
@@ -152,7 +152,7 @@ export function useMaintenanceSchedulesData() {
       );
     }
     return filtered.sort(
-      (a, b) => new Date(a.nextScheduledDate).getTime() - new Date(b.nextScheduledDate).getTime()
+      (a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime()
     );
   }, [schedules, searchText, statusFilter, priorityFilter, equipment]);
 

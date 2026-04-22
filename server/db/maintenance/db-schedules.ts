@@ -42,19 +42,19 @@ export class DbMaintenanceSchedules {
       conditions.push(eq(maintenanceSchedules.status, filters.status));
     }
     if (filters?.startDate) {
-      conditions.push(gte(maintenanceSchedules.nextScheduledDate, filters.startDate));
+      conditions.push(gte(maintenanceSchedules.scheduledDate, filters.startDate));
     }
     if (filters?.endDate) {
-      conditions.push(lte(maintenanceSchedules.nextScheduledDate, filters.endDate));
+      conditions.push(lte(maintenanceSchedules.scheduledDate, filters.endDate));
     }
     if (conditions.length > 0) {
       return db
         .select()
         .from(maintenanceSchedules)
         .where(and(...conditions))
-        .orderBy(maintenanceSchedules.nextScheduledDate);
+        .orderBy(maintenanceSchedules.scheduledDate);
     }
-    return db.select().from(maintenanceSchedules).orderBy(maintenanceSchedules.nextScheduledDate);
+    return db.select().from(maintenanceSchedules).orderBy(maintenanceSchedules.scheduledDate);
   }
   async getMaintenanceSchedule(
     id: string,
@@ -112,8 +112,8 @@ export class DbMaintenanceSchedules {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + days);
     const conditions: any[] = [
-      gte(maintenanceSchedules.nextScheduledDate, now),
-      lte(maintenanceSchedules.nextScheduledDate, futureDate),
+      gte(maintenanceSchedules.scheduledDate, now),
+      lte(maintenanceSchedules.scheduledDate, futureDate),
       sql`${maintenanceSchedules.status} != 'completed'`,
     ];
     if (orgId) {
@@ -123,7 +123,7 @@ export class DbMaintenanceSchedules {
       .select()
       .from(maintenanceSchedules)
       .where(and(...conditions))
-      .orderBy(maintenanceSchedules.nextScheduledDate);
+      .orderBy(maintenanceSchedules.scheduledDate);
   }
 
   async getMaintenanceRecords(

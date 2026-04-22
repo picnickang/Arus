@@ -86,7 +86,7 @@ export interface MaintenanceCompletedEvent extends BaseDomainEvent<"MaintenanceC
     completedAt: Date;
     actualDuration: number;
     findings: string[];
-    nextScheduledDate?: Date;
+    scheduledDate?: Date;
   };
 }
 

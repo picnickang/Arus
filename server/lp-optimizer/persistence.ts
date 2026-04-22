@@ -38,7 +38,7 @@ export async function persistOptimizationResults(
           result.schedule.map((s) => ({
             equipmentId: s.equipmentId,
             assignedCrew: s.assignedCrew,
-            scheduledDate: s.nextScheduledDate,
+            scheduledDate: s.scheduledDate,
             estimatedCost: s.estimatedCost,
           }))
         ),
@@ -54,7 +54,7 @@ export async function persistOptimizationResults(
         orgId,
         optimizationResultId: resultId,
         equipmentId: scheduleItem.equipmentId,
-        recommendedScheduleDate: scheduleItem.nextScheduledDate,
+        recommendedScheduleDate: scheduleItem.scheduledDate,
         recommendedMaintenanceType: "predictive",
         recommendedPriority: scheduleItem.priority,
         estimatedDuration: scheduleItem.duration,

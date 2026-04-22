@@ -287,8 +287,8 @@ router.get("/export/schedule", async (req, res) => {
           task.schedulingWindow.earliestStart.toISOString().split("T")[0],
           task.schedulingWindow.preferredDate.toISOString().split("T")[0],
           task.schedulingWindow.latestFinish.toISOString().split("T")[0],
-          task.nextScheduledDate
-            ? new Date(task.nextScheduledDate).toISOString().split("T")[0]
+          task.scheduledDate
+            ? new Date(task.scheduledDate).toISOString().split("T")[0]
             : "",
           task.status,
           task.blockReason || "",
