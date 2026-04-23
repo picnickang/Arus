@@ -184,10 +184,10 @@ export async function retryWithBackoff<T>(
       const jitter = cryptoRandom() * 1000;
       const delay = exponentialDelay + jitter;
 
-      console.warn(
+      logger.warn(
         `OpenAI request failed (attempt ${attempt + 1}/${maxRetries + 1}): ${errorAnalysis.recommendation}. ` +
           `Retrying in ${Math.round(delay)}ms...`,
-        error?.message
+        { details: error?.message }
       );
 
       await new Promise((resolve) => setTimeout(resolve, delay));

@@ -212,7 +212,7 @@ export class DigitalTwinService extends EventEmitter {
         .where(eq(twinSimulations.id, simulationId));
       this.simulationQueue.delete(simulationId);
       this.emit("simulation_completed", { simulationId, results, analysis });
-    } catch {
+    } catch (error) {
       await db
         .update(twinSimulations)
         .set({

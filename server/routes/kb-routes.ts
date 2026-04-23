@@ -133,7 +133,7 @@ export async function registerKnowledgeBaseRoutes(
             });
         }
 
-        console.log(
+        logger.info(
           `[KB Upload Async] Enqueuing ${req.file.originalname} for org ${orgId}${equipmentId ? ` (equipment: ${equipmentId})` : ""}`
         );
 
@@ -204,7 +204,7 @@ export async function registerKnowledgeBaseRoutes(
         return res.status(400).json({ error: "Unsupported file type" });
       }
 
-      console.log(
+      logger.info(
         `[KB Upload Sync] Processing ${req.file.originalname} for org ${orgId}${equipmentId ? ` (equipment: ${equipmentId})` : ""}`
       );
 
