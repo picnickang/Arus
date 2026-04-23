@@ -7,7 +7,6 @@
 
 import type { Request, Response } from "express";
 import { z } from "zod";
-import type { AuthenticatedRequest } from "../middleware/auth";
 
 /**
  * Standard error response format

@@ -125,7 +125,7 @@ export function validateResponse<T>(
   context: string
 ): T {
   const result = schema.safeParse(payload);
-  if (result.success) return result.data;
+  if (result.success) {return result.data;}
 
   const message = `Response contract violation in ${context}: ${result.error.issues
     .map((i) => `${i.path.join(".") || "<root>"}: ${i.message}`)

@@ -42,11 +42,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { AgentChatPanel } from "@/components/agent/AgentChatPanel";
 import {
-  type FindingSource,
-  type FindingSeverity,
-  type FindingStatus,
   type UnifiedFindingItem,
-  type AgentTask,
   OUTCOME_CATEGORIES,
   STATUS_STYLES,
   FindingCard,

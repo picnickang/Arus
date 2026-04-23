@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   Select,
@@ -27,8 +26,6 @@ import { format, parseISO, addDays, differenceInDays as dateFnsDifferenceInDays 
 import {
   useSchedulePlannerData,
   type ScheduleAssignment,
-  type ConstraintResult,
-  type AiSuggestion,
 } from "@/features/crew/hooks/useSchedulePlannerData";
 import { useHoRSync } from "@/features/crew/hooks/useHoRSync";
 import { useOfflineSync } from "@/features/crew/hooks/useOfflineSync";
@@ -49,13 +46,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { isFeatureEnabled } from "@/lib/feature-flags";
-import { useIsMobile, getRoleColor, type DragState } from "./schedule-planner-utils";
+import { useIsMobile, type DragState } from "./schedule-planner-utils";
 import {
   MobileCrewRosterDrawer,
   DateRangeSelector,
   TimelineHeader,
   DragGhostPreview,
-  AssignmentDrawerContent,
   VesselRow,
   type DragCompliancePreview,
 } from "./schedule-planner-components";

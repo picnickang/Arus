@@ -126,7 +126,7 @@ describe("Dual-driver query parity — Drizzle expression compilation", () => {
 
       // Build values object using only fields shared by both drivers.
       const values: Record<string, string> = {};
-      for (const f of expectedFields) values[f] = `parity-${f}`;
+      for (const f of expectedFields) {values[f] = `parity-${f}`;}
 
       const pgInsert = pgDb.insert(pg).values(values as any);
       const sqliteInsert = sqliteDb.insert(sqlite).values(values as any);

@@ -9,11 +9,9 @@ import type {
   ItemSupplier,
   PurchaseRequestEvent,
   PurchaseOrderEvent,
-  EmailQueue as EmailQueueItem,
   InsertPurchaseRequest,
   InsertPurchaseRequestItem,
   InsertItemSupplier,
-  InsertEmailQueue as InsertEmailQueueItem,
 } from "@shared/schema";
 
 export type PRStatus =
