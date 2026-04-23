@@ -12,6 +12,8 @@ import * as schemaSqliteVessel from "@shared/schema-sqlite-vessel";
 import path from "node:path";
 import * as fs from "node:fs";
 import { logExpectedLimitation } from "./utils/logger.js";
+import { createLogger } from "./lib/structured-logger";
+const logger = createLogger("DbConfig");
 
 // Detect database type from DATABASE_URL
 function detectDatabaseType(url: string): "neon" | "standard" {
@@ -68,9 +70,7 @@ neonConfig.wsProxy = (host) => `${host}`; // Use direct connection
  */
 const isEmbedded = process.env.EMBEDDED_MODE === "true";
 if (isEmbedded && !process.env.DATABASE_URL && process.env.LOCAL_MODE !== "true") {
-  console.warn(
-    "⚠️ [DB Config] Embedded mode: DATABASE_URL missing, auto-switching to local SQLite mode"
-  );
+  logger.warn("⚠️ [DB Config] Embedded mode: DATABASE_URL missing, auto-switching to local SQLite mode");
   process.env.LOCAL_MODE = "true";
 }
 
@@ -82,8 +82,8 @@ const { isLocalMode: runtimeIsLocalMode } = await import("./config/runtimeEnv.js
 export const isLocalMode = runtimeIsLocalMode;
 export const deploymentMode = isLocalMode ? "VESSEL (Offline-First)" : "CLOUD (Online)";
 
-console.log(`\n=== Database Configuration ===`);
-console.log(`Deployment Mode: ${deploymentMode}`);
+logger.info(`\n=== Database Configuration ===`);
+logger.info(`Deployment Mode: ${deploymentMode}`);
 
 // Cloud PostgreSQL Database (Shore office / always-online deployments)
 let pgPool: NeonPool | PgPool | null = null;
@@ -97,8 +97,8 @@ export let connectionMode: "http" | "websocket" | "standard" | "sqlite" = "sqlit
 if (!isLocalMode) {
   // Validate DATABASE_URL exists for cloud mode
   if (!process.env.DATABASE_URL) {
-    console.error("ERROR: DATABASE_URL environment variable is required for cloud mode");
-    console.error("Hint: Set EMBEDDED_MODE=true to use local SQLite instead");
+    logger.error("ERROR: DATABASE_URL environment variable is required for cloud mode");
+    logger.error("Hint: Set EMBEDDED_MODE=true to use local SQLite instead");
     process.exit(1);
   }
 
@@ -106,7 +106,7 @@ if (!isLocalMode) {
 
   if (dbType === "standard") {
     // Use standard node-postgres for non-Neon databases (Replit, AWS RDS, etc.)
-    console.log("ℹ️ Standard PostgreSQL detected: Using node-postgres driver");
+    logger.info("ℹ️ Standard PostgreSQL detected: Using node-postgres driver");
 
     pgPool = new PgPool({
       connectionString: process.env.DATABASE_URL,
@@ -117,26 +117,26 @@ if (!isLocalMode) {
 
     // Handle pool errors gracefully
     pgPool.on("error", (err) => {
-      console.error("[DB Pool] Error:", err.message);
+      logger.error("[DB Pool] Error:", undefined, err.message);
     });
 
     // Configure drizzle with node-postgres driver
     cloudDatabase = drizzlePgNode(pgPool, { schema });
     connectionMode = "standard";
 
-    console.log("✓ Cloud PostgreSQL: Connected (standard mode)");
+    logger.info("✓ Cloud PostgreSQL: Connected (standard mode)");
   } else if (isReplitEnvironment) {
     // Use HTTP driver in Replit for Neon - WebSocket connections are killed by Replit's proxy after ~20s
-    console.log("ℹ️ Replit + Neon detected: Using Neon HTTP driver (WebSocket proxy incompatible)");
+    logger.info("ℹ️ Replit + Neon detected: Using Neon HTTP driver (WebSocket proxy incompatible)");
 
     const sql = neon(process.env.DATABASE_URL);
     cloudDatabase = drizzlePgHttp(sql, { schema });
     connectionMode = "http";
 
-    console.log("✓ Cloud PostgreSQL: Connected (HTTP mode)");
+    logger.info("✓ Cloud PostgreSQL: Connected (HTTP mode)");
   } else {
     // Use WebSocket driver for Neon in production/desktop - supports transactions
-    console.log("ℹ️ Neon detected: Using Neon WebSocket driver (full transaction support)");
+    logger.info("ℹ️ Neon detected: Using Neon WebSocket driver (full transaction support)");
 
     const connectionUrl = new URL(process.env.DATABASE_URL);
     if (!connectionUrl.searchParams.has("connect_timeout")) {
@@ -152,16 +152,16 @@ if (!isLocalMode) {
 
     pgPool.on("error", (err) => {
       if (err.message?.includes("WebSocket")) {
-        console.warn("⚠️ Neon WebSocket connection error (transient, retrying...)");
+        logger.warn("⚠️ Neon WebSocket connection error (transient, retrying...)");
       } else {
-        console.error("[DB Pool] Unexpected error:", err.message);
+        logger.error("[DB Pool] Unexpected error:", undefined, err.message);
       }
     });
 
     cloudDatabase = drizzlePgWs(pgPool, { schema });
     connectionMode = "websocket";
 
-    console.log("✓ Cloud PostgreSQL: Connected (WebSocket mode)");
+    logger.info("✓ Cloud PostgreSQL: Connected (WebSocket mode)");
   }
 }
 
@@ -179,7 +179,7 @@ async function initializeLocalDatabase() {
   const dataDir = path.join(process.cwd(), "data");
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
-    console.log("✓ Created data directory:", dataDir);
+    logger.info("✓ Created data directory:", { details: dataDir });
   }
 
   const localDbPath = path.join(dataDir, "vessel-local.db");
@@ -189,7 +189,7 @@ async function initializeLocalDatabase() {
   const hasAuthToken = !!process.env.TURSO_AUTH_TOKEN;
 
   if (hasSyncUrl && hasAuthToken) {
-    console.log("✓ Turso Sync: Enabled (Managed by Sync Manager)");
+    logger.info("✓ Turso Sync: Enabled (Managed by Sync Manager)");
 
     // Create libSQL client with cloud sync
     // IMPORTANT: syncInterval set to 0 - Sync Manager controls all sync operations
@@ -213,7 +213,7 @@ async function initializeLocalDatabase() {
   }
 
   // Apply SQLite performance optimizations
-  console.log("→ Applying SQLite performance optimizations...");
+  logger.info("→ Applying SQLite performance optimizations...");
   try {
     // Enable Write-Ahead Logging for better concurrency
     await localClient.execute("PRAGMA journal_mode=WAL");
@@ -236,16 +236,13 @@ async function initializeLocalDatabase() {
     // Set busy timeout to 5 seconds to handle concurrent writes
     await localClient.execute("PRAGMA busy_timeout=5000");
 
-    console.log("✓ SQLite performance optimizations applied");
-    console.log("  • WAL mode enabled (better concurrency)");
-    console.log("  • Cache: 64MB");
-    console.log("  • Sync: NORMAL (safe with WAL)");
-    console.log("  • Foreign keys: ON");
+    logger.info("✓ SQLite performance optimizations applied");
+    logger.info("  • WAL mode enabled (better concurrency)");
+    logger.info("  • Cache: 64MB");
+    logger.info("  • Sync: NORMAL (safe with WAL)");
+    logger.info("  • Foreign keys: ON");
   } catch (error) {
-    console.warn(
-      "⚠ Failed to apply some SQLite optimizations:",
-      error instanceof Error ? error.message : "Unknown error"
-    );
+    logger.warn("⚠ Failed to apply some SQLite optimizations:", { details: error instanceof Error ? error.message : "Unknown error" });
   }
 
   // Configure drizzle for SQLite with SQLite-compatible schemas
@@ -259,37 +256,34 @@ async function initializeLocalDatabase() {
   // CRITICAL: Update the exported db variable after initialization
   dbInstance = localDatabase;
 
-  console.log(`✓ Local SQLite: ${localDbPath}`);
+  logger.info(`✓ Local SQLite: ${localDbPath}`);
 
   const { initializeSqliteDatabase, isSqliteDatabaseInitialized, applyInventoryMigrations } =
     await import("./sqlite-init");
   const isInitialized = await isSqliteDatabaseInitialized();
 
   if (!isInitialized) {
-    console.log("→ Initializing SQLite database tables...");
+    logger.info("→ Initializing SQLite database tables...");
     await initializeSqliteDatabase();
-    console.log("✓ SQLite tables initialized");
+    logger.info("✓ SQLite tables initialized");
   } else {
-    console.log("→ Running schema migrations on existing SQLite database...");
+    logger.info("→ Running schema migrations on existing SQLite database...");
     await applyInventoryMigrations();
-    console.log("✓ SQLite schema migrations applied");
+    logger.info("✓ SQLite schema migrations applied");
   }
 
   // Perform initial sync if sync is enabled
   if (hasSyncUrl && hasAuthToken) {
     try {
       await localClient.sync();
-      console.log("✓ Initial sync completed");
+      logger.info("✓ Initial sync completed");
     } catch (error) {
-      console.warn(
-        "⚠ Initial sync failed (will retry):",
-        error instanceof Error ? error.message : "Unknown error"
-      );
-      console.warn("  Application will continue with local data");
+      logger.warn("⚠ Initial sync failed (will retry):", { details: error instanceof Error ? error.message : "Unknown error" });
+      logger.warn("  Application will continue with local data");
     }
   }
 
-  console.log("==============================\n");
+  logger.info("==============================\n");
 }
 
 // Export initialization function for explicit calling from server/index.ts

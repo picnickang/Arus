@@ -4,6 +4,8 @@
  */
 
 import { randomBytes } from "node:crypto";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Bootstrap:Environment");
 
 export interface EnvironmentConfig {
   isReplit: boolean;
@@ -39,17 +41,17 @@ function detectEnvironment(): {
 
 function validateDatabase(localMode: boolean, isEmbedded: boolean, errors: string[]): void {
   if (process.env.DATABASE_URL) {
-    console.log("✓ Database: PostgreSQL configured");
+    logger.info("✓ Database: PostgreSQL configured");
     return;
   }
 
   if (localMode || isEmbedded) {
-    console.log("ℹ Database: Running in local/embedded mode (PostgreSQL optional)");
+    logger.info("ℹ Database: Running in local/embedded mode (PostgreSQL optional)");
     return;
   }
 
   const message = "DATABASE_URL not set (REQUIRED for cloud mode)";
-  console.error(`✗ Database: ${message}`);
+  logger.error(`✗ Database: ${message}`);
   errors.push(message);
 }
 
@@ -68,7 +70,7 @@ function validateExistingSecret(
   if (isKnownDefaultSecret(sessionSecret)) {
     if (isProduction) {
       const message = "SESSION_SECRET is set to a known default value - SECURITY RISK!";
-      console.error(`✗ Security: ${message}`);
+      logger.error(`✗ Security: ${message}`);
       errors.push(message);
     } else {
       warnings.push("SESSION_SECRET is using default value (acceptable for development)");
@@ -79,7 +81,7 @@ function validateExistingSecret(
   if (sessionSecret.length < 32) {
     const message = "SESSION_SECRET is too short (minimum 32 characters recommended)";
     if (isProduction && !isEmbedded) {
-      console.error(`✗ Security: ${message}`);
+      logger.error(`✗ Security: ${message}`);
       errors.push(message);
     } else {
       warnings.push(message);
@@ -87,7 +89,7 @@ function validateExistingSecret(
     return;
   }
 
-  console.log("✓ Security: Session secret configured");
+  logger.info("✓ Security: Session secret configured");
 }
 
 function validateSessionSecret(
@@ -103,20 +105,20 @@ function validateSessionSecret(
   if (!sessionSecret) {
     if (isEmbedded || localMode) {
       process.env.SESSION_SECRET = generateEmbeddedSessionSecret();
-      console.log("✓ Security: Generated secure session secret for embedded mode");
+      logger.info("✓ Security: Generated secure session secret for embedded mode");
       return;
     }
 
     if (isDevelopment) {
       process.env.SESSION_SECRET = `dev-secret-key-${generateEmbeddedSessionSecret()}`;
       warnings.push("SESSION_SECRET not set (using generated default for development only)");
-      console.warn("⚠ Security: Generated development session secret");
+      logger.warn("⚠ Security: Generated development session secret");
       return;
     }
 
     if (isProduction) {
       const message = "SESSION_SECRET not set (REQUIRED for production)";
-      console.error(`✗ Security: ${message}`);
+      logger.error(`✗ Security: ${message}`);
       errors.push(message);
     }
     return;
@@ -131,30 +133,30 @@ function validateSyncConfig(localMode: boolean, isEmbedded: boolean, warnings: s
   }
 
   if (process.env.TURSO_SYNC_URL && process.env.TURSO_AUTH_TOKEN) {
-    console.log("✓ Sync: Turso cloud sync enabled");
+    logger.info("✓ Sync: Turso cloud sync enabled");
     return;
   }
 
   if (isEmbedded) {
-    console.log("ℹ Sync: Running offline-only (embedded deployment)");
+    logger.info("ℹ Sync: Running offline-only (embedded deployment)");
     return;
   }
 
-  console.warn("⚠ Sync: Running offline-only (no cloud sync configured)");
+  logger.warn("⚠ Sync: Running offline-only (no cloud sync configured)");
   warnings.push("Cloud sync not configured for local mode");
 }
 
 function logOptionalServices(isReplit: boolean): void {
   if (isReplit) {
-    console.log("✓ Object Storage: Replit GCS available");
+    logger.info("✓ Object Storage: Replit GCS available");
   } else {
-    console.log("ℹ Object Storage: Disabled (not in Replit environment)");
+    logger.info("ℹ Object Storage: Disabled (not in Replit environment)");
   }
 
   if (process.env.OPENAI_API_KEY) {
-    console.log("✓ AI Features: OpenAI API configured");
+    logger.info("✓ AI Features: OpenAI API configured");
   } else {
-    console.log("ℹ AI Features: OpenAI API key not set (AI reports disabled)");
+    logger.info("ℹ AI Features: OpenAI API key not set (AI reports disabled)");
   }
 }
 
@@ -164,36 +166,34 @@ function outputResults(
   isEmbedded: boolean,
   localMode: boolean
 ): void {
-  console.log("======================================");
+  logger.info("======================================");
 
   if (warnings.length > 0) {
-    console.warn("\n⚠️  WARNINGS:");
-    warnings.forEach((w) => console.warn(`  - ${w}`));
+    logger.warn("\n⚠️  WARNINGS:");
+    warnings.forEach((w) => logger.warn(`  - ${w}`));
   }
 
   if (errors.length > 0 && !isEmbedded && !localMode) {
-    console.error("\n❌ CRITICAL CONFIGURATION ERRORS:");
-    errors.forEach((e) => console.error(`  - ${e}`));
-    console.error("\n⚠️ Application starting with configuration warnings.");
-    console.error("Some features may not work correctly. Please review the above errors.\n");
+    logger.error("\n❌ CRITICAL CONFIGURATION ERRORS:");
+    errors.forEach((e) => logger.error(`  - ${e}`));
+    logger.error("\n⚠️ Application starting with configuration warnings.");
+    logger.error("Some features may not work correctly. Please review the above errors.\n");
     warnings.push(...errors.map((e) => `CRITICAL: ${e}`));
   }
 
-  console.log("");
+  logger.info("");
 }
 
 export function validateEnvironment(): EnvironmentConfig {
-  console.log("\n=== ARUS Environment Configuration ===");
+  logger.info("\n=== ARUS Environment Configuration ===");
 
   const { isReplit, isDevelopment, isProduction, localMode, isEmbedded } = detectEnvironment();
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  console.log(
-    `Environment: ${isReplit ? "Replit" : isEmbedded ? "Embedded (iOS/macOS)" : "External/Self-hosted"}`
-  );
-  console.log(`Node Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log(`Deployment Mode: ${localMode ? "VESSEL (Offline-First)" : "CLOUD (Online)"}`);
+  logger.info(`Environment: ${isReplit ? "Replit" : isEmbedded ? "Embedded (iOS/macOS)" : "External/Self-hosted"}`);
+  logger.info(`Node Environment: ${process.env.NODE_ENV || "development"}`);
+  logger.info(`Deployment Mode: ${localMode ? "VESSEL (Offline-First)" : "CLOUD (Online)"}`);
 
   validateDatabase(localMode, isEmbedded, errors);
   validateSessionSecret(isEmbedded, localMode, isDevelopment, isProduction, errors, warnings);
@@ -207,7 +207,7 @@ export function validateEnvironment(): EnvironmentConfig {
     errors.push("Production deployment without SESSION_SECRET is insecure");
   }
   if (isDevelopment) {
-    console.log("ℹ Auth: Development mode — auth bypass enabled for dev-admin-user");
+    logger.info("ℹ Auth: Development mode — auth bypass enabled for dev-admin-user");
   }
 
   outputResults(warnings, errors, isEmbedded, localMode);

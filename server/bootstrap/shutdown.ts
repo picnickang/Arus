@@ -1,3 +1,5 @@
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Bootstrap:Shutdown");
 /**
  * Graceful Shutdown Handlers
  * Connection draining and service cleanup
@@ -24,35 +26,35 @@ export function isServerShuttingDown(): boolean {
 
 async function shutdown(sig: string): Promise<void> {
   if (isShuttingDown) {
-    console.log(`↩ ${sig} received again, forcing exit...`);
+    logger.info(`↩ ${sig} received again, forcing exit...`);
     process.exit(1);
   }
 
   isShuttingDown = true;
-  console.log(`\n↩ ${sig} received. Shutting down gracefully...`);
-  console.log(`   Active connections: ${activeConnections.size}`);
+  logger.info(`\n↩ ${sig} received. Shutting down gracefully...`);
+  logger.info(`   Active connections: ${activeConnections.size}`);
 
   const shutdownStart = Date.now();
   const DRAIN_TIMEOUT_MS = 10000;
 
   try {
-    console.log("→ Phase 1: Stopping new connections...");
+    logger.info("→ Phase 1: Stopping new connections...");
     const serverModule = await import("../routes");
     if ((serverModule as any).server) {
       (serverModule as any).server.close();
     }
 
-    console.log("→ Phase 2: Draining active connections...");
+    logger.info("→ Phase 2: Draining active connections...");
     const drainStart = Date.now();
     while (activeConnections.size > 0 && Date.now() - drainStart < DRAIN_TIMEOUT_MS) {
       await new Promise((r) => setTimeout(r, 100));
       if (activeConnections.size > 0 && (Date.now() - drainStart) % 1000 < 100) {
-        console.log(`   Waiting for ${activeConnections.size} connections...`);
+        logger.info(`   Waiting for ${activeConnections.size} connections...`);
       }
     }
 
     if (activeConnections.size > 0) {
-      console.warn(`⚠️ Forcefully closing ${activeConnections.size} remaining connections`);
+      logger.warn(`⚠️ Forcefully closing ${activeConnections.size} remaining connections`);
       for (const socket of activeConnections) {
         try {
           socket.destroy();
@@ -62,14 +64,14 @@ async function shutdown(sig: string): Promise<void> {
       }
       activeConnections.clear();
     }
-    console.log("✓ Connections drained");
+    logger.info("✓ Connections drained");
 
-    console.log("→ Phase 3: Stopping background services...");
+    logger.info("→ Phase 3: Stopping background services...");
 
     try {
       const { mqttReliableSync } = await import("../mqtt-reliable-sync");
       await withTimeout(mqttReliableSync.stop(), 3000);
-      console.log("  ✓ MQTT sync stopped");
+      logger.info("  ✓ MQTT sync stopped");
     } catch {
       /* module not loaded or already stopped */
     }
@@ -77,7 +79,7 @@ async function shutdown(sig: string): Promise<void> {
     try {
       const { telemetryPruningService } = await import("../telemetry-pruning-service");
       await withTimeout(telemetryPruningService.stop?.() || Promise.resolve(), 2000);
-      console.log("  ✓ Telemetry pruning stopped");
+      logger.info("  ✓ Telemetry pruning stopped");
     } catch {
       /* module not loaded or already stopped */
     }
@@ -85,7 +87,7 @@ async function shutdown(sig: string): Promise<void> {
     try {
       const { telemetryBatchWriter } = await import("../telemetry-batch-writer");
       await withTimeout(telemetryBatchWriter.stop(), 5000);
-      console.log("  ✓ Telemetry batch writer flushed");
+      logger.info("  ✓ Telemetry batch writer flushed");
     } catch {
       /* module not loaded or already stopped */
     }
@@ -93,7 +95,7 @@ async function shutdown(sig: string): Promise<void> {
     try {
       const { mlTrainingQueue } = await import("../ml-training-queue");
       await withTimeout(mlTrainingQueue.shutdown(), 3000);
-      console.log("  ✓ ML training queue stopped");
+      logger.info("  ✓ ML training queue stopped");
     } catch {
       /* module not loaded or already stopped */
     }
@@ -101,13 +103,13 @@ async function shutdown(sig: string): Promise<void> {
     try {
       const { stopEventLoopMonitoring } = await import("../observability");
       stopEventLoopMonitoring();
-      console.log("  ✓ Observability stopped");
+      logger.info("  ✓ Observability stopped");
     } catch {
       /* module not loaded or already stopped */
     }
 
     const shutdownDuration = Date.now() - shutdownStart;
-    console.log(`✓ Graceful shutdown complete in ${shutdownDuration}ms`);
+    logger.info(`✓ Graceful shutdown complete in ${shutdownDuration}ms`);
   } finally {
     process.exit(0);
   }

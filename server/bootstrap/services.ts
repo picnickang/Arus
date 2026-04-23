@@ -1,3 +1,5 @@
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Bootstrap:Services");
 /**
  * Service Initialization
  * Database, job queue, ML services, telemetry
@@ -16,7 +18,7 @@ export async function initializeLocalDatabase(): Promise<void> {
 }
 
 export async function initializeDatabase(): Promise<void> {
-  console.log("→ Initializing database...");
+  logger.info("→ Initializing database...");
   const { db, isLocalMode } = await import("../db-config");
   const { devices } = await import("@shared/schema-runtime");
   const { dbInventoryStorage } = await import("../repositories");
@@ -26,16 +28,16 @@ export async function initializeDatabase(): Promise<void> {
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`  Attempting database connection (attempt ${attempt}/${maxRetries})...`);
+      logger.info(`  Attempting database connection (attempt ${attempt}/${maxRetries})...`);
       await withServiceTimeout(
         db.select().from(devices).limit(1),
         connectionTimeout,
         "Database connection check"
       );
-      console.log("  Database connection verified");
+      logger.info("  Database connection verified");
 
       if (!isLocalMode) {
-        console.log("PostgreSQL mode: Running TimescaleDB and view setup...");
+        logger.info("PostgreSQL mode: Running TimescaleDB and view setup...");
         const { ensureTimescaleDBSetup } = await import("../timescaledb-bootstrap");
         await withServiceTimeout(ensureTimescaleDBSetup(), 60000, "TimescaleDB setup");
 
@@ -47,7 +49,7 @@ export async function initializeDatabase(): Promise<void> {
           "Verify database views"
         );
         if (!viewVerification.success) {
-          console.error("Database view verification failed:", viewVerification.errors);
+          logger.error("Database view verification failed:", undefined, viewVerification.errors);
           throw new Error("Essential database views are not functioning properly");
         }
 
@@ -68,18 +70,16 @@ export async function initializeDatabase(): Promise<void> {
           );
         }
       } else {
-        console.log(
-          "SQLite mode: Skipping PostgreSQL-specific setup (TimescaleDB, views, indexes)"
-        );
-        console.log("Database ready for offline-first operation");
+        logger.info("SQLite mode: Skipping PostgreSQL-specific setup (TimescaleDB, views, indexes)");
+        logger.info("Database ready for offline-first operation");
       }
 
-      console.log("✓ Database initialized successfully");
+      logger.info("✓ Database initialized successfully");
 
       try {
         const { migrateWorkOrderServiceOrderBridge } = await import("../migrations/wo-so-bridge");
         await migrateWorkOrderServiceOrderBridge(db);
-        console.log("✓ WO ↔ SO bridge migration applied");
+        logger.info("✓ WO ↔ SO bridge migration applied");
       } catch (err) {
         console.warn(
           "[WO-SO Bridge] Migration skipped or already applied:",
@@ -90,16 +90,16 @@ export async function initializeDatabase(): Promise<void> {
       return;
     } catch (error: any) {
       const isLastAttempt = attempt === maxRetries;
-      console.warn(`  Database initialization attempt ${attempt} failed:`, error.message);
+      logger.warn(`  Database initialization attempt ${attempt} failed:`, { details: error.message });
 
       if (!isLastAttempt) {
         const delay = attempt * 5000;
-        console.log(`  Retrying in ${delay / 1000}s...`);
+        logger.info(`  Retrying in ${delay / 1000}s...`);
         await new Promise((resolve) => setTimeout(resolve, delay));
       } else {
-        console.error("Database initialization failed after all retries:", error);
+        logger.error("Database initialization failed after all retries:", undefined, error);
         if (process.env.EMBEDDED_MODE === "true" || process.env.LOCAL_MODE === "true") {
-          console.error("Embedded/local mode: Continuing despite initialization error");
+          logger.error("Embedded/local mode: Continuing despite initialization error");
           return;
         }
         throw error;
@@ -113,7 +113,7 @@ export async function seedDevelopmentUser(): Promise<void> {
     return;
   }
 
-  console.log("→ Seeding development user...");
+  logger.info("→ Seeding development user...");
   const { db } = await import("../db");
   const { users } = await import("@shared/schema");
   const { eq } = await import("drizzle-orm");
@@ -134,12 +134,12 @@ export async function seedDevelopmentUser(): Promise<void> {
         isActive: true,
         passwordHash: null,
       });
-      console.log("✓ Development user created");
+      logger.info("✓ Development user created");
     } else {
-      console.log("✓ Development user already exists");
+      logger.info("✓ Development user already exists");
     }
   } catch (error: any) {
-    console.warn("⚠️  Could not seed development user:", error.message);
+    logger.warn("⚠️  Could not seed development user:", { details: error.message });
   }
 }
 
@@ -166,16 +166,16 @@ async function withServiceTimeout<T>(
 }
 
 export async function initializeJobQueue(): Promise<void> {
-  console.log("→ Initializing job queue...");
+  logger.info("→ Initializing job queue...");
   const { jobQueueService } = await import("../job-queue-service");
   const { startIngestionWorker } = await import("../ingestion-worker");
   const fsPromises = await import("fs/promises");
 
   try {
     await fsPromises.mkdir("/tmp/kb-uploads", { recursive: true });
-    console.log("  ✓ Created /tmp/kb-uploads directory");
+    logger.info("  ✓ Created /tmp/kb-uploads directory");
   } catch {
-    console.log("  ℹ /tmp/kb-uploads directory already exists");
+    logger.info("  ℹ /tmp/kb-uploads directory already exists");
   }
 
   if (process.env.DATABASE_URL) {
@@ -186,22 +186,22 @@ export async function initializeJobQueue(): Promise<void> {
         "Job queue"
       );
       await withServiceTimeout(startIngestionWorker(5), 10000, "Ingestion worker");
-      console.log("✓ Job queue initialized with 5 workers");
+      logger.info("✓ Job queue initialized with 5 workers");
     } catch (error: any) {
-      console.warn("⚠️ Job queue initialization failed (non-fatal):", error.message);
+      logger.warn("⚠️ Job queue initialization failed (non-fatal):", { details: error.message });
     }
   } else {
-    console.log("⚠ Skipping job queue initialization (no DATABASE_URL)");
+    logger.info("⚠ Skipping job queue initialization (no DATABASE_URL)");
   }
 }
 
 export async function initializeMLServices(): Promise<void> {
   const { storage } = await import("../repositories");
 
-  console.log("→ Initializing vessel telemetry simulator...");
+  logger.info("→ Initializing vessel telemetry simulator...");
   const { initVesselSimulator } = await import("../vessel-simulator");
   initVesselSimulator(storage);
-  console.log("✓ Vessel telemetry simulator initialized");
+  logger.info("✓ Vessel telemetry simulator initialized");
 }
 
 export async function applyTimescaleOptimizations(isLocalMode: boolean): Promise<void> {
@@ -210,7 +210,7 @@ export async function applyTimescaleOptimizations(isLocalMode: boolean): Promise
   }
 
   try {
-    console.log("→ Applying TimescaleDB optimizations...");
+    logger.info("→ Applying TimescaleDB optimizations...");
     const { applyTimescaleOptimizations: apply } = await import("../timescaledb-optimization");
     const results = await apply();
 
@@ -218,20 +218,20 @@ export async function applyTimescaleOptimizations(isLocalMode: boolean): Promise
     const retentionSuccess = results.retentionResult.success;
 
     if (compressionSuccess && retentionSuccess) {
-      console.log("✓ TimescaleDB optimizations fully applied (compression + retention)");
+      logger.info("✓ TimescaleDB optimizations fully applied (compression + retention)");
     } else if (!compressionSuccess && !retentionSuccess) {
-      console.warn("⚠️  TimescaleDB commercial features unavailable (Apache license)");
-      console.warn("   Compression fallback: Using composite indexes (optimal alternative)");
-      console.warn("   Retention fallback: Using telemetry-pruning-service (manual cleanup)");
-      console.log("✓ TimescaleDB optimization fallbacks configured");
+      logger.warn("⚠️  TimescaleDB commercial features unavailable (Apache license)");
+      logger.warn("   Compression fallback: Using composite indexes (optimal alternative)");
+      logger.warn("   Retention fallback: Using telemetry-pruning-service (manual cleanup)");
+      logger.info("✓ TimescaleDB optimization fallbacks configured");
     } else {
-      console.warn("⚠️  TimescaleDB partial optimization:", {
+      logger.warn("⚠️  TimescaleDB partial optimization:", { details: {
         compression: results.compressionResult.message,
         retention: results.retentionResult.message,
-      });
+      } });
     }
   } catch (error) {
-    console.warn("⚠️  Failed to apply TimescaleDB optimizations (non-critical):", error);
+    logger.warn("⚠️  Failed to apply TimescaleDB optimizations (non-critical):", { details: error });
   }
 }
 
@@ -240,7 +240,7 @@ export async function startSyncServices(isLocalMode: boolean): Promise<void> {
     return;
   }
 
-  console.log("→ Starting sync services...");
+  logger.info("→ Starting sync services...");
   const { syncManager } = await import("../sync-manager");
   const { telemetryPruningService } = await import("../telemetry-pruning-service");
   const { mqttReliableSync } = await import("../mqtt-reliable-sync");
@@ -248,54 +248,54 @@ export async function startSyncServices(isLocalMode: boolean): Promise<void> {
   await syncManager.start();
 
   await telemetryPruningService.start();
-  console.log("✓ Telemetry pruning service started");
+  logger.info("✓ Telemetry pruning service started");
 
   mqttReliableSync.start().catch((error: Error) => {
-    console.warn("[MQTT Reliable Sync] Background start failed:", error.message);
+    logger.warn("[MQTT Reliable Sync] Background start failed:", { details: error.message });
   });
-  console.log("✓ MQTT reliable sync starting in background");
+  logger.info("✓ MQTT reliable sync starting in background");
 }
 
 export async function initializeTelemetryBatchWriter(): Promise<void> {
-  console.log("→ Starting telemetry batch writer...");
+  logger.info("→ Starting telemetry batch writer...");
   const { telemetryBatchWriter } = await import("../telemetry-batch-writer");
   telemetryBatchWriter.start();
-  console.log("✓ Telemetry batch writer started");
+  logger.info("✓ Telemetry batch writer started");
 }
 
 export async function initializeAutoReplanPolicy(): Promise<void> {
   if (process.env.ENABLE_AUTO_REPLAN === "false") {
-    console.log("ℹ️  Auto-replan policy disabled");
+    logger.info("ℹ️  Auto-replan policy disabled");
     return;
   }
 
-  console.log("→ Initializing auto-replan policy...");
+  logger.info("→ Initializing auto-replan policy...");
   const { initializeAutoReplanPolicy: initPolicy } = await import(
     "../scheduler/auto-replan-policy"
   );
   initPolicy();
-  console.log("✓ Auto-replan policy initialized");
+  logger.info("✓ Auto-replan policy initialized");
 }
 
 export async function initializeFmccPolling(): Promise<void> {
   if (process.env.FMCC_ENABLED !== "true") {
-    console.log("ℹ️  FMCC polling disabled (FMCC_ENABLED != true)");
+    logger.info("ℹ️  FMCC polling disabled (FMCC_ENABLED != true)");
     return;
   }
 
-  console.log("→ Initializing FMCC polling service...");
+  logger.info("→ Initializing FMCC polling service...");
   const { initializeFmccPolling: initFmcc } = await import("../integrations/fmcc-polling-service");
   initFmcc();
-  console.log("✓ FMCC polling service started");
+  logger.info("✓ FMCC polling service started");
 }
 
 export async function initializePatchingSystem(isEmbedded: boolean): Promise<void> {
   if (process.env.ENABLE_UPDATE_SYSTEM === "false") {
-    console.log("ℹ️  Update system disabled");
+    logger.info("ℹ️  Update system disabled");
     return;
   }
 
-  console.log("→ Initializing patching system...");
+  logger.info("→ Initializing patching system...");
   const { configManager } = await import("../services/config-manager.js");
   const { setupUpdateScheduler } = await import("../services/update-scheduler.js");
 
@@ -304,14 +304,14 @@ export async function initializePatchingSystem(isEmbedded: boolean): Promise<voi
       orgId: "default-org-id",
       changedByName: "System (Auto-reload)",
     });
-    console.log("✓ Config file watcher started");
+    logger.info("✓ Config file watcher started");
 
     setupUpdateScheduler();
-    console.log("✓ Update scheduler configured");
+    logger.info("✓ Update scheduler configured");
   } catch (error: any) {
-    console.warn("⚠️  Update system initialization failed (non-critical):", error.message);
+    logger.warn("⚠️  Update system initialization failed (non-critical):", { details: error.message });
     if (isEmbedded) {
-      console.log("ℹ️  Continuing without update system in embedded mode");
+      logger.info("ℹ️  Continuing without update system in embedded mode");
     } else {
       throw error;
     }
@@ -323,6 +323,6 @@ export async function startEventLoopMonitoring(): Promise<void> {
     const { startEventLoopMonitoring: startMonitoring } = await import("../observability");
     startMonitoring(1000);
   } catch (error) {
-    console.warn("⚠️  Event loop monitoring not available:", error);
+    logger.warn("⚠️  Event loop monitoring not available:", { details: error });
   }
 }

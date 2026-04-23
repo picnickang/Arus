@@ -1,3 +1,5 @@
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Bootstrap:Schedulers");
 /**
  * Scheduler Initialization
  * Insights, predictive maintenance, ML retraining, cleanup schedules
@@ -7,11 +9,11 @@ export async function initializeSchedulers(isEmbedded: boolean): Promise<void> {
   const enableSchedulers = process.env.ENABLE_SCHEDULERS !== "false" && !isEmbedded;
 
   if (!enableSchedulers) {
-    console.log("ℹ️  Schedulers disabled (embedded/standalone mode)");
+    logger.info("ℹ️  Schedulers disabled (embedded/standalone mode)");
     return;
   }
 
-  console.log("→ Setting up schedulers...");
+  logger.info("→ Setting up schedulers...");
 
   const { setupInsightsSchedule, setupPredictiveMaintenanceSchedule, setupMLRetrainingSchedule } =
     await import("../insights-scheduler");
@@ -28,12 +30,12 @@ export async function initializeSchedulers(isEmbedded: boolean): Promise<void> {
 
   const { dataReconciliationService } = await import("../services/data-reconciliation.js");
   dataReconciliationService.startScheduledReconciliation(60);
-  console.log("✅ Data reconciliation schedule configured (every 60 minutes)");
+  logger.info("✅ Data reconciliation schedule configured (every 60 minutes)");
 
   setupTwinRefreshSchedule();
   setupPredictionExpirySchedule();
 
-  console.log("✓ Schedulers configured");
+  logger.info("✓ Schedulers configured");
 }
 
 function setupTwinRefreshSchedule(): void {
@@ -71,13 +73,13 @@ function setupTwinRefreshSchedule(): void {
 
       const result = await updateService.refreshAllActiveTwins(DEFAULT_ORG_ID);
       if (result.refreshed > 0 || result.failed > 0) {
-        console.log(`[TwinRefresh] Refreshed ${result.refreshed}, failed ${result.failed}`);
+        logger.info(`[TwinRefresh] Refreshed ${result.refreshed}, failed ${result.failed}`);
       }
     } catch (error: any) {
-      console.error("[TwinRefresh] Scheduled refresh failed:", error.message);
+      logger.error("[TwinRefresh] Scheduled refresh failed:", undefined, error.message);
     }
   }, INTERVAL_MS);
-  console.log("✅ Twin refresh schedule configured (every 5 minutes)");
+  logger.info("✅ Twin refresh schedule configured (every 5 minutes)");
 }
 
 function setupPredictionExpirySchedule(): void {
@@ -95,29 +97,29 @@ function setupPredictionExpirySchedule(): void {
       const service = new PredictionGovernanceService(adapter);
       const result = await service.expireStale(DEFAULT_ORG_ID);
       if (result.expiredCount > 0) {
-        console.log(`[PredictionExpiry] Expired ${result.expiredCount} stale predictions`);
+        logger.info(`[PredictionExpiry] Expired ${result.expiredCount} stale predictions`);
       }
     } catch (error: any) {
-      console.error("[PredictionExpiry] Scheduled expiry failed:", error.message);
+      logger.error("[PredictionExpiry] Scheduled expiry failed:", undefined, error.message);
     }
   }, INTERVAL_MS);
-  console.log("✅ Prediction expiry schedule configured (every 15 minutes)");
+  logger.info("✅ Prediction expiry schedule configured (every 15 minutes)");
 }
 
 export async function initializeBackgroundJobs(isEmbedded: boolean): Promise<void> {
   const enableBackgroundJobs = process.env.ENABLE_BACKGROUND_JOBS !== "false" && !isEmbedded;
 
   if (isEmbedded) {
-    console.log("ℹ️  Embedded mode: Background jobs and schedulers disabled for stability");
+    logger.info("ℹ️  Embedded mode: Background jobs and schedulers disabled for stability");
   }
 
   if (!enableBackgroundJobs) {
-    console.log("ℹ️  Background jobs disabled (embedded/standalone mode)");
+    logger.info("ℹ️  Background jobs disabled (embedded/standalone mode)");
     return;
   }
 
-  console.log("→ Starting background jobs...");
+  logger.info("→ Starting background jobs...");
   const { startBackgroundJobs } = await import("../job-processors");
   startBackgroundJobs();
-  console.log("✓ Background jobs started");
+  logger.info("✓ Background jobs started");
 }

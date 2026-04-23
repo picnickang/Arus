@@ -17,6 +17,8 @@ import { eq } from "drizzle-orm";
 import { assertCloudMode, getCloudTable } from "../utils/cloud-guards";
 import crypto from "node:crypto";
 import { runTrustedExecutable, validatePath } from "../lib/secure-exec";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Services:PatchApplicator");
 
 export interface ApplyResult {
   success: boolean;
@@ -55,7 +57,7 @@ export class PatchApplicator {
 
     fs.mkdirSync(backupPath, { recursive: true });
 
-    console.log(`[PatchApplicator] Creating backup: ${backupId}`);
+    logger.info(`[PatchApplicator] Creating backup: ${backupId}`);
 
     for (const file of files) {
       const sourcePath = path.join(this.appDir, file);
@@ -84,7 +86,7 @@ export class PatchApplicator {
 
     fs.writeFileSync(path.join(backupPath, "manifest.json"), JSON.stringify(manifest, null, 2));
 
-    console.log(`[PatchApplicator] Backup created: ${backupId} (${files.length} files)`);
+    logger.info(`[PatchApplicator] Backup created: ${backupId} (${files.length} files)`);
     return backupId;
   }
 
@@ -98,7 +100,7 @@ export class PatchApplicator {
       throw new Error(`Backup not found: ${backupId}`);
     }
 
-    console.log(`[PatchApplicator] Rolling back to backup: ${backupId}`);
+    logger.info(`[PatchApplicator] Rolling back to backup: ${backupId}`);
 
     // Read backup manifest
     const manifestPath = path.join(backupPath, "manifest.json");
@@ -119,11 +121,11 @@ export class PatchApplicator {
 
         // Restore file
         fs.copyFileSync(sourcePath, destPath);
-        console.log(`[PatchApplicator] Restored: ${file}`);
+        logger.info(`[PatchApplicator] Restored: ${file}`);
       }
     }
 
-    console.log(`[PatchApplicator] Rollback complete: ${backupId}`);
+    logger.info(`[PatchApplicator] Rollback complete: ${backupId}`);
   }
 
   /**
@@ -139,12 +141,12 @@ export class PatchApplicator {
       fs.mkdirSync(safeExtractDir, { recursive: true });
     }
 
-    console.log(`[PatchApplicator] Extracting patch to ${safeExtractDir}...`);
+    logger.info(`[PatchApplicator] Extracting patch to ${safeExtractDir}...`);
 
     // Security (S2076): runTrustedExecutable uses constant 'tar' from allowlist
     await runTrustedExecutable("tar", ["-xzf", safePatchPath, "-C", safeExtractDir]);
 
-    console.log("[PatchApplicator] Patch extracted successfully");
+    logger.info("[PatchApplicator] Patch extracted successfully");
   }
 
   /**
@@ -187,14 +189,14 @@ export class PatchApplicator {
 
         // Copy file
         fs.copyFileSync(sourcePath, destPath);
-        console.log(`[PatchApplicator] ${change.action}: ${change.path}`);
+        logger.info(`[PatchApplicator] ${change.action}: ${change.path}`);
         break;
       }
 
       case "delete":
         if (fs.existsSync(destPath)) {
           fs.unlinkSync(destPath);
-          console.log(`[PatchApplicator] Deleted: ${change.path}`);
+          logger.info(`[PatchApplicator] Deleted: ${change.path}`);
         }
         break;
 
@@ -205,7 +207,7 @@ export class PatchApplicator {
           throw new Error(`Hash verification failed for ${change.path}`);
         }
         fs.copyFileSync(sourcePath, destPath);
-        console.log(`[PatchApplicator] Merged: ${change.path}`);
+        logger.info(`[PatchApplicator] Merged: ${change.path}`);
         break;
 
       default:
@@ -219,14 +221,14 @@ export class PatchApplicator {
    */
   private async runMigrations(manifest: PatchManifest, extractDir: string): Promise<void> {
     if (!manifest.migrations || manifest.migrations.length === 0) {
-      console.log("[PatchApplicator] No database migrations to run");
+      logger.info("[PatchApplicator] No database migrations to run");
       return;
     }
 
-    console.log(`[PatchApplicator] Running ${manifest.migrations.length} database migrations...`);
+    logger.info(`[PatchApplicator] Running ${manifest.migrations.length} database migrations...`);
 
     for (const migration of manifest.migrations) {
-      console.log(`[PatchApplicator] Running migration: ${migration.description}`);
+      logger.info(`[PatchApplicator] Running migration: ${migration.description}`);
 
       // Security: Validate migration path to prevent path traversal
       const migrationPath = validatePath(extractDir, migration.file);
@@ -239,15 +241,15 @@ export class PatchApplicator {
         // Execute SQL migration
         const sql = fs.readFileSync(migrationPath, "utf-8");
         await db.execute(sql as unknown as Parameters<typeof db.execute>[0]);
-        console.log(`[PatchApplicator] SQL migration executed: ${migration.file}`);
+        logger.info(`[PatchApplicator] SQL migration executed: ${migration.file}`);
       } else if (migration.type === "script") {
         // Security (S2076): runTrustedExecutable uses constant 'node' from allowlist
         await runTrustedExecutable("node", [migrationPath]);
-        console.log(`[PatchApplicator] Script migration executed: ${migration.file}`);
+        logger.info(`[PatchApplicator] Script migration executed: ${migration.file}`);
       }
     }
 
-    console.log("[PatchApplicator] All migrations completed successfully");
+    logger.info("[PatchApplicator] All migrations completed successfully");
   }
 
   /**
@@ -264,7 +266,7 @@ export class PatchApplicator {
       }
     }
 
-    console.log("[PatchApplicator] Integrity verification passed");
+    logger.info("[PatchApplicator] Integrity verification passed");
   }
 
   /**
@@ -289,7 +291,7 @@ export class PatchApplicator {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
     packageJson.version = newVersion;
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
-    console.log(`[PatchApplicator] Updated version to ${newVersion}`);
+    logger.info(`[PatchApplicator] Updated version to ${newVersion}`);
   }
 
   /**
@@ -301,7 +303,7 @@ export class PatchApplicator {
     const failedFiles: string[] = [];
 
     try {
-      console.log(`[PatchApplicator] Applying patch: ${patchId}`);
+      logger.info(`[PatchApplicator] Applying patch: ${patchId}`);
 
       // Get patch from database
       const patchesTable = getCloudTable(softwarePatches, "Software Patches");
@@ -338,7 +340,7 @@ export class PatchApplicator {
           await this.applyFileChange(change, extractDir);
           appliedFiles.push(change.path);
         } catch (error) {
-          console.error(`[PatchApplicator] Failed to apply ${change.path}:`, error);
+          logger.error(`[PatchApplicator] Failed to apply ${change.path}:`, undefined, error);
           failedFiles.push(change.path);
           throw error; // Stop on first failure
         }
@@ -366,7 +368,7 @@ export class PatchApplicator {
         })
         .where(eq(softwarePatches.id, patchId));
 
-      console.log(`[PatchApplicator] Patch applied successfully: ${manifest.version}`);
+      logger.info(`[PatchApplicator] Patch applied successfully: ${manifest.version}`);
 
       return {
         success: true,
@@ -375,16 +377,16 @@ export class PatchApplicator {
         backupId,
       };
     } catch (error) {
-      console.error("[PatchApplicator] Patch application failed:", error);
+      logger.error("[PatchApplicator] Patch application failed:", undefined, error);
 
       // Automatic rollback on failure
       if (backupId) {
-        console.log("[PatchApplicator] Initiating automatic rollback...");
+        logger.info("[PatchApplicator] Initiating automatic rollback...");
         try {
           await this.rollback(backupId);
-          console.log("[PatchApplicator] Rollback successful");
+          logger.info("[PatchApplicator] Rollback successful");
         } catch (rollbackError) {
-          console.error("[PatchApplicator] Rollback failed:", rollbackError);
+          logger.error("[PatchApplicator] Rollback failed:", undefined, rollbackError);
         }
       }
 
@@ -450,12 +452,12 @@ export class PatchApplicator {
 
     const toDelete = backups.slice(keepCount);
 
-    console.log(`[PatchApplicator] Cleaning ${toDelete.length} old backups...`);
+    logger.info(`[PatchApplicator] Cleaning ${toDelete.length} old backups...`);
 
     for (const backup of toDelete) {
       const backupPath = path.join(this.backupDir, backup.id);
       fs.rmSync(backupPath, { recursive: true, force: true });
-      console.log(`[PatchApplicator] Deleted backup: ${backup.id}`);
+      logger.info(`[PatchApplicator] Deleted backup: ${backup.id}`);
     }
   }
 }

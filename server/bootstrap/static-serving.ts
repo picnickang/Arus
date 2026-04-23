@@ -8,23 +8,25 @@ import express from "express";
 import path from "node:path";
 import * as fs from "node:fs";
 import { fileURLToPath } from "node:url";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Bootstrap:StaticServing");
 
 export async function configureStaticServing(app: Express, server: any): Promise<void> {
   const isEmbeddedMode = process.env.EMBEDDED_MODE === "true";
   const isDevelopmentEnv = app.get("env") === "development";
 
   if (!isEmbeddedMode && isDevelopmentEnv) {
-    console.log("→ Setting up Vite dev server...");
+    logger.info("→ Setting up Vite dev server...");
     const { setupVite } = await import("../vite");
     await setupVite(app, server);
-    console.log("✓ Vite dev server configured");
+    logger.info("✓ Vite dev server configured");
     return;
   }
 
   if (isEmbeddedMode) {
-    console.log("→ Setting up static file serving (embedded mode - HMR disabled)...");
+    logger.info("→ Setting up static file serving (embedded mode - HMR disabled)...");
   } else {
-    console.log("→ Setting up production static file serving...");
+    logger.info("→ Setting up production static file serving...");
   }
 
   try {
@@ -37,19 +39,19 @@ export async function configureStaticServing(app: Express, server: any): Promise
       path.join(projectRoot, "client", "dist"),
     ];
 
-    console.log("[Static] Candidate roots:", candidateStaticRoots);
+    logger.info("[Static] Candidate roots:", { details: candidateStaticRoots });
 
     let staticRoot: string | null = null;
     for (const candidate of candidateStaticRoots) {
       if (fs.existsSync(candidate)) {
         const hasIndexHtml = fs.existsSync(path.join(candidate, "index.html"));
-        console.log(`[Static] Checking: ${candidate}`);
-        console.log(`[Static]   - Directory exists: YES`);
-        console.log(`[Static]   - Has index.html: ${hasIndexHtml ? "YES" : "NO"}`);
+        logger.info(`[Static] Checking: ${candidate}`);
+        logger.info(`[Static]   - Directory exists: YES`);
+        logger.info(`[Static]   - Has index.html: ${hasIndexHtml ? "YES" : "NO"}`);
 
         if (hasIndexHtml) {
           staticRoot = candidate;
-          console.log(`[Static] ✓ Selected frontend build from: ${candidate}`);
+          logger.info(`[Static] ✓ Selected frontend build from: ${candidate}`);
 
           try {
             const contents = fs.readdirSync(candidate);
@@ -58,22 +60,20 @@ export async function configureStaticServing(app: Express, server: any): Promise
               contents.slice(0, 10).join(", ") + (contents.length > 10 ? "..." : "")
             );
           } catch (e) {
-            console.error("[Static] Failed to read staticRoot contents:", e);
+            logger.error("[Static] Failed to read staticRoot contents:", undefined, e);
           }
           break;
         } else {
-          console.warn(`[Static] ⚠️  Found directory ${candidate} but no index.html inside`);
+          logger.warn(`[Static] ⚠️  Found directory ${candidate} but no index.html inside`);
         }
       } else {
-        console.log(`[Static] Checking: ${candidate} - NOT FOUND`);
+        logger.info(`[Static] Checking: ${candidate} - NOT FOUND`);
       }
     }
 
     if (!staticRoot) {
-      console.warn(
-        "[Static] ❌ No valid frontend build directory found - SPA UI will not be served"
-      );
-      console.warn("[Static] To fix: Run 'npm run build' or 'vite build' to build the frontend");
+      logger.warn("[Static] ❌ No valid frontend build directory found - SPA UI will not be served");
+      logger.warn("[Static] To fix: Run 'npm run build' or 'vite build' to build the frontend");
       return;
     }
 
@@ -107,26 +107,26 @@ export async function configureStaticServing(app: Express, server: any): Promise
         },
       })
     );
-    console.log(`[Static] ✓ express.static() configured for: ${staticRoot}`);
+    logger.info(`[Static] ✓ express.static() configured for: ${staticRoot}`);
 
     app.get("/", (_req, res) => {
-      console.log("[Static] Explicit root route hit: /");
+      logger.info("[Static] Explicit root route hit: /");
       res.sendFile(path.join(staticRoot!, "index.html"));
     });
-    console.log("[Static] ✓ Explicit root route (GET /) configured");
+    logger.info("[Static] ✓ Explicit root route (GET /) configured");
 
     app.get("*", (req, res, next) => {
       if (req.path.startsWith("/api/") || path.extname(req.path)) {
         return next();
       }
-      console.log(`[Static] SPA fallback for: ${req.path}`);
+      logger.info(`[Static] SPA fallback for: ${req.path}`);
       res.sendFile(path.join(staticRoot!, "index.html"));
     });
-    console.log("[Static] ✓ SPA fallback route (GET *) configured");
-    console.log(`✓ Static file serving fully configured from: ${staticRoot}`);
+    logger.info("[Static] ✓ SPA fallback route (GET *) configured");
+    logger.info(`✓ Static file serving fully configured from: ${staticRoot}`);
   } catch (error) {
-    console.error(`❌ Failed to set up static file serving:`, error);
-    console.warn(`⚠️  Continuing in API-only mode (frontend may not load)`);
+    logger.error(`❌ Failed to set up static file serving:`, undefined, error);
+    logger.warn(`⚠️  Continuing in API-only mode (frontend may not load)`);
   }
 }
 
@@ -138,9 +138,9 @@ export async function configureFinalErrorHandlers(app: Express): Promise<void> {
       timestamp: new Date().toISOString(),
     });
   });
-  console.log("[Static] ✓ Final 404 handler registered");
+  logger.info("[Static] ✓ Final 404 handler registered");
 
   const { enhancedErrorHandler } = await import("../error-handling");
   app.use(enhancedErrorHandler);
-  console.log("[Static] ✓ Error handler registered (after SPA fallback)");
+  logger.info("[Static] ✓ Error handler registered (after SPA fallback)");
 }

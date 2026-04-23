@@ -5,6 +5,8 @@
 
 process.env.TF_CPP_MIN_LOG_LEVEL = "2";
 
+import { createLogger } from "./lib/structured-logger";
+const logger = createLogger("Index");
 import {
   setupErrorHandlers,
   markStartupComplete,
@@ -40,24 +42,24 @@ if (isInitDbMode) {
   import("./init-db-entry.js")
     .then((m: any) => m.initDb())
     .then(() => {
-      console.log("[ARUS] --init-db complete");
+      logger.info("[ARUS] --init-db complete");
       process.exit(0);
     })
     .catch((err: unknown) => {
-      console.error("[ARUS] --init-db failed:", err);
+      logger.error("[ARUS] --init-db failed:", undefined, err);
       process.exit(1);
     });
 }
 
 if (isHealthCheckMode) {
-  console.log("[ARUS] Health check: testing native module loading...");
+  logger.info("[ARUS] Health check: testing native module loading...");
   (async () => {
     try {
       const { createClient } = await import("@libsql/client");
       const client = createClient({ url: ":memory:" });
       await client.execute("SELECT 1 AS ok");
       client.close();
-      console.log("[ARUS] Health check: @libsql/client OK");
+      logger.info("[ARUS] Health check: @libsql/client OK");
 
       const bcrypt = await import("bcryptjs");
       const hash = await (bcrypt as any).hash("test", 8);
@@ -65,26 +67,26 @@ if (isHealthCheckMode) {
       if (!ok) {
         throw new Error("bcryptjs hash/compare mismatch");
       }
-      console.log("[ARUS] Health check: bcryptjs OK");
+      logger.info("[ARUS] Health check: bcryptjs OK");
 
-      console.log("[ARUS] Health check: PASSED");
+      logger.info("[ARUS] Health check: PASSED");
       process.exit(0);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error("[ARUS] Health check: FAILED —", msg);
+      logger.error("[ARUS] Health check: FAILED —", undefined, msg);
       process.exit(1);
     }
   })();
 }
 
-console.log("→ Starting module imports...");
+logger.info("→ Starting module imports...");
 
 import express from "express";
 import { registerRoutes } from "./routes";
 import { setApiReady } from "./middleware/api-ready-gate";
 import setupRouter from "./routes/setup.js";
 
-console.log("✓ All module imports completed successfully");
+logger.info("✓ All module imports completed successfully");
 
 const app = express();
 let isApplicationReady = false;
@@ -106,39 +108,37 @@ if (!isInitDbMode && !isHealthCheckMode) {
     let server: ReturnType<typeof import("http").createServer> | null = null;
 
     try {
-      console.log("→ IIFE started - beginning initialization...");
+      logger.info("→ IIFE started - beginning initialization...");
 
       const envConfig = validateEnvironment();
-      console.log("→ Environment validated successfully");
+      logger.info("→ Environment validated successfully");
 
       if (!envConfig.hasDatabase) {
-        console.error("❌ FATAL: DATABASE_URL is required. Application cannot start.");
+        logger.error("❌ FATAL: DATABASE_URL is required. Application cannot start.");
         process.exit(1);
       }
 
-      console.log("→ Starting application initialization...");
+      logger.info("→ Starting application initialization...");
 
       await initializeLocalDatabase();
 
-      console.log("→ Setting up middleware...");
+      logger.info("→ Setting up middleware...");
       configureMiddleware(app);
       await configureAuthMiddleware(app);
-      console.log("✓ Middleware configured");
+      logger.info("✓ Middleware configured");
 
-      console.log("→ Registering routes...");
+      logger.info("→ Registering routes...");
       server = await registerRoutes(app);
-      console.log("✓ Routes registered");
+      logger.info("✓ Routes registered");
 
       const port = Number.parseInt(process.env.PORT || "5000", 10);
       server.listen(port, "0.0.0.0", () => {
-        console.log(
-          `✅ Server listening on port ${port} (initialization continuing in background...)`
-        );
+        logger.info(`✅ Server listening on port ${port} (initialization continuing in background...)`);
       });
 
       // Set up Vite/static serving FIRST so frontend loads while database initializes
       await configureStaticServing(app, server);
-      console.log("✓ Frontend serving configured");
+      logger.info("✓ Frontend serving configured");
 
       // Database and services initialization (can take time with cold starts)
       // Run in background so frontend remains available even during DB issues
@@ -146,14 +146,14 @@ if (!isInitDbMode && !isHealthCheckMode) {
         await initializeDatabase();
         await seedDevelopmentUser();
       } catch (dbError: any) {
-        console.error("⚠️ Database initialization failed (non-fatal):", dbError.message);
-        console.log("   Frontend available, API will return 503 until database reconnects");
+        logger.error("⚠️ Database initialization failed (non-fatal):", undefined, dbError.message);
+        logger.info("   Frontend available, API will return 503 until database reconnects");
       }
 
       try {
         await initializeJobQueue();
       } catch (jobError: any) {
-        console.warn("⚠️ Job queue initialization failed (non-fatal):", jobError.message);
+        logger.warn("⚠️ Job queue initialization failed (non-fatal):", { details: jobError.message });
       }
 
       await initializeMLServices();
@@ -164,20 +164,20 @@ if (!isInitDbMode && !isHealthCheckMode) {
       try {
         await applyTimescaleOptimizations(localModeFlag);
       } catch (e: any) {
-        console.warn("⚠️ TimescaleDB optimizations skipped:", e.message);
+        logger.warn("⚠️ TimescaleDB optimizations skipped:", { details: e.message });
       }
 
       try {
         await startSyncServices(localModeFlag);
       } catch (e: any) {
-        console.warn("⚠️ Sync services initialization skipped:", e.message);
+        logger.warn("⚠️ Sync services initialization skipped:", { details: e.message });
       }
 
-      console.log("→ Initializing domain event bus...");
+      logger.info("→ Initializing domain event bus...");
       try {
         const { initAllBridges } = await import("./lib/domain-event-bus/bridge.js");
         initAllBridges();
-        console.log("✓ Domain event bus initialized");
+        logger.info("✓ Domain event bus initialized");
       } catch (e: unknown) {
         console.warn(
           "⚠️ Domain event bus initialization skipped:",
@@ -195,14 +195,14 @@ if (!isInitDbMode && !isHealthCheckMode) {
         await initializeFmccPolling();
         await initializePatchingSystem(isEmbedded);
       } catch (e: any) {
-        console.warn("⚠️ Background services partially initialized:", e.message);
+        logger.warn("⚠️ Background services partially initialized:", { details: e.message });
       }
 
       try {
         const { startEmailWorker } = await import("./purchasing/email-worker");
         startEmailWorker();
       } catch (e: any) {
-        console.warn("⚠️ Email worker initialization skipped:", e.message);
+        logger.warn("⚠️ Email worker initialization skipped:", { details: e.message });
       }
 
       await configureFinalErrorHandlers(app);
@@ -219,24 +219,24 @@ if (!isInitDbMode && !isHealthCheckMode) {
         second: "2-digit",
         hour12: true,
       });
-      console.log(`✅ ${formattedTime} [express] Application initialization complete`);
-      console.log(`🚀 ARUS application is now live!`);
+      logger.info(`✅ ${formattedTime} [express] Application initialization complete`);
+      logger.info(`🚀 ARUS application is now live!`);
     } catch (error) {
-      console.error("\n❌ FATAL ERROR during application initialization:");
+      logger.error("\n❌ FATAL ERROR during application initialization:");
       console.error(error);
       if (error instanceof Error) {
-        console.error("Error name:", error.name);
-        console.error("Error message:", error.message);
-        console.error("Stack trace:", error.stack);
+        logger.error("Error name:", undefined, error.name);
+        logger.error("Error message:", undefined, error.message);
+        logger.error("Stack trace:", undefined, error.stack);
       }
 
       if (server) {
-        console.log("→ Closing server due to initialization failure...");
+        logger.info("→ Closing server due to initialization failure...");
         server.close();
       }
 
       if (process.env.EMBEDDED_MODE === "true" || process.env.LOCAL_MODE === "true") {
-        console.error("⚠️ Embedded/local mode: Starting with degraded functionality");
+        logger.error("⚠️ Embedded/local mode: Starting with degraded functionality");
         markStartupComplete();
       } else {
         process.exit(1);

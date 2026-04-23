@@ -1,3 +1,5 @@
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Bootstrap:ErrorHandlers");
 /**
  * Process Error Handlers
  * Handles uncaught exceptions and unhandled rejections with graceful handling for embedded mode
@@ -34,15 +36,15 @@ export function setupErrorHandlers(): void {
     }
 
     if (isNeonWebSocketError) {
-      console.warn("⚠️ Neon WebSocket connection error (transient, retrying...)");
+      logger.warn("⚠️ Neon WebSocket connection error (transient, retrying...)");
       return;
     }
 
-    console.error("❌ UNCAUGHT EXCEPTION:", error);
-    console.error("Stack trace:", error.stack);
+    logger.error("❌ UNCAUGHT EXCEPTION:", undefined, error);
+    logger.error("Stack trace:", undefined, error.stack);
 
     if (isEmbeddedMode || startupComplete) {
-      console.error("⚠️ Error logged but server continuing (embedded/runtime mode)");
+      logger.error("⚠️ Error logged but server continuing (embedded/runtime mode)");
       return;
     }
 
@@ -50,11 +52,11 @@ export function setupErrorHandlers(): void {
   });
 
   process.on("unhandledRejection", (reason, promise) => {
-    console.error("❌ UNHANDLED REJECTION:", reason);
-    console.error("Promise:", promise);
+    logger.error("❌ UNHANDLED REJECTION:", undefined, reason);
+    logger.error("Promise:", undefined, promise);
 
     if (process.env.EMBEDDED_MODE === "true" || startupComplete) {
-      console.error("⚠️ Rejection logged but server continuing (embedded/runtime mode)");
+      logger.error("⚠️ Rejection logged but server continuing (embedded/runtime mode)");
       return;
     }
 

@@ -14,6 +14,8 @@ import { db } from "../db";
 import { updateSettings } from "../../shared/schema";
 import { eq } from "drizzle-orm";
 import { isCloudMode, canUseCloudFeature } from "../config/runtimeEnv";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Services:UpdateScheduler");
 
 /**
  * Check if we're in a maintenance window
@@ -60,7 +62,7 @@ function isInMaintenanceWindow(
     // Normal window within same day
     return currentTimeMinutes >= startTimeMinutes && currentTimeMinutes <= endTimeMinutes;
   } catch (error) {
-    console.error("[UpdateScheduler] Error checking maintenance window:", error);
+    logger.error("[UpdateScheduler] Error checking maintenance window:", undefined, error);
     // On error, assume we're NOT in maintenance window (safer default)
     return false;
   }
@@ -72,12 +74,12 @@ function isInMaintenanceWindow(
 async function checkForUpdatesAllOrgs(): Promise<void> {
   // GUARD: Update scheduler only runs in CLOUD mode
   if (!isCloudMode || !canUseCloudFeature("updateScheduler")) {
-    console.log("[UpdateScheduler] Skipped - not available in VESSEL mode");
+    logger.info("[UpdateScheduler] Skipped - not available in VESSEL mode");
     return;
   }
 
   try {
-    console.log("[UpdateScheduler] Running scheduled update check...");
+    logger.info("[UpdateScheduler] Running scheduled update check...");
 
     // Get update checker instance
     const updateChecker = await getUpdateChecker();
@@ -89,7 +91,7 @@ async function checkForUpdatesAllOrgs(): Promise<void> {
       .where(eq(updateSettings.autoUpdateEnabled, true));
 
     if (orgsWithAutoUpdate.length === 0) {
-      console.log("[UpdateScheduler] No organizations have auto-update enabled");
+      logger.info("[UpdateScheduler] No organizations have auto-update enabled");
       return;
     }
 
@@ -102,31 +104,22 @@ async function checkForUpdatesAllOrgs(): Promise<void> {
         );
 
         if (!manifest) {
-          console.log(`[UpdateScheduler] Org ${settings.orgId}: No updates available`);
+          logger.info(`[UpdateScheduler] Org ${settings.orgId}: No updates available`);
           continue;
         }
 
-        console.log(
-          `[UpdateScheduler] Org ${settings.orgId}: Update available - ${manifest.version} (${manifest.severity})`
-        );
+        logger.info(`[UpdateScheduler] Org ${settings.orgId}: Update available - ${manifest.version} (${manifest.severity})`);
 
         // Register patch in database
         const patch = await updateChecker.registerPatch(settings.orgId, manifest);
 
         // ALWAYS download patch (background staging for marine vessels)
-        console.log(
-          `[UpdateScheduler] Org ${settings.orgId}: Starting background download for patch ${patch.id}...`
-        );
+        logger.info(`[UpdateScheduler] Org ${settings.orgId}: Starting background download for patch ${patch.id}...`);
         try {
           const patchPath = await updateChecker.downloadPatch(patch.id, settings.orgId);
-          console.log(
-            `[UpdateScheduler] Org ${settings.orgId}: Patch downloaded and staged at ${patchPath}`
-          );
+          logger.info(`[UpdateScheduler] Org ${settings.orgId}: Patch downloaded and staged at ${patchPath}`);
         } catch (downloadError) {
-          console.error(
-            `[UpdateScheduler] Org ${settings.orgId}: Background download failed:`,
-            downloadError
-          );
+          logger.error(`[UpdateScheduler] Org ${settings.orgId}: Background download failed:`, undefined, downloadError);
           // Continue to notify admin even if download fails
         }
 
@@ -147,9 +140,7 @@ async function checkForUpdatesAllOrgs(): Promise<void> {
           (manifest.severity === "critical" || settings.autoUpdateCriticalOnly === false);
 
         if (shouldAutoApply) {
-          console.log(
-            `[UpdateScheduler] Org ${settings.orgId}: Auto-applying patch ${patch.id} during maintenance globalThis...`
-          );
+          logger.info(`[UpdateScheduler] Org ${settings.orgId}: Auto-applying patch ${patch.id} during maintenance globalThis...`);
 
           // Import WebSocket server for broadcasting
           const { wsServer } = await import("../websocket");
@@ -159,7 +150,7 @@ async function checkForUpdatesAllOrgs(): Promise<void> {
             const result = await patchApplicator.applyPatch(patch.id, patchPath);
 
             if (result.success) {
-              console.log(`[UpdateScheduler] Org ${settings.orgId}: Patch applied successfully`);
+              logger.info(`[UpdateScheduler] Org ${settings.orgId}: Patch applied successfully`);
 
               // Broadcast success notification
               wsServer.broadcastUpdateNotification({
@@ -175,10 +166,7 @@ async function checkForUpdatesAllOrgs(): Promise<void> {
                 },
               });
             } else {
-              console.error(
-                `[UpdateScheduler] Org ${settings.orgId}: Patch application failed:`,
-                result.error
-              );
+              logger.error(`[UpdateScheduler] Org ${settings.orgId}: Patch application failed:`, undefined, result.error);
 
               // Broadcast failure notification
               wsServer.broadcastUpdateNotification({
@@ -195,10 +183,7 @@ async function checkForUpdatesAllOrgs(): Promise<void> {
               });
             }
           } catch (applyError) {
-            console.error(
-              `[UpdateScheduler] Org ${settings.orgId}: Error auto-applying patch:`,
-              applyError
-            );
+            logger.error(`[UpdateScheduler] Org ${settings.orgId}: Error auto-applying patch:`, undefined, applyError);
 
             // Broadcast failure notification
             wsServer.broadcastUpdateNotification({
@@ -222,7 +207,7 @@ async function checkForUpdatesAllOrgs(): Promise<void> {
               ? "waiting for maintenance window"
               : "auto-update disabled";
 
-          console.log(`[UpdateScheduler] Org ${settings.orgId}: Patch staged, ${reason}`);
+          logger.info(`[UpdateScheduler] Org ${settings.orgId}: Patch staged, ${reason}`);
 
           // Notify admin via WebSocket
           const { wsServer } = await import("../websocket");
@@ -241,16 +226,13 @@ async function checkForUpdatesAllOrgs(): Promise<void> {
           });
         }
       } catch (orgError) {
-        console.error(
-          `[UpdateScheduler] Error checking updates for org ${settings.orgId}:`,
-          orgError
-        );
+        logger.error(`[UpdateScheduler] Error checking updates for org ${settings.orgId}:`, undefined, orgError);
       }
     }
 
-    console.log("[UpdateScheduler] Update check complete");
+    logger.info("[UpdateScheduler] Update check complete");
   } catch (error) {
-    console.error("[UpdateScheduler] Error in scheduled update check:", error);
+    logger.error("[UpdateScheduler] Error in scheduled update check:", undefined, error);
   }
 }
 
@@ -260,9 +242,7 @@ async function checkForUpdatesAllOrgs(): Promise<void> {
 export function setupUpdateScheduler(): void {
   // GUARD: Update scheduler only runs in CLOUD mode
   if (!isCloudMode || !canUseCloudFeature("updateScheduler")) {
-    console.log(
-      "[UpdateScheduler] Disabled - update scheduler is cloud-only (vessel mode uses different update channels)"
-    );
+    logger.info("[UpdateScheduler] Disabled - update scheduler is cloud-only (vessel mode uses different update channels)");
     return;
   }
 
@@ -277,13 +257,13 @@ export function setupUpdateScheduler(): void {
     await checkForUpdatesAllOrgs();
   });
 
-  console.log(`🔄 Update scheduler configured (checking every ${checkIntervalHours} hours)`);
+  logger.info(`🔄 Update scheduler configured (checking every ${checkIntervalHours} hours)`);
 
   // Run initial check 5 minutes after startup (if enabled)
   if (process.env.UPDATE_CHECK_ON_STARTUP !== "false") {
     setTimeout(
       async () => {
-        console.log("[UpdateScheduler] Running initial update check...");
+        logger.info("[UpdateScheduler] Running initial update check...");
         await checkForUpdatesAllOrgs();
       },
       5 * 60 * 1000
