@@ -1,6 +1,8 @@
 import { domainEventBus } from "./bus.js";
 import { createDomainEvent } from "./types.js";
 import type { DomainEventMap, DomainEventName } from "./types.js";
+import { createLogger } from "../structured-logger";
+const logger = createLogger("Lib:DomainEventBus:Bridge");
 import {
   syncEventBus,
   type EventType,
@@ -178,9 +180,7 @@ export function initSyncJournalSubscriber(): void {
     });
   }
 
-  console.log(
-    `[DomainEventBridge] Sync journal subscriber initialized (${trackedEvents.length} events)`
-  );
+  logger.info(`[DomainEventBridge] Sync journal subscriber initialized (${trackedEvents.length} events)`);
 }
 
 export function initMqttSubscriber(): void {
@@ -248,7 +248,7 @@ export function initMqttSubscriber(): void {
     });
   }
 
-  console.log("[DomainEventBridge] MQTT subscriber initialized");
+  logger.info("[DomainEventBridge] MQTT subscriber initialized");
 }
 
 export function initSchedulerBusBridge(): void {
@@ -280,7 +280,7 @@ export function initSchedulerBusBridge(): void {
     schedulerEventBus.emitSimulationDiscarded({ orgId: event.orgId, ...event.payload });
   });
 
-  console.log("[DomainEventBridge] Scheduler bus bridge initialized");
+  logger.info("[DomainEventBridge] Scheduler bus bridge initialized");
 }
 
 export function initSyncEventBusBridge(): void {
@@ -329,9 +329,7 @@ export function initSyncEventBusBridge(): void {
     });
   }
 
-  console.log(
-    `[DomainEventBridge] SyncEventBus bridge initialized (${bridgedEvents.length} events forwarded, new→old)`
-  );
+  logger.info(`[DomainEventBridge] SyncEventBus bridge initialized (${bridgedEvents.length} events forwarded, new→old)`);
 }
 
 function mapSyncEventToDomainEvent(syncEvent: string): DomainEventName | null {
@@ -396,15 +394,13 @@ export function initReverseSyncEventBusBridge(): void {
     });
   }
 
-  console.log(
-    `[DomainEventBridge] Reverse SyncEventBus bridge initialized (${syncEventsToForward.length} events forwarded, old→new)`
-  );
+  logger.info(`[DomainEventBridge] Reverse SyncEventBus bridge initialized (${syncEventsToForward.length} events forwarded, old→new)`);
 }
 
 function initLoggingMiddleware(): void {
   domainEventBus.use((eventType) => {
     if (process.env.NODE_ENV === "development" && process.env.DEBUG_EVENTS === "true") {
-      console.log(`[DomainEventBus] ${eventType}`);
+      logger.info(`[DomainEventBus] ${eventType}`);
     }
   });
 }
@@ -416,5 +412,5 @@ export function initAllBridges(): void {
   initSchedulerBusBridge();
   initSyncEventBusBridge();
   initReverseSyncEventBusBridge();
-  console.log("[DomainEventBridge] All bridges initialized");
+  logger.info("[DomainEventBridge] All bridges initialized");
 }

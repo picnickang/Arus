@@ -8,6 +8,8 @@ import { mountPredictionsRoutes } from "./predictions.js";
 import { mountModelGovernanceRoutes } from "./model-governance.js";
 import { mountCostsAndFeedbackRoutes } from "./costs-and-feedback.js";
 import { mountCacheReconciliationRoutes } from "./cache-reconciliation.js";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Routes:Analytics:Index");
 
 export function mountAnalyticsRoutes(app: Express) {
   const router = Router();
@@ -17,12 +19,12 @@ export function mountAnalyticsRoutes(app: Express) {
   mountCostsAndFeedbackRoutes(router);
   mountCacheReconciliationRoutes(router);
   app.use("/api/analytics", router);
-  console.log("[Analytics Routes] Mounted with Redis caching support");
-  console.log("[Analytics Routes] Data reconciliation endpoints registered");
+  logger.info("[Analytics Routes] Mounted with Redis caching support");
+  logger.info("[Analytics Routes] Data reconciliation endpoints registered");
   if (cacheConfig.analyticsEnabled) {
-    console.log("[Analytics Routes] Redis caching ENABLED (5min default TTL)");
+    logger.info("[Analytics Routes] Redis caching ENABLED (5min default TTL)");
   } else {
-    console.log("[Analytics Routes] Redis caching DISABLED (direct queries)");
+    logger.info("[Analytics Routes] Redis caching DISABLED (direct queries)");
   }
 }
 

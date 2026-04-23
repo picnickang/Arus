@@ -5,6 +5,8 @@
 
 import { emailSender } from "../email-notification/email-sender.js";
 import { dbSchedulerStorage, dbUserStorage, dbCrewStorage } from "../../repositories.js";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:SchedulerNotifications:Index");
 import type {
   NotificationSettings,
   NotificationRecipient,
@@ -51,7 +53,7 @@ async function getNotificationSettings(
       return orgSettings.notificationSettings;
     }
   } catch (error) {
-    console.error("Failed to load notification settings:", error);
+    logger.error("Failed to load notification settings:", undefined, error);
   }
   return DEFAULT_NOTIFICATION_SETTINGS;
 }
@@ -87,7 +89,7 @@ async function getAdminEmails(orgId: string): Promise<string[]> {
         .filter(Boolean);
     }
   } catch (error) {
-    console.error("Failed to get admin emails:", error);
+    logger.error("Failed to get admin emails:", undefined, error);
   }
   return [];
 }
@@ -97,7 +99,7 @@ async function getCrewEmail(crewId: string): Promise<string | undefined> {
     const crew = await dbCrewStorage.getCrewMember(crewId);
     return crew?.email;
   } catch (error) {
-    console.error("Failed to get crew email:", error);
+    logger.error("Failed to get crew email:", undefined, error);
   }
   return undefined;
 }

@@ -7,6 +7,8 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { LineageRecord, LineageDelta, ModelFamily, DeploymentStage } from "./types.js";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Governance:Lineage");
 
 const LINEAGE_FILE = process.env.LINEAGE_FILE ?? "./checkpoints/lineage.jsonl";
 
@@ -20,7 +22,7 @@ export async function sha256File(filePath: string): Promise<string> {
     h.update(content);
     return h.digest("hex");
   } catch (error) {
-    console.error(`[Lineage] Failed to hash file ${filePath}:`, error);
+    logger.error(`[Lineage] Failed to hash file ${filePath}:`, undefined, error);
     throw error;
   }
 }
@@ -48,9 +50,9 @@ export async function appendLineage(rec: LineageRecord | LineageDelta): Promise<
   try {
     await fs.mkdir(path.dirname(LINEAGE_FILE), { recursive: true });
     await fs.appendFile(LINEAGE_FILE, `${JSON.stringify(rec)}\n`, "utf8");
-    console.log(`[Lineage] Recorded: ${JSON.stringify(rec).substring(0, 100)}...`);
+    logger.info(`[Lineage] Recorded: ${JSON.stringify(rec).substring(0, 100)}...`);
   } catch (error) {
-    console.error("[Lineage] Failed to append lineage:", error);
+    logger.error("[Lineage] Failed to append lineage:", undefined, error);
     throw error;
   }
 }
@@ -67,9 +69,7 @@ export async function recordTraining(
   };
 
   await appendLineage(record);
-  console.log(
-    `[Lineage] Recorded training for model ${record.modelId} (${record.family}/${record.profile})`
-  );
+  logger.info(`[Lineage] Recorded training for model ${record.modelId} (${record.family}/${record.profile})`);
 
   return record;
 }
@@ -108,9 +108,7 @@ export async function recordPromotion(params: {
   };
 
   await appendLineage(delta);
-  console.log(
-    `[Lineage] Promoted model ${params.modelId} to ${params.stage} by ${params.promotedBy} (org: ${params.orgId})`
-  );
+  logger.info(`[Lineage] Promoted model ${params.modelId} to ${params.stage} by ${params.promotedBy} (org: ${params.orgId})`);
 }
 
 /**
@@ -146,9 +144,7 @@ export async function getLineageRecords(filters?: {
 
       // SECURITY: Ignore deltas from different organizations (prevent cross-tenant tampering)
       if (delta.orgId !== rec.orgId) {
-        console.warn(
-          `[Lineage] SECURITY: Ignoring cross-tenant delta for model ${delta.modelId} (delta org: ${delta.orgId}, model org: ${rec.orgId})`
-        );
+        logger.warn(`[Lineage] SECURITY: Ignoring cross-tenant delta for model ${delta.modelId} (delta org: ${delta.orgId}, model org: ${rec.orgId})`);
         return;
       }
 
@@ -205,7 +201,7 @@ export async function getLineageRecords(filters?: {
     if (errorCode === "ENOENT") {
       return [];
     }
-    console.error("[Lineage] Failed to read lineage records:", error);
+    logger.error("[Lineage] Failed to read lineage records:", undefined, error);
     throw error;
   }
 }

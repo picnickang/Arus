@@ -5,6 +5,8 @@ import { eq, and, desc } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { beastModeManager } from "../beast-mode-config";
 import type { VibrationAnalysis } from "@shared/schema";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("VibrationAnalysis:Analyzer");
 
 import type { VibrationData } from "./types";
 import { performFFT, SAMPLE_RATE, WINDOW_SIZE } from "./fft-processor";
@@ -22,15 +24,13 @@ export class VibrationAnalyzer {
     try {
       const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "vibration_analysis");
       if (!isEnabled) {
-        console.log(`[Vibration Analysis] Feature disabled for org: ${orgId}`);
+        logger.info(`[Vibration Analysis] Feature disabled for org: ${orgId}`);
         return null;
       }
 
       const vibrationData = await this.getVibrationData(equipmentId, orgId);
       if (!vibrationData || vibrationData.length < this.windowSize) {
-        console.log(
-          `[Vibration Analysis] Insufficient data for ${equipmentId} (${vibrationData?.length || 0} samples, need ${this.windowSize})`
-        );
+        logger.info(`[Vibration Analysis] Insufficient data for ${equipmentId} (${vibrationData?.length || 0} samples, need ${this.windowSize})`);
         return null;
       }
 
@@ -76,12 +76,10 @@ export class VibrationAnalyzer {
           createdAt: new Date(),
         })
         .returning();
-      console.log(
-        `[Vibration Analysis] Analysis completed for ${equipmentId}: ${anomalyDetection.isAnomalous ? "ANOMALY DETECTED" : "NORMAL"} (score: ${anomalyDetection.anomalyScore.toFixed(2)})`
-      );
+      logger.info(`[Vibration Analysis] Analysis completed for ${equipmentId}: ${anomalyDetection.isAnomalous ? "ANOMALY DETECTED" : "NORMAL"} (score: ${anomalyDetection.anomalyScore.toFixed(2)})`);
       return savedAnalysis;
     } catch (error) {
-      console.error(`[Vibration Analysis] Error analyzing ${equipmentId}:`, error);
+      logger.error(`[Vibration Analysis] Error analyzing ${equipmentId}:`, undefined, error);
       return null;
     }
   }
@@ -101,7 +99,7 @@ export class VibrationAnalyzer {
         }))
         .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
     } catch (error) {
-      console.error(`[Vibration Analysis] Error retrieving data for ${equipmentId}:`, error);
+      logger.error(`[Vibration Analysis] Error retrieving data for ${equipmentId}:`, undefined, error);
       return [];
     }
   }
@@ -125,7 +123,7 @@ export class VibrationAnalyzer {
         .orderBy(desc(vibrationAnalysis.timestamp))
         .limit(limit);
     } catch (error) {
-      console.error(`[Vibration Analysis] Error getting history for ${equipmentId}:`, error);
+      logger.error(`[Vibration Analysis] Error getting history for ${equipmentId}:`, undefined, error);
       return [];
     }
   }

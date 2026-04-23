@@ -1,3 +1,5 @@
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Infrastructure:FeatureFlags");
 /**
  * Feature Flags for Tenant-Scoped Repository Migration
  *
@@ -242,13 +244,13 @@ export class TenantIsolationMetrics {
         status: success ? "success" : "error",
       });
 
-      console.debug("[TENANT_METRICS]", {
+      logger.debug("[TENANT_METRICS]", { details: {
         domain,
         operation,
         orgId,
         duration,
         success,
-      });
+      } });
     }
   }
 

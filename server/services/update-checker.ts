@@ -16,6 +16,8 @@ import crypto from "node:crypto";
 import https from "node:https";
 import * as fs from "node:fs";
 import path from "node:path";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Services:UpdateChecker");
 import type {
   IUpdateDistributionProvider,
   PatchManifest,
@@ -72,7 +74,7 @@ export class UpdateChecker {
       );
       return packageJson.version || "1.0";
     } catch {
-      console.warn("[UpdateChecker] Could not read version from package.json, using default");
+      logger.warn("[UpdateChecker] Could not read version from package.json, using default");
       return "1.0";
     }
   }
@@ -82,14 +84,12 @@ export class UpdateChecker {
    */
   async checkForUpdates(orgId: string, channel: string = "stable"): Promise<PatchManifest | null> {
     try {
-      console.log(
-        `[UpdateChecker] Checking for updates (current: ${this.currentVersion}, channel: ${channel})`
-      );
+      logger.info(`[UpdateChecker] Checking for updates (current: ${this.currentVersion}, channel: ${channel})`);
 
       // Get update settings for this organization
       const settings = await this.getUpdateSettings(orgId);
       if (settings && !settings.autoUpdateEnabled) {
-        console.log("[UpdateChecker] Auto-update is disabled for this organization");
+        logger.info("[UpdateChecker] Auto-update is disabled for this organization");
         return null;
       }
 
@@ -100,7 +100,7 @@ export class UpdateChecker {
       const manifest = await this.provider.fetchLatestManifest(this.currentVersion, channel);
 
       if (!manifest) {
-        console.log("[UpdateChecker] No updates available");
+        logger.info("[UpdateChecker] No updates available");
         return null;
       }
 
@@ -113,14 +113,14 @@ export class UpdateChecker {
         .limit(1);
 
       if (existing.length > 0 && existing[0].status === "applied") {
-        console.log(`[UpdateChecker] Version ${manifest.version} already applied`);
+        logger.info(`[UpdateChecker] Version ${manifest.version} already applied`);
         return null;
       }
 
-      console.log(`[UpdateChecker] Update available: ${manifest.version} (${manifest.severity})`);
+      logger.info(`[UpdateChecker] Update available: ${manifest.version} (${manifest.severity})`);
       return manifest;
     } catch (error) {
-      console.error("[UpdateChecker] Error checking for updates:", error);
+      logger.error("[UpdateChecker] Error checking for updates:", undefined, error);
       return null;
     }
   }
@@ -174,7 +174,7 @@ export class UpdateChecker {
 
       return settings[0] || null;
     } catch (error) {
-      console.error("[UpdateChecker] Error fetching update settings:", error);
+      logger.error("[UpdateChecker] Error fetching update settings:", undefined, error);
       return null;
     }
   }
@@ -192,7 +192,7 @@ export class UpdateChecker {
         })
         .where(and(eq(updateSettings.orgId, orgId), sql`${updateSettings.vesselId} IS NULL`));
     } catch (error) {
-      console.error("[UpdateChecker] Error updating last check time:", error);
+      logger.error("[UpdateChecker] Error updating last check time:", undefined, error);
     }
   }
 
@@ -228,7 +228,7 @@ export class UpdateChecker {
   async verifySignature(manifest: PatchManifest, publicKeyHex: string): Promise<boolean> {
     try {
       if (!manifest.signature) {
-        console.warn("[UpdateChecker] No signature provided for patch");
+        logger.warn("[UpdateChecker] No signature provided for patch");
         return false;
       }
 
@@ -251,7 +251,7 @@ export class UpdateChecker {
 
       return crypto.verify(null, Buffer.from(message), publicKey, signature);
     } catch (error) {
-      console.error("[UpdateChecker] Signature verification failed:", error);
+      logger.error("[UpdateChecker] Signature verification failed:", undefined, error);
       return false;
     }
   }
@@ -352,7 +352,7 @@ export class UpdateChecker {
       const tempPath = path.join(this.patchDir, `temp-${download.id}-${filename}`);
       const finalPath = path.join(this.patchDir, filename);
 
-      console.log(`[UpdateChecker] Downloading patch ${patch.version}...`);
+      logger.info(`[UpdateChecker] Downloading patch ${patch.version}...`);
 
       // Update patch status
       await db
@@ -373,7 +373,7 @@ export class UpdateChecker {
       });
 
       // Verify checksum
-      console.log("[UpdateChecker] Verifying patch integrity...");
+      logger.info("[UpdateChecker] Verifying patch integrity...");
       const actualHash = await this.calculateFileHash(tempPath);
 
       if (actualHash !== patch.checksumSha256) {
@@ -393,10 +393,10 @@ export class UpdateChecker {
         })
         .where(eq(downloadsTable.id, download.id));
 
-      console.log(`[UpdateChecker] Patch downloaded successfully: ${finalPath}`);
+      logger.info(`[UpdateChecker] Patch downloaded successfully: ${finalPath}`);
       return finalPath;
     } catch (error) {
-      console.error("[UpdateChecker] Patch download failed:", error);
+      logger.error("[UpdateChecker] Patch download failed:", undefined, error);
 
       // Update status to failed
       const patchesTable = getCloudTable(softwarePatches, "Software Patches");

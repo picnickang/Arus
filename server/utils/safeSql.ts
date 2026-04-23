@@ -9,6 +9,8 @@
 
 import { SQL, sql as drizzleSql } from "drizzle-orm";
 import { hasPostgresFeatures, isVesselMode } from "../config/runtimeEnv";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Utils:SafeSql");
 
 export interface SafeSqlOptions {
   /** Skip execution in vessel mode instead of attempting fallback */
@@ -61,7 +63,7 @@ export async function safeSql<T = unknown>(
   // VESSEL mode: handle based on options
   if (isVesselMode && skipInVesselMode) {
     if (skipMessage) {
-      console.log(`[SafeSQL] ${skipMessage}`);
+      logger.info(`[SafeSQL] ${skipMessage}`);
     }
     return { rows: [], rowCount: 0 };
   }
@@ -77,7 +79,7 @@ export async function safeSql<T = unknown>(
       const result = await db.get(sqlQuery);
       return { rows: result ? [result] : [], rowCount: result ? 1 : 0 };
     } catch (innerError) {
-      console.error("[SafeSQL] Error executing SQLite query:", innerError);
+      logger.error("[SafeSQL] Error executing SQLite query:", undefined, innerError);
       return { rows: [], rowCount: 0 };
     }
   }
@@ -102,9 +104,7 @@ export async function safeRawSql(
 
   // SQLite/Vessel mode: skip (raw SQL commands like SET LOCAL don't work in SQLite)
   if (skipMessage || process.env.NODE_ENV === "development") {
-    console.log(
-      `[SafeSQL] Raw SQL skipped in SQLite mode: ${skipMessage || rawSqlString.substring(0, 50)}`
-    );
+    logger.info(`[SafeSQL] Raw SQL skipped in SQLite mode: ${skipMessage || rawSqlString.substring(0, 50)}`);
   }
 }
 

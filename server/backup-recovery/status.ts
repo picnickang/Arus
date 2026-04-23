@@ -4,6 +4,8 @@
 
 import { type BackupMetadata } from "./types";
 import { listBackups } from "./metadata-store";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("BackupRecovery:Status");
 
 export async function getBackupStatus(): Promise<{
   totalBackups: number;
@@ -67,9 +69,9 @@ export async function getBackupStatus(): Promise<{
 }
 
 export function scheduleAutomaticBackups(): void {
-  console.log("📅 Automatic backup scheduling would be configured here");
-  console.log("💡 In production, integrate with node-cron or system cron for:");
-  console.log("   - Daily full backups at 2:00 AM");
-  console.log("   - Schema backups every 6 hours");
-  console.log("   - Weekly cleanup of old backups");
+  logger.info("📅 Automatic backup scheduling would be configured here");
+  logger.info("💡 In production, integrate with node-cron or system cron for:");
+  logger.info("   - Daily full backups at 2:00 AM");
+  logger.info("   - Schema backups every 6 hours");
+  logger.info("   - Weekly cleanup of old backups");
 }

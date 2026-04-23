@@ -3,6 +3,8 @@
  */
 
 import { computeInsights, persistSnapshot } from "../insights-engine";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("JobProcessors:InsightsProcessor");
 
 export async function processInsightsSnapshotGeneration(data: {
   orgId: string;
@@ -11,12 +13,12 @@ export async function processInsightsSnapshotGeneration(data: {
   try {
     const { orgId, scope = "fleet" } = data;
 
-    console.log(`[Insights] Generating snapshot for org: ${orgId}, scope: ${scope}`);
+    logger.info(`[Insights] Generating snapshot for org: ${orgId}, scope: ${scope}`);
 
     const insights = await computeInsights(scope, orgId);
     const snapshot = await persistSnapshot(scope, insights, orgId);
 
-    console.log(`[Insights] Snapshot generated successfully: ${snapshot.id}`);
+    logger.info(`[Insights] Snapshot generated successfully: ${snapshot.id}`);
 
     return {
       snapshotId: snapshot.id,
@@ -26,7 +28,7 @@ export async function processInsightsSnapshotGeneration(data: {
       summary: insights.summary,
     };
   } catch (error) {
-    console.error("[Insights] Snapshot generation failed:", error);
+    logger.error("[Insights] Snapshot generation failed:", undefined, error);
     throw error;
   }
 }

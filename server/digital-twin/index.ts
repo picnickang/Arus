@@ -9,6 +9,8 @@ import { db } from "../db.js";
 import { digitalTwins, twinSimulations, visualizationAssets } from "@shared/schema-runtime";
 import type { DigitalTwin, TwinSimulation, VisualizationAsset } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("DigitalTwin:Index");
 
 import type { VesselSpecifications, PhysicsModel, TwinState, SimulationScenario } from "./types.js";
 import {
@@ -30,7 +32,7 @@ export class DigitalTwinService extends EventEmitter {
 
   constructor() {
     super();
-    console.log("[Digital Twin] Service initialized");
+    logger.info("[Digital Twin] Service initialized");
     this.loadActiveTwins();
     this.startRealTimeUpdates();
   }
@@ -42,7 +44,7 @@ export class DigitalTwinService extends EventEmitter {
     specifications: VesselSpecifications,
     physicsModel?: PhysicsModel
   ): Promise<DigitalTwin> {
-    console.log(`[Digital Twin] Creating twin for vessel ${vesselId}: ${name}`);
+    logger.info(`[Digital Twin] Creating twin for vessel ${vesselId}: ${name}`);
     const defaultPhysicsModel: PhysicsModel = {
       hydrodynamics: { hullResistance: 0.02, waveMaking: 0.015, frictionCoefficient: 0.003 },
       propulsion: { efficiency: 0.85, thrustCurve: [0, 0.25, 0.5, 0.75, 1], fuelConsumption: 0.2 },
@@ -129,7 +131,7 @@ export class DigitalTwinService extends EventEmitter {
       });
       await this.checkCriticalConditions(twinId, validatedState);
     } catch (error) {
-      console.error(`[Digital Twin] Error updating state for ${twinId}:`, error);
+      logger.error(`[Digital Twin] Error updating state for ${twinId}:`, undefined, error);
       this.emit("twin_error", {
         twinId,
         error: error instanceof Error ? error.message : String(error),
@@ -294,7 +296,7 @@ export class DigitalTwinService extends EventEmitter {
 
   private async loadActiveTwins(): Promise<void> {
     if (!db) {
-      console.warn("[Digital Twin] Disabled: database not initialized");
+      logger.warn("[Digital Twin] Disabled: database not initialized");
       this.enabled = false;
       return;
     }
@@ -306,9 +308,9 @@ export class DigitalTwinService extends EventEmitter {
       for (const twin of twins) {
         this.activeTwins.set(twin.id, twin);
       }
-      console.log(`[Digital Twin] Loaded ${twins.length} active digital twins`);
+      logger.info(`[Digital Twin] Loaded ${twins.length} active digital twins`);
     } catch (error) {
-      console.error("[Digital Twin] Error loading active twins:", error);
+      logger.error("[Digital Twin] Error loading active twins:", undefined, error);
     }
   }
 
@@ -316,7 +318,7 @@ export class DigitalTwinService extends EventEmitter {
     this.updateInterval = setInterval(async () => {
       await this.processRealTimeUpdates();
     }, 60 * 1000);
-    console.log("[Digital Twin] Real-time update scheduler started");
+    logger.info("[Digital Twin] Real-time update scheduler started");
   }
 
   private async processRealTimeUpdates(): Promise<void> {
@@ -328,7 +330,7 @@ export class DigitalTwinService extends EventEmitter {
         }
       }
     } catch (error) {
-      console.error("[Digital Twin] Error processing real-time updates:", error);
+      logger.error("[Digital Twin] Error processing real-time updates:", undefined, error);
     }
   }
 
@@ -343,7 +345,7 @@ export class DigitalTwinService extends EventEmitter {
       }
       return vesselTelemetry;
     } catch (error) {
-      console.error("[Digital Twin] Error getting vessel telemetry:", error);
+      logger.error("[Digital Twin] Error getting vessel telemetry:", undefined, error);
       return {};
     }
   }
@@ -385,7 +387,7 @@ export class DigitalTwinService extends EventEmitter {
         .where(eq(digitalTwins.id, twinId))
         .limit(1);
       if (!twin) {
-        console.warn(`[DigitalTwin] Twin ${twinId} not found`);
+        logger.warn(`[DigitalTwin] Twin ${twinId} not found`);
         return;
       }
       const { predictFuelConsumption } = await import("../digital-twin-fuel-calc.js");
@@ -436,11 +438,9 @@ export class DigitalTwinService extends EventEmitter {
           lastUpdate: new Date(),
         })
         .where(eq(digitalTwins.id, twinId));
-      console.log(
-        `[DigitalTwin] Updated fuel efficiency for ${twinId}: ${prediction.efficiency.toFixed(1)}%`
-      );
+      logger.info(`[DigitalTwin] Updated fuel efficiency for ${twinId}: ${prediction.efficiency.toFixed(1)}%`);
     } catch (error) {
-      console.error(`[DigitalTwin] Failed to update fuel efficiency:`, error);
+      logger.error(`[DigitalTwin] Failed to update fuel efficiency:`, undefined, error);
     }
   }
 
@@ -473,7 +473,7 @@ export class DigitalTwinService extends EventEmitter {
     }
     this.activeTwins.clear();
     this.simulationQueue.clear();
-    console.log("[Digital Twin] Service cleanup completed");
+    logger.info("[Digital Twin] Service cleanup completed");
   }
 }
 

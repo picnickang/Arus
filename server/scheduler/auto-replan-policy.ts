@@ -1,6 +1,8 @@
 import { domainEventBus } from "../lib/domain-event-bus/index.js";
 import { planAndMaybeExecute } from "./scheduler-controller";
 import { schedAutoReplanTriggers } from "../observability/scheduler-metrics";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Scheduler:AutoReplanPolicy");
 
 const RUL_DAYS_CRITICAL = Number(process.env.SCHED_RUL_DAYS_CRITICAL ?? 9);
 const RISK_REPLAN_LEVEL = (process.env.SCHED_RISK_REPLAN_LEVEL ?? "high").toLowerCase();
@@ -23,9 +25,7 @@ export function initializeAutoReplanPolicy(): void {
       remainingDays <= RUL_DAYS_CRITICAL || riskToRank(riskLevel) >= riskToRank(RISK_REPLAN_LEVEL);
 
     if (shouldReplan) {
-      console.log(
-        `[Auto-Replan] RUL trigger: vessel=${vesselId}, remainingDays=${remainingDays}, risk=${riskLevel}`
-      );
+      logger.info(`[Auto-Replan] RUL trigger: vessel=${vesselId}, remainingDays=${remainingDays}, risk=${riskLevel}`);
       schedAutoReplanTriggers.labels(event.orgId, "rul_critical").inc();
 
       try {
@@ -42,7 +42,7 @@ export function initializeAutoReplanPolicy(): void {
           },
         });
       } catch (error) {
-        console.error("[Auto-Replan] Failed to replan from RUL trigger:", error);
+        logger.error("[Auto-Replan] Failed to replan from RUL trigger:", undefined, error);
       }
     }
   });
@@ -50,7 +50,7 @@ export function initializeAutoReplanPolicy(): void {
   domainEventBus.on("pdm.anomaly.created", async (event) => {
     const { vesselId, equipmentId, severity, anomalyType } = event.payload;
     if (severity === "high" || severity === "critical") {
-      console.log(`[Auto-Replan] Anomaly trigger: vessel=${vesselId}, severity=${severity}`);
+      logger.info(`[Auto-Replan] Anomaly trigger: vessel=${vesselId}, severity=${severity}`);
       schedAutoReplanTriggers.labels(event.orgId, "anomaly_detected").inc();
 
       try {
@@ -67,14 +67,14 @@ export function initializeAutoReplanPolicy(): void {
           },
         });
       } catch (error) {
-        console.error("[Auto-Replan] Failed to replan from anomaly trigger:", error);
+        logger.error("[Auto-Replan] Failed to replan from anomaly trigger:", undefined, error);
       }
     }
   });
 
   domainEventBus.on("pdm.maintenance.window", async (event) => {
     const { vesselId, equipmentId, start, end, priority } = event.payload;
-    console.log(`[Auto-Replan] Maintenance window trigger: vessel=${vesselId}`);
+    logger.info(`[Auto-Replan] Maintenance window trigger: vessel=${vesselId}`);
     schedAutoReplanTriggers.labels(event.orgId, "maintenance_scheduled").inc();
 
     try {
@@ -92,13 +92,13 @@ export function initializeAutoReplanPolicy(): void {
         },
       });
     } catch (error) {
-      console.error("[Auto-Replan] Failed to replan from maintenance window:", error);
+      logger.error("[Auto-Replan] Failed to replan from maintenance window:", undefined, error);
     }
   });
 
-  console.log("[Auto-Replan] Policy initialized with config:", {
+  logger.info("[Auto-Replan] Policy initialized with config:", { details: {
     RUL_DAYS_CRITICAL,
     RISK_REPLAN_LEVEL,
     AUTO_REPLAN_DAYS,
-  });
+  } });
 }

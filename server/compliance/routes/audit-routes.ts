@@ -1,5 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Compliance:Routes:AuditRoutes");
 import {
   auditService,
   type AuditEventCategory,
@@ -93,7 +95,7 @@ router.get("/audit", requireComplianceAccess, async (req: Request, res: Response
       pagination: { limit: query.limit, offset: query.offset, count: events.length },
     });
   } catch (error) {
-    console.error("[Compliance] Audit query error:", error);
+    logger.error("[Compliance] Audit query error:", undefined, error);
     res
       .status(500)
       .json({
@@ -118,7 +120,7 @@ router.post("/audit", async (req: Request, res: Response) => {
         data: { id: event.id, hash: event.hash, timestamp: event.timestamp },
       });
   } catch (error) {
-    console.error("[Compliance] Log event error:", error);
+    logger.error("[Compliance] Log event error:", undefined, error);
     res
       .status(500)
       .json({
@@ -142,7 +144,7 @@ router.post("/audit/verify", requireComplianceAccess, async (req: Request, res: 
     );
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error("[Compliance] Chain verification error:", error);
+    logger.error("[Compliance] Chain verification error:", undefined, error);
     res
       .status(500)
       .json({
@@ -166,7 +168,7 @@ router.get("/audit/stats", requireComplianceAccess, async (req: Request, res: Re
     );
     res.json({ success: true, data: stats });
   } catch (error) {
-    console.error("[Compliance] Stats error:", error);
+    logger.error("[Compliance] Stats error:", undefined, error);
     res
       .status(500)
       .json({
@@ -203,7 +205,7 @@ router.get(
         pagination: { limit: query.limit, offset: query.offset, count: events.length },
       });
     } catch (error) {
-      console.error("[Compliance] Entity audit query error:", error);
+      logger.error("[Compliance] Entity audit query error:", undefined, error);
       res
         .status(500)
         .json({
@@ -289,7 +291,7 @@ router.get("/reports/ism", requireComplianceAccess, async (req: Request, res: Re
       },
     });
   } catch (error) {
-    console.error("[Compliance] ISM report error:", error);
+    logger.error("[Compliance] ISM report error:", undefined, error);
     res
       .status(500)
       .json({
@@ -367,7 +369,7 @@ router.get("/reports/cyber", requireComplianceAccess, async (req: Request, res: 
       },
     });
   } catch (error) {
-    console.error("[Compliance] Cyber report error:", error);
+    logger.error("[Compliance] Cyber report error:", undefined, error);
     res
       .status(500)
       .json({

@@ -8,13 +8,15 @@ import type { XGBoostConfig, TrainedXGBoostModel, GradientTree } from "./types.j
 import { calculateGradients } from "./gradient.js";
 import { buildGradientTree, predictTree, calculateFeatureImportances } from "./tree.js";
 import { cryptoRandomInt } from "@shared/crypto-random";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("MlXgboostModel:Train");
 
 export async function trainXGBoostModel(
   trainData: ClassificationFeatures[],
   validationData: ClassificationFeatures[],
   config: XGBoostConfig
 ): Promise<TrainedXGBoostModel> {
-  console.log("[XGBoost] Starting training with config:", config);
+  logger.info("[XGBoost] Starting training with config:", { details: config });
   if (trainData.length === 0) {
     throw new Error("Training data is empty");
   }
@@ -66,14 +68,12 @@ export async function trainXGBoostModel(
           correct++;
         }
       }
-      console.log(
-        `[XGBoost] Round ${round + 1}/${config.numTrees} - Train Accuracy: ${((correct / X.length) * 100).toFixed(2)}%`
-      );
+      logger.info(`[XGBoost] Round ${round + 1}/${config.numTrees} - Train Accuracy: ${((correct / X.length) * 100).toFixed(2)}%`);
     }
   }
 
   const featureImportances = calculateFeatureImportances(trees, featureNames);
-  console.log("[XGBoost] Training complete");
+  logger.info("[XGBoost] Training complete");
   console.log(
     "[XGBoost] Top 5 features:",
     Array.from(featureImportances.entries())

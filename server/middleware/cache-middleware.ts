@@ -5,6 +5,8 @@
 
 import { Request, Response, NextFunction } from "express";
 import { inventoryCache, cacheConfig } from "../lib/cache";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Middleware:CacheMiddleware");
 
 interface CacheOptions {
   ttl?: number;
@@ -48,7 +50,7 @@ export function cacheMiddleware(options: CacheOptions = {}) {
         return res.json(cached);
       }
     } catch (error) {
-      console.error("[Cache Middleware] Error getting from cache:", error);
+      logger.error("[Cache Middleware] Error getting from cache:", undefined, error);
     }
 
     // Store original json method
@@ -60,7 +62,7 @@ export function cacheMiddleware(options: CacheOptions = {}) {
 
       // Cache the response asynchronously (don't await)
       inventoryCache.set(cacheKey, body, options.ttl).catch((err) => {
-        console.error("[Cache Middleware] Failed to cache response:", err);
+        logger.error("[Cache Middleware] Failed to cache response:", undefined, err);
       });
 
       return originalJson(body);
@@ -79,6 +81,6 @@ export async function invalidateOrgCache(orgId: string, patterns: string[]) {
       await inventoryCache.invalidatePattern(`*${pattern}*${orgId}*`);
     }
   } catch (error) {
-    console.error("[Cache] Failed to invalidate org cache:", error);
+    logger.error("[Cache] Failed to invalidate org cache:", undefined, error);
   }
 }

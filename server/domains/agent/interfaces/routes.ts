@@ -9,6 +9,8 @@ import { agentRepo } from "../infrastructure/repository";
 import { MAINTENANCE_ROLES } from "../domain/types";
 import { db } from "../../../db";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Domains:Agent:Interfaces:Routes");
 
 import { getOrgUploadDir } from "../infrastructure/file-registry";
 import { knowledgeBaseAdapter } from "../infrastructure/kb-adapter";
@@ -73,9 +75,7 @@ const upload = multer({
     if (mimeOk && extOk) {
       cb(null, true);
     } else {
-      console.warn(
-        `[Agent] Rejected upload: "${file.originalname}" (MIME: ${file.mimetype}, ext match: ${extOk}, mime match: ${mimeOk})`
-      );
+      logger.warn(`[Agent] Rejected upload: "${file.originalname}" (MIME: ${file.mimetype}, ext match: ${extOk}, mime match: ${mimeOk})`);
       cb(
         new Error(
           `Unsupported file type: ${file.mimetype}. Allowed: PNG, JPEG, PDF, CSV, TXT, MD, DOCX, XLSX.`
@@ -190,12 +190,10 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
           enabled: true,
           consecutiveFailures: 0,
         });
-        console.log(`[BriefingSeed] Created Daily Operations Briefing schedule for org ${orgId}`);
+        logger.info(`[BriefingSeed] Created Daily Operations Briefing schedule for org ${orgId}`);
       }
     } catch (err) {
-      console.warn(
-        `[BriefingSeed] Failed to seed briefing schedule: ${err instanceof Error ? err.message : "unknown"}`
-      );
+      logger.warn(`[BriefingSeed] Failed to seed briefing schedule: ${err instanceof Error ? err.message : "unknown"}`);
     }
   }
 
@@ -234,9 +232,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   registerTasksRoutes(app, { taskService, rateLimit, requireMaintenanceRole });
   registerFindingRecordsRoutes(app, { findingService, rateLimit, requireMaintenanceRole });
 
-  console.log(
-    "[Agent Domain] Routes registered (chat, conversations, drafts, config, usage, suggestions, schedules, tools, reports, admin, findings, briefings, activity, tasks, agent-findings)"
-  );
+  logger.info("[Agent Domain] Routes registered (chat, conversations, drafts, config, usage, suggestions, schedules, tools, reports, admin, findings, briefings, activity, tasks, agent-findings)");
 }
 
 // Re-export Request/Response so any external consumers of this module

@@ -8,6 +8,8 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { createWriteStream } from "node:fs";
 import { randomUUID } from "node:crypto";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:DataExportImport:ExportService");
 
 import { isVesselMode } from "../../config/runtimeEnv";
 import {
@@ -131,9 +133,7 @@ export async function exportOrg(
 
       const reportPath = path.join(exportPath, "anonymization-report.json");
       fs.writeFileSync(reportPath, JSON.stringify(anonymizationReport, null, 2));
-      console.log(
-        `[DataExport] Anonymization report: ${anonymizationReport.summary.anonymizationRate} of fields anonymized`
-      );
+      logger.info(`[DataExport] Anonymization report: ${anonymizationReport.summary.anonymizationRate} of fields anonymized`);
     }
 
     const manifestPath = path.join(exportPath, "manifest.json");
@@ -145,7 +145,7 @@ export async function exportOrg(
     fs.rmSync(exportPath, { recursive: true });
 
     const duration = Date.now() - startTime;
-    console.log(`[DataExport] Export completed: ${exportId} (${duration}ms)`);
+    logger.info(`[DataExport] Export completed: ${exportId} (${duration}ms)`);
 
     return {
       success: true,
@@ -156,7 +156,7 @@ export async function exportOrg(
     };
   } catch (error) {
     const duration = Date.now() - startTime;
-    console.error(`[DataExport] Export failed:`, error);
+    logger.error(`[DataExport] Export failed:`, undefined, error);
 
     if (fs.existsSync(exportPath)) {
       fs.rmSync(exportPath, { recursive: true });
@@ -234,7 +234,7 @@ async function exportEntity(
       anonymizationService && options.anonymize !== "none"
         ? ` (anonymized: ${totalAnonymizationResult.anonymizedFieldCount} fields)`
         : "";
-    console.log(`[DataExport] Exported ${entityName}: ${count} records${anonymizationInfo}`);
+    logger.info(`[DataExport] Exported ${entityName}: ${count} records${anonymizationInfo}`);
 
     return {
       count,
@@ -242,7 +242,7 @@ async function exportEntity(
       anonymizationResult: anonymizationService ? totalAnonymizationResult : undefined,
     };
   } catch (error) {
-    console.warn(`[DataExport] Failed to export ${entityName}:`, error);
+    logger.warn(`[DataExport] Failed to export ${entityName}:`, { details: error });
     writeStream.end();
     return { count: 0, file: `${entityName}.jsonl` };
   }

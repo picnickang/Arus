@@ -9,6 +9,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { dbSystemAdminStorage } from "../repositories";
 import { db } from "../db";
 import { reportContextBuilder, type ReportContext } from "../report-context";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("EnhancedLlm:EnhancedLlm");
 import type {
   ModelConfig,
   EnhancedAnalysisOutput,
@@ -40,7 +42,7 @@ export class EnhancedLLMService {
   private async initializeClients(): Promise<void> {
     try {
       if (!db) {
-        console.warn("[Enhanced LLM] Disabled: database not initialized (embedded/local mode)");
+        logger.warn("[Enhanced LLM] Disabled: database not initialized (embedded/local mode)");
         const openaiKey = process.env.OPENAI_API_KEY;
         if (openaiKey) {
           this.openaiClient = new OpenAI({ apiKey: openaiKey, timeout: 60000 });
@@ -63,7 +65,7 @@ export class EnhancedLLMService {
         this.anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
       }
     } catch (error) {
-      console.warn("[Enhanced LLM] Error initializing clients:", error);
+      logger.warn("[Enhanced LLM] Error initializing clients:", { details: error });
     }
   }
 
@@ -325,10 +327,7 @@ export class EnhancedLLMService {
         errorMessage: error instanceof Error ? error.message : "Unknown error",
       });
 
-      console.error(
-        `[Enhanced LLM] Error with ${modelConfig.provider}/${modelConfig.model}:`,
-        error
-      );
+      logger.error(`[Enhanced LLM] Error with ${modelConfig.provider}/${modelConfig.model}:`, undefined, error);
 
       if (modelConfig.fallbackModel) {
         return this.generateWithModel(context, promptTemplate, modelConfig.fallbackModel, {

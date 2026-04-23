@@ -7,6 +7,8 @@
  */
 
 import type { Express } from "express";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Routes:DomainRouterRegistry");
 import {
   generalApiRateLimit,
   writeOperationRateLimit,
@@ -908,7 +910,7 @@ const domainRouters: DomainRouterConfig[] = [
  * - router-mount mode (mountPath set): does app.use(mountPath, ...middleware, mod[functionName])
  */
 export async function registerAllDomainRouters(app: Express): Promise<void> {
-  console.log("→ Registering domain routers...");
+  logger.info("→ Registering domain routers...");
 
   for (const config of domainRouters) {
     try {
@@ -916,9 +918,7 @@ export async function registerAllDomainRouters(app: Express): Promise<void> {
       const target = mod[config.functionName];
 
       if (!target) {
-        console.error(
-          `[Domain Registry] ${config.name}: ${config.functionName} not found in ${config.importPath}`
-        );
+        logger.error(`[Domain Registry] ${config.name}: ${config.functionName} not found in ${config.importPath}`);
         continue;
       }
 
@@ -929,17 +929,15 @@ export async function registerAllDomainRouters(app: Express): Promise<void> {
         app.use(config.mountPath, ...middleware, target);
       } else {
         if (typeof target !== "function") {
-          console.error(
-            `[Domain Registry] ${config.name}: ${config.functionName} is not a function`
-          );
+          logger.error(`[Domain Registry] ${config.name}: ${config.functionName} is not a function`);
           continue;
         }
         await target(app, deps);
       }
     } catch (error) {
-      console.error(`[Domain Registry] Failed to register ${config.name}:`, error);
+      logger.error(`[Domain Registry] Failed to register ${config.name}:`, undefined, error);
     }
   }
 
-  console.log(`✓ Domain routers registered (${domainRouters.length} modules)`);
+  logger.info(`✓ Domain routers registered (${domainRouters.length} modules)`);
 }

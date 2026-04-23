@@ -6,6 +6,8 @@
 
 import { dbEquipmentStorage, dbTelemetryStorage, workOrderService } from "../repositories";
 import type { EquipmentLifeData } from "./types.js";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("WeibullRul:DataExtraction");
 
 export async function getEquipmentLifeData(
   equipmentId: string,
@@ -18,9 +20,7 @@ export async function getEquipmentLifeData(
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
     if (equipmentWorkOrders.length < 2) {
-      console.log(
-        `[Weibull RUL] Insufficient failure history for ${equipmentId} (${equipmentWorkOrders.length} events, need ≥2)`
-      );
+      logger.info(`[Weibull RUL] Insufficient failure history for ${equipmentId} (${equipmentWorkOrders.length} events, need ≥2)`);
       return [];
     }
 
@@ -53,12 +53,10 @@ export async function getEquipmentLifeData(
       lastEventTime = eventTime;
     }
 
-    console.log(
-      `[Weibull RUL] Extracted ${lifeData.length} time-between-failures samples for ${equipmentId}`
-    );
+    logger.info(`[Weibull RUL] Extracted ${lifeData.length} time-between-failures samples for ${equipmentId}`);
     return lifeData;
   } catch (error) {
-    console.error(`[Weibull RUL] Error retrieving failure history for ${equipmentId}:`, error);
+    logger.error(`[Weibull RUL] Error retrieving failure history for ${equipmentId}:`, undefined, error);
     return [];
   }
 }
@@ -164,7 +162,7 @@ export async function getCurrentEquipmentAge(equipmentId: string, orgId: string)
 
     return 8760;
   } catch (error) {
-    console.error(`[Weibull RUL] Error getting age for ${equipmentId}:`, error);
+    logger.error(`[Weibull RUL] Error getting age for ${equipmentId}:`, undefined, error);
     return 8760;
   }
 }

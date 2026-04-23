@@ -6,6 +6,8 @@ import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import { BACKUP_CONFIG, type BackupMetadata, type BackupResult } from "./types";
 import { executePgDump } from "./pg-dump-executor";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("BackupRecovery:BackupOperations");
 import {
   generateBackupId,
   determineRetentionType,
@@ -25,7 +27,7 @@ export async function createFullBackup(): Promise<BackupResult> {
   try {
     await fs.mkdir(BACKUP_CONFIG.backupDir, { recursive: true });
 
-    console.log(`🗄️  Starting full database backup: ${filename}`);
+    logger.info(`🗄️  Starting full database backup: ${filename}`);
 
     const dbUrl = new URL(process.env.DATABASE_URL!);
 
@@ -68,9 +70,7 @@ export async function createFullBackup(): Promise<BackupResult> {
     await storeBackupMetadata(metadata);
 
     const duration = Date.now() - startTime;
-    console.log(
-      `✅ Full backup completed: ${filename} (${formatBytes(backupSize)} in ${duration}ms)`
-    );
+    logger.info(`✅ Full backup completed: ${filename} (${formatBytes(backupSize)} in ${duration}ms)`);
 
     return {
       success: true,
@@ -82,7 +82,7 @@ export async function createFullBackup(): Promise<BackupResult> {
     const duration = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    console.error(`❌ Full backup failed:`, errorMessage);
+    logger.error(`❌ Full backup failed:`, undefined, errorMessage);
 
     const failedMetadata: BackupMetadata = {
       id: backupId,
@@ -100,7 +100,7 @@ export async function createFullBackup(): Promise<BackupResult> {
     try {
       await storeBackupMetadata(failedMetadata);
     } catch (metadataError) {
-      console.error(`Failed to store backup failure metadata:`, metadataError);
+      logger.error(`Failed to store backup failure metadata:`, undefined, metadataError);
     }
 
     return {
@@ -121,7 +121,7 @@ export async function createSchemaBackup(): Promise<BackupResult> {
   try {
     await fs.mkdir(BACKUP_CONFIG.backupDir, { recursive: true });
 
-    console.log(`📋 Starting schema backup: ${filename}`);
+    logger.info(`📋 Starting schema backup: ${filename}`);
 
     const dbUrl = new URL(process.env.DATABASE_URL!);
 
@@ -163,9 +163,7 @@ export async function createSchemaBackup(): Promise<BackupResult> {
     await storeBackupMetadata(metadata);
 
     const duration = Date.now() - startTime;
-    console.log(
-      `✅ Schema backup completed: ${filename} (${formatBytes(backupSize)} in ${duration}ms)`
-    );
+    logger.info(`✅ Schema backup completed: ${filename} (${formatBytes(backupSize)} in ${duration}ms)`);
 
     return {
       success: true,
@@ -177,7 +175,7 @@ export async function createSchemaBackup(): Promise<BackupResult> {
     const duration = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    console.error(`❌ Schema backup failed:`, errorMessage);
+    logger.error(`❌ Schema backup failed:`, undefined, errorMessage);
 
     const failedMetadata: BackupMetadata = {
       id: backupId,
@@ -195,7 +193,7 @@ export async function createSchemaBackup(): Promise<BackupResult> {
     try {
       await storeBackupMetadata(failedMetadata);
     } catch (metadataError) {
-      console.error(`Failed to store backup failure metadata:`, metadataError);
+      logger.error(`Failed to store backup failure metadata:`, undefined, metadataError);
     }
 
     return {

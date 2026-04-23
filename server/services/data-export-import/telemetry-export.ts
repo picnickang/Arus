@@ -7,6 +7,8 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { createWriteStream } from "node:fs";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:DataExportImport:TelemetryExport");
 
 import { dbEquipmentStorage, dbTelemetryStorage } from "../../repositories";
 import {
@@ -85,16 +87,12 @@ export async function exportTelemetryChunked(
 
         for (const record of chunk) {
           if (!equipmentIdSet.has(record.equipmentId)) {
-            console.warn(
-              `[DataExport] Skipping telemetry with non-org equipmentId: ${record.equipmentId}`
-            );
+            logger.warn(`[DataExport] Skipping telemetry with non-org equipmentId: ${record.equipmentId}`);
             continue;
           }
 
           if (record.orgId !== orgId) {
-            console.warn(
-              `[DataExport] Skipping telemetry with non-matching orgId: ${record.orgId}`
-            );
+            logger.warn(`[DataExport] Skipping telemetry with non-matching orgId: ${record.orgId}`);
             continue;
           }
 
@@ -131,9 +129,7 @@ export async function exportTelemetryChunked(
       anonymizationService && options?.anonymize !== "none"
         ? ` (anonymized: ${totalAnonymizationResult.anonymizedFieldCount} fields)`
         : "";
-    console.log(
-      `[DataExport] Exported ${entityName}: ${totalCount} records in ${files.length} chunks${anonymizationInfo}`
-    );
+    logger.info(`[DataExport] Exported ${entityName}: ${totalCount} records in ${files.length} chunks${anonymizationInfo}`);
 
     return {
       count: totalCount,
@@ -144,7 +140,7 @@ export async function exportTelemetryChunked(
       anonymizationResult: anonymizationService ? totalAnonymizationResult : undefined,
     };
   } catch (error) {
-    console.warn(`[DataExport] Failed to export telemetry ${entityName}:`, error);
+    logger.warn(`[DataExport] Failed to export telemetry ${entityName}:`, { details: error });
     return { count: 0, file: "", chunked: true, files: [] };
   }
 }

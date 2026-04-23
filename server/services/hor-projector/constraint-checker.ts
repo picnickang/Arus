@@ -10,6 +10,8 @@ import { calculateFatigueRisk } from "../../stcw-compliance";
 import type { RestDay } from "../../stcw-compliance";
 import { projectRestHoursFromAssignments, mergeExistingRestWithProjected } from "./projector";
 import type { DraftAssignment, CanAssignResult, ProjectionViolation, RestHourFlags } from "./types";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:HorProjector:ConstraintChecker");
 
 const STCW_MIN_REST_24 = 10;
 const STCW_MAX_WORK_7D = 91;
@@ -54,7 +56,7 @@ export async function getCrewExistingRestDays(
       h23: day.h23 ?? 1,
     }));
   } catch (error) {
-    console.error(`Failed to fetch rest days for crew ${crewId}:`, error);
+    logger.error(`Failed to fetch rest days for crew ${crewId}:`, undefined, error);
     return [];
   }
 }
@@ -139,7 +141,7 @@ export async function canAssignCrew(
       }
     }
   } catch (error) {
-    console.error("Failed to check crew roster:", error);
+    logger.error("Failed to check crew roster:", undefined, error);
   }
 
   const proposedStart = new Date(proposedAssignment.start);
@@ -179,7 +181,7 @@ export async function canAssignCrew(
         position: a.position,
       }));
   } catch (error) {
-    console.error("Failed to fetch stored assignments:", error);
+    logger.error("Failed to fetch stored assignments:", undefined, error);
   }
 
   const draftAssignments = (existingAssignments?.filter((a) => a.crewId === crewId) || []).filter(
@@ -290,7 +292,7 @@ export async function checkAssignmentOverlap(
       overlappingAssignments: overlapping,
     };
   } catch (error) {
-    console.error("Failed to check assignment overlap:", error);
+    logger.error("Failed to check assignment overlap:", undefined, error);
     return { hasOverlap: false, overlappingAssignments: [] };
   }
 }

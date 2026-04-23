@@ -13,10 +13,12 @@
  */
 
 import { Pool } from "pg";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Migrations:004ConsolidateInventory");
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
-  console.error("DATABASE_URL not set");
+  logger.error("DATABASE_URL not set");
   process.exit(1);
 }
 
@@ -36,7 +38,7 @@ async function migrate() {
       )
     `);
 
-    console.log("[Migration] Phase 0: Additive schema ALTERs for consolidated parts columns");
+    logger.info("[Migration] Phase 0: Additive schema ALTERs for consolidated parts columns");
 
     const additiveCols = [
       { col: "manufacturer", def: "ALTER TABLE parts ADD COLUMN IF NOT EXISTS manufacturer TEXT" },
@@ -56,9 +58,9 @@ async function migrate() {
     for (const c of additiveCols) {
       await client.query(c.def);
     }
-    console.log(`  Added ${additiveCols.length} additive columns to parts (IF NOT EXISTS)`);
+    logger.info(`  Added ${additiveCols.length} additive columns to parts (IF NOT EXISTS)`);
 
-    console.log("[Migration] Phase 1: Migrate parts_inventory → parts + stock");
+    logger.info("[Migration] Phase 1: Migrate parts_inventory → parts + stock");
 
     const piRows = await client.query(`
       SELECT pi.* FROM parts_inventory pi
@@ -182,16 +184,14 @@ async function migrate() {
       } catch (err: unknown) {
         await client.query(`ROLLBACK TO SAVEPOINT sp_pi_${row.id.replace(/[^a-zA-Z0-9]/g, "_")}`);
         const msg = err instanceof Error ? err.message : String(err);
-        console.warn(`[Migration] Skipped parts_inventory row ${row.id}: ${msg}`);
+        logger.warn(`[Migration] Skipped parts_inventory row ${row.id}: ${msg}`);
       }
     }
 
-    console.log(
-      `  parts_inventory → parts: ${partsCreated} created, ${partsMerged} merged, ${dependentRemapped} dependent refs remapped`
-    );
-    console.log(`  parts_inventory → stock: ${stockCreated} created, ${stockMerged} merged`);
+    logger.info(`  parts_inventory → parts: ${partsCreated} created, ${partsMerged} merged, ${dependentRemapped} dependent refs remapped`);
+    logger.info(`  parts_inventory → stock: ${stockCreated} created, ${stockMerged} merged`);
 
-    console.log("[Migration] Phase 2: Migrate inventory_parts → parts + stock");
+    logger.info("[Migration] Phase 2: Migrate inventory_parts → parts + stock");
 
     const ipRows = await client.query(`
       SELECT ip.* FROM inventory_parts ip
@@ -316,16 +316,14 @@ async function migrate() {
           `ROLLBACK TO SAVEPOINT sp_ip_${row.id.toString().replace(/[^a-zA-Z0-9]/g, "_")}`
         );
         const msg = err instanceof Error ? err.message : String(err);
-        console.warn(`[Migration] Skipped inventory_parts row ${row.id}: ${msg}`);
+        logger.warn(`[Migration] Skipped inventory_parts row ${row.id}: ${msg}`);
       }
     }
 
-    console.log(
-      `  inventory_parts → parts: ${ipPartsCreated} created, ${ipPartsMerged} merged, ${ipDependentRemapped} dependent refs remapped`
-    );
-    console.log(`  inventory_parts → stock: ${ipStockCreated} created, ${ipStockMerged} merged`);
+    logger.info(`  inventory_parts → parts: ${ipPartsCreated} created, ${ipPartsMerged} merged, ${ipDependentRemapped} dependent refs remapped`);
+    logger.info(`  inventory_parts → stock: ${ipStockCreated} created, ${ipStockMerged} merged`);
 
-    console.log("[Migration] Phase 3: Merge columns from parts_inventory into existing parts");
+    logger.info("[Migration] Phase 3: Merge columns from parts_inventory into existing parts");
 
     const mergeResult = await client.query(`
       UPDATE parts p SET
@@ -337,7 +335,7 @@ async function migrate() {
         AND p.org_id = pi.org_id
         AND (p.manufacturer IS NULL AND pi.manufacturer IS NOT NULL)
     `);
-    console.log(`  Merged manufacturer data for ${mergeResult.rowCount} rows`);
+    logger.info(`  Merged manufacturer data for ${mergeResult.rowCount} rows`);
 
     const usageMerge = await client.query(`
       UPDATE parts p SET
@@ -350,9 +348,9 @@ async function migrate() {
         AND (p.last_usage_30d IS NULL OR p.last_usage_30d = 0)
         AND ip.last_usage_30d > 0
     `);
-    console.log(`  Merged usage data for ${usageMerge.rowCount} rows`);
+    logger.info(`  Merged usage data for ${usageMerge.rowCount} rows`);
 
-    console.log("[Migration] Phase 4: Migrate inventory_movements FK from parts_inventory → parts");
+    logger.info("[Migration] Phase 4: Migrate inventory_movements FK from parts_inventory → parts");
 
     try {
       await client.query(`
@@ -370,17 +368,17 @@ async function migrate() {
           END IF;
         END $$
       `);
-      console.log("  FK constraint updated: inventory_movements.part_id → parts.id");
+      logger.info("  FK constraint updated: inventory_movements.part_id → parts.id");
     } catch (fkErr: unknown) {
       const msg = fkErr instanceof Error ? fkErr.message : String(fkErr);
-      console.warn(`  FK migration skipped (non-fatal): ${msg}`);
+      logger.warn(`  FK migration skipped (non-fatal): ${msg}`);
     }
 
     await client.query("COMMIT");
-    console.log("[Migration] Consolidation complete.");
+    logger.info("[Migration] Consolidation complete.");
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error("[Migration] Failed, rolled back:", err);
+    logger.error("[Migration] Failed, rolled back:", undefined, err);
     throw err;
   } finally {
     client.release();

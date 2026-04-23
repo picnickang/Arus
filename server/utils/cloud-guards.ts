@@ -8,6 +8,8 @@
  */
 
 import { isCloudMode, canUseCloudFeature } from "../config/runtimeEnv";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Utils:CloudGuards");
 
 /**
  * Assert that we're running in cloud mode, throw if in vessel mode
@@ -101,14 +103,14 @@ export async function executeInCloudMode(
   featureName: string
 ): Promise<void> {
   if (!isCloudMode) {
-    console.log(`[Cloud Guard] ${featureName} skipped (vessel mode)`);
+    logger.info(`[Cloud Guard] ${featureName} skipped (vessel mode)`);
     return;
   }
 
   try {
     await fn();
   } catch (error) {
-    console.error(`[Cloud Guard] ${featureName} failed:`, error);
+    logger.error(`[Cloud Guard] ${featureName} failed:`, undefined, error);
     throw error;
   }
 }

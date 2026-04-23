@@ -1,4 +1,6 @@
 import Database from "better-sqlite3";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:SqliteBridge:CursorStore");
 
 export interface CursorState {
   lastId: number;
@@ -41,7 +43,7 @@ export class CursorStore {
       `);
       return true;
     } catch (err) {
-      console.error("[CursorStore] Failed to ensure cursor table:", err);
+      logger.error("[CursorStore] Failed to ensure cursor table:", undefined, err);
       return false;
     }
   }
@@ -70,14 +72,14 @@ export class CursorStore {
         updatedAt: row.updated_at,
       };
     } catch (err) {
-      console.error("[CursorStore] Failed to get cursor:", err);
+      logger.error("[CursorStore] Failed to get cursor:", undefined, err);
       return { lastId: 0, lastTs: 0, updatedAt: 0 };
     }
   }
 
   setCursor(lastId: number, lastTs: number): boolean {
     if (!this.tableExists) {
-      console.warn("[CursorStore] Cannot set cursor - table does not exist");
+      logger.warn("[CursorStore] Cannot set cursor - table does not exist");
       return false;
     }
 
@@ -91,15 +93,13 @@ export class CursorStore {
         if (current.lastId >= lastId) {
           return true;
         }
-        console.warn(
-          `[CursorStore] Cursor not advanced: current=${current.lastId}, attempted=${lastId}`
-        );
+        logger.warn(`[CursorStore] Cursor not advanced: current=${current.lastId}, attempted=${lastId}`);
         return false;
       }
 
       return true;
     } catch (err) {
-      console.error("[CursorStore] Failed to set cursor:", err);
+      logger.error("[CursorStore] Failed to set cursor:", undefined, err);
       return false;
     }
   }

@@ -1,6 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
 import express from "express";
 import bcrypt from "bcryptjs";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Routes:Setup");
 
 const router = Router();
 
@@ -62,7 +64,7 @@ router.post("/complete", localOnlyGuard, async (req: Request, res: Response) => 
 
     return res.status(200).json({ ok: true });
   } catch (err: any) {
-    console.error("[ARUS] /api/setup/complete error:", err);
+    logger.error("[ARUS] /api/setup/complete error:", undefined, err);
     return res.status(500).json({ error: "Setup failed. Check server logs." });
   }
 });

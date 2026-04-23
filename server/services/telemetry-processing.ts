@@ -10,6 +10,8 @@
  */
 
 import type { EquipmentTelemetry } from "@shared/schema";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Services:TelemetryProcessing");
 import {
   dbEquipmentStorage,
   dbAlertStorage,
@@ -72,9 +74,7 @@ function evaluateThresholds(
   if (criticalThreshold != null && warningThreshold != null) {
     const thresholdOrderIndicatesLowIsBad = criticalThreshold < warningThreshold;
     if (isLowIsBad !== thresholdOrderIndicatesLowIsBad) {
-      console.warn(
-        `Threshold order mismatch for ${equipmentId} ${sensorType}: expected ${isLowIsBad ? "critical < warning" : "critical > warning"}`
-      );
+      logger.warn(`Threshold order mismatch for ${equipmentId} ${sensorType}: expected ${isLowIsBad ? "critical < warning" : "critical > warning"}`);
     }
     isLowIsBad = thresholdOrderIndicatesLowIsBad;
   }
@@ -229,7 +229,7 @@ export async function applySensorConfiguration(
 
     return { processedValue, shouldKeep: true, flags };
   } catch (error) {
-    console.error(`Failed to apply sensor configuration for ${equipmentId}/${sensorType}:`, error);
+    logger.error(`Failed to apply sensor configuration for ${equipmentId}/${sensorType}:`, undefined, error);
     return { processedValue, shouldKeep: true, flags: ["config_error"] };
   }
 }
@@ -292,7 +292,7 @@ export async function generateAIInsights(telemetryReading: EquipmentTelemetry): 
       });
     }
   } catch (error) {
-    console.error(`AI insights generation failed for ${cacheKey}:`, error);
+    logger.error(`AI insights generation failed for ${cacheKey}:`, undefined, error);
   }
 }
 

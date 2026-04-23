@@ -5,6 +5,8 @@
 import { db } from "../db.js";
 import { optimizationResults, scheduleOptimizations } from "../../shared/schema.js";
 import type { OptimizationResult, OptimizationConstraints } from "./types.js";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("LpOptimizer:Persistence");
 
 export async function persistOptimizationResults(
   orgId: string,
@@ -47,7 +49,7 @@ export async function persistOptimizationResults(
       .returning({ id: optimizationResults.id });
 
     const resultId = optimizationRecord[0].id;
-    console.log(`[LP Optimizer] Persisted optimization result ${resultId}`);
+    logger.info(`[LP Optimizer] Persisted optimization result ${resultId}`);
 
     for (const scheduleItem of result.schedule) {
       await db.insert(scheduleOptimizations).values({
@@ -68,10 +70,10 @@ export async function persistOptimizationResults(
       });
     }
 
-    console.log(`[LP Optimizer] Persisted ${result.schedule.length} schedule optimizations`);
+    logger.info(`[LP Optimizer] Persisted ${result.schedule.length} schedule optimizations`);
     return resultId;
   } catch (error) {
-    console.error(`[LP Optimizer] Error persisting results:`, error);
+    logger.error(`[LP Optimizer] Error persisting results:`, undefined, error);
     return `error-${Date.now()}`;
   }
 }
@@ -120,7 +122,7 @@ export async function getOptimizationResults(resultId: string): Promise<any> {
       appliedToProduction: result.appliedToProduction,
     };
   } catch (error) {
-    console.error(`[LP Optimizer] Error retrieving results ${resultId}:`, error);
+    logger.error(`[LP Optimizer] Error retrieving results ${resultId}:`, undefined, error);
     throw error;
   }
 }

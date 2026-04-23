@@ -7,6 +7,8 @@
 import type Redis from "ioredis";
 import { Counter, Histogram } from "prom-client";
 import { getSharedRedisClient, isRedisEnabled } from "./redis-client.js";
+import { createLogger } from "./structured-logger";
+const logger = createLogger("Lib:Cache");
 
 interface CacheConfig {
   ttl: number;
@@ -185,12 +187,8 @@ export const cacheConfig = {
 };
 
 if (isRedisEnabled()) {
-  console.log(
-    `[Cache] Inventory cache ${cacheEnabled ? "enabled" : "disabled"} (using shared Redis client)`
-  );
-  console.log(
-    `[Cache] Analytics cache ${analyticsCacheEnabled ? "enabled" : "disabled"} (using shared Redis client)`
-  );
+  logger.info(`[Cache] Inventory cache ${cacheEnabled ? "enabled" : "disabled"} (using shared Redis client)`);
+  logger.info(`[Cache] Analytics cache ${analyticsCacheEnabled ? "enabled" : "disabled"} (using shared Redis client)`);
 }
 
 /**
@@ -337,7 +335,7 @@ export async function cachedAnalytics<T>(
     await analyticsCache.set(cacheKey, result, ttlSeconds);
     return result;
   } catch (error) {
-    console.error("[Cache] Analytics caching error, falling back to direct fetch:", error);
+    logger.error("[Cache] Analytics caching error, falling back to direct fetch:", undefined, error);
     return fetchFn();
   }
 }

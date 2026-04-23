@@ -9,6 +9,8 @@ import * as path from "node:path";
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
 import { randomUUID } from "node:crypto";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:DataExportImport:ImportService");
 
 import { dbUserStorage } from "../../repositories";
 import { ENTITY_EXPORT_ORDER, TELEMETRY_ENTITIES } from "./constants";
@@ -30,7 +32,7 @@ async function ensureTargetOrg(targetOrgId: string, sourceOrgId: string): Promis
     return;
   }
 
-  console.log(`[DataImport] Creating target organization: ${targetOrgId}`);
+  logger.info(`[DataImport] Creating target organization: ${targetOrgId}`);
   const slug = targetOrgId.toLowerCase().replace(/[^a-z0-9-]/g, "-");
   await dbUserStorage.createOrganization({
     name: `Imported from ${sourceOrgId}`,
@@ -136,7 +138,7 @@ export async function importData(
   const idMappings = createIdMappings();
 
   try {
-    console.log(`[DataImport] Starting import from: ${archivePath}`);
+    logger.info(`[DataImport] Starting import from: ${archivePath}`);
     await extractArchive(archivePath, extractPath);
 
     const manifestPath = path.join(extractPath, "manifest.json");
@@ -162,10 +164,10 @@ export async function importData(
     }
 
     if (options.dryRun) {
-      console.log(`[DataImport] Dry run - no changes will be made`);
+      logger.info(`[DataImport] Dry run - no changes will be made`);
     }
     if (isRemapping) {
-      console.log(`[DataImport] Cross-org import: ${manifest.scope.orgId} → ${targetOrgId}`);
+      logger.info(`[DataImport] Cross-org import: ${manifest.scope.orgId} → ${targetOrgId}`);
     }
 
     for (const entity of ENTITY_EXPORT_ORDER) {
@@ -211,21 +213,21 @@ export async function importData(
     }
 
     if (isRemapping) {
-      console.log(`[DataImport] ID mappings created:`, {
+      logger.info(`[DataImport] ID mappings created:`, { details: {
         vessels: idMappings.vessels.size,
         equipment: idMappings.equipment.size,
         work_orders: idMappings.work_orders.size,
-      });
+      } });
     }
 
     fs.rmSync(extractPath, { recursive: true });
     const duration = Date.now() - startTime;
-    console.log(`[DataImport] Import completed: ${importId} (${duration}ms)`);
+    logger.info(`[DataImport] Import completed: ${importId} (${duration}ms)`);
 
     return { success: errors.length === 0, importId, entitiesImported, warnings, errors, duration };
   } catch (error) {
     const duration = Date.now() - startTime;
-    console.error(`[DataImport] Import failed:`, error);
+    logger.error(`[DataImport] Import failed:`, undefined, error);
 
     if (fs.existsSync(extractPath)) {
       fs.rmSync(extractPath, { recursive: true });
@@ -276,16 +278,16 @@ async function importEntity(
 
         if (isRemapping && newId && originalId !== newId && idMappings[entityName]) {
           idMappings[entityName].set(originalId, newId);
-          console.log(`[DataImport] ID mapping ${entityName}: ${originalId} → ${newId}`);
+          logger.info(`[DataImport] ID mapping ${entityName}: ${originalId} → ${newId}`);
         }
       }
 
       count++;
     } catch (error) {
-      console.warn(`[DataImport] Failed to import ${entityName} record:`, error);
+      logger.warn(`[DataImport] Failed to import ${entityName} record:`, { details: error });
     }
   }
 
-  console.log(`[DataImport] Imported ${entityName}: ${count} records${dryRun ? " (dry run)" : ""}`);
+  logger.info(`[DataImport] Imported ${entityName}: ${count} records${dryRun ? " (dry run)" : ""}`);
   return count;
 }

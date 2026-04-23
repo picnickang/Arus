@@ -3,6 +3,8 @@
 // By using dynamic imports, we only load it when actually needed (Replit environment only)
 import { Response } from "express";
 import { randomUUID } from "node:crypto";
+import { createLogger } from "./lib/structured-logger";
+const logger = createLogger("ObjectStorage");
 import {
   ObjectAclPolicy,
   ObjectPermission,
@@ -57,15 +59,13 @@ async function getObjectStorageClient(): Promise<Storage | null> {
         },
         projectId: "",
       });
-      console.log("✓ Object storage client initialized (Replit environment)");
+      logger.info("✓ Object storage client initialized (Replit environment)");
     } else {
-      console.log(
-        "ℹ Object storage not initialized (non-Replit environment). GCS features disabled."
-      );
+      logger.info("ℹ Object storage not initialized (non-Replit environment). GCS features disabled.");
     }
   } catch (error) {
     _clientInitError = error as Error;
-    console.warn("⚠ Failed to initialize object storage client:", error);
+    logger.warn("⚠ Failed to initialize object storage client:", { details: error });
   }
 
   return _objectStorageClient;
@@ -78,7 +78,7 @@ async function getObjectStorageClient(): Promise<Storage | null> {
     try {
       await getObjectStorageClient();
     } catch (err) {
-      console.warn("⚠ Background object storage initialization failed:", err);
+      logger.warn("⚠ Background object storage initialization failed:", { details: err });
     }
   }
 })();
@@ -105,7 +105,7 @@ export class ObjectStorageService {
       )
     );
     if (paths.length === 0) {
-      console.warn("PUBLIC_OBJECT_SEARCH_PATHS not set. Object storage features may be limited.");
+      logger.warn("PUBLIC_OBJECT_SEARCH_PATHS not set. Object storage features may be limited.");
       return [];
     }
     return paths;
@@ -115,7 +115,7 @@ export class ObjectStorageService {
   getPrivateObjectDir(): string {
     const dir = process.env.PRIVATE_OBJECT_DIR || "";
     if (!dir) {
-      console.warn("PRIVATE_OBJECT_DIR not set. Private object storage features may be limited.");
+      logger.warn("PRIVATE_OBJECT_DIR not set. Private object storage features may be limited.");
       return "";
     }
     return dir;
@@ -125,13 +125,13 @@ export class ObjectStorageService {
   async searchPublicObject(filePath: string): Promise<File | null> {
     const client = await getObjectStorageClient();
     if (!client) {
-      console.warn("Object storage client not available. Cannot search for public objects.");
+      logger.warn("Object storage client not available. Cannot search for public objects.");
       return null;
     }
 
     // S5443: Block path traversal attempts
     if (filePath.includes("..") || filePath.includes("\0")) {
-      console.warn(`[ObjectStorage] Blocked path traversal attempt: ${filePath}`);
+      logger.warn(`[ObjectStorage] Blocked path traversal attempt: ${filePath}`);
       return null;
     }
 
@@ -177,7 +177,7 @@ export class ObjectStorageService {
       const stream = file.createReadStream();
 
       stream.on("error", (err) => {
-        console.error("Stream error:", err);
+        logger.error("Stream error:", undefined, err);
         if (!res.headersSent) {
           res.status(500).json({ error: "Error streaming file" });
         }
@@ -185,7 +185,7 @@ export class ObjectStorageService {
 
       stream.pipe(res);
     } catch (error) {
-      console.error("Error downloading file:", error);
+      logger.error("Error downloading file:", undefined, error);
       if (!res.headersSent) {
         res.status(500).json({ error: "Error downloading file" });
       }

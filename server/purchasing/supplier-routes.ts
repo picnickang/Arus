@@ -6,6 +6,8 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
 import * as service from "./service";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Purchasing:SupplierRoutes");
 
 export const supplierLinkRouter = Router();
 
@@ -19,7 +21,7 @@ supplierLinkRouter.get("/parts/:partId/suppliers", async (req: Request, res: Res
     const suppliers = await service.getPartSuppliers(req.params.partId, orgId);
     res.json(suppliers);
   } catch (error) {
-    console.error("[Purchasing] Error getting part suppliers:", error);
+    logger.error("[Purchasing] Error getting part suppliers:", undefined, error);
     res.status(500).json({ error: (error as Error).message });
   }
 });
@@ -48,7 +50,7 @@ supplierLinkRouter.post("/parts/:partId/suppliers", async (req: Request, res: Re
     });
     res.status(201).json(link);
   } catch (error) {
-    console.error("[Purchasing] Error linking supplier to part:", error);
+    logger.error("[Purchasing] Error linking supplier to part:", undefined, error);
     res.status(400).json({ error: (error as Error).message });
   }
 });
@@ -74,7 +76,7 @@ supplierLinkRouter.delete(
 
       res.json({ success: true });
     } catch (error) {
-      console.error("[Purchasing] Error unlinking supplier from part:", error);
+      logger.error("[Purchasing] Error unlinking supplier from part:", undefined, error);
       res.status(400).json({ error: (error as Error).message });
     }
   }

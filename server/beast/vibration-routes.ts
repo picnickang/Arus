@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { beastModeManager, DEFAULT_ORG_ID } from "../beast-mode-config.js";
 import { vibrationAnalyzer } from "../vibration-analysis.js";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Beast:VibrationRoutes");
 
 const router = Router();
 
@@ -48,10 +50,7 @@ router.post("/vibration/analyze/:equipmentId", async (req, res) => {
         : `Equipment operating normally (health score: ${analysis.healthScore}%)`,
     });
   } catch (error) {
-    console.error(
-      `[Beast Mode API] Error analyzing vibration for ${req.params.equipmentId}:`,
-      error
-    );
+    logger.error(`[Beast Mode API] Error analyzing vibration for ${req.params.equipmentId}:`, undefined, error);
     res
       .status(500)
       .json({
@@ -97,10 +96,7 @@ router.get("/vibration/history/:equipmentId", async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error(
-      `[Beast Mode API] Error getting vibration history for ${req.params.equipmentId}:`,
-      error
-    );
+    logger.error(`[Beast Mode API] Error getting vibration history for ${req.params.equipmentId}:`, undefined, error);
     res
       .status(500)
       .json({
@@ -167,7 +163,7 @@ router.post("/vibration/batch-analyze", async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error(`[Beast Mode API] Error in batch vibration analysis:`, error);
+    logger.error(`[Beast Mode API] Error in batch vibration analysis:`, undefined, error);
     res.status(500).json({ success: false, error: "Failed to perform batch vibration analysis" });
   }
 });

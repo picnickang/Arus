@@ -1,6 +1,8 @@
+import { createLogger } from "./lib/structured-logger";
+const logger = createLogger("TimescaledbBootstrap");
 // Stub file - TimescaleDB bootstrap consolidated
 export async function initializeTimescaleDB(): Promise<void> {
-  console.log("[TimescaleDB] Bootstrap disabled - using standard PostgreSQL");
+  logger.info("[TimescaleDB] Bootstrap disabled - using standard PostgreSQL");
 }
 
 export async function createTimescaleHypertables(): Promise<void> {
@@ -16,9 +18,9 @@ export async function setupCompressionPolicy(): Promise<void> {
 }
 
 export async function runTimescaleBootstrap(): Promise<void> {
-  console.log("[TimescaleDB] Bootstrap skipped - standard PostgreSQL mode");
+  logger.info("[TimescaleDB] Bootstrap skipped - standard PostgreSQL mode");
 }
 
 export async function ensureTimescaleDBSetup(): Promise<void> {
-  console.log("[TimescaleDB] Setup skipped - standard PostgreSQL mode");
+  logger.info("[TimescaleDB] Setup skipped - standard PostgreSQL mode");
 }

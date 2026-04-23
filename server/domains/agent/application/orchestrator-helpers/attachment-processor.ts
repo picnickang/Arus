@@ -4,6 +4,8 @@ import type { KnowledgeBasePort } from "../../domain/ports";
 import type { FileAttachment } from "../../domain/types";
 import { registerFile, listConversationFiles } from "../../infrastructure/file-registry";
 import { ingestFilesToKB } from "../../infrastructure/kb-ingestion-helper";
+import { createLogger } from "../../../../lib/structured-logger";
+const logger = createLogger("Domains:Agent:Application:OrchestratorHelpers:AttachmentProcessor");
 
 export interface ProcessedAttachments {
   contentParts: OpenAI.Chat.Completions.ChatCompletionContentPart[];
@@ -54,10 +56,7 @@ export async function processAttachments(
         });
         fileDescriptions.push(`[PDF: ${att.filename}, ${pdfData.numpages} pages]`);
       } catch (err) {
-        console.warn(
-          `[Agent] Failed to parse PDF ${att.filename}:`,
-          err instanceof Error ? err.message : "unknown"
-        );
+        logger.warn(`[Agent] Failed to parse PDF ${att.filename}:`, { details: err instanceof Error ? err.message : "unknown" });
         fileDescriptions.push(`[PDF: ${att.filename} (could not extract text)]`);
       }
     } else if (att.mimetype === "text/csv" || att.filename.endsWith(".csv")) {
@@ -94,10 +93,7 @@ export async function processAttachments(
         });
         fileDescriptions.push(`[CSV: ${att.filename}, ${rowCount} rows]`);
       } catch (err) {
-        console.warn(
-          `[Agent] Failed to parse CSV ${att.filename}:`,
-          err instanceof Error ? err.message : "unknown"
-        );
+        logger.warn(`[Agent] Failed to parse CSV ${att.filename}:`, { details: err instanceof Error ? err.message : "unknown" });
         const fallback = fs.readFileSync(att.path, "utf-8").slice(0, 10000);
         contentParts.push({
           type: "text",
@@ -114,10 +110,7 @@ export async function processAttachments(
         });
         fileDescriptions.push(`[File: ${att.filename}]`);
       } catch (err) {
-        console.warn(
-          `[Agent] Failed to read attachment ${att.filename}:`,
-          err instanceof Error ? err.message : "unknown"
-        );
+        logger.warn(`[Agent] Failed to read attachment ${att.filename}:`, { details: err instanceof Error ? err.message : "unknown" });
         fileDescriptions.push(`[File: ${att.filename} (could not read)]`);
       }
     }

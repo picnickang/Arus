@@ -5,6 +5,8 @@
 import { dbEquipmentStorage, workOrderService } from "../repositories";
 import type { DtcWithDefinition } from "./types";
 import type { InsertWorkOrder } from "@shared/schema";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("DtcIntegration:WorkOrderHandler");
 
 export async function hasRelatedOpenWorkOrder(
   equipmentId: string,
@@ -38,15 +40,13 @@ export async function createWorkOrderFromDtc(
   );
 
   if (dtcWorkOrder) {
-    console.log(
-      `[DTC Integration] Work order already exists for DTC SPN ${dtc.spn} FMI ${dtc.fmi}`
-    );
+    logger.info(`[DTC Integration] Work order already exists for DTC SPN ${dtc.spn} FMI ${dtc.fmi}`);
     return null;
   }
 
   const eq = await dbEquipmentStorage.getEquipment(orgId, dtc.equipmentId);
   if (!eq) {
-    console.warn(`[DTC Integration] Equipment ${dtc.equipmentId} not found`);
+    logger.warn(`[DTC Integration] Equipment ${dtc.equipmentId} not found`);
     return null;
   }
 
@@ -68,8 +68,6 @@ export async function createWorkOrderFromDtc(
   };
 
   const newWorkOrder = await workOrderService.createWorkOrder(workOrderData);
-  console.log(
-    `[DTC Integration] Created work order ${newWorkOrder.woNumber || newWorkOrder.id} for DTC SPN ${dtc.spn} FMI ${dtc.fmi}`
-  );
+  logger.info(`[DTC Integration] Created work order ${newWorkOrder.woNumber || newWorkOrder.id} for DTC SPN ${dtc.spn} FMI ${dtc.fmi}`);
   return newWorkOrder;
 }

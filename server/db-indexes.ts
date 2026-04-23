@@ -1,5 +1,7 @@
 import { db } from "./db";
 import { sql } from "drizzle-orm";
+import { createLogger } from "./lib/structured-logger";
+const logger = createLogger("DbIndexes");
 
 const REQUIRED_INDEXES = [
   "idx_equipment_vessel_created",
@@ -25,7 +27,7 @@ export async function verifyDatabaseIndexes(): Promise<IndexVerificationResult> 
   const verified: string[] = [];
   const missing: string[] = [];
 
-  console.log("[DB Indexes] Verifying required indexes...");
+  logger.info("[DB Indexes] Verifying required indexes...");
 
   for (const indexName of REQUIRED_INDEXES) {
     try {
@@ -41,7 +43,7 @@ export async function verifyDatabaseIndexes(): Promise<IndexVerificationResult> 
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      console.warn(`[DB Indexes] Could not verify ${indexName}: ${message}`);
+      logger.warn(`[DB Indexes] Could not verify ${indexName}: ${message}`);
       missing.push(indexName);
     }
   }
@@ -49,28 +51,26 @@ export async function verifyDatabaseIndexes(): Promise<IndexVerificationResult> 
   const lastCheckedAt = new Date().toISOString();
 
   if (missing.length === 0) {
-    console.log(`[DB Indexes] Verified: All ${verified.length} required indexes exist`);
+    logger.info(`[DB Indexes] Verified: All ${verified.length} required indexes exist`);
     return { ok: true, verified, missing, lastCheckedAt };
   }
 
   if (isProduction) {
-    console.error(`[DB Indexes] ERROR: Missing indexes in production!`);
-    console.error(`[DB Indexes] Missing: ${missing.join(", ")}`);
-    console.error(`[DB Indexes] Remediation: Run 'npm run db:migrate:deploy' before app rollout`);
+    logger.error(`[DB Indexes] ERROR: Missing indexes in production!`);
+    logger.error(`[DB Indexes] Missing: ${missing.join(", ")}`);
+    logger.error(`[DB Indexes] Remediation: Run 'npm run db:migrate:deploy' before app rollout`);
     return { ok: false, verified, missing, lastCheckedAt };
   }
 
   if (selfHealEnabled) {
-    console.log(
-      `[DB Indexes] DEV_SELF_HEAL=true - Auto-creating ${missing.length} missing indexes...`
-    );
+    logger.info(`[DB Indexes] DEV_SELF_HEAL=true - Auto-creating ${missing.length} missing indexes...`);
     await autoCreateMissingIndexes(missing);
     return { ok: true, verified: [...verified, ...missing], missing: [], lastCheckedAt };
   }
 
-  console.warn(`[DB Indexes] WARN: ${missing.length} missing indexes in development`);
-  console.warn(`[DB Indexes] Missing: ${missing.join(", ")}`);
-  console.warn(`[DB Indexes] Run 'npm run db:migrate' to create them, or set DEV_SELF_HEAL=true`);
+  logger.warn(`[DB Indexes] WARN: ${missing.length} missing indexes in development`);
+  logger.warn(`[DB Indexes] Missing: ${missing.join(", ")}`);
+  logger.warn(`[DB Indexes] Run 'npm run db:migrate' to create them, or set DEV_SELF_HEAL=true`);
 
   return { ok: false, verified, missing, lastCheckedAt };
 }
@@ -99,10 +99,10 @@ async function autoCreateMissingIndexes(missing: string[]): Promise<void> {
       await db.execute(
         sql.raw(`CREATE INDEX IF NOT EXISTS ${indexName} ON ${def.table}(${def.columns})`)
       );
-      console.log(`[DB Indexes] Created: ${indexName}`);
+      logger.info(`[DB Indexes] Created: ${indexName}`);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      console.warn(`[DB Indexes] Failed to create ${indexName}: ${message}`);
+      logger.warn(`[DB Indexes] Failed to create ${indexName}: ${message}`);
     }
   }
 }
@@ -116,7 +116,7 @@ export async function analyzeDatabasePerformance(): Promise<{
   tableStats: { name: string; rows: number; indexScans: number }[];
   recommendations: string[];
 }> {
-  console.log("[DB Indexes] Performance analysis skipped");
+  logger.info("[DB Indexes] Performance analysis skipped");
   return { indexUsage: 100, tableStats: [], recommendations: [] };
 }
 

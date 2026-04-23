@@ -5,6 +5,8 @@
  */
 
 import type { WeibullParameters, EquipmentLifeData } from "./types.js";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("WeibullRul:ParameterEstimation");
 
 export function estimateWeibullParameters(lifeData: EquipmentLifeData[]): WeibullParameters {
   if (lifeData.length === 0) {
@@ -47,7 +49,7 @@ export function estimateWeibullParameters(lifeData: EquipmentLifeData[]): Weibul
     const fPrime = -(term1 - term2) - term3;
 
     if (Math.abs(fPrime) < 1e-10) {
-      console.log(`[Weibull MLE] Derivative too small at iteration ${iteration}, stopping`);
+      logger.info(`[Weibull MLE] Derivative too small at iteration ${iteration}, stopping`);
       break;
     }
 
@@ -55,14 +57,12 @@ export function estimateWeibullParameters(lifeData: EquipmentLifeData[]): Weibul
     shape = Math.max(0.1, Math.min(10, newShape));
 
     if (Math.abs(shape - oldShape) < 1e-6) {
-      console.log(
-        `[Weibull MLE] Converged after ${iteration + 1} iterations: β=${shape.toFixed(4)}`
-      );
+      logger.info(`[Weibull MLE] Converged after ${iteration + 1} iterations: β=${shape.toFixed(4)}`);
       break;
     }
 
     if (iteration === 19) {
-      console.log(`[Weibull MLE] Maximum iterations reached, using β=${shape.toFixed(4)}`);
+      logger.info(`[Weibull MLE] Maximum iterations reached, using β=${shape.toFixed(4)}`);
     }
   }
 
@@ -70,9 +70,7 @@ export function estimateWeibullParameters(lifeData: EquipmentLifeData[]): Weibul
 
   const rsquared = calculateWeibullGoodnessOfFit(failureTimes, shape, scale, location);
 
-  console.log(
-    `[Weibull RUL] Estimated parameters: β=${shape.toFixed(2)}, η=${scale.toFixed(1)}h, γ=${location.toFixed(1)}h, R²=${rsquared.toFixed(3)}`
-  );
+  logger.info(`[Weibull RUL] Estimated parameters: β=${shape.toFixed(2)}, η=${scale.toFixed(1)}h, γ=${location.toFixed(1)}h, R²=${rsquared.toFixed(3)}`);
 
   return {
     shape,

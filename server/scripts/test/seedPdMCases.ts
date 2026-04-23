@@ -14,6 +14,8 @@ import { equipment, vessels } from "../../../shared/schema";
 import { eq } from "drizzle-orm";
 import { DEFAULT_ORG_ID } from "../../../shared/config/tenant";
 import { v4 as uuid } from "uuid";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Scripts:Test:SeedPdMCases");
 
 interface SeedOptions {
   clearExisting?: boolean;
@@ -24,7 +26,7 @@ export async function seedPdMTestCases(options: SeedOptions = {}) {
 
   if (options.clearExisting) {
     await db.delete(failurePredictions).execute();
-    console.log("[SeedPdM] Cleared existing failure predictions");
+    logger.info("[SeedPdM] Cleared existing failure predictions");
   }
 
   const allVessels = await db
@@ -34,14 +36,14 @@ export async function seedPdMTestCases(options: SeedOptions = {}) {
     .limit(1);
 
   if (allVessels.length === 0) {
-    console.error("[SeedPdM] No vessels found. Please seed vessels first.");
-    console.log("[SeedPdM] Run: npx tsx server/scripts/seed-vessels.ts");
+    logger.error("[SeedPdM] No vessels found. Please seed vessels first.");
+    logger.info("[SeedPdM] Run: npx tsx server/scripts/seed-vessels.ts");
     return;
   }
 
   const testVesselId = allVessels[0].id;
   const testVesselName = allVessels[0].name;
-  console.log(`[SeedPdM] Using vessel: ${testVesselName} (${testVesselId})`);
+  logger.info(`[SeedPdM] Using vessel: ${testVesselName} (${testVesselId})`);
 
   let vesselEquipment = await db
     .select()
@@ -50,9 +52,7 @@ export async function seedPdMTestCases(options: SeedOptions = {}) {
     .limit(4);
 
   if (vesselEquipment.length < 4) {
-    console.log(
-      `[SeedPdM] Only ${vesselEquipment.length} equipment on vessel. Creating test equipment...`
-    );
+    logger.info(`[SeedPdM] Only ${vesselEquipment.length} equipment on vessel. Creating test equipment...`);
 
     const needed = 4 - vesselEquipment.length;
     const testEquipmentTypes = ["Pump", "Generator", "Engine", "Compressor"];
@@ -72,9 +72,9 @@ export async function seedPdMTestCases(options: SeedOptions = {}) {
           serialNumber: `PDM-TEST-${i + 1}`,
           status: "operational",
         });
-        console.log(`[SeedPdM] Created equipment: PdM Test ${eqType} ${i + 1}`);
+        logger.info(`[SeedPdM] Created equipment: PdM Test ${eqType} ${i + 1}`);
       } catch (err) {
-        console.error(`[SeedPdM] Failed to create equipment: ${err}`);
+        logger.error(`[SeedPdM] Failed to create equipment: ${err}`);
       }
     }
 
@@ -86,13 +86,11 @@ export async function seedPdMTestCases(options: SeedOptions = {}) {
   }
 
   if (vesselEquipment.length < 4) {
-    console.error("[SeedPdM] Could not ensure 4 equipment on vessel. Aborting.");
+    logger.error("[SeedPdM] Could not ensure 4 equipment on vessel. Aborting.");
     return;
   }
 
-  console.log(
-    `[SeedPdM] Using ${vesselEquipment.length} equipment items on vessel ${testVesselName}`
-  );
+  logger.info(`[SeedPdM] Using ${vesselEquipment.length} equipment items on vessel ${testVesselName}`);
 
   const testCases = [
     {
@@ -160,23 +158,21 @@ export async function seedPdMTestCases(options: SeedOptions = {}) {
   for (const testCase of testCases) {
     try {
       await db.insert(failurePredictions).values(testCase);
-      console.log(`[SeedPdM] Created: ${testCase.failureMode}`);
+      logger.info(`[SeedPdM] Created: ${testCase.failureMode}`);
     } catch (error) {
-      console.error(`[SeedPdM] Failed to create: ${testCase.failureMode}`, error);
+      logger.error(`[SeedPdM] Failed to create: ${testCase.failureMode}`, undefined, error);
     }
   }
 
-  console.log("\n[SeedPdM] Completed seeding test cases");
-  console.log("\n=== Expected Results ===");
-  console.log("Case A: SCHEDULED (failureProb=0.25 -> confidence=75%, good RUL window)");
-  console.log(
-    "Case B: BLOCKED scheduling_conflict (failureProb=0.40 -> confidence=60%, P10=6 > P90=3)"
-  );
-  console.log("Case C1: SCHEDULED (failureProb=0.35 -> confidence=65%, first on vessel)");
-  console.log("Case C2: BLOCKED capacity (failureProb=0.40 -> confidence=60%, same vessel/date)");
-  console.log("Case D: BLOCKED insufficient_confidence (failureProb=0.75 -> confidence=25% < 50%)");
-  console.log("\nNote: C1 and C2 must be on same vessel for capacity test to work");
-  console.log(`All equipment is on vessel: ${testVesselName} (${testVesselId})`);
+  logger.info("\n[SeedPdM] Completed seeding test cases");
+  logger.info("\n=== Expected Results ===");
+  logger.info("Case A: SCHEDULED (failureProb=0.25 -> confidence=75%, good RUL window)");
+  logger.info("Case B: BLOCKED scheduling_conflict (failureProb=0.40 -> confidence=60%, P10=6 > P90=3)");
+  logger.info("Case C1: SCHEDULED (failureProb=0.35 -> confidence=65%, first on vessel)");
+  logger.info("Case C2: BLOCKED capacity (failureProb=0.40 -> confidence=60%, same vessel/date)");
+  logger.info("Case D: BLOCKED insufficient_confidence (failureProb=0.75 -> confidence=25% < 50%)");
+  logger.info("\nNote: C1 and C2 must be on same vessel for capacity test to work");
+  logger.info(`All equipment is on vessel: ${testVesselName} (${testVesselId})`);
 
   return testCases;
 }
@@ -184,6 +180,6 @@ export async function seedPdMTestCases(options: SeedOptions = {}) {
 seedPdMTestCases({ clearExisting: false })
   .then(() => process.exit(0))
   .catch((err) => {
-    console.error("[SeedPdM] Error:", err);
+    logger.error("[SeedPdM] Error:", undefined, err);
     process.exit(1);
   });

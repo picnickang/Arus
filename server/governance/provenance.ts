@@ -7,6 +7,8 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { ProvenanceEvent, ProvenanceVerificationResult } from "./types.js";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Governance:Provenance");
 
 const PROV_FILE = process.env.PROVENANCE_FILE ?? "./checkpoints/provenance.jsonl";
 
@@ -36,7 +38,7 @@ async function lastHash(): Promise<string | null> {
     if (errorCode === "ENOENT") {
       return null;
     }
-    console.error("[Provenance] Error reading last hash:", error);
+    logger.error("[Provenance] Error reading last hash:", undefined, error);
     return null;
   }
 }
@@ -63,11 +65,11 @@ export async function appendProvenance(
 
     await fs.appendFile(PROV_FILE, `${JSON.stringify(row)}\n`, "utf8");
 
-    console.log(`[Provenance] Recorded ${event.type} event (hash: ${hash.substring(0, 8)}...)`);
+    logger.info(`[Provenance] Recorded ${event.type} event (hash: ${hash.substring(0, 8)}...)`);
 
     return row;
   } catch (error) {
-    console.error("[Provenance] Failed to append provenance:", error);
+    logger.error("[Provenance] Failed to append provenance:", undefined, error);
     throw error;
   }
 }
@@ -185,9 +187,7 @@ export async function recordRulPrediction(params: {
 }): Promise<ProvenanceEvent> {
   // Log data quality warnings for governance visibility
   if (params.dataStatus !== "sufficient_data") {
-    console.warn(
-      `[Provenance] RUL prediction with ${params.dataStatus}: equipment ${params.equipmentId} - ${params.dataStatusReason}`
-    );
+    logger.warn(`[Provenance] RUL prediction with ${params.dataStatus}: equipment ${params.equipmentId} - ${params.dataStatusReason}`);
   }
 
   return appendProvenance({
@@ -224,9 +224,7 @@ export async function recordEngineerOverride(params: {
   modelId?: string;
   orgId: string;
 }): Promise<ProvenanceEvent> {
-  console.log(
-    `[Provenance] Recording engineer override: ${params.overrideType} by ${params.engineerName}`
-  );
+  logger.info(`[Provenance] Recording engineer override: ${params.overrideType} by ${params.engineerName}`);
 
   return appendProvenance({
     type: "engineer_override",
@@ -256,9 +254,7 @@ export async function recordOverrideOutcome(params: {
   engineerName: string;
   orgId: string;
 }): Promise<ProvenanceEvent> {
-  console.log(
-    `[Provenance] Recording override outcome: ${params.outcomeStatus} for override ${params.overrideId}`
-  );
+  logger.info(`[Provenance] Recording override outcome: ${params.outcomeStatus} for override ${params.overrideId}`);
 
   return appendProvenance({
     type: "override_outcome",
@@ -360,7 +356,7 @@ export async function getProvenanceEvents(filters?: {
     if (errorCode === "ENOENT") {
       return { events: [], total: 0 };
     }
-    console.error("[Provenance] Failed to read provenance events:", error);
+    logger.error("[Provenance] Failed to read provenance events:", undefined, error);
     throw error;
   }
 }
@@ -433,7 +429,7 @@ export async function verifyChain(
       lastHash: events[events.length - 1].hash,
     };
   } catch (error) {
-    console.error("[Provenance] Failed to verify chain:", error);
+    logger.error("[Provenance] Failed to verify chain:", undefined, error);
     throw error;
   }
 }

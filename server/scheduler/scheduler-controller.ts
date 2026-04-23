@@ -1,4 +1,6 @@
 import crypto from "node:crypto";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Scheduler:SchedulerController");
 import {
   dbSchedulerStorage,
   dbCrewStorage,
@@ -117,9 +119,7 @@ export async function planAndMaybeExecute({
   if (mode === "auto") {
     const existingRun = await dbSchedulerStorage.findRecentSchedulerRunByHash(orgId, inputHash);
     if (existingRun) {
-      console.log(
-        `[Scheduler] Skipping redundant auto-replan: identical inputs within last 24h (run ${existingRun.id})`
-      );
+      logger.info(`[Scheduler] Skipping redundant auto-replan: identical inputs within last 24h (run ${existingRun.id})`);
       schedDeduplicatedRuns.labels(orgId, mode).inc();
       return {
         runId: existingRun.id,
@@ -163,9 +163,7 @@ export async function planAndMaybeExecute({
           endDate
         );
         if (deletedCount > 0) {
-          console.log(
-            `[Scheduler] Cleared ${deletedCount} existing auto assignments for date range ${daysArr[0]} to ${daysArr[daysArr.length - 1]}`
-          );
+          logger.info(`[Scheduler] Cleared ${deletedCount} existing auto assignments for date range ${daysArr[0]} to ${daysArr[daysArr.length - 1]}`);
           schedCleanupAssignments.labels(orgId, mode).inc(deletedCount);
         }
       }
@@ -240,9 +238,7 @@ export async function planAndMaybeExecute({
     const coverage = totalNeeded > 0 ? (scheduled.length / totalNeeded) * 100 : 0;
     schedCoveragePercent.labels(orgId).set(coverage);
 
-    console.log(
-      `[Scheduler] Run completed: mode=${mode}, assigned=${scheduled.length}, unfilled=${stats.unfilled}, duration=${durationMs}ms, coverage=${coverage.toFixed(1)}%`
-    );
+    logger.info(`[Scheduler] Run completed: mode=${mode}, assigned=${scheduled.length}, unfilled=${stats.unfilled}, duration=${durationMs}ms, coverage=${coverage.toFixed(1)}%`);
 
     return { runId: run.id, mode, stats, scheduled, unfilled };
   } catch (error) {
@@ -436,9 +432,7 @@ export async function simulateSchedule({
     reasons: aggregateReasons(unfilled.map((u) => u.reason)),
   };
 
-  console.log(
-    `[Scheduler] Simulation completed: proposed=${proposed.length}, unfilled=${stats.unfilled}, collisions=${collisions.length}, duration=${durationMs}ms`
-  );
+  logger.info(`[Scheduler] Simulation completed: proposed=${proposed.length}, unfilled=${stats.unfilled}, collisions=${collisions.length}, duration=${durationMs}ms`);
 
   return {
     mode: "simulate",
@@ -529,9 +523,7 @@ export async function applySimulatedSchedule({
     });
   }
 
-  console.log(
-    `[Scheduler] Applied ${toApply.length} generated assignments as drafts (skipped ${skipped} collisions), runId=${runId}`
-  );
+  logger.info(`[Scheduler] Applied ${toApply.length} generated assignments as drafts (skipped ${skipped} collisions), runId=${runId}`);
 
   return {
     applied: toApply.length,
@@ -552,9 +544,7 @@ export async function revertGeneratedSchedule({
 }): Promise<{ deleted: number }> {
   const deleted = await dbCrewStorage.deleteCrewAssignmentsByRunId(orgId, runId);
 
-  console.log(
-    `[Scheduler] Reverted generated schedule: deleted ${deleted} draft assignments from run ${runId}`
-  );
+  logger.info(`[Scheduler] Reverted generated schedule: deleted ${deleted} draft assignments from run ${runId}`);
 
   return { deleted };
 }
@@ -573,7 +563,7 @@ export async function applySchedule(
     throw new Error(`Scheduler run ${runId} not found for org ${orgId}`);
   }
   const updated = await dbSchedulerStorage.publishSchedulerRun(runId, orgId);
-  console.log(`[Scheduler] Applied/published scheduler run ${runId} for org ${orgId}`);
+  logger.info(`[Scheduler] Applied/published scheduler run ${runId} for org ${orgId}`);
   return { runId: updated.id, status: updated.status ?? "published" };
 }
 
@@ -591,9 +581,7 @@ export async function cancelScheduleRun(
   }
   const deletedAssignments = await dbCrewStorage.deleteCrewAssignmentsByRunId(orgId, runId);
   const updated = await dbSchedulerStorage.cancelSchedulerRun(runId);
-  console.log(
-    `[Scheduler] Cancelled scheduler run ${runId}: removed ${deletedAssignments} draft assignments`
-  );
+  logger.info(`[Scheduler] Cancelled scheduler run ${runId}: removed ${deletedAssignments} draft assignments`);
   return { runId: updated.id, status: updated.status ?? "cancelled", deletedAssignments };
 }
 
@@ -619,9 +607,7 @@ export async function clearSchedulerRunHistory(orgId: string): Promise<{ deleted
   // 3. Finally delete the scheduler runs themselves
   await dbSchedulerStorage.deleteSchedulerRuns(orgId);
 
-  console.log(
-    `[Scheduler] Cleared scheduler run history: deleted ${runs.length} runs and ${totalAssignmentsDeleted} associated crew assignments for org ${orgId}`
-  );
+  logger.info(`[Scheduler] Cleared scheduler run history: deleted ${runs.length} runs and ${totalAssignmentsDeleted} associated crew assignments for org ${orgId}`);
 
   return { deleted: runs.length };
 }

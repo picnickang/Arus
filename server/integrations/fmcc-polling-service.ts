@@ -3,6 +3,8 @@ import { trackLogService, Position } from "../services/track-log-service";
 import { dbTelemetryStorage } from "../repositories";
 import { getFMCCService } from "./index";
 import type { FmccSnapshot, FmccPollingConfig, FmccHealthStatus } from "./fmcc-types";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Integrations:FmccPollingService");
 
 export class FmccPollingService extends EventEmitter {
   private config: FmccPollingConfig;
@@ -37,25 +39,25 @@ export class FmccPollingService extends EventEmitter {
     };
 
     if (!this.config.enabled) {
-      console.log("[FMCC Polling] Service disabled (FMCC_ENABLED != true)");
+      logger.info("[FMCC Polling] Service disabled (FMCC_ENABLED != true)");
     }
   }
 
   start(): void {
     if (!this.config.enabled) {
-      console.log("[FMCC Polling] Not starting - FMCC is disabled");
+      logger.info("[FMCC Polling] Not starting - FMCC is disabled");
       return;
     }
 
     if (this.pollingInterval) {
-      console.warn("[FMCC Polling] Already running, ignoring start request");
+      logger.warn("[FMCC Polling] Already running, ignoring start request");
       return;
     }
 
-    console.log(`[FMCC Polling] Starting with interval ${this.config.pollIntervalMs}ms`);
-    console.log(`[FMCC Polling] Vessel: ${this.config.vesselId}, Org: ${this.config.orgId}`);
-    console.log(`[FMCC Polling] Track logging: ${this.config.enableTrackLogging}`);
-    console.log(`[FMCC Polling] Telemetry logging: ${this.config.enableTelemetryLogging}`);
+    logger.info(`[FMCC Polling] Starting with interval ${this.config.pollIntervalMs}ms`);
+    logger.info(`[FMCC Polling] Vessel: ${this.config.vesselId}, Org: ${this.config.orgId}`);
+    logger.info(`[FMCC Polling] Track logging: ${this.config.enableTrackLogging}`);
+    logger.info(`[FMCC Polling] Telemetry logging: ${this.config.enableTelemetryLogging}`);
 
     this.pollingInterval = setInterval(
       () => this.poll().catch((err) => this.handlePollError(err)),
@@ -69,7 +71,7 @@ export class FmccPollingService extends EventEmitter {
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
-      console.log("[FMCC Polling] Stopped");
+      logger.info("[FMCC Polling] Stopped");
     }
   }
 
@@ -82,7 +84,7 @@ export class FmccPollingService extends EventEmitter {
     const fmccService = getFMCCService();
 
     if (!fmccService.isReady()) {
-      console.log("[FMCC Polling] Service not ready, skipping poll");
+      logger.info("[FMCC Polling] Service not ready, skipping poll");
       return null;
     }
 
@@ -249,7 +251,7 @@ export class FmccPollingService extends EventEmitter {
     };
 
     if (!this.isValidPosition(position.latitude, position.longitude)) {
-      console.warn("[FMCC Polling] Invalid position coordinates, skipping track log");
+      logger.warn("[FMCC Polling] Invalid position coordinates, skipping track log");
       return;
     }
 
@@ -257,9 +259,7 @@ export class FmccPollingService extends EventEmitter {
       const logId = await trackLogService.logPosition(snapshot.orgId, snapshot.vesselId, position);
 
       if (logId) {
-        console.log(
-          `[FMCC Polling] Track point logged: ${logId} (${position.latitude.toFixed(4)}, ${position.longitude.toFixed(4)})`
-        );
+        logger.info(`[FMCC Polling] Track point logged: ${logId} (${position.latitude.toFixed(4)}, ${position.longitude.toFixed(4)})`);
         this.lastPosition = {
           lat: position.latitude,
           lon: position.longitude,
@@ -267,7 +267,7 @@ export class FmccPollingService extends EventEmitter {
         };
       }
     } catch (error) {
-      console.error("[FMCC Polling] Failed to log track point:", error);
+      logger.error("[FMCC Polling] Failed to log track point:", undefined, error);
     }
   }
 
@@ -431,7 +431,7 @@ export class FmccPollingService extends EventEmitter {
         });
       }
     } catch (error) {
-      console.error(`[FMCC Polling] Failed to store ${type} telemetry:`, error);
+      logger.error(`[FMCC Polling] Failed to store ${type} telemetry:`, undefined, error);
     }
   }
 
@@ -448,15 +448,9 @@ export class FmccPollingService extends EventEmitter {
     this.health.connected = false;
 
     if (this.health.consecutiveFailures <= 3) {
-      console.warn(
-        `[FMCC Polling] Poll failed (attempt ${this.health.consecutiveFailures}):`,
-        message
-      );
+      logger.warn(`[FMCC Polling] Poll failed (attempt ${this.health.consecutiveFailures}):`, { details: message });
     } else if (this.health.consecutiveFailures % 10 === 0) {
-      console.error(
-        `[FMCC Polling] ${this.health.consecutiveFailures} consecutive failures:`,
-        message
-      );
+      logger.error(`[FMCC Polling] ${this.health.consecutiveFailures} consecutive failures:`, undefined, message);
     }
 
     this.emit("poll_error", {
@@ -511,11 +505,11 @@ export function initializeFmccPolling(): void {
       ]);
       for (const r of results) {
         if (r.status === "rejected") {
-          console.error("[FMCC→RMS] Processor error:", r.reason);
+          logger.error("[FMCC→RMS] Processor error:", undefined, r.reason);
         }
       }
     } catch (err) {
-      console.error("[FMCC→RMS] Integration error:", err);
+      logger.error("[FMCC→RMS] Integration error:", undefined, err);
     }
   });
 

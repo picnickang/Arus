@@ -19,6 +19,8 @@ import { canModifyRecord, PR_PERMISSION_GUARD } from "../lib/status-permission-g
 import { db } from "../db";
 import { eq, and } from "drizzle-orm";
 import { purchaseRequests, purchaseRequestItems, purchaseRequestEvents } from "@shared/schema";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Purchasing:PrRoutes");
 
 export const prRouter = Router();
 
@@ -38,7 +40,7 @@ prRouter.post("/purchase-requests", async (req: Request, res: Response) => {
     const pr = await service.createDraftPR(orgId, requestedBy, vesselId, notes, workOrderId);
     res.status(201).json(pr);
   } catch (error) {
-    console.error("[Purchasing] Error creating PR:", error);
+    logger.error("[Purchasing] Error creating PR:", undefined, error);
     res.status(500).json({ error: (error as Error).message });
   }
 });
@@ -69,7 +71,7 @@ prRouter.get("/purchase-requests", async (req: Request, res: Response) => {
     const prs = await service.listPRs(filters);
     res.json(prs);
   } catch (error) {
-    console.error("[Purchasing] Error listing PRs:", error);
+    logger.error("[Purchasing] Error listing PRs:", undefined, error);
     res.status(500).json({ error: (error as Error).message });
   }
 });
@@ -88,7 +90,7 @@ prRouter.get("/purchase-requests/:id", async (req: Request, res: Response) => {
     }
     res.json(pr);
   } catch (error) {
-    console.error("[Purchasing] Error getting PR:", error);
+    logger.error("[Purchasing] Error getting PR:", undefined, error);
     res.status(500).json({ error: (error as Error).message });
   }
 });
@@ -143,7 +145,7 @@ prRouter.patch("/purchase-requests/:id", async (req: Request, res: Response) => 
     const pr = await service.updatePRDraft(req.params.id, orgId, updates as any, userId);
     res.json(pr);
   } catch (error) {
-    console.error("[Purchasing] Error updating PR:", error);
+    logger.error("[Purchasing] Error updating PR:", undefined, error);
     res.status(400).json({ error: (error as Error).message });
   }
 });
@@ -182,7 +184,7 @@ prRouter.post("/purchase-requests/:id/auto-save", async (req: Request, res: Resp
     });
     res.json({ success: true, lastSavedAt: pr?.lastDraftSaveAt });
   } catch (error) {
-    console.error("[Purchasing] Error auto-saving PR:", error);
+    logger.error("[Purchasing] Error auto-saving PR:", undefined, error);
     res.status(400).json({ error: (error as Error).message });
   }
 });
@@ -211,7 +213,7 @@ prRouter.post("/purchase-requests/:id/items", async (req: Request, res: Response
 
     res.status(201).json(result);
   } catch (error) {
-    console.error("[Purchasing] Error adding item to PR:", error);
+    logger.error("[Purchasing] Error adding item to PR:", undefined, error);
     res.status(400).json({ error: (error as Error).message });
   }
 });
@@ -232,7 +234,7 @@ prRouter.delete("/purchase-requests/:id/items/:itemId", async (req: Request, res
     }
     res.json({ success: true });
   } catch (error) {
-    console.error("[Purchasing] Error removing item from PR:", error);
+    logger.error("[Purchasing] Error removing item from PR:", undefined, error);
     res.status(400).json({ error: (error as Error).message });
   }
 });
@@ -249,7 +251,7 @@ prRouter.post("/purchase-requests/:id/send", async (req: Request, res: Response)
     const result = await service.sendPR(req.params.id, orgId, userId);
     res.json(result);
   } catch (error) {
-    console.error("[Purchasing] Error sending PR:", error);
+    logger.error("[Purchasing] Error sending PR:", undefined, error);
     res.status(400).json({ error: (error as Error).message });
   }
 });
@@ -266,7 +268,7 @@ prRouter.post("/purchase-requests/:id/cancel", async (req: Request, res: Respons
     const pr = await service.cancelPR(req.params.id, orgId, userId);
     res.json(pr);
   } catch (error) {
-    console.error("[Purchasing] Error cancelling PR:", error);
+    logger.error("[Purchasing] Error cancelling PR:", undefined, error);
     res.status(400).json({ error: (error as Error).message });
   }
 });
@@ -283,7 +285,7 @@ prRouter.post("/purchase-requests/:id/close", async (req: Request, res: Response
     const pr = await service.closePR(req.params.id, orgId, userId);
     res.json(pr);
   } catch (error) {
-    console.error("[Purchasing] Error closing PR:", error);
+    logger.error("[Purchasing] Error closing PR:", undefined, error);
     res.status(400).json({ error: (error as Error).message });
   }
 });
@@ -349,7 +351,7 @@ prRouter.delete("/purchase-requests/:id", async (req: Request, res: Response) =>
 
     res.json({ success: true });
   } catch (error) {
-    console.error("[Purchasing] Error deleting PR:", error);
+    logger.error("[Purchasing] Error deleting PR:", undefined, error);
     res.status(500).json({ error: (error as Error).message });
   }
 });
@@ -375,7 +377,7 @@ prRouter.patch("/purchase-requests/:id/status", async (req: Request, res: Respon
     }
     res.json(result.pr);
   } catch (error) {
-    console.error("[Purchasing] Error updating PR status:", error);
+    logger.error("[Purchasing] Error updating PR status:", undefined, error);
     res.status(500).json({ error: (error as Error).message });
   }
 });
@@ -407,7 +409,7 @@ prRouter.post(
 
       res.json(result);
     } catch (error) {
-      console.error("[Purchasing] Error fulfilling item:", error);
+      logger.error("[Purchasing] Error fulfilling item:", undefined, error);
       res.status(400).json({ error: (error as Error).message });
     }
   }
@@ -427,7 +429,7 @@ prRouter.delete(
       const result = await deleteAllPurchaseRequestsByWorkOrder(req.params.workOrderId, orgId);
       res.json(result);
     } catch (error) {
-      console.error("[Purchasing] Error bulk deleting PRs:", error);
+      logger.error("[Purchasing] Error bulk deleting PRs:", undefined, error);
       res.status(500).json({ error: (error as Error).message });
     }
   }

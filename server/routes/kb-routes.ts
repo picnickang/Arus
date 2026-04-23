@@ -20,6 +20,8 @@ import { jobQueueService, type DocumentIngestionJob } from "../job-queue-service
 import { db } from "../db";
 import { kbDocs, equipment } from "@shared/schema-runtime";
 import { eq, and } from "drizzle-orm";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Routes:KbRoutes");
 import {
   updateDocumentVersion,
   getDocumentVersionHistory,
@@ -165,7 +167,7 @@ export async function registerKnowledgeBaseRoutes(
           message: "Document upload queued for processing",
         });
       } catch (error) {
-        console.error("[KB Upload Async] Failed:", error);
+        logger.error("[KB Upload Async] Failed:", undefined, error);
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
         res.status(500).json({ error: "Document upload failed", details: errorMessage });
       }
@@ -223,7 +225,7 @@ export async function registerKnowledgeBaseRoutes(
         metadata: result.metadata,
       });
     } catch (error) {
-      console.error("[KB Upload Sync] Failed:", error);
+      logger.error("[KB Upload Sync] Failed:", undefined, error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       res.status(500).json({ error: "Document upload failed", details: errorMessage });
     }
@@ -244,9 +246,7 @@ export async function registerKnowledgeBaseRoutes(
       // Security: Verify org ownership via job payload
       const jobData = job.data as DocumentIngestionJob;
       if (jobData.orgId !== orgId) {
-        console.warn(
-          `[KB Job Status] Unauthorized access attempt: job ${jobId} belongs to org ${jobData.orgId}, requested by org ${orgId}`
-        );
+        logger.warn(`[KB Job Status] Unauthorized access attempt: job ${jobId} belongs to org ${jobData.orgId}, requested by org ${orgId}`);
         return res.status(404).json({ error: "Job not found" }); // Don't leak existence
       }
 
@@ -262,7 +262,7 @@ export async function registerKnowledgeBaseRoutes(
         output: job.output,
       });
     } catch (error) {
-      console.error("[KB Job Status] Failed:", error);
+      logger.error("[KB Job Status] Failed:", undefined, error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       res.status(500).json({ error: "Failed to get job status", details: errorMessage });
     }
@@ -274,7 +274,7 @@ export async function registerKnowledgeBaseRoutes(
       const validatedQuery = searchQuerySchema.parse(req.query);
       const orgId = req.orgId;
 
-      console.log(`[KB Search] Query: "${validatedQuery.q}" for org ${orgId}`);
+      logger.info(`[KB Search] Query: "${validatedQuery.q}" for org ${orgId}`);
 
       const results = await searchKnowledgeBase({
         orgId,
@@ -293,7 +293,7 @@ export async function registerKnowledgeBaseRoutes(
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid query parameters", details: error.errors });
       }
-      console.error("[KB Search] Failed:", error);
+      logger.error("[KB Search] Failed:", undefined, error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       res.status(500).json({ error: "Search failed", details: errorMessage });
     }
@@ -328,7 +328,7 @@ export async function registerKnowledgeBaseRoutes(
         ...(equipmentId && { equipmentId }),
       });
     } catch (error) {
-      console.error("[KB List] Failed:", error);
+      logger.error("[KB List] Failed:", undefined, error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       res.status(500).json({ error: "Failed to list documents", details: errorMessage });
     }
@@ -344,7 +344,7 @@ export async function registerKnowledgeBaseRoutes(
 
       res.status(204).send();
     } catch (error) {
-      console.error("[KB Delete] Failed:", error);
+      logger.error("[KB Delete] Failed:", undefined, error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
       if (errorMessage.includes("not found") || errorMessage.includes("access denied")) {
@@ -363,7 +363,7 @@ export async function registerKnowledgeBaseRoutes(
 
       res.json(stats);
     } catch (error) {
-      console.error("[KB Stats] Failed:", error);
+      logger.error("[KB Stats] Failed:", undefined, error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       res.status(500).json({ error: "Failed to get stats", details: errorMessage });
     }
@@ -378,7 +378,7 @@ export async function registerKnowledgeBaseRoutes(
       const versions = await getDocumentVersionHistory(id, orgId);
       res.json({ documentId: id, versions, count: versions.length });
     } catch (error) {
-      console.error("[KB Versions] Failed:", error);
+      logger.error("[KB Versions] Failed:", undefined, error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       if (errorMessage.includes("not found")) {
         return res.status(404).json({ error: errorMessage });
@@ -410,7 +410,7 @@ export async function registerKnowledgeBaseRoutes(
         versionRecord: result.version,
       });
     } catch (error) {
-      console.error("[KB Version Update] Failed:", error);
+      logger.error("[KB Version Update] Failed:", undefined, error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       if (errorMessage.includes("not found")) {
         return res.status(404).json({ error: errorMessage });
@@ -441,7 +441,7 @@ export async function registerKnowledgeBaseRoutes(
       const updated = await updateDocumentVisibility(id, orgId, visibility, allowedRoles);
       res.json({ success: true, document: updated });
     } catch (error) {
-      console.error("[KB Visibility Update] Failed:", error);
+      logger.error("[KB Visibility Update] Failed:", undefined, error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       if (errorMessage.includes("not found")) {
         return res.status(404).json({ error: errorMessage });
@@ -453,5 +453,5 @@ export async function registerKnowledgeBaseRoutes(
   // Mount router
   app.use("/api/kb", router);
 
-  console.log("[KB Routes] Knowledge Base API routes registered");
+  logger.info("[KB Routes] Knowledge Base API routes registered");
 }

@@ -2,6 +2,8 @@ import { Router } from "express";
 import { beastModeManager, DEFAULT_ORG_ID } from "../beast-mode-config.js";
 import { LinearProgrammingOptimizer } from "../lp-optimizer.js";
 import { z } from "zod";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Beast:LpRoutes");
 
 const router = Router();
 
@@ -42,7 +44,7 @@ router.post("/lp/optimize", async (req, res) => {
           feature: "lp_optimizer",
         });
     }
-    console.log(`[Beast Mode API] Starting LP optimization for org ${orgId}`);
+    logger.info(`[Beast Mode API] Starting LP optimization for org ${orgId}`);
     const constraints = optimizationConstraintsSchema.parse(req.body);
     const optimizer = new LinearProgrammingOptimizer(orgId);
     const result = await optimizer.optimizeMaintenanceSchedule(constraints);
@@ -53,7 +55,7 @@ router.post("/lp/optimize", async (req, res) => {
       message: `Optimization completed in ${result.optimizationTime}ms - ${result.schedule.length} jobs scheduled`,
     });
   } catch (error: any) {
-    console.error("[Beast Mode API] Error running LP optimization:", error);
+    logger.error("[Beast Mode API] Error running LP optimization:", undefined, error);
     res
       .status(500)
       .json({ success: false, error: error.message || "Failed to run maintenance optimization" });
@@ -73,7 +75,7 @@ router.get("/lp/results/:resultId", async (req, res) => {
           error: "LP Optimizer feature is not enabled for this organization",
         });
     }
-    console.log(`[Beast Mode API] Retrieving optimization result ${resultId} for org ${orgId}`);
+    logger.info(`[Beast Mode API] Retrieving optimization result ${resultId} for org ${orgId}`);
     const optimizer = new LinearProgrammingOptimizer(orgId);
     const optimizationData = await optimizer.getOptimizationResults(resultId);
     res.json({
@@ -83,10 +85,7 @@ router.get("/lp/results/:resultId", async (req, res) => {
       message: `Retrieved optimization with ${optimizationData.totalSchedules} scheduled jobs, score: ${optimizationData.optimizationScore}/100`,
     });
   } catch (error: any) {
-    console.error(
-      `[Beast Mode API] Error retrieving optimization result ${req.params.resultId}:`,
-      error
-    );
+    logger.error(`[Beast Mode API] Error retrieving optimization result ${req.params.resultId}:`, undefined, error);
     if (error.message.includes("not found")) {
       return res
         .status(404)

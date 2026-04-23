@@ -5,6 +5,8 @@ import { notificationQueue } from "@shared/schema";
 import { getRegisteredToolNames } from "../tools";
 import { eq, and, inArray } from "drizzle-orm";
 import cron from "node-cron";
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Domains:Agent:Application:SchedulerService");
 
 const WRITE_TOOLS = ["draftWorkOrder"];
 const MAX_CONSECUTIVE_FAILURES = 3;
@@ -60,18 +62,14 @@ export class SchedulerService {
         this.scheduleJob(sched);
       }
     }
-    console.log(
-      `[SchedulerService] Initialized ${schedules.filter((s) => s.enabled).length} schedules for org ${orgId}`
-    );
+    logger.info(`[SchedulerService] Initialized ${schedules.filter((s) => s.enabled).length} schedules for org ${orgId}`);
   }
 
   scheduleJob(schedule: AgentSchedule): void {
     this.cancelJob(schedule.id);
 
     if (!cron.validate(schedule.cronExpression)) {
-      console.warn(
-        `[SchedulerService] Invalid cron expression for schedule ${schedule.id}: ${schedule.cronExpression}`
-      );
+      logger.warn(`[SchedulerService] Invalid cron expression for schedule ${schedule.id}: ${schedule.cronExpression}`);
       return;
     }
 
@@ -88,9 +86,7 @@ export class SchedulerService {
     });
 
     this.cronJobs.set(schedule.id, task);
-    console.log(
-      `[SchedulerService] Scheduled job ${schedule.id} (${schedule.name}): ${schedule.cronExpression}`
-    );
+    logger.info(`[SchedulerService] Scheduled job ${schedule.id} (${schedule.name}): ${schedule.cronExpression}`);
   }
 
   cancelJob(scheduleId: string): void {
@@ -118,7 +114,7 @@ export class SchedulerService {
           lastRunAt: new Date(),
           consecutiveFailures: 0,
         });
-        console.log(`[SchedulerService] Daily briefing generated: ${result.briefingId}`);
+        logger.info(`[SchedulerService] Daily briefing generated: ${result.briefingId}`);
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : "unknown";
         await this.repo.schedules.updateRun(run.id, {
@@ -127,7 +123,7 @@ export class SchedulerService {
           completedAt: new Date(),
         });
         await this.handleConsecutiveFailure(schedule, errMsg);
-        console.error(`[SchedulerService] Briefing generation failed: ${errMsg}`);
+        logger.error(`[SchedulerService] Briefing generation failed: ${errMsg}`);
       }
       return;
     }
@@ -189,7 +185,7 @@ export class SchedulerService {
 
       await this.deliverOutput(schedule, result.finalResponse, result);
 
-      console.log(`[SchedulerService] Schedule ${schedule.id} completed successfully`);
+      logger.info(`[SchedulerService] Schedule ${schedule.id} completed successfully`);
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : "Unknown error";
 
@@ -199,7 +195,7 @@ export class SchedulerService {
         completedAt: new Date(),
       });
 
-      console.log(`[SchedulerService] Schedule ${schedule.id} failed, scheduling async retry...`);
+      logger.info(`[SchedulerService] Schedule ${schedule.id} failed, scheduling async retry...`);
 
       // Non-blocking retry: queue via setImmediate so we don't block the cron
       // thread while the retry runs.
@@ -267,10 +263,10 @@ export class SchedulerService {
         });
 
         await this.deliverOutput(schedule, retryResult.finalResponse, retryResult);
-        console.log(`[SchedulerService] Schedule ${schedule.id} retry succeeded`);
+        logger.info(`[SchedulerService] Schedule ${schedule.id} retry succeeded`);
       } catch (retryErr: unknown) {
         const retryErrMsg = retryErr instanceof Error ? retryErr.message : "Unknown error";
-        console.error(`[SchedulerService] Schedule ${schedule.id} retry also failed:`, retryErrMsg);
+        logger.error(`[SchedulerService] Schedule ${schedule.id} retry also failed:`, undefined, retryErrMsg);
 
         await this.handleConsecutiveFailure(schedule, originalError);
       }
@@ -292,13 +288,11 @@ export class SchedulerService {
     if (newFailCount >= MAX_CONSECUTIVE_FAILURES) {
       await this.repo.schedules.update(schedule.id, { enabled: false });
       this.cancelJob(schedule.id);
-      console.warn(
-        `[SchedulerService] Schedule ${schedule.id} auto-disabled after ${MAX_CONSECUTIVE_FAILURES} consecutive failures`
-      );
+      logger.warn(`[SchedulerService] Schedule ${schedule.id} auto-disabled after ${MAX_CONSECUTIVE_FAILURES} consecutive failures`);
     }
 
     await this.alertAdminFailure(schedule, errorMsg, newFailCount);
-    console.error(`[SchedulerService] Schedule ${schedule.id} failed:`, errorMsg);
+    logger.error(`[SchedulerService] Schedule ${schedule.id} failed:`, undefined, errorMsg);
   }
 
   getFilteredTools(schedule: AgentSchedule): string[] | null {
@@ -367,10 +361,7 @@ export class SchedulerService {
             },
           });
         } catch (reportErr) {
-          console.warn(
-            "[SchedulerService] Report storage failed, falling back to notification:",
-            reportErr instanceof Error ? reportErr.message : "unknown"
-          );
+          logger.warn("[SchedulerService] Report storage failed, falling back to notification:", { details: reportErr instanceof Error ? reportErr.message : "unknown" });
           await db.insert(notificationQueue).values({
             orgId: schedule.orgId,
             notificationType: "agent_schedule_report",
@@ -384,10 +375,7 @@ export class SchedulerService {
         }
       }
     } catch (err) {
-      console.warn(
-        "[SchedulerService] Output delivery failed (non-blocking):",
-        err instanceof Error ? err.message : "unknown"
-      );
+      logger.warn("[SchedulerService] Output delivery failed (non-blocking):", { details: err instanceof Error ? err.message : "unknown" });
     }
   }
 
@@ -414,10 +402,7 @@ export class SchedulerService {
         status: "pending",
       });
     } catch (err) {
-      console.warn(
-        "[SchedulerService] Failed to alert admin:",
-        err instanceof Error ? err.message : "unknown"
-      );
+      logger.warn("[SchedulerService] Failed to alert admin:", { details: err instanceof Error ? err.message : "unknown" });
     }
   }
 

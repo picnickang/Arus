@@ -3,6 +3,8 @@ import { beastModeManager } from "../beast-mode-config.js";
 import { InventoryRiskAnalyzer } from "../inventory-risk.js";
 import { dbInventoryStorage, dbEquipmentStorage, workOrderService } from "../repositories.js";
 import type { InventoryRiskDeps } from "../inventory-risk/analyzer.js";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Beast:InventoryRiskRoutes");
 
 const router = Router();
 
@@ -43,7 +45,7 @@ router.post("/inventory/analyze", async (req, res) => {
           enabled: false,
         });
     }
-    console.log(`[Beast Mode API] Inventory risk analysis for org: ${orgId}`);
+    logger.info(`[Beast Mode API] Inventory risk analysis for org: ${orgId}`);
     const riskSummary = await getInventoryRiskAnalyzer().analyzeInventoryRisk(
       orgId,
       includeInactive || false
@@ -59,7 +61,7 @@ router.post("/inventory/analyze", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(`[Beast Mode API] Inventory risk analysis error:`, error);
+    logger.error(`[Beast Mode API] Inventory risk analysis error:`, undefined, error);
     res
       .status(500)
       .json({
@@ -93,7 +95,7 @@ router.get("/inventory/equipment/:equipmentId", async (req, res) => {
           enabled: false,
         });
     }
-    console.log(`[Beast Mode API] Equipment parts risk analysis for ${equipmentId}`);
+    logger.info(`[Beast Mode API] Equipment parts risk analysis for ${equipmentId}`);
     const equipmentRisk = await getInventoryRiskAnalyzer().analyzeEquipmentPartsRisk(
       orgId,
       equipmentId
@@ -112,7 +114,7 @@ router.get("/inventory/equipment/:equipmentId", async (req, res) => {
       metadata: { analysisDate: new Date().toISOString(), podVersion: "1.0", orgId, equipmentId },
     });
   } catch (error) {
-    console.error(`[Beast Mode API] Equipment parts risk analysis error:`, error);
+    logger.error(`[Beast Mode API] Equipment parts risk analysis error:`, undefined, error);
     res
       .status(500)
       .json({
@@ -147,9 +149,7 @@ router.get("/inventory/critical", async (req, res) => {
           enabled: false,
         });
     }
-    console.log(
-      `[Beast Mode API] Critical parts analysis for org: ${orgId}, threshold: ${riskThreshold}`
-    );
+    logger.info(`[Beast Mode API] Critical parts analysis for org: ${orgId}, threshold: ${riskThreshold}`);
     const criticalParts = await getInventoryRiskAnalyzer().getCriticalParts(orgId, riskThreshold);
     res.json({
       success: true,
@@ -157,7 +157,7 @@ router.get("/inventory/critical", async (req, res) => {
       metadata: { analysisDate: new Date().toISOString(), podVersion: "1.0", orgId, riskThreshold },
     });
   } catch (error) {
-    console.error(`[Beast Mode API] Critical parts analysis error:`, error);
+    logger.error(`[Beast Mode API] Critical parts analysis error:`, undefined, error);
     res
       .status(500)
       .json({

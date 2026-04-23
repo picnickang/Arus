@@ -24,6 +24,8 @@ export {
   generateFleetRecommendations,
 } from "./fleet-analysis";
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("EnhancedTrends:Index");
 import type {
   TrendAnalysisResult,
   CorrelationAnalysis,
@@ -55,7 +57,7 @@ export class EnhancedTrendsAnalyzer {
     sensorType: string,
     hours: number = 168
   ): Promise<TrendAnalysisResult> {
-    console.log(`[Enhanced Trends] Analyzing ${orgId}:${equipmentId}:${sensorType} over ${hours}h`);
+    logger.info(`[Enhanced Trends] Analyzing ${orgId}:${equipmentId}:${sensorType} over ${hours}h`);
 
     const telemetryData = await this.getTelemetryData(orgId, equipmentId, sensorType, hours);
 
@@ -130,7 +132,7 @@ export class EnhancedTrendsAnalyzer {
           correlations.push(correlation);
         }
       } catch (error) {
-        console.warn(`[Enhanced Trends] Correlation analysis failed for ${sensor}:`, error);
+        logger.warn(`[Enhanced Trends] Correlation analysis failed for ${sensor}:`, { details: error });
       }
     }
 
@@ -145,9 +147,7 @@ export class EnhancedTrendsAnalyzer {
     equipmentIds: string[],
     hours: number = 168
   ): Promise<FleetTrendSummary> {
-    console.log(
-      `[Enhanced Trends] Analyzing fleet trends for ${orgId}: ${equipmentIds.length} equipment units`
-    );
+    logger.info(`[Enhanced Trends] Analyzing fleet trends for ${orgId}: ${equipmentIds.length} equipment units`);
 
     const equipmentAnalyses: EquipmentAnalysisResult[] = [];
     const sensorTypes = new Set<string>();
@@ -166,7 +166,7 @@ export class EnhancedTrendsAnalyzer {
           equipmentAnalyses.push({ equipmentId, sensor, analysis });
         }
       } catch (error) {
-        console.warn(`[Enhanced Trends] Fleet analysis failed for ${orgId}:${equipmentId}:`, error);
+        logger.warn(`[Enhanced Trends] Fleet analysis failed for ${orgId}:${equipmentId}:`, { details: error });
       }
     }
 
@@ -200,9 +200,7 @@ export class EnhancedTrendsAnalyzer {
       const endTime = new Date();
       const startTime = new Date(endTime.getTime() - hours * 60 * 60 * 1000);
 
-      console.log(
-        `[Enhanced Trends] Fetching ${orgId}:${equipmentId}:${sensorType} from ${startTime.toISOString()} to ${endTime.toISOString()}`
-      );
+      logger.info(`[Enhanced Trends] Fetching ${orgId}:${equipmentId}:${sensorType} from ${startTime.toISOString()} to ${endTime.toISOString()}`);
 
       const readings = await storage.getTelemetryHistory(
         orgId,
@@ -218,10 +216,7 @@ export class EnhancedTrendsAnalyzer {
         unit: reading.unit || "unknown",
       }));
     } catch (error) {
-      console.warn(
-        `[Enhanced Trends] Failed to fetch telemetry data for ${orgId}:${equipmentId}:${sensorType}:`,
-        error
-      );
+      logger.warn(`[Enhanced Trends] Failed to fetch telemetry data for ${orgId}:${equipmentId}:${sensorType}:`, { details: error });
       return [];
     }
   }
@@ -232,16 +227,10 @@ export class EnhancedTrendsAnalyzer {
 
       const sensorTypes = await storage.getEquipmentSensorTypes(orgId, equipmentId);
 
-      console.log(
-        `[Enhanced Trends] Found ${sensorTypes.length} sensor types for ${orgId}:${equipmentId}:`,
-        sensorTypes
-      );
+      logger.info(`[Enhanced Trends] Found ${sensorTypes.length} sensor types for ${orgId}:${equipmentId}:`, { details: sensorTypes });
       return sensorTypes;
     } catch (error) {
-      console.warn(
-        `[Enhanced Trends] Failed to get sensor types for ${orgId}:${equipmentId}:`,
-        error
-      );
+      logger.warn(`[Enhanced Trends] Failed to get sensor types for ${orgId}:${equipmentId}:`, { details: error });
       return [];
     }
   }

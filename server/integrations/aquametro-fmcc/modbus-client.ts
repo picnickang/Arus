@@ -5,6 +5,8 @@
 
 import type { FMCCConfig, FMCCInstantFlow } from "./types.js";
 import { cryptoRandomInt } from "@shared/crypto-random";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Integrations:AquametroFmcc:ModbusClient");
 
 export class FMCCModbusClient {
   private config: FMCCConfig["modbusConfig"];
@@ -15,7 +17,7 @@ export class FMCCModbusClient {
   }
 
   async connect(): Promise<void> {
-    console.log("[FMCC Modbus] Modbus TCP protocol not available - falling back to REST API");
+    logger.info("[FMCC Modbus] Modbus TCP protocol not available - falling back to REST API");
     this.connected = false;
   }
 
@@ -25,14 +27,14 @@ export class FMCCModbusClient {
 
   async readRegisters(_startAddress: number, quantity: number): Promise<number[]> {
     if (!this.connected) {
-      console.log("[FMCC Modbus] Not connected - returning empty registers");
+      logger.info("[FMCC Modbus] Not connected - returning empty registers");
       return new Array(quantity).fill(0);
     }
     return new Array(quantity).fill(0).map(() => cryptoRandomInt(65535));
   }
 
   async getInstantFlow(vesselId: string): Promise<FMCCInstantFlow> {
-    console.log("[FMCC Modbus] getInstantFlow not available via Modbus - use REST API");
+    logger.info("[FMCC Modbus] getInstantFlow not available via Modbus - use REST API");
     return {
       vesselId,
       timestamp: new Date(),

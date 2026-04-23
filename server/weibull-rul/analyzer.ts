@@ -5,6 +5,8 @@ import { randomUUID } from "node:crypto";
 import { beastModeManager } from "../beast-mode-config";
 import type { RULPrediction } from "./types.js";
 import { estimateWeibullParameters } from "./parameter-estimation.js";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("WeibullRul:Analyzer");
 import {
   calculateReliability,
   predictRUL,
@@ -23,15 +25,13 @@ export class WeibullRULAnalyzer {
       throw new Error("Weibull RUL analysis is not enabled");
     }
 
-    console.log(`[Weibull RUL] Starting RUL analysis for equipment ${equipmentId}`);
+    logger.info(`[Weibull RUL] Starting RUL analysis for equipment ${equipmentId}`);
 
     try {
       const lifeData = await getEquipmentLifeData(equipmentId, orgId);
 
       if (lifeData.length < 3) {
-        console.log(
-          `[Weibull RUL] Insufficient data for ${equipmentId} (${lifeData.length} samples, need ≥3)`
-        );
+        logger.info(`[Weibull RUL] Insufficient data for ${equipmentId} (${lifeData.length} samples, need ≥3)`);
         throw new Error(
           "Insufficient historical data for Weibull analysis (minimum 3 data points required)"
         );
@@ -70,13 +70,11 @@ export class WeibullRULAnalyzer {
 
       await this.storeRULAnalysis(prediction, orgId);
 
-      console.log(
-        `[Weibull RUL] Analysis completed for ${equipmentId}: RUL=${Math.round(predictedRUL)}h, Reliability=${(currentReliability * 100).toFixed(1)}%`
-      );
+      logger.info(`[Weibull RUL] Analysis completed for ${equipmentId}: RUL=${Math.round(predictedRUL)}h, Reliability=${(currentReliability * 100).toFixed(1)}%`);
 
       return prediction;
     } catch (error: any) {
-      console.error(`[Weibull RUL] Error analyzing ${equipmentId}:`, error);
+      logger.error(`[Weibull RUL] Error analyzing ${equipmentId}:`, undefined, error);
       throw new Error(`Unable to perform RUL analysis: ${error.message}`);
     }
   }
@@ -109,7 +107,7 @@ export class WeibullRULAnalyzer {
         createdAt: new Date(),
       });
     } catch (error) {
-      console.error(`[Weibull RUL] Error storing analysis for ${prediction.equipmentId}:`, error);
+      logger.error(`[Weibull RUL] Error storing analysis for ${prediction.equipmentId}:`, undefined, error);
     }
   }
 
@@ -124,7 +122,7 @@ export class WeibullRULAnalyzer {
         .orderBy(desc(weibullEstimates.createdAt))
         .limit(limit);
     } catch (error) {
-      console.error(`[Weibull RUL] Error getting history for ${equipmentId}:`, error);
+      logger.error(`[Weibull RUL] Error getting history for ${equipmentId}:`, undefined, error);
       return [];
     }
   }
@@ -138,21 +136,19 @@ export class WeibullRULAnalyzer {
       failed: [] as string[],
     };
 
-    console.log(`[Weibull RUL] Starting batch analysis for ${equipmentIds.length} equipment units`);
+    logger.info(`[Weibull RUL] Starting batch analysis for ${equipmentIds.length} equipment units`);
 
     for (const equipmentId of equipmentIds) {
       try {
         const prediction = await this.analyzeEquipmentRUL(equipmentId, orgId);
         results.success.push(prediction);
       } catch (error) {
-        console.error(`[Weibull RUL] Failed to analyze ${equipmentId}:`, error);
+        logger.error(`[Weibull RUL] Failed to analyze ${equipmentId}:`, undefined, error);
         results.failed.push(equipmentId);
       }
     }
 
-    console.log(
-      `[Weibull RUL] Batch analysis completed: ${results.success.length} success, ${results.failed.length} failed`
-    );
+    logger.info(`[Weibull RUL] Batch analysis completed: ${results.success.length} success, ${results.failed.length} failed`);
     return results;
   }
 }

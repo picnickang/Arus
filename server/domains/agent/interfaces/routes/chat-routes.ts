@@ -5,6 +5,8 @@ import type { AgentOrchestrator } from "../../application/orchestrator";
 import { agentRepo } from "../../infrastructure/repository";
 import { registerFile, listConversationFiles } from "../../infrastructure/file-registry";
 import { knowledgeBaseAdapter } from "../../infrastructure/kb-adapter";
+import { createLogger } from "../../../../lib/structured-logger";
+const logger = createLogger("Domains:Agent:Interfaces:Routes:ChatRoutes");
 import {
   ingestFilesToKB,
   buildIngestionSystemMessage,
@@ -57,7 +59,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
           totalTokens: result.totalTokens,
         });
       } catch (error: unknown) {
-        console.error("[Agent] Chat error:", error);
+        logger.error("[Agent] Chat error:", undefined, error);
         res.status(500).json({ error: error instanceof Error ? error.message : "Agent error" });
       }
     }
@@ -112,7 +114,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
           files: fileRefs,
         });
       } catch (error: unknown) {
-        console.error("[Agent] Multimodal chat error:", error);
+        logger.error("[Agent] Multimodal chat error:", undefined, error);
         res.status(500).json({ error: error instanceof Error ? error.message : "Agent error" });
       }
     }
@@ -166,10 +168,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
               content: systemContent,
             });
           } catch (err) {
-            console.warn(
-              "[Agent] Failed to create KB ingestion system message:",
-              err instanceof Error ? err.message : "unknown"
-            );
+            logger.warn("[Agent] Failed to create KB ingestion system message:", { details: err instanceof Error ? err.message : "unknown" });
           }
         }
 
@@ -183,7 +182,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
           })),
         });
       } catch (error: unknown) {
-        console.error("[Agent] File upload error:", error);
+        logger.error("[Agent] File upload error:", undefined, error);
         res.status(500).json({ error: error instanceof Error ? error.message : "Upload failed" });
       }
     }
@@ -248,7 +247,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
 
         res.end();
       } catch (error: unknown) {
-        console.error("[Agent] Stream error:", error);
+        logger.error("[Agent] Stream error:", undefined, error);
         if (!res.headersSent) {
           res
             .status(500)

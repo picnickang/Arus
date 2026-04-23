@@ -4,6 +4,8 @@ import { embedChunks } from "./embedder";
 import { summarizeDocument, generateKeywords } from "./summarizer";
 import * as repository from "./repository";
 import type { IngestDocumentParams, IngestDocumentResult, DocumentMetadata } from "./types";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:DocumentIngestion:Index");
 import {
   incrementKbDocumentsUploaded,
   incrementKbUploadBytes,
@@ -45,13 +47,11 @@ export async function ingestDocument(
       }
 
       if (validation.warnings.length > 0) {
-        console.warn(
-          `[DocIngestion] Validation warnings for ${fileName}: ${validation.warnings.join("; ")}`
-        );
+        logger.warn(`[DocIngestion] Validation warnings for ${fileName}: ${validation.warnings.join("; ")}`);
       }
 
       if (validation.quarantine) {
-        console.warn(`[DocIngestion] File ${fileName} quarantined for review`);
+        logger.warn(`[DocIngestion] File ${fileName} quarantined for review`);
         throw new Error("File quarantined for security review");
       }
 
@@ -73,7 +73,7 @@ export async function ingestDocument(
       }
       // If security services aren't initialized, continue without validation in dev
       if (process.env.NODE_ENV === "development") {
-        console.warn(`[DocIngestion] Skipping file validation (security services not available)`);
+        logger.warn(`[DocIngestion] Skipping file validation (security services not available)`);
       } else {
         throw new Error("File validation unavailable");
       }
@@ -81,7 +81,7 @@ export async function ingestDocument(
   }
 
   incrementKbUploadInflight(orgId);
-  console.log(`[DocIngestion] Starting: ${fileName} (${fileType}, ${fileBuffer.length} bytes)`);
+  logger.info(`[DocIngestion] Starting: ${fileName} (${fileType}, ${fileBuffer.length} bytes)`);
 
   try {
     const metadata: DocumentMetadata = { fileSize: fileBuffer.length };
@@ -95,7 +95,7 @@ export async function ingestDocument(
       metadata.ocrUsed = true;
     }
 
-    console.log(`[DocIngestion] Extracted ${extractedText.length} characters`);
+    logger.info(`[DocIngestion] Extracted ${extractedText.length} characters`);
 
     // Use semantic chunking for better context preservation
     // Falls back to basic chunking if semantic chunking fails
@@ -105,17 +105,17 @@ export async function ingestDocument(
       if (semanticChunks.length > 0) {
         textChunks = semanticChunks.map((c) => c.content);
         metadata.chunkingMethod = "semantic";
-        console.log(`[DocIngestion] Created ${textChunks.length} semantic chunks`);
+        logger.info(`[DocIngestion] Created ${textChunks.length} semantic chunks`);
       } else {
         textChunks = chunkText(extractedText);
         metadata.chunkingMethod = "basic";
-        console.log(`[DocIngestion] Created ${textChunks.length} basic chunks`);
+        logger.info(`[DocIngestion] Created ${textChunks.length} basic chunks`);
       }
     } catch (chunkError) {
-      console.warn(`[DocIngestion] Semantic chunking failed, using basic: ${chunkError}`);
+      logger.warn(`[DocIngestion] Semantic chunking failed, using basic: ${chunkError}`);
       textChunks = chunkText(extractedText);
       metadata.chunkingMethod = "basic";
-      console.log(`[DocIngestion] Created ${textChunks.length} basic chunks (fallback)`);
+      logger.info(`[DocIngestion] Created ${textChunks.length} basic chunks (fallback)`);
     }
 
     let doc;
@@ -128,7 +128,7 @@ export async function ingestDocument(
         numChunks: textChunks.length,
         metadata,
       });
-      console.log(`[DocIngestion] Updated existing document: ${doc.id}`);
+      logger.info(`[DocIngestion] Updated existing document: ${doc.id}`);
     } else {
       doc = await repository.createDocument({
         orgId,
@@ -146,7 +146,7 @@ export async function ingestDocument(
         fileBuffer.length,
         textChunks.length
       );
-      console.log(`[DocIngestion] Created document: ${doc.id}`);
+      logger.info(`[DocIngestion] Created document: ${doc.id}`);
     }
 
     const chunksWithEmbeddings = await embedChunks(textChunks, { openAiKey, orgId });
@@ -162,9 +162,7 @@ export async function ingestDocument(
       if (keywords.length > 0) {
         metadata.keywords = keywords;
       }
-      console.log(
-        `[DocIngestion] Generated summary (${summarizationResult.summary.length} chars) and ${keywords.length} keywords`
-      );
+      logger.info(`[DocIngestion] Generated summary (${summarizationResult.summary.length} chars) and ${keywords.length} keywords`);
     }
 
     const processingTimeMs = Date.now() - startTime;
@@ -176,7 +174,7 @@ export async function ingestDocument(
       await repository.updateDocumentMetadata(doc.id, metadata);
     }
 
-    console.log(`[DocIngestion] Completed in ${processingTimeMs}ms`);
+    logger.info(`[DocIngestion] Completed in ${processingTimeMs}ms`);
     incrementKbDocumentsUploaded(orgId, fileType, "completed");
     incrementKbUploadBytes(orgId, fileType, fileBuffer.length);
 

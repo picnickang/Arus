@@ -7,6 +7,8 @@ import { equipment } from "../../../shared/schema";
 import { sql } from "drizzle-orm";
 import type { ReconciliationReport, ReconciliationStatus, ReconciliationIssue } from "./types.js";
 import { reconciliationMetrics } from "./metrics.js";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:DataReconciliation:Service");
 import {
   validateTelemetryIntegrity,
   validateAnomalyDetections,
@@ -35,7 +37,7 @@ export class DataReconciliationService {
     });
 
     try {
-      console.log(`[Reconciliation] Starting for org: ${orgId}`);
+      logger.info(`[Reconciliation] Starting for org: ${orgId}`);
       const issues: ReconciliationIssue[] = [];
       let recordsScanned = 0;
 
@@ -134,7 +136,7 @@ export class DataReconciliationService {
   }
 
   startScheduledReconciliation(intervalMinutes: number = 60): void {
-    console.log(`[Reconciliation] Scheduling automatic runs every ${intervalMinutes} minutes`);
+    logger.info(`[Reconciliation] Scheduling automatic runs every ${intervalMinutes} minutes`);
     setInterval(
       async () => {
         try {
@@ -144,12 +146,10 @@ export class DataReconciliationService {
             .where(sql`${equipment.orgId} IS NOT NULL`);
           for (const { orgId } of orgs) {
             if (orgId) {
-              console.log(`[Reconciliation] Running scheduled reconciliation for org: ${orgId}`);
+              logger.info(`[Reconciliation] Running scheduled reconciliation for org: ${orgId}`);
               const report = await this.runReconciliation(orgId);
               if (report.issuesDetected > 0) {
-                console.warn(
-                  `[Reconciliation] Detected ${report.issuesDetected} issues for org: ${orgId}`
-                );
+                logger.warn(`[Reconciliation] Detected ${report.issuesDetected} issues for org: ${orgId}`);
                 const criticalIssues = report.issues.filter((i) => i.severity === "critical");
                 if (criticalIssues.length > 0) {
                   console.error(
@@ -161,7 +161,7 @@ export class DataReconciliationService {
             }
           }
         } catch (error) {
-          console.error("[Reconciliation] Scheduled run failed:", error);
+          logger.error("[Reconciliation] Scheduled run failed:", undefined, error);
         }
       },
       intervalMinutes * 60 * 1000
@@ -170,4 +170,4 @@ export class DataReconciliationService {
 }
 
 export const dataReconciliationService = new DataReconciliationService();
-console.log("[DataReconciliation] Service initialized");
+logger.info("[DataReconciliation] Service initialized");

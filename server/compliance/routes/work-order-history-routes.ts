@@ -1,6 +1,8 @@
 import { Router, Request, Response } from "express";
 import { workOrderHistoryHashService } from "../work-order-history-hash.service";
 import { requireComplianceAccess } from "./audit-routes";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Compliance:Routes:WorkOrderHistoryRoutes");
 
 const router = Router();
 
@@ -17,7 +19,7 @@ router.post(
       const result = await workOrderHistoryHashService.verifyWorkOrderHistory(workOrderId, orgId);
       res.json({ success: true, data: { workOrderId, ...result } });
     } catch (error) {
-      console.error("[Compliance] Work order history verification error:", error);
+      logger.error("[Compliance] Work order history verification error:", undefined, error);
       res.status(500).json({ error: "Failed to verify work order history" });
     }
   }
@@ -45,7 +47,7 @@ router.post(
       const allValid = results.every((r) => r.valid);
       res.json({ success: true, data: { allValid, count: results.length, results } });
     } catch (error) {
-      console.error("[Compliance] Bulk work order history verification error:", error);
+      logger.error("[Compliance] Bulk work order history verification error:", undefined, error);
       res.status(500).json({ error: "Failed to verify work order histories" });
     }
   }
@@ -64,7 +66,7 @@ router.get(
       const stats = await workOrderHistoryHashService.getWorkOrderHistoryStats(workOrderId, orgId);
       res.json({ success: true, data: { workOrderId, ...stats } });
     } catch (error) {
-      console.error("[Compliance] Work order history stats error:", error);
+      logger.error("[Compliance] Work order history stats error:", undefined, error);
       res.status(500).json({ error: "Failed to get work order history stats" });
     }
   }

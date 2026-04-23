@@ -1,4 +1,6 @@
 import client from "prom-client";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Observability:CoreMetrics");
 
 // ===== PERFORMANCE: Event Loop Lag Monitoring =====
 export const eventLoopLag = new client.Histogram({
@@ -33,24 +35,22 @@ export function startEventLoopMonitoring(intervalMs: number = 1000): void {
       const isWarmingUp = timeSinceStart < WARMUP_PERIOD_MS;
 
       if (lag > 100 && !isWarmingUp) {
-        console.warn(`[Performance] Event loop lag: ${lag}ms (threshold: 100ms)`);
+        logger.warn(`[Performance] Event loop lag: ${lag}ms (threshold: 100ms)`);
       } else if (lag > 500 && isWarmingUp) {
-        console.log(`[Performance] Startup event loop lag: ${lag}ms (warm-up period, expected)`);
+        logger.info(`[Performance] Startup event loop lag: ${lag}ms (warm-up period, expected)`);
       }
     });
   };
 
   eventLoopMonitorId = setInterval(measure, intervalMs);
-  console.log(
-    `[Performance] Event loop monitoring started (interval: ${intervalMs}ms, warm-up: ${WARMUP_PERIOD_MS / 1000}s)`
-  );
+  logger.info(`[Performance] Event loop monitoring started (interval: ${intervalMs}ms, warm-up: ${WARMUP_PERIOD_MS / 1000}s)`);
 }
 
 export function stopEventLoopMonitoring(): void {
   if (eventLoopMonitorId) {
     clearInterval(eventLoopMonitorId);
     eventLoopMonitorId = null;
-    console.log("[Performance] Event loop monitoring stopped");
+    logger.info("[Performance] Event loop monitoring stopped");
   }
 }
 
@@ -106,11 +106,9 @@ export function checkResourceUsage(): void {
     const now = Date.now();
     if (now - lastMemoryWarningTime > MEMORY_WARNING_COOLDOWN) {
       lastMemoryWarningTime = now;
-      console.warn(
-        `[Performance] CRITICAL: High memory usage - ${heapUsedMB.toFixed(0)}MB (threshold: ${PERFORMANCE_THRESHOLDS.CRITICAL_MEMORY_MB}MB)`
-      );
+      logger.warn(`[Performance] CRITICAL: High memory usage - ${heapUsedMB.toFixed(0)}MB (threshold: ${PERFORMANCE_THRESHOLDS.CRITICAL_MEMORY_MB}MB)`);
       if (global.gc) {
-        console.log("[Performance] Triggering garbage collection...");
+        logger.info("[Performance] Triggering garbage collection...");
         global.gc();
       }
     }

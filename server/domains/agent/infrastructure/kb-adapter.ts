@@ -1,6 +1,8 @@
 import { db } from "../../../db";
 import { eq, count } from "drizzle-orm";
 import type { KnowledgeBasePort, KnowledgeBaseCitation } from "../domain/ports";
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Domains:Agent:Infrastructure:KbAdapter");
 
 export function createKnowledgeBaseAdapter(): KnowledgeBasePort {
   return {
@@ -39,7 +41,7 @@ export function createKnowledgeBaseAdapter(): KnowledgeBasePort {
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Knowledge base search failed";
-        console.warn("[KBAdapter] search failed:", message);
+        logger.warn("[KBAdapter] search failed:", { details: message });
         return {
           answer: "",
           citations: [],
@@ -78,10 +80,7 @@ export function createKnowledgeBaseAdapter(): KnowledgeBasePort {
           status: d.status,
         }));
       } catch (err) {
-        console.warn(
-          "[KBAdapter] listDocuments failed:",
-          err instanceof Error ? err.message : "unknown"
-        );
+        logger.warn("[KBAdapter] listDocuments failed:", { details: err instanceof Error ? err.message : "unknown" });
         return [];
       }
     },
@@ -106,10 +105,7 @@ export function createKnowledgeBaseAdapter(): KnowledgeBasePort {
           totalChunks: chunkCount?.total ?? 0,
         };
       } catch (err) {
-        console.warn(
-          "[KBAdapter] getStats failed:",
-          err instanceof Error ? err.message : "unknown"
-        );
+        logger.warn("[KBAdapter] getStats failed:", { details: err instanceof Error ? err.message : "unknown" });
         return { totalDocs: 0, totalChunks: 0 };
       }
     },

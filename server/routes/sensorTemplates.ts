@@ -11,6 +11,8 @@ import { sensorTemplates, sensorBundles } from "@shared/schema-runtime";
 import { eq, and, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { insertSensorTemplateSchema } from "@shared/schema-runtime";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Routes:SensorTemplates");
 
 const router = Router();
 
@@ -60,7 +62,7 @@ router.get("/", async (req, res) => {
 
     res.json(filtered);
   } catch (error) {
-    console.error("[SensorTemplates] Error fetching templates:", error);
+    logger.error("[SensorTemplates] Error fetching templates:", undefined, error);
     res.status(500).json({
       error: "Failed to fetch sensor templates",
       message: error instanceof Error ? error.message : String(error),
@@ -95,7 +97,7 @@ router.get("/:id", async (req, res) => {
 
     res.json(template);
   } catch (error) {
-    console.error(`[SensorTemplates] Error fetching template ${req.params.id}:`, error);
+    logger.error(`[SensorTemplates] Error fetching template ${req.params.id}:`, undefined, error);
     res.status(500).json({
       error: "Failed to fetch sensor template",
       message: error instanceof Error ? error.message : String(error),
@@ -146,7 +148,7 @@ router.post("/", async (req, res) => {
 
     res.status(201).json(newTemplate);
   } catch (error) {
-    console.error("[SensorTemplates] Error creating template:", error);
+    logger.error("[SensorTemplates] Error creating template:", undefined, error);
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         error: "Validation error",
@@ -217,7 +219,7 @@ router.put("/:id", async (req, res) => {
 
     res.json(updatedTemplate);
   } catch (error) {
-    console.error(`[SensorTemplates] Error updating template ${req.params.id}:`, error);
+    logger.error(`[SensorTemplates] Error updating template ${req.params.id}:`, undefined, error);
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         error: "Validation error",
@@ -290,7 +292,7 @@ router.delete("/:id", async (req, res) => {
 
     res.status(204).send();
   } catch (error) {
-    console.error(`[SensorTemplates] Error deleting template ${req.params.id}:`, error);
+    logger.error(`[SensorTemplates] Error deleting template ${req.params.id}:`, undefined, error);
     res.status(500).json({
       error: "Failed to delete sensor template",
       message: error instanceof Error ? error.message : String(error),
@@ -384,7 +386,7 @@ router.post("/:id/copy", async (req, res) => {
 
     res.status(201).json(newTemplate);
   } catch (error) {
-    console.error(`[SensorTemplates] Error copying template ${req.params.id}:`, error);
+    logger.error(`[SensorTemplates] Error copying template ${req.params.id}:`, undefined, error);
     res.status(500).json({
       error: "Failed to copy sensor template",
       message: error instanceof Error ? error.message : String(error),

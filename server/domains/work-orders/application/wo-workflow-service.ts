@@ -1,3 +1,5 @@
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Domains:WorkOrders:Application:WoWorkflowService");
 import type {
   IWorkOrderWorkflowRepository,
   ICostSavingsPort,
@@ -90,10 +92,7 @@ export class WorkOrderWorkflowService {
         userId
       );
     } catch (err) {
-      console.error(
-        `[WOWorkflow] Legacy completion failed for WO ${workOrderId}:`,
-        err instanceof Error ? err.message : "unknown"
-      );
+      logger.error(`[WOWorkflow] Legacy completion failed for WO ${workOrderId}:`, undefined, err instanceof Error ? err.message : "unknown");
       return {
         workOrderId,
         completed: false,
@@ -109,10 +108,7 @@ export class WorkOrderWorkflowService {
     try {
       await this.legacyCompletion.aggregateProcurementCosts(workOrderId, orgId);
     } catch (err) {
-      console.error(
-        `[WOWorkflow] Procurement cost aggregation failed for WO ${workOrderId}:`,
-        err instanceof Error ? err.message : "unknown"
-      );
+      logger.error(`[WOWorkflow] Procurement cost aggregation failed for WO ${workOrderId}:`, undefined, err instanceof Error ? err.message : "unknown");
     }
 
     let feedbackRecorded = false;
@@ -121,10 +117,7 @@ export class WorkOrderWorkflowService {
         await this.predictionFeedback.recordFeedback(feedback, orgId, userId);
         feedbackRecorded = true;
       } catch (err) {
-        console.error(
-          `[WOWorkflow] Failed to record prediction feedback for WO ${workOrderId}:`,
-          err instanceof Error ? err.message : "unknown"
-        );
+        logger.error(`[WOWorkflow] Failed to record prediction feedback for WO ${workOrderId}:`, undefined, err instanceof Error ? err.message : "unknown");
       }
     }
 
@@ -147,10 +140,7 @@ export class WorkOrderWorkflowService {
         savingsValidationStatus = mapOutcomeToValidation(feedback?.outcome ?? "confirmed");
       }
     } catch (err) {
-      console.error(
-        `[WOWorkflow] Savings calculation failed for WO ${workOrderId}:`,
-        err instanceof Error ? err.message : "unknown"
-      );
+      logger.error(`[WOWorkflow] Savings calculation failed for WO ${workOrderId}:`, undefined, err instanceof Error ? err.message : "unknown");
     }
 
     return {
@@ -195,9 +185,7 @@ export class WorkOrderWorkflowService {
     );
 
     if (voided > 0) {
-      console.log(
-        `[WOWorkflow] Voided ${voided} savings record(s) for cancelled WO ${workOrderId}`
-      );
+      logger.info(`[WOWorkflow] Voided ${voided} savings record(s) for cancelled WO ${workOrderId}`);
     }
 
     return { cancelled: true, savingsVoided: voided };

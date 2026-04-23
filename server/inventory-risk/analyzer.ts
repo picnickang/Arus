@@ -4,6 +4,8 @@
  */
 
 import type { PartRiskScore, InventoryRiskSummary, EquipmentPartsRisk } from "./types.js";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("InventoryRisk:Analyzer");
 
 export interface InventoryRiskDeps {
   getPartsInventory(orgId: string, includeInactive?: boolean): Promise<any[]>;
@@ -29,7 +31,7 @@ export class InventoryRiskAnalyzer {
     orgId: string,
     includeInactive: boolean = false
   ): Promise<InventoryRiskSummary> {
-    console.log(`[Inventory Risk] Analyzing inventory risk for org: ${orgId}`);
+    logger.info(`[Inventory Risk] Analyzing inventory risk for org: ${orgId}`);
 
     const parts = await this.storage.getPartsInventory(orgId, includeInactive);
     if (parts.length === 0) {
@@ -40,9 +42,7 @@ export class InventoryRiskAnalyzer {
     const supplierConcentration = calculateSupplierRisk(partRisks);
     const summary = buildRiskSummary(partRisks, supplierConcentration);
 
-    console.log(
-      `[Inventory Risk] Analysis complete - ${partRisks.length} parts, ${summary.riskDistribution.critical} critical`
-    );
+    logger.info(`[Inventory Risk] Analysis complete - ${partRisks.length} parts, ${summary.riskDistribution.critical} critical`);
     return summary;
   }
 
@@ -50,7 +50,7 @@ export class InventoryRiskAnalyzer {
     orgId: string,
     equipmentId: string
   ): Promise<EquipmentPartsRisk | null> {
-    console.log(`[Inventory Risk] Analyzing parts risk for equipment: ${equipmentId}`);
+    logger.info(`[Inventory Risk] Analyzing parts risk for equipment: ${equipmentId}`);
 
     const equipment = await this.storage.getEquipment(orgId, equipmentId);
     if (!equipment) {
@@ -73,7 +73,7 @@ export class InventoryRiskAnalyzer {
   }
 
   async getCriticalParts(orgId: string, riskThreshold: number = 75): Promise<PartRiskScore[]> {
-    console.log(`[Inventory Risk] Finding critical parts with risk >= ${riskThreshold}`);
+    logger.info(`[Inventory Risk] Finding critical parts with risk >= ${riskThreshold}`);
 
     const parts = await this.storage.getPartsInventory(orgId, false);
     if (parts.length === 0) {

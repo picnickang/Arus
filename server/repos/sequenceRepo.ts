@@ -9,6 +9,8 @@
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 import { safeSql } from "../utils/safeSql";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Repos:SequenceRepo");
 
 /**
  * Generate next sequence number for a given (vesselId, entity) pair
@@ -41,7 +43,7 @@ export async function nextSeq(vesselId: string, entity: string): Promise<number>
 
     return Number(row.seq);
   } catch (error) {
-    console.error(`[SequenceRepo] Error generating sequence for ${vesselId}:${entity}:`, error);
+    logger.error(`[SequenceRepo] Error generating sequence for ${vesselId}:${entity}:`, undefined, error);
     throw error;
   }
 }
@@ -67,10 +69,7 @@ export async function getCurrentSeq(vesselId: string, entity: string): Promise<n
 
     return row ? Number(row.seq) : 0;
   } catch (error) {
-    console.error(
-      `[SequenceRepo] Error fetching current sequence for ${vesselId}:${entity}:`,
-      error
-    );
+    logger.error(`[SequenceRepo] Error fetching current sequence for ${vesselId}:${entity}:`, undefined, error);
     return 0;
   }
 }
@@ -94,9 +93,9 @@ export async function resetSeq(vesselId: string, entity: string, value: number):
     `
     );
 
-    console.warn(`[SequenceRepo] RESET sequence for ${vesselId}:${entity} to ${value}`);
+    logger.warn(`[SequenceRepo] RESET sequence for ${vesselId}:${entity} to ${value}`);
   } catch (error) {
-    console.error(`[SequenceRepo] Error resetting sequence for ${vesselId}:${entity}:`, error);
+    logger.error(`[SequenceRepo] Error resetting sequence for ${vesselId}:${entity}:`, undefined, error);
     throw error;
   }
 }

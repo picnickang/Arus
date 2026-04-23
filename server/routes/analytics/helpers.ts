@@ -4,6 +4,8 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 import { createHash } from "node:crypto";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Routes:Analytics:Helpers");
 
 const FAILURE_PREDICTION_NAMESPACE = "f8e7d6c5-b4a3-4a2b-8c1d-0e9f8a7b6c5d";
 
@@ -45,7 +47,7 @@ export function sendValidatedResponse<T>(
     res.json(validated);
     return true;
   } catch (error) {
-    console.error("[Analytics API] Response validation failed:", error);
+    logger.error("[Analytics API] Response validation failed:", undefined, error);
     res
       .status(500)
       .json({
@@ -61,7 +63,7 @@ export function sendValidatedResponse<T>(
 }
 
 export function handleError(res: Response, error: unknown, operation: string) {
-  console.error(`[Analytics API] ${operation} error:`, error);
+  logger.error(`[Analytics API] ${operation} error:`, undefined, error);
   if (error instanceof Error && error.message.includes("not found")) {
     res
       .status(404)

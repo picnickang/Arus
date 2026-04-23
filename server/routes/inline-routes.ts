@@ -10,6 +10,8 @@ import { generalApiRateLimit } from "./route-dependencies";
 import { cryptoRandom } from "@shared/crypto-random";
 import { telemetryDlqRouter } from "./telemetry-dlq-routes";
 import { telemetryIngestionRouter } from "./telemetry-ingestion-routes";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Routes:InlineRoutes");
 
 export function registerInlineRoutes(app: Express): void {
   if (process.env.NODE_ENV === "development") {
@@ -26,9 +28,7 @@ export function registerInlineRoutes(app: Express): void {
             sensorTypes = ["temperature", "pressure", "vibration"],
           } = req.body;
 
-          console.log(
-            `[DEV] Starting batch writer stress test: ${messagesPerSecond} msg/sec for ${durationSeconds}s`
-          );
+          logger.info(`[DEV] Starting batch writer stress test: ${messagesPerSecond} msg/sec for ${durationSeconds}s`);
 
           const startStats = telemetryBatchWriter.getStats();
           const startTime = Date.now();
@@ -80,7 +80,7 @@ export function registerInlineRoutes(app: Express): void {
             },
           };
 
-          console.log(`[DEV] Stress test complete:`, result);
+          logger.info(`[DEV] Stress test complete:`, { details: result });
 
           res.json({
             success: true,
@@ -88,7 +88,7 @@ export function registerInlineRoutes(app: Express): void {
             note: "DEV ONLY - This endpoint bypasses auth and uses fake equipment IDs. Data goes to batch writer but may fail on DB insert due to FK constraints.",
           });
         } catch (error) {
-          console.error("[DEV] Stress test failed:", error);
+          logger.error("[DEV] Stress test failed:", undefined, error);
           res.status(500).json({
             error: "Stress test failed",
             message: error instanceof Error ? error.message : String(error),
@@ -96,11 +96,11 @@ export function registerInlineRoutes(app: Express): void {
         }
       }
     );
-    console.log("[Inline Routes] DEV stress-test endpoint registered");
+    logger.info("[Inline Routes] DEV stress-test endpoint registered");
   }
 
   app.use("/api/telemetry/dlq", generalApiRateLimit, telemetryDlqRouter);
   app.use("/api/telemetry/ingestion", generalApiRateLimit, telemetryIngestionRouter);
 
-  console.log("[Inline Routes] Registered (telemetry-dlq, telemetry-ingestion)");
+  logger.info("[Inline Routes] Registered (telemetry-dlq, telemetry-ingestion)");
 }

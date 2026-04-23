@@ -4,6 +4,8 @@ import { CompliancePDFGenerator } from "../compliance-pdf.js";
 import { ComplianceExcelGenerator } from "../compliance-excel.js";
 import { dbEquipmentStorage, workOrderService } from "../repositories.js";
 import type { ComplianceDeps } from "../compliance-pdf/types";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Beast:ComplianceExportRoutes");
 
 const router = Router();
 
@@ -61,9 +63,7 @@ router.post("/compliance/equipment-pdf", async (req, res) => {
           enabled: false,
         });
     }
-    console.log(
-      `[Beast Mode API] Equipment compliance PDF generation for ${equipmentIds.length} units`
-    );
+    logger.info(`[Beast Mode API] Equipment compliance PDF generation for ${equipmentIds.length} units`);
     const pdfData = await getCompliancePDFGenerator().generateEquipmentCompliancePDF(
       orgId,
       equipmentIds,
@@ -87,7 +87,7 @@ router.post("/compliance/equipment-pdf", async (req, res) => {
     );
     res.send(Buffer.from(pdfData));
   } catch (error) {
-    console.error(`[Beast Mode API] Equipment compliance PDF error:`, error);
+    logger.error(`[Beast Mode API] Equipment compliance PDF error:`, undefined, error);
     res
       .status(500)
       .json({
@@ -119,7 +119,7 @@ router.post("/compliance/maintenance-pdf", async (req, res) => {
           enabled: false,
         });
     }
-    console.log(`[Beast Mode API] Maintenance compliance PDF generation for vessel: ${vesselId}`);
+    logger.info(`[Beast Mode API] Maintenance compliance PDF generation for vessel: ${vesselId}`);
     const pdfData = await getCompliancePDFGenerator().generateMaintenanceCompliancePDF(
       orgId,
       vesselId,
@@ -140,7 +140,7 @@ router.post("/compliance/maintenance-pdf", async (req, res) => {
     );
     res.send(Buffer.from(pdfData));
   } catch (error) {
-    console.error(`[Beast Mode API] Maintenance compliance PDF error:`, error);
+    logger.error(`[Beast Mode API] Maintenance compliance PDF error:`, undefined, error);
     res
       .status(500)
       .json({
@@ -177,9 +177,7 @@ router.post("/compliance/regulatory-pdf", async (req, res) => {
           enabled: false,
         });
     }
-    console.log(
-      `[Beast Mode API] Regulatory compliance PDF generation for framework: ${regulatoryFramework}`
-    );
+    logger.info(`[Beast Mode API] Regulatory compliance PDF generation for framework: ${regulatoryFramework}`);
     const pdfData = await getCompliancePDFGenerator().generateRegulatoryCompliancePDF(
       orgId,
       regulatoryFramework,
@@ -196,7 +194,7 @@ router.post("/compliance/regulatory-pdf", async (req, res) => {
     );
     res.send(Buffer.from(pdfData));
   } catch (error) {
-    console.error(`[Beast Mode API] Regulatory compliance PDF error:`, error);
+    logger.error(`[Beast Mode API] Regulatory compliance PDF error:`, undefined, error);
     res
       .status(500)
       .json({
@@ -224,7 +222,7 @@ router.post("/compliance/fleet-pdf", async (req, res) => {
           enabled: false,
         });
     }
-    console.log(`[Beast Mode API] Fleet compliance PDF generation for org: ${orgId}`);
+    logger.info(`[Beast Mode API] Fleet compliance PDF generation for org: ${orgId}`);
     const pdfData = await getCompliancePDFGenerator().generateFleetComplianceOverviewPDF(orgId, {
       startDate: new Date(reportingPeriod?.startDate ?? Date.now() - 30 * 24 * 60 * 60 * 1000),
       endDate: new Date(reportingPeriod?.endDate ?? Date.now()),
@@ -236,7 +234,7 @@ router.post("/compliance/fleet-pdf", async (req, res) => {
     );
     res.send(Buffer.from(pdfData));
   } catch (error) {
-    console.error(`[Beast Mode API] Fleet compliance PDF error:`, error);
+    logger.error(`[Beast Mode API] Fleet compliance PDF error:`, undefined, error);
     res
       .status(500)
       .json({
@@ -268,9 +266,7 @@ router.post("/compliance/equipment-excel", async (req, res) => {
           enabled: false,
         });
     }
-    console.log(
-      `[Beast Mode API] Equipment compliance Excel generation for ${equipmentIds.length} units`
-    );
+    logger.info(`[Beast Mode API] Equipment compliance Excel generation for ${equipmentIds.length} units`);
     const excelData = await getComplianceExcelGenerator().generateEquipmentComplianceExcel(
       orgId,
       equipmentIds,
@@ -297,7 +293,7 @@ router.post("/compliance/equipment-excel", async (req, res) => {
     );
     res.send(excelData);
   } catch (error) {
-    console.error(`[Beast Mode API] Equipment compliance Excel error:`, error);
+    logger.error(`[Beast Mode API] Equipment compliance Excel error:`, undefined, error);
     res
       .status(500)
       .json({
@@ -336,7 +332,7 @@ router.post("/compliance/maintenance-excel", async (req, res) => {
           enabled: false,
         });
     }
-    console.log(`[Beast Mode API] Maintenance compliance Excel generation for vessel: ${vesselId}`);
+    logger.info(`[Beast Mode API] Maintenance compliance Excel generation for vessel: ${vesselId}`);
     const excelData = await getComplianceExcelGenerator().generateMaintenanceComplianceExcel(
       orgId,
       vesselId,
@@ -360,7 +356,7 @@ router.post("/compliance/maintenance-excel", async (req, res) => {
     );
     res.send(excelData);
   } catch (error) {
-    console.error(`[Beast Mode API] Maintenance compliance Excel error:`, error);
+    logger.error(`[Beast Mode API] Maintenance compliance Excel error:`, undefined, error);
     res
       .status(500)
       .json({
@@ -396,9 +392,7 @@ router.post("/compliance/regulatory-excel", async (req, res) => {
           enabled: false,
         });
     }
-    console.log(
-      `[Beast Mode API] Regulatory compliance Excel generation for framework: ${regulatoryFramework}`
-    );
+    logger.info(`[Beast Mode API] Regulatory compliance Excel generation for framework: ${regulatoryFramework}`);
     const excelData = await getComplianceExcelGenerator().generateRegulatoryComplianceExcel(
       orgId,
       regulatoryFramework,
@@ -418,7 +412,7 @@ router.post("/compliance/regulatory-excel", async (req, res) => {
     );
     res.send(excelData);
   } catch (error) {
-    console.error(`[Beast Mode API] Regulatory compliance Excel error:`, error);
+    logger.error(`[Beast Mode API] Regulatory compliance Excel error:`, undefined, error);
     res
       .status(500)
       .json({
@@ -445,7 +439,7 @@ router.post("/compliance/fleet-excel", async (req, res) => {
           enabled: false,
         });
     }
-    console.log(`[Beast Mode API] Fleet compliance Excel generation for org: ${orgId}`);
+    logger.info(`[Beast Mode API] Fleet compliance Excel generation for org: ${orgId}`);
     const excelData = await getComplianceExcelGenerator().generateFleetComplianceOverviewExcel(
       orgId,
       {
@@ -463,7 +457,7 @@ router.post("/compliance/fleet-excel", async (req, res) => {
     );
     res.send(excelData);
   } catch (error) {
-    console.error(`[Beast Mode API] Fleet compliance Excel error:`, error);
+    logger.error(`[Beast Mode API] Fleet compliance Excel error:`, undefined, error);
     res
       .status(500)
       .json({

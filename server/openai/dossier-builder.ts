@@ -3,6 +3,8 @@
  */
 
 import type { EquipmentHealth } from "../db/equipment/types.js";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Openai:DossierBuilder");
 
 export interface EquipmentDossier {
   id: string;
@@ -55,7 +57,7 @@ export async function buildEquipmentDossiers(
             workOrders = await storageInstance.getWorkOrders(equipment.id);
           }
         } catch (error) {
-          console.warn(`Failed to get work orders for ${equipment.id}:`, error);
+          logger.warn(`Failed to get work orders for ${equipment.id}:`, { details: error });
         }
 
         try {
@@ -64,7 +66,7 @@ export async function buildEquipmentDossiers(
             alerts = allAlerts.filter((a: any) => a.equipmentId === equipment.id).slice(0, 20);
           }
         } catch (error) {
-          console.warn(`Failed to get alerts for ${equipment.id}:`, error);
+          logger.warn(`Failed to get alerts for ${equipment.id}:`, { details: error });
         }
 
         try {
@@ -73,7 +75,7 @@ export async function buildEquipmentDossiers(
             pdmHistory = pdmHistory.slice(-10);
           }
         } catch (error) {
-          console.warn(`Failed to get PdM scores for ${equipment.id}:`, error);
+          logger.warn(`Failed to get PdM scores for ${equipment.id}:`, { details: error });
         }
 
         try {
@@ -82,7 +84,7 @@ export async function buildEquipmentDossiers(
             maintenanceRecords = maintenanceRecords.slice(-5);
           }
         } catch (error) {
-          console.warn(`Failed to get maintenance records for ${equipment.id}:`, error);
+          logger.warn(`Failed to get maintenance records for ${equipment.id}:`, { details: error });
         }
       }
 

@@ -10,6 +10,8 @@ import { db } from "../db";
 import { mlModels } from "@shared/schema-runtime";
 import { eq } from "drizzle-orm";
 import OpenAI from "openai";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("MlAnalytics:Index");
 
 import type { AnomalyResult, FailurePredictionResult } from "./types";
 import {
@@ -50,7 +52,7 @@ export class MLAnalyticsService extends EventEmitter {
 
   private async loadActiveModels(): Promise<void> {
     if (!db) {
-      console.warn("[ML Analytics] Disabled: database not initialized (embedded/local mode)");
+      logger.warn("[ML Analytics] Disabled: database not initialized (embedded/local mode)");
       this.enabled = false;
       return;
     }
@@ -62,7 +64,7 @@ export class MLAnalyticsService extends EventEmitter {
         this.models.set(`${model.type}:${model.equipmentType || "all"}`, model);
       }
     } catch (error) {
-      console.error("[ML Analytics] Error loading models:", error);
+      logger.error("[ML Analytics] Error loading models:", undefined, error);
     }
   }
 
@@ -110,7 +112,7 @@ export class MLAnalyticsService extends EventEmitter {
 
       return enhancedResult;
     } catch (error) {
-      console.error("[ML Analytics] Error detecting anomalies:", error);
+      logger.error("[ML Analytics] Error detecting anomalies:", undefined, error);
       return basicThresholdDetection(currentValue, sensorType);
     }
   }
@@ -140,7 +142,7 @@ export class MLAnalyticsService extends EventEmitter {
 
       return prediction;
     } catch (error) {
-      console.error("[ML Analytics] Error predicting failure:", error);
+      logger.error("[ML Analytics] Error predicting failure:", undefined, error);
       return getDefaultPrediction("error");
     }
   }
@@ -178,7 +180,7 @@ export class MLAnalyticsService extends EventEmitter {
 
       return optimizedThresholds;
     } catch (error) {
-      console.error("[ML Analytics] Error optimizing thresholds:", error);
+      logger.error("[ML Analytics] Error optimizing thresholds:", undefined, error);
       return currentThresholds;
     }
   }

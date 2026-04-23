@@ -16,6 +16,8 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "../db";
 import { eq, and, sql } from "drizzle-orm";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Purchasing:PoRoutes");
 import {
   purchaseOrders,
   purchaseOrderItems,
@@ -103,7 +105,7 @@ router.get("/", requireOrgId, generalLimit, async (req, res) => {
 
     res.json(enriched);
   } catch (err) {
-    console.error("Error listing POs:", err);
+    logger.error("Error listing POs:", undefined, err);
     res.status(500).json({ error: "Failed to list purchase orders" });
   }
 });
@@ -161,7 +163,7 @@ router.get("/:id", requireOrgId, generalLimit, async (req, res) => {
 
     res.json({ ...po, items });
   } catch (err) {
-    console.error("Error getting PO:", err);
+    logger.error("Error getting PO:", undefined, err);
     res.status(500).json({ error: "Failed to get purchase order" });
   }
 });
@@ -246,7 +248,7 @@ router.post("/:id/receive", requireOrgId, writeLimit, async (req, res) => {
 
     res.json({ success: true, status: allReceived ? "received" : po.status });
   } catch (err) {
-    console.error("Error receiving PO items:", err);
+    logger.error("Error receiving PO items:", undefined, err);
     res.status(500).json({ error: "Failed to receive items" });
   }
 });
@@ -327,7 +329,7 @@ router.post("/:id/reject-items", requireOrgId, writeLimit, async (req, res) => {
 
     res.json({ success: true, rejections: results });
   } catch (err) {
-    console.error("Error rejecting PO items:", err);
+    logger.error("Error rejecting PO items:", undefined, err);
     res.status(500).json({ error: "Failed to reject items" });
   }
 });
@@ -409,7 +411,7 @@ router.patch("/:id/items/:itemId", requireOrgId, writeLimit, async (req, res) =>
 
     res.json(updated);
   } catch (err) {
-    console.error("Error updating PO item price:", err);
+    logger.error("Error updating PO item price:", undefined, err);
     res.status(500).json({ error: "Failed to update item price" });
   }
 });
@@ -524,7 +526,7 @@ router.post("/:id/fulfill-pr", requireOrgId, writeLimit, async (req, res) => {
 
     res.json({ success: true, prId, results });
   } catch (err) {
-    console.error("Error fulfilling PR from PO:", err);
+    logger.error("Error fulfilling PR from PO:", undefined, err);
     res.status(500).json({ error: "Failed to fulfill PR" });
   }
 });
@@ -543,7 +545,7 @@ router.get("/:id/events", requireOrgId, generalLimit, async (req, res) => {
 
     res.json(events);
   } catch (err) {
-    console.error("Error getting PO events:", err);
+    logger.error("Error getting PO events:", undefined, err);
     res.status(500).json({ error: "Failed to get events" });
   }
 });

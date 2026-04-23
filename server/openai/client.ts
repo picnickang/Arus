@@ -6,6 +6,8 @@ import OpenAI from "openai";
 import { dbSystemAdminStorage } from "../repositories";
 import type { ErrorAnalysisResult } from "./types";
 import { cryptoRandom } from "@shared/crypto-random";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Openai:Client");
 
 /**
  * Type for settings accessor function to enable dependency injection
@@ -32,7 +34,7 @@ export async function getOpenAIApiKey(
       return settings.openaiApiKey;
     }
   } catch (error) {
-    console.error("Failed to get API key from settings, falling back to environment:", error);
+    logger.error("Failed to get API key from settings, falling back to environment:", undefined, error);
   }
 
   // Check environment variables in priority order
@@ -45,7 +47,7 @@ export async function getOpenAIApiKey(
 export async function createOpenAIClient(): Promise<OpenAI | null> {
   const apiKey = await getOpenAIApiKey();
   if (!apiKey) {
-    console.error("No OpenAI API key available - AI features will be unavailable");
+    logger.error("No OpenAI API key available - AI features will be unavailable");
     return null;
   }
   return new OpenAI({
@@ -168,14 +170,12 @@ export async function retryWithBackoff<T>(
       const errorAnalysis = analyzeErrorType(error);
 
       if (!errorAnalysis.shouldRetry) {
-        console.error(`Non-retryable error: ${errorAnalysis.recommendation}`, error?.message);
+        logger.error(`Non-retryable error: ${errorAnalysis.recommendation}`, undefined, error?.message);
         throw error;
       }
 
       if (attempt === maxRetries) {
-        console.error(
-          `Max retries (${maxRetries}) reached for OpenAI operation: ${errorAnalysis.recommendation}`
-        );
+        logger.error(`Max retries (${maxRetries}) reached for OpenAI operation: ${errorAnalysis.recommendation}`);
         break;
       }
 
@@ -215,9 +215,7 @@ export async function callWithModelFallback(
     const errorAnalysis = analyzeErrorType(error);
 
     if (errorAnalysis.fallbackModel && params.model !== errorAnalysis.fallbackModel) {
-      console.warn(
-        `Falling back from ${params.model} to ${errorAnalysis.fallbackModel} due to: ${errorAnalysis.recommendation}`
-      );
+      logger.warn(`Falling back from ${params.model} to ${errorAnalysis.fallbackModel} due to: ${errorAnalysis.recommendation}`);
 
       return await retryWithBackoff(() =>
         openai.chat.completions.create({

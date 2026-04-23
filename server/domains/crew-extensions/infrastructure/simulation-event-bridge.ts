@@ -1,26 +1,26 @@
 import { domainEventBus } from "../../../lib/domain-event-bus/index.js";
 import type { TelemetryWebSocketServer } from "../../../websocket.js";
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Domains:CrewExtensions:Infrastructure:SimulationEventBridge");
 
 let wsServer: TelemetryWebSocketServer | null = null;
 let bridgeInitialized = false;
 
 export function setWebSocketServer(server: TelemetryWebSocketServer): void {
   wsServer = server;
-  console.log("[SimulationEventBridge] WebSocket server registered");
+  logger.info("[SimulationEventBridge] WebSocket server registered");
 }
 
 export function setupSimulationEventBridge(): void {
   if (bridgeInitialized) {
-    console.log("[SimulationEventBridge] Bridge already initialized, skipping duplicate setup");
+    logger.info("[SimulationEventBridge] Bridge already initialized, skipping duplicate setup");
     return;
   }
   bridgeInitialized = true;
 
   domainEventBus.on("simulation.preview.created", (event) => {
     if (!wsServer) {
-      console.warn(
-        "[SimulationEventBridge] No WebSocket server registered, skipping preview_created broadcast"
-      );
+      logger.warn("[SimulationEventBridge] No WebSocket server registered, skipping preview_created broadcast");
       return;
     }
     const { previewId, proposedCount, unfilledCount, complianceRate, strategy, dateRange } =
@@ -38,9 +38,7 @@ export function setupSimulationEventBridge(): void {
 
   domainEventBus.on("simulation.committed", (event) => {
     if (!wsServer) {
-      console.warn(
-        "[SimulationEventBridge] No WebSocket server registered, skipping committed broadcast"
-      );
+      logger.warn("[SimulationEventBridge] No WebSocket server registered, skipping committed broadcast");
       return;
     }
     const { previewId, runId, assignmentsCommitted, selectedOnly } = event.payload;
@@ -60,9 +58,7 @@ export function setupSimulationEventBridge(): void {
 
   domainEventBus.on("simulation.discarded", (event) => {
     if (!wsServer) {
-      console.warn(
-        "[SimulationEventBridge] No WebSocket server registered, skipping discarded broadcast"
-      );
+      logger.warn("[SimulationEventBridge] No WebSocket server registered, skipping discarded broadcast");
       return;
     }
     const { previewId, reason } = event.payload;
@@ -85,5 +81,5 @@ export function setupSimulationEventBridge(): void {
     });
   });
 
-  console.log("[SimulationEventBridge] Event listeners registered (unified bus)");
+  logger.info("[SimulationEventBridge] Event listeners registered (unified bus)");
 }

@@ -4,6 +4,8 @@ import { auditService } from "../immutable-audit.service";
 import { requireAdminAuth, auditAdminAction } from "../../security";
 import { dbMlAnalyticsStorage } from "../../repositories";
 import { requireComplianceAccess } from "./audit-routes";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Compliance:Routes:MlGovernanceRoutes");
 import {
   recordEngineerOverride,
   recordOverrideOutcome,
@@ -49,7 +51,7 @@ router.get(
       });
       res.json({ success: true, data: overrides, count: overrides.length });
     } catch (error) {
-      console.error("[Compliance] Get engineer overrides error:", error);
+      logger.error("[Compliance] Get engineer overrides error:", undefined, error);
       res.status(500).json({ error: "Failed to retrieve engineer overrides" });
     }
   }
@@ -72,7 +74,7 @@ router.get(
       }
       res.json({ success: true, data: override });
     } catch (error) {
-      console.error("[Compliance] Get engineer override error:", error);
+      logger.error("[Compliance] Get engineer override error:", undefined, error);
       res.status(500).json({ error: "Failed to retrieve engineer override" });
     }
   }
@@ -136,7 +138,7 @@ router.post(
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Validation failed", details: error.errors });
       }
-      console.error("[Compliance] Create engineer override error:", error);
+      logger.error("[Compliance] Create engineer override error:", undefined, error);
       res.status(500).json({ error: "Failed to create engineer override" });
     }
   }
@@ -208,7 +210,7 @@ router.patch(
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Validation failed", details: error.errors });
       }
-      console.error("[Compliance] Update engineer override outcome error:", error);
+      logger.error("[Compliance] Update engineer override outcome error:", undefined, error);
       res.status(500).json({ error: "Failed to update engineer override outcome" });
     }
   }
@@ -235,7 +237,7 @@ router.get(
       });
       res.json({ success: true, data: overrides, count: overrides.length });
     } catch (error) {
-      console.error("[Compliance] Get provenance overrides error:", error);
+      logger.error("[Compliance] Get provenance overrides error:", undefined, error);
       res.status(500).json({ error: "Failed to retrieve provenance records" });
     }
   }
@@ -268,7 +270,7 @@ router.get(
       }
       res.json({ success: true, data: stats });
     } catch (error) {
-      console.error("[Compliance] ML governance statistics error:", error);
+      logger.error("[Compliance] ML governance statistics error:", undefined, error);
       res.status(500).json({ error: "Failed to retrieve ML governance statistics" });
     }
   }

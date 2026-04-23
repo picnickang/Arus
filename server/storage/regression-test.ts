@@ -3,6 +3,8 @@
  * Validates critical storage operations using direct repository imports
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Storage:RegressionTest");
 import {
   dbEquipmentStorage,
   dbAlertStorage,
@@ -152,23 +154,23 @@ export async function runStorageRegressionTests(): Promise<{
 }
 
 export async function executeRegressionTests(): Promise<void> {
-  console.log(`\n${"=".repeat(60)}`);
-  console.log("STORAGE REGRESSION TEST SUITE");
-  console.log(`${"=".repeat(60)}\n`);
+  logger.info(`\n${"=".repeat(60)}`);
+  logger.info("STORAGE REGRESSION TEST SUITE");
+  logger.info(`${"=".repeat(60)}\n`);
 
   const { passed, failed, results } = await runStorageRegressionTests();
 
   for (const result of results) {
     const status = result.passed ? "PASS" : "FAIL";
-    console.log(`${status} | ${result.name} (${result.duration}ms)`);
+    logger.info(`${status} | ${result.name} (${result.duration}ms)`);
     if (!result.passed && result.error) {
-      console.log(`       Error: ${result.error}`);
+      logger.info(`       Error: ${result.error}`);
     }
   }
 
-  console.log(`\n${"-".repeat(60)}`);
-  console.log(`Results: ${passed} passed, ${failed} failed`);
-  console.log(`${"-".repeat(60)}\n`);
+  logger.info(`\n${"-".repeat(60)}`);
+  logger.info(`Results: ${passed} passed, ${failed} failed`);
+  logger.info(`${"-".repeat(60)}\n`);
 
   if (failed > 0) {
     throw new Error(`${failed} regression tests failed`);

@@ -7,6 +7,8 @@
 
 import type { IStorage } from "../storage/interfaces/storage.types";
 import { cryptoRandom } from "@shared/crypto-random";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("VesselSimulator:StressTest");
 
 export interface StressTestConfig {
   equipmentId: string;
@@ -134,9 +136,7 @@ export class TelemetryStressTest {
 
     this.isRunning = true;
     const startTime = Date.now();
-    console.log(
-      `[StressTest] Starting ${config.messagesPerSecond} msg/sec for ${config.durationSeconds}s`
-    );
+    logger.info(`[StressTest] Starting ${config.messagesPerSecond} msg/sec for ${config.durationSeconds}s`);
 
     try {
       const { telemetryBatchWriter } = await import("../telemetry-batch-writer");
@@ -161,14 +161,14 @@ export class TelemetryStressTest {
         dropped: batchWriterStats?.totalEvicted || 0,
       };
 
-      console.log(`[StressTest] Complete:`, {
+      logger.info(`[StressTest] Complete:`, { details: {
         totalMessages: result.totalMessages,
         actualMsgPerSec: result.actualMsgPerSec,
         targetMsgPerSec: result.targetMsgPerSec,
         durationMs: result.durationMs,
         errors: result.errors,
         dropped: result.dropped,
-      });
+      } });
 
       return result;
     } finally {
@@ -181,7 +181,7 @@ export class TelemetryStressTest {
    */
   stop(): void {
     this.isRunning = false;
-    console.log("[StressTest] Stop requested");
+    logger.info("[StressTest] Stop requested");
   }
 
   /**

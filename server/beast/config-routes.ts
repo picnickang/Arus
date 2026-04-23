@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { beastModeManager, type BeastModeFeature, DEFAULT_ORG_ID } from "../beast-mode-config.js";
 import { z } from "zod";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Beast:ConfigRoutes");
 
 const router = Router();
 
@@ -39,7 +41,7 @@ router.get("/config", async (req, res) => {
       message: "Beast Mode features are disabled by default for safety",
     });
   } catch (error) {
-    console.error("[Beast Mode API] Error getting configs:", error);
+    logger.error("[Beast Mode API] Error getting configs:", undefined, error);
     res.status(500).json({ success: false, error: "Failed to retrieve Beast Mode configurations" });
   }
 });
@@ -67,7 +69,7 @@ router.get("/config/:feature", async (req, res) => {
     const config = await beastModeManager.getFeatureConfig(orgId, feature);
     res.json({ success: true, feature, config, orgId });
   } catch (error) {
-    console.error(`[Beast Mode API] Error getting config for ${req.params.feature}:`, error);
+    logger.error(`[Beast Mode API] Error getting config for ${req.params.feature}:`, undefined, error);
     res
       .status(500)
       .json({
@@ -133,7 +135,7 @@ router.post("/config/:feature/toggle", async (req, res) => {
         });
     }
   } catch (error) {
-    console.error(`[Beast Mode API] Error toggling ${req.params.feature}:`, error);
+    logger.error(`[Beast Mode API] Error toggling ${req.params.feature}:`, undefined, error);
     res
       .status(500)
       .json({ success: false, error: `Failed to toggle feature ${req.params.feature}` });
@@ -158,7 +160,7 @@ router.get("/health", async (req, res) => {
       phase: "Phase 1 - Safe Enablement Complete",
     });
   } catch (error) {
-    console.error("[Beast Mode API] Health check failed:", error);
+    logger.error("[Beast Mode API] Health check failed:", undefined, error);
     res
       .status(500)
       .json({

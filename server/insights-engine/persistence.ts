@@ -8,6 +8,8 @@ import { analyticsInsightsAdapter, dbAnalyticsStorage } from "../repositories";
 import type { InsightSnapshot, InsertInsightSnapshot } from "@shared/schema";
 import type { InsightBundle } from "./types.js";
 import { computeInsights } from "./compute-fleet-kpi.js";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("InsightsEngine:Persistence");
 
 /**
  * Persist insight snapshot to database
@@ -30,7 +32,7 @@ export async function persistSnapshot(
     const snapshot = await analyticsInsightsAdapter.createInsightSnapshot(orgId, insertData);
     return { id: snapshot.id, createdAt: snapshot.createdAt };
   } catch (error) {
-    console.error("Failed to persist insight snapshot:", error);
+    logger.error("Failed to persist insight snapshot:", undefined, error);
     console.error(
       "Bundle data that failed:",
       JSON.stringify(
@@ -63,7 +65,7 @@ export async function getLatestSnapshot(
   try {
     return await dbAnalyticsStorage.getLatestInsightSnapshot(orgId, scope);
   } catch (error) {
-    console.error("Failed to get latest snapshot:", error);
+    logger.error("Failed to get latest snapshot:", undefined, error);
     return null;
   }
 }
@@ -76,7 +78,7 @@ export async function generateDailySnapshot(orgId: string = "default-org-id"): P
     const bundle = await computeInsights("fleet", orgId);
     await persistSnapshot("fleet", bundle, orgId);
   } catch (error) {
-    console.error("[Insights] Daily snapshot failed:", error);
+    logger.error("[Insights] Daily snapshot failed:", undefined, error);
     throw error;
   }
 }

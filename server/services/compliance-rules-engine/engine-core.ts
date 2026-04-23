@@ -11,6 +11,8 @@ import type { ComplianceFinding } from "@shared/schema";
 import { emailNotificationService } from "../email-notification-service";
 import type { RuleContext, RuleEvaluator } from "./types.js";
 import { DEFAULT_DECK_RULES, DEFAULT_ENGINE_RULES } from "./default-rules.js";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:ComplianceRulesEngine:EngineCore");
 import {
   evaluateDeckMissingWatch,
   evaluateDeckMissingHourly,
@@ -105,7 +107,7 @@ export class ComplianceRulesEngine {
     const existingRules = await getComplianceRules(orgId);
 
     if (existingRules.length > 0) {
-      console.log(`[ComplianceRulesEngine] Rules already exist for org ${orgId}, skipping seed`);
+      logger.info(`[ComplianceRulesEngine] Rules already exist for org ${orgId}, skipping seed`);
       return;
     }
 
@@ -118,7 +120,7 @@ export class ComplianceRulesEngine {
       });
     }
 
-    console.log(`[ComplianceRulesEngine] Seeded ${allRules.length} default rules for org ${orgId}`);
+    logger.info(`[ComplianceRulesEngine] Seeded ${allRules.length} default rules for org ${orgId}`);
   }
 
   async runComplianceCheck(ctx: RuleContext): Promise<{
@@ -141,7 +143,7 @@ export class ComplianceRulesEngine {
     for (const rule of rules) {
       const evaluator = this.ruleEvaluators.get(rule.ruleCode);
       if (!evaluator) {
-        console.warn(`[ComplianceRulesEngine] No evaluator for rule ${rule.ruleCode}`);
+        logger.warn(`[ComplianceRulesEngine] No evaluator for rule ${rule.ruleCode}`);
         continue;
       }
 
@@ -156,9 +158,7 @@ export class ComplianceRulesEngine {
         const result = await evaluator(ctx, (rule.ruleConfig as Record<string, unknown>) ?? {});
 
         if (result.skipped) {
-          console.log(
-            `[ComplianceRulesEngine] Rule ${rule.ruleCode} skipped: ${result.skipReason || "no log data"}`
-          );
+          logger.info(`[ComplianceRulesEngine] Rule ${rule.ruleCode} skipped: ${result.skipReason || "no log data"}`);
           stillOpen.push(...existingFindings);
           continue;
         }
@@ -183,10 +183,7 @@ export class ComplianceRulesEngine {
                   orgId
                 );
               } catch (notifyError) {
-                console.error(
-                  `[ComplianceRulesEngine] Failed to send notification for finding ${inserted.id}:`,
-                  notifyError
-                );
+                logger.error(`[ComplianceRulesEngine] Failed to send notification for finding ${inserted.id}:`, undefined, notifyError);
               }
             }
           } else {
@@ -209,7 +206,7 @@ export class ComplianceRulesEngine {
           }
         }
       } catch (error) {
-        console.error(`[ComplianceRulesEngine] Error evaluating rule ${rule.ruleCode}:`, error);
+        logger.error(`[ComplianceRulesEngine] Error evaluating rule ${rule.ruleCode}:`, undefined, error);
       }
     }
 

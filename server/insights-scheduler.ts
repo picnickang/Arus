@@ -1,6 +1,8 @@
+import { createLogger } from "./lib/structured-logger";
+const logger = createLogger("InsightsScheduler");
 // Stub file - insights scheduler consolidated
 export function startInsightsScheduler(): void {
-  console.log("[Insights Scheduler] Scheduler startup skipped - using on-demand generation");
+  logger.info("[Insights Scheduler] Scheduler startup skipped - using on-demand generation");
 }
 
 export function stopInsightsScheduler(): void {
@@ -8,15 +10,15 @@ export function stopInsightsScheduler(): void {
 }
 
 export function setupInsightsSchedule(): void {
-  console.log("[Insights Scheduler] Insights schedule configured (stub)");
+  logger.info("[Insights Scheduler] Insights schedule configured (stub)");
 }
 
 export function setupPredictiveMaintenanceSchedule(): void {
-  console.log("[Insights Scheduler] Predictive maintenance schedule configured (stub)");
+  logger.info("[Insights Scheduler] Predictive maintenance schedule configured (stub)");
 }
 
 export function setupMLRetrainingSchedule(): void {
-  console.log("[Insights Scheduler] ML retraining schedule configured (stub)");
+  logger.info("[Insights Scheduler] ML retraining schedule configured (stub)");
 }
 
 export async function triggerInsightsGeneration(_orgId?: string): Promise<{

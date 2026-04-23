@@ -11,6 +11,8 @@ import { Request, Response, NextFunction } from "express";
 import { db, isLocalMode } from "../db-config";
 import { sql } from "drizzle-orm";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Middleware:DbContext");
 
 export interface DbContextRequest extends Request {
   orgId?: string;
@@ -51,13 +53,13 @@ export async function setDatabaseContext(
 
       // Log for debugging (remove in production)
       if (process.env.NODE_ENV === "development") {
-        console.log(`[DB_CONTEXT] Set org context: ${orgId} for ${req.path}`);
+        logger.info(`[DB_CONTEXT] Set org context: ${orgId} for ${req.path}`);
       }
     }
 
     next();
   } catch (error) {
-    console.error("[DB_CONTEXT] Error setting database context:", error);
+    logger.error("[DB_CONTEXT] Error setting database context:", undefined, error);
     // Don't block the request, but log the error
     next();
   }
@@ -83,10 +85,10 @@ export async function resetDatabaseContext(
     await db.execute(sql.raw(`RESET app.current_org_id`));
 
     if (process.env.NODE_ENV === "development") {
-      console.log(`[DB_CONTEXT] Reset org context for ${req.path}`);
+      logger.info(`[DB_CONTEXT] Reset org context for ${req.path}`);
     }
   } catch (error) {
-    console.error("[DB_CONTEXT] Error resetting database context:", error);
+    logger.error("[DB_CONTEXT] Error resetting database context:", undefined, error);
   }
 
   next();
@@ -109,7 +111,7 @@ export function withDatabaseContext(req: Request, res: Response, next: NextFunct
       try {
         await db.execute(sql.raw(`RESET app.current_org_id`));
       } catch (error) {
-        console.error("[DB_CONTEXT] Error in cleanup:", error);
+        logger.error("[DB_CONTEXT] Error in cleanup:", undefined, error);
       }
     });
     next();

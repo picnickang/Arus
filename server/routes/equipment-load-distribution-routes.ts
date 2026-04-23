@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { dbEquipmentStorage, dbTelemetryStorage } from "../repositories";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Routes:EquipmentLoadDistributionRoutes");
 
 const router = Router();
 
@@ -64,7 +66,7 @@ router.get("/:id/load-distribution", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Failed to compute load distribution:", error);
+    logger.error("Failed to compute load distribution:", undefined, error);
     res.status(500).json({ message: "Failed to compute load distribution" });
   }
 });

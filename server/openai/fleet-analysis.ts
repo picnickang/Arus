@@ -9,6 +9,8 @@ import { createOpenAIClient, callWithModelFallback, calculateDynamicTokens } fro
 import { buildEquipmentDossiers, type EquipmentDossier } from "./dossier-builder";
 import { parseRecommendations } from "./risk-parser";
 import { calculateFleetBenchmarks } from "./fleet-benchmarks";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Openai:FleetAnalysis");
 
 /**
  * Build fleet analysis system prompt
@@ -103,9 +105,7 @@ export async function analyzeFleetHealth(
   storageInstance?: any
 ): Promise<FleetAnalysis> {
   try {
-    console.log(
-      `[Fleet Analysis] Starting enriched analysis with ${equipmentHealthData.length} equipment units and ${telemetryData.length} telemetry records`
-    );
+    logger.info(`[Fleet Analysis] Starting enriched analysis with ${equipmentHealthData.length} equipment units and ${telemetryData.length} telemetry records`);
 
     const { storage } = await import("../repositories");
     const storageToUse = storageInstance ?? storage;
@@ -142,7 +142,7 @@ export async function analyzeFleetHealth(
       }
       analysis = JSON.parse(content);
     } catch (parseError) {
-      console.error("Failed to parse OpenAI fleet analysis response:", parseError);
+      logger.error("Failed to parse OpenAI fleet analysis response:", undefined, parseError);
       throw new Error(
         `Invalid AI response format: ${parseError instanceof Error ? parseError.message : "Unknown error"}`
       );
@@ -188,7 +188,7 @@ export async function analyzeFleetHealth(
       equipmentComparisons,
     };
   } catch (error) {
-    console.error("Fleet analysis failed:", error);
+    logger.error("Fleet analysis failed:", undefined, error);
 
     const totalEquipment = equipmentHealthData.length;
     return {

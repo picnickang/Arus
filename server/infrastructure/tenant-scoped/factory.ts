@@ -8,6 +8,8 @@ import { EquipmentRepository } from "./equipment";
 import { SensorConfigurationRepository } from "./sensor-configuration";
 import { SensorStateRepository } from "./sensor-state";
 import { PartsRepository } from "./parts";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Infrastructure:TenantScoped:Factory");
 
 /**
  * Repository factory - Creates tenant-scoped repositories
@@ -82,7 +84,7 @@ export class DualWriteAdapter<TRepo extends TenantScopedRepository> {
       const repository = this.repositoryFactory(this.orgId);
       return repositoryFn(repository);
     } catch (error) {
-      console.error(`Repository read failed, falling back to legacy: ${errorMessage}`, error);
+      logger.error(`Repository read failed, falling back to legacy: ${errorMessage}`, undefined, error);
       return legacyFn(this.legacyStorage, this.orgId);
     }
   }
@@ -103,12 +105,12 @@ export class DualWriteAdapter<TRepo extends TenantScopedRepository> {
       try {
         await legacyFn(this.legacyStorage, this.orgId);
       } catch (legacyError) {
-        console.warn(`Legacy write failed during dual-write: ${errorMessage}`, legacyError);
+        logger.warn(`Legacy write failed during dual-write: ${errorMessage}`, { details: legacyError });
       }
 
       return result;
     } catch (error) {
-      console.error(`Repository write failed, falling back to legacy: ${errorMessage}`, error);
+      logger.error(`Repository write failed, falling back to legacy: ${errorMessage}`, undefined, error);
       return legacyFn(this.legacyStorage, this.orgId);
     }
   }

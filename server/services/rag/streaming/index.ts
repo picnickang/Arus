@@ -6,6 +6,8 @@
 import { Response } from "express";
 import OpenAI from "openai";
 import { ragMetrics } from "../metrics";
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Services:Rag:Streaming:Index");
 
 export interface StreamingConfig {
   model: string;
@@ -140,14 +142,14 @@ export class StreamingService {
 
       res.end();
     } catch (error: any) {
-      console.error("[StreamingService] Error during streaming:", error);
+      logger.error("[StreamingService] Error during streaming:", undefined, error);
 
       if (error.code === "model_not_found" || error.message?.includes("overloaded")) {
         try {
           await this.streamWithFallback(context, res, onChunk, startTime);
           return;
         } catch (fallbackError) {
-          console.error("[StreamingService] Fallback also failed:", fallbackError);
+          logger.error("[StreamingService] Fallback also failed:", undefined, fallbackError);
         }
       }
 
@@ -168,7 +170,7 @@ export class StreamingService {
     startTime?: number
   ): Promise<void> {
     const fallbackModel = "gpt-4o-mini";
-    console.log(`[StreamingService] Falling back to ${fallbackModel}`);
+    logger.info(`[StreamingService] Falling back to ${fallbackModel}`);
 
     const systemPrompt = this.buildSystemPrompt(context.relevantChunks);
     const messages = this.buildMessages(systemPrompt, context.query, context.conversationHistory);

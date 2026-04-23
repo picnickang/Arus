@@ -1,6 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import { dbDevicesStorage } from "../repositories";
 import { equipmentService } from "../domains/equipment/service";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Utils:OrgIdValidation");
 
 export interface OrgRequest extends Request {
   orgId: string;
@@ -59,9 +61,7 @@ export async function verifyDeviceOwnership(deviceId: string, orgId: string): Pr
     }
 
     if (device.orgId !== orgId) {
-      console.error(
-        `[SECURITY] Device ${deviceId} attempted to send data to unauthorized org ${orgId} (belongs to ${device.orgId})`
-      );
+      logger.error(`[SECURITY] Device ${deviceId} attempted to send data to unauthorized org ${orgId} (belongs to ${device.orgId})`);
       throw new OrgIdValidationError(
         "Forbidden: Device does not belong to specified organization",
         "ORG_ACCESS_DENIED",
@@ -73,7 +73,7 @@ export async function verifyDeviceOwnership(deviceId: string, orgId: string): Pr
       throw error;
     }
 
-    console.error(`[SECURITY] Failed to verify device ownership for ${deviceId}:`, error);
+    logger.error(`[SECURITY] Failed to verify device ownership for ${deviceId}:`, undefined, error);
     throw new OrgIdValidationError(
       "Failed to verify device ownership",
       "OWNERSHIP_VERIFICATION_FAILED",
@@ -95,9 +95,7 @@ export async function verifyEquipmentOwnership(equipmentId: string, orgId: strin
     }
 
     if (equipment.orgId !== orgId) {
-      console.error(
-        `[SECURITY] Equipment ${equipmentId} org mismatch: expected ${orgId}, got ${equipment.orgId}`
-      );
+      logger.error(`[SECURITY] Equipment ${equipmentId} org mismatch: expected ${orgId}, got ${equipment.orgId}`);
       throw new OrgIdValidationError(
         "Forbidden: Equipment does not belong to specified organization",
         "ORG_ACCESS_DENIED",
@@ -109,7 +107,7 @@ export async function verifyEquipmentOwnership(equipmentId: string, orgId: strin
       throw error;
     }
 
-    console.error(`[SECURITY] Failed to verify equipment ownership for ${equipmentId}:`, error);
+    logger.error(`[SECURITY] Failed to verify equipment ownership for ${equipmentId}:`, undefined, error);
     throw new OrgIdValidationError(
       "Failed to verify equipment ownership",
       "OWNERSHIP_VERIFICATION_FAILED",
@@ -127,7 +125,7 @@ export async function validateMqttClientOrg(
     const device = (devices as any[]).find((d: any) => d.mqttClientId === mqttClientId);
 
     if (!device) {
-      console.error(`[SECURITY] Unregistered MQTT client attempted connection: ${mqttClientId}`);
+      logger.error(`[SECURITY] Unregistered MQTT client attempted connection: ${mqttClientId}`);
       throw new OrgIdValidationError(
         `MQTT client not registered: ${mqttClientId}`,
         "MQTT_CLIENT_NOT_REGISTERED",
@@ -145,7 +143,7 @@ export async function validateMqttClientOrg(
       throw error;
     }
 
-    console.error(`[SECURITY] MQTT client validation failed for ${mqttClientId}:`, error);
+    logger.error(`[SECURITY] MQTT client validation failed for ${mqttClientId}:`, undefined, error);
     throw new OrgIdValidationError("MQTT client validation failed", "MQTT_VALIDATION_FAILED", 500);
   }
 }
@@ -159,9 +157,7 @@ export function validateImportOrgId(
   authenticatedOrgId: string
 ): void {
   if (importOrgId && importOrgId !== authenticatedOrgId) {
-    console.error(
-      `[SECURITY] Import org mismatch: data claims ${importOrgId}, authenticated as ${authenticatedOrgId}`
-    );
+    logger.error(`[SECURITY] Import org mismatch: data claims ${importOrgId}, authenticated as ${authenticatedOrgId}`);
     throw new OrgIdValidationError(
       "Forbidden: Cannot import data for a different organization",
       "IMPORT_ORG_MISMATCH",
@@ -199,7 +195,7 @@ export function requireValidOrgId(
         });
       }
 
-      console.error("[SECURITY] Unexpected error in org ID validation:", error);
+      logger.error("[SECURITY] Unexpected error in org ID validation:", undefined, error);
       return res.status(500).json({
         error: "Internal server error during organization validation",
         code: "ORG_VALIDATION_ERROR",

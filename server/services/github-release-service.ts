@@ -6,6 +6,8 @@
 import { Octokit } from "@octokit/rest";
 import https from "node:https";
 import * as fs from "node:fs";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Services:GithubReleaseService");
 import type {
   IUpdateDistributionProvider,
   PatchManifest,
@@ -41,15 +43,13 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
     channel: string = "stable"
   ): Promise<PatchManifest | null> {
     try {
-      console.log(
-        `[GitHub] Checking for updates (current: ${currentVersion}, channel: ${channel})`
-      );
+      logger.info(`[GitHub] Checking for updates (current: ${currentVersion}, channel: ${channel})`);
 
       // List all releases
       const releases = await this.listReleases(channel);
 
       if (!releases.length) {
-        console.log("[GitHub] No releases found");
+        logger.info("[GitHub] No releases found");
         return null;
       }
 
@@ -62,7 +62,7 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
       });
 
       if (!latest) {
-        console.log("[GitHub] No suitable release found");
+        logger.info("[GitHub] No suitable release found");
         return null;
       }
 
@@ -70,7 +70,7 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
 
       // Check if this version is newer than current
       if (!this.isNewerVersion(latestVersion, currentVersion)) {
-        console.log(`[GitHub] Already on latest version (${latestVersion})`);
+        logger.info(`[GitHub] Already on latest version (${latestVersion})`);
         return null;
       }
 
@@ -78,7 +78,7 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
       const manifestAsset = latest.assets.find((a) => a.name === "manifest.json");
 
       if (!manifestAsset) {
-        console.warn(`[GitHub] No manifest.json found in release ${latest.tag_name}`);
+        logger.warn(`[GitHub] No manifest.json found in release ${latest.tag_name}`);
         return null;
       }
 
@@ -87,10 +87,10 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
         manifestAsset.browser_download_url
       );
 
-      console.log(`[GitHub] Update available: ${manifest.version} (${manifest.severity})`);
+      logger.info(`[GitHub] Update available: ${manifest.version} (${manifest.severity})`);
       return manifest;
     } catch (error) {
-      console.error("[GitHub] Error fetching manifest:", error);
+      logger.error("[GitHub] Error fetching manifest:", undefined, error);
       return null;
     }
   }
@@ -164,7 +164,7 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
     try {
       const tagName = this.formatTagName(manifest.version, options.channel);
 
-      console.log(`[GitHub] Creating release ${tagName}...`);
+      logger.info(`[GitHub] Creating release ${tagName}...`);
 
       // Create GitHub release
       const releaseResponse = await this.octokit.repos.createRelease({
@@ -178,11 +178,11 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
       });
 
       const release = releaseResponse.data;
-      console.log(`[GitHub] Release created: ${release.html_url}`);
+      logger.info(`[GitHub] Release created: ${release.html_url}`);
 
       // Upload patch archive
       const patchFileName = `patch-${manifest.version}.tar.gz`;
-      console.log(`[GitHub] Uploading ${patchFileName}...`);
+      logger.info(`[GitHub] Uploading ${patchFileName}...`);
 
       await this.octokit.repos.uploadReleaseAsset({
         owner: this.owner,
@@ -193,7 +193,7 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
       });
 
       // Upload manifest.json
-      console.log("[GitHub] Uploading manifest.json...");
+      logger.info("[GitHub] Uploading manifest.json...");
       await this.octokit.repos.uploadReleaseAsset({
         owner: this.owner,
         repo: this.repo,
@@ -204,7 +204,7 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
 
       // Upload checksums.txt
       const checksums = this.generateChecksumsFile(manifest);
-      console.log("[GitHub] Uploading checksums.txt...");
+      logger.info("[GitHub] Uploading checksums.txt...");
 
       await this.octokit.repos.uploadReleaseAsset({
         owner: this.owner,
@@ -214,11 +214,11 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
         data: checksums as any,
       });
 
-      console.log(`[GitHub] ✅ Release published successfully: ${release.html_url}`);
+      logger.info(`[GitHub] ✅ Release published successfully: ${release.html_url}`);
 
       return release as GitHubRelease;
     } catch (error) {
-      console.error("[GitHub] Error publishing release:", error);
+      logger.error("[GitHub] Error publishing release:", undefined, error);
       throw error;
     }
   }
@@ -246,7 +246,7 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
 
       return releases;
     } catch (error) {
-      console.error("[GitHub] Error listing releases:", error);
+      logger.error("[GitHub] Error listing releases:", undefined, error);
       return [];
     }
   }
@@ -269,7 +269,7 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
       if ((error as any).status === 404) {
         return null;
       }
-      console.error("[GitHub] Error fetching release:", error);
+      logger.error("[GitHub] Error fetching release:", undefined, error);
       throw error;
     }
   }

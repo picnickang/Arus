@@ -1,6 +1,8 @@
 import { Router, Request, Response } from "express";
 import { sessionManagementService } from "../session-management.service";
 import { requireComplianceAccess } from "./audit-routes";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Compliance:Routes:SessionRoutes");
 
 const router = Router();
 
@@ -30,7 +32,7 @@ router.get("/sessions", requireComplianceAccess, async (req: Request, res: Respo
       })),
     });
   } catch (error) {
-    console.error("[Compliance] Get sessions error:", error);
+    logger.error("[Compliance] Get sessions error:", undefined, error);
     res.status(500).json({ error: "Failed to get sessions" });
   }
 });
@@ -58,7 +60,7 @@ router.post("/sessions/validate", requireComplianceAccess, async (req: Request, 
       error: result.error,
     });
   } catch (error) {
-    console.error("[Compliance] Validate session error:", error);
+    logger.error("[Compliance] Validate session error:", undefined, error);
     res.status(500).json({ error: "Failed to validate session" });
   }
 });
@@ -73,7 +75,7 @@ router.post("/sessions/revoke", requireComplianceAccess, async (req: Request, re
     await sessionManagementService.revokeSession(sessionId, adminId, reason || "Admin revocation");
     res.json({ success: true, message: "Session revoked successfully" });
   } catch (error) {
-    console.error("[Compliance] Revoke session error:", error);
+    logger.error("[Compliance] Revoke session error:", undefined, error);
     res.status(500).json({ error: "Failed to revoke session" });
   }
 });
@@ -100,7 +102,7 @@ router.post(
       );
       res.json({ success: true, message: "All sessions revoked for user" });
     } catch (error) {
-      console.error("[Compliance] Revoke all sessions error:", error);
+      logger.error("[Compliance] Revoke all sessions error:", undefined, error);
       res.status(500).json({ error: "Failed to revoke sessions" });
     }
   }
@@ -111,7 +113,7 @@ router.post("/sessions/cleanup", requireComplianceAccess, async (req: Request, r
     const count = await sessionManagementService.cleanupExpiredSessions();
     res.json({ success: true, message: `Cleaned up ${count} expired sessions`, count });
   } catch (error) {
-    console.error("[Compliance] Session cleanup error:", error);
+    logger.error("[Compliance] Session cleanup error:", undefined, error);
     res.status(500).json({ error: "Failed to clean up sessions" });
   }
 });
@@ -128,7 +130,7 @@ router.get("/login-events", requireComplianceAccess, async (req: Request, res: R
     });
     res.json({ success: true, data: events });
   } catch (error) {
-    console.error("[Compliance] Login events error:", error);
+    logger.error("[Compliance] Login events error:", undefined, error);
     res.status(500).json({ error: "Failed to get login events" });
   }
 });
@@ -153,7 +155,7 @@ router.post(
       );
       res.json({ success: true, message: "Session flagged successfully" });
     } catch (error) {
-      console.error("[Compliance] Flag suspicious session error:", error);
+      logger.error("[Compliance] Flag suspicious session error:", undefined, error);
       res.status(500).json({ error: "Failed to flag session" });
     }
   }

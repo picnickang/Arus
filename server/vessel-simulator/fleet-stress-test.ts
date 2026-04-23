@@ -7,6 +7,8 @@
 
 import type { IStorage } from "../storage/interfaces/storage.types";
 import { cryptoRandom } from "@shared/crypto-random";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("VesselSimulator:FleetStressTest");
 
 export interface FleetStressConfig {
   vesselCount: number;
@@ -106,12 +108,12 @@ export class FleetStressTest {
     const totalSensors = config.vesselCount * config.sensorsPerVessel;
     const targetMsgPerSec = totalSensors * config.messagesPerSecondPerSensor;
 
-    console.log(`[FleetStressTest] Starting fleet stress test`);
-    console.log(`  Vessels: ${config.vesselCount}`);
-    console.log(`  Sensors per vessel: ${config.sensorsPerVessel}`);
-    console.log(`  Total sensors: ${totalSensors}`);
-    console.log(`  Target msg/sec: ${targetMsgPerSec}`);
-    console.log(`  Duration: ${config.durationSeconds}s`);
+    logger.info(`[FleetStressTest] Starting fleet stress test`);
+    logger.info(`  Vessels: ${config.vesselCount}`);
+    logger.info(`  Sensors per vessel: ${config.sensorsPerVessel}`);
+    logger.info(`  Total sensors: ${totalSensors}`);
+    logger.info(`  Target msg/sec: ${targetMsgPerSec}`);
+    logger.info(`  Duration: ${config.durationSeconds}s`);
 
     const vesselMetrics: VesselMetrics[] = [];
     let totalMessages = 0;
@@ -242,18 +244,16 @@ export class FleetStressTest {
             : 0,
       };
 
-      console.log(`[FleetStressTest] Complete:`);
-      console.log(`  Total messages: ${result.totalMessages}`);
-      console.log(`  Actual throughput: ${result.actualMsgPerSec} msg/sec`);
-      console.log(`  Target throughput: ${result.targetMsgPerSec} msg/sec`);
-      console.log(
-        `  Efficiency: ${Math.round((result.actualMsgPerSec / result.targetMsgPerSec) * 100)}%`
-      );
-      console.log(`  Errors: ${result.errors}`);
-      console.log(`  Dropped: ${result.dropped}`);
-      console.log(`  Memory delta: ${result.memoryUsageMB} MB`);
-      console.log(`  CPU time: ${result.cpuTimeMs} ms`);
-      console.log(`  Avg latency: ${result.avgLatencyMs} ms`);
+      logger.info(`[FleetStressTest] Complete:`);
+      logger.info(`  Total messages: ${result.totalMessages}`);
+      logger.info(`  Actual throughput: ${result.actualMsgPerSec} msg/sec`);
+      logger.info(`  Target throughput: ${result.targetMsgPerSec} msg/sec`);
+      logger.info(`  Efficiency: ${Math.round((result.actualMsgPerSec / result.targetMsgPerSec) * 100)}%`);
+      logger.info(`  Errors: ${result.errors}`);
+      logger.info(`  Dropped: ${result.dropped}`);
+      logger.info(`  Memory delta: ${result.memoryUsageMB} MB`);
+      logger.info(`  CPU time: ${result.cpuTimeMs} ms`);
+      logger.info(`  Avg latency: ${result.avgLatencyMs} ms`);
 
       return result;
     } finally {
@@ -263,7 +263,7 @@ export class FleetStressTest {
 
   stop(): void {
     this.isRunning = false;
-    console.log("[FleetStressTest] Stop requested");
+    logger.info("[FleetStressTest] Stop requested");
   }
 
   isActive(): boolean {

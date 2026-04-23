@@ -13,6 +13,8 @@
  */
 
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync, createHash } from "node:crypto";
+import { createLogger } from "./structured-logger";
+const logger = createLogger("Lib:CryptoService");
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 16;
@@ -36,14 +38,14 @@ function getEncryptionKey(): Buffer {
       if (isProduction) {
         throw new Error("ENCRYPTION_KEY must be at least 32 characters in production");
       }
-      console.warn("[CryptoService] ENCRYPTION_KEY is weak (< 32 chars) - acceptable for dev only");
+      logger.warn("[CryptoService] ENCRYPTION_KEY is weak (< 32 chars) - acceptable for dev only");
     }
 
     const keyHash = createHash("sha256").update(dedicatedKey).digest();
     encryptionKeyCache = keyHash;
 
     if (!keySourceLogged) {
-      console.log("[CryptoService] Using dedicated ENCRYPTION_KEY");
+      logger.info("[CryptoService] Using dedicated ENCRYPTION_KEY");
       keySourceLogged = true;
     }
     return encryptionKeyCache;
@@ -57,7 +59,7 @@ function getEncryptionKey(): Buffer {
     const devKey = Buffer.alloc(32, 0);
     devKey.write("dev-only-encryption-key");
     encryptionKeyCache = devKey;
-    console.warn("[CryptoService] Using development-only encryption key - NOT FOR PRODUCTION");
+    logger.warn("[CryptoService] Using development-only encryption key - NOT FOR PRODUCTION");
     return encryptionKeyCache;
   }
 
@@ -72,7 +74,7 @@ function getEncryptionKey(): Buffer {
   encryptionKeyCache = scryptSync(sessionSecret, salt, 32, { N: 16384, r: 8, p: 1 });
 
   if (!keySourceLogged) {
-    console.log("[CryptoService] Deriving encryption key from SESSION_SECRET via scrypt");
+    logger.info("[CryptoService] Deriving encryption key from SESSION_SECRET via scrypt");
     keySourceLogged = true;
   }
 

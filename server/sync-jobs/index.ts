@@ -10,6 +10,8 @@ import { checkWorkOrdersPendingOnPO } from "./purchase-orders.js";
 import { checkCrewCertificationExpiry } from "./certifications.js";
 import { checkSensorThresholdConflicts } from "./thresholds.js";
 import { getReconciliationSummary as getSummary } from "./metrics.js";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("SyncJobs:Index");
 
 export type { DataIssue, ReconciliationResult, CheckResult } from "./types.js";
 export { checkPartsStockAlignment } from "./parts-stock.js";
@@ -33,7 +35,7 @@ export async function reconcileAll(orgId: string): Promise<ReconciliationResult>
       issues.push(...partsStockIssues.issues);
       checkedEntities += partsStockIssues.entitiesChecked;
     } catch (error: any) {
-      console.warn("[Reconciliation] Parts-stock alignment check failed:", error.message);
+      logger.warn("[Reconciliation] Parts-stock alignment check failed:", { details: error.message });
       issues.push({
         code: "PARTS_STOCK_CHECK_UNAVAILABLE",
         message: `Parts-stock alignment check temporarily unavailable: ${error.message}`,
@@ -46,7 +48,7 @@ export async function reconcileAll(orgId: string): Promise<ReconciliationResult>
       issues.push(...reservationIssues.issues);
       checkedEntities += reservationIssues.entitiesChecked;
     } catch (error: any) {
-      console.warn("[Reconciliation] Reservation overflow check failed:", error.message);
+      logger.warn("[Reconciliation] Reservation overflow check failed:", { details: error.message });
       issues.push({
         code: "RESERVATION_CHECK_UNAVAILABLE",
         message: `Reservation overflow check temporarily unavailable: ${error.message}`,
@@ -59,7 +61,7 @@ export async function reconcileAll(orgId: string): Promise<ReconciliationResult>
       issues.push(...purchaseOrderIssues.issues);
       checkedEntities += purchaseOrderIssues.entitiesChecked;
     } catch (error: any) {
-      console.warn("[Reconciliation] Purchase order dependency check failed:", error.message);
+      logger.warn("[Reconciliation] Purchase order dependency check failed:", { details: error.message });
       issues.push({
         code: "PO_DEPENDENCY_CHECK_UNAVAILABLE",
         message: `Purchase order dependency check temporarily unavailable: ${error.message}`,
@@ -72,7 +74,7 @@ export async function reconcileAll(orgId: string): Promise<ReconciliationResult>
       issues.push(...certificationIssues.issues);
       checkedEntities += certificationIssues.entitiesChecked;
     } catch (error: any) {
-      console.warn("[Reconciliation] Crew certification check failed:", error.message);
+      logger.warn("[Reconciliation] Crew certification check failed:", { details: error.message });
       issues.push({
         code: "CERTIFICATION_CHECK_UNAVAILABLE",
         message: `Crew certification expiry check temporarily unavailable: ${error.message}`,
@@ -85,7 +87,7 @@ export async function reconcileAll(orgId: string): Promise<ReconciliationResult>
       issues.push(...thresholdIssues.issues);
       checkedEntities += thresholdIssues.entitiesChecked;
     } catch (error: any) {
-      console.warn("[Reconciliation] Sensor threshold conflict check failed:", error.message);
+      logger.warn("[Reconciliation] Sensor threshold conflict check failed:", { details: error.message });
       issues.push({
         code: "THRESHOLD_CHECK_UNAVAILABLE",
         message: `Sensor threshold conflict check temporarily unavailable: ${error.message}`,
@@ -107,7 +109,7 @@ export async function reconcileAll(orgId: string): Promise<ReconciliationResult>
       timestamp: new Date(),
     };
   } catch (error) {
-    console.error("Reconciliation failed:", error);
+    logger.error("Reconciliation failed:", undefined, error);
     return {
       success: false,
       issues: [

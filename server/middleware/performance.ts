@@ -18,6 +18,8 @@
 import { Request, Response, NextFunction } from "express";
 import client from "prom-client";
 import { recordLatencySample } from "../utils/slo-alerts";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Middleware:Performance");
 
 // Environment configuration
 const PERF_DEBUG = process.env.PERF_DEBUG === "true";
@@ -132,15 +134,12 @@ export function performanceMiddleware(req: Request, res: Response, next: NextFun
       });
 
       // Log slow request with context
-      console.warn(
-        `[PERF:SLOW] ${routeKey} - ${durationMs.toFixed(2)}ms (status: ${res.statusCode})`,
-        PERF_DEBUG
+      logger.warn(`[PERF:SLOW] ${routeKey} - ${durationMs.toFixed(2)}ms (status: ${res.statusCode})`, { details: PERF_DEBUG
           ? { query: req.query, body: typeof req.body === "object" ? "[object]" : undefined }
-          : ""
-      );
+          : "" });
     } else if (PERF_DEBUG && durationMs > 50) {
       // In debug mode, log all requests > 50ms
-      console.log(`[PERF] ${routeKey} - ${durationMs.toFixed(2)}ms (status: ${res.statusCode})`);
+      logger.info(`[PERF] ${routeKey} - ${durationMs.toFixed(2)}ms (status: ${res.statusCode})`);
     }
 
     // Update route statistics
@@ -210,7 +209,7 @@ export function getSlowRoutes(limit = 10): Array<{
  */
 export function resetPerformanceStats(): void {
   routeStats.clear();
-  console.log("[PERF] Performance statistics reset");
+  logger.info("[PERF] Performance statistics reset");
 }
 
 /**
@@ -224,16 +223,16 @@ export function timeDbQuery<T>(queryName: string, queryFn: () => Promise<T>): Pr
       const duration = Date.now() - start;
 
       if (duration > 100) {
-        console.warn(`[PERF:DB] ${queryName} - ${duration}ms (slow)`);
+        logger.warn(`[PERF:DB] ${queryName} - ${duration}ms (slow)`);
       } else if (PERF_DEBUG && duration > 20) {
-        console.log(`[PERF:DB] ${queryName} - ${duration}ms`);
+        logger.info(`[PERF:DB] ${queryName} - ${duration}ms`);
       }
 
       return result;
     })
     .catch((error) => {
       const duration = Date.now() - start;
-      console.error(`[PERF:DB] ${queryName} - ${duration}ms (error)`, error.message);
+      logger.error(`[PERF:DB] ${queryName} - ${duration}ms (error)`, undefined, error.message);
       throw error;
     });
 }

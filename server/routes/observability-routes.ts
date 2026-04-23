@@ -4,6 +4,8 @@
  */
 
 import type { Express, Request, Response } from "express";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Routes:ObservabilityRoutes");
 import {
   healthzEndpoint,
   readyzEndpoint,
@@ -96,7 +98,5 @@ export function registerObservabilityRoutes(app: Express): void {
     }
   });
 
-  console.log(
-    "[Observability Routes] Registered (healthz, readyz, metrics, error-health, performance, spans, slo, db-indexes)"
-  );
+  logger.info("[Observability Routes] Registered (healthz, readyz, metrics, error-health, performance, spans, slo, db-indexes)");
 }

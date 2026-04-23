@@ -7,6 +7,8 @@ import { ragMetrics } from "../metrics";
 import { db } from "../../../db";
 import { ragConversations, ragFeedback, kbDocs } from "@shared/schema";
 import { sql, count, avg, gte, and, eq } from "drizzle-orm";
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Services:Rag:Analytics:Index");
 
 export interface AnalyticsSummary {
   queries: {
@@ -116,7 +118,7 @@ export class AnalyticsAggregator {
         averageLatencyMs: latencyData.averageMs,
       };
     } catch (error) {
-      console.error("[AnalyticsAggregator] Error getting query stats:", error);
+      logger.error("[AnalyticsAggregator] Error getting query stats:", undefined, error);
       return { total: 0, last24h: 0, last7d: 0, averageLatencyMs: 0 };
     }
   }
@@ -138,7 +140,7 @@ export class AnalyticsAggregator {
         entriesCount: metricsData.entriesCount || 0,
       };
     } catch (error) {
-      console.error("[AnalyticsAggregator] Error getting cache stats:", error);
+      logger.error("[AnalyticsAggregator] Error getting cache stats:", undefined, error);
       return { hitRate: 0, totalHits: 0, totalMisses: 0, entriesCount: 0 };
     }
   }
@@ -176,7 +178,7 @@ export class AnalyticsAggregator {
         satisfactionRate: total > 0 ? helpful / total : 0,
       };
     } catch (error) {
-      console.error("[AnalyticsAggregator] Error getting feedback stats:", error);
+      logger.error("[AnalyticsAggregator] Error getting feedback stats:", undefined, error);
       return {
         totalResponses: 0,
         helpfulCount: 0,
@@ -213,7 +215,7 @@ export class AnalyticsAggregator {
         recentlyAdded: recentResult[0]?.count || 0,
       };
     } catch (error) {
-      console.error("[AnalyticsAggregator] Error getting document stats:", error);
+      logger.error("[AnalyticsAggregator] Error getting document stats:", undefined, error);
       return { totalCount: 0, totalChunks: 0, avgChunksPerDoc: 0, recentlyAdded: 0 };
     }
   }
@@ -239,7 +241,7 @@ export class AnalyticsAggregator {
         avgMessagesPerConversation: 5,
       };
     } catch (error) {
-      console.error("[AnalyticsAggregator] Error getting conversation stats:", error);
+      logger.error("[AnalyticsAggregator] Error getting conversation stats:", undefined, error);
       return { totalCount: 0, activeCount: 0, avgMessagesPerConversation: 0 };
     }
   }
@@ -266,7 +268,7 @@ export class AnalyticsAggregator {
         count: r.count,
       }));
     } catch (error) {
-      console.error("[AnalyticsAggregator] Error getting query trends:", error);
+      logger.error("[AnalyticsAggregator] Error getting query trends:", undefined, error);
       return [];
     }
   }
@@ -295,7 +297,7 @@ export class AnalyticsAggregator {
         notHelpful: Number(r.notHelpful) || 0,
       }));
     } catch (error) {
-      console.error("[AnalyticsAggregator] Error getting feedback trends:", error);
+      logger.error("[AnalyticsAggregator] Error getting feedback trends:", undefined, error);
       return [];
     }
   }

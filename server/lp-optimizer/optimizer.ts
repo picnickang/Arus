@@ -10,6 +10,8 @@ import { createEmptyResult } from "./estimation-helpers.js";
 import { recordOptimizationMetrics, recordEmptyRun, recordErrorRun } from "./metrics-recorder.js";
 import { persistOptimizationResults, getOptimizationResults as getResults } from "./persistence.js";
 import { optimizerRelaxations } from "../observability/optimizer-metrics.js";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("LpOptimizer:Optimizer");
 
 export class LinearProgrammingOptimizer {
   private orgId: string;
@@ -24,14 +26,14 @@ export class LinearProgrammingOptimizer {
     const startTime = Date.now();
 
     try {
-      console.log(`[LP Optimizer] Starting optimization for org ${this.orgId}`);
+      logger.info(`[LP Optimizer] Starting optimization for org ${this.orgId}`);
 
       const jobs = await getPendingMaintenanceJobs(this.orgId);
       const crewData = constraints.crewAvailability;
       const partsData = await getPartsAvailability(this.orgId);
 
       if (jobs.length === 0) {
-        console.log(`[LP Optimizer] No pending maintenance jobs found`);
+        logger.info(`[LP Optimizer] No pending maintenance jobs found`);
         const emptyResult = createEmptyResult(Date.now() - startTime);
         recordEmptyRun(this.orgId, Date.now() - startTime);
         return emptyResult;
@@ -39,14 +41,12 @@ export class LinearProgrammingOptimizer {
 
       const lpProblem = formulateLinearProgram(jobs, constraints, partsData);
 
-      console.log(
-        `[LP Optimizer] Formulated LP problem with ${jobs.length} jobs and ${crewData.length} crew members`
-      );
+      logger.info(`[LP Optimizer] Formulated LP problem with ${jobs.length} jobs and ${crewData.length} crew members`);
 
       const solution = solver.solve(lpProblem);
 
       if (!solution.feasible) {
-        console.log(`[LP Optimizer] Problem infeasible - relaxing constraints`);
+        logger.info(`[LP Optimizer] Problem infeasible - relaxing constraints`);
         optimizerRelaxations.inc({ org_id: this.orgId });
 
         const relaxedProblem = relaxConstraints(lpProblem);
@@ -73,7 +73,7 @@ export class LinearProgrammingOptimizer {
 
       return result;
     } catch (error: any) {
-      console.error(`[LP Optimizer] Error during optimization:`, error);
+      logger.error(`[LP Optimizer] Error during optimization:`, undefined, error);
 
       const duration = Date.now() - startTime;
       recordErrorRun(this.orgId, duration);

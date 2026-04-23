@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { beastModeManager, DEFAULT_ORG_ID } from "../beast-mode-config.js";
 import { enhancedTrendsAnalyzer } from "../enhanced-trends.js";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Beast:TrendsRoutes");
 const router = Router();
 
 router.post("/trends/analyze/:equipmentId/:sensorType", async (req, res) => {
@@ -22,9 +24,7 @@ router.post("/trends/analyze/:equipmentId/:sensorType", async (req, res) => {
           enabled: false,
         });
     }
-    console.log(
-      `[Beast Mode API] Enhanced trends analysis for ${equipmentId}:${sensorType} over ${hours}h`
-    );
+    logger.info(`[Beast Mode API] Enhanced trends analysis for ${equipmentId}:${sensorType} over ${hours}h`);
     const analysis = await enhancedTrendsAnalyzer.analyzeEquipmentTrends(
       orgId,
       equipmentId,
@@ -66,7 +66,7 @@ router.post("/trends/analyze/:equipmentId/:sensorType", async (req, res) => {
       message: "Enhanced trends analysis completed successfully",
     });
   } catch (error: any) {
-    console.error(`[Beast Mode API] Error in enhanced trends analysis:`, error);
+    logger.error(`[Beast Mode API] Error in enhanced trends analysis:`, undefined, error);
     if (error.message && error.message.includes("Insufficient data")) {
       return res
         .status(400)
@@ -113,9 +113,7 @@ router.post("/trends/fleet-analyze", async (req, res) => {
           enabled: false,
         });
     }
-    console.log(
-      `[Beast Mode API] Fleet trends analysis for ${equipmentIds.length} units over ${hours}h`
-    );
+    logger.info(`[Beast Mode API] Fleet trends analysis for ${equipmentIds.length} units over ${hours}h`);
     const fleetAnalysis = await enhancedTrendsAnalyzer.analyzeFleetTrends(
       orgId,
       equipmentIds,
@@ -136,7 +134,7 @@ router.post("/trends/fleet-analyze", async (req, res) => {
       message: "Fleet trends analysis completed successfully",
     });
   } catch (error: any) {
-    console.error(`[Beast Mode API] Error in fleet trends analysis:`, error);
+    logger.error(`[Beast Mode API] Error in fleet trends analysis:`, undefined, error);
     res.status(500).json({ success: false, error: "Failed to perform fleet trends analysis" });
   }
 });
@@ -167,7 +165,7 @@ router.get("/trends/correlations/:equipmentId", async (req, res) => {
           enabled: false,
         });
     }
-    console.log(`[Beast Mode API] Sensor correlations for ${equipmentId} over ${hours}h`);
+    logger.info(`[Beast Mode API] Sensor correlations for ${equipmentId} over ${hours}h`);
     const correlations = await enhancedTrendsAnalyzer.analyzeSensorCorrelations(
       orgId,
       equipmentId,
@@ -195,7 +193,7 @@ router.get("/trends/correlations/:equipmentId", async (req, res) => {
       message: "Sensor correlation analysis completed successfully",
     });
   } catch (error: any) {
-    console.error(`[Beast Mode API] Error in correlation analysis:`, error);
+    logger.error(`[Beast Mode API] Error in correlation analysis:`, undefined, error);
     if (error.message && error.message.includes("Insufficient data")) {
       return res
         .status(400)
@@ -235,9 +233,7 @@ router.get("/trends/forecast/:equipmentId/:sensorType", async (req, res) => {
           enabled: false,
         });
     }
-    console.log(
-      `[Beast Mode API] Forecasting ${sensorType} for ${equipmentId}, ${forecastHours}h ahead`
-    );
+    logger.info(`[Beast Mode API] Forecasting ${sensorType} for ${equipmentId}, ${forecastHours}h ahead`);
     const analysis = await enhancedTrendsAnalyzer.analyzeEquipmentTrends(
       orgId,
       equipmentId,
@@ -276,7 +272,7 @@ router.get("/trends/forecast/:equipmentId/:sensorType", async (req, res) => {
       message: "Sensor value forecasting completed successfully",
     });
   } catch (error: any) {
-    console.error(`[Beast Mode API] Error in forecasting:`, error);
+    logger.error(`[Beast Mode API] Error in forecasting:`, undefined, error);
     if (error.message && error.message.includes("Insufficient data")) {
       return res
         .status(400)

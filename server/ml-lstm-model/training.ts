@@ -5,6 +5,8 @@
 
 import * as tf from "@tensorflow/tfjs-node";
 import type { TimeSeriesFeatures } from "../ml-training-data.js";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("MlLstmModel:Training");
 import {
   trainWithEarlyStopping,
   prepareClassWeightsForTF,
@@ -70,7 +72,7 @@ async function trainWithEarlyStoppingWrapper(
   });
 
   if (result.stoppedEarly) {
-    console.log(`[LSTM] Early stopping triggered. Best epoch: ${result.bestEpoch + 1}`);
+    logger.info(`[LSTM] Early stopping triggered. Best epoch: ${result.bestEpoch + 1}`);
   }
 
   return {
@@ -99,9 +101,7 @@ async function trainStandard(
     callbacks: {
       onEpochEnd: (epoch, logs) => {
         if (verbose) {
-          console.log(
-            `[LSTM] Epoch ${epoch + 1}/${config.epochs} - Loss: ${logs?.loss.toFixed(4)}`
-          );
+          logger.info(`[LSTM] Epoch ${epoch + 1}/${config.epochs} - Loss: ${logs?.loss.toFixed(4)}`);
         }
       },
     },
@@ -188,15 +188,13 @@ export async function trainLSTMModel(
   const useClassWeights = config.useClassWeights !== false;
   const verbose = config.verbose !== false;
 
-  console.log("[LSTM] Starting training...");
-  console.log(
-    `[LSTM] CPU Optimizations: Early Stopping = ${useEarlyStopping}, Class Weights = ${useClassWeights}`
-  );
+  logger.info("[LSTM] Starting training...");
+  logger.info(`[LSTM] CPU Optimizations: Early Stopping = ${useEarlyStopping}, Class Weights = ${useClassWeights}`);
 
   let classWeights: { [key: number]: number } | undefined;
   if (useClassWeights) {
     classWeights = prepareClassWeightsForTF(trainLabels);
-    console.log("[LSTM] Class weights calculated:", classWeights);
+    logger.info("[LSTM] Class weights calculated:", { details: classWeights });
   }
 
   let history;
@@ -255,10 +253,8 @@ export async function trainLSTMModel(
   xVal.dispose();
   yVal.dispose();
 
-  console.log("[LSTM] Training completed");
-  console.log(
-    `[LSTM] Final metrics - Loss: ${loss.toFixed(4)}, Accuracy: ${accuracy.toFixed(4)}, F1: ${f1Score.toFixed(4)}`
-  );
+  logger.info("[LSTM] Training completed");
+  logger.info(`[LSTM] Final metrics - Loss: ${loss.toFixed(4)}, Accuracy: ${accuracy.toFixed(4)}, F1: ${f1Score.toFixed(4)}`);
 
   return {
     model,

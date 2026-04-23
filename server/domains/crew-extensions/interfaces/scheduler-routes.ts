@@ -8,6 +8,8 @@ import { z } from "zod";
 import type { AuthenticatedRequest, CrewExtensionsRoutesConfig } from "./types.js";
 import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
 import { sendBadRequest } from "../../../lib/api-helpers.js";
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Domains:CrewExtensions:Interfaces:SchedulerRoutes");
 import {
   checkAllConstraints,
   type ConstraintCheckContext,
@@ -543,9 +545,9 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           sendSchedulePublishedNotification({ orgId, vesselId }, assignmentInfos, {
             from,
             to,
-          }).catch((err: any) => console.error("Failed to send publish notifications:", err));
+          }).catch((err: any) => logger.error("Failed to send publish notifications:", undefined, err));
         } catch (notifyErr) {
-          console.error("Failed to prepare publish notifications:", notifyErr);
+          logger.error("Failed to prepare publish notifications:", undefined, notifyErr);
         }
       }
 
@@ -672,7 +674,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           const result = await canAssignCrew(crewId, proposedAssignment, existingDrafts);
           res.json(result);
         } catch (error: any) {
-          console.error("Failed to check assignment compliance:", error);
+          logger.error("Failed to check assignment compliance:", undefined, error);
           res.json({
             canAssign: true,
             violations: [],
@@ -739,7 +741,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
             summary: result.summary,
           });
         } catch (error: any) {
-          console.error("Failed to project bulk compliance:", error);
+          logger.error("Failed to project bulk compliance:", undefined, error);
           res.json({
             isCompliant: true,
             violations: [],

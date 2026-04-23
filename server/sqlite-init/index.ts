@@ -21,6 +21,8 @@ export {
 
 import type { Client as LibsqlClient } from "@libsql/client";
 import { getAllTablesSql, getAllIndexesSql } from "../sqlite/index.js";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("SqliteInit:Index");
 
 let _initialized = false;
 
@@ -60,7 +62,7 @@ export async function initializeSqliteDatabase(): Promise<void> {
   await verifyInventorySchema(libsqlClient);
 
   _initialized = true;
-  console.log("✓ SQLite database initialized with all tables and indexes");
+  logger.info("✓ SQLite database initialized with all tables and indexes");
 }
 
 async function getTableColumns(client: LibsqlClient, tableName: string): Promise<string[]> {
@@ -75,7 +77,7 @@ async function safeRenameColumn(
   newCol: string
 ): Promise<void> {
   await client.execute(`ALTER TABLE ${table} RENAME COLUMN ${oldCol} TO ${newCol}`);
-  console.log(`  ✓ Renamed ${table}.${oldCol} → ${newCol}`);
+  logger.info(`  ✓ Renamed ${table}.${oldCol} → ${newCol}`);
 }
 
 async function backfillFromLegacy(
@@ -89,7 +91,7 @@ async function backfillFromLegacy(
   );
   const count = result.rowsAffected;
   if (count > 0) {
-    console.log(`  ✓ Backfilled ${count} rows: ${table}.${oldCol} → ${newCol}`);
+    logger.info(`  ✓ Backfilled ${count} rows: ${table}.${oldCol} → ${newCol}`);
   }
 }
 
@@ -101,7 +103,7 @@ async function safeAddColumn(
 ): Promise<void> {
   try {
     await client.execute(`ALTER TABLE ${table} ADD COLUMN ${col} ${definition}`);
-    console.log(`  ✓ Added ${table}.${col}`);
+    logger.info(`  ✓ Added ${table}.${col}`);
   } catch (error) {
     if (error instanceof Error && error.message.includes("duplicate column")) {
       return;
@@ -254,9 +256,7 @@ async function runInventoryMigrations(client: LibsqlClient): Promise<void> {
             `UPDATE purchase_order_items SET org_id = (SELECT po.org_id FROM purchase_orders po WHERE po.id = purchase_order_items.${poIdCol}) WHERE org_id = ''`
           );
           if (backfilled.rowsAffected > 0) {
-            console.log(
-              `  ✓ Backfilled ${backfilled.rowsAffected} purchase_order_items.org_id from purchase_orders`
-            );
+            logger.info(`  ✓ Backfilled ${backfilled.rowsAffected} purchase_order_items.org_id from purchase_orders`);
           }
         }
       }
@@ -276,7 +276,7 @@ async function runInventoryMigrations(client: LibsqlClient): Promise<void> {
     throw new Error(errorMsg);
   }
 
-  console.log("✓ Inventory schema migration completed");
+  logger.info("✓ Inventory schema migration completed");
 }
 
 async function verifyInventorySchema(client: LibsqlClient): Promise<void> {
@@ -327,9 +327,7 @@ async function verifyInventorySchema(client: LibsqlClient): Promise<void> {
     );
     const count = Number(orphaned.rows[0]?.cnt ?? 0);
     if (count > 0) {
-      console.warn(
-        `⚠ ${count} purchase_order_items rows have empty org_id — tenant isolation incomplete`
-      );
+      logger.warn(`⚠ ${count} purchase_order_items rows have empty org_id — tenant isolation incomplete`);
     }
   }
 
@@ -349,5 +347,5 @@ async function verifyInventorySchema(client: LibsqlClient): Promise<void> {
     );
   }
 
-  console.log("✓ Inventory schema verification passed");
+  logger.info("✓ Inventory schema verification passed");
 }

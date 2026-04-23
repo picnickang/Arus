@@ -4,6 +4,8 @@
  * Data fetching operations for fuel flow, counters, and meter status.
  */
 
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Integrations:AquametroFmcc:ServiceOperations");
 import type {
   FMCCInstantFlow,
   FMCCCumulativeCounters,
@@ -56,7 +58,7 @@ export class AquametroFMCCService extends AquametroFMCCServiceCore {
         responseTimeMs: Date.now() - startTime,
       };
     } catch (error) {
-      console.error("[FMCC] Error getting instant flow:", error);
+      logger.error("[FMCC] Error getting instant flow:", undefined, error);
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -107,7 +109,7 @@ export class AquametroFMCCService extends AquametroFMCCServiceCore {
         responseTimeMs: Date.now() - startTime,
       };
     } catch (error) {
-      console.error("[FMCC] Error getting cumulative counters:", error);
+      logger.error("[FMCC] Error getting cumulative counters:", undefined, error);
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -159,7 +161,7 @@ export class AquametroFMCCService extends AquametroFMCCServiceCore {
       result.responseTimeMs = Date.now() - startTime;
       return result;
     } catch (error) {
-      console.error("[FMCC] Error calculating efficiency:", error);
+      logger.error("[FMCC] Error calculating efficiency:", undefined, error);
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -217,7 +219,7 @@ export class AquametroFMCCService extends AquametroFMCCServiceCore {
         responseTimeMs: Date.now() - startTime,
       };
     } catch (error) {
-      console.error("[FMCC] Error getting meter status:", error);
+      logger.error("[FMCC] Error getting meter status:", undefined, error);
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -275,7 +277,7 @@ export class AquametroFMCCService extends AquametroFMCCServiceCore {
         responseTimeMs: Date.now() - startTime,
       };
     } catch (error) {
-      console.error("[FMCC] Error getting raw sample:", error);
+      logger.error("[FMCC] Error getting raw sample:", undefined, error);
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",

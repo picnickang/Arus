@@ -5,6 +5,8 @@
 import { randomUUID } from "node:crypto";
 import { eq, and, sql, lte, or } from "drizzle-orm";
 import { db } from "../../db-config";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Db:Equipment:DbEquipment");
 import {
   equipment,
   equipmentLifecycle,
@@ -77,7 +79,7 @@ export class DatabaseEquipmentStorage {
           vesselName = vessel.name;
         }
       } catch (error) {
-        console.warn(`Failed to lookup vessel name for ID ${equipmentData.vesselId}:`, error);
+        logger.warn(`Failed to lookup vessel name for ID ${equipmentData.vesselId}:`, { details: error });
       }
     }
     const [newEquipment] = await db
@@ -94,7 +96,7 @@ export class DatabaseEquipmentStorage {
       const { equipmentAnalyticsService } = await import("../../equipment-analytics-service.js");
       await equipmentAnalyticsService.setupEquipmentAnalytics(newEquipment);
     } catch (error) {
-      console.error(`Failed to setup analytics for new equipment ${newEquipment.id}:`, error);
+      logger.error(`Failed to setup analytics for new equipment ${newEquipment.id}:`, undefined, error);
     }
     const ws = getWebSocketServer();
     ws?.broadcastEquipmentChange("create", newEquipment);
@@ -124,7 +126,7 @@ export class DatabaseEquipmentStorage {
             updateData.vesselName = vessel.name;
           }
         } catch (error) {
-          console.warn(`Failed to lookup vessel name for ID ${equipmentData.vesselId}:`, error);
+          logger.warn(`Failed to lookup vessel name for ID ${equipmentData.vesselId}:`, { details: error });
         }
       } else {
         updateData.vesselName = null;

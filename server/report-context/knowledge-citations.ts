@@ -10,6 +10,8 @@ import { eq, and, inArray } from "drizzle-orm";
 import { searchKnowledgeBase, type SearchResult } from "../vector-search-service";
 import type { Vessel as SelectVessel, WorkOrder } from "@shared/schema";
 import type { ReportContext } from "./types.js";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("ReportContext:KnowledgeCitations");
 
 export async function fetchKBKnowledge(
   orgId: string,
@@ -17,7 +19,7 @@ export async function fetchKBKnowledge(
   reportType: string
 ): Promise<ReportContext["knowledge"]> {
   if (!db) {
-    console.info("[Context] KB knowledge skipped: database not available (offline mode)");
+    logger.info("[Context] KB knowledge skipped: database not available (offline mode)");
     return { documents: [], semanticMatches: [] };
   }
 
@@ -67,7 +69,7 @@ export async function fetchKBKnowledge(
           .where(and(eq(kbDocs.orgId, orgId), inArray(kbDocs.equipmentId, equipmentIds)))
           .limit(10);
       } catch (dbError) {
-        console.warn("[Context] Failed to fetch linked KB docs:", dbError);
+        logger.warn("[Context] Failed to fetch linked KB docs:", { details: dbError });
       }
     }
 
@@ -79,7 +81,7 @@ export async function fetchKBKnowledge(
         limit: 5,
       });
     } catch (searchError) {
-      console.warn("[Context] KB semantic search failed:", searchError);
+      logger.warn("[Context] KB semantic search failed:", { details: searchError });
     }
 
     const documents = linkedDocuments.map((doc, index) => ({
@@ -101,7 +103,7 @@ export async function fetchKBKnowledge(
       semanticMatches,
     };
   } catch (error) {
-    console.error("[Context] Failed to fetch KB knowledge:", error);
+    logger.error("[Context] Failed to fetch KB knowledge:", undefined, error);
     return { documents: [], semanticMatches: [] };
   }
 }

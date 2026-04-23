@@ -3,6 +3,8 @@ import { count, eq, and, gt } from "drizzle-orm";
 import { db } from "./db.js";
 import { syncJournal, syncOutbox } from "../shared/schema.js";
 import type { InsertSyncJournal, InsertSyncOutbox } from "../shared/schema.js";
+import { createLogger } from "./lib/structured-logger";
+const logger = createLogger("SyncEvents");
 
 // Internal event bus for real-time notifications
 export const syncEventBus = new EventEmitter();
@@ -121,7 +123,7 @@ export async function recordJournalEntry(
 
     await db.insert(syncJournal).values(journalEntry);
   } catch (error) {
-    console.error(`[SyncEvents] Failed to record journal entry:`, error);
+    logger.error(`[SyncEvents] Failed to record journal entry:`, undefined, error);
     // Don't throw - journaling should not break main operations
   }
 }
@@ -149,7 +151,7 @@ export async function publishEvent(
       syncEventBus.emit(eventType, payload);
     }
   } catch (error) {
-    console.error(`[SyncEvents] Failed to publish event:`, error);
+    logger.error(`[SyncEvents] Failed to publish event:`, undefined, error);
     // Don't throw - event publishing should not break main operations
   }
 }
@@ -203,7 +205,7 @@ export async function getEntityHistory(
       .orderBy(syncJournal.createdAt)
       .limit(limit);
   } catch (error) {
-    console.error(`[SyncEvents] Failed to get entity history:`, error);
+    logger.error(`[SyncEvents] Failed to get entity history:`, undefined, error);
     return [];
   }
 }
@@ -239,7 +241,7 @@ export async function processPendingEvents(limit: number = 100): Promise<number>
 
         processedCount++;
       } catch (eventError) {
-        console.error(`[SyncEvents] Failed to process event ${event.id}:`, eventError);
+        logger.error(`[SyncEvents] Failed to process event ${event.id}:`, undefined, eventError);
 
         // Increment processing attempts
         await db
@@ -251,7 +253,7 @@ export async function processPendingEvents(limit: number = 100): Promise<number>
 
     return processedCount;
   } catch (error) {
-    console.error(`[SyncEvents] Failed to process pending events:`, error);
+    logger.error(`[SyncEvents] Failed to process pending events:`, undefined, error);
     return 0;
   }
 }
@@ -285,7 +287,7 @@ export async function getSyncMetrics(): Promise<{
       recentActivity: Number(recentActivity[0]?.count ?? 0),
     };
   } catch (error) {
-    console.error(`[SyncEvents] Failed to get sync metrics:`, error);
+    logger.error(`[SyncEvents] Failed to get sync metrics:`, undefined, error);
     return {
       totalJournalEntries: 0,
       pendingEvents: 0,

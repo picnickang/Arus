@@ -1,5 +1,7 @@
 import { db } from "../../../db";
 import { eq, desc, and, sql, gte, lte } from "drizzle-orm";
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Domains:Agent:Application:SuggestionEngine");
 import {
   alertNotifications,
   failurePredictions,
@@ -57,19 +59,14 @@ export class SuggestionEngine {
       this.evaluationIntervalMs = intervalMs;
     }
 
-    console.log(
-      `[SuggestionEngine] Starting background evaluation every ${this.evaluationIntervalMs / 60000} minutes for org ${orgId}`
-    );
+    logger.info(`[SuggestionEngine] Starting background evaluation every ${this.evaluationIntervalMs / 60000} minutes for org ${orgId}`);
 
     const id = setInterval(async () => {
       try {
         const storedPrefs = await this.repo.suggestions.getPreferences(orgId);
         await this.generateProactiveSuggestions(orgId, storedPrefs ?? undefined);
       } catch (err) {
-        console.error(
-          `[SuggestionEngine] Background evaluation error for org ${orgId}:`,
-          err instanceof Error ? err.message : "unknown"
-        );
+        logger.error(`[SuggestionEngine] Background evaluation error for org ${orgId}:`, undefined, err instanceof Error ? err.message : "unknown");
       }
     }, this.evaluationIntervalMs);
     this.intervalIds.set(orgId, id);
@@ -81,12 +78,12 @@ export class SuggestionEngine {
       if (id) {
         clearInterval(id);
         this.intervalIds.delete(orgId);
-        console.log(`[SuggestionEngine] Background evaluation stopped for org ${orgId}`);
+        logger.info(`[SuggestionEngine] Background evaluation stopped for org ${orgId}`);
       }
     } else {
       for (const [org, id] of this.intervalIds) {
         clearInterval(id);
-        console.log(`[SuggestionEngine] Background evaluation stopped for org ${org}`);
+        logger.info(`[SuggestionEngine] Background evaluation stopped for org ${org}`);
       }
       this.intervalIds.clear();
     }
@@ -142,9 +139,7 @@ export class SuggestionEngine {
       await this.queueNotifications(orgId, updatedSuggestions);
     }
 
-    console.log(
-      `[SuggestionEngine] Generated ${newSuggestions.length} suggestions for org ${orgId}`
-    );
+    logger.info(`[SuggestionEngine] Generated ${newSuggestions.length} suggestions for org ${orgId}`);
     return newSuggestions;
   }
 
@@ -276,10 +271,7 @@ export class SuggestionEngine {
       try {
         await handler(signal);
       } catch (err) {
-        console.error(
-          `[SuggestionEngine] Signal dispatch failed for ${signal.type} on ${signal.equipmentId}:`,
-          err instanceof Error ? err.message : "unknown"
-        );
+        logger.error(`[SuggestionEngine] Signal dispatch failed for ${signal.type} on ${signal.equipmentId}:`, undefined, err instanceof Error ? err.message : "unknown");
       }
     });
   }
@@ -382,10 +374,7 @@ export class SuggestionEngine {
         results.push(sug);
       }
     } catch (err) {
-      console.warn(
-        "[SuggestionEngine] Low stock query failed:",
-        err instanceof Error ? err.message : "unknown"
-      );
+      logger.warn("[SuggestionEngine] Low stock query failed:", { details: err instanceof Error ? err.message : "unknown" });
     }
     return results;
   }
@@ -442,10 +431,7 @@ export class SuggestionEngine {
         results.push(sug);
       }
     } catch (err) {
-      console.warn(
-        "[SuggestionEngine] Critical alerts query failed:",
-        err instanceof Error ? err.message : "unknown"
-      );
+      logger.warn("[SuggestionEngine] Critical alerts query failed:", { details: err instanceof Error ? err.message : "unknown" });
     }
     return results;
   }
@@ -507,10 +493,7 @@ export class SuggestionEngine {
         results.push(sug);
       }
     } catch (err) {
-      console.warn(
-        "[SuggestionEngine] Certification expiry query failed:",
-        err instanceof Error ? err.message : "unknown"
-      );
+      logger.warn("[SuggestionEngine] Certification expiry query failed:", { details: err instanceof Error ? err.message : "unknown" });
     }
     return results;
   }
@@ -566,10 +549,7 @@ export class SuggestionEngine {
         });
       }
     } catch (err) {
-      console.warn(
-        "[SuggestionEngine] AI summarization failed (non-blocking):",
-        err instanceof Error ? err.message : "unknown"
-      );
+      logger.warn("[SuggestionEngine] AI summarization failed (non-blocking):", { details: err instanceof Error ? err.message : "unknown" });
     }
   }
 
@@ -591,10 +571,7 @@ export class SuggestionEngine {
         });
       }
     } catch (err) {
-      console.warn(
-        "[SuggestionEngine] Notification queue integration failed (non-blocking):",
-        err instanceof Error ? err.message : "unknown"
-      );
+      logger.warn("[SuggestionEngine] Notification queue integration failed (non-blocking):", { details: err instanceof Error ? err.message : "unknown" });
     }
   }
 }

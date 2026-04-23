@@ -5,6 +5,8 @@
 import type { EquipmentTelemetry, TelemetryTrend } from "@shared/schema";
 import type { EquipmentAnalysis } from "./types";
 import { createOpenAIClient, callWithModelFallback, calculateDynamicTokens } from "./client";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Openai:EquipmentAnalysis");
 
 /**
  * Analyzes individual equipment telemetry data using AI to generate predictive maintenance insights
@@ -99,7 +101,7 @@ export async function analyzeEquipmentHealth(
       }
       analysis = JSON.parse(content);
     } catch (parseError) {
-      console.error("Failed to parse OpenAI response:", parseError);
+      logger.error("Failed to parse OpenAI response:", undefined, parseError);
       throw new Error(
         `Invalid AI response format: ${parseError instanceof Error ? parseError.message : "Unknown error"}`
       );
@@ -116,10 +118,8 @@ export async function analyzeEquipmentHealth(
       criticalAlerts: analysis.criticalAlerts ?? [],
     };
   } catch (error) {
-    console.error(`Equipment analysis failed for ${equipmentId}:`, error);
-    console.warn(
-      `Returning fallback analysis for equipment ${equipmentId} - AI service unavailable`
-    );
+    logger.error(`Equipment analysis failed for ${equipmentId}:`, undefined, error);
+    logger.warn(`Returning fallback analysis for equipment ${equipmentId} - AI service unavailable`);
 
     return {
       equipmentId,

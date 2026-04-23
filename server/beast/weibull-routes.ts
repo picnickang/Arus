@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { beastModeManager, DEFAULT_ORG_ID } from "../beast-mode-config.js";
 import { WeibullRULAnalyzer } from "../weibull-rul.js";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Beast:WeibullRoutes");
 
 const router = Router();
 
@@ -36,7 +38,7 @@ router.post("/weibull/analyze/:equipmentId", async (req, res) => {
       message: `RUL analysis: ${Math.round(prediction.predictedRUL)}h remaining, ${(prediction.reliability * 100).toFixed(1)}% reliable, ${prediction.maintenanceRecommendation} maintenance`,
     });
   } catch (error: any) {
-    console.error(`[Beast Mode API] Error analyzing RUL for ${req.params.equipmentId}:`, error);
+    logger.error(`[Beast Mode API] Error analyzing RUL for ${req.params.equipmentId}:`, undefined, error);
     res
       .status(400)
       .json({ success: false, error: error.message, equipmentId: req.params.equipmentId });
@@ -78,10 +80,7 @@ router.get("/weibull/history/:equipmentId", async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error(
-      `[Beast Mode API] Error getting Weibull history for ${req.params.equipmentId}:`,
-      error
-    );
+    logger.error(`[Beast Mode API] Error getting Weibull history for ${req.params.equipmentId}:`, undefined, error);
     res
       .status(500)
       .json({
@@ -161,7 +160,7 @@ router.post("/weibull/batch-analyze", async (req, res) => {
       failed: results.failed,
     });
   } catch (error: any) {
-    console.error(`[Beast Mode API] Error in batch Weibull RUL analysis:`, error);
+    logger.error(`[Beast Mode API] Error in batch Weibull RUL analysis:`, undefined, error);
     res.status(500).json({ success: false, error: "Failed to perform batch Weibull RUL analysis" });
   }
 });

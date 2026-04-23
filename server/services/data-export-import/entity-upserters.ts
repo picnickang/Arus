@@ -5,6 +5,8 @@
  */
 
 import * as crypto from "node:crypto";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:DataExportImport:EntityUpserters");
 import {
   dbUserStorage,
   dbEquipmentStorage,
@@ -50,7 +52,7 @@ export async function upsertRecord(
 ): Promise<string | undefined> {
   const handler = entityUpserters[entityName];
   if (!handler) {
-    console.warn(`[DataImport] Upsert not implemented for: ${entityName}`);
+    logger.warn(`[DataImport] Upsert not implemented for: ${entityName}`);
     return undefined;
   }
   return handler(record, conflictResolution, isRemapping);
@@ -85,7 +87,7 @@ async function upsertVessel(
     const oldId = record.id;
     record.id = crypto.randomUUID();
     await vesselService.createVessel(record);
-    console.log(`[DataImport] Created vessel: ${oldId} → ${record.id}`);
+    logger.info(`[DataImport] Created vessel: ${oldId} → ${record.id}`);
     return record.id;
   }
   const existingVessel = await vesselService.getVessel(record.id);
@@ -109,9 +111,7 @@ async function upsertEquipment(
     const oldId = record.id;
     record.id = crypto.randomUUID();
     await dbEquipmentStorage.createEquipment(record);
-    console.log(
-      `[DataImport] Created equipment: ${oldId} → ${record.id} (vesselId: ${record.vesselId})`
-    );
+    logger.info(`[DataImport] Created equipment: ${oldId} → ${record.id} (vesselId: ${record.vesselId})`);
     return record.id;
   }
   const existingEquip = await dbEquipmentStorage.getEquipment(record.orgId, record.id);
@@ -136,7 +136,7 @@ async function upsertWorkOrder(
     record.id = crypto.randomUUID();
     record.woNumber = `WO-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
     await workOrderService.createWorkOrder(record);
-    console.log(`[DataImport] Created work_order: ${oldId} → ${record.id}`);
+    logger.info(`[DataImport] Created work_order: ${oldId} → ${record.id}`);
     return record.id;
   }
   const existingWO = await workOrderService.getWorkOrderById(record.id, record.orgId);

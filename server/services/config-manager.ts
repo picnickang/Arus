@@ -9,6 +9,8 @@ import path from "node:path";
 import { db } from "../db";
 import { configAuditLog } from "../../shared/schema";
 import type { InsertConfigAuditLog } from "../../shared/schema";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Services:ConfigManager");
 
 export interface ConfigChange {
   key: string;
@@ -106,14 +108,14 @@ export class ConfigManager {
   private loadEnvFile(): Map<string, string> | null {
     try {
       if (!fs.existsSync(this.envFilePath)) {
-        console.warn(`[ConfigManager] .env file not found at ${this.envFilePath}`);
+        logger.warn(`[ConfigManager] .env file not found at ${this.envFilePath}`);
         return null;
       }
 
       const content = fs.readFileSync(this.envFilePath, "utf-8");
       return this.parseEnvFile(content);
     } catch (error) {
-      console.error("[ConfigManager] Error loading .env file:", error);
+      logger.error("[ConfigManager] Error loading .env file:", undefined, error);
       return null;
     }
   }
@@ -231,14 +233,12 @@ export class ConfigManager {
 
           await db.insert(configAuditLog).values(auditEntries);
         } catch (dbError) {
-          console.error("[ConfigManager] Failed to log changes to audit log:", dbError);
+          logger.error("[ConfigManager] Failed to log changes to audit log:", undefined, dbError);
           // Continue anyway - don't fail reload due to audit log error
         }
       }
 
-      console.log(
-        `[ConfigManager] Configuration reloaded: ${safe.length} safe changes, ${critical.length} critical changes`
-      );
+      logger.info(`[ConfigManager] Configuration reloaded: ${safe.length} safe changes, ${critical.length} critical changes`);
 
       return {
         success: true,
@@ -247,7 +247,7 @@ export class ConfigManager {
         requiresRestart: critical.length > 0,
       };
     } catch (error) {
-      console.error("[ConfigManager] Error reloading configuration:", error);
+      logger.error("[ConfigManager] Error reloading configuration:", undefined, error);
       return {
         success: false,
         changed: [],
@@ -263,13 +263,13 @@ export class ConfigManager {
    */
   watchForChanges(auditInfo?: { orgId: string; changedBy?: string; changedByName?: string }): void {
     if (!fs.existsSync(this.envFilePath)) {
-      console.warn(`[ConfigManager] Cannot watch non-existent file: ${this.envFilePath}`);
+      logger.warn(`[ConfigManager] Cannot watch non-existent file: ${this.envFilePath}`);
       return;
     }
 
     const watcher = fs.watch(this.envFilePath, async (eventType) => {
       if (eventType === "change") {
-        console.log("[ConfigManager] .env file changed, auto-reloading...");
+        logger.info("[ConfigManager] .env file changed, auto-reloading...");
 
         const result = await this.reloadConfig({
           ...auditInfo,
@@ -278,18 +278,16 @@ export class ConfigManager {
         });
 
         if (result.success) {
-          console.log(`[ConfigManager] Auto-reload complete: ${result.changed.length} changes`);
+          logger.info(`[ConfigManager] Auto-reload complete: ${result.changed.length} changes`);
           if (result.requiresRestart) {
-            console.warn(
-              "[ConfigManager] ⚠️  Critical changes detected! Application restart recommended."
-            );
+            logger.warn("[ConfigManager] ⚠️  Critical changes detected! Application restart recommended.");
           }
         }
       }
     });
 
     this.watchers.push(watcher);
-    console.log(`[ConfigManager] Watching ${this.envFilePath} for changes`);
+    logger.info(`[ConfigManager] Watching ${this.envFilePath} for changes`);
   }
 
   /**
@@ -300,7 +298,7 @@ export class ConfigManager {
       watcher.close();
     }
     this.watchers = [];
-    console.log("[ConfigManager] Stopped watching for config changes");
+    logger.info("[ConfigManager] Stopped watching for config changes");
   }
 
   /**
@@ -378,7 +376,7 @@ export class ConfigManager {
       // Reload configuration
       return this.reloadConfig(auditInfo);
     } catch (error) {
-      console.error(`[ConfigManager] Error setting ${key}:`, error);
+      logger.error(`[ConfigManager] Error setting ${key}:`, undefined, error);
       return {
         success: false,
         changed: [],
@@ -429,7 +427,7 @@ export class ConfigManager {
       // Reload configuration
       return this.reloadConfig(auditInfo);
     } catch (error) {
-      console.error(`[ConfigManager] Error deleting ${key}:`, error);
+      logger.error(`[ConfigManager] Error deleting ${key}:`, undefined, error);
       return {
         success: false,
         changed: [],

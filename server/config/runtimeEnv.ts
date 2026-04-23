@@ -1,3 +1,5 @@
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Config:RuntimeEnv");
 /**
  * Centralized Runtime Environment Configuration
  *
@@ -145,16 +147,16 @@ export const sharedFeatures = {
  * Log deployment mode configuration on startup
  */
 export function logDeploymentConfig(): void {
-  console.log("=== Deployment Mode Configuration ===");
-  console.log(`Mode: ${deploymentMode}`);
-  console.log(`Local Mode: ${isLocalMode}`);
-  console.log(`Vessel Mode: ${isVesselMode}`);
-  console.log(`Cloud Mode: ${isCloudMode}`);
-  console.log(`Cloud DB Available: ${canUseCloudDb}`);
-  console.log(`Embedded DB Available: ${canUseEmbeddedDb}`);
-  console.log(`PostgreSQL Features: ${hasPostgresFeatures}`);
-  console.log(`libSQL Features: ${hasLibSQLFeatures}`);
-  console.log("=====================================");
+  logger.info("=== Deployment Mode Configuration ===");
+  logger.info(`Mode: ${deploymentMode}`);
+  logger.info(`Local Mode: ${isLocalMode}`);
+  logger.info(`Vessel Mode: ${isVesselMode}`);
+  logger.info(`Cloud Mode: ${isCloudMode}`);
+  logger.info(`Cloud DB Available: ${canUseCloudDb}`);
+  logger.info(`Embedded DB Available: ${canUseEmbeddedDb}`);
+  logger.info(`PostgreSQL Features: ${hasPostgresFeatures}`);
+  logger.info(`libSQL Features: ${hasLibSQLFeatures}`);
+  logger.info("=====================================");
 }
 
 // ============================================================================

@@ -4,6 +4,8 @@
 
 import type { MaintenanceInsight, PumpAnalysisParams } from "./types";
 import { createOpenAIClient, callWithModelFallback, calculateDynamicTokens } from "./client";
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Openai:MaintenanceInsights");
 
 /**
  * Generates maintenance recommendations based on specific alert conditions
@@ -67,7 +69,7 @@ export async function generateMaintenanceRecommendations(
       }
       recommendation = JSON.parse(content);
     } catch (parseError) {
-      console.error("Failed to parse OpenAI maintenance recommendation response:", parseError);
+      logger.error("Failed to parse OpenAI maintenance recommendation response:", undefined, parseError);
       throw new Error(
         `Invalid AI response format: ${parseError instanceof Error ? parseError.message : "Unknown error"}`
       );
@@ -84,7 +86,7 @@ export async function generateMaintenanceRecommendations(
       predictedFailureRisk: Math.max(0, Math.min(100, recommendation.predictedFailureRisk || 50)),
     };
   } catch (error) {
-    console.error(`Maintenance recommendation failed for ${alertType}:`, error);
+    logger.error(`Maintenance recommendation failed for ${alertType}:`, undefined, error);
 
     return {
       severity: "medium",
@@ -159,7 +161,7 @@ Provide a concise technical explanation of the pump's current condition, highlig
       "Pump analysis completed. Parameters within operational limits."
     );
   } catch (error) {
-    console.error(`Pump analysis explanation failed for ${params.assetId}:`, error);
+    logger.error(`Pump analysis explanation failed for ${params.assetId}:`, undefined, error);
 
     const severityMessages = {
       info: "Pump operating within normal parameters. Continue regular monitoring schedule.",
