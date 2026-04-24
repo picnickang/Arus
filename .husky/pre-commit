@@ -1,29 +1,20 @@
 #!/bin/sh
 # Pre-commit hook for code quality checks
-# To enable: bash scripts/setup-hooks.sh
-# Note: Only checks for ESLint errors, not warnings
+#
+# Strategy:
+#   1. lint-staged formats + ESLint-fixes ONLY staged files (fast)
+#   2. fast guardrail scripts run on the whole repo (each <1s)
+#
+# To enable in a fresh clone:  git config core.hooksPath .husky
+# To bypass (use sparingly):    git commit --no-verify
 
-echo "🔍 Running pre-commit quality checks..."
+set -e
 
-# Run format check (optional - comment out if too strict)
-# npx prettier --check "**/*.{ts,tsx,json,css,md}" --ignore-unknown
-# FORMAT_EXIT=$?
-# if [ $FORMAT_EXIT -ne 0 ]; then
-#   echo "❌ Code formatting issues detected."
-#   echo "💡 Run 'bash scripts/format.sh' to auto-format, or commit with --no-verify to skip."
-#   exit 1
-# fi
+echo "Running lint-staged on staged files..."
+npx lint-staged
 
-# Run lint check (errors only)
-npx eslint . --ext .ts,.tsx --quiet
-LINT_EXIT=$?
+echo "Running fast convergence guards..."
+node scripts/check-storage-imports.mjs
+node scripts/check-route-registration.mjs
 
-if [ $LINT_EXIT -ne 0 ]; then
-  echo "❌ ESLint errors detected."
-  echo "💡 Run 'bash scripts/lint-fix.sh' to auto-fix, or commit with --no-verify to skip."
-  exit 1
-fi
-
-echo "✅ Pre-commit checks passed (no ESLint errors)!"
-echo "💡 Run 'bash scripts/quality-check.sh' for full quality audit including warnings"
-exit 0
+echo "Pre-commit checks passed."

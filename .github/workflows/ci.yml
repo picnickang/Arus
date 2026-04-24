@@ -39,6 +39,12 @@ jobs:
       - name: Check domain boundaries & leak baseline
         run: npm run check:guards
 
+      - name: Hexagonal storage boundary (db imports outside infrastructure)
+        run: node scripts/check-hex-storage-boundaries.mjs
+
+      - name: Dual-schema parity (PG vs SQLite)
+        run: node scripts/validate-dual-schema.mjs
+
       - name: TypeScript error burndown
         run: npm run check:ts-burndown
 

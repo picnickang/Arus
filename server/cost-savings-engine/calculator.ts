@@ -14,6 +14,7 @@ import {
 } from "@shared/schema-runtime";
 import { eq, and } from "drizzle-orm";
 import type { SavingsCalculation } from "./types";
+import { computeSavingsMath } from "./savings-math";
 
 export async function calculateWorkOrderSavings(
   workOrderId: string,
@@ -92,8 +93,6 @@ export async function calculateWorkOrderSavings(
     equipmentDetails?.downtimeCostPerHour ??
     activeCostModel?.downtimePerHour ??
     1000;
-  const actualDowntimeCost = actualDowntimeHours * downtimeCostPerHour;
-  const actualCost = actualLaborCost + actualPartsCost + actualDowntimeCost;
 
   const emergencyLaborMultiplier =
     options.emergencyLaborMultiplier ??
@@ -111,42 +110,20 @@ export async function calculateWorkOrderSavings(
     org?.emergencyDowntimeMultiplier ??
     3;
 
-  const emergencyLaborCost = actualLaborCost * emergencyLaborMultiplier;
-  const emergencyPartsCost = actualPartsCost * emergencyPartsMultiplier;
-  const emergencyDowntimeHours =
-    actualDowntimeHours > 0 ? actualDowntimeHours * emergencyDowntimeMultiplier : 24;
-  const emergencyDowntimeCost = emergencyDowntimeHours * downtimeCostPerHour;
-
-  const avoidedCost = emergencyLaborCost + emergencyPartsCost + emergencyDowntimeCost;
-
-  const laborSavings = emergencyLaborCost - actualLaborCost;
-  const partsSavings = emergencyPartsCost - actualPartsCost;
-  const downtimeSavings = emergencyDowntimeCost - actualDowntimeCost;
-  const totalSavings = avoidedCost - actualCost;
-
-  return {
+  return computeSavingsMath({
     workOrderId,
     equipmentId: workOrder.equipmentId,
     vesselId: workOrder.vesselId ?? null,
     predictionId,
-    actualCost,
+    confidenceScore,
+    maintenanceType,
+    triggeredBy,
     actualLaborCost,
     actualPartsCost,
     actualDowntimeHours,
-    avoidedCost,
-    emergencyLaborCost,
-    emergencyPartsCost,
-    emergencyDowntimeHours,
-    emergencyDowntimeCost,
-    totalSavings,
-    laborSavings,
-    partsSavings,
-    downtimeSavings,
-    maintenanceType,
-    triggeredBy,
-    confidenceScore,
+    downtimeCostPerHour,
     emergencyLaborMultiplier,
     emergencyPartsMultiplier,
-    downtimeCostPerHour,
-  };
+    emergencyDowntimeMultiplier,
+  });
 }

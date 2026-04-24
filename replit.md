@@ -1,6 +1,6 @@
 # Overview
 
-ARUS (Marine Predictive Maintenance & Scheduling) is a full-stack web application that optimizes marine fleet operations through advanced equipment monitoring, predictive maintenance, intelligent scheduling, and comprehensive inventory management. The project aims to reduce costs, improve safety, and ensure regulatory adherence across the global fleet by leveraging AI/ML technologies.
+ARUS (Marine Predictive Maintenance & Scheduling) is a full-stack web application designed to optimize marine fleet operations. It achieves this through advanced equipment monitoring, predictive maintenance, intelligent scheduling, and comprehensive inventory management. The project's core purpose is to reduce operational costs, enhance safety standards, and ensure regulatory compliance across the global marine fleet, primarily by integrating AI/ML technologies.
 
 # User Preferences
 
@@ -10,33 +10,33 @@ Preferred communication style: Simple, everyday language.
 
 ## UI/UX Decisions
 
-The frontend is a mobile-first React 18 single-page application, built with TypeScript, `shadcn/ui`, Wouter, and TanStack Query. It focuses on intuitive navigation, high information density, clear visual hierarchy, and WCAG 2.1 AA accessibility, designed for full responsiveness.
+The frontend is a mobile-first React 18 single-page application built with TypeScript, `shadcn/ui`, Wouter, and TanStack Query. It emphasizes intuitive navigation, high information density, clear visual hierarchy, and WCAG 2.1 AA accessibility, with a fully responsive design.
 
 ## Technical Implementations
 
 ### Frontend
 
-Built with React 18, TypeScript, Wouter, TanStack Query, Tailwind CSS, and `shadcn/ui`. It supports WebSocket real-time synchronization, PWA capabilities, and cross-platform deployment via Capacitor (mobile) and Tauri v2 (desktop).
+Developed using React 18, TypeScript, Wouter, TanStack Query, Tailwind CSS, and `shadcn/ui`. It supports WebSocket real-time synchronization, Progressive Web App (PWA) capabilities, and cross-platform deployment via Capacitor (mobile) and Tauri v2 (desktop).
 
 ### Backend
 
-Developed with Express.js and TypeScript, offering RESTful APIs with Zod validation. It integrates Vessel Intelligence, Inventory Management, and Analytics, utilizing Redis caching and robust security features.
+Implemented with Express.js and TypeScript, providing RESTful APIs with Zod validation. Key features include Vessel Intelligence, Inventory Management, and Analytics, supported by Redis caching and robust security measures.
 
 #### Feature Specifications
 
--   **Predictive Maintenance**: Automated scheduling, real-time notifications, and cron-based failure prediction using ensemble ML models and RUL-based task windows.
+-   **Predictive Maintenance**: Automated scheduling, real-time notifications, and AI/ML-driven failure prediction using ensemble models and RUL-based task windows.
 -   **Telemetry Ingestion**: Hybrid C# Windows Service and Node.js architecture for offline-first data collection, supporting marine protocols.
 -   **AI/ML Capabilities**: Condition Monitoring AI Studio, AI Sensor Optimization, OpenAI-powered LLM reports, advanced ML & acoustic monitoring, automated ML training, FFT-based vibration analysis, and a comprehensive PdM Platform.
--   **Digital Twin Platform**: Provides Twin Definition, State computation, Residual Analysis, Scenario Simulation, and Replay/Time Travel.
+-   **Digital Twin Platform**: Offers Twin Definition, State computation, Residual Analysis, Scenario Simulation, and Replay/Time Travel functionalities.
 -   **Operational & Compliance**: STCW-compliant Crew Scheduling with Fatigue Risk Score, Cost Savings & ROI Tracking, CII Compliance, Operating Mode Detection, immutable audit trails, digital logbooks, and a Compliance Rules Engine.
 -   **Import Adapters**: Supports CSV/XML imports from AMOS CMMS and SBN SHIPMATE ERP.
 -   **Equipment Hierarchy**: Manages parent-child equipment relationships.
--   **Inventory & Work Orders**: Modernized UIs with virtualized tables, checklists, multi-supplier support, and unified completion paths with prediction feedback and financial tracking.
+-   **Inventory & Work Orders**: Modernized UIs with virtualized tables, checklists, multi-supplier support, unified completion paths with prediction feedback, and financial tracking.
 -   **Dashboards**: Bridge Dashboard with key metrics and alerts; Analytics Hub with headline metrics and AI Key Findings.
 -   **Simulation**: Physics-Aware Vessel Telemetry Simulator for synthetic data generation.
 -   **AI Copilot Agent**: Natural language chat interface (OpenAI function-calling) for fleet operations with tiered permissions and SSE streaming.
--   **Knowledge Base**: Single-purpose document management page with search, upload, filters, and semantic search.
--   **Agent Activity & Findings**: Observability pages for agent runs and a unified feed of agent suggestions and findings.
+-   **Knowledge Base**: Single-purpose document management with search, upload, and semantic search.
+-   **Agent Activity & Findings**: Observability pages for agent runs and a unified feed of agent suggestions.
 -   **Telemetry Resilience**: Circuit breaker, graceful shutdown, in-memory dead-letter queue, and equipment heartbeat tracking.
 -   **Unified Domain Event Bus**: Consolidated, strongly-typed event bus.
 -   **Certificate Registry**: Hexagonal domain for vessel certificates with validity tracking.
@@ -47,32 +47,25 @@ Developed with Express.js and TypeScript, offering RESTful APIs with Zod validat
 -   **Daily Operations Briefing**: Automated shift-start summary with AI-generated executive summary.
 -   **Financial Layer**: Three-part cost integrity system covering procurement to WO cost flow, decision-point cost context for AI suggestions, and savings claim integrity.
 -   **Prediction Lineage**: Tracks `modelVersionId`, `featureSetVersion`, and `featureSnapshotId` for audit and reproducibility of predictions.
--   **API Response Contracts**: `validateResponse<T>` helper in `server/lib/api-helpers.ts` validates outbound responses against Zod schemas (throws in dev/test, logs+passes-through in production). Wired into 14 endpoints across PDM, home, and permissions domains. Schemas use `.passthrough()` + `.optional()` to catch missing required fields without rejecting drift; ID fields use `z.string().or(z.number())`; date fields use `isoOrDateSchema = z.union([z.date(), z.string().datetime({ offset: true })])`. Schema drift inventory in `scripts/drift-burndown.json` carries `resolution` + `risk` notes for each medium-priority entry.
--   **Cast Compression Helpers**: `pickSchema<T>` and `cloudOnly<T>` for dual-mode table exports, and `col(name)` / `columns()` for dynamic Drizzle column access.
--   **withErrorHandling Default Generic**: Simplifies error handling by defaulting generic `Req` to `Request`.
--   **Structured Logging**: `server/lib/structured-logger.ts` exposes `createLogger(domain)` returning leveled methods (`debug`/`info`/`warn`/`error`) that emit timestamped, domain-tagged entries with optional context and error objects. Two migration scripts:
-    -   `scripts/migrate-console-to-logger.mjs` — original single-line/regex-based migrator (single-arg, two-arg-with-context, and `error+err` patterns).
-    -   `scripts/migrate-console-multiline.mjs` — full balanced-paren scanner that handles multi-line `console.*` calls, template literals with `${...}` expressions, nested object literals, and arbitrary nesting. Inserts the `createLogger` import BEFORE the first `import` statement (never inside a multi-line `import {` block). When the second arg is already an object literal it passes it directly as `ctx` instead of double-wrapping with `{ details: ... }`. Skips files where a `logger` symbol or `createLogger` already exists (e.g. `server/vite.ts`, `server/domains/scheduled-reports/index.ts`) — those are migrated by hand using aliased imports / the legacy logger.
-    -   Logger-implementation files MUST be excluded: `server/utils/logger.ts`, `server/services/email-notification/logger.ts`, `server/services/engine-log-autofill/logging.ts`, `server/services/email-provider-service.ts`, `server/lib/structured-logger.ts`, `server/logging.ts`. Migrating them causes infinite recursion or duplicate-symbol errors.
-    -   Final tally: raw `console.*` calls in `server/`: **1,182 → 21** (~98% reduction; the 21 remaining are inside the excluded logger implementations themselves). **270** server files now import the structured logger.
--   **Response-Contract Tests**: `tests/unit/validate-response.test.ts` covers `validateResponse` semantics — happy path (passthrough, optional fields, drift-tolerant `string|number` IDs, array schemas), non-production behavior (throws with field path + context on contract violation), production behavior (logs and passes payload through), and context propagation. `tests/integration/validate-response.test.ts` is a request-level template covering all 13 wired endpoints across PDM/home/permissions; it depends on the shared `createTestApp` infrastructure described in `tests/integration/README.md`.
+-   **API Response Contracts**: `validateResponse<T>` helper for outbound response validation against Zod schemas, designed for drift tolerance and robust error handling across environments.
+-   **Structured Logging**: `server/lib/structured-logger.ts` provides a leveled logging solution (`debug`/`info`/`warn`/`error`) that automatically enriches log entries with correlation and request context, ensuring observability without impacting performance or stability.
 
 ## System Design Choices
 
--   **Database**: Dual-mode deployment with cloud PostgreSQL (TimescaleDB) and local SQLite (Turso sync) with a normalized schema.
--   **Architecture**: Single-tenant with centralized configuration, utilizing a Hexagonal Architecture (DDD Modular Monolith).
--   **Authentication**: HMAC for edge devices; bcryptjs for password hashing; SHA-256 hashed session tokens; session-based admin auth.
+-   **Database**: Dual-mode deployment with cloud PostgreSQL (TimescaleDB) and local SQLite (Turso sync), utilizing a normalized schema.
+-   **Architecture**: Single-tenant with centralized configuration, implementing a Hexagonal Architecture (DDD Modular Monolith).
+-   **Authentication**: HMAC for edge devices; bcryptjs for password hashing; SHA-256 hashed session tokens; session-based admin authentication.
 -   **Security**: Admin Audit Logging, automated IP tracking, tenant isolation alerts, and comprehensive input validation.
 -   **Telemetry Ingestion Architecture**: Single ingestion path with SQLite WAL-mode, cursor-based batch processing, and exponential backoff.
 -   **ML/AI Backend**: Production ML models stored in `ml_models` table with org-scoped isolation and lifecycle tracking.
 -   **Deployment Modes**: Cloud, Desktop (Tauri v2 with sidecar backend), and Mobile (Capacitor iOS/iPadOS).
 -   **RBAC**: Comprehensive Role-Based Access Control system.
 -   **Performance Optimizations**: Redis circuit breaker, Vite code splitting, API caching, lazy-loaded pages, and memoized context providers.
--   **Component Decomposition**: Large feature components split into directories with `index.tsx` as the entry point and one file per subcomponent. Examples: `client/src/features/pdm/components/schedule-view/` (`ScheduleKPIStrip`, `FilterBar`, `GanttScheduleView`, `BlockedTasksSection`, `MoveTaskDialog`, `TaskDetailPanel`, `RulGauge`, `StatusComponents`, plus shared `constants.ts` and `utils.ts`); `client/src/components/agent/AgentChatPanel/` (`ConversationHistory`, `EmptyState`, `MessageBubble`, `StreamingIndicator`, `MessageInputBar`, `ToolCallTimeline`, `InlineDraftApproval`, plus `types.ts`, `constants.ts`, `streamClient.ts` for stream retry logic); `client/src/pages/certificate-registry/` (`CertificateFormDialog`, `SummaryCards`, `FilterBar`, `CertificatesTable`, `CertificateDetailSheet`, `DeleteConfirmDialog`, `LoadingSkeleton`, plus `constants.ts`, `utils.ts`, `types.ts`; `index.tsx` re-exports `CERT_TYPE_LABELS` and `getCertExpiryStatus` so consumer `client/src/pages/equipment.tsx` keeps its named imports); `client/src/pages/vessel-dashboard/` (`VesselStatusPanel`, `BottomTabs`, `InventoryPanel`, `ConfirmActionDialog`, `SlidePanel`, plus `utils.ts`); `client/src/components/UnifiedCrewManagement/` (`CrewFormDialog`, `RosterTable`, `LifecycleDialog` with `useLifecycleDialog` hook, `SkillFormDialog`, `RosterFilters`); `client/src/pages/optimization-tools/` (`ConfigDialog`, `ScenariosTab`, `RunsTab`, `RulTab`, `TrendsTab`, `FleetTab`, `RunDialog`, `StatusBadge`); `client/src/pages/equipment/` (`HealthBadge`, `StatusBadge`, `CertStatusBadge`, `EquipmentTableRow`, `EquipmentDetailsTab`, `EquipmentHealthTab`, `EquipmentCertificationsTab`, `EquipmentActionsTab`, plus `types.ts` exporting `EquipmentItem`, `EquipmentHealth`, `GetVesselName`, `CertSummary`); `client/src/components/vessel/VesselSchematic/` (`VesselSchematic`, `SchematicConfigPanel`, `HealthBar`, `Pulse`, `StockBadge`, plus internal `HullSVG` and `SlotRect`, `constants.ts` for SVG geometry, `types.ts` exporting `PositionedSlot`, `SlotAssignment`, `ZoneRect`, and `utils.ts` exporting `statusFill`, `healthColor`, `computeLayout`, `assignEquipmentToSlots`; `index.tsx` re-exports all named exports so consumer barrel imports stay stable); `client/src/components/HoursOfRestGrid/` (memoized cells `HourCell`, `GridRow`, `MobileDayCard` extracted to their own files, plus `constants.ts` for grid geometry/helpers and `types.ts` exporting `ComplianceRow`; `index.tsx` re-exports `HoursOfRestGrid`); `client/src/pages/deck-logbook/` (subcomponents `HourlyLogRow`, `EventTimelineItem`, `WatchPeriodCard` extracted to their own files, plus `types.ts` exporting `HourlyEntry`, `DeckEvent`, `WatchData`; `index.tsx` keeps the `DeckLogbookPage` default export); `client/src/pages/vessel-management/` (subcomponents `VesselEquipmentSheet`, `HealthBadge` and helper `Utilization` extracted, plus `types.ts` exporting `EquipmentHealth`, `EquipmentWithHealth`, `RawHealthItem` and `utils.tsx` exporting `formatVesselClass`, `vesselClasses`, `vesselConditions`, `Utilization`; `index.tsx` keeps the `VesselManagement` default export); `client/src/components/scheduling/schedule-planner-components/` (each of the 9 named exports moved to its own file: `SyncStatusIndicator`, `MobileCrewRosterDrawer`, `DateRangeSelector`, `TimelineHeader`, `DragGhostPreview`, `ComplianceTab`, `AssignmentDrawerContent`, `AssignmentBlock`, `VesselRow`, plus `types.ts` exporting `DragCompliancePreview`; `index.tsx` is a barrel re-exporting every component so existing `./schedule-planner-components` imports keep working); `client/src/pages/digital-twin/` (each tab `OverviewTab`, `StateTab`, `ResidualsTab`, `ScenariosTab`, `ReplayTab` and helper card `TwinOverviewCard` extracted to their own files, plus `utils.ts` exporting `severityColor`, `healthColor`, `formatTimeAgo`; `index.tsx` keeps the `DigitalTwinPage` default export). Module resolution falls through to `index.tsx`, so existing import paths remain stable.
--   **Storage Architecture**: `server/repositories.ts` serves as the single canonical import for all data access.
--   **Convergence Guardrails**: Scripts to prevent schema drift, enforce storage and domain import boundaries, and ensure proper route registration.
+-   **Component Decomposition**: Large feature components are organized into directories with `index.tsx` as the entry point and individual files for subcomponents, promoting modularity and maintainability.
+-   **Storage Architecture**: `server/repositories.ts` acts as the single canonical import for all data access operations.
+-   **Convergence Guardrails**: Scripts are in place to prevent schema drift, enforce storage and domain import boundaries, and ensure proper route registration.
 -   **Dynamic-Loader Map**: Mechanism for dynamic loading of domain routers, barrel re-exports, and repository modular loaders.
--   **Route Registration**: `domain-router-registry.ts` is the single system for all route registration.
+-   **Route Registration**: `domain-router-registry.ts` is the centralized system for all route registration.
 
 # External Dependencies
 

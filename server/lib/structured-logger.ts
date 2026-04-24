@@ -3,9 +3,31 @@
  *
  * SonarQube Fix: Replace scattered console.log/warn/error calls with structured logging
  * Provides consistent log format, levels, and context for observability
+ *
+ * Correlation IDs: When called inside an HTTP request, automatically enriches
+ * every log entry with `correlationId` (and optionally `requestId`/`orgId`/`userId`)
+ * pulled from the AsyncLocalStorage-backed request context. Outside a request
+ * (boot, schedulers, CLI), no correlation fields are added.
  */
 
+import { getRequestContext as defaultGetRequestContext } from "../utils/correlation-context";
+
 export type LogLevel = "debug" | "info" | "warn" | "error";
+
+/**
+ * Correlation provider — returns the active request context, or undefined.
+ * Defaults to the AsyncLocalStorage-backed `getRequestContext` from
+ * `server/utils/correlation-context`. Tests can pass a custom provider to
+ * `createLogger` to avoid relying on async storage propagation.
+ */
+export type CorrelationProvider = () => {
+  correlationId?: string;
+  requestId?: string;
+  orgId?: string;
+  userId?: string;
+} | undefined;
+
+const defaultProvider: CorrelationProvider = () => defaultGetRequestContext();
 
 interface LogContext {
   [key: string]: unknown;
@@ -16,12 +38,58 @@ interface LogEntry {
   level: LogLevel;
   domain: string;
   message: string;
+  correlationId?: string;
+  requestId?: string;
+  orgId?: string;
+  userId?: string;
   context?: LogContext;
   error?: {
     name: string;
     message: string;
     stack?: string;
   };
+}
+
+/**
+ * Pull correlation/identity fields off the active request context (if any).
+ * Returns an empty object outside request scope so boot/scheduler code is unaffected.
+ *
+ * Wrapped in try/catch so a misconfigured AsyncLocalStorage cannot bring down
+ * logging — observability must always be safer than the thing it observes.
+ */
+function getCorrelationFields(provider: CorrelationProvider): {
+  correlationId?: string;
+  requestId?: string;
+  orgId?: string;
+  userId?: string;
+} {
+  try {
+    const ctx = provider();
+    if (!ctx) {
+      return {};
+    }
+    const fields: {
+      correlationId?: string;
+      requestId?: string;
+      orgId?: string;
+      userId?: string;
+    } = {};
+    if (ctx.correlationId) {
+      fields.correlationId = ctx.correlationId;
+    }
+    if (ctx.requestId && ctx.requestId !== ctx.correlationId) {
+      fields.requestId = ctx.requestId;
+    }
+    if (ctx.orgId) {
+      fields.orgId = ctx.orgId;
+    }
+    if (ctx.userId) {
+      fields.userId = ctx.userId;
+    }
+    return fields;
+  } catch {
+    return {};
+  }
 }
 
 /** Log level priority for filtering */
@@ -82,39 +150,62 @@ function getLogFunction(level: LogLevel): typeof console.log {
   return console.log;
 }
 
-/** Output log entry to console */
-function outputLog(entry: LogEntry): void {
-  const { timestamp, level, domain, message, context, error } = entry;
+/** Output log entry to console — exported for unit testing of formatting only. */
+export function outputLog(entry: LogEntry): void {
+  const { timestamp, level, domain, message, correlationId, requestId, orgId, userId, context, error } = entry;
 
-  const prefix = `[${level.toUpperCase()}] ${timestamp} [${domain}]`;
+  const correlationTag = correlationId ? ` [${correlationId.slice(0, 8)}]` : "";
+  const prefix = `[${level.toUpperCase()}] ${timestamp} [${domain}]${correlationTag}`;
   const logFn = getLogFunction(level);
 
-  if (context || error) {
-    logFn(`${prefix} ${message}`, { ...(context || {}), ...(error ? { error } : {}) });
+  // User-provided context comes first so correlation fields and the error
+  // object — which are authoritative — cannot be spoofed by a caller who
+  // accidentally (or maliciously) passes e.g. `correlationId` in `context`.
+  const meta: Record<string, unknown> = {};
+  if (context) Object.assign(meta, context);
+  if (correlationId) meta.correlationId = correlationId;
+  if (requestId) meta.requestId = requestId;
+  if (orgId) meta.orgId = orgId;
+  if (userId) meta.userId = userId;
+  if (error) meta.error = error;
+
+  if (Object.keys(meta).length > 0) {
+    logFn(`${prefix} ${message}`, meta);
   } else {
     logFn(`${prefix} ${message}`);
   }
 }
 
 /**
- * Create a domain-specific logger
+ * Create a domain-specific logger.
+ *
+ * @param domain - The logger domain (appears in every log line)
+ * @param correlationProvider - Optional override for correlation lookup. Defaults
+ *   to the request-context provider. Tests pass a stub to verify enrichment
+ *   without depending on AsyncLocalStorage propagation across modules.
  *
  * @example
  * const logger = createLogger("AuthService");
  * logger.info("User logged in", { userId: "123" });
  * logger.error("Login failed", { userId: "123" }, error);
  */
-export function createLogger(domain: string) {
+export function createLogger(
+  domain: string,
+  correlationProvider: CorrelationProvider = defaultProvider
+) {
   const log = (level: LogLevel, message: string, context?: LogContext, error?: unknown): void => {
     if (!shouldLog(level)) {
       return;
     }
+
+    const correlation = getCorrelationFields(correlationProvider);
 
     const entry: LogEntry = {
       timestamp: getTimestamp(),
       level,
       domain,
       message,
+      ...correlation,
       context,
       error: formatError(error),
     };
