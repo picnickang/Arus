@@ -312,3 +312,9 @@ id = "1rVB9lveG7gNuV7GiBY9M"
 uri = "file://.local/schema-unification-plan.md"
 type = "text"
 title = "The plan document on its own (in case you want to review it directly first)"
+
+[[outputs]]
+id = "FNjw7lJmiwP6Yt_TP_oUf"
+uri = "file://arus-source-20260424.tar.gz"
+type = "unspecified"
+title = "ARUS Source Code (for ChatGPT review)"
