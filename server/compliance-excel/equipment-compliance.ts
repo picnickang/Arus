@@ -2,6 +2,8 @@
  * Compliance Excel - Equipment Compliance Report Generation
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("ComplianceExcel:EquipmentCompliance");
 import type { WorkOrder } from "@shared/schema";
 import type { EquipmentHealth } from "../db/equipment/types.js";
 
@@ -23,9 +25,7 @@ export async function generateEquipmentComplianceExcel(
   reportingPeriod: ReportingPeriod,
   options: EquipmentComplianceOptions
 ): Promise<Buffer> {
-  console.log(
-    `[Compliance Excel] Generating equipment compliance report for ${equipmentIds.length} units`
-  );
+  logger.info(`[Compliance Excel] Generating equipment compliance report for ${equipmentIds.length} units`);
 
   const equipmentHealth = await storage.getEquipmentHealth(orgId);
   const filteredEquipment =

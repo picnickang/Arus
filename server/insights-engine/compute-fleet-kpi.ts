@@ -4,6 +4,8 @@
  * Compute comprehensive fleet insights using ARUS data.
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("InsightsEngine:ComputeFleetKpi");
 import {
   dbDevicesStorage,
   dbEquipmentStorage,
@@ -191,8 +193,7 @@ export async function computeInsights(
       compliance.notes.push("Data gaps may affect compliance reporting and audit readiness.");
     }
 
-    console.log(
-      JSON.stringify({
+    logger.info(String(JSON.stringify({
         msg: "insights_compute_done",
         orgId,
         vessels,
@@ -201,12 +202,11 @@ export async function computeInsights(
         signalsMapped,
         signalsDiscovered,
         t_ms: Date.now() - now.getTime(),
-      })
-    );
+      })));
 
     return { kpi, risks, recommendations, anomalies, compliance };
   } catch (error) {
-    console.error("Insights computation error:", error);
+    logger.error("Insights computation error:", undefined, error);
 
     return {
       kpi: {

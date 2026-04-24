@@ -3,6 +3,8 @@
  * Handles parts request fulfillment with inventory decrement
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Purchasing:FulfillmentService");
 import { db } from "../db";
 import { eq, and, sql } from "drizzle-orm";
 import {
@@ -200,7 +202,7 @@ export async function fulfillItem(request: FulfillItemRequest): Promise<Fulfillm
         fulfilledBy
       );
     } catch (publishErr) {
-      console.error("[fulfillItem] recordAndPublish failed (non-fatal):", publishErr);
+      logger.error("[fulfillItem] recordAndPublish failed (non-fatal):", undefined, publishErr);
     }
   }
 

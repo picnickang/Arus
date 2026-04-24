@@ -3,6 +3,8 @@
  * Handles queries that compare information across multiple documents
  */
 
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Services:Rag:Comparison:Index");
 import OpenAI from "openai";
 import { db } from "../../../db";
 import { kbDocs, kbChunks } from "@shared/schema";
@@ -183,7 +185,7 @@ Focus on factual, specific differences. Be concise but thorough.`;
         confidence: 0.85,
       };
     } catch (parseError) {
-      console.error("[ComparisonService] Failed to parse LLM response:", parseError);
+      logger.error("[ComparisonService] Failed to parse LLM response:", undefined, parseError);
       return this.generateFallbackComparison(query, documents);
     }
   }

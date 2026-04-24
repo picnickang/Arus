@@ -2,6 +2,8 @@
  * Compliance PDF - Maintenance Compliance Report Generation
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("CompliancePdf:MaintenanceCompliance");
 import type { WorkOrder } from "@shared/schema";
 import type { EquipmentHealth } from "../db/equipment/types.js";
 
@@ -24,7 +26,7 @@ export async function generateMaintenanceCompliancePDF(
   period: ReportingPeriod,
   options: MaintenanceComplianceOptions
 ): Promise<Uint8Array> {
-  console.log(`[Compliance PDF] Generating maintenance compliance report for vessel: ${vesselId}`);
+  logger.info(`[Compliance PDF] Generating maintenance compliance report for vessel: ${vesselId}`);
 
   const workOrders = await storage.getWorkOrders(undefined, orgId);
   const equipmentHealth = await storage.getEquipmentHealth(orgId);

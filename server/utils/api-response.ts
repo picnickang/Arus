@@ -5,6 +5,8 @@
  * Ensures frontend can reliably parse responses and handle errors uniformly.
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Utils:ApiResponse");
 import type { Request, Response } from "express";
 import { ZodError, type ZodIssue } from "zod";
 
@@ -207,7 +209,7 @@ export function asyncHandler(
  * Handle common error patterns
  */
 export function handleError(error: unknown, res: Response, operation: string): void {
-  console.error(`[${operation}] Error:`, error);
+  logger.error(`[${operation}] Error:`, undefined, error);
 
   if (error instanceof ZodError) {
     sendZodError(res, error);

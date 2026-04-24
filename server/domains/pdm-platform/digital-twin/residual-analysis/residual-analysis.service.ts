@@ -1,3 +1,5 @@
+import { createLogger } from "../../../../lib/structured-logger";
+const logger = createLogger("Domains:PdmPlatform:DigitalTwin:ResidualAnalysis:ResidualAnalysis.service");
 import { db } from "../../../../db";
 import { eq, and, desc } from "drizzle-orm";
 import {
@@ -65,10 +67,10 @@ export class ResidualAnalysisService {
       : {};
 
     if (Object.keys(observed).length === 0) {
-      console.warn(LOG_MODULE, "No state data for twin, generating stub residuals", {
+      logger.warn(String(LOG_MODULE), { details: ["No state data for twin, generating stub residuals", {
         orgId,
         twinId,
-      });
+      }] });
       return this.generateStubResiduals(orgId, twinId, template.equipmentType);
     }
 
@@ -123,11 +125,11 @@ export class ResidualAnalysisService {
     }
 
     const stored = await this.adapter.storeResiduals(records);
-    console.info(LOG_MODULE, "Computed residuals", {
+    logger.info(String(LOG_MODULE), { details: ["Computed residuals", {
       orgId,
       twinId,
       count: stored.length,
-    });
+    }] });
     return stored;
   }
 

@@ -2,6 +2,8 @@
  * StormGeo Integration Service - Main Class
  */
 
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:Stormgeo:Service");
 import { dbStormGeoStorage } from "../../repositories";
 import type {
   StormgeoSettings as StormgeoSetting,
@@ -18,7 +20,7 @@ import { parseCSV, csvRowToSnapshot, jsonWaypointToSnapshot } from "./parsers.js
 
 export class StormGeoIntegrationService {
   constructor() {
-    console.log("[StormGeo] Integration service initialized");
+    logger.info("[StormGeo] Integration service initialized");
   }
 
   async getSettings(orgId: string, vesselId?: string): Promise<StormgeoSetting | undefined> {

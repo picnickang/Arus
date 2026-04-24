@@ -17,6 +17,8 @@
  *   );
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Services:ExternalCircuitBreakers");
 import { circuitBreaker, safeExternalOperation } from "../error-handling";
 
 export async function withOpenAIProtection<T>(
@@ -99,6 +101,4 @@ export function getAllCircuitBreakerStatuses(): Record<
 }
 
 export { circuitBreaker, safeExternalOperation };
-console.log(
-  "[External Circuit Breakers] Wrappers available: OpenAI, StormGeo, WeatherAPI, MQTT, Redis, GitHub, Aquametro"
-);
+logger.info("[External Circuit Breakers] Wrappers available: OpenAI, StormGeo, WeatherAPI, MQTT, Redis, GitHub, Aquametro");

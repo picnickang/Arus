@@ -4,6 +4,8 @@
  * Consumes repositories for basic CRUD, handles orchestration and transactions
  */
 
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:Domains:WorkOrderService");
 import { eq, and, or, gte, lte, sql } from "drizzle-orm";
 import { db } from "../../db-config";
 import {
@@ -127,7 +129,7 @@ class WorkOrderService {
         return wo;
       });
     } catch (error) {
-      console.error("[WorkOrderService.getWorkOrdersWithDetails] Error:", error);
+      logger.error("[WorkOrderService.getWorkOrdersWithDetails] Error:", undefined, error);
       throw error;
     }
   }
@@ -219,7 +221,7 @@ class WorkOrderService {
 
       return { items, total };
     } catch (error) {
-      console.error("[WorkOrderService.getWorkOrdersPaginated] Error:", error);
+      logger.error("[WorkOrderService.getWorkOrdersPaginated] Error:", undefined, error);
       throw error;
     }
   }

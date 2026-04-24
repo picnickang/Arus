@@ -2,6 +2,8 @@
  * Backup Metadata Store - Manages backup metadata persistence
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("BackupRecovery:MetadataStore");
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import { BACKUP_CONFIG, type BackupMetadata } from "./types";
@@ -27,7 +29,7 @@ export async function listBackups(): Promise<BackupMetadata[]> {
         const metadata = JSON.parse(content) as BackupMetadata;
         backups.push(metadata);
       } catch (error) {
-        console.warn(`Failed to load backup metadata ${file}:`, error);
+        logger.warn(`Failed to load backup metadata ${file}:`, { details: error });
       }
     }
 
@@ -35,7 +37,7 @@ export async function listBackups(): Promise<BackupMetadata[]> {
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
   } catch (error) {
-    console.error("Failed to list backups:", error);
+    logger.error("Failed to list backups:", undefined, error);
     return [];
   }
 }

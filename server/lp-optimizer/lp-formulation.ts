@@ -2,6 +2,8 @@
  * LP Optimizer - Linear Programming Formulation
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("LpOptimizer:LpFormulation");
 import type { MaintenanceJob, OptimizationConstraints, OptimizationResult } from "./types.js";
 import { getPriorityCost } from "./estimation-helpers.js";
 import { cryptoRandomId } from "@shared/crypto-random";
@@ -175,9 +177,7 @@ export function formulateLinearProgram(
 
   const variables = buildVariables(jobs, constraints);
 
-  console.log(
-    `[LP Optimizer] Formulated problem: ${Object.keys(variables).length} variables, ${Object.keys(constraintDefs).length} constraints`
-  );
+  logger.info(`[LP Optimizer] Formulated problem: ${Object.keys(variables).length} variables, ${Object.keys(constraintDefs).length} constraints`);
 
   return {
     optimize: "objective",
@@ -319,9 +319,7 @@ export function processSolution(
     );
   }
 
-  console.log(
-    `[LP Optimizer] Optimization completed: ${schedule.length} jobs scheduled, total cost: $${totalCost.toFixed(2)}`
-  );
+  logger.info(`[LP Optimizer] Optimization completed: ${schedule.length} jobs scheduled, total cost: $${totalCost.toFixed(2)}`);
 
   return {
     success: solution.feasible ?? false,

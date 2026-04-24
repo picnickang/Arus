@@ -1,3 +1,5 @@
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Domains:Purchasing:Interfaces:PipelineRoutes");
 import { Router } from "express";
 import type { Request, Response } from "express";
 import { PurchasePipelineService } from "../application/pipeline-service";
@@ -22,7 +24,7 @@ pipelineRouter.get("/purchase-requests/:id/pipeline", async (req: Request, res: 
 
     res.json(pipeline);
   } catch (error) {
-    console.error("[Purchasing Pipeline] Error:", error);
+    logger.error("[Purchasing Pipeline] Error:", undefined, error);
     res.status(500).json({ error: (error as Error).message });
   }
 });

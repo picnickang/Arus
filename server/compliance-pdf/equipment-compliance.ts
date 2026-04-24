@@ -2,6 +2,8 @@
  * Compliance PDF - Equipment Compliance Report Generation
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("CompliancePdf:EquipmentCompliance");
 import type { WorkOrder } from "@shared/schema";
 import type { EquipmentHealth } from "../db/equipment/types.js";
 import type { ComplianceDeps, ReportingPeriod, EquipmentComplianceOptions } from "./types";
@@ -24,9 +26,7 @@ export async function generateEquipmentCompliancePDF(
   reportingPeriod: ReportingPeriod,
   options: EquipmentComplianceOptions
 ): Promise<Uint8Array> {
-  console.log(
-    `[Compliance PDF] Generating equipment compliance report for ${equipmentIds.length} units`
-  );
+  logger.info(`[Compliance PDF] Generating equipment compliance report for ${equipmentIds.length} units`);
 
   const equipmentHealth = await storage.getEquipmentHealth(orgId);
   const filteredEquipment =

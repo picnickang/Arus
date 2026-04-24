@@ -4,6 +4,8 @@
  * Main module that assembles the OpenAPI spec from domain-specific modules.
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Swagger:Swagger");
 import { Express, Request, Response } from "express";
 import { specInfo } from "./spec-info.js";
 import { schemas } from "./schemas.js";
@@ -66,5 +68,5 @@ export function registerSwaggerRoutes(app: Express): void {
     res.send(generateSwaggerUI());
   });
 
-  console.log("[Swagger] OpenAPI documentation registered at /api/docs");
+  logger.info("[Swagger] OpenAPI documentation registered at /api/docs");
 }

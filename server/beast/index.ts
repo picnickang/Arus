@@ -13,6 +13,8 @@
  * Total: ~620 lines (67% reduction)
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Beast:Index");
 import { Router } from "express";
 import { beastConfigRouter } from "./config-routes.js";
 import { beastVibrationRouter } from "./vibration-routes.js";
@@ -33,6 +35,6 @@ router.use("/", beastTrendsRouter);
 router.use("/", beastInventoryRiskRouter);
 router.use("/", beastComplianceExportRouter);
 
-console.log("[Beast Mode] Loaded 7 modular route files");
+logger.info("[Beast Mode] Loaded 7 modular route files");
 
 export { router as beastModeRouter };

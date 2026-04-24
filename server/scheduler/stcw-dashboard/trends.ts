@@ -2,6 +2,8 @@
  * STCW Dashboard Trends - Historical compliance trend analysis
  */
 
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Scheduler:StcwDashboard:Trends");
 import { vesselService } from "../../repositories";
 import { checkMonthCompliance, calculateFatigueRisk } from "../../stcw-compliance";
 import type { STCWTrends, TrendDataPoint } from "./types";
@@ -194,9 +196,7 @@ export async function getSTCWComplianceTrends(
 
   const duration = Date.now() - startTime;
   if (duration > 500) {
-    console.log(
-      `[STCW Trends] Computed in ${duration}ms (${vessels.length} vessels, ${dataPointCount} data points)`
-    );
+    logger.info(`[STCW Trends] Computed in ${duration}ms (${vessels.length} vessels, ${dataPointCount} data points)`);
   }
 
   return result;

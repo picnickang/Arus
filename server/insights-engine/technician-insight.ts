@@ -4,6 +4,8 @@
  * Generate plain-language insights for equipment technicians.
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("InsightsEngine:TechnicianInsight");
 import { dbEquipmentStorage, dbTelemetryStorage, vesselService } from "../repositories";
 import { predictWithEnsemble } from "../ml-prediction";
 import { recordTechnicianInsight, recordTechnicianInsightFallback } from "../ml-prometheus-metrics";
@@ -133,8 +135,7 @@ export async function generateTechnicianInsight(
     const duration = (Date.now() - startTime) / 1000;
     recordTechnicianInsight(orgId, statusLevel, duration, true);
 
-    console.log(
-      JSON.stringify({
+    logger.info(String(JSON.stringify({
         msg: "technician_insight_done",
         orgId,
         equipmentId,
@@ -142,12 +143,11 @@ export async function generateTechnicianInsight(
         statusLevel,
         failureProb: prediction?.failureProbability ?? 0,
         confidence: prediction?.confidence ?? 0,
-      })
-    );
+      })));
 
     return technicianView;
   } catch (error) {
-    console.error("[Insights] Failed to generate technician insight:", error);
+    logger.error("[Insights] Failed to generate technician insight:", undefined, error);
 
     const duration = (Date.now() - startTime) / 1000;
     recordTechnicianInsight(orgId, "error", duration, false);

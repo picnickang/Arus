@@ -3,6 +3,8 @@
  * User-level rate limiting with Redis sliding window
  */
 
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Services:Rag:RateLimiter:Index");
 import { Request, Response, NextFunction } from "express";
 
 export interface RateLimitConfig {
@@ -165,7 +167,7 @@ export function createRateLimitMiddleware(
       await limiter.recordRequest(userId);
       next();
     } catch (error) {
-      console.error("[RateLimiter] Error checking rate limit:", error);
+      logger.error("[RateLimiter] Error checking rate limit:", undefined, error);
       next();
     }
   };

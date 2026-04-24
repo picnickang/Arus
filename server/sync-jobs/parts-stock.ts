@@ -2,6 +2,8 @@
  * Sync Jobs - Parts Stock Alignment Check
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("SyncJobs:PartsStock");
 import { db } from "../db.js";
 import { parts, stock } from "@shared/schema.js";
 import { eq, sql, and } from "drizzle-orm";
@@ -59,7 +61,7 @@ export async function checkPartsStockAlignment(orgId: string): Promise<CheckResu
 
     return { issues, entitiesChecked };
   } catch (error) {
-    console.error("Parts-stock alignment check failed:", error);
+    logger.error("Parts-stock alignment check failed:", undefined, error);
     return {
       issues: [
         {

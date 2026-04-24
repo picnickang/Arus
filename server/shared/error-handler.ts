@@ -1,3 +1,5 @@
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Shared:ErrorHandler");
 import type { Response, Request, NextFunction, RequestHandler } from "express";
 import { z } from "zod";
 
@@ -129,7 +131,7 @@ export interface ErrorResponse {
 }
 
 export function handleRouteError(error: unknown, res: Response, context: string): void {
-  console.error(`[${context}] Error:`, error);
+  logger.error(`[${context}] Error:`, undefined, error);
 
   if (error instanceof z.ZodError) {
     res.status(400).json({
@@ -211,7 +213,7 @@ export function createRateLimitBundle() {
 }
 
 export function logDomainError(error: DomainError, context: string): void {
-  console.error(`[${context}] ${error.name}: ${error.message}`, {
+  logger.error(`[${context}] ${error.name}: ${error.message}`, undefined, {
     code: error.code,
     statusCode: error.statusCode,
     details: error.details,

@@ -76,7 +76,7 @@ export function getCloudTable<T>(table: T | undefined, featureName: string): T {
  * if (isCloudFeatureAvailable('webhooks')) {
  *   await sendWebhook(...);
  * } else {
- *   console.log('Webhooks not available in vessel mode, skipping');
+ *   logger.info('Webhooks not available in vessel mode, skipping');
  * }
  */
 export function isCloudFeatureAvailable(featureName: string): boolean {

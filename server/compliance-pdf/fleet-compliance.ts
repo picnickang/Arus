@@ -2,6 +2,8 @@
  * Compliance PDF - Fleet Compliance Overview Report Generation
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("CompliancePdf:FleetCompliance");
 import type { WorkOrder } from "@shared/schema";
 import type { EquipmentHealth } from "../db/equipment/types.js";
 
@@ -24,7 +26,7 @@ export async function generateFleetComplianceOverviewPDF(
   orgId: string,
   period: ReportingPeriod
 ): Promise<Uint8Array> {
-  console.log(`[Compliance PDF] Generating fleet compliance overview for org: ${orgId}`);
+  logger.info(`[Compliance PDF] Generating fleet compliance overview for org: ${orgId}`);
 
   const equipmentHealth = await storage.getEquipmentHealth(orgId);
   const workOrders = await storage.getWorkOrders(undefined, orgId);

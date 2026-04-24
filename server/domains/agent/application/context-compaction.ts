@@ -1,3 +1,5 @@
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Domains:Agent:Application:ContextCompaction");
 import OpenAI from "openai";
 import type { AgentMessage } from "@shared/schema";
 import { buildSystemPrompt } from "../domain/system-prompt";
@@ -134,10 +136,7 @@ ${condensed}`;
     });
     return response.choices[0]?.message?.content || "No summary generated.";
   } catch (err) {
-    console.warn(
-      "[ContextCompaction] Summary generation failed:",
-      err instanceof Error ? err.message : "unknown"
-    );
+    logger.warn("[ContextCompaction] Summary generation failed:", { details: err instanceof Error ? err.message : "unknown" });
     return "";
   }
 }

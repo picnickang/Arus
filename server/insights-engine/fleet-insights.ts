@@ -4,6 +4,8 @@
  * Generate insights for all equipment across the fleet.
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("InsightsEngine:FleetInsights");
 import { dbEquipmentStorage } from "../repositories";
 import { recordFleetTechnicianInsight } from "../ml-prometheus-metrics";
 import type { TechnicianInsightView, VesselInsightGroup } from "./types.js";
@@ -60,19 +62,17 @@ export async function generateFleetTechnicianInsights(
 
     recordFleetTechnicianInsight(orgId, result.length, duration, true);
 
-    console.log(
-      JSON.stringify({
+    logger.info(String(JSON.stringify({
         msg: "fleet_insights_done",
         orgId,
         vesselFilter: vesselId ?? null,
         groups: result.length,
         t_ms: Date.now() - startTime,
-      })
-    );
+      })));
 
     return result;
   } catch (error) {
-    console.error("[Insights] Failed to generate fleet technician insights:", error);
+    logger.error("[Insights] Failed to generate fleet technician insights:", undefined, error);
 
     const duration = (Date.now() - startTime) / 1000;
 

@@ -81,10 +81,7 @@ export async function initializeDatabase(): Promise<void> {
         await migrateWorkOrderServiceOrderBridge(db);
         logger.info("✓ WO ↔ SO bridge migration applied");
       } catch (err) {
-        console.warn(
-          "[WO-SO Bridge] Migration skipped or already applied:",
-          (err as Error).message
-        );
+        logger.warn("[WO-SO Bridge] Migration skipped or already applied:", { details: (err as Error).message });
       }
 
       return;

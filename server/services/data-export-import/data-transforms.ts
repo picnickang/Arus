@@ -7,6 +7,8 @@
  * - Foreign key remapping
  */
 
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:DataExportImport:DataTransforms");
 import { FK_MAPPINGS, DATE_FIELDS } from "./constants";
 import type { IdMappings } from "./types";
 
@@ -76,12 +78,10 @@ export function remapForeignKeys(entityName: string, record: any, idMappings: Id
     if (oldId && idMappings[mappingSource]) {
       const newId = idMappings[mappingSource].get(oldId);
       if (newId) {
-        console.log(`[DataImport] FK remap ${entityName}.${fieldName}: ${oldId} → ${newId}`);
+        logger.info(`[DataImport] FK remap ${entityName}.${fieldName}: ${oldId} → ${newId}`);
         record[fieldName] = newId;
       } else {
-        console.log(
-          `[DataImport] FK remap ${entityName}.${fieldName}: ${oldId} → NULL (not in export)`
-        );
+        logger.info(`[DataImport] FK remap ${entityName}.${fieldName}: ${oldId} → NULL (not in export)`);
         record[fieldName] = null;
         if (fieldName === "vesselId") {
           record.vesselName = null;

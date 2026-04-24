@@ -12,6 +12,8 @@
  * - Sequence numbers are scoped to org_id + work_order_id for efficient verification
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Compliance:WorkOrderHistoryHash.service");
 import crypto from "node:crypto";
 import { db } from "../db";
 import { workOrderHistory } from "@shared/schema";
@@ -193,9 +195,7 @@ class WorkOrderHistoryHashService {
       // STEP 4: Update the entry with the computed hash
       await tx.update(workOrderHistory).set({ entryHash }).where(eq(workOrderHistory.id, id));
 
-      console.log(
-        `[WorkOrderHistoryHash] Created entry (tx): org=${entry.orgId}, wo=${entry.workOrderId}, seq=${sequenceNumber}`
-      );
+      logger.info(`[WorkOrderHistoryHash] Created entry (tx): org=${entry.orgId}, wo=${entry.workOrderId}, seq=${sequenceNumber}`);
 
       return { id, sequenceNumber, entryHash, previousHash };
     });

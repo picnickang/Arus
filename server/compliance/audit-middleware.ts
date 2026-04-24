@@ -12,6 +12,8 @@
  * - Configurable exclusion patterns
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Compliance:AuditMiddleware");
 import { Request, Response, NextFunction } from "express";
 import {
   auditService,
@@ -276,12 +278,10 @@ export function createAuditMiddleware(customConfig?: Partial<AuditMiddlewareConf
           },
         });
 
-        console.log(
-          `[Audit] ${req.method} ${path} -> ${res.statusCode} (${duration}ms) [${orgId}/${userId}]`
-        );
+        logger.info(`[Audit] ${req.method} ${path} -> ${res.statusCode} (${duration}ms) [${orgId}/${userId}]`);
       } catch (error) {
         // Log error but don't fail the request
-        console.error("[Audit] Failed to log audit event:", error);
+        logger.error("[Audit] Failed to log audit event:", undefined, error);
       }
     });
 

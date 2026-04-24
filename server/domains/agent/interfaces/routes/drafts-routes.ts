@@ -1,3 +1,5 @@
+import { createLogger } from "../../../../lib/structured-logger";
+const logger = createLogger("Domains:Agent:Interfaces:Routes:DraftsRoutes");
 import type { Express, Request, Response } from "express";
 import type { AuthenticatedRequest } from "../../../../middleware/auth";
 import { agentRepo } from "../../infrastructure/repository";
@@ -63,7 +65,7 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
         }
 
         if (execResult.partialFailures && execResult.partialFailures.length > 0) {
-          console.warn(`[Agent] Draft execution partial failure:`, execResult.partialFailures);
+          logger.warn(`[Agent] Draft execution partial failure:`, { details: execResult.partialFailures });
         }
 
         const resultId = execResult.resultId;

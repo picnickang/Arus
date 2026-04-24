@@ -2,6 +2,8 @@
  * System Admin Repository - Modular Aggregator
  */
 
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Db:SystemAdmin:Index");
 import { DbAuditStorage } from "./db-audit.js";
 import { DbSettingsStorage } from "./db-settings.js";
 import type {
@@ -192,4 +194,4 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
 
 export const dbSystemAdminStorage = new DatabaseSystemAdminStorage();
 
-console.log("[System Admin Repository] Loaded 6 modular files");
+logger.info("[System Admin Repository] Loaded 6 modular files");

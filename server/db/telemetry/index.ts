@@ -5,8 +5,10 @@
 export * from "./types.js";
 export { DatabaseTelemetryStorage } from "./db-telemetry.js";
 
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Db:Telemetry:Index");
 import { DatabaseTelemetryStorage } from "./db-telemetry.js";
 
 export const dbTelemetryStorage = new DatabaseTelemetryStorage();
 
-console.log("[Telemetry Repository] Loaded 4 modular files");
+logger.info("[Telemetry Repository] Loaded 4 modular files");

@@ -11,6 +11,8 @@
  * - ./tenant-guards.js (createTenantExtractor, createTenantRequirement, etc.)
  */
 
+import { createLogger } from "./structured-logger";
+const logger = createLogger("Lib:ApiHelpers");
 import type { Request, Response } from "express";
 import { z, ZodSchema, ZodError } from "zod";
 
@@ -132,7 +134,7 @@ export function validateResponse<T>(
     .join("; ")}`;
 
   if (process.env.NODE_ENV === "production") {
-    console.error(message);
+    logger.error(String(message));
     return payload as T;
   }
   throw new Error(message);
@@ -179,7 +181,7 @@ export function sendConflict(res: Response, message: string): void {
 }
 
 export function sendServerError(res: Response, error: unknown, operation: string): void {
-  console.error(`Failed to ${operation}:`, error);
+  logger.error(`Failed to ${operation}:`, undefined, error);
   res.status(500).json({
     message: `Failed to ${operation}`,
     error: error instanceof Error ? error.message : String(error),

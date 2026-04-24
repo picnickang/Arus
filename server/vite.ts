@@ -2,6 +2,8 @@ import express, { type Express } from "express";
 import fs from "node:fs";
 import path from "node:path";
 import { createServer as createViteServer, createLogger } from "vite";
+import { createLogger as createStructuredLogger } from "./lib/structured-logger";
+const logger = createStructuredLogger("Vite");
 import { type Server } from "node:http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
@@ -16,7 +18,7 @@ export function log(message: string, source = "express") {
     hour12: true,
   });
 
-  console.log(`${formattedTime} [${source}] ${message}`);
+  logger.info(`${formattedTime} [${source}] ${message}`);
 }
 
 export async function setupVite(app: Express, server: Server) {

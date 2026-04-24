@@ -1,6 +1,8 @@
+import { createLogger } from "./lib/structured-logger";
+const logger = createLogger("DbPerformance");
 // Stub file - performance tracking has been consolidated
 export function startPerformanceMonitoring() {
-  console.log("[Performance] Monitoring disabled - consolidated");
+  logger.info("[Performance] Monitoring disabled - consolidated");
 }
 
 export function getDatabasePerformanceHealth(): Promise<{

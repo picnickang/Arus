@@ -1,3 +1,5 @@
+import { createLogger } from "./lib/structured-logger";
+const logger = createLogger("InitDbEntry");
 import { createClient } from "@libsql/client";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
@@ -5,7 +7,7 @@ import { dirname } from "node:path";
 export async function initDb(dbPath?: string): Promise<void> {
   const path = dbPath ?? process.env.DATABASE_PATH ?? "data/vessel-local.db";
 
-  console.log(`[ARUS] Initialising database: ${path}`);
+  logger.info(`[ARUS] Initialising database: ${path}`);
   mkdirSync(dirname(path), { recursive: true });
 
   const client = createClient({ url: `file:${path}` });
@@ -120,7 +122,7 @@ export async function initDb(dbPath?: string): Promise<void> {
       await client.execute(sql);
     }
 
-    console.log("[ARUS] Database initialised successfully.");
+    logger.info("[ARUS] Database initialised successfully.");
   } finally {
     client.close();
   }

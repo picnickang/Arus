@@ -5,6 +5,8 @@
  * with path traversal protection.
  */
 
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:DataExportImport:ArchiveUtils");
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { createWriteStream } from "node:fs";
@@ -43,7 +45,7 @@ export async function extractArchive(archivePath: string, extractPath: string): 
     filter: (entryPath: string) => {
       const resolvedPath = path.resolve(extractPath, entryPath);
       if (!resolvedPath.startsWith(normalizedExtractPath)) {
-        console.error(`[DataImport] Path traversal attempt blocked: ${entryPath}`);
+        logger.error(`[DataImport] Path traversal attempt blocked: ${entryPath}`);
         return false;
       }
       return true;

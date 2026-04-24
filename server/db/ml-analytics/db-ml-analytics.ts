@@ -2,6 +2,8 @@
  * ML Analytics - Database Storage
  */
 
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Db:MlAnalytics:DbMlAnalytics");
 import { randomUUID } from "node:crypto";
 import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
 import { db } from "../../db-config";
@@ -147,7 +149,7 @@ export class DatabaseMlAnalyticsStorage {
             modelVersion: detection.modelVersionId,
           });
       } catch (e) {
-        console.error(`[ML] Failed to create performance validation:`, e);
+        logger.error(`[ML] Failed to create performance validation:`, undefined, e);
       }
     }
     return n;
@@ -222,7 +224,7 @@ export class DatabaseMlAnalyticsStorage {
             modelVersion: prediction.modelVersionId,
           });
       } catch (e) {
-        console.error(`[ML] Failed to create performance validation:`, e);
+        logger.error(`[ML] Failed to create performance validation:`, undefined, e);
       }
     }
     return n;

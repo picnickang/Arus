@@ -1,3 +1,5 @@
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Shared:Middleware");
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import { AuthorizationError, TenantIsolationError, handleRouteError } from "./error-handler";
 
@@ -20,9 +22,7 @@ export function createOrgIdMiddleware(): RequestHandler {
 
     if (orgId) {
       req.orgId = orgId;
-      console.log(
-        `[TENANT_ISOLATION_SUCCESS] { timestamp: '${new Date().toISOString()}', domain: 'middleware', operation: 'requireOrgId', orgId: '${orgId}' }`
-      );
+      logger.info(`[TENANT_ISOLATION_SUCCESS] { timestamp: '${new Date().toISOString()}', domain: 'middleware', operation: 'requireOrgId', orgId: '${orgId}' }`);
     }
 
     next();
@@ -92,9 +92,7 @@ export function createLoggerMiddleware(domain: string): RequestHandler {
       const duration = Date.now() - startTime;
       const logLevel = res.statusCode >= 500 ? "ERROR" : res.statusCode >= 400 ? "WARN" : "INFO";
 
-      console.log(
-        `[${requestId}] ${req.method} ${req.path} ${res.statusCode} in ${duration}ms :: ${logLevel}`
-      );
+      logger.info(`[${requestId}] ${req.method} ${req.path} ${res.statusCode} in ${duration}ms :: ${logLevel}`);
     });
 
     next();

@@ -2,6 +2,8 @@
  * Sync Jobs - Purchase Order Dependencies Check
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("SyncJobs:PurchaseOrders");
 import { db } from "../db.js";
 import { parts, reservations, purchaseOrders, purchaseOrderItems } from "@shared/schema.js";
 import { eq, sql, and } from "drizzle-orm";
@@ -63,7 +65,7 @@ export async function checkWorkOrdersPendingOnPO(orgId: string): Promise<CheckRe
 
     return { issues, entitiesChecked: pendingWorkOrders.length };
   } catch (error) {
-    console.error("Work orders pending on PO check failed:", error);
+    logger.error("Work orders pending on PO check failed:", undefined, error);
     return {
       issues: [
         {

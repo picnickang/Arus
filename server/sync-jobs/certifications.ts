@@ -2,6 +2,8 @@
  * Sync Jobs - Crew Certification Expiry Check
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("SyncJobs:Certifications");
 import { db } from "../db.js";
 import { crewCertification } from "@shared/schema.js";
 import { eq, sql, and, lt, gte } from "drizzle-orm";
@@ -64,7 +66,7 @@ export async function checkCrewCertificationExpiry(orgId: string): Promise<Check
 
     return { issues, entitiesChecked };
   } catch (error) {
-    console.error("Crew certification expiry check failed:", error);
+    logger.error("Crew certification expiry check failed:", undefined, error);
     return {
       issues: [
         {

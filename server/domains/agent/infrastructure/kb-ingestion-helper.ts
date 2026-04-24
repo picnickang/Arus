@@ -1,3 +1,5 @@
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Domains:Agent:Infrastructure:KbIngestionHelper");
 import fs from "fs";
 import type { KnowledgeBasePort } from "../domain/ports";
 
@@ -71,10 +73,7 @@ export async function ingestFilesToKB(
       );
       results.push({ filename: file.filename, chunkCount: result.chunkCount });
     } catch (err) {
-      console.warn(
-        `[KBIngestion] Ingestion failed for ${file.filename}:`,
-        err instanceof Error ? err.message : "unknown"
-      );
+      logger.warn(`[KBIngestion] Ingestion failed for ${file.filename}:`, { details: err instanceof Error ? err.message : "unknown" });
     }
   }
 

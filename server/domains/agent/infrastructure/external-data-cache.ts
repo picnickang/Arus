@@ -1,3 +1,5 @@
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Domains:Agent:Infrastructure:ExternalDataCache");
 import { db } from "../../../db";
 import { eq, and } from "drizzle-orm";
 import { externalDataCache } from "@shared/schema/external-data-cache";
@@ -135,7 +137,7 @@ export async function fetchWithCacheFallback<T = Record<string, unknown>>(
     };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : "Fetch failed";
-    console.warn(`[ExternalCache] ${provider}/${cacheKey} fetch failed: ${errorMsg}`);
+    logger.warn(`[ExternalCache] ${provider}/${cacheKey} fetch failed: ${errorMsg}`);
 
     await recordFetchError(orgId, provider, cacheKey, errorMsg).catch(() => {});
 

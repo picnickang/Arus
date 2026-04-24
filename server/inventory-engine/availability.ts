@@ -4,6 +4,8 @@
  * Parts availability checking and substitution lookups.
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("InventoryEngine:Availability");
 import type { Stock, PartSubstitution } from "@shared/schema";
 import type { InventoryStorage } from "../inventory/storage.js";
 import type { PartAvailability } from "./types.js";
@@ -62,7 +64,7 @@ export async function checkPartsAvailability(
             openPOsByPartNo.set(partNo, pos);
           }
         } catch (err) {
-          console.warn(`[Inventory] Could not fetch POs for ${partNo}:`, err);
+          logger.warn(`[Inventory] Could not fetch POs for ${partNo}:`, { details: err });
         }
       });
       await Promise.all(posPromises);

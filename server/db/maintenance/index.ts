@@ -2,6 +2,8 @@
  * Maintenance Repository - Modular Aggregator
  */
 
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Db:Maintenance:Index");
 import { DbMaintenanceSchedules } from "./db-schedules.js";
 import { DbMaintenanceTemplates } from "./db-templates.js";
 
@@ -33,4 +35,4 @@ export class DatabaseMaintenanceStorage extends DbMaintenanceSchedules {
 
 export const dbMaintenanceStorage = new DatabaseMaintenanceStorage();
 
-console.log("[Maintenance Repository] Loaded 6 modular files");
+logger.info("[Maintenance Repository] Loaded 6 modular files");

@@ -1,3 +1,5 @@
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:DocumentIngestion:Embedder");
 import { generateEmbedding } from "../../embedding-service";
 
 export interface EmbedOptions {
@@ -20,7 +22,7 @@ export async function embedChunks(
 
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
-    console.log(`[DocIngestion:Embed] Processing chunk ${i + 1}/${chunks.length}`);
+    logger.info(`[DocIngestion:Embed] Processing chunk ${i + 1}/${chunks.length}`);
 
     const embedding = await generateEmbedding(chunk, {
       useOpenAIFallback: !!openAiKey,

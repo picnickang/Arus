@@ -2,6 +2,8 @@
  * Compliance Excel - Maintenance Compliance Report Generation
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("ComplianceExcel:MaintenanceCompliance");
 import type { WorkOrder } from "@shared/schema";
 import type { EquipmentHealth } from "../db/equipment/types.js";
 
@@ -15,9 +17,7 @@ export async function generateMaintenanceComplianceExcel(
   period: ReportingPeriod,
   options: MaintenanceComplianceOptions
 ): Promise<Buffer> {
-  console.log(
-    `[Compliance Excel] Generating maintenance compliance report for vessel: ${vesselId}`
-  );
+  logger.info(`[Compliance Excel] Generating maintenance compliance report for vessel: ${vesselId}`);
 
   const workOrders = await storage.getWorkOrders(undefined, orgId);
   const equipmentHealth = await storage.getEquipmentHealth(orgId);

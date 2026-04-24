@@ -2,6 +2,8 @@
  * VPS Fleet Benchmark Functions
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("VpsKpi:FleetBenchmarks");
 import { dbTelemetryStorage, dbEquipmentStorage, vesselService } from "../repositories.js";
 import type { LoadHistBin, FleetLoadBenchmark, FleetPowerSTWBenchmark, PowerVsSTW } from "./types";
 import { quantile, calculatePowerSTWCurve } from "./calculations";
@@ -72,7 +74,7 @@ export async function computeFleetLoadBenchmarks(
           allDistributions.push(dist);
         }
       } catch (err) {
-        console.error(`Error computing load distribution for ${eq.id}:`, err);
+        logger.error(`Error computing load distribution for ${eq.id}:`, undefined, err);
       }
     }
   }
@@ -141,7 +143,7 @@ export async function computeFleetPowerSTWBenchmarks(
         }
       }
     } catch (err) {
-      console.error(`Error computing power-STW for vessel ${vessel.id}:`, err);
+      logger.error(`Error computing power-STW for vessel ${vessel.id}:`, undefined, err);
     }
   }
 

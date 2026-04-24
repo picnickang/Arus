@@ -2,6 +2,8 @@
  * Sync Jobs - Daily Metrics and Summary
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("SyncJobs:Metrics");
 import { db } from "../db.js";
 import { dailyMetricRollups } from "@shared/schema.js";
 import type { ReconciliationResult } from "./types.js";
@@ -51,7 +53,7 @@ export async function rollupDailyMetric(
         },
       });
   } catch (error) {
-    console.error("Failed to create daily metric rollup:", error);
+    logger.error("Failed to create daily metric rollup:", undefined, error);
     throw error;
   }
 }
@@ -80,7 +82,7 @@ export async function getReconciliationSummary(
         .map((issue) => `${issue.code}: ${issue.message}`),
     };
   } catch (error) {
-    console.error("Failed to get reconciliation summary:", error);
+    logger.error("Failed to get reconciliation summary:", undefined, error);
     return {
       lastRun: null,
       totalIssues: 0,

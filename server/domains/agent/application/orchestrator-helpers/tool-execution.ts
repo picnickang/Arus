@@ -1,3 +1,5 @@
+import { createLogger } from "../../../../lib/structured-logger";
+const logger = createLogger("Domains:Agent:Application:OrchestratorHelpers:ToolExecution");
 import type OpenAI from "openai";
 import type { AgentRepositoryPort, KnowledgeBasePort } from "../../domain/ports";
 import type { AgentConfigType } from "@shared/schema";
@@ -154,10 +156,7 @@ export async function executeTool(
     },
     { orgId, userId }
   ).catch((err) => {
-    console.warn(
-      "[Agent] Audit logging failed for tool call:",
-      err instanceof Error ? err.message : "unknown"
-    );
+    logger.warn("[Agent] Audit logging failed for tool call:", { details: err instanceof Error ? err.message : "unknown" });
   });
 
   return { toolResult, toolStatus, toolError, durationMs };

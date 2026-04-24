@@ -5,6 +5,8 @@
  * Per SonarQube guidance: Extract Method for repeated error handling patterns.
  */
 
+import { createLogger } from "./structured-logger";
+const logger = createLogger("Lib:RouteUtils");
 import type { Request, Response } from "express";
 import { z } from "zod";
 
@@ -56,7 +58,7 @@ export function handleApiError(
   if (statusCode && statusCode >= 400 && statusCode < 600) {
     if (statusCode >= 500) {
       const prefix = logPrefix ?? `Failed to ${operation}`;
-      console.error(`${prefix}:`, error);
+      logger.error(`${prefix}:`, undefined, error);
     }
     res.status(statusCode).json({
       message: `Failed to ${operation}`,
@@ -66,7 +68,7 @@ export function handleApiError(
   }
 
   const prefix = logPrefix ?? `Failed to ${operation}`;
-  console.error(`${prefix}:`, error);
+  logger.error(`${prefix}:`, undefined, error);
   res.status(500).json({
     message: `Failed to ${operation}`,
     error: error instanceof Error ? error.message : String(error),

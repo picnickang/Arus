@@ -4,6 +4,8 @@
  * Functions for fetching entity data from storage for export.
  */
 
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:DataExportImport:EntityFetchers");
 import {
   dbCrewStorage,
   dbCrewExtensionsStorage,
@@ -95,7 +97,7 @@ export async function fetchEntityData(
 ): Promise<any[]> {
   const fetcher = entityFetchers[entityName];
   if (!fetcher) {
-    console.warn(`[DataExport] Unknown entity: ${entityName}`);
+    logger.warn(`[DataExport] Unknown entity: ${entityName}`);
     return [];
   }
   return fetcher(orgId, options);

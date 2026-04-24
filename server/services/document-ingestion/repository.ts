@@ -1,3 +1,5 @@
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:DocumentIngestion:Repository");
 import { db } from "../../db";
 import {
   kbDocs,
@@ -108,7 +110,7 @@ export async function deleteDocument(docId: string, orgId: string): Promise<void
   }
 
   await db.delete(kbDocs).where(eq(kbDocs.id, docId));
-  console.log(`[DocIngestion:Repo] Deleted document: ${docId}`);
+  logger.info(`[DocIngestion:Repo] Deleted document: ${docId}`);
 }
 
 export async function getDocument(docId: string, orgId: string): Promise<KbDoc | null> {

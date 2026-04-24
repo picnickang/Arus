@@ -3,6 +3,8 @@
  * Engine selection and greedy fallback
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("CrewSchedulerOrtools:Scheduler");
 import { planShifts as greedyPlan } from "../crew-scheduler";
 import {
   ScheduleResult,
@@ -41,10 +43,7 @@ function scheduleWithORTools(
       preferences
     );
   } catch (error) {
-    console.warn(
-      "Constraint scheduling failed, falling back to greedy scheduler:",
-      error instanceof Error ? error.message : String(error)
-    );
+    logger.warn("Constraint scheduling failed, falling back to greedy scheduler:", { details: error instanceof Error ? error.message : String(error) });
     return scheduleWithGreedy(
       days,
       shifts,

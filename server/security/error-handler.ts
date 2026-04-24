@@ -2,10 +2,12 @@
  * Secure Error Handler - Safe error responses
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Security:ErrorHandler");
 import { Request, Response, NextFunction } from "express";
 
 export function secureErrorHandler(err: any, req: Request, res: Response, next: NextFunction) {
-  console.error("Security Error:", {
+  logger.error("Security Error:", undefined, {
     error: err.message,
     stack: err.stack,
     path: req.path,

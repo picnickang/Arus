@@ -2,6 +2,8 @@
  * Crew Repository - Modular Aggregator
  */
 
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Db:Crew:Index");
 import { DbCrewMembers } from "./db-members.js";
 import { DbCrewExtended } from "./db-extended.js";
 
@@ -69,4 +71,4 @@ export class DatabaseCrewStorage extends DbCrewMembers {
 
 export const dbCrewStorage = new DatabaseCrewStorage();
 
-console.log("[Crew Repository] Loaded 6 modular files");
+logger.info("[Crew Repository] Loaded 6 modular files");

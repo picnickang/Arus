@@ -5,6 +5,8 @@
  * Implements Z-score analysis with optional OpenAI pattern recognition.
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("MlAnalytics:AnomalyDetection");
 import { db } from "../db";
 import { telemetryAggregates } from "@shared/schema-runtime";
 import { eq, and, gte, asc } from "drizzle-orm";
@@ -180,7 +182,7 @@ Response format: JSON only
       };
     }
   } catch (error) {
-    console.error("[ML Analytics] OpenAI enhancement error:", error);
+    logger.error("[ML Analytics] OpenAI enhancement error:", undefined, error);
   }
 
   return statisticalResult;

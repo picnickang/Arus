@@ -4,6 +4,8 @@
  * Generate AI-powered and fallback overview summaries.
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("InsightsEngine:LlmOverview");
 import { dbSystemAdminStorage } from "../repositories";
 import { analyzeInsightBundle } from "../openai";
 import type { InsightBundle } from "./types.js";
@@ -30,7 +32,7 @@ export async function llmOverview(bundle: InsightBundle): Promise<string> {
     const overview = await analyzeInsightBundle(analysisData);
     return overview || generateFallbackOverview(bundle);
   } catch (error) {
-    console.error("LLM overview generation failed:", error);
+    logger.error("LLM overview generation failed:", undefined, error);
     return generateFallbackOverview(bundle);
   }
 }

@@ -10,6 +10,8 @@
  *        so clearing a field (e.g. special requirements) had no effect.
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("ServiceOrders:Routes");
 import { Router, Request, Response } from "express";
 import { insertServiceOrderSchema, emailQueue, suppliers } from "@shared/schema";
 import * as repo from "./repository";
@@ -42,7 +44,7 @@ async function triggerProcurementAggregation(
     const { aggregateProcurementCostsToWorkOrder } = await import("../cost-savings-engine");
     await aggregateProcurementCostsToWorkOrder(workOrderId, orgId);
   } catch (err) {
-    console.error("[ServiceOrder] Failed to aggregate procurement costs:", err);
+    logger.error("[ServiceOrder] Failed to aggregate procurement costs:", undefined, err);
   }
 }
 
@@ -263,7 +265,7 @@ router.post("/:id/send", async (req: Request, res: Response) => {
         emailQueued = true;
       }
     } catch (err) {
-      console.error("[Service Orders] Failed to queue email:", err);
+      logger.error("[Service Orders] Failed to queue email:", undefined, err);
     }
   }
 

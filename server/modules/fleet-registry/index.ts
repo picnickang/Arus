@@ -1,3 +1,5 @@
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Modules:FleetRegistry:Index");
 import type { Express } from "express";
 import type { RateLimiters } from "./interfaces/vessel.routes";
 import { FleetRegistryService } from "./application/fleet-registry.service";
@@ -26,7 +28,7 @@ export const fleetRegistryService = new FleetRegistryService(
 
 export function registerFleetRegistryRoutes(app: Express, rateLimiters: RateLimiters) {
   registerFleetRegistryVesselRoutes(app, fleetRegistryService, rateLimiters);
-  console.log("[FleetRegistry] Hexagonal module routes registered");
+  logger.info("[FleetRegistry] Hexagonal module routes registered");
 }
 
 export { FleetRegistryService } from "./application/fleet-registry.service";

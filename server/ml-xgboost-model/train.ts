@@ -74,13 +74,10 @@ export async function trainXGBoostModel(
 
   const featureImportances = calculateFeatureImportances(trees, featureNames);
   logger.info("[XGBoost] Training complete");
-  console.log(
-    "[XGBoost] Top 5 features:",
-    Array.from(featureImportances.entries())
+  logger.info("[XGBoost] Top 5 features:", { details: Array.from(featureImportances.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
-      .map(([n, i]) => `${n}: ${(i * 100).toFixed(2)}%`)
-  );
+      .map(([n, i]) => `${n}: ${(i * 100).toFixed(2)}%`) });
 
   return { trees, config, featureNames, classLabels, baseScore, numClasses };
 }

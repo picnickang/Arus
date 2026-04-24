@@ -1,3 +1,5 @@
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Domains:Agent:Tools:CrewTools");
 import { db } from "../../../db";
 import { eq, and, desc, inArray } from "drizzle-orm";
 import { crew, scheduleAssignments } from "@shared/schema";
@@ -100,10 +102,7 @@ registerTool({
           .limit(input.limit || 20);
       }
     } catch (err) {
-      console.warn(
-        "[Agent] Schedule assignments query failed:",
-        err instanceof Error ? err.message : "unknown"
-      );
+      logger.warn("[Agent] Schedule assignments query failed:", { details: err instanceof Error ? err.message : "unknown" });
       assignments = [];
     }
 

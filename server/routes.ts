@@ -10,6 +10,8 @@
  * - HTTP server + WebSocket creation
  */
 
+import { createLogger } from "./lib/structured-logger";
+const logger = createLogger("Routes");
 import type { Express } from "express";
 import { createServer, type Server } from "node:http";
 
@@ -48,10 +50,8 @@ export async function registerRoutes(
 
   // Global Tenant Isolation Middleware - MUST be BEFORE ALL /api routes
   if (options.skipGlobalTenantIsolation) {
-    console.warn(
-      "[SECURITY WARNING] Global tenant isolation middleware DISABLED for testing. " +
-        "This creates a CRITICAL VULNERABILITY and should NEVER be used in production!"
-    );
+    logger.warn("[SECURITY WARNING] Global tenant isolation middleware DISABLED for testing. " +
+        "This creates a CRITICAL VULNERABILITY and should NEVER be used in production!");
   } else {
     const publicPaths = new Set(["/healthz", "/readyz", "/health", "/metrics"]);
     app.use("/api", (req, res, next) => {
@@ -60,9 +60,7 @@ export async function registerRoutes(
       }
       return requireOrgId(req, res, next);
     });
-    console.log(
-      "[Security] Global tenant isolation middleware registered (before all /api routes)"
-    );
+    logger.info("[Security] Global tenant isolation middleware registered (before all /api routes)");
   }
 
   const { initDtcIntegrationService } = await import("./dtc-integration-service");

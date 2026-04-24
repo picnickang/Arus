@@ -2,6 +2,8 @@
  * Sync Jobs - Reservation Overflow Check
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("SyncJobs:Reservations");
 import { db } from "../db.js";
 import { parts, stock, reservations } from "@shared/schema.js";
 import { eq, sql, and } from "drizzle-orm";
@@ -54,7 +56,7 @@ export async function checkReservationOverflow(orgId: string): Promise<CheckResu
 
     return { issues, entitiesChecked };
   } catch (error) {
-    console.error("Reservation overflow check failed:", error);
+    logger.error("Reservation overflow check failed:", undefined, error);
     return {
       issues: [
         {

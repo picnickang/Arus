@@ -2,6 +2,8 @@
  * Equipment Data Range Functions
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("AdaptiveTrainingWindow:DataRange");
 import { workOrderService } from "../services/domains/work-order-service.js";
 import { dbEquipmentStorage } from "../db/equipment/index.js";
 import type { EquipmentDataRange } from "./types";
@@ -41,7 +43,7 @@ export async function getEquipmentDataRange(
     const { equipmentTelemetry } = await import("@shared/schema");
     const { sql, eq, inArray, and } = await import("drizzle-orm");
 
-    console.log("[Adaptive Training Window] Querying telemetry for equipment IDs:", equipmentIds);
+    logger.info("[Adaptive Training Window] Querying telemetry for equipment IDs:", { details: equipmentIds });
 
     const result = await db
       .select({ oldestTimestamp: sql<Date>`MIN(${equipmentTelemetry.ts})` })
@@ -58,7 +60,7 @@ export async function getEquipmentDataRange(
       oldestDate = new Date(result[0].oldestTimestamp);
     }
   } catch (error) {
-    console.error("[Adaptive Training Window] Error fetching telemetry history:", error);
+    logger.error("[Adaptive Training Window] Error fetching telemetry history:", undefined, error);
   }
 
   const availableDays = oldestDate

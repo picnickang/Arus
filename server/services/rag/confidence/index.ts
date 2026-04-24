@@ -1,3 +1,5 @@
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Services:Rag:Confidence:Index");
 /**
  * RAG Confidence Detection Service
  * Detects low-confidence responses and generates alerts
@@ -428,7 +430,7 @@ export class ConfidenceDetector {
       try {
         listener(alert);
       } catch (error) {
-        console.error("[ConfidenceDetector] Alert listener error:", error);
+        logger.error("[ConfidenceDetector] Alert listener error:", undefined, error);
       }
     }
 

@@ -1,3 +1,5 @@
+import { createLogger } from "../../../../lib/structured-logger";
+const logger = createLogger("Domains:Agent:Application:OrchestratorHelpers:OpenaiClient");
 import type OpenAI from "openai";
 import type { getToolOpenAIDefinitions } from "../../tools";
 
@@ -46,10 +48,7 @@ export async function callOpenAIWithRetry(
       }
 
       const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
-      console.warn(
-        `[Agent] OpenAI attempt ${attempt + 1} failed, retrying in ${delay}ms:`,
-        lastError.message
-      );
+      logger.warn(`[Agent] OpenAI attempt ${attempt + 1} failed, retrying in ${delay}ms:`, { details: lastError.message });
       await new Promise((r) => setTimeout(r, delay));
     }
   }

@@ -1,3 +1,5 @@
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Domains:Agent:Infrastructure:FileRegistry");
 import path from "path";
 import fs from "fs";
 import { db } from "../../../db";
@@ -26,7 +28,7 @@ const UPLOAD_BASE_DIR = (() => {
     return preferred;
   } catch {
     const fallback = "/tmp/agent-uploads";
-    console.warn(`[FileRegistry] Could not create ${preferred}, falling back to ${fallback}`);
+    logger.warn(`[FileRegistry] Could not create ${preferred}, falling back to ${fallback}`);
     fs.mkdirSync(fallback, { recursive: true });
     return fallback;
   }
@@ -96,7 +98,7 @@ export async function resolveFile(fileId: string, orgId: string): Promise<FileRe
   if (!resolved.startsWith(orgDir + path.sep) && !resolved.startsWith(orgDir)) {
     // Also allow exact match on orgDir itself (unlikely but safe)
     if (resolved !== orgDir) {
-      console.warn(`[FileRegistry] Path traversal blocked: ${resolved} is not under ${orgDir}`);
+      logger.warn(`[FileRegistry] Path traversal blocked: ${resolved} is not under ${orgDir}`);
       return null;
     }
   }

@@ -2,6 +2,8 @@
  * SLO Alerts - Violation Checking
  */
 
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Utils:SloAlerts:Violations");
 import type { SLOConfig, SLOViolation } from "./types.js";
 import { loadSLOConfigs, customSLOs } from "./config.js";
 import {
@@ -164,9 +166,7 @@ function logViolations(violations: SLOViolation[]): void {
       recentViolations.shift();
     }
     const burnInfo = violation.burnRate ? `, burn rate: ${violation.burnRate.toFixed(2)}x` : "";
-    console.warn(
-      `[SLO VIOLATION] ${violation.sloName}: ${violation.metric} = ${violation.actual.toFixed(3)} (threshold: ${violation.threshold})${burnInfo} on ${violation.route}`
-    );
+    logger.warn(`[SLO VIOLATION] ${violation.sloName}: ${violation.metric} = ${violation.actual.toFixed(3)} (threshold: ${violation.threshold})${burnInfo} on ${violation.route}`);
   }
 }
 

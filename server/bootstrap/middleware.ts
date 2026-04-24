@@ -3,6 +3,8 @@
  * Security headers, CORS, body parsing, logging
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Bootstrap:Middleware");
 import type { Express } from "express";
 import express from "express";
 import helmet from "helmet";
@@ -76,7 +78,7 @@ export function configureMiddleware(app: Express): void {
     const allowed = originAllowed(origin, allowedOrigins);
 
     if (!allowed && isDevelopment) {
-      console.warn(`🚨 CORS: Blocked origin ${origin}`);
+      logger.warn(`🚨 CORS: Blocked origin ${origin}`);
     }
 
     callback(null, allowed);
@@ -151,7 +153,7 @@ export function configureMiddleware(app: Express): void {
           const jsonStr = safeStringify(capturedJsonResponse);
           line += ` :: ${jsonStr.length > 500 ? `${jsonStr.slice(0, 500)}...` : jsonStr}`;
         }
-        console.log(line);
+        logger.info(String(line));
       }
     });
 

@@ -2,6 +2,8 @@
  * Sync Jobs - Sensor Threshold Conflicts Check
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("SyncJobs:Thresholds");
 import { db } from "../db.js";
 import { sensorThresholds } from "@shared/schema.js";
 import { eq, sql, and } from "drizzle-orm";
@@ -46,7 +48,7 @@ export async function checkSensorThresholdConflicts(orgId: string): Promise<Chec
 
     return { issues, entitiesChecked };
   } catch (error) {
-    console.error("Sensor threshold conflict check failed:", error);
+    logger.error("Sensor threshold conflict check failed:", undefined, error);
     return {
       issues: [
         {

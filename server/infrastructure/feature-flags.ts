@@ -134,7 +134,7 @@ export class TenantIsolationLogger {
       return;
     }
 
-    console.log("[TENANT_ISOLATION_SUCCESS]", {
+    logger.info("[TENANT_ISOLATION_SUCCESS]", {
       timestamp: new Date().toISOString(),
       ...context,
     });
@@ -155,7 +155,7 @@ export class TenantIsolationLogger {
       return;
     }
 
-    console.error("[TENANT_ISOLATION_VIOLATION]", {
+    logger.error("[TENANT_ISOLATION_VIOLATION]", undefined, {
       timestamp: new Date().toISOString(),
       severity: "CRITICAL",
       ...context,
@@ -183,7 +183,7 @@ export class TenantIsolationLogger {
       return;
     }
 
-    console.warn("[TENANT_MIGRATION_FALLBACK]", {
+    logger.warn("[TENANT_MIGRATION_FALLBACK]", {
       timestamp: new Date().toISOString(),
       ...context,
     });

@@ -1,3 +1,5 @@
+import { createLogger } from "../../../../lib/structured-logger";
+const logger = createLogger("Domains:Agent:Interfaces:Routes:AdminRoutes");
 import type { Express, Request, Response } from "express";
 import type { AuthenticatedRequest } from "../../../../middleware/auth";
 import { agentRepo } from "../../infrastructure/repository";
@@ -99,9 +101,7 @@ export function registerAdminRoutes(app: Express, deps: AdminRouteDeps) {
         }
 
         if (truncatedConversations > 0) {
-          console.log(
-            `[Agent Export] ${truncatedConversations} conversation(s) had messages truncated at ${MSG_LIMIT}`
-          );
+          logger.info(`[Agent Export] ${truncatedConversations} conversation(s) had messages truncated at ${MSG_LIMIT}`);
         }
         res.end();
       } catch (error: unknown) {

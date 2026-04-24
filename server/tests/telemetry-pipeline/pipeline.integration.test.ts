@@ -9,6 +9,8 @@
  * - Data integrity verification
  */
 
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Tests:TelemetryPipeline:Pipeline.integration.test");
 import { describe, it, expect, beforeAll } from "@jest/globals";
 import { BridgeProcessor } from "../../services/sqlite-bridge/bridgeProcessor";
 import { decodeFrame } from "../../telemetry/decode";
@@ -247,7 +249,7 @@ describe("Telemetry Pipeline Integration", () => {
         const integrity = verifyReadingIntegrity(reading, TEST_EQUIPMENT_ID);
         expect(integrity.valid).toBe(true);
         if (!integrity.valid) {
-          console.log("Integrity errors:", integrity.errors);
+          logger.info("Integrity errors:", { details: integrity.errors });
         }
 
         expect(checksums.has(frame.id)).toBe(true);

@@ -14,6 +14,8 @@
  * - schema-runtime.ts fix (as typeof pgSchema.<table> cast pattern)
  */
 
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Db:Inventory:Index");
 import { randomUUID } from "node:crypto";
 import { eq, and, or, ilike, sql, desc, asc, type SQL } from "drizzle-orm";
 import { db, type DbTransaction } from "../../db-config";
@@ -943,4 +945,4 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
 
 export const dbInventoryStorage = new DatabaseInventoryStorage();
 
-console.log("[Inventory Repository] Loaded 6 modular files");
+logger.info("[Inventory Repository] Loaded 6 modular files");

@@ -2,6 +2,8 @@
  * Backup Maintenance - Cleanup and verification operations
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("BackupRecovery:Maintenance");
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import { BACKUP_CONFIG } from "./types";
@@ -31,11 +33,11 @@ export async function cleanupOldBackups(): Promise<{
         await fs.unlink(backup.filepath);
         await fs.unlink(join(BACKUP_CONFIG.backupDir, `${backup.id}.metadata.json`));
         deletedCount++;
-        console.log(`🗑️  Deleted old backup: ${backup.filename}`);
+        logger.info(`🗑️  Deleted old backup: ${backup.filename}`);
       } catch (error) {
         const errorMsg = `Failed to delete backup ${backup.filename}: ${error}`;
         errors.push(errorMsg);
-        console.error(errorMsg);
+        logger.error(String(errorMsg));
       }
     }
   }

@@ -1,3 +1,5 @@
+import { createLogger } from "./lib/structured-logger";
+const logger = createLogger("MqttIngestionService");
 /**
  * MQTT Ingestion Service - Deprecated Stub
  *
@@ -18,14 +20,12 @@ export interface MqttDevice {
 
 class MqttIngestionServiceStub {
   async registerMqttDevice(_deviceData: unknown): Promise<MqttDevice> {
-    console.warn(
-      "[DEPRECATED] MqttIngestionService.registerMqttDevice - use SQLite bridge instead"
-    );
+    logger.warn("[DEPRECATED] MqttIngestionService.registerMqttDevice - use SQLite bridge instead");
     throw new Error("MQTT ingestion is deprecated - use SQLite bridge architecture");
   }
 
   async getMqttDevices(): Promise<MqttDevice[]> {
-    console.warn("[DEPRECATED] MqttIngestionService.getMqttDevices - use SQLite bridge instead");
+    logger.warn("[DEPRECATED] MqttIngestionService.getMqttDevices - use SQLite bridge instead");
     return [];
   }
 

@@ -2,6 +2,8 @@
  * Compliance Excel - Regulatory Compliance Report Generation
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("ComplianceExcel:RegulatoryCompliance");
 import type { WorkOrder } from "@shared/schema";
 import type { EquipmentHealth } from "../db/equipment/types.js";
 
@@ -24,9 +26,7 @@ export async function generateRegulatoryComplianceExcel(
   equipmentIds: string[],
   period: ReportingPeriod
 ): Promise<Buffer> {
-  console.log(
-    `[Compliance Excel] Generating regulatory compliance for framework: ${regulatoryFramework}`
-  );
+  logger.info(`[Compliance Excel] Generating regulatory compliance for framework: ${regulatoryFramework}`);
 
   const standardCodes = FRAMEWORK_STANDARDS[regulatoryFramework] || ["ABS-A1-MACHINERY"];
 

@@ -2,6 +2,8 @@
  * LP Optimizer - Job Loading
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("LpOptimizer:JobLoader");
 import {
   dbMaintenanceStorage,
   dbEquipmentStorage,
@@ -79,10 +81,10 @@ export async function getPendingMaintenanceJobs(orgId: string): Promise<Maintena
       jobs.push(job);
     }
 
-    console.log(`[LP Optimizer] Found ${jobs.length} maintenance jobs to optimize`);
+    logger.info(`[LP Optimizer] Found ${jobs.length} maintenance jobs to optimize`);
     return jobs;
   } catch (error) {
-    console.error(`[LP Optimizer] Error getting maintenance jobs:`, error);
+    logger.error(`[LP Optimizer] Error getting maintenance jobs:`, undefined, error);
     return [];
   }
 }

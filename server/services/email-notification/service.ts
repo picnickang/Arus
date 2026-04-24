@@ -2,6 +2,8 @@
  * Email Notification - Main Service Class
  */
 
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:EmailNotification:Service");
 import { dbNotificationsStorage } from "../../repositories.js";
 import type {
   ComplianceFinding,
@@ -65,9 +67,7 @@ class EmailNotificationService {
     );
 
     if (applicableSettings.length === 0) {
-      console.log(
-        `[EmailNotificationService] No applicable notification settings for finding ${finding.id}`
-      );
+      logger.info(`[EmailNotificationService] No applicable notification settings for finding ${finding.id}`);
       return;
     }
 

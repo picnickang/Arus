@@ -2,6 +2,8 @@
  * Audit Logging - Admin action tracking (fail-closed)
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Security:Audit");
 import { Request, Response, NextFunction } from "express";
 import { dbSystemAdminStorage } from "../repositories";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
@@ -42,7 +44,7 @@ export function auditAdminAction(action: string) {
 
       auditEventId = auditEvent.id;
     } catch (error) {
-      console.error("[CRITICAL] Admin audit logging failed - BLOCKING REQUEST:", error);
+      logger.error("[CRITICAL] Admin audit logging failed - BLOCKING REQUEST:", undefined, error);
 
       return res.status(500).json({
         error: "Audit logging failed - operation cannot proceed",
@@ -91,7 +93,7 @@ export function auditAdminAction(action: string) {
             },
           });
         } catch (error) {
-          console.error("[CRITICAL] Failed to update audit event outcome:", error);
+          logger.error("[CRITICAL] Failed to update audit event outcome:", undefined, error);
         }
       })();
 

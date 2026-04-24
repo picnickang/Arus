@@ -4,6 +4,8 @@
  * Build comprehensive context for fleet summary reports.
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("ReportContext:FleetSummaryBuilder");
 import {
   vesselService,
   dbEquipmentStorage,
@@ -66,7 +68,7 @@ export async function buildFleetSummaryContext(
             };
           }
         } catch (error) {
-          console.warn(`[Context] ML prediction failed for ${eq.id}:`, error);
+          logger.warn(`[Context] ML prediction failed for ${eq.id}:`, { details: error });
         }
         return null;
       });

@@ -57,9 +57,7 @@ export async function exportOrg(
   const anonymizationResults: Record<string, AnonymizationResult> = {};
 
   try {
-    console.log(
-      `[DataExport] Starting export for org: ${orgId}${fullOptions.anonymize !== "none" ? ` (anonymization: ${fullOptions.anonymize})` : ""}`
-    );
+    logger.info(`[DataExport] Starting export for org: ${orgId}${fullOptions.anonymize !== "none" ? ` (anonymization: ${fullOptions.anonymize})` : ""}`);
     fs.mkdirSync(exportPath, { recursive: true });
 
     const manifest: ExportManifest = {

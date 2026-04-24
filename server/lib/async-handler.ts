@@ -5,6 +5,8 @@
  * Eliminates repeated error handling patterns across 40+ route files
  */
 
+import { createLogger } from "./structured-logger";
+const logger = createLogger("Lib:AsyncHandler");
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import { z } from "zod";
 
@@ -108,14 +110,9 @@ function logError(
   const statusCode = getErrorStatusCode(error);
 
   if (statusCode >= 500) {
-    console.error(
-      `[ERROR] ${context.method || "?"} ${context.path || "?"}: ${context.operation || "Operation failed"}`,
-      error
-    );
+    logger.error(`[ERROR] ${context.method || "?"} ${context.path || "?"}: ${context.operation || "Operation failed"}`, undefined, error);
   } else if (process.env.NODE_ENV === "development") {
-    console.warn(
-      `[WARN] ${context.method || "?"} ${context.path || "?"}: ${getErrorMessage(error)}`
-    );
+    logger.warn(`[WARN] ${context.method || "?"} ${context.path || "?"}: ${getErrorMessage(error)}`);
   }
 }
 

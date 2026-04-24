@@ -1,3 +1,5 @@
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Domains:Agent:Tools:InventoryTools");
 import { db } from "../../../db";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
@@ -30,10 +32,7 @@ registerTool({
         lowStockCount: Number(row.low_stock_count || 0),
       };
     } catch (err) {
-      console.warn(
-        "[Agent] Inventory query failed:",
-        err instanceof Error ? err.message : "unknown"
-      );
+      logger.warn("[Agent] Inventory query failed:", { details: err instanceof Error ? err.message : "unknown" });
       return { note: "Inventory data unavailable or table does not exist yet" };
     }
   },

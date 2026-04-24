@@ -2,6 +2,8 @@
  * FMCC Integration - Aquametro flow meter data retrieval
  */
 
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:FuelEmissions:FmccIntegration");
 import { getFMCCService, type FMCCCumulativeCounters } from "../../integrations/aquametro-fmcc";
 
 export async function tryGetFMCCData(
@@ -19,7 +21,7 @@ export async function tryGetFMCCData(
     const result = await fmccService.getCumulativeFuelCounters(vesselId, periodStart, periodEnd);
 
     if (result.success && result.data) {
-      console.log(`[FuelEmissions] FMCC data retrieved for vessel ${vesselId}:`, {
+      logger.info(`[FuelEmissions] FMCC data retrieved for vessel ${vesselId}:`, {
         source: result.source,
         foConsumedMt: result.data.foConsumedMt,
         doConsumedMt: result.data.doConsumedMt,
@@ -30,7 +32,7 @@ export async function tryGetFMCCData(
 
     return null;
   } catch (error) {
-    console.warn("[FuelEmissions] FMCC data fetch failed, falling back to telemetry:", error);
+    logger.warn("[FuelEmissions] FMCC data fetch failed, falling back to telemetry:", { details: error });
     return null;
   }
 }

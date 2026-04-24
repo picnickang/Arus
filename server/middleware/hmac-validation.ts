@@ -1,3 +1,5 @@
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Middleware:HmacValidation");
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Request, Response, NextFunction } from "express";
 import { dbSystemAdminStorage, dbDevicesStorage } from "../repositories";
@@ -78,7 +80,7 @@ export async function validateHMAC(req: Request, res: Response, next: NextFuncti
 
     next();
   } catch (error) {
-    console.error("HMAC validation error:", error);
+    logger.error("HMAC validation error:", undefined, error);
     res.status(500).json({
       error: "HMAC validation failed",
       code: "HMAC_VALIDATION_ERROR",

@@ -1,3 +1,5 @@
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Domains:Agent:Tools:EnhancedReportTools");
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { writeFile, mkdir } from "node:fs/promises";
@@ -533,10 +535,7 @@ registerTool({
             }));
           }
         } catch (err) {
-          console.warn(
-            "[Agent] KB enrichment query failed:",
-            err instanceof Error ? err.message : "unknown"
-          );
+          logger.warn("[Agent] KB enrichment query failed:", { details: err instanceof Error ? err.message : "unknown" });
         }
       }
 

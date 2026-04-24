@@ -3,6 +3,8 @@
  * Generates contextual question suggestions based on documents and conversation history
  */
 
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Services:Rag:Suggestions:Index");
 import OpenAI from "openai";
 
 export interface SuggestionContext {
@@ -60,7 +62,7 @@ export class SuggestionEngine {
       });
       return suggestions;
     } catch (error) {
-      console.error("[SuggestionEngine] LLM generation failed:", error);
+      logger.error("[SuggestionEngine] LLM generation failed:", undefined, error);
       return this.generateFallbackSuggestions(context, count);
     }
   }
@@ -101,7 +103,7 @@ No explanation, just the JSON array.`,
         relevance: 1 - index * 0.1,
       }));
     } catch (parseError) {
-      console.error("[SuggestionEngine] Failed to parse LLM response:", parseError);
+      logger.error("[SuggestionEngine] Failed to parse LLM response:", undefined, parseError);
       return this.generateFallbackSuggestions(context, count);
     }
   }

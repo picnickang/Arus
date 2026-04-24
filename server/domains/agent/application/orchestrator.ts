@@ -1,3 +1,5 @@
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Domains:Agent:Application:Orchestrator");
 import OpenAI from "openai";
 import { createOpenAIClient } from "../../../openai/client";
 import type { AgentRepositoryPort, KnowledgeBasePort } from "../domain/ports";
@@ -204,10 +206,8 @@ export class AgentOrchestrator {
       // Non-critical
     }
 
-    console.log(
-      `[AgentOrchestrator] Signal processed: ${signal.type} for equipment ${signal.equipmentId} ` +
-        `(prediction #${signal.predictionId}, probability: ${signal.failureProbability}) → conversation ${result.conversationId}`
-    );
+    logger.info(`[AgentOrchestrator] Signal processed: ${signal.type} for equipment ${signal.equipmentId} ` +
+        `(prediction #${signal.predictionId}, probability: ${signal.failureProbability}) → conversation ${result.conversationId}`);
 
     return result;
   }

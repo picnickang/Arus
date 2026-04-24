@@ -2,6 +2,8 @@
  * DTC Alert Handler
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("DtcIntegration:AlertHandler");
 import {
   dbEquipmentStorage,
   dbAlertStorage,
@@ -53,7 +55,7 @@ export async function createDtcAlert(dtc: DtcWithDefinition, orgId: string): Pro
     30
   );
   if (recentAlert) {
-    console.log(`[DTC Integration] Suppressing duplicate alert for DTC ${dtc.spn}/${dtc.fmi}`);
+    logger.info(`[DTC Integration] Suppressing duplicate alert for DTC ${dtc.spn}/${dtc.fmi}`);
     return null;
   }
 

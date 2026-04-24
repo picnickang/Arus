@@ -1,3 +1,5 @@
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Compliance:Routes:Index");
 import { Router } from "express";
 import { complianceAuditRouter } from "./audit-routes";
 import { complianceSessionRouter } from "./session-routes";
@@ -13,7 +15,7 @@ router.use("/", complianceWorkOrderHistoryRouter);
 router.use("/", complianceDataPrivacyRouter);
 router.use("/", complianceMlGovernanceRouter);
 
-console.log("[Compliance Routes] Loaded 5 modular route files");
+logger.info("[Compliance Routes] Loaded 5 modular route files");
 
 export default router;
 export {

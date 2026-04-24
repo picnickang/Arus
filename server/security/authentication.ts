@@ -1,3 +1,5 @@
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Security:Authentication");
 import { Request, Response, NextFunction } from "express";
 import { dbSystemAdminStorage, dbUserStorage } from "../repositories";
 import crypto from "crypto";
@@ -105,7 +107,7 @@ export async function requireAuthentication(req: Request, res: Response, next: N
       message: "Provided token is invalid or expired. Please log in again.",
     });
   } catch (error) {
-    console.error("Authentication error:", error);
+    logger.error("Authentication error:", undefined, error);
     res.status(500).json({ error: "Authentication service unavailable", code: "AUTH_ERROR" });
   }
 }

@@ -272,7 +272,7 @@ async function runInventoryMigrations(client: LibsqlClient): Promise<void> {
 
   if (migrationErrors.length > 0) {
     const errorMsg = `Inventory schema migration failed:\n  ${migrationErrors.join("\n  ")}`;
-    console.error(errorMsg);
+    logger.error(String(errorMsg));
     throw new Error(errorMsg);
   }
 
@@ -317,7 +317,7 @@ async function verifyInventorySchema(client: LibsqlClient): Promise<void> {
       details.push(`purchase_order_items missing: ${missingPoi.join(", ")}`);
     }
     const msg = `Inventory schema verification FAILED:\n  ${details.join("\n  ")}`;
-    console.error(msg);
+    logger.error(String(msg));
     throw new Error(msg);
   }
 
@@ -339,12 +339,9 @@ async function verifyInventorySchema(client: LibsqlClient): Promise<void> {
   );
 
   if (stalepi.length > 0 || staleStock.length > 0) {
-    console.warn(
-      `⚠ Legacy columns still present (will not be used by Drizzle):`,
-      [...stalepi.map((c) => `parts_inventory.${c}`), ...staleStock.map((c) => `stock.${c}`)].join(
+    logger.warn(`⚠ Legacy columns still present (will not be used by Drizzle):`, { details: [...stalepi.map((c) => `parts_inventory.${c}`), ...staleStock.map((c) => `stock.${c}`)].join(
         ", "
-      )
-    );
+      ) });
   }
 
   logger.info("✓ Inventory schema verification passed");

@@ -2,6 +2,8 @@
  * STCW Dashboard Data Fetcher - Crew rest data retrieval
  */
 
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Scheduler:StcwDashboard:DataFetcher");
 import { dbCrewStorage, dbStcwStorage } from "../../repositories";
 import { withSpan } from "../../utils/request-spans";
 import type { RestDay } from "../../stcw-compliance";
@@ -99,7 +101,7 @@ export async function getCrewRestDataForVessel(
       });
     }
   } catch (error) {
-    console.error(`Error fetching crew rest data for vessel ${vesselId}:`, error);
+    logger.error(`Error fetching crew rest data for vessel ${vesselId}:`, undefined, error);
   }
 
   return crewDataMap;

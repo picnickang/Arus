@@ -1,3 +1,5 @@
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("Services:DocumentIngestion:Extractors:Pdf");
 import type { TextExtractor, SupportedFileType } from "../types";
 
 interface TableData {
@@ -54,7 +56,7 @@ export class PdfExtractor implements TextExtractor {
         structuredSections,
       };
     } catch (error) {
-      console.error("[DocIngestion:PDF] Parsing failed:", error);
+      logger.error("[DocIngestion:PDF] Parsing failed:", undefined, error);
       throw new Error(
         `PDF extraction failed: ${error instanceof Error ? error.message : "Unknown error"}`
       );

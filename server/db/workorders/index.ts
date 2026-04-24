@@ -3,6 +3,8 @@
  * Re-exports all modules for backward compatibility
  */
 
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Db:Workorders:Index");
 import { DbWorkOrderCore } from "./db-core.js";
 import { DbWorkOrderNested } from "./db-nested.js";
 import { DbWorkOrderCompletions } from "./db-completions.js";
@@ -99,4 +101,4 @@ export class DatabaseWorkOrderStorage extends DbWorkOrderCore {
 
 export const dbWorkOrderStorage = new DatabaseWorkOrderStorage();
 
-console.log("[Work Orders Repository] Loaded 8 modular files");
+logger.info("[Work Orders Repository] Loaded 8 modular files");

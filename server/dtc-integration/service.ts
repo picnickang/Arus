@@ -2,6 +2,8 @@
  * DTC Integration Service Class
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("DtcIntegration:Service");
 import type { DtcWithDefinition, DtcSummary, DtcFinancialImpact, DtcDashboardStats } from "./types";
 import { createWorkOrderFromDtc } from "./work-order-handler";
 import {
@@ -59,7 +61,7 @@ let dtcServiceInstance: DtcIntegrationService | null = null;
 export function initDtcIntegrationService(): DtcIntegrationService {
   if (!dtcServiceInstance) {
     dtcServiceInstance = new DtcIntegrationService();
-    console.log("[DTC Integration] Service initialized");
+    logger.info("[DTC Integration] Service initialized");
   }
   return dtcServiceInstance;
 }

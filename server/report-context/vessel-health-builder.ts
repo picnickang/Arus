@@ -4,6 +4,8 @@
  * Build comprehensive context for vessel health reports.
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("ReportContext:VesselHealthBuilder");
 import { vesselService } from "../repositories";
 import { vesselIntelligence } from "../vessel-intelligence";
 import type { ReportContext, ContextBuilderOptions } from "./types.js";
@@ -73,7 +75,7 @@ export async function buildVesselHealthContext(
             };
           }
         } catch (error) {
-          console.warn(`[Context] ML prediction failed for ${eq.id}:`, error);
+          logger.warn(`[Context] ML prediction failed for ${eq.id}:`, { details: error });
         }
         return null;
       });

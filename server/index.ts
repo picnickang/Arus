@@ -179,10 +179,7 @@ if (!isInitDbMode && !isHealthCheckMode) {
         initAllBridges();
         logger.info("✓ Domain event bus initialized");
       } catch (e: unknown) {
-        console.warn(
-          "⚠️ Domain event bus initialization skipped:",
-          e instanceof Error ? e.message : String(e)
-        );
+        logger.warn("⚠️ Domain event bus initialization skipped:", { details: e instanceof Error ? e.message : String(e) });
       }
 
       const isEmbedded = process.env.EMBEDDED_MODE === "true";
@@ -223,7 +220,7 @@ if (!isInitDbMode && !isHealthCheckMode) {
       logger.info(`🚀 ARUS application is now live!`);
     } catch (error) {
       logger.error("\n❌ FATAL ERROR during application initialization:");
-      console.error(error);
+      logger.error(String(error));
       if (error instanceof Error) {
         logger.error("Error name:", undefined, error.name);
         logger.error("Error message:", undefined, error.message);

@@ -2,6 +2,8 @@
  * Telemetry Processing Job Processor
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("JobProcessors:TelemetryProcessor");
 import { storage } from "../repositories";
 import { generateAIInsights } from "../services/telemetry-processing";
 
@@ -21,7 +23,7 @@ export async function processTelemetryProcessing(data: {
       results.insights = await generateAIInsights(data.telemetryReading);
     }
   } catch (error) {
-    console.warn("AI insights failed in background job:", error);
+    logger.warn("AI insights failed in background job:", { details: error });
   }
 
   return results;

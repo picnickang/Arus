@@ -1,3 +1,5 @@
+import { createLogger } from "./lib/structured-logger";
+const logger = createLogger("Websocket");
 import { WebSocketServer, WebSocket } from "ws";
 import { Server } from "node:http";
 import { dbAlertStorage } from "./repositories";
@@ -15,7 +17,7 @@ function log(message: string, source = "websocket") {
     second: "2-digit",
     hour12: true,
   });
-  console.log(`${formattedTime} [${source}] ${message}`);
+  logger.info(`${formattedTime} [${source}] ${message}`);
 }
 
 type BroadcastPayload = Record<string, unknown> | unknown[];

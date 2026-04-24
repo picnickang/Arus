@@ -1,3 +1,5 @@
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Infrastructure:DualWriteAdapter");
 /**
  * DualWriteAdapter - Generic adapter for gradual migration to tenant-scoped repositories
  *
@@ -113,7 +115,7 @@ export class DualWriteAdapter {
 
       return result;
     } catch (error) {
-      console.error(`[DualWrite:${this.config.domain}] Repository error, falling back to legacy`, {
+      logger.error(`[DualWrite:${this.config.domain}] Repository error, falling back to legacy`, undefined, {
         operation: operation.operation,
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
@@ -176,7 +178,7 @@ export class DualWriteAdapter {
    */
   private recordMetric(metric: DualWriteMetric): void {
     // Structured logging for monitoring
-    console.log(`[DualWrite:${metric.domain}] ${metric.operation}`, {
+    logger.info(`[DualWrite:${metric.domain}] ${metric.operation}`, {
       codePath: metric.codePath,
       success: metric.success,
       durationMs: metric.durationMs,

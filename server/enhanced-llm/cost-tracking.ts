@@ -4,6 +4,8 @@
  * LLM usage cost calculation and database logging.
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("EnhancedLlm:CostTracking");
 import { db } from "../db";
 import { llmCostTracking } from "@shared/schema-runtime";
 import { nanoid } from "nanoid";
@@ -78,6 +80,6 @@ export async function logCostTracking(params: CostTrackingParams): Promise<void>
       fallbackModel: params.fallbackModel,
     });
   } catch (error) {
-    console.error("[LLM Cost] Failed to log cost tracking:", error);
+    logger.error("[LLM Cost] Failed to log cost tracking:", undefined, error);
   }
 }

@@ -3,6 +3,8 @@
  * Restricts access to specific crew roles
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("Middleware:RoleAuth");
 import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "./auth";
 
@@ -32,7 +34,7 @@ export function requireRole(...allowedRoles: CrewRole[]) {
     const user = (req as AuthenticatedRequest).user;
 
     if (process.env.NODE_ENV === "development" && !user) {
-      console.log("[DEV MODE] Role check bypassed - no user attached");
+      logger.info("[DEV MODE] Role check bypassed - no user attached");
       return next();
     }
 
@@ -48,7 +50,7 @@ export function requireRole(...allowedRoles: CrewRole[]) {
     const userRole = user.role?.toLowerCase() as CrewRole;
 
     if (!userRole || !allowedRoles.includes(userRole)) {
-      console.warn("[RBAC] Access denied", {
+      logger.warn("[RBAC] Access denied", {
         userId: user.id,
         userRole: user.role,
         requiredRoles: allowedRoles,

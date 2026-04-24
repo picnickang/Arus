@@ -2,6 +2,8 @@
  * Job Processor Registry
  */
 
+import { createLogger } from "../lib/structured-logger";
+const logger = createLogger("JobProcessors:Registry");
 import { jobQueue, JOB_TYPES } from "../background-jobs";
 import { processEquipmentAnalysis, processFleetAnalysis } from "./ai-processors";
 import {
@@ -31,11 +33,11 @@ export function registerJobProcessors(): void {
     processInsightsSnapshotGeneration
   );
 
-  console.log("[Background Jobs] All processors registered successfully");
+  logger.info("[Background Jobs] All processors registered successfully");
 }
 
 export function startBackgroundJobs(): void {
   registerJobProcessors();
   jobQueue.start();
-  console.log("[Background Jobs] Job queue started");
+  logger.info("[Background Jobs] Job queue started");
 }

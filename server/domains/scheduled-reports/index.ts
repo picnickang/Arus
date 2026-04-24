@@ -88,7 +88,9 @@ export function registerScheduledReportsRoutes(
 ) {
   const domain = createScheduledReportsDomain();
   app.use("/api/scheduled-reports", deps.requireOrgId, deps.generalApiRateLimit, domain.router);
-  domain.initialize().catch((err) => console.error("[Scheduled Reports] Init failed:", err));
+  domain
+    .initialize()
+    .catch((err) => logger.error(LOG_CTX, "Init failed", err));
 }
 
 export { ReportSchedulerService, ReportGenerationService };
