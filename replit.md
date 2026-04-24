@@ -41,7 +41,7 @@ Implemented with Express.js and TypeScript, providing RESTful APIs with Zod vali
 -   **Unified Domain Event Bus**: Consolidated, strongly-typed event bus.
 -   **Certificate Registry**: Hexagonal domain for vessel certificates with validity tracking.
 -   **Hazmat/IMDG Parts**: Dedicated fields for dangerous goods classification.
--   **Hardening**: Comprehensive security, resilience, data integrity, and performance optimizations.
+-   **Hardening**: Comprehensive security, resilience, data integrity, and performance optimizations. AES-256-GCM crypto in `server/lib/crypto-service.ts` pins `authTagLength: 16` on both `createCipheriv` and `createDecipheriv` and rejects short tags before decipher creation — prevents attacker-controlled short-tag attacks that would drop forgery resistance from 2^128 to 2^32. Pinned by regression tests in `tests/unit/structured-logger.test.ts` (which also covers the structured logger). `server/middleware/db-context.ts` defense-in-depth: the `SET LOCAL app.current_org_id` interpolation (cannot use parameterized queries for SET commands) now allowlists orgId via `^[A-Za-z0-9_-]{1,64}$` before interpolation, so a future regression in auth middleware cannot turn this into SQL injection.
 -   **OSV Specific Features**: DP Monitoring, Charter Compliance KPI tracking, OVID/SIRE Vetting inspection management, Offshore Operations Logging, EFMS Integration, and RMS Shore Monitoring.
 -   **Equipment Intelligence**: Consolidated AI/ML/PdM view with fleet summary and risk-sorted equipment list.
 -   **Daily Operations Briefing**: Automated shift-start summary with AI-generated executive summary.

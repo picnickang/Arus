@@ -47,8 +47,16 @@ export async function setDatabaseContext(
     if (orgId) {
       // Set the organization ID in the PostgreSQL session
       // This enables Row-Level Security policies to filter by org
-      // Note: SET commands don't support parameterized queries, so we use sql.raw
-      // orgId is validated by auth middleware, so this is safe
+      // Note: SET commands don't support parameterized queries, so we use sql.raw.
+      // orgId is validated by auth middleware, but we defense-in-depth here: a
+      // future regression in auth middleware (or a new code path that bypasses
+      // it) would otherwise turn this into SQL injection via SET LOCAL. Allow
+      // only the safe character class used by all real org IDs in the system.
+      if (!/^[A-Za-z0-9_-]{1,64}$/.test(orgId)) {
+        logger.warn(`[DB_CONTEXT] Refusing to set malformed orgId for ${req.path}`);
+        next();
+        return;
+      }
       await db.execute(sql.raw(`SET LOCAL app.current_org_id = '${orgId}'`));
 
       // Log for debugging (remove in production)

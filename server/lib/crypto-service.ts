@@ -88,7 +88,10 @@ export function encryptSecret(plaintext: string): string {
 
   const key = getEncryptionKey();
   const iv = randomBytes(IV_LENGTH);
-  const cipher = createCipheriv(ALGORITHM, key, iv);
+  // Pin authTagLength to prevent attacker-controlled short-tag attacks on the
+  // decrypt side (GCM forgery resistance is 2^(8 * authTagLength); if the
+  // decryptor accepts a 4-byte tag it drops from 2^128 to 2^32).
+  const cipher = createCipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
 
   let encrypted = cipher.update(plaintext, "utf8", "hex");
   encrypted += cipher.final("hex");
@@ -113,7 +116,14 @@ export function decryptSecret(encryptedValue: string): string {
   const iv = Buffer.from(ivHex, "hex");
   const authTag = Buffer.from(authTagHex, "hex");
 
-  const decipher = createDecipheriv(ALGORITHM, key, iv);
+  // Reject any tag whose length differs from what we ourselves write. Without
+  // this, an attacker with control over the stored ciphertext could supply a
+  // shorter (e.g. 4-byte) tag and weaken GCM forgery resistance dramatically.
+  if (authTag.length !== AUTH_TAG_LENGTH) {
+    throw new Error("Invalid authentication tag length");
+  }
+
+  const decipher = createDecipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
   decipher.setAuthTag(authTag);
 
   let decrypted = decipher.update(encrypted, "hex", "utf8");

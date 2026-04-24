@@ -62,6 +62,32 @@ const provider = (
   ctx: ReturnType<CorrelationProvider> | undefined
 ): CorrelationProvider => () => ctx;
 
+// Stand-alone block at the top of the file; we re-import crypto-service inside
+// the test to keep this self-contained and avoid touching module-level state
+// in unrelated tests.
+describe("crypto-service GCM hardening (security regression)", () => {
+  it("rejects an encrypted value with a short (truncated) authentication tag", async () => {
+    const { encryptSecret, decryptSecret } = await import("../../server/lib/crypto-service");
+    const blob = encryptSecret("super-secret-payload");
+    const [iv, tag, ct] = blob.split(":");
+    expect(iv).toBeTruthy();
+    expect(tag).toBeTruthy();
+    expect(ct).toBeTruthy();
+    // Truncate the auth tag from 16 bytes (32 hex chars) to 4 bytes (8 hex chars).
+    // Without the authTagLength pin, Node's createDecipheriv would silently
+    // accept this and reduce GCM forgery resistance from 2^128 to 2^32.
+    const truncatedTag = tag.slice(0, 8);
+    const tampered = `${iv}:${truncatedTag}:${ct}`;
+    expect(() => decryptSecret(tampered)).toThrow(/authentication tag length/i);
+  });
+
+  it("round-trips correctly for legitimate encrypted values", async () => {
+    const { encryptSecret, decryptSecret } = await import("../../server/lib/crypto-service");
+    const original = "round-trip-payload-12345";
+    expect(decryptSecret(encryptSecret(original))).toBe(original);
+  });
+});
+
 describe("structured-logger correlation enrichment", () => {
   it("emits no correlation fields when provider returns undefined (boot/scheduler scenario)", () => {
     const logger = createLogger("BootTest", provider(undefined));
