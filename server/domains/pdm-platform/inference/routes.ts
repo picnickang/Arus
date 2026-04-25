@@ -1,10 +1,11 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
-import { StubInferenceRunner } from "./stub-runner";
+import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { HeuristicInferenceRunner } from "./stub-runner";
 import { PredictionEngineService } from "./prediction-engine.service";
 
 const router = Router();
-const runner = new StubInferenceRunner();
+const runner = new HeuristicInferenceRunner();
 const predictionEngine = new PredictionEngineService(runner);
 
 const inferSchema = z.object({
@@ -14,7 +15,7 @@ const inferSchema = z.object({
 
 router.post("/", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = (req as AuthenticatedRequest).orgId;
     const parsed = inferSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
@@ -29,7 +30,7 @@ router.post("/", async (req: Request, res: Response) => {
 
 router.get("/predictions/:predictionId/explanations", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = (req as AuthenticatedRequest).orgId;
     const predictionId = parseInt(req.params.predictionId);
     if (isNaN(predictionId)) {
       return res.status(400).json({ error: "Invalid predictionId" });
@@ -43,7 +44,7 @@ router.get("/predictions/:predictionId/explanations", async (req: Request, res: 
 
 router.get("/predictions/:predictionId/lineage", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = (req as AuthenticatedRequest).orgId;
     const predictionId = parseInt(req.params.predictionId);
     if (isNaN(predictionId)) {
       return res.status(400).json({ error: "Invalid predictionId" });

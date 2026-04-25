@@ -10,7 +10,10 @@ import { calculateFisherInformation } from "./parameter-estimation.js";
 export function calculateReliability(age: number, params: WeibullParameters): number {
   const { shape, scale, location } = params;
   const adjustedAge = Math.max(0, age - location);
-  const _reliability = Math.exp(-Math.pow(adjustedAge / scale, shape));
+  if (scale <= 0 || shape <= 0) {
+    throw new Error("Invalid Weibull parameters: shape and scale must be positive");
+  }
+  const reliability = Math.exp(-Math.pow(adjustedAge / scale, shape));
   return Math.max(0, Math.min(1, reliability));
 }
 
@@ -19,6 +22,10 @@ export function predictRUL(
   params: WeibullParameters,
   failureThreshold: number
 ): number {
+  if (failureThreshold <= 0 || failureThreshold >= 1) {
+    throw new Error("failureThreshold must be between 0 and 1");
+  }
+
   const { shape, scale, location } = params;
   const currentReliability = calculateReliability(currentAge, params);
 
@@ -93,7 +100,7 @@ export function calculateRULDerivativeScale(currentAge: number, params: WeibullP
   const { scale } = params;
   const failureThreshold = 0.1;
 
-  const h = scale * 0.001;
+  const h = Math.max(scale * 0.001, 1e-6);
   const paramsUp = { ...params, scale: scale + h };
   const paramsDown = { ...params, scale: scale - h };
 

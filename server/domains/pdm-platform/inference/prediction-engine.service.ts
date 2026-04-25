@@ -7,7 +7,7 @@ import {
   equipmentFeatures,
   modelDeployments,
 } from "@shared/schema";
-import type { InferenceRunnerPort, InferenceResult } from "./ports";
+import type { FeatureVector, InferenceRunnerPort, InferenceResult, PredictionScore } from "./ports";
 import { logger } from "../../../utils/logger";
 
 export interface PredictionExplanationQuery {
@@ -38,7 +38,14 @@ export class PredictionEngineService implements PredictionExplanationQuery {
 
     try {
       const features = await this.fetchLatestFeatures(orgId, equipmentId);
-      const prediction = this.computePrediction(features);
+      const prediction = this.normalizePrediction(
+        await this.runner.scoreFeatures({
+          orgId,
+          equipmentId,
+          modelVersionId: resolvedVersionId,
+          features,
+        })
+      );
       const recommendations = this.generateRecommendations(prediction.failureProbability, features);
 
       const [predictionRecord] = await db
@@ -47,9 +54,9 @@ export class PredictionEngineService implements PredictionExplanationQuery {
           orgId,
           equipmentId,
           failureProbability: prediction.failureProbability,
-          remainingUsefulLife: prediction.rul,
+          remainingUsefulLife: prediction.remainingUsefulLife,
           riskLevel: prediction.riskLevel,
-          predictedFailureDate: new Date(Date.now() + prediction.rul * 24 * 60 * 60 * 1000),
+          predictedFailureDate: new Date(Date.now() + prediction.remainingUsefulLife * 24 * 60 * 60 * 1000),
           maintenanceRecommendations: recommendations,
           inputFeatures: features
             ? {
@@ -96,7 +103,7 @@ export class PredictionEngineService implements PredictionExplanationQuery {
         prediction: {
           failureProbability: prediction.failureProbability,
           riskLevel: prediction.riskLevel,
-          remainingUsefulLife: prediction.rul,
+          remainingUsefulLife: prediction.remainingUsefulLife,
           recommendations,
         },
         explanations: explanationRows,
@@ -238,58 +245,29 @@ export class PredictionEngineService implements PredictionExplanationQuery {
     return features ?? null;
   }
 
-  private computePrediction(features: any) {
-    if (!features) {
-      return { failureProbability: 0.1, rul: 300, riskLevel: "low" };
-    }
+  private normalizePrediction(prediction: PredictionScore): PredictionScore {
+    const failureProbability = Number.isFinite(prediction.failureProbability)
+      ? Math.min(Math.max(Math.round(prediction.failureProbability * 100) / 100, 0), 0.99)
+      : 0.1;
 
-    let score = 0;
-    const meanTemp = features.meanTemp ?? 0;
-    const rmsVib = features.rmsVibration ?? 0;
-    const meanPress = features.meanPressure ?? 0;
-    const kurtosis = features.kurtosis ?? 3;
+    const remainingUsefulLife = Number.isFinite(prediction.remainingUsefulLife)
+      ? Math.max(Math.floor(prediction.remainingUsefulLife), 1)
+      : Math.max(Math.floor(365 * (1 - failureProbability)), 7);
 
-    if (meanTemp > 80) {
-      score += 0.25;
-    } else if (meanTemp > 65) {
-      score += 0.1;
-    }
-
-    if (rmsVib > 5) {
-      score += 0.3;
-    } else if (rmsVib > 3) {
-      score += 0.15;
-    } else if (rmsVib > 1.5) {
-      score += 0.05;
-    }
-
-    if (meanPress < 80 || meanPress > 280) {
-      score += 0.2;
-    } else if (meanPress < 120 || meanPress > 250) {
-      score += 0.1;
-    }
-
-    if (kurtosis > 5) {
-      score += 0.15;
-    } else if (kurtosis > 4) {
-      score += 0.05;
-    }
-
-    const failureProbability = Math.min(Math.round(score * 100) / 100, 0.99);
-    const rul = Math.max(Math.floor(365 * (1 - failureProbability)), 7);
     const riskLevel =
-      failureProbability > 0.7
+      prediction.riskLevel ??
+      (failureProbability > 0.7
         ? "critical"
         : failureProbability > 0.4
           ? "high"
           : failureProbability > 0.2
             ? "medium"
-            : "low";
+            : "low");
 
-    return { failureProbability, rul, riskLevel };
+    return { failureProbability, remainingUsefulLife, riskLevel };
   }
 
-  private generateRecommendations(failureProbability: number, features: any): string[] {
+  private generateRecommendations(failureProbability: number, features: FeatureVector | null): string[] {
     const recs: string[] = [];
     if (failureProbability > 0.5) {
       recs.push("Schedule preventive maintenance within 2 weeks");
@@ -315,7 +293,7 @@ export class PredictionEngineService implements PredictionExplanationQuery {
     return recs;
   }
 
-  private generateExplanations(predictionId: number, inferenceRunId: string, features: any) {
+  private generateExplanations(predictionId: number, inferenceRunId: string, features: FeatureVector | null) {
     if (!features) {
       return [];
     }

@@ -1,6 +1,10 @@
--- PostgreSQL Row-Level Security Policies for Multi-Tenant Data Isolation
--- This file adds database-level security to prevent cross-tenant data access
--- Even if application code has bugs, the database will enforce org boundaries
+-- PostgreSQL Row-Level Security Policies for optional tenant/org context
+-- Current ARUS mode is single-tenant (default-org-id). These policies are
+-- retained as defense-in-depth and for future multi-tenant hardening, but they
+-- should only be applied after app.current_org_id defaults/context are configured.
+
+-- Single-tenant default context. Middleware may override this for the request/session.
+ALTER DATABASE arus SET app.current_org_id = 'default-org-id';
 
 -- Enable RLS on critical tables
 ALTER TABLE vessels ENABLE ROW LEVEL SECURITY;

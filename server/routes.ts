@@ -27,6 +27,7 @@ import {
 } from "./routes/route-dependencies";
 import { registerObservabilityRoutes } from "./routes/observability-routes";
 import { registerAllDomainRouters } from "./routes/domain-router-registry";
+import { isPublicApiPath } from "./bootstrap/public-api-paths";
 
 /**
  * Register all application routes
@@ -53,9 +54,8 @@ export async function registerRoutes(
     logger.warn("[SECURITY WARNING] Global tenant isolation middleware DISABLED for testing. " +
         "This creates a CRITICAL VULNERABILITY and should NEVER be used in production!");
   } else {
-    const publicPaths = new Set(["/healthz", "/readyz", "/health", "/metrics"]);
     app.use("/api", (req, res, next) => {
-      if (publicPaths.has(req.path)) {
+      if (isPublicApiPath(req)) {
         return next();
       }
       return requireOrgId(req, res, next);

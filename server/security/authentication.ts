@@ -3,6 +3,8 @@ const logger = createLogger("Security:Authentication");
 import { Request, Response, NextFunction } from "express";
 import { dbSystemAdminStorage, dbUserStorage } from "../repositories";
 import crypto from "crypto";
+import { isPublicApiPath } from "../bootstrap/public-api-paths";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 function hashSessionToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
@@ -10,8 +12,7 @@ function hashSessionToken(token: string): string {
 
 export async function requireAuthentication(req: Request, res: Response, next: NextFunction) {
   try {
-    const healthEndpoints = ["/healthz", "/readyz", "/health", "/metrics"];
-    if (healthEndpoints.includes(req.path)) {
+    if (isPublicApiPath(req)) {
       return next();
     }
 
@@ -68,7 +69,7 @@ export async function requireAuthentication(req: Request, res: Response, next: N
 
       await dbSystemAdminStorage.updateAdminSessionActivity(session.id);
 
-      const mockOrgId = "default-org-id";
+      const mockOrgId = DEFAULT_ORG_ID;
       let user = session.userId
         ? await dbUserStorage.getUser(session.userId)
         : await dbUserStorage.getUserByEmail(session.adminEmail || "admin@example.com", mockOrgId);

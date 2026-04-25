@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { dbUserStorage } from "../../../db/users/index.js";
 import { dbSystemAdminStorage } from "../../../db/system-admin/index.js";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 const BCRYPT_COST = 12;
 const MAX_PASSWORD_LENGTH = 128;
@@ -117,7 +118,7 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 2);
 
-      const mockOrgId = "default-org-id";
+      const mockOrgId = DEFAULT_ORG_ID;
       let adminUser = await dbUserStorage.getUserByEmail("admin@example.com", mockOrgId);
 
       if (!adminUser) {
@@ -231,7 +232,7 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
         const expiresAt = new Date();
         expiresAt.setHours(expiresAt.getHours() + 2);
 
-        const mockOrgId = "default-org-id";
+        const mockOrgId = DEFAULT_ORG_ID;
         let adminUser = await dbUserStorage.getUserByEmail("admin@example.com", mockOrgId);
 
         if (!adminUser) {

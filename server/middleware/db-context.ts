@@ -1,8 +1,9 @@
 /**
- * Database Context Middleware for Row-Level Security
- * Sets the current organization ID in the database session
+ * Database Context Middleware
+ * Sets the current organization ID in PostgreSQL for optional RLS policies.
  *
- * SINGLE-TENANT SYSTEM: Always uses default-org-id
+ * SINGLE-TENANT SYSTEM: Always uses default-org-id. This is a defense-in-depth
+ * context value, not a substitute for authenticated repository-level filtering.
  *
  * NOTE: This middleware is PostgreSQL-specific and is skipped in SQLite mode
  */
@@ -50,14 +51,14 @@ export async function setDatabaseContext(
       // Note: SET commands don't support parameterized queries, so we use sql.raw.
       // orgId is validated by auth middleware, but we defense-in-depth here: a
       // future regression in auth middleware (or a new code path that bypasses
-      // it) would otherwise turn this into SQL injection via SET LOCAL. Allow
+      // it) would otherwise turn this into SQL injection via set_config. Allow
       // only the safe character class used by all real org IDs in the system.
       if (!/^[A-Za-z0-9_-]{1,64}$/.test(orgId)) {
         logger.warn(`[DB_CONTEXT] Refusing to set malformed orgId for ${req.path}`);
         next();
         return;
       }
-      await db.execute(sql.raw(`SET LOCAL app.current_org_id = '${orgId}'`));
+      await db.execute(sql.raw(`SELECT set_config('app.current_org_id', '${orgId}', false)`));
 
       // Log for debugging (remove in production)
       if (process.env.NODE_ENV === "development") {

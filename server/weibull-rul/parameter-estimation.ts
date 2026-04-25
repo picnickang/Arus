@@ -114,7 +114,8 @@ export function calculateWeibullGoodnessOfFit(
   let sumXY = 0,
     sumX = 0,
     sumY = 0,
-    sumX2 = 0;
+    sumX2 = 0,
+    sumY2 = 0;
 
   for (let i = 0; i < n; i++) {
     const rank = (i + 1) / (n + 1);
@@ -125,10 +126,11 @@ export function calculateWeibullGoodnessOfFit(
     sumX += observedX;
     sumY += theoreticalY;
     sumX2 += observedX * observedX;
+    sumY2 += theoreticalY * theoreticalY;
   }
 
   const numerator = n * sumXY - sumX * sumY;
-  const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumX2 - sumX * sumX));
+  const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
 
   const correlation = denominator !== 0 ? numerator / denominator : 0;
   return Math.max(0.3, Math.min(0.99, correlation * correlation));

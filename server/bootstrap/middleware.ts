@@ -14,6 +14,7 @@ import { originAllowed } from "../utils/corsWildcard";
 import { safeStringify } from "../utils/redact-log";
 import { correlationMiddleware, getCorrelationId } from "../utils/correlation-context";
 import { performanceMiddleware } from "../middleware/performance";
+import { isPublicApiPath, isSensitiveApiPath } from "./public-api-paths";
 
 export function configureMiddleware(app: Express): void {
   const isDevelopment = process.env.NODE_ENV === "development";
@@ -143,15 +144,18 @@ export function configureMiddleware(app: Express): void {
 
     res.on("finish", () => {
       const duration = Date.now() - start;
-      const loggable = path.startsWith("/api") && !path.startsWith("/api/auth");
+      const loggable = path.startsWith("/api");
+      const includeResponseBody = loggable && !isSensitiveApiPath(req);
 
       if (loggable) {
         const correlationId = getCorrelationId();
         const shortId = correlationId !== "no-context" ? `[${correlationId.slice(0, 8)}] ` : "";
         let line = `${shortId}${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-        if (capturedJsonResponse) {
+        if (capturedJsonResponse && includeResponseBody) {
           const jsonStr = safeStringify(capturedJsonResponse);
           line += ` :: ${jsonStr.length > 500 ? `${jsonStr.slice(0, 500)}...` : jsonStr}`;
+        } else if (capturedJsonResponse && !includeResponseBody) {
+          line += " :: [sensitive response omitted]";
         }
         logger.info(String(line));
       }
@@ -168,10 +172,8 @@ export async function configureAuthMiddleware(app: Express): Promise<void> {
   const { validateOrgIdHeader } = await import("../orgIdValidation");
   const { apiReadyGate } = await import("../middleware/api-ready-gate");
 
-  const publicPaths = new Set(["/healthz", "/readyz", "/health", "/metrics"]);
-
   const skipPublicPaths = (middleware: any) => (req: any, res: any, next: any) => {
-    if (publicPaths.has(req.path)) {
+    if (isPublicApiPath(req)) {
       return next();
     }
     return middleware(req, res, next);
