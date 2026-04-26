@@ -15,8 +15,16 @@ function suppliedOrgId(req: Request): string | undefined {
   return headerValue ?? queryValue;
 }
 
-export function requireOrgId(req: Request, _res: Response, next: NextFunction): void {
+function applyDefaultOrgContext(req: Request): void {
   (req as any).orgId = DEFAULT_ORG_ID;
+  req.headers["x-org-id"] = DEFAULT_ORG_ID;
+  if (req.query) {
+    req.query.orgId = DEFAULT_ORG_ID;
+  }
+}
+
+export function requireOrgId(req: Request, _res: Response, next: NextFunction): void {
+  applyDefaultOrgContext(req);
   next();
 }
 
@@ -25,14 +33,14 @@ export function validateOrgId(orgId: string): boolean {
 }
 
 export function getOrgIdFromRequest(req: Request): string {
-  return (req as any).orgId || DEFAULT_ORG_ID;
+  return DEFAULT_ORG_ID;
 }
 
 export function validateOrgIdHeader(req: Request, res: Response, next: NextFunction): void {
   const requestedOrgId = suppliedOrgId(req);
 
   if (!requestedOrgId) {
-    (req as any).orgId = DEFAULT_ORG_ID;
+    applyDefaultOrgContext(req);
     return next();
   }
 
@@ -44,6 +52,6 @@ export function validateOrgIdHeader(req: Request, res: Response, next: NextFunct
     });
   }
 
-  (req as any).orgId = DEFAULT_ORG_ID;
+  applyDefaultOrgContext(req);
   next();
 }

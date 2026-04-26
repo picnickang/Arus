@@ -18,9 +18,6 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
     "/api/analytics/export/ml-models",
     withErrorHandling("export ML models", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, format = "json" } = req.query;
-      if (!orgId) {
-        return res.status(400).json({ message: "orgId is required" });
-      }
 
       const models = await dbMlAnalyticsStorage.getMlModels(orgId as string);
 
@@ -87,9 +84,6 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
         endDate,
         format = "json",
       } = req.query;
-      if (!orgId) {
-        return res.status(400).json({ message: "orgId is required" });
-      }
 
       const start = startDate
         ? new Date(startDate as string)
@@ -147,9 +141,6 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
     "/api/analytics/export/predictions",
     withErrorHandling("export predictions", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, format = "json" } = req.query;
-      if (!orgId) {
-        return res.status(400).json({ message: "orgId is required" });
-      }
 
       const predictions = await dbMlAnalyticsStorage.getFailurePredictions(orgId as string);
 

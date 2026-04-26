@@ -3,6 +3,7 @@ import { z } from "zod";
 import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../lib/route-utils";
 import { logger } from "../../utils/logger";
 import { db } from "../../db";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 const surveyTypeEnum = z.enum([
   "annual",
@@ -64,7 +65,7 @@ export function registerSurveyRoutes(
     "/api/surveys",
     generalApiRateLimit,
     withErrorHandling("list surveys", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       if (!orgId) {
         return res.status(401).json({ message: "Organization ID required" });
       }
@@ -123,7 +124,7 @@ export function registerSurveyRoutes(
     "/api/surveys",
     writeOperationRateLimit,
     withErrorHandling("create survey", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       if (!orgId) {
         return res.status(401).json({ message: "Organization ID required" });
       }
@@ -163,7 +164,7 @@ export function registerSurveyRoutes(
     "/api/surveys/summary/upcoming",
     generalApiRateLimit,
     withErrorHandling("upcoming surveys summary", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       if (!orgId) {
         return res.status(401).json({ message: "Organization ID required" });
       }
@@ -212,7 +213,7 @@ export function registerSurveyRoutes(
     "/api/surveys/:id",
     generalApiRateLimit,
     withErrorHandling("get survey", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       if (!orgId) {
         return res.status(401).json({ message: "Organization ID required" });
       }
@@ -240,7 +241,7 @@ export function registerSurveyRoutes(
     "/api/surveys/:id",
     writeOperationRateLimit,
     withErrorHandling("update survey", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       if (!orgId) {
         return res.status(401).json({ message: "Organization ID required" });
       }
@@ -285,7 +286,7 @@ export function registerSurveyRoutes(
     "/api/surveys/:id",
     writeOperationRateLimit,
     withErrorHandling("delete survey", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       if (!orgId) {
         return res.status(401).json({ message: "Organization ID required" });
       }

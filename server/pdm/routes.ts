@@ -97,7 +97,7 @@ function formatCsvRow(values: (string | number | null | undefined)[]): string {
 
 router.get("/dashboard", async (req, res) => {
   try {
-    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const filters = dashboardFiltersSchema.parse(req.query);
 
     const dashboardData = await getDashboardUseCase.execute({ orgId });
@@ -123,7 +123,7 @@ router.get("/dashboard", async (req, res) => {
 
 router.get("/filter-options", async (req, res) => {
   try {
-    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
 
     const [vessels, equipmentTypes] = await Promise.all([
       pdmPostgresRepository.getVessels(orgId),
@@ -145,7 +145,7 @@ router.get("/filter-options", async (req, res) => {
 
 router.get("/risk-queue/:status", async (req, res) => {
   try {
-    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const statusResult = riskStatusSchema.safeParse(req.params.status);
     if (!statusResult.success) {
       return res.status(400).json({ error: "Invalid status. Must be new, active, or resolved." });
@@ -162,7 +162,7 @@ router.get("/risk-queue/:status", async (req, res) => {
 
 router.get("/asset/:equipmentId", async (req, res) => {
   try {
-    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const equipmentId = req.params.equipmentId;
     if (!equipmentId) {
       return res.status(400).json({ error: "Equipment ID is required" });
@@ -180,7 +180,7 @@ router.get("/asset/:equipmentId", async (req, res) => {
 
 router.post("/risk/:itemId/acknowledge", async (req, res) => {
   try {
-    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const userId = (req.headers["x-user-id"] as string) || "system";
     const itemId = req.params.itemId;
     if (!itemId) {
@@ -196,7 +196,7 @@ router.post("/risk/:itemId/acknowledge", async (req, res) => {
 
 router.post("/risk/:itemId/create-work-order", async (req, res) => {
   try {
-    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const userId = (req.headers["x-user-id"] as string) || "system";
     const itemId = req.params.itemId;
     if (!itemId) {
@@ -224,7 +224,7 @@ const scheduleFiltersSchema = z.object({
 
 router.get("/schedule", async (req, res) => {
   try {
-    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const filters = scheduleFiltersSchema.parse(req.query);
 
     const result = await getScheduleUseCase.execute({
@@ -246,7 +246,7 @@ router.get("/schedule", async (req, res) => {
 
 router.get("/export/schedule", async (req, res) => {
   try {
-    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const format = (req.query.format as string) || "csv";
     const filters = scheduleFiltersSchema.parse(req.query);
 
@@ -333,7 +333,7 @@ router.get("/export/schedule", async (req, res) => {
 
 router.get("/export/risk-queue", async (req, res) => {
   try {
-    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const format = (req.query.format as string) || "csv";
     const filters = dashboardFiltersSchema.parse(req.query);
 
@@ -403,7 +403,7 @@ router.get("/export/risk-queue", async (req, res) => {
 
 router.get("/export/kpis", async (req, res) => {
   try {
-    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const format = (req.query.format as string) || "json";
 
     const dashboardData = await getDashboardUseCase.execute({ orgId });

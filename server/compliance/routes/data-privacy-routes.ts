@@ -7,6 +7,7 @@ import { DataAnonymizationService, type AnonymizationLevel } from "../data-anony
 import { dbGdprStorage } from "../../db/gdpr";
 import { requireComplianceAccess } from "./audit-routes";
 import { createLogger } from "../../lib/structured-logger";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 const logger = createLogger("Compliance:Routes:DataPrivacyRoutes");
 
 interface AdminRequest extends Request {
@@ -52,7 +53,7 @@ router.post(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -134,7 +135,7 @@ router.get(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const { exportId } = req.params;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
@@ -208,7 +209,7 @@ router.get(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -245,7 +246,7 @@ router.get(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const { id } = req.params;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
@@ -269,7 +270,7 @@ router.post(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -312,7 +313,7 @@ router.post(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const { id } = req.params;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
@@ -364,7 +365,7 @@ router.post(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const { id } = req.params;
       const { identifierType } = req.body as { identifierType: "email" | "userId" | "crewId" };
       if (!orgId) {
@@ -435,7 +436,7 @@ router.post(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const { id } = req.params;
       const { confirmErasure, reason } = req.body;
       if (!orgId) {
@@ -489,7 +490,7 @@ router.post(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const { id } = req.params;
       const { notes } = req.body;
       if (!orgId) {
@@ -527,7 +528,7 @@ router.post(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const { id } = req.params;
       const { reason, rejectionReason } = req.body;
       if (!orgId) {
@@ -564,7 +565,7 @@ router.get(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }

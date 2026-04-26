@@ -96,12 +96,6 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
       const { id } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
 
-      if (!orgId) {
-        return res.status(400).json({
-          message: "Organization ID required",
-        });
-      }
-
       const { generateTechnicianInsight } = await import("../../insights-engine");
       const insight = await generateTechnicianInsight(id, orgId);
 

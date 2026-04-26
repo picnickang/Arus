@@ -3,6 +3,7 @@ import { ScenarioSimAdapter } from "./adapter";
 import { ScenarioSimService } from "./scenario-sim.service";
 import { TwinStateAdapter } from "../twin-state/adapter";
 import { z } from "zod";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 const router = Router();
 const scenarioAdapter = new ScenarioSimAdapter();
@@ -21,7 +22,7 @@ const runScenarioSchema = z.object({
 
 router.post("/run", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const parsed = runScenarioSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
@@ -39,7 +40,7 @@ router.post("/run", async (req: Request, res: Response) => {
 
 router.get("/twins/:twinId", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const result = await scenarioAdapter.listScenarios(orgId, req.params.twinId);
     res.json(result);
   } catch (error: any) {
@@ -49,7 +50,7 @@ router.get("/twins/:twinId", async (req: Request, res: Response) => {
 
 router.get("/:scenarioId", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const result = await scenarioAdapter.getScenario(orgId, req.params.scenarioId);
     if (!result) {
       return res.status(404).json({ error: "Scenario not found" });

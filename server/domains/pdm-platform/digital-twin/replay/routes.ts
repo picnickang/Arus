@@ -2,13 +2,14 @@ import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { insertTwinEventSchema } from "@shared/schema";
 import { ReplayAdapter } from "./adapter";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 const router = Router();
 const adapter = new ReplayAdapter();
 
 router.post("/events", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const parsed = insertTwinEventSchema.safeParse({ ...req.body, orgId });
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
@@ -29,7 +30,7 @@ const timelineQuerySchema = z.object({
 
 router.get("/timeline", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const parsed = timelineQuerySchema.safeParse(req.query);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
@@ -56,7 +57,7 @@ const anomalyQuerySchema = z.object({
 
 router.get("/timeline/anomaly", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const parsed = anomalyQuerySchema.safeParse(req.query);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });

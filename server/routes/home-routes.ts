@@ -6,6 +6,7 @@ import { dbAlertStorage } from "../db/alerts/index.js";
 import { dbWorkOrderStorage } from "../db/workorders/index.js";
 import { dbEquipmentStorage } from "../db/equipment/index.js";
 import { homeAttentionSummaryResponseSchema } from "./home-routes.schema";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 function safeCall<T>(fn: (() => Promise<T>) | undefined): Promise<T | null> {
   if (typeof fn !== "function") {
@@ -33,7 +34,7 @@ export function registerHomeRoutes(
     generalApiRateLimit,
     requireOrgId,
     withErrorHandling("get home attention summary", async (req: Request, res: Response) => {
-      const orgId = (req as any).orgId || (req.headers["x-org-id"] as string);
+      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
 
       const sinceParam = (req.query.since as string) || (req.headers["x-last-visit"] as string);
       const lastVisitTime = sinceParam ? new Date(sinceParam) : null;

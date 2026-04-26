@@ -11,6 +11,7 @@ import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import type { AuthenticatedRequest } from "../../middleware/auth";
 import { getDataExportImportService } from "../../services/data-export-import";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 interface DataExportDependencies {
   generalApiRateLimit: RateLimitRequestHandler;
@@ -37,7 +38,7 @@ export function registerDataExportRoutes(app: Express, deps: DataExportDependenc
     auditAdminAction("EXPORT_DATA"),
     withErrorHandling("export data", async (req: Request, res: Response) => {
       const service = getDataExportImportService();
-      const orgId = req.header("x-org-id") || req.body.orgId || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
       const exportedBy = (req as AuthenticatedRequest).user?.id || "admin";
 
       const result = await service.exportOrg(
@@ -144,7 +145,7 @@ export function registerDataExportRoutes(app: Express, deps: DataExportDependenc
       const service = getDataExportImportService();
 
       const result = await service.importData(req.file.path, {
-        targetOrgId: req.body.targetOrgId || req.header("x-org-id"),
+        targetOrgId: DEFAULT_ORG_ID,
         dryRun: req.body.dryRun === "true",
         skipTelemetry: req.body.skipTelemetry === "true",
         conflictResolution: req.body.conflictResolution || "upsert",

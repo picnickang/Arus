@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { ResidualAnalysisService } from "./residual-analysis.service";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 const router = Router();
 const service = new ResidualAnalysisService();
@@ -11,7 +12,7 @@ const computeSchema = z.object({
 
 router.post("/compute", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const parsed = computeSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
@@ -32,7 +33,7 @@ const limitSchema = z.object({
 
 router.get("/twin/:twinId", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const parsed = limitSchema.safeParse(req.query);
     const limit = parsed.success ? parsed.data.limit : undefined;
     const result = await service.getResidualsByTwin(orgId, req.params.twinId, limit);
@@ -44,7 +45,7 @@ router.get("/twin/:twinId", async (req: Request, res: Response) => {
 
 router.get("/rankings", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const result = await service.getResidualRankings(orgId);
     res.json(result);
   } catch (error: any) {

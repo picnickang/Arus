@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { adminPasswordVerifySchema, type AdminSessionResponse } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { getApiSessionToken, setApiSessionToken } from "@/lib/sessionToken";
 
 interface AdminAccessContextType {
   isAdminUnlocked: boolean;
@@ -22,11 +23,9 @@ const IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
 // This prevents XSS attacks from detecting or stealing admin sessions
 // Trade-off: Sessions don't persist across page reloads, but immune to storage-based attacks
 
-// Global session token accessor for use outside React components
-let globalSessionToken: string | null = null;
-
+// Backwards-compatible accessor for admin utilities.
 export function getAdminSessionToken(): string | null {
-  return globalSessionToken;
+  return getApiSessionToken();
 }
 
 // Development mode: auto-unlock admin without password
@@ -52,9 +51,9 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
   const expiryTimerRef = useRef<NodeJS.Timeout | null>(null);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize global token in dev mode
-  if (DEV_MODE && !globalSessionToken) {
-    globalSessionToken = DEV_SESSION_TOKEN;
+  // Initialize in-memory token in dev mode.
+  if (DEV_MODE && !getApiSessionToken()) {
+    setApiSessionToken(DEV_SESSION_TOKEN);
   }
 
   // Update last activity timestamp (in-memory only for security)
@@ -70,8 +69,8 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
     setTimeUntilExpiry(null);
     setTimeUntilIdleTimeout(null);
 
-    // Clear global session token
-    globalSessionToken = null;
+    // Clear in-memory API session token
+    setApiSessionToken(null);
 
     // Clear timers
     if (expiryTimerRef.current) {
@@ -108,8 +107,8 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
         setSessionExpiresAt(expiresAt);
         setIsAdminUnlocked(true);
 
-        // Sync global session token for non-React contexts
-        globalSessionToken = response.sessionToken;
+        // Sync in-memory token for queryClient/admin-api requests
+        setApiSessionToken(response.sessionToken);
 
         // Update activity
         updateActivity();

@@ -9,7 +9,7 @@ const router = Router();
 router.post("/vibration/analyze/:equipmentId", async (req, res) => {
   try {
     const { equipmentId } = req.params;
-    const orgId = (req.query.orgId as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "vibration_analysis");
     if (!isEnabled) {
       return res
@@ -64,7 +64,7 @@ router.post("/vibration/analyze/:equipmentId", async (req, res) => {
 router.get("/vibration/history/:equipmentId", async (req, res) => {
   try {
     const { equipmentId } = req.params;
-    const orgId = (req.query.orgId as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const limit = Number.parseInt(req.query.limit as string) || 50;
     const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "vibration_analysis");
     if (!isEnabled) {
@@ -109,7 +109,7 @@ router.get("/vibration/history/:equipmentId", async (req, res) => {
 
 router.post("/vibration/batch-analyze", async (req, res) => {
   try {
-    const orgId = (req.query.orgId as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const { equipmentIds } = req.body;
     if (!Array.isArray(equipmentIds) || equipmentIds.length === 0) {
       return res

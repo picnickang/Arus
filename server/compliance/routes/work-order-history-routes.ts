@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { workOrderHistoryHashService } from "../work-order-history-hash.service";
 import { requireComplianceAccess } from "./audit-routes";
 import { createLogger } from "../../lib/structured-logger";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 const logger = createLogger("Compliance:Routes:WorkOrderHistoryRoutes");
 
 const router = Router();
@@ -11,7 +12,7 @@ router.post(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const { workOrderId } = req.params;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
@@ -30,7 +31,7 @@ router.post(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -58,7 +59,7 @@ router.get(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const { workOrderId } = req.params;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });

@@ -7,16 +7,14 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import * as service from "./service";
 import { createLogger } from "../lib/structured-logger";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 const logger = createLogger("Purchasing:SupplierRoutes");
 
 export const supplierLinkRouter = Router();
 
 supplierLinkRouter.get("/parts/:partId/suppliers", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
-    if (!orgId) {
-      return res.status(400).json({ error: "Organization ID required" });
-    }
+    const orgId = DEFAULT_ORG_ID;
 
     const suppliers = await service.getPartSuppliers(req.params.partId, orgId);
     res.json(suppliers);
@@ -28,10 +26,7 @@ supplierLinkRouter.get("/parts/:partId/suppliers", async (req: Request, res: Res
 
 supplierLinkRouter.post("/parts/:partId/suppliers", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
-    if (!orgId) {
-      return res.status(400).json({ error: "Organization ID required" });
-    }
+    const orgId = DEFAULT_ORG_ID;
 
     const { supplierId, isPrimary, supplierPartNumber, unitCost, leadTimeDays, notes } = req.body;
     if (!supplierId) {
@@ -59,10 +54,7 @@ supplierLinkRouter.delete(
   "/parts/:partId/suppliers/:supplierId",
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) {
-        return res.status(400).json({ error: "Organization ID required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
 
       const removed = await service.unlinkSupplierFromPart(
         req.params.partId,

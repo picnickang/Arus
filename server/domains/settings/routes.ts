@@ -5,6 +5,7 @@ import { dbSystemAdminStorage } from "../../db/system-admin/index.js";
 import { vesselService } from "../../services/domains/vessel-service";
 import { dbEquipmentStorage } from "../../db/equipment/index.js";
 import { analyticsInsightsAdapter } from "../../repositories";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 interface SettingsConfig {
   requireOrgId: RequestHandler;
@@ -122,7 +123,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     "/api/context/events",
     requireOrgId,
     withErrorHandling("fetch context events", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const { equipmentId, eventType, limit } = req.query;
       const events = await analyticsInsightsAdapter.getContextEvents?.({
         orgId,
@@ -139,7 +140,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("create context event", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const event = await analyticsInsightsAdapter.createContextEvent?.({ ...req.body, orgId });
       sendCreated(res, event || req.body);
     })
@@ -198,7 +199,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     "/api/fleet/summary",
     requireOrgId,
     withErrorHandling("fetch fleet summary", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const vessels = await vesselService.getVessels(orgId);
       const equipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
 
@@ -217,7 +218,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     "/api/fleet/status",
     requireOrgId,
     withErrorHandling("fetch fleet status", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const vessels = await vesselService.getVessels(orgId);
 
       const status = vessels.map((vessel: any) => ({
@@ -235,7 +236,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     "/api/replay/sessions",
     requireOrgId,
     withErrorHandling("fetch replay sessions", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const sessions = await analyticsInsightsAdapter.getReplaySessions?.(orgId);
       res.json(sessions ?? []);
     })
@@ -246,7 +247,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("create replay session", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const session = await analyticsInsightsAdapter.createReplaySession?.({ ...req.body, orgId });
       sendCreated(res, session || req.body);
     })

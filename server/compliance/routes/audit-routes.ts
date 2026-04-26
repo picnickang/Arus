@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { createLogger } from "../../lib/structured-logger";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 const logger = createLogger("Compliance:Routes:AuditRoutes");
 import {
   auditService,
@@ -71,7 +72,7 @@ const logEventSchema = z.object({
 
 router.get("/audit", requireComplianceAccess, async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     if (!orgId) {
       return res.status(401).json({ error: "Organization ID required" });
     }
@@ -107,7 +108,7 @@ router.get("/audit", requireComplianceAccess, async (req: Request, res: Response
 
 router.post("/audit", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     if (!orgId) {
       return res.status(401).json({ error: "Organization ID required" });
     }
@@ -132,7 +133,7 @@ router.post("/audit", async (req: Request, res: Response) => {
 
 router.post("/audit/verify", requireComplianceAccess, async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     if (!orgId) {
       return res.status(401).json({ error: "Organization ID required" });
     }
@@ -156,7 +157,7 @@ router.post("/audit/verify", requireComplianceAccess, async (req: Request, res: 
 
 router.get("/audit/stats", requireComplianceAccess, async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     if (!orgId) {
       return res.status(401).json({ error: "Organization ID required" });
     }
@@ -183,7 +184,7 @@ router.get(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -218,7 +219,7 @@ router.get(
 
 router.get("/reports/ism", requireComplianceAccess, async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     if (!orgId) {
       return res.status(401).json({ error: "Organization ID required" });
     }
@@ -303,7 +304,7 @@ router.get("/reports/ism", requireComplianceAccess, async (req: Request, res: Re
 
 router.get("/reports/cyber", requireComplianceAccess, async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     if (!orgId) {
       return res.status(401).json({ error: "Organization ID required" });
     }

@@ -14,6 +14,7 @@ import {
   updateRagSecurityConfig,
   getRagSecurityServices,
 } from "../services/rag/security/index.js";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 /**
  * Strict Zod schema for config updates - only allow safe, whitelisted fields
@@ -75,7 +76,7 @@ function requireAdminAuth(req: Request, res: Response, next: NextFunction): void
 
   // In development, allow with dev user
   if (process.env.NODE_ENV === "development") {
-    if (session?.userId === "dev-user-id" || req.get("x-org-id")) {
+    if (session?.userId === "dev-user-id" || DEFAULT_ORG_ID) {
       return next();
     }
   }
@@ -174,7 +175,7 @@ export function registerRagSecurityRoutes(app: Express): void {
       auditLogger.log({
         eventType: "config_change",
         userId: session?.userId || "unknown",
-        orgId: session?.orgId || req.get("x-org-id") || "unknown",
+        orgId: DEFAULT_ORG_ID,
         details: {
           action: "security_config_update",
           changedSections: Object.keys(updates),
@@ -211,7 +212,7 @@ export function registerRagSecurityRoutes(app: Express): void {
       // Get org context from session or header
       const session = (req as any).session;
       const userId = session?.userId || req.body?.userId || "anonymous";
-      const orgId = session?.orgId || req.get("x-org-id") || req.body?.orgId;
+      const orgId = DEFAULT_ORG_ID;
 
       if (!orgId) {
         res.status(400).json({ error: "Organization context required" });
@@ -238,7 +239,7 @@ export function registerRagSecurityRoutes(app: Express): void {
 
       const limit = parseInt(req.query.limit as string) || 100;
       const eventType = req.query.eventType as string;
-      const orgId = req.get("x-org-id") || (req as any).session?.orgId;
+      const orgId = DEFAULT_ORG_ID;
 
       const events = auditLogger.getEvents({
         limit,
@@ -258,7 +259,7 @@ export function registerRagSecurityRoutes(app: Express): void {
     requireAdminAuth,
     withErrorHandling("get RAG audit stats", async (req: Request, res: Response) => {
       const { auditLogger } = getRagSecurityServices();
-      const orgId = req.get("x-org-id") || (req as any).session?.orgId;
+      const orgId = DEFAULT_ORG_ID;
 
       const stats = auditLogger.getStats(orgId);
       res.json(stats);
@@ -275,7 +276,7 @@ export function registerRagSecurityRoutes(app: Express): void {
 
       const session = (req as any).session;
       const userId = session?.userId || "anonymous";
-      const orgId = session?.orgId || req.get("x-org-id") || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
 
       const identifier = session?.orgId ? `user:${userId}:${orgId}` : `ip:${req.ip}`;
 

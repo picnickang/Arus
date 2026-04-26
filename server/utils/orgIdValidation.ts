@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import { dbDevicesStorage } from "../repositories";
 import { equipmentService } from "../domains/equipment/service";
 import { createLogger } from "../lib/structured-logger";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 const logger = createLogger("Utils:OrgIdValidation");
 
 export interface OrgRequest extends Request {
@@ -22,35 +23,20 @@ export class OrgIdValidationError extends Error {
 export function extractOrgIdFromHeader(
   req: Request | { headers: Record<string, string | string[] | undefined> }
 ): string {
-  const orgId = req.headers["x-org-id"] as string | undefined;
+  const rawHeader = req.headers["x-org-id"];
+  const suppliedOrgId = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
 
-  if (!orgId) {
+  if (suppliedOrgId && suppliedOrgId.trim() !== DEFAULT_ORG_ID) {
     throw new OrgIdValidationError(
-      "Organization ID required: x-org-id header must be provided",
-      "MISSING_ORG_ID",
-      400
+      "Forbidden: Cannot select a different organization in single-tenant mode",
+      "ORG_CONTEXT_FORBIDDEN",
+      403
     );
   }
 
-  if (typeof orgId !== "string" || orgId.trim() === "") {
-    throw new OrgIdValidationError(
-      "Invalid organization ID: must be a non-empty string",
-      "INVALID_ORG_ID",
-      400
-    );
-  }
-
-  const orgIdPattern = /^[a-zA-Z0-9_-]+$/;
-  if (!orgIdPattern.test(orgId.trim())) {
-    throw new OrgIdValidationError(
-      "Invalid organization ID format: only alphanumeric characters, hyphens, and underscores allowed",
-      "INVALID_ORG_ID_FORMAT",
-      400
-    );
-  }
-
-  return orgId.trim();
+  return DEFAULT_ORG_ID;
 }
+
 
 export async function verifyDeviceOwnership(deviceId: string, orgId: string): Promise<void> {
   try {

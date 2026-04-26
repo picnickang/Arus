@@ -5,6 +5,7 @@ import { db } from "../db";
 import { actionableInsights, equipment } from "@shared/schema-runtime";
 import { InsightEngine } from "../core/insights/insightEngine";
 import { logger } from "../utils/logger.js";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 const acknowledgeInsightSchema = z.object({
   orgId: z.string().optional().default("default-org"),
@@ -21,10 +22,7 @@ const resolveInsightSchema = z.object({
 export function registerInsightsRoutes(app: Express) {
   app.get("/api/insights", async (req, res) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) {
-        return res.status(400).json({ error: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
       const { vesselId, equipmentId, severity, resolved, acknowledged } = req.query;
 
       const conditions = [eq(actionableInsights.orgId, orgId)];
@@ -81,10 +79,7 @@ export function registerInsightsRoutes(app: Express) {
   // to prevent "snapshots" from being treated as an ID parameter
   app.get("/api/insights/snapshots", async (req, res) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) {
-        return res.status(400).json({ error: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
       const { scope } = req.query;
       const { insightSnapshots } = await import("@shared/schema-runtime");
       const conditions = [eq(insightSnapshots.orgId, orgId)];
@@ -106,10 +101,7 @@ export function registerInsightsRoutes(app: Express) {
 
   app.get("/api/insights/snapshots/latest", async (req, res) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) {
-        return res.status(400).json({ error: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
       const { scope = "fleet" } = req.query;
       const { insightSnapshots } = await import("@shared/schema-runtime");
       const [snapshot] = await db
@@ -128,10 +120,7 @@ export function registerInsightsRoutes(app: Express) {
 
   app.get("/api/insights/:id", async (req, res) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) {
-        return res.status(400).json({ error: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
       const { id } = req.params;
 
       const conditions = [eq(actionableInsights.id, id), eq(actionableInsights.orgId, orgId)];
@@ -175,10 +164,7 @@ export function registerInsightsRoutes(app: Express) {
 
   app.post("/api/insights/evaluate/:equipmentId", async (req, res) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) {
-        return res.status(400).json({ error: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
       const { equipmentId } = req.params;
       const { vesselId } = req.body;
 
@@ -208,10 +194,7 @@ export function registerInsightsRoutes(app: Express) {
 
   app.patch("/api/insights/:id/acknowledge", async (req, res) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) {
-        return res.status(400).json({ error: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
       const { id } = req.params;
       const body = acknowledgeInsightSchema.parse(req.body);
 
@@ -238,10 +221,7 @@ export function registerInsightsRoutes(app: Express) {
 
   app.patch("/api/insights/:id/resolve", async (req, res) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) {
-        return res.status(400).json({ error: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
       const { id } = req.params;
       const body = resolveInsightSchema.parse(req.body);
 
@@ -270,10 +250,7 @@ export function registerInsightsRoutes(app: Express) {
 
   app.get("/api/insights/stats/summary", async (req, res) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) {
-        return res.status(400).json({ error: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
       const { vesselId } = req.query;
 
       const conditions = [eq(actionableInsights.orgId, orgId)];

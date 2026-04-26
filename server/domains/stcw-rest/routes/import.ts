@@ -30,6 +30,7 @@ import { dbCrewStorage } from "../../../db/crew/index.js";
 import { db } from "../../../db/index.js";
 import { idempotencyLog } from "@shared/schema-runtime";
 import { eq } from "drizzle-orm";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 /**
  * Parse a STCW rest-hours CSV into RestDay[] using papaparse.
@@ -128,7 +129,7 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
 
       rows = normalizeRestDays(rows);
 
-      const orgId = (req as any).orgId || req.header("x-org-id") || "default-org-id";
+      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
       const crewId = req.body.sheet?.crewId || req.body.sheet?.crew_id;
       const crewName = req.body.sheet?.crewName || req.body.sheet?.crew_name || "Unknown";
       const sheetData = insertCrewRestSheetSchema.parse({
@@ -275,7 +276,7 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
       let rows: RestDay[] = typeof data === "string" ? JSON.parse(data) : data;
       rows = normalizeRestDays(rows);
 
-      const orgId = (req as any).orgId || req.header("x-org-id") || "default-org-id";
+      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
       const crewMember = await dbCrewStorage.getCrewMember(crewId);
       const crewName = crewMember?.name || "Unknown";
       const sheet = await dbStcwStorage.createCrewRestSheet({

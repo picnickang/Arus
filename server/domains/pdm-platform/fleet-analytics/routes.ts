@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { FleetAnalyticsAdapter } from "./adapter";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 const router = Router();
 const fleetAnalytics = new FleetAnalyticsAdapter();
@@ -11,7 +12,7 @@ const computeBaselinesSchema = z.object({
 
 router.post("/baselines/compute", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const parsed = computeBaselinesSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
@@ -26,7 +27,7 @@ router.post("/baselines/compute", async (req: Request, res: Response) => {
 
 router.get("/baselines", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const equipmentType = req.query.equipmentType as string;
     if (!equipmentType) {
       return res.status(400).json({ error: "equipmentType query param required" });
@@ -40,7 +41,7 @@ router.get("/baselines", async (req: Request, res: Response) => {
 
 router.get("/compare", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const equipmentId = req.query.equipmentId as string;
     const equipmentType = req.query.equipmentType as string;
     if (!equipmentId || !equipmentType) {

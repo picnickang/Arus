@@ -41,6 +41,7 @@ import {
   type RagSecuredRequest,
 } from "../services/rag/security/middleware";
 import { initializeRagSecurity, getRagSecurityServices } from "../services/rag/security";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 const askRequestSchema = z.object({
   query: z.string().min(1).max(2000),
@@ -82,7 +83,7 @@ export function registerRagRoutes(
     const securedReq = req as RagSecuredRequest;
     return {
       orgId:
-        securedReq.ragContext?.orgId || (req.headers["x-org-id"] as string) || "default-org-id",
+        securedReq.ragContext?.orgId || DEFAULT_ORG_ID,
       userId: securedReq.ragContext?.userId || (req.headers["x-user-id"] as string) || undefined,
       userRoles: req.headers["x-user-roles"]
         ? (req.headers["x-user-roles"] as string).split(",")
@@ -140,7 +141,7 @@ export function registerRagRoutes(
     "/api/rag/conversations",
     generalApiRateLimit,
     withErrorHandling("create RAG conversation", async (req, res) => {
-      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
       const userId = (req.headers["x-user-id"] as string) || undefined;
       const { title } = req.body;
 
@@ -159,7 +160,7 @@ export function registerRagRoutes(
     "/api/rag/conversations",
     generalApiRateLimit,
     withErrorHandling("list RAG conversations", async (req, res) => {
-      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
       const userId = (req.headers["x-user-id"] as string) || undefined;
       const limit = parseInt(req.query.limit as string) || 20;
 
@@ -180,7 +181,7 @@ export function registerRagRoutes(
     generalApiRateLimit,
     withErrorHandling("get RAG conversation", async (req, res) => {
       const { id } = req.params;
-      const orgId = (req.headers["x-org-id"] as string) || (req as any).orgId || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
 
       const conversationService = getConversationService();
       const conversation = await conversationService.getConversation(id);
@@ -251,7 +252,7 @@ export function registerRagRoutes(
     "/api/rag/feedback",
     generalApiRateLimit,
     withErrorHandling("submit RAG feedback", async (req, res) => {
-      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
       const userId = (req.headers["x-user-id"] as string) || undefined;
 
       const parsed = feedbackSchema.parse(req.body);
@@ -271,7 +272,7 @@ export function registerRagRoutes(
     "/api/rag/feedback/stats",
     generalApiRateLimit,
     withErrorHandling("get RAG feedback stats", async (req, res) => {
-      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
 
       const feedbackService = getFeedbackService();
       const stats = await feedbackService.getOrgStats(orgId);
@@ -284,7 +285,7 @@ export function registerRagRoutes(
     "/api/rag/cache/stats",
     generalApiRateLimit,
     withErrorHandling("get RAG cache stats", async (req, res) => {
-      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
 
       const cache = getSemanticCache();
       const stats = await cache.getStats(orgId);
@@ -308,7 +309,7 @@ export function registerRagRoutes(
     "/api/rag/cache",
     generalApiRateLimit,
     withErrorHandling("invalidate RAG cache", async (req, res) => {
-      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
       const { query } = req.query;
 
       const cache = getSemanticCache();
@@ -355,7 +356,7 @@ export function registerRagRoutes(
           userId = tokenPayload.userId;
         } else if (config.auth.allowHeaderOrgId && process.env.NODE_ENV === "development") {
           orgId =
-            (req.query.orgId as string) || (req.headers["x-org-id"] as string) || "default-org-id";
+            DEFAULT_ORG_ID;
           userId =
             (req.query.userId as string) || (req.headers["x-user-id"] as string) || undefined;
           logger.warn("[RAG Stream] Using dev-mode auth fallback — NOT for production");
@@ -488,7 +489,7 @@ export function registerRagRoutes(
     "/api/rag/suggestions",
     generalApiRateLimit,
     withErrorHandling("get RAG suggestions", async (req, res) => {
-      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
       const conversationId = req.query.conversationId as string | undefined;
 
       const apiKey = await getOpenAIApiKey();
@@ -555,7 +556,7 @@ export function registerRagRoutes(
     "/api/rag/analytics",
     generalApiRateLimit,
     withErrorHandling("get RAG analytics", async (req, res) => {
-      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
 
       const analytics = await analyticsAggregator.getSummary(orgId);
 
@@ -574,7 +575,7 @@ export function registerRagRoutes(
     "/api/rag/compare",
     reportGenerationRateLimit,
     withErrorHandling("compare documents", async (req, res) => {
-      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
       const parsed = comparisonSchema.parse(req.body);
 
       const apiKey = await getOpenAIApiKey();
@@ -597,7 +598,7 @@ export function registerRagRoutes(
     "/api/rag/alerts",
     generalApiRateLimit,
     withErrorHandling("get confidence alerts", async (req, res) => {
-      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
       const includeAcknowledged = req.query.includeAcknowledged === "true";
 
       const alerts = confidenceDetector.getAlerts(orgId, includeAcknowledged);

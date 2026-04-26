@@ -5,6 +5,7 @@
 import type { Express, Request, Response } from "express";
 import type { VesselPerformanceRoutesConfig } from "./types.js";
 import { withErrorHandling } from "../../../lib/route-utils.js";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 async function getCIIService() {
   const { CIIService } = await import("../../../cii-service.js");
@@ -16,10 +17,7 @@ export function registerCIIRoutes(app: Express, config: VesselPerformanceRoutesC
     "/api/compliance/cii/:vesselId",
     withErrorHandling("calculate CII rating", async (req: Request, res: Response) => {
       const { vesselId } = req.params,
-        orgId = req.headers["x-org-id"] as string;
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID is required" });
-      }
+        orgId = DEFAULT_ORG_ID;
 
       const ciiService = await getCIIService();
 
@@ -53,10 +51,7 @@ export function registerCIIRoutes(app: Express, config: VesselPerformanceRoutesC
     "/api/compliance/cii/:vesselId/trend",
     withErrorHandling("get CII trend", async (req: Request, res: Response) => {
       const { vesselId } = req.params,
-        orgId = req.headers["x-org-id"] as string;
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID is required" });
-      }
+        orgId = DEFAULT_ORG_ID;
 
       const ciiService = await getCIIService();
       const trend = await ciiService.getCIITrend(vesselId, orgId);

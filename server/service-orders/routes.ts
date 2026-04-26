@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from "../lib/structured-logger";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 const logger = createLogger("ServiceOrders:Routes");
 import { Router, Request, Response } from "express";
 import { insertServiceOrderSchema, emailQueue, suppliers } from "@shared/schema";
@@ -64,10 +65,7 @@ const sanitize = (obj: Record<string, unknown>): Record<string, unknown> => {
 
 // ── GET / ──────────────────────────────────────────────────────────────────────
 router.get("/", async (req: Request, res: Response) => {
-  const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {
-    return res.status(400).json({ error: "Missing x-org-id header" });
-  }
+  const orgId = DEFAULT_ORG_ID;
 
   const filters = {
     status: req.query.status as ServiceOrderStatus | undefined,
@@ -83,10 +81,7 @@ router.get("/", async (req: Request, res: Response) => {
 
 // ── GET /:id ───────────────────────────────────────────────────────────────────
 router.get("/:id", async (req: Request, res: Response) => {
-  const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {
-    return res.status(400).json({ error: "Missing x-org-id header" });
-  }
+  const orgId = DEFAULT_ORG_ID;
 
   const order = await repo.getServiceOrderById(req.params.id, orgId);
   if (!order) {
@@ -97,10 +92,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 
 // ── POST / ─────────────────────────────────────────────────────────────────────
 router.post("/", async (req: Request, res: Response) => {
-  const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {
-    return res.status(400).json({ error: "Missing x-org-id header" });
-  }
+  const orgId = DEFAULT_ORG_ID;
 
   const bodyWithOrg = sanitize({ ...req.body, orgId });
   const parsed = insertServiceOrderSchema.safeParse(bodyWithOrg);
@@ -116,11 +108,8 @@ router.post("/", async (req: Request, res: Response) => {
 
 // ── PATCH /:id ─────────────────────────────────────────────────────────────────
 router.patch("/:id", async (req: Request, res: Response) => {
-  const orgId = req.headers["x-org-id"] as string;
+  const orgId = DEFAULT_ORG_ID;
   const userId = req.headers["x-user-id"] as string | undefined;
-  if (!orgId) {
-    return res.status(400).json({ error: "Missing x-org-id header" });
-  }
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
   if (!existing) {
@@ -158,11 +147,8 @@ router.patch("/:id", async (req: Request, res: Response) => {
  * The original quotedAmount is preserved; revisedAmount tracks the change.
  */
 router.patch("/:id/revise-cost", async (req: Request, res: Response) => {
-  const orgId = req.headers["x-org-id"] as string;
+  const orgId = DEFAULT_ORG_ID;
   const userId = req.headers["x-user-id"] as string | undefined;
-  if (!orgId) {
-    return res.status(400).json({ error: "Missing x-org-id header" });
-  }
 
   const schema = z.object({
     revisedAmount: z.number().min(0, "Revised amount must be non-negative"),
@@ -211,10 +197,7 @@ router.patch("/:id/revise-cost", async (req: Request, res: Response) => {
 
 // ── POST /:id/send ─────────────────────────────────────────────────────────────
 router.post("/:id/send", async (req: Request, res: Response) => {
-  const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {
-    return res.status(400).json({ error: "Missing x-org-id header" });
-  }
+  const orgId = DEFAULT_ORG_ID;
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
   if (!existing) {
@@ -274,10 +257,7 @@ router.post("/:id/send", async (req: Request, res: Response) => {
 
 // ── POST /:id/confirm ──────────────────────────────────────────────────────────
 router.post("/:id/confirm", async (req: Request, res: Response) => {
-  const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {
-    return res.status(400).json({ error: "Missing x-org-id header" });
-  }
+  const orgId = DEFAULT_ORG_ID;
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
   if (!existing) {
@@ -301,10 +281,7 @@ router.post("/:id/confirm", async (req: Request, res: Response) => {
 
 // ── POST /:id/start ────────────────────────────────────────────────────────────
 router.post("/:id/start", async (req: Request, res: Response) => {
-  const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {
-    return res.status(400).json({ error: "Missing x-org-id header" });
-  }
+  const orgId = DEFAULT_ORG_ID;
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
   if (!existing) {
@@ -328,10 +305,7 @@ router.post("/:id/start", async (req: Request, res: Response) => {
 
 // ── POST /:id/complete ─────────────────────────────────────────────────────────
 router.post("/:id/complete", async (req: Request, res: Response) => {
-  const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {
-    return res.status(400).json({ error: "Missing x-org-id header" });
-  }
+  const orgId = DEFAULT_ORG_ID;
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
   if (!existing) {
@@ -361,10 +335,7 @@ router.post("/:id/complete", async (req: Request, res: Response) => {
 
 // ── POST /:id/cancel ───────────────────────────────────────────────────────────
 router.post("/:id/cancel", async (req: Request, res: Response) => {
-  const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {
-    return res.status(400).json({ error: "Missing x-org-id header" });
-  }
+  const orgId = DEFAULT_ORG_ID;
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
   if (!existing) {
@@ -390,10 +361,7 @@ router.post("/:id/cancel", async (req: Request, res: Response) => {
 
 // ── GET /:id/events ────────────────────────────────────────────────────────────
 router.get("/:id/events", async (req: Request, res: Response) => {
-  const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {
-    return res.status(400).json({ error: "Missing x-org-id header" });
-  }
+  const orgId = DEFAULT_ORG_ID;
 
   const events = await repo.getServiceOrderEvents(req.params.id, orgId);
   res.json(events);
@@ -401,11 +369,8 @@ router.get("/:id/events", async (req: Request, res: Response) => {
 
 // ── DELETE /:id ────────────────────────────────────────────────────────────────
 router.delete("/:id", async (req: Request, res: Response) => {
-  const orgId = req.headers["x-org-id"] as string;
+  const orgId = DEFAULT_ORG_ID;
   const userId = req.headers["x-user-id"] as string | undefined;
-  if (!orgId) {
-    return res.status(400).json({ error: "Missing x-org-id header" });
-  }
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
   if (!existing) {
@@ -432,10 +397,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
 
 // ── DELETE /bulk/by-work-order/:workOrderId ────────────────────────────────────
 router.delete("/bulk/by-work-order/:workOrderId", async (req: Request, res: Response) => {
-  const orgId = req.headers["x-org-id"] as string;
-  if (!orgId) {
-    return res.status(400).json({ error: "Missing x-org-id header" });
-  }
+  const orgId = DEFAULT_ORG_ID;
 
   const result = await repo.deleteAllServiceOrdersByWorkOrder(req.params.workOrderId, orgId);
   res.json(result);

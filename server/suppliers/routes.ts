@@ -17,7 +17,7 @@ const router = Router();
 
 router.post("/suppliers", async (req: Request, res: Response) => {
   try {
-    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
 
     const parsed = insertSupplierSchema.safeParse({ ...req.body, orgId });
     if (!parsed.success) {
@@ -39,7 +39,7 @@ router.post("/suppliers", async (req: Request, res: Response) => {
 
 router.get("/suppliers", async (req: Request, res: Response) => {
   try {
-    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
 
     const typeParam = req.query.type as string | undefined;
     let type: SupplierListFilters["type"] | undefined;
@@ -77,7 +77,7 @@ router.get("/suppliers", async (req: Request, res: Response) => {
 
 router.get("/suppliers/stats", async (req: Request, res: Response) => {
   try {
-    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
 
     const suppliers = await repo.getSuppliersWithOrderStats(orgId);
     res.json(suppliers);
@@ -89,7 +89,7 @@ router.get("/suppliers/stats", async (req: Request, res: Response) => {
 
 router.get("/suppliers/preferred", async (req: Request, res: Response) => {
   try {
-    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
 
     const suppliers = await repo.getPreferredSuppliers(orgId);
     res.json(suppliers);
@@ -101,7 +101,7 @@ router.get("/suppliers/preferred", async (req: Request, res: Response) => {
 
 router.get("/suppliers/:id", async (req: Request, res: Response) => {
   try {
-    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
 
     const supplier = await repo.getSupplierById(req.params.id, orgId);
     if (!supplier) {
@@ -117,7 +117,7 @@ router.get("/suppliers/:id", async (req: Request, res: Response) => {
 
 router.patch("/suppliers/:id", async (req: Request, res: Response) => {
   try {
-    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
 
     const parsed = updateSupplierSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -146,7 +146,7 @@ router.patch("/suppliers/:id", async (req: Request, res: Response) => {
 
 router.delete("/suppliers/:id", async (req: Request, res: Response) => {
   try {
-    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
 
     const deleted = await repo.deleteSupplier(req.params.id, orgId);
     if (!deleted) {

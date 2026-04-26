@@ -4,6 +4,7 @@ import { dbEquipmentStorage } from "../../db/equipment/index.js";
 import { dbAlertStorage } from "../../db/alerts/index.js";
 import { dbDevicesStorage } from "../../repositories.js";
 import { dbSystemAdminStorage } from "../../db/system-admin/index.js";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 interface HealthMonitoringConfig {
   requireOrgId: RequestHandler;
@@ -135,7 +136,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     "/api/health/detailed",
     requireOrgId,
     withErrorHandling("fetch detailed health", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
 
       const equipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
       const alerts = await dbAlertStorage.getAlertNotifications();
@@ -161,12 +162,12 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     "/api/health/equipment",
     requireOrgId,
     withErrorHandling("fetch equipment health", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const { equipmentId } = req.query;
 
       const pdmScores = await dbDevicesStorage.getPdmScores(
         equipmentId as string,
-        (req.headers["x-org-id"] as string) || ""
+        DEFAULT_ORG_ID
       );
       const latestScore = pdmScores[0];
 
@@ -191,7 +192,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     "/api/health/fleet",
     requireOrgId,
     withErrorHandling("fetch fleet health", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
 
       const equipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
       const pdmScores = await dbDevicesStorage.getPdmScores(undefined, orgId);
@@ -235,7 +236,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     "/api/error-logs",
     requireOrgId,
     withErrorHandling("fetch error logs", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const { level, source, dateFrom, dateTo, limit } = req.query;
       const logs = await dbSystemAdminStorage.getErrorLogs({
         orgId,
@@ -253,7 +254,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     "/api/error-logs",
     requireOrgId,
     withErrorHandling("create error log", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const log = await dbSystemAdminStorage.createErrorLog({ ...req.body, orgId });
       res.status(201).json(log || req.body);
     })
@@ -263,7 +264,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     "/api/error-logs/:id",
     requireOrgId,
     withErrorHandling("delete error log", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       await dbSystemAdminStorage.deleteErrorLog(req.params.id, orgId);
       res.status(204).send();
     })
@@ -273,7 +274,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     "/api/error-logs",
     requireOrgId,
     withErrorHandling("clear error logs", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const { olderThan } = req.query;
       await dbSystemAdminStorage.clearErrorLogs(
         olderThan ? new Date(olderThan as string) : undefined,
@@ -288,7 +289,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     "/api/error-health",
     requireOrgId,
     withErrorHandling("fetch error health", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const logs = await dbSystemAdminStorage.getErrorLogs({ orgId, limit: 1000 });
 
       const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);

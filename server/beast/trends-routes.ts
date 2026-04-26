@@ -7,7 +7,7 @@ const router = Router();
 
 router.post("/trends/analyze/:equipmentId/:sensorType", async (req, res) => {
   try {
-    const orgId = (req.query.orgId as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const { equipmentId, sensorType } = req.params;
     const { hours = 168 } = req.body;
     if (typeof hours !== "number" || hours < 1 || hours > 8760) {
@@ -82,7 +82,7 @@ router.post("/trends/analyze/:equipmentId/:sensorType", async (req, res) => {
 
 router.post("/trends/fleet-analyze", async (req, res) => {
   try {
-    const orgId = (req.query.orgId as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const { equipmentIds, hours = 168 } = req.body;
     if (!Array.isArray(equipmentIds) || equipmentIds.length === 0) {
       return res
@@ -141,7 +141,7 @@ router.post("/trends/fleet-analyze", async (req, res) => {
 
 router.get("/trends/correlations/:equipmentId", async (req, res) => {
   try {
-    const orgId = (req.query.orgId as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const { equipmentId } = req.params;
     const hours = Number.parseInt(req.query.hours as string) || 168;
     const minCorrelation = Number.parseFloat(req.query.minCorrelation as string) || 0.5;
@@ -209,7 +209,7 @@ router.get("/trends/correlations/:equipmentId", async (req, res) => {
 
 router.get("/trends/forecast/:equipmentId/:sensorType", async (req, res) => {
   try {
-    const orgId = (req.query.orgId as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const { equipmentId, sensorType } = req.params;
     const hours = Number.parseInt(req.query.hours as string) || 168;
     const forecastHours = Number.parseInt(req.query.forecastHours as string) || 24;

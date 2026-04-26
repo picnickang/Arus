@@ -5,6 +5,7 @@ import { withErrorHandling, sendNotFound, sendCreated } from "../../lib/route-ut
 import { logger } from "../../utils/logger.js";
 import { dbDtcStorage } from "../../db/dtc/index.js";
 import { dbEquipmentStorage } from "../../db/equipment/index.js";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 let _dtcIntegrationService: any = null;
 async function getDtcService() {
@@ -81,11 +82,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     "/api/equipment/:id/dtc/active",
     withErrorHandling("fetch active DTCs", async (req: Request, res: Response) => {
       const { id } = req.params;
-      const orgId = req.headers["x-org-id"] as string;
-
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
 
       const activeDtcs = await dbDtcStorage.getActiveDtcs(id, orgId);
       res.json(activeDtcs);
@@ -96,11 +93,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     "/api/equipment/:id/dtc/history",
     withErrorHandling("fetch DTC history", async (req: Request, res: Response) => {
       const { id } = req.params;
-      const orgId = req.headers["x-org-id"] as string;
-
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
 
       const validation = dtcHistoryQuerySchema.safeParse(req.query);
       if (!validation.success) {
@@ -119,11 +112,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
   app.get(
     "/api/dtc/active",
     withErrorHandling("fetch all active DTCs", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
-
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
 
       const validation = dtcActiveQuerySchema.safeParse(req.query);
       if (!validation.success) {
@@ -181,11 +170,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     "/api/dtc/faults",
     writeOperationRateLimit,
     withErrorHandling("create DTC fault", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
-
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
 
       const faultData = insertDtcFaultSchema.parse({ ...req.body, orgId });
 
@@ -208,11 +193,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
   app.get(
     "/api/dtc/dashboard-stats",
     withErrorHandling("fetch DTC dashboard statistics", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
-
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
 
       const dtcService = await getDtcService();
       const stats = await dtcService.getDtcDashboardStats(orgId);
@@ -225,11 +206,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     "/api/dtc/:equipmentId/:spn/:fmi/create-work-order",
     withErrorHandling("create work order from DTC", async (req: Request, res: Response) => {
       const { equipmentId, spn, fmi } = req.params;
-      const orgId = req.headers["x-org-id"] as string;
-
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
 
       const activeDtcs = await dbDtcStorage.getActiveDtcs(equipmentId, orgId);
       const dtc = activeDtcs.find(
@@ -257,11 +234,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     "/api/dtc/:equipmentId/:spn/:fmi/create-alert",
     withErrorHandling("create alert from DTC", async (req: Request, res: Response) => {
       const { equipmentId, spn, fmi } = req.params;
-      const orgId = req.headers["x-org-id"] as string;
-
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
 
       const activeDtcs2 = await dbDtcStorage.getActiveDtcs(equipmentId, orgId);
       const dtc = activeDtcs2.find(
@@ -297,11 +270,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     "/api/equipment/:id/dtc/health-impact",
     withErrorHandling("calculate DTC health impact", async (req: Request, res: Response) => {
       const { id } = req.params;
-      const orgId = req.headers["x-org-id"] as string;
-
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
 
       const activeDtcsHealth = await dbDtcStorage.getActiveDtcs(id, orgId);
       const dtcService = await getDtcService();
@@ -320,11 +289,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     "/api/vessel/:vesselId/dtc/financial-impact",
     withErrorHandling("calculate vessel financial impact", async (req: Request, res: Response) => {
       const { vesselId } = req.params;
-      const orgId = req.headers["x-org-id"] as string;
-
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
 
       const dtcService = await getDtcService();
       const impact = await dtcService.calculateDtcFinancialImpact(vesselId, orgId);
@@ -337,11 +302,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     "/api/equipment/:id/dtc/report-summary",
     withErrorHandling("get DTC report summary", async (req: Request, res: Response) => {
       const { id } = req.params;
-      const orgId = req.headers["x-org-id"] as string;
-
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
 
       const dtcService = await getDtcService();
       const summary = await dtcService.getDtcSummaryForReports(id, orgId);
@@ -354,14 +315,10 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
     "/api/dtc/:equipmentId/:spn/:fmi/telemetry-correlation",
     withErrorHandling("correlate DTC with telemetry", async (req: Request, res: Response) => {
       const { equipmentId, spn, fmi } = req.params;
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const timeWindow = req.query.timeWindow
         ? Number.parseInt(req.query.timeWindow as string)
         : 60;
-
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
-      }
 
       const activeDtcsCorr = await dbDtcStorage.getActiveDtcs(equipmentId, orgId);
       const dtc = activeDtcsCorr.find(

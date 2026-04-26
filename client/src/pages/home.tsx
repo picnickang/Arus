@@ -18,6 +18,7 @@ import {
 } from "@/lib/briefing-redirect";
 import { ChevronRight, History, Plus } from "lucide-react";
 import { ROLES, ROLE_STORAGE_KEY } from "@/config/roles";
+import { WorkflowCommandCenter } from "@/features/workflow/components/WorkflowCommandCenter";
 import type { RoleConfig } from "@/config/roles";
 
 export { trackPageVisit };
@@ -305,6 +306,8 @@ export default function HomePage() {
 
       <div className="px-4 lg:px-6 pt-2">
         {attentionItems.length > 0 && <AttentionBanner items={attentionItems} className="mb-4" />}
+
+        <WorkflowCommandCenter roleId={role} />
 
         {roleConfig && <QuickActions actions={roleConfig.quickActions} className="mb-6" />}
 

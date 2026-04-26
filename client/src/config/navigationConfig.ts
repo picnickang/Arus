@@ -52,6 +52,7 @@ export const routeResourceMap: Record<string, string> = {
   "/dashboard": "dashboard",
   "/findings": "dashboard",
   "/briefing": "dashboard",
+  "/attention-inbox": "dashboard",
   "/alerts": "alerts",
   "/governance-dashboard": "compliance_reports",
   "/diagnostics": "system_settings",
@@ -134,6 +135,13 @@ export const navigationCategories: NavigationCategory[] = [
     hubRoute: "/operations",
     description: "Dashboard, telemetry, and insights",
     children: [
+      {
+        name: "Attention Inbox",
+        href: "/attention-inbox",
+        icon: AlertCircle,
+        description: "Unified risk, blockers, handover, and next-action queue",
+        badgeKey: "attention-open",
+      },
       {
         name: "Dashboard",
         href: "/dashboard",

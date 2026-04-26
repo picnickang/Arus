@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { ModelRegistryAdapter } from "./adapter";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 const router = Router();
 const registry = new ModelRegistryAdapter();
@@ -18,7 +19,7 @@ const deploySchema = z.object({
 
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const result = await registry.listModels(orgId);
     res.json(result);
   } catch (error: any) {
@@ -28,7 +29,7 @@ router.get("/", async (req: Request, res: Response) => {
 
 router.get("/:modelId", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const result = await registry.getModel(orgId, req.params.modelId);
     if (!result) {
       return res.status(404).json({ error: "Model not found" });
@@ -41,7 +42,7 @@ router.get("/:modelId", async (req: Request, res: Response) => {
 
 router.get("/:modelId/versions", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const result = await registry.listVersions(orgId, req.params.modelId);
     res.json(result);
   } catch (error: any) {
@@ -51,7 +52,7 @@ router.get("/:modelId/versions", async (req: Request, res: Response) => {
 
 router.post("/:modelId/versions", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const parsed = createVersionSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
@@ -69,7 +70,7 @@ router.post("/:modelId/versions", async (req: Request, res: Response) => {
 
 router.get("/:modelId/deployment", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const result = await registry.getActiveDeployment(orgId, req.params.modelId);
     res.json(result ?? { message: "No active deployment" });
   } catch (error: any) {
@@ -79,7 +80,7 @@ router.get("/:modelId/deployment", async (req: Request, res: Response) => {
 
 router.post("/:modelId/deploy", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const parsed = deploySchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
@@ -94,7 +95,7 @@ router.post("/:modelId/deploy", async (req: Request, res: Response) => {
 
 router.post("/deployments/:deploymentId/rollback", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const result = await registry.rollback(orgId, parseInt(req.params.deploymentId));
     res.json(result);
   } catch (error: any) {

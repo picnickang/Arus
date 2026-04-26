@@ -32,7 +32,7 @@ const toggleFeatureSchema = z.object({
 
 router.get("/config", async (req, res) => {
   try {
-    const orgId = (req.query.orgId as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const configs = await beastModeManager.getAllFeatureConfigs(orgId);
     res.json({
       success: true,
@@ -49,7 +49,7 @@ router.get("/config", async (req, res) => {
 router.get("/config/:feature", async (req, res) => {
   try {
     const { feature } = req.params;
-    const orgId = (req.query.orgId as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     if (!isValidBeastModeFeature(feature)) {
       return res
         .status(400)
@@ -82,7 +82,7 @@ router.get("/config/:feature", async (req, res) => {
 router.post("/config/:feature/toggle", async (req, res) => {
   try {
     const { feature } = req.params;
-    const orgId = (req.query.orgId as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     if (!isValidBeastModeFeature(feature)) {
       return res
         .status(400)
@@ -144,7 +144,7 @@ router.post("/config/:feature/toggle", async (req, res) => {
 
 router.get("/health", async (req, res) => {
   try {
-    const orgId = (req.query.orgId as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const configs = await beastModeManager.getAllFeatureConfigs(orgId);
     const enabledFeatures = Object.entries(configs)
       .filter(([_, config]) => config.enabled)

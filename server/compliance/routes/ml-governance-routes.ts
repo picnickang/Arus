@@ -5,6 +5,7 @@ import { requireAdminAuth, auditAdminAction } from "../../security";
 import { dbMlAnalyticsStorage } from "../../repositories";
 import { requireComplianceAccess } from "./audit-routes";
 import { createLogger } from "../../lib/structured-logger";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 const logger = createLogger("Compliance:Routes:MlGovernanceRoutes");
 import {
   recordEngineerOverride,
@@ -36,7 +37,7 @@ router.get(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -63,7 +64,7 @@ router.get(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const { id } = req.params;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
@@ -86,7 +87,7 @@ router.post(
   auditAdminAction("engineer_override_create"),
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -150,7 +151,7 @@ router.patch(
   auditAdminAction("engineer_override_outcome"),
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const { id } = req.params;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
@@ -222,7 +223,7 @@ router.get(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -249,7 +250,7 @@ router.get(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }

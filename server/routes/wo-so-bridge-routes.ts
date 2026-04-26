@@ -23,9 +23,10 @@ import { requireOrgId, requireOrgIdAndValidateBody } from "../middleware/auth";
 import { withErrorHandling, sendCreated, sendNotFound } from "../lib/route-utils";
 import { logger } from "../utils/logger";
 import { checkPermissionInDev } from "../domains/permissions/middleware";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 function getOrgId(req: any): string {
-  const orgId = req.orgId || req.headers["x-org-id"];
+  const orgId = req.orgId || DEFAULT_ORG_ID;
   if (!orgId) {
     throw new Error("Missing orgId");
   }

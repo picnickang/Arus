@@ -11,6 +11,7 @@ import { sql } from "drizzle-orm";
 import { withErrorHandling } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import type { AuthenticatedRequest } from "../../middleware/auth";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 interface ConfigManagementDependencies {
   db: any;
@@ -43,7 +44,7 @@ export function registerConfigManagementRoutes(
     auditAdminAction("RELOAD_CONFIGURATION"),
     withErrorHandling("reload configuration", async (req: Request, res: Response) => {
       const { configManager } = await import("../../services/config-manager");
-      const orgId = req.header("x-org-id") || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
 
       const result = await configManager.reloadConfig({
         orgId,
@@ -133,7 +134,7 @@ export function registerConfigManagementRoutes(
         return res.status(400).json({ error: "Value is required" });
       }
 
-      const orgId = req.header("x-org-id") || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
 
       const result = await configManager.set(key, String(value), {
         orgId,
@@ -165,7 +166,7 @@ export function registerConfigManagementRoutes(
     withErrorHandling("delete configuration value", async (req: Request, res: Response) => {
       const { configManager } = await import("../../services/config-manager");
       const { key } = req.params;
-      const orgId = req.header("x-org-id") || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
 
       const result = await configManager.delete(key, {
         orgId,
@@ -196,7 +197,7 @@ export function registerConfigManagementRoutes(
     generalApiRateLimit,
     auditAdminAction("VIEW_CONFIG_AUDIT"),
     withErrorHandling("fetch config audit log", async (req: Request, res: Response) => {
-      const orgId = req.header("x-org-id") || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
       const { key, limit } = req.query;
 
       const auditLogs = await db

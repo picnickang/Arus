@@ -13,6 +13,7 @@ import {
   actionableInsights,
 } from "@shared/schema-runtime";
 import { logger } from "../../utils/logger.js";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 export async function handleEquipmentSummary(req: Request, res: Response) {
   try {
@@ -135,7 +136,7 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
       message: err.message,
       stack: err.stack,
       equipmentId: req.params.equipmentId,
-      orgId: req.query.orgId,
+      orgId: DEFAULT_ORG_ID,
     });
     res.status(500).json({ error: "Failed to generate equipment summary" });
   }

@@ -35,7 +35,7 @@ export function validateOrganizationAccess(req: Request, _res: Response, next: N
   req.orgId = DEFAULT_ORG_ID;
 
   if (req.method === "GET" && req.query) {
-    req.query.orgId = DEFAULT_ORG_ID;
+    DEFAULT_ORG_ID = DEFAULT_ORG_ID;
   } else if (req.body && typeof req.body === "object") {
     req.body.orgId = DEFAULT_ORG_ID;
   }

@@ -10,6 +10,7 @@ import { requireOrgId, requireOrgIdAndValidateBody } from "../../../middleware/a
 import { withErrorHandling, sendCreated, sendDeleted } from "../../../lib/route-utils.js";
 import type { CrewRouteDeps } from "./types.js";
 import { getExpiryUrgencyLevel } from "./types.js";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 function coerceDates(body: Record<string, unknown>): Record<string, unknown> {
   const result = { ...body };
@@ -83,7 +84,7 @@ export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): 
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch expiring certifications", async (req, res) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const daysAhead = Number.parseInt(req.query.daysAhead as string) || 90;
       const includeAcknowledged = req.query.includeAcknowledged === "true";
 
@@ -143,7 +144,7 @@ export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): 
     requireOrgId,
     criticalOperationRateLimit,
     withErrorHandling("scan for expiring certifications", async (req, res) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const result = await crewService.scanAndFlagExpiringCertifications(orgId);
       res.json(result);
     })

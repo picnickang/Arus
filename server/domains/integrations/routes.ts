@@ -17,6 +17,7 @@ import {
   workOrderService,
 } from "../../repositories.js";
 import { dbEquipmentStorage } from "../../db/equipment/index.js";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 interface IntegrationsRoutesConfig {
   generalApiRateLimit: RequestHandler;
@@ -36,7 +37,7 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
   app.get(
     "/api/dashboard",
     withErrorHandling("fetch dashboard metrics", async (req, res) => {
-      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
       const cacheKey = `dashboard:${orgId}`;
       const now = Date.now();
 
@@ -73,7 +74,7 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
   app.get(
     "/api/dashboard/summary",
     withErrorHandling("fetch dashboard summary", async (req, res) => {
-      const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
       const cacheKey = `summary:${orgId}`;
       const now = Date.now();
 

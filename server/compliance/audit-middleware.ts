@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from "../lib/structured-logger";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 const logger = createLogger("Compliance:AuditMiddleware");
 import { Request, Response, NextFunction } from "express";
 import {
@@ -211,7 +212,7 @@ export function createAuditMiddleware(customConfig?: Partial<AuditMiddlewareConf
     }
 
     // Extract org ID from headers (single-tenant mode: default-org-id)
-    const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+    const orgId = DEFAULT_ORG_ID;
 
     // Parse entity from path
     const { entityType, entityId } = parseEntityFromPath(path);
@@ -300,7 +301,7 @@ export const auditMiddleware = createAuditMiddleware();
  */
 export function sensitiveOperationAudit(entityType: string) {
   return async function (req: Request, res: Response, next: NextFunction) {
-    const orgId = (req.headers["x-org-id"] as string) || "default-org-id";
+    const orgId = DEFAULT_ORG_ID;
     const userId = (req.headers["x-user-id"] as string) || "anonymous";
     const userName = (req.headers["x-user-name"] as string) || "Anonymous User";
     const ipAddress = getClientIP(req);

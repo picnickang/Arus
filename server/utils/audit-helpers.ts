@@ -5,6 +5,7 @@
 
 import type { Request } from "express";
 import { recordAndPublish } from "../sync-events";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 export interface AuditContext {
   userId?: string;
@@ -38,7 +39,7 @@ export function getAuditContext(req: Request): AuditContext {
   const authReq = req as AuthenticatedRequest;
   return {
     userId: authReq.user?.id,
-    orgId: req.headers["x-org-id"] as string,
+    orgId: DEFAULT_ORG_ID,
     ipAddress: req.ip || req.socket?.remoteAddress,
     userAgent: req.get("user-agent"),
   };

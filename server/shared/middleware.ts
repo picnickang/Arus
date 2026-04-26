@@ -1,4 +1,5 @@
 import { createLogger } from "../lib/structured-logger";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 const logger = createLogger("Shared:Middleware");
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import { AuthorizationError, TenantIsolationError, handleRouteError } from "./error-handler";
@@ -14,17 +15,9 @@ declare global {
 }
 
 export function createOrgIdMiddleware(): RequestHandler {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const orgId =
-      (req.headers["x-org-id"] as string) ||
-      (req.query.orgId as string) ||
-      (req.body?.orgId as string);
-
-    if (orgId) {
-      req.orgId = orgId;
-      logger.info(`[TENANT_ISOLATION_SUCCESS] { timestamp: '${new Date().toISOString()}', domain: 'middleware', operation: 'requireOrgId', orgId: '${orgId}' }`);
-    }
-
+  return (req: Request, _res: Response, next: NextFunction) => {
+    req.orgId = DEFAULT_ORG_ID;
+    logger.info(`[ORG_CONTEXT_SET] { timestamp: '${new Date().toISOString()}', domain: 'middleware', operation: 'setDefaultOrg', orgId: '${DEFAULT_ORG_ID}' }`);
     next();
   };
 }

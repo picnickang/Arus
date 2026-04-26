@@ -1,13 +1,14 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { ModelMonitoringAdapter } from "./adapter";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 const router = Router();
 const monitoring = new ModelMonitoringAdapter();
 
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const summary = await monitoring.getDriftSummary(orgId);
     res.json(summary);
   } catch (error: any) {
@@ -21,7 +22,7 @@ const computeDriftSchema = z.object({
 
 router.post("/:modelVersionId/compute", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const parsed = computeDriftSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
@@ -36,7 +37,7 @@ router.post("/:modelVersionId/compute", async (req: Request, res: Response) => {
 
 router.get("/:modelVersionId", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const result = await monitoring.getDrift(orgId, req.params.modelVersionId);
     res.json(result);
   } catch (error: any) {

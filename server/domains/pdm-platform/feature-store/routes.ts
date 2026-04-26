@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { FeatureStoreAdapter } from "./adapter";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 const router = Router();
 const featureStore = new FeatureStoreAdapter();
@@ -12,7 +13,7 @@ const computeSchema = z.object({
 
 router.post("/compute", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const parsed = computeSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
@@ -27,7 +28,7 @@ router.post("/compute", async (req: Request, res: Response) => {
 
 router.get("/latest", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const equipmentId = req.query.equipmentId as string;
     if (!equipmentId) {
       return res.status(400).json({ error: "equipmentId query param required" });
@@ -41,7 +42,7 @@ router.get("/latest", async (req: Request, res: Response) => {
 
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const equipmentId = req.query.equipmentId as string;
     const from = req.query.from
       ? new Date(req.query.from as string)

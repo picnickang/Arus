@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { dbEquipmentStorage, dbTelemetryStorage } from "../repositories";
 import { createLogger } from "../lib/structured-logger";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 const logger = createLogger("Routes:EquipmentLoadDistributionRoutes");
 
 const router = Router();
@@ -8,11 +9,7 @@ const router = Router();
 router.get("/:id/load-distribution", async (req, res) => {
   try {
     const equipmentId = req.params.id;
-    const orgId = req.headers["x-org-id"] as string;
-
-    if (!orgId) {
-      return res.status(400).json({ message: "Organization ID is required" });
-    }
+    const orgId = DEFAULT_ORG_ID;
 
     const equipment = await dbEquipmentStorage.getEquipment(orgId, equipmentId);
     if (!equipment) {

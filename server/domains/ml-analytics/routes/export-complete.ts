@@ -15,9 +15,6 @@ export function registerExportCompleteRoutes(app: Express, config: MlAnalyticsCo
   app.get("/api/analytics/export/ml-pdm-complete", async (req, res) => {
     try {
       const { orgId, format = "json" } = req.query;
-      if (!orgId) {
-        return res.status(400).json({ message: "orgId parameter is required" });
-      }
 
       const { rawTelemetry, vessels } = await import("../../../../shared/schema.js");
       const { db } = await import("../../../db.js");

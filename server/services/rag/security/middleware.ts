@@ -6,6 +6,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { logger } from "../../../utils/logger.js";
 import { getRagSecurityServices } from "./index.js";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 // Extended request type with RAG security context
 export interface RagSecuredRequest extends Request {
@@ -56,7 +57,7 @@ export function ragAuthMiddleware(req: RagSecuredRequest, res: Response, next: N
 
   // Fall back to header-based org ID (dev mode only)
   if (!orgId && config.auth.allowHeaderOrgId) {
-    orgId = req.get("x-org-id") || "default-org-id";
+    orgId = DEFAULT_ORG_ID;
     if (isDev && !authenticated) {
       userId = "dev-user-id";
       authenticated = false; // Mark as not fully authenticated

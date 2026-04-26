@@ -1,5 +1,5 @@
 import { IconGridLayout, type GridItem } from "@/components/layouts";
-import { Gauge, Eye } from "lucide-react";
+import { AlertCircle, Gauge, Eye } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 
@@ -30,6 +30,15 @@ function FindingsBadge() {
 }
 
 const operationsItems: GridItem[] = [
+  {
+    id: "attention-inbox",
+    label: "Attention Inbox",
+    icon: AlertCircle,
+    description: "Unified queue for risks, blockers, handover, and next actions",
+    load: () => import("@/features/workflow/pages/AttentionInboxPage"),
+    loaderVariant: "cards",
+    legacyRoutes: ["/attention-inbox"],
+  },
   {
     id: "dashboard",
     label: "Dashboard",

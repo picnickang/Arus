@@ -55,7 +55,7 @@ telemetryIngestionRouter.post(
 telemetryIngestionRouter.get(
   "/heartbeat/status",
   withErrorHandling("get heartbeat status", async (req, res) => {
-    const orgId = (req.query.orgId as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const metrics = await equipmentHeartbeatAdapter.getMetricsByOrg(orgId);
     res.json(metrics);
   })
@@ -64,7 +64,7 @@ telemetryIngestionRouter.get(
 telemetryIngestionRouter.get(
   "/heartbeat/online",
   withErrorHandling("get online equipment", async (req, res) => {
-    const orgId = (req.query.orgId as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const thresholdMs = req.query.thresholdMs ? Number(req.query.thresholdMs) : undefined;
     const equipment = await equipmentHeartbeatAdapter.getOnlineEquipment(orgId, thresholdMs);
     res.json({ equipment, count: equipment.length });
@@ -74,7 +74,7 @@ telemetryIngestionRouter.get(
 telemetryIngestionRouter.get(
   "/heartbeat/offline",
   withErrorHandling("get offline equipment", async (req, res) => {
-    const orgId = (req.query.orgId as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const thresholdMs = req.query.thresholdMs ? Number(req.query.thresholdMs) : undefined;
     const equipment = await equipmentHeartbeatAdapter.getOfflineEquipment(orgId, thresholdMs);
     res.json({ equipment, count: equipment.length });
@@ -103,7 +103,7 @@ telemetryIngestionRouter.post(
 telemetryIngestionRouter.get(
   "/batch/status",
   withErrorHandling("get batch status", async (req, res) => {
-    const orgId = (req.query.orgId as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const metrics = await telemetryBatchAckAdapter.getMetrics(orgId);
     res.json(metrics);
   })
@@ -112,7 +112,7 @@ telemetryIngestionRouter.get(
 telemetryIngestionRouter.get(
   "/batch/recent",
   withErrorHandling("get recent batches", async (req, res) => {
-    const orgId = (req.query.orgId as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const limit = Number(req.query.limit) || 100;
     const deviceId = req.query.deviceId as string | undefined;
     const source = req.query.source as string | undefined;
@@ -128,7 +128,7 @@ telemetryIngestionRouter.get(
 telemetryIngestionRouter.get(
   "/batch/unacknowledged",
   withErrorHandling("get unacknowledged batches", async (req, res) => {
-    const orgId = (req.query.orgId as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const limit = Number(req.query.limit) || 100;
     const batches = await telemetryBatchAckAdapter.getUnacknowledgedBatches(orgId, limit);
     res.json({ batches, count: batches.length });
@@ -138,7 +138,7 @@ telemetryIngestionRouter.get(
 telemetryIngestionRouter.get(
   "/batch/failed",
   withErrorHandling("get failed batches", async (req, res) => {
-    const orgId = (req.query.orgId as string) || DEFAULT_ORG_ID;
+    const orgId = DEFAULT_ORG_ID;
     const limit = Number(req.query.limit) || 100;
     const batches = await telemetryBatchAckAdapter.getFailedBatches(orgId, limit);
     res.json({ batches, count: batches.length });

@@ -4,6 +4,7 @@ import { TwinStateService } from "./twin-state.service";
 import { TwinStateAdapter } from "./adapter";
 import { TwinDefinitionAdapter } from "../twin-definition/adapter";
 import { TelemetryAdapter } from "../../feature-store/telemetry-adapter";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 const router = Router();
 const stateAdapter = new TwinStateAdapter();
@@ -17,7 +18,7 @@ const computeSchema = z.object({
 
 router.post("/compute", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const parsed = computeSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
@@ -34,7 +35,7 @@ router.post("/compute", async (req: Request, res: Response) => {
 
 router.get("/latest/:twinId", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const { twinId } = req.params;
     const result = await stateService.getLatestState(orgId, twinId);
     if (!result) {
@@ -52,7 +53,7 @@ const historyQuerySchema = z.object({
 
 router.get("/history/:twinId", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const { twinId } = req.params;
     const parsed = historyQuerySchema.safeParse(req.query);
     const limit = parsed.success ? parsed.data.limit : undefined;

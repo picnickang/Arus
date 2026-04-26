@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
-import { HeuristicInferenceRunner } from "./stub-runner";
+import { HeuristicInferenceRunner } from "./heuristic-inference-runner";
 import { PredictionEngineService } from "./prediction-engine.service";
 
 const router = Router();

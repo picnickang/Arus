@@ -20,6 +20,7 @@ import { db } from "../db";
 import { eq, and } from "drizzle-orm";
 import { purchaseRequests, purchaseRequestItems, purchaseRequestEvents } from "@shared/schema";
 import { createLogger } from "../lib/structured-logger";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 const logger = createLogger("Purchasing:PrRoutes");
 
 export const prRouter = Router();
@@ -27,10 +28,7 @@ export const prRouter = Router();
 // ── POST /purchase-requests ────────────────────────────────────────────────────
 prRouter.post("/purchase-requests", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
-    if (!orgId) {
-      return res.status(400).json({ error: "Organization ID required" });
-    }
+    const orgId = DEFAULT_ORG_ID;
 
     const { requestedBy, vesselId, notes, workOrderId } = req.body;
     if (!requestedBy) {
@@ -48,10 +46,7 @@ prRouter.post("/purchase-requests", async (req: Request, res: Response) => {
 // ── GET /purchase-requests ─────────────────────────────────────────────────────
 prRouter.get("/purchase-requests", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
-    if (!orgId) {
-      return res.status(400).json({ error: "Organization ID required" });
-    }
+    const orgId = DEFAULT_ORG_ID;
 
     const filters: PRListFilters = {
       orgId,
@@ -79,10 +74,7 @@ prRouter.get("/purchase-requests", async (req: Request, res: Response) => {
 // ── GET /purchase-requests/:id ─────────────────────────────────────────────────
 prRouter.get("/purchase-requests/:id", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
-    if (!orgId) {
-      return res.status(400).json({ error: "Organization ID required" });
-    }
+    const orgId = DEFAULT_ORG_ID;
 
     const pr = await service.getPR(req.params.id, orgId);
     if (!pr) {
@@ -98,11 +90,8 @@ prRouter.get("/purchase-requests/:id", async (req: Request, res: Response) => {
 // ── PATCH /purchase-requests/:id ──────────────────────────────────────────────
 prRouter.patch("/purchase-requests/:id", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const userId = req.headers["x-user-id"] as string | undefined;
-    if (!orgId) {
-      return res.status(400).json({ error: "Organization ID required" });
-    }
 
     const existingPR = await service.getPR(req.params.id, orgId);
     if (!existingPR) {
@@ -158,11 +147,8 @@ prRouter.patch("/purchase-requests/:id", async (req: Request, res: Response) => 
  */
 prRouter.post("/purchase-requests/:id/auto-save", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const userId = req.headers["x-user-id"] as string | undefined;
-    if (!orgId) {
-      return res.status(400).json({ error: "Organization ID required" });
-    }
 
     const { notes, vesselId, requiredByDate, deliveryLocation } = req.body;
     const updates: Record<string, unknown> = {};
@@ -192,11 +178,8 @@ prRouter.post("/purchase-requests/:id/auto-save", async (req: Request, res: Resp
 // ── POST /purchase-requests/:id/items ─────────────────────────────────────────
 prRouter.post("/purchase-requests/:id/items", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const userId = req.headers["x-user-id"] as string | undefined;
-    if (!orgId) {
-      return res.status(400).json({ error: "Organization ID required" });
-    }
 
     const { partId, supplierId, quantity, uom, remarks } = req.body;
     if (!partId || quantity === undefined) {
@@ -221,11 +204,8 @@ prRouter.post("/purchase-requests/:id/items", async (req: Request, res: Response
 // ── DELETE /purchase-requests/:id/items/:itemId ────────────────────────────────
 prRouter.delete("/purchase-requests/:id/items/:itemId", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const userId = req.headers["x-user-id"] as string | undefined;
-    if (!orgId) {
-      return res.status(400).json({ error: "Organization ID required" });
-    }
 
     const removed = await service.removeItemFromPR(req.params.id, req.params.itemId, orgId, userId);
 
@@ -242,11 +222,8 @@ prRouter.delete("/purchase-requests/:id/items/:itemId", async (req: Request, res
 // ── POST /purchase-requests/:id/send ─────────────────────────────────────────
 prRouter.post("/purchase-requests/:id/send", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const userId = req.headers["x-user-id"] as string | undefined;
-    if (!orgId) {
-      return res.status(400).json({ error: "Organization ID required" });
-    }
 
     const result = await service.sendPR(req.params.id, orgId, userId);
     res.json(result);
@@ -259,11 +236,8 @@ prRouter.post("/purchase-requests/:id/send", async (req: Request, res: Response)
 // ── POST /purchase-requests/:id/cancel ────────────────────────────────────────
 prRouter.post("/purchase-requests/:id/cancel", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const userId = req.headers["x-user-id"] as string | undefined;
-    if (!orgId) {
-      return res.status(400).json({ error: "Organization ID required" });
-    }
 
     const pr = await service.cancelPR(req.params.id, orgId, userId);
     res.json(pr);
@@ -276,11 +250,8 @@ prRouter.post("/purchase-requests/:id/cancel", async (req: Request, res: Respons
 // ── POST /purchase-requests/:id/close ─────────────────────────────────────────
 prRouter.post("/purchase-requests/:id/close", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const userId = req.headers["x-user-id"] as string | undefined;
-    if (!orgId) {
-      return res.status(400).json({ error: "Organization ID required" });
-    }
 
     const pr = await service.closePR(req.params.id, orgId, userId);
     res.json(pr);
@@ -298,11 +269,8 @@ prRouter.post("/purchase-requests/:id/close", async (req: Request, res: Response
  */
 prRouter.delete("/purchase-requests/:id", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const userId = req.headers["x-user-id"] as string | undefined;
-    if (!orgId) {
-      return res.status(400).json({ error: "Organization ID required" });
-    }
 
     // Improvement #18: single fetch — no join needed for status + permission check
     const { getPurchaseRequestById } = await import("./repository");
@@ -359,11 +327,8 @@ prRouter.delete("/purchase-requests/:id", async (req: Request, res: Response) =>
 // ── PATCH /purchase-requests/:id/status ───────────────────────────────────────
 prRouter.patch("/purchase-requests/:id/status", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const userId = req.headers["x-user-id"] as string | undefined;
-    if (!orgId) {
-      return res.status(400).json({ error: "Organization ID required" });
-    }
 
     const { status: newStatus } = req.body;
     if (!newStatus) {
@@ -387,11 +352,8 @@ prRouter.post(
   "/purchase-requests/:id/items/:itemId/fulfill",
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const userId = req.headers["x-user-id"] as string | undefined;
-      if (!orgId) {
-        return res.status(400).json({ error: "Organization ID required" });
-      }
 
       const { quantityToFulfill } = req.body;
       if (quantityToFulfill === undefined || quantityToFulfill <= 0) {
@@ -420,10 +382,7 @@ prRouter.delete(
   "/purchase-requests/bulk/by-work-order/:workOrderId",
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) {
-        return res.status(400).json({ error: "Organization ID required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
 
       const { deleteAllPurchaseRequestsByWorkOrder } = await import("./fulfillment-service");
       const result = await deleteAllPurchaseRequestsByWorkOrder(req.params.workOrderId, orgId);

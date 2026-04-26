@@ -18,9 +18,6 @@ export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig)
     "/api/analytics/threshold-optimizations",
     withErrorHandling("fetch threshold optimizations", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, equipmentId, status } = req.query;
-      if (!orgId) {
-        return res.status(400).json({ message: "orgId is required" });
-      }
       const optimizations = await dbMlAnalyticsStorage.getThresholdOptimizations(
         orgId as string,
         equipmentId as string,
@@ -37,9 +34,6 @@ export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig)
     "/api/analytics/threshold-optimizations/:id",
     withErrorHandling("fetch threshold optimization", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId } = req.query;
-      if (!orgId) {
-        return res.status(400).json({ message: "orgId is required" });
-      }
       const optimization = await dbMlAnalyticsStorage.getThresholdOptimization(
         Number.parseInt(req.params.id),
         orgId as string
@@ -59,9 +53,6 @@ export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig)
     writeOperationRateLimit,
     withErrorHandling("create threshold optimization", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, ...optimizationData } = req.body;
-      if (!orgId) {
-        return res.status(400).json({ message: "orgId is required" });
-      }
       const validatedData = insertThresholdOptimizationSchema.parse(optimizationData);
       const optimization = await dbMlAnalyticsStorage.createThresholdOptimization(
         validatedData,
@@ -79,9 +70,6 @@ export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig)
     writeOperationRateLimit,
     withErrorHandling("apply threshold optimization", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId } = req.body;
-      if (!orgId) {
-        return res.status(400).json({ message: "orgId is required" });
-      }
       const optimization = await dbMlAnalyticsStorage.applyThresholdOptimization(
         Number.parseInt(req.params.id),
         orgId

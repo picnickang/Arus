@@ -1,4 +1,5 @@
 import { createLogger } from "../lib/structured-logger";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 const logger = createLogger("Shared:ErrorHandler");
 import type { Response, Request, NextFunction, RequestHandler } from "express";
 import { z } from "zod";
@@ -188,7 +189,7 @@ export function requireOrgIdFromRequest(req: Request & { orgId?: string }): stri
 
 export function createTenantMiddleware(): RequestHandler {
   return (req: Request & { orgId?: string }, res: Response, next: NextFunction) => {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     if (!orgId) {
       handleRouteError(
         new AuthorizationError("Missing organization context"),

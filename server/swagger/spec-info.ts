@@ -15,10 +15,10 @@ API for marine equipment monitoring, predictive maintenance, and fleet managemen
 
 ## Authentication
 
-All API endpoints require the \`x-org-id\` header for multi-tenant isolation:
+ARUS runs in single-tenant mode. The \`x-org-id\` header is optional for backward compatibility and, when supplied, must match the configured default organization:
 
 \`\`\`
-x-org-id: your-organization-id
+x-org-id: default-org-id
 \`\`\`
 
 Admin endpoints additionally require the \`x-admin-token\` header.
@@ -35,8 +35,8 @@ Admin endpoints additionally require the \`x-admin-token\` header.
 - \`200\` - Success
 - \`201\` - Created
 - \`400\` - Bad Request (validation error)
-- \`401\` - Unauthorized (missing/invalid org-id)
-- \`403\` - Forbidden (cross-tenant access)
+- \`401\` - Unauthorized (missing/invalid authentication)
+- \`403\` - Forbidden (invalid organization context)
 - \`404\` - Not Found
 - \`429\` - Rate Limited
 - \`500\` - Server Error

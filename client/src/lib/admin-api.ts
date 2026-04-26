@@ -5,7 +5,7 @@
  * Dev mode: bypasses session checks for development access.
  */
 
-import { getAdminSessionToken } from "@/contexts/AdminAccessContext";
+import { getApiSessionToken } from "@/lib/sessionToken";
 
 // Development mode: bypass session checks
 // Use Vite's built-in environment detection for safety
@@ -21,7 +21,7 @@ export async function adminApiRequest(
   data?: unknown
 ): Promise<unknown> {
   // In dev mode, use dev token; otherwise require session
-  const sessionToken = DEV_MODE ? DEV_SESSION_TOKEN : getAdminSessionToken();
+  const sessionToken = DEV_MODE ? DEV_SESSION_TOKEN : getApiSessionToken();
 
   if (!sessionToken && !DEV_MODE) {
     throw new Error("Admin session not active. Please unlock admin mode first.");
@@ -74,7 +74,7 @@ export async function adminApiRequest(
 export function adminQueryFn(queryKey: string[]) {
   return async () => {
     // In dev mode, use dev token; otherwise require session
-    const sessionToken = DEV_MODE ? DEV_SESSION_TOKEN : getAdminSessionToken();
+    const sessionToken = DEV_MODE ? DEV_SESSION_TOKEN : getApiSessionToken();
 
     if (!sessionToken && !DEV_MODE) {
       throw new Error("Admin session not active. Please unlock admin mode first.");

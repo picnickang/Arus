@@ -105,6 +105,10 @@ export class PredictionEngineService implements PredictionExplanationQuery {
           riskLevel: prediction.riskLevel,
           remainingUsefulLife: prediction.remainingUsefulLife,
           recommendations,
+          method: prediction.method ?? "heuristic-baseline",
+          caveat:
+            prediction.caveat ??
+            "Baseline deterministic risk scoring; not a trained PdM model.",
         },
         explanations: explanationRows,
       };
@@ -264,7 +268,15 @@ export class PredictionEngineService implements PredictionExplanationQuery {
             ? "medium"
             : "low");
 
-    return { failureProbability, remainingUsefulLife, riskLevel };
+    return {
+      failureProbability,
+      remainingUsefulLife,
+      riskLevel,
+      method: prediction.method ?? "heuristic-baseline",
+      caveat:
+        prediction.caveat ??
+        "Baseline deterministic risk scoring; not a trained PdM model.",
+    };
   }
 
   private generateRecommendations(failureProbability: number, features: FeatureVector | null): string[] {

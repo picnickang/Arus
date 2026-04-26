@@ -36,6 +36,7 @@ export const ROLES: Record<string, RoleConfig> = {
     description: "Work orders, equipment health, PdM alerts",
     icon: Wrench,
     quickActions: [
+      { label: "Attention Inbox", icon: AlertTriangle, href: "/attention-inbox" },
       { label: "New Work Order", icon: ClipboardCheck, href: "/work-orders?action=create" },
       { label: "Log Engine Entry", icon: BookOpen, href: "/engine-logbook?action=new" },
       {
@@ -53,6 +54,7 @@ export const ROLES: Record<string, RoleConfig> = {
     description: "Logbooks, STCW hours, vessel track, weather",
     icon: Anchor,
     quickActions: [
+      { label: "Attention Inbox", icon: AlertTriangle, href: "/attention-inbox" },
       { label: "New Deck Entry", icon: BookOpen, href: "/deck-logbook?action=new" },
       { label: "Record Rest Hours", icon: Clock, href: "/hours-of-rest?action=record" },
       { label: "Vessel Position", icon: Ship, href: "/vessel-track-log" },
@@ -66,6 +68,7 @@ export const ROLES: Record<string, RoleConfig> = {
     description: "Fleet health, CII compliance, analytics, costs",
     icon: BarChart3,
     quickActions: [
+      { label: "Attention Inbox", icon: AlertTriangle, href: "/attention-inbox" },
       { label: "Fleet Dashboard", icon: Gauge, href: "/dashboard" },
       { label: "Analytics", icon: BarChart3, href: "/analytics" },
       { label: "Scheduled Reports", icon: ClipboardCheck, href: "/scheduled-reports" },
@@ -79,6 +82,7 @@ export const ROLES: Record<string, RoleConfig> = {
     description: "Diagnostics, configuration, sensors, users",
     icon: Settings,
     quickActions: [
+      { label: "Attention Inbox", icon: AlertTriangle, href: "/attention-inbox" },
       { label: "Diagnostics", icon: Activity, href: "/diagnostics" },
       { label: "Configuration", icon: Settings, href: "/configuration" },
       { label: "Sensor Management", icon: Activity, href: "/sensors" },

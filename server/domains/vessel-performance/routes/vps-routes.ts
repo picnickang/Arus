@@ -9,16 +9,14 @@ import { withErrorHandling } from "../../../lib/route-utils.js";
 import { vesselService } from "../../../services/domains/vessel-service.js";
 import { dbEquipmentStorage } from "../../../db/equipment/index.js";
 import { dbTelemetryStorage } from "../../../db/telemetry/index.js";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesConfig): void {
   app.get(
     "/api/vessels/:id/power-stw-analysis",
     withErrorHandling("compute power-STW analysis", async (req: Request, res: Response) => {
       const vesselId = req.params.id,
-        orgId = req.headers["x-org-id"] as string;
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID is required" });
-      }
+        orgId = DEFAULT_ORG_ID;
 
       const vessel = await vesselService.getVessel(vesselId, orgId);
       if (!vessel) {
@@ -120,10 +118,7 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
   app.get(
     "/api/fleet/benchmarks",
     withErrorHandling("compute fleet benchmarks", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
 
       const now = new Date(),
         defaultStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);

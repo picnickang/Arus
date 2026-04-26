@@ -20,9 +20,6 @@ export function registerPredictionRoutes(app: Express, config: MlAnalyticsConfig
     "/api/analytics/failure-predictions",
     withErrorHandling("fetch failure predictions", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, equipmentId, riskLevel } = req.query;
-      if (!orgId) {
-        return res.status(400).json({ message: "orgId is required" });
-      }
       const predictions = await dbMlAnalyticsStorage.getFailurePredictions(
         orgId as string,
         equipmentId as string,
@@ -37,9 +34,6 @@ export function registerPredictionRoutes(app: Express, config: MlAnalyticsConfig
     "/api/analytics/failure-predictions/:id",
     withErrorHandling("fetch failure prediction", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId } = req.query;
-      if (!orgId) {
-        return res.status(400).json({ message: "orgId is required" });
-      }
       const prediction = await dbMlAnalyticsStorage.getFailurePrediction(
         Number.parseInt(req.params.id),
         orgId as string
@@ -57,9 +51,6 @@ export function registerPredictionRoutes(app: Express, config: MlAnalyticsConfig
     writeOperationRateLimit,
     withErrorHandling("create failure prediction", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, ...predictionData } = req.body;
-      if (!orgId) {
-        return res.status(400).json({ message: "orgId is required" });
-      }
       const validatedData = insertFailurePredictionSchema.parse(predictionData);
       const prediction = await dbMlAnalyticsStorage.createFailurePrediction(validatedData, orgId);
 

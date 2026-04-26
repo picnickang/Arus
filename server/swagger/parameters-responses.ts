@@ -9,7 +9,7 @@ export const securitySchemes = {
     type: "apiKey",
     in: "header",
     name: "x-org-id",
-    description: "Organization ID for multi-tenant isolation",
+    description: "Optional organization ID for single-tenant compatibility; must match the configured default organization",
   },
   adminToken: {
     type: "apiKey",
@@ -25,7 +25,7 @@ export const parameters = {
     in: "header",
     required: true,
     schema: { type: "string" },
-    description: "Organization ID for multi-tenant isolation",
+    description: "Optional organization ID for single-tenant compatibility; must match the configured default organization",
   },
   pageParam: {
     name: "page",
@@ -58,7 +58,7 @@ export const responses = {
     },
   },
   Unauthorized: {
-    description: "Unauthorized - missing or invalid x-org-id",
+    description: "Unauthorized - missing or invalid authentication, or forbidden org context",
     content: {
       "application/json": {
         schema: { $ref: "#/components/schemas/Error" },

@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { TrainingPipelineService } from "./training-pipeline.service";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 const router = Router();
 const service = new TrainingPipelineService();
@@ -35,7 +36,7 @@ const promoteSchema = z.object({
 
 router.post("/datasets", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const parsed = createDatasetSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
@@ -55,7 +56,7 @@ router.post("/datasets", async (req: Request, res: Response) => {
 
 router.get("/datasets", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const status = req.query.status as string | undefined;
     const result = await service.listDatasets(orgId, status);
     res.json(result);
@@ -66,7 +67,7 @@ router.get("/datasets", async (req: Request, res: Response) => {
 
 router.get("/datasets/:id", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const result = await service.getDataset(orgId, req.params.id);
     if (!result) {
       return res.status(404).json({ error: "Dataset not found" });
@@ -79,7 +80,7 @@ router.get("/datasets/:id", async (req: Request, res: Response) => {
 
 router.post("/runs", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const parsed = startRunSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
@@ -103,7 +104,7 @@ router.post("/runs", async (req: Request, res: Response) => {
 
 router.get("/runs", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const status = req.query.status as string | undefined;
     const datasetId = req.query.datasetId as string | undefined;
     const result = await service.listRuns(orgId, { status, datasetId });
@@ -115,7 +116,7 @@ router.get("/runs", async (req: Request, res: Response) => {
 
 router.get("/runs/:id", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const result = await service.getRunStatus(orgId, req.params.id);
     if (!result) {
       return res.status(404).json({ error: "Training run not found" });
@@ -128,7 +129,7 @@ router.get("/runs/:id", async (req: Request, res: Response) => {
 
 router.post("/runs/:id/promote", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const parsed = promoteSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
@@ -152,7 +153,7 @@ router.post("/runs/:id/promote", async (req: Request, res: Response) => {
 
 router.get("/artifacts", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const modelVersionId = req.query.modelVersionId as string;
     if (!modelVersionId) {
       return res.status(400).json({ error: "modelVersionId query param required" });

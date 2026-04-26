@@ -10,6 +10,7 @@ import { RateLimitRequestHandler } from "express-rate-limit";
 import { withErrorHandling, handleApiError } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import type { AuthenticatedRequest } from "../../middleware/auth";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 interface SoftwareUpdatesDependencies {
   generalApiRateLimit: RateLimitRequestHandler;
@@ -39,7 +40,7 @@ export function registerSoftwareUpdatesRoutes(
     withErrorHandling("check for updates", async (req: Request, res: Response) => {
       const { getUpdateChecker } = await import("../../services/update-checker");
       const updateChecker = await getUpdateChecker();
-      const orgId = req.header("x-org-id") || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
       const { channel } = req.query;
 
       const manifest = await updateChecker.checkForUpdates(orgId, (channel as string) || "stable");
@@ -70,7 +71,7 @@ export function registerSoftwareUpdatesRoutes(
     withErrorHandling("fetch patches", async (req: Request, res: Response) => {
       const { getUpdateChecker } = await import("../../services/update-checker");
       const updateChecker = await getUpdateChecker();
-      const orgId = req.header("x-org-id") || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
 
       const patches = await updateChecker.getAvailablePatches(orgId);
       res.json(patches);
@@ -85,7 +86,7 @@ export function registerSoftwareUpdatesRoutes(
     withErrorHandling("fetch patch history", async (req: Request, res: Response) => {
       const { getUpdateChecker } = await import("../../services/update-checker");
       const updateChecker = await getUpdateChecker();
-      const orgId = req.header("x-org-id") || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
       const { limit } = req.query;
 
       const patches = await updateChecker.getPatchHistory(
@@ -105,7 +106,7 @@ export function registerSoftwareUpdatesRoutes(
       const { getUpdateChecker } = await import("../../services/update-checker");
       const updateChecker = await getUpdateChecker();
       const { id } = req.params;
-      const orgId = req.header("x-org-id") || "default-org-id";
+      const orgId = DEFAULT_ORG_ID;
 
       const patchPath = await updateChecker.downloadPatch(id, orgId);
 

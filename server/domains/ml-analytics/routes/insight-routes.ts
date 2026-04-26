@@ -15,9 +15,6 @@ export function registerInsightRoutes(app: Express, _config: MlAnalyticsConfig) 
     "/api/analytics/insight-snapshots",
     withErrorHandling("fetch insight snapshots", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, scope, limit } = req.query;
-      if (!orgId) {
-        return res.status(400).json({ message: "orgId is required" });
-      }
       const snapshots = await analyticsInsightsAdapter.getInsightSnapshots(
         orgId as string,
         scope as string,
@@ -32,9 +29,6 @@ export function registerInsightRoutes(app: Express, _config: MlAnalyticsConfig) 
     "/api/analytics/insight-snapshots/latest",
     withErrorHandling("fetch latest insight snapshot", async (req, res) => {
       const { scope = "fleet", orgId = (req as AuthenticatedRequest).orgId } = req.query;
-      if (!orgId) {
-        return res.status(400).json({ message: "orgId is required" });
-      }
       const snapshot = await dbAnalyticsStorage.getLatestInsightSnapshot(
         orgId as string,
         scope as string

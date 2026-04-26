@@ -7,6 +7,8 @@ export interface InferenceResult {
     riskLevel: string;
     remainingUsefulLife: number;
     recommendations: string[];
+    method: "heuristic-baseline" | "model";
+    caveat: string;
   };
   explanations: InsertPredictionExplanation[];
 }
@@ -26,6 +28,8 @@ export interface PredictionScore {
   failureProbability: number;
   riskLevel: "low" | "medium" | "high" | "critical";
   remainingUsefulLife: number;
+  method?: "heuristic-baseline" | "model";
+  caveat?: string;
 }
 
 export interface InferenceContext {

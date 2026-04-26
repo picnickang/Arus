@@ -1,9 +1,9 @@
 /**
  * Database Context Middleware
- * Sets the current organization ID in PostgreSQL for optional RLS policies.
+ * Optionally sets the current organization ID in PostgreSQL for compatibility RLS policies.
  *
  * SINGLE-TENANT SYSTEM: Always uses default-org-id. This is a defense-in-depth
- * context value, not a substitute for authenticated repository-level filtering.
+ * context value only; repository-level filtering remains the authoritative boundary.
  *
  * NOTE: This middleware is PostgreSQL-specific and is skipped in SQLite mode
  */
@@ -14,6 +14,8 @@ import { sql } from "drizzle-orm";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Middleware:DbContext");
+
+const ENABLE_PG_RLS_CONTEXT = process.env.ENABLE_PG_RLS_CONTEXT === "true";
 
 export interface DbContextRequest extends Request {
   orgId?: string;
@@ -27,8 +29,10 @@ export interface DbContextRequest extends Request {
 }
 
 /**
- * Sets the organization context in the database session for RLS enforcement
- * Must be applied AFTER authentication middleware that sets req.user
+ * Optionally sets organization context in the database session.
+ * Disabled by default because request safety requires a request-scoped transaction
+ * or pinned connection; pooled one-off queries cannot guarantee the context is
+ * visible to later repository calls.
  */
 export async function setDatabaseContext(
   req: Request,
@@ -36,8 +40,8 @@ export async function setDatabaseContext(
   next: NextFunction
 ): Promise<void> {
   try {
-    // Skip RLS in SQLite mode (PostgreSQL-only feature)
-    if (isLocalMode) {
+    // Skip unless explicitly enabled. Repository filters are authoritative.
+    if (isLocalMode || !ENABLE_PG_RLS_CONTEXT) {
       next();
       return;
     }
@@ -46,8 +50,8 @@ export async function setDatabaseContext(
     const orgId = (req as DbContextRequest).orgId || DEFAULT_ORG_ID;
 
     if (orgId) {
-      // Set the organization ID in the PostgreSQL session
-      // This enables Row-Level Security policies to filter by org
+      // Set a compatibility organization ID in the PostgreSQL session.
+      // This is optional defense-in-depth only, not the authoritative boundary.
       // Note: SET commands don't support parameterized queries, so we use sql.raw.
       // orgId is validated by auth middleware, but we defense-in-depth here: a
       // future regression in auth middleware (or a new code path that bypasses
@@ -84,8 +88,8 @@ export async function resetDatabaseContext(
   next: NextFunction
 ): Promise<void> {
   try {
-    // Skip RLS in SQLite mode (PostgreSQL-only feature)
-    if (isLocalMode) {
+    // Skip unless explicitly enabled. Repository filters are authoritative.
+    if (isLocalMode || !ENABLE_PG_RLS_CONTEXT) {
       next();
       return;
     }
@@ -107,8 +111,8 @@ export async function resetDatabaseContext(
  * Combined middleware that ensures database context is set and cleaned up
  */
 export function withDatabaseContext(req: Request, res: Response, next: NextFunction): void {
-  // Skip RLS in SQLite mode (PostgreSQL-only feature)
-  if (isLocalMode) {
+  // Skip unless explicitly enabled. Repository filters are authoritative.
+  if (isLocalMode || !ENABLE_PG_RLS_CONTEXT) {
     next();
     return;
   }

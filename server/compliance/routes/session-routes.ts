@@ -2,13 +2,14 @@ import { Router, Request, Response } from "express";
 import { sessionManagementService } from "../session-management.service";
 import { requireComplianceAccess } from "./audit-routes";
 import { createLogger } from "../../lib/structured-logger";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 const logger = createLogger("Compliance:Routes:SessionRoutes");
 
 const router = Router();
 
 router.get("/sessions", requireComplianceAccess, async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const userId = req.query.userId as string;
     if (!orgId) {
       return res.status(401).json({ error: "Organization ID required" });
@@ -39,7 +40,7 @@ router.get("/sessions", requireComplianceAccess, async (req: Request, res: Respo
 
 router.post("/sessions/validate", requireComplianceAccess, async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     const { sessionToken } = req.body;
     if (!orgId) {
       return res.status(401).json({ error: "Organization ID required" });
@@ -85,7 +86,7 @@ router.post(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const { userId, reason } = req.body;
       const adminId = (req.headers["x-admin-id"] as string) ?? "admin";
       if (!orgId) {
@@ -120,7 +121,7 @@ router.post("/sessions/cleanup", requireComplianceAccess, async (req: Request, r
 
 router.get("/login-events", requireComplianceAccess, async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
+    const orgId = DEFAULT_ORG_ID;
     if (!orgId) {
       return res.status(401).json({ error: "Organization ID required" });
     }
@@ -140,7 +141,7 @@ router.post(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }

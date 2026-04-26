@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { withErrorHandling } from "../lib/route-utils";
 import { logger } from "../utils/logger";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 export function registerKbAskRoute(
   app: Express,
@@ -14,7 +15,7 @@ export function registerKbAskRoute(
     "/api/kb/ask",
     generalApiRateLimit,
     withErrorHandling("kb ask", async (req: Request, res: Response) => {
-      const orgId = (req as any).orgId || (req.headers["x-org-id"] as string);
+      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
 
       const { query, context, equipmentId, vesselId } = req.body;
 

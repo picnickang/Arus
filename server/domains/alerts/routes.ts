@@ -8,6 +8,7 @@ import {
 } from "@shared/schema-runtime";
 import { alertsService } from "./service";
 import { withErrorHandling, handleApiError, sendNotFound } from "../../lib/route-utils";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 /**
  * Alerts Routes
@@ -32,10 +33,7 @@ export function registerAlertsRoutes(
     "/api/alerts",
     generalApiRateLimit,
     withErrorHandling("fetch alerts", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
       const { acknowledged } = req.query;
       const ackParam =
         acknowledged === "true" ? true : acknowledged === "false" ? false : undefined;
@@ -115,10 +113,7 @@ export function registerAlertsRoutes(
     "/api/alerts/notifications",
     generalApiRateLimit,
     withErrorHandling("fetch alert notifications", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
       const { acknowledged } = req.query;
       const ackParam =
         acknowledged === "true" ? true : acknowledged === "false" ? false : undefined;
@@ -213,10 +208,7 @@ export function registerAlertsRoutes(
     "/api/alerts/suppressions",
     generalApiRateLimit,
     withErrorHandling("get suppressions", async (req: Request, res: Response) => {
-      const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
-      }
+      const orgId = DEFAULT_ORG_ID;
       const suppressions = await alertsService.listSuppressions(orgId);
       res.json(suppressions);
     })

@@ -6,6 +6,7 @@
 import { Request, Response, NextFunction } from "express";
 import { inventoryCache, cacheConfig } from "../lib/cache";
 import { createLogger } from "../lib/structured-logger";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 const logger = createLogger("Middleware:CacheMiddleware");
 
 interface CacheOptions {
@@ -40,7 +41,7 @@ export function cacheMiddleware(options: CacheOptions = {}) {
     // Generate cache key
     const cacheKey = options.keyGenerator
       ? options.keyGenerator(req)
-      : `${req.path}:${JSON.stringify(req.query)}:${req.headers["x-org-id"] || "default"}`;
+      : `${req.path}:${JSON.stringify(req.query)}:${DEFAULT_ORG_ID}`;
 
     // Try to get from cache
     try {

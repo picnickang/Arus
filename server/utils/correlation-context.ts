@@ -7,6 +7,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
 import type { Request, Response, NextFunction } from "express";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 export interface RequestContext {
   correlationId: string;
@@ -83,7 +84,7 @@ export function correlationMiddleware(req: Request, res: Response, next: NextFun
   const context = createRequestContext(incomingCorrelationId, {
     path: req.path,
     method: req.method,
-    orgId: req.headers["x-org-id"] as string | undefined,
+    orgId: DEFAULT_ORG_ID,
   });
 
   res.setHeader("x-correlation-id", context.correlationId);

@@ -20,9 +20,6 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
     "/api/analytics/anomaly-detections",
     withErrorHandling("fetch anomaly detections", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, equipmentId, severity } = req.query;
-      if (!orgId) {
-        return res.status(400).json({ message: "orgId is required" });
-      }
       const detections = await dbMlAnalyticsStorage.getAnomalyDetections(
         orgId as string,
         equipmentId as string,
@@ -37,9 +34,6 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
     "/api/analytics/anomaly-detections/:id",
     withErrorHandling("fetch anomaly detection", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId } = req.query;
-      if (!orgId) {
-        return res.status(400).json({ message: "orgId is required" });
-      }
       const detection = await dbMlAnalyticsStorage.getAnomalyDetection(
         Number.parseInt(req.params.id),
         orgId as string
@@ -57,9 +51,6 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
     writeOperationRateLimit,
     withErrorHandling("create anomaly detection", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, ...detectionData } = req.body;
-      if (!orgId) {
-        return res.status(400).json({ message: "orgId is required" });
-      }
       const validatedData = insertAnomalyDetectionSchema.parse(detectionData);
       const detection = await dbMlAnalyticsStorage.createAnomalyDetection(validatedData, orgId);
 
@@ -97,9 +88,6 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
       const { acknowledgedBy, orgId = (req as AuthenticatedRequest).orgId } = req.body;
       if (!acknowledgedBy) {
         return res.status(400).json({ message: "acknowledgedBy is required" });
-      }
-      if (!orgId) {
-        return res.status(400).json({ message: "orgId is required" });
       }
       const detection = await dbMlAnalyticsStorage.acknowledgeAnomaly(
         Number.parseInt(req.params.id),

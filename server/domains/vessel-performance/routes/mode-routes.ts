@@ -7,16 +7,14 @@ import type { VesselPerformanceRoutesConfig } from "./types.js";
 import { withErrorHandling } from "../../../lib/route-utils.js";
 import { dbEquipmentStorage } from "../../../db/equipment/index.js";
 import { dbTelemetryStorage } from "../../../db/telemetry/index.js";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 export function registerModeRoutes(app: Express, config: VesselPerformanceRoutesConfig): void {
   app.get(
     "/api/vessels/:id/operating-mode",
     withErrorHandling("detect operating mode", async (req: Request, res: Response) => {
       const { id: vesselId } = req.params,
-        orgId = req.headers["x-org-id"] as string;
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID is required" });
-      }
+        orgId = DEFAULT_ORG_ID;
 
       const now = new Date(),
         oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);

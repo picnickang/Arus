@@ -1,4 +1,5 @@
 import { createLogger } from "../../../lib/structured-logger";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 const logger = createLogger("Domains:Purchasing:Interfaces:PipelineRoutes");
 import { Router } from "express";
 import type { Request, Response } from "express";
@@ -12,10 +13,7 @@ export const pipelineRouter = Router();
 
 pipelineRouter.get("/purchase-requests/:id/pipeline", async (req: Request, res: Response) => {
   try {
-    const orgId = req.headers["x-org-id"] as string;
-    if (!orgId) {
-      return res.status(400).json({ error: "Organization ID required" });
-    }
+    const orgId = DEFAULT_ORG_ID;
 
     const pipeline = await pipelineService.getPipeline(req.params.id, orgId);
     if (!pipeline) {

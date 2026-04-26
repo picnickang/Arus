@@ -12,9 +12,10 @@ import { OrganizationProvider, useOrganization } from "@/contexts/OrganizationCo
 import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { ConnectivityBanner } from "@/components/shared/ConnectivityBanner";
+import { SessionGate } from "@/components/auth/SessionGate";
 import { BottomNav } from "@/components/BottomNav";
 import { CopilotFab } from "@/components/agent/CopilotFab";
-import { useEffect, lazy, Suspense, useState, useCallback, type ReactNode } from "react";
+import { useEffect, lazy, Suspense, useState, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import { isDesktop } from "@/lib/desktop";
 import {
@@ -163,19 +164,6 @@ function Router() {
   );
 }
 
-function ComposeProviders({
-  providers,
-  children,
-}: {
-  providers: Array<[React.ComponentType<any>, Record<string, any>?]>;
-  children: ReactNode;
-}) {
-  return providers.reduceRight(
-    (acc, [Provider, props = {}]) => <Provider {...props}>{acc}</Provider>,
-    children
-  ) as JSX.Element;
-}
-
 const SETUP_TIMEOUT_MS = 10000;
 
 function App() {
@@ -235,24 +223,27 @@ function App() {
   }
 
   return (
-    <ComposeProviders
-      providers={[
-        [QueryClientProvider, { client: queryClient }],
-        [TooltipProvider],
-        [ThemeProvider, { defaultTheme: "dark", storageKey: "arus-ui-theme" }],
-        [OrganizationProvider],
-        [AdminAccessProvider],
-        [PermissionsProvider],
-      ]}
-    >
-      <Toaster />
-      <ErrorBoundary>
-        <Router />
-      </ErrorBoundary>
-      <Suspense fallback={null}>
-        <DevPerformanceOverlay />
-      </Suspense>
-    </ComposeProviders>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <ThemeProvider defaultTheme="dark" storageKey="arus-ui-theme">
+          <OrganizationProvider>
+            <AdminAccessProvider>
+              <SessionGate>
+                <PermissionsProvider>
+                  <Toaster />
+                  <ErrorBoundary>
+                    <Router />
+                  </ErrorBoundary>
+                  <Suspense fallback={null}>
+                    <DevPerformanceOverlay />
+                  </Suspense>
+                </PermissionsProvider>
+              </SessionGate>
+            </AdminAccessProvider>
+          </OrganizationProvider>
+        </ThemeProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }
 

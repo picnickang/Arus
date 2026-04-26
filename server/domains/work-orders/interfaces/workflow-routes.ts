@@ -2,9 +2,10 @@ import type { Express, Request, Response } from "express";
 import { requireOrgId, requireOrgIdAndValidateBody } from "../../../middleware/auth";
 import { withErrorHandling, sendCreated, sendNotFound } from "../../../lib/route-utils";
 import type { WorkOrderWorkflowService } from "../application/wo-workflow-service";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 function getOrgId(req: any): string {
-  return req.orgId || req.headers["x-org-id"] || "";
+  return req.orgId || DEFAULT_ORG_ID;
 }
 
 function getUserId(req: any): string {

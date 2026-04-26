@@ -1,4 +1,4 @@
-import { HeuristicInferenceRunner } from "../../domains/pdm-platform/inference/stub-runner";
+import { HeuristicInferenceRunner } from "../../domains/pdm-platform/inference/heuristic-inference-runner";
 
 describe("HeuristicInferenceRunner", () => {
   it("scores through the inference port without database coupling", async () => {
@@ -17,5 +17,7 @@ describe("HeuristicInferenceRunner", () => {
     expect(result.failureProbability).toBeGreaterThan(0.7);
     expect(result.riskLevel).toBe("critical");
     expect(result.remainingUsefulLife).toBeGreaterThanOrEqual(7);
+    expect(result.method).toBe("heuristic-baseline");
+    expect(result.caveat).toContain("not a trained PdM model");
   });
 });

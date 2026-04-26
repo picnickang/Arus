@@ -2,6 +2,7 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { getCurrentDeviceId } from "@/hooks/useDeviceId";
 import { getCurrentOrgId } from "@/contexts/OrganizationContext";
 import { getBackendUrlSync } from "@/lib/desktopFetch";
+import { getApiSessionToken } from "@/lib/sessionToken";
 
 export function resolveUrl(url: string): string {
   if (url.startsWith("http://") || url.startsWith("https://")) {
@@ -57,6 +58,11 @@ export function createHeaders(includeContentType: boolean = false): Record<strin
   const deviceId = getCurrentDeviceId();
   if (deviceId) {
     headers["X-Device-Id"] = deviceId;
+  }
+
+  const sessionToken = getApiSessionToken();
+  if (sessionToken) {
+    headers.Authorization = `Bearer ${sessionToken}`;
   }
 
   return headers;

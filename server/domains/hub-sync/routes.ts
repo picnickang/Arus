@@ -9,6 +9,7 @@ import {
 import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";
 import { withErrorHandling, handleApiError, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 export function registerHubSyncRoutes(
   app: Express,
@@ -160,7 +161,7 @@ export function registerHubSyncRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch optimizer configurations", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId || (req.query.orgId as string);
+      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
       const configs = await hubSyncService.getOptimizerConfigurations(orgId);
       res.json(configs);
     })
@@ -206,7 +207,7 @@ export function registerHubSyncRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch optimization results", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId || (req.query.orgId as string);
+      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
       const results = await hubSyncService.getOptimizationResults(orgId);
       res.json(results);
     })
@@ -225,7 +226,7 @@ export function registerHubSyncRoutes(
       const validatedData = runOptimizationSchema.parse(req.body);
       const { configId, equipmentScope, timeHorizon } = validatedData;
 
-      const orgId = (req as AuthenticatedRequest).orgId || (req.query.orgId as string);
+      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
       const result = await hubSyncService.runOptimization(
         configId,
         equipmentScope,
@@ -311,7 +312,7 @@ export function registerHubSyncRoutes(
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("delete all optimization results", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId || (req.query.orgId as string);
+      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
       const deletedCount = await hubSyncService.deleteAllOptimizationResults(orgId);
       res.json({
         message: "All optimization results deleted successfully",

@@ -10,6 +10,7 @@ import { requireOrgId, requireOrgIdAndValidateBody } from "../../../middleware/a
 import { withErrorHandling, sendCreated, sendDeleted } from "../../../lib/route-utils.js";
 import type { CrewRouteDeps } from "./types.js";
 import { getExpiryUrgencyLevel } from "./types.js";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void {
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimit;
@@ -29,7 +30,7 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
     withErrorHandling("create crew document", async (req, res) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const body = { ...req.body };
 
       if (body.issuedAt && typeof body.issuedAt === "string") {
@@ -91,7 +92,7 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch expiring documents", async (req, res) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const daysAhead = Number.parseInt(req.query.daysAhead as string) || 90;
       const includeAcknowledged = req.query.includeAcknowledged === "true";
 
@@ -151,7 +152,7 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
     requireOrgId,
     criticalOperationRateLimit,
     withErrorHandling("scan for expiring documents", async (req, res) => {
-      const orgId = req.headers["x-org-id"] as string;
+      const orgId = DEFAULT_ORG_ID;
       const result = await crewService.scanAndFlagExpiringDocuments(orgId);
       res.json(result);
     })
