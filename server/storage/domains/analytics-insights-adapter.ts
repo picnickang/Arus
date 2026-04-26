@@ -1,6 +1,7 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { db } from "../../db-config";
 import { kbDocs, type KbDoc } from "@shared/schema";
+import { insightSnapshots, insightReports } from "@shared/schema-runtime";
 import type {
   EquipmentTelemetry,
   Equipment,
@@ -9,6 +10,10 @@ import type {
   Device,
   EdgeHeartbeat,
   Vessel,
+  InsightSnapshot,
+  InsertInsightSnapshot,
+  InsightReport,
+  InsertInsightReport,
 } from "@shared/schema";
 
 interface TrendValue {
@@ -237,6 +242,30 @@ export class MemAnalyticsInsightsAdapter extends BaseAnalyticsInsightsAdapter {
   async getKbDocs(_orgId?: string): Promise<KbDoc[]> {
     return [];
   }
+  async getInsightSnapshots(_orgId?: string, _scope?: string): Promise<InsightSnapshot[]> {
+    return [];
+  }
+  async getLatestInsightSnapshot(
+    _orgId: string,
+    _scope: string
+  ): Promise<InsightSnapshot | undefined> {
+    return undefined;
+  }
+  async createInsightSnapshot(
+    _orgId: string,
+    _snapshot: InsertInsightSnapshot
+  ): Promise<InsightSnapshot> {
+    throw new Error("MemAnalyticsInsightsAdapter.createInsightSnapshot not implemented");
+  }
+  async getInsightReports(_orgId?: string, _scope?: string): Promise<InsightReport[]> {
+    return [];
+  }
+  async createInsightReport(
+    _orgId: string,
+    _report: InsertInsightReport
+  ): Promise<InsightReport> {
+    throw new Error("MemAnalyticsInsightsAdapter.createInsightReport not implemented");
+  }
 }
 export class DatabaseAnalyticsInsightsAdapter extends BaseAnalyticsInsightsAdapter {
   async getKbDocs(orgId?: string): Promise<KbDoc[]> {
@@ -248,5 +277,64 @@ export class DatabaseAnalyticsInsightsAdapter extends BaseAnalyticsInsightsAdapt
         .orderBy(desc(kbDocs.createdAt));
     }
     return db.select().from(kbDocs).orderBy(desc(kbDocs.createdAt));
+  }
+
+  async getInsightSnapshots(orgId?: string, scope?: string): Promise<InsightSnapshot[]> {
+    const conditions = [];
+    if (orgId) conditions.push(eq(insightSnapshots.orgId, orgId));
+    if (scope) conditions.push(eq(insightSnapshots.scope, scope));
+    const query = db.select().from(insightSnapshots);
+    const results =
+      conditions.length > 0
+        ? await query.where(and(...conditions)).orderBy(desc(insightSnapshots.createdAt))
+        : await query.orderBy(desc(insightSnapshots.createdAt));
+    return results;
+  }
+
+  async getLatestInsightSnapshot(
+    orgId: string,
+    scope: string
+  ): Promise<InsightSnapshot | undefined> {
+    const [result] = await db
+      .select()
+      .from(insightSnapshots)
+      .where(and(eq(insightSnapshots.orgId, orgId), eq(insightSnapshots.scope, scope)))
+      .orderBy(desc(insightSnapshots.createdAt))
+      .limit(1);
+    return result;
+  }
+
+  async createInsightSnapshot(
+    orgId: string,
+    snapshot: InsertInsightSnapshot
+  ): Promise<InsightSnapshot> {
+    const [created] = await db
+      .insert(insightSnapshots)
+      .values({ ...snapshot, orgId })
+      .returning();
+    return created;
+  }
+
+  async getInsightReports(orgId?: string, scope?: string): Promise<InsightReport[]> {
+    const conditions = [];
+    if (orgId) conditions.push(eq(insightReports.orgId, orgId));
+    if (scope) conditions.push(eq(insightReports.scope, scope));
+    const query = db.select().from(insightReports);
+    const results =
+      conditions.length > 0
+        ? await query.where(and(...conditions)).orderBy(desc(insightReports.createdAt))
+        : await query.orderBy(desc(insightReports.createdAt));
+    return results;
+  }
+
+  async createInsightReport(
+    orgId: string,
+    report: InsertInsightReport
+  ): Promise<InsightReport> {
+    const [created] = await db
+      .insert(insightReports)
+      .values({ ...report, orgId })
+      .returning();
+    return created;
   }
 }

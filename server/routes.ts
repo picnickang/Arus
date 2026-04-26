@@ -66,9 +66,13 @@ export async function registerRoutes(
   const { initDtcIntegrationService } = await import("./dtc-integration-service");
   initDtcIntegrationService();
 
-  await registerAllDomainRouters(app);
-
+  // Observability routes MUST be registered BEFORE domain routers because several
+  // domain routers mount at "/api" with router-level requireOrgId middleware
+  // (e.g. Suppliers, Purchasing, MlAiStudio). That middleware would otherwise
+  // run for /api/healthz and /api/readyz and reject them with 401.
   registerObservabilityRoutes(app);
+
+  await registerAllDomainRouters(app);
 
   const httpServer = createServer(app);
 
