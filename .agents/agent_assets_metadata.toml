@@ -318,3 +318,9 @@ id = "FNjw7lJmiwP6Yt_TP_oUf"
 uri = "file://arus-source-20260424.tar.gz"
 type = "unspecified"
 title = "ARUS Source Code (for ChatGPT review)"
+
+[[outputs]]
+id = "SN3-8-UNK_0jIT1VoQiWG"
+uri = "file://arus-source-20260426.tar.gz"
+type = "unspecified"
+title = "ARUS Source Code (2.3 MB) — for ChatGPT review"
