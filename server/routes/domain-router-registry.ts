@@ -476,7 +476,7 @@ const domainRouters: DomainRouterConfig[] = [
     name: "Workflow",
     importPath: "../domains/workflow/index.js",
     functionName: "registerWorkflowRoutes",
-    getDeps: () => ({ generalApiRateLimit, requireOrgId }),
+    getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit, requireOrgId }),
   },
 
   // Home Attention Summary

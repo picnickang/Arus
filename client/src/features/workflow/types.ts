@@ -17,6 +17,16 @@ export type AttentionSourceType =
   | "handover"
   | "system";
 
+export type AttentionSourceHealthStatus = "ok" | "failed" | "not_configured";
+
+export interface AttentionSourceHealth {
+  workOrders: AttentionSourceHealthStatus;
+  alerts: AttentionSourceHealthStatus;
+  equipment: AttentionSourceHealthStatus;
+  inventory: AttentionSourceHealthStatus;
+  errors?: Record<string, string>;
+}
+
 export interface WorkflowQueue {
   id: WorkflowStatus;
   label: string;
@@ -34,6 +44,14 @@ export interface WorkflowAction {
   severity: WorkflowSeverity;
 }
 
+export interface BlockerResolutionSummary {
+  status: "updated" | "waiting" | "unblocked" | "deferred";
+  owner?: string;
+  eta?: string;
+  note?: string;
+  savedAt: string;
+}
+
 export interface AttentionItem {
   id: string;
   type?: AttentionSourceType;
@@ -49,12 +67,14 @@ export interface AttentionItem {
   queue?: WorkflowStatus;
   status?: string | null;
   blockerReason?: string | null;
+  lastResolution?: BlockerResolutionSummary | null;
 }
 
 export interface AttentionHandoverSummary {
   openAttentionItems: number;
   criticalItems: number;
   blockedJobs: number;
+  waitingOnParts: number;
   readyForCloseout: number;
   openWorkOrders: number;
   lowStockParts: number;
@@ -66,6 +86,54 @@ export interface AttentionWorkflowResponse {
   items: AttentionItem[];
   queues: WorkflowQueue[];
   handover: AttentionHandoverSummary;
+  sources: AttentionSourceHealth;
+}
+
+export interface HandoverRecord {
+  id: string;
+  orgId: string;
+  note: string;
+  watchLabel?: string;
+  generatedSummary: string;
+  itemIds: string[];
+  authorId?: string;
+  status: "draft" | "shared" | "acknowledged";
+  savedAt: string;
+}
+
+export interface BlockerResolutionRecord {
+  id: string;
+  orgId: string;
+  itemId: string;
+  workOrderId?: string;
+  inventoryItemId?: string;
+  blockerType: string;
+  reason: string;
+  owner?: string;
+  eta?: string;
+  status: "updated" | "waiting" | "unblocked" | "deferred";
+  note?: string;
+  savedAt: string;
+  authorId?: string;
+}
+
+export interface IssueReportRecord {
+  id: string;
+  orgId: string;
+  severity: "critical" | "high" | "medium" | "low";
+  summary: string;
+  vessel?: string;
+  equipment?: string;
+  location?: string;
+  impact?: string;
+  evidenceNote?: string;
+  owner?: string;
+  dueDate?: string;
+  target: "work_order" | "finding" | "log_note" | "handover";
+  suggestedHref: string;
+  status: "draft" | "submitted";
+  createdAt: string;
+  authorId?: string;
 }
 
 export interface WorkOrderRecord {

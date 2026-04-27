@@ -1,0 +1,42 @@
+{
+  "handovers": [
+    {
+      "id": "57b9b60d-4fc1-437b-9c52-083db453e578",
+      "orgId": "default-org-id",
+      "note": "watch test",
+      "watchLabel": "06:00 / 12:00",
+      "generatedSummary": "All quiet",
+      "itemIds": [],
+      "authorId": "dev-admin-user",
+      "status": "draft",
+      "savedAt": "2026-04-27T07:32:07.616Z"
+    }
+  ],
+  "blockerResolutions": [
+    {
+      "id": "2caa5cd2-888c-4ba2-83cb-acb5d4b2431f",
+      "orgId": "default-org-id",
+      "itemId": "wo-test",
+      "blockerType": "work_order",
+      "reason": "awaiting parts",
+      "owner": "Engineer",
+      "status": "waiting",
+      "note": "ETA 2 days",
+      "savedAt": "2026-04-27T07:32:07.689Z",
+      "authorId": "dev-admin-user"
+    }
+  ],
+  "issueReports": [
+    {
+      "id": "41cf30dd-3db9-4d39-a8c6-87e151c909b7",
+      "orgId": "default-org-id",
+      "severity": "medium",
+      "summary": "vibration noted on cooler",
+      "target": "work_order",
+      "suggestedHref": "/work-orders?action=create&flow=report-issue&issueId=41cf30dd-3db9-4d39-a8c6-87e151c909b7",
+      "status": "draft",
+      "createdAt": "2026-04-27T07:32:07.745Z",
+      "authorId": "dev-admin-user"
+    }
+  ]
+}

@@ -60,6 +60,13 @@ export function AttentionItemCard({ item }: { item: AttentionItem }) {
                 <div>{item.due}</div>
               </div>
             </div>
+            {item.lastResolution && (
+              <div className="mt-3 rounded-md bg-muted/40 p-2 text-xs text-muted-foreground">
+                Last blocker update: {item.lastResolution.status}
+                {item.lastResolution.eta ? ` • ETA ` : ""}
+                {item.lastResolution.owner ? ` • Owner ` : ""}
+              </div>
+            )}
           </div>
 
           <Button onClick={() => setLocation(item.href)} className="shrink-0">

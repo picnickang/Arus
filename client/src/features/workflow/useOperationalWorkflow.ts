@@ -92,6 +92,7 @@ const emptyHandover: AttentionHandoverSummary = {
   readyForCloseout: 0,
   openWorkOrders: 0,
   lowStockParts: 0,
+  waitingOnParts: 0,
   suggestedSummary: [],
 };
 
@@ -303,7 +304,8 @@ export function useOperationalWorkflow() {
       ...emptyHandover,
       openAttentionItems: fallbackItems.length,
       criticalItems: fallbackItems.filter((item) => item.severity === "critical").length,
-      blockedJobs: fallbackItems.filter((item) => item.queue === "blocked" || item.queue === "waiting_parts").length,
+      blockedJobs: fallbackItems.filter((item) => item.queue === "blocked").length,
+      waitingOnParts: fallbackItems.filter((item) => item.queue === "waiting_parts").length,
       readyForCloseout: fallbackItems.filter((item) => item.queue === "ready_to_close").length,
       openWorkOrders: workOrders.length,
       suggestedSummary: fallbackItems.slice(0, 5).map((item) => `${item.title}: ${item.recommendedAction}`),
@@ -318,5 +320,6 @@ export function useOperationalWorkflow() {
     generatedAt: workflow?.generatedAt,
     hasLiveData: Boolean(workflow) || Boolean(summary) || workOrders.length > 0,
     usingAggregatedWorkflow: Boolean(workflow),
+    sources: workflow?.sources,
   };
 }

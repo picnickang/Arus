@@ -1,4 +1,4 @@
-import { ClipboardCheck, Filter, Search, ShipWheel } from "lucide-react";
+import { AlertTriangle, ClipboardCheck, Filter, Search, ShipWheel } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { PageHeader } from "@/components/navigation/PageHeader";
@@ -61,7 +61,7 @@ function searchItems(items: AttentionItem[], search: string): AttentionItem[] {
 
 export default function AttentionInboxPage() {
   const [location, setLocation] = useLocation();
-  const { queues, attentionItems, workOrders, handover, hasLiveData, usingAggregatedWorkflow, generatedAt } = useOperationalWorkflow();
+  const { queues, attentionItems, workOrders, handover, hasLiveData, usingAggregatedWorkflow, generatedAt, sources } = useOperationalWorkflow();
   const [search, setSearch] = useState("");
   const params = useMemo(() => parseParams(location), [location]);
   const queue = params.get("queue") as WorkflowStatus | null;
@@ -135,6 +135,18 @@ export default function AttentionInboxPage() {
           </CardContent>
         </Card>
 
+        {sources && Object.values(sources).some((status) => status === "failed") && (
+          <Card className="border-destructive/40">
+            <CardContent className="flex items-start gap-3 p-4 text-sm">
+              <AlertTriangle className="mt-0.5 h-4 w-4 text-destructive" />
+              <div>
+                <div className="font-medium">Some attention sources are unavailable.</div>
+                <p className="text-muted-foreground">The inbox is showing partial data. Source health: work orders {sources.workOrders}, alerts {sources.alerts}, equipment {sources.equipment}, inventory {sources.inventory}.</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Tabs value={activeTab} onValueChange={changeTab} className="space-y-4">
           <TabsList className="grid w-full grid-cols-3 lg:w-[520px]">
             <TabsTrigger value="attention">Attention</TabsTrigger>
@@ -191,7 +203,7 @@ export default function AttentionInboxPage() {
                 <div key={item.id} className="space-y-3">
                   <AttentionItemCard item={item} />
                   <ResolveBlockerPanel item={item} />
-                  {item.status && <WorkOrderLifecycleStrip status={item.status} />}
+                  {item.type === "work_order" && item.status && <WorkOrderLifecycleStrip status={item.status} />}
                 </div>
               ))
             ) : (
@@ -214,7 +226,7 @@ export default function AttentionInboxPage() {
                   Use this view before watch change or manager briefing.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+              <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-7">
                 <div className="rounded-lg border p-4">
                   <div className="text-2xl font-bold">{handover.openAttentionItems}</div>
                   <div className="text-sm text-muted-foreground">Open attention items</div>
@@ -226,6 +238,10 @@ export default function AttentionInboxPage() {
                 <div className="rounded-lg border p-4">
                   <div className="text-2xl font-bold">{handover.blockedJobs}</div>
                   <div className="text-sm text-muted-foreground">Blocked jobs</div>
+                </div>
+                <div className="rounded-lg border p-4">
+                  <div className="text-2xl font-bold">{handover.waitingOnParts}</div>
+                  <div className="text-sm text-muted-foreground">Waiting on parts</div>
                 </div>
                 <div className="rounded-lg border p-4">
                   <div className="text-2xl font-bold">{handover.readyForCloseout || closeoutWork.length}</div>
