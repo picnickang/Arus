@@ -1,6 +1,19 @@
 {
   "handovers": [
     {
+      "id": "e49635a3-cf8d-442e-b1a9-8cce64f85b1b",
+      "orgId": "default-org-id",
+      "note": "smoke handover",
+      "watchLabel": "00:00 / 04:00",
+      "generatedSummary": "All quiet",
+      "itemIds": [
+        "alerts-unacknowledged"
+      ],
+      "authorId": "dev-admin-user",
+      "status": "draft",
+      "savedAt": "2026-04-27T07:33:16.777Z"
+    },
+    {
       "id": "57b9b60d-4fc1-437b-9c52-083db453e578",
       "orgId": "default-org-id",
       "note": "watch test",
@@ -13,6 +26,31 @@
     }
   ],
   "blockerResolutions": [
+    {
+      "id": "60dce4a1-b655-4c4e-84a8-3f381fcbdb00",
+      "orgId": "default-org-id",
+      "itemId": "inv-smoke-1",
+      "inventoryItemId": "inv-smoke-1",
+      "blockerType": "inventory",
+      "reason": "low stock",
+      "owner": "Storekeeper",
+      "status": "updated",
+      "savedAt": "2026-04-27T07:33:17.212Z",
+      "authorId": "dev-admin-user"
+    },
+    {
+      "id": "076867cf-8c5d-4d2b-9d36-b952b1526cc8",
+      "orgId": "default-org-id",
+      "itemId": "wo-smoke-1",
+      "workOrderId": "wo-smoke-1",
+      "blockerType": "work_order",
+      "reason": "awaiting parts",
+      "owner": "Engineer",
+      "status": "waiting",
+      "note": "ETA 2 days",
+      "savedAt": "2026-04-27T07:33:17.155Z",
+      "authorId": "dev-admin-user"
+    },
     {
       "id": "2caa5cd2-888c-4ba2-83cb-acb5d4b2431f",
       "orgId": "default-org-id",
@@ -27,6 +65,18 @@
     }
   ],
   "issueReports": [
+    {
+      "id": "f8854b2d-09ff-4057-ac33-578403f47c6a",
+      "orgId": "default-org-id",
+      "severity": "high",
+      "summary": "vibration on bow thruster",
+      "equipment": "Bow Thruster #1",
+      "target": "work_order",
+      "suggestedHref": "/work-orders?action=create&flow=report-issue&issueId=f8854b2d-09ff-4057-ac33-578403f47c6a",
+      "status": "draft",
+      "createdAt": "2026-04-27T07:33:17.262Z",
+      "authorId": "dev-admin-user"
+    },
     {
       "id": "41cf30dd-3db9-4d39-a8c6-87e151c909b7",
       "orgId": "default-org-id",
