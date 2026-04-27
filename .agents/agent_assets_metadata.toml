@@ -336,3 +336,9 @@ id = "3Psz48pQjdInwKPQaNglx"
 uri = "file://arus-full-20260427_0541.tar.gz"
 type = "unspecified"
 title = "ARUS Full Source Code (5.7 MB) — includes Workflow Attention Inbox"
+
+[[outputs]]
+id = "N6mJ-Lw1eMSJOwaSXyww-"
+uri = "file://arus-full-20260427_0734.tar.gz"
+type = "unspecified"
+title = "ARUS Full Source Code (5.7 MB) — includes Workflow Inbox + Persistence updates"
