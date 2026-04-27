@@ -13,7 +13,7 @@ export const roleWorkflowGuidance: Record<string, WorkflowAction[]> = {
       id: "clear-parts-blockers",
       label: "Clear parts blockers",
       description: "Resolve missing parts before dispatching technicians or vendors.",
-      href: "/attention-inbox?filter=blocked",
+      href: "/attention-inbox?queue=blocked",
       severity: "critical",
     },
     {

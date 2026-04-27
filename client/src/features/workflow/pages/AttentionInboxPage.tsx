@@ -1,37 +1,102 @@
-import { ClipboardCheck, Search, ShipWheel } from "lucide-react";
+import { ClipboardCheck, Filter, Search, ShipWheel } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useLocation } from "wouter";
 import { PageHeader } from "@/components/navigation/PageHeader";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AttentionItemCard } from "../components/AttentionItemCard";
+import { HandoverNotesPanel } from "../components/HandoverNotesPanel";
+import { ReportIssueFlowCard } from "../components/ReportIssueFlowCard";
+import { ResolveBlockerPanel } from "../components/ResolveBlockerPanel";
 import { WorkflowQueueStrip } from "../components/WorkflowQueueStrip";
 import { WorkOrderLifecycleStrip } from "../components/WorkOrderLifecycleStrip";
+import type { AttentionItem, WorkflowStatus } from "../types";
 import { useOperationalWorkflow } from "../useOperationalWorkflow";
 
+function parseParams(location: string): URLSearchParams {
+  const [, query = ""] = location.split("?");
+  return new URLSearchParams(query);
+}
+
+function tabFromParams(params: URLSearchParams): "attention" | "blockers" | "handover" {
+  const view = params.get("view");
+  const queue = params.get("queue");
+  if (view === "handover") return "handover";
+  if (queue === "blocked" || queue === "waiting_parts") return "blockers";
+  return "attention";
+}
+
+function queueLabel(queue: string | null, items: { id: string; label: string }[]): string {
+  if (!queue) return "All attention";
+  return items.find((item) => item.id === queue)?.label ?? queue.replace(/_/g, " ");
+}
+
+function itemMatchesQueue(item: AttentionItem, queue: string | null): boolean {
+  if (!queue || queue === "all") return true;
+  if (queue === "open_work") return item.type === "work_order";
+  return item.queue === queue;
+}
+
+function itemMatchesFilter(item: AttentionItem, filter: string | null): boolean {
+  if (!filter || filter === "all") return true;
+  if (filter === "equipment") return item.type === "equipment" || item.source.toLowerCase().includes("equipment");
+  if (filter === "inventory") return item.type === "inventory" || item.source.toLowerCase().includes("inventory");
+  if (filter === "work_order") return item.type === "work_order";
+  return [item.type, item.source, item.status].some((value) => String(value ?? "").toLowerCase().includes(filter.toLowerCase()));
+}
+
+function searchItems(items: AttentionItem[], search: string): AttentionItem[] {
+  const term = search.trim().toLowerCase();
+  if (!term) return items;
+  return items.filter((item) =>
+    [item.title, item.source, item.whyItMatters, item.recommendedAction, item.owner, item.queue, item.status]
+      .join(" ")
+      .toLowerCase()
+      .includes(term)
+  );
+}
+
 export default function AttentionInboxPage() {
-  const { queues, attentionItems, workOrders, hasLiveData } = useOperationalWorkflow();
+  const [location, setLocation] = useLocation();
+  const { queues, attentionItems, workOrders, handover, hasLiveData, usingAggregatedWorkflow, generatedAt } = useOperationalWorkflow();
   const [search, setSearch] = useState("");
+  const params = useMemo(() => parseParams(location), [location]);
+  const queue = params.get("queue") as WorkflowStatus | null;
+  const filter = params.get("filter");
+  const activeTab = tabFromParams(params);
 
   const filteredItems = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) {
-      return attentionItems;
+    const queueFiltered = attentionItems.filter((item) => itemMatchesQueue(item, queue));
+    const typeFiltered = queueFiltered.filter((item) => itemMatchesFilter(item, filter));
+    return searchItems(typeFiltered, search);
+  }, [attentionItems, queue, filter, search]);
+
+  const blockerItems = useMemo(() => {
+    if (queue === "blocked") {
+      return attentionItems.filter((item) => item.queue === "blocked");
     }
+    if (queue === "waiting_parts") {
+      return attentionItems.filter((item) => item.queue === "waiting_parts");
+    }
+    return attentionItems.filter((item) => item.queue === "blocked" || item.queue === "waiting_parts");
+  }, [attentionItems, queue]);
 
-    return attentionItems.filter((item) =>
-      [item.title, item.source, item.whyItMatters, item.recommendedAction, item.owner]
-        .join(" ")
-        .toLowerCase()
-        .includes(term)
-    );
-  }, [attentionItems, search]);
-
-  const blockedWork = workOrders.filter((item) => Boolean(item.blockedReason)).slice(0, 8);
   const closeoutWork = workOrders
     .filter((item) => item.status?.toLowerCase().includes("ready") || item.status?.toLowerCase().includes("verify"))
     .slice(0, 8);
+
+  const changeTab = (value: string) => {
+    if (value === "handover") {
+      setLocation("/attention-inbox?view=handover");
+    } else if (value === "blockers") {
+      setLocation("/attention-inbox?queue=blocked");
+    } else {
+      setLocation("/attention-inbox");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-6">
@@ -53,18 +118,24 @@ export default function AttentionInboxPage() {
                   Each item shows what happened, why it matters, who owns it, and the recommended next action.
                 </CardDescription>
               </div>
-              <Button onClick={() => window.location.assign("/work-orders?action=create")}>
-                <ClipboardCheck className="h-4 w-4" />
-                New work order
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant={usingAggregatedWorkflow ? "default" : "outline"}>
+                  {usingAggregatedWorkflow ? "Aggregated workflow" : "Fallback workflow"}
+                </Badge>
+                <Button onClick={() => setLocation("/work-orders?action=create")}> 
+                  <ClipboardCheck className="h-4 w-4" />
+                  New work order
+                </Button>
+              </div>
             </div>
+            {generatedAt && <p className="text-xs text-muted-foreground">Updated {new Date(generatedAt).toLocaleString()}</p>}
           </CardHeader>
           <CardContent>
             <WorkflowQueueStrip queues={queues} />
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="attention" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={changeTab} className="space-y-4">
           <TabsList className="grid w-full grid-cols-3 lg:w-[520px]">
             <TabsTrigger value="attention">Attention</TabsTrigger>
             <TabsTrigger value="blockers">Blockers</TabsTrigger>
@@ -72,15 +143,27 @@ export default function AttentionInboxPage() {
           </TabsList>
 
           <TabsContent value="attention" className="space-y-4">
-            <div className="relative max-w-xl">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search by source, action, owner, or risk..."
-                className="pl-9"
-              />
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="relative max-w-xl flex-1">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search by source, action, owner, or risk..."
+                  className="pl-9"
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <Filter className="h-4 w-4" />
+                <span>Queue: {queueLabel(queue, queues)}</span>
+                {filter && <span>• Filter: {filter}</span>}
+                {(queue || filter) && (
+                  <Button variant="ghost" size="sm" onClick={() => setLocation("/attention-inbox")}>Clear</Button>
+                )}
+              </div>
             </div>
+
+            <ReportIssueFlowCard />
 
             {filteredItems.length > 0 ? (
               <div className="space-y-3">
@@ -103,31 +186,20 @@ export default function AttentionInboxPage() {
           </TabsContent>
 
           <TabsContent value="blockers" className="space-y-3">
-            {blockedWork.length > 0 ? (
-              blockedWork.map((item) => (
-                <Card key={item.id}>
-                  <CardContent className="space-y-3 p-4">
-                    <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                      <div>
-                        <h3 className="font-semibold">{item.title || `Work order ${item.id}`}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Blocked because: {item.blockedReason}
-                        </p>
-                      </div>
-                      <Button variant="outline" onClick={() => window.location.assign(`/work-orders?id=${item.id}`)}>
-                        Resolve blocker
-                      </Button>
-                    </div>
-                    <WorkOrderLifecycleStrip status={item.status} />
-                  </CardContent>
-                </Card>
+            {blockerItems.length > 0 ? (
+              blockerItems.map((item) => (
+                <div key={item.id} className="space-y-3">
+                  <AttentionItemCard item={item} />
+                  <ResolveBlockerPanel item={item} />
+                  {item.status && <WorkOrderLifecycleStrip status={item.status} />}
+                </div>
               ))
             ) : (
               <Card>
                 <CardContent className="p-6">
                   <h3 className="font-semibold">No blocked work detected.</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    When work is blocked, require a reason such as parts, vendor, approval, weather, or missing information.
+                    When work is blocked, require a reason such as parts, vendor, approval, weather, crew, or missing information.
                   </p>
                 </CardContent>
               </Card>
@@ -142,25 +214,35 @@ export default function AttentionInboxPage() {
                   Use this view before watch change or manager briefing.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                 <div className="rounded-lg border p-4">
-                  <div className="text-2xl font-bold">{attentionItems.length}</div>
+                  <div className="text-2xl font-bold">{handover.openAttentionItems}</div>
                   <div className="text-sm text-muted-foreground">Open attention items</div>
                 </div>
                 <div className="rounded-lg border p-4">
-                  <div className="text-2xl font-bold">{blockedWork.length}</div>
+                  <div className="text-2xl font-bold">{handover.criticalItems}</div>
+                  <div className="text-sm text-muted-foreground">Critical items</div>
+                </div>
+                <div className="rounded-lg border p-4">
+                  <div className="text-2xl font-bold">{handover.blockedJobs}</div>
                   <div className="text-sm text-muted-foreground">Blocked jobs</div>
                 </div>
                 <div className="rounded-lg border p-4">
-                  <div className="text-2xl font-bold">{closeoutWork.length}</div>
+                  <div className="text-2xl font-bold">{handover.readyForCloseout || closeoutWork.length}</div>
                   <div className="text-sm text-muted-foreground">Ready for closeout</div>
                 </div>
                 <div className="rounded-lg border p-4">
-                  <div className="text-2xl font-bold">{workOrders.length}</div>
+                  <div className="text-2xl font-bold">{handover.openWorkOrders || workOrders.length}</div>
                   <div className="text-sm text-muted-foreground">Open work orders</div>
+                </div>
+                <div className="rounded-lg border p-4">
+                  <div className="text-2xl font-bold">{handover.lowStockParts}</div>
+                  <div className="text-sm text-muted-foreground">Low-stock parts</div>
                 </div>
               </CardContent>
             </Card>
+
+            <HandoverNotesPanel handover={handover} items={attentionItems} />
 
             <div className="space-y-3">
               {attentionItems.slice(0, 6).map((item) => (

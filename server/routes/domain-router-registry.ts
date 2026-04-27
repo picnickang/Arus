@@ -471,6 +471,14 @@ const domainRouters: DomainRouterConfig[] = [
     getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit }),
   },
 
+  // Workflow Attention Inbox
+  {
+    name: "Workflow",
+    importPath: "../domains/workflow/index.js",
+    functionName: "registerWorkflowRoutes",
+    getDeps: () => ({ generalApiRateLimit, requireOrgId }),
+  },
+
   // Home Attention Summary
   {
     name: "Home",

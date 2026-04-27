@@ -1,13 +1,21 @@
 export type WorkflowSeverity = "critical" | "warning" | "info" | "success";
 export type WorkflowStatus =
   | "needs_review"
-  | "assigned"
+  | "open_work"
   | "due_today"
   | "blocked"
   | "waiting_parts"
   | "ready_to_close"
   | "completed"
   | "overdue";
+
+export type AttentionSourceType =
+  | "work_order"
+  | "alert"
+  | "equipment"
+  | "inventory"
+  | "handover"
+  | "system";
 
 export interface WorkflowQueue {
   id: WorkflowStatus;
@@ -28,6 +36,8 @@ export interface WorkflowAction {
 
 export interface AttentionItem {
   id: string;
+  type?: AttentionSourceType;
+  sourceId?: string;
   title: string;
   source: string;
   whyItMatters: string;
@@ -36,6 +46,26 @@ export interface AttentionItem {
   due: string;
   href: string;
   severity: WorkflowSeverity;
+  queue?: WorkflowStatus;
+  status?: string | null;
+  blockerReason?: string | null;
+}
+
+export interface AttentionHandoverSummary {
+  openAttentionItems: number;
+  criticalItems: number;
+  blockedJobs: number;
+  readyForCloseout: number;
+  openWorkOrders: number;
+  lowStockParts: number;
+  suggestedSummary: string[];
+}
+
+export interface AttentionWorkflowResponse {
+  generatedAt: string;
+  items: AttentionItem[];
+  queues: WorkflowQueue[];
+  handover: AttentionHandoverSummary;
 }
 
 export interface WorkOrderRecord {
@@ -46,5 +76,7 @@ export interface WorkOrderRecord {
   dueDate?: string | null;
   blockedReason?: string | null;
   equipmentName?: string | null;
+  assignedCrewId?: string | null;
+  assignedToName?: string | null;
   equipment?: { name?: string | null } | null;
 }
