@@ -169,15 +169,21 @@ function outputResults(
   logger.info("======================================");
 
   if (warnings.length > 0) {
-    logger.warn("\n⚠️  WARNINGS:");
+    logger.warn("\nWARNINGS:");
     warnings.forEach((w) => logger.warn(`  - ${w}`));
   }
 
-  if (errors.length > 0 && !isEmbedded && !localMode) {
-    logger.error("\n❌ CRITICAL CONFIGURATION ERRORS:");
+  if (errors.length > 0) {
+    logger.error("\nCRITICAL CONFIGURATION ERRORS:");
     errors.forEach((e) => logger.error(`  - ${e}`));
-    logger.error("\n⚠️ Application starting with configuration warnings.");
-    logger.error("Some features may not work correctly. Please review the above errors.\n");
+
+    if (!isEmbedded && !localMode) {
+      throw new Error(
+        `Refusing to start cloud/production deployment with invalid configuration: ${errors.join("; ")}`
+      );
+    }
+
+    logger.error("\nEmbedded/local mode continuing with degraded functionality.");
     warnings.push(...errors.map((e) => `CRITICAL: ${e}`));
   }
 

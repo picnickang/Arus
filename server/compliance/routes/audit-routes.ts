@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { createLogger } from "../../lib/structured-logger";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
+import { requireAdminAuth } from "../../security.js";
 const logger = createLogger("Compliance:Routes:AuditRoutes");
 import {
   auditService,
@@ -11,16 +12,7 @@ import {
 
 const router = Router();
 
-const requireComplianceAccess = async (req: Request, res: Response, next: Function) => {
-  const adminToken = req.headers["x-admin-token"] as string;
-  const expectedToken = process.env.ADMIN_TOKEN;
-  if (!adminToken || adminToken !== expectedToken) {
-    return res
-      .status(403)
-      .json({ error: "Forbidden", message: "Compliance data requires administrator access" });
-  }
-  next();
-};
+const requireComplianceAccess = requireAdminAuth;
 
 const auditQuerySchema = z.object({
   startDate: z.string().datetime().optional(),
@@ -57,7 +49,7 @@ const logEventSchema = z.object({
   previousState: z.record(z.unknown()).optional(),
   newState: z.record(z.unknown()).optional(),
   changedFields: z.array(z.string()).optional(),
-  performedBy: z.string(),
+  performedBy: z.string().optional(),
   performedByType: z.enum(["user", "system", "cron", "ml_service", "edge_device"]).optional(),
   performedByName: z.string().optional(),
   performedByRole: z.string().optional(),
@@ -106,14 +98,34 @@ router.get("/audit", requireComplianceAccess, async (req: Request, res: Response
   }
 });
 
-router.post("/audit", async (req: Request, res: Response) => {
+router.post("/audit", requireComplianceAccess, async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
     if (!orgId) {
       return res.status(401).json({ error: "Organization ID required" });
     }
     const eventData = logEventSchema.parse(req.body);
-    const event = await auditService.logEvent({ orgId, ...eventData });
+    const event = await auditService.logEvent({
+      orgId,
+      ...eventData,
+      performedBy: req.user?.id ?? "system",
+      performedByType: req.user ? "user" : "system",
+      performedByName: req.user?.name ?? req.user?.email ?? "System",
+      performedByRole: req.user?.role ?? "system",
+      ipAddress: req.ip,
+      metadata: {
+        ...(eventData.metadata ?? {}),
+        clientSuppliedActor: eventData.performedBy
+          ? {
+              performedBy: eventData.performedBy,
+              performedByType: eventData.performedByType,
+              performedByName: eventData.performedByName,
+              performedByRole: eventData.performedByRole,
+              ipAddress: eventData.ipAddress,
+            }
+          : undefined,
+      },
+    });
     res
       .status(201)
       .json({

@@ -144,17 +144,20 @@ export function registerDataExportRoutes(app: Express, deps: DataExportDependenc
 
       const service = getDataExportImportService();
 
-      const result = await service.importData(req.file.path, {
-        targetOrgId: DEFAULT_ORG_ID,
-        dryRun: req.body.dryRun === "true",
-        skipTelemetry: req.body.skipTelemetry === "true",
-        conflictResolution: req.body.conflictResolution || "upsert",
-      });
+      const fs = await import("node:fs/promises");
 
-      const fs = await import("fs");
-      fs.unlinkSync(req.file.path);
+      try {
+        const result = await service.importData(req.file.path, {
+          targetOrgId: DEFAULT_ORG_ID,
+          dryRun: req.body.dryRun === "true",
+          skipTelemetry: req.body.skipTelemetry === "true",
+          conflictResolution: req.body.conflictResolution || "upsert",
+        });
 
-      res.json(result);
+        res.json(result);
+      } finally {
+        await fs.unlink(req.file.path).catch(() => undefined);
+      }
     })
   );
 

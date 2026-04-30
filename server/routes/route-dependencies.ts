@@ -4,6 +4,9 @@
  */
 
 import multer from "multer";
+import fs from "node:fs";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
 
 // Rate limiters
 export {
@@ -139,12 +142,19 @@ export {
 
 // Multer upload configuration
 // NOSONAR: S5443 - /tmp used for temporary import processing; files processed and removed
+const dataImportUploadDir = "/tmp/data-imports";
+fs.mkdirSync(dataImportUploadDir, { recursive: true });
+
+function sanitizeUploadFilename(originalName: string): string {
+  const baseName = path.basename(originalName).replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 160);
+  return `${Date.now()}-${randomUUID()}-${baseName || "import.tar.gz"}`;
+}
+
 export const upload = multer({
   storage: multer.diskStorage({
-    destination: "/tmp/data-imports",
-    filename: (req, file, cb) => {
-      const uniqueName = `${Date.now()}-${file.originalname}`;
-      cb(null, uniqueName);
+    destination: dataImportUploadDir,
+    filename: (_req, file, cb) => {
+      cb(null, sanitizeUploadFilename(file.originalname));
     },
   }),
   limits: {

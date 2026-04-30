@@ -1,6 +1,17 @@
 {
   "handovers": [
     {
+      "id": "947440c8-cdd5-4ed6-be9e-8bc0c227aa79",
+      "orgId": "default-org-id",
+      "note": "post-hex-refactor",
+      "watchLabel": "02:00 / 06:00",
+      "generatedSummary": "All systems nominal",
+      "itemIds": [],
+      "authorId": "dev-admin-user",
+      "status": "draft",
+      "savedAt": "2026-04-30T07:03:06.691Z"
+    },
+    {
       "id": "e49635a3-cf8d-442e-b1a9-8cce64f85b1b",
       "orgId": "default-org-id",
       "note": "smoke handover",
@@ -26,6 +37,17 @@
     }
   ],
   "blockerResolutions": [
+    {
+      "id": "eaac7940-99c5-43ee-af13-9e0d34cca3d2",
+      "orgId": "default-org-id",
+      "itemId": "wo-hex",
+      "blockerType": "work_order",
+      "reason": "awaiting parts",
+      "owner": "Engineer",
+      "status": "waiting",
+      "savedAt": "2026-04-30T07:03:06.733Z",
+      "authorId": "dev-admin-user"
+    },
     {
       "id": "60dce4a1-b655-4c4e-84a8-3f381fcbdb00",
       "orgId": "default-org-id",
@@ -65,6 +87,17 @@
     }
   ],
   "issueReports": [
+    {
+      "id": "21d6475d-adb3-4ddd-9838-a1197adc3dea",
+      "orgId": "default-org-id",
+      "severity": "low",
+      "summary": "hex refactor smoke",
+      "target": "finding",
+      "suggestedHref": "/findings?action=create&flow=report-issue&issueId=21d6475d-adb3-4ddd-9838-a1197adc3dea",
+      "status": "draft",
+      "createdAt": "2026-04-30T07:03:06.773Z",
+      "authorId": "dev-admin-user"
+    },
     {
       "id": "f8854b2d-09ff-4057-ac33-578403f47c6a",
       "orgId": "default-org-id",

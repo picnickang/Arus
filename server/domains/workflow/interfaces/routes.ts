@@ -3,7 +3,11 @@ import { z } from "zod";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 import { validateResponse } from "../../../lib/api-helpers";
 import { withErrorHandling } from "../../../lib/route-utils";
-import { attentionWorkflowService } from "../application/attention-service.js";
+import {
+  AttentionWorkflowService,
+  createAttentionWorkflowService,
+} from "../application/attention-service.js";
+import type { AttentionWorkflowSources } from "../domain/ports.js";
 
 const workflowSeveritySchema = z.enum(["critical", "warning", "info", "success"]);
 const workflowQueueIdSchema = z.enum([
@@ -168,16 +172,27 @@ function getUserId(req: Request): string | undefined {
 
 export function registerWorkflowRoutes(
   app: Express,
-  deps: { generalApiRateLimit: any; writeOperationRateLimit?: any; requireOrgId: any }
+  deps: {
+    generalApiRateLimit: any;
+    writeOperationRateLimit?: any;
+    requireOrgId: any;
+    sources: AttentionWorkflowSources;
+  }
 ) {
-  const { generalApiRateLimit, writeOperationRateLimit = generalApiRateLimit, requireOrgId } = deps;
+  const {
+    generalApiRateLimit,
+    writeOperationRateLimit = generalApiRateLimit,
+    requireOrgId,
+    sources,
+  } = deps;
+  const service: AttentionWorkflowService = createAttentionWorkflowService(sources);
 
   app.get(
     "/api/attention/items",
     generalApiRateLimit,
     requireOrgId,
     withErrorHandling("get attention workflow items", async (req: Request, res: Response) => {
-      const workflow = await attentionWorkflowService.getWorkflow(getOrgId(req));
+      const workflow = await service.getWorkflow(getOrgId(req));
       res.json(validateResponse(attentionWorkflowResponseSchema, workflow, "GET /api/attention/items"));
     })
   );
@@ -187,7 +202,7 @@ export function registerWorkflowRoutes(
     generalApiRateLimit,
     requireOrgId,
     withErrorHandling("get latest workflow handover", async (req: Request, res: Response) => {
-      const record = await attentionWorkflowService.getLatestHandover(getOrgId(req));
+      const record = await service.getLatestHandover(getOrgId(req));
       res.json(validateResponse(handoverRecordSchema.nullable(), record, "GET /api/attention/handover/latest"));
     })
   );
@@ -197,7 +212,7 @@ export function registerWorkflowRoutes(
     generalApiRateLimit,
     requireOrgId,
     withErrorHandling("list workflow handovers", async (req: Request, res: Response) => {
-      const records = await attentionWorkflowService.listHandovers(getOrgId(req));
+      const records = await service.listHandovers(getOrgId(req));
       res.json(validateResponse(z.array(handoverRecordSchema), records, "GET /api/attention/handovers"));
     })
   );
@@ -208,7 +223,7 @@ export function registerWorkflowRoutes(
     requireOrgId,
     withErrorHandling("save workflow handover", async (req: Request, res: Response) => {
       const payload = saveHandoverSchema.parse(req.body);
-      const record = await attentionWorkflowService.saveHandover(getOrgId(req), payload, getUserId(req));
+      const record = await service.saveHandover(getOrgId(req), payload, getUserId(req));
       res.status(201).json(validateResponse(handoverRecordSchema, record, "POST /api/attention/handover"));
     })
   );
@@ -219,7 +234,7 @@ export function registerWorkflowRoutes(
     requireOrgId,
     withErrorHandling("save blocker resolution", async (req: Request, res: Response) => {
       const payload = saveBlockerResolutionSchema.parse(req.body);
-      const record = await attentionWorkflowService.saveBlockerResolution(getOrgId(req), payload, getUserId(req));
+      const record = await service.saveBlockerResolution(getOrgId(req), payload, getUserId(req));
       res.status(201).json(
         validateResponse(blockerResolutionRecordSchema, record, "POST /api/attention/blocker-resolutions")
       );
@@ -232,7 +247,7 @@ export function registerWorkflowRoutes(
     requireOrgId,
     withErrorHandling("report workflow issue", async (req: Request, res: Response) => {
       const payload = reportIssueSchema.parse(req.body);
-      const record = await attentionWorkflowService.reportIssue(getOrgId(req), payload, getUserId(req));
+      const record = await service.reportIssue(getOrgId(req), payload, getUserId(req));
       res.status(201).json(validateResponse(issueReportRecordSchema, record, "POST /api/attention/issues"));
     })
   );

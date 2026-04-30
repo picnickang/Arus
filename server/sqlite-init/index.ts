@@ -58,6 +58,7 @@ export async function initializeSqliteDatabase(): Promise<void> {
     await db.run(stmt);
   }
 
+  await runAdminSettingsCompatibilityMigration(libsqlClient);
   await runInventoryMigrations(libsqlClient);
   await verifyInventorySchema(libsqlClient);
 
@@ -117,8 +118,74 @@ export async function applyInventoryMigrations(): Promise<void> {
   if (!libsqlClient) {
     throw new Error("SQLite client not initialized");
   }
+  await runAdminSettingsCompatibilityMigration(libsqlClient);
   await runInventoryMigrations(libsqlClient);
   await verifyInventorySchema(libsqlClient);
+}
+
+async function runAdminSettingsCompatibilityMigration(client: LibsqlClient): Promise<void> {
+  const cols = await getTableColumns(client, "admin_system_settings");
+  if (!cols.length) {
+    return;
+  }
+
+  if (!cols.includes("org_id")) {
+    await safeAddColumn(client, "admin_system_settings", "org_id", "TEXT NOT NULL DEFAULT 'default-org-id'");
+  }
+  if (!cols.includes("category")) {
+    await safeAddColumn(client, "admin_system_settings", "category", "TEXT NOT NULL DEFAULT 'general'");
+  }
+  if (!cols.includes("key")) {
+    await safeAddColumn(client, "admin_system_settings", "\"key\"", "TEXT NOT NULL DEFAULT ''");
+  }
+  if (!cols.includes("value")) {
+    await safeAddColumn(client, "admin_system_settings", "value", "TEXT");
+  }
+  if (!cols.includes("data_type")) {
+    await safeAddColumn(client, "admin_system_settings", "data_type", "TEXT NOT NULL DEFAULT 'string'");
+  }
+  if (!cols.includes("is_secret")) {
+    await safeAddColumn(client, "admin_system_settings", "is_secret", "INTEGER DEFAULT 0");
+  }
+  if (!cols.includes("is_readonly")) {
+    await safeAddColumn(client, "admin_system_settings", "is_readonly", "INTEGER DEFAULT 0");
+  }
+  if (!cols.includes("validation_rule")) {
+    await safeAddColumn(client, "admin_system_settings", "validation_rule", "TEXT");
+  }
+  if (!cols.includes("default_value")) {
+    await safeAddColumn(client, "admin_system_settings", "default_value", "TEXT");
+  }
+  if (!cols.includes("updated_by")) {
+    await safeAddColumn(client, "admin_system_settings", "updated_by", "TEXT");
+  }
+
+  const refreshedCols = await getTableColumns(client, "admin_system_settings");
+  if (refreshedCols.includes("setting_key") && refreshedCols.includes("key")) {
+    await client.execute(
+      `UPDATE admin_system_settings SET "key" = setting_key WHERE ("key" IS NULL OR "key" = '') AND setting_key IS NOT NULL`
+    );
+  }
+  if (refreshedCols.includes("setting_value") && refreshedCols.includes("value")) {
+    await client.execute(
+      `UPDATE admin_system_settings SET value = setting_value WHERE value IS NULL AND setting_value IS NOT NULL`
+    );
+  }
+  if (refreshedCols.includes("setting_type") && refreshedCols.includes("data_type")) {
+    await client.execute(
+      `UPDATE admin_system_settings SET data_type = setting_type WHERE (data_type IS NULL OR data_type = 'string') AND setting_type IS NOT NULL`
+    );
+  }
+  if (refreshedCols.includes("is_sensitive") && refreshedCols.includes("is_secret")) {
+    await client.execute(
+      `UPDATE admin_system_settings SET is_secret = is_sensitive WHERE is_sensitive IS NOT NULL`
+    );
+  }
+
+  await client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_ass_org_category_key_unique ON admin_system_settings(org_id, category, "key")`
+  );
+  logger.info("✓ Admin system settings compatibility migration completed");
 }
 
 async function runInventoryMigrations(client: LibsqlClient): Promise<void> {

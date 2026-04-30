@@ -90,14 +90,19 @@ logger.info("✓ All module imports completed successfully");
 
 const app = express();
 let isApplicationReady = false;
+let isDatabaseReady = false;
+let databaseStatus = "initializing";
 
 app.use("/api/setup", setupRouter);
 
 app.get("/livez", (_req, res) => res.status(200).json({ status: "alive" }));
 
 app.get("/readyz", (_req, res) => {
-  res.status(isApplicationReady ? 200 : 503).json({
-    status: isApplicationReady ? "ready" : "initializing",
+  const ready = isApplicationReady && isDatabaseReady;
+  res.status(ready ? 200 : 503).json({
+    status: ready ? "ready" : "initializing",
+    application: isApplicationReady ? "ready" : "initializing",
+    database: databaseStatus,
   });
 });
 
@@ -145,9 +150,17 @@ if (!isInitDbMode && !isHealthCheckMode) {
       try {
         await initializeDatabase();
         await seedDevelopmentUser();
+        isDatabaseReady = true;
+        databaseStatus = "ready";
       } catch (dbError: any) {
-        logger.error("⚠️ Database initialization failed (non-fatal):", undefined, dbError.message);
+        isDatabaseReady = false;
+        databaseStatus = "failed";
+        logger.error("⚠️ Database initialization failed:", undefined, dbError.message);
         logger.info("   Frontend available, API will return 503 until database reconnects");
+
+        if (process.env.EMBEDDED_MODE !== "true" && process.env.LOCAL_MODE !== "true") {
+          throw dbError;
+        }
       }
 
       try {
@@ -205,7 +218,7 @@ if (!isInitDbMode && !isHealthCheckMode) {
       await configureFinalErrorHandlers(app);
 
       isApplicationReady = true;
-      setApiReady(true);
+      setApiReady(isDatabaseReady);
       markStartupComplete();
 
       startEventLoopMonitoring();

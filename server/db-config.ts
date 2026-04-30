@@ -167,6 +167,7 @@ if (!isLocalMode) {
 
 // Local SQLite Database with Cloud Sync (Vessel / offline deployments)
 let localClient: ReturnType<typeof createClient> | null = null;
+export let libsqlClient: ReturnType<typeof createClient> | null = null;
 let localDatabase: ReturnType<typeof drizzleSqlite> | null = null;
 
 // Async initialization function for local mode (prevents top-level await)
@@ -200,6 +201,7 @@ async function initializeLocalDatabase() {
       syncInterval: 0, // Disable auto-sync - Sync Manager controls sync timing
       encryptionKey: process.env.LOCAL_DB_KEY, // Optional encryption at rest
     });
+    libsqlClient = localClient;
   } else {
     logExpectedLimitation("Turso Sync", "Cloud sync not configured - running offline-only", [
       "Set TURSO_SYNC_URL and TURSO_AUTH_TOKEN to enable cloud sync",
@@ -210,6 +212,7 @@ async function initializeLocalDatabase() {
     localClient = createClient({
       url: `file:${localDbPath}`,
     });
+    libsqlClient = localClient;
   }
 
   // Apply SQLite performance optimizations
@@ -350,7 +353,6 @@ export type DbTransaction = Parameters<Parameters<DbType["transaction"]>[0]>[0];
 export type Database = DbType;
 
 export const pool = pgPool;
-export const libsqlClient = localClient;
 
 // Mode-aware table exports for storage layer
 // These provide a unified interface regardless of PostgreSQL vs SQLite

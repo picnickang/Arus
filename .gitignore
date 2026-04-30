@@ -20,3 +20,16 @@ data-exports/
 
 # Tauri build artifacts
 src-tauri/target/
+# Runtime secrets and local databases
+.env
+.env.*
+!.env.example
+data/*.db
+data/*.db-*
+data/*.sqlite
+data/*.sqlite-*
+*.db-wal
+*.db-shm
+coverage/
+reports/
+.scannerwork/

@@ -2,7 +2,7 @@
  * Archive Utilities
  *
  * Functions for creating and extracting tar.gz archives
- * with path traversal protection.
+ * with path traversal, symlink, and expansion-size protection.
  */
 
 import { createLogger } from "../../lib/structured-logger";
@@ -11,6 +11,8 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { createWriteStream } from "node:fs";
 import archiver from "archiver";
+
+const DEFAULT_MAX_EXTRACTED_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB
 
 /**
  * Create a tar.gz archive from a directory
@@ -29,8 +31,18 @@ export async function createArchive(sourceDir: string, outputPath: string): Prom
   });
 }
 
+function isWithinDirectory(candidatePath: string, basePath: string): boolean {
+  const relative = path.relative(basePath, candidatePath);
+  return relative === "" || (!!relative && !relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function maxExtractedBytes(): number {
+  const configured = Number.parseInt(process.env.MAX_IMPORT_EXTRACTED_BYTES ?? "", 10);
+  return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_MAX_EXTRACTED_BYTES;
+}
+
 /**
- * Extract a tar.gz archive with path traversal protection
+ * Extract a tar.gz archive with path traversal, symlink, and zip-bomb protection.
  */
 export async function extractArchive(archivePath: string, extractPath: string): Promise<void> {
   const extract = await import("tar");
@@ -38,16 +50,34 @@ export async function extractArchive(archivePath: string, extractPath: string): 
   fs.mkdirSync(extractPath, { recursive: true });
 
   const normalizedExtractPath = path.resolve(extractPath);
+  let extractedBytes = 0;
+  const maxBytes = maxExtractedBytes();
 
   await extract.extract({
     file: archivePath,
     cwd: extractPath,
-    filter: (entryPath: string) => {
+    preservePaths: false,
+    strict: true,
+    filter: (entryPath: string, entry: any) => {
       const resolvedPath = path.resolve(extractPath, entryPath);
-      if (!resolvedPath.startsWith(normalizedExtractPath)) {
+      if (!isWithinDirectory(resolvedPath, normalizedExtractPath)) {
         logger.error(`[DataImport] Path traversal attempt blocked: ${entryPath}`);
         return false;
       }
+
+      if (entry?.type === "SymbolicLink" || entry?.type === "Link") {
+        logger.error(`[DataImport] Link entry blocked: ${entryPath}`);
+        return false;
+      }
+
+      const size = Number(entry?.size ?? 0);
+      if (Number.isFinite(size) && size > 0) {
+        extractedBytes += size;
+        if (extractedBytes > maxBytes) {
+          throw new Error(`Import archive expands beyond configured limit (${maxBytes} bytes)`);
+        }
+      }
+
       return true;
     },
   });
@@ -59,5 +89,5 @@ export async function extractArchive(archivePath: string, extractPath: string): 
 export function validateFilePath(filePath: string, extractPath: string): boolean {
   const normalizedExtractPath = path.resolve(extractPath);
   const resolvedPath = path.resolve(filePath);
-  return resolvedPath.startsWith(normalizedExtractPath);
+  return isWithinDirectory(resolvedPath, normalizedExtractPath);
 }

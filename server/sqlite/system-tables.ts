@@ -7,7 +7,7 @@ import { sql } from "drizzle-orm";
 export function getSystemTablesSql(): SQL[] {
   return [
     sql`CREATE TABLE IF NOT EXISTS system_settings (id TEXT PRIMARY KEY, org_id TEXT NOT NULL, setting_key TEXT NOT NULL, setting_value TEXT, setting_type TEXT DEFAULT 'string', description TEXT, is_sensitive INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER)`,
-    sql`CREATE TABLE IF NOT EXISTS admin_system_settings (id TEXT PRIMARY KEY, setting_key TEXT NOT NULL UNIQUE, setting_value TEXT, setting_type TEXT DEFAULT 'string', category TEXT, description TEXT, is_sensitive INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER)`,
+    sql`CREATE TABLE IF NOT EXISTS admin_system_settings (id TEXT PRIMARY KEY, org_id TEXT NOT NULL DEFAULT 'default-org-id', category TEXT NOT NULL DEFAULT 'general', "key" TEXT NOT NULL, value TEXT, data_type TEXT NOT NULL DEFAULT 'string', description TEXT, is_secret INTEGER DEFAULT 0, is_readonly INTEGER DEFAULT 0, validation_rule TEXT, default_value TEXT, updated_by TEXT, created_at INTEGER, updated_at INTEGER, UNIQUE(org_id, category, "key"))`,
     sql`CREATE TABLE IF NOT EXISTS admin_audit_events (id TEXT PRIMARY KEY, org_id TEXT, user_id TEXT, action TEXT NOT NULL, resource_type TEXT, resource_id TEXT, details TEXT, ip_address TEXT, user_agent TEXT, created_at INTEGER)`,
     sql`CREATE TABLE IF NOT EXISTS error_logs (id TEXT PRIMARY KEY, org_id TEXT, error_type TEXT NOT NULL, error_message TEXT NOT NULL, stack_trace TEXT, context TEXT, severity TEXT DEFAULT 'error', resolved INTEGER DEFAULT 0, resolved_by TEXT, resolved_at INTEGER, created_at INTEGER)`,
     sql`CREATE TABLE IF NOT EXISTS integration_configs (id TEXT PRIMARY KEY, org_id TEXT NOT NULL, integration_type TEXT NOT NULL, integration_name TEXT NOT NULL, config TEXT, credentials TEXT, is_active INTEGER DEFAULT 1, last_sync_at INTEGER, sync_status TEXT DEFAULT 'pending', error_message TEXT, created_at INTEGER, updated_at INTEGER)`,
@@ -23,6 +23,7 @@ export function getSystemTablesSql(): SQL[] {
 export function getSystemIndexesSql(): SQL[] {
   return [
     sql`CREATE INDEX IF NOT EXISTS idx_system_settings_org ON system_settings(org_id)`,
+    sql`CREATE INDEX IF NOT EXISTS idx_ass_org_category_key ON admin_system_settings(org_id, category, "key")`,
     sql`CREATE INDEX IF NOT EXISTS idx_admin_audit_events_org ON admin_audit_events(org_id)`,
     sql`CREATE INDEX IF NOT EXISTS idx_admin_audit_events_action ON admin_audit_events(action)`,
     sql`CREATE INDEX IF NOT EXISTS idx_error_logs_type ON error_logs(error_type)`,

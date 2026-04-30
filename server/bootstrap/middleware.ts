@@ -18,10 +18,20 @@ import { isPublicApiPath, isSensitiveApiPath } from "./public-api-paths";
 
 export function configureMiddleware(app: Express): void {
   const isDevelopment = process.env.NODE_ENV === "development";
+  const isProduction = process.env.NODE_ENV === "production";
+  const isReplit = !!process.env.REPL_ID || !!process.env.REPL_SLUG;
 
   const isVesselMode =
     process.env.DEPLOYMENT_MODE === "vessel" || process.env.DEPLOYMENT_MODE === "desktop";
-  app.set("trust proxy", isVesselMode ? "loopback" : true);
+  const configuredTrustProxy = process.env.TRUST_PROXY_HOPS;
+  const trustProxy = configuredTrustProxy
+    ? Number.parseInt(configuredTrustProxy, 10)
+    : isVesselMode
+      ? "loopback"
+      : isReplit
+        ? 1
+        : false;
+  app.set("trust proxy", trustProxy);
 
   app.use(
     helmet({
@@ -60,14 +70,9 @@ export function configureMiddleware(app: Express): void {
     }
 
     // NOSONAR: S5332 - http://localhost allowed for local development only
-    // Production deployments use HTTPS exclusively via ALLOWED_ORIGINS env var
-    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",").filter(Boolean) || [
-      "https://*.replit.dev",
-      "https://*.replit.dev:*",
-      "https://*.replit.app",
-      "https://*.replit.app:*",
-      "https://*.replit.co",
-      "https://*.replit.co:*",
+    // Production deployments should set ALLOWED_ORIGINS explicitly. Replit keeps
+    // its own hosted origins as a safe default so uploaded projects still boot.
+    const defaultDevelopmentOrigins = [
       "http://localhost:*",
       "https://localhost:*",
       "http://127.0.0.1:*",
@@ -75,6 +80,22 @@ export function configureMiddleware(app: Express): void {
       "tauri://localhost",
       "https://tauri.localhost",
     ];
+    const defaultReplitOrigins = [
+      "https://*.replit.dev",
+      "https://*.replit.dev:*",
+      "https://*.replit.app",
+      "https://*.replit.app:*",
+      "https://*.replit.co",
+      "https://*.replit.co:*",
+    ];
+    const configuredOrigins = process.env.ALLOWED_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean);
+    const allowedOrigins = configuredOrigins?.length
+      ? configuredOrigins
+      : isProduction
+        ? isReplit
+          ? defaultReplitOrigins
+          : []
+        : [...defaultDevelopmentOrigins, ...defaultReplitOrigins];
 
     const allowed = originAllowed(origin, allowedOrigins);
 

@@ -9,17 +9,22 @@ export const adminSystemSettingsSqlite = sqliteTable(
   "admin_system_settings",
   {
     id: text("id").primaryKey(),
-    orgId: text("org_id").notNull(),
-    settingKey: text("setting_key").notNull(),
-    settingValue: text("setting_value"),
+    orgId: text("org_id").notNull().default("default-org-id"),
+    category: text("category").notNull().default("general"),
+    key: text("key").notNull(),
+    value: text("value"),
+    dataType: text("data_type").notNull().default("string"),
     description: text("description"),
-    dataType: text("data_type").default("string"),
-    isEncrypted: integer("is_encrypted", { mode: "boolean" }).default(false),
+    isSecret: integer("is_secret", { mode: "boolean" }).default(false),
+    isReadonly: integer("is_readonly", { mode: "boolean" }).default(false),
+    validationRule: text("validation_rule"),
+    defaultValue: text("default_value"),
+    updatedBy: text("updated_by"),
     createdAt: integer("created_at", { mode: "timestamp" }),
     updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
-    orgKeyIdx: index("idx_ass_org_key").on(table.orgId, table.settingKey),
+    orgCategoryKeyIdx: index("idx_ass_org_category_key").on(table.orgId, table.category, table.key),
   })
 );
 

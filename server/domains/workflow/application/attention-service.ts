@@ -1,10 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { dbAlertStorage } from "../../../db/alerts/index.js";
-import { dbEquipmentStorage } from "../../../db/equipment/index.js";
-import { dbInventoryStorage } from "../../../db/inventory/index.js";
-import { dbWorkOrderStorage } from "../../../db/workorders/index.js";
+import type { AttentionWorkflowSources } from "../domain/ports.js";
 
 export type WorkflowSeverity = "critical" | "warning" | "info" | "success";
 export type WorkflowQueueId =
@@ -347,12 +344,14 @@ function issueHref(target: IssueReportRecord["target"], issueId: string): string
 }
 
 export class AttentionWorkflowService {
+  constructor(private readonly sources: AttentionWorkflowSources) {}
+
   async getWorkflow(orgId: string): Promise<AttentionWorkflowResponse> {
     const [alertResult, workOrderResult, equipmentResult, lowStockResult, workflowState] = await Promise.all([
-      safeCall("alerts", () => dbAlertStorage.getAlertNotifications(false, orgId)),
-      safeCall("work-orders", () => dbWorkOrderStorage.getWorkOrders(undefined, orgId)),
-      safeCall("equipment", () => dbEquipmentStorage.getEquipmentRegistry(orgId)),
-      safeCall("low-stock", () => dbInventoryStorage.getLowStockParts(orgId)),
+      safeCall("alerts", () => this.sources.alerts.getAlertNotifications(orgId)),
+      safeCall("work-orders", () => this.sources.workOrders.getWorkOrders(orgId)),
+      safeCall("equipment", () => this.sources.equipment.getEquipmentRegistry(orgId)),
+      safeCall("low-stock", () => this.sources.inventory.getLowStockParts(orgId)),
       readWorkflowState(),
     ]);
 
@@ -772,4 +771,8 @@ export class AttentionWorkflowService {
   }
 }
 
-export const attentionWorkflowService = new AttentionWorkflowService();
+export function createAttentionWorkflowService(
+  sources: AttentionWorkflowSources
+): AttentionWorkflowService {
+  return new AttentionWorkflowService(sources);
+}

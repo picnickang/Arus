@@ -8,6 +8,7 @@
 
 import type { Express } from "express";
 import { createLogger } from "../lib/structured-logger";
+import { createWorkflowAttentionSources } from "../composition/workflow-attention-sources.js";
 const logger = createLogger("Routes:DomainRouterRegistry");
 import {
   generalApiRateLimit,
@@ -476,7 +477,12 @@ const domainRouters: DomainRouterConfig[] = [
     name: "Workflow",
     importPath: "../domains/workflow/index.js",
     functionName: "registerWorkflowRoutes",
-    getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit, requireOrgId }),
+    getDeps: () => ({
+      generalApiRateLimit,
+      writeOperationRateLimit,
+      requireOrgId,
+      sources: createWorkflowAttentionSources(),
+    }),
   },
 
   // Home Attention Summary
