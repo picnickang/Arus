@@ -14,13 +14,7 @@ export function useEquipmentFeatures(equipmentId: string, from?: string, to?: st
       if (to) {
         params.append("to", to);
       }
-      const res = await fetch(`/api/pdm/features?${params}`, {
-        headers: { "x-org-id": currentOrgId },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to fetch features");
-      }
-      return res.json();
+      return apiRequest("GET", `/api/pdm/features?${params}`);
     },
     enabled: !!equipmentId && !!currentOrgId,
   });
@@ -30,15 +24,7 @@ export function useLatestFeatures(equipmentId: string) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/features/latest", currentOrgId, equipmentId],
-    queryFn: async () => {
-      const res = await fetch(`/api/pdm/features/latest?equipmentId=${equipmentId}`, {
-        headers: { "x-org-id": currentOrgId },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to fetch latest features");
-      }
-      return res.json();
-    },
+    queryFn: async () => apiRequest("GET", `/api/pdm/features/latest?equipmentId=${encodeURIComponent(equipmentId)}`),
     enabled: !!equipmentId && !!currentOrgId,
   });
 }

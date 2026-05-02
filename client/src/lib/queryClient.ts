@@ -3,6 +3,17 @@ import { getCurrentDeviceId } from "@/hooks/useDeviceId";
 import { getCurrentOrgId } from "@/contexts/OrganizationContext";
 import { getBackendUrlSync } from "@/lib/desktopFetch";
 import { getApiSessionToken } from "@/lib/sessionToken";
+import {
+  addConflict,
+  getPendingOperations,
+  isOnline,
+  isQueueableMutation,
+  markOperationFailed,
+  queueApiOperation,
+  removeOperation,
+  setLastSyncTime,
+  type PendingOperation,
+} from "@/lib/offline-sync";
 
 export function resolveUrl(url: string): string {
   if (url.startsWith("http://") || url.startsWith("https://")) {
@@ -71,6 +82,46 @@ export function createHeaders(includeContentType: boolean = false): Record<strin
 export interface ApiRequestOptions {
   signal?: AbortSignal;
 }
+export interface QueuedApiResponse {
+  queuedForSync: true;
+  offline: true;
+  id: string;
+  entityType: string;
+  entityId: string;
+  message: string;
+}
+
+function isNetworkFailure(error: unknown): boolean {
+  return (
+    error instanceof TypeError ||
+    (error instanceof DOMException && error.name === "AbortError") ||
+    String(error).toLowerCase().includes("failed to fetch") ||
+    String(error).toLowerCase().includes("network")
+  );
+}
+
+function asPayloadRecord(data: unknown): Record<string, unknown> | undefined {
+  return data && typeof data === "object" && !Array.isArray(data)
+    ? (data as Record<string, unknown>)
+    : undefined;
+}
+
+async function queueOfflineApiRequest(
+  method: string,
+  url: string,
+  data: unknown
+): Promise<QueuedApiResponse> {
+  const operation = await queueApiOperation(method, url, asPayloadRecord(data));
+  return {
+    queuedForSync: true,
+    offline: true,
+    id: operation.id,
+    entityType: operation.entityType,
+    entityId: operation.entityId,
+    message: "Saved to the offline outbox. It will sync when the vessel is connected.",
+  };
+}
+
 
 export async function apiRequest<T = unknown>(
   method: string,
@@ -78,18 +129,32 @@ export async function apiRequest<T = unknown>(
   data?: unknown | undefined,
   options?: ApiRequestOptions
 ): Promise<T> {
-  const res = await fetch(resolveUrl(url), {
-    method,
-    headers: createHeaders(!!data),
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-    signal: options?.signal,
-  });
+  const shouldQueueOffline = isQueueableMutation(method, url);
+
+  if (shouldQueueOffline && !isOnline()) {
+    return (await queueOfflineApiRequest(method, url, data)) as T;
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(resolveUrl(url), {
+      method,
+      headers: createHeaders(!!data),
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+      signal: options?.signal,
+    });
+  } catch (error) {
+    if (shouldQueueOffline && isNetworkFailure(error)) {
+      return (await queueOfflineApiRequest(method, url, data)) as T;
+    }
+    throw error;
+  }
 
   await throwIfResNotOk(res);
 
   if (res.status === 204) {
-    return null;
+    return null as T;
   }
 
   const text = await res.text();
@@ -200,4 +265,70 @@ export function rollbackUpdate<TData>(_queryKey: string | string[]) {
       queryClient.setQueryData(context.queryKey, context.previousData);
     }
   };
+}
+
+
+export async function replayQueuedApiRequests(): Promise<{
+  synced: number;
+  failed: number;
+  conflicts: number;
+}> {
+  if (!isOnline()) {
+    return { synced: 0, failed: 0, conflicts: 0 };
+  }
+
+  const operations = await getPendingOperations();
+  const apiOperations = operations.filter((op: PendingOperation) => op.request);
+  let synced = 0;
+  let failed = 0;
+  let conflicts = 0;
+
+  for (const op of apiOperations) {
+    if (!op.request || op.retryCount >= 5) {
+      continue;
+    }
+
+    const payload = { ...op.payload };
+    delete payload.__queuedApiRequest;
+
+    try {
+      const response = await fetch(resolveUrl(op.request.url), {
+        method: op.request.method,
+        headers: createHeaders(op.request.method !== "DELETE"),
+        body: op.request.method === "DELETE" ? undefined : JSON.stringify(payload),
+        credentials: "include",
+      });
+
+      if (response.status === 409 || response.status === 412) {
+        let serverVersion: Record<string, unknown> = {};
+        try {
+          serverVersion = await response.json();
+        } catch {
+          serverVersion = { status: response.status, message: response.statusText };
+        }
+        await addConflict(op.id, op.entityType, op.entityId, payload, serverVersion);
+        conflicts++;
+        continue;
+      }
+
+      if (!response.ok) {
+        const message = (await response.text()) || response.statusText;
+        await markOperationFailed(op.id, message);
+        failed++;
+        continue;
+      }
+
+      await removeOperation(op.id);
+      synced++;
+    } catch (error) {
+      await markOperationFailed(op.id, error instanceof Error ? error.message : "Unknown sync error");
+      failed++;
+    }
+  }
+
+  if (synced > 0) {
+    await setLastSyncTime(new Date());
+  }
+
+  return { synced, failed, conflicts };
 }

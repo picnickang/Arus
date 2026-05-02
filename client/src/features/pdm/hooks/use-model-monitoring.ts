@@ -6,15 +6,7 @@ export function useModelDrift(modelVersionId: string) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/drift", currentOrgId, modelVersionId],
-    queryFn: async () => {
-      const res = await fetch(`/api/pdm/drift/${modelVersionId}`, {
-        headers: { "x-org-id": currentOrgId },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to fetch drift metrics");
-      }
-      return res.json();
-    },
+    queryFn: async () => apiRequest("GET", `/api/pdm/drift/${modelVersionId}`),
     enabled: !!modelVersionId && !!currentOrgId,
   });
 }
@@ -23,13 +15,7 @@ export function useDriftSummary() {
   const { currentOrgId } = useOrganization();
   return useQuery<{ alertCount: number; monitoredVersions: number }>({
     queryKey: ["/api/pdm/drift", "summary", currentOrgId],
-    queryFn: async () => {
-      const res = await fetch("/api/pdm/drift", { headers: { "x-org-id": currentOrgId } });
-      if (!res.ok) {
-        throw new Error("Failed to fetch drift summary");
-      }
-      return res.json();
-    },
+    queryFn: async () => apiRequest("GET", "/api/pdm/drift"),
     enabled: !!currentOrgId,
   });
 }

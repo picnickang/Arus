@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
-import { queryClient } from "./lib/queryClient";
+import { queryClient, replayQueuedApiRequests } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,6 +24,7 @@ import {
   markSetupComplete,
 } from "@/lib/desktopFetch";
 import { trackPageVisit } from "@/lib/pageTracking";
+import { getPendingCount } from "@/lib/offline-sync";
 
 const HomePage = lazy(() => import("@/pages/home"));
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -80,11 +81,31 @@ function FullPageLoader() {
   );
 }
 
+function buildRedirectTarget(to: string): string {
+  if (typeof window === "undefined") {
+    return to;
+  }
+
+  const [targetPath, targetQuery = ""] = to.split("?");
+  const merged = new URLSearchParams(targetQuery);
+  const current = new URLSearchParams(window.location.search);
+
+  current.forEach((value, key) => {
+    if (!merged.has(key)) {
+      merged.set(key, value);
+    }
+  });
+
+  const query = merged.toString();
+  return `${targetPath}${query ? `?${query}` : ""}${window.location.hash || ""}`;
+}
+
 function Redirect({ from, to }: { from: string; to: string }) {
   const [, setLocation] = useLocation();
   useEffect(() => {
-    trackRedirectUsage(from, to);
-    setLocation(to);
+    const target = buildRedirectTarget(to);
+    trackRedirectUsage(from, target);
+    setLocation(target, { replace: true });
   }, [from, to, setLocation]);
   return null;
 }
@@ -100,13 +121,46 @@ function useTrackPageVisit() {
 
 function ConnectivityBannerWithSync() {
   const [pendingCount, setPendingCount] = useState(0);
-  useEffect(() => {
+
+  const refreshPendingCount = useCallback(async () => {
     const cache = queryClient.getMutationCache();
-    return cache.subscribe(() => {
-      const pending = cache.getAll().filter((m) => m.state.status === "pending").length;
-      setPendingCount(pending);
-    });
+    const activeMutations = cache.getAll().filter((m) => m.state.status === "pending").length;
+    const offlinePending = await getPendingCount().catch(() => 0);
+    setPendingCount(activeMutations + offlinePending);
   }, []);
+
+  useEffect(() => {
+    refreshPendingCount();
+    const cache = queryClient.getMutationCache();
+    const unsubscribe = cache.subscribe(() => {
+      void refreshPendingCount();
+    });
+    const handleSyncChange = () => void refreshPendingCount();
+    const handleOnline = () => {
+      void replayQueuedApiRequests().finally(refreshPendingCount);
+    };
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data?.type === "ARUS_SYNC_OUTBOX_REQUEST") {
+        void replayQueuedApiRequests().finally(refreshPendingCount);
+      }
+    };
+    const interval = window.setInterval(refreshPendingCount, 15000);
+    window.addEventListener("arus:offline-sync-changed", handleSyncChange);
+    window.addEventListener("online", handleOnline);
+    navigator.serviceWorker?.addEventListener("message", handleServiceWorkerMessage);
+
+    if (navigator.onLine) {
+      void replayQueuedApiRequests().finally(refreshPendingCount);
+    }
+
+    return () => {
+      unsubscribe();
+      window.clearInterval(interval);
+      window.removeEventListener("arus:offline-sync-changed", handleSyncChange);
+      window.removeEventListener("online", handleOnline);
+      navigator.serviceWorker?.removeEventListener("message", handleServiceWorkerMessage);
+    };
+  }, [refreshPendingCount]);
   return <ConnectivityBanner pendingSyncCount={pendingCount} />;
 }
 
@@ -140,14 +194,14 @@ function Router() {
             <Switch>
               <Route path="/" component={HomePage} />
 
-              {allRoutes.map(({ path, component: Component }) => (
-                <Route key={path} path={path} component={Component} />
-              ))}
-
               {legacyRedirects.map(({ from, to }) => (
                 <Route key={from} path={from}>
                   {() => <Redirect from={from} to={to} />}
                 </Route>
+              ))}
+
+              {allRoutes.map(({ path, component: Component }) => (
+                <Route key={path} path={path} component={Component} />
               ))}
 
               <Route component={NotFound} />

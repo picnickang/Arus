@@ -6,13 +6,7 @@ export function useModels() {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/models", currentOrgId],
-    queryFn: async () => {
-      const res = await fetch("/api/pdm/models", { headers: { "x-org-id": currentOrgId } });
-      if (!res.ok) {
-        throw new Error("Failed to fetch models");
-      }
-      return res.json();
-    },
+    queryFn: async () => apiRequest("GET", "/api/pdm/models"),
     enabled: !!currentOrgId,
   });
 }
@@ -21,15 +15,7 @@ export function useModelVersions(modelId: string) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/models", modelId, "versions", currentOrgId],
-    queryFn: async () => {
-      const res = await fetch(`/api/pdm/models/${modelId}/versions`, {
-        headers: { "x-org-id": currentOrgId },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to fetch versions");
-      }
-      return res.json();
-    },
+    queryFn: async () => apiRequest("GET", `/api/pdm/models/${modelId}/versions`),
     enabled: !!modelId && !!currentOrgId,
   });
 }
@@ -38,15 +24,7 @@ export function useActiveDeployment(modelId: string) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/models", modelId, "deployment", currentOrgId],
-    queryFn: async () => {
-      const res = await fetch(`/api/pdm/models/${modelId}/deployment`, {
-        headers: { "x-org-id": currentOrgId },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to fetch deployment");
-      }
-      return res.json();
-    },
+    queryFn: async () => apiRequest("GET", `/api/pdm/models/${modelId}/deployment`),
     enabled: !!modelId && !!currentOrgId,
   });
 }

@@ -83,7 +83,7 @@ export function useWorkOrdersPageData() {
       setFormDialogOpen(true);
       setTimeout(() => {
         if (typeof globalThis !== "undefined") {
-          globalThis.history.replaceState({}, "", "/work-orders");
+          globalThis.history.replaceState({}, "", "/maint?tab=work-orders");
         }
       }, 100);
     }

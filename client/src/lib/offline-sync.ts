@@ -1,7 +1,18 @@
 import { openDB, DBSchema, IDBPDatabase } from "idb";
 
 export type OperationType = "create" | "update" | "delete";
-export type EntityType = "assignment" | "leave" | "certification";
+export type EntityType =
+  | "assignment"
+  | "leave"
+  | "certification"
+  | "work_order"
+  | "logbook"
+  | "checklist"
+  | "alert"
+  | "handover"
+  | "parts"
+  | "pdm_risk"
+  | "api_request";
 
 export interface PendingOperation {
   id: string;
@@ -13,6 +24,11 @@ export interface PendingOperation {
   retryCount: number;
   lastError?: string;
   lastModifiedAt?: string;
+  request?: {
+    method: string;
+    url: string;
+    contentType?: string;
+  };
 }
 
 export interface SyncConflict {
@@ -51,7 +67,7 @@ interface OfflineSyncDB extends DBSchema {
 }
 
 const DB_NAME = "arus-offline-sync";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbInstance: IDBPDatabase<OfflineSyncDB> | null = null;
 
@@ -112,6 +128,7 @@ export async function queueOperation(
       lastModifiedAt: lastModifiedAt || new Date().toISOString(),
     };
     await db.put("pendingOperations", updatedOp);
+    broadcastOfflineSyncChange();
     return existingOp.id;
   }
 
@@ -127,6 +144,7 @@ export async function queueOperation(
   };
 
   await db.add("pendingOperations", operation);
+  broadcastOfflineSyncChange();
   return operation.id;
 }
 
@@ -150,17 +168,20 @@ export async function markOperationFailed(operationId: string, error: string): P
     op.retryCount += 1;
     op.lastError = error;
     await db.put("pendingOperations", op);
+    broadcastOfflineSyncChange();
   }
 }
 
 export async function removeOperation(operationId: string): Promise<void> {
   const db = await getDB();
   await db.delete("pendingOperations", operationId);
+  broadcastOfflineSyncChange();
 }
 
 export async function clearAllOperations(): Promise<void> {
   const db = await getDB();
   await db.clear("pendingOperations");
+  broadcastOfflineSyncChange();
 }
 
 export async function addConflict(
@@ -179,6 +200,7 @@ export async function addConflict(
     serverVersion,
   };
   await db.put("conflicts", conflict);
+  broadcastOfflineSyncChange();
 }
 
 export async function getConflicts(): Promise<SyncConflict[]> {
@@ -208,6 +230,7 @@ export async function resolveConflict(
   conflict.resolution = resolution;
   conflict.resolvedAt = new Date().toISOString();
   await db.put("conflicts", conflict);
+  broadcastOfflineSyncChange();
 
   if (resolution === "server") {
     await removeOperation(operationId);
@@ -229,6 +252,9 @@ export async function clearResolvedConflicts(): Promise<void> {
   for (const conflict of resolved) {
     await db.delete("conflicts", conflict.operationId);
   }
+  if (resolved.length > 0) {
+    broadcastOfflineSyncChange();
+  }
 }
 
 export async function setSyncMetadata(key: string, value: unknown): Promise<void> {
@@ -249,6 +275,7 @@ export async function getLastSyncTime(): Promise<Date | null> {
 
 export async function setLastSyncTime(time: Date): Promise<void> {
   await setSyncMetadata("lastSyncTime", time.toISOString());
+  broadcastOfflineSyncChange();
 }
 
 export function isOnline(): boolean {
@@ -343,4 +370,101 @@ export async function getPendingCount(): Promise<number> {
 export async function hasConflicts(): Promise<boolean> {
   const conflicts = await getConflicts();
   return conflicts.some((c) => !c.resolvedAt);
+}
+
+
+const MUTATION_TO_OPERATION: Record<string, OperationType> = {
+  POST: "create",
+  PUT: "update",
+  PATCH: "update",
+  DELETE: "delete",
+};
+
+export function classifyOfflineEntity(url: string): EntityType {
+  if (url.startsWith("/api/work-orders") && url.includes("/parts")) return "parts";
+  if (url.startsWith("/api/work-orders")) return "work_order";
+  if (url.startsWith("/api/logbook/")) return "logbook";
+  if (url.startsWith("/api/maintenance-checklist")) return "checklist";
+  if (url.startsWith("/api/attention/")) return "handover";
+  if (url.startsWith("/api/rms/alerts") || url.startsWith("/api/alerts")) return "alert";
+  if (url.startsWith("/api/pdm/risk")) return "pdm_risk";
+  return "api_request";
+}
+
+export function isQueueableMutation(method: string, url: string): boolean {
+  const verb = method.toUpperCase();
+  if (!(verb in MUTATION_TO_OPERATION)) {
+    return false;
+  }
+
+  if (verb === "DELETE" && /\/clear(?:$|[/?#])/.test(url)) {
+    return false;
+  }
+
+  return [
+    "/api/work-orders",
+    "/api/logbook/deck",
+    "/api/logbook/engine",
+    "/api/maintenance-checklist",
+    "/api/attention/",
+    "/api/rms/alerts",
+    "/api/alerts",
+    "/api/pdm/risk",
+  ].some((prefix) => url.startsWith(prefix));
+}
+
+export async function queueApiOperation(
+  method: string,
+  url: string,
+  payload: Record<string, unknown> | undefined
+): Promise<PendingOperation> {
+  const verb = method.toUpperCase();
+  const entityType = classifyOfflineEntity(url);
+  const entityId =
+    (payload?.id as string | undefined) ||
+    (payload?.workOrderId as string | undefined) ||
+    (payload?.equipmentId as string | undefined) ||
+    url.split("?")[0].split("/").filter(Boolean).slice(-1)[0] ||
+    "pending";
+
+  const id = await queueOperation(
+    entityType,
+    String(entityId),
+    MUTATION_TO_OPERATION[verb] || "update",
+    {
+      ...(payload || {}),
+      __queuedApiRequest: true,
+    },
+    new Date().toISOString()
+  );
+
+  const db = await getDB();
+  const operation = await db.get("pendingOperations", id);
+  if (!operation) {
+    throw new Error("Queued operation could not be read back from offline store");
+  }
+
+  operation.request = { method: verb, url, contentType: "application/json" };
+  await db.put("pendingOperations", operation);
+  broadcastOfflineSyncChange();
+  return operation;
+}
+
+export function broadcastOfflineSyncChange(): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("arus:offline-sync-changed"));
+  }
+}
+
+export async function getOfflineSyncSnapshot(): Promise<{
+  pending: PendingOperation[];
+  conflicts: SyncConflict[];
+  lastSyncTime: Date | null;
+}> {
+  const [pending, conflicts, lastSyncTime] = await Promise.all([
+    getPendingOperations(),
+    getConflicts(),
+    getLastSyncTime(),
+  ]);
+  return { pending, conflicts, lastSyncTime };
 }

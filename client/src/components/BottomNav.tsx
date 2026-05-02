@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { navigationCategories, getCategoryById } from "@/config/navigationConfig";
+import { navigationCategories, getCategoryById, routeMigrations, type NavigationCategory } from "@/config/navigationConfig";
 import { Home, MoreHorizontal, X } from "lucide-react";
 
 const ROLE_DEFAULTS: Record<string, string[]> = {
@@ -33,8 +33,20 @@ export function BottomNav() {
 
   const visibleCategories = visibleCategoryIds.map((id) => getCategoryById(id)).filter(Boolean);
 
-  const isActive = (hubRoute: string) =>
-    location === hubRoute || (hubRoute !== "/" && location.startsWith(hubRoute));
+  const currentPath = location.split("?")[0];
+
+  const isCategoryActive = (category: NavigationCategory) => {
+    if (currentPath === category.hubRoute || currentPath.startsWith(`${category.hubRoute}/`)) {
+      return true;
+    }
+
+    if (category.children.some((item) => currentPath === item.href || currentPath.startsWith(`${item.href}/`))) {
+      return true;
+    }
+
+    const migrated = routeMigrations[currentPath];
+    return Boolean(migrated && migrated.startsWith(category.hubRoute));
+  };
 
   return (
     <>
@@ -59,7 +71,7 @@ export function BottomNav() {
             <div className="grid grid-cols-4 gap-3 mb-4">
               {navigationCategories.map((cat) => {
                 const Icon = cat.icon;
-                const active = isActive(cat.hubRoute);
+                const active = isCategoryActive(cat);
                 return (
                   <Link key={cat.id} href={cat.hubRoute}>
                     <div
@@ -110,7 +122,7 @@ export function BottomNav() {
               return null;
             }
             const Icon = cat.icon;
-            const active = isActive(cat.hubRoute);
+            const active = isCategoryActive(cat);
             return (
               <Link key={cat.id} href={cat.hubRoute}>
                 <div

@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-
-const ORG_ID = "default-org-id";
+import { apiRequest } from "@/lib/queryClient";
 
 export interface EnrichedWorkOrderPart {
   id: string;
@@ -37,10 +36,7 @@ export interface OutOfStockSuggestion {
 export function useEnrichedWorkOrderParts(workOrderId: string | undefined) {
   return useQuery<EnrichedWorkOrderPart[]>({
     queryKey: ["/api/work-orders", workOrderId, "parts", "enriched"],
-    queryFn: () =>
-      fetch(`/api/work-orders/${workOrderId}/parts/enriched`, {
-        headers: { "x-org-id": ORG_ID },
-      }).then((res) => res.json()),
+    queryFn: () => apiRequest("GET", `/api/work-orders/${workOrderId}/parts/enriched`),
     enabled: !!workOrderId,
   });
 }
@@ -48,10 +44,7 @@ export function useEnrichedWorkOrderParts(workOrderId: string | undefined) {
 export function useOutOfStockSuggestions(workOrderId: string | undefined) {
   return useQuery<OutOfStockSuggestion[]>({
     queryKey: ["/api/work-orders", workOrderId, "parts", "out-of-stock-suggestions"],
-    queryFn: () =>
-      fetch(`/api/work-orders/${workOrderId}/parts/out-of-stock-suggestions`, {
-        headers: { "x-org-id": ORG_ID },
-      }).then((res) => res.json()),
+    queryFn: () => apiRequest("GET", `/api/work-orders/${workOrderId}/parts/out-of-stock-suggestions`),
     enabled: !!workOrderId,
   });
 }

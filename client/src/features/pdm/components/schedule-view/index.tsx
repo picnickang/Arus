@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { useLocation, useSearch } from "wouter";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { createHeaders, resolveUrl } from "@/lib/queryClient";
 import { usePdmFilterOptions, usePdmSchedule, useCreateWorkOrderFromRisk } from "@/features/pdm";
 import type { PdmScheduledTask, ScheduleFilters } from "@/features/pdm";
 import { BlockedTasksSection } from "./BlockedTasksSection";
@@ -156,9 +157,9 @@ export function ScheduleView() {
         exportParams.set("endDate", filters.endDate);
       }
 
-      const response = await fetch(`/api/pdm/export/schedule?${exportParams.toString()}`, {
-        credentials: "same-origin",
-        headers: { Accept: "text/csv" },
+      const response = await fetch(resolveUrl(`/api/pdm/export/schedule?${exportParams.toString()}`), {
+        credentials: "include",
+        headers: { ...createHeaders(false), Accept: "text/csv" },
       });
       if (!response.ok) {
         throw new Error("Export failed");
@@ -178,9 +179,7 @@ export function ScheduleView() {
   };
 
   const handleMoveConfirm = (_newDate: Date, _isOverride: boolean) => {
-    // TODO(arus-pdm): Wire to schedule-update mutation. Currently the dialog
-    // closes without persisting the move — the persistence layer will be
-    // added when the schedule-write API is finalized.
+    // Disabled at the action button until the schedule-write API is available.
     setMoveTask(null);
   };
 

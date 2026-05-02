@@ -110,7 +110,7 @@ export function ConnectivityBanner({ pendingSyncCount = 0, className }: Connecti
   const config = {
     offline: {
       icon: WifiOff,
-      text: "Offline — changes will be saved locally and synced when connected",
+      text: "Offline — supported vessel workflows are saved in the Offline Outbox and synced when connected",
       bg: "bg-destructive/10 border-destructive/30",
       iconColor: "text-destructive",
       textColor: "text-destructive",

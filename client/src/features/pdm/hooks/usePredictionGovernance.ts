@@ -12,11 +12,7 @@ export function usePredictionGovernance(status?: string) {
         params.set("status", status);
       }
       const url = `/api/pdm/governance/predictions${params.toString() ? `?${params}` : ""}`;
-      const res = await fetch(url, { headers: { "x-org-id": currentOrgId || "" } });
-      if (!res.ok) {
-        throw new Error("Failed to fetch governance predictions");
-      }
-      return res.json();
+      return apiRequest("GET", url);
     },
     enabled: !!currentOrgId,
   });
@@ -26,15 +22,7 @@ export function useGovernanceDetail(id: number | null) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/governance/predictions", id],
-    queryFn: async () => {
-      const res = await fetch(`/api/pdm/governance/predictions/${id}`, {
-        headers: { "x-org-id": currentOrgId || "" },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to fetch governance details");
-      }
-      return res.json();
-    },
+    queryFn: async () => apiRequest("GET", `/api/pdm/governance/predictions/${id}`),
     enabled: id != null && !!currentOrgId,
   });
 }

@@ -4,35 +4,17 @@ import { useToast } from "@/hooks/use-toast";
 import type { ServiceOrderCardData } from "../components/ServiceOrderCard";
 import type { PartsRequestCardData } from "../components/PartsRequestCard";
 
-const ORG_ID = "default-org-id";
-
 export function useWorkOrderRequests(workOrderId: string) {
   const { toast } = useToast();
 
   const serviceOrdersQuery = useQuery<ServiceOrderCardData[]>({
     queryKey: ["/api/work-orders", workOrderId, "service-orders"],
-    queryFn: async () => {
-      const res = await fetch(`/api/work-orders/${workOrderId}/service-orders`, {
-        headers: { "x-org-id": ORG_ID },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to fetch service orders");
-      }
-      return res.json();
-    },
+    queryFn: async () => apiRequest("GET", `/api/work-orders/${workOrderId}/service-orders`),
   });
 
   const purchaseRequestsQuery = useQuery<PartsRequestCardData[]>({
     queryKey: ["/api/work-orders", workOrderId, "purchase-requests"],
-    queryFn: async () => {
-      const res = await fetch(`/api/work-orders/${workOrderId}/purchase-requests`, {
-        headers: { "x-org-id": ORG_ID },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to fetch purchase requests");
-      }
-      return res.json();
-    },
+    queryFn: async () => apiRequest("GET", `/api/work-orders/${workOrderId}/purchase-requests`),
   });
 
   const createServiceOrderMutation = useMutation({
@@ -99,17 +81,7 @@ export function useWorkOrderRequests(workOrderId: string) {
   });
 
   const deleteServiceOrderMutation = useMutation({
-    mutationFn: async (soId: string) => {
-      const res = await fetch(`/api/service-orders/${soId}`, {
-        method: "DELETE",
-        headers: { "x-org-id": ORG_ID },
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to delete service order");
-      }
-      return res.json();
-    },
+    mutationFn: async (soId: string) => apiRequest("DELETE", `/api/service-orders/${soId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["/api/work-orders", workOrderId, "service-orders"],
@@ -125,17 +97,7 @@ export function useWorkOrderRequests(workOrderId: string) {
   });
 
   const deletePurchaseRequestMutation = useMutation({
-    mutationFn: async (prId: string) => {
-      const res = await fetch(`/api/purchase-requests/${prId}`, {
-        method: "DELETE",
-        headers: { "x-org-id": ORG_ID },
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to delete purchase request");
-      }
-      return res.json();
-    },
+    mutationFn: async (prId: string) => apiRequest("DELETE", `/api/purchase-requests/${prId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["/api/work-orders", workOrderId, "purchase-requests"],
@@ -162,18 +124,7 @@ export function useWorkOrderRequests(workOrderId: string) {
       prId: string;
       itemId: string;
       quantity: number;
-    }) => {
-      const res = await fetch(`/api/purchase-requests/${prId}/items/${itemId}/fulfill`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-org-id": ORG_ID },
-        body: JSON.stringify({ quantityToFulfill: quantity }),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to fulfill item");
-      }
-      return res.json();
-    },
+    }) => apiRequest<Record<string, any>>("POST", `/api/purchase-requests/${prId}/items/${itemId}/fulfill`, { quantityToFulfill: quantity }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ["/api/work-orders", workOrderId, "purchase-requests"],
@@ -191,18 +142,8 @@ export function useWorkOrderRequests(workOrderId: string) {
   });
 
   const updatePRStatusMutation = useMutation({
-    mutationFn: async ({ prId, status }: { prId: string; status: string }) => {
-      const res = await fetch(`/api/purchase-requests/${prId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-org-id": ORG_ID },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to update status");
-      }
-      return res.json();
-    },
+    mutationFn: async ({ prId, status }: { prId: string; status: string }) =>
+      apiRequest("PATCH", `/api/purchase-requests/${prId}/status`, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["/api/work-orders", workOrderId, "purchase-requests"],
@@ -263,16 +204,7 @@ export function useWorkOrderRequests(workOrderId: string) {
         };
       }
 
-      const res = await fetch(`/api/service-orders/${soId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-org-id": ORG_ID },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to update service order");
-      }
-      return res.json();
+      return apiRequest("PATCH", `/api/service-orders/${soId}`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -289,18 +221,8 @@ export function useWorkOrderRequests(workOrderId: string) {
   });
 
   const updatePurchaseRequestMutation = useMutation({
-    mutationFn: async ({ prId, data }: { prId: string; data: Record<string, unknown> }) => {
-      const res = await fetch(`/api/purchase-requests/${prId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-org-id": ORG_ID },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to update purchase request");
-      }
-      return res.json();
-    },
+    mutationFn: async ({ prId, data }: { prId: string; data: Record<string, unknown> }) =>
+      apiRequest("PATCH", `/api/purchase-requests/${prId}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["/api/work-orders", workOrderId, "purchase-requests"],
@@ -319,17 +241,7 @@ export function useWorkOrderRequests(workOrderId: string) {
   });
 
   const bulkDeleteServiceOrdersMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`/api/service-orders/bulk/by-work-order/${workOrderId}`, {
-        method: "DELETE",
-        headers: { "x-org-id": ORG_ID },
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to delete service orders");
-      }
-      return res.json();
-    },
+    mutationFn: async () => apiRequest<Record<string, any>>("DELETE", `/api/service-orders/bulk/by-work-order/${workOrderId}`),
     onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ["/api/work-orders", workOrderId, "service-orders"],
@@ -349,17 +261,7 @@ export function useWorkOrderRequests(workOrderId: string) {
   });
 
   const bulkDeletePurchaseRequestsMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`/api/purchase-requests/bulk/by-work-order/${workOrderId}`, {
-        method: "DELETE",
-        headers: { "x-org-id": ORG_ID },
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to delete purchase requests");
-      }
-      return res.json();
-    },
+    mutationFn: async () => apiRequest<Record<string, any>>("DELETE", `/api/purchase-requests/bulk/by-work-order/${workOrderId}`),
     onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ["/api/work-orders", workOrderId, "purchase-requests"],

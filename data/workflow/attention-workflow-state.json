@@ -1,6 +1,17 @@
 {
   "handovers": [
     {
+      "id": "e4039ef3-f74a-4ee1-9553-af7d1a79ff11",
+      "orgId": "default-org-id",
+      "note": "post-9.10",
+      "watchLabel": "06:00 / 12:00",
+      "generatedSummary": "All systems nominal",
+      "itemIds": [],
+      "authorId": "dev-admin-user",
+      "status": "draft",
+      "savedAt": "2026-05-02T07:46:24.008Z"
+    },
+    {
       "id": "947440c8-cdd5-4ed6-be9e-8bc0c227aa79",
       "orgId": "default-org-id",
       "note": "post-hex-refactor",

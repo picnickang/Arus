@@ -19,6 +19,7 @@ import {
 import { ChevronRight, History, Plus } from "lucide-react";
 import { ROLES, ROLE_STORAGE_KEY } from "@/config/roles";
 import { WorkflowCommandCenter } from "@/features/workflow/components/WorkflowCommandCenter";
+import { RoleTodayPanel } from "@/features/workflow/components/RoleTodayPanel";
 import type { RoleConfig } from "@/config/roles";
 
 export { trackPageVisit };
@@ -99,7 +100,7 @@ function useAttentionItems() {
         label: "Overdue work orders",
         count: summary.overdueWorkOrders,
         severity: "critical",
-        href: "/work-orders?status=overdue",
+        href: "/maint?tab=work-orders&status=overdue",
       });
     }
     if (summary.unacknowledgedAlerts > 0) {
@@ -192,7 +193,7 @@ function MyTasks() {
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-foreground">My Tasks</h2>
         <button
-          onClick={() => setLocation("/work-orders?assignedToMe=true")}
+          onClick={() => setLocation("/maint?tab=work-orders&assignedToMe=true")}
           data-testid="link-view-all-tasks"
           className="text-xs text-primary hover:underline flex items-center gap-1"
         >
@@ -203,7 +204,7 @@ function MyTasks() {
         {tasks.map((task: any) => (
           <button
             key={task.id}
-            onClick={() => setLocation(`/work-orders?id=${task.id}`)}
+            onClick={() => setLocation(`/maint?tab=work-orders&id=${task.id}`)}
             data-testid={`button-task-${task.id}`}
             className="w-full flex items-center gap-3 p-3 rounded-lg border border-border
                        bg-card hover:border-primary/50 transition-colors text-left touch-target"
@@ -306,6 +307,8 @@ export default function HomePage() {
 
       <div className="px-4 lg:px-6 pt-2">
         {attentionItems.length > 0 && <AttentionBanner items={attentionItems} className="mb-4" />}
+
+        <RoleTodayPanel roleId={role} />
 
         <WorkflowCommandCenter roleId={role} />
 

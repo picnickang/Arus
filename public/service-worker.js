@@ -125,7 +125,7 @@ self.addEventListener('fetch', event => {
   }
 });
 
-// Background sync for work orders and alerts
+// Background sync notifications for the app-level Offline Outbox
 self.addEventListener('sync', event => {
   console.log('[SW] Background sync triggered:', event.tag);
   
@@ -268,30 +268,24 @@ async function networkFirstWithOfflineFallback(request) {
 
 async function syncWorkOrders() {
   try {
-    // TODO: Implement background sync for work orders
-    // This function is called when background sync event fires
-    // Implementation needed:
-    // 1. Get pending work order updates from IndexedDB
-    // 2. Send to API server
-    // 3. Update local cache on success
-    // 4. Remove from pending queue
-    console.log('[SW] Background sync for work orders (not yet implemented)');
+    const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of clientsList) {
+      client.postMessage({ type: 'ARUS_SYNC_OUTBOX_REQUEST', entityType: 'work_order' });
+    }
+    console.log('[SW] Requested app-level Offline Outbox replay for work orders');
   } catch (error) {
-    console.error('[SW] Work order sync failed:', error);
+    console.error('[SW] Work order sync request failed:', error);
   }
 }
 
 async function syncAlerts() {
   try {
-    // TODO: Implement background sync for alerts
-    // This function is called when background sync event fires
-    // Implementation needed:
-    // 1. Get pending alert updates from IndexedDB
-    // 2. Send to API server
-    // 3. Update local cache on success
-    // 4. Remove from pending queue
-    console.log('[SW] Background sync for alerts (not yet implemented)');
+    const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of clientsList) {
+      client.postMessage({ type: 'ARUS_SYNC_OUTBOX_REQUEST', entityType: 'alert' });
+    }
+    console.log('[SW] Requested app-level Offline Outbox replay for alerts');
   } catch (error) {
-    console.error('[SW] Alert sync failed:', error);
+    console.error('[SW] Alert sync request failed:', error);
   }
 }

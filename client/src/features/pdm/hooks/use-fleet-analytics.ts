@@ -7,14 +7,7 @@ export function useFleetBaselines(equipmentType: string) {
   return useQuery({
     queryKey: ["/api/pdm/fleet/baselines", currentOrgId, equipmentType],
     queryFn: async () => {
-      const res = await fetch(
-        `/api/pdm/fleet/baselines?equipmentType=${encodeURIComponent(equipmentType)}`,
-        { headers: { "x-org-id": currentOrgId } }
-      );
-      if (!res.ok) {
-        throw new Error("Failed to fetch baselines");
-      }
-      return res.json();
+      return apiRequest("GET", `/api/pdm/fleet/baselines?equipmentType=${encodeURIComponent(equipmentType)}`);
     },
     enabled: !!equipmentType && !!currentOrgId,
   });
@@ -26,13 +19,7 @@ export function useFleetComparison(equipmentId: string, equipmentType: string) {
     queryKey: ["/api/pdm/fleet/compare", currentOrgId, equipmentId, equipmentType],
     queryFn: async () => {
       const params = new URLSearchParams({ equipmentId, equipmentType });
-      const res = await fetch(`/api/pdm/fleet/compare?${params}`, {
-        headers: { "x-org-id": currentOrgId },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to fetch comparison");
-      }
-      return res.json();
+      return apiRequest("GET", `/api/pdm/fleet/compare?${params}`);
     },
     enabled: !!equipmentId && !!equipmentType && !!currentOrgId,
   });

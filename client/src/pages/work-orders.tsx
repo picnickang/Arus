@@ -1,12 +1,11 @@
 import { useState as useLocalState } from "react";
 import { Plus, Trash2, Package, FileText, Wrench, RefreshCw, AlertTriangle } from "lucide-react";
 import { WorkOrderRequestsTab } from "@/components/work-orders/WorkOrderRequestsTab";
-import { PredictionFeedbackForm } from "@/components/work-orders/PredictionFeedbackForm";
+import { WorkOrderCloseoutWizard, type CloseoutPredictionFeedback } from "@/components/work-orders/WorkOrderCloseoutWizard";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   WorkOrderFilterPanel,
   VirtualizedWorkOrderTable,
@@ -35,6 +34,7 @@ import {
   getStatusColor,
 } from "@/features/work-orders";
 import { PermissionGate } from "@/components/PermissionGate";
+import type { WorkOrder } from "@shared/schema";
 
 export default function WorkOrders() {
   const {
@@ -319,12 +319,7 @@ function StatCard({
   );
 }
 
-interface PredictionFeedbackData {
-  workOrderId: string;
-  predictionId?: string | number | null;
-  outcome: "confirmed" | "partial" | "false_alarm";
-  notes?: string;
-}
+type PredictionFeedbackData = CloseoutPredictionFeedback;
 
 function ViewOrderTabs({
   order,
@@ -344,18 +339,9 @@ function ViewOrderTabs({
   queryClient: { invalidateQueries: (options: { queryKey: string[] }) => void };
 }) {
   const isPredictiveWo = order.maintenanceType === "predictive";
-  const [showFeedbackStep, setShowFeedbackStep] = useLocalState(false);
-  const [predictionFeedback, setPredictionFeedback] = useLocalState<
-    PredictionFeedbackData | undefined
-  >(undefined);
+  const [closeoutOpen, setCloseoutOpen] = useLocalState(false);
 
-  const handleComplete = () => {
-    if (isPredictiveWo && !showFeedbackStep) {
-      setShowFeedbackStep(true);
-      return;
-    }
-    onComplete(predictionFeedback || undefined);
-  };
+  const handleComplete = () => setCloseoutOpen(true);
 
   return (
     <Tabs defaultValue="details" className="w-full">
@@ -449,32 +435,15 @@ function ViewOrderTabs({
             </div>
           )}
         </div>
-        {showFeedbackStep && order.status !== "completed" && order.status !== "cancelled" && (
-          <>
-            <Separator />
-            <PredictionFeedbackForm
-              workOrderId={order.id}
-              onChange={(feedback) =>
-                setPredictionFeedback(feedback as PredictionFeedbackData | undefined)
-              }
-            />
-          </>
-        )}
         <div className="flex justify-end gap-2 pt-4">
           {order.status !== "completed" && order.status !== "cancelled" && (
             <Button
               onClick={handleComplete}
-              disabled={isCompleting || (showFeedbackStep && isPredictiveWo && !predictionFeedback)}
+              disabled={isCompleting}
               variant="default"
               data-testid="button-complete-work-order"
             >
-              {isCompleting
-                ? "Completing..."
-                : showFeedbackStep
-                  ? "Submit & Complete"
-                  : isPredictiveWo
-                    ? "Provide Feedback & Complete"
-                    : "Complete Work Order"}
+              {isCompleting ? "Closing..." : "Closeout"}
             </Button>
           )}
           <Button variant="outline" onClick={onClose}>
@@ -507,6 +476,17 @@ function ViewOrderTabs({
           </Button>
         </div>
       </TabsContent>
+      <WorkOrderCloseoutWizard
+      open={closeoutOpen}
+      onOpenChange={setCloseoutOpen}
+      workOrderId={order.id}
+      isPredictive={isPredictiveWo}
+      isSubmitting={isCompleting}
+      onComplete={(feedback?: CloseoutPredictionFeedback) => {
+        onComplete(feedback);
+        setCloseoutOpen(false);
+      }}
+      />
     </Tabs>
   );
 }

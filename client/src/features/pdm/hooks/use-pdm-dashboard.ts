@@ -217,13 +217,7 @@ export function usePdmSchedule(filters?: ScheduleFilters) {
 
   return useQuery<PdmScheduleData>({
     queryKey: ["/api/pdm/schedule", filters],
-    queryFn: async () => {
-      const response = await fetch(url, { credentials: "same-origin" });
-      if (!response.ok) {
-        throw new Error("Failed to fetch schedule");
-      }
-      return response.json();
-    },
+    queryFn: async () => apiRequest("GET", url),
     refetchInterval: 60000,
     staleTime: 30000,
   });

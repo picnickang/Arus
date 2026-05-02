@@ -3,6 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import type { ComplianceFinding } from "@shared/schema";
 
+
+function initialComplianceTab(): string {
+  if (typeof window === "undefined") {
+    return "overview";
+  }
+  const tab = new URLSearchParams(window.location.search).get("tab");
+  return tab === "findings" || tab === "logbooks" || tab === "overview" ? tab : "overview";
+}
+
 interface ComplianceSummary {
   open: number;
   acknowledged: number;
@@ -14,7 +23,7 @@ interface ComplianceSummary {
 
 export function useLogsComplianceData() {
   const [selectedVessel, setSelectedVessel] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(initialComplianceTab);
 
   const { data: vessels = [], isLoading: vesselsLoading } = useQuery<
     { id: string; name: string }[]

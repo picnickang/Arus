@@ -27,7 +27,7 @@ import { WorkOrderHistoryTab } from "./WorkOrderHistoryTab";
 import { WorkOrderRequestsTab } from "./WorkOrderRequestsTab";
 import { LinkTemplateDialog } from "./LinkTemplateDialog";
 import { LinkedServiceOrdersPanel } from "./LinkedServiceOrdersPanel";
-import { PredictionFeedbackForm } from "./PredictionFeedbackForm";
+import { WorkOrderCloseoutWizard, type CloseoutPredictionFeedback } from "./WorkOrderCloseoutWizard";
 import { cn } from "@/lib/utils";
 import { useWorkOrderDetailData } from "@/features/work-orders";
 import type { WorkOrder } from "@shared/schema";
@@ -151,16 +151,7 @@ export function WorkOrderDetailDrawer({
     invalidateParts,
     invalidateChecklist,
   } = useWorkOrderDetailData({ workOrder });
-  const [showFeedbackStep, setShowFeedbackStep] = useLocalState(false);
-  const [predictionFeedback, setPredictionFeedback] = useLocalState<
-    | {
-        workOrderId: string;
-        predictionId?: string | number | null;
-        outcome: "confirmed" | "partial" | "false_alarm";
-        notes?: string;
-      }
-    | undefined
-  >(undefined);
+  const [closeoutOpen, setCloseoutOpen] = useLocalState(false);
 
   if (!workOrder) {
     return null;
@@ -419,17 +410,7 @@ export function WorkOrderDetailDrawer({
                 workOrderNumber={workOrder.woNumber || workOrder.id.slice(0, 8)}
                 workOrderStatus={workOrder.status}
               />
-              {showFeedbackStep &&
-                workOrder.status !== "completed" &&
-                workOrder.status !== "cancelled" && (
-                  <>
-                    <Separator />
-                    <PredictionFeedbackForm
-                      workOrderId={workOrder.id}
-                      onChange={(feedback) => setPredictionFeedback(feedback)}
-                    />
-                  </>
-                )}
+
             </TabsContent>
 
             <TabsContent value="parts" className="mt-0 p-4 sm:p-6">
@@ -518,33 +499,28 @@ export function WorkOrderDetailDrawer({
             {workOrder.status !== "completed" && workOrder.status !== "cancelled" && (
               <Button
                 size="sm"
-                onClick={() => {
-                  if (isPredictiveWo && !showFeedbackStep) {
-                    setShowFeedbackStep(true);
-                    setActiveTab("details");
-                  } else {
-                    onComplete(workOrder.id, predictionFeedback || undefined);
-                    setShowFeedbackStep(false);
-                    setPredictionFeedback(undefined);
-                  }
-                }}
-                disabled={
-                  isCompleting || (showFeedbackStep && isPredictiveWo && !predictionFeedback)
-                }
+                onClick={() => setCloseoutOpen(true)}
+                disabled={isCompleting}
                 data-testid="button-complete-wo-drawer"
                 className="text-xs sm:text-sm"
               >
-                {isCompleting
-                  ? "Completing..."
-                  : showFeedbackStep
-                    ? "Confirm Complete"
-                    : isPredictiveWo
-                      ? "Provide Feedback & Complete"
-                      : "Complete"}
+                {isCompleting ? "Closing..." : "Closeout"}
               </Button>
             )}
           </div>
         </div>
+
+        <WorkOrderCloseoutWizard
+          open={closeoutOpen}
+          onOpenChange={setCloseoutOpen}
+          workOrderId={workOrder.id}
+          isPredictive={isPredictiveWo}
+          isSubmitting={isCompleting}
+          onComplete={(feedback?: CloseoutPredictionFeedback) => {
+            onComplete(workOrder.id, feedback);
+            setCloseoutOpen(false);
+          }}
+        />
 
         <LinkTemplateDialog
           workOrderId={workOrder.id}
