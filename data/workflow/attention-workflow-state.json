@@ -1,6 +1,17 @@
 {
   "handovers": [
     {
+      "id": "04ba5192-2c60-4f65-b8a9-4859b73e2efa",
+      "orgId": "default-org-id",
+      "note": "smoke handover 1777780516",
+      "watchLabel": "smoke watch",
+      "generatedSummary": "smoke",
+      "itemIds": [],
+      "authorId": "dev-admin-user",
+      "status": "draft",
+      "savedAt": "2026-05-03T03:55:16.242Z"
+    },
+    {
       "id": "e4039ef3-f74a-4ee1-9553-af7d1a79ff11",
       "orgId": "default-org-id",
       "note": "post-9.10",
@@ -48,6 +59,29 @@
     }
   ],
   "blockerResolutions": [
+    {
+      "id": "8f6c2867-4411-494f-b4d3-7900507798b3",
+      "orgId": "default-org-id",
+      "itemId": "smoke-blocker-1777780516",
+      "workOrderId": "smoke-wo",
+      "blockerType": "parts",
+      "reason": "smoke",
+      "owner": "smoke",
+      "eta": "2026-05-04",
+      "status": "updated",
+      "savedAt": "2026-05-03T03:55:16.537Z",
+      "authorId": "dev-admin-user"
+    },
+    {
+      "id": "ce66b2a9-43f0-4fe5-93c4-0398d26edc2d",
+      "orgId": "default-org-id",
+      "itemId": "smoke-blocker-1777780463",
+      "blockerType": "Information needed",
+      "reason": "No reason provided",
+      "status": "updated",
+      "savedAt": "2026-05-03T03:54:23.443Z",
+      "authorId": "dev-admin-user"
+    },
     {
       "id": "eaac7940-99c5-43ee-af13-9e0d34cca3d2",
       "orgId": "default-org-id",
@@ -98,6 +132,17 @@
     }
   ],
   "issueReports": [
+    {
+      "id": "af4e8e6d-44aa-4a3a-9d7a-643e10014a15",
+      "orgId": "default-org-id",
+      "severity": "low",
+      "summary": "smoke issue 1777780516",
+      "target": "finding",
+      "suggestedHref": "/findings?action=create&flow=report-issue&issueId=af4e8e6d-44aa-4a3a-9d7a-643e10014a15",
+      "status": "draft",
+      "createdAt": "2026-05-03T03:55:16.459Z",
+      "authorId": "dev-admin-user"
+    },
     {
       "id": "21d6475d-adb3-4ddd-9838-a1197adc3dea",
       "orgId": "default-org-id",
