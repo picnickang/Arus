@@ -1,6 +1,6 @@
 import { AlertTriangle, ClipboardCheck, Filter, Search, ShipWheel } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,8 @@ import { WorkOrderLifecycleStrip } from "../components/WorkOrderLifecycleStrip";
 import type { AttentionItem, WorkflowStatus } from "../types";
 import { useOperationalWorkflow } from "../useOperationalWorkflow";
 
-function parseParams(location: string): URLSearchParams {
-  const [, query = ""] = location.split("?");
+function parseParams(search: string): URLSearchParams {
+  const query = search.startsWith("?") ? search.slice(1) : search;
   return new URLSearchParams(query);
 }
 
@@ -60,10 +60,11 @@ function searchItems(items: AttentionItem[], search: string): AttentionItem[] {
 }
 
 export default function AttentionInboxPage() {
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
+  const searchString = useSearch();
   const { queues, attentionItems, workOrders, handover, hasLiveData, usingAggregatedWorkflow, generatedAt, sources } = useOperationalWorkflow();
   const [search, setSearch] = useState("");
-  const params = useMemo(() => parseParams(location), [location]);
+  const params = useMemo(() => parseParams(searchString), [searchString]);
   const queue = params.get("queue") as WorkflowStatus | null;
   const filter = params.get("filter");
   const activeTab = tabFromParams(params);

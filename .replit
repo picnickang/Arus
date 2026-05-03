@@ -11,22 +11,6 @@ deploymentTarget = "autoscale"
 build = ["npm", "run", "build"]
 run = ["node", "./dist/index.cjs"]
 
-[[ports]]
-localPort = 5000
-externalPort = 5000
-
-[[ports]]
-localPort = 5100
-externalPort = 3001
-
-[[ports]]
-localPort = 23636
-externalPort = 80
-
-[[ports]]
-localPort = 23637
-externalPort = 3002
-
 [env]
 PORT = "5000"
 
