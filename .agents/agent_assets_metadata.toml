@@ -342,3 +342,21 @@ id = "N6mJ-Lw1eMSJOwaSXyww-"
 uri = "file://arus-full-20260427_0734.tar.gz"
 type = "unspecified"
 title = "ARUS Full Source Code (5.7 MB) — includes Workflow Inbox + Persistence updates"
+
+[[outputs]]
+id = "rCWxHHWAxI_jaVJov9s6Z"
+uri = "file://.local/exports/arus-frontend-source.txt"
+type = "text"
+title = "Frontend source bundle (5.5 MB, 793 files) — RECOMMENDED for UX/workflow evaluation"
+
+[[outputs]]
+id = "l8RZbkJc2KJwExvVQiYms"
+uri = "file://.local/exports/arus-source.tar.gz"
+type = "unspecified"
+title = "Complete source tarball (2.3 MB compressed, frontend+backend+configs)"
+
+[[outputs]]
+id = "Qfc0TwS8NPMtxzglvnomk"
+uri = "file://.local/exports/arus-full-source.txt"
+type = "text"
+title = "Complete source as single text file (12 MB, 2244 files) — needs ChatGPT Plus"
