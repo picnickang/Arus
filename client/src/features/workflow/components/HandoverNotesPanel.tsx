@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Clipboard, Save } from "lucide-react";
+import { CheckCircle2, Clipboard, MessageSquare, Save, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -60,19 +60,20 @@ export function HandoverNotesPanel({ handover, items }: { handover: AttentionHan
   }, [latestHandover]);
 
   const saveMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (status: HandoverRecord["status"] = "draft") =>
       apiRequest<HandoverRecord>("POST", "/api/attention/handover", {
         note,
         watchLabel: watchLabel || undefined,
         generatedSummary,
         itemIds: items.slice(0, 20).map((item) => item.id),
-        status: "draft",
+        status,
       }),
     onSuccess: (record) => {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ note, watchLabel, savedAt: record.savedAt }));
       setSavedAt(record.savedAt);
       queryClient.invalidateQueries({ queryKey: ["/api/attention/handover/latest"] });
-      toast({ title: "Handover saved", description: "The handover draft is saved on the backend and kept locally as a fallback." });
+      const label = record.status === "acknowledged" ? "acknowledged" : record.status === "shared" ? "shared" : "saved";
+      toast({ title: `Handover ${label}`, description: "The handover record is saved on the backend and kept locally as a fallback." });
     },
     onError: (error) => {
       const timestamp = new Date().toISOString();
@@ -87,7 +88,7 @@ export function HandoverNotesPanel({ handover, items }: { handover: AttentionHan
   });
 
   const copySummary = async () => {
-    const text = `${generatedSummary}\n\nWatch/shift: ${watchLabel || "Not specified"}\n\nHandover note:\n${note || "No extra note."}`;
+    const text = `${generatedSummary}\n\nWatch/shift: ${watchLabel || "Not specified"}\nStatus: ${latestHandover?.status || "draft"}\n\nHandover note:\n${note || "No extra note."}`;
     await navigator.clipboard?.writeText(text);
     toast({ title: "Briefing copied", description: "The handover briefing is ready to paste into an email, chat, or log note." });
   };
@@ -112,10 +113,33 @@ export function HandoverNotesPanel({ handover, items }: { handover: AttentionHan
           placeholder="Add unresolved issues, ETA changes, safety concerns, or next-watch instructions..."
           className="min-h-28"
         />
+        {latestHandover?.status && (
+          <div className="rounded-md border bg-muted/30 p-3 text-sm">
+            Current handover status: <span className="font-medium capitalize">{latestHandover.status}</span>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+          <Button onClick={() => saveMutation.mutate("draft")} disabled={saveMutation.isPending}>
             <Save className="h-4 w-4" />
-            {saveMutation.isPending ? "Saving..." : "Save handover record"}
+            {saveMutation.isPending ? "Saving..." : "Save draft"}
+          </Button>
+          <Button variant="outline" onClick={() => saveMutation.mutate("shared")} disabled={saveMutation.isPending}>
+            <Send className="h-4 w-4" />
+            Share handover
+          </Button>
+          <Button variant="secondary" onClick={() => saveMutation.mutate("acknowledged")} disabled={saveMutation.isPending || latestHandover?.status !== "shared"}>
+            <CheckCircle2 className="h-4 w-4" />
+            Accept incoming watch
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setNote((current) => `${current}${current ? "\n" : ""}Clarification requested: `);
+              toast({ title: "Clarification note started", description: "Add the question, then share the handover again." });
+            }}
+          >
+            <MessageSquare className="h-4 w-4" />
+            Ask clarification
           </Button>
           <Button variant="outline" onClick={copySummary}>
             <Clipboard className="h-4 w-4" />

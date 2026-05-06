@@ -2,6 +2,7 @@ import type {
   QuickWorkOrderInput,
   QuickWorkOrderResult,
   CompletionPredictionFeedback,
+  WorkOrderCloseoutDetails,
 } from "./workflow-types";
 
 export interface IWorkOrderWorkflowRepository {
@@ -66,6 +67,12 @@ export interface LegacyCompletionData {
   completedBy?: string | null;
   actualDowntimeHours?: number;
   completionNotes?: string | null;
+  notes?: string | null;
+  partsUsed?: unknown;
+  partsCount?: number;
+  qualityCheckPassed?: boolean;
+  actualDurationHours?: number;
+  closeout?: WorkOrderCloseoutDetails;
 }
 
 export interface ILegacyCompletionPort {

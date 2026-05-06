@@ -453,6 +453,9 @@ export class AttentionWorkflowService {
       const reason = asString(wo.blockedReason) ?? "Missing blocker reason";
       const queue = blockerQueue(reason);
       const lastResolution = resolutionSummary(latestResolutions.get(id));
+      if (lastResolution?.status === "unblocked") {
+        return;
+      }
       items.push({
         id: `wo-blocked-${id}`,
         type: "work_order",
@@ -523,6 +526,9 @@ export class AttentionWorkflowService {
       const id = asString(part.id) ?? asString(part.partId) ?? randomUUID();
       const name = asString(part.name) || asString(part.partName) || asString(part.partNo) || "Part";
       const lastResolution = resolutionSummary(latestResolutions.get(id));
+      if (lastResolution?.status === "unblocked") {
+        return;
+      }
       items.push({
         id: `low-stock-${id}`,
         type: "inventory",

@@ -30,11 +30,24 @@ export interface QuickWorkOrderResult {
   queuedOffline: boolean;
 }
 
+export interface WorkOrderCloseoutDetails {
+  workPerformed?: string;
+  causeFound?: string;
+  partsUsed?: string;
+  laborHours?: number | null;
+  downtimeHours?: number | null;
+  evidenceNote?: string;
+  checklistVerified?: boolean;
+  supervisorVerified?: boolean;
+}
+
 export interface WorkOrderCompletionInput {
   workOrderId: string;
   orgId: string;
   completionNotes?: string;
   actualHours?: number;
+  actualDowntimeHours?: number;
+  closeout?: WorkOrderCloseoutDetails;
   predictionFeedback?: CompletionPredictionFeedback;
 }
 

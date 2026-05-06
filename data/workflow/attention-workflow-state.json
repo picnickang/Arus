@@ -1,6 +1,17 @@
 {
   "handovers": [
     {
+      "id": "1333a353-5d29-42ec-bc58-0c5e45142395",
+      "orgId": "default-org-id",
+      "note": "gap-closure smoke 1778089645",
+      "watchLabel": "smoke",
+      "generatedSummary": "",
+      "itemIds": [],
+      "authorId": "dev-admin-user",
+      "status": "draft",
+      "savedAt": "2026-05-06T17:47:25.619Z"
+    },
+    {
       "id": "04ba5192-2c60-4f65-b8a9-4859b73e2efa",
       "orgId": "default-org-id",
       "note": "smoke handover 1777780516",
@@ -59,6 +70,17 @@
     }
   ],
   "blockerResolutions": [
+    {
+      "id": "b81b4fb1-6e6f-4d00-8030-e9e868c611c8",
+      "orgId": "default-org-id",
+      "itemId": "smoke-1778089645",
+      "workOrderId": "231835c4-c857-46c4-85c3-a1cc07b34187",
+      "blockerType": "parts",
+      "reason": "smoke unblocked",
+      "status": "unblocked",
+      "savedAt": "2026-05-06T17:47:25.556Z",
+      "authorId": "dev-admin-user"
+    },
     {
       "id": "8f6c2867-4411-494f-b4d3-7900507798b3",
       "orgId": "default-org-id",

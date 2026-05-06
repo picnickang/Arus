@@ -184,14 +184,34 @@ export function useWorkOrdersPageData() {
       predictionFeedback?: Record<string, unknown>;
     }) => {
       const order = workOrders?.find((wo) => wo.id === orderId);
-      let actualHours: number | undefined;
-      if (order?.actualStartDate) {
+      const closeout = predictionFeedback?.closeout as
+        | {
+            workPerformed?: string;
+            causeFound?: string;
+            partsUsed?: string;
+            laborHours?: number | null;
+            downtimeHours?: number | null;
+            evidenceNote?: string;
+            checklistVerified?: boolean;
+            supervisorVerified?: boolean;
+          }
+        | undefined;
+      let actualHours = typeof closeout?.laborHours === "number" ? closeout.laborHours : undefined;
+      if (actualHours === undefined && order?.actualStartDate) {
         const startDate = new Date(order.actualStartDate);
         actualHours = Math.round(((Date.now() - startDate.getTime()) / (1000 * 60 * 60)) * 10) / 10;
       }
+
+      const sanitizedPredictionFeedback = predictionFeedback
+        ? Object.fromEntries(Object.entries(predictionFeedback).filter(([key]) => key !== "closeout"))
+        : undefined;
+
       await apiRequest("POST", `/api/work-orders/${orderId}/complete-with-feedback`, {
         actualHours,
-        predictionFeedback,
+        actualDowntimeHours: typeof closeout?.downtimeHours === "number" ? closeout.downtimeHours : undefined,
+        completionNotes: predictionFeedback?.notes,
+        closeout,
+        predictionFeedback: sanitizedPredictionFeedback,
       });
       return { orderId };
     },

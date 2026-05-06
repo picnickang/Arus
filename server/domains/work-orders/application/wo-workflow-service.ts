@@ -34,6 +34,8 @@ export class WorkOrderWorkflowService {
       predictionFeedback: feedback,
       completionNotes,
       actualHours,
+      actualDowntimeHours,
+      closeout,
     } = input;
 
     const wo = await this.woRepo.findById(workOrderId, orgId);
@@ -76,6 +78,27 @@ export class WorkOrderWorkflowService {
       };
     }
 
+    const closeoutNotes = closeout
+      ? [
+          closeout.workPerformed ? `Work performed: ${closeout.workPerformed}` : undefined,
+          closeout.causeFound ? `Cause found: ${closeout.causeFound}` : undefined,
+          closeout.partsUsed ? `Parts used: ${closeout.partsUsed}` : undefined,
+          closeout.evidenceNote ? `Evidence: ${closeout.evidenceNote}` : undefined,
+          `Checklist verified: ${closeout.checklistVerified ? "yes" : "no"}`,
+          `Supervisor verified: ${closeout.supervisorVerified ? "yes" : "no"}`,
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : undefined;
+    const structuredCompletionNotes = [completionNotes, closeoutNotes].filter(Boolean).join("\n\n") || undefined;
+    const laborHours = typeof closeout?.laborHours === "number" ? closeout.laborHours : actualHours;
+    const downtimeHours =
+      typeof closeout?.downtimeHours === "number"
+        ? closeout.downtimeHours
+        : typeof actualDowntimeHours === "number"
+          ? actualDowntimeHours
+          : actualHours || 0;
+
     try {
       await this.legacyCompletion.completeWorkOrder(
         workOrderId,
@@ -85,8 +108,14 @@ export class WorkOrderWorkflowService {
           equipmentId: wo.equipmentId,
           vesselId: wo.vesselId || undefined,
           completedAt: new Date(),
-          completionNotes: completionNotes || undefined,
-          actualDowntimeHours: actualHours || 0,
+          completionNotes: structuredCompletionNotes,
+          notes: structuredCompletionNotes,
+          actualDowntimeHours: downtimeHours,
+          actualDurationHours: laborHours,
+          partsUsed: closeout?.partsUsed ? [{ description: closeout.partsUsed }] : undefined,
+          partsCount: closeout?.partsUsed ? 1 : 0,
+          qualityCheckPassed: Boolean(closeout?.checklistVerified && closeout?.supervisorVerified),
+          closeout,
         },
         orgId,
         userId
@@ -103,7 +132,7 @@ export class WorkOrderWorkflowService {
     }
 
     await this.events.emitStatusChanged(workOrderId, orgId, wo.status, "completed", userId);
-    await this.events.emitCompleted(workOrderId, orgId, userId, actualHours, completionNotes);
+    await this.events.emitCompleted(workOrderId, orgId, userId, laborHours, structuredCompletionNotes);
 
     try {
       await this.legacyCompletion.aggregateProcurementCosts(workOrderId, orgId);

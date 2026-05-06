@@ -60,7 +60,7 @@ export function registerWorkOrderWorkflowRoutes(
       const userId = getUserId(req);
       const workOrderId = req.params.id;
 
-      const { completionNotes, actualHours, predictionFeedback } = req.body;
+      const { completionNotes, actualHours, actualDowntimeHours, closeout, predictionFeedback } = req.body;
 
       if (predictionFeedback) {
         const validOutcomes = ["confirmed", "partial", "false_alarm"];
@@ -77,6 +77,8 @@ export function registerWorkOrderWorkflowRoutes(
           orgId,
           completionNotes,
           actualHours,
+          actualDowntimeHours,
+          closeout,
           predictionFeedback: predictionFeedback
             ? {
                 workOrderId,

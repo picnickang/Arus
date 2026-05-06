@@ -24,6 +24,8 @@ export interface PendingOperation {
   retryCount: number;
   lastError?: string;
   lastModifiedAt?: string;
+  clientMutationId?: string;
+  conflictPaused?: boolean;
   request?: {
     method: string;
     url: string;
@@ -106,6 +108,13 @@ function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
+export function generateClientMutationId(prefix = "client-mutation"): string {
+  const randomPart = typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return `${prefix}:${randomPart}`;
+}
+
 export async function queueOperation(
   entityType: EntityType,
   entityId: string,
@@ -115,10 +124,13 @@ export async function queueOperation(
 ): Promise<string> {
   const db = await getDB();
 
-  const existingOps = await db.getAllFromIndex("pendingOperations", "by-entity", [
-    entityType,
-    entityId,
-  ]);
+  const shouldDedupe = operationType !== "create" || payload.__allowOfflineCreateDedupe === true;
+  const existingOps = shouldDedupe
+    ? await db.getAllFromIndex("pendingOperations", "by-entity", [
+        entityType,
+        entityId,
+      ])
+    : [];
 
   const existingOp = existingOps.find((op) => op.operationType === operationType);
   if (existingOp) {
@@ -200,6 +212,14 @@ export async function addConflict(
     serverVersion,
   };
   await db.put("conflicts", conflict);
+
+  const op = await db.get("pendingOperations", operationId);
+  if (op) {
+    op.conflictPaused = true;
+    op.lastError = "Conflict needs review before this change can sync.";
+    await db.put("pendingOperations", op);
+  }
+
   broadcastOfflineSyncChange();
 }
 
@@ -240,9 +260,15 @@ export async function resolveConflict(
       op.payload = mergedPayload || op.payload;
       op.retryCount = 0;
       op.lastError = undefined;
+      op.conflictPaused = false;
       await db.put("pendingOperations", op);
     }
   }
+}
+
+export async function getUnresolvedConflictOperationIds(): Promise<Set<string>> {
+  const conflicts = await getConflicts();
+  return new Set(conflicts.filter((conflict) => !conflict.resolvedAt).map((conflict) => conflict.operationId));
 }
 
 export async function clearResolvedConflicts(): Promise<void> {
@@ -326,12 +352,13 @@ export async function syncPendingOperations(
   }
 
   const operations = await getPendingOperations();
+  const unresolvedConflictIds = await getUnresolvedConflictOperationIds();
   let synced = 0;
   let failed = 0;
   let conflicts = 0;
 
   for (const op of operations) {
-    if (op.retryCount >= 5) {
+    if (op.retryCount >= 5 || op.conflictPaused || unresolvedConflictIds.has(op.id)) {
       continue;
     }
 
@@ -420,19 +447,28 @@ export async function queueApiOperation(
 ): Promise<PendingOperation> {
   const verb = method.toUpperCase();
   const entityType = classifyOfflineEntity(url);
+  const operationType = MUTATION_TO_OPERATION[verb] || "update";
+  const routeEntityId = url.split("?")[0].split("/").filter(Boolean).slice(-1)[0];
+  const clientMutationId =
+    (payload?.clientMutationId as string | undefined) ||
+    (payload?.__clientMutationId as string | undefined) ||
+    (operationType === "create" ? generateClientMutationId(entityType) : undefined);
   const entityId =
-    (payload?.id as string | undefined) ||
-    (payload?.workOrderId as string | undefined) ||
-    (payload?.equipmentId as string | undefined) ||
-    url.split("?")[0].split("/").filter(Boolean).slice(-1)[0] ||
-    "pending";
+    operationType === "create"
+      ? `client:${clientMutationId}`
+      : (payload?.id as string | undefined) ||
+        (payload?.workOrderId as string | undefined) ||
+        (payload?.equipmentId as string | undefined) ||
+        routeEntityId ||
+        "pending";
 
   const id = await queueOperation(
     entityType,
     String(entityId),
-    MUTATION_TO_OPERATION[verb] || "update",
+    operationType,
     {
       ...(payload || {}),
+      __clientMutationId: clientMutationId,
       __queuedApiRequest: true,
     },
     new Date().toISOString()
@@ -444,6 +480,7 @@ export async function queueApiOperation(
     throw new Error("Queued operation could not be read back from offline store");
   }
 
+  operation.clientMutationId = clientMutationId;
   operation.request = { method: verb, url, contentType: "application/json" };
   await db.put("pendingOperations", operation);
   broadcastOfflineSyncChange();

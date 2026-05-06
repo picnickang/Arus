@@ -6,6 +6,7 @@ import { getApiSessionToken } from "@/lib/sessionToken";
 import {
   addConflict,
   getPendingOperations,
+  getUnresolvedConflictOperationIds,
   isOnline,
   isQueueableMutation,
   markOperationFailed,
@@ -278,18 +279,23 @@ export async function replayQueuedApiRequests(): Promise<{
   }
 
   const operations = await getPendingOperations();
+  const unresolvedConflictIds = await getUnresolvedConflictOperationIds();
   const apiOperations = operations.filter((op: PendingOperation) => op.request);
   let synced = 0;
   let failed = 0;
   let conflicts = 0;
 
   for (const op of apiOperations) {
-    if (!op.request || op.retryCount >= 5) {
+    if (!op.request || op.retryCount >= 5 || op.conflictPaused || unresolvedConflictIds.has(op.id)) {
       continue;
     }
 
     const payload = { ...op.payload };
-    delete payload.__queuedApiRequest;
+    Object.keys(payload).forEach((key) => {
+      if (key.startsWith("__")) {
+        delete payload[key];
+      }
+    });
 
     try {
       const response = await fetch(resolveUrl(op.request.url), {

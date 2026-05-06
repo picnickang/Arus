@@ -217,6 +217,11 @@ export class LegacyCompletionAdapter implements ILegacyCompletionPort {
       completedBy: userId || completionData.completedBy || null,
       actualDowntimeHours: completionData.actualDowntimeHours || 0,
       completionNotes: completionData.completionNotes || null,
+      notes: completionData.notes || completionData.completionNotes || null,
+      partsUsed: completionData.partsUsed || undefined,
+      partsCount: completionData.partsCount || 0,
+      qualityCheckPassed: completionData.qualityCheckPassed,
+      actualDurationHours: completionData.actualDurationHours,
     };
     await workOrderService.completeWorkOrder(workOrderId, completionRecord);
   }

@@ -21,7 +21,7 @@ const ROLE_PRIMARY_ACTIONS: Record<string, Array<{ label: string; href: string }
     { label: "Scan equipment", href: "/equipment-scan" },
   ],
   deck_officer: [
-    { label: "Prepare handover", href: "/attention-inbox?tab=handover" },
+    { label: "Prepare handover", href: "/attention-inbox?view=handover" },
     { label: "New deck log", href: "/logs?tab=deck&action=new" },
     { label: "Rest hours", href: "/crew?tab=rest-hours" },
   ],

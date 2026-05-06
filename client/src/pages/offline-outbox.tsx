@@ -11,6 +11,7 @@ import {
   clearAllOperations,
   getOfflineSyncSnapshot,
   removeOperation,
+  resolveConflict,
   type PendingOperation,
   type SyncConflict,
 } from "@/lib/offline-sync";
@@ -82,6 +83,11 @@ export default function OfflineOutboxPage() {
     };
   }, [refresh]);
 
+  const unresolvedConflictIds = useMemo(
+    () => new Set(conflicts.map((conflict) => conflict.operationId)),
+    [conflicts]
+  );
+
   const counts = useMemo(
     () => ({
       workOrders: pending.filter((op) => op.entityType === "work_order").length,
@@ -112,6 +118,31 @@ export default function OfflineOutboxPage() {
     }
     await clearAllOperations();
     await refresh();
+  };
+
+  const handleResolveConflict = async (
+    conflict: SyncConflict,
+    resolution: "local" | "server" | "merged"
+  ) => {
+    const mergedPayload =
+      resolution === "merged"
+        ? {
+            ...conflict.serverVersion,
+            ...conflict.localVersion,
+            __mergedFromConflict: true,
+            __conflictResolvedAt: new Date().toISOString(),
+          }
+        : undefined;
+
+    await resolveConflict(conflict.operationId, resolution, mergedPayload);
+    await refresh();
+    toast({
+      title: "Conflict updated",
+      description:
+        resolution === "server"
+          ? "The local queued change was discarded and the server version was kept."
+          : "The queued change is ready to retry on the next sync.",
+    });
   };
 
   return (
@@ -184,7 +215,27 @@ export default function OfflineOutboxPage() {
                     <Badge variant="destructive">{conflict.entityType}</Badge>
                     <span className="text-xs text-muted-foreground">{conflict.entityId}</span>
                   </div>
-                  <PayloadPreview payload={conflict.localVersion} />
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <div>
+                      <p className="mb-1 text-xs font-medium text-muted-foreground">Local queued change</p>
+                      <PayloadPreview payload={conflict.localVersion} />
+                    </div>
+                    <div>
+                      <p className="mb-1 text-xs font-medium text-muted-foreground">Server version</p>
+                      <PayloadPreview payload={conflict.serverVersion} />
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button size="sm" onClick={() => handleResolveConflict(conflict, "local")}>
+                      Keep local and retry
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleResolveConflict(conflict, "merged")}>
+                      Merge and retry
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => handleResolveConflict(conflict, "server")}>
+                      Use server / discard local
+                    </Button>
+                  </div>
                 </div>
               ))}
             </CardContent>
@@ -198,7 +249,7 @@ export default function OfflineOutboxPage() {
               Queued changes
             </CardTitle>
             <CardDescription>
-              Pending items are replayed in order. Failed items remain here with the last error.
+              Pending items are replayed in order. Conflicted items pause until you choose a resolution.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -215,6 +266,7 @@ export default function OfflineOutboxPage() {
                         <Badge variant={entityTone(op.entityType)}>{op.entityType.replace(/_/g, " ")}</Badge>
                         <Badge variant="outline">{op.operationType}</Badge>
                         {op.retryCount > 0 && <Badge variant="destructive">{op.retryCount} failed attempt(s)</Badge>}
+                        {(op.conflictPaused || unresolvedConflictIds.has(op.id)) && <Badge variant="destructive">Conflict paused</Badge>}
                       </div>
                       <h3 className="mt-2 font-semibold">{labelForOperation(op)}</h3>
                       <p className="text-xs text-muted-foreground">Queued {formatDate(op.createdAt)}</p>
