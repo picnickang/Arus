@@ -38,6 +38,7 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit --forceExit",
     "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/integration --runInBand",
+    "test:forms": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/integration/forms tests/integration/journeys --runInBand",
     "test:all": "npm run test:unit && npm run test:integration",
     "ci": "npm run lint && npm run check && npm run test:unit && npm run build",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
