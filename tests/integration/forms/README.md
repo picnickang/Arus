@@ -54,12 +54,9 @@ Cross-domain journeys live in `../journeys/` and chain several forms together
 # Full integration suite (includes these tests):
 npm run test:integration
 
-# Just the form / journey tests:
-npx jest --config jest.integration.config.mjs tests/integration/forms tests/integration/journeys
+# Just the form / journey tests (added per task spec):
+npm run test:forms
 ```
-
-Adding a top-level `npm run test:forms` alias requires editing `package.json`
-which the build constraints disallow. Use the second command above instead.
 
 ## Adding a new form test
 
