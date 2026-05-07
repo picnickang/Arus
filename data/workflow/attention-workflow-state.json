@@ -1,6 +1,28 @@
 {
   "handovers": [
     {
+      "id": "2ed8d063-8aa1-441e-89c2-ca708519c276",
+      "orgId": "default-org-id",
+      "note": "e2e shared 1778173395",
+      "watchLabel": "DAY",
+      "generatedSummary": "",
+      "itemIds": [],
+      "authorId": "dev-admin-user",
+      "status": "shared",
+      "savedAt": "2026-05-07T17:03:16.078Z"
+    },
+    {
+      "id": "bf8a2426-04e5-44c0-add2-9eeaa4cd0fb0",
+      "orgId": "default-org-id",
+      "note": "e2e draft 1778173395",
+      "watchLabel": "NIGHT",
+      "generatedSummary": "",
+      "itemIds": [],
+      "authorId": "dev-admin-user",
+      "status": "draft",
+      "savedAt": "2026-05-07T17:03:16.022Z"
+    },
+    {
       "id": "1333a353-5d29-42ec-bc58-0c5e45142395",
       "orgId": "default-org-id",
       "note": "gap-closure smoke 1778089645",
@@ -70,6 +92,28 @@
     }
   ],
   "blockerResolutions": [
+    {
+      "id": "b475828a-dfac-4cd6-930c-9deb154c4b5e",
+      "orgId": "default-org-id",
+      "itemId": "smoke-w-1778173451",
+      "workOrderId": "231835c4-c857-46c4-85c3-a1cc07b34187",
+      "blockerType": "parts",
+      "reason": "awaiting parts",
+      "status": "waiting",
+      "savedAt": "2026-05-07T17:04:11.373Z",
+      "authorId": "dev-admin-user"
+    },
+    {
+      "id": "7878b048-c4b2-42a5-982c-69cda0bde807",
+      "orgId": "default-org-id",
+      "itemId": "smoke-unblocked-1778173395",
+      "workOrderId": "231835c4-c857-46c4-85c3-a1cc07b34187",
+      "blockerType": "parts",
+      "reason": "resolved",
+      "status": "unblocked",
+      "savedAt": "2026-05-07T17:03:15.916Z",
+      "authorId": "dev-admin-user"
+    },
     {
       "id": "b81b4fb1-6e6f-4d00-8030-e9e868c611c8",
       "orgId": "default-org-id",
@@ -154,6 +198,17 @@
     }
   ],
   "issueReports": [
+    {
+      "id": "01395cea-6f5d-4e3b-8739-513d44ab14b9",
+      "orgId": "default-org-id",
+      "severity": "medium",
+      "summary": "e2e-1778173451",
+      "target": "work_order",
+      "suggestedHref": "/work-orders?action=create&flow=report-issue&issueId=01395cea-6f5d-4e3b-8739-513d44ab14b9",
+      "status": "submitted",
+      "createdAt": "2026-05-07T17:04:11.415Z",
+      "authorId": "dev-admin-user"
+    },
     {
       "id": "af4e8e6d-44aa-4a3a-9d7a-643e10014a15",
       "orgId": "default-org-id",
