@@ -24,7 +24,10 @@ describe("Deck-logbook forms — CRUD + propagation", () => {
   it("creates a deck log daily entry", async () => {
     const refs = await getRefIds();
     vesselId = refs.vesselId;
-    const today = new Date().toISOString().slice(0, 10);
+    // Use a far-future date varied by RUN_ID to avoid 409 collisions with
+     // existing entries (deck-log enforces unique vessel+date).
+    const dayOffset = (Math.abs(RUN_ID.split("").reduce((a, c) => a + c.charCodeAt(0), 0)) % 9000) + 365;
+    const today = new Date(Date.now() + dayOffset * 86400_000).toISOString().slice(0, 10);
     const { status, data } = await api<{ id: string }>("POST", "/api/logbook/deck/daily", {
       vesselId,
       logDate: today,
