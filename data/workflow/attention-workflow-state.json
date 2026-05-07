@@ -1,6 +1,28 @@
 {
   "handovers": [
     {
+      "id": "fab03741-c479-4d67-872c-e866937a656e",
+      "orgId": "default-org-id",
+      "note": "shared handover gap-1778178581142-3ryb9r",
+      "watchLabel": "DAY",
+      "generatedSummary": "",
+      "itemIds": [],
+      "authorId": "dev-admin-user",
+      "status": "shared",
+      "savedAt": "2026-05-07T18:29:41.429Z"
+    },
+    {
+      "id": "0a46c947-d132-44c2-9232-c24ee09dafdd",
+      "orgId": "default-org-id",
+      "note": "draft handover gap-1778178581142-3ryb9r",
+      "watchLabel": "NIGHT",
+      "generatedSummary": "",
+      "itemIds": [],
+      "authorId": "dev-admin-user",
+      "status": "draft",
+      "savedAt": "2026-05-07T18:29:41.419Z"
+    },
+    {
       "id": "2ed8d063-8aa1-441e-89c2-ca708519c276",
       "orgId": "default-org-id",
       "note": "e2e shared 1778173395",
@@ -92,6 +114,39 @@
     }
   ],
   "blockerResolutions": [
+    {
+      "id": "5e139559-72a1-44b9-b3c6-f201c6f83046",
+      "orgId": "default-org-id",
+      "itemId": "wo-blocked-test-gap-1778178581142-3ryb9r",
+      "workOrderId": "f0c54309-82fc-4056-ba28-002fe9ef4114",
+      "blockerType": "parts",
+      "reason": "re-blocked gap-1778178581142-3ryb9r",
+      "status": "waiting",
+      "savedAt": "2026-05-07T18:29:41.393Z",
+      "authorId": "dev-admin-user"
+    },
+    {
+      "id": "7d1b7d65-f20e-40c4-a5f5-1c5478b472fa",
+      "orgId": "default-org-id",
+      "itemId": "wo-blocked-test-gap-1778178581142-3ryb9r",
+      "workOrderId": "f0c54309-82fc-4056-ba28-002fe9ef4114",
+      "blockerType": "parts",
+      "reason": "resolved gap-1778178581142-3ryb9r",
+      "status": "unblocked",
+      "savedAt": "2026-05-07T18:29:41.342Z",
+      "authorId": "dev-admin-user"
+    },
+    {
+      "id": "51c69f5e-23f9-41b2-906d-d95de82a5c65",
+      "orgId": "default-org-id",
+      "itemId": "wo-blocked-test-gap-1778178581142-3ryb9r",
+      "workOrderId": "f0c54309-82fc-4056-ba28-002fe9ef4114",
+      "blockerType": "parts",
+      "reason": "awaiting parts gap-1778178581142-3ryb9r",
+      "status": "waiting",
+      "savedAt": "2026-05-07T18:29:41.327Z",
+      "authorId": "dev-admin-user"
+    },
     {
       "id": "b475828a-dfac-4cd6-930c-9deb154c4b5e",
       "orgId": "default-org-id",
@@ -198,6 +253,17 @@
     }
   ],
   "issueReports": [
+    {
+      "id": "ce464c3f-1be4-4418-a855-1f382edc336c",
+      "orgId": "default-org-id",
+      "severity": "medium",
+      "summary": "issue gap-1778178581142-3ryb9r",
+      "target": "work_order",
+      "suggestedHref": "/work-orders?action=create&flow=report-issue&issueId=ce464c3f-1be4-4418-a855-1f382edc336c",
+      "status": "submitted",
+      "createdAt": "2026-05-07T18:29:41.598Z",
+      "authorId": "dev-admin-user"
+    },
     {
       "id": "01395cea-6f5d-4e3b-8739-513d44ab14b9",
       "orgId": "default-org-id",
