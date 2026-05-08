@@ -7,6 +7,7 @@ import {
   Box,
   Zap,
   AlertTriangle,
+  BrainCircuit,
   FlaskConical,
   Shield,
 } from "lucide-react";
@@ -18,6 +19,7 @@ import { TrainingPipelineTab } from "./pdm-platform/TrainingPipelineTab";
 import { InferenceTab } from "./pdm-platform/InferenceTab";
 import { DriftMonitoringTab } from "./pdm-platform/DriftMonitoringTab";
 import { GovernanceTab } from "./pdm-platform/GovernanceTab";
+import { DecisionSupportTab } from "./pdm-platform/DecisionSupportTab";
 
 export default function PdmPlatformPage() {
   const [activeTab, setActiveTab] = useState("features");
@@ -61,6 +63,9 @@ export default function PdmPlatformPage() {
             <TabsTrigger value="governance" data-testid="tab-governance">
               <Shield className="w-4 h-4 mr-1" /> Governance
             </TabsTrigger>
+            <TabsTrigger value="decision-support" data-testid="tab-decision-support">
+              <BrainCircuit className="w-4 h-4 mr-1" /> Decisions
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="features" className="mt-4">
@@ -83,6 +88,9 @@ export default function PdmPlatformPage() {
           </TabsContent>
           <TabsContent value="governance" className="mt-4">
             <GovernanceTab onSwitchToModels={handleSwitchToModels} />
+          </TabsContent>
+          <TabsContent value="decision-support" className="mt-4">
+            <DecisionSupportTab />
           </TabsContent>
         </Tabs>
       </div>

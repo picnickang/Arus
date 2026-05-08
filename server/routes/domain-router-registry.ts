@@ -789,6 +789,14 @@ const domainRouters: DomainRouterConfig[] = [
     getDeps: () => ({ requireOrgId, generalApiRateLimit }),
   },
   {
+    name: "PdmDecisionSupport",
+    importPath: "../domains/pdm-platform/decision-support/interfaces/routes.js",
+    functionName: "pdmDecisionSupportRouter",
+    mountPath: "/api/pdm/decision-support",
+    middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }),
+  },
+  {
     name: "PdmMonitoring",
     importPath: "../domains/pdm-platform/monitoring/routes.js",
     functionName: "monitoringRouter",
