@@ -109,6 +109,7 @@ const ALLOWED_FILES = new Set([
   "server/domains/pdm-platform/digital-twin/twin-definition/ports.ts",
   "server/domains/pdm-platform/digital-twin/twin-definition/routes.ts",
   "server/domains/pdm-platform/digital-twin/twin-state/adapter.ts",
+  "server/domains/pdm-platform/decision-support/infrastructure/drizzle-pdm-context.adapter.ts",
   "server/domains/pdm-platform/feature-store/adapter.ts",
   "server/domains/pdm-platform/feature-store/telemetry-adapter.ts",
   "server/domains/pdm-platform/fleet-analytics/adapter.ts",
