@@ -366,3 +366,9 @@ id = "eQfubuTMTK8FtmzQ_Nrxz"
 uri = "file://.local/exports/decision-support-bundle.txt"
 type = "text"
 title = "ARUS PdM Decision Support — Full Source Bundle"
+
+[[outputs]]
+id = "jdZBX-bTjiniwqY5EyD3z"
+uri = "file://.local/exports/arus-fullstack-bundle.txt"
+type = "text"
+title = "ARUS Full-Stack Source Bundle (13 MB, 391,698 lines, 2,314 files)"
