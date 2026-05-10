@@ -360,3 +360,9 @@ id = "Qfc0TwS8NPMtxzglvnomk"
 uri = "file://.local/exports/arus-full-source.txt"
 type = "text"
 title = "Complete source as single text file (12 MB, 2244 files) — needs ChatGPT Plus"
+
+[[outputs]]
+id = "eQfubuTMTK8FtmzQ_Nrxz"
+uri = "file://.local/exports/decision-support-bundle.txt"
+type = "text"
+title = "ARUS PdM Decision Support — Full Source Bundle"
