@@ -32,6 +32,10 @@ function round(v: number): number {
   return Math.round(v * 100) / 100;
 }
 
+function allowPdmDemoFallbacks(): boolean {
+  return process.env.NODE_ENV !== "production" || process.env.ALLOW_PDM_DEMO_FALLBACKS === "true";
+}
+
 export class ResidualAnalysisService {
   private adapter = new ResidualAnalysisAdapter();
 
@@ -67,7 +71,10 @@ export class ResidualAnalysisService {
       : {};
 
     if (Object.keys(observed).length === 0) {
-      logger.warn(String(LOG_MODULE), { details: ["No state data for twin, generating stub residuals", {
+      if (!allowPdmDemoFallbacks()) {
+        throw new Error("No twin state data available for residual analysis; demo fallback disabled in production.");
+      }
+      logger.warn(String(LOG_MODULE), { details: ["No state data for twin, generating demo fallback residuals", {
         orgId,
         twinId,
       }] });
@@ -184,3 +191,4 @@ function deterministicValue(id: string, seed: string, min: number, max: number):
   const normalized = (Math.abs(hash) % 10000) / 10000;
   return round(min + normalized * (max - min));
 }
+

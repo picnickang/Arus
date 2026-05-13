@@ -132,12 +132,19 @@ export class ModelArtifactAdapter implements IModelArtifactStorage {
   }
 }
 
+function allowPdmDemoFallbacks(): boolean {
+  return process.env.NODE_ENV !== "production" || process.env.ALLOW_PDM_DEMO_FALLBACKS === "true";
+}
+
 export class StubTrainingRunner implements ITrainingRunnerPort {
   async execute(
     datasetId: string,
     config: Record<string, unknown>,
     hyperparameters: Record<string, unknown>
   ) {
+    if (!allowPdmDemoFallbacks()) {
+      throw new Error("Demo training runner is disabled in production. Configure a real training runner.");
+    }
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     const lr = (hyperparameters.learningRate as number) ?? 0.001;
@@ -152,9 +159,10 @@ export class StubTrainingRunner implements ITrainingRunnerPort {
         loss: 0.3 - Math.random() * 0.15,
         trainingDurationMs: 500 + Math.floor(Math.random() * 2000),
       },
-      artifactUri: `artifacts/stub/${datasetId}/${Date.now()}/model.bin`,
-      framework: (config.framework as string) ?? "stub-framework",
+      artifactUri: `artifacts/demo-fallback/${datasetId}/${Date.now()}/model.bin`,
+      framework: (config.framework as string) ?? "demo-fallback-framework",
       format: "binary",
     };
   }
 }
+

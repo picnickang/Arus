@@ -5,6 +5,7 @@ export default {
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",
     "^@shared/schema-runtime$": "<rootDir>/tests/mocks/schema-runtime.ts",
+    "^@shared/(.*)\\.js$": "<rootDir>/shared/$1",
     "^@shared/(.*)$": "<rootDir>/shared/$1",
   },
   transform: {

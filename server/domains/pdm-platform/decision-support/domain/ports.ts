@@ -6,6 +6,7 @@ import type {
   SafetyReview,
   SyntheticTelemetryResult,
   SyntheticTelemetryScenario,
+  PdmCalibrationSnapshot,
 } from "./types";
 
 export interface PdmContextPort {
@@ -15,6 +16,14 @@ export interface PdmContextPort {
     equipmentId: string,
     limit: number
   ): Promise<EquipmentFeatureSnapshot[]>;
+}
+
+export interface PdmCalibrationPort {
+  getCalibrationSnapshot(input: {
+    orgId: string;
+    equipmentId: string;
+    equipmentType?: string | null;
+  }): Promise<PdmCalibrationSnapshot | null>;
 }
 
 export interface OperationalContextPort {
@@ -43,3 +52,4 @@ export interface SyntheticTelemetryPort {
     seed?: string;
   }): SyntheticTelemetryResult;
 }
+

@@ -70,6 +70,10 @@ function round(v: number): number {
   return Math.round(v * 100) / 100;
 }
 
+function allowPdmDemoFallbacks(): boolean {
+  return process.env.NODE_ENV !== "production" || process.env.ALLOW_PDM_DEMO_FALLBACKS === "true";
+}
+
 export class FeatureStoreAdapter implements FeatureStorePort {
   private telemetry: TelemetryPort;
 
@@ -94,8 +98,11 @@ export class FeatureStoreAdapter implements FeatureStorePort {
         readingCount: readings.length,
       });
     } else {
+      if (!allowPdmDemoFallbacks()) {
+        throw new Error("No telemetry data available for feature computation; demo fallback disabled in production.");
+      }
       features = this.computeStubFeatures(orgId, equipmentId, windowMinutes);
-      logger.warn("[FeatureStore] No telemetry data found, using stub features", {
+      logger.warn("[FeatureStore] No telemetry data found, using demo fallback features", {
         orgId,
         equipmentId,
         windowMinutes,
@@ -107,7 +114,7 @@ export class FeatureStoreAdapter implements FeatureStorePort {
       orgId,
       equipmentId,
       featureId: result.id,
-      source: readings.length > 0 ? "telemetry" : "stub",
+      source: readings.length > 0 ? "telemetry" : "demo-fallback",
     });
     return result;
   }
@@ -265,3 +272,4 @@ export class FeatureStoreAdapter implements FeatureStorePort {
       .orderBy(desc(equipmentFeatures.timestamp));
   }
 }
+

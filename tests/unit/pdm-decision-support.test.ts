@@ -2,6 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import { PdmDecisionSupportService } from "../../server/domains/pdm-platform/decision-support/application/decision-support.service";
 import { RecommendationSafetyAdapter } from "../../server/domains/pdm-platform/decision-support/infrastructure/recommendation-safety.adapter";
 import { SyntheticTelemetryAdapter } from "../../server/domains/pdm-platform/decision-support/infrastructure/synthetic-telemetry.adapter";
+import { EquipmentNotFoundError } from "../../server/domains/pdm-platform/decision-support/domain/errors";
 import type {
   EquipmentContext,
   EquipmentFeatureSnapshot,
@@ -156,7 +157,7 @@ describe("PdM decision-support hexagonal service", () => {
     expect(result.featureWindowEnd).toBe("2026-01-01T12:00:00.000Z");
     expect(result.featureSnapshotId).toBe("newest");
     expect(result.lineage.source).toBe("pdm-decision-support");
-    expect(result.lineage.featureSetVersion).toBe("v2.context-window-8");
+    expect(result.lineage.featureSetVersion).toBe("v3.context-window-8.outcome-calibrated");
   });
 
   it("keeps low-data decisions from becoming irreversible work orders", async () => {
@@ -216,12 +217,58 @@ describe("PdM decision-support hexagonal service", () => {
     expect(result.samples.every((sample) => sample.timestamp && Number.isFinite(sample.rpm))).toBe(true);
   });
 
+
+  it("adjusts scoring using outcome feedback calibration", async () => {
+    const features: EquipmentFeatureSnapshot[] = [
+      snapshot("newest", 0, { meanTemp: 82, rmsVibration: 3.7, meanPressure: 170 }),
+      snapshot("f-2", 15, { meanTemp: 80, rmsVibration: 3.4, meanPressure: 174 }),
+      snapshot("f-3", 30, { meanTemp: 78, rmsVibration: 3.1, meanPressure: 178 }),
+      snapshot("oldest", 45, { meanTemp: 76, rmsVibration: 2.9, meanPressure: 180 }),
+    ];
+
+    const calibratedService = new PdmDecisionSupportService(
+      new FakePdmContextPort(defaultEquipment(), features),
+      new FakeOperationalContextPort(),
+      new RecommendationSafetyAdapter(),
+      new SyntheticTelemetryAdapter(),
+      {
+        async getCalibrationSnapshot() {
+          return {
+            totalFeedback: 12,
+            accurateRate: 0.75,
+            falsePositiveRate: 0.05,
+            falseNegativeRate: 0.25,
+            confirmedFailureRate: 0.2,
+            scoreBias: 0.05,
+            confidenceMultiplier: 1,
+            source: "prediction-feedback",
+            generatedAt: "2026-01-01T12:00:00.000Z",
+            notes: ["test calibration"],
+          };
+        },
+      }
+    );
+
+    const result = await calibratedService.evaluateEquipment({
+      orgId: "org-test",
+      equipmentId: "eq-main-engine-1",
+      previousStatus: "optimal",
+      minSequenceLength: 4,
+    });
+
+    expect(result.calibration?.source).toBe("prediction-feedback");
+    expect(result.calibration?.totalFeedback).toBe(12);
+    expect(result.decisionScore).toBeGreaterThan(0);
+    expect(result.lineage.featureSetVersion).toContain("outcome-calibrated");
+  });
+
   it("fails clearly when equipment context is missing", async () => {
     await expect(
       buildService([], null).evaluateEquipment({
         orgId: "org-test",
         equipmentId: "missing-equipment",
       })
-    ).rejects.toThrow("Equipment not found");
+    ).rejects.toBeInstanceOf(EquipmentNotFoundError);
   });
 });
+

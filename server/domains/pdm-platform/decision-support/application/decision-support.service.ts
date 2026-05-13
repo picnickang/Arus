@@ -11,16 +11,20 @@ import type {
   PdmContextPort,
   RecommendationSafetyPort,
   SyntheticTelemetryPort,
+  PdmCalibrationPort,
 } from "../domain/ports";
 import {
+  applyOutcomeCalibration,
   computeDecisionScore,
   computePerformanceIndicators,
+  confidenceFromCalibration,
   confidenceFromData,
   predictedRulHours,
   probabilitiesFromScore,
   shouldAlert,
   statusFromScore,
 } from "../domain/scoring";
+import { EquipmentNotFoundError } from "../domain/errors";
 
 const STATUS_PRIORITY: Record<PdmHealthStatus, PdmDecisionRecommendation["priority"]> = {
   optimal: "routine",
@@ -114,7 +118,8 @@ export class PdmDecisionSupportService {
     private readonly contextPort: PdmContextPort,
     private readonly operationalContextPort: OperationalContextPort,
     private readonly safetyPort: RecommendationSafetyPort,
-    private readonly syntheticTelemetryPort: SyntheticTelemetryPort
+    private readonly syntheticTelemetryPort: SyntheticTelemetryPort,
+    private readonly calibrationPort?: PdmCalibrationPort
   ) {}
 
   async evaluateEquipment(input: {
@@ -131,16 +136,24 @@ export class PdmDecisionSupportService {
     ]);
 
     if (!equipment) {
-      throw new Error("Equipment not found");
+      throw new EquipmentNotFoundError(input.equipmentId);
     }
 
     const operatingContext = this.operationalContextPort.normalize(equipment, input.contextOverride);
+    const calibration = this.calibrationPort
+      ? await this.calibrationPort.getCalibrationSnapshot({
+          orgId: input.orgId,
+          equipmentId: input.equipmentId,
+          equipmentType: equipment.type,
+        })
+      : null;
     const indicators = computePerformanceIndicators(features, operatingContext, requiredSequenceLength);
-    const decisionScore = computeDecisionScore(features, operatingContext, indicators);
+    const rawDecisionScore = computeDecisionScore(features, operatingContext, indicators);
+    const decisionScore = applyOutcomeCalibration(rawDecisionScore, calibration);
     const predictedStatus = statusFromScore(decisionScore);
     const probabilities = probabilitiesFromScore(decisionScore);
     const rulHours = predictedRulHours(decisionScore, indicators);
-    const confidence = confidenceFromData(decisionScore, indicators);
+    const confidence = confidenceFromCalibration(confidenceFromData(decisionScore, indicators), calibration);
     const alertNeeded = shouldAlert(input.previousStatus, predictedStatus);
     const recommendations = generateRecommendations({
       status: predictedStatus,
@@ -176,10 +189,11 @@ export class PdmDecisionSupportService {
       performanceIndicators: indicators,
       recommendations,
       safetyReview,
+      calibration: calibration ?? undefined,
       lineage: {
         source: "pdm-decision-support",
         modelFamily: "heuristic-context-normalized",
-        featureSetVersion: `v2.context-window-${requiredSequenceLength}`,
+        featureSetVersion: `v3.context-window-${requiredSequenceLength}.outcome-calibrated`,
         contextVersion: "v1.operational-normalization",
         generatedAt: new Date().toISOString(),
       },
@@ -206,3 +220,4 @@ export class PdmDecisionSupportService {
     return this.safetyPort.reviewRecommendation(input);
   }
 }
+

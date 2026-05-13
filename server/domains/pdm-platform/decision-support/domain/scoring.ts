@@ -4,6 +4,7 @@ import type {
   PdmHealthStatus,
   PdmProbabilities,
   PerformanceIndicators,
+  PdmCalibrationSnapshot,
 } from "./types";
 
 function clamp(value: number, min = 0, max = 1): number {
@@ -175,4 +176,37 @@ export function shouldAlert(previousStatus: PdmHealthStatus | null | undefined, 
 export function confidenceFromData(score: number, indicators: PerformanceIndicators): number {
   const scoreClarity = Math.abs(score - 0.5) * 0.35;
   return round(clamp(0.45 + indicators.dataQualityScore * 0.4 + scoreClarity, 0.1, 0.98), 3);
+}
+
+
+export function defaultCalibrationSnapshot(): PdmCalibrationSnapshot {
+  return {
+    totalFeedback: 0,
+    accurateRate: 0,
+    falsePositiveRate: 0,
+    falseNegativeRate: 0,
+    confirmedFailureRate: 0,
+    scoreBias: 0,
+    confidenceMultiplier: 0.9,
+    source: "default",
+    generatedAt: new Date().toISOString(),
+    notes: ["No prediction feedback was available; using conservative default calibration."],
+  };
+}
+
+export function applyOutcomeCalibration(score: number, calibration?: PdmCalibrationSnapshot | null): number {
+  const snapshot = calibration ?? defaultCalibrationSnapshot();
+  const feedbackBias = clamp(snapshot.falseNegativeRate - snapshot.falsePositiveRate, -0.25, 0.25) * 0.18;
+  const confirmedFailureBias = clamp(snapshot.confirmedFailureRate, 0, 0.4) * 0.1;
+  return round(clamp(score + snapshot.scoreBias + feedbackBias + confirmedFailureBias));
+}
+
+export function confidenceFromCalibration(
+  baseConfidence: number,
+  calibration?: PdmCalibrationSnapshot | null
+): number {
+  const snapshot = calibration ?? defaultCalibrationSnapshot();
+  const volumeBonus = clamp(snapshot.totalFeedback / 40, 0, 0.08);
+  const accuracyBonus = clamp((snapshot.accurateRate - 0.5) * 0.08, -0.04, 0.04);
+  return round(clamp(baseConfidence * snapshot.confidenceMultiplier + volumeBonus + accuracyBonus, 0.1, 0.98));
 }

@@ -78,7 +78,7 @@ interface DomainRouterConfig {
   middlewareKeys?: string[];
 }
 
-const domainRouters: DomainRouterConfig[] = [
+export const domainRouters: DomainRouterConfig[] = [
   // Core domain routers (basic CRUD)
   {
     name: "WorkOrder",

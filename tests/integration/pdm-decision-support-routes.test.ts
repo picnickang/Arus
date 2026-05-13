@@ -10,6 +10,7 @@ import type {
   StandardizedPdmDecision,
   SyntheticTelemetryResult,
 } from "../../server/domains/pdm-platform/decision-support/domain/types";
+import { EquipmentNotFoundError } from "../../server/domains/pdm-platform/decision-support/domain/errors";
 
 interface CapturedCall {
   orgId?: string;
@@ -76,10 +77,22 @@ function buildDecision(overrides: Partial<StandardizedPdmDecision> = {}): Standa
       reasons: [],
       sanitizedRecommendation: "Schedule targeted inspection for Main Engine 1.",
     },
+    calibration: {
+      totalFeedback: 4,
+      accurateRate: 0.75,
+      falsePositiveRate: 0.1,
+      falseNegativeRate: 0.15,
+      confirmedFailureRate: 0.25,
+      scoreBias: 0.02,
+      confidenceMultiplier: 0.95,
+      source: "prediction-feedback",
+      generatedAt: "2026-01-01T12:00:00.000Z",
+      notes: ["route test calibration"],
+    },
     lineage: {
       source: "pdm-decision-support",
       modelFamily: "heuristic-context-normalized",
-      featureSetVersion: "v2.context-window-8",
+      featureSetVersion: "v3.context-window-8.outcome-calibrated",
       contextVersion: "v1.operational-normalization",
       generatedAt: "2026-01-01T12:01:00.000Z",
     },
@@ -245,7 +258,7 @@ describe("PdM decision-support API routes", () => {
   });
 
   it("returns 404 when the service cannot find equipment", async () => {
-    const service = new FakeDecisionSupportRouteService({ evaluateError: new Error("Equipment not found") });
+    const service = new FakeDecisionSupportRouteService({ evaluateError: new EquipmentNotFoundError("missing-equipment") });
     const app = buildApp(service);
 
     const response = await request(app)
@@ -253,7 +266,7 @@ describe("PdM decision-support API routes", () => {
       .send({ equipmentId: "missing-equipment" })
       .expect(404);
 
-    expect(response.body.error).toBe("Equipment not found");
+    expect(response.body.error).toContain("Equipment not found");
   });
 
   it("generates synthetic telemetry through the route and applies schema defaults", async () => {
@@ -332,3 +345,4 @@ describe("PdM decision-support API routes", () => {
     expect(service.evaluateCalls).toHaveLength(0);
   });
 });
+

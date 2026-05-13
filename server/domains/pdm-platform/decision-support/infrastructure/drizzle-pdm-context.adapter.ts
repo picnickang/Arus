@@ -1,8 +1,8 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../../../../db";
-import { equipment, equipmentFeatures } from "@shared/schema";
-import type { EquipmentContext, EquipmentFeatureSnapshot, OperationalContextInput, NormalizedOperationalContext } from "../domain/types";
-import type { OperationalContextPort, PdmContextPort } from "../domain/ports";
+import { equipment, equipmentFeatures, predictionFeedback } from "@shared/schema";
+import type { EquipmentContext, EquipmentFeatureSnapshot, OperationalContextInput, NormalizedOperationalContext, PdmCalibrationSnapshot } from "../domain/types";
+import type { OperationalContextPort, PdmContextPort, PdmCalibrationPort } from "../domain/ports";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -126,6 +126,68 @@ export class EquipmentOperationalContextAdapter implements OperationalContextPor
       routeSegment: override?.routeSegment ?? stringFrom(params.routeSegment),
       contextConfidence: Math.max(0.25, Math.min(0.95, 0.25 + contextInputs * 0.11)),
       notes,
+    };
+  }
+}
+
+
+
+function clamp(value: number, min = 0, max = 1): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function rate(count: number, total: number): number {
+  return total > 0 ? Math.round((count / total) * 1000) / 1000 : 0;
+}
+
+function feedbackValue(row: Record<string, unknown>, key: string): number {
+  const value = row[key];
+  return typeof value === "number" ? value : Number(value ?? 0);
+}
+
+export class DrizzlePdmCalibrationAdapter implements PdmCalibrationPort {
+  async getCalibrationSnapshot(input: {
+    orgId: string;
+    equipmentId: string;
+    equipmentType?: string | null;
+  }): Promise<PdmCalibrationSnapshot | null> {
+    const [row] = await db
+      .select({
+        total: sql<number>`count(*)`,
+        accurate: sql<number>`sum(case when ${predictionFeedback.isAccurate} = true then 1 else 0 end)`,
+        falsePositive: sql<number>`sum(case when ${predictionFeedback.feedbackType} = 'false_positive' then 1 else 0 end)`,
+        falseNegative: sql<number>`sum(case when ${predictionFeedback.feedbackType} = 'false_negative' then 1 else 0 end)`,
+        confirmedFailure: sql<number>`sum(case when ${predictionFeedback.actualFailureDate} is not null then 1 else 0 end)`,
+      })
+      .from(predictionFeedback)
+      .where(and(eq(predictionFeedback.orgId, input.orgId), eq(predictionFeedback.equipmentId, input.equipmentId)));
+
+    const total = feedbackValue(row ?? {}, "total");
+    if (!total) {
+      return null;
+    }
+
+    const accurateRate = rate(feedbackValue(row, "accurate"), total);
+    const falsePositiveRate = rate(feedbackValue(row, "falsePositive"), total);
+    const falseNegativeRate = rate(feedbackValue(row, "falseNegative"), total);
+    const confirmedFailureRate = rate(feedbackValue(row, "confirmedFailure"), total);
+    const scoreBias = Math.round(clamp(falseNegativeRate - falsePositiveRate, -0.2, 0.2) * 1000) / 1000;
+    const confidenceMultiplier = Math.round(clamp(0.78 + accurateRate * 0.22, 0.65, 1.05) * 1000) / 1000;
+
+    return {
+      totalFeedback: total,
+      accurateRate,
+      falsePositiveRate,
+      falseNegativeRate,
+      confirmedFailureRate,
+      scoreBias,
+      confidenceMultiplier,
+      source: "prediction-feedback",
+      generatedAt: new Date().toISOString(),
+      notes: [
+        `Calibration derived from ${total} prediction feedback record(s) for this equipment.`,
+        input.equipmentType ? `Equipment type: ${input.equipmentType}.` : "Equipment type was not available.",
+      ],
     };
   }
 }

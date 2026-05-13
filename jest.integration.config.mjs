@@ -8,3 +8,4 @@ export default {
     "<rootDir>/tests/e2e/activity.e2e.ts",
   ],
 };
+

@@ -37,10 +37,10 @@
     "db:migrate:deploy": "tsx server/scripts/migrate.ts --deploy",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit --forceExit",
-    "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/integration --runInBand",
-    "test:forms": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/integration/forms tests/integration/journeys --runInBand",
+    "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.integration.config.mjs --runInBand",
+    "test:forms": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.integration.config.mjs tests/integration/forms tests/integration/journeys --runInBand",
     "test:all": "npm run test:unit && npm run test:integration",
-    "ci": "npm run lint && npm run check && npm run test:unit && npm run build",
+    "ci": "npm run lint && npm run check && npm run test:unit && npm run test:integration && npm run build",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "test:client": "node --experimental-vm-modules node_modules/jest/bin/jest.js client/tests",
     "test:quick": "node client/tests/runner.mjs",
@@ -68,7 +68,8 @@
     "test:pdm:tier0": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPatterns='server/tests/pdm' --testPathIgnorePatterns='schedule-properties'",
     "test:pdm:tier1": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPatterns='server/tests/pdm/schedule-properties'",
     "check:org-context": "node scripts/check-org-context-boundary.mjs",
-    "check:workflow-routes": "node scripts/check-workflow-routes.mjs"
+    "check:workflow-routes": "node scripts/check-workflow-routes.mjs",
+    "test:pdm:decision-support": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.pdm-decision-support.config.mjs --runInBand"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.65.0",

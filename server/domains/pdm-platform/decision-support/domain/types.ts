@@ -81,6 +81,20 @@ export interface PerformanceIndicators {
   requiredSequenceLength: number;
 }
 
+
+export interface PdmCalibrationSnapshot {
+  totalFeedback: number;
+  accurateRate: number;
+  falsePositiveRate: number;
+  falseNegativeRate: number;
+  confirmedFailureRate: number;
+  scoreBias: number;
+  confidenceMultiplier: number;
+  source: "prediction-feedback" | "default";
+  generatedAt: string;
+  notes: string[];
+}
+
 export interface SafetyReview {
   decision: "approved" | "needs_engineer_review" | "blocked";
   reasons: string[];
@@ -113,6 +127,7 @@ export interface StandardizedPdmDecision {
   performanceIndicators: PerformanceIndicators;
   recommendations: PdmDecisionRecommendation[];
   safetyReview: SafetyReview;
+  calibration?: PdmCalibrationSnapshot;
   lineage: {
     source: "pdm-decision-support";
     modelFamily: "heuristic-context-normalized";
@@ -155,3 +170,4 @@ export interface SyntheticTelemetryResult {
     sampleCount: number;
   };
 }
+
