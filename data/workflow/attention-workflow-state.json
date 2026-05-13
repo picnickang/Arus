@@ -1,6 +1,28 @@
 {
   "handovers": [
     {
+      "id": "5ce16f91-1da2-453b-91b6-6731c267fa09",
+      "orgId": "default-org-id",
+      "note": "shared handover gap-1778705974098-176ovv",
+      "watchLabel": "DAY",
+      "generatedSummary": "",
+      "itemIds": [],
+      "authorId": "dev-admin-user",
+      "status": "shared",
+      "savedAt": "2026-05-13T20:59:34.328Z"
+    },
+    {
+      "id": "95d0f642-8e46-41db-b1ba-71b5969968f8",
+      "orgId": "default-org-id",
+      "note": "draft handover gap-1778705974098-176ovv",
+      "watchLabel": "NIGHT",
+      "generatedSummary": "",
+      "itemIds": [],
+      "authorId": "dev-admin-user",
+      "status": "draft",
+      "savedAt": "2026-05-13T20:59:34.317Z"
+    },
+    {
       "id": "fab03741-c479-4d67-872c-e866937a656e",
       "orgId": "default-org-id",
       "note": "shared handover gap-1778178581142-3ryb9r",
@@ -114,6 +136,39 @@
     }
   ],
   "blockerResolutions": [
+    {
+      "id": "9bf90810-9116-4ed9-9d32-f8eedc650cbe",
+      "orgId": "default-org-id",
+      "itemId": "wo-blocked-test-gap-1778705974098-176ovv",
+      "workOrderId": "c77ea5d4-d7f2-4f14-95a7-74605d83e631",
+      "blockerType": "parts",
+      "reason": "re-blocked gap-1778705974098-176ovv",
+      "status": "waiting",
+      "savedAt": "2026-05-13T20:59:34.296Z",
+      "authorId": "dev-admin-user"
+    },
+    {
+      "id": "7402036f-1507-4434-8f8d-0be8db1d1aae",
+      "orgId": "default-org-id",
+      "itemId": "wo-blocked-test-gap-1778705974098-176ovv",
+      "workOrderId": "c77ea5d4-d7f2-4f14-95a7-74605d83e631",
+      "blockerType": "parts",
+      "reason": "resolved gap-1778705974098-176ovv",
+      "status": "unblocked",
+      "savedAt": "2026-05-13T20:59:34.224Z",
+      "authorId": "dev-admin-user"
+    },
+    {
+      "id": "c06804f0-fe45-412c-b830-1e0adcdd804e",
+      "orgId": "default-org-id",
+      "itemId": "wo-blocked-test-gap-1778705974098-176ovv",
+      "workOrderId": "c77ea5d4-d7f2-4f14-95a7-74605d83e631",
+      "blockerType": "parts",
+      "reason": "awaiting parts gap-1778705974098-176ovv",
+      "status": "waiting",
+      "savedAt": "2026-05-13T20:59:34.205Z",
+      "authorId": "dev-admin-user"
+    },
     {
       "id": "5e139559-72a1-44b9-b3c6-f201c6f83046",
       "orgId": "default-org-id",
@@ -253,6 +308,17 @@
     }
   ],
   "issueReports": [
+    {
+      "id": "b4928ca9-a991-43b8-94ec-09950b7e257f",
+      "orgId": "default-org-id",
+      "severity": "medium",
+      "summary": "issue gap-1778705974098-176ovv",
+      "target": "work_order",
+      "suggestedHref": "/work-orders?action=create&flow=report-issue&issueId=b4928ca9-a991-43b8-94ec-09950b7e257f",
+      "status": "submitted",
+      "createdAt": "2026-05-13T20:59:34.511Z",
+      "authorId": "dev-admin-user"
+    },
     {
       "id": "ce464c3f-1be4-4418-a855-1f382edc336c",
       "orgId": "default-org-id",
