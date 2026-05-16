@@ -372,3 +372,9 @@ id = "jdZBX-bTjiniwqY5EyD3z"
 uri = "file://.local/exports/arus-fullstack-bundle.txt"
 type = "text"
 title = "ARUS Full-Stack Source Bundle (13 MB, 392,131 lines, 2,316 files)"
+
+[[outputs]]
+id = "xS8XB7XMwTNnR6UsgNneA"
+uri = "file://exports/arus-fullstack-source.tar.gz"
+type = "unspecified"
+title = "ARUS full-stack source (4.1 MB tar.gz)"
