@@ -40,7 +40,7 @@
     "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.integration.config.mjs --runInBand",
     "test:forms": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.integration.config.mjs tests/integration/forms tests/integration/journeys --runInBand",
     "test:all": "npm run test:unit && npm run test:integration",
-    "ci": "npm run lint && npm run check && npm run test:unit && npm run test:integration && npm run build",
+    "ci": "npm run lint && npm run check:guards && npm run check && npm run test:unit && npm run test:integration && npm run build",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "test:client": "node --experimental-vm-modules node_modules/jest/bin/jest.js client/tests",
     "test:quick": "node client/tests/runner.mjs",
@@ -58,7 +58,7 @@
     "check:hygiene:report": "node scripts/hygiene-dashboard.mjs",
     "check:boot-health": "node scripts/check-boot-health.mjs",
     "check:stale-types": "node scripts/check-stale-type-names.mjs",
-    "check:guards": "npm run check:schema && npm run check:storage-imports && npm run check:schema-imports && npm run check:domain-boundaries && npm run check:route-registration && npm run check:domain-leaks && npm run check:stale-types && npm run check:org-context && npm run check:workflow-routes",
+    "check:guards": "npm run check:schema && npm run check:storage-imports && npm run check:schema-imports && npm run check:domain-boundaries && npm run check:route-registration && npm run check:domain-leaks && npm run check:stale-types && npm run check:org-context && npm run check:workflow-routes && npm run check:operator-experience-architecture",
     "check:guards-full": "npm run check:guards && npm run check:ts-burndown && npm run check:cast-burndown && npm run check:lint-warnings && npm run check:hygiene && npm run check:boot-health && npm run format:check",
     "test:validation": "node client/tests/validation.test.mjs",
     "test:stcw": "node client/tests/stcw.test.mjs",
@@ -69,7 +69,10 @@
     "test:pdm:tier1": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPatterns='server/tests/pdm/schedule-properties'",
     "check:org-context": "node scripts/check-org-context-boundary.mjs",
     "check:workflow-routes": "node scripts/check-workflow-routes.mjs",
-    "test:pdm:decision-support": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.pdm-decision-support.config.mjs --runInBand"
+    "test:pdm:decision-support": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.pdm-decision-support.config.mjs --runInBand",
+    "test:operator-experience": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit/operator-experience-service.test.ts tests/unit/operator-information-needs-service.test.ts tests/integration/operator-experience-routes.test.ts tests/integration/operator-information-needs-routes.test.ts --runInBand",
+    "test:operator-information-needs": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit/operator-information-needs-service.test.ts tests/integration/operator-information-needs-routes.test.ts --runInBand",
+    "check:operator-experience-architecture": "node scripts/check-operator-experience-architecture.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.65.0",

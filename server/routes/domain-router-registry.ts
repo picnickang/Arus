@@ -69,7 +69,7 @@ import {
  *     getDeps: () => ({ generalApiRateLimit }) },
  */
 
-interface DomainRouterConfig {
+export interface DomainRouterConfig {
   name: string;
   importPath: string;
   functionName: string;
@@ -477,6 +477,19 @@ export const domainRouters: DomainRouterConfig[] = [
     name: "Workflow",
     importPath: "../domains/workflow/index.js",
     functionName: "registerWorkflowRoutes",
+    getDeps: () => ({
+      generalApiRateLimit,
+      writeOperationRateLimit,
+      requireOrgId,
+      sources: createWorkflowAttentionSources(),
+    }),
+  },
+
+  // Operator Experience Command Center (hexagonal workflow UX layer)
+  {
+    name: "OperatorExperience",
+    importPath: "../domains/workflow/index.js",
+    functionName: "registerOperatorExperienceRoutes",
     getDeps: () => ({
       generalApiRateLimit,
       writeOperationRateLimit,

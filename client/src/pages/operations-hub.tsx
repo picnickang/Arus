@@ -1,5 +1,5 @@
 import { IconGridLayout, type GridItem } from "@/components/layouts";
-import { AlertCircle, Gauge, Eye } from "lucide-react";
+import { AlertCircle, Gauge, Eye, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 
@@ -56,6 +56,15 @@ const operationsItems: GridItem[] = [
     load: () => import("./findings"),
     loaderVariant: "cards",
   },
+  {
+    id: "operator-experience",
+    label: "Operator Experience",
+    icon: Sparkles,
+    description: "Role-based UX command center for trust, actionability, and retention",
+    load: () => import("@/features/operator-experience/pages/OperatorExperiencePage"),
+    loaderVariant: "cards",
+    legacyRoutes: ["/operator-experience"],
+  },
 ];
 
 export default function OperationsHub() {
@@ -70,3 +79,4 @@ export default function OperationsHub() {
     />
   );
 }
+
