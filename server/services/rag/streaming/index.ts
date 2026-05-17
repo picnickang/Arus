@@ -1,10 +1,14 @@
 /**
  * RAG Streaming Service
- * Handles Server-Sent Events (SSE) for progressive response delivery
+ * Handles Server-Sent Events (SSE) for progressive response delivery.
+ *
+ * Routes through the LLM Gateway, which encapsulates model fallback,
+ * retries, and cost telemetry. Callers see normalised `LLMStreamChunk`
+ * deltas regardless of provider.
  */
 
 import { Response } from "express";
-import OpenAI from "openai";
+import { llmGateway } from "../../../composition/llm-gateway";
 import { ragMetrics } from "../metrics";
 import { createLogger } from "../../../lib/structured-logger";
 const logger = createLogger("Services:Rag:Streaming:Index");
@@ -49,16 +53,16 @@ const DEFAULT_CONFIG: StreamingConfig = {
 };
 
 export class StreamingService {
-  private openai: OpenAI | null = null;
+  private initialized = false;
 
   constructor(private config: StreamingConfig = DEFAULT_CONFIG) {}
 
-  async initialize(apiKey: string): Promise<void> {
-    this.openai = new OpenAI({ apiKey, timeout: 60000 });
+  async initialize(_apiKey: string): Promise<void> {
+    this.initialized = true;
   }
 
   isInitialized(): boolean {
-    return this.openai !== null;
+    return this.initialized;
   }
 
   async streamResponse(
@@ -68,10 +72,10 @@ export class StreamingService {
   ): Promise<void> {
     const startTime = Date.now();
 
-    if (!this.openai) {
+    if (!(await llmGateway.isAvailable())) {
       const errorChunk: StreamChunk = {
         type: "error",
-        error: "OpenAI client not initialized",
+        error: "LLM gateway is not available (missing credentials)",
       };
       this.sendSSE(res, errorChunk);
       onChunk?.(errorChunk);
@@ -88,31 +92,28 @@ export class StreamingService {
     const messages = this.buildMessages(systemPrompt, context.query, context.conversationHistory);
 
     try {
-      const stream = await this.openai.chat.completions.create({
+      const stream = llmGateway.chatStream({
         model: this.config.model,
         messages,
         temperature: this.config.temperature,
-        max_tokens: this.config.maxTokens,
-        stream: true,
+        maxCompletionTokens: this.config.maxTokens,
+        meta: { caller: "rag-streaming" },
       });
 
-      let fullContent = "";
       let tokensUsed = 0;
 
       for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content;
-        if (content) {
-          fullContent += content;
+        if (chunk.contentDelta) {
           const contentChunk: StreamChunk = {
             type: "content",
-            content,
+            content: chunk.contentDelta,
           };
           this.sendSSE(res, contentChunk);
           onChunk?.(contentChunk);
         }
 
         if (chunk.usage) {
-          tokensUsed = chunk.usage.total_tokens;
+          tokensUsed = chunk.usage.totalTokens;
         }
       }
 
@@ -144,86 +145,14 @@ export class StreamingService {
     } catch (error: any) {
       logger.error("[StreamingService] Error during streaming:", undefined, error);
 
-      if (error.code === "model_not_found" || error.message?.includes("overloaded")) {
-        try {
-          await this.streamWithFallback(context, res, onChunk, startTime);
-          return;
-        } catch (fallbackError) {
-          logger.error("[StreamingService] Fallback also failed:", undefined, fallbackError);
-        }
-      }
-
       const errorChunk: StreamChunk = {
         type: "error",
-        error: error.message || "Streaming failed",
+        error: error?.message || "Streaming failed",
       };
       this.sendSSE(res, errorChunk);
       onChunk?.(errorChunk);
       res.end();
     }
-  }
-
-  private async streamWithFallback(
-    context: StreamingContext,
-    res: Response,
-    onChunk?: (chunk: StreamChunk) => void,
-    startTime?: number
-  ): Promise<void> {
-    const fallbackModel = "gpt-4o-mini";
-    logger.info(`[StreamingService] Falling back to ${fallbackModel}`);
-
-    const systemPrompt = this.buildSystemPrompt(context.relevantChunks);
-    const messages = this.buildMessages(systemPrompt, context.query, context.conversationHistory);
-
-    const stream = await this.openai!.chat.completions.create({
-      model: fallbackModel,
-      messages,
-      temperature: this.config.temperature,
-      max_tokens: this.config.maxTokens,
-      stream: true,
-    });
-
-    let tokensUsed = 0;
-
-    for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content;
-      if (content) {
-        const contentChunk: StreamChunk = {
-          type: "content",
-          content,
-        };
-        this.sendSSE(res, contentChunk);
-        onChunk?.(contentChunk);
-      }
-
-      if (chunk.usage) {
-        tokensUsed = chunk.usage.total_tokens;
-      }
-    }
-
-    const citations = this.extractCitations(context.relevantChunks);
-    if (citations.length > 0) {
-      const citationChunk: StreamChunk = {
-        type: "citation",
-        citations,
-      };
-      this.sendSSE(res, citationChunk);
-      onChunk?.(citationChunk);
-    }
-
-    const latencyMs = Date.now() - (startTime || Date.now());
-    const doneChunk: StreamChunk = {
-      type: "done",
-      metadata: {
-        model: fallbackModel,
-        tokensUsed,
-        latencyMs,
-      },
-    };
-    this.sendSSE(res, doneChunk);
-    onChunk?.(doneChunk);
-
-    res.end();
   }
 
   private sendSSE(res: Response, chunk: StreamChunk): void {

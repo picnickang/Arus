@@ -12,6 +12,7 @@ import {
   callWithModelFallback,
   createOpenAIClient,
   retryWithBackoff,
+  analyzeErrorType,
 } from "../../openai/client";
 import type {
   LLMChatParams,
@@ -162,14 +163,39 @@ export class OpenAIProvider implements LLMProviderPort {
     if (!client) {
       throw new Error("OpenAI client not available - API key not configured");
     }
-    const oaiParams = { ...buildOpenAIParams(params), stream: true, stream_options: { include_usage: true } };
+    const oaiParams: Record<string, unknown> = {
+      ...buildOpenAIParams(params),
+      stream: true,
+      stream_options: { include_usage: true },
+    };
 
     // Wrap the initial stream-creation call in retry, but iteration itself
-    // cannot be retried mid-stream.
-    const stream = await retryWithBackoff(() =>
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (client as any).chat.completions.create(oaiParams)
-    );
+    // cannot be retried mid-stream. Mirror callWithModelFallback so that
+    // model_overloaded / rate-limit errors fall back to gpt-4o-mini before
+    // the first SSE chunk is emitted.
+    let stream: unknown;
+    try {
+      stream = await retryWithBackoff(() =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (client as any).chat.completions.create(oaiParams)
+      );
+    } catch (error: unknown) {
+      const analysis = analyzeErrorType(error);
+      if (analysis.fallbackModel && oaiParams.model !== analysis.fallbackModel) {
+        logger.warn(
+          `Streaming: falling back from ${oaiParams.model} to ${analysis.fallbackModel} due to: ${analysis.recommendation}`
+        );
+        stream = await retryWithBackoff(() =>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (client as any).chat.completions.create({
+            ...oaiParams,
+            model: analysis.fallbackModel,
+          })
+        );
+      } else {
+        throw error;
+      }
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for await (const chunk of stream as AsyncIterable<any>) {

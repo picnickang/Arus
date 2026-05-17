@@ -5,7 +5,7 @@
 
 import { createLogger } from "../../../lib/structured-logger";
 const logger = createLogger("Services:Rag:Comparison:Index");
-import OpenAI from "openai";
+import { llmGateway } from "../../../composition/llm-gateway";
 import { db } from "../../../db";
 import { kbDocs, kbChunks } from "@shared/schema";
 import { eq, inArray, sql } from "drizzle-orm";
@@ -44,14 +44,14 @@ export interface ComparisonResult {
 }
 
 export class ComparisonService {
-  private openai: OpenAI | null = null;
+  private initialized = false;
 
-  async initialize(apiKey: string): Promise<void> {
-    this.openai = new OpenAI({ apiKey, timeout: 60000 });
+  async initialize(_apiKey: string): Promise<void> {
+    this.initialized = true;
   }
 
   isInitialized(): boolean {
-    return this.openai !== null;
+    return this.initialized;
   }
 
   async compare(request: ComparisonRequest, orgId: string): Promise<ComparisonResult> {
@@ -71,11 +71,11 @@ export class ComparisonService {
       throw new Error("Could not find enough documents for comparison");
     }
 
-    if (!this.openai) {
+    if (!(await llmGateway.isAvailable())) {
       return this.generateFallbackComparison(query, documentContents);
     }
 
-    return this.generateLLMComparison(query, documentContents);
+    return this.generateLLMComparison(query, documentContents, orgId);
   }
 
   private async fetchDocumentContents(
@@ -117,7 +117,8 @@ export class ComparisonService {
 
   private async generateLLMComparison(
     query: string,
-    documents: DocumentContent[]
+    documents: DocumentContent[],
+    orgId?: string
   ): Promise<ComparisonResult> {
     const contextParts: string[] = [];
 
@@ -147,7 +148,7 @@ Return your response in JSON format:
 
 Focus on factual, specific differences. Be concise but thorough.`;
 
-    const response = await this.openai!.chat.completions.create({
+    const response = await llmGateway.chat({
       model: "gpt-4o",
       messages: [
         { role: "system", content: systemPrompt },
@@ -157,11 +158,12 @@ Focus on factual, specific differences. Be concise but thorough.`;
         },
       ],
       temperature: 0.3,
-      max_tokens: 2000,
-      response_format: { type: "json_object" },
+      maxCompletionTokens: 2000,
+      jsonMode: true,
+      meta: { caller: "rag-comparison", orgId, documentCount: documents.length },
     });
 
-    const content = response.choices[0]?.message?.content || "{}";
+    const content = response.content || "{}";
 
     try {
       const parsed = JSON.parse(content);

@@ -10,7 +10,7 @@ const logger = createLogger("MlAnalytics:AnomalyDetection");
 import { db } from "../db";
 import { telemetryAggregates } from "@shared/schema-runtime";
 import { eq, and, gte, asc } from "drizzle-orm";
-import OpenAI from "openai";
+import { llmGateway } from "../composition/llm-gateway";
 import type { StatisticalBaseline, AnomalyResult } from "./types";
 import { calculateTrend, detectSeasonality } from "./statistical";
 
@@ -122,7 +122,6 @@ export function detectStatisticalAnomaly(
 }
 
 export async function enhanceAnomalyDetectionWithAI(
-  openai: OpenAI,
   equipmentId: string,
   sensorType: string,
   currentValue: number,
@@ -130,6 +129,9 @@ export async function enhanceAnomalyDetectionWithAI(
   statisticalResult: AnomalyResult
 ): Promise<AnomalyResult> {
   try {
+    if (!(await llmGateway.isAvailable())) {
+      return statisticalResult;
+    }
     const prompt = `
 You are a marine equipment condition monitoring expert. Analyze this sensor anomaly:
 
@@ -157,14 +159,20 @@ Response format: JSON only
 }
 `;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
+    const response = await llmGateway.chat({
+      model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 500,
+      maxCompletionTokens: 500,
       temperature: 0.3,
+      jsonMode: true,
+      meta: {
+        caller: "anomaly-detection-enhancement",
+        equipmentId,
+        sensorType,
+      },
     });
 
-    const content = response.choices[0]?.message?.content;
+    const content = response.content;
     if (content) {
       const aiAnalysis = JSON.parse(content);
 

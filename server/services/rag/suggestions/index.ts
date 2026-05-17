@@ -4,8 +4,8 @@
  */
 
 import { createLogger } from "../../../lib/structured-logger";
+import { llmGateway } from "../../../composition/llm-gateway";
 const logger = createLogger("Services:Rag:Suggestions:Index");
-import OpenAI from "openai";
 
 export interface SuggestionContext {
   documentSummaries?: Array<{ title: string; summary: string }>;
@@ -29,17 +29,17 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
 };
 
 export class SuggestionEngine {
-  private openai: OpenAI | null = null;
+  private initialized = false;
   private cachedSuggestions: Map<string, { suggestions: Suggestion[]; timestamp: number }> =
     new Map();
   private cacheTTL = 300000;
 
-  async initialize(apiKey: string): Promise<void> {
-    this.openai = new OpenAI({ apiKey, timeout: 30000 });
+  async initialize(_apiKey: string): Promise<void> {
+    this.initialized = true;
   }
 
   isInitialized(): boolean {
-    return this.openai !== null;
+    return this.initialized;
   }
 
   async generateSuggestions(context: SuggestionContext, count: number = 5): Promise<Suggestion[]> {
@@ -50,7 +50,7 @@ export class SuggestionEngine {
       return cached.suggestions.slice(0, count);
     }
 
-    if (!this.openai) {
+    if (!(await llmGateway.isAvailable())) {
       return this.generateFallbackSuggestions(context, count);
     }
 
@@ -70,7 +70,7 @@ export class SuggestionEngine {
   private async generateWithLLM(context: SuggestionContext, count: number): Promise<Suggestion[]> {
     const prompt = this.buildPrompt(context, count);
 
-    const response = await this.openai!.chat.completions.create({
+    const response = await llmGateway.chat({
       model: "gpt-4o-mini",
       messages: [
         {
@@ -85,10 +85,11 @@ No explanation, just the JSON array.`,
         { role: "user", content: prompt },
       ],
       temperature: 0.7,
-      max_tokens: 500,
+      maxCompletionTokens: 500,
+      meta: { caller: "rag-suggestion-engine", suggestionCount: count },
     });
 
-    const content = response.choices[0]?.message?.content || "[]";
+    const content = response.content || "[]";
 
     try {
       const jsonMatch = content.match(/\[[\s\S]*\]/);

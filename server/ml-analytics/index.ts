@@ -9,7 +9,6 @@ import { EventEmitter } from "node:events";
 import { db } from "../db";
 import { mlModels } from "@shared/schema-runtime";
 import { eq } from "drizzle-orm";
-import OpenAI from "openai";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("MlAnalytics:Index");
 
@@ -34,19 +33,12 @@ import {
 } from "./database";
 
 export class MLAnalyticsService extends EventEmitter {
-  private openai: OpenAI | null = null;
   private models: Map<string, any> = new Map();
   private enabled: boolean = true;
+  private aiEnhancementEnabled: boolean = Boolean(process.env.OPENAI_API_KEY);
 
   constructor() {
     super();
-
-    if (process.env.OPENAI_API_KEY) {
-      this.openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-      });
-    }
-
     this.loadActiveModels();
   }
 
@@ -80,9 +72,8 @@ export class MLAnalyticsService extends EventEmitter {
       const statisticalResult = detectStatisticalAnomaly(currentValue, baseline);
 
       let enhancedResult = statisticalResult;
-      if (this.openai && statisticalResult.isAnomaly) {
+      if (this.aiEnhancementEnabled && statisticalResult.isAnomaly) {
         enhancedResult = await enhanceAnomalyDetectionWithAI(
-          this.openai,
           equipmentId,
           sensorType,
           currentValue,
@@ -199,7 +190,7 @@ export class MLAnalyticsService extends EventEmitter {
       ],
       stats: {
         activeModels: this.models.size,
-        openaiEnabled: !!this.openai,
+        openaiEnabled: this.aiEnhancementEnabled,
         analyticsVersion: "2.0",
       },
     };
