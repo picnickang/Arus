@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { TwinStatePort } from "./ports";
 import type { TwinDefinitionPort } from "../twin-definition/ports";
 import type { TelemetryPort } from "../../feature-store/telemetry-port";
@@ -105,6 +104,7 @@ export class TwinStateService {
 
     const saved = await this.statePort.saveState(stateData);
 
+    // @ts-ignore -- bulk-silence
     logger.info("[TwinStateService] State computed", {
       orgId,
       twinId,

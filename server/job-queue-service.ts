@@ -1,4 +1,3 @@
-// @ts-nocheck
 import PgBoss from "pg-boss";
 import { log } from "./vite";
 import {
@@ -75,6 +74,7 @@ class JobQueueService {
       throw new Error("Job queue not initialized");
     }
 
+    // @ts-ignore -- bulk-silence
     return this.boss.getJobById(jobId);
   }
 
@@ -110,6 +110,7 @@ class JobQueueService {
 
     await this.boss.work(
       "document-ingestion",
+      // @ts-ignore -- bulk-silence
       { teamSize: concurrency, teamConcurrency: 1 },
       instrumentedHandler
     );
@@ -136,6 +137,7 @@ class JobQueueService {
       throw new Error("Job queue not initialized");
     }
 
+    // @ts-ignore -- bulk-silence
     await this.boss.fail(jobId, error);
 
     // Emit Prometheus metrics for job failure

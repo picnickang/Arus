@@ -1,8 +1,8 @@
-// @ts-nocheck
 import type { VesselOperationsPort } from "../domain/ports";
 import { vesselService, dbEquipmentStorage } from "../../../repositories";
 
 export class VesselOperationsAdapter implements VesselOperationsPort {
+  // @ts-ignore -- bulk-silence
   exportVessel(id: string, orgId: string) {
     return vesselService.exportVessel(id, orgId);
   }
@@ -18,12 +18,15 @@ export class VesselOperationsAdapter implements VesselOperationsPort {
   wipeData(vesselId: string, orgId: string) {
     return vesselService.wipeVesselData(vesselId, orgId);
   }
+  // @ts-ignore -- bulk-silence
   getVesselEquipment(vesselId: string, orgId: string) {
     return dbEquipmentStorage.getEquipmentByVessel(vesselId, orgId || "");
   }
+  // @ts-ignore -- bulk-silence
   assignEquipment(vesselId: string, equipmentId: string, orgId: string) {
     return dbEquipmentStorage.associateEquipmentToVessel(equipmentId, vesselId, orgId || "");
   }
+  // @ts-ignore -- bulk-silence
   unassignEquipment(vesselId: string, equipmentId: string, orgId: string) {
     return dbEquipmentStorage.disassociateEquipmentFromVessel(equipmentId, orgId || "");
   }

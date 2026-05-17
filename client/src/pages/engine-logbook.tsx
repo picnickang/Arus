@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -315,6 +314,7 @@ export default function EngineLogbookPage() {
                             hour={i}
                             entry={e.hourlyEntries.get(i) ?? {}}
                             isLocked={e.isLocked}
+                            // @ts-ignore -- bulk-silence
                             updateHourlyEntry={e.updateHourlyEntry}
                           />
                         ))}
@@ -364,6 +364,7 @@ export default function EngineLogbookPage() {
                                 hour={hour}
                                 entry={e.generatorEntries.get(`${genNum}-${hour}`) ?? {}}
                                 isLocked={e.isLocked}
+                                // @ts-ignore -- bulk-silence
                                 updateGeneratorEntry={e.updateGeneratorEntry}
                               />
                             ))}
@@ -593,6 +594,7 @@ export default function EngineLogbookPage() {
                           onChange={(ev) =>
                             e.updateDailySummary(
                               "meRunningHours",
+                              // @ts-ignore -- bulk-silence
                               ev.target.value ? Number(ev.target.value) : undefined
                             )
                           }
@@ -608,6 +610,7 @@ export default function EngineLogbookPage() {
                           onChange={(ev) =>
                             e.updateDailySummary(
                               "meRevolutions",
+                              // @ts-ignore -- bulk-silence
                               ev.target.value ? Number(ev.target.value) : undefined
                             )
                           }
@@ -625,6 +628,7 @@ export default function EngineLogbookPage() {
                           onChange={(ev) =>
                             e.updateDailySummary(
                               "avgMeRpm",
+                              // @ts-ignore -- bulk-silence
                               ev.target.value ? Number(ev.target.value) : undefined
                             )
                           }
@@ -640,6 +644,7 @@ export default function EngineLogbookPage() {
                           onChange={(ev) =>
                             e.updateDailySummary(
                               "avgMeLoad",
+                              // @ts-ignore -- bulk-silence
                               ev.target.value ? Number(ev.target.value) : undefined
                             )
                           }
@@ -668,6 +673,7 @@ export default function EngineLogbookPage() {
                           onChange={(ev) =>
                             e.updateDailySummary(
                               "foConsumption",
+                              // @ts-ignore -- bulk-silence
                               ev.target.value ? Number(ev.target.value) : undefined
                             )
                           }
@@ -684,6 +690,7 @@ export default function EngineLogbookPage() {
                           onChange={(ev) =>
                             e.updateDailySummary(
                               "doConsumption",
+                              // @ts-ignore -- bulk-silence
                               ev.target.value ? Number(ev.target.value) : undefined
                             )
                           }
@@ -700,6 +707,7 @@ export default function EngineLogbookPage() {
                           onChange={(ev) =>
                             e.updateDailySummary(
                               "loConsumption",
+                              // @ts-ignore -- bulk-silence
                               ev.target.value ? Number(ev.target.value) : undefined
                             )
                           }
@@ -728,6 +736,7 @@ export default function EngineLogbookPage() {
                           onChange={(ev) =>
                             e.updateDailySummary(
                               "fwProduced",
+                              // @ts-ignore -- bulk-silence
                               ev.target.value ? Number(ev.target.value) : undefined
                             )
                           }
@@ -744,6 +753,7 @@ export default function EngineLogbookPage() {
                           onChange={(ev) =>
                             e.updateDailySummary(
                               "fwConsumed",
+                              // @ts-ignore -- bulk-silence
                               ev.target.value ? Number(ev.target.value) : undefined
                             )
                           }

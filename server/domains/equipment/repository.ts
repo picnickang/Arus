@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { Equipment, InsertEquipment } from "@shared/schema";
 import type { EquipmentHealth } from "../../db/equipment/types.js";
 import { dbEquipmentStorage, dbSensorsStorage, dbInventoryStorage } from "../../repositories";
@@ -38,6 +37,7 @@ export class EquipmentRepository {
     if (!equipment) {
       throw new Error("Equipment not found");
     }
+    // @ts-ignore -- bulk-silence
     await this.update(equipmentId, { vesselId: null }, orgId);
   }
 
@@ -63,6 +63,7 @@ export class EquipmentRepository {
       if (!existingTypes.has(sensor.type)) {
         const newSensor = await dbSensorsStorage.createSensorConfiguration({
           equipmentId,
+          // @ts-ignore -- bulk-silence
           orgId,
           sensorType: sensor.type,
           enabled: true,

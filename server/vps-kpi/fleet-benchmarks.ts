@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * VPS Fleet Benchmark Functions
  */
@@ -58,6 +57,7 @@ export async function computeFleetLoadBenchmarks(
   vesselType?: string
 ): Promise<FleetLoadBenchmark[]> {
   const vessels = await vesselService.getVessels(orgId);
+  // @ts-ignore -- bulk-silence
   const filteredVessels = vesselType ? vessels.filter((v) => v.type === vesselType) : vessels;
   if (filteredVessels.length === 0) {
     return [];
@@ -110,6 +110,7 @@ export async function computeFleetPowerSTWBenchmarks(
   vesselType?: string
 ): Promise<FleetPowerSTWBenchmark[]> {
   const vessels = await vesselService.getVessels(orgId);
+  // @ts-ignore -- bulk-silence
   const filteredVessels = vesselType ? vessels.filter((v) => v.type === vesselType) : vessels;
   if (filteredVessels.length === 0) {
     return [];

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { z } from "zod";
 import { db } from "../../../db";
 import { sql } from "drizzle-orm";
@@ -142,9 +141,11 @@ registerTool({
     );
 
     const data = result.data;
+    // @ts-ignore -- bulk-silence
     if (!data || (data as Record<string, unknown>).error) {
       return {
         partNumber,
+        // @ts-ignore -- bulk-silence
         error: (data as Record<string, unknown>)?.error || "Part availability data unavailable",
         _meta: {
           fromCache: result.fromCache,
@@ -259,6 +260,7 @@ registerTool({
           PARTS_CACHE_TTL_SEC
         ).catch(() => null);
 
+        // @ts-ignore -- bulk-silence
         if (!cached || (cached.data as Record<string, unknown>)?.error) {
           return { ...base, supplierData: null, supplierError: "External data unavailable" };
         }

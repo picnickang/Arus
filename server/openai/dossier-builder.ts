@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Equipment Dossier Builder - Gather contextual data for equipment analysis
  */
@@ -45,6 +44,7 @@ export async function buildEquipmentDossiers(
   equipmentHealthData: EquipmentHealth[],
   storageInstance: any
 ): Promise<EquipmentDossier[]> {
+  // @ts-ignore -- bulk-silence
   return Promise.all(
     equipmentHealthData.map(async (equipment) => {
       let workOrders: any[] = [];

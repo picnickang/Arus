@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Compliance Assessment - Functions for assessing equipment compliance
  */
@@ -90,6 +89,7 @@ function evaluateThresholdStatus(
 function checkRecentCriticalAlerts(relevantAlerts: AlertNotification[]): number {
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
   return relevantAlerts.filter(
+    // @ts-ignore -- bulk-silence
     (alert) => alert.severity === "critical" && new Date(alert.timestamp).getTime() > cutoff
   ).length;
 }
@@ -217,6 +217,7 @@ export function generateTelemetryAnalysis(
   period: { startDate: Date; endDate: Date }
 ): ComplianceReport["telemetryAnalysis"] {
   const periodData = telemetryData.filter((reading) => {
+    // @ts-ignore -- bulk-silence
     const timestamp = new Date(reading.timestamp);
     return (
       timestamp >= period.startDate &&
@@ -226,6 +227,7 @@ export function generateTelemetryAnalysis(
   });
 
   const periodAlerts = alerts.filter((alert) => {
+    // @ts-ignore -- bulk-silence
     const timestamp = new Date(alert.timestamp);
     return (
       timestamp >= period.startDate &&
@@ -244,6 +246,7 @@ export function generateTelemetryAnalysis(
   const anomalousReadings = periodData.filter((reading) => {
     return periodAlerts.some(
       (alert) =>
+        // @ts-ignore -- bulk-silence
         Math.abs(new Date(alert.timestamp).getTime() - new Date(reading.timestamp).getTime()) <
         5 * 60 * 1000
     );

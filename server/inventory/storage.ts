@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Inventory Storage Interface
  *
@@ -79,6 +78,7 @@ export class InventoryStorageAdapter implements InventoryStorage {
    * Get part by number - direct passthrough
    */
   async getPartByNumber(partNo: string, orgId: string): Promise<Part | null> {
+    // @ts-ignore -- bulk-silence
     const part = await this.storage.getPartByNumber(partNo, orgId);
     return part ?? null;
   }
@@ -94,9 +94,11 @@ export class InventoryStorageAdapter implements InventoryStorage {
 
     // Use existing storage method for each part (storage layer should batch internally)
     // If storage doesn't support batching, this still prevents caller-level N+1
+    // @ts-ignore -- bulk-silence
     const partsPromises = partNos.map((partNo) => this.storage.getPartByNumber(partNo, orgId));
 
     const parts = await Promise.all(partsPromises);
+    // @ts-ignore -- bulk-silence
     return parts.filter((part): part is Part => part !== undefined && part !== null);
   }
 
@@ -106,12 +108,14 @@ export class InventoryStorageAdapter implements InventoryStorage {
    */
   async getStockByPart(partNo: string, orgId: string): Promise<Stock[]> {
     // First get the part to get its ID
+    // @ts-ignore -- bulk-silence
     const part = await this.storage.getPartByNumber(partNo, orgId);
     if (!part) {
       return [];
     }
 
     // Then get stock by part ID
+    // @ts-ignore -- bulk-silence
     return this.storage.getStockByPart(part.id, orgId);
   }
 
@@ -129,6 +133,7 @@ export class InventoryStorageAdapter implements InventoryStorage {
     const partIds = parts.map((p) => p.id);
 
     // Get stock for all parts
+    // @ts-ignore -- bulk-silence
     const stockPromises = partIds.map((partId) => this.storage.getStockByPart(partId, orgId));
 
     const stockArrays = await Promise.all(stockPromises);
@@ -141,12 +146,14 @@ export class InventoryStorageAdapter implements InventoryStorage {
    */
   async suggestPartSubstitutions(partNo: string, orgId: string): Promise<PartSubstitution[]> {
     // Get the part first to resolve ID
+    // @ts-ignore -- bulk-silence
     const part = await this.storage.getPartByNumber(partNo, orgId);
     if (!part) {
       return [];
     }
 
     // Get substitutions by part ID
+    // @ts-ignore -- bulk-silence
     return this.storage.suggestPartSubstitutions(part.id, orgId);
   }
 
@@ -161,6 +168,7 @@ export class InventoryStorageAdapter implements InventoryStorage {
 
     // Map to simplified structure needed by inventory functions
     return workOrderParts.map((wop) => ({
+      // @ts-ignore -- bulk-silence
       partNo: wop.partNo ?? "", // Handle missing partNo
       quantity: wop.quantityUsed ?? 0,
     }));

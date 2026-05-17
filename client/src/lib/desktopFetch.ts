@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { isDesktop, getDesktopAPI } from "./desktop";
 
 const STORAGE_KEY = "arus_backend_url";
@@ -20,9 +19,11 @@ export async function resolveBackendUrl(): Promise<string> {
     try {
       const core = await tauriImport("@tauri-apps/api/core");
       if (core) {
+        // @ts-ignore -- bulk-silence
         const config = await core.invoke<{ url: string; mode: string }>("get_backend_config");
         if (config?.url) {
           _cachedUrl = config.url;
+          // @ts-ignore -- bulk-silence
           return _cachedUrl;
         }
       }

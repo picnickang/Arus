@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { eq, and, desc, inArray } from "drizzle-orm";
 import { db } from "../../../db";
 import { fleetBaselines, equipmentFeatures, equipment, type FleetBaseline } from "@shared/schema";
@@ -66,6 +65,7 @@ export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
         .where(eq(equipmentFeatures.orgId, orgId))
         .orderBy(desc(equipmentFeatures.timestamp))
         .limit(2000);
+      // @ts-ignore -- bulk-silence
       logger.warn("[FleetAnalytics] No equipment found for type, using all features as fallback", {
         orgId,
         equipmentType,
@@ -73,6 +73,7 @@ export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
     }
 
     if (allFeatures.length === 0) {
+      // @ts-ignore -- bulk-silence
       logger.warn("[FleetAnalytics] No feature records found for baseline computation", {
         orgId,
         equipmentType,
@@ -125,6 +126,7 @@ export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
       results.push(result);
     }
 
+    // @ts-ignore -- bulk-silence
     logger.info("[FleetAnalytics] Baselines computed from feature records", {
       orgId,
       equipmentType,

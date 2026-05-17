@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { Express } from "express";
 import { insertDeviceSchema } from "@shared/schema-runtime";
 import { deviceService } from "./service";
@@ -35,6 +34,7 @@ export function registerDeviceRoutes(
       const devices = await safeDbOperation(
         () => deviceService.getDevicesWithStatus(orgId),
         "getDevicesWithStatus",
+        // @ts-ignore -- bulk-silence
         { defaultValue: [] }
       );
 

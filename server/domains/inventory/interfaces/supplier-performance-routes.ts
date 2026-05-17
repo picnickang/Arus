@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Router } from "express";
 import { asyncHandler } from "../../../lib/async-handler";
 import { requireOrgId, AuthenticatedRequest } from "../../../middleware/auth";
@@ -7,6 +6,7 @@ import { getSupplierPerformanceSummaries } from "../application/supplier-perform
 
 export const supplierPerformanceRouter = Router();
 
+// @ts-ignore -- bulk-silence
 const generalLimit = createRateLimiter("general");
 
 supplierPerformanceRouter.get(

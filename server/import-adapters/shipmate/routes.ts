@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * SHIPMATE Import Routes
  *
@@ -14,6 +13,7 @@
 
 import { Router, Request, Response } from "express";
 import { z } from "zod";
+// @ts-ignore -- bulk-silence
 import { shipmateImport, type ShipmateModuleType } from "./import-service";
 import { getShipmateMapping } from "./field-mapping";
 import { requireOrgId, type AuthenticatedRequest } from "../../middleware/auth";

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Diagnostics Routes - Test Suite Endpoints
  */
@@ -191,6 +190,7 @@ export function registerTestsRoutes(router: Router) {
     });
     try {
       const { smokeTestSuites } = await import("../../diagnostics-smoke-tests.js");
+      // @ts-ignore -- bulk-silence
       const runner = smokeTestSuites[name];
       if (runner) {
         const result = await runner();

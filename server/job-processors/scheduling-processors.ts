@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Scheduling Job Processors
  */
@@ -39,5 +38,6 @@ export async function processMaintenanceScheduling(data: {
   equipmentId: string;
   pdmScore: number;
 }): Promise<unknown> {
+  // @ts-ignore -- bulk-silence
   return dbMaintenanceStorage.autoScheduleMaintenance(data.equipmentId, data.pdmScore);
 }

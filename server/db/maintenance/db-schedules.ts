@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Maintenance - Database Storage Schedules & Records
  */
@@ -161,6 +160,7 @@ export class DbMaintenanceSchedules {
   async createMaintenanceRecord(record: InsertMaintenanceRecord): Promise<MaintenanceRecord> {
     const [n] = await db
       .insert(maintenanceRecords)
+      // @ts-ignore -- bulk-silence
       .values({ id: randomUUID(), ...record, createdAt: new Date(), updatedAt: new Date() })
       .returning();
     return n;
@@ -176,6 +176,7 @@ export class DbMaintenanceSchedules {
       : eq(maintenanceRecords.id, id);
     const [updated] = await db
       .update(maintenanceRecords)
+      // @ts-ignore -- bulk-silence
       .set({ ...updates, updatedAt: new Date() })
       .where(conditions)
       .returning();
@@ -218,6 +219,7 @@ export class DbMaintenanceSchedules {
   async createMaintenanceCost(cost: InsertMaintenanceCost): Promise<MaintenanceCost> {
     const [n] = await db
       .insert(maintenanceCosts)
+      // @ts-ignore -- bulk-silence
       .values({ id: randomUUID(), ...cost, createdAt: new Date(), updatedAt: new Date() })
       .returning();
     return n;

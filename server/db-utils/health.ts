@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Database Utils - Health Check
  * Database connectivity and health monitoring
@@ -24,6 +23,7 @@ export async function getDatabaseHealth(): Promise<DatabaseHealth> {
     };
   }
 
+  // @ts-ignore -- bulk-silence
   let pool: Pool | null = null;
   try {
     pool = new Pool({

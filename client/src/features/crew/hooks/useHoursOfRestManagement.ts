@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -97,6 +96,7 @@ export function useHoursOfRestManagement() {
       }
       return response.json();
     },
+    // @ts-ignore -- bulk-silence
     invalidateKeys: () => [
       stcwRestKeys.crew,
       stcwRestKeys.rest(selectedCrew, selectedYear, selectedMonth),

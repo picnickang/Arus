@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Alerts - Database Storage
  */
@@ -170,6 +169,7 @@ export class DatabaseAlertStorage {
   async createAlertNotification(notification: InsertAlertNotification): Promise<AlertNotification> {
     const [n] = await db
       .insert(alertNotifications)
+      // @ts-ignore -- bulk-silence
       .values({
         id: randomUUID(),
         ...notification,
@@ -195,6 +195,7 @@ export class DatabaseAlertStorage {
         acknowledged: true,
         acknowledgedBy,
         acknowledgedAt: new Date(),
+        // @ts-ignore -- bulk-silence
         updatedAt: new Date(),
       })
       .where(conditions)
@@ -253,6 +254,7 @@ export class DatabaseAlertStorage {
     const suppressions = await this.getActiveSuppressions(orgId);
     return suppressions.some(
       (s) =>
+        // @ts-ignore -- bulk-silence
         s.equipmentId === equipmentId && s.sensorType === sensorType && s.alertType === alertType
     );
   }

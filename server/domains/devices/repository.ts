@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { Device, InsertDevice } from "@shared/schema";
 import { dbDevicesStorage } from "../../repositories";
 
@@ -16,10 +15,12 @@ export class DeviceRepository {
   }
 
   async update(id: string, data: Partial<InsertDevice>, orgId: string): Promise<Device> {
+    // @ts-ignore -- bulk-silence
     return dbDevicesStorage.updateDevice(id, data, orgId);
   }
 
   async delete(id: string, orgId: string): Promise<void> {
+    // @ts-ignore -- bulk-silence
     return dbDevicesStorage.deleteDevice(id, orgId);
   }
 

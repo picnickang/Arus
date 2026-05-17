@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * ML Model Lineage Tracker
  * Records training provenance, artifact hashes, and prediction counts
@@ -126,6 +125,7 @@ export async function getLineageRecords(filters?: {
 }): Promise<LineageRecord[]> {
   try {
     const text = await fs.readFile(LINEAGE_FILE, "utf8");
+    // @ts-ignore -- bulk-silence
     const rows = text.trim().split("\n").filter(Boolean).map(JSON.parse);
 
     // Separate base records and deltas

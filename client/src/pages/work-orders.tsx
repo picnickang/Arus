@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState as useLocalState } from "react";
 import { Plus, Trash2, Package, FileText, Wrench, RefreshCw, AlertTriangle } from "lucide-react";
 import { WorkOrderRequestsTab } from "@/components/work-orders/WorkOrderRequestsTab";
@@ -203,6 +202,7 @@ export default function WorkOrders() {
               </div>
             </div>
             <VirtualizedWorkOrderTable
+              // @ts-ignore -- bulk-silence
               workOrders={filteredAndSortedWorkOrders}
               equipment={equipment}
               vessels={vessels}
@@ -268,6 +268,7 @@ export default function WorkOrders() {
               onComplete={(feedback) =>
                 completeWorkOrderMutation.mutate({
                   orderId: selectedOrder.id,
+                  // @ts-ignore -- bulk-silence
                   predictionFeedback: feedback,
                 })
               }
@@ -284,6 +285,7 @@ export default function WorkOrders() {
         onOpenChange={setFormDialogOpen}
         mode={formDialogMode}
         workOrder={selectedOrder}
+        // @ts-ignore -- bulk-silence
         onSubmit={handleFormSubmit}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
         defaultVesselId={defaultVesselId}

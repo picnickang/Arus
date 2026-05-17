@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Express } from "express";
 import { RateLimitRequestHandler } from "express-rate-limit";
 import {
@@ -37,6 +36,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
 
       const endDate = new Date();
       const startDate = new Date();
+      // @ts-ignore -- bulk-silence
       startDate.setMonth(startDate.getMonth() - validatedQuery.months);
 
       const summary = await getSavingsSummary(orgId, startDate, endDate);
@@ -70,6 +70,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
       const calculation = await calculateWorkOrderSavings(
         workOrderId,
         orgId,
+        // @ts-ignore -- bulk-silence
         validatedOptions ?? {}
       );
 
@@ -115,13 +116,17 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
         .limit(validatedQuery.limit);
 
       if (validatedQuery.equipmentId) {
+        // @ts-ignore -- bulk-silence
         query = query.where(
           and(eq(costSavings.orgId, orgId), eq(costSavings.equipmentId, validatedQuery.equipmentId))
         );
       }
 
+      // @ts-ignore -- bulk-silence
       if (validatedQuery.vesselId) {
+        // @ts-ignore -- bulk-silence
         query = query.where(
+          // @ts-ignore -- bulk-silence
           and(eq(costSavings.orgId, orgId), eq(costSavings.vesselId, validatedQuery.vesselId))
         );
       }

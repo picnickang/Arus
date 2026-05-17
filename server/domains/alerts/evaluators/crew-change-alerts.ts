@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Crew Alert Evaluators - Crew Change Reminders
  * Evaluates upcoming crew change alerts based on assignments
@@ -104,6 +103,7 @@ export async function evaluateCrewChangeReminders(
   ctx: EvaluationContext
 ): Promise<CrewAlertResult[]> {
   const now = ctx.now || new Date();
+  // @ts-ignore -- bulk-silence
   const settings = await alertSettingsService.getCrewAlertSettings(ctx.orgId, ctx.vesselId || null);
   if (!settings?.crewChangeRemindersEnabled) {
     return [];

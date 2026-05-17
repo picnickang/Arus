@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Crew Compliance Report Generator
  * Generates crew certification and compliance report
@@ -68,6 +67,7 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
         for (const member of crew) {
           const certifications = await dbCrewExtensionsStorage.getCrewCertifications(
             member.id,
+            // @ts-ignore -- bulk-silence
             orgId
           );
 
@@ -81,6 +81,7 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
 
               alerts.push({
                 crewId: member.id,
+                // @ts-ignore -- bulk-silence
                 crewName: `${member.firstName} ${member.lastName}`,
                 vesselName: vessel.name,
                 certificationName:

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Fleet KPI Computation
  *
@@ -45,6 +44,7 @@ export async function computeInsights(
       : devices.reduce((sum, d) => {
           const set = new Set(
             (d.sensors ?? "")
+              // @ts-ignore -- bulk-silence
               .split(",")
               .map((s: string) => s.trim())
               .filter(Boolean)
@@ -57,6 +57,7 @@ export async function computeInsights(
         ? new Set(telemetryReadings.map((t) => `${t.equipmentId}-${t.sensorType}`)).size
         : 0;
 
+    // @ts-ignore -- bulk-silence
     const recentAlerts = alerts.filter((a) => new Date(a.createdAt) > since7d);
     const dq7d = recentAlerts.length;
 
@@ -174,6 +175,7 @@ export async function computeInsights(
     }
 
     const anomalies = criticalAlerts.slice(0, 20).map((alert) => {
+      // @ts-ignore -- bulk-silence
       const created = new Date(alert.createdAt);
       const ack = alert.acknowledgedAt ? new Date(alert.acknowledgedAt) : now;
       const alertEquipment = equipment.find((e) => e.id === alert.equipmentId);

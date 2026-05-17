@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Vessel Intelligence Operational Analysis
  *
@@ -95,6 +94,7 @@ export function identifyPredictiveIndicators(
   telemetryByEquipment.forEach((readings, equipmentId) => {
     const failures = workOrders.filter(
       (wo) =>
+        // @ts-ignore -- bulk-silence
         wo.equipmentId === equipmentId && (wo.priority === "critical" || wo.type === "corrective")
     );
 

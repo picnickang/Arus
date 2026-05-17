@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type {
   AlertConfiguration,
   InsertAlertConfiguration as InsertAlertConfig,
@@ -139,6 +138,7 @@ export class AlertsRepository {
     sensorType: string,
     alertType: string
   ): Promise<boolean> {
+    // @ts-ignore -- bulk-silence
     return dbAlertStorage.isAlertSuppressed(equipmentId, sensorType, alertType);
   }
 
@@ -148,6 +148,7 @@ export class AlertsRepository {
    * Delete all alerts and notifications
    */
   async deleteAllNotifications(): Promise<void> {
+    // @ts-ignore -- bulk-silence
     return dbAlertStorage.clearAllAlerts();
   }
 }

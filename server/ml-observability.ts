@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * ML observability sink for prediction success/failure events.
  *
@@ -29,6 +28,7 @@ export const mlObservability = {
     result: PredictionLikeResult,
     latencyMs: number
   ): void {
+    // @ts-ignore -- bulk-silence
     logger.info("[ML] Prediction success", {
       equipmentId,
       orgId,
@@ -47,6 +47,7 @@ export const mlObservability = {
     error: Error,
     latencyMs: number
   ): void {
+    // @ts-ignore -- bulk-silence
     logger.warn("[ML] Prediction failure", {
       equipmentId,
       orgId,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { db } from "../db";
 import { weibullEstimates } from "@shared/schema-runtime";
 import { eq, and, desc } from "drizzle-orm";
@@ -82,6 +81,7 @@ export class WeibullRULAnalyzer {
 
   private async storeRULAnalysis(prediction: RULPrediction, orgId: string): Promise<void> {
     try {
+      // @ts-ignore -- bulk-silence
       await db.insert(weibullEstimates).values({
         id: randomUUID(),
         orgId,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Inventory - Database Storage Parts & Inventory
  *
@@ -246,6 +245,7 @@ export class DbPartsStorage {
       partUpdates.leadTimeDays = updates.leadTimeDays;
     }
     if (updates.isActive !== undefined) {
+      // @ts-ignore -- bulk-silence
       partUpdates.isActive = updates.isActive;
     }
 

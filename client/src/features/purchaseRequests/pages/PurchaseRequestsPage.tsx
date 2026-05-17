@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
@@ -40,6 +39,7 @@ export function PurchaseRequestsPage() {
     createMutation.mutate(
       { requestedBy: requestedBy.trim() },
       {
+        // @ts-ignore -- bulk-silence
         onSuccess: (pr: PurchaseRequest) => {
           toast({ title: "Purchase Request created" });
           setIsCreateOpen(false);

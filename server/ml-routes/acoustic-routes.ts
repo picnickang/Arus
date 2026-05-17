@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * ML Routes - Acoustic Analysis Routes
  * FFT-based acoustic analysis endpoint
@@ -27,6 +26,7 @@ const router = Router();
 router.post("/ml/acoustic-analysis", async (req: AuthenticatedRequest, res: Response) => {
   try {
     const data = mlAcousticDataSchema.parse(req.body);
+    // @ts-ignore -- bulk-silence
     const { dataPoints, samplingRate, equipmentType } = data;
 
     const nextPowerOf2 = Math.pow(2, Math.ceil(Math.log2(dataPoints.length)));
@@ -175,6 +175,7 @@ router.post("/ml/acoustic-analysis", async (req: AuthenticatedRequest, res: Resp
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      // @ts-ignore -- bulk-silence
       return sendBadRequest(res, "Invalid acoustic data", error.errors);
     }
     handleError(error, res, "perform acoustic analysis");

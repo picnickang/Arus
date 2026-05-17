@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Crew Scheduler - Greedy Shift Assignment Algorithm
  *
@@ -180,6 +179,7 @@ function processShift(
     end.setDate(end.getDate() + 1);
   }
 
+  // @ts-ignore -- bulk-silence
   const needed = shift.needed ?? 1;
   const rankedCrew = rankCrew(crew, shift.vesselId);
   let picked = 0;

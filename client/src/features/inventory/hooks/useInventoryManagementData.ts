@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useForm } from "react-hook-form";
@@ -126,6 +125,7 @@ export function useInventoryManagementData() {
     data: partsInventory = [],
     isLoading: isLoadingInventory,
     error,
+  // @ts-ignore -- bulk-silence
   } = useInventoryParts() as {
     data: PartsInventoryItem[];
     isLoading: boolean;
@@ -155,11 +155,13 @@ export function useInventoryManagementData() {
         location: data.location || "MAIN",
         orgId,
       });
+      // @ts-ignore -- bulk-silence
       if (result?.id) {
         const supplierIds = data.supplierIds || [];
         const preferredSupplierId = supplierIds.includes(data.preferredSupplierId || "")
           ? data.preferredSupplierId
           : supplierIds[0] || undefined;
+        // @ts-ignore -- bulk-silence
         await apiRequest("PUT", `/api/inventory/${result.id}/suppliers`, {
           supplierIds,
           preferredSupplierId,

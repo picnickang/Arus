@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * SLO Alerts - Violation Checking
  */
@@ -37,6 +36,7 @@ function createViolation(
   severity: ViolationSeverity,
   burnRate?: number
 ): SLOViolation {
+  // @ts-ignore -- bulk-silence
   return { sloName, metric, threshold, actual, route, timestamp: new Date(), severity, burnRate };
 }
 

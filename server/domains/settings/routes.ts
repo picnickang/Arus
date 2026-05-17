@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Express, Request, Response, RequestHandler } from "express";
 import { insertSettingsSchema } from "@shared/schema-runtime";
 import { withErrorHandling, sendDeleted, sendCreated } from "../../lib/route-utils";
@@ -126,6 +125,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     withErrorHandling("fetch context events", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
       const { equipmentId, eventType, limit } = req.query;
+      // @ts-ignore -- bulk-silence
       const events = await analyticsInsightsAdapter.getContextEvents?.({
         orgId,
         equipmentId: equipmentId as string,
@@ -142,6 +142,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     writeOperationRateLimit,
     withErrorHandling("create context event", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
+      // @ts-ignore -- bulk-silence
       const event = await analyticsInsightsAdapter.createContextEvent?.({ ...req.body, orgId });
       sendCreated(res, event || req.body);
     })
@@ -152,6 +153,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("delete context event", async (req: Request, res: Response) => {
+      // @ts-ignore -- bulk-silence
       await analyticsInsightsAdapter.deleteContextEvent?.(req.params.id);
       sendDeleted(res);
     })
@@ -238,6 +240,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     requireOrgId,
     withErrorHandling("fetch replay sessions", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
+      // @ts-ignore -- bulk-silence
       const sessions = await analyticsInsightsAdapter.getReplaySessions?.(orgId);
       res.json(sessions ?? []);
     })
@@ -249,6 +252,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     writeOperationRateLimit,
     withErrorHandling("create replay session", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
+      // @ts-ignore -- bulk-silence
       const session = await analyticsInsightsAdapter.createReplaySession?.({ ...req.body, orgId });
       sendCreated(res, session || req.body);
     })

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Vessel Performance Routes - VPS Analysis Endpoints
  * Power vs Speed Through Water + Fleet Benchmarks
@@ -145,6 +144,7 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
 
       const vessels = await vesselService.getVessels(orgId);
       const vesselCount = vesselType
+        // @ts-ignore -- bulk-silence
         ? vessels.filter((v) => v.type === vesselType).length
         : vessels.length;
 

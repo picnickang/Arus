@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Fuel Emissions Entry Creators - Create log entries from telemetry or FMCC
  */
@@ -65,6 +64,7 @@ export async function createFuelEmissionsEntry(
     periodStart: period.periodStart,
     periodEnd: period.periodEnd,
     periodType,
+    // @ts-ignore -- bulk-silence
     foConsumptionMt,
     doConsumptionMt,
     lngConsumptionMt: null,
@@ -155,6 +155,7 @@ export async function createFuelEmissionsEntryFromFMCC(
     periodStart: fmccData.periodStart,
     periodEnd: fmccData.periodEnd,
     periodType,
+    // @ts-ignore -- bulk-silence
     foConsumptionMt,
     doConsumptionMt,
     lngConsumptionMt: null,

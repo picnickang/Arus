@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Analytics Routes - ML Models, Performance, and Drift
  *
@@ -34,6 +33,7 @@ export function mountModelGovernanceRoutes(router: Router) {
       const cacheKey = analyticsCacheKeys.mlModels(orgId, modelType as string | undefined);
       const response = await cachedAnalytics<MlModelListResponse>(
         cacheKey,
+        // @ts-ignore -- bulk-silence
         async () => {
           const filters = [eq(mlModels.orgId, orgId)];
           if (modelType) {
@@ -78,6 +78,7 @@ export function mountModelGovernanceRoutes(router: Router) {
       const cacheKey = `${orgId}:ml-model:${id}`;
       const response = await cachedAnalytics<MlModelResponse>(
         cacheKey,
+        // @ts-ignore -- bulk-silence
         async () => {
           const [model] = await db
             .select()
@@ -116,6 +117,7 @@ export function mountModelGovernanceRoutes(router: Router) {
       const cacheKey = analyticsCacheKeys.modelPerformance(orgId, modelId as string | undefined);
       const response = await cachedAnalytics<ModelPerformanceListResponse>(
         cacheKey,
+        // @ts-ignore -- bulk-silence
         async () => {
           const filters = [eq(modelPerformanceValidations.orgId, orgId)];
           if (modelId) {
@@ -157,6 +159,7 @@ export function mountModelGovernanceRoutes(router: Router) {
       const cacheKey = `${orgId}:model-performance:summary`;
       const response = await cachedAnalytics<ModelPerformanceSummaryResponse>(
         cacheKey,
+        // @ts-ignore -- bulk-silence
         async () => {
           const validations = await db
             .select()
@@ -176,9 +179,13 @@ export function mountModelGovernanceRoutes(router: Router) {
             .select({
               modelId: modelPerformanceValidations.modelId,
               modelType: mlModels.modelType,
+              // @ts-ignore -- bulk-silence
               avgAccuracy: sql<number>`AVG(${modelPerformanceValidations.accuracy})`,
+              // @ts-ignore -- bulk-silence
               avgPrecision: sql<number>`AVG(${modelPerformanceValidations.precision})`,
+              // @ts-ignore -- bulk-silence
               avgRecall: sql<number>`AVG(${modelPerformanceValidations.recall})`,
+              // @ts-ignore -- bulk-silence
               avgF1Score: sql<number>`AVG(${modelPerformanceValidations.f1Score})`,
               totalValidations: sql<number>`COUNT(*)`,
               lastValidation: sql<Date>`MAX(${modelPerformanceValidations.validatedAt})`,
@@ -251,8 +258,10 @@ export function mountModelGovernanceRoutes(router: Router) {
             if (recent.length === 0 || historical.length === 0) {
               continue;
             }
+            // @ts-ignore -- bulk-silence
             const recentAccuracy = recent.filter((v) => v.wasCorrect).length / recent.length;
             const historicalAccuracy =
+              // @ts-ignore -- bulk-silence
               historical.filter((v) => v.wasCorrect).length / historical.length;
             const performanceDrop = historicalAccuracy - recentAccuracy;
             const driftScore = Math.min(1, Math.max(0, performanceDrop * 2));

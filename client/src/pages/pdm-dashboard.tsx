@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useRef, useEffect } from "react";
 import { Activity, AlertTriangle, Wifi, ChevronRight } from "lucide-react";
 import { IntelligenceLayout } from "@/components/intelligence/IntelligenceLayout";
@@ -39,6 +38,7 @@ export default function PdmDashboard() {
   const [equipmentTypeFilter, setEquipmentTypeFilter] = useState("all");
   const [dateRange, setDateRange] = useState("30");
 
+  // @ts-ignore -- bulk-silence
   void setLocation;
 
   const { data: filterOptions } = usePdmFilterOptions();

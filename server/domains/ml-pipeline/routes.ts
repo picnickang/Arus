@@ -1,10 +1,10 @@
-// @ts-nocheck
 import type { Express, Request, Response } from "express";
 import type { RateLimitRequestHandler } from "express-rate-limit";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import { dbMlAnalyticsStorage } from "../../db/ml-analytics/index.js";
 
+// @ts-ignore -- bulk-silence
 interface AuthenticatedRequest extends Request {
   orgId?: string;
 }
@@ -91,6 +91,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
         },
       };
 
+      // @ts-ignore -- bulk-silence
       const result = await trainLSTMForFailurePrediction(config);
       res.json(result);
     })
@@ -120,6 +121,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
           },
         };
 
+        // @ts-ignore -- bulk-silence
         const result = await trainRFForHealthClassification(config);
         res.json(result);
       }
@@ -148,6 +150,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
         },
       };
 
+      // @ts-ignore -- bulk-silence
       const result = await trainXGBoostForHealthClassification(config);
       res.json(result);
     })
@@ -348,6 +351,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
   app.get(
     "/api/ml/metrics",
     withErrorHandling("retrieve ML metrics", async (req: Request, res: Response) => {
+      // @ts-ignore -- bulk-silence
       const { getMetrics, getMetricsContentType } = await import("../../ml-prometheus-metrics");
       const metrics = await getMetrics();
 
@@ -388,7 +392,9 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
         scaleLambda: fitResult.scaleLambda,
         confidenceLo: fitResult.confidenceInterval.lower,
         confidenceHi: fitResult.confidenceInterval.upper,
+        // @ts-ignore -- bulk-silence
         trainingData: fitResult.trainingData,
+        // @ts-ignore -- bulk-silence
         validationMetrics: fitResult.validationMetrics,
         isActive: true,
         createdAt: new Date(),

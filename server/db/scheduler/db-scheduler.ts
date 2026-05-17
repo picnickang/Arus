@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Scheduler - Database Storage
  */
@@ -31,10 +30,13 @@ export class DatabaseSchedulerStorage {
     }
     let query = db.select().from(schedulerRuns);
     if (conditions.length > 0) {
+      // @ts-ignore -- bulk-silence
       query = query.where(and(...conditions));
     }
+    // @ts-ignore -- bulk-silence
     query = query.orderBy(sql`${schedulerRuns.createdAt} DESC`);
     if (limit) {
+      // @ts-ignore -- bulk-silence
       query = query.limit(limit);
     }
     return query;
@@ -54,6 +56,7 @@ export class DatabaseSchedulerStorage {
     id: string,
     updates: Partial<InsertSchedulerRun>
   ): Promise<SchedulerRun> {
+    // @ts-ignore -- bulk-silence
     const [u] = await recordAndPublish(
       db
         .update(schedulerRuns)
@@ -82,6 +85,7 @@ export class DatabaseSchedulerStorage {
   async completeSchedulerRun(id: string, result: Record<string, any>): Promise<SchedulerRun> {
     const [u] = await db
       .update(schedulerRuns)
+      // @ts-ignore -- bulk-silence
       .set({ status: "completed", completedAt: new Date(), result, updatedAt: new Date() })
       .where(eq(schedulerRuns.id, id))
       .returning();
@@ -94,6 +98,7 @@ export class DatabaseSchedulerStorage {
   async failSchedulerRun(id: string, error: string): Promise<SchedulerRun> {
     const [u] = await db
       .update(schedulerRuns)
+      // @ts-ignore -- bulk-silence
       .set({ status: "failed", error, completedAt: new Date(), updatedAt: new Date() })
       .where(eq(schedulerRuns.id, id))
       .returning();
@@ -141,6 +146,7 @@ export class DatabaseSchedulerStorage {
     }
     let query = db.select().from(drydockWindow);
     if (conditions.length > 0) {
+      // @ts-ignore -- bulk-silence
       query = query.where(and(...conditions));
     }
     return query.orderBy(drydockWindow.startDate);
@@ -254,6 +260,7 @@ export class DatabaseSchedulerStorage {
       .update(schedulerRuns)
       .set({
         status: "approved",
+        // @ts-ignore -- bulk-silence
         approvedAt: new Date(),
         approvedBy: userId,
         updatedAt: new Date(),

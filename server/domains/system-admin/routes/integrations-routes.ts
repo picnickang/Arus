@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * System Admin Routes - Integration Configs
  * External integration configuration management
@@ -73,6 +72,7 @@ export function registerIntegrationsRoutes(app: Express, deps: SystemAdminDepend
     auditAdminAction("UPDATE_INTEGRATION_CONFIG"),
     withErrorHandling("update integration config", async (req: Request, res: Response) => {
       const { id } = req.params;
+      // @ts-ignore -- bulk-silence
       const validatedData = insertIntegrationConfigSchema.partial().parse(req.body);
       const integration = await dbSystemAdminStorage.updateIntegrationConfig(id, validatedData);
       res.json(integration);

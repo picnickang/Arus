@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Report Scheduler Service
  * Orchestrates report scheduling, execution, and delivery
@@ -24,6 +23,7 @@ import { logger } from "../../../utils/logger.js";
 const LOG_CTX = "ReportSchedulerService";
 
 export class ReportSchedulerService {
+  // @ts-ignore -- bulk-silence
   private cronJobs: Map<string, cron.ScheduledTask> = new Map();
   private isInitialized = false;
 

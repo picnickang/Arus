@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { Device, InsertDevice } from "@shared/schema";
 import { deviceRepository } from "./repository";
 import { recordAndPublish } from "../../sync-events";
@@ -27,6 +26,7 @@ export class DeviceService {
     const device = await deviceRepository.create(data);
 
     // Publish events
+    // @ts-ignore -- bulk-silence
     await recordAndPublish("device", device.id, "create", device, userId);
 
     mqttReliableSync.publishDataChange("device", "create", device).catch((err) => {
@@ -46,6 +46,7 @@ export class DeviceService {
     const device = await deviceRepository.update(id, data, orgId);
 
     // Publish events
+    // @ts-ignore -- bulk-silence
     await recordAndPublish("device", device.id, "update", device, userId);
 
     mqttReliableSync.publishDataChange("device", "update", device).catch((err) => {
@@ -64,6 +65,7 @@ export class DeviceService {
 
     // Publish delete event
     if (device) {
+      // @ts-ignore -- bulk-silence
       await recordAndPublish("device", id, "delete", device, userId);
 
       mqttReliableSync.publishDataChange("device", "delete", device).catch((err) => {

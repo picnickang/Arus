@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Fleet Benchmarks Calculator - Calculate fleet-wide metrics and comparisons
  */
@@ -64,7 +63,9 @@ export function calculateFleetBenchmarks(
       maintenanceFrequency: Math.round((365 / fleetAvgDueDays) * 10) / 10,
     },
     performancePercentiles: { top10Percent, median, bottom10Percent },
+    // @ts-ignore -- bulk-silence
     bestPerformers,
+    // @ts-ignore -- bulk-silence
     worstPerformers,
   };
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * RAG Analytics Dashboard Page
  * Visualizes RAG system performance metrics
@@ -112,6 +111,7 @@ export function RagAnalyticsDashboard() {
   if (analyticsQuery.isLoading) {
     return (
       <div className="p-6 space-y-6">
+        {/* @ts-ignore */}
         <PageHeader title="RAG Analytics" description="Knowledge Base performance metrics" />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
@@ -130,6 +130,7 @@ export function RagAnalyticsDashboard() {
   if (!analytics) {
     return (
       <div className="p-6">
+        {/* @ts-ignore */}
         <PageHeader title="RAG Analytics" description="Knowledge Base performance metrics" />
         <div className="text-center text-muted-foreground py-12">Unable to load analytics data</div>
       </div>
@@ -150,6 +151,7 @@ export function RagAnalyticsDashboard() {
     <div className="p-6 space-y-6" data-testid="rag-analytics-dashboard">
       <PageHeader
         title="RAG Analytics"
+        // @ts-ignore -- bulk-silence
         description="Knowledge Base performance metrics and insights"
       />
 

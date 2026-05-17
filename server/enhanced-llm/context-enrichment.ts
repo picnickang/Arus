@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Enhanced LLM - Context Enrichment
  *
@@ -19,11 +18,13 @@ export function enrichContextWithRAG(context: ReportContext): ReportContext {
 
   if (context.data.workOrders && context.data.workOrders.length > 0) {
     const criticalOrders = context.data.workOrders
+      // @ts-ignore -- bulk-silence
       .filter((wo) => wo.priority === "critical" || wo.priority === "urgent")
       .slice(0, 3);
 
     criticalOrders.forEach((order) => {
       knowledgeSnippets.push(
+        // @ts-ignore -- bulk-silence
         `Critical Work Order: ${order.title} (${order.status}) - ${order.description || "No description"}`
       );
     });
@@ -95,6 +96,7 @@ export function enrichContextWithRAG(context: ReportContext): ReportContext {
     }
   }
 
+  // @ts-ignore -- bulk-silence
   context.intelligence.knowledgeBase = knowledgeSnippets;
 
   return context;
@@ -113,8 +115,11 @@ export function serializeContext(context: ReportContext): string {
   if (context.data.workOrders) {
     parts.push(`Work Orders: ${context.data.workOrders.length} total`);
     const byPriority = {
+      // @ts-ignore -- bulk-silence
       critical: context.data.workOrders.filter((wo) => wo.priority === "critical").length,
+      // @ts-ignore -- bulk-silence
       urgent: context.data.workOrders.filter((wo) => wo.priority === "urgent").length,
+      // @ts-ignore -- bulk-silence
       normal: context.data.workOrders.filter((wo) => wo.priority === "normal").length,
     };
     parts.push(
@@ -122,8 +127,10 @@ export function serializeContext(context: ReportContext): string {
     );
   }
 
+  // @ts-ignore -- bulk-silence
   if (context.intelligence?.knowledgeBase) {
     parts.push("\nKey Insights:");
+    // @ts-ignore -- bulk-silence
     context.intelligence.knowledgeBase.slice(0, 5).forEach((snippet: string) => {
       parts.push(`  - ${snippet}`);
     });
@@ -141,11 +148,13 @@ export function buildCitations(
 ): { source: string; relevance: number; snippet: string }[] {
   const citations: { source: string; relevance: number; snippet: string }[] = [];
 
+  // @ts-ignore -- bulk-silence
   const knowledgeBase = enrichedContext.intelligence?.knowledgeBase ?? [];
   knowledgeBase.forEach((snippet: unknown, index: number) => {
     citations.push({
       source: `Knowledge Base ${index + 1}`,
       relevance: Math.max(0.6, 1 - index * 0.1),
+      // @ts-ignore -- bulk-silence
       snippet,
     });
   });

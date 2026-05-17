@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Router } from "express";
 import { beastModeManager, DEFAULT_ORG_ID } from "../beast-mode-config.js";
 import { WeibullRULAnalyzer } from "../weibull-rul.js";
@@ -63,6 +62,7 @@ router.get("/weibull/history/:equipmentId", async (req, res) => {
         });
     }
     const analyzer = new WeibullRULAnalyzer();
+    // @ts-ignore -- bulk-silence
     const history = await analyzer.getAnalysisHistory(equipmentId, orgId, limit);
     res.json({
       success: true,
@@ -76,7 +76,9 @@ router.get("/weibull/history/:equipmentId", async (req, res) => {
         predictedRUL: pred.predictedRUL,
         reliability: pred.reliability,
         recommendation: pred.maintenanceRecommendation,
+        // @ts-ignore -- bulk-silence
         failureProb30d: pred.failureProbability?.next30days,
+        // @ts-ignore -- bulk-silence
         failureProb90d: pred.failureProbability?.next90days,
       })),
     });

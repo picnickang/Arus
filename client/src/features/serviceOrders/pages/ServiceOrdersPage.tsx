@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * ServiceOrdersPage — UX Improvements
  *
@@ -74,6 +73,7 @@ export default function ServiceOrdersPage() {
     data: orders,
     isLoading,
     refetch,
+  // @ts-ignore -- bulk-silence
   } = useServiceOrders(statusFilter !== "all" ? { status: statusFilter } : {});
   const { data: suppliers } = useQuery<
     { id: string; name: string; qualityRating?: number; responseSlaHours?: number }[]
@@ -266,6 +266,7 @@ export default function ServiceOrdersPage() {
             {/* UX FIX #3: Conditional rendering based on view mode */}
             {viewMode === "calendar" ? (
               <ServiceOrderCalendar
+                // @ts-ignore -- bulk-silence
                 serviceOrders={filteredOrders.map((o) => ({
                   id: o.id,
                   soNumber: o.soNumber,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Equipment Context Routes - Route handlers
  */
@@ -50,6 +49,7 @@ export function registerEquipmentContextRoutes(app: Express) {
         options
       );
 
+      // @ts-ignore -- bulk-silence
       logger.info("Equipment context generated", {
         equipmentId,
         orgId,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Crew Routes - Leave Management
  * Crew leave request operations
@@ -20,6 +19,7 @@ export function registerLeaveRoutes({ app, rateLimit }: CrewRouteDeps): void {
       const { crewId, startDate, endDate } = req.query;
       const leave = await crewService.listLeave(
         crewId as string | undefined,
+        // @ts-ignore -- bulk-silence
         startDate ? new Date(startDate as string) : undefined,
         endDate ? new Date(endDate as string) : undefined
       );

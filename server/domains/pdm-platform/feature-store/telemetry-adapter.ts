@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { eq, and, gte, desc } from "drizzle-orm";
 import { db } from "../../../db";
 import { equipmentTelemetry } from "@shared/schema";
@@ -32,6 +31,7 @@ export class TelemetryAdapter implements TelemetryPort {
         .orderBy(desc(equipmentTelemetry.ts))
         .limit(5000);
     } catch (error: any) {
+      // @ts-ignore -- bulk-silence
       logger.warn("[TelemetryAdapter] Failed to query telemetry, returning empty", {
         error: error.message,
       });

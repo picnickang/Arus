@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Maintenance Report Routes
  *
@@ -29,6 +28,7 @@ export function registerMaintenanceReportRoutes(
           dbMaintenanceStorage.getMaintenanceSchedules(),
           dbMaintenanceStorage.getMaintenanceRecords(),
           workOrderService.getWorkOrdersWithDetails(),
+          // @ts-ignore -- bulk-silence
           dbEquipmentStorage.getEquipmentHealth(),
         ]);
 
@@ -67,6 +67,7 @@ export function registerMaintenanceReportRoutes(
             overdueCount: overdueSchedules.length,
             upcomingCount: upcomingSchedules.length,
             completedThisMonth: filteredRecords.filter(
+              // @ts-ignore -- bulk-silence
               (r) => new Date(r.completedDate) > new Date(now.getFullYear(), now.getMonth(), 1)
             ).length,
           },

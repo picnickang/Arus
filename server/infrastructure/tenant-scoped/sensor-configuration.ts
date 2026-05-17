@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Sensor Configuration Repository - Manages sensor setup and thresholds
  * Production-ready implementation for sensor-related operations
@@ -65,6 +64,7 @@ export class SensorConfigurationRepository extends TenantScopedRepository {
 
     const [created] = await db
       .insert(sensorConfigurations)
+      // @ts-ignore -- bulk-silence
       .values({
         ...data,
         orgId: this.orgId,

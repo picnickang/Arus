@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { TabbedPageLayout, TabDefinition } from "@/components/layouts/TabbedPageLayout";
 import { Settings, Wifi, Database, Sliders, TestTube, Shield } from "lucide-react";
 import { lazy, Suspense, useState, useEffect } from "react";
@@ -91,6 +90,7 @@ function EmbeddedConfigurationHub() {
       icon: Shield,
       component: (
         <Suspense fallback={<PageLoader />}>
+          {/* @ts-ignore */}
           <PermissionsSettings embedded />
         </Suspense>
       ),

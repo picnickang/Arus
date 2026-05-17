@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Crew Routes - Assignments
  * Crew assignment operations
@@ -47,6 +46,7 @@ export function registerAssignmentRoutes({ app, rateLimit }: CrewRouteDeps): voi
       const assignment = await crewService.updateAssignment(
         req.params.id,
         assignmentData,
+        // @ts-ignore -- bulk-silence
         req.user?.id
       );
       res.json(assignment);

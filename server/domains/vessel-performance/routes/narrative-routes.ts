@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Vessel Performance Routes - Narrative Summary
  */
@@ -22,6 +21,7 @@ export function registerNarrativeRoutes(app: Express, config: VesselPerformanceR
         return res.status(400).json({ message: "vesselId and chartType are required" });
       }
 
+      // @ts-ignore -- bulk-silence
       const summary = await narrativeService.generateSummary(input);
 
       res.setHeader("Cache-Control", "public, max-age=300");

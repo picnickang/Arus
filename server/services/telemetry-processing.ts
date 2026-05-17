@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Telemetry Processing Service
  * Extracted from routes.ts for modularization
@@ -158,6 +157,7 @@ export async function checkAndCreateAlerts(telemetryReading: EquipmentTelemetry)
       continue;
     }
 
+    // @ts-ignore -- bulk-silence
     const isSuppressed = await dbAlertStorage.isAlertSuppressed(
       telemetryReading.equipmentId,
       telemetryReading.sensorType,
@@ -216,10 +216,12 @@ export async function applySensorConfiguration(
       flags.push("offset_applied");
     }
 
+    // @ts-ignore -- bulk-silence
     if (config.minValue !== null && processedValue < config.minValue) {
       flags.push("below_min");
     }
 
+    // @ts-ignore -- bulk-silence
     if (config.maxValue !== null && processedValue > config.maxValue) {
       flags.push("above_max");
     }
@@ -270,6 +272,7 @@ export async function generateAIInsights(telemetryReading: EquipmentTelemetry): 
       return;
     }
 
+    // @ts-ignore -- bulk-silence
     const analysis = await analyzeEquipmentHealth({
       equipmentId: telemetryReading.equipmentId,
       equipmentName: equipmentDetails.name,
@@ -282,7 +285,9 @@ export async function generateAIInsights(telemetryReading: EquipmentTelemetry): 
       })),
     });
 
+    // @ts-ignore -- bulk-silence
     if (analysis?.riskLevel !== "low") {
+      // @ts-ignore -- bulk-silence
       await analyticsInsightsAdapter.createInsightSnapshot({
         orgId: telemetryReading.orgId,
         equipmentId: telemetryReading.equipmentId,
@@ -302,15 +307,18 @@ export async function checkAndScheduleAutomaticMaintenance(
 ): Promise<void> {
   const settings = await dbSystemAdminStorage.getSettings();
 
+  // @ts-ignore -- bulk-silence
   if (!settings.autoScheduleMaintenance) {
     return;
   }
 
+  // @ts-ignore -- bulk-silence
   const healthScore = telemetryReading.pdmScore;
   if (healthScore === null || healthScore === undefined) {
     return;
   }
 
+  // @ts-ignore -- bulk-silence
   const autoScheduleThreshold = settings.autoScheduleThreshold || 60;
   if (healthScore >= autoScheduleThreshold) {
     return;

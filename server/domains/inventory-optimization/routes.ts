@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Inventory Optimization Domain Routes
  * Extracted from routes.ts for Phase 4 modularization
@@ -60,6 +59,7 @@ export function registerInventoryOptimizationRoutes(
       const validWorkOrders = allOrders.filter((wo) => workOrderIdSet.has(wo.id));
 
       const { planMaintenanceCosts } = await import("../../inventory");
+      // @ts-ignore -- bulk-silence
       const costPlan = await planMaintenanceCosts(validWorkOrders, dbInventoryStorage, orgId);
 
       res.json(costPlan);
@@ -82,6 +82,7 @@ export function registerInventoryOptimizationRoutes(
       const orgId = (req as AuthenticatedRequest).orgId;
 
       const { findPartSubstitutions } = await import("../../inventory");
+      // @ts-ignore -- bulk-silence
       const substitutions = await findPartSubstitutions(partNo, dbInventoryStorage, orgId);
 
       res.json(substitutions);
@@ -157,6 +158,7 @@ export function registerInventoryOptimizationRoutes(
           : 365;
 
       const { autoOptimizeInventory } = await import("../../inventory/auto-optimization");
+      // @ts-ignore -- bulk-silence
       const results = await autoOptimizeInventory(orgId, partNumbers, days, dbInventoryStorage);
 
       if (results.length === 0) {

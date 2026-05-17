@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { Express, Request, Response } from "express";
 import { LRUCache } from "lru-cache";
 import { equipmentService } from "./service";
@@ -17,6 +16,7 @@ import {
 } from "./lifecycle";
 import { requirePermission } from "../permissions/middleware";
 
+// @ts-ignore -- bulk-silence
 const equipmentCache = new LRUCache<string, unknown>({ max: 200, ttl: 30_000 });
 
 function getCached<T>(key: string): T | null {

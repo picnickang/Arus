@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * RAG Prometheus Metrics
  *
@@ -215,6 +214,7 @@ export function registerRagMetrics(): void {
 
   for (const metric of metrics) {
     try {
+      // @ts-ignore -- bulk-silence
       register.registerMetric(metric);
     } catch (e) {}
   }

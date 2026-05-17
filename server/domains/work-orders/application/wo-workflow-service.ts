@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { createLogger } from "../../../lib/structured-logger";
 const logger = createLogger("Domains:WorkOrders:Application:WoWorkflowService");
 import type {
@@ -104,6 +103,7 @@ export class WorkOrderWorkflowService {
       await this.legacyCompletion.completeWorkOrder(
         workOrderId,
         {
+          // @ts-ignore -- bulk-silence
           workOrderId,
           orgId,
           equipmentId: wo.equipmentId,

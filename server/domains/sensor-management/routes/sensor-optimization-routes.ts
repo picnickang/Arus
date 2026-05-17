@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Sensor Optimization Routes
  * AI-powered sensor optimization and threshold management
@@ -24,6 +23,7 @@ export function registerSensorOptimizationRoutes(app: Express, config: SensorMan
         orgId,
         equipmentId as string,
         sensorType as string,
+        // @ts-ignore -- bulk-silence
         status as string
       );
       res.json(optimizations);
@@ -117,6 +117,7 @@ export function registerSensorOptimizationRoutes(app: Express, config: SensorMan
       const { equipmentId, sensorType } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
       const { llmSensorTuningService } = await import("../../../llm-sensor-tuning.js");
+      // @ts-ignore -- bulk-silence
       const comparison = await llmSensorTuningService.compareConfiguration(
         equipmentId,
         sensorType,

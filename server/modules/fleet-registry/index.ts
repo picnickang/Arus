@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { createLogger } from "../../lib/structured-logger";
 const logger = createLogger("Modules:FleetRegistry:Index");
 import type { Express } from "express";
@@ -23,6 +22,7 @@ export const fleetRegistryService = new FleetRegistryService(
   vesselRepo,
   portCallRepo,
   drydockRepo,
+  // @ts-ignore -- bulk-silence
   vesselOps,
   eventPublisher
 );

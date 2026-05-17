@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * LSTM Model - Training
  * Model training with early stopping and class weights
@@ -10,6 +9,7 @@ import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("MlLstmModel:Training");
 import {
   trainWithEarlyStopping,
+  // @ts-ignore -- bulk-silence
   prepareClassWeightsForTF,
   type EarlyStoppingConfig,
 } from "../ml-early-stopping.js";
@@ -59,6 +59,7 @@ async function trainWithEarlyStoppingWrapper(
   const earlyStoppingConfig: EarlyStoppingConfig = {
     patience: config.earlyStoppingPatience || 10,
     minDelta: 0.001,
+    // @ts-ignore -- bulk-silence
     monitorMetric: "val_loss",
     mode: "min",
     restoreBestWeights: true,
@@ -79,6 +80,7 @@ async function trainWithEarlyStoppingWrapper(
   return {
     history: result.history,
     bestEpoch: result.bestEpoch,
+    // @ts-ignore -- bulk-silence
     finalF1: result.finalMetrics.valF1,
     stoppedEarly: result.stoppedEarly,
   };
@@ -147,6 +149,7 @@ export async function trainLSTMModel(
   validationData: TimeSeriesFeatures[],
   config: LSTMConfig
 ): Promise<TrainedLSTMModel> {
+  // @ts-ignore -- bulk-silence
   const featureNames = Object.keys(trainingData[0].features);
   const updatedConfig = { ...config, featureCount: featureNames.length };
 

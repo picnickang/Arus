@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Centralized Query Keys for TanStack Query
  *
@@ -232,6 +231,7 @@ export function getEquipmentMutationInvalidations(equipmentId?: string) {
 
   if (equipmentId) {
     keys.push(
+      // @ts-ignore -- bulk-silence
       equipmentKeys.detail(equipmentId),
       sensorKeys.byEquipment(equipmentId),
       sensorKeys.status(equipmentId)
@@ -249,6 +249,7 @@ export function getSensorMutationInvalidations(equipmentId?: string) {
 
   if (equipmentId) {
     keys.push(
+      // @ts-ignore -- bulk-silence
       sensorKeys.byEquipment(equipmentId),
       sensorKeys.status(equipmentId),
       equipmentKeys.sensorCoverage(equipmentId)

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -215,6 +214,7 @@ export function useEquipmentViewData(
       apiRequest("POST", `/api/equipment/${data.equipmentId}/apply-bundle`, {
         bundleId: data.bundleId,
       }),
+    // @ts-ignore -- bulk-silence
     [["/api/sensor-config", equipment?.id], ["/api/sensor-configs"]],
     {
       successMessage: "Sensor bundle applied successfully",
@@ -238,13 +238,20 @@ export function useEquipmentViewData(
       equipmentId: sensor.equipmentId,
       sensorType: sensor.sensorType,
       targetUnit: sensor.targetUnit || "",
+      // @ts-ignore -- bulk-silence
       gain: sensor.gain,
+      // @ts-ignore -- bulk-silence
       offset: sensor.offset,
+      // @ts-ignore -- bulk-silence
       enabled: sensor.enabled,
       notes: sensor.notes || "",
+      // @ts-ignore -- bulk-silence
       critHi: sensor.critHi,
+      // @ts-ignore -- bulk-silence
       critLo: sensor.critLo,
+      // @ts-ignore -- bulk-silence
       warnHi: sensor.warnHi,
+      // @ts-ignore -- bulk-silence
       warnLo: sensor.warnLo,
     });
     setIsSensorDialogOpen(true);
@@ -266,9 +273,13 @@ export function useEquipmentViewData(
       sensorForm.setValue("targetUnit", template.targetUnit || "");
       sensorForm.setValue("gain", template.gain);
       sensorForm.setValue("offset", template.offset);
+      // @ts-ignore -- bulk-silence
       sensorForm.setValue("critHi", template.critHi);
+      // @ts-ignore -- bulk-silence
       sensorForm.setValue("critLo", template.critLo);
+      // @ts-ignore -- bulk-silence
       sensorForm.setValue("warnHi", template.warnHi);
+      // @ts-ignore -- bulk-silence
       sensorForm.setValue("warnLo", template.warnLo);
     }
   };

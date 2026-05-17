@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
@@ -445,6 +444,7 @@ export default function RmsMonitoringPage() {
             bunkerings={bunkerings}
             consumption={consumption}
             tanks={tanks}
+            // @ts-ignore -- bulk-silence
             rob={rob}
             alertsLoading={alertsLoading}
             acknowledgeMutation={acknowledgeMutation}

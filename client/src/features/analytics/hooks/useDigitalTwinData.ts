@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -76,8 +75,10 @@ export function useDigitalTwinData() {
     ctx.strokeRect(centerX - 50, centerY - 90, 100, 30);
     if (selectedTwinData?.currentState?.machinery) {
       const machinery = selectedTwinData.currentState.machinery;
+      // @ts-ignore -- bulk-silence
       ctx.fillStyle = machinery.engines?.MAIN_ENGINE_01?.temperature > 100 ? "#ef4444" : "#22c55e";
       ctx.fillRect(centerX - 20, centerY - 10, 40, 20);
+      // @ts-ignore -- bulk-silence
       ctx.fillStyle = machinery.generators?.GEN_01?.voltage > 0 ? "#22c55e" : "#ef4444";
       ctx.fillRect(centerX + 40, centerY - 40, 20, 15);
     }

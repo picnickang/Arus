@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Crew Alert Evaluators - Certificate Expiry
  * Evaluates certificate expiry alerts using data-driven threshold matching
@@ -131,6 +130,7 @@ export async function evaluateCertificateExpiryAlerts(
   ctx: EvaluationContext
 ): Promise<CrewAlertResult[]> {
   const now = ctx.now || new Date();
+  // @ts-ignore -- bulk-silence
   const settings = await alertSettingsService.getCrewAlertSettings(ctx.orgId, ctx.vesselId || null);
   if (!settings?.certExpiryAlertsEnabled) {
     return [];

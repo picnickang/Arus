@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Sensor Templates API Routes
  *
@@ -362,22 +361,34 @@ router.post("/:id/copy", async (req, res) => {
     // Clone mutable fields from source template
     const [newTemplate] = await db
       .insert(sensorTemplates)
+      // @ts-ignore -- bulk-silence
       .values({
         templateId: newTemplateId,
         name: newName,
+        // @ts-ignore -- bulk-silence
         description: sourceTemplate.description,
         kind: sourceTemplate.kind,
         unit: sourceTemplate.unit,
+        // @ts-ignore -- bulk-silence
         minValue: sourceTemplate.minValue,
+        // @ts-ignore -- bulk-silence
         maxValue: sourceTemplate.maxValue,
+        // @ts-ignore -- bulk-silence
         criticalLowThreshold: sourceTemplate.criticalLowThreshold,
+        // @ts-ignore -- bulk-silence
         warningLowThreshold: sourceTemplate.warningLowThreshold,
+        // @ts-ignore -- bulk-silence
         normalLowThreshold: sourceTemplate.normalLowThreshold,
+        // @ts-ignore -- bulk-silence
         normalHighThreshold: sourceTemplate.normalHighThreshold,
+        // @ts-ignore -- bulk-silence
         warningHighThreshold: sourceTemplate.warningHighThreshold,
+        // @ts-ignore -- bulk-silence
         criticalHighThreshold: sourceTemplate.criticalHighThreshold,
+        // @ts-ignore -- bulk-silence
         samplingIntervalSeconds: sourceTemplate.samplingIntervalSeconds,
         equipmentTypes: sourceTemplate.equipmentTypes,
+        // @ts-ignore -- bulk-silence
         tags: sourceTemplate.tags,
         orgId, // Set to current org
         isSystemDefault: false, // Always false for copies

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { Express, RequestHandler } from "express";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
@@ -55,6 +54,7 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
       const { orgId = (req as AuthenticatedRequest).orgId, scope = "fleet" } = req.body;
 
       const { triggerInsightsGeneration } = await import("../../insights-scheduler");
+      // @ts-ignore -- bulk-silence
       const jobId = await triggerInsightsGeneration(orgId, scope);
 
       res.status(202).json({
@@ -114,8 +114,10 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
     withErrorHandling("generate fleet technician insights", async (req, res) => {
       const startTime = Date.now();
 
+      // @ts-ignore -- bulk-silence
       const { logInfo, logError, createRequestContext } = await import("../../structured-logging");
       const { generateFleetTechnicianInsights } = await import("../../insights-engine");
+      // @ts-ignore -- bulk-silence
       const { fleetOverviewRequests, fleetOverviewResponseTime } = await import(
         "../../ml-prometheus-metrics"
       );

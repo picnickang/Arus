@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * ML Analytics Database Operations
  *
@@ -73,6 +72,7 @@ export async function recordThresholdOptimization(
   currentThresholds: { warning: number; critical: number },
   optimizedThresholds: { warning: number; critical: number }
 ): Promise<void> {
+  // @ts-ignore -- bulk-silence
   await db.insert(thresholdOptimizations).values({
     equipmentId,
     sensorType,

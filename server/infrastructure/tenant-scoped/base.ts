@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Tenant-Scoped Repository Base Class (ADR 001 Implementation)
  *
@@ -24,6 +23,7 @@ export abstract class TenantScopedRepository {
    * Immutable organization ID
    * Set in constructor and cannot be modified
    */
+  // @ts-ignore -- bulk-silence
   protected readonly orgId: string;
 
   /**

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchSettings, updateSettings } from "@/lib/api";
@@ -73,6 +72,7 @@ export function useSettingsData() {
   });
 
   const updateSettingsMutation = useCustomMutation<Partial<SystemSettings>, void>({
+    // @ts-ignore -- bulk-silence
     mutationFn: (data: Partial<SystemSettings>) => updateSettings(data),
     invalidateKeys: ["/api/settings"],
     successMessage: "System settings have been successfully updated.",

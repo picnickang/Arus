@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { dbCrewStorage } from "../../repositories";
 import { dbOptimizerStorage } from "../../repositories";
 import type { InsertOptimizerConfiguration } from "@shared/schema";
@@ -150,6 +149,7 @@ export const hubSyncService = {
     return await dbOptimizerStorage.createOptimizationResult({
       configurationId: configId,
       orgId: resolvedOrgId,
+      // @ts-ignore -- bulk-silence
       runStatus: "queued",
       equipmentScope: equipmentScope ? JSON.stringify(equipmentScope) : undefined,
       timeHorizon,
@@ -157,10 +157,12 @@ export const hubSyncService = {
   },
 
   async cancelOptimization(id: string) {
+    // @ts-ignore -- bulk-silence
     return dbOptimizerStorage.updateOptimizationResult(id, { runStatus: "cancelled" });
   },
 
   async applyOptimizationToProduction(id: string) {
+    // @ts-ignore -- bulk-silence
     return dbOptimizerStorage.updateOptimizationResult(id, { runStatus: "applied" });
   },
 
@@ -184,6 +186,7 @@ export const hubSyncService = {
   },
 
   async createShiftTemplate(data: Record<string, unknown>) {
+    // @ts-ignore -- bulk-silence
     return dbCrewStorage.createShiftTemplate(data);
   },
 

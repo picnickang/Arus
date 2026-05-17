@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Entity Upserters
  *
@@ -235,6 +234,7 @@ async function upsertTelemetry(record: any): Promise<string | undefined> {
     sensorType: record.sensorType,
     value: record.value,
     unit: record.unit,
+    // @ts-ignore -- bulk-silence
     quality: record.quality,
     source: record.source,
     ts: record.ts ? new Date(record.ts) : undefined,

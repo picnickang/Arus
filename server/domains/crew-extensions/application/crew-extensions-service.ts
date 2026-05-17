@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Crew Extensions Application Service
  * Orchestrates domain logic using injected ports
@@ -68,12 +67,15 @@ export class CrewExtensionsApplicationService {
       mode: command.mode,
     });
 
+    // @ts-ignore -- bulk-silence
     if (!result.runId) {
       throw new Error("Failed to create scheduler run");
     }
 
+    // @ts-ignore -- bulk-silence
     const run = await this.deps.schedulerRunRepository.findById(result.runId, command.orgId);
     if (!run) {
+      // @ts-ignore -- bulk-silence
       throw new Error(`Scheduler run ${result.runId} not found after creation`);
     }
 
@@ -238,6 +240,7 @@ export class CrewExtensionsApplicationService {
     }
 
     const { previewScheduleCompliance } = await import("../../../scheduler/compliance-preview.js");
+    // @ts-ignore -- bulk-silence
     return previewScheduleCompliance(orgId, assignments);
   }
 

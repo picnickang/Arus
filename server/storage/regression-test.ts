@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Storage Regression Test Harness
  * Validates critical storage operations using direct repository imports
@@ -132,6 +131,7 @@ export async function runStorageRegressionTests(): Promise<{
 
   results.push(
     await runTest("STCW Rest: list", async () => {
+      // @ts-ignore -- bulk-silence
       const sheets = await dbStcwStorage.getCrewRestRange();
       if (!Array.isArray(sheets)) {
         throw new Error("Expected array");

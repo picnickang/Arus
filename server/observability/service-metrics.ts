@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Service-Level Metrics Registration
  *
@@ -25,6 +24,7 @@ export async function initializeServiceMetrics(): Promise<void> {
     await import("../services/circuit-breaker/circuitBreaker");
   } catch (err) {
     structuredLog("warn", "Failed to load circuit-breaker metrics", {
+      // @ts-ignore -- bulk-silence
       error: err instanceof Error ? err.message : String(err),
     });
   }
@@ -33,6 +33,7 @@ export async function initializeServiceMetrics(): Promise<void> {
     await import("../services/dead-letter-queue");
   } catch (err) {
     structuredLog("warn", "Failed to load dead-letter-queue metrics", {
+      // @ts-ignore -- bulk-silence
       error: err instanceof Error ? err.message : String(err),
     });
   }

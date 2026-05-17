@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * System Admin - Database Storage Settings, Integrations, Windows, Health
  */
@@ -59,6 +58,7 @@ export class DbSettingsStorage {
     }
     let query = db.select().from(adminSystemSettings);
     if (conditions.length > 0) {
+      // @ts-ignore -- bulk-silence
       query = query.where(and(...conditions));
     }
     return query.orderBy(adminSystemSettings.key);
@@ -127,6 +127,7 @@ export class DbSettingsStorage {
     }
     let query = db.select().from(integrationConfigs);
     if (conditions.length > 0) {
+      // @ts-ignore -- bulk-silence
       query = query.where(and(...conditions));
     }
     return query.orderBy(integrationConfigs.name);
@@ -202,6 +203,7 @@ export class DbSettingsStorage {
     }
     let query = db.select().from(maintenanceWindows);
     if (conditions.length > 0) {
+      // @ts-ignore -- bulk-silence
       query = query.where(and(...conditions));
     }
     return query.orderBy(sql`${maintenanceWindows.startTime} DESC`);
@@ -273,8 +275,10 @@ export class DbSettingsStorage {
     }
     let query = db.select().from(systemHealthChecks);
     if (conditions.length > 0) {
+      // @ts-ignore -- bulk-silence
       query = query.where(and(...conditions));
     }
+    // @ts-ignore -- bulk-silence
     return query.orderBy(sql`${systemHealthChecks.lastCheckAt} DESC`);
   }
   async getSystemHealthCheck(id: string, orgId?: string): Promise<SystemHealthCheck | undefined> {
@@ -352,6 +356,7 @@ export class DbSettingsStorage {
       .select()
       .from(systemHealthChecks)
       .where(and(...conditions, eq(systemHealthChecks.status, "critical")))
+      // @ts-ignore -- bulk-silence
       .orderBy(sql`${systemHealthChecks.lastCheckAt} DESC`);
   }
   async getMetricTrends(

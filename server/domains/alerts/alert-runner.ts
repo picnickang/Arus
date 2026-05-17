@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Alert Runner Service
  * Orchestrates crew alert evaluators and queues notifications for delivery.
@@ -96,6 +95,7 @@ async function claimAlertSlot(
       alertType,
       alertKey,
       vesselId,
+      // @ts-ignore -- bulk-silence
       recipients: recipients.join(", "),
       subject: title,
       status: "sending",
@@ -144,11 +144,13 @@ async function getAlertRecipients(
 ): Promise<string[]> {
   const recipients: string[] = [];
 
+  // @ts-ignore -- bulk-silence
   const settings = await alertSettingsService.getCrewAlertSettings(orgId, vesselId || null);
   if (!settings) {
     return recipients;
   }
 
+  // @ts-ignore -- bulk-silence
   const notifyRecipients = settings.notifyRecipients;
   if (!notifyRecipients || notifyRecipients.length === 0) {
     return recipients;
@@ -228,6 +230,7 @@ async function logAlertToDatabase(
       orgId,
       alertType: alert.alertType,
       alertKey: alert.alertKey,
+      // @ts-ignore -- bulk-silence
       recipients: recipients.join(", "),
       subject: alert.title,
       status,
@@ -287,6 +290,7 @@ async function processAlert(
   const sendResult = await emailProviderService.sendEmail(
     ctx.orgId,
     recipients,
+    // @ts-ignore -- bulk-silence
     email.subject,
     email.text,
     email.html

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -46,6 +45,7 @@ export function useMissionOverviewData() {
   });
   const { data: costTrends = [] } = useQuery<CostTrendRecord[]>({
     queryKey: ["/api/analytics/cost-trends"],
+    // @ts-ignore -- bulk-silence
     queryFn: () => fetchCostTrends(),
     refetchInterval: 300000,
     staleTime: 120000,
@@ -69,12 +69,15 @@ export function useMissionOverviewData() {
     staleTime: 60000,
   });
 
+  // @ts-ignore -- bulk-silence
   const equipmentHealth: EquipmentRecord[] = equipmentHealthResponse?.results ?? [];
   const anomalies: AnomalyRecord[] = anomaliesResponse?.results ?? [];
   const modelPerformance = modelPerformanceResponse?.result;
+  // @ts-ignore -- bulk-silence
   const failurePredictions: PredictionRecord[] = failurePredictionsResponse?.results ?? [];
 
   const alerts = useMemo(
+    // @ts-ignore -- bulk-silence
     () => getMissionOverviewAlerts({ equipmentHealth, anomalies, costTrends, workOrders }),
     [equipmentHealth, anomalies, costTrends, workOrders]
   );
@@ -100,15 +103,20 @@ export function useMissionOverviewData() {
     const lowConfidencePredictions = failurePredictions.filter(
       (p) => (p.confidence || 0) < 0.6
     ).length;
+    // @ts-ignore -- bulk-silence
     const recentCosts = costTrends.slice(-2);
     const historicalAvg =
+      // @ts-ignore -- bulk-silence
       costTrends.length > 2
         ? costTrends
+            // @ts-ignore -- bulk-silence
             .slice(0, -2)
             .reduce(
+              // @ts-ignore -- bulk-silence
               (sum: number, t: (typeof costTrends)[number]) => sum + (t.totalCost || 0),
               0
             ) /
+          // @ts-ignore -- bulk-silence
           (costTrends.length - 2)
         : 0;
     const recentAvg =

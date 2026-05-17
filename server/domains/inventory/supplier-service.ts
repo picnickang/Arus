@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { PartsInventorySupplier, InsertPartsInventorySupplier } from "@shared/schema";
 import { inventorySupplierRepository, type SupplierLinkWithDetails } from "./supplier-repository";
 import { recordAndPublish } from "../../sync-events";
@@ -37,6 +36,7 @@ export class InventorySupplierService {
     const link = await inventorySupplierRepository.create(data);
 
     await recordAndPublish(
+      // @ts-ignore -- bulk-silence
       "inventory_supplier_link",
       link.id,
       "create",
@@ -64,6 +64,7 @@ export class InventorySupplierService {
 
     if (results.length > 0) {
       await recordAndPublish(
+        // @ts-ignore -- bulk-silence
         "inventory_supplier_link",
         inventoryItemId,
         "bulk_create",
@@ -86,6 +87,7 @@ export class InventorySupplierService {
     const result = await inventorySupplierRepository.update(linkId, data);
 
     if (result) {
+      // @ts-ignore -- bulk-silence
       await recordAndPublish("inventory_supplier_link", linkId, "update", data, userId);
     }
 
@@ -99,6 +101,7 @@ export class InventorySupplierService {
     const deleted = await inventorySupplierRepository.delete(linkId);
 
     if (deleted) {
+      // @ts-ignore -- bulk-silence
       await recordAndPublish("inventory_supplier_link", linkId, "delete", {}, userId);
     }
 
@@ -122,6 +125,7 @@ export class InventorySupplierService {
     const links = await this.bulkLinkSuppliers(inventoryItemId, supplierIds, userId);
 
     await recordAndPublish(
+      // @ts-ignore -- bulk-silence
       "inventory_supplier_link",
       inventoryItemId,
       "replace",
@@ -148,6 +152,7 @@ export class InventorySupplierService {
     await inventorySupplierRepository.setPreferred(inventoryItemId, supplierId);
 
     await recordAndPublish(
+      // @ts-ignore -- bulk-silence
       "inventory_supplier_link",
       inventoryItemId,
       "set_preferred",

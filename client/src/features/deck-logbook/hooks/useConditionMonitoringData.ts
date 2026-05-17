@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { subDays, startOfDay, endOfDay } from "date-fns";
@@ -84,6 +83,7 @@ export function useConditionMonitoringData() {
   });
 
   const autoFillMutation = useMutation({
+    // @ts-ignore -- bulk-silence
     mutationFn: async (vesselId: string) =>
       apiRequest("/api/logbook/condition/autofill", {
         method: "POST",
@@ -115,7 +115,9 @@ export function useConditionMonitoringData() {
       logs.length > 0
         ? logs.reduce((sum, log) => sum + (log.healthIndex || 0), 0) / logs.length
         : 0;
+    // @ts-ignore -- bulk-silence
     const totalAlerts = logs.reduce((sum, log) => sum + (log.alertsCount || 0), 0);
+    // @ts-ignore -- bulk-silence
     const criticalAlerts = logs.reduce((sum, log) => sum + (log.criticalAlertsCount || 0), 0);
     const criticalCount = logs.filter((l) => l.conditionRating === "critical").length;
     const uniqueEquipmentCount = new Set(logs.map((l) => l.equipmentId)).size;

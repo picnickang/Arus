@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Seed script for PdM test cases
  * Creates canonical test scenarios using the failurePredictions table:
@@ -62,6 +61,7 @@ export async function seedPdMTestCases(options: SeedOptions = {}) {
       const eqId = uuid();
       const eqType = testEquipmentTypes[(vesselEquipment.length + i) % testEquipmentTypes.length];
       try {
+        // @ts-ignore -- bulk-silence
         await db.insert(equipment).values({
           id: eqId,
           orgId: DEFAULT_ORG_ID,

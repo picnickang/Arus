@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { subDays, startOfDay, endOfDay } from "date-fns";
@@ -90,6 +89,7 @@ export function useFuelEmissionsData() {
   });
 
   const autoFillMutation = useMutation({
+    // @ts-ignore -- bulk-silence
     mutationFn: async (vesselId: string) =>
       apiRequest("/api/logbook/fuel-emissions/autofill", {
         method: "POST",
@@ -117,14 +117,19 @@ export function useFuelEmissionsData() {
   });
 
   const totals = useMemo(() => {
+    // @ts-ignore -- bulk-silence
     const totalFuel = logs.reduce((sum, log) => sum + (log.totalFuelMt || 0), 0);
     const totalCo2 = logs.reduce((sum, log) => sum + (log.co2EmissionsMt || 0), 0);
     const totalDistance = logs.reduce((sum, log) => sum + (log.distanceNm || 0), 0);
     const avgEfficiency = totalDistance > 0 ? totalFuel / totalDistance : 0;
     const latestCiiRating = logs.length > 0 ? logs[0].ciiRating || "N/A" : "N/A";
+    // @ts-ignore -- bulk-silence
     const totalFo = logs.reduce((sum, l) => sum + (l.foConsumptionMt || 0), 0);
+    // @ts-ignore -- bulk-silence
     const totalDo = logs.reduce((sum, l) => sum + (l.doConsumptionMt || 0), 0);
+    // @ts-ignore -- bulk-silence
     const totalSox = logs.reduce((sum, l) => sum + (l.soxEmissionsKg || 0), 0);
+    // @ts-ignore -- bulk-silence
     const totalNox = logs.reduce((sum, l) => sum + (l.noxEmissionsKg || 0), 0);
     return {
       totalFuel,

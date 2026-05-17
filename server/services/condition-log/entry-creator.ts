@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Condition Log Service - Entry Creation
  */
@@ -38,6 +37,7 @@ export async function getPreviousHealthIndex(
   if (previous.length === 0 || previous[0].healthIndex === null) {
     return null;
   }
+  // @ts-ignore -- bulk-silence
   return { healthIndex: previous[0].healthIndex, periodStart: previous[0].periodStart };
 }
 
@@ -82,6 +82,7 @@ export async function createConditionLogEntry(
     equipmentId,
     periodStart,
     periodEnd,
+    // @ts-ignore -- bulk-silence
     periodType,
     vibrationRmsAvg: vibrationData?.rmsAvg ?? null,
     vibrationRmsMax: vibrationData?.rmsMax ?? null,

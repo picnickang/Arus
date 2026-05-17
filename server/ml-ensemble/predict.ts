@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * ML Ensemble Prediction
  *
@@ -39,7 +38,9 @@ export async function ensemblePredict(
     enableShadowMode: config?.enableShadowMode ?? false,
   };
 
+  // @ts-ignore -- bulk-silence
   const flags = await getFeatureFlags(orgId);
+  // @ts-ignore -- bulk-silence
   const useEnsemble = flags.enableEnsemble !== false;
 
   if (!useEnsemble && !ensembleConfig.enableShadowMode) {
@@ -112,16 +113,20 @@ export async function ensemblePredict(
 
     if (calibrationCurves.length > 0) {
       const latestCurve = calibrationCurves[0];
+      // @ts-ignore -- bulk-silence
       calibrationMethod = latestCurve.method;
       const calibratedProbability = applyCalibration(
         finalPrediction,
         latestCurve.parameters as any,
+        // @ts-ignore -- bulk-silence
         latestCurve.method
       );
       logger.debug(
         "MlEnsemble",
+        // @ts-ignore -- bulk-silence
         `Calibration applied: ${(finalPrediction * 100).toFixed(1)}% → ${(calibratedProbability * 100).toFixed(1)}% (${latestCurve.method})`
       );
+      // @ts-ignore -- bulk-silence
       finalPrediction = calibratedProbability;
     } else {
       logger.debug("MlEnsemble", "No calibration curve available - using raw ensemble prediction");

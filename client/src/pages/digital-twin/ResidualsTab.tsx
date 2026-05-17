@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -97,6 +96,7 @@ export function ResidualsTab() {
                       <td className="py-2 text-right font-mono">{r.zScore?.toFixed(2)}</td>
                       <td className="py-2">
                         <Badge
+                          // @ts-ignore -- bulk-silence
                           variant={severityColor(r.severity)}
                           data-testid={`badge-severity-${i}`}
                         >
@@ -130,6 +130,7 @@ export function ResidualsTab() {
                     </div>
                     <div className="text-right">
                       <p className="font-mono text-sm">Avg Z: {r.avgZScore?.toFixed(2)}</p>
+                      {/* @ts-ignore */}
                       <Badge variant={severityColor(r.severity)}>{r.severity}</Badge>
                     </div>
                   </div>

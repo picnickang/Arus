@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * ML Ensemble Batch Processing
  *
@@ -38,6 +37,7 @@ export async function batchEnsemblePredict(
           return null;
         }
 
+        // @ts-ignore -- bulk-silence
         const timeSeriesData: TimeSeriesFeatures[] = recentData.map((t: any) => ({
           equipmentId: t.equipmentId,
           timestamp: t.ts,

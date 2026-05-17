@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -51,12 +50,14 @@ interface SchedulingSuggestion {
 export function useMaintenanceModeData() {
   const { data: pdmScores = [], isLoading: pdmLoading } = useQuery<PdmScoreData[]>({
     queryKey: ["/api/pdm/scores"],
+    // @ts-ignore -- bulk-silence
     queryFn: () => fetchPdmScores(),
     refetchInterval: 120000,
     staleTime: 60000,
   });
   const { data: workOrders = [], isLoading: workOrdersLoading } = useQuery<WorkOrderData[]>({
     queryKey: ["/api/work-orders"],
+    // @ts-ignore -- bulk-silence
     queryFn: () => fetchWorkOrders(),
     refetchInterval: 120000,
     staleTime: 60000,
@@ -87,10 +88,13 @@ export function useMaintenanceModeData() {
   });
   const isLoading = pdmLoading || workOrdersLoading;
 
+  // @ts-ignore -- bulk-silence
   const equipmentHealth: EquipmentHealth[] = equipmentHealthResponse?.results ?? [];
 
   const metrics = useMemo(() => {
+    // @ts-ignore -- bulk-silence
     const openOrders = workOrders.filter((wo: WorkOrderData) => wo.status !== "completed").length;
+    // @ts-ignore -- bulk-silence
     const overdueOrders = workOrders.filter((wo: WorkOrderData) => {
       if (wo.status === "completed" || !wo.createdAt) {
         return false;
@@ -103,9 +107,11 @@ export function useMaintenanceModeData() {
         (wo.priority === 3 && ageHours > 168)
       );
     }).length;
+    // @ts-ignore -- bulk-silence
     const highRiskEquipment = pdmScores.filter(
       (score: PdmScoreData) => score.failureRisk > 70
     ).length;
+    // @ts-ignore -- bulk-silence
     const completedOrders = workOrders.filter((wo: WorkOrderData) => wo.status === "completed");
     const ordersWithTimestamps = completedOrders.filter(
       (wo: WorkOrderData) => wo.createdAt && wo.completedAt
@@ -119,9 +125,12 @@ export function useMaintenanceModeData() {
           ) / ordersWithTimestamps.length
         : 0;
     const completionRate =
+      // @ts-ignore -- bulk-silence
       workOrders.length > 0 ? (completedOrders.length / workOrders.length) * 100 : 0;
     const preventiveSavings = costSavings?.predictiveSavings || 0;
+    // @ts-ignore -- bulk-silence
     const reactiveCost = costSavings?.totalDowntimePrevented || 0;
+    // @ts-ignore -- bulk-silence
     const highReactiveCostEquipment = equipmentHealth.filter((eq) => (eq.healthIndex || 100) < 60);
     return {
       openOrders,
@@ -136,6 +145,7 @@ export function useMaintenanceModeData() {
     };
   }, [workOrders, pdmScores, costSavings, equipmentHealth]);
 
+  // @ts-ignore -- bulk-silence
   const failurePatterns: FailurePatternData[] = failurePatternsData?.failurePatterns ?? [];
   const failureChartData = useMemo(
     () =>
@@ -164,6 +174,7 @@ export function useMaintenanceModeData() {
   const schedulingSuggestions: SchedulingSuggestion[] = useMemo(
     () =>
       pdmScores
+        // @ts-ignore -- bulk-silence
         .filter((score: PdmScoreData) => score.failureRisk >= 50 && score.failureRisk < 90)
         .map((score: PdmScoreData) => {
           const riskLevel = score.failureRisk;
@@ -183,6 +194,7 @@ export function useMaintenanceModeData() {
   const overdueWorkOrders = useMemo(
     () =>
       workOrders
+        // @ts-ignore -- bulk-silence
         .filter((wo: WorkOrderData) => {
           if (wo.status === "completed" || !wo.createdAt) {
             return false;
@@ -200,6 +212,7 @@ export function useMaintenanceModeData() {
   );
 
   const highRiskPdmScores = useMemo(
+    // @ts-ignore -- bulk-silence
     () => pdmScores.filter((score: PdmScoreData) => score.failureRisk > 70).slice(0, 10),
     [pdmScores]
   );

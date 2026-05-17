@@ -1,4 +1,3 @@
-// @ts-nocheck
 export interface UpdateInfo {
   version: string;
   date?: string;
@@ -43,6 +42,7 @@ async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Prom
   if (!core) {
     throw new Error("Tauri core not available");
   }
+  // @ts-ignore -- bulk-silence
   return core.invoke<T>(cmd, args);
 }
 

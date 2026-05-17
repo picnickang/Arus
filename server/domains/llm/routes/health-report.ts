@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Health Report Routes
  *
@@ -31,6 +30,7 @@ export function registerHealthReportRoutes(
     withErrorHandling("generate health report", async (req, res) => {
       const { vesselId, equipmentId, lookbackHours = 24 } = req.body;
 
+      // @ts-ignore -- bulk-silence
       const equipmentHealth = await dbEquipmentStorage.getEquipmentHealth();
       const filteredEquipmentHealth = vesselId
         ? equipmentHealth.filter((eq) => eq.vessel === vesselId)

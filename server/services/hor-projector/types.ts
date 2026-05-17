@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * HoR Projector Types
  */
@@ -20,6 +19,7 @@ export interface ProjectedRestDay extends RestDay {
   crewId: string;
   workHours: number;
   restHours: number;
+  // @ts-ignore -- bulk-silence
   isProjected: boolean;
 }
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Express, Request, Response, RequestHandler } from "express";
 import { z } from "zod";
 import { withErrorHandling } from "../../lib/route-utils";
@@ -43,6 +42,7 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
     writeOperationRateLimit,
     withErrorHandling("delete StormGeo settings", async (req: Request, res: Response) => {
       const orgId = req.orgId;
+      // @ts-ignore -- bulk-silence
       await dbStormGeoStorage.deleteStormgeoSetting(req.params.id, orgId);
       res.json({ success: true });
     })
@@ -87,6 +87,7 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
       const orgId = req.orgId;
       const vesselId = req.query.vesselId as string | undefined;
       const limit = req.query.limit ? Number(req.query.limit) : undefined;
+      // @ts-ignore -- bulk-silence
       const history = await dbStormGeoStorage.getStormgeoImportHistory(orgId, { vesselId, limit });
       res.json(history);
     })
@@ -236,6 +237,7 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
     writeOperationRateLimit,
     withErrorHandling("delete StormGeo snapshots", async (req: Request, res: Response) => {
       const orgId = req.orgId;
+      // @ts-ignore -- bulk-silence
       await dbStormGeoStorage.deleteStormgeoSnapshotsBefore(req.params.routeId, orgId);
       res.json({ success: true });
     })

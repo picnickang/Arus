@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * RAG Semantic Cache Service
  *
@@ -90,6 +89,7 @@ export class SemanticCache {
 
   private async semanticLookup(orgId: string, query: string): Promise<SemanticCacheEntry | null> {
     try {
+      // @ts-ignore -- bulk-silence
       const queryEmbedding = await generateEmbedding(query, { orgId });
       const embeddingStr = `[${queryEmbedding.join(",")}]`;
       const distanceThreshold = 1 - this.semanticThreshold;
@@ -172,8 +172,10 @@ export class SemanticCache {
     let queryEmbedding: number[] | null = null;
     if (this.useSemanticLookup) {
       try {
+        // @ts-ignore -- bulk-silence
         queryEmbedding = await generateEmbedding(params.query, { orgId: params.orgId });
       } catch (error) {
+        // @ts-ignore -- bulk-silence
         logger.warn("[SemanticCache] Failed to generate query embedding:", error);
       }
     }
@@ -181,6 +183,7 @@ export class SemanticCache {
     try {
       await db
         .insert(ragSemanticCache)
+        // @ts-ignore -- bulk-silence
         .values({
           orgId: params.orgId,
           queryHash,
@@ -200,6 +203,7 @@ export class SemanticCache {
             citations: params.citations,
             sourceChunkIds: params.sourceChunkIds,
             modelUsed: params.modelUsed,
+            // @ts-ignore -- bulk-silence
             queryEmbedding: queryEmbedding ? sql`${JSON.stringify(queryEmbedding)}::vector` : null,
             expiresAt,
             lastAccessedAt: new Date(),

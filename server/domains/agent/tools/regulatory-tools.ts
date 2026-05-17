@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { z } from "zod";
 import { registerTool } from "./registry";
 import { fetchWithCacheFallback } from "../infrastructure/external-data-cache";
@@ -194,7 +193,9 @@ registerTool({
     );
 
     if (
+      // @ts-ignore -- bulk-silence
       (result.data as Record<string, unknown>)?.error ||
+      // @ts-ignore -- bulk-silence
       (result.data as Record<string, unknown>)?.offline
     ) {
       const isNotConfigured = result.fetchError?.includes("not configured");
@@ -325,7 +326,9 @@ registerTool({
     );
 
     if (
+      // @ts-ignore -- bulk-silence
       (result.data as Record<string, unknown>)?.error ||
+      // @ts-ignore -- bulk-silence
       (result.data as Record<string, unknown>)?.offline
     ) {
       const isNotConfigured = result.fetchError?.includes("not configured");

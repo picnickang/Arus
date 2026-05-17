@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { Express } from "express";
 import { dbNotificationsStorage } from "../../repositories";
 import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../lib/route-utils";
@@ -187,6 +186,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       const orgId = req.orgId;
       const item = await dbNotificationsStorage.createEmailQueueItem({
         orgId,
+        // @ts-ignore -- bulk-silence
         notificationType: "test",
         subject: subject || "ARUS Marine Test Notification",
         body: message || "This is a test notification from ARUS Marine.",

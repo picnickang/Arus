@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { db } from "../../../db";
 import { eq, desc, and } from "drizzle-orm";
 import { alertNotifications, failurePredictions, equipment } from "@shared/schema";
@@ -66,6 +65,7 @@ registerTool({
   },
   inputSchema: z.object({ alertId: z.string().min(1) }),
   requiresApproval: false,
+  // @ts-ignore -- bulk-silence
   async execute(input: { alertId: string }, ctx) {
     const [alert] = await db
       .select()

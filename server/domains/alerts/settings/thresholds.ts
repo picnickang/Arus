@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Alert Settings - Thresholds
  * Threshold configuration and management
@@ -47,6 +46,7 @@ export async function upsertThreshold(
   }
   const [created] = await db
     .insert(alertThresholds)
+    // @ts-ignore -- bulk-silence
     .values({ ...data, orgId, key, name: data.name || key })
     .returning();
   return created;

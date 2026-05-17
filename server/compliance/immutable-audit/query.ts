@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Audit Query Operations
  *
@@ -65,6 +64,7 @@ export async function queryAuditEvents(options: AuditQueryOptions): Promise<Audi
 
   const results = await query;
 
+  // @ts-ignore -- bulk-silence
   return results.map((r) => ({
     ...r,
     eventCategory: r.eventCategory as AuditEventCategory,

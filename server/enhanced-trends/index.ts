@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Enhanced Trends Pod - Advanced Telemetry Statistical Analysis
  *
@@ -203,6 +202,7 @@ export class EnhancedTrendsAnalyzer {
 
       logger.info(`[Enhanced Trends] Fetching ${orgId}:${equipmentId}:${sensorType} from ${startTime.toISOString()} to ${endTime.toISOString()}`);
 
+      // @ts-ignore -- bulk-silence
       const readings = await storage.getTelemetryHistory(
         orgId,
         equipmentId,
@@ -226,6 +226,7 @@ export class EnhancedTrendsAnalyzer {
     try {
       const { storage } = await import("../repositories");
 
+      // @ts-ignore -- bulk-silence
       const sensorTypes = await storage.getEquipmentSensorTypes(orgId, equipmentId);
 
       logger.info(`[Enhanced Trends] Found ${sensorTypes.length} sensor types for ${orgId}:${equipmentId}:`, { details: sensorTypes });

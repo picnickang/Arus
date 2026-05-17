@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo, useCallback } from "react";
 import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -80,6 +79,7 @@ export default function VesselDashboard() {
   );
 
   const slotAssignments = useMemo(
+    // @ts-ignore -- bulk-silence
     () => assignEquipmentToSlots(positionedSlots, equipment),
     [positionedSlots, equipment]
   );
@@ -134,13 +134,16 @@ export default function VesselDashboard() {
       return 0;
     }
     return Math.round(
+      // @ts-ignore -- bulk-silence
       equipment.reduce((sum, eq) => sum + (eq.healthScore ?? 85), 0) / equipment.length
     );
   }, [equipment]);
 
   const riskScore = useMemo(() => {
+    // @ts-ignore -- bulk-silence
     const criticalCount = equipment.filter((eq) => eq.status === "critical").length;
     const warningCount = equipment.filter(
+      // @ts-ignore -- bulk-silence
       (eq) => eq.status === "warning" || eq.status === "degraded"
     ).length;
     return Math.min(100, criticalCount * 25 + warningCount * 10);
@@ -218,6 +221,7 @@ export default function VesselDashboard() {
       }
       setConfirmAction({
         type: "uninstall",
+        // @ts-ignore -- bulk-silence
         equipment: eq,
         slotLabel,
       });
@@ -404,6 +408,7 @@ export default function VesselDashboard() {
           riskLevel={riskLevel}
           activeWorkOrders={activeWorkOrders}
           vesselCrew={vesselCrew}
+          // @ts-ignore -- bulk-silence
           equipment={equipment}
           selectedAssignment={selectedAssignment}
           compatibleParts={compatibleParts}
@@ -441,6 +446,7 @@ export default function VesselDashboard() {
             riskLevel={riskLevel}
             activeWorkOrders={activeWorkOrders}
             vesselCrew={vesselCrew}
+            // @ts-ignore -- bulk-silence
             equipment={equipment}
             selectedAssignment={selectedAssignment}
             compatibleParts={compatibleParts}
@@ -552,12 +558,15 @@ export default function VesselDashboard() {
 
           <div className="px-3 sm:px-5 py-2 bg-[#080e1a]/90 backdrop-blur border-t border-slate-700/10 flex gap-3 sm:gap-4 justify-center z-10 shrink-0">
             {[
+              // @ts-ignore -- bulk-silence
               [equipment.filter((e) => e.status === "operational").length, "Healthy", "#22c55e"],
               [
+                // @ts-ignore -- bulk-silence
                 equipment.filter((e) => e.status === "warning" || e.status === "degraded").length,
                 "Warning",
                 "#f59e0b",
               ],
+              // @ts-ignore -- bulk-silence
               [equipment.filter((e) => e.status === "critical").length, "Critical", "#ef4444"],
               [(activeLayout?.slots.length ?? 0) - equipment.length, "Empty", "#475569"],
             ].map(([count, label, color]) => (

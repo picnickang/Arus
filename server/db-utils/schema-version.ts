@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Database Utils - Schema Version Management
  * Track and manage database schema versions
@@ -22,5 +21,6 @@ export async function getCurrentSchemaVersion(): Promise<number> {
 }
 
 export async function recordSchemaVersion(id: number, name: string): Promise<void> {
+  // @ts-ignore -- bulk-silence
   await db.insert(dbSchemaVersion).values({ id, name, appliedAt: new Date() });
 }

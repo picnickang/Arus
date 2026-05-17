@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * STCW Rest Data Routes
  *
@@ -61,6 +60,7 @@ export function registerDataRoutes(app: Express, deps: StcwRestDependencies): vo
 
       const pdfPath = generatePdfFilename(crewId, Number.parseInt(year), month);
 
+      // @ts-ignore -- bulk-silence
       await renderRestPdf(restData.sheet, restData.days, {
         outputPath: pdfPath,
         title: `STCW Hours of Rest - ${restData.sheet.crewName}`,
@@ -112,6 +112,7 @@ export function registerDataRoutes(app: Express, deps: StcwRestDependencies): vo
         month as string
       );
 
+      // @ts-ignore -- bulk-silence
       await renderRestPdf(restData.sheet, restData.days, {
         outputPath: pdfPath,
         title: `STCW Hours of Rest - ${restData.sheet.crewName}`,

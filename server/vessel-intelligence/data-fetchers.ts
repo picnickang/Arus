@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Vessel Intelligence Data Fetchers
  *
@@ -22,6 +21,7 @@ export async function getWorkOrdersForVessel(
 
   if (days) {
     const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    // @ts-ignore -- bulk-silence
     vesselOrders = vesselOrders.filter((wo) => new Date(wo.createdAt) > cutoff);
   }
 

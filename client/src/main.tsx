@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
@@ -24,6 +23,7 @@ pwaManager.initialize().catch((error) => {
 pwaManager.onInstallPrompt((prompt) => {
   console.info("PWA install prompt available");
   // Store prompt for later use in UI
+  // @ts-ignore -- bulk-silence
   (window as unknown as { pwaInstallPrompt: BeforeInstallPromptEvent }).pwaInstallPrompt = prompt;
 });
 

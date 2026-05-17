@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { Vessel } from "@shared/schema";
 
 export const VESSEL_CLASSES = [
@@ -96,7 +95,9 @@ export function formatVesselExportData(vessels: Vessel[]) {
   return vessels.map((v) => ({
     name: v.name,
     imo: v.imo || "",
+    // @ts-ignore -- bulk-silence
     mmsi: v.mmsi || "",
+    // @ts-ignore -- bulk-silence
     class: v.class || "",
     condition: v.condition || "",
     operationDays: v.operationDays || "0",

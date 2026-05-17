@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * DTC Alert Handler
  */
@@ -24,6 +23,7 @@ export function shouldTriggerAlert(dtc: DtcWithDefinition): boolean {
   if (dtc.oc === 1) {
     return true;
   }
+  // @ts-ignore -- bulk-silence
   if (dtc.oc > 5) {
     return true;
   }
@@ -67,6 +67,7 @@ export async function createDtcAlert(dtc: DtcWithDefinition, orgId: string): Pro
     sensorType: `dtc_${dtc.spn}_${dtc.fmi}`,
     alertType: "dtc_fault",
     message: alertMessage,
+    // @ts-ignore -- bulk-silence
     value: dtc.oc,
     threshold: dtc.definition?.severity || 4,
     acknowledged: false,

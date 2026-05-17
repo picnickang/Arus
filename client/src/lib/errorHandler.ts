@@ -1,4 +1,3 @@
-// @ts-nocheck
 interface ErrorContext {
   url?: string;
   userAgent?: string;
@@ -101,6 +100,7 @@ export function initializeGlobalErrorHandlers() {
       const response = await originalFetch(...args);
 
       if (!response.ok && response.status >= 500) {
+        // @ts-ignore -- bulk-silence
         const url = typeof args[0] === "string" ? args[0] : args[0].url;
         logErrorToBackend(
           "error",
@@ -123,6 +123,7 @@ export function initializeGlobalErrorHandlers() {
       if (errMsg === "Load failed" || errMsg === "Failed to fetch") {
         throw error;
       }
+      // @ts-ignore -- bulk-silence
       const url = typeof args[0] === "string" ? args[0] : args[0].url;
       logErrorToBackend(
         "error",

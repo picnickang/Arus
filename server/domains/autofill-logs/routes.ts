@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Auto-Filled Logs Domain Routes
  * Extracted from routes.ts for Phase 4 modularization
@@ -287,6 +286,7 @@ export function registerAutofillLogsRoutes(app: Express, deps: AutofillLogsDepen
       }
 
       if (periodType) {
+        // @ts-ignore -- bulk-silence
         conditions.push(eq(conditionLogSummary.periodType, periodType as string));
       }
 

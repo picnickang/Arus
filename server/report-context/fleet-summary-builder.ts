@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Fleet Summary Context Builder
  *
@@ -35,10 +34,12 @@ export async function buildFleetSummaryContext(
   ]);
 
   const filteredWorkOrders = workOrders.filter(
+    // @ts-ignore -- bulk-silence
     (wo) => new Date(wo.createdAt) >= start && new Date(wo.createdAt) <= end
   );
 
   const filteredAlerts = alerts.filter(
+    // @ts-ignore -- bulk-silence
     (alert) => new Date(alert.createdAt) >= start && new Date(alert.createdAt) <= end
   );
 

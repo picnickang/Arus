@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * LSTM Model - Prediction
  * Inference using trained LSTM model
@@ -25,6 +24,7 @@ export async function predictWithLSTM(
   for (const point of sequence) {
     const features: number[] = [];
     for (const featureName of model.featureNames) {
+      // @ts-ignore -- bulk-silence
       features.push(point.features[featureName] ?? 0);
     }
     featureSequence.push(features);

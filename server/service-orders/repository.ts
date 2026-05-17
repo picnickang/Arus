@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { db } from "../db";
 import {
   serviceOrders,
@@ -25,6 +24,7 @@ export async function generateSoNumber(orgId: string): Promise<string> {
         FROM service_orders WHERE org_id = ${orgId} AND so_number ~ '^SO-[0-9]+$'`
   );
   const nextNum = Number(
+    // @ts-ignore -- bulk-silence
     (result as { rows?: Array<{ next_val: string }> }).rows?.[0]?.next_val ?? 1
   );
   return `SO-${String(nextNum).padStart(3, "0")}`;

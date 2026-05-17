@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -140,6 +139,7 @@ export function ServiceOrderFormDialog({
         serviceType: serviceOrder.serviceType || "service",
         serviceProviderId: serviceOrder.serviceProviderId || "",
         workOrderId: serviceOrder.workOrderId || "__none__",
+        // @ts-ignore -- bulk-silence
         vesselId: serviceOrder.vesselId || "__none__",
         scope: serviceOrder.scope || "",
         scheduledStartDate: serviceOrder.scheduledStartDate
@@ -222,12 +222,14 @@ export function ServiceOrderFormDialog({
 
     try {
       if (mode === "edit" && serviceOrder) {
+        // @ts-ignore -- bulk-silence
         await updateMutation.mutateAsync({ id: serviceOrder.id, data });
         toast({
           title: "Service Order Updated",
           description: "The service order has been updated successfully.",
         });
       } else {
+        // @ts-ignore -- bulk-silence
         await createMutation.mutateAsync(data);
         toast({
           title: "Service Order Created",

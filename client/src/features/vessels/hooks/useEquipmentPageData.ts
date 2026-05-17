@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -68,6 +67,7 @@ export function useEquipmentPageData() {
     status?: "healthy" | "warning" | "critical";
     condition?: string;
   }
+  // @ts-ignore -- bulk-silence
   const healthData: EquipmentHealth[] = useMemo(() => {
     if (!healthResponse || !Array.isArray(healthResponse)) {
       return [];
@@ -93,6 +93,7 @@ export function useEquipmentPageData() {
     const map = new Map<string, EquipmentHealth>();
     healthData.forEach((h) => {
       if (h.id) {
+        // @ts-ignore -- bulk-silence
         map.set(h.id, h);
       }
     });
@@ -167,6 +168,7 @@ export function useEquipmentPageData() {
     const avgHealth =
       healthData.length > 0
         ? Math.round(
+            // @ts-ignore -- bulk-silence
             healthData.reduce((sum, h) => sum + (h.healthIndex || 0), 0) / healthData.length
           )
         : 0;

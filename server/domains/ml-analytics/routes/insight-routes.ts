@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * ML Analytics - Insight Snapshot Routes
  *
@@ -19,6 +18,7 @@ export function registerInsightRoutes(app: Express, _config: MlAnalyticsConfig) 
       const snapshots = await analyticsInsightsAdapter.getInsightSnapshots(
         orgId as string,
         scope as string,
+        // @ts-ignore -- bulk-silence
         limit ? Number.parseInt(limit as string) : undefined
       );
       const { normalizeInsightSnapshots } = await import("../../../analytics-data-normalizer.js");

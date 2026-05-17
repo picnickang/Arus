@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * PostgreSQL Dump Executor - Handles pg_dump execution with compression
  *
@@ -33,7 +32,9 @@ export async function executePgDump(
         reject(new Error(`gzip compression failed: ${error.message}`));
       });
 
+      // @ts-ignore -- bulk-silence
       pgDump.stdout.pipe(gzipProcess.stdin);
+      // @ts-ignore -- bulk-silence
       outputStream = gzipProcess.stdout;
     }
 
@@ -57,6 +58,7 @@ export async function executePgDump(
     });
 
     if (gzipProcess) {
+      // @ts-ignore -- bulk-silence
       gzipProcess.stderr.on("data", (data: Buffer) => {
         stderr += `[gzip] ${data.toString()}`;
       });
@@ -93,6 +95,7 @@ export async function executePgDump(
     }
 
     pgDump.on("close", (code) => {
+      // @ts-ignore -- bulk-silence
       checkCompletion("pg_dump", code);
     });
 

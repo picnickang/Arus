@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Crew - Database Storage Extended (Assignments, Certifications, Leave)
  */
@@ -66,6 +65,7 @@ export class DbCrewExtended {
   async createCrewAssignment(assignment: InsertCrewAssignment): Promise<CrewAssignment> {
     const [n] = await db
       .insert(crewAssignmentTable)
+      // @ts-ignore -- bulk-silence
       .values({ id: randomUUID(), ...assignment, createdAt: new Date(), updatedAt: new Date() })
       .returning();
     return n;
@@ -81,6 +81,7 @@ export class DbCrewExtended {
       : eq(crewAssignmentTable.id, id);
     const [updated] = await db
       .update(crewAssignmentTable)
+      // @ts-ignore -- bulk-silence
       .set({ ...updates, updatedAt: new Date() })
       .where(conditions)
       .returning();
@@ -166,6 +167,7 @@ export class DbCrewExtended {
   async createCrewCertification(cert: InsertCrewCertification): Promise<CrewCertification> {
     const [n] = await db
       .insert(crewCertificationTable)
+      // @ts-ignore -- bulk-silence
       .values({ id: randomUUID(), ...cert, createdAt: new Date(), updatedAt: new Date() })
       .returning();
     return n;
@@ -181,6 +183,7 @@ export class DbCrewExtended {
       : eq(crewCertificationTable.id, id);
     const [updated] = await db
       .update(crewCertificationTable)
+      // @ts-ignore -- bulk-silence
       .set({ ...updates, updatedAt: new Date() })
       .where(conditions)
       .returning();
@@ -199,6 +202,7 @@ export class DbCrewExtended {
   async getExpiringCertifications(days: number = 90, orgId?: string): Promise<CrewCertification[]> {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + days);
+    // @ts-ignore -- bulk-silence
     const conditions: any[] = [lte(crewCertificationTable.expiryDate, futureDate)];
     if (orgId) {
       conditions.push(eq(crewCertificationTable.orgId, orgId));
@@ -207,6 +211,7 @@ export class DbCrewExtended {
       .select()
       .from(crewCertificationTable)
       .where(and(...conditions))
+      // @ts-ignore -- bulk-silence
       .orderBy(crewCertificationTable.expiryDate);
   }
 
@@ -236,6 +241,7 @@ export class DbCrewExtended {
       .values({
         id: randomUUID(),
         ...leave,
+        // @ts-ignore -- bulk-silence
         status: leave.status || "pending",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -254,6 +260,7 @@ export class DbCrewExtended {
       : eq(crewLeaveTable.id, id);
     const [updated] = await db
       .update(crewLeaveTable)
+      // @ts-ignore -- bulk-silence
       .set({ ...updates, updatedAt: new Date() })
       .where(conditions)
       .returning();
@@ -279,7 +286,9 @@ export class DbCrewExtended {
         and(
           eq(crewAssignmentTable.vesselId, vesselId),
           eq(crewAssignmentTable.orgId, orgId),
+          // @ts-ignore -- bulk-silence
           lte(crewAssignmentTable.startDate, date),
+          // @ts-ignore -- bulk-silence
           or(gte(crewAssignmentTable.endDate, date), sql`${crewAssignmentTable.endDate} IS NULL`)
         )
       );

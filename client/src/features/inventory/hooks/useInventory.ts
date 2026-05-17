@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type {
@@ -48,6 +47,7 @@ export function useInventoryParts(vesselId?: string) {
         "GET",
         `/api/parts-inventory${vesselId ? `?vesselId=${vesselId}` : ""}`
       );
+      // @ts-ignore -- bulk-silence
       return Array.isArray(response) ? response : (response?.items ?? []);
     },
   });

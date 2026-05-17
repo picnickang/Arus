@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
@@ -87,6 +86,7 @@ export function VesselEquipmentSheet({
     if (Array.isArray(healthResponse)) {
       (healthResponse as RawHealthItem[]).forEach((item) => {
         if (item.id) {
+          // @ts-ignore -- bulk-silence
           map.set(item.id, {
             id: item.id,
             vessel: item.vesselId || item.vessel || "",
@@ -109,6 +109,7 @@ export function VesselEquipmentSheet({
     return map;
   }, [healthResponse]);
 
+  // @ts-ignore -- bulk-silence
   const vesselEquipment: EquipmentWithHealth[] = useMemo(
     () => vesselEquipmentRaw.map((eq) => ({ ...eq, health: healthMap.get(eq.id) })),
     [vesselEquipmentRaw, healthMap]
@@ -408,6 +409,7 @@ export function VesselEquipmentSheet({
       )}
       {selectedEquipment && (
         <SensorSetupWizard
+          // @ts-ignore -- bulk-silence
           equipment={selectedEquipment}
           open={sensorWizardOpen}
           onClose={() => setSensorWizardOpen(false)}

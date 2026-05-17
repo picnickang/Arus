@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -177,6 +176,7 @@ export function useGitHubReleasesData(channel: string) {
     error,
   } = useQuery<GitHubRelease[]>({
     queryKey: ["/api/admin/github-releases", channel],
+    // @ts-ignore -- bulk-silence
     queryFn: adminQueryFn(["/api/admin/github-releases", { channel }]),
   });
   return { releases, isLoading, error, expandedRelease, setExpandedRelease };

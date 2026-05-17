@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Storage Config Domain Routes
  * Extracted from routes.ts for Phase 4 modularization
@@ -31,6 +30,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
       const { storageConfigService } = await import("../../storage-config");
       const { insertStorageConfigSchema } = await import("@shared/schema");
       const validatedData = insertStorageConfigSchema.parse(req.body);
+      // @ts-ignore -- bulk-silence
       await storageConfigService.upsert(validatedData);
       res.json({ success: true });
     })
@@ -53,6 +53,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
       const { storageConfigService } = await import("../../storage-config");
       const { insertStorageConfigSchema } = await import("@shared/schema");
       const validatedData = insertStorageConfigSchema.parse(req.body);
+      // @ts-ignore -- bulk-silence
       const result = await storageConfigService.test(validatedData);
       res.json(result);
     })
@@ -101,6 +102,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
       if (!url) {
         return res.status(400).json({ error: "URL is required" });
       }
+      // @ts-ignore -- bulk-silence
       const result = await opsDbService.test(url);
       res.json(result);
     })

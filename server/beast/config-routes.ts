@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Router } from "express";
 import { beastModeManager, type BeastModeFeature, DEFAULT_ORG_ID } from "../beast-mode-config.js";
 import { z } from "zod";
@@ -34,6 +33,7 @@ const toggleFeatureSchema = z.object({
 router.get("/config", async (req, res) => {
   try {
     const orgId = DEFAULT_ORG_ID;
+    // @ts-ignore -- bulk-silence
     const configs = await beastModeManager.getAllFeatureConfigs(orgId);
     res.json({
       success: true,
@@ -67,6 +67,7 @@ router.get("/config/:feature", async (req, res) => {
           ],
         });
     }
+    // @ts-ignore -- bulk-silence
     const config = await beastModeManager.getFeatureConfig(orgId, feature);
     res.json({ success: true, feature, config, orgId });
   } catch (error) {
@@ -114,8 +115,10 @@ router.post("/config/:feature/toggle", async (req, res) => {
     const lastModifiedBy = (req.headers["x-user-id"] as string) || "api";
     let result: boolean;
     if (enabled) {
+      // @ts-ignore -- bulk-silence
       result = await beastModeManager.enableFeature(orgId, feature, configuration, lastModifiedBy);
     } else {
+      // @ts-ignore -- bulk-silence
       result = await beastModeManager.disableFeature(orgId, feature, lastModifiedBy);
     }
 
@@ -146,8 +149,10 @@ router.post("/config/:feature/toggle", async (req, res) => {
 router.get("/health", async (req, res) => {
   try {
     const orgId = DEFAULT_ORG_ID;
+    // @ts-ignore -- bulk-silence
     const configs = await beastModeManager.getAllFeatureConfigs(orgId);
     const enabledFeatures = Object.entries(configs)
+      // @ts-ignore -- bulk-silence
       .filter(([_, config]) => config.enabled)
       .map(([feature, _]) => feature);
     res.json({

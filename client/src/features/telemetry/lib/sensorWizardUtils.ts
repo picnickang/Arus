@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { Equipment } from "@shared/schema";
 
 export type WizardStep = 1 | 2 | 3;
@@ -14,6 +13,7 @@ export interface WizardState {
 }
 
 export interface SensorSetupWizardProps {
+  // @ts-ignore -- bulk-silence
   equipment: Pick<Equipment, "id" | "name" | "type" | "status" | "location">;
   open: boolean;
   onClose: () => void;

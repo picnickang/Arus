@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Compliance Excel Utils - Shared utility functions
  */
@@ -75,6 +74,7 @@ export function buildWorkOrderSheet(
 
   for (const wo of workOrders) {
     data.push([
+      // @ts-ignore -- bulk-silence
       wo.workOrderNumber ?? wo.id,
       wo.equipmentId ?? "",
       wo.maintenanceType ?? "",

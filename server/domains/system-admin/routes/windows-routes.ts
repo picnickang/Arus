@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * System Admin Routes - Maintenance Windows
  * Scheduled maintenance window management
@@ -73,6 +72,7 @@ export function registerWindowsRoutes(app: Express, deps: SystemAdminDependencie
     auditAdminAction("UPDATE_MAINTENANCE_WINDOW"),
     withErrorHandling("update maintenance window", async (req: Request, res: Response) => {
       const { id } = req.params;
+      // @ts-ignore -- bulk-silence
       const validatedData = insertMaintenanceWindowSchema.partial().parse(req.body);
       const window = await dbSystemAdminStorage.updateMaintenanceWindow(id, validatedData);
       res.json(window);

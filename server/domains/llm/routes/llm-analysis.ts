@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * LLM Analysis Routes
  *
@@ -67,6 +66,7 @@ export function registerLlmAnalysisRoutes(
       const { analyzeFleetHealth } = await import("../../../openai");
 
       const [equipmentHealth, telemetryTrends] = await Promise.all([
+        // @ts-ignore -- bulk-silence
         dbEquipmentStorage.getEquipmentHealth(),
         dbTelemetryStorage.getTelemetryTrends(undefined, hours),
       ]);
@@ -119,6 +119,7 @@ export function registerLlmAnalysisRoutes(
 
       const [device, equipmentHealth, alerts, telemetryTrends, pdmScore] = await Promise.all([
         dbDevicesStorage.getDevice(equipmentId),
+        // @ts-ignore -- bulk-silence
         dbEquipmentStorage.getEquipmentHealth(),
         dbAlertStorage.getAlertNotifications(),
         dbTelemetryStorage.getTelemetryTrends(equipmentId, Number.parseInt(hours as string)),
@@ -135,6 +136,7 @@ export function registerLlmAnalysisRoutes(
         });
       }
 
+      // @ts-ignore -- bulk-silence
       const analysis = await analyzeEquipmentHealth(telemetryTrends, equipmentId, device?.type);
 
       let alertRecommendations: any[] = [];
@@ -151,6 +153,7 @@ export function registerLlmAnalysisRoutes(
             "combined_analysis",
             equipmentId,
             { recentAlerts: combinedAlertContext },
+            // @ts-ignore -- bulk-silence
             device?.type
           );
           alertRecommendations = [combinedRecommendation];
@@ -202,6 +205,7 @@ export function registerLlmAnalysisRoutes(
 
       const [equipment, alerts, telemetry, pdmScores] = await Promise.all([
         dbEquipmentStorage
+          // @ts-ignore -- bulk-silence
           .getEquipmentHealth()
           .then((all) => all.filter((e) => e.vessel === vesselId)),
         dbAlertStorage
@@ -210,13 +214,16 @@ export function registerLlmAnalysisRoutes(
         dbTelemetryStorage.getLatestTelemetryReadings(undefined, 500, vesselId).catch(() => []),
         dbDevicesStorage
           .getPdmScores()
+          // @ts-ignore -- bulk-silence
           .then((scores) => scores.filter((s) => s.vessel === vesselId)),
       ]);
 
       const intelligence = {
         vesselName: vessel.name,
         vesselId: vessel.id,
+        // @ts-ignore -- bulk-silence
         vesselType: vessel.type,
+        // @ts-ignore -- bulk-silence
         operationalStatus: vessel.operational_status || "active",
         totalEquipment: equipment.length,
         healthyEquipment: equipment.filter((e) => (e.healthIndex || 0) > 70).length,
@@ -227,11 +234,14 @@ export function registerLlmAnalysisRoutes(
         criticalEquipment: equipment.filter((e) => (e.healthIndex || 0) < 30).length,
         totalAlerts: alerts.length,
         criticalAlerts: alerts.filter((a) => a.severity === "critical").length,
+        // @ts-ignore -- bulk-silence
         unresolvedAlerts: alerts.filter((a) => a.status !== "resolved").length,
         averagePdmScore:
           pdmScores.length > 0
+            // @ts-ignore -- bulk-silence
             ? pdmScores.reduce((sum, s) => sum + (s.anomalyScore || 0), 0) / pdmScores.length
             : null,
+        // @ts-ignore -- bulk-silence
         failurePredictions: pdmScores.filter((s) => (s.failureProbability || 0) > 0.5).length,
         recentTelemetryPoints: telemetry.length,
         dataFreshness:
@@ -239,6 +249,7 @@ export function registerLlmAnalysisRoutes(
             ? new Date(telemetry[0].timestamp).toISOString()
             : null,
         topIssues: alerts
+          // @ts-ignore -- bulk-silence
           .filter((a) => a.status !== "resolved")
           .sort((a, b) => {
             const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };

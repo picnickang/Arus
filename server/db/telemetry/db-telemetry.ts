@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Telemetry - Database Storage
  */
@@ -104,6 +103,7 @@ export class DatabaseTelemetryStorage {
       conditions.push(eq(equipmentTelemetry.equipmentId, equipmentId));
     }
     if (vesselId) {
+      // @ts-ignore -- bulk-silence
       conditions.push(eq(equipmentTelemetry.vesselId, vesselId));
     }
     if (sensorType) {
@@ -231,17 +231,20 @@ export class DatabaseTelemetryStorage {
     return result;
   }
   async upsertHeartbeat(heartbeat: InsertHeartbeat): Promise<EdgeHeartbeat> {
+    // @ts-ignore -- bulk-silence
     const e = await this.getHeartbeat(heartbeat.deviceId);
     if (e) {
       const [u] = await db
         .update(edgeHeartbeats)
         .set({ ...heartbeat, ts: new Date() })
+        // @ts-ignore -- bulk-silence
         .where(eq(edgeHeartbeats.id, e.id))
         .returning();
       return u;
     }
     const [n] = await db
       .insert(edgeHeartbeats)
+      // @ts-ignore -- bulk-silence
       .values({ id: randomUUID(), ...heartbeat, ts: new Date() })
       .returning();
     return n;

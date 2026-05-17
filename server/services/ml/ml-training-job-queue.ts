@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * ML Training Job Queue
  *
@@ -189,6 +188,7 @@ export class MlTrainingJobQueue {
         result = await retrainAllModels(this.storage, data.orgId);
       } else if (data.modelType === "lstm") {
         const { trainLSTMForFailurePrediction } = await import("../../ml-training-pipeline");
+        // @ts-ignore -- bulk-silence
         result = await trainLSTMForFailurePrediction(this.storage, {
           orgId: data.orgId,
           equipmentType: data.equipmentType,
@@ -198,6 +198,7 @@ export class MlTrainingJobQueue {
         });
       } else if (data.modelType === "random_forest") {
         const { trainRFForHealthClassification } = await import("../../ml-training-pipeline");
+        // @ts-ignore -- bulk-silence
         result = await trainRFForHealthClassification(this.storage, {
           orgId: data.orgId,
           equipmentType: data.equipmentType,
@@ -207,6 +208,7 @@ export class MlTrainingJobQueue {
         });
       } else if (data.modelType === "xgboost") {
         const { trainXGBoostForHealthClassification } = await import("../../ml-training-pipeline");
+        // @ts-ignore -- bulk-silence
         result = await trainXGBoostForHealthClassification(this.storage, {
           orgId: data.orgId,
           equipmentType: data.equipmentType,

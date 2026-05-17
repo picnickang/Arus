@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Vessel Service
  * Encapsulates vessel management logic including fleet overview, port calls, and drydock windows
@@ -107,16 +106,19 @@ class VesselService {
     data: Record<string, unknown>,
     orgId: string
   ): Promise<{ vesselId: string; equipmentCount: number; crewCount: number }> {
+    // @ts-ignore -- bulk-silence
     const vesselData = { ...data, organizationId: orgId } as InsertVessel;
     const created = await dbVesselStorage.createVessel(vesselData);
     return { vesselId: created.id, equipmentCount: 0, crewCount: 0 };
   }
 
   async resetVesselDowntime(vesselId: string, _orgId?: string): Promise<Vessel> {
+    // @ts-ignore -- bulk-silence
     return dbVesselStorage.updateVessel(vesselId, { status: "operational" });
   }
 
   async resetVesselOperation(vesselId: string, _orgId?: string): Promise<Vessel> {
+    // @ts-ignore -- bulk-silence
     return dbVesselStorage.updateVessel(vesselId, { status: "operational" });
   }
 

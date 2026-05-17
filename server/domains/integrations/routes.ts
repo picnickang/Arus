@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Integrations Domain Module - External Service Integration Routes
  *
@@ -321,6 +320,7 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
       const { days = "30" } = req.query;
       const lookbackDays = Number.parseInt(days as string, 10) || 30;
 
+      // @ts-ignore -- bulk-silence
       const { getCrewSTCWSummary } = await import("../../scheduler/stcw-dashboard");
       const summary = await getCrewSTCWSummary(orgId, crewId, lookbackDays);
 

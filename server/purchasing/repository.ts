@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Purchasing Repository
  *
@@ -67,6 +66,7 @@ export async function getPurchaseRequestWithItems(
 
   if (partIds.length > 0) {
     const partRows = await db
+      // @ts-ignore -- bulk-silence
       .select({ id: parts.id, name: parts.name, partNumber: parts.partNumber })
       .from(parts)
       .where(inArray(parts.id, partIds));

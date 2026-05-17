@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Vessel Telemetry Simulator Service
  *
@@ -240,6 +239,7 @@ export class VesselSimulator {
           if (value !== undefined && value !== null) {
             await this.storage.createTelemetryReading({
               equipmentId: config.equipmentId,
+              // @ts-ignore -- bulk-silence
               deviceId: config.deviceId,
               orgId: config.orgId,
               ts: point.timestamp,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { Part, PartsInventory, InsertPartsInventory, Equipment } from "@shared/schema";
 import { dbInventoryStorage, dbEquipmentStorage, dbAnalyticsStorage } from "../../repositories";
 
@@ -51,6 +50,7 @@ export class InventoryRepository {
     partId: string,
     updateData: { unitCost: number; supplier: string }
   ): Promise<PartsInventory> {
+    // @ts-ignore -- bulk-silence
     return dbAnalyticsStorage.updatePartCost(partId, updateData, "default-org-id");
   }
 
@@ -63,6 +63,7 @@ export class InventoryRepository {
       maxStockLevel?: number;
     }
   ): Promise<PartsInventory> {
+    // @ts-ignore -- bulk-silence
     return dbAnalyticsStorage.updatePartStockQuantities(partId, updateData, "default-org-id");
   }
 
@@ -88,10 +89,12 @@ export class InventoryRepository {
   }
 
   async updateCompatibility(partId: string, equipmentIds: string[], orgId: string): Promise<Part> {
+    // @ts-ignore -- bulk-silence
     return dbInventoryStorage.updatePartCatalogue(partId, { compatibleEquipment: equipmentIds });
   }
 
   async findPartsForEquipment(equipmentId: string, orgId: string): Promise<Part[]> {
+    // @ts-ignore -- bulk-silence
     return dbInventoryStorage.getPartsForEquipment(equipmentId, orgId);
   }
 

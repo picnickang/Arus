@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * StormGeo Integration Service - Main Class
  */
@@ -25,6 +24,7 @@ export class StormGeoIntegrationService {
   }
 
   async getSettings(orgId: string, vesselId?: string): Promise<StormgeoSetting | undefined> {
+    // @ts-ignore -- bulk-silence
     return dbStormGeoStorage.getStormgeoSettings(orgId, vesselId);
   }
 
@@ -34,6 +34,7 @@ export class StormGeoIntegrationService {
       settings.vesselId || undefined
     );
     if (existing) {
+      // @ts-ignore -- bulk-silence
       return dbStormGeoStorage.updateStormgeoSetting(existing.id, settings, settings.orgId);
     }
     return dbStormGeoStorage.createStormgeoSetting(settings);
@@ -77,11 +78,13 @@ export class StormGeoIntegrationService {
       }
 
       if (snapshots.length > 0) {
+        // @ts-ignore -- bulk-silence
         await dbStormGeoStorage.createStormgeoSnapshot(snapshots);
       }
       const status = errors.length === 0 ? "success" : snapshots.length > 0 ? "partial" : "failed";
       return dbStormGeoStorage.createStormgeoImportHistory(
         importRecord.id,
+        // @ts-ignore -- bulk-silence
         {
           status,
           recordsProcessed: rows.length,
@@ -96,6 +99,7 @@ export class StormGeoIntegrationService {
     } catch (error) {
       return dbStormGeoStorage.createStormgeoImportHistory(
         importRecord.id,
+        // @ts-ignore -- bulk-silence
         {
           status: "failed",
           errorDetails: [
@@ -160,11 +164,13 @@ export class StormGeoIntegrationService {
       }
 
       if (snapshots.length > 0) {
+        // @ts-ignore -- bulk-silence
         await dbStormGeoStorage.createStormgeoSnapshot(snapshots);
       }
       const status = errors.length === 0 ? "success" : snapshots.length > 0 ? "partial" : "failed";
       return dbStormGeoStorage.createStormgeoImportHistory(
         importRecord.id,
+        // @ts-ignore -- bulk-silence
         {
           status,
           recordsProcessed: data.waypoints.length,
@@ -179,6 +185,7 @@ export class StormGeoIntegrationService {
     } catch (error) {
       return dbStormGeoStorage.createStormgeoImportHistory(
         importRecord.id,
+        // @ts-ignore -- bulk-silence
         {
           status: "failed",
           errorDetails: [
@@ -197,6 +204,7 @@ export class StormGeoIntegrationService {
     targetTime: Date,
     orgId: string
   ): Promise<StormgeoSnapshot | undefined> {
+    // @ts-ignore -- bulk-silence
     return dbStormGeoStorage.getStormgeoSnapshot(vesselId, targetTime, orgId);
   }
 
@@ -247,6 +255,7 @@ export class StormGeoIntegrationService {
     autoFilledFields: string[],
     confidenceScore?: number
   ): Promise<void> {
+    // @ts-ignore -- bulk-silence
     await dbStormGeoStorage.createDeckLogHourlyAutoFill({
       hourlyLogId,
       source,
@@ -262,6 +271,7 @@ export class StormGeoIntegrationService {
     vesselId?: string,
     limit?: number
   ): Promise<StormgeoImportHistory[]> {
+    // @ts-ignore -- bulk-silence
     return dbStormGeoStorage.getStormgeoImportHistory(orgId, { vesselId, limit });
   }
 
@@ -271,6 +281,7 @@ export class StormGeoIntegrationService {
     startTime?: Date,
     endTime?: Date
   ): Promise<StormgeoSnapshot[]> {
+    // @ts-ignore -- bulk-silence
     return dbStormGeoStorage.getStormgeoSnapshots(orgId, {
       vesselId,
       forecastTimeStart: startTime,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -89,6 +88,7 @@ export function useNotificationSettings() {
     },
   });
   const testMutation = useMutation({
+    // @ts-ignore -- bulk-silence
     mutationFn: async (email: string) =>
       apiRequest("/api/notifications/email/test", {
         method: "POST",

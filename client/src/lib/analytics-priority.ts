@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Priority scoring system for analytics mission overview
  * Calculates priority based on severity, freshness, and financial impact
@@ -80,6 +79,7 @@ export function generateEquipmentAlerts(equipmentHealth: EquipmentHealthInput[])
     return [];
   }
 
+  // @ts-ignore -- bulk-silence
   return equipmentHealth
     .filter((eq) => eq.healthIndex < 50)
     .map((eq) => {
@@ -102,6 +102,7 @@ export function generateEquipmentAlerts(equipmentHealth: EquipmentHealthInput[])
     })
     .map((alert) => ({
       ...alert,
+      // @ts-ignore -- bulk-silence
       priorityScore: calculatePriorityScore(alert),
     }));
 }
@@ -114,6 +115,7 @@ export function generateAnomalyAlerts(anomalies: AnomalyInput[]): PriorityAlert[
     return [];
   }
 
+  // @ts-ignore -- bulk-silence
   return anomalies
     .slice(0, 10) // Top 10 anomalies
     .map((anomaly) => {
@@ -135,6 +137,7 @@ export function generateAnomalyAlerts(anomalies: AnomalyInput[]): PriorityAlert[
     })
     .map((alert) => ({
       ...alert,
+      // @ts-ignore -- bulk-silence
       priorityScore: calculatePriorityScore(alert),
     }));
 }
@@ -188,6 +191,7 @@ export function generateMaintenanceAlerts(workOrders: WorkOrderInput[]): Priorit
     return [];
   }
 
+  // @ts-ignore -- bulk-silence
   return workOrders
     .filter((order) => {
       if (order.status === "completed") {
@@ -219,6 +223,7 @@ export function generateMaintenanceAlerts(workOrders: WorkOrderInput[]): Priorit
         severity,
         title: `Overdue Work Order: ${order.reason || "Maintenance Required"}`,
         description: `Priority ${order.priority} work order overdue - ${order.equipmentId || "Equipment"} needs attention`,
+        // @ts-ignore -- bulk-silence
         timestamp: new Date(order.createdAt),
         financialImpact: estimatedCost,
         equipmentId: order.equipmentId,
@@ -228,6 +233,7 @@ export function generateMaintenanceAlerts(workOrders: WorkOrderInput[]): Priorit
     })
     .map((alert) => ({
       ...alert,
+      // @ts-ignore -- bulk-silence
       priorityScore: calculatePriorityScore(alert),
     }));
 }

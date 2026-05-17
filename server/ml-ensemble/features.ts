@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * ML Ensemble Feature Conversion
  *
@@ -24,6 +23,7 @@ export async function convertToClassificationFeatures(
 
   const telemetryData: any[] = [];
   for (const dataPoint of timeSeriesData) {
+    // @ts-ignore -- bulk-silence
     for (const [sensorType, value] of Object.entries(dataPoint.features)) {
       telemetryData.push({
         id: `${equipmentId}-${dataPoint.timestamp.getTime()}-${sensorType}`,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { RawFrame } from "../decode/types";
 import type { TelemetryReading } from "../../telemetry-batch-writer";
 import type { ITelemetryPersistence, IDeadLetterQueue, IMetricsEmitter } from "../ports/outbound";
@@ -78,6 +77,7 @@ export class IngestTelemetryBatch {
         const timestamps = frames
           .map((f) => new Date(f.ts))
           .sort((a, b) => a.getTime() - b.getTime());
+        // @ts-ignore -- bulk-silence
         await this.config.batchAck.receiveBatch({
           batchId,
           orgId: this.config.orgId!,

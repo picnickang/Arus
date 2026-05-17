@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Compliance Excel - Equipment Compliance Report Generation
  */
@@ -101,6 +100,7 @@ function renderEquipmentComplianceExcel(
       eq.vesselId ?? "",
       eq.status ?? "",
       eq.healthIndex ?? 0,
+      // @ts-ignore -- bulk-silence
       formatDate(eq.lastMaintenance) ?? "N/A",
     ]);
   }
@@ -115,6 +115,7 @@ function renderEquipmentComplianceExcel(
 
   for (const wo of workOrders) {
     woData.push([
+      // @ts-ignore -- bulk-silence
       wo.workOrderNumber ?? wo.id,
       wo.equipmentId ?? "",
       wo.maintenanceType ?? "",

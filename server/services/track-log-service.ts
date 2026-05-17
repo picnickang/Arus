@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { db } from "../db";
 import {
   vesselTrackLog,
@@ -106,6 +105,7 @@ export class TrackLogService {
       sog: lastPos[0].sog ?? undefined,
       cog: lastPos[0].cog ?? undefined,
       heading: lastPos[0].heading ?? undefined,
+      // @ts-ignore -- bulk-silence
       source: lastPos[0].source,
       equipmentId: lastPos[0].equipmentId ?? undefined,
     };
@@ -162,6 +162,7 @@ export class TrackLogService {
       sog: position.sog,
       cog: position.cog,
       heading: position.heading,
+      // @ts-ignore -- bulk-silence
       navStatus: this.getNavStatus(position.sog),
       source: position.source,
       equipmentId: position.equipmentId,
@@ -241,6 +242,7 @@ export class TrackLogService {
         const position: Position = {
           latitude: lat,
           longitude: lon,
+          // @ts-ignore -- bulk-silence
           timestamp: telemetry.timestamp,
           sog: readings.sog ? Number.parseFloat(String(readings.sog)) : undefined,
           cog: readings.cog ? Number.parseFloat(String(readings.cog)) : undefined,
@@ -296,6 +298,7 @@ export class TrackLogService {
         sog: vesselTrackLog.sog,
         cog: vesselTrackLog.cog,
         heading: vesselTrackLog.heading,
+        // @ts-ignore -- bulk-silence
         navStatus: vesselTrackLog.navStatus,
         source: vesselTrackLog.source,
       })
@@ -314,6 +317,7 @@ export class TrackLogService {
       query = query.limit(limit) as typeof query;
     }
 
+    // @ts-ignore -- bulk-silence
     return query;
   }
 
@@ -373,6 +377,7 @@ export class TrackLogService {
   }> {
     const stats = await db
       .select({
+        // @ts-ignore -- bulk-silence
         totalDistance: sql<number>`sum(${vesselTrackLog.distanceFromPrevNm})`,
         avgSpeed: sql<number>`avg(${vesselTrackLog.sog})`,
         maxSpeed: sql<number>`max(${vesselTrackLog.sog})`,

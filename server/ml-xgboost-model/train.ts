@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * XGBoost Model - Training
  * Multi-class gradient boosting training
@@ -80,5 +79,6 @@ export async function trainXGBoostModel(
       .slice(0, 5)
       .map(([n, i]) => `${n}: ${(i * 100).toFixed(2)}%`) });
 
+  // @ts-ignore -- bulk-silence
   return { trees, config, featureNames, classLabels, baseScore, numClasses };
 }

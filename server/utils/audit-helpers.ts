@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Shared audit logging utilities
  * Provides consistent audit trail across all domains
@@ -15,6 +14,7 @@ export interface AuditContext {
   userAgent?: string;
 }
 
+// @ts-ignore -- bulk-silence
 interface AuthenticatedRequest extends Request {
   user?: { id: string };
 }
@@ -30,6 +30,7 @@ export async function auditAction(
   data: Record<string, unknown>,
   context?: AuditContext
 ): Promise<void> {
+  // @ts-ignore -- bulk-silence
   await recordAndPublish(entityType, entityId, action, data, context?.userId);
 }
 

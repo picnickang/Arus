@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -72,12 +71,14 @@ export function useLaborRateData() {
     defaultValues: { overtimeMultiplier: 1.5 },
   });
 
+  // @ts-ignore -- bulk-silence
   const createRateMutation = useCreateMutation({
     endpoint: "/api/labor-rates",
     invalidateKeys: ["/api/labor-rates"],
     successMessage: "New labor rate configuration has been saved.",
     onSuccess: () => newRateForm.reset(),
   });
+  // @ts-ignore -- bulk-silence
   const updateRateMutation = useUpdateMutation({
     endpoint: "/api/labor-rates",
     invalidateKeys: ["/api/labor-rates"],

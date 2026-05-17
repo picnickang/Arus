@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Router } from "express";
 import { z } from "zod";
 import { inventorySupplierService } from "../supplier-service";
@@ -10,7 +9,9 @@ import { createRateLimiter } from "../../../lib/rate-limit-factory";
 const logger = createLogger("inventory-supplier-routes");
 export const inventorySupplierRouter = Router();
 
+// @ts-ignore -- bulk-silence
 const writeLimit = createRateLimiter("write");
+// @ts-ignore -- bulk-silence
 const generalLimit = createRateLimiter("general");
 
 const linkSupplierSchema = z.object({

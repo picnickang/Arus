@@ -1,4 +1,3 @@
-// @ts-nocheck
 import crypto from "node:crypto";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Scheduler:SchedulerController");
@@ -147,6 +146,7 @@ export async function planAndMaybeExecute({
 
   try {
     // Execute scheduling algorithm
+    // @ts-ignore -- bulk-silence
     const { scheduled, unfilled } = planShifts(daysArr, shifts, crew, leaves, existing);
     const durationMs = Date.now() - t0;
 
@@ -169,6 +169,7 @@ export async function planAndMaybeExecute({
         }
       }
 
+      // @ts-ignore -- bulk-silence
       const assignmentRecords: InsertScheduleAssignment[] = scheduled.map((a) => ({
         runId: run.id,
         orgId,
@@ -186,6 +187,7 @@ export async function planAndMaybeExecute({
     }
 
     // Always persist unfilled data for analysis
+    // @ts-ignore -- bulk-silence
     const unfilledRecords: InsertScheduleUnfilled[] = unfilled.map((u) => ({
       runId: run.id,
       orgId,
@@ -300,6 +302,7 @@ async function loadDrydocks(orgId: string, vessels?: string[]) {
 }
 
 async function loadCertifications(orgId: string) {
+  // @ts-ignore -- bulk-silence
   const certsList = await dbCrewExtensionsStorage.getCrewCertifications(undefined, orgId);
   const certsMap: { [crewId: string]: any[] } = {};
   for (const cert of certsList) {
@@ -637,6 +640,7 @@ function planShiftsWithExplanations(
   explanations: Record<string, string>;
 } {
   // Use the existing planShifts and add explanations
+  // @ts-ignore -- bulk-silence
   const { scheduled, unfilled } = planShifts(daysArr, shifts, crew, leaves, existing);
 
   // Build explanations for each scheduled crew member

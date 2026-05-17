@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Configuration Management Domain Routes
  * Extracted from routes.ts for Phase 4 modularization
@@ -58,6 +57,7 @@ export function registerConfigManagementRoutes(
 
       if (result.success && result.changed.length > 0) {
         const { wsServer } = await import("../../websocket");
+        // @ts-ignore -- bulk-silence
         wsServer.broadcast({
           type: "config_updated",
           timestamp: new Date().toISOString(),
@@ -147,6 +147,7 @@ export function registerConfigManagementRoutes(
 
       if (result.success) {
         const { wsServer } = await import("../../websocket");
+        // @ts-ignore -- bulk-silence
         wsServer.broadcast({
           type: "config_updated",
           timestamp: new Date().toISOString(),
@@ -179,6 +180,7 @@ export function registerConfigManagementRoutes(
 
       if (result.success) {
         const { wsServer } = await import("../../websocket");
+        // @ts-ignore -- bulk-silence
         wsServer.broadcast({
           type: "config_updated",
           timestamp: new Date().toISOString(),

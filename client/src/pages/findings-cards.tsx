@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -339,6 +338,7 @@ export function FindingCard({
             {item.source === "suggestion" &&
               Boolean(item.context?.costImpact) &&
               (() => {
+                // @ts-ignore -- bulk-silence
                 const ci = item.context.costImpact as {
                   revenueImpact?: number;
                   estimatedRepairCost?: number;

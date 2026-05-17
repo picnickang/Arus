@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { subDays, startOfDay, endOfDay } from "date-fns";
@@ -86,6 +85,7 @@ export function useVesselTrackData() {
   });
 
   const processTelemetryMutation = useMutation({
+    // @ts-ignore -- bulk-silence
     mutationFn: async (vesselId: string) =>
       apiRequest("/api/logbook/track/process-telemetry", {
         method: "POST",
@@ -115,6 +115,7 @@ export function useVesselTrackData() {
     () =>
       tracks.reduce(
         (acc, t) => {
+          // @ts-ignore -- bulk-silence
           const status = t.navStatus || "unknown";
           acc[status] = (acc[status] || 0) + 1;
           return acc;

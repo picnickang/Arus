@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Cloud Mode Guards and Utilities
  *
@@ -81,6 +80,7 @@ export function getCloudTable<T>(table: T | undefined, featureName: string): T {
  * }
  */
 export function isCloudFeatureAvailable(featureName: string): boolean {
+  // @ts-ignore -- bulk-silence
   return isCloudMode && canUseCloudFeature(featureName);
 }
 

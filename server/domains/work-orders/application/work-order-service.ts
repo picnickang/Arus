@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type {
   IWorkOrderRepository,
   IWorkOrderEventPublisher,
@@ -51,6 +50,7 @@ export class WorkOrderApplicationService {
       orgId: workOrder.orgId || "default",
       vesselId: workOrder.vesselId || undefined,
       equipmentId: workOrder.equipmentId || undefined,
+      // @ts-ignore -- bulk-silence
       priority: workOrder.priority || "medium",
       timestamp: new Date(),
     });
@@ -164,6 +164,7 @@ export class WorkOrderApplicationService {
   }
 
   async addPartToWorkOrder(data: any): Promise<any> {
+    // @ts-ignore -- bulk-silence
     return workOrderRepository.addBulkPartsToWorkOrder(data);
   }
 

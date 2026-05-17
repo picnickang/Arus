@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Telemetry Health Controller
  *
@@ -177,6 +176,7 @@ export function registerTelemetryHealthRoutes(app: Express): void {
       const { vesselId } = req.params;
       const health = telemetryHealthController.getVesselHealth(vesselId);
       res.json({
+        // @ts-ignore -- bulk-silence
         status: "ok",
         timestamp: new Date().toISOString(),
         ...health,

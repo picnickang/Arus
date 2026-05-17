@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Anomaly Detection Module
  * Detects mechanical faults from vibration spectrum
@@ -57,7 +56,9 @@ export function detectAnomalies(fftResult: FFTResult): AnomalyDetection {
   const secondHarmonic = harmonics.find(
     (h) => h.freq >= dominantFreq * 1.8 && h.freq <= dominantFreq * 2.2
   );
+  // @ts-ignore -- bulk-silence
   if (secondHarmonic?.magnitude > dominantMagnitude * 0.5) {
+    // @ts-ignore -- bulk-silence
     const misalignmentScore = secondHarmonic.magnitude / 75;
     if (misalignmentScore > anomalyScore) {
       anomalyScore = Math.min(1, misalignmentScore);

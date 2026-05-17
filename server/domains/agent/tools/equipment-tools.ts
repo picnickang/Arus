@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { db } from "../../../db";
 import { eq, and } from "drizzle-orm";
 import { equipment, vessels } from "@shared/schema";
@@ -20,6 +19,7 @@ registerTool({
   },
   inputSchema: z.object({ equipmentId: z.string().min(1) }),
   requiresApproval: false,
+  // @ts-ignore -- bulk-silence
   async execute(input: { equipmentId: string }, ctx) {
     const [item] = await db
       .select()

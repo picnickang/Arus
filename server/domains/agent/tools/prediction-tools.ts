@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { db } from "../../../db";
 import { eq, desc, and } from "drizzle-orm";
 import { failurePredictions } from "@shared/schema";
@@ -41,6 +40,7 @@ registerTool({
   },
   inputSchema: z.object({ equipmentId: z.string().min(1), limit: z.number().optional() }),
   requiresApproval: false,
+  // @ts-ignore -- bulk-silence
   async execute(input: { equipmentId: string; limit?: number }, ctx) {
     const predictions = await db
       .select()

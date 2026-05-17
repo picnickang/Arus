@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Risk Matrix Parser - Parse AI recommendations into structured data
  */
@@ -43,6 +42,7 @@ export function parseRecommendations(
 
         const equipmentDossier = equipmentDossiers.find((d: any) => d.id === equipmentId);
         const linkedWorkOrderId =
+          // @ts-ignore -- bulk-silence
           equipmentDossier?.context.workOrderStats.openCount > 0
             ? `work-order-${equipmentId}`
             : undefined;

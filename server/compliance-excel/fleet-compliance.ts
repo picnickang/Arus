@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Compliance Excel - Fleet Compliance Overview Report Generation
  */
@@ -108,6 +107,7 @@ function renderFleetOverviewExcel(
 
   for (const wo of workOrders) {
     woData.push([
+      // @ts-ignore -- bulk-silence
       wo.workOrderNumber ?? wo.id,
       wo.equipmentId ?? "",
       wo.vesselId ?? "",

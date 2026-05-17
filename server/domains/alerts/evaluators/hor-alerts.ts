@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Crew Alert Evaluators - Hours of Rest
  * Evaluates hours of rest violation alerts
@@ -107,6 +106,7 @@ export async function evaluateHoRViolationAlerts(
   const results: CrewAlertResult[] = [];
   const now = ctx.now || new Date();
 
+  // @ts-ignore -- bulk-silence
   const settings = await alertSettingsService.getCrewAlertSettings(ctx.orgId, ctx.vesselId || null);
   if (!settings?.horViolationAlertsEnabled) {
     return results;
@@ -118,6 +118,7 @@ export async function evaluateHoRViolationAlerts(
 
   for (const vessel of vessels) {
     try {
+      // @ts-ignore -- bulk-silence
       const vesselCrewRest = await dbStcwStorage.getVesselCrewRest(
         vessel.id,
         currentYear,

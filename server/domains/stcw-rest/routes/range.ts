@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * STCW Rest Range Routes
  *
@@ -51,12 +50,15 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
             const month = current.getMonth() + 1;
 
             try {
+              // @ts-ignore -- bulk-silence
               const restData = await dbStcwStorage.getCrewRestMonth(crewId, year, month);
               if (restData.days && restData.days.length > 0) {
+                // @ts-ignore -- bulk-silence
                 const filteredDays = restData.days.filter((day: RestDay) => {
                   const dayDate = new Date(day.date);
                   return dayDate >= startDate && dayDate <= endDate;
                 });
+                // @ts-ignore -- bulk-silence
                 results.push(...filteredDays);
               }
             } catch {
@@ -76,10 +78,12 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
         }
       };
 
+      // @ts-ignore -- bulk-silence
       const contexts = await prepareCrewHoRContext(crewIds, range.start, range.end, getHistoryRows);
 
       res.json({
         ok: true,
+        // @ts-ignore -- bulk-silence
         contexts: contexts.map((ctx: any) => ({
           crew_id: ctx.crew_id,
           context: ctx.context,
@@ -127,6 +131,7 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
 
       incrementRangeQuery("vessel_crew", vesselId);
 
+      // @ts-ignore -- bulk-silence
       const result = await dbStcwStorage.getVesselCrewRest(vesselId, Number.parseInt(year), month);
 
       recordRangeQueryDuration("vessel_crew", Date.now() - startTime);
@@ -147,6 +152,7 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
         vesselId || "",
         startDate,
         endDate,
+        // @ts-ignore -- bulk-silence
         complianceFilter
       );
 

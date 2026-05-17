@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Settings, Lock, Search } from "lucide-react";
@@ -133,6 +132,7 @@ export default function SensorTemplatesPage() {
             <CardTitle>Loading Templates...</CardTitle>
           </CardHeader>
           <CardContent>
+            {/* @ts-ignore */}
             <TableSkeleton rows={5} columns={6} />
           </CardContent>
         </Card>

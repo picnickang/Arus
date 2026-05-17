@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Compliance Bundle Service - Handles saving and managing compliance bundles
  */
@@ -28,12 +27,14 @@ export async function saveComplianceBundle(
   const bundleData: ComplianceBundle = {
     bundleId: complianceBundle.bundleId,
     title: complianceBundle.title,
+    // @ts-ignore -- bulk-silence
     orgId: complianceBundle.orgId,
     kind: complianceBundle.kind,
     sha256Hash: complianceBundle.sha256Hash,
     description: complianceBundle.description || null,
     generatedAt: new Date(),
     filePath: htmlPath,
+    // @ts-ignore -- bulk-silence
     metadata: complianceBundle.metadata || null,
     createdAt: new Date(),
     fileFormat: complianceBundle.fileFormat || null,

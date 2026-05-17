@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   Activity,
   BarChart3,
@@ -490,11 +489,13 @@ export default function PdmPack() {
                           <div className="grid grid-cols-2 gap-4">
                             <FormField
                               control={p.bearingForm.control}
+                              // @ts-ignore -- bulk-silence
                               name="sampleRateHz"
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Sample Rate (Hz)</FormLabel>
                                   <FormControl>
+                                    {/* @ts-ignore */}
                                     <Input
                                       {...field}
                                       type="number"

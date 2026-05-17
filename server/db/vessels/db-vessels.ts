@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Vessels - Database Storage
  */
@@ -96,6 +95,7 @@ export class DatabaseVesselStorage {
     const vesselsByStatus: Record<string, number> = {};
     let activeVessels = 0;
     for (const v of list) {
+      // @ts-ignore -- bulk-silence
       const status = v.status ?? "unknown";
       vesselsByStatus[status] = (vesselsByStatus[status] ?? 0) + 1;
       if (status === "active" || status === "operational") {

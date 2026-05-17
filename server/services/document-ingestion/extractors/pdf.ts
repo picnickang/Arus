@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { createLogger } from "../../../lib/structured-logger";
 const logger = createLogger("Services:DocumentIngestion:Extractors:Pdf");
 import type { TextExtractor, SupportedFileType } from "../types";
@@ -36,6 +35,7 @@ export class PdfExtractor implements TextExtractor {
         pageCount = result.pages?.length || 0;
         await parser.destroy();
       } else {
+        // @ts-ignore -- bulk-silence
         const pdfParse = pdfParseModule.default;
         if (typeof pdfParse === "function") {
           const data = await pdfParse(buffer);

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { Express } from "express";
 import { z } from "zod";
 import { eq, and, sql } from "drizzle-orm";
@@ -62,9 +61,11 @@ export function registerInsightsRoutes(app: Express) {
         ...r.insight,
         equipment: r.equipment,
         supportingSignals: r.insight.supportingSignals
+          // @ts-ignore -- bulk-silence
           ? JSON.parse(r.insight.supportingSignals)
           : null,
         relatedProcedures: r.insight.relatedProcedures
+          // @ts-ignore -- bulk-silence
           ? JSON.parse(r.insight.relatedProcedures)
           : null,
       }));
@@ -149,9 +150,11 @@ export function registerInsightsRoutes(app: Express) {
         ...result.insight,
         equipment: result.equipment,
         supportingSignals: result.insight.supportingSignals
+          // @ts-ignore -- bulk-silence
           ? JSON.parse(result.insight.supportingSignals)
           : null,
         relatedProcedures: result.insight.relatedProcedures
+          // @ts-ignore -- bulk-silence
           ? JSON.parse(result.insight.relatedProcedures)
           : null,
       };

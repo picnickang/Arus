@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Telemetry Stress Test Harness
  *
@@ -117,6 +116,7 @@ export class TelemetryStressTest {
           sensorType: msg.sensorType,
           value: msg.value,
           timestamp: msg.timestamp,
+          // @ts-ignore -- bulk-silence
           metadata: msg.metadata,
         });
         messageCount++;

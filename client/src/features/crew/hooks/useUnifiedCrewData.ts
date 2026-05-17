@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -89,6 +88,7 @@ export function useUnifiedCrewData() {
     successMessage: "Crew member removed successfully",
   });
   const toggleDutyMutation = useCustomMutation({
+    // @ts-ignore -- bulk-silence
     mutationFn: async (crewId: string) => {
       const { apiRequest } = await import("@/lib/queryClient");
       return apiRequest("POST", `/api/crew/${crewId}/toggle-duty`);
@@ -248,6 +248,7 @@ export function useUnifiedCrewData() {
   };
   const handleExportCSV = () => {
     const exportData = prepareCrewExportData(filteredAndSortedCrew, getVesselName);
+    // @ts-ignore -- bulk-silence
     const success = exportToCSV(exportData, {
       filename: `crew-roster-${new Date().toISOString().split("T")[0]}.csv`,
       columns: [

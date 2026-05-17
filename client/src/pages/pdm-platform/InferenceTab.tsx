@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -38,7 +37,9 @@ export function InferenceTab() {
       setLastResult(result);
       setLastInferredEquipmentId(equipmentId);
       setInferenceTime(new Date());
+      // @ts-ignore -- bulk-silence
       if (result.inferenceRun?.predictionId) {
+        // @ts-ignore -- bulk-silence
         setLastPredictionId(result.inferenceRun.predictionId);
       }
       toast({ title: "Inference completed" });

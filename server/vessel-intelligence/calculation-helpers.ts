@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Vessel Intelligence Calculation Helpers
  *
@@ -141,7 +140,9 @@ export function identifyCorrelatedMetrics(
   workOrders.forEach((wo) => {
     const beforeFailure = telemetry.filter(
       (t) =>
+        // @ts-ignore -- bulk-silence
         new Date(t.ts) < new Date(wo.createdAt) &&
+        // @ts-ignore -- bulk-silence
         new Date(t.ts) > new Date(new Date(wo.createdAt).getTime() - 48 * 60 * 60 * 1000)
     );
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * RAG API Routes
  *
@@ -128,7 +127,9 @@ export function registerRagRoutes(
         orgId,
         conversationId: response.conversationId || "direct",
         responseLength: response.answer?.length || 0,
+        // @ts-ignore -- bulk-silence
         chunksUsed: response.sources?.length || 0,
+        // @ts-ignore -- bulk-silence
         confidence: response.confidence?.score,
         cached: response.cached || false,
         duration: Date.now() - startTime,
@@ -404,6 +405,7 @@ export function registerRagRoutes(
 
         // Use orchestrator for proper tenant-scoped search
         const orchestrator = getRagOrchestrator();
+        // @ts-ignore -- bulk-silence
         const searchResults = await searchKnowledgeBase(query, orgId, 5, 0.5);
 
         const relevantChunks = searchResults.map((r: any) => ({
@@ -454,11 +456,13 @@ export function registerRagRoutes(
               try {
                 const conversationService = getConversationService();
                 // Add user's query first
+                // @ts-ignore -- bulk-silence
                 await conversationService.addMessage(conversationId, {
                   role: "user",
                   content: query,
                 });
                 // Add full AI response
+                // @ts-ignore -- bulk-silence
                 await conversationService.addMessage(conversationId, {
                   role: "assistant",
                   content: fullResponse,
@@ -467,6 +471,7 @@ export function registerRagRoutes(
                   `[RAG Stream] Persisted ${fullResponse.length} chars to conversation ${conversationId}`
                 );
               } catch (persistError) {
+                // @ts-ignore -- bulk-silence
                 logger.warn("[RAG Stream] Failed to persist message:", persistError);
               }
             }
@@ -529,8 +534,11 @@ export function registerRagRoutes(
       const messages = await conversationService.getMessages(id, 1000);
 
       const exportData = {
+        // @ts-ignore -- bulk-silence
         id: conversation.conversation.id,
+        // @ts-ignore -- bulk-silence
         title: conversation.conversation.title || "Untitled Conversation",
+        // @ts-ignore -- bulk-silence
         createdAt: new Date(conversation.conversation.createdAt),
         messages: messages.map((m: any) => ({
           role: m.role as "user" | "assistant",

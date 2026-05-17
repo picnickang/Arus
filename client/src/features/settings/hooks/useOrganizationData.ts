@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -199,6 +198,7 @@ export function useOrganizationData() {
       const result = await apiRequest("POST", `/api/users/${userId}/reset-password`);
       toast({
         title: "Password Reset Token Generated",
+        // @ts-ignore -- bulk-silence
         description: `Token: ${result.token}\nExpires in: ${result.expiresIn}`,
       });
     } catch {
@@ -213,6 +213,7 @@ export function useOrganizationData() {
   const openOrganizationDialog = (organization?: Organization) => {
     if (organization) {
       setEditingOrganization(organization);
+      // @ts-ignore -- bulk-silence
       organizationForm.reset(organization);
     } else {
       setEditingOrganization(null);
@@ -230,6 +231,7 @@ export function useOrganizationData() {
   const openUserDialog = (user?: User) => {
     if (user) {
       setEditingUser(user);
+      // @ts-ignore -- bulk-silence
       userForm.reset(user);
     } else {
       setEditingUser(null);

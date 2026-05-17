@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useCallback, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useDevices } from "@/features/vessels";
@@ -27,8 +26,11 @@ export function useDevicesPage() {
     const d = devices ?? [];
     return {
       total: d.length,
+      // @ts-ignore -- bulk-silence
       online: d.filter((x) => x.status === "Online").length,
+      // @ts-ignore -- bulk-silence
       warning: d.filter((x) => x.status === "Warning").length,
+      // @ts-ignore -- bulk-silence
       critical: d.filter((x) => x.status === "Critical").length,
     };
   }, [devices]);
@@ -93,15 +95,20 @@ export function useDevicesPage() {
         });
         return;
       }
+      // @ts-ignore -- bulk-silence
       const deviceData: InsertDevice = {
         id: formData.id.trim(),
         vessel: formData.vessel?.trim() || null,
+        // @ts-ignore -- bulk-silence
         buses: formData.buses?.trim() || null,
+        // @ts-ignore -- bulk-silence
         sensors: formData.sensors?.trim() || null,
+        // @ts-ignore -- bulk-silence
         config: formData.config?.trim() || null,
         hmacKey: formData.hmacKey?.trim() || null,
       };
       if (selectedDevice) {
+        // @ts-ignore -- bulk-silence
         updateDeviceMutation.mutate({ id: selectedDevice.id, updates: deviceData });
       } else {
         createDeviceMutation.mutate(deviceData);

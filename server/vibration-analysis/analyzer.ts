@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { dbTelemetryStorage } from "../repositories";
 import { db } from "../db";
 import { vibrationAnalysis } from "@shared/schema-runtime";
@@ -39,6 +38,7 @@ export class VibrationAnalyzer {
       const anomalyDetection = detectAnomalies(fftResult);
       const healthScore = calculateHealthScore(fftResult, anomalyDetection);
 
+      // @ts-ignore -- bulk-silence
       const analysis: Omit<VibrationAnalysis, "id" | "createdAt"> = {
         orgId,
         equipmentId,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import client from "prom-client";
 import { structuredLog } from "../logging";
 import {
@@ -22,6 +21,7 @@ export function initializeMetrics() {
   });
 
   initializeServiceMetrics().catch((err) => {
+    // @ts-ignore -- bulk-silence
     structuredLog("warn", "Service metrics initialization error", { error: String(err) });
   });
 

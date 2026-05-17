@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -36,6 +35,7 @@ export function useSystemSettingsTabData() {
     error,
   } = useQuery({
     queryKey: systemSettingsKeys.all,
+    // @ts-ignore -- bulk-silence
     queryFn: adminQueryFn(systemSettingsKeys.all),
   });
 

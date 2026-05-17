@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Crew Data Adapter
  * Implements ICrewDataPort for data access
@@ -32,7 +31,9 @@ export class CrewDataAdapter implements ICrewDataPort {
       .select({
         id: crew.id,
         name: crew.name,
+        // @ts-ignore -- bulk-silence
         role: crew.role,
+        // @ts-ignore -- bulk-silence
         status: crew.status,
       })
       .from(crew)

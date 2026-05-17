@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { Express, Request, Response } from "express";
 import { withErrorHandling } from "../lib/route-utils";
 import { logger } from "../utils/logger";
@@ -28,6 +27,7 @@ export function registerKbAskRoute(
       let kbContext = "";
       try {
         const { searchKnowledgeBase } = await import("../vector-search-service");
+        // @ts-ignore -- bulk-silence
         const results = await searchKnowledgeBase(query, { limit: 3, threshold: 0.3, orgId });
         kbResults = results || [];
         kbContext = kbResults
@@ -46,11 +46,13 @@ export function registerKbAskRoute(
             equipmentId || "general",
             query,
             [],
+            // @ts-ignore -- bulk-silence
             [context, kbContext].filter(Boolean).join("\n\n")
           );
           answer =
             typeof llmResult === "string"
               ? llmResult
+              // @ts-ignore -- bulk-silence
               : llmResult?.analysis || llmResult?.response || llmResult?.text || "";
         }
       } catch (err) {

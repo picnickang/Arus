@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Request, Response } from "express";
 import { structuredLog } from "../logging";
 import { trackPerformance } from "./performance-tracking";
@@ -40,6 +39,7 @@ async function checkDatabase(ctx: HealthContext): Promise<void> {
     const { db } = await import("../db");
     const { safeSql } = await import("../utils/safeSql");
     const { sql } = await import("drizzle-orm");
+    // @ts-ignore -- bulk-silence
     await safeSql(db, sql`SELECT 1 as health_check`);
     ctx.checks.database = {
       status: "ok",
@@ -217,6 +217,7 @@ export async function readyzEndpoint(req: Request, res: Response) {
     structuredLog("error", "Health check failed", {
       operation: "health_check",
       duration,
+      // @ts-ignore -- bulk-silence
       error: error instanceof Error ? error.message : "Unknown error",
     });
 

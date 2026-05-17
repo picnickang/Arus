@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   Plus,
   Search,
@@ -194,6 +193,7 @@ export default function OrganizationManagement() {
                               <p className="text-sm text-muted-foreground font-mono">{org.slug}</p>
                             </div>
                             <div className="flex flex-col items-end space-y-1">
+                              {/* @ts-ignore */}
                               <Badge className={m.getTierColor(org.subscriptionTier)} size="sm">
                                 {org.subscriptionTier}
                               </Badge>
@@ -503,6 +503,7 @@ export default function OrganizationManagement() {
                     <FormItem>
                       <FormLabel>Billing Email</FormLabel>
                       <FormControl>
+                        {/* @ts-ignore */}
                         <Input
                           type="email"
                           placeholder="billing@acme.com"

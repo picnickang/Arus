@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { drizzle as drizzlePgWs } from "drizzle-orm/neon-serverless";
 import { drizzle as drizzlePgHttp } from "drizzle-orm/neon-http";
 import { drizzle as drizzlePgNode } from "drizzle-orm/node-postgres";
@@ -151,14 +150,18 @@ if (!isLocalMode) {
       connectionTimeoutMillis: 15000,
     });
 
+    // @ts-ignore -- bulk-silence
     pgPool.on("error", (err) => {
+      // @ts-ignore -- bulk-silence
       if (err.message?.includes("WebSocket")) {
         logger.warn("⚠️ Neon WebSocket connection error (transient, retrying...)");
       } else {
+        // @ts-ignore -- bulk-silence
         logger.error("[DB Pool] Unexpected error:", undefined, err.message);
       }
     });
 
+    // @ts-ignore -- bulk-silence
     cloudDatabase = drizzlePgWs(pgPool, { schema });
     connectionMode = "websocket";
 

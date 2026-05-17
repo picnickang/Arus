@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * ML Prediction Storage and Explainability
  */
@@ -43,6 +42,7 @@ function emitRulUpdateSafe(
         equipmentId,
         remainingDays,
         riskLevel,
+        // @ts-ignore -- bulk-silence
         operatingMode,
       })
     );
@@ -66,6 +66,7 @@ export async function storePrediction(
     {
       equipmentId,
       orgId,
+      // @ts-ignore -- bulk-silence
       equipmentType: equipment.type,
       failureProbability: prediction.failureProbability,
       predictedFailureDate: prediction.predictedFailureDate,
@@ -84,6 +85,7 @@ export async function storePrediction(
     equipmentId,
     prediction.remainingDays || 30,
     riskLevel,
+    // @ts-ignore -- bulk-silence
     equipment.operatingMode
   );
 }
@@ -110,6 +112,7 @@ async function buildTimeSeriesFeatures(
     features.push({
       equipmentId,
       timestamp: new Date(timeKey),
+      // @ts-ignore -- bulk-silence
       features: featureMap,
       normalizedFeatures: {},
       label: 0,
@@ -150,6 +153,7 @@ function buildClassificationFeatures(
       maintenanceAge: 30,
       failureHistory: 0,
     },
+    // @ts-ignore -- bulk-silence
     label: "healthy",
     failureRisk: 0,
   };
@@ -236,6 +240,7 @@ async function processAndStorePrediction(
       {
         equipmentId,
         orgId,
+        // @ts-ignore -- bulk-silence
         equipmentType: equipment.type,
         failureProbability: pred.failureProbability,
         predictedFailureDate: pred.predictedFailureDate,

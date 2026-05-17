@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * PR Draft Service
  *
@@ -176,6 +175,7 @@ async function findSubstitutionSuggestions(
         and(
           eq(partSubstitutions.orgId, orgId),
           // Either this part is the original or the substitute
+          // @ts-ignore -- bulk-silence
           eq(partSubstitutions.originalPartId, partId)
         )
       );
@@ -184,6 +184,7 @@ async function findSubstitutionSuggestions(
       return [];
     }
 
+    // @ts-ignore -- bulk-silence
     const substituteIds = subs.map((s) => s.substitutePartId);
 
     // Fetch substitute parts with their current stock

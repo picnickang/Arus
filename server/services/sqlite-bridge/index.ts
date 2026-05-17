@@ -1,4 +1,3 @@
-// @ts-nocheck
 import Database from "better-sqlite3";
 import { CursorStore } from "./cursorStore";
 import { SqliteRawFrameSource } from "./sqliteRawFrameSource";
@@ -260,7 +259,9 @@ export async function runSqliteBridge(config: BridgeConfig): Promise<void> {
           let oldestTs: number;
           if (typeof oldestFrameTs === "number") {
             oldestTs = oldestFrameTs;
+          // @ts-ignore -- bulk-silence
           } else if (oldestFrameTs instanceof Date) {
+            // @ts-ignore -- bulk-silence
             oldestTs = oldestFrameTs.getTime();
           } else if (typeof oldestFrameTs === "string") {
             oldestTs = Date.parse(oldestFrameTs);

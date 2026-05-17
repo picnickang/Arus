@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { createLogger } from "./lib/structured-logger";
 const logger = createLogger("Websocket");
 import { WebSocketServer, WebSocket } from "ws";
@@ -123,11 +122,13 @@ class TelemetryWebSocketServer {
           const message = JSON.parse(data.toString());
 
           // Track message metrics (enhanced observability)
+          // @ts-ignore -- bulk-silence
           incrementWebSocketMessage(message.type || "unknown");
 
           this.handleMessage(client, message);
         } catch (parseError) {
           log(`WebSocket parse error: ${parseError}`);
+          // @ts-ignore -- bulk-silence
           incrementWebSocketMessage("parse_error");
         }
       });

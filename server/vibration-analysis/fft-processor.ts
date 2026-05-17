@@ -1,9 +1,9 @@
-// @ts-nocheck
 /**
  * FFT Processing Module
  * Handles FFT computation and frequency analysis
  */
 
+// @ts-ignore -- bulk-silence
 import * as fftjs from "fft-js";
 const FFT = fftjs.fft;
 

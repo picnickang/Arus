@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * ML Analytics - Partial Export Routes
  *
@@ -47,6 +46,7 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
           status: m.status,
           version: m.version,
           hyperparameters: m.hyperparameters,
+          // @ts-ignore -- bulk-silence
           performanceMetrics: m.performanceMetrics,
           featureImportance: m.featureImportance,
           deployedAt: m.deployedOn,
@@ -58,7 +58,9 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
         const csvData = [
           "id,name,type,equipmentType,status,version,accuracy,precision,recall,f1Score,deployedAt,createdAt",
           ...enrichedModels.map((m) => {
+            // @ts-ignore -- bulk-silence
             const perf = (m.performanceMetrics ?? {}) as Record<string, unknown>;
+            // @ts-ignore -- bulk-silence
             return `${m.id},${m.name},${m.modelType},${m.equipmentType || ""},${m.status},${m.version},${perf.accuracy || ""},${perf.precision || ""},${perf.recall || ""},${perf.f1Score || ""},${m.deployedAt || ""},${m.createdAt}`;
           }),
         ].join("\n");
@@ -108,6 +110,7 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
         telemetry: telemetry.map((t) => ({
           timestamp: t.ts,
           equipmentId: t.equipmentId,
+          // @ts-ignore -- bulk-silence
           vesselId: t.vesselId,
           sensorType: t.sensorType,
           value: t.value,
@@ -122,6 +125,7 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
           "timestamp,equipmentId,vesselId,sensorType,value,unit,status,threshold",
           ...telemetry.map(
             (t) =>
+              // @ts-ignore -- bulk-silence
               `${t.ts},${t.equipmentId},${t.vesselId || ""},${t.sensorType},${t.value},${t.unit},${t.status},${t.threshold || ""}`
           ),
         ].join("\n");
@@ -155,10 +159,13 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
           failureProbability: p.failureProbability,
           predictedFailureDate: p.predictedFailureDate,
           remainingUsefulLife: p.remainingUsefulLife,
+          // @ts-ignore -- bulk-silence
           healthIndex: p.healthIndex,
           riskLevel: p.riskLevel,
           modelId: p.modelId,
+          // @ts-ignore -- bulk-silence
           recommendations: p.recommendations,
+          // @ts-ignore -- bulk-silence
           createdAt: p.createdAt,
         })),
       };
@@ -168,6 +175,7 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
           "id,equipmentId,failureProbability,predictedFailureDate,remainingUsefulLife,healthIndex,riskLevel,modelId,createdAt",
           ...predictions.map(
             (p) =>
+              // @ts-ignore -- bulk-silence
               `${p.id},${p.equipmentId},${p.failureProbability},${p.predictedFailureDate || ""},${p.remainingUsefulLife || ""},${p.healthIndex},${p.riskLevel},${p.modelId || ""},${p.createdAt}`
           ),
         ].join("\n");

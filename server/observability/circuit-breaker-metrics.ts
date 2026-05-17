@@ -1,4 +1,3 @@
-// @ts-nocheck
 import client from "prom-client";
 
 // ===== EXTERNAL SERVICE CIRCUIT BREAKER METRICS =====
@@ -71,6 +70,7 @@ export async function syncExternalCircuitBreakerMetrics() {
       setExternalCircuitBreakerState(service, state as 0 | 1 | 2);
     }
 
+    // @ts-ignore -- bulk-silence
     const { circuitBreakerRegistry } = await import("../ml-circuit-breaker");
     const mlStatuses = circuitBreakerRegistry.getAllStats();
     for (const [modelName, stats] of Object.entries(mlStatuses)) {
@@ -80,6 +80,7 @@ export async function syncExternalCircuitBreakerMetrics() {
         | "random_forest"
         | "xgboost"
         | "ensemble";
+      // @ts-ignore -- bulk-silence
       const state = stats.state === "OPEN" ? 1 : stats.state === "HALF_OPEN" ? 2 : 0;
       setMlCircuitBreakerState(modelType, state as 0 | 1 | 2);
     }

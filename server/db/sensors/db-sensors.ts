@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Sensors - Database Storage
  */
@@ -36,6 +35,7 @@ export class DbSensorsStorage {
     }
     let q = db.select().from(sensorConfigurations);
     if (c.length > 0) {
+      // @ts-ignore -- bulk-silence
       q = q.where(and(...c));
     }
     return q.orderBy(sql`${sensorConfigurations.updatedAt} DESC`);
@@ -64,6 +64,7 @@ export class DbSensorsStorage {
       .insert(sensorConfigurations)
       .values({
         ...config,
+        // @ts-ignore -- bulk-silence
         orgId: config.orgId || "default-org-id",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -81,6 +82,7 @@ export class DbSensorsStorage {
     return db.transaction(async (tx) => {
       const created: SensorConfiguration[] = [];
       for (const config of configs) {
+        // @ts-ignore -- bulk-silence
         const orgId = config.orgId || "default-org-id";
         const equipmentId = config.equipmentId;
         const sensorType = config.sensorType;
@@ -110,6 +112,7 @@ export class DbSensorsStorage {
               .returning();
             if (updated.length > 0) {
               created.push(updated[0]);
+              // @ts-ignore -- bulk-silence
               await publishEvent("sensor_configuration", "update", updated[0]);
             }
           }
@@ -120,6 +123,7 @@ export class DbSensorsStorage {
             .returning();
           if (result.length > 0) {
             created.push(result[0]);
+            // @ts-ignore -- bulk-silence
             await publishEvent("sensor_configuration", "create", result[0]);
           }
         }
@@ -209,6 +213,7 @@ export class DbSensorsStorage {
   async upsertSensorState(state: InsertSensorState): Promise<SensorState> {
     const [r] = await db
       .insert(sensorStates)
+      // @ts-ignore -- bulk-silence
       .values({ ...state, orgId: state.orgId || "default-org-id", updatedAt: new Date() })
       .onConflictDoUpdate({
         target: [sensorStates.equipmentId, sensorStates.sensorType, sensorStates.orgId],

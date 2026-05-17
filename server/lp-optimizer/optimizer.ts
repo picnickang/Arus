@@ -1,8 +1,8 @@
-// @ts-nocheck
 /**
  * LP Optimizer - Main Optimizer Class
  */
 
+// @ts-ignore -- bulk-silence
 import * as solver from "javascript-lp-solver";
 import type { OptimizationConstraints, OptimizationResult } from "./types.js";
 import { getPendingMaintenanceJobs, getPartsAvailability } from "./job-loader.js";

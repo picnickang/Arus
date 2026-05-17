@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Parts Repository - Manages parts inventory and compatibility
  * Production-ready implementation for parts-related operations
@@ -143,6 +142,7 @@ export class PartsRepository extends TenantScopedRepository {
 
     const [created] = await db
       .insert(parts)
+      // @ts-ignore -- bulk-silence
       .values({
         ...data,
         orgId: this.orgId,

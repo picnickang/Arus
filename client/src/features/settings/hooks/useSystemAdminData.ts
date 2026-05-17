@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -39,6 +38,7 @@ export function useSoftwareUpdatesData() {
     error: patchesErrorData,
   } = useQuery({
     queryKey: adminKeys.patches,
+    // @ts-ignore -- bulk-silence
     queryFn: adminQueryFn(adminKeys.patches),
     enabled: !isDesktopEnv,
   });
@@ -59,6 +59,7 @@ export function useSoftwareUpdatesData() {
     error: settingsErrorData,
   } = useQuery<UpdateSettings>({
     queryKey: adminKeys.updateSettings,
+    // @ts-ignore -- bulk-silence
     queryFn: adminQueryFn(adminKeys.updateSettings),
     enabled: !isDesktopEnv,
   });
@@ -175,17 +176,20 @@ export function useGitHubSettingsData() {
     message?: string;
   }>({
     queryKey: adminKeys.githubStatus,
+    // @ts-ignore -- bulk-silence
     queryFn: adminQueryFn(adminKeys.githubStatus),
   });
   const { data: reposData, isLoading: reposLoading } = useQuery<{
     repos: Array<{ id: number; name: string; full_name: string; owner: string; html_url: string }>;
   }>({
     queryKey: adminKeys.githubRepos,
+    // @ts-ignore -- bulk-silence
     queryFn: adminQueryFn(adminKeys.githubRepos),
     enabled: githubStatus?.connected === true,
   });
   const { data: settings } = useQuery<UpdateSettings>({
     queryKey: adminKeys.updateSettings,
+    // @ts-ignore -- bulk-silence
     queryFn: adminQueryFn(adminKeys.updateSettings),
   });
 

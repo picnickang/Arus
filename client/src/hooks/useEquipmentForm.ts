@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useForm, UseFormReturn } from "react-hook-form";
 import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -85,6 +84,7 @@ export function useEquipmentEditForm(
         vesselName: equipment.vesselName || "",
         isActive: equipment.isActive,
         purchaseValue: equipment.purchaseValue ?? undefined,
+        // @ts-ignore -- bulk-silence
         purchaseDate: equipment.purchaseDate
           ? typeof equipment.purchaseDate === "string"
             ? equipment.purchaseDate

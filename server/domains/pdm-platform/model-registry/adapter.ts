@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { eq, and, desc } from "drizzle-orm";
 import { db } from "../../../db";
 import {
@@ -40,6 +39,7 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
 
   async createVersion(data: InsertModelVersion): Promise<ModelVersion> {
     const [result] = await db.insert(modelVersions).values(data).returning();
+    // @ts-ignore -- bulk-silence
     logger.info("[ModelRegistry] Version created", {
       modelId: data.modelId,
       version: data.version,
@@ -93,6 +93,7 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
       })
       .returning();
 
+    // @ts-ignore -- bulk-silence
     logger.info("[ModelRegistry] Model deployed", {
       orgId,
       modelId,
@@ -136,6 +137,7 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
         .set({ deploymentStatus: "active", deprecatedAt: null })
         .where(eq(modelDeployments.id, previous.id))
         .returning();
+      // @ts-ignore -- bulk-silence
       logger.info("[ModelRegistry] Rolled back", { deploymentId, restoredId: previous.id });
       return restored;
     }

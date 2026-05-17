@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { eq, and, desc } from "drizzle-orm";
 import { db } from "../../db-config";
 import { kbDocs, type KbDoc } from "@shared/schema";
@@ -222,6 +221,7 @@ export abstract class BaseAnalyticsInsightsAdapter {
     ]);
 
     const activeEquipment = equipment.filter((eq) => eq.isActive).length;
+    // @ts-ignore -- bulk-silence
     const activeVessels = vessels.filter((v) => v.status === "active").length;
     const healthScores = pdmScores.map((s) => s.healthIdx || 0).filter((h) => h > 0);
     const avgFleetHealth =

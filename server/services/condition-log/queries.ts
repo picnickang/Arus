@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Condition Log Service - Query Functions
  */
@@ -46,7 +45,9 @@ export async function getVesselConditionSummary(
       equipmentCount: sql<number>`count(DISTINCT ${conditionLogSummary.equipmentId})`,
       avgHealth: sql<number>`avg(${conditionLogSummary.healthIndex})`,
       minHealth: sql<number>`min(${conditionLogSummary.healthIndex})`,
+      // @ts-ignore -- bulk-silence
       totalAlerts: sql<number>`sum(${conditionLogSummary.alertsCount})`,
+      // @ts-ignore -- bulk-silence
       criticalAlerts: sql<number>`sum(${conditionLogSummary.criticalAlertsCount})`,
     })
     .from(conditionLogSummary)

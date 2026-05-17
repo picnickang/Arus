@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -107,6 +106,7 @@ export function useCrewManagementData() {
       category: "",
       description: "",
       maxLevel: 5,
+      // @ts-ignore -- bulk-silence
       orgId: "default-org-id",
     },
   });
@@ -172,6 +172,7 @@ export function useCrewManagementData() {
   const onSubmitSkill = useCallback(
     (data: SkillFormData) => {
       if (editingSkillId) {
+        // @ts-ignore -- bulk-silence
         updateSkillMutation.mutate({ id: editingSkillId, ...data });
       } else {
         createSkillMutation.mutate(data);
