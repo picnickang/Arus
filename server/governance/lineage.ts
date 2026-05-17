@@ -125,7 +125,7 @@ export async function getLineageRecords(filters?: {
 }): Promise<LineageRecord[]> {
   try {
     const text = await fs.readFile(LINEAGE_FILE, "utf8");
-    const rows = text.trim().split("\n").filter(Boolean).map(JSON.parse);
+    const rows = text.trim().split("\n").filter(Boolean).map((l: string) => JSON.parse(l));
 
     // Separate base records and deltas
     const baseRecords = rows.filter((r: any) => !r.type) as LineageRecord[];

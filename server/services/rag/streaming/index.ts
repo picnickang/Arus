@@ -139,7 +139,7 @@ export class StreamingService {
       this.sendSSE(res, doneChunk);
       onChunk?.(doneChunk);
 
-      ragMetrics.recordQueryLatency(latencyMs / 1000);
+      (ragMetrics as any).recordQueryLatency(latencyMs / 1000);
 
       res.end();
     } catch (error: any) {

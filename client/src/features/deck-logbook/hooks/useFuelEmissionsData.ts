@@ -89,7 +89,7 @@ export function useFuelEmissionsData() {
   });
 
   const autoFillMutation = useMutation({
-    mutationFn: async (vesselId: string) =>
+    mutationFn: (async (vesselId: string) =>
       apiRequest("/api/logbook/fuel-emissions/autofill", {
         method: "POST",
         body: JSON.stringify({
@@ -98,7 +98,7 @@ export function useFuelEmissionsData() {
           endDate: dateParams.end.toISOString(),
           periodType: "hourly",
         }),
-      }),
+      })) as any,
     onSuccess: (data: { recordsCreated?: number; recordsSkipped?: number }) => {
       toast({
         title: "Auto-fill Complete",
@@ -116,15 +116,16 @@ export function useFuelEmissionsData() {
   });
 
   const totals = useMemo(() => {
-    const totalFuel = logs.reduce((sum, log) => sum + (log.totalFuelMt || 0), 0);
-    const totalCo2 = logs.reduce((sum, log) => sum + (log.co2EmissionsMt || 0), 0);
-    const totalDistance = logs.reduce((sum, log) => sum + (log.distanceNm || 0), 0);
+    const ls = logs as any[];
+    const totalFuel = ls.reduce((sum, log) => sum + (log.totalFuelMt || 0), 0);
+    const totalCo2 = ls.reduce((sum, log) => sum + (log.co2EmissionsMt || 0), 0);
+    const totalDistance = ls.reduce((sum, log) => sum + (log.distanceNm || 0), 0);
     const avgEfficiency = totalDistance > 0 ? totalFuel / totalDistance : 0;
-    const latestCiiRating = logs.length > 0 ? logs[0].ciiRating || "N/A" : "N/A";
-    const totalFo = logs.reduce((sum, l) => sum + (l.foConsumptionMt || 0), 0);
-    const totalDo = logs.reduce((sum, l) => sum + (l.doConsumptionMt || 0), 0);
-    const totalSox = logs.reduce((sum, l) => sum + (l.soxEmissionsKg || 0), 0);
-    const totalNox = logs.reduce((sum, l) => sum + (l.noxEmissionsKg || 0), 0);
+    const latestCiiRating = ls.length > 0 ? ls[0].ciiRating || "N/A" : "N/A";
+    const totalFo = ls.reduce((sum, l) => sum + (l.foConsumptionMt || 0), 0);
+    const totalDo = ls.reduce((sum, l) => sum + (l.doConsumptionMt || 0), 0);
+    const totalSox = ls.reduce((sum, l) => sum + (l.soxEmissionsKg || 0), 0);
+    const totalNox = ls.reduce((sum, l) => sum + (l.noxEmissionsKg || 0), 0);
     return {
       totalFuel,
       totalCo2,
@@ -140,7 +141,7 @@ export function useFuelEmissionsData() {
 
   const handleAutoFill = useCallback(
     (vesselId: string) => {
-      autoFillMutation.mutate(vesselId);
+      autoFillMutation.mutate(vesselId as any);
     },
     [autoFillMutation]
   );

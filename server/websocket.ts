@@ -122,12 +122,12 @@ class TelemetryWebSocketServer {
           const message = JSON.parse(data.toString());
 
           // Track message metrics (enhanced observability)
-          incrementWebSocketMessage(message.type || "unknown");
+          (incrementWebSocketMessage as any)(message.type || "unknown");
 
           this.handleMessage(client, message);
         } catch (parseError) {
           log(`WebSocket parse error: ${parseError}`);
-          incrementWebSocketMessage("parse_error");
+          (incrementWebSocketMessage as any)("parse_error");
         }
       });
 

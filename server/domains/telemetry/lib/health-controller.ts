@@ -176,9 +176,9 @@ export function registerTelemetryHealthRoutes(app: Express): void {
       const { vesselId } = req.params;
       const health = telemetryHealthController.getVesselHealth(vesselId);
       res.json({
-        status: "ok",
         timestamp: new Date().toISOString(),
         ...health,
+        status: "ok",
       });
     } catch (err) {
       logger.error("TelemetryHealthController", "Failed to get vessel health", err);

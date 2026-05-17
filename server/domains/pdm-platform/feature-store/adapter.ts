@@ -92,7 +92,7 @@ export class FeatureStoreAdapter implements FeatureStorePort {
 
     if (readings.length > 0) {
       features = this.computeFromTelemetry(orgId, equipmentId, windowMinutes, readings);
-      logger.info("[FeatureStore] Computed features from real telemetry", {
+      (logger as any).info("[FeatureStore] Computed features from real telemetry", {
         orgId,
         equipmentId,
         readingCount: readings.length,
@@ -102,7 +102,7 @@ export class FeatureStoreAdapter implements FeatureStorePort {
         throw new Error("No telemetry data available for feature computation; demo fallback disabled in production.");
       }
       features = this.computeStubFeatures(orgId, equipmentId, windowMinutes);
-      logger.warn("[FeatureStore] No telemetry data found, using demo fallback features", {
+      (logger as any).warn("[FeatureStore] No telemetry data found, using demo fallback features", {
         orgId,
         equipmentId,
         windowMinutes,
@@ -110,7 +110,7 @@ export class FeatureStoreAdapter implements FeatureStorePort {
     }
 
     const [result] = await db.insert(equipmentFeatures).values(features).returning();
-    logger.info("[FeatureStore] Stored features", {
+    (logger as any).info("[FeatureStore] Stored features", {
       orgId,
       equipmentId,
       featureId: result.id,

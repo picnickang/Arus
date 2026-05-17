@@ -201,7 +201,7 @@ function Router() {
               ))}
 
               {allRoutes.map(({ path, component: Component }) => (
-                <Route key={path} path={path} component={Component} />
+                <Route key={path} path={path} component={Component as any} />
               ))}
 
               <Route component={NotFound} />

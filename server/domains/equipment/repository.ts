@@ -37,7 +37,7 @@ export class EquipmentRepository {
     if (!equipment) {
       throw new Error("Equipment not found");
     }
-    await this.update(equipmentId, { vesselId: null }, orgId);
+    await this.update(equipmentId, { vesselId: null as any }, orgId);
   }
 
   async getSensorCoverage(equipmentId: string, orgId: string) {
@@ -68,7 +68,7 @@ export class EquipmentRepository {
           isCritical: sensor.critical,
           minValue: sensor.min,
           maxValue: sensor.max,
-        });
+        } as any);
         created.push(newSensor);
       }
     }

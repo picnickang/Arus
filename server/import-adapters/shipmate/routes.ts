@@ -13,7 +13,8 @@
 
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import { shipmateImport, type ShipmateModuleType } from "./import-service";
+import { shipmateImport } from "./import-service";
+type ShipmateModuleType = any;
 import { getShipmateMapping } from "./field-mapping";
 import { requireOrgId, type AuthenticatedRequest } from "../../middleware/auth";
 import { RateLimiters } from "../../lib/rate-limit-factory";

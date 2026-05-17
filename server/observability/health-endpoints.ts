@@ -39,7 +39,7 @@ async function checkDatabase(ctx: HealthContext): Promise<void> {
     const { db } = await import("../db");
     const { safeSql } = await import("../utils/safeSql");
     const { sql } = await import("drizzle-orm");
-    await safeSql(db, sql`SELECT 1 as health_check`);
+    await safeSql(db as any, sql`SELECT 1 as health_check`);
     ctx.checks.database = {
       status: "ok",
       type: ctx.databaseType,
@@ -216,7 +216,7 @@ export async function readyzEndpoint(req: Request, res: Response) {
     structuredLog("error", "Health check failed", {
       operation: "health_check",
       duration,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: { message: error instanceof Error ? error.message : "Unknown error" },
     });
 
     res.status(503).json({

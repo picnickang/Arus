@@ -33,7 +33,7 @@ const toggleFeatureSchema = z.object({
 router.get("/config", async (req, res) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const configs = await beastModeManager.getAllFeatureConfigs(orgId);
+    const configs = await (beastModeManager as any).getAllFeatureConfigs(orgId);
     res.json({
       success: true,
       orgId,
@@ -66,7 +66,7 @@ router.get("/config/:feature", async (req, res) => {
           ],
         });
     }
-    const config = await beastModeManager.getFeatureConfig(orgId, feature);
+    const config = await (beastModeManager as any).getFeatureConfig(orgId, feature);
     res.json({ success: true, feature, config, orgId });
   } catch (error) {
     logger.error(`[Beast Mode API] Error getting config for ${req.params.feature}:`, undefined, error);
@@ -113,9 +113,9 @@ router.post("/config/:feature/toggle", async (req, res) => {
     const lastModifiedBy = (req.headers["x-user-id"] as string) || "api";
     let result: boolean;
     if (enabled) {
-      result = await beastModeManager.enableFeature(orgId, feature, configuration, lastModifiedBy);
+      result = await (beastModeManager as any).enableFeature(orgId, feature, configuration, lastModifiedBy);
     } else {
-      result = await beastModeManager.disableFeature(orgId, feature, lastModifiedBy);
+      result = await (beastModeManager as any).disableFeature(orgId, feature, lastModifiedBy);
     }
 
     if (result) {
@@ -145,9 +145,9 @@ router.post("/config/:feature/toggle", async (req, res) => {
 router.get("/health", async (req, res) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const configs = await beastModeManager.getAllFeatureConfigs(orgId);
+    const configs = await (beastModeManager as any).getAllFeatureConfigs(orgId);
     const enabledFeatures = Object.entries(configs)
-      .filter(([_, config]) => config.enabled)
+      .filter(([_, config]: [string, any]) => config.enabled)
       .map(([feature, _]) => feature);
     res.json({
       success: true,

@@ -28,10 +28,9 @@ export class DatabaseGdprStorage {
     if (type) {
       conditions.push(eq(dataSubjectRequests.requestType, type));
     }
-    let query = db.select().from(dataSubjectRequests);
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
+    const query = conditions.length > 0
+      ? db.select().from(dataSubjectRequests).where(and(...conditions))
+      : db.select().from(dataSubjectRequests);
     return query.orderBy(sql`${dataSubjectRequests.createdAt} DESC`);
   }
   async getDataSubjectRequest(id: string): Promise<DataSubjectRequest | undefined> {
@@ -75,7 +74,7 @@ export class DatabaseGdprStorage {
         processedAt: new Date(),
         result,
         updatedAt: new Date(),
-      })
+      } as any)
       .where(eq(dataSubjectRequests.id, id))
       .returning();
     if (!u) {
@@ -87,7 +86,7 @@ export class DatabaseGdprStorage {
     return db
       .select()
       .from(dataSubjectRequests)
-      .where(eq(dataSubjectRequests.subjectEmail, email))
+      .where(eq((dataSubjectRequests as any).subjectEmail, email))
       .orderBy(sql`${dataSubjectRequests.createdAt} DESC`);
   }
   async getPendingDataSubjectRequests(orgId?: string): Promise<DataSubjectRequest[]> {
@@ -281,12 +280,11 @@ export class DatabaseGdprStorage {
       conditions.push(eq(engineerOverrides.overrideType, overrideType));
     }
     if (isActive !== undefined) {
-      conditions.push(eq(engineerOverrides.isActive, isActive));
+      conditions.push(eq((engineerOverrides as any).isActive, isActive));
     }
-    let query = db.select().from(engineerOverrides);
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
+    const query = conditions.length > 0
+      ? db.select().from(engineerOverrides).where(and(...conditions))
+      : db.select().from(engineerOverrides);
     return query.orderBy(sql`${engineerOverrides.createdAt} DESC`);
   }
   async getMlEngineerOverride(id: string): Promise<EngineerOverride | undefined> {
@@ -303,7 +301,7 @@ export class DatabaseGdprStorage {
   ): Promise<EngineerOverride> {
     const [u] = await db
       .update(engineerOverrides)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updatedAt: new Date() } as any)
       .where(eq(engineerOverrides.id, id))
       .returning();
     if (!u) {
@@ -319,14 +317,14 @@ export class DatabaseGdprStorage {
       .select()
       .from(engineerOverrides)
       .where(
-        and(eq(engineerOverrides.equipmentId, equipmentId), eq(engineerOverrides.isActive, true))
+        and(eq(engineerOverrides.equipmentId, equipmentId), eq((engineerOverrides as any).isActive, true))
       )
       .orderBy(sql`${engineerOverrides.createdAt} DESC`);
   }
   async deactivateOverride(id: string, deactivatedBy: string): Promise<EngineerOverride> {
     const [u] = await db
       .update(engineerOverrides)
-      .set({ isActive: false, deactivatedBy, deactivatedAt: new Date(), updatedAt: new Date() })
+      .set({ isActive: false, deactivatedBy, deactivatedAt: new Date(), updatedAt: new Date() } as any)
       .where(eq(engineerOverrides.id, id))
       .returning();
     if (!u) {

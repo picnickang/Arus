@@ -21,7 +21,7 @@ export function analyzeFailurePatterns(
   const patterns: VesselPattern[] = [];
 
   const failureOrders = workOrders.filter(
-    (wo) => wo.type === "corrective" || wo.priority === "critical" || wo.priority === "urgent"
+    (wo) => (wo.type as any) === "corrective" || (wo.priority as any) === "critical" || (wo.priority as any) === "urgent"
   );
 
   const equipmentFailures = new Map<string, WorkOrder[]>();
@@ -46,8 +46,8 @@ export function analyzeFailurePatterns(
         description: `Recurring ${eq?.type || "equipment"} failures observed ${orders.length} times over ${Math.round(avgDaysBetween * orders.length)} days`,
         frequency: orders.length,
         confidence: Math.min(0.9, orders.length / 10),
-        firstObserved: new Date(orders[orders.length - 1].createdAt),
-        lastObserved: new Date(orders[0].createdAt),
+        firstObserved: new Date(orders[orders.length - 1].createdAt as any),
+        lastObserved: new Date(orders[0].createdAt as any),
         affectedEquipment: [equipmentId],
         correlatedMetrics,
         recommendedActions: generateFailureRecommendations(eq?.type, orders.length, avgDaysBetween),
@@ -81,8 +81,8 @@ export function analyzeMaintenancePatterns(
       description: `Scheduled maintenance adherence at ${adherenceRate.toFixed(1)}% with average completion time of ${avgCompletionTime} hours`,
       frequency: scheduledWork.length,
       confidence: adherenceRate > 80 ? 0.9 : 0.6,
-      firstObserved: new Date(scheduledWork[scheduledWork.length - 1].createdAt),
-      lastObserved: new Date(scheduledWork[0].createdAt),
+      firstObserved: new Date(scheduledWork[scheduledWork.length - 1].createdAt as any),
+      lastObserved: new Date(scheduledWork[0].createdAt as any),
       affectedEquipment: [...new Set(scheduledWork.map((wo) => wo.equipmentId))],
       correlatedMetrics: ["maintenance_schedule_adherence", "completion_time"],
       recommendedActions:

@@ -21,7 +21,7 @@ export function initializeMetrics() {
   });
 
   initializeServiceMetrics().catch((err) => {
-    structuredLog("warn", "Service metrics initialization error", { error: String(err) });
+    structuredLog("warn", "Service metrics initialization error", { error: { message: String(err) } });
   });
 
   try {

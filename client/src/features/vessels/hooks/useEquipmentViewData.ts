@@ -209,22 +209,20 @@ export function useEquipmentViewData(
     },
     onError: (error) => handleMutationError(error, "Error assigning sensor configuration"),
   });
-  const applyBundleMutation = useCustomMutation(
-    (data: { equipmentId: string; bundleId: string }) =>
+  const applyBundleMutation = useCustomMutation<{ equipmentId: string; bundleId: string }>({
+    mutationFn: (data) =>
       apiRequest("POST", `/api/equipment/${data.equipmentId}/apply-bundle`, {
         bundleId: data.bundleId,
       }),
-    [["/api/sensor-config", equipment?.id], ["/api/sensor-configs"]],
-    {
-      successMessage: "Sensor bundle applied successfully",
-      onSuccess: () => {
-        setIsApplyBundleDialogOpen(false);
-        setSelectedBundleId("");
-        onEquipmentUpdated?.();
-      },
-      onError: (error: unknown) => handleMutationError(error, "Error applying sensor bundle"),
-    }
-  );
+    invalidateKeys: [["/api/sensor-config", equipment?.id], ["/api/sensor-configs"]],
+    successMessage: "Sensor bundle applied successfully",
+    onSuccess: () => {
+      setIsApplyBundleDialogOpen(false);
+      setSelectedBundleId("");
+      onEquipmentUpdated?.();
+    },
+    onError: (error) => handleMutationError(error, "Error applying sensor bundle"),
+  });
 
   const handleAddSensor = () => {
     setEditingSensor(null);
@@ -237,14 +235,14 @@ export function useEquipmentViewData(
       equipmentId: sensor.equipmentId,
       sensorType: sensor.sensorType,
       targetUnit: sensor.targetUnit || "",
-      gain: sensor.gain,
-      offset: sensor.offset,
-      enabled: sensor.enabled,
+      gain: sensor.gain ?? undefined,
+      offset: sensor.offset ?? undefined,
+      enabled: sensor.enabled ?? undefined,
       notes: sensor.notes || "",
-      critHi: sensor.critHi,
-      critLo: sensor.critLo,
-      warnHi: sensor.warnHi,
-      warnLo: sensor.warnLo,
+      critHi: sensor.critHi as unknown as null,
+      critLo: sensor.critLo as unknown as null,
+      warnHi: sensor.warnHi as unknown as null,
+      warnLo: sensor.warnLo as unknown as null,
     });
     setIsSensorDialogOpen(true);
   };
@@ -265,10 +263,10 @@ export function useEquipmentViewData(
       sensorForm.setValue("targetUnit", template.targetUnit || "");
       sensorForm.setValue("gain", template.gain);
       sensorForm.setValue("offset", template.offset);
-      sensorForm.setValue("critHi", template.critHi);
-      sensorForm.setValue("critLo", template.critLo);
-      sensorForm.setValue("warnHi", template.warnHi);
-      sensorForm.setValue("warnLo", template.warnLo);
+      sensorForm.setValue("critHi", template.critHi as unknown as null);
+      sensorForm.setValue("critLo", template.critLo as unknown as null);
+      sensorForm.setValue("warnHi", template.warnHi as unknown as null);
+      sensorForm.setValue("warnLo", template.warnLo as unknown as null);
     }
   };
   const handleAssignExistingSensor = () => {

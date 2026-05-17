@@ -393,13 +393,13 @@ export default function DiagnosticsDashboard({ embedded = false }: DiagnosticsDa
                 </Card>
               </div>
             )}
-            {telemetryStats?.batchWriter.totalEvicted > 0 && (
+            {(telemetryStats?.batchWriter.totalEvicted ?? 0) > 0 && (
               <Alert variant="destructive" data-testid="alert-evictions">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Buffer Evictions Detected</AlertTitle>
                 <AlertDescription>
-                  {formatNumber(telemetryStats.batchWriter.totalEvicted)} readings were evicted (
-                  {telemetryStats.health.evictionRate}% eviction rate). Consider increasing buffer
+                  {formatNumber(telemetryStats!.batchWriter.totalEvicted)} readings were evicted (
+                  {telemetryStats!.health.evictionRate}% eviction rate). Consider increasing buffer
                   size or reducing ingestion rate.
                 </AlertDescription>
               </Alert>
@@ -407,12 +407,12 @@ export default function DiagnosticsDashboard({ embedded = false }: DiagnosticsDa
           </TabsContent>
 
           <TabsContent value="tests" className="space-y-4">
-            {metrics?.memory.utilizationPercent > 70 && (
+            {(metrics?.memory.utilizationPercent ?? 0) > 70 && (
               <Alert data-testid="alert-memory-warning">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>High Memory Usage</AlertTitle>
                 <AlertDescription>
-                  Memory usage is at {metrics.memory.utilizationPercent}%. Running tests may fail
+                  Memory usage is at {metrics!.memory.utilizationPercent}%. Running tests may fail
                   due to insufficient memory. For reliable test execution, use the CI/CD pipeline or
                   run tests locally with:{" "}
                   <code className="text-xs bg-muted px-1 rounded">npm test</code>

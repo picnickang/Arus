@@ -62,10 +62,10 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
       const ninetyDaysFromNow = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
 
       for (const vessel of filteredVessels) {
-        const crew = await dbCrewStorage.getCrew(orgId, vessel.id);
+        const crew = await (dbCrewStorage.getCrew as any)(orgId, vessel.id);
 
         for (const member of crew) {
-          const certifications = await dbCrewExtensionsStorage.getCrewCertifications(
+          const certifications = await (dbCrewExtensionsStorage.getCrewCertifications as any)(
             member.id,
             orgId
           );
@@ -80,7 +80,7 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
 
               alerts.push({
                 crewId: member.id,
-                crewName: `${member.firstName} ${member.lastName}`,
+                crewName: `${(member as any).firstName ?? member.name ?? ""} ${(member as any).lastName ?? ""}`.trim(),
                 vesselName: vessel.name,
                 certificationName:
                   (cert as any).certificateName || (cert as any).type || "Certificate",

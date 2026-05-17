@@ -42,7 +42,7 @@ export function parseRecommendations(
 
         const equipmentDossier = equipmentDossiers.find((d: any) => d.id === equipmentId);
         const linkedWorkOrderId =
-          equipmentDossier?.context.workOrderStats.openCount > 0
+          (equipmentDossier?.context.workOrderStats.openCount ?? 0) > 0
             ? `work-order-${equipmentId}`
             : undefined;
 

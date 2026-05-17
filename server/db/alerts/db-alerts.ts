@@ -175,7 +175,7 @@ export class DatabaseAlertStorage {
         acknowledged: notification.acknowledged || false,
         createdAt: new Date(),
         updatedAt: new Date(),
-      })
+      } as any)
       .returning();
     return n;
   }
@@ -195,7 +195,7 @@ export class DatabaseAlertStorage {
         acknowledgedBy,
         acknowledgedAt: new Date(),
         updatedAt: new Date(),
-      })
+      } as any)
       .where(conditions)
       .returning();
     if (!updated) {
@@ -252,7 +252,7 @@ export class DatabaseAlertStorage {
     const suppressions = await this.getActiveSuppressions(orgId);
     return suppressions.some(
       (s) =>
-        s.equipmentId === equipmentId && s.sensorType === sensorType && s.alertType === alertType
+        s.equipmentId === equipmentId && s.sensorType === sensorType && (s as any).alertType === alertType
     );
   }
 }

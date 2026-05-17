@@ -19,8 +19,8 @@ export function registerLeaveRoutes({ app, rateLimit }: CrewRouteDeps): void {
       const { crewId, startDate, endDate } = req.query;
       const leave = await crewService.listLeave(
         crewId as string | undefined,
-        startDate ? new Date(startDate as string) : undefined,
-        endDate ? new Date(endDate as string) : undefined
+        (startDate ? new Date(startDate as string).toISOString() : undefined) as any,
+        (endDate ? new Date(endDate as string).toISOString() : undefined) as any
       );
       res.json(leave);
     })

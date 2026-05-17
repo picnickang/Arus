@@ -38,11 +38,10 @@ export function registerSchedulingRoutes(
           .json({ error: "Invalid input: days, shifts, and crew must be arrays" });
       }
 
-      let planWithEngine, ConstraintScheduleRequest, ENGINE_GREEDY, ENGINE_OR_TOOLS;
+      let planWithEngine: any, ENGINE_GREEDY: any, ENGINE_OR_TOOLS: any;
       try {
-        const ortoolsModule = await import("../../../crew-scheduler-ortools");
+        const ortoolsModule: any = await import("../../../crew-scheduler-ortools");
         planWithEngine = ortoolsModule.planWithEngine;
-        ConstraintScheduleRequest = ortoolsModule.ConstraintScheduleRequest;
         ENGINE_GREEDY = ortoolsModule.ENGINE_GREEDY;
         ENGINE_OR_TOOLS = ortoolsModule.ENGINE_OR_TOOLS;
       } catch (error) {
@@ -61,7 +60,7 @@ export function registerSchedulingRoutes(
           });
       }
 
-      const scheduleRequest: typeof ConstraintScheduleRequest = {
+      const scheduleRequest: any = {
         engine,
         days,
         shifts,
@@ -102,9 +101,9 @@ export function registerSchedulingRoutes(
                 const year = current.getFullYear(),
                   month = current.getMonth() + 1;
                 try {
-                  const restData = await dbStcwStorage.getCrewRestMonth(crewId, year, month);
-                  if (restData.days && restData.days.length > 0) {
-                    results.push(...restData.days);
+                  const restData: any = await (dbStcwStorage as any).getCrewRestMonth(crewId, String(year), month);
+                  if (restData?.days && restData.days.length > 0) {
+                    results.push(...(restData.days as RestDay[]));
                   }
                 } catch {
                   /* month data not found */
@@ -130,14 +129,14 @@ export function registerSchedulingRoutes(
                 shiftId: a.shiftId,
                 vesselId: a.vesselId,
               }));
-            const mergedRows = mergeHistoryWithPlan(
+            const mergedRows = (mergeHistoryWithPlan as any)(
               historyRows,
               crewAssignments,
               startDate,
               endDate
-            );
-            const crewCompliance = checkMonthCompliance(mergedRows),
-              context = summarizeHoRContext(historyRows);
+            ) as RestDay[];
+            const crewCompliance = checkMonthCompliance(mergedRows as any),
+              context = (summarizeHoRContext as any)(historyRows) as any;
             compliance.rows_by_crew[crewId] = mergedRows;
             compliance.per_crew.push({
               crew_id: crewId,

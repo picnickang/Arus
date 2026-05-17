@@ -82,8 +82,8 @@ export function useConditionMonitoringData() {
     enabled: selectedVessel !== "all",
   });
 
-  const autoFillMutation = useMutation({
-    mutationFn: async (vesselId: string) =>
+  const autoFillMutation = useMutation<{ recordsCreated?: number; recordsSkipped?: number }, Error, string>({
+    mutationFn: (async (vesselId: string) =>
       apiRequest("/api/logbook/condition/autofill", {
         method: "POST",
         body: JSON.stringify({
@@ -92,7 +92,7 @@ export function useConditionMonitoringData() {
           endDate: dateParams.end.toISOString(),
           periodType: "hourly",
         }),
-      }),
+      })) as any,
     onSuccess: (data: { recordsCreated?: number; recordsSkipped?: number }) => {
       toast({
         title: "Auto-fill Complete",
@@ -114,8 +114,8 @@ export function useConditionMonitoringData() {
       logs.length > 0
         ? logs.reduce((sum, log) => sum + (log.healthIndex || 0), 0) / logs.length
         : 0;
-    const totalAlerts = logs.reduce((sum, log) => sum + (log.alertsCount || 0), 0);
-    const criticalAlerts = logs.reduce((sum, log) => sum + (log.criticalAlertsCount || 0), 0);
+    const totalAlerts = logs.reduce((sum, log) => sum + ((log as any).alertsCount || 0), 0);
+    const criticalAlerts = logs.reduce((sum, log) => sum + ((log as any).criticalAlertsCount || 0), 0);
     const criticalCount = logs.filter((l) => l.conditionRating === "critical").length;
     const uniqueEquipmentCount = new Set(logs.map((l) => l.equipmentId)).size;
     const lowestHealthLogs = [...logs]

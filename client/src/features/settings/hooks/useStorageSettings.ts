@@ -53,14 +53,13 @@ export function useStorageSettings() {
       resetNewConfig();
     },
   });
-  const deleteConfigMutation = useDeleteMutation({
-    endpoint: "/api/storage/config",
+  const deleteConfigMutation = useDeleteMutation("/api/storage/config", {
     invalidateKeys: ["/api/storage/config"],
     successMessage: "Storage configuration deleted",
   });
   const testConfigMutation = useCustomMutation<InsertStorageConfig, ProviderTestResult>({
     mutationFn: async (config) => apiRequest("POST", "/api/storage/config/test", config),
-    onSuccess: (result: ProviderTestResult, config: InsertStorageConfig) => {
+    onSuccess: ((result: ProviderTestResult, config: InsertStorageConfig) => {
       setTestResults((prev) => ({ ...prev, [config.id]: result }));
       toast({
         title: result.ok ? "Connection Successful" : "Connection Failed",
@@ -69,7 +68,7 @@ export function useStorageSettings() {
           (result.ok ? "Provider configuration is valid" : "Check configuration details"),
         variant: result.ok ? "default" : "destructive",
       });
-    },
+    }) as any,
   });
   const stageOpsDbMutation = useCustomMutation<string, { staged: boolean }>({
     mutationFn: async (url) => apiRequest("POST", "/api/storage/ops-db/stage", { url }),

@@ -72,8 +72,8 @@ export function usePdmPackData() {
     refetchOnWindowFocus: false,
   });
 
-  const bearingAnalysisMutation = useCustomMutation({
-    mutationFn: async (data: BearingFormData) => {
+  const bearingAnalysisMutation = useCustomMutation<any, any>({
+    mutationFn: (async (data: BearingFormData) => {
       const series = data.series
         .split(",")
         .map((s: string) => Number.parseFloat(s.trim()))
@@ -82,18 +82,18 @@ export function usePdmPackData() {
         throw new Error("At least 10 data points required for analysis");
       }
       return apiRequest("POST", "/api/pdm/analyze/bearing", { ...data, series });
-    },
+    }) as any,
     invalidateKeys: [
       ["/api/pdm/alerts", currentOrgId],
       ["/api/pdm/baseline", currentOrgId, selectedVessel, selectedAsset],
     ],
     successMessage: "Bearing vibration analysis completed successfully",
-    errorMessage: (error: Error) => error.message || "Failed to analyze bearing data",
+    errorMessage: ((error: Error) => error.message || "Failed to analyze bearing data") as any,
     onSuccess: (data: { analysis: AnalysisResult }) => setBearingAnalysisResult(data.analysis),
   });
 
-  const pumpAnalysisMutation = useCustomMutation({
-    mutationFn: async (data: z.infer<typeof pumpFormSchema>) => {
+  const pumpAnalysisMutation = useCustomMutation<any, any>({
+    mutationFn: (async (data: z.infer<typeof pumpFormSchema>) => {
       const processedData: Record<string, string | boolean | number[]> = {
         vesselName: data.vesselName,
         assetId: data.assetId,
@@ -112,13 +112,13 @@ export function usePdmPackData() {
         }
       });
       return apiRequest("POST", "/api/pdm/analyze/pump", processedData);
-    },
+    }) as any,
     invalidateKeys: [
       ["/api/pdm/alerts", currentOrgId],
       ["/api/pdm/baseline", currentOrgId, selectedVessel, selectedAsset],
     ],
     successMessage: "Pump process analysis completed successfully",
-    errorMessage: (error: Error) => error.message || "Failed to analyze pump data",
+    errorMessage: ((error: Error) => error.message || "Failed to analyze pump data") as any,
     onSuccess: (data: { analysis: AnalysisResult }) => setPumpAnalysisResult(data.analysis),
   });
 

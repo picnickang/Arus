@@ -122,13 +122,17 @@ export function registerRagRoutes(
       });
 
       // Log successful response
+      const respAny = response as typeof response & {
+        sources?: unknown[];
+        confidence?: { score?: number };
+      };
       auditLogger.logResponse({
         userId,
         orgId,
         conversationId: response.conversationId || "direct",
         responseLength: response.answer?.length || 0,
-        chunksUsed: response.sources?.length || 0,
-        confidence: response.confidence?.score,
+        chunksUsed: respAny.sources?.length || 0,
+        confidence: respAny.confidence?.score,
         cached: response.cached || false,
         duration: Date.now() - startTime,
       });
@@ -403,7 +407,7 @@ export function registerRagRoutes(
 
         // Use orchestrator for proper tenant-scoped search
         const orchestrator = getRagOrchestrator();
-        const searchResults = await searchKnowledgeBase(query, orgId, 5, 0.5);
+        const searchResults = await (searchKnowledgeBase as any)(query, orgId, 5, 0.5);
 
         const relevantChunks = searchResults.map((r: any) => ({
           content: r.content,
@@ -453,12 +457,12 @@ export function registerRagRoutes(
               try {
                 const conversationService = getConversationService();
                 // Add user's query first
-                await conversationService.addMessage(conversationId, {
+                await (conversationService.addMessage as any)(conversationId, {
                   role: "user",
                   content: query,
                 });
                 // Add full AI response
-                await conversationService.addMessage(conversationId, {
+                await (conversationService.addMessage as any)(conversationId, {
                   role: "assistant",
                   content: fullResponse,
                 });
@@ -466,7 +470,7 @@ export function registerRagRoutes(
                   `[RAG Stream] Persisted ${fullResponse.length} chars to conversation ${conversationId}`
                 );
               } catch (persistError) {
-                logger.warn("[RAG Stream] Failed to persist message:", persistError);
+                logger.warn("[RAG Stream] Failed to persist message:", undefined, { details: persistError });
               }
             }
           }
@@ -527,10 +531,12 @@ export function registerRagRoutes(
 
       const messages = await conversationService.getMessages(id, 1000);
 
+      const convAny = conversation as any;
+      const convObj = convAny.conversation ?? convAny;
       const exportData = {
-        id: conversation.conversation.id,
-        title: conversation.conversation.title || "Untitled Conversation",
-        createdAt: new Date(conversation.conversation.createdAt),
+        id: convObj.id,
+        title: convObj.title || "Untitled Conversation",
+        createdAt: new Date(convObj.createdAt),
         messages: messages.map((m: any) => ({
           role: m.role as "user" | "assistant",
           content: m.content,

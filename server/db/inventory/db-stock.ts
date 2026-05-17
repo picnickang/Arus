@@ -199,7 +199,7 @@ export class DbStockStorage {
       conditions.push(eq(stock.partId, filters.partId));
     }
     if (filters?.vesselId) {
-      conditions.push(eq(stock.vesselId, filters.vesselId));
+      conditions.push(eq((stock as any).vesselId, filters.vesselId));
     }
     if (filters?.location) {
       conditions.push(eq(stock.location, filters.location));
@@ -250,8 +250,8 @@ export class DbStockStorage {
         and(
           eq(partSubstitutions.orgId, orgId),
           or(
-            eq(partSubstitutions.originalPartId, partId),
-            eq(partSubstitutions.substitutePartId, partId)
+            eq((partSubstitutions as any).originalPartId, partId),
+            eq((partSubstitutions as any).substitutePartId, partId)
           )
         )
       );
@@ -260,7 +260,7 @@ export class DbStockStorage {
   async createPartSubstitution(sub: InsertPartSubstitution): Promise<PartSubstitution> {
     const [n] = await db
       .insert(partSubstitutions)
-      .values({ id: randomUUID(), ...sub, createdAt: new Date(), updatedAt: new Date() })
+      .values({ id: randomUUID(), ...sub, createdAt: new Date(), updatedAt: new Date() } as any)
       .returning();
     return n;
   }
@@ -270,7 +270,7 @@ export class DbStockStorage {
     if (subs.length === 0) {
       return [];
     }
-    const ids = subs.map((s) =>
+    const ids = subs.map((s: any) =>
       s.originalPartId === partId ? s.substitutePartId : s.originalPartId
     );
     return db

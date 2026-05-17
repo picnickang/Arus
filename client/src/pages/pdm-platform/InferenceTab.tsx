@@ -33,7 +33,7 @@ export function InferenceTab() {
       return;
     }
     try {
-      const result = await inferenceMutation.mutateAsync({ equipmentId });
+      const result: any = await inferenceMutation.mutateAsync({ equipmentId });
       setLastResult(result);
       setLastInferredEquipmentId(equipmentId);
       setInferenceTime(new Date());

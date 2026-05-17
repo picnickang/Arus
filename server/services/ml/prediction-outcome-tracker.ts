@@ -238,7 +238,7 @@ export class PredictionOutcomeTracker {
         .from(predictionFeedback)
         .where(
           and(
-            eq(predictionFeedback.predictionId, predictionId.toString()),
+            eq(predictionFeedback.predictionId, predictionId.toString() as any),
             eq(predictionFeedback.orgId, orgId),
             eq(predictionFeedback.feedbackType, "outcome_tracked")
           )

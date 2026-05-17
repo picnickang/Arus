@@ -311,7 +311,7 @@ export async function getProvenanceEvents(filters?: {
 }): Promise<{ events: ProvenanceEvent[]; total: number }> {
   try {
     const text = await fs.readFile(PROV_FILE, "utf8");
-    let events = text.trim().split("\n").filter(Boolean).map(JSON.parse) as ProvenanceEvent[];
+    let events = text.trim().split("\n").filter(Boolean).map((l: string) => JSON.parse(l)) as ProvenanceEvent[];
 
     // Apply filters
     if (filters?.type) {

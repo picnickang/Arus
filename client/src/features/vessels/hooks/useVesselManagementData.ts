@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useForm, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -71,7 +71,7 @@ export function useVesselManagementData() {
     mutationFn: (id: string) =>
       apiRequest("GET", `/api/vessels/${id}/export`, undefined, { headers: { "x-org-id": "default-org-id" } }),
     invalidateKeys: [],
-    onSuccess: (data: unknown, vesselId: string) => {
+    onSuccess: ((data: unknown, vesselId: string) => {
       const success = exportToJSON(data, {
         filename: `vessel-${vesselId}-export-${new Date().toISOString().split("T")[0]}.json`,
       });
@@ -82,7 +82,7 @@ export function useVesselManagementData() {
           variant: "destructive",
         });
       }
-    },
+    }) as unknown as (data: VesselExportData) => void,
     successMessage: "Vessel exported successfully",
   });
 
@@ -120,7 +120,7 @@ export function useVesselManagementData() {
     successMessage: "Vessel data wiped successfully",
   });
 
-  const form = useForm<InsertVessel>({
+  const form = useForm({
     resolver: zodResolver(insertVesselSchema),
     defaultValues: {
       orgId: "default-org-id",
@@ -131,8 +131,8 @@ export function useVesselManagementData() {
       specifications: null,
       operatingParameters: null,
     },
-  });
-  const editForm = useForm<InsertVessel>({
+  }) as unknown as UseFormReturn<InsertVessel>;
+  const editForm = useForm({
     resolver: zodResolver(insertVesselSchema),
     defaultValues: {
       orgId: "default-org-id",
@@ -143,19 +143,19 @@ export function useVesselManagementData() {
       specifications: null,
       operatingParameters: null,
     },
-  });
+  }) as unknown as UseFormReturn<InsertVessel>;
 
   const handleCreate = (data: InsertVessel) => createVesselMutation.mutate(data);
   const handleEdit = (vessel: Vessel) => {
     setSelectedVessel(vessel);
+    const v = vessel as typeof vessel & { specifications?: unknown; operatingParameters?: unknown };
     editForm.reset({
       orgId: vessel.orgId,
       name: vessel.name,
       vesselClass: vessel.vesselClass || "",
-      condition: vessel.condition || "good",
+      condition: (vessel.condition || "good") as "excellent" | "good" | "fair" | "poor" | "critical",
       onlineStatus: vessel.onlineStatus || "offline",
-      specifications: vessel.specifications,
-      operatingParameters: vessel.operatingParameters,
+      ...({ specifications: v.specifications, operatingParameters: v.operatingParameters } as any),
       dayRateSgd: vessel.dayRateSgd || "",
     });
     setIsEditDialogOpen(true);
@@ -221,15 +221,17 @@ export function useVesselManagementData() {
       if (!workOrderEquipment) {
         return false;
       }
+      const eqAny = workOrderEquipment as typeof workOrderEquipment & { vesselName?: string };
       const belongsToVessel =
-        workOrderEquipment.vesselId === vesselId || workOrderEquipment.vesselName === vesselName;
+        workOrderEquipment.vesselId === vesselId || eqAny.vesselName === vesselName;
       if (!belongsToVessel) {
         return false;
       }
       const isActive = wo.status === "in_progress" || wo.status === "open";
+      const woAny = wo as typeof wo & { estimatedDowntimeHours?: number | null; actualDowntimeHours?: number | null };
       const hasDowntime =
-        (wo.estimatedDowntimeHours && wo.estimatedDowntimeHours > 0) ||
-        (wo.actualDowntimeHours && wo.actualDowntimeHours > 0);
+        (woAny.estimatedDowntimeHours && woAny.estimatedDowntimeHours > 0) ||
+        (woAny.actualDowntimeHours && woAny.actualDowntimeHours > 0);
       return isActive && hasDowntime;
     });
 

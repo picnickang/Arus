@@ -344,7 +344,7 @@ export function GovernanceTab({
                     <button
                       data-testid="link-detail-model-version"
                       className="text-primary hover:underline inline-flex items-center gap-1"
-                      onClick={() => onSwitchToModels(detail.modelVersionId)}
+                      onClick={() => onSwitchToModels(detail.modelVersionId ?? "")}
                     >
                       {detail.modelVersionId.slice(0, 12)}
                       <ExternalLink className="w-3 h-3" />

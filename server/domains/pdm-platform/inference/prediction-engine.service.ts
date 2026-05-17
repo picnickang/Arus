@@ -90,7 +90,7 @@ export class PredictionEngineService implements PredictionExplanationQuery {
         .where(eq(inferenceRuns.id, run.id))
         .returning();
 
-      logger.info("[PredictionEngine] Inference completed", {
+      logger.info("[PredictionEngine] Inference completed", undefined, {
         orgId,
         equipmentId,
         latencyMs,
@@ -323,7 +323,7 @@ export class PredictionEngineService implements PredictionExplanationQuery {
 
     return valid.map((c) => {
       const normalizedImportance = totalWeight > 0 ? c.weight / totalWeight : 0;
-      const deviation = c.value - c.baseline;
+      const deviation = (c.value ?? 0) - c.baseline;
       return {
         predictionId,
         inferenceRunId,

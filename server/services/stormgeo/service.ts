@@ -11,6 +11,7 @@ import type {
   StormgeoSnapshot,
   StormgeoImportHistory,
   InsertStormgeoSnapshot,
+  InsertStormgeoImportHistory,
   DeckLogHourly,
 } from "@shared/schema";
 import { createHash } from "node:crypto";
@@ -24,16 +25,18 @@ export class StormGeoIntegrationService {
   }
 
   async getSettings(orgId: string, vesselId?: string): Promise<StormgeoSetting | undefined> {
-    return dbStormGeoStorage.getStormgeoSettings(orgId, vesselId);
+    const rows = await dbStormGeoStorage.getStormgeoSettings(orgId, vesselId);
+    return rows[0];
   }
 
   async upsertSettings(settings: InsertStormgeoSetting): Promise<StormgeoSetting> {
-    const existing = await dbStormGeoStorage.getStormgeoSettings(
+    const rows = await dbStormGeoStorage.getStormgeoSettings(
       settings.orgId,
       settings.vesselId || undefined
     );
+    const existing = rows[0];
     if (existing) {
-      return dbStormGeoStorage.updateStormgeoSetting(existing.id, settings, settings.orgId);
+      return dbStormGeoStorage.updateStormgeoSetting(existing.id, settings);
     }
     return dbStormGeoStorage.createStormgeoSetting(settings);
   }
@@ -76,35 +79,27 @@ export class StormGeoIntegrationService {
       }
 
       if (snapshots.length > 0) {
-        await dbStormGeoStorage.createStormgeoSnapshot(snapshots);
+        await dbStormGeoStorage.bulkInsertStormgeoSnapshots(snapshots);
       }
       const status = errors.length === 0 ? "success" : snapshots.length > 0 ? "partial" : "failed";
-      return dbStormGeoStorage.createStormgeoImportHistory(
-        importRecord.id,
-        {
-          status,
-          recordsProcessed: rows.length,
-          recordsCreated: snapshots.length,
-          recordsFailed: errors.length,
-          errorDetails: errors.length > 0 ? errors : undefined,
-          completedAt: new Date(),
-          durationMs: Date.now() - startTime,
-        },
-        orgId
-      );
+      return dbStormGeoStorage.updateStormgeoImportHistory(importRecord.id, {
+        status,
+        recordsProcessed: rows.length,
+        recordsCreated: snapshots.length,
+        recordsFailed: errors.length,
+        errorDetails: errors.length > 0 ? errors : undefined,
+        completedAt: new Date(),
+        durationMs: Date.now() - startTime,
+      } as Partial<InsertStormgeoImportHistory>);
     } catch (error) {
-      return dbStormGeoStorage.createStormgeoImportHistory(
-        importRecord.id,
-        {
-          status: "failed",
-          errorDetails: [
-            { row: 0, error: error instanceof Error ? error.message : "Import failed" },
-          ],
-          completedAt: new Date(),
-          durationMs: Date.now() - startTime,
-        },
-        orgId
-      );
+      return dbStormGeoStorage.updateStormgeoImportHistory(importRecord.id, {
+        status: "failed",
+        errorDetails: [
+          { row: 0, error: error instanceof Error ? error.message : "Import failed" },
+        ],
+        completedAt: new Date(),
+        durationMs: Date.now() - startTime,
+      } as Partial<InsertStormgeoImportHistory>);
     }
   }
 
@@ -159,35 +154,27 @@ export class StormGeoIntegrationService {
       }
 
       if (snapshots.length > 0) {
-        await dbStormGeoStorage.createStormgeoSnapshot(snapshots);
+        await dbStormGeoStorage.bulkInsertStormgeoSnapshots(snapshots);
       }
       const status = errors.length === 0 ? "success" : snapshots.length > 0 ? "partial" : "failed";
-      return dbStormGeoStorage.createStormgeoImportHistory(
-        importRecord.id,
-        {
-          status,
-          recordsProcessed: data.waypoints.length,
-          recordsCreated: snapshots.length,
-          recordsFailed: errors.length,
-          errorDetails: errors.length > 0 ? errors : undefined,
-          completedAt: new Date(),
-          durationMs: Date.now() - startTime,
-        },
-        orgId
-      );
+      return dbStormGeoStorage.updateStormgeoImportHistory(importRecord.id, {
+        status,
+        recordsProcessed: data.waypoints.length,
+        recordsCreated: snapshots.length,
+        recordsFailed: errors.length,
+        errorDetails: errors.length > 0 ? errors : undefined,
+        completedAt: new Date(),
+        durationMs: Date.now() - startTime,
+      } as Partial<InsertStormgeoImportHistory>);
     } catch (error) {
-      return dbStormGeoStorage.createStormgeoImportHistory(
-        importRecord.id,
-        {
-          status: "failed",
-          errorDetails: [
-            { row: 0, error: error instanceof Error ? error.message : "Import failed" },
-          ],
-          completedAt: new Date(),
-          durationMs: Date.now() - startTime,
-        },
-        orgId
-      );
+      return dbStormGeoStorage.updateStormgeoImportHistory(importRecord.id, {
+        status: "failed",
+        errorDetails: [
+          { row: 0, error: error instanceof Error ? error.message : "Import failed" },
+        ],
+        completedAt: new Date(),
+        durationMs: Date.now() - startTime,
+      } as Partial<InsertStormgeoImportHistory>);
     }
   }
 
@@ -196,7 +183,7 @@ export class StormGeoIntegrationService {
     targetTime: Date,
     orgId: string
   ): Promise<StormgeoSnapshot | undefined> {
-    return dbStormGeoStorage.getStormgeoSnapshot(vesselId, targetTime, orgId);
+    return dbStormGeoStorage.getStormgeoSnapshotByTime(vesselId, targetTime, orgId);
   }
 
   async autoFillHourlyEntry(
@@ -261,7 +248,8 @@ export class StormGeoIntegrationService {
     vesselId?: string,
     limit?: number
   ): Promise<StormgeoImportHistory[]> {
-    return dbStormGeoStorage.getStormgeoImportHistory(orgId, { vesselId, limit });
+    const all = await dbStormGeoStorage.getStormgeoImportHistory(orgId, vesselId);
+    return typeof limit === "number" ? all.slice(0, limit) : all;
   }
 
   async getSnapshots(
@@ -270,11 +258,7 @@ export class StormGeoIntegrationService {
     startTime?: Date,
     endTime?: Date
   ): Promise<StormgeoSnapshot[]> {
-    return dbStormGeoStorage.getStormgeoSnapshots(orgId, {
-      vesselId,
-      forecastTimeStart: startTime,
-      forecastTimeEnd: endTime,
-    });
+    return dbStormGeoStorage.getStormgeoSnapshots(orgId, vesselId, startTime, endTime);
   }
 }
 

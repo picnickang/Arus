@@ -87,14 +87,14 @@ export class DatabaseEquipmentStorage {
       .values({
         ...equipmentData,
         vesselName,
-        id: equipmentData.id || randomUUID(),
+        id: (equipmentData as any).id || randomUUID(),
         createdAt: new Date(),
         updatedAt: new Date(),
-      })
+      } as any)
       .returning();
     try {
       const { equipmentAnalyticsService } = await import("../../equipment-analytics-service.js");
-      await equipmentAnalyticsService.setupEquipmentAnalytics(newEquipment);
+      await (equipmentAnalyticsService as any).setupEquipmentAnalytics(newEquipment);
     } catch (error) {
       logger.error(`Failed to setup analytics for new equipment ${newEquipment.id}:`, undefined, error);
     }
@@ -129,7 +129,7 @@ export class DatabaseEquipmentStorage {
           logger.warn(`Failed to lookup vessel name for ID ${equipmentData.vesselId}:`, { details: error });
         }
       } else {
-        updateData.vesselName = null;
+        updateData.vesselName = undefined;
       }
     }
     const [updated] = await db
@@ -164,19 +164,19 @@ export class DatabaseEquipmentStorage {
       await tx.delete(sensorConfigurations).where(eq(sensorConfigurations.equipmentId, id));
       await tx.delete(sensorStates).where(eq(sensorStates.equipmentId, id));
       await tx.delete(equipmentTelemetryTable).where(eq(equipmentTelemetryTable.equipmentId, id));
-      await tx.delete(rawTelemetry).where(eq(rawTelemetry.equipmentId, id));
+      await tx.delete(rawTelemetry).where(eq((rawTelemetry as any).equipmentId, id));
       await tx.delete(pdmScoreLogsTable).where(eq(pdmScoreLogsTable.equipmentId, id));
       await tx.delete(anomalyDetections).where(eq(anomalyDetections.equipmentId, id));
       await tx.delete(failurePredictions).where(eq(failurePredictions.equipmentId, id));
       await tx.delete(vibrationFeatures).where(eq(vibrationFeatures.equipmentId, id));
       await tx.delete(vibrationAnalysis).where(eq(vibrationAnalysis.equipmentId, id));
-      await tx.delete(twinSimulations).where(eq(twinSimulations.equipmentId, id));
+      await tx.delete(twinSimulations).where(eq((twinSimulations as any).equipmentId, id));
       await tx.delete(conditionMonitoring).where(eq(conditionMonitoring.equipmentId, id));
       await tx.delete(oilAnalysis).where(eq(oilAnalysis.equipmentId, id));
       await tx.delete(wearParticleAnalysis).where(eq(wearParticleAnalysis.equipmentId, id));
       await tx.delete(dtcFaults).where(eq(dtcFaults.equipmentId, id));
-      await tx.delete(insightReports).where(eq(insightReports.equipmentId, id));
-      await tx.delete(insightSnapshots).where(eq(insightSnapshots.equipmentId, id));
+      await tx.delete(insightReports).where(eq((insightReports as any).equipmentId, id));
+      await tx.delete(insightSnapshots).where(eq((insightSnapshots as any).equipmentId, id));
       const [deleted] = await tx
         .delete(equipment)
         .where(and(...conditions))
@@ -293,7 +293,7 @@ export class DatabaseEquipmentStorage {
         ...data,
         createdAt: new Date(),
         updatedAt: new Date(),
-      })
+      } as any)
       .returning();
     return n;
   }
@@ -303,7 +303,7 @@ export class DatabaseEquipmentStorage {
     return db
       .select()
       .from(equipmentLifecycle)
-      .where(lte(equipmentLifecycle.estimatedEndOfLife, sixMonthsFromNow));
+      .where(lte((equipmentLifecycle as any).estimatedEndOfLife, sixMonthsFromNow));
   }
 
   async getEquipmentSensorTypes(orgId: string, equipmentId: string): Promise<string[]> {
@@ -345,14 +345,14 @@ export class DatabaseEquipmentStorage {
       healthIndex: 100,
       vesselId: e.vesselId || undefined,
       vesselName: e.vesselName || undefined,
-    }));
+    })) as unknown as (EquipmentHealth & { healthIndex: number })[];
   }
   async getEquipmentForPart(partId: string, orgId: string): Promise<Equipment[]> {
     this.validateOrgId(orgId, "getEquipmentForPart");
     return db
       .select()
       .from(equipment)
-      .where(and(eq(equipment.orgId, orgId), sql`${partId} = ANY(${equipment.compatibleParts})`));
+      .where(and(eq(equipment.orgId, orgId), sql`${partId} = ANY(${(equipment as any).compatibleParts})`));
   }
   async getEquipmentWithSensorIssues(__orgId: string, _options?: any): Promise<any[]> {
     return [];

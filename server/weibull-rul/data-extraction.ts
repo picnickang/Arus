@@ -17,7 +17,7 @@ export async function getEquipmentLifeData(
     const workOrders = await workOrderService.getWorkOrdersWithDetails();
     const equipmentWorkOrders = workOrders
       .filter((wo) => wo.equipmentId === equipmentId)
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      .sort((a, b) => new Date(a.createdAt as any).getTime() - new Date(b.createdAt as any).getTime());
 
     if (equipmentWorkOrders.length < 2) {
       logger.info(`[Weibull RUL] Insufficient failure history for ${equipmentId} (${equipmentWorkOrders.length} events, need ≥2)`);
@@ -28,7 +28,7 @@ export async function getEquipmentLifeData(
     let lastEventTime: Date | null = null;
 
     for (const workOrder of equipmentWorkOrders) {
-      const eventTime = new Date(workOrder.createdAt);
+      const eventTime = new Date(workOrder.createdAt as any);
 
       if (lastEventTime) {
         const timeBetweenFailures =
@@ -42,8 +42,8 @@ export async function getEquipmentLifeData(
             maintenanceEvents: [
               {
                 timestamp: eventTime,
-                type: workOrder.priority === "critical" ? "corrective" : "preventive",
-                description: workOrder.description,
+                type: (workOrder.priority as any) === "critical" ? "corrective" : "preventive",
+                description: workOrder.description ?? "",
               },
             ],
           });
@@ -139,8 +139,8 @@ export async function getCurrentEquipmentAge(equipmentId: string, orgId: string)
   try {
     const equipmentInfo = await dbEquipmentStorage.getEquipment(orgId, equipmentId);
 
-    if (equipmentInfo?.commissioningDate) {
-      const commissioningDate = new Date(equipmentInfo.commissioningDate);
+    if ((equipmentInfo as any)?.commissioningDate) {
+      const commissioningDate = new Date((equipmentInfo as any).commissioningDate);
       const now = new Date();
       const ageMs = now.getTime() - commissioningDate.getTime();
       return Math.max(0, ageMs / (1000 * 60 * 60));

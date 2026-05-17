@@ -10,7 +10,7 @@ import { cryptoRandom } from "@shared/crypto-random";
 
 type RpmCalculator = (time: number) => number;
 
-const rpmPatterns: Record<VesselOperationalPattern, RpmCalculator> = {
+const rpmPatterns: Record<string, RpmCalculator> = {
   harbor_bursts: () => 700 + 400 * (cryptoRandom() < 0.15 ? 1 : 0) + PhysicsEngine.randn(0, 15),
   stop_go_hyd: (time: number) => 900 + 300 * Math.sin(time / 50) + PhysicsEngine.randn(0, 10),
   high_speed: (time: number) =>
@@ -36,7 +36,7 @@ export class OperationalPatternGenerator {
    * Generate RPM based on vessel operational pattern
    */
   static generateRpm(time: number, pattern: VesselOperationalPattern, maxRpm: number): number {
-    const calculator = rpmPatterns[pattern] ?? rpmPatterns.transit;
+    const calculator = rpmPatterns[(pattern as any)?.name ?? "transit"] ?? rpmPatterns.transit;
     const rpm = calculator(time);
     return PhysicsEngine.clamp(rpm, 600, maxRpm);
   }

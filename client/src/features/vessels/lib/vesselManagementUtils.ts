@@ -95,8 +95,8 @@ export function formatVesselExportData(vessels: Vessel[]) {
   return vessels.map((v) => ({
     name: v.name,
     imo: v.imo || "",
-    mmsi: v.mmsi || "",
-    class: v.class || "",
+    mmsi: (v as any).mmsi || "",
+    class: (v as any).class || "",
     condition: v.condition || "",
     operationDays: v.operationDays || "0",
     downtimeDays: v.downtimeDays || "0",

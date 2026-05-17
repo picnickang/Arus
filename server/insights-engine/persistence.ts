@@ -21,16 +21,17 @@ export async function persistSnapshot(
 ): Promise<{ id: string; createdAt: Date }> {
   try {
     const insertData: InsertInsightSnapshot = {
+      orgId,
       scope,
       kpi: bundle.kpi,
       risks: bundle.risks,
       recommendations: bundle.recommendations,
       anomalies: bundle.anomalies,
       compliance: bundle.compliance,
-    };
+    } as any;
 
     const snapshot = await analyticsInsightsAdapter.createInsightSnapshot(orgId, insertData);
-    return { id: snapshot.id, createdAt: snapshot.createdAt };
+    return { id: snapshot.id, createdAt: snapshot.createdAt as any };
   } catch (error) {
     logger.error("Failed to persist insight snapshot:", undefined, error);
     logger.error("Bundle data that failed:", undefined, JSON.stringify(
@@ -60,7 +61,7 @@ export async function getLatestSnapshot(
   orgId: string = "default-org-id"
 ): Promise<InsightSnapshot | null> {
   try {
-    return await dbAnalyticsStorage.getLatestInsightSnapshot(orgId, scope);
+    return (await dbAnalyticsStorage.getLatestInsightSnapshot(orgId, scope)) ?? null;
   } catch (error) {
     logger.error("Failed to get latest snapshot:", undefined, error);
     return null;

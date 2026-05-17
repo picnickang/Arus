@@ -91,8 +91,7 @@ export function useExpenseTrackingData() {
     defaultValues: { hourlyLossRate: 500 },
   });
 
-  const createExpenseMutation = useCreateMutation({
-    endpoint: "/api/expenses",
+  const createExpenseMutation = useCreateMutation("/api/expenses", {
     invalidateKeys: ["/api/expenses"],
     successMessage: "Expense has been successfully recorded.",
     onSuccess: () => expenseForm.reset(),

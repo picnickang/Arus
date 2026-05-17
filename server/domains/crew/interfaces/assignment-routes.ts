@@ -46,7 +46,7 @@ export function registerAssignmentRoutes({ app, rateLimit }: CrewRouteDeps): voi
       const assignment = await crewService.updateAssignment(
         req.params.id,
         assignmentData,
-        req.user?.id
+        req.user?.id as any
       );
       res.json(assignment);
     })

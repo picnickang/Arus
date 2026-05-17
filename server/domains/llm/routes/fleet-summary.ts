@@ -31,10 +31,10 @@ export function registerFleetSummaryRoutes(
       const { lookbackHours = 168 } = req.body;
 
       const [equipmentHealth, telemetryData, workOrders, pdmScores] = await Promise.all([
-        dbEquipmentStorage.getEquipmentHealth(),
+        (dbEquipmentStorage as any).getEquipmentHealth(""),
         dbTelemetryStorage.getTelemetryTrends("", lookbackHours),
         workOrderService.getWorkOrdersWithDetails(),
-        dbDevicesStorage.getPdmScores(),
+        (dbDevicesStorage as any).getPdmScores(""),
       ]);
 
       let fleetAnalysis: any;
@@ -50,11 +50,11 @@ export function registerFleetSummaryRoutes(
         logger.warn("FleetSummary", "Fleet analysis failed, using fallback", error);
         fleetAnalysis = {
           totalEquipment: equipmentHealth.length,
-          healthyEquipment: equipmentHealth.filter((eq) => eq.healthIndex > 70).length,
+          healthyEquipment: equipmentHealth.filter((eq: any) => eq.healthIndex > 70).length,
           equipmentAtRisk: equipmentHealth.filter(
-            (eq) => eq.healthIndex >= 30 && eq.healthIndex <= 70
+            (eq: any) => eq.healthIndex >= 30 && eq.healthIndex <= 70
           ).length,
-          criticalEquipment: equipmentHealth.filter((eq) => eq.healthIndex < 30).length,
+          criticalEquipment: equipmentHealth.filter((eq: any) => eq.healthIndex < 30).length,
           topRecommendations: [
             "Review equipment with declining health scores",
             "Schedule preventive maintenance for at-risk equipment",
@@ -70,7 +70,7 @@ export function registerFleetSummaryRoutes(
       );
       const avgHealthIndex =
         equipmentHealth.length > 0
-          ? equipmentHealth.reduce((sum, eq) => sum + eq.healthIndex, 0) / equipmentHealth.length
+          ? equipmentHealth.reduce((sum: any, eq: any) => sum + eq.healthIndex, 0) / equipmentHealth.length
           : 0;
 
       res.json({

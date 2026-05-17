@@ -89,7 +89,7 @@ function evaluateThresholdStatus(
 function checkRecentCriticalAlerts(relevantAlerts: AlertNotification[]): number {
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
   return relevantAlerts.filter(
-    (alert) => alert.severity === "critical" && new Date(alert.timestamp).getTime() > cutoff
+    (alert) => alert.severity === "critical" && new Date((alert as any).timestamp ?? (alert as any).createdAt).getTime() > cutoff
   ).length;
 }
 
@@ -216,7 +216,7 @@ export function generateTelemetryAnalysis(
   period: { startDate: Date; endDate: Date }
 ): ComplianceReport["telemetryAnalysis"] {
   const periodData = telemetryData.filter((reading) => {
-    const timestamp = new Date(reading.timestamp);
+    const timestamp = new Date(reading.timestamp as any);
     return (
       timestamp >= period.startDate &&
       timestamp <= period.endDate &&
@@ -225,7 +225,7 @@ export function generateTelemetryAnalysis(
   });
 
   const periodAlerts = alerts.filter((alert) => {
-    const timestamp = new Date(alert.timestamp);
+    const timestamp = new Date((alert as any).timestamp ?? (alert as any).createdAt);
     return (
       timestamp >= period.startDate &&
       timestamp <= period.endDate &&
@@ -243,7 +243,7 @@ export function generateTelemetryAnalysis(
   const anomalousReadings = periodData.filter((reading) => {
     return periodAlerts.some(
       (alert) =>
-        Math.abs(new Date(alert.timestamp).getTime() - new Date(reading.timestamp).getTime()) <
+        Math.abs(new Date((alert as any).timestamp ?? (alert as any).createdAt).getTime() - new Date(reading.timestamp as any).getTime()) <
         5 * 60 * 1000
     );
   });

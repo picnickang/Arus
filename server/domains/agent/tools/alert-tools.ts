@@ -20,7 +20,7 @@ registerTool({
   },
   inputSchema: z.object({ equipmentId: z.string().optional(), limit: z.number().optional() }),
   requiresApproval: false,
-  async execute(input: { equipmentId?: string; limit?: number }, ctx) {
+  async execute(input: any, ctx: any) {
     const conditions = [eq(alertNotifications.orgId, ctx.orgId)];
     if (input.equipmentId) {
       conditions.push(eq(alertNotifications.equipmentId, input.equipmentId));
@@ -65,7 +65,7 @@ registerTool({
   },
   inputSchema: z.object({ alertId: z.string().min(1) }),
   requiresApproval: false,
-  async execute(input: { alertId: string }, ctx) {
+  async execute(input: any, ctx: any) {
     const [alert] = await db
       .select()
       .from(alertNotifications)

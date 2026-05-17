@@ -55,7 +55,7 @@ export async function analyzeEquipmentHealth(
     const formattedData =
       Array.isArray(telemetryData) && telemetryData.length > 0
         ? "data" in telemetryData[0]
-          ? (telemetryData as TelemetryTrend[]).map((trend) => ({
+          ? (telemetryData as TelemetryTrend[]).map((trend: any) => ({
               equipmentId: trend.equipmentId,
               sensorType: trend.sensorType,
               unit: trend.unit,
@@ -64,7 +64,7 @@ export async function analyzeEquipmentHealth(
               status: trend.status,
               trend: trend.trend,
               changePercent: trend.changePercent,
-              recentData: trend.data.slice(-5),
+              recentData: trend.data?.slice(-5) ?? [],
             }))
           : (telemetryData as EquipmentTelemetry[]).slice(-20)
         : [];

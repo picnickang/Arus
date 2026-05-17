@@ -202,7 +202,7 @@ export default function WorkOrders() {
               </div>
             </div>
             <VirtualizedWorkOrderTable
-              workOrders={filteredAndSortedWorkOrders}
+              workOrders={filteredAndSortedWorkOrders as any}
               equipment={equipment}
               vessels={vessels}
               crew={allCrewMembers}
@@ -226,7 +226,7 @@ export default function WorkOrders() {
         vessels={vessels}
         crew={allCrewMembers}
         onComplete={(id, feedback) => {
-          completeWorkOrderMutation.mutate({ orderId: id, predictionFeedback: feedback });
+          completeWorkOrderMutation.mutate({ orderId: id, predictionFeedback: feedback as any });
           closeDrawer();
         }}
         onEdit={(_order) => {
@@ -267,7 +267,7 @@ export default function WorkOrders() {
               onComplete={(feedback) =>
                 completeWorkOrderMutation.mutate({
                   orderId: selectedOrder.id,
-                  predictionFeedback: feedback,
+                  predictionFeedback: feedback as any,
                 })
               }
               isCompleting={completeWorkOrderMutation.isPending}
@@ -283,7 +283,7 @@ export default function WorkOrders() {
         onOpenChange={setFormDialogOpen}
         mode={formDialogMode}
         workOrder={selectedOrder}
-        onSubmit={handleFormSubmit}
+        onSubmit={handleFormSubmit as any}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
         defaultVesselId={defaultVesselId}
         defaultEquipmentId={defaultEquipmentId}

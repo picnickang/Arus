@@ -146,7 +146,7 @@ export async function planAndMaybeExecute({
 
   try {
     // Execute scheduling algorithm
-    const { scheduled, unfilled } = planShifts(daysArr, shifts, crew, leaves, existing);
+    const { scheduled, unfilled } = planShifts(daysArr, shifts, crew as any, leaves, existing as any);
     const durationMs = Date.now() - t0;
 
     // Persist results
@@ -168,7 +168,7 @@ export async function planAndMaybeExecute({
         }
       }
 
-      const assignmentRecords: InsertScheduleAssignment[] = scheduled.map((a) => ({
+      const assignmentRecords: InsertScheduleAssignment[] = scheduled.map((a): any => ({
         runId: run.id,
         orgId,
         date: a.date,
@@ -185,7 +185,7 @@ export async function planAndMaybeExecute({
     }
 
     // Always persist unfilled data for analysis
-    const unfilledRecords: InsertScheduleUnfilled[] = unfilled.map((u) => ({
+    const unfilledRecords: InsertScheduleUnfilled[] = unfilled.map((u): any => ({
       runId: run.id,
       orgId,
       day: u.day,
@@ -299,7 +299,7 @@ async function loadDrydocks(orgId: string, vessels?: string[]) {
 }
 
 async function loadCertifications(orgId: string) {
-  const certsList = await dbCrewExtensionsStorage.getCrewCertifications(undefined, orgId);
+  const certsList = await (dbCrewExtensionsStorage.getCrewCertifications as any)(undefined, orgId);
   const certsMap: { [crewId: string]: any[] } = {};
   for (const cert of certsList) {
     (certsMap[cert.crewId] ||= []).push(cert);
@@ -636,7 +636,7 @@ function planShiftsWithExplanations(
   explanations: Record<string, string>;
 } {
   // Use the existing planShifts and add explanations
-  const { scheduled, unfilled } = planShifts(daysArr, shifts, crew, leaves, existing);
+  const { scheduled, unfilled } = planShifts(daysArr, shifts, crew as any, leaves, existing as any);
 
   // Build explanations for each scheduled crew member
   const explanations: Record<string, string> = {};

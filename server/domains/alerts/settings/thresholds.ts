@@ -46,7 +46,7 @@ export async function upsertThreshold(
   }
   const [created] = await db
     .insert(alertThresholds)
-    .values({ ...data, orgId, key, name: data.name || key })
+    .values({ ...data, orgId, key, name: data.name || key } as any)
     .returning();
   return created;
 }

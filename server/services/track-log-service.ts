@@ -105,7 +105,7 @@ export class TrackLogService {
       sog: lastPos[0].sog ?? undefined,
       cog: lastPos[0].cog ?? undefined,
       heading: lastPos[0].heading ?? undefined,
-      source: lastPos[0].source,
+      source: lastPos[0].source as any,
       equipmentId: lastPos[0].equipmentId ?? undefined,
     };
   }
@@ -166,7 +166,7 @@ export class TrackLogService {
       equipmentId: position.equipmentId,
       distanceFromPrevNm: distanceFromPrev,
       timeFromPrevMinutes,
-    };
+    } as any;
 
     const result = await db
       .insert(vesselTrackLog)
@@ -240,7 +240,7 @@ export class TrackLogService {
         const position: Position = {
           latitude: lat,
           longitude: lon,
-          timestamp: telemetry.timestamp,
+          timestamp: telemetry.timestamp as Date,
           sog: readings.sog ? Number.parseFloat(String(readings.sog)) : undefined,
           cog: readings.cog ? Number.parseFloat(String(readings.cog)) : undefined,
           heading: readings.heading ? Number.parseFloat(String(readings.heading)) : undefined,
@@ -295,7 +295,7 @@ export class TrackLogService {
         sog: vesselTrackLog.sog,
         cog: vesselTrackLog.cog,
         heading: vesselTrackLog.heading,
-        navStatus: vesselTrackLog.navStatus,
+        navStatus: (vesselTrackLog as any).navStatus,
         source: vesselTrackLog.source,
       })
       .from(vesselTrackLog)
@@ -313,7 +313,7 @@ export class TrackLogService {
       query = query.limit(limit) as typeof query;
     }
 
-    return query;
+    return query as any;
   }
 
   /**
@@ -372,7 +372,7 @@ export class TrackLogService {
   }> {
     const stats = await db
       .select({
-        totalDistance: sql<number>`sum(${vesselTrackLog.distanceFromPrevNm})`,
+        totalDistance: sql<number>`sum(${(vesselTrackLog as any).distanceFromPrevNm})`,
         avgSpeed: sql<number>`avg(${vesselTrackLog.sog})`,
         maxSpeed: sql<number>`max(${vesselTrackLog.sog})`,
         trackPoints: sql<number>`count(*)`,

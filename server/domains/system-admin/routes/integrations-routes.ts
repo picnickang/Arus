@@ -72,7 +72,7 @@ export function registerIntegrationsRoutes(app: Express, deps: SystemAdminDepend
     auditAdminAction("UPDATE_INTEGRATION_CONFIG"),
     withErrorHandling("update integration config", async (req: Request, res: Response) => {
       const { id } = req.params;
-      const validatedData = insertIntegrationConfigSchema.partial().parse(req.body);
+      const validatedData = (insertIntegrationConfigSchema as any).partial().parse(req.body);
       const integration = await dbSystemAdminStorage.updateIntegrationConfig(id, validatedData);
       res.json(integration);
     })

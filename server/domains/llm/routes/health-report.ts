@@ -30,11 +30,11 @@ export function registerHealthReportRoutes(
     withErrorHandling("generate health report", async (req, res) => {
       const { vesselId, equipmentId, lookbackHours = 24 } = req.body;
 
-      const equipmentHealth = await dbEquipmentStorage.getEquipmentHealth();
+      const equipmentHealth = await (dbEquipmentStorage as any).getEquipmentHealth("");
       const filteredEquipmentHealth = vesselId
-        ? equipmentHealth.filter((eq) => eq.vessel === vesselId)
+        ? equipmentHealth.filter((eq: any) => eq.vessel === vesselId)
         : equipmentId
-          ? equipmentHealth.filter((eq) => eq.id === equipmentId)
+          ? equipmentHealth.filter((eq: any) => eq.id === equipmentId)
           : equipmentHealth;
 
       const telemetryData = equipmentId
@@ -54,11 +54,11 @@ export function registerHealthReportRoutes(
         logger.warn("HealthReport", "Fleet analysis failed, using fallback", error);
         fleetAnalysis = {
           totalEquipment: filteredEquipmentHealth.length,
-          healthyEquipment: filteredEquipmentHealth.filter((eq) => eq.healthIndex > 70).length,
+          healthyEquipment: filteredEquipmentHealth.filter((eq: any) => eq.healthIndex > 70).length,
           equipmentAtRisk: filteredEquipmentHealth.filter(
-            (eq) => eq.healthIndex >= 30 && eq.healthIndex <= 70
+            (eq: any) => eq.healthIndex >= 30 && eq.healthIndex <= 70
           ).length,
-          criticalEquipment: filteredEquipmentHealth.filter((eq) => eq.healthIndex < 30).length,
+          criticalEquipment: filteredEquipmentHealth.filter((eq: any) => eq.healthIndex < 30).length,
           topRecommendations: [
             "Schedule maintenance for equipment with health scores below 70%",
             "Monitor critical equipment closely for deteriorating conditions",

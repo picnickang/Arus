@@ -29,8 +29,8 @@ export function FeatureStoreTab() {
     }
   };
 
-  const hasFeatures = features && !features.message;
-  const sampleCount = hasFeatures ? features.sampleCount : 0;
+  const hasFeatures = !!features && !features.message;
+  const sampleCount = hasFeatures ? (features?.sampleCount ?? 0) : 0;
   const dataSource = sampleCount > 0 ? "telemetry" : "stub";
 
   const featureEntries = hasFeatures
@@ -92,11 +92,11 @@ export function FeatureStoreTab() {
                 </CardTitle>
                 <CardDescription className="flex items-center gap-3">
                   <span>
-                    Window: {features.windowMinutes ?? 60} min | Samples: {sampleCount}
+                    Window: {features?.windowMinutes ?? 60} min | Samples: {sampleCount}
                   </span>
                   <TimestampBadge
                     label="Computed"
-                    timestamp={features.computedAt || features.createdAt}
+                    timestamp={features?.computedAt || features?.createdAt}
                   />
                 </CardDescription>
               </div>

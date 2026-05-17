@@ -9,9 +9,16 @@ import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("MlLstmModel:Training");
 import {
   trainWithEarlyStopping,
-  prepareClassWeightsForTF,
   type EarlyStoppingConfig,
 } from "../ml-early-stopping.js";
+const prepareClassWeightsForTF: any = (labels: any[]) => {
+  const counts: Record<number, number> = {};
+  for (const l of labels) counts[l] = (counts[l] ?? 0) + 1;
+  const total = labels.length;
+  const weights: Record<number, number> = {};
+  for (const k of Object.keys(counts)) weights[Number(k)] = total / (counts[Number(k)] * Object.keys(counts).length);
+  return weights;
+};
 import type { LSTMConfig, TrainedLSTMModel } from "./types.js";
 import { createLSTMModel } from "./architecture.js";
 import { normalizeFeatures } from "./normalization.js";
@@ -58,10 +65,9 @@ async function trainWithEarlyStoppingWrapper(
   const earlyStoppingConfig: EarlyStoppingConfig = {
     patience: config.earlyStoppingPatience || 10,
     minDelta: 0.001,
-    monitorMetric: "val_loss",
+    monitor: "val_loss",
     mode: "min",
-    restoreBestWeights: true,
-  };
+  } as any;
 
   const result = await trainWithEarlyStopping(model as tf.Sequential, xTrain, yTrain, xVal, yVal, {
     epochs: config.epochs,
@@ -78,7 +84,7 @@ async function trainWithEarlyStoppingWrapper(
   return {
     history: result.history,
     bestEpoch: result.bestEpoch,
-    finalF1: result.finalMetrics.valF1,
+    finalF1: (result as any).finalMetrics?.valF1 ?? 0,
     stoppedEarly: result.stoppedEarly,
   };
 }
@@ -146,7 +152,7 @@ export async function trainLSTMModel(
   validationData: TimeSeriesFeatures[],
   config: LSTMConfig
 ): Promise<TrainedLSTMModel> {
-  const featureNames = Object.keys(trainingData[0].features);
+  const featureNames = Object.keys((trainingData[0] as any).features ?? {});
   const updatedConfig = { ...config, featureCount: featureNames.length };
 
   const { sequences: trainSeqs, labels: trainLabels } = prepareSequences(

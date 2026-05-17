@@ -444,7 +444,7 @@ export default function RmsMonitoringPage() {
             bunkerings={bunkerings}
             consumption={consumption}
             tanks={tanks}
-            rob={rob}
+            rob={rob ?? undefined}
             alertsLoading={alertsLoading}
             acknowledgeMutation={acknowledgeMutation}
           />

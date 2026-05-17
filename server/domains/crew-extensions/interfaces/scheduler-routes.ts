@@ -48,7 +48,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
   app.post(
     "/api/schedule/plan",
     crewOperationRateLimit,
-    withErrorHandling("plan schedule", async (req: AuthenticatedRequest, res: Response) => {
+    withErrorHandling("plan schedule", async (req: any, res: Response) => {
       const orgId = req.orgId!;
       const { from, days, vessels, mode } = req.body;
       const result = await planAndMaybeExecute({
@@ -189,12 +189,12 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
 
         if (result.success) {
           res.json({
+            ...result,
             success: true,
             message: `Generated ${result.sheetsCreated} rest sheets with ${result.daysCreated} days`,
-            ...result,
           });
         } else {
-          res.status(400).json({ success: false, errors: result.errors, ...result });
+          res.status(400).json({ ...result, success: false, errors: result.errors });
         }
       }
     )
@@ -327,7 +327,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       const shiftEnd = new Date(assignment.end || assignment.date);
 
       // Build scoring contexts for all crew
-      const scoringContexts: ScoringContext[] = crewList
+      const scoringContexts: ScoringContext[] = ((crewList as any[]) as any)
         .filter((c: any) => c.active !== false)
         .map((crew: any) => {
           // Count assignments for this crew (org scoped)
@@ -360,8 +360,8 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           const constraints: ConstraintViolation[] = [];
 
           for (const leave of crewLeaves) {
-            const leaveStart = new Date(leave.startDate || leave.start);
-            const leaveEnd = new Date(leave.endDate || leave.end);
+            const leaveStart = new Date((leave as any).startDate || leave.start);
+            const leaveEnd = new Date((leave as any).endDate || leave.end);
             if (shiftStart < leaveEnd && shiftEnd > leaveStart) {
               constraints.push({
                 constraint: { type: "leave", enforcement: "hard", description: "On leave" },
@@ -810,7 +810,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           status: status ? status.split(",").filter(Boolean) : undefined,
           includeUnfilled: includeUnfilled !== "false",
         };
-        const view = await crewExtensionsAppService.getSchedulePlannerView(filter);
+        const view = await crewExtensionsAppService.getSchedulePlannerView(filter as any);
         res.json(view);
       }
     )

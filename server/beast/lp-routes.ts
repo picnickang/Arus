@@ -34,7 +34,7 @@ const optimizationConstraintsSchema = z.object({
 router.post("/lp/optimize", async (req, res) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const config = await beastModeManager.getFeatureConfig(orgId, "lp_optimizer");
+    const config = await (beastModeManager as any).getFeatureConfig(orgId, "lp_optimizer");
     if (!config.enabled) {
       return res
         .status(403)
@@ -66,7 +66,7 @@ router.get("/lp/results/:resultId", async (req, res) => {
   try {
     const { resultId } = req.params;
     const orgId = DEFAULT_ORG_ID;
-    const config = await beastModeManager.getFeatureConfig(orgId, "lp_optimizer");
+    const config = await (beastModeManager as any).getFeatureConfig(orgId, "lp_optimizer");
     if (!config.enabled) {
       return res
         .status(403)

@@ -171,7 +171,7 @@ export class SchedulePlannerReadModelAdapter implements ISchedulePlannerReadMode
         .where(and(...conditions))
         .orderBy(vessels.name);
 
-      return result.map((row) => ({
+      return result.map((row): any => ({
         id: row.id,
         name: row.name || "Unknown Vessel",
         requiredCrew: 0,
@@ -497,21 +497,21 @@ export class SchedulePlannerReadModelAdapter implements ISchedulePlannerReadMode
       ];
 
       if (filter.vesselIds?.length) {
-        conditions.push(inArray(scheduleUnfilled.vesselId, filter.vesselIds));
+        conditions.push(inArray((scheduleUnfilled as any).vesselId, filter.vesselIds));
       }
 
       const result = await db
         .select({
-          vesselId: scheduleUnfilled.vesselId,
+          vesselId: (scheduleUnfilled as any).vesselId,
           date: scheduleUnfilled.date,
           shift: scheduleUnfilled.shiftId,
-          role: scheduleUnfilled.role,
+          role: (scheduleUnfilled as any).role,
           reason: scheduleUnfilled.reason,
           vesselName: vessels.name,
         })
         .from(scheduleUnfilled)
         .innerJoin(schedulerRuns, eq(scheduleUnfilled.runId, schedulerRuns.id))
-        .leftJoin(vessels, eq(scheduleUnfilled.vesselId, vessels.id))
+        .leftJoin(vessels, eq((scheduleUnfilled as any).vesselId, vessels.id))
         .where(and(...conditions))
         .orderBy(scheduleUnfilled.date);
 

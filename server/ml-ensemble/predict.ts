@@ -38,8 +38,8 @@ export async function ensemblePredict(
     enableShadowMode: config?.enableShadowMode ?? false,
   };
 
-  const flags = await getFeatureFlags(orgId);
-  const useEnsemble = flags.enableEnsemble !== false;
+  const flags: any = await (getFeatureFlags as any)(orgId);
+  const useEnsemble = flags?.enableEnsemble !== false;
 
   if (!useEnsemble && !ensembleConfig.enableShadowMode) {
     throw new Error("Ensemble predictions are disabled. Enable via feature flags.");
@@ -102,7 +102,7 @@ export async function ensemblePredict(
 
   let calibrationMethod: CalibrationMethod | null = null;
   try {
-    const calibrationCurves = await dbMlAnalyticsStorage.getCalibrationCurves(
+    const calibrationCurves = await (dbMlAnalyticsStorage as any).getCalibrationCurves(
       orgId,
       undefined,
       equipmentId,
@@ -111,8 +111,8 @@ export async function ensemblePredict(
 
     if (calibrationCurves.length > 0) {
       const latestCurve = calibrationCurves[0];
-      calibrationMethod = latestCurve.method;
-      const calibratedProbability = applyCalibration(
+      calibrationMethod = latestCurve.method as any;
+      const calibratedProbability: any = (applyCalibration as any)(
         finalPrediction,
         latestCurve.parameters as any,
         latestCurve.method
@@ -121,7 +121,7 @@ export async function ensemblePredict(
         "MlEnsemble",
         `Calibration applied: ${(finalPrediction * 100).toFixed(1)}% → ${(calibratedProbability * 100).toFixed(1)}% (${latestCurve.method})`
       );
-      finalPrediction = calibratedProbability;
+      finalPrediction = Array.isArray(calibratedProbability) ? calibratedProbability[0] : calibratedProbability;
     } else {
       logger.debug("MlEnsemble", "No calibration curve available - using raw ensemble prediction");
     }

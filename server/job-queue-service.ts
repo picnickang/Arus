@@ -74,7 +74,7 @@ class JobQueueService {
       throw new Error("Job queue not initialized");
     }
 
-    return this.boss.getJobById(jobId);
+    return (this.boss as any).getJobById(jobId);
   }
 
   async startWorker(
@@ -107,7 +107,7 @@ class JobQueueService {
       });
     };
 
-    await this.boss.work(
+    await (this.boss as any).work(
       "document-ingestion",
       { teamSize: concurrency, teamConcurrency: 1 },
       instrumentedHandler
@@ -121,7 +121,7 @@ class JobQueueService {
       throw new Error("Job queue not initialized");
     }
 
-    await this.boss.complete(jobId, result);
+    await (this.boss as any).complete(jobId, result);
 
     // Emit Prometheus metrics for job completion
     incrementJobCompleted("document-ingestion");
@@ -135,7 +135,7 @@ class JobQueueService {
       throw new Error("Job queue not initialized");
     }
 
-    await this.boss.fail(jobId, error);
+    await (this.boss as any).fail(jobId, error);
 
     // Emit Prometheus metrics for job failure
     const errorType = (error as any).code || "unknown";

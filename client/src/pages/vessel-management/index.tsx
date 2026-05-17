@@ -167,7 +167,7 @@ export default function VesselManagement() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Vessel Class</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select onValueChange={field.onChange} defaultValue={field.value ?? undefined}>
                               <FormControl>
                                 <SelectTrigger data-testid="select-vessel-class">
                                   <SelectValue placeholder="Select class" />
@@ -223,6 +223,7 @@ export default function VesselManagement() {
                                 step="0.01"
                                 placeholder="10000.00"
                                 {...field}
+                                value={field.value ?? ""}
                                 data-testid="input-day-rate"
                               />
                             </FormControl>
@@ -323,7 +324,7 @@ export default function VesselManagement() {
                   ),
               },
             ]}
-            data={v.vessels}
+            data={v.vessels as unknown as Vessel[]}
             keyExtractor={(vessel: Vessel) => vessel.id}
             actions={(vessel: Vessel) => (
               <div className="flex items-center justify-end gap-2">
@@ -415,7 +416,7 @@ export default function VesselManagement() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Vessel Class</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value ?? undefined}>
                         <FormControl>
                           <SelectTrigger data-testid="select-edit-vessel-class">
                             <SelectValue placeholder="Select class" />
@@ -471,6 +472,7 @@ export default function VesselManagement() {
                           step="0.01"
                           placeholder="10000.00"
                           {...field}
+                          value={field.value ?? ""}
                           data-testid="input-edit-day-rate"
                         />
                       </FormControl>

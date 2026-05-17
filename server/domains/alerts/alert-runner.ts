@@ -95,8 +95,9 @@ async function claimAlertSlot(
       alertType,
       alertKey,
       vesselId,
-      recipients: recipients.join(", "),
+      recipients: recipients.join(", ") as any,
       subject: title,
+      severity: "info",
       status: "sending",
     });
 
@@ -143,7 +144,7 @@ async function getAlertRecipients(
 ): Promise<string[]> {
   const recipients: string[] = [];
 
-  const settings = await alertSettingsService.getCrewAlertSettings(orgId, vesselId || null);
+  const settings: any = await alertSettingsService.getCrewAlertSettings(orgId, (vesselId || null) as any);
   if (!settings) {
     return recipients;
   }
@@ -227,8 +228,9 @@ async function logAlertToDatabase(
       orgId,
       alertType: alert.alertType,
       alertKey: alert.alertKey,
-      recipients: recipients.join(", "),
+      recipients: recipients.join(", ") as any,
       subject: alert.title,
+      severity: "info",
       status,
       errorMessage: errorMessage || null,
       sentAt: status === "sent" ? new Date() : null,
@@ -283,7 +285,7 @@ async function processAlert(
   const vesselName = vesselId ? await getVesselName(vesselId) : undefined;
   const email = buildAlertEmail(alert, vesselName);
 
-  const sendResult = await emailProviderService.sendEmail(
+  const sendResult = await (emailProviderService.sendEmail as any)(
     ctx.orgId,
     recipients,
     email.subject,

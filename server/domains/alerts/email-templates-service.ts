@@ -160,8 +160,8 @@ export class EmailTemplatesService {
     }
 
     return {
-      purchaseOrder: settings.purchaseOrderEmailTemplate ?? defaults.purchaseOrder,
-      serviceOrder: settings.serviceOrderEmailTemplate ?? defaults.serviceOrder,
+      purchaseOrder: (settings as any).purchaseOrderEmailTemplate ?? defaults.purchaseOrder,
+      serviceOrder: (settings as any).serviceOrderEmailTemplate ?? defaults.serviceOrder,
     };
   }
 
@@ -279,8 +279,8 @@ export class EmailTemplatesService {
           };
 
     return {
-      subject: this.renderTemplate(template.subject, sampleData),
-      body: this.renderTemplate(template.body, sampleData),
+      subject: this.renderTemplate(template.subject, sampleData as any),
+      body: this.renderTemplate(template.body, sampleData as any),
     };
   }
 }

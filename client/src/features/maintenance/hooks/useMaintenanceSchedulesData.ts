@@ -14,9 +14,7 @@ export function useMaintenanceSchedulesData() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editForm, setEditForm] = useState<Partial<MaintenanceSchedule>>({});
-  const [createForm, setCreateForm] = useState<
-    Partial<InsertMaintenanceSchedule> & { scheduledDate?: Date | string }
-  >({
+  const [createForm, setCreateForm] = useState<any>({
     equipmentId: "",
     scheduledDate: "",
     maintenanceType: "preventive",
@@ -77,9 +75,9 @@ export function useMaintenanceSchedulesData() {
     setEditForm({
       equipmentId: schedule.equipmentId,
       scheduledDate:
-        typeof schedule.scheduledDate === "string"
+        (typeof schedule.scheduledDate === "string"
           ? schedule.scheduledDate
-          : new Date(schedule.scheduledDate).toISOString().slice(0, 16),
+          : new Date(schedule.scheduledDate).toISOString().slice(0, 16)) as any,
       maintenanceType: schedule.maintenanceType,
       priority: schedule.priority,
       status: schedule.status,
@@ -103,7 +101,7 @@ export function useMaintenanceSchedulesData() {
     const payload: InsertMaintenanceSchedule = {
       ...createForm,
       orgId: getCurrentOrgId(),
-      scheduledDate: new Date(createForm.scheduledDate),
+      scheduledDate: new Date(createForm.scheduledDate) as any,
       equipmentId: createForm.equipmentId,
       maintenanceType: createForm.maintenanceType,
       priority: createForm.priority || 2,
@@ -128,11 +126,11 @@ export function useMaintenanceSchedulesData() {
     updateMutation.mutate({
       id: selectedSchedule.id,
       updates: updates as Partial<InsertMaintenanceSchedule>,
-    });
+    } as any);
   };
 
   const filteredSchedules = useMemo(() => {
-    let filtered = Array.isArray(schedules) ? (schedules as MaintenanceSchedule[]) : [];
+    let filtered = Array.isArray(schedules) ? (schedules as unknown as MaintenanceSchedule[]) : [];
     if (searchText) {
       filtered = filtered.filter(
         (schedule) =>

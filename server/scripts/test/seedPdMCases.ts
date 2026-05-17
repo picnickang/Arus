@@ -61,7 +61,7 @@ export async function seedPdMTestCases(options: SeedOptions = {}) {
       const eqId = uuid();
       const eqType = testEquipmentTypes[(vesselEquipment.length + i) % testEquipmentTypes.length];
       try {
-        await db.insert(equipment).values({
+        await (db.insert(equipment).values as any)({
           id: eqId,
           orgId: DEFAULT_ORG_ID,
           vesselId: testVesselId,

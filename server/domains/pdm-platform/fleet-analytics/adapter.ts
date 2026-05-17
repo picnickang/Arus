@@ -65,14 +65,14 @@ export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
         .where(eq(equipmentFeatures.orgId, orgId))
         .orderBy(desc(equipmentFeatures.timestamp))
         .limit(2000);
-      logger.warn("[FleetAnalytics] No equipment found for type, using all features as fallback", {
+      (logger as any).warn("[FleetAnalytics] No equipment found for type, using all features as fallback", {
         orgId,
         equipmentType,
       });
     }
 
     if (allFeatures.length === 0) {
-      logger.warn("[FleetAnalytics] No feature records found for baseline computation", {
+      (logger as any).warn("[FleetAnalytics] No feature records found for baseline computation", {
         orgId,
         equipmentType,
       });
@@ -124,7 +124,7 @@ export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
       results.push(result);
     }
 
-    logger.info("[FleetAnalytics] Baselines computed from feature records", {
+    (logger as any).info("[FleetAnalytics] Baselines computed from feature records", {
       orgId,
       equipmentType,
       count: results.length,

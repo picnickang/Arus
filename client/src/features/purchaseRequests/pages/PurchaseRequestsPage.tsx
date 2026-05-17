@@ -39,12 +39,12 @@ export function PurchaseRequestsPage() {
     createMutation.mutate(
       { requestedBy: requestedBy.trim() },
       {
-        onSuccess: (pr: PurchaseRequest) => {
+        onSuccess: ((pr: PurchaseRequest) => {
           toast({ title: "Purchase Request created" });
           setIsCreateOpen(false);
           setRequestedBy("");
           setLocation(`/purchase-requests/${pr.id}`);
-        },
+        }) as any,
         onError: (err) =>
           toast({ title: "Error", description: String(err), variant: "destructive" }),
       }

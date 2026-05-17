@@ -96,7 +96,7 @@ export function useEngineLogbookData() {
     if (engineLogComplete) {
       const newHourlyMap = new Map<number, Partial<EngineLogHourly>>();
       engineLogComplete.hourly.forEach((entry) =>
-        newHourlyMap.set(entry.hour, normalizeHourlyEntry(entry))
+        newHourlyMap.set(entry.hour, normalizeHourlyEntry(entry as any))
       );
       setHourlyEntries(newHourlyMap);
       setDailySummary({ ...engineLogComplete.daily });
@@ -218,11 +218,11 @@ export function useEngineLogbookData() {
       if (!selectedVesselId || !selectedDate) {
         throw new Error("Vessel and date required");
       }
-      return apiRequest("POST", "/api/logbook/engine/autofill", {
+      return (await apiRequest("POST", "/api/logbook/engine/autofill", {
         vesselId: selectedVesselId,
         logDate: selectedDate,
         overwriteManual: false,
-      }) as AutoFillResult;
+      })) as AutoFillResult;
     },
     onSuccess: (result) => {
       const { mainEngine, generators } = result;
@@ -355,7 +355,7 @@ export function useEngineLogbookData() {
   const updateHourlyEntry = (
     hour: number,
     field: string,
-    value: string | number | boolean | null
+    value: string | number | boolean | null | undefined
   ) => {
     setHourlyEntries((prev) => {
       const newMap = new Map(prev);
@@ -368,7 +368,7 @@ export function useEngineLogbookData() {
     genNum: number,
     hour: number,
     field: string,
-    value: string | number | boolean | null
+    value: string | number | boolean | null | undefined
   ) => {
     const key = `${genNum}-${hour}`;
     setGeneratorEntries((prev) => {
@@ -378,7 +378,7 @@ export function useEngineLogbookData() {
     });
     setIsDirty(true);
   };
-  const updateDailySummary = (field: string, value: string | number | boolean | null) => {
+  const updateDailySummary = (field: string, value: string | number | boolean | null | undefined) => {
     setDailySummary((prev) => ({ ...prev, [field]: value }));
     setIsDirty(true);
   };

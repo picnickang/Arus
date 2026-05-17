@@ -19,7 +19,7 @@ export interface ProjectedRestDay extends RestDay {
   crewId: string;
   workHours: number;
   restHours: number;
-  isProjected: boolean;
+  isProjected?: number;
 }
 
 export interface CrewProjection {

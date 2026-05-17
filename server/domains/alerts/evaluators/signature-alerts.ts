@@ -13,12 +13,12 @@ export async function evaluateMissingSignatureAlerts(
   const results: CrewAlertResult[] = [];
   const now = ctx.now || new Date();
 
-  const settings = await alertSettingsService.getCrewAlertSettings(ctx.orgId, ctx.vesselId || null);
-  if (!settings?.signatureRemindersEnabled) {
+  const settings = await alertSettingsService.getCrewAlertSettings(ctx.orgId, (ctx.vesselId ?? undefined));
+  if (!(settings as any)?.signatureRemindersEnabled) {
     return results;
   }
 
-  const signatureGraceHours = settings.signatureReminderHours || 24;
+  const signatureGraceHours = (settings as any)?.signatureReminderHours || 24;
   const { deck, engine } = await getUnsignedLogbooks(
     ctx.orgId,
     ctx.vesselId,

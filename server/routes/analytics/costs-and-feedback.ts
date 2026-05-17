@@ -26,7 +26,7 @@ export function mountCostsAndFeedbackRoutes(router: Router) {
         orgId,
         equipmentId as string | undefined
       );
-      const response = await cachedAnalytics<PredictionFeedbackListResponse>(
+      const response = await (cachedAnalytics as any)(
         cacheKey,
         async () => {
           const filters = [eq(predictionFeedback.orgId, orgId)];
@@ -37,7 +37,7 @@ export function mountCostsAndFeedbackRoutes(router: Router) {
             .select()
             .from(predictionFeedback)
             .where(and(...filters))
-            .orderBy(sql`${predictionFeedback.submittedAt} DESC`)
+            .orderBy(sql`${(predictionFeedback as any).submittedAt} DESC`)
             .limit(100);
           return {
             results,
@@ -68,7 +68,7 @@ export function mountCostsAndFeedbackRoutes(router: Router) {
       }
       const { period } = req.query;
       const cacheKey = analyticsCacheKeys.llmCosts(orgId, period as string | undefined);
-      const response = await cachedAnalytics<LlmCostListResponse>(
+      const response = await (cachedAnalytics as any)(
         cacheKey,
         async () => {
           const filters = [eq(llmCostTracking.orgId, orgId)];
@@ -82,13 +82,13 @@ export function mountCostsAndFeedbackRoutes(router: Router) {
             const startDate = (
               periodOffsets[period as string] ?? (() => new Date(now.setDate(now.getDate() - 30)))
             )();
-            filters.push(gte(llmCostTracking.timestamp, startDate));
+            filters.push(gte((llmCostTracking as any).timestamp, startDate));
           }
           const results = await db
             .select()
             .from(llmCostTracking)
             .where(and(...filters))
-            .orderBy(sql`${llmCostTracking.timestamp} DESC`)
+            .orderBy(sql`${(llmCostTracking as any).timestamp} DESC`)
             .limit(100);
           return {
             results,

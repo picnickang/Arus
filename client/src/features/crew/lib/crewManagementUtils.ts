@@ -260,8 +260,8 @@ export function sortCrew(
         compareB = b.name.toLowerCase();
         break;
       case "rank":
-        compareA = MARITIME_RANKS.indexOf(a.rank);
-        compareB = MARITIME_RANKS.indexOf(b.rank);
+        compareA = MARITIME_RANKS.indexOf(a.rank as any);
+        compareB = MARITIME_RANKS.indexOf(b.rank as any);
         break;
       case "vessel":
         compareA = getVesselName(a.vesselId ?? "").toLowerCase();

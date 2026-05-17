@@ -32,8 +32,8 @@ export async function executePgDump(
         reject(new Error(`gzip compression failed: ${error.message}`));
       });
 
-      pgDump.stdout.pipe(gzipProcess.stdin);
-      outputStream = gzipProcess.stdout;
+      pgDump.stdout!.pipe(gzipProcess.stdin!);
+      outputStream = gzipProcess.stdout!;
     }
 
     const writeStream = require("node:fs").createWriteStream(outputPath);
@@ -47,7 +47,7 @@ export async function executePgDump(
       totalBytes += chunk.length;
     });
 
-    pgDump.stderr.on("data", (data: Buffer) => {
+    pgDump.stderr!.on("data", (data: Buffer) => {
       stderr += data.toString();
     });
 
@@ -56,7 +56,7 @@ export async function executePgDump(
     });
 
     if (gzipProcess) {
-      gzipProcess.stderr.on("data", (data: Buffer) => {
+      gzipProcess.stderr!.on("data", (data: Buffer) => {
         stderr += `[gzip] ${data.toString()}`;
       });
     }
@@ -92,7 +92,7 @@ export async function executePgDump(
     }
 
     pgDump.on("close", (code) => {
-      checkCompletion("pg_dump", code);
+      checkCompletion("pg_dump", code ?? undefined);
     });
 
     if (gzipProcess) {

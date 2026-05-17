@@ -36,7 +36,7 @@ export class InventorySupplierService {
     const link = await inventorySupplierRepository.create(data);
 
     await recordAndPublish(
-      "inventory_supplier_link",
+      "inventory_supplier_link" as any,
       link.id,
       "create",
       { inventoryItemId: data.inventoryItemId, supplierId: data.supplierId },
@@ -63,9 +63,9 @@ export class InventorySupplierService {
 
     if (results.length > 0) {
       await recordAndPublish(
-        "inventory_supplier_link",
+        "inventory_supplier_link" as any,
         inventoryItemId,
-        "bulk_create",
+        "bulk_create" as any,
         { inventoryItemId, supplierIds },
         userId
       );
@@ -85,7 +85,7 @@ export class InventorySupplierService {
     const result = await inventorySupplierRepository.update(linkId, data);
 
     if (result) {
-      await recordAndPublish("inventory_supplier_link", linkId, "update", data, userId);
+      await recordAndPublish("inventory_supplier_link" as any, linkId, "update", data, userId);
     }
 
     return result;
@@ -98,7 +98,7 @@ export class InventorySupplierService {
     const deleted = await inventorySupplierRepository.delete(linkId);
 
     if (deleted) {
-      await recordAndPublish("inventory_supplier_link", linkId, "delete", {}, userId);
+      await recordAndPublish("inventory_supplier_link" as any, linkId, "delete", {}, userId);
     }
 
     return deleted;
@@ -121,9 +121,9 @@ export class InventorySupplierService {
     const links = await this.bulkLinkSuppliers(inventoryItemId, supplierIds, userId);
 
     await recordAndPublish(
-      "inventory_supplier_link",
+      "inventory_supplier_link" as any,
       inventoryItemId,
-      "replace",
+      "replace" as any,
       { inventoryItemId, supplierIds },
       userId
     );
@@ -147,9 +147,9 @@ export class InventorySupplierService {
     await inventorySupplierRepository.setPreferred(inventoryItemId, supplierId);
 
     await recordAndPublish(
-      "inventory_supplier_link",
+      "inventory_supplier_link" as any,
       inventoryItemId,
-      "set_preferred",
+      "set_preferred" as any,
       { inventoryItemId, supplierId },
       userId
     );

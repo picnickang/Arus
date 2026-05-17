@@ -89,7 +89,7 @@ export class SemanticCache {
 
   private async semanticLookup(orgId: string, query: string): Promise<SemanticCacheEntry | null> {
     try {
-      const queryEmbedding = await generateEmbedding(query, { orgId });
+      const queryEmbedding = await (generateEmbedding as any)(query, { orgId });
       const embeddingStr = `[${queryEmbedding.join(",")}]`;
       const distanceThreshold = 1 - this.semanticThreshold;
 
@@ -171,9 +171,9 @@ export class SemanticCache {
     let queryEmbedding: number[] | null = null;
     if (this.useSemanticLookup) {
       try {
-        queryEmbedding = await generateEmbedding(params.query, { orgId: params.orgId });
+        queryEmbedding = await (generateEmbedding as any)(params.query, { orgId: params.orgId });
       } catch (error) {
-        logger.warn("[SemanticCache] Failed to generate query embedding:", error);
+        logger.warn("[SemanticCache] Failed to generate query embedding:", error as any);
       }
     }
 
@@ -191,7 +191,7 @@ export class SemanticCache {
           modelUsed: params.modelUsed,
           ttlSeconds: ttl,
           expiresAt,
-        })
+        } as any)
         .onConflictDoUpdate({
           target: [ragSemanticCache.orgId, ragSemanticCache.queryHash],
           set: {
@@ -199,10 +199,10 @@ export class SemanticCache {
             citations: params.citations,
             sourceChunkIds: params.sourceChunkIds,
             modelUsed: params.modelUsed,
-            queryEmbedding: queryEmbedding ? sql`${JSON.stringify(queryEmbedding)}::vector` : null,
+            queryEmbedding: (queryEmbedding ? sql`${JSON.stringify(queryEmbedding)}::vector` : null) as any,
             expiresAt,
             lastAccessedAt: new Date(),
-          },
+          } as any,
         });
 
       logger.info(`[SemanticCache] Cached response for query hash ${queryHash.substring(0, 8)}`);

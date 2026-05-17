@@ -33,10 +33,8 @@ export class DbSensorsStorage {
     if (sensorType) {
       c.push(eq(sensorConfigurations.sensorType, sensorType));
     }
-    let q = db.select().from(sensorConfigurations);
-    if (c.length > 0) {
-      q = q.where(and(...c));
-    }
+    const base = db.select().from(sensorConfigurations);
+    const q = c.length > 0 ? base.where(and(...c)) : base;
     return q.orderBy(sql`${sensorConfigurations.updatedAt} DESC`);
   }
   async getSensorConfiguration(
@@ -63,10 +61,10 @@ export class DbSensorsStorage {
       .insert(sensorConfigurations)
       .values({
         ...config,
-        orgId: config.orgId || "default-org-id",
+        orgId: (config as any).orgId || "default-org-id",
         createdAt: new Date(),
         updatedAt: new Date(),
-      })
+      } as any)
       .returning();
     return r;
   }
@@ -80,7 +78,7 @@ export class DbSensorsStorage {
     return db.transaction(async (tx) => {
       const created: SensorConfiguration[] = [];
       for (const config of configs) {
-        const orgId = config.orgId || "default-org-id";
+        const orgId = (config as any).orgId || "default-org-id";
         const equipmentId = config.equipmentId;
         const sensorType = config.sensorType;
         const existing = await tx
@@ -109,7 +107,7 @@ export class DbSensorsStorage {
               .returning();
             if (updated.length > 0) {
               created.push(updated[0]);
-              await publishEvent("sensor_configuration", "update", updated[0]);
+              await publishEvent("sensor_configuration" as any, "update", updated[0] as any);
             }
           }
         } else {
@@ -119,7 +117,7 @@ export class DbSensorsStorage {
             .returning();
           if (result.length > 0) {
             created.push(result[0]);
-            await publishEvent("sensor_configuration", "create", result[0]);
+            await publishEvent("sensor_configuration" as any, "create", result[0] as any);
           }
         }
       }
@@ -208,7 +206,7 @@ export class DbSensorsStorage {
   async upsertSensorState(state: InsertSensorState): Promise<SensorState> {
     const [r] = await db
       .insert(sensorStates)
-      .values({ ...state, orgId: state.orgId || "default-org-id", updatedAt: new Date() })
+      .values({ ...state, orgId: (state as any).orgId || "default-org-id", updatedAt: new Date() } as any)
       .onConflictDoUpdate({
         target: [sensorStates.equipmentId, sensorStates.sensorType, sensorStates.orgId],
         set: {

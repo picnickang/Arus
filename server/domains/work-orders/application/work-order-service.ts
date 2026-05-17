@@ -50,7 +50,7 @@ export class WorkOrderApplicationService {
       orgId: workOrder.orgId || "default",
       vesselId: workOrder.vesselId || undefined,
       equipmentId: workOrder.equipmentId || undefined,
-      priority: workOrder.priority || "medium",
+      priority: (workOrder.priority as any) || "medium",
       timestamp: new Date(),
     });
 
@@ -163,7 +163,7 @@ export class WorkOrderApplicationService {
   }
 
   async addPartToWorkOrder(data: any): Promise<any> {
-    return workOrderRepository.addBulkPartsToWorkOrder(data);
+    return (workOrderRepository as any).addBulkPartsToWorkOrder(data);
   }
 
   async addBulkPartsAndReserveInventory(

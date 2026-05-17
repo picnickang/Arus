@@ -37,7 +37,7 @@ export async function getPreviousHealthIndex(
   if (previous.length === 0 || previous[0].healthIndex === null) {
     return null;
   }
-  return { healthIndex: previous[0].healthIndex, periodStart: previous[0].periodStart };
+  return { healthIndex: previous[0].healthIndex, periodStart: previous[0].periodStart! };
 }
 
 export async function createConditionLogEntry(
@@ -81,7 +81,7 @@ export async function createConditionLogEntry(
     equipmentId,
     periodStart,
     periodEnd,
-    periodType,
+    ...({ periodType } as any),
     vibrationRmsAvg: vibrationData?.rmsAvg ?? null,
     vibrationRmsMax: vibrationData?.rmsMax ?? null,
     vibrationRmsMin: vibrationData?.rmsMin ?? null,

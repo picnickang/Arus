@@ -141,7 +141,7 @@ export function registerAutofillRoutes(app: Express, rateLimit: RateLimiters) {
           await emailNotificationService.sendLogbookReminderNotification(
             "engine",
             log.vesselId,
-            log.vesselName,
+            log.vesselName ?? "",
             log.logDate,
             orgId
           );

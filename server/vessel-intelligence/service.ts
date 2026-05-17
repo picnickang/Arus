@@ -81,13 +81,13 @@ export class VesselIntelligenceService {
     const completedOrders = workOrders.filter((wo) => wo.status === "completed");
     const avgResolutionTime = calculateAverageResolutionTime(completedOrders);
     const criticalIncidents = workOrders.filter(
-      (wo) => wo.priority === "critical" || wo.priority === "urgent"
+      (wo) => (wo.priority as any) === "critical" || (wo.priority as any) === "urgent"
     ).length;
 
     const maintenanceHistory = {
       scheduled: workOrders.filter((wo) => wo.type === "scheduled").length,
       unscheduled: workOrders.filter((wo) => wo.type === "unscheduled").length,
-      emergency: workOrders.filter((wo) => wo.priority === "critical").length,
+      emergency: workOrders.filter((wo) => (wo.priority as any) === "critical").length,
       preventive: workOrders.filter((wo) => wo.type === "preventive").length,
     };
 

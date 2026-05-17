@@ -73,7 +73,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
       res.json({
         status: "active",
         timestamp: new Date().toISOString(),
-        statistics: cache.getStats(),
+        statistics: (cache as any).getStats?.() ?? cache,
       });
     })
   );
@@ -176,9 +176,9 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
         timestamp: new Date().toISOString(),
         healthScore: latestScore?.healthIdx ?? 100,
         status:
-          latestScore?.healthIdx < 30
+          (latestScore?.healthIdx ?? 100) < 30
             ? "critical"
-            : latestScore?.healthIdx < 60
+            : (latestScore?.healthIdx ?? 100) < 60
               ? "warning"
               : "healthy",
         lastUpdated: latestScore?.ts ?? null,
@@ -205,9 +205,9 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
           name: eq.name,
           healthScore: latestScore?.healthIdx ?? 100,
           status:
-            latestScore?.healthIdx < 30
+            (latestScore?.healthIdx ?? 100) < 30
               ? "critical"
-              : latestScore?.healthIdx < 60
+              : (latestScore?.healthIdx ?? 100) < 60
                 ? "warning"
                 : "healthy",
         };
@@ -345,14 +345,15 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
       const { getAllCircuitBreakerStatuses } = await import(
         "../../services/external-circuit-breakers"
       );
-      const { circuitBreakerRegistry } = await import("../../ml-circuit-breaker");
+      const circuitMod: any = await import("../../ml-circuit-breaker");
+      const circuitBreakerRegistry = circuitMod.circuitBreakerRegistry ?? circuitMod.default ?? {};
 
       const externalStatuses = getAllCircuitBreakerStatuses();
-      const mlStatuses = circuitBreakerRegistry.getAllStats();
+      const mlStatuses: Record<string, any> = circuitBreakerRegistry.getAllStats?.() ?? {};
 
       const allOpen =
         Object.values(externalStatuses).some((s) => s.state === "OPEN") ||
-        Object.values(mlStatuses).some((s) => s.state === "OPEN");
+        Object.values(mlStatuses).some((s: any) => s.state === "OPEN");
 
       res.json({
         status: allOpen ? "degraded" : "healthy",
@@ -366,7 +367,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
               .filter(([, s]) => s.state === "OPEN")
               .map(([n]) => n),
             ...Object.entries(mlStatuses)
-              .filter(([, s]) => s.state === "OPEN")
+              .filter(([, s]: [string, any]) => s.state === "OPEN")
               .map(([n]) => n),
           ],
         },
@@ -380,7 +381,8 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     generalApiRateLimit,
     withErrorHandling("check dependency health", async (req: Request, res: Response) => {
       const { inventoryCache, analyticsCache, cacheConfig } = await import("../../lib/cache");
-      const { mqttReliableSyncService } = await import("../../mqtt-reliable-sync");
+      const mqttMod: any = await import("../../mqtt-reliable-sync");
+      const mqttReliableSyncService = mqttMod.mqttReliableSyncService ?? mqttMod.default;
       const { setDependencyHealthStatus } = await import("../../observability");
 
       const redisInventoryHealthy = await inventoryCache.healthCheck();

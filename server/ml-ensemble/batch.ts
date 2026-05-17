@@ -43,7 +43,7 @@ export async function batchEnsemblePredict(
           features: t.readings as any,
           normalizedFeatures: {},
           label: 0,
-        }));
+        })) as any;
 
         const prediction = await ensemblePredict(orgId, equipmentId, timeSeriesData);
         return { equipmentId, prediction };

@@ -42,7 +42,7 @@ export function registerMetricsRoutes(router: Router) {
         health: {
           bufferUtilization:
             stats.bufferSize > 0
-              ? Math.round((stats.currentBufferSize / stats.bufferSize) * 100)
+              ? Math.round(((stats as any).currentBufferSize / stats.bufferSize) * 100)
               : 0,
           evictionRate:
             stats.totalQueued > 0
@@ -50,7 +50,7 @@ export function registerMetricsRoutes(router: Router) {
               : 0,
           writeSuccessRate:
             stats.totalQueued > 0
-              ? Math.round((stats.totalWritten / stats.totalQueued) * 10000) / 100
+              ? Math.round(((stats as any).totalWritten / stats.totalQueued) * 10000) / 100
               : 100,
         },
         timestamp: new Date().toISOString(),

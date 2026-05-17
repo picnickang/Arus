@@ -125,7 +125,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     withErrorHandling("fetch context events", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
       const { equipmentId, eventType, limit } = req.query;
-      const events = await analyticsInsightsAdapter.getContextEvents?.({
+      const events = await (analyticsInsightsAdapter as any).getContextEvents?.({
         orgId,
         equipmentId: equipmentId as string,
         eventType: eventType as string,
@@ -141,7 +141,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     writeOperationRateLimit,
     withErrorHandling("create context event", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const event = await analyticsInsightsAdapter.createContextEvent?.({ ...req.body, orgId });
+      const event = await (analyticsInsightsAdapter as any).createContextEvent?.({ ...req.body, orgId });
       sendCreated(res, event || req.body);
     })
   );
@@ -151,7 +151,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("delete context event", async (req: Request, res: Response) => {
-      await analyticsInsightsAdapter.deleteContextEvent?.(req.params.id);
+      await (analyticsInsightsAdapter as any).deleteContextEvent?.(req.params.id);
       sendDeleted(res);
     })
   );
@@ -237,7 +237,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     requireOrgId,
     withErrorHandling("fetch replay sessions", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const sessions = await analyticsInsightsAdapter.getReplaySessions?.(orgId);
+      const sessions = await (analyticsInsightsAdapter as any).getReplaySessions?.(orgId);
       res.json(sessions ?? []);
     })
   );
@@ -248,7 +248,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     writeOperationRateLimit,
     withErrorHandling("create replay session", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const session = await analyticsInsightsAdapter.createReplaySession?.({ ...req.body, orgId });
+      const session = await (analyticsInsightsAdapter as any).createReplaySession?.({ ...req.body, orgId });
       sendCreated(res, session || req.body);
     })
   );

@@ -73,9 +73,9 @@ export class DatabaseAnalyticsStorage {
       conditions.push(gte(maintenanceCosts.createdAt, dateFrom));
     }
     if (dateTo) {
-      conditions.push(gte(dateTo, maintenanceCosts.createdAt));
+      conditions.push(gte(maintenanceCosts.createdAt, dateTo) as any);
     }
-    let query = db.select().from(maintenanceCosts);
+    let query: any = db.select().from(maintenanceCosts);
     if (conditions.length > 0) {
       query = query.where(and(...conditions)) as typeof query;
     }
@@ -334,9 +334,9 @@ export class DatabaseAnalyticsStorage {
       c.push(gte(expenses.expenseDate, dateFrom));
     }
     if (dateTo) {
-      c.push(gte(dateTo, expenses.expenseDate));
+      c.push(gte(expenses.expenseDate, dateTo) as any);
     }
-    let query = db.select().from(expenses);
+    let query: any = db.select().from(expenses);
     if (c.length > 0) {
       query = query.where(and(...c)) as typeof query;
     }
@@ -440,9 +440,9 @@ export class DatabaseAnalyticsStorage {
       conditions.push(gte(performanceMetrics.metricDate, dateFrom));
     }
     if (dateTo) {
-      conditions.push(gte(dateTo, performanceMetrics.metricDate));
+      conditions.push(gte(performanceMetrics.metricDate, dateTo) as any);
     }
-    let query = db.select().from(performanceMetrics);
+    let query: any = db.select().from(performanceMetrics);
     if (conditions.length > 0) {
       query = query.where(and(...conditions)) as typeof query;
     }

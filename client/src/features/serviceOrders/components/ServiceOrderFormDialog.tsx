@@ -139,7 +139,7 @@ export function ServiceOrderFormDialog({
         serviceType: serviceOrder.serviceType || "service",
         serviceProviderId: serviceOrder.serviceProviderId || "",
         workOrderId: serviceOrder.workOrderId || "__none__",
-        vesselId: serviceOrder.vesselId || "__none__",
+        vesselId: (serviceOrder as any).vesselId || "__none__",
         scope: serviceOrder.scope || "",
         scheduledStartDate: serviceOrder.scheduledStartDate
           ? new Date(serviceOrder.scheduledStartDate).toISOString().split("T")[0]
@@ -221,13 +221,13 @@ export function ServiceOrderFormDialog({
 
     try {
       if (mode === "edit" && serviceOrder) {
-        await updateMutation.mutateAsync({ id: serviceOrder.id, data });
+        await updateMutation.mutateAsync({ id: serviceOrder.id, data: data as any });
         toast({
           title: "Service Order Updated",
           description: "The service order has been updated successfully.",
         });
       } else {
-        await createMutation.mutateAsync(data);
+        await createMutation.mutateAsync(data as any);
         toast({
           title: "Service Order Created",
           description: "The service order has been created successfully.",

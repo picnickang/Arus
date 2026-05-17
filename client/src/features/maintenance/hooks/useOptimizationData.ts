@@ -48,7 +48,7 @@ export function useOptimizationData() {
       if (!r.ok) {
         throw new Error("Failed to fetch configurations");
       }
-      return r.json() as OptimizerConfiguration[];
+      return (await r.json()) as OptimizerConfiguration[];
     },
   });
 
@@ -63,7 +63,7 @@ export function useOptimizationData() {
       if (!r.ok) {
         throw new Error("Failed to fetch results");
       }
-      return r.json() as OptimizationResult[];
+      return (await r.json()) as OptimizationResult[];
     },
     staleTime: 10000,
     refetchInterval: 15000,
@@ -76,7 +76,7 @@ export function useOptimizationData() {
       if (!r.ok) {
         throw new Error("Failed to fetch trend insights");
       }
-      return r.json() as TrendAnalysis[];
+      return (await r.json()) as TrendAnalysis[];
     },
   });
 
@@ -185,7 +185,7 @@ export function useOptimizationData() {
       apiRequest("POST", `/api/optimization/${optimizationId}/apply`),
     invalidateKeys: ["/api/optimization/results"],
     successMessage: "Optimization applied to production successfully",
-    errorMessage: (error: Error) => error.message,
+    errorMessage: ((error: unknown) => (error as Error).message) as any,
   });
 
   const downloadOptimizationMutation = useCustomMutation({
@@ -215,10 +215,10 @@ export function useOptimizationData() {
   });
 
   const clearAllOptimizationsMutation = useCustomMutation({
-    mutationFn: async () => apiRequest("DELETE", "/api/optimization/results?orgId=default-org-id"),
+    mutationFn: (async () => apiRequest("DELETE", "/api/optimization/results?orgId=default-org-id")) as any,
     invalidateKeys: ["/api/optimization/results"],
-    successMessage: (data: { deletedCount: number }) =>
-      `Successfully cleared ${data.deletedCount} optimization result(s)`,
+    successMessage: ((data: { deletedCount: number }) =>
+      `Successfully cleared ${data.deletedCount} optimization result(s)`) as any,
     errorMessage: "Failed to clear optimization results",
   });
 

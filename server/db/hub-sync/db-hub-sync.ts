@@ -216,7 +216,7 @@ export class DatabaseHubSyncStorage {
       .values(data)
       .onConflictDoUpdate({
         target: [deviceRegistry.deviceId, deviceRegistry.orgId],
-        set: { ...data, lastSyncAt: new Date(), updatedAt: new Date() },
+        set: { ...data, lastSyncAt: new Date(), updatedAt: new Date() } as any,
       })
       .returning();
     return r;
@@ -303,25 +303,25 @@ export class DatabaseHubSyncStorage {
   }
 
   async incrementSheetVersion(data: InsertSheetVersion): Promise<SheetVersion> {
-    const existing = await this.getSheetVersion(data.sheetType, data.sheetId);
+    const existing = await this.getSheetVersion(data.sheetType!, data.sheetId!);
     if (existing) {
       const [r] = await db
         .update(sheetVersion)
         .set({
-          version: existing.version + 1,
+          version: (existing.version ?? 0) + 1,
           lastModifiedBy: data.lastModifiedBy,
           lastModifiedDevice: data.lastModifiedDevice,
           updatedAt: new Date(),
-        })
+        } as any)
         .where(
-          and(eq(sheetVersion.sheetType, data.sheetType), eq(sheetVersion.sheetId, data.sheetId))
+          and(eq(sheetVersion.sheetType, data.sheetType!), eq(sheetVersion.sheetId, data.sheetId!))
         )
         .returning();
       return r;
     }
     const [r] = await db
       .insert(sheetVersion)
-      .values({ ...data, version: 1 })
+      .values({ ...data, version: 1 } as any)
       .returning();
     return r;
   }
@@ -336,13 +336,12 @@ export class DatabaseHubSyncStorage {
       c.push(eq(devices.orgId, orgId));
     }
     if (vesselId) {
-      c.push(eq(devices.vesselId, vesselId));
+      c.push(eq((devices as any).vesselId, vesselId));
     }
-    let q = db.select().from(devices);
-    if (c.length > 0) {
-      q = q.where(and(...c)) as typeof q;
-    }
-    return q.orderBy(devices.name);
+    const q = c.length > 0
+      ? db.select().from(devices).where(and(...c))
+      : db.select().from(devices);
+    return q.orderBy((devices as any).name);
   }
 
   async getDevice(id: string): Promise<Device | undefined> {
@@ -351,7 +350,7 @@ export class DatabaseHubSyncStorage {
   }
 
   async getDeviceByDeviceId(deviceId: string): Promise<Device | undefined> {
-    const [r] = await db.select().from(devices).where(eq(devices.deviceId, deviceId));
+    const [r] = await db.select().from(devices).where(eq((devices as any).deviceId, deviceId));
     return r;
   }
 
@@ -379,7 +378,7 @@ export class DatabaseHubSyncStorage {
   async updateDeviceLastSeen(deviceId: string): Promise<void> {
     await db
       .update(devices)
-      .set({ lastSeenAt: new Date(), updatedAt: new Date() })
-      .where(eq(devices.deviceId, deviceId));
+      .set({ lastSeenAt: new Date(), updatedAt: new Date() } as any)
+      .where(eq((devices as any).deviceId, deviceId));
   }
 }

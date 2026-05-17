@@ -55,7 +55,7 @@ export function calculateEngineEfficiency(
   return {
     success: true,
     data: efficiency,
-    source: countersSource,
+    source: countersSource as any,
     responseTimeMs: 0,
   };
 }

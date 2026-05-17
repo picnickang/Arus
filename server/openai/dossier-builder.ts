@@ -124,7 +124,7 @@ export async function buildEquipmentDossiers(
             hasRecentMaintenance: maintenanceRecords.length > 0,
           },
         },
-      };
+      } as unknown as EquipmentDossier;
     })
   );
 }

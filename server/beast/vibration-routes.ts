@@ -46,7 +46,7 @@ router.post("/vibration/analyze/:equipmentId", async (req, res) => {
         confidence: analysis.confidence,
       },
       message: analysis.isAnomalous
-        ? `ANOMALY DETECTED: ${analysis.anomalyType} (score: ${analysis.anomalyScore.toFixed(2)})`
+        ? `ANOMALY DETECTED: ${analysis.anomalyType} (score: ${(analysis.anomalyScore ?? 0).toFixed(2)})`
         : `Equipment operating normally (health score: ${analysis.healthScore}%)`,
     });
   } catch (error) {
@@ -143,7 +143,7 @@ router.post("/vibration/batch-analyze", async (req, res) => {
       anomalies: results.filter((r) => r.isAnomalous).length,
       avgHealthScore:
         results.length > 0
-          ? Math.round(results.reduce((sum, r) => sum + r.healthScore, 0) / results.length)
+          ? Math.round(results.reduce((sum, r) => sum + (r.healthScore ?? 0), 0) / results.length)
           : 0,
     };
     res.json({

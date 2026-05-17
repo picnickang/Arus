@@ -104,7 +104,7 @@ export class TwinStateService {
 
     const saved = await this.statePort.saveState(stateData);
 
-    logger.info("[TwinStateService] State computed", {
+    logger.info("[TwinStateService] State computed", undefined, {
       orgId,
       twinId,
       healthScore: saved.healthScore,

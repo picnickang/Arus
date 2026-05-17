@@ -106,7 +106,7 @@ export async function evaluateHoRViolationAlerts(
   const results: CrewAlertResult[] = [];
   const now = ctx.now || new Date();
 
-  const settings = await alertSettingsService.getCrewAlertSettings(ctx.orgId, ctx.vesselId || null);
+  const settings = await alertSettingsService.getCrewAlertSettings(ctx.orgId, (ctx.vesselId ?? undefined));
   if (!settings?.horViolationAlertsEnabled) {
     return results;
   }
@@ -117,7 +117,7 @@ export async function evaluateHoRViolationAlerts(
 
   for (const vessel of vessels) {
     try {
-      const vesselCrewRest = await dbStcwStorage.getVesselCrewRest(
+      const vesselCrewRest = await (dbStcwStorage as any).getVesselCrewRest(
         vessel.id,
         currentYear,
         currentMonth

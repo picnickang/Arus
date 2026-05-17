@@ -70,7 +70,7 @@ export async function persistPrediction(input: PersistenceInput): Promise<void> 
       },
       maintenanceRecommendations: recommendations,
       predictionTimestamp: new Date(),
-    },
+    } as any,
     orgId
   );
 
@@ -92,7 +92,7 @@ export async function persistPrediction(input: PersistenceInput): Promise<void> 
           equipmentId,
           remainingDays: daysToFailure || 30,
           riskLevel,
-          operatingMode: equipment.operatingMode,
+          operatingMode: (equipment as any).operatingMode,
         })
       );
     }

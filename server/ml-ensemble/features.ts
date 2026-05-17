@@ -23,7 +23,7 @@ export async function convertToClassificationFeatures(
 
   const telemetryData: any[] = [];
   for (const dataPoint of timeSeriesData) {
-    for (const [sensorType, value] of Object.entries(dataPoint.features)) {
+    for (const [sensorType, value] of Object.entries((dataPoint as any).features ?? {})) {
       telemetryData.push({
         id: `${equipmentId}-${dataPoint.timestamp.getTime()}-${sensorType}`,
         equipmentId,

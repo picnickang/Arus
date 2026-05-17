@@ -29,10 +29,8 @@ export class DatabaseStormGeoStorage {
     if (vesselId) {
       c.push(eq(stormgeoSettings.vesselId, vesselId));
     }
-    let q = db.select().from(stormgeoSettings);
-    if (c.length > 0) {
-      q = q.where(and(...c));
-    }
+    const base = db.select().from(stormgeoSettings);
+    const q = c.length > 0 ? base.where(and(...c)) : base;
     return q.orderBy(stormgeoSettings.createdAt);
   }
   async getStormgeoSetting(id: string): Promise<StormgeoSetting | undefined> {
@@ -83,16 +81,14 @@ export class DatabaseStormGeoStorage {
       c.push(eq(stormgeoSnapshots.vesselId, vesselId));
     }
     if (fromDate) {
-      c.push(gte(stormgeoSnapshots.timestamp, fromDate));
+      c.push(gte(stormgeoSnapshots.forecastTime, fromDate));
     }
     if (toDate) {
-      c.push(lte(stormgeoSnapshots.timestamp, toDate));
+      c.push(lte(stormgeoSnapshots.forecastTime, toDate));
     }
-    let q = db.select().from(stormgeoSnapshots);
-    if (c.length > 0) {
-      q = q.where(and(...c));
-    }
-    return q.orderBy(sql`${stormgeoSnapshots.timestamp} DESC`);
+    const base = db.select().from(stormgeoSnapshots);
+    const q = c.length > 0 ? base.where(and(...c)) : base;
+    return q.orderBy(sql`${stormgeoSnapshots.forecastTime} DESC`);
   }
   async getStormgeoSnapshot(id: string): Promise<StormgeoSnapshot | undefined> {
     const [r] = await db.select().from(stormgeoSnapshots).where(eq(stormgeoSnapshots.id, id));
@@ -103,7 +99,7 @@ export class DatabaseStormGeoStorage {
       .select()
       .from(stormgeoSnapshots)
       .where(eq(stormgeoSnapshots.vesselId, vesselId))
-      .orderBy(sql`${stormgeoSnapshots.timestamp} DESC`)
+      .orderBy(sql`${stormgeoSnapshots.forecastTime} DESC`)
       .limit(1);
     return r;
   }
@@ -119,7 +115,7 @@ export class DatabaseStormGeoStorage {
     return snapshots.length;
   }
   async deleteStormgeoSnapshotsBefore(date: Date): Promise<number> {
-    const r = await db.delete(stormgeoSnapshots).where(lte(stormgeoSnapshots.timestamp, date));
+    const r = await db.delete(stormgeoSnapshots).where(lte(stormgeoSnapshots.forecastTime, date));
     return r.rowCount ?? 0;
   }
 
@@ -134,17 +130,49 @@ export class DatabaseStormGeoStorage {
     if (vesselId) {
       c.push(eq(stormgeoImportHistory.vesselId, vesselId));
     }
-    let q = db.select().from(stormgeoImportHistory);
-    if (c.length > 0) {
-      q = q.where(and(...c));
-    }
-    return q.orderBy(sql`${stormgeoImportHistory.importedAt} DESC`);
+    const base = db.select().from(stormgeoImportHistory);
+    const q = c.length > 0 ? base.where(and(...c)) : base;
+    return q.orderBy(sql`${(stormgeoImportHistory as any).importedAt} DESC`);
   }
   async createStormgeoImportHistory(
     entry: InsertStormgeoImportHistory
   ): Promise<StormgeoImportHistory> {
     const [n] = await db.insert(stormgeoImportHistory).values(entry).returning();
     return n;
+  }
+  async updateStormgeoImportHistory(
+    id: string,
+    updates: Partial<InsertStormgeoImportHistory>
+  ): Promise<StormgeoImportHistory> {
+    const [u] = await db
+      .update(stormgeoImportHistory)
+      .set(updates)
+      .where(eq(stormgeoImportHistory.id, id))
+      .returning();
+    if (!u) throw new Error(`StormGeo import history ${id} not found`);
+    return u;
+  }
+  async getStormgeoSnapshotByTime(
+    vesselId: string,
+    targetTime: Date,
+    orgId: string
+  ): Promise<StormgeoSnapshot | undefined> {
+    const [r] = await db
+      .select()
+      .from(stormgeoSnapshots)
+      .where(
+        and(
+          eq(stormgeoSnapshots.vesselId, vesselId),
+          eq(stormgeoSnapshots.orgId, orgId),
+          lte(stormgeoSnapshots.forecastTime, targetTime),
+        ),
+      )
+      .orderBy(sql`${stormgeoSnapshots.forecastTime} DESC`)
+      .limit(1);
+    return r;
+  }
+  async createDeckLogHourlyAutoFill(_entry: Record<string, unknown>): Promise<void> {
+    // Delegated to logbook storage; stub retained for service convenience
   }
 
   async getWeatherCache(
@@ -162,10 +190,8 @@ export class DatabaseStormGeoStorage {
     if (toDate) {
       c.push(lte(weatherCache.fetchedAt, toDate));
     }
-    let q = db.select().from(weatherCache);
-    if (c.length > 0) {
-      q = q.where(and(...c));
-    }
+    const base = db.select().from(weatherCache);
+    const q = c.length > 0 ? base.where(and(...c)) : base;
     return q.orderBy(sql`${weatherCache.fetchedAt} DESC`);
   }
   async getLatestWeatherCache(vesselId: string): Promise<WeatherCache | undefined> {

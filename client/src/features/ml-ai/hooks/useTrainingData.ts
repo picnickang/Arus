@@ -68,7 +68,7 @@ export function useTrainingData() {
   const { data: equipment = [] } = useQuery<Equipment[]>({ queryKey: trainingKeys.equipment });
   const uniqueEquipmentTypes = getUniqueEquipmentTypes(equipment);
 
-  const trainLSTM = useCustomMutation({
+  const trainLSTM = useCustomMutation<any, any>({
     mutationFn: async (params: {
       equipmentType?: string;
       epochs?: number;
@@ -83,13 +83,13 @@ export function useTrainingData() {
     invalidateKeys: [["/api/analytics/ml-models"]],
     successMessage: (data: TrainingResult) =>
       `Model trained successfully with ${(data.metrics.accuracy * 100).toFixed(1)}% accuracy`,
-    errorMessage: (error: Error) => error.message || "Training failed",
+    errorMessage: ((error: any) => error?.message || "Training failed") as any,
     onSuccess: () => {
       refetchModels();
     },
   });
 
-  const trainRandomForest = useCustomMutation({
+  const trainRandomForest = useCustomMutation<any, any>({
     mutationFn: async (params: { equipmentType?: string; numTrees?: number }) => {
       return apiRequest("POST", "/api/ml/train/random-forest", {
         orgId,
@@ -100,7 +100,7 @@ export function useTrainingData() {
     invalidateKeys: [["/api/analytics/ml-models"]],
     successMessage: (data: TrainingResult) =>
       `Model trained successfully with ${(data.metrics.accuracy * 100).toFixed(1)}% accuracy`,
-    errorMessage: (error: Error) => error.message || "Training failed",
+    errorMessage: ((error: any) => error?.message || "Training failed") as any,
     onSuccess: () => {
       refetchModels();
     },
@@ -121,13 +121,13 @@ export function useTrainingData() {
     },
     successMessage: (data: AcousticAnalysisResult) =>
       `Health score: ${data.healthScore?.toFixed(0)}% - ${data.severity} severity`,
-    errorMessage: (error: Error) => error.message || "Analysis failed",
+    errorMessage: ((error: any) => error?.message || "Analysis failed") as any,
     onSuccess: (data) => {
       setAcousticResults(data);
     },
   });
 
-  const resetMLData = useCustomMutation({
+  const resetMLData = useCustomMutation<any, any>({
     mutationFn: async (params: { deleteModels?: boolean }) => {
       return apiRequest("POST", "/api/admin/ml/reset-training-data", {
         confirmationCode: "RESET_ML_DATA_CONFIRMED",
@@ -137,7 +137,7 @@ export function useTrainingData() {
     invalidateKeys: [["/api/analytics/ml-models"], ["/api/equipment"]],
     successMessage: (data: ResetResult) =>
       `Reset complete: ${data.deleted.telemetryRecords} telemetry records, ${data.deleted.predictions} predictions, ${data.deleted.anomalies} anomalies deleted`,
-    errorMessage: (error: Error) => error.message || "Reset failed",
+    errorMessage: ((error: any) => error?.message || "Reset failed") as any,
     onSuccess: () => {
       refetchModels();
     },

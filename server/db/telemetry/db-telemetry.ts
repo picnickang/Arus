@@ -103,7 +103,7 @@ export class DatabaseTelemetryStorage {
       conditions.push(eq(equipmentTelemetry.equipmentId, equipmentId));
     }
     if (vesselId) {
-      conditions.push(eq(equipmentTelemetry.vesselId, vesselId));
+      conditions.push(eq((equipmentTelemetry as any).vesselId, vesselId));
     }
     if (sensorType) {
       conditions.push(eq(equipmentTelemetry.sensorType, sensorType));
@@ -230,18 +230,18 @@ export class DatabaseTelemetryStorage {
     return result;
   }
   async upsertHeartbeat(heartbeat: InsertHeartbeat): Promise<EdgeHeartbeat> {
-    const e = await this.getHeartbeat(heartbeat.deviceId);
+    const e = await this.getHeartbeat((heartbeat as any).deviceId);
     if (e) {
       const [u] = await db
         .update(edgeHeartbeats)
-        .set({ ...heartbeat, ts: new Date() })
-        .where(eq(edgeHeartbeats.id, e.id))
+        .set({ ...heartbeat, ts: new Date() } as any)
+        .where(eq((edgeHeartbeats as any).id, (e as any).id))
         .returning();
       return u;
     }
     const [n] = await db
       .insert(edgeHeartbeats)
-      .values({ id: randomUUID(), ...heartbeat, ts: new Date() })
+      .values({ id: randomUUID(), ...heartbeat, ts: new Date() } as any)
       .returning();
     return n;
   }

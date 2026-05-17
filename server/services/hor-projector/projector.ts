@@ -216,9 +216,9 @@ function convertToProjectedRestDays(
       crewId,
       workHours,
       restHours,
-      isProjected: true,
+      isProjected: 1,
       ...flags,
-    });
+    } as any);
   }
 
   return days;
@@ -315,7 +315,7 @@ function calculateWeeklyWorkHours(days: ProjectedRestDay[], endDate: string): nu
 
   let totalWork = 0;
   for (const day of days) {
-    if (day.date >= startStr && day.date <= endDate) {
+    if (day.date! >= startStr! && day.date! <= endDate) {
       totalWork += day.workHours;
     }
   }
@@ -356,8 +356,8 @@ export function projectComplianceFromAssignments(
         ? projectedDays[projectedDays.length - 1].date
         : new Date().toISOString().split("T")[0];
 
-    const weeklyWorkHours = calculateWeeklyWorkHours(projectedDays, latestDate);
-    const last24hRestHours = calculateLast24hRest(projectedDays, latestDate);
+    const weeklyWorkHours = calculateWeeklyWorkHours(projectedDays, latestDate as string);
+    const last24hRestHours = calculateLast24hRest(projectedDays, latestDate as string);
 
     let fatigue: CrewProjection["fatigue"];
     try {

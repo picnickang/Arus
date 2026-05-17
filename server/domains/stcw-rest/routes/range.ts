@@ -50,8 +50,8 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
             const month = current.getMonth() + 1;
 
             try {
-              const restData = await dbStcwStorage.getCrewRestMonth(crewId, year, month);
-              if (restData.days && restData.days.length > 0) {
+              const restData: any = await (dbStcwStorage as any).getCrewRestMonth(crewId, String(year), month);
+              if (restData?.days && restData.days.length > 0) {
                 const filteredDays = restData.days.filter((day: RestDay) => {
                   const dayDate = new Date(day.date);
                   return dayDate >= startDate && dayDate <= endDate;
@@ -75,11 +75,11 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
         }
       };
 
-      const contexts = await prepareCrewHoRContext(crewIds, range.start, range.end, getHistoryRows);
+      const contexts = await (prepareCrewHoRContext as any)(crewIds, range.start, range.end, getHistoryRows);
 
       res.json({
         ok: true,
-        contexts: contexts.map((ctx: any) => ({
+        contexts: (contexts as any).map((ctx: any) => ({
           crew_id: ctx.crew_id,
           context: ctx.context,
           history_available: ctx.history_rows.length > 0,
@@ -126,7 +126,7 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
 
       incrementRangeQuery("vessel_crew", vesselId);
 
-      const result = await dbStcwStorage.getVesselCrewRest(vesselId, Number.parseInt(year), month);
+      const result = await (dbStcwStorage as any).getVesselCrewRest(vesselId, String(Number.parseInt(year)), month);
 
       recordRangeQueryDuration("vessel_crew", Date.now() - startTime);
 
@@ -142,7 +142,7 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
 
       incrementRangeQuery("advanced_search", vesselId || "fleet");
 
-      const result = await dbStcwStorage.getCrewRestRange(
+      const result = await (dbStcwStorage as any).getCrewRestRange(
         vesselId || "",
         startDate,
         endDate,

@@ -185,10 +185,10 @@ export class MlTrainingJobQueue {
 
       if (data.modelType === "all") {
         const { retrainAllModels } = await import("../../ml-training-pipeline");
-        result = await retrainAllModels(this.storage, data.orgId);
+        result = await (retrainAllModels as any)(this.storage, data.orgId);
       } else if (data.modelType === "lstm") {
         const { trainLSTMForFailurePrediction } = await import("../../ml-training-pipeline");
-        result = await trainLSTMForFailurePrediction(this.storage, {
+        result = await (trainLSTMForFailurePrediction as any)(this.storage, {
           orgId: data.orgId,
           equipmentType: data.equipmentType,
           modelType: "lstm",
@@ -197,7 +197,7 @@ export class MlTrainingJobQueue {
         });
       } else if (data.modelType === "random_forest") {
         const { trainRFForHealthClassification } = await import("../../ml-training-pipeline");
-        result = await trainRFForHealthClassification(this.storage, {
+        result = await (trainRFForHealthClassification as any)(this.storage, {
           orgId: data.orgId,
           equipmentType: data.equipmentType,
           modelType: "random_forest",
@@ -206,7 +206,7 @@ export class MlTrainingJobQueue {
         });
       } else if (data.modelType === "xgboost") {
         const { trainXGBoostForHealthClassification } = await import("../../ml-training-pipeline");
-        result = await trainXGBoostForHealthClassification(this.storage, {
+        result = await (trainXGBoostForHealthClassification as any)(this.storage, {
           orgId: data.orgId,
           equipmentType: data.equipmentType,
           modelType: "xgboost",

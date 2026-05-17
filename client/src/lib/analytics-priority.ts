@@ -82,7 +82,7 @@ export function generateEquipmentAlerts(equipmentHealth: EquipmentHealthInput[])
   return equipmentHealth
     .filter((eq) => eq.healthIndex < 50)
     .map((eq) => {
-      const severity = eq.healthIndex < 30 ? "critical" : "warning";
+      const severity: "critical" | "warning" | "info" = eq.healthIndex < 30 ? "critical" : "warning";
       const estimatedDowntimeCost = eq.healthIndex < 30 ? 5000 : 2000;
 
       return {
@@ -117,7 +117,7 @@ export function generateAnomalyAlerts(anomalies: AnomalyInput[]): PriorityAlert[
     .slice(0, 10) // Top 10 anomalies
     .map((anomaly) => {
       const zscore = anomaly.zscore ?? 0;
-      const severity = zscore > 3 ? "critical" : "warning";
+      const severity: "critical" | "warning" | "info" = zscore > 3 ? "critical" : "warning";
 
       return {
         id: `anomaly-${anomaly.equipmentId}-${anomaly.sensorType}`,
@@ -207,7 +207,7 @@ export function generateMaintenanceAlerts(workOrders: WorkOrderInput[]): Priorit
       );
     })
     .map((order) => {
-      const severity = order.priority === 1 ? "critical" : "warning";
+      const severity: "critical" | "warning" | "info" = order.priority === 1 ? "critical" : "warning";
       const estimatedCost = order.estimatedDowntimeHours
         ? order.estimatedDowntimeHours * 1000
         : 3000;
@@ -218,7 +218,7 @@ export function generateMaintenanceAlerts(workOrders: WorkOrderInput[]): Priorit
         severity,
         title: `Overdue Work Order: ${order.reason || "Maintenance Required"}`,
         description: `Priority ${order.priority} work order overdue - ${order.equipmentId || "Equipment"} needs attention`,
-        timestamp: new Date(order.createdAt),
+        timestamp: new Date(order.createdAt as any),
         financialImpact: estimatedCost,
         equipmentId: order.equipmentId,
         actionUrl: `/work-orders?orderId=${order.id}`,

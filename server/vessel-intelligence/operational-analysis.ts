@@ -94,7 +94,7 @@ export function identifyPredictiveIndicators(
   telemetryByEquipment.forEach((readings, equipmentId) => {
     const failures = workOrders.filter(
       (wo) =>
-        wo.equipmentId === equipmentId && (wo.priority === "critical" || wo.type === "corrective")
+        wo.equipmentId === equipmentId && ((wo.priority as any) === "critical" || (wo as any).type === "corrective")
     );
 
     if (failures.length > 0 && readings.length > 20) {

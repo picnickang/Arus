@@ -57,7 +57,7 @@ export function registerConfigManagementRoutes(
 
       if (result.success && result.changed.length > 0) {
         const { wsServer } = await import("../../websocket");
-        wsServer.broadcast({
+        (wsServer as any).broadcast({
           type: "config_updated",
           timestamp: new Date().toISOString(),
           changesCount: result.changed.length,
@@ -146,7 +146,7 @@ export function registerConfigManagementRoutes(
 
       if (result.success) {
         const { wsServer } = await import("../../websocket");
-        wsServer.broadcast({
+        (wsServer as any).broadcast({
           type: "config_updated",
           timestamp: new Date().toISOString(),
           key,
@@ -178,7 +178,7 @@ export function registerConfigManagementRoutes(
 
       if (result.success) {
         const { wsServer } = await import("../../websocket");
-        wsServer.broadcast({
+        (wsServer as any).broadcast({
           type: "config_updated",
           timestamp: new Date().toISOString(),
           key,

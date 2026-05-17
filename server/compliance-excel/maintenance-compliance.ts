@@ -31,6 +31,7 @@ export async function generateMaintenanceComplianceExcel(
     (wo) =>
       wo.equipmentId &&
       vesselEquipmentIds.has(wo.equipmentId) &&
+      wo.createdAt &&
       wo.createdAt >= period.startDate &&
       wo.createdAt <= period.endDate
   );
@@ -96,7 +97,7 @@ function renderMaintenanceComplianceExcel(
 
     for (const wo of workOrders) {
       woData.push([
-        wo.workOrderNumber ?? wo.id,
+        (wo as any).workOrderNumber ?? wo.id,
         wo.equipmentId ?? "",
         wo.maintenanceType ?? "",
         wo.priority ?? "",
@@ -125,8 +126,8 @@ function renderMaintenanceComplianceExcel(
         eq.name ?? "",
         eq.status ?? "",
         eq.healthIndex ?? "",
-        formatDate(eq.lastMaintenance),
-        eq.criticalAlerts ?? 0,
+        formatDate((eq as any).lastMaintenance),
+        (eq as any).criticalAlerts ?? 0,
       ]);
     }
 

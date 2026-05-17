@@ -28,7 +28,7 @@ export const mlObservability = {
     result: PredictionLikeResult,
     latencyMs: number
   ): void {
-    logger.info("[ML] Prediction success", {
+    (logger as any).info("[ML] Prediction success", {
       equipmentId,
       orgId,
       method,
@@ -46,7 +46,7 @@ export const mlObservability = {
     error: Error,
     latencyMs: number
   ): void {
-    logger.warn("[ML] Prediction failure", {
+    (logger as any).warn("[ML] Prediction failure", {
       equipmentId,
       orgId,
       method,

@@ -404,12 +404,12 @@ export default function MLTrainingPage() {
                         <div className="flex-1 bg-muted rounded-full h-2">
                           <div
                             className="bg-primary h-2 rounded-full transition-all"
-                            style={{ width: `${t.acousticResults.healthScore}%` }}
+                            style={{ width: `${t.acousticResults.healthScore ?? 0}%` }}
                             data-testid="progress-health-score"
                           />
                         </div>
                         <span className="text-sm font-medium" data-testid="text-health-score">
-                          {t.acousticResults.healthScore.toFixed(0)}%
+                          {(t.acousticResults.healthScore ?? 0).toFixed(0)}%
                         </span>
                       </div>
                     </div>
@@ -524,8 +524,8 @@ export default function MLTrainingPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {t.mlModels.map((model) => {
-                        const tier = model.hyperparameters?.dataQualityTier;
+                      {t.mlModels.map((model: any) => {
+                        const tier = (model.hyperparameters as any)?.dataQualityTier;
                         return (
                           <TableRow key={model.id} data-testid={`row-model-${model.id}`}>
                             <TableCell className="font-medium">{model.name}</TableCell>
@@ -538,11 +538,11 @@ export default function MLTrainingPage() {
                                     : model.modelType}
                               </Badge>
                             </TableCell>
-                            <TableCell>{model.targetEquipmentType || "All"}</TableCell>
+                            <TableCell>{(model.targetEquipmentType as any) || "All"}</TableCell>
                             <TableCell>
-                              {model.performance?.accuracy ? (
+                              {(model.performance as any)?.accuracy ? (
                                 <span className="text-sm" data-testid={`text-accuracy-${model.id}`}>
-                                  {(model.performance.accuracy * 100).toFixed(1)}% accuracy
+                                  {(((model.performance as any).accuracy as number) * 100).toFixed(1)}% accuracy
                                 </span>
                               ) : (
                                 <span className="text-muted-foreground text-sm">N/A</span>
@@ -557,9 +557,9 @@ export default function MLTrainingPage() {
                                   >
                                     {t.getTierBadge(tier).label}
                                   </Badge>
-                                  {model.hyperparameters?.lookbackDays && (
+                                  {(model.hyperparameters as any)?.lookbackDays && (
                                     <div className="text-xs text-muted-foreground">
-                                      {model.hyperparameters.lookbackDays} days
+                                      {(model.hyperparameters as any).lookbackDays} days
                                     </div>
                                   )}
                                 </div>
@@ -584,7 +584,7 @@ export default function MLTrainingPage() {
                               )}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
-                              {new Date(model.createdAt).toLocaleDateString()}
+                              {new Date(model.createdAt as any).toLocaleDateString()}
                             </TableCell>
                           </TableRow>
                         );

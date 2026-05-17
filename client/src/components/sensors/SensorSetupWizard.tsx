@@ -40,7 +40,7 @@ import {
 
 export function SensorSetupWizard({ equipment, open, onClose, onSuccess }: SensorSetupWizardProps) {
   const { wizardState, setWizardState, progress, handleNext, handleBack, handleClose } =
-    useSensorWizardData({ equipment, onSuccess, onClose });
+    useSensorWizardData({ equipment: equipment as any, onSuccess, onClose });
 
   if (!equipment) {
     return null;

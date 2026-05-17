@@ -102,7 +102,7 @@ export async function loadXgbPrediction(
       equipmentId,
       orgId
     );
-    const xgbPred = await predictWithXGBoost(xgbModel, classificationFeatures);
+    const xgbPred = await predictWithXGBoost(xgbModel, classificationFeatures as any);
     const failureProb = xgbPred.failureRisk;
 
     logger.debug("MlEnsemble", `XGBoost prediction: ${(failureProb * 100).toFixed(1)}%`);

@@ -10,7 +10,7 @@
  * without duplicating business logic.
  */
 
-import type { Part, Stock } from "@shared/schema";
+import type { Part, Stock, PartSubstitution } from "@shared/schema";
 import type { IStorage } from "../storage/interfaces/storage.types";
 
 /**
@@ -44,6 +44,11 @@ export interface InventoryStorage {
    * Get substitution mappings for a part
    */
   suggestPartSubstitutions(partNo: string, orgId: string): Promise<Part[]>;
+
+  /**
+   * Get part substitution records (with metadata: alternatePartNo, substitutionType, notes)
+   */
+  getPartSubstitutions(partNo: string, orgId: string): Promise<PartSubstitution[]>;
 
   /**
    * Get parts required by a work order
@@ -150,6 +155,17 @@ export class InventoryStorageAdapter implements InventoryStorage {
   }
 
   /**
+   * Get part substitution records with metadata
+   */
+  async getPartSubstitutions(partNo: string, orgId: string): Promise<PartSubstitution[]> {
+    const part = await this.storage.getPartByPartNo(partNo, orgId);
+    if (!part) {
+      return [];
+    }
+    return (this.storage as any).getPartSubstitutions(part.id, orgId);
+  }
+
+  /**
    * Get work order parts with proper typing
    */
   async getWorkOrderParts(
@@ -159,8 +175,8 @@ export class InventoryStorageAdapter implements InventoryStorage {
     const workOrderParts = await this.storage.getWorkOrderParts(workOrderId, orgId);
 
     // Map to simplified structure needed by inventory functions
-    return workOrderParts.map((wop) => ({
-      partNo: wop.partNo ?? "", // Handle missing partNo
+    return workOrderParts.map((wop: any) => ({
+      partNo: wop.partNo ?? "",
       quantity: wop.quantityUsed ?? 0,
     }));
   }

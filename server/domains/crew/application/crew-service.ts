@@ -111,7 +111,7 @@ export class CrewApplicationService {
       ...(data.roleId !== undefined && { roleId: data.roleId || null }),
     };
 
-    const crew = await this.deps.crewMemberRepository.updateCrew(id, sanitizedData, orgId);
+    const crew = await (this.deps.crewMemberRepository.updateCrew as any)(id, sanitizedData, orgId);
 
     await this.deps.eventPublisher.publish({
       type: "CREW_MEMBER_UPDATED",
@@ -125,7 +125,7 @@ export class CrewApplicationService {
   }
 
   async deleteCrew(id: string, userId?: string, orgId?: string): Promise<void> {
-    await this.deps.crewMemberRepository.deleteCrew(id, orgId);
+    await (this.deps.crewMemberRepository.deleteCrew as any)(id, orgId);
 
     await this.deps.eventPublisher.publish({
       type: "CREW_MEMBER_DELETED",

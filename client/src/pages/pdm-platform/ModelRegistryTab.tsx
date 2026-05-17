@@ -37,7 +37,7 @@ export function ModelRegistryTab({
       for (const m of modelsList) {
         try {
           const res = await fetch(`/api/pdm/models/${m.id}/versions`, {
-            headers: { "x-org-id": currentOrgId },
+            headers: { "x-org-id": currentOrgId as any },
           });
           if (!res.ok) {
             continue;
@@ -139,7 +139,7 @@ export function ModelRegistryTab({
         </Card>
       )}
 
-      {selectedModelId && deployment && !deployment.message && (
+      {selectedModelId && deployment != null && !(deployment as any).message && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Active Deployment</CardTitle>
@@ -147,19 +147,19 @@ export function ModelRegistryTab({
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
               <div>
-                <span className="text-muted-foreground">Target:</span> {deployment.deploymentTarget}
+                <span className="text-muted-foreground">Target:</span> {(deployment as any).deploymentTarget}
               </div>
               <div>
                 <span className="text-muted-foreground">Status:</span>{" "}
-                <Badge>{deployment.deploymentStatus}</Badge>
+                <Badge>{(deployment as any).deploymentStatus}</Badge>
               </div>
               <div>
                 <span className="text-muted-foreground">Traffic:</span>{" "}
-                {deployment.trafficPercentage}%
+                {(deployment as any).trafficPercentage}%
               </div>
               <div>
                 <span className="text-muted-foreground">Deployed:</span>{" "}
-                {new Date(deployment.deployedOn).toLocaleDateString()}
+                {new Date((deployment as any).deployedOn).toLocaleDateString()}
               </div>
             </div>
           </CardContent>

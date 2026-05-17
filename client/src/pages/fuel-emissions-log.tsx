@@ -36,6 +36,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useFuelEmissionsData } from "@/features/deck-logbook";
 
+type FuelLogExt = {
+  id: string;
+  periodStart: string | Date;
+  periodType: string | null;
+  foConsumptionMt?: number | null;
+  doConsumptionMt?: number | null;
+  co2EmissionsMt?: number | null;
+  avgEngineLoad?: number | null;
+  distanceNm?: number | null;
+  dataSource?: string | null;
+  dataQuality?: string | null;
+};
+
 const CIIRatingColors: Record<string, string> = {
   A: "bg-green-500 text-white",
   B: "bg-green-400 text-white",
@@ -372,7 +385,7 @@ export default function FuelEmissionsLogPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {logs.slice(0, 50).map((log) => (
+                      {(logs as unknown as FuelLogExt[]).slice(0, 50).map((log) => (
                         <TableRow key={log.id} data-testid={`row-fuel-log-${log.id}`}>
                           <TableCell className="font-medium">
                             {format(new Date(log.periodStart), "MMM dd HH:mm")}

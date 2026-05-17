@@ -430,7 +430,7 @@ registerTool({
     lng: z.number().optional(),
   }),
   requiresApproval: false,
-  async execute(input, ctx) {
+  execute: (async (input: any, ctx: any) => {
     // Reuse getMarineWeather for the data fetch
     const weatherTool = getTool("getMarineWeather");
     if (!weatherTool) {
@@ -440,7 +440,7 @@ registerTool({
     const weatherResult = (await weatherTool.execute(
       { vesselId: input.vesselId, lat: input.lat, lng: input.lng },
       ctx
-    )) as MarineWeatherData & { error?: string; _meta?: Record<string, unknown> };
+    )) as unknown as MarineWeatherData & { error?: string; _meta?: Record<string, unknown> };
 
     if (weatherResult.error) {
       return weatherResult;
@@ -492,5 +492,5 @@ registerTool({
       operationalRisk: weatherResult.operationalRisk,
       _meta: weatherResult._meta,
     };
-  },
+  }) as any,
 });

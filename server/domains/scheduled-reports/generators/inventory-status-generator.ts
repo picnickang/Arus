@@ -62,7 +62,7 @@ export class InventoryStatusGenerator implements IInventoryStatusGenerator {
             lowStockItems.push({
               partId: item.id,
               partName: item.name,
-              partNumber: item.partNumber || "N/A",
+              partNumber: (item as any).partNumber || "N/A",
               currentQuantity: currentQty,
               minimumQuantity: minQty,
               vesselName: vessel.name,

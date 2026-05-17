@@ -174,7 +174,7 @@ export class SuggestionEngine {
 
     let config: import("@shared/schema/agent").AgentConfigType | null = null;
     try {
-      config = await this.repo.config.get(orgId);
+      config = (await this.repo.config.get(orgId)) ?? null;
     } catch {
       // Non-critical — auto-trigger defaults to off
     }

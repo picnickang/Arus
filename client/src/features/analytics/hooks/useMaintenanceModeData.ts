@@ -13,7 +13,25 @@ interface EquipmentHealth {
   equipmentId: string;
   healthScore: number;
   status: string;
+  healthIndex?: number;
   [key: string]: unknown;
+}
+
+interface MaintenanceRecord {
+  id: string;
+  equipmentId: string;
+  type?: string;
+  date?: string;
+  cost?: number;
+}
+
+interface CostSavingsShape {
+  predictiveSavings?: number;
+  totalDowntimePrevented?: number;
+}
+
+interface EquipmentHealthResponseShape {
+  results?: EquipmentHealth[];
 }
 
 export interface WorkOrderData {
@@ -50,37 +68,37 @@ interface SchedulingSuggestion {
 export function useMaintenanceModeData() {
   const { data: pdmScores = [], isLoading: pdmLoading } = useQuery<PdmScoreData[]>({
     queryKey: ["/api/pdm/scores"],
-    queryFn: () => fetchPdmScores(),
+    queryFn: () => fetchPdmScores() as unknown as Promise<PdmScoreData[]>,
     refetchInterval: 120000,
     staleTime: 60000,
   });
   const { data: workOrders = [], isLoading: workOrdersLoading } = useQuery<WorkOrderData[]>({
     queryKey: ["/api/work-orders"],
-    queryFn: () => fetchWorkOrders(),
+    queryFn: () => fetchWorkOrders() as unknown as Promise<WorkOrderData[]>,
     refetchInterval: 120000,
     staleTime: 60000,
   });
-  const { data: maintenanceRecords = [] } = useQuery({
+  const { data: maintenanceRecords = [] } = useQuery<MaintenanceRecord[]>({
     queryKey: ["/api/analytics/maintenance-records"],
-    queryFn: () => fetchMaintenanceRecords(),
+    queryFn: () => fetchMaintenanceRecords() as unknown as Promise<MaintenanceRecord[]>,
     refetchInterval: 300000,
     staleTime: 120000,
   });
-  const { data: failurePatternsData } = useQuery({
+  const { data: failurePatternsData = [] } = useQuery<FailurePatternData[]>({
     queryKey: ["/api/analytics/failure-patterns"],
-    queryFn: () => fetchFailurePatterns(6),
+    queryFn: () => fetchFailurePatterns(6) as unknown as Promise<FailurePatternData[]>,
     refetchInterval: 300000,
     staleTime: 120000,
   });
-  const { data: costSavings } = useQuery({
+  const { data: costSavings } = useQuery<CostSavingsShape | undefined>({
     queryKey: ["/api/cost-savings/summary"],
-    queryFn: () => fetchCostSavingsSummary(),
+    queryFn: () => fetchCostSavingsSummary() as unknown as Promise<CostSavingsShape | undefined>,
     refetchInterval: 300000,
     staleTime: 120000,
   });
-  const { data: equipmentHealthResponse } = useQuery({
+  const { data: equipmentHealthResponse } = useQuery<EquipmentHealthResponseShape | undefined>({
     queryKey: ["/api/equipment/health"],
-    queryFn: () => fetchEquipmentHealthTyped(),
+    queryFn: () => fetchEquipmentHealthTyped() as unknown as Promise<EquipmentHealthResponseShape | undefined>,
     refetchInterval: 120000,
     staleTime: 60000,
   });
@@ -121,7 +139,9 @@ export function useMaintenanceModeData() {
       workOrders.length > 0 ? (completedOrders.length / workOrders.length) * 100 : 0;
     const preventiveSavings = costSavings?.predictiveSavings || 0;
     const reactiveCost = costSavings?.totalDowntimePrevented || 0;
-    const highReactiveCostEquipment = equipmentHealth.filter((eq) => (eq.healthIndex || 100) < 60);
+    const highReactiveCostEquipment = equipmentHealth.filter(
+      (eq) => ((eq.healthIndex as number | undefined) ?? 100) < 60
+    );
     return {
       openOrders,
       overdueOrders,
@@ -135,7 +155,7 @@ export function useMaintenanceModeData() {
     };
   }, [workOrders, pdmScores, costSavings, equipmentHealth]);
 
-  const failurePatterns: FailurePatternData[] = failurePatternsData?.failurePatterns ?? [];
+  const failurePatterns: FailurePatternData[] = failurePatternsData ?? [];
   const failureChartData = useMemo(
     () =>
       failurePatterns.map((pattern) => ({

@@ -47,11 +47,11 @@ export function useManualTelemetryUpload() {
     refetchInterval: 60000,
   });
 
-  const csvImportMutation = useCustomMutation({
-    mutationFn: async (csvData: string) => {
+  const csvImportMutation = useCustomMutation<string, ImportResult>({
+    mutationFn: (async (csvData: string) => {
       setUploadProgress(50);
       return apiRequest("POST", "/api/import/telemetry/csv", { csvData });
-    },
+    }) as any,
     invalidateKeys: [["/api/raw-telemetry"]],
     successMessage: (result: ImportResult) => result.message,
     errorMessage: (error: unknown) => (error as Error)?.message || "Failed to import CSV data",
@@ -72,11 +72,11 @@ export function useManualTelemetryUpload() {
     },
   });
   const jsonImportMutation = useCustomMutation({
-    mutationFn: async (jsonData: string) => {
+    mutationFn: (async (jsonData: string) => {
       setUploadProgress(50);
       const parsed = JSON.parse(jsonData);
       return apiRequest("POST", "/api/import/telemetry/json", parsed);
-    },
+    }) as any,
     invalidateKeys: [["/api/raw-telemetry"]],
     successMessage: (result: ImportResult) => result.message,
     errorMessage: (error: unknown) => (error as Error)?.message || "Failed to import JSON data",

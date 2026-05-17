@@ -179,7 +179,7 @@ function processShift(
     end.setDate(end.getDate() + 1);
   }
 
-  const needed = shift.needed ?? 1;
+  const needed = (shift as any).needed ?? 1;
   const rankedCrew = rankCrew(crew, shift.vesselId);
   let picked = 0;
 

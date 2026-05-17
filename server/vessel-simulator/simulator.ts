@@ -239,16 +239,12 @@ export class VesselSimulator {
           if (value !== undefined && value !== null) {
             await this.storage.createTelemetryReading({
               equipmentId: config.equipmentId,
-              deviceId: config.deviceId,
               orgId: config.orgId,
               ts: point.timestamp,
               sensorType,
               value: typeof value === "number" ? value : 0,
               unit,
-              metadata: {
-                simulated: true,
-                vesselType: config.vesselType,
-              },
+              ...({ deviceId: config.deviceId, metadata: { simulated: true, vesselType: config.vesselType } } as any),
             });
             totalRecords++;
           }

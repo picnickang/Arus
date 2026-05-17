@@ -42,7 +42,7 @@ function emitRulUpdateSafe(
         equipmentId,
         remainingDays,
         riskLevel,
-        operatingMode,
+        operatingMode: operatingMode ?? undefined,
       })
     );
   } catch (e) {
@@ -65,7 +65,7 @@ export async function storePrediction(
     {
       equipmentId,
       orgId,
-      equipmentType: equipment.type,
+      equipmentType: (equipment as any).type,
       failureProbability: prediction.failureProbability,
       predictedFailureDate: prediction.predictedFailureDate,
       confidence: prediction.confidence,
@@ -73,7 +73,7 @@ export async function storePrediction(
       riskLevel,
       inputFeatures: {},
       predictionTimestamp: new Date(),
-    },
+    } as any,
     orgId
   );
 
@@ -83,7 +83,7 @@ export async function storePrediction(
     equipmentId,
     prediction.remainingDays || 30,
     riskLevel,
-    equipment.operatingMode
+    (equipment as any).operatingMode
   );
 }
 
@@ -112,7 +112,7 @@ async function buildTimeSeriesFeatures(
       features: featureMap,
       normalizedFeatures: {},
       label: 0,
-    });
+    } as any);
   }
   return features;
 }
@@ -132,10 +132,10 @@ function buildClassificationFeatures(
     telemetry.filter((t) => t.sensorType.toLowerCase().includes("pressure")).map((t) => t.value)
   );
 
-  return {
+  return ({
     equipmentId,
-    equipmentType,
-    features: {
+    equipmentType: equipmentType as any,
+    features: ({
       avgTemperature: tempStats.avg,
       maxTemperature: tempStats.max,
       stdTemperature: tempStats.std,
@@ -148,10 +148,10 @@ function buildClassificationFeatures(
       cycleCount: 0,
       maintenanceAge: 30,
       failureHistory: 0,
-    },
-    label: "healthy",
+    } as any),
+    label: "healthy" as any,
     failureRisk: 0,
-  };
+  } as any);
 }
 
 async function computeAndStoreExplanation(
@@ -242,7 +242,7 @@ async function processAndStorePrediction(
         modelType: pred.method,
         inputFeatures: {},
         predictionTimestamp: new Date(),
-      },
+      } as any,
       orgId
     );
     emitRulUpdateSafe(

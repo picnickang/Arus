@@ -21,7 +21,7 @@ export function registerNarrativeRoutes(app: Express, config: VesselPerformanceR
         return res.status(400).json({ message: "vesselId and chartType are required" });
       }
 
-      const summary = await narrativeService.generateSummary(input);
+      const summary = await (narrativeService as any).generateSummary(input);
 
       res.setHeader("Cache-Control", "public, max-age=300");
       res.json(summary);

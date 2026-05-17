@@ -101,7 +101,7 @@ export function registerComplianceReportRoutes(
         const alertNotifications = await dbAlertStorage.getAlertNotifications(undefined, orgId);
 
         const recentAlerts = alertNotifications.filter(
-          (alert) => new Date(alert.createdAt) >= lookbackDate
+          (alert) => new Date(alert.createdAt as any) >= lookbackDate
         );
 
         const acknowledgedWithinSLA = recentAlerts.filter((alert) => {
@@ -109,7 +109,7 @@ export function registerComplianceReportRoutes(
             return false;
           }
           const responseTime =
-            new Date(alert.acknowledgedAt).getTime() - new Date(alert.createdAt).getTime();
+            new Date(alert.acknowledgedAt as any).getTime() - new Date(alert.createdAt as any).getTime();
           return responseTime <= slaHours * 60 * 60 * 1000;
         }).length;
 
@@ -150,7 +150,7 @@ export function registerComplianceReportRoutes(
                   return true;
                 }
                 const responseTime =
-                  new Date(alert.acknowledgedAt).getTime() - new Date(alert.createdAt).getTime();
+                  new Date(alert.acknowledgedAt as any).getTime() - new Date(alert.createdAt as any).getTime();
                 return responseTime > slaHours * 60 * 60 * 1000;
               })
               .slice(0, 10),

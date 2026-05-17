@@ -46,10 +46,13 @@ export function useVesselDetail(): UseVesselDetailReturn {
     queryFn: () => apiRequest<Equipment[]>("GET", `/api/vessels/${vesselId}/equipment`),
     enabled: !!vesselId,
   });
-  const { data: workOrders = [], isLoading: workOrdersLoading } = useWorkOrders();
-  const { data: crew = [], isLoading: crewLoading } = useCrewList();
-  const { data: maintenanceSchedules = [], isLoading: schedulesLoading } =
+  const { data: workOrdersRaw = [], isLoading: workOrdersLoading } = useWorkOrders();
+  const { data: crewRaw = [], isLoading: crewLoading } = useCrewList();
+  const { data: maintenanceSchedulesRaw = [], isLoading: schedulesLoading } =
     useMaintenanceSchedules();
+  const workOrders = workOrdersRaw as unknown as WorkOrder[];
+  const crew = crewRaw as unknown as Crew[];
+  const maintenanceSchedules = maintenanceSchedulesRaw as unknown as MaintenanceSchedule[];
 
   const vesselWorkOrders = useMemo(
     () =>
@@ -86,13 +89,13 @@ export function useVesselDetail(): UseVesselDetailReturn {
     [vesselWorkOrders]
   );
 
+  const opDays = Number(vessel?.operationDays ?? 0);
+  const dtDays = Number(vessel?.downtimeDays ?? 0);
   const utilizationRate =
-    vessel?.operationDays && vessel?.downtimeDays
-      ? ((vessel.operationDays / (vessel.operationDays + vessel.downtimeDays)) * 100).toFixed(1)
-      : "N/A";
+    opDays && dtDays ? ((opDays / (opDays + dtDays)) * 100).toFixed(1) : "N/A";
   const totalCost =
-    vessel?.dayRateSgd && vessel?.operationDays
-      ? (Number.parseFloat(vessel.dayRateSgd) * vessel.operationDays).toFixed(2)
+    vessel?.dayRateSgd && opDays
+      ? (Number.parseFloat(String(vessel.dayRateSgd)) * opDays).toFixed(2)
       : "N/A";
 
   return {

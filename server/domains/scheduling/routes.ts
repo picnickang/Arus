@@ -54,7 +54,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
           const s2 = schedules[j];
           if (
             s1.scheduledDate === s2.scheduledDate &&
-            s1.assignedCrewId === s2.assignedCrewId
+            (s1 as any).assignedCrewId === (s2 as any).assignedCrewId
           ) {
             conflicts.push({
               schedule1: s1,
@@ -313,14 +313,14 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       }));
 
       const result = await dbOptimizerStorage.createOptimizationResult({
-        configId,
+        configurationId: configId,
         orgId,
         inputSchedules: schedules.length,
         outputSchedules: optimizedSchedules.length,
         improvementScore: 15.5,
-        status: "completed",
+        runStatus: "completed",
         results: optimizedSchedules,
-      });
+      } as any);
 
       res.json(result);
     })
@@ -333,8 +333,8 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const orgId = DEFAULT_ORG_ID;
       const vesselId = req.query.vesselId as string | undefined;
 
-      const effective = await schedulingSettingsService.resolveEffectiveSettings(orgId, vesselId);
-      const settings = await schedulingSettingsService.getSettings(orgId, vesselId);
+      const effective = await (schedulingSettingsService as any).resolveEffectiveSettings({ orgId, vesselId });
+      const settings = await (schedulingSettingsService as any).getSettings({ orgId, vesselId });
 
       res.json({
         id: settings?.id || "",
@@ -359,13 +359,12 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const orgId = DEFAULT_ORG_ID;
       const vesselId = req.query.vesselId as string | undefined;
 
-      const updated = await schedulingSettingsService.updateNotificationSettings(
-        orgId,
+      const updated = await (schedulingSettingsService as any).updateNotificationSettings(
+        { orgId, vesselId },
         req.body,
-        vesselId
       );
 
-      logger.info("[SchedulingSettings] Notifications updated", { orgId, vesselId });
+      logger.info("[SchedulingSettings] Notifications updated", { orgId, vesselId } as any);
       res.json(updated);
     })
   );
@@ -379,14 +378,13 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const vesselId = req.query.vesselId as string | undefined;
       const { thresholds, enforcement } = req.body;
 
-      const updated = await schedulingSettingsService.updateRuleThresholds(
-        orgId,
+      const updated = await (schedulingSettingsService as any).updateRuleThresholds(
+        { orgId, vesselId },
         thresholds,
         enforcement,
-        vesselId
       );
 
-      logger.info("[SchedulingSettings] Rules updated", { orgId, vesselId });
+      logger.info("[SchedulingSettings] Rules updated", { orgId, vesselId } as any);
       res.json(updated);
     })
   );
@@ -399,9 +397,9 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const orgId = DEFAULT_ORG_ID;
       const vesselId = req.query.vesselId as string | undefined;
 
-      const updated = await schedulingSettingsService.updateAiWeights(orgId, req.body, vesselId);
+      const updated = await (schedulingSettingsService as any).updateAiWeights({ orgId, vesselId }, req.body);
 
-      logger.info("[SchedulingSettings] AI weights updated", { orgId, vesselId });
+      logger.info("[SchedulingSettings] AI weights updated", { orgId, vesselId } as any);
       res.json(updated);
     })
   );
@@ -414,13 +412,12 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const orgId = DEFAULT_ORG_ID;
       const vesselId = req.query.vesselId as string | undefined;
 
-      const updated = await schedulingSettingsService.updatePublishBehavior(
-        orgId,
+      const updated = await (schedulingSettingsService as any).updatePublishBehavior(
+        { orgId, vesselId },
         req.body,
-        vesselId
       );
 
-      logger.info("[SchedulingSettings] Publish behavior updated", { orgId, vesselId });
+      logger.info("[SchedulingSettings] Publish behavior updated", { orgId, vesselId } as any);
       res.json(updated);
     })
   );
@@ -433,13 +430,12 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const orgId = DEFAULT_ORG_ID;
       const vesselId = req.query.vesselId as string | undefined;
 
-      const updated = await schedulingSettingsService.updateRotationTemplates(
-        orgId,
+      const updated = await (schedulingSettingsService as any).updateRotationTemplates(
+        { orgId, vesselId },
         req.body,
-        vesselId
       );
 
-      logger.info("[SchedulingSettings] Rotation templates updated", { orgId, vesselId });
+      logger.info("[SchedulingSettings] Rotation templates updated", { orgId, vesselId } as any);
       res.json(updated);
     })
   );
@@ -452,9 +448,9 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const orgId = DEFAULT_ORG_ID;
       const vesselId = req.query.vesselId as string | undefined;
 
-      const reset = await schedulingSettingsService.resetToDefaults(orgId, vesselId);
+      const reset = await (schedulingSettingsService as any).resetToDefaults({ orgId, vesselId });
 
-      logger.info("[SchedulingSettings] Settings reset to defaults", { orgId, vesselId });
+      logger.info("[SchedulingSettings] Settings reset to defaults", { orgId, vesselId } as any);
       res.json(reset);
     })
   );

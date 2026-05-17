@@ -24,7 +24,7 @@ export async function predictWithLSTM(
   for (const point of sequence) {
     const features: number[] = [];
     for (const featureName of model.featureNames) {
-      features.push(point.features[featureName] ?? 0);
+      features.push((point as any).features?.[featureName] ?? 0);
     }
     featureSequence.push(features);
   }

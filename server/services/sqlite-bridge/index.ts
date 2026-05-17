@@ -259,8 +259,8 @@ export async function runSqliteBridge(config: BridgeConfig): Promise<void> {
           let oldestTs: number;
           if (typeof oldestFrameTs === "number") {
             oldestTs = oldestFrameTs;
-          } else if (oldestFrameTs instanceof Date) {
-            oldestTs = oldestFrameTs.getTime();
+          } else if ((oldestFrameTs as any) instanceof Date) {
+            oldestTs = (oldestFrameTs as Date).getTime();
           } else if (typeof oldestFrameTs === "string") {
             oldestTs = Date.parse(oldestFrameTs);
           } else {

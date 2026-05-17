@@ -263,7 +263,7 @@ export default function ScheduledReports() {
             "/api/scheduled-reports/schedules",
           ]);
           const updated = fresh?.data?.find((s) => s.id === scheduleId);
-          if (updated?.lastRunAt && updated.lastRunAt !== initialLastRunAt) {
+          if (updated?.lastRunAt && (updated.lastRunAt as any) !== initialLastRunAt) {
             clearInterval(timer);
             pollingTimersRef.current.delete(scheduleId);
             toast({
@@ -552,7 +552,7 @@ export default function ScheduledReports() {
                       size="sm"
                       variant="outline"
                       onClick={() =>
-                        runNowMutation.mutate({ id: schedule.id, lastRunAt: schedule.lastRunAt })
+                        runNowMutation.mutate({ id: schedule.id, lastRunAt: schedule.lastRunAt as any })
                       }
                       disabled={runNowMutation.isPending}
                       data-testid={`button-run-${schedule.id}`}

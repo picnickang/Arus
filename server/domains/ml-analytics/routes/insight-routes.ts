@@ -15,7 +15,7 @@ export function registerInsightRoutes(app: Express, _config: MlAnalyticsConfig) 
     "/api/analytics/insight-snapshots",
     withErrorHandling("fetch insight snapshots", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, scope, limit } = req.query;
-      const snapshots = await analyticsInsightsAdapter.getInsightSnapshots(
+      const snapshots = await (analyticsInsightsAdapter.getInsightSnapshots as any)(
         orgId as string,
         scope as string,
         limit ? Number.parseInt(limit as string) : undefined

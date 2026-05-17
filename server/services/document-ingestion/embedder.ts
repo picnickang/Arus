@@ -24,7 +24,7 @@ export async function embedChunks(
     const chunk = chunks[i];
     logger.info(`[DocIngestion:Embed] Processing chunk ${i + 1}/${chunks.length}`);
 
-    const embedding = await generateEmbedding(chunk, {
+    const embedding = await (generateEmbedding as any)(chunk, {
       useOpenAIFallback: !!openAiKey,
       openAiKey,
       orgId,

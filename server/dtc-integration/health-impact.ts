@@ -10,7 +10,7 @@ export function calculateDtcHealthImpact(activeDtcs: DtcWithDefinition[]): numbe
 
   for (const dtc of activeDtcs) {
     const severity = dtc.definition?.severity ?? 4;
-    const occurrenceMultiplier = Math.min(dtc.oc / 10, 2);
+    const occurrenceMultiplier = Math.min((dtc.oc ?? 0) / 10, 2);
     const basePenalty = severity === 1 ? 30 : severity === 2 ? 20 : severity === 3 ? 10 : 5;
     healthPenalty += basePenalty * (1 + occurrenceMultiplier);
   }
@@ -36,7 +36,7 @@ export async function getDtcSummaryForReports(
       if (sevA !== sevB) {
         return sevA - sevB;
       }
-      return b.oc - a.oc;
+      return (b.oc ?? 0) - (a.oc ?? 0);
     })
     .slice(0, 5)
     .map((d) => ({
@@ -44,7 +44,7 @@ export async function getDtcSummaryForReports(
       fmi: d.fmi,
       description: d.definition?.description ?? "Unknown fault",
       severity: d.definition?.severity ?? 0,
-      oc: d.oc,
+      oc: d.oc ?? 0,
     }));
 
   return {
@@ -80,7 +80,7 @@ export async function calculateDtcFinancialImpact(
   }
 
   const vessel = await vesselService.getVessel(vesselId, orgId);
-  const dayRate = vessel?.dayRate ? Number(vessel.dayRate) : 50000;
+  const dayRate = (vessel as any)?.dayRate ? Number((vessel as any).dayRate) : 50000;
   const hourlyRate = dayRate / 24;
 
   return { totalDowntimeHours, estimatedCost: totalDowntimeHours * hourlyRate, criticalDtcCount };

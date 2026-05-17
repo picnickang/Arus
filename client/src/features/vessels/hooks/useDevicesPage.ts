@@ -26,9 +26,9 @@ export function useDevicesPage() {
     const d = devices ?? [];
     return {
       total: d.length,
-      online: d.filter((x) => x.status === "Online").length,
-      warning: d.filter((x) => x.status === "Warning").length,
-      critical: d.filter((x) => x.status === "Critical").length,
+      online: d.filter((x: any) => x.status === "Online").length,
+      warning: d.filter((x: any) => x.status === "Warning").length,
+      critical: d.filter((x: any) => x.status === "Critical").length,
     };
   }, [devices]);
 
@@ -94,14 +94,15 @@ export function useDevicesPage() {
       }
       const deviceData: InsertDevice = {
         id: formData.id.trim(),
-        vessel: formData.vessel?.trim() || null,
-        buses: formData.buses?.trim() || null,
-        sensors: formData.sensors?.trim() || null,
-        config: formData.config?.trim() || null,
-        hmacKey: formData.hmacKey?.trim() || null,
-      };
+        orgId: (selectedDevice?.orgId as string) || "",
+        vessel: (formData.vessel as any)?.toString().trim() || null,
+        buses: (formData.buses as any)?.toString().trim() || null,
+        sensors: (formData.sensors as any)?.toString().trim() || null,
+        config: (formData.config as any)?.toString().trim() || null,
+        hmacKey: (formData.hmacKey as any)?.toString().trim() || null,
+      } as any;
       if (selectedDevice) {
-        updateDeviceMutation.mutate({ id: selectedDevice.id, updates: deviceData });
+        updateDeviceMutation.mutate({ id: selectedDevice.id, data: deviceData } as any);
       } else {
         createDeviceMutation.mutate(deviceData);
       }

@@ -251,7 +251,7 @@ export function registerLlmAnalysisRoutes(
             );
           })
           .slice(0, 5)
-          .map((a) => ({
+          .map((a: any) => ({
             alertType: a.alertType,
             severity: a.severity,
             equipmentId: a.equipmentId,

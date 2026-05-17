@@ -69,7 +69,7 @@ router.get(
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
-      const override = await dbMlAnalyticsStorage.getEngineerOverrides(id, orgId);
+      const override = await (dbMlAnalyticsStorage as any).getEngineerOverrides(id, orgId);
       if (!override) {
         return res.status(404).json({ error: "Engineer override not found" });
       }
@@ -156,7 +156,13 @@ router.patch(
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
-      const existingOverride = await dbMlAnalyticsStorage.getEngineerOverrides(id, orgId);
+      const existingOverrideRaw = await (dbMlAnalyticsStorage as any).getEngineerOverrides(id, orgId);
+      if (!existingOverrideRaw) {
+        return res.status(404).json({ error: "Engineer override not found" });
+      }
+      const existingOverride: any = Array.isArray(existingOverrideRaw)
+        ? existingOverrideRaw[0]
+        : existingOverrideRaw;
       if (!existingOverride) {
         return res.status(404).json({ error: "Engineer override not found" });
       }
@@ -232,11 +238,12 @@ router.get(
         orgId,
         equipmentId: equipmentId as string,
         engineerId: engineerId as string,
-        fromDate: fromDate ? new Date(fromDate as string) : undefined,
-        toDate: toDate ? new Date(toDate as string) : undefined,
+        from: fromDate ? new Date(fromDate as string) : undefined,
+        to: toDate ? new Date(toDate as string) : undefined,
         limit: limit ? Number.parseInt(limit as string) : 100,
-      });
-      res.json({ success: true, data: overrides, count: overrides.length });
+      } as any);
+      const overridesArr = Array.isArray(overrides) ? overrides : (overrides as any).events ?? [];
+      res.json({ success: true, data: overridesArr, count: overridesArr.length });
     } catch (error) {
       logger.error("[Compliance] Get provenance overrides error:", undefined, error);
       res.status(500).json({ error: "Failed to retrieve provenance records" });

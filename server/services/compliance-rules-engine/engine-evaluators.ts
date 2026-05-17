@@ -64,11 +64,11 @@ export async function evaluateEngineOvertemp(
   }
 
   const overTempEntries = engineLogComplete.hourly.filter(
-    (h) => h.meExhaustGasTemp !== null && h.meExhaustGasTemp > maxExhaustTemp
+    (h) => (h as any).meExhaustGasTemp !== null && (h as any).meExhaustGasTemp > maxExhaustTemp
   );
 
   if (overTempEntries.length > 0) {
-    const maxTemp = Math.max(...overTempEntries.map((h) => h.meExhaustGasTemp!));
+    const maxTemp = Math.max(...overTempEntries.map((h) => (h as any).meExhaustGasTemp!));
     return {
       triggered: true,
       finding: {
@@ -223,7 +223,7 @@ export async function evaluateEngineMissingHourly(
   }
 
   const validEntries = engineLogComplete.hourly.filter(
-    (h) => h.meRpm !== null || h.meLoad !== null || h.meFoTemp !== null
+    (h) => h.meRpm !== null || h.meLoad !== null || (h as any).meFoTemp !== null
   );
 
   if (validEntries.length < minHourlyEntries) {

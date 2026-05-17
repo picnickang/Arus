@@ -116,7 +116,7 @@ export class TelemetryStressTest {
           sensorType: msg.sensorType,
           value: msg.value,
           timestamp: msg.timestamp,
-          metadata: msg.metadata,
+          ...({ metadata: msg.metadata, orgId: (msg as any).orgId } as any),
         });
         messageCount++;
       } catch {

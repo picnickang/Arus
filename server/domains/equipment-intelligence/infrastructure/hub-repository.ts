@@ -122,12 +122,12 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
     for (const ins of insights) {
       if (ins.supportingSignals) {
         try {
-          const parsed: unknown[] = JSON.parse(ins.supportingSignals);
+          const parsed: unknown[] = JSON.parse(ins.supportingSignals as any);
           if (Array.isArray(parsed)) {
-            signals.push(...parsed.map(parseSignalEntry));
+            signals.push(...parsed.map(parseSignalEntry as any).filter((s: any) => typeof s === "string"));
           }
         } catch {
-          signals.push(ins.supportingSignals);
+          signals.push(ins.supportingSignals as any);
         }
       }
     }
@@ -216,7 +216,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         createdAt: r.createdAt ? new Date(r.createdAt).toISOString().split("T")[0] : "",
       }));
     } catch (error) {
-      logger.warn("[EquipmentHub] Failed to fetch service orders", { error: String(error) });
+      logger.warn("[EquipmentHub] Failed to fetch service orders", { error: String(error) } as any);
       return [];
     }
   }
@@ -245,7 +245,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         createdAt: r.createdAt ? new Date(r.createdAt).toISOString().split("T")[0] : "",
       }));
     } catch (error) {
-      logger.warn("[EquipmentHub] Failed to fetch diagnostic runs", { error: String(error) });
+      logger.warn("[EquipmentHub] Failed to fetch diagnostic runs", { error: String(error) } as any);
       return [];
     }
   }
@@ -619,7 +619,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         .where(and(eq(pdmScoreLogs.orgId, orgId), eq(pdmScoreLogs.equipmentId, equipmentId)))
         .orderBy(pdmScoreLogs.ts)
         .limit(20);
-      return rows.map((r) => Math.round(r.healthIdx)).slice(-9);
+      return rows.map((r) => Math.round(r.healthIdx ?? 0)).slice(-9);
     } catch {
       return [];
     }

@@ -98,20 +98,20 @@ export async function sendCertificationExpiryNotification(
     return false;
   }
 
-  const expiryDate = certification.expiryDate
-    ? format(new Date(certification.expiryDate), "MMMM d, yyyy")
+  const expiresAt = certification.expiresAt
+    ? format(new Date(certification.expiresAt), "MMMM d, yyyy")
     : "Unknown";
   const { color: urgencyColor, label: urgencyLabel } = getUrgencyInfo(daysUntilExpiry);
 
-  const subject = `[${urgencyLabel}] Certification Expiring - ${certification.name} for ${crew.name}`;
+  const subject = `[${urgencyLabel}] Certification Expiring - ${(certification as any).name} for ${crew.name}`;
   const text = `
 Certification Expiry Notice
 
 Crew Member: ${crew.name}
 Rank: ${crew.rank || "N/A"}
-Certification: ${certification.name}
+Certification: ${(certification as any).name}
 Certification Number: ${certification.certNumber || "N/A"}
-Expiry Date: ${expiryDate}
+Expiry Date: ${expiresAt}
 Days Remaining: ${daysUntilExpiry}
 
 Please ensure this certification is renewed before the expiry date to maintain regulatory compliance.
@@ -123,9 +123,9 @@ Please ensure this certification is renewed before the expiry date to maintain r
       <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
         <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Crew Member:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${crew.name}</td></tr>
         <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Rank:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${crew.rank || "N/A"}</td></tr>
-        <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Certification:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${certification.name}</td></tr>
+        <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Certification:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${(certification as any).name}</td></tr>
         <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Certification Number:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${certification.certNumber || "N/A"}</td></tr>
-        <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Expiry Date:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><span style="color: ${urgencyColor}; font-weight: bold;">${expiryDate}</span></td></tr>
+        <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Expiry Date:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><span style="color: ${urgencyColor}; font-weight: bold;">${expiresAt}</span></td></tr>
         <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Days Remaining:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><span style="color: ${urgencyColor}; font-weight: bold;">${daysUntilExpiry} days</span></td></tr>
       </table>
       <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid ${urgencyColor};">
@@ -167,8 +167,8 @@ export async function sendDocumentExpiryNotification(
     return false;
   }
 
-  const expiryDate = document.expiryDate
-    ? format(new Date(document.expiryDate), "MMMM d, yyyy")
+  const expiresAt = document.expiresAt
+    ? format(new Date(document.expiresAt), "MMMM d, yyyy")
     : "Unknown";
   const { color: urgencyColor, label: urgencyLabel } = getUrgencyInfo(daysUntilExpiry);
 
@@ -180,7 +180,7 @@ Crew Member: ${crew.name}
 Rank: ${crew.rank || "N/A"}
 Document Type: ${document.documentType}
 Document Number: ${document.documentNumber || "N/A"}
-Expiry Date: ${expiryDate}
+Expiry Date: ${expiresAt}
 Days Remaining: ${daysUntilExpiry}
 
 Please ensure this document is renewed before the expiry date to maintain regulatory compliance.
@@ -194,7 +194,7 @@ Please ensure this document is renewed before the expiry date to maintain regula
         <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Rank:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${crew.rank || "N/A"}</td></tr>
         <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Document Type:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${document.documentType}</td></tr>
         <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Document Number:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${document.documentNumber || "N/A"}</td></tr>
-        <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Expiry Date:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><span style="color: ${urgencyColor}; font-weight: bold;">${expiryDate}</span></td></tr>
+        <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Expiry Date:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><span style="color: ${urgencyColor}; font-weight: bold;">${expiresAt}</span></td></tr>
         <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Days Remaining:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><span style="color: ${urgencyColor}; font-weight: bold;">${daysUntilExpiry} days</span></td></tr>
       </table>
       <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid ${urgencyColor};">

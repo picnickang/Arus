@@ -56,7 +56,7 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
       logger.warn("Summary alert query failed", {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),
-      });
+      } as any);
     }
 
     try {
@@ -75,7 +75,7 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
       logger.warn("Summary insight query failed", {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),
-      });
+      } as any);
     }
 
     try {
@@ -90,7 +90,7 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
       logger.warn("Summary PDM score query failed", {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),
-      });
+      } as any);
     }
 
     try {
@@ -108,7 +108,7 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
       logger.warn("Summary prediction query failed", {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),
-      });
+      } as any);
     }
 
     res.json({

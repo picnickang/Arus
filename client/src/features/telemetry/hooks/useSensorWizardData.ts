@@ -3,13 +3,15 @@ import { useToast } from "@/hooks/use-toast";
 import {
   useSensorConfigsByEquipment,
   useSensorBundles,
+  useSensorBundle,
   useSensorTemplates,
+  useApplySensorBundle,
 } from "@/hooks/useSensorData";
 import type { Equipment, SensorConfiguration } from "@shared/schema";
 import type { WizardStep, WizardState } from "../lib/sensorWizardUtils";
 
 export interface UseSensorWizardDataProps {
-  equipment: Pick<Equipment, "id" | "name" | "type" | "status" | "location">;
+  equipment: Pick<Equipment, "id" | "name" | "type" | "location"> & { status?: string };
   onSuccess?: () => void;
   onClose: () => void;
 }

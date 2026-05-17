@@ -59,9 +59,8 @@ export function useTelemetryStreams(options: UseTelemetryStreamsOptions = {}) {
   const trends = trendsQuery.data ?? [];
   const anomalies = anomaliesQuery.data?.results ?? [];
 
-  for (const trend of trends) {
-    const key = `${trend.equipmentId}:${trend.sensorType}`;
-    const matchingAnomalies = anomalies.filter(
+  for (const trend of trends as any[]) {
+    const matchingAnomalies = (anomalies as any[]).filter(
       (a: any) => a.equipmentId === trend.equipmentId && a.sensorType === trend.sensorType
     );
     const latestAnomaly = matchingAnomalies[0];

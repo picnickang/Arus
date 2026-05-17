@@ -175,7 +175,7 @@ async function findSubstitutionSuggestions(
         and(
           eq(partSubstitutions.orgId, orgId),
           // Either this part is the original or the substitute
-          eq(partSubstitutions.originalPartId, partId)
+          eq((partSubstitutions as any).originalPartId, partId)
         )
       );
 
@@ -183,7 +183,7 @@ async function findSubstitutionSuggestions(
       return [];
     }
 
-    const substituteIds = subs.map((s) => s.substitutePartId);
+    const substituteIds = subs.map((s: any) => s.substitutePartId);
 
     // Fetch substitute parts with their current stock
     const suggestions: AddItemResult["substitutionSuggestions"] = [];

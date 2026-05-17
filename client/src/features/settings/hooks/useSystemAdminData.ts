@@ -38,7 +38,7 @@ export function useSoftwareUpdatesData() {
     error: patchesErrorData,
   } = useQuery({
     queryKey: adminKeys.patches,
-    queryFn: adminQueryFn(adminKeys.patches),
+    queryFn: adminQueryFn(adminKeys.patches as any),
     enabled: !isDesktopEnv,
   });
   const {
@@ -58,7 +58,7 @@ export function useSoftwareUpdatesData() {
     error: settingsErrorData,
   } = useQuery<UpdateSettings>({
     queryKey: adminKeys.updateSettings,
-    queryFn: adminQueryFn(adminKeys.updateSettings),
+    queryFn: adminQueryFn(adminKeys.updateSettings as any),
     enabled: !isDesktopEnv,
   });
 
@@ -174,18 +174,18 @@ export function useGitHubSettingsData() {
     message?: string;
   }>({
     queryKey: adminKeys.githubStatus,
-    queryFn: adminQueryFn(adminKeys.githubStatus),
+    queryFn: adminQueryFn(adminKeys.githubStatus as any),
   });
   const { data: reposData, isLoading: reposLoading } = useQuery<{
     repos: Array<{ id: number; name: string; full_name: string; owner: string; html_url: string }>;
   }>({
     queryKey: adminKeys.githubRepos,
-    queryFn: adminQueryFn(adminKeys.githubRepos),
+    queryFn: adminQueryFn(adminKeys.githubRepos as any),
     enabled: githubStatus?.connected === true,
   });
   const { data: settings } = useQuery<UpdateSettings>({
     queryKey: adminKeys.updateSettings,
-    queryFn: adminQueryFn(adminKeys.updateSettings),
+    queryFn: adminQueryFn(adminKeys.updateSettings as any),
   });
 
   const selectRepoMutation = useCustomMutation({

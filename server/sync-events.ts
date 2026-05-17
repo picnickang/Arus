@@ -33,7 +33,11 @@ export type EntityType =
   | "maintenance_checklist_item"
   | "maintenance_checklist_completion"
   | "operating_parameter"
-  | "operating_condition_alert";
+  | "operating_condition_alert"
+  | "alert_configuration"
+  | "alert_notification"
+  | "alert_comment"
+  | "alert_suppression";
 
 // Operation types for journal entries
 export type OperationType = "create" | "update" | "delete" | "reconcile";
@@ -235,7 +239,7 @@ export async function processPendingEvents(limit: number = 100): Promise<number>
           .set({
             processed: true,
             processedAt: new Date(),
-            processingAttempts: event.processingAttempts + 1,
+            processingAttempts: (event.processingAttempts ?? 0) + 1,
           })
           .where(eq(syncOutbox.id, event.id));
 
@@ -246,7 +250,7 @@ export async function processPendingEvents(limit: number = 100): Promise<number>
         // Increment processing attempts
         await db
           .update(syncOutbox)
-          .set({ processingAttempts: event.processingAttempts + 1 })
+          .set({ processingAttempts: (event.processingAttempts ?? 0) + 1 })
           .where(eq(syncOutbox.id, event.id));
       }
     }

@@ -131,7 +131,7 @@ export async function runStorageRegressionTests(): Promise<{
 
   results.push(
     await runTest("STCW Rest: list", async () => {
-      const sheets = await dbStcwStorage.getCrewRestRange();
+      const sheets = await (dbStcwStorage.getCrewRestRange as any)();
       if (!Array.isArray(sheets)) {
         throw new Error("Expected array");
       }

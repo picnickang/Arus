@@ -138,7 +138,7 @@ export class AlertsRepository {
     sensorType: string,
     alertType: string
   ): Promise<boolean> {
-    return dbAlertStorage.isAlertSuppressed(equipmentId, sensorType, alertType);
+    return (dbAlertStorage.isAlertSuppressed as any)(equipmentId, sensorType, alertType);
   }
 
   // ========== Utility Methods ==========
@@ -147,7 +147,7 @@ export class AlertsRepository {
    * Delete all alerts and notifications
    */
   async deleteAllNotifications(): Promise<void> {
-    return dbAlertStorage.clearAllAlerts();
+    return (dbAlertStorage as any).clearAllAlerts();
   }
 }
 

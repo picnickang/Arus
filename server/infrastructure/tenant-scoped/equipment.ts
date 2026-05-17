@@ -56,7 +56,7 @@ export class EquipmentRepository extends TenantScopedRepository {
     const result = await db
       .select()
       .from(equipment)
-      .where(this.orgWhere(equipment, eq(equipment.deviceId, deviceId)))
+      .where(this.orgWhere(equipment, eq((equipment as any).deviceId, deviceId)))
       .limit(1);
 
     return result[0];
@@ -69,8 +69,8 @@ export class EquipmentRepository extends TenantScopedRepository {
   async create(data: Omit<any, "id" | "orgId">) {
     const { equipment } = await import("@shared/schema");
 
-    const [created] = await db
-      .insert(equipment)
+    const [created] = await (db as any)
+      .insert(equipment as any)
       .values({
         ...data,
         orgId: this.orgId,

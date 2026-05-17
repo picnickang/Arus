@@ -36,7 +36,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
 
       const endDate = new Date();
       const startDate = new Date();
-      startDate.setMonth(startDate.getMonth() - validatedQuery.months);
+      startDate.setMonth(startDate.getMonth() - ((validatedQuery as any).months ?? 3));
 
       const summary = await getSavingsSummary(orgId, startDate, endDate);
 
@@ -51,7 +51,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
       const orgId = (req as AuthenticatedRequest).orgId;
       const validatedQuery = costSavingsTrendQuerySchema.parse(req.query);
 
-      const trend = await getMonthlySavingsTrend(orgId, validatedQuery.months);
+      const trend = await getMonthlySavingsTrend(orgId, (validatedQuery as any).months);
 
       res.json(trend);
     })
@@ -69,7 +69,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
       const calculation = await calculateWorkOrderSavings(
         workOrderId,
         orgId,
-        validatedOptions ?? {}
+        (validatedOptions ?? {}) as any
       );
 
       if (!calculation) {
@@ -106,26 +106,20 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
 
       const { eq, and, sql } = await import("drizzle-orm");
 
-      let query = db
+      const conds = [eq(costSavings.orgId, orgId)];
+      if (validatedQuery.equipmentId) {
+        conds.push(eq(costSavings.equipmentId, validatedQuery.equipmentId));
+      }
+      if ((validatedQuery as any).vesselId) {
+        conds.push(eq(costSavings.vesselId, (validatedQuery as any).vesselId));
+      }
+
+      const savings = await db
         .select()
         .from(costSavings)
-        .where(eq(costSavings.orgId, orgId))
+        .where(and(...conds))
         .orderBy(sql`${costSavings.calculatedAt} DESC`)
         .limit(validatedQuery.limit);
-
-      if (validatedQuery.equipmentId) {
-        query = query.where(
-          and(eq(costSavings.orgId, orgId), eq(costSavings.equipmentId, validatedQuery.equipmentId))
-        );
-      }
-
-      if (validatedQuery.vesselId) {
-        query = query.where(
-          and(eq(costSavings.orgId, orgId), eq(costSavings.vesselId, validatedQuery.vesselId))
-        );
-      }
-
-      const savings = await query;
       res.json(savings);
     })
   );

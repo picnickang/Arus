@@ -89,7 +89,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
     const healthMap = new Map<string, number>();
     for (const score of pdmScores) {
       if (!healthMap.has(score.equipmentId)) {
-        healthMap.set(score.equipmentId, score.healthIdx);
+        healthMap.set(score.equipmentId, score.healthIdx ?? 100);
       }
     }
 
@@ -165,7 +165,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
     const healthMap = new Map<string, number>();
     for (const score of pdmScores) {
       if (!healthMap.has(score.equipmentId)) {
-        healthMap.set(score.equipmentId, score.healthIdx);
+        healthMap.set(score.equipmentId, score.healthIdx ?? 100);
       }
     }
 
@@ -191,12 +191,12 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
       const existing = insightMap.get(ins.equipmentId) || [];
       if (ins.supportingSignals) {
         try {
-          const signals = JSON.parse(ins.supportingSignals);
+          const signals = JSON.parse(String(ins.supportingSignals));
           if (Array.isArray(signals)) {
             existing.push(...signals.map(parseSignalEntry));
           }
         } catch {
-          existing.push(ins.supportingSignals);
+          existing.push(String(ins.supportingSignals));
         }
       }
       insightMap.set(ins.equipmentId, existing.slice(0, 5));
@@ -282,12 +282,12 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
     for (const ins of insights) {
       if (ins.supportingSignals) {
         try {
-          const parsed: unknown[] = JSON.parse(ins.supportingSignals);
+          const parsed: unknown[] = JSON.parse(String(ins.supportingSignals));
           if (Array.isArray(parsed)) {
             signals.push(...parsed.map(parseSignalEntry));
           }
         } catch {
-          signals.push(ins.supportingSignals);
+          signals.push(String(ins.supportingSignals));
         }
       }
     }
@@ -491,7 +491,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
 
       for (const row of rows) {
         const existing = result.get(row.equipmentId) || [];
-        existing.push(Math.round(row.healthIdx));
+        existing.push(Math.round(row.healthIdx ?? 0));
         result.set(row.equipmentId, existing);
       }
 
@@ -501,7 +501,8 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
     } catch (error) {
       logger.warn(
         "[EquipmentIntelligence] Failed to fetch telemetry summaries — sparklines will be empty",
-        { error: String(error) }
+        undefined,
+        { error: String(error) } as any
       );
     }
 

@@ -140,8 +140,8 @@ export function identifyCorrelatedMetrics(
   workOrders.forEach((wo) => {
     const beforeFailure = telemetry.filter(
       (t) =>
-        new Date(t.ts) < new Date(wo.createdAt) &&
-        new Date(t.ts) > new Date(new Date(wo.createdAt).getTime() - 48 * 60 * 60 * 1000)
+        new Date(t.ts as any) < new Date(wo.createdAt as any) &&
+        new Date(t.ts as any) > new Date(new Date(wo.createdAt as any).getTime() - 48 * 60 * 60 * 1000)
     );
 
     beforeFailure.forEach((t) => metrics.add(t.sensorType));

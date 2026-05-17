@@ -38,27 +38,34 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
         format: "ML Model Export v1.0",
         compatibility: ["TensorFlow", "PyTorch", "scikit-learn", "IBM Maximo", "Azure ML"],
         exportedAt: new Date().toISOString(),
-        models: enrichedModels.map((m) => ({
-          id: m.id,
-          name: m.name,
-          type: m.modelType,
-          equipmentType: m.equipmentType,
-          status: m.status,
-          version: m.version,
-          hyperparameters: m.hyperparameters,
-          performanceMetrics: m.performanceMetrics,
-          featureImportance: m.featureImportance,
-          deployedAt: m.deployedOn,
-          createdAt: m.createdAt,
-        })),
+        models: enrichedModels.map((mRaw) => {
+          const m = mRaw as typeof mRaw & {
+            performanceMetrics?: unknown;
+            deployedAt?: Date | null;
+          };
+          return {
+            id: m.id,
+            name: m.name,
+            type: m.modelType,
+            equipmentType: m.equipmentType,
+            status: m.status,
+            version: m.version,
+            hyperparameters: m.hyperparameters,
+            performanceMetrics: m.performanceMetrics,
+            featureImportance: m.featureImportance,
+            deployedAt: (m as any).deployedOn ?? m.deployedAt,
+            createdAt: m.createdAt,
+          };
+        }),
       };
 
       if (format === "csv") {
         const csvData = [
           "id,name,type,equipmentType,status,version,accuracy,precision,recall,f1Score,deployedAt,createdAt",
-          ...enrichedModels.map((m) => {
+          ...enrichedModels.map((mRaw) => {
+            const m = mRaw as typeof mRaw & { performanceMetrics?: unknown; deployedAt?: Date | null };
             const perf = (m.performanceMetrics ?? {}) as Record<string, unknown>;
-            return `${m.id},${m.name},${m.modelType},${m.equipmentType || ""},${m.status},${m.version},${perf.accuracy || ""},${perf.precision || ""},${perf.recall || ""},${perf.f1Score || ""},${m.deployedAt || ""},${m.createdAt}`;
+            return `${m.id},${m.name},${m.modelType},${m.equipmentType || ""},${m.status},${m.version},${perf.accuracy || ""},${perf.precision || ""},${perf.recall || ""},${perf.f1Score || ""},${(m as any).deployedOn ?? m.deployedAt ?? ""},${m.createdAt}`;
           }),
         ].join("\n");
 
@@ -107,7 +114,7 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
         telemetry: telemetry.map((t) => ({
           timestamp: t.ts,
           equipmentId: t.equipmentId,
-          vesselId: t.vesselId,
+          vesselId: (t as any).vesselId,
           sensorType: t.sensorType,
           value: t.value,
           unit: t.unit,
@@ -121,7 +128,7 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
           "timestamp,equipmentId,vesselId,sensorType,value,unit,status,threshold",
           ...telemetry.map(
             (t) =>
-              `${t.ts},${t.equipmentId},${t.vesselId || ""},${t.sensorType},${t.value},${t.unit},${t.status},${t.threshold || ""}`
+              `${t.ts},${t.equipmentId},${(t as any).vesselId || ""},${t.sensorType},${t.value},${t.unit},${t.status},${t.threshold || ""}`
           ),
         ].join("\n");
 
@@ -154,11 +161,11 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
           failureProbability: p.failureProbability,
           predictedFailureDate: p.predictedFailureDate,
           remainingUsefulLife: p.remainingUsefulLife,
-          healthIndex: p.healthIndex,
+          healthIndex: (p as any).healthIndex,
           riskLevel: p.riskLevel,
           modelId: p.modelId,
-          recommendations: p.recommendations,
-          createdAt: p.createdAt,
+          recommendations: (p as any).recommendations,
+          createdAt: (p as any).createdAt,
         })),
       };
 
@@ -167,7 +174,7 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
           "id,equipmentId,failureProbability,predictedFailureDate,remainingUsefulLife,healthIndex,riskLevel,modelId,createdAt",
           ...predictions.map(
             (p) =>
-              `${p.id},${p.equipmentId},${p.failureProbability},${p.predictedFailureDate || ""},${p.remainingUsefulLife || ""},${p.healthIndex},${p.riskLevel},${p.modelId || ""},${p.createdAt}`
+              `${p.id},${p.equipmentId},${p.failureProbability},${p.predictedFailureDate || ""},${p.remainingUsefulLife || ""},${(p as any).healthIndex},${p.riskLevel},${p.modelId || ""},${(p as any).createdAt}`
           ),
         ].join("\n");
 

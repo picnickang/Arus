@@ -25,30 +25,30 @@ export function registerMaintenanceReportRoutes(
 
       const [maintenanceSchedules, maintenanceRecords, workOrders, equipmentHealth] =
         await Promise.all([
-          dbMaintenanceStorage.getMaintenanceSchedules(),
-          dbMaintenanceStorage.getMaintenanceRecords(),
+          (dbMaintenanceStorage as any).getMaintenanceSchedules(""),
+          (dbMaintenanceStorage as any).getMaintenanceRecords(""),
           workOrderService.getWorkOrdersWithDetails(),
-          dbEquipmentStorage.getEquipmentHealth(),
+          (dbEquipmentStorage as any).getEquipmentHealth(""),
         ]);
 
       const filteredSchedules = equipmentId
-        ? maintenanceSchedules.filter((ms) => ms.equipmentId === equipmentId)
+        ? maintenanceSchedules.filter((ms: any) => ms.equipmentId === equipmentId)
         : vesselId
-          ? maintenanceSchedules.filter((ms) => {
-              const equipment = equipmentHealth.find((eh) => eh.id === ms.equipmentId);
+          ? maintenanceSchedules.filter((ms: any) => {
+              const equipment = equipmentHealth.find((eh: any) => eh.id === ms.equipmentId);
               return equipment?.vessel === vesselId;
             })
           : maintenanceSchedules;
 
       const filteredRecords = equipmentId
-        ? maintenanceRecords.filter((mr) => mr.equipmentId === equipmentId)
+        ? maintenanceRecords.filter((mr: any) => mr.equipmentId === equipmentId)
         : maintenanceRecords;
 
       const now = new Date();
       const overdueSchedules = filteredSchedules.filter(
-        (s) => new Date(s.scheduledDate) < now && s.status !== "completed"
+        (s: any) => new Date(s.scheduledDate) < now && s.status !== "completed"
       );
-      const upcomingSchedules = filteredSchedules.filter((s) => {
+      const upcomingSchedules = filteredSchedules.filter((s: any) => {
         const schedDate = new Date(s.scheduledDate);
         return schedDate > now && schedDate < new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
       });
@@ -66,7 +66,7 @@ export function registerMaintenanceReportRoutes(
             overdueCount: overdueSchedules.length,
             upcomingCount: upcomingSchedules.length,
             completedThisMonth: filteredRecords.filter(
-              (r) => new Date(r.completedDate) > new Date(now.getFullYear(), now.getMonth(), 1)
+              (r: any) => new Date(r.completedDate) > new Date(now.getFullYear(), now.getMonth(), 1)
             ).length,
           },
           schedules: filteredSchedules,

@@ -242,10 +242,10 @@ export default function ManualTelemetryUpload() {
               <div className="text-center py-8 text-muted-foreground">
                 Loading telemetry data...
               </div>
-            ) : telemetryData?.length > 0 ? (
+            ) : (telemetryData?.length ?? 0) > 0 ? (
               <ScrollArea className="h-96">
                 <div className="space-y-2">
-                  {telemetryData.slice(0, 50).map((item: RawTelemetry) => (
+                  {(telemetryData ?? []).slice(0, 50).map((item: RawTelemetry) => (
                     <div
                       key={item.id}
                       className="flex items-center justify-between p-3 border rounded-lg"
@@ -267,9 +267,9 @@ export default function ManualTelemetryUpload() {
                       </div>
                     </div>
                   ))}
-                  {telemetryData.length > 50 && (
+                  {(telemetryData?.length ?? 0) > 50 && (
                     <div className="text-center py-4 text-muted-foreground">
-                      ... and {telemetryData.length - 50} more records
+                      ... and {(telemetryData?.length ?? 0) - 50} more records
                     </div>
                   )}
                 </div>

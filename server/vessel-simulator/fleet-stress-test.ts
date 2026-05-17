@@ -164,7 +164,7 @@ export class FleetStressTest {
                   sensorType: reading.sensorType,
                   value: reading.value,
                   timestamp: reading.timestamp,
-                  metadata: reading.metadata,
+                  ...({ metadata: reading.metadata, orgId: (reading as any).orgId } as any),
                 });
               }
 

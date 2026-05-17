@@ -87,18 +87,18 @@ export function useUnifiedCrewData() {
     invalidateKeys: ["/api/crew"],
     successMessage: "Crew member removed successfully",
   });
-  const toggleDutyMutation = useCustomMutation({
-    mutationFn: async (crewId: string) => {
+  const toggleDutyMutation = useCustomMutation<string, { message?: string }>({
+    mutationFn: (async (crewId: string) => {
       const { apiRequest } = await import("@/lib/queryClient");
       return apiRequest("POST", `/api/crew/${crewId}/toggle-duty`);
-    },
+    }) as any,
     invalidateKeys: ["/api/crew"],
-    onSuccess: (response: { message?: string }) => {
+    onSuccess: ((response: { message?: string }) => {
       toast({
         title: "Duty Status Updated",
         description: response.message || "Duty status toggled successfully",
       });
-    },
+    }) as any,
   });
   const reassignMutation = useUpdateMutation("/api/crew", {
     invalidateKeys: ["/api/crew"],
@@ -247,7 +247,7 @@ export function useUnifiedCrewData() {
   };
   const handleExportCSV = () => {
     const exportData = prepareCrewExportData(filteredAndSortedCrew, getVesselName);
-    const success = exportToCSV(exportData, {
+    const success = exportToCSV(exportData as any, {
       filename: `crew-roster-${new Date().toISOString().split("T")[0]}.csv`,
       columns: [
         "name",

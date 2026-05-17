@@ -71,7 +71,7 @@ export function useEquipmentPageData() {
     if (!healthResponse || !Array.isArray(healthResponse)) {
       return [];
     }
-    return (healthResponse as RawHealthItem[]).map((item) => ({
+    return (healthResponse as RawHealthItem[]).map((item) => (({
       id: item.id,
       vessel: item.vesselId || item.vessel || "",
       vesselId: item.vesselId || item.vessel || undefined,
@@ -86,19 +86,19 @@ export function useEquipmentPageData() {
           : item.condition === "fair"
             ? ("warning" as const)
             : ("healthy" as const)),
-    }));
+    }) as any));
   }, [healthResponse]);
   const healthMap = useMemo(() => {
     const map = new Map<string, EquipmentHealth>();
     healthData.forEach((h) => {
       if (h.id) {
-        map.set(h.id, h);
+        map.set(h.id as string, h);
       }
     });
     return map;
   }, [healthData]);
   const equipmentWithHealth: EquipmentWithHealth[] = useMemo(
-    () => allEquipment.map((eq) => ({ ...eq, health: healthMap.get(eq.id) })),
+    () => allEquipment.map((eq) => ({ ...eq, health: healthMap.get(eq.id) })) as any,
     [allEquipment, healthMap]
   );
   const uniqueTypes = useMemo(() => {
@@ -166,7 +166,7 @@ export function useEquipmentPageData() {
     const avgHealth =
       healthData.length > 0
         ? Math.round(
-            healthData.reduce((sum, h) => sum + (h.healthIndex || 0), 0) / healthData.length
+            healthData.reduce((sum, h) => sum + ((h.healthIndex as number) || 0), 0) / healthData.length
           )
         : 0;
     return { total, healthy, warning, critical, noData, avgHealth };

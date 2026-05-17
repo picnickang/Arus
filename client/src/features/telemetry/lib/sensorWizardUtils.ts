@@ -13,7 +13,7 @@ export interface WizardState {
 }
 
 export interface SensorSetupWizardProps {
-  equipment: Pick<Equipment, "id" | "name" | "type" | "status" | "location">;
+  equipment: Pick<Equipment, "id" | "name" | "type" | "location"> & { status?: string };
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;

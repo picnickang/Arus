@@ -134,7 +134,7 @@ router.patch("/:id", async (req: Request, res: Response) => {
     ((data.actualAmount !== undefined && FINALIZED_SO_STATUSES.includes(existing.status)) ||
       (data.status !== undefined && data.status !== existing.status))
   ) {
-    await triggerProcurementAggregation(existing.workOrderId, orgId, existing.status, newStatus);
+    await triggerProcurementAggregation(existing.workOrderId, orgId, existing.status as string, newStatus as string);
   }
 
   res.json(updated);

@@ -106,7 +106,7 @@ export function useCrewManagementData() {
       category: "",
       description: "",
       maxLevel: 5,
-      orgId: "default-org-id",
+      ...({ orgId: "default-org-id" } as any),
     },
   });
 
@@ -171,7 +171,7 @@ export function useCrewManagementData() {
   const onSubmitSkill = useCallback(
     (data: SkillFormData) => {
       if (editingSkillId) {
-        updateSkillMutation.mutate({ id: editingSkillId, ...data });
+        updateSkillMutation.mutate({ id: editingSkillId, data } as any);
       } else {
         createSkillMutation.mutate(data);
       }

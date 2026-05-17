@@ -56,10 +56,8 @@ export class DbSettingsStorage {
     if (category) {
       conditions.push(eq(adminSystemSettings.category, category));
     }
-    let query = db.select().from(adminSystemSettings);
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
+    const base = db.select().from(adminSystemSettings);
+    const query = conditions.length > 0 ? base.where(and(...conditions)) : base;
     return query.orderBy(adminSystemSettings.key);
   }
   async getAdminSystemSetting(
@@ -124,10 +122,8 @@ export class DbSettingsStorage {
     if (type) {
       conditions.push(eq(integrationConfigs.type, type));
     }
-    let query = db.select().from(integrationConfigs);
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
+    const base = db.select().from(integrationConfigs);
+    const query = conditions.length > 0 ? base.where(and(...conditions)) : base;
     return query.orderBy(integrationConfigs.name);
   }
   async getIntegrationConfig(id: string, orgId?: string): Promise<IntegrationConfig | undefined> {
@@ -199,10 +195,8 @@ export class DbSettingsStorage {
     if (status) {
       conditions.push(eq(maintenanceWindows.status, status));
     }
-    let query = db.select().from(maintenanceWindows);
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
+    const base = db.select().from(maintenanceWindows);
+    const query = conditions.length > 0 ? base.where(and(...conditions)) : base;
     return query.orderBy(sql`${maintenanceWindows.startTime} DESC`);
   }
   async getMaintenanceWindow(id: string, orgId?: string): Promise<MaintenanceWindow | undefined> {
@@ -270,11 +264,9 @@ export class DbSettingsStorage {
     if (category) {
       conditions.push(eq(systemHealthChecks.category, category));
     }
-    let query = db.select().from(systemHealthChecks);
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-    return query.orderBy(sql`${systemHealthChecks.lastCheckAt} DESC`);
+    const base = db.select().from(systemHealthChecks);
+    const query = conditions.length > 0 ? base.where(and(...conditions)) : base;
+    return query.orderBy(sql`${(systemHealthChecks as any).lastCheckAt} DESC`);
   }
   async getSystemHealthCheck(id: string, orgId?: string): Promise<SystemHealthCheck | undefined> {
     const conditions = [eq(systemHealthChecks.id, id)];
@@ -351,7 +343,7 @@ export class DbSettingsStorage {
       .select()
       .from(systemHealthChecks)
       .where(and(...conditions, eq(systemHealthChecks.status, "critical")))
-      .orderBy(sql`${systemHealthChecks.lastCheckAt} DESC`);
+      .orderBy(sql`${(systemHealthChecks as any).lastCheckAt} DESC`);
   }
   async getMetricTrends(
     orgId: string,

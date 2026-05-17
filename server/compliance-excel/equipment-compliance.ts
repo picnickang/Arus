@@ -100,7 +100,7 @@ function renderEquipmentComplianceExcel(
       eq.vesselId ?? "",
       eq.status ?? "",
       eq.healthIndex ?? 0,
-      formatDate(eq.lastMaintenance) ?? "N/A",
+      formatDate((eq as any).lastMaintenance) ?? "N/A",
     ]);
   }
 
@@ -114,7 +114,7 @@ function renderEquipmentComplianceExcel(
 
   for (const wo of workOrders) {
     woData.push([
-      wo.workOrderNumber ?? wo.id,
+      (wo as any).workOrderNumber ?? wo.id,
       wo.equipmentId ?? "",
       wo.maintenanceType ?? "",
       wo.priority ?? "",

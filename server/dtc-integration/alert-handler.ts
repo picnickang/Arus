@@ -20,10 +20,10 @@ export function shouldTriggerAlert(dtc: DtcWithDefinition): boolean {
   if (dtc.definition?.severity === 1) {
     return true;
   }
-  if (dtc.oc === 1) {
+  if ((dtc.oc ?? 0) === 1) {
     return true;
   }
-  if (dtc.oc > 5) {
+  if ((dtc.oc ?? 0) > 5) {
     return true;
   }
   return false;
@@ -66,7 +66,7 @@ export async function createDtcAlert(dtc: DtcWithDefinition, orgId: string): Pro
     sensorType: `dtc_${dtc.spn}_${dtc.fmi}`,
     alertType: "dtc_fault",
     message: alertMessage,
-    value: dtc.oc,
+    value: dtc.oc ?? 0,
     threshold: dtc.definition?.severity || 4,
     acknowledged: false,
   });

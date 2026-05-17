@@ -6,7 +6,7 @@
 
 import { createLogger } from "../../lib/structured-logger";
 const logger = createLogger("Services:Domains:WorkOrderService");
-import { eq, and, or, gte, lte, sql } from "drizzle-orm";
+import { eq, and, or, gte, lte, sql, getTableColumns } from "drizzle-orm";
 import { db } from "../../db-config";
 import {
   workOrders,
@@ -62,17 +62,16 @@ class WorkOrderService {
     filters?: WorkOrderFilters
   ): Promise<WorkOrderWithDetails[]> {
     try {
-      const query = db
+      const baseQuery = db
         .select({
-          ...workOrders,
+          ...getTableColumns(workOrders),
           equipmentName: equipment.name,
           equipmentType: equipment.type,
           vesselName: vessels.name,
         })
         .from(workOrders)
         .leftJoin(equipment, eq(workOrders.equipmentId, equipment.id))
-        .leftJoin(vessels, eq(workOrders.vesselId, vessels.id))
-        .orderBy(sql`${workOrders.createdAt} DESC`);
+        .leftJoin(vessels, eq(workOrders.vesselId, vessels.id));
 
       const conditions: any[] = [];
       if (equipmentId) {
@@ -116,9 +115,11 @@ class WorkOrderService {
         );
       }
 
-      const results = conditions.length > 0 ? await query.where(and(...conditions)) : await query;
+      const filtered =
+        conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
+      const results = await filtered.orderBy(sql`${workOrders.createdAt} DESC`);
 
-      return results.map((wo) => {
+      return (results as unknown as WorkOrderWithDetails[]).map((wo) => {
         if (!wo.woNumber) {
           const year = wo.createdAt
             ? new Date(wo.createdAt).getFullYear()
@@ -192,23 +193,25 @@ class WorkOrderService {
         conditions.length > 0 ? await countQuery.where(and(...conditions)) : await countQuery;
       const total = Number(countResult[0]?.count ?? 0);
 
-      const query = db
+      const baseQuery = db
         .select({
-          ...workOrders,
+          ...getTableColumns(workOrders),
           equipmentName: equipment.name,
           equipmentType: equipment.type,
           vesselName: vessels.name,
         })
         .from(workOrders)
         .leftJoin(equipment, eq(workOrders.equipmentId, equipment.id))
-        .leftJoin(vessels, eq(workOrders.vesselId, vessels.id))
+        .leftJoin(vessels, eq(workOrders.vesselId, vessels.id));
+
+      const filtered =
+        conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
+      const results = await filtered
         .orderBy(sql`${workOrders.createdAt} DESC`)
         .limit(limit)
         .offset(offset);
 
-      const results = conditions.length > 0 ? await query.where(and(...conditions)) : await query;
-
-      const items = results.map((wo) => {
+      const items = (results as unknown as WorkOrderWithDetails[]).map((wo) => {
         if (!wo.woNumber) {
           const year = wo.createdAt
             ? new Date(wo.createdAt).getFullYear()
@@ -335,7 +338,7 @@ class WorkOrderService {
             .where(
               and(
                 eq(stock.partId, part.partId),
-                eq(stock.orgId, woOrgId),
+                eq(stock.orgId, woOrgId!),
                 sql`${stock.quantityReserved} > 0`
               )
             )
@@ -350,7 +353,7 @@ class WorkOrderService {
             await tx
               .update(stock)
               .set({ quantityReserved: currentReserved - released, updatedAt: new Date() })
-              .where(and(eq(stock.id, stockRow.id), eq(stock.orgId, woOrgId)));
+              .where(and(eq(stock.id, stockRow.id), eq(stock.orgId, woOrgId!)));
             remaining -= released;
           }
         }
@@ -465,7 +468,7 @@ class WorkOrderService {
           .where(
             and(
               eq(stock.partId, partId),
-              eq(stock.orgId, workOrder.orgId),
+              eq(stock.orgId, workOrder.orgId!),
               sql`${stock.quantityReserved} > 0`
             )
           )
@@ -533,7 +536,7 @@ class WorkOrderService {
             laborCost: 0,
             notes: closeData.notes || "Work order completed",
             performedAt: new Date(),
-          });
+          } as any);
       }
       const [updated] = await tx
         .update(workOrders)
@@ -660,7 +663,7 @@ class WorkOrderService {
             );
         }
       }
-      await publishEvent("work_order", "create", clonedOrder);
+      await publishEvent("work_order.created", clonedOrder as unknown as Record<string, unknown>);
       return clonedOrder;
     });
   }
@@ -672,24 +675,27 @@ class WorkOrderService {
     const { workOrderCompletions } = await import("@shared/schema-runtime");
     const now = new Date();
     return db.transaction(async (tx) => {
-      const laborCost = completionData.totalLaborCost || 0,
-        partsCost = completionData.totalPartsCost || 0,
-        downtimeHours = completionData.actualDowntimeHours || 0,
-        downtimeCostPerHour = completionData.downtimeCostPerHour || 1000;
-      const downtimeCost = completionData.totalCost ? 0 : downtimeHours * downtimeCostPerHour,
-        totalCost = completionData.totalCost || laborCost + partsCost + downtimeCost;
+      const completionDataExt = completionData as InsertWorkOrderCompletion & {
+        downtimeCostPerHour?: number | null;
+        totalCost?: number | null;
+      };
+      const laborCost = completionDataExt.totalLaborCost || 0,
+        partsCost = completionDataExt.totalPartsCost || 0,
+        downtimeHours = completionDataExt.actualDowntimeHours || 0,
+        downtimeCostPerHour = completionDataExt.downtimeCostPerHour || 1000;
+      const downtimeCost = completionDataExt.totalCost ? 0 : downtimeHours * downtimeCostPerHour,
+        totalCost = completionDataExt.totalCost || laborCost + partsCost + downtimeCost;
       const [updatedWorkOrder] = await tx
         .update(workOrders)
         .set({
           status: "completed",
           actualEndDate: now,
-          actualDuration: completionData.actualDurationMinutes || null,
           totalLaborCost: laborCost,
           totalPartsCost: partsCost,
           totalCost,
           actualDowntimeHours: downtimeHours,
           downtimeCostPerHour,
-        })
+        } as unknown as Partial<InsertWorkOrder>)
         .where(eq(workOrders.id, workOrderId))
         .returning();
       if (!updatedWorkOrder) {
@@ -771,12 +777,20 @@ class WorkOrderService {
         totalDowntimeHours: 0,
       };
     }
-    const dv = c
-        .filter((x) => x.durationVariancePercent !== null)
-        .map((x) => x.durationVariancePercent!),
-      cv = c.filter((x) => x.costVariancePercent !== null).map((x) => x.costVariancePercent!),
-      ot = c.filter((x) => x.onTimeCompletion === true).length,
-      td = c.reduce((s, x) => s + (x.actualDowntimeHours || 0), 0);
+    type CompletionExt = WorkOrderCompletion & {
+      durationVariancePercent?: number | null;
+      costVariancePercent?: number | null;
+      onTimeCompletion?: boolean | null;
+    };
+    const cExt = c as unknown as CompletionExt[];
+    const dv = cExt
+        .filter((x) => x.durationVariancePercent != null)
+        .map((x) => x.durationVariancePercent as number),
+      cv = cExt
+        .filter((x) => x.costVariancePercent != null)
+        .map((x) => x.costVariancePercent as number),
+      ot = cExt.filter((x) => x.onTimeCompletion === true).length,
+      td = cExt.reduce((s, x) => s + (x.actualDowntimeHours || 0), 0);
     return {
       totalCompletions: c.length,
       avgDurationVariance: dv.length > 0 ? dv.reduce((a, b) => a + b, 0) / dv.length : 0,

@@ -110,17 +110,16 @@ export async function checkPartsAvailability(
       );
       const available = Math.max(0, onHand - reserved);
 
-      const stockStatus = calculateStockStatus(
-        onHand,
-        reserved,
-        part.minStockQty,
-        part.maxStockQty
-      );
+      const minStockQty = part.minStockQty ?? 0;
+      const maxStockQty = part.maxStockQty ?? 0;
+      const leadTimeDays = part.leadTimeDays ?? 0;
+
+      const stockStatus = calculateStockStatus(onHand, reserved, minStockQty, maxStockQty);
 
       let estimatedRestockDate: Date | undefined;
       if (onOrder > 0) {
-        const openPOs = openPOsByPartNo.get(partNo);
-        if (openPOs?.length > 0) {
+        const openPOs = openPOsByPartNo.get(partNo) ?? [];
+        if (openPOs.length > 0) {
           const earliestPO = openPOs.reduce(
             (earliest, po) => {
               const poDate = new Date(po.expectedDate);
@@ -132,7 +131,7 @@ export async function checkPartsAvailability(
         } else {
           const now = new Date();
           estimatedRestockDate = new Date(
-            Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + part.leadTimeDays)
+            Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + leadTimeDays)
           );
         }
       }
@@ -144,12 +143,16 @@ export async function checkPartsAvailability(
         reserved,
         available,
         onOrder,
-        minStock: part.minStockQty,
-        maxStock: part.maxStockQty,
+        minStock: minStockQty,
+        maxStock: maxStockQty,
         stockStatus,
-        leadTimeDays: part.leadTimeDays,
+        leadTimeDays,
         estimatedRestockDate,
-        locations,
+        locations: locations.map((l) => ({
+          location: l.location,
+          quantity: l.quantity ?? 0,
+          binLocation: l.binLocation ?? undefined,
+        })),
       });
     }
 
@@ -194,14 +197,16 @@ export async function findPartSubstitutions(
 
   const availability = await checkPartsAvailability(substituteParts, storage, orgId);
 
-  const subsByAlternatePartNo = new Map(substitutions.map((sub) => [sub.alternatePartNo, sub]));
+  const subsByAlternatePartNo = new Map<string, PartSubstitution>(
+    substitutions.map((sub: PartSubstitution) => [sub.alternatePartNo, sub])
+  );
 
   return availability.map((avail) => {
     const sub = subsByAlternatePartNo.get(avail.partNo);
     return {
       ...avail,
       substitutionType: sub?.substitutionType ?? "unknown",
-      notes: sub?.notes,
+      notes: sub?.notes ?? undefined,
     };
   });
 }

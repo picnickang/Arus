@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import type { HourlyEntry, DeckEvent, WatchData } from "./types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -327,7 +328,7 @@ export default function DeckLogbookPage() {
                             <HourlyLogRow
                               key={i}
                               hour={i}
-                              entry={d.hourlyEntries.get(i) ?? {}}
+                              entry={(d.hourlyEntries.get(i) ?? {}) as unknown as HourlyEntry}
                               isLocked={d.isLocked}
                               updateHourlyEntry={d.updateHourlyEntry}
                             />
@@ -528,7 +529,7 @@ export default function DeckLogbookPage() {
                           {d.sortedEvents.map((event, index) => (
                             <EventTimelineItem
                               key={event.id}
-                              event={event}
+                              event={event as unknown as DeckEvent}
                               index={index}
                               isLast={index === d.sortedEvents.length - 1}
                             />
@@ -714,7 +715,7 @@ export default function DeckLogbookPage() {
                           <WatchPeriodCard
                             key={period}
                             period={period}
-                            watch={d.watchAssignments.get(period) ?? {}}
+                            watch={(d.watchAssignments.get(period) ?? {}) as unknown as WatchData}
                             isLocked={d.isLocked}
                             updateWatchAssignment={d.updateWatchAssignment}
                           />
@@ -767,7 +768,7 @@ export default function DeckLogbookPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      {d.isSigned?.deckLogComplete.daily.signedByName && (
+                      {d.isSigned && d.deckLogComplete?.daily?.signedByName && (
                         <div className="text-sm text-muted-foreground">
                           Signed by:{" "}
                           <span className="font-medium">

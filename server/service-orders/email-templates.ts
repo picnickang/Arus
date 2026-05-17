@@ -127,7 +127,7 @@ export function generateSOEmailHtml(
 
   const hasQuote = so.quotedAmount !== null && so.quotedAmount !== undefined;
   const quotedInfo = hasQuote
-    ? `<p><strong>Quoted Amount:</strong> ${so.currency || "USD"} ${so.quotedAmount.toLocaleString()}</p>`
+    ? `<p><strong>Quoted Amount:</strong> ${so.currency || "USD"} ${(so.quotedAmount ?? 0).toLocaleString()}</p>`
     : "";
 
   const pricingRequestInfo = !hasQuote

@@ -23,7 +23,7 @@ pwaManager.initialize().catch((error) => {
 pwaManager.onInstallPrompt((prompt) => {
   console.info("PWA install prompt available");
   // Store prompt for later use in UI
-  (window as unknown as { pwaInstallPrompt: BeforeInstallPromptEvent }).pwaInstallPrompt = prompt;
+  (window as unknown as { pwaInstallPrompt: any }).pwaInstallPrompt = prompt;
 });
 
 pwaManager.onInstalled(() => {

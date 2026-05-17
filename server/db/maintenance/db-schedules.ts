@@ -160,7 +160,7 @@ export class DbMaintenanceSchedules {
   async createMaintenanceRecord(record: InsertMaintenanceRecord): Promise<MaintenanceRecord> {
     const [n] = await db
       .insert(maintenanceRecords)
-      .values({ id: randomUUID(), ...record, createdAt: new Date(), updatedAt: new Date() })
+      .values({ id: randomUUID(), ...record, createdAt: new Date(), updatedAt: new Date() } as any)
       .returning();
     return n;
   }
@@ -175,7 +175,7 @@ export class DbMaintenanceSchedules {
       : eq(maintenanceRecords.id, id);
     const [updated] = await db
       .update(maintenanceRecords)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updatedAt: new Date() } as any)
       .where(conditions)
       .returning();
     if (!updated) {
@@ -217,7 +217,7 @@ export class DbMaintenanceSchedules {
   async createMaintenanceCost(cost: InsertMaintenanceCost): Promise<MaintenanceCost> {
     const [n] = await db
       .insert(maintenanceCosts)
-      .values({ id: randomUUID(), ...cost, createdAt: new Date(), updatedAt: new Date() })
+      .values({ id: randomUUID(), ...cost, createdAt: new Date(), updatedAt: new Date() } as any)
       .returning();
     return n;
   }

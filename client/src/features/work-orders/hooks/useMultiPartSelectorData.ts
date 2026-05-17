@@ -47,15 +47,11 @@ export interface UseMultiPartSelectorDataReturn {
   availableParts: Part[];
   isLoading: boolean;
   engineers: CrewMember[];
-  existingParts: Array<{ partId: string; quantity: number; unitCost: number; totalCost: number }>;
+  existingParts: any;
   filteredParts: Part[];
   hasStockWarnings: boolean;
-  addPartsMutation: ReturnType<
-    typeof useCustomMutation<SelectedPart[], { success: boolean; message?: string }>
-  >;
-  removePartMutation: ReturnType<
-    typeof useCustomMutation<string, { success: boolean; message?: string }>
-  >;
+  addPartsMutation: any;
+  removePartMutation: any;
   addPartToSelection: (part: Part) => void;
   incrementPartQuantity: (partId: string) => void;
   decrementPartQuantity: (partId: string) => void;

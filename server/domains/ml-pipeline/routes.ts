@@ -4,9 +4,9 @@ import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import { dbMlAnalyticsStorage } from "../../db/ml-analytics/index.js";
 
-interface AuthenticatedRequest extends Request {
+type AuthenticatedRequest = Request & {
   orgId?: string;
-}
+};
 
 interface MlPipelineRoutesConfig {
   generalApiRateLimit: RateLimitRequestHandler;
@@ -90,7 +90,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
         },
       };
 
-      const result = await trainLSTMForFailurePrediction(config);
+      const result = await trainLSTMForFailurePrediction(config as any);
       res.json(result);
     })
   );
@@ -119,7 +119,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
           },
         };
 
-        const result = await trainRFForHealthClassification(config);
+        const result = await trainRFForHealthClassification(config as any);
         res.json(result);
       }
     )
@@ -147,7 +147,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
         },
       };
 
-      const result = await trainXGBoostForHealthClassification(config);
+      const result = await trainXGBoostForHealthClassification(config as any);
       res.json(result);
     })
   );
@@ -347,7 +347,10 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
   app.get(
     "/api/ml/metrics",
     withErrorHandling("retrieve ML metrics", async (req: Request, res: Response) => {
-      const { getMetrics, getMetricsContentType } = await import("../../ml-prometheus-metrics");
+      const promMod: any = await import("../../ml-prometheus-metrics");
+      const getMetrics = promMod.getMetrics ?? promMod.default?.getMetrics;
+      const getMetricsContentType =
+        promMod.getMetricsContentType ?? promMod.default?.getMetricsContentType;
       const metrics = await getMetrics();
 
       res.set("Content-Type", getMetricsContentType());
@@ -387,10 +390,10 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
         scaleLambda: fitResult.scaleLambda,
         confidenceLo: fitResult.confidenceInterval.lower,
         confidenceHi: fitResult.confidenceInterval.upper,
-        trainingData: fitResult.trainingData,
-        validationMetrics: fitResult.validationMetrics,
+        trainingData: fitResult.trainingData as any,
+        validationMetrics: fitResult.validationMetrics as any,
         isActive: true,
-        createdAt: new Date(),
+        ...({ createdAt: new Date() } as any),
       });
 
       res.json({ fitResult, storedModel: model });

@@ -128,8 +128,8 @@ export default function MaintenanceTemplatesPage() {
                     <TemplateCard
                       key={template.id}
                       template={template}
-                      onView={handleView}
-                      onEdit={handleEdit}
+                      onView={handleView as any}
+                      onEdit={handleEdit as any}
                       onClone={handleClone}
                       onDelete={handleDelete}
                       cloneIsPending={cloneTemplateMutation.isPending}
@@ -307,8 +307,8 @@ export default function MaintenanceTemplatesPage() {
                   <ChecklistSection
                     checklistItems={checklistItems}
                     editingItemIndex={editingItemIndex}
-                    itemForm={itemForm}
-                    onAdd={addChecklistItem}
+                    itemForm={itemForm as any}
+                    onAdd={addChecklistItem as any}
                     onEdit={editChecklistItem}
                     onRemove={removeChecklistItem}
                   />
@@ -350,7 +350,7 @@ export default function MaintenanceTemplatesPage() {
             {selectedTemplate && (
               <ViewTemplateContent
                 template={selectedTemplate}
-                items={templateItems}
+                items={templateItems as any}
                 onClose={() => setIsViewDialogOpen(false)}
               />
             )}
@@ -576,7 +576,7 @@ function ChecklistSection({
         <h4 className="font-medium">Add Checklist Item</h4>
         <div className="grid grid-cols-2 gap-4">
           <FormField
-            control={itemForm.control}
+            control={itemForm.control as any}
             name="stepNumber"
             render={({ field }) => (
               <FormItem>
@@ -589,7 +589,7 @@ function ChecklistSection({
             )}
           />
           <FormField
-            control={itemForm.control}
+            control={itemForm.control as any}
             name="estimatedMinutes"
             render={({ field }) => (
               <FormItem>
@@ -603,7 +603,7 @@ function ChecklistSection({
           />
         </div>
         <FormField
-          control={itemForm.control}
+          control={itemForm.control as any}
           name="description"
           render={({ field }) => (
             <FormItem>
@@ -620,7 +620,7 @@ function ChecklistSection({
           )}
         />
         <FormField
-          control={itemForm.control}
+          control={itemForm.control as any}
           name="required"
           render={({ field }) => (
             <FormItem className="flex items-center gap-2">
@@ -640,7 +640,7 @@ function ChecklistSection({
         <Button
           type="button"
           variant="secondary"
-          onClick={itemForm.handleSubmit(onAdd)}
+          onClick={itemForm.handleSubmit(onAdd as any)}
           data-testid="button-add-item"
         >
           <Plus className="h-4 w-4 mr-2" />

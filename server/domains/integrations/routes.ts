@@ -320,8 +320,8 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
       const { days = "30" } = req.query;
       const lookbackDays = Number.parseInt(days as string, 10) || 30;
 
-      const { getCrewSTCWSummary } = await import("../../scheduler/stcw-dashboard");
-      const summary = await getCrewSTCWSummary(orgId, crewId, lookbackDays);
+      const stcwMod: any = await import("../../scheduler/stcw-dashboard");
+      const summary = await stcwMod.getCrewSTCWSummary(orgId, crewId, lookbackDays);
 
       res.setHeader("Cache-Control", "private, max-age=300");
       res.json(summary);

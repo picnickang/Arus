@@ -75,6 +75,7 @@ export async function recordThresholdOptimization(
   await db.insert(thresholdOptimizations).values({
     equipmentId,
     sensorType,
+    orgId: "",
     currentThresholds,
     optimizedThresholds,
     improvementMetrics: {

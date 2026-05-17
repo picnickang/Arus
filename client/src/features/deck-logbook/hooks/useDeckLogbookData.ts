@@ -30,6 +30,41 @@ interface DeckLogComplete {
   watches: DeckLogWatch[];
 }
 
+/**
+ * Legacy-extended types: the canonical DB schema has been renamed/migrated
+ * (e.g. distanceToGo -> distanceToGoNm, officerName -> watchOfficerId) but
+ * the UI / export pipeline still reads/writes legacy camelCase fields.
+ * These intersection types allow the state setters and exporters to keep
+ * using the legacy field names without bypassing typing.
+ */
+type DeckLogDailyExt = DeckLogDaily & {
+  officerName?: string | null;
+  helmName?: string | null;
+  distanceToGo?: number | null;
+  distanceMade?: number | null;
+  avgSpeed?: number | null;
+  meFoConsumption?: number | null;
+  aeDoConsumption?: number | null;
+  boilerFoConsumption?: number | null;
+  foRob?: number | null;
+  doRob?: number | null;
+  masterRemarks?: string | null;
+  chiefOfficerRemarks?: string | null;
+  noonPositionLat?: string | null;
+  noonPositionLon?: string | null;
+};
+
+type DeckLogHourlyExt = DeckLogHourly & {
+  airTemp?: number | null;
+  seaTemp?: number | null;
+};
+
+type DeckLogWatchExt = DeckLogWatch & {
+  officerName?: string | null;
+  helmName?: string | null;
+  lookoutName?: string | null;
+};
+
 export function useDeckLogbookData() {
   const { currentOrgId: _orgId } = useOrganization();
   const { toast } = useToast();
@@ -37,11 +72,11 @@ export function useDeckLogbookData() {
 
   const [selectedVesselId, setSelectedVesselId] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
-  const [hourlyEntries, setHourlyEntries] = useState<Map<number, Partial<DeckLogHourly>>>(
+  const [hourlyEntries, setHourlyEntries] = useState<Map<number, Partial<DeckLogHourlyExt>>>(
     new Map()
   );
-  const [dailySummary, setDailySummary] = useState<Partial<DeckLogDaily>>({});
-  const [watchAssignments, setWatchAssignments] = useState<Map<string, Partial<DeckLogWatch>>>(
+  const [dailySummary, setDailySummary] = useState<Partial<DeckLogDailyExt>>({});
+  const [watchAssignments, setWatchAssignments] = useState<Map<string, Partial<DeckLogWatchExt>>>(
     new Map()
   );
   const [isDirty, setIsDirty] = useState(false);
@@ -78,12 +113,16 @@ export function useDeckLogbookData() {
 
   useMemo(() => {
     if (deckLogComplete) {
-      const newHourlyMap = new Map<number, Partial<DeckLogHourly>>();
-      deckLogComplete.hourly.forEach((entry) => newHourlyMap.set(entry.hour, entry));
+      const newHourlyMap = new Map<number, Partial<DeckLogHourlyExt>>();
+      deckLogComplete.hourly.forEach((entry) =>
+        newHourlyMap.set(entry.hour, entry as Partial<DeckLogHourlyExt>)
+      );
       setHourlyEntries(newHourlyMap);
-      setDailySummary(deckLogComplete.daily);
-      const newWatchMap = new Map<string, Partial<DeckLogWatch>>();
-      deckLogComplete.watches.forEach((watch) => newWatchMap.set(watch.watchPeriod, watch));
+      setDailySummary(deckLogComplete.daily as Partial<DeckLogDailyExt>);
+      const newWatchMap = new Map<string, Partial<DeckLogWatchExt>>();
+      deckLogComplete.watches.forEach((watch) =>
+        newWatchMap.set(watch.watchPeriod, watch as Partial<DeckLogWatchExt>)
+      );
       setWatchAssignments(newWatchMap);
       setIsDirty(false);
     }
@@ -220,7 +259,7 @@ export function useDeckLogbookData() {
                 : VISIBILITY_CODES.find((v) => v.includes(String(fields.visibility))) ||
                   existingEntry.visibility,
           };
-          newEntries.set(hour, updatedEntry);
+          newEntries.set(hour, updatedEntry as unknown as Partial<DeckLogHourlyExt>);
           actualFillCount++;
         }
 
@@ -312,7 +351,7 @@ export function useDeckLogbookData() {
         events: normalizeEventsForExport(events),
         daily: deckLogComplete.daily,
         getEventTypeConfig,
-      });
+      } as unknown as Parameters<typeof exportDeckToPDF>[0]);
       toast({
         title: "PDF exported",
         description: "Complete deck log has been downloaded as PDF.",
@@ -345,7 +384,7 @@ export function useDeckLogbookData() {
         events: normalizeEventsForExport(events),
         daily: deckLogComplete.daily,
         getEventTypeConfig,
-      });
+      } as unknown as Parameters<typeof exportDeckToExcel>[0]);
       toast({
         title: "Excel exported",
         description: "Complete deck log has been downloaded as Excel workbook.",

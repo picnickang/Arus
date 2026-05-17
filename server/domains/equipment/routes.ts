@@ -16,7 +16,7 @@ import {
 } from "./lifecycle";
 import { requirePermission } from "../permissions/middleware";
 
-const equipmentCache = new LRUCache<string, unknown>({ max: 200, ttl: 30_000 });
+const equipmentCache = new LRUCache<string, any>({ max: 200, ttl: 30_000 });
 
 function getCached<T>(key: string): T | null {
   const val = equipmentCache.get(key);

@@ -563,7 +563,7 @@ export default function EquipmentPage() {
         )}
         {selectedEquipment && (
           <SensorSetupWizard
-            equipment={selectedEquipment}
+            equipment={selectedEquipment as any}
             open={isSensorWizardOpen}
             onClose={() => setIsSensorWizardOpen(false)}
             onSuccess={() => {

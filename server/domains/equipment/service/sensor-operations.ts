@@ -16,7 +16,7 @@ export async function getSensorCoverage(
     operation: "getSensorCoverage",
     repositoryFn: async () => {
       const repo = TenantRepositoryFactory.sensorConfiguration(orgId);
-      const sensors = await repo.getAll({ equipmentId });
+      const sensors = (await repo.getAll({ equipmentId })) as any[];
 
       const totalSensors = sensors.length;
       const enabledSensors = sensors.filter((s) => s.enabled).length;
@@ -39,10 +39,10 @@ export async function getSensorCoverage(
           minValue: s.minValue,
           maxValue: s.maxValue,
         })),
-      };
+      } as unknown as SensorCoverageResult;
     },
-    legacyFn: () => equipmentRepository.getSensorCoverage(equipmentId, orgId),
-  });
+    legacyFn: () => Promise.resolve(equipmentRepository.getSensorCoverage(equipmentId, orgId) as unknown as SensorCoverageResult),
+  }) as unknown as SensorCoverageResult;
 }
 
 export async function setupSensors(
@@ -85,7 +85,7 @@ export async function setupSensors(
         sensorsCreated: created.length,
         sensorsSkipped: sensorsToCreate.length - created.length,
         totalSensors: existing.length + created.length,
-        sensors: created.map((s) => ({
+        sensors: created.map((s: any) => ({
           sensorType: s.sensorType,
           enabled: s.enabled,
           isCritical: s.isCritical,

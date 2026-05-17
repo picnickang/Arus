@@ -3,6 +3,7 @@
  */
 
 import { db } from "../db.js";
+import { eq } from "drizzle-orm";
 import { optimizationResults, scheduleOptimizations } from "../../shared/schema.js";
 import type { OptimizationResult, OptimizationConstraints } from "./types.js";
 import { createLogger } from "../lib/structured-logger";
@@ -83,7 +84,7 @@ export async function getOptimizationResults(resultId: string): Promise<any> {
     const optimizationRecord = await db
       .select()
       .from(optimizationResults)
-      .where(optimizationResults.id.equals(resultId))
+      .where(eq(optimizationResults.id, resultId))
       .limit(1);
 
     if (optimizationRecord.length === 0) {
@@ -95,7 +96,7 @@ export async function getOptimizationResults(resultId: string): Promise<any> {
     const scheduleRecords = await db
       .select()
       .from(scheduleOptimizations)
-      .where(scheduleOptimizations.optimizationResultId.equals(resultId));
+      .where(eq(scheduleOptimizations.optimizationResultId, resultId));
 
     return {
       success: result.runStatus === "completed",

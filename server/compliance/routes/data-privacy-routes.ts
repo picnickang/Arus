@@ -185,7 +185,7 @@ router.get(
         createdAt: new Date().toISOString(),
       };
       const anonymizationService = new DataAnonymizationService();
-      const { record: anonymized, result } = anonymizationService.anonymizeRecord(
+      const { record: anonymized, result } = (anonymizationService.anonymizeRecord as any)(
         sampleRecord,
         "crew_member",
         level,

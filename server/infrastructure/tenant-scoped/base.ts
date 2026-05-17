@@ -23,7 +23,7 @@ export abstract class TenantScopedRepository {
    * Immutable organization ID
    * Set in constructor and cannot be modified
    */
-  protected readonly orgId: string;
+  protected readonly orgId!: string;
 
   /**
    * Constructor enforces mandatory orgId

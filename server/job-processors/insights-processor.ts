@@ -23,9 +23,9 @@ export async function processInsightsSnapshotGeneration(data: {
     return {
       snapshotId: snapshot.id,
       scope,
-      kpis: insights.kpi,
-      riskFactors: insights.riskFactors,
-      summary: insights.summary,
+      kpis: (insights as any).kpi,
+      riskFactors: (insights as any).riskFactors,
+      summary: (insights as any).summary,
     };
   } catch (error) {
     logger.error("[Insights] Snapshot generation failed:", undefined, error);

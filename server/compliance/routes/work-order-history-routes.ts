@@ -17,7 +17,7 @@ router.post(
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
-      const result = await workOrderHistoryHashService.verifyWorkOrderHistory(workOrderId, orgId);
+      const result = await (workOrderHistoryHashService as any).verifyWorkOrderHistory(workOrderId, orgId);
       res.json({ success: true, data: { workOrderId, ...result } });
     } catch (error) {
       logger.error("[Compliance] Work order history verification error:", undefined, error);
@@ -42,7 +42,7 @@ router.post(
       const results = await Promise.all(
         workOrderIds.map(async (id: string) => ({
           workOrderId: id,
-          ...(await workOrderHistoryHashService.verifyWorkOrderHistory(id, orgId)),
+          ...(await (workOrderHistoryHashService as any).verifyWorkOrderHistory(id, orgId)),
         }))
       );
       const allValid = results.every((r) => r.valid);
@@ -64,7 +64,7 @@ router.get(
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
-      const stats = await workOrderHistoryHashService.getWorkOrderHistoryStats(workOrderId, orgId);
+      const stats = await (workOrderHistoryHashService as any).getWorkOrderHistoryStats(workOrderId, orgId);
       res.json({ success: true, data: { workOrderId, ...stats } });
     } catch (error) {
       logger.error("[Compliance] Work order history stats error:", undefined, error);

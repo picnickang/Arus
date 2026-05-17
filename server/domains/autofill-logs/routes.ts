@@ -286,7 +286,7 @@ export function registerAutofillLogsRoutes(app: Express, deps: AutofillLogsDepen
       }
 
       if (periodType) {
-        conditions.push(eq(conditionLogSummary.periodType, periodType as string));
+        conditions.push(eq((conditionLogSummary as any).periodType, periodType as string));
       }
 
       let query = db

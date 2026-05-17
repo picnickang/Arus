@@ -279,7 +279,7 @@ export class AlertsService {
     await recordAndPublish(
       "alert_notification",
       alertId,
-      "escalate",
+      "escalate" as any,
       {
         alertId,
         workOrderId: workOrder.id,

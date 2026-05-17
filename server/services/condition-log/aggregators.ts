@@ -73,14 +73,15 @@ export async function aggregateConditionData(
   periodStart: Date,
   periodEnd: Date
 ): Promise<ConditionAggregation> {
+  const cm = conditionMonitoring as any;
   const data = await db
     .select({
-      anomalyScoreAvg: sql<number>`avg(${conditionMonitoring.mlAnomalyScore})`,
-      anomalyScoreMax: sql<number>`max(${conditionMonitoring.mlAnomalyScore})`,
-      healthIndex: sql<number>`avg(${conditionMonitoring.healthIndex})`,
-      tempAvg: sql<number>`avg(${conditionMonitoring.temperature})`,
-      tempMax: sql<number>`max(${conditionMonitoring.temperature})`,
-      tempMin: sql<number>`min(${conditionMonitoring.temperature})`,
+      anomalyScoreAvg: sql<number>`avg(${cm.mlAnomalyScore})`,
+      anomalyScoreMax: sql<number>`max(${cm.mlAnomalyScore})`,
+      healthIndex: sql<number>`avg(${cm.healthIndex})`,
+      tempAvg: sql<number>`avg(${cm.temperature})`,
+      tempMax: sql<number>`max(${cm.temperature})`,
+      tempMin: sql<number>`min(${cm.temperature})`,
       dataPoints: sql<number>`count(*)`,
     })
     .from(conditionMonitoring)
@@ -88,8 +89,8 @@ export async function aggregateConditionData(
       and(
         eq(conditionMonitoring.orgId, orgId),
         eq(conditionMonitoring.equipmentId, equipmentId),
-        gte(conditionMonitoring.timestamp, periodStart),
-        lte(conditionMonitoring.timestamp, periodEnd)
+        gte(cm.timestamp, periodStart),
+        lte(cm.timestamp, periodEnd)
       )
     );
 
@@ -128,8 +129,8 @@ export async function getMonitoredEquipment(vesselId: string) {
     .where(
       and(
         eq(equipment.vesselId, vesselId),
-        eq(equipment.status, "operational"),
-        sql`${equipment.category} IN ('propulsion', 'auxiliary', 'deck_machinery')`
+        eq((equipment as any).status, "operational"),
+        sql`${(equipment as any).category} IN ('propulsion', 'auxiliary', 'deck_machinery')`
       )
     );
 }

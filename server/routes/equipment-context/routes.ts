@@ -49,7 +49,7 @@ export function registerEquipmentContextRoutes(app: Express) {
         options
       );
 
-      logger.info("Equipment context generated", {
+      logger.info("Equipment context generated", undefined, {
         equipmentId,
         orgId,
         dataCompleteness: context.metadata.dataCompleteness,

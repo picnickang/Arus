@@ -103,10 +103,10 @@ export async function getUnsignedLogs(
 
     results.push({
       dailyLogId: log.id,
-      vesselId: log.vesselId,
+      vesselId: log.vesselId as string,
       vesselName: vessel?.name,
       logDate: log.logDate,
-      status: log.status,
+      status: log.status ?? "",
       hoursWithData: hourly.filter((h) => h.meRpm !== null || h.meLoad !== null).length,
       anomalyCount: anomalySummary.totalAnomalies,
     });

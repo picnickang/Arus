@@ -25,45 +25,61 @@ interface EquipmentRecord {
   healthIndex?: number;
   trend?: number;
 }
+interface EquipmentHealthResponseShape {
+  results?: EquipmentRecord[];
+}
+interface AnomalyResponseShape {
+  results?: AnomalyRecord[];
+}
+interface FailurePredictionResponseShape {
+  results?: PredictionRecord[];
+}
+interface ModelPerformanceResponseShape {
+  result?: { currentAccuracy?: number; averageAccuracy?: number };
+}
 
 export function useMissionOverviewData() {
   const {
     data: equipmentHealthResponse,
     isLoading: equipmentHealthLoading,
     error: equipmentHealthError,
-  } = useQuery({
+  } = useQuery<EquipmentHealthResponseShape | undefined>({
     queryKey: ["/api/equipment/health"],
-    queryFn: () => fetchEquipmentHealthTyped(),
+    queryFn: () =>
+      fetchEquipmentHealthTyped() as unknown as Promise<EquipmentHealthResponseShape | undefined>,
     refetchInterval: 120000,
     staleTime: 60000,
   });
-  const { data: anomaliesResponse } = useQuery({
+  const { data: anomaliesResponse } = useQuery<AnomalyResponseShape | undefined>({
     queryKey: ["/api/analytics/anomalies"],
-    queryFn: () => fetchAnomalyDetections({ page: 1, limit: 100 }),
+    queryFn: () =>
+      fetchAnomalyDetections({ page: 1, limit: 100 }) as unknown as Promise<AnomalyResponseShape | undefined>,
     refetchInterval: 120000,
     staleTime: 60000,
   });
   const { data: costTrends = [] } = useQuery<CostTrendRecord[]>({
     queryKey: ["/api/analytics/cost-trends"],
-    queryFn: () => fetchCostTrends(),
+    queryFn: () => fetchCostTrends() as unknown as Promise<CostTrendRecord[]>,
     refetchInterval: 300000,
     staleTime: 120000,
   });
-  const { data: workOrders = [] } = useQuery({
+  const { data: workOrders = [] } = useQuery<unknown[]>({
     queryKey: ["/api/work-orders"],
-    queryFn: () => fetchWorkOrders(),
+    queryFn: () => fetchWorkOrders() as unknown as Promise<unknown[]>,
     refetchInterval: 120000,
     staleTime: 60000,
   });
-  const { data: modelPerformanceResponse } = useQuery({
+  const { data: modelPerformanceResponse } = useQuery<ModelPerformanceResponseShape | undefined>({
     queryKey: ["/api/analytics/model-performance/summary"],
-    queryFn: () => fetchModelPerformanceSummary(),
+    queryFn: () =>
+      fetchModelPerformanceSummary() as unknown as Promise<ModelPerformanceResponseShape | undefined>,
     refetchInterval: 300000,
     staleTime: 120000,
   });
-  const { data: failurePredictionsResponse } = useQuery({
+  const { data: failurePredictionsResponse } = useQuery<FailurePredictionResponseShape | undefined>({
     queryKey: ["/api/analytics/predictions"],
-    queryFn: () => fetchFailurePredictions({ page: 1, limit: 100 }),
+    queryFn: () =>
+      fetchFailurePredictions({ page: 1, limit: 100 }) as unknown as Promise<FailurePredictionResponseShape | undefined>,
     refetchInterval: 120000,
     staleTime: 60000,
   });
@@ -74,7 +90,13 @@ export function useMissionOverviewData() {
   const failurePredictions: PredictionRecord[] = failurePredictionsResponse?.results ?? [];
 
   const alerts = useMemo(
-    () => getMissionOverviewAlerts({ equipmentHealth, anomalies, costTrends, workOrders }),
+    () =>
+      getMissionOverviewAlerts({
+        equipmentHealth,
+        anomalies,
+        costTrends,
+        workOrders,
+      } as unknown as Parameters<typeof getMissionOverviewAlerts>[0]),
     [equipmentHealth, anomalies, costTrends, workOrders]
   );
   const topAlerts = useMemo(() => alerts.slice(0, 8), [alerts]);

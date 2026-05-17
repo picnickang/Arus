@@ -317,8 +317,8 @@ export default function AISensorAudits() {
                   <div>
                     <h3 className="font-semibold mb-2">Model Performance</h3>
                     <div className="grid grid-cols-3 gap-4">
-                      {Object.entries(selectedAudit.modelPerformance).map(
-                        ([model, perf]: [string, { accuracy: string; trainingTimeMs: number }]) => (
+                      {(Object.entries(selectedAudit.modelPerformance) as Array<[string, { accuracy: string; trainingTimeMs: number }]>).map(
+                        ([model, perf]) => (
                           <Card key={model}>
                             <CardHeader className="pb-2">
                               <CardTitle className="text-sm">{model.toUpperCase()}</CardTitle>
@@ -340,12 +340,14 @@ export default function AISensorAudits() {
                   <div>
                     <h3 className="font-semibold mb-2">Feature Rankings</h3>
                     <div className="space-y-2">
-                      {selectedAudit.featureRankings.map((ranking, i) => (
+                      {selectedAudit.featureRankings.map((rankingRaw: any, i: number) => {
+                        const ranking = rankingRaw as { sensor: string; confidence: number };
+                        return (
                         <div key={i} className="flex items-center justify-between">
                           <span className="text-sm">{ranking.sensor}</span>
                           <Badge variant="outline">{ranking.confidence.toFixed(1)}%</Badge>
                         </div>
-                      ))}
+                      );})}
                     </div>
                   </div>
                 )}

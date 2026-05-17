@@ -38,7 +38,7 @@ export default function PdmDashboard() {
   const [equipmentTypeFilter, setEquipmentTypeFilter] = useState("all");
   const [dateRange, setDateRange] = useState("30");
 
-  void setLocation;
+  // void setLocation;
 
   const { data: filterOptions } = usePdmFilterOptions();
 

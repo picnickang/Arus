@@ -63,7 +63,7 @@ export function registerSkillsRoutes({ app, rateLimit }: CrewRouteDeps): void {
         return;
       }
 
-      const crewSkill = await crewService.assignSkillToCrew(crewId, skillId, level, req.user?.id);
+      const crewSkill = await crewService.assignSkillToCrew(crewId, skillId, String(level) as any, req.user?.id);
       sendCreated(res, crewSkill);
     })
   );

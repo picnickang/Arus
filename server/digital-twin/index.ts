@@ -88,13 +88,13 @@ export class DigitalTwinService extends EventEmitter {
         currentState: initialState,
         simulationConfig: { updateInterval: 60, realTimeSync: true, dataAssimilation: true },
         validationStatus: "active",
-        accuracy: 0.85,
+        accuracy: 0.85 as any,
         metadata: {
           createdBy: "system",
           modelVersion: "2.0",
           lastCalibration: new Date().toISOString(),
         },
-      })
+      } as any)
       .returning();
     const twin = digitalTwin[0];
     this.activeTwins.set(twin.id, twin);
@@ -419,7 +419,7 @@ export class DigitalTwinService extends EventEmitter {
       const daysInService = twin.lastUpdate
         ? Math.floor((Date.now() - new Date(twin.lastUpdate).getTime()) / 86400000)
         : 30;
-      const prediction = predictFuelConsumption(state, characteristics, conditions, daysInService);
+      const prediction: any = (predictFuelConsumption as any)(state, characteristics, conditions, daysInService);
       const updatedState = {
         ...((twin.currentState as any) ?? {}),
         fuel: {

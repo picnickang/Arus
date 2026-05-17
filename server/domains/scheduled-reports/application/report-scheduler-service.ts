@@ -23,7 +23,7 @@ import { logger } from "../../../utils/logger.js";
 const LOG_CTX = "ReportSchedulerService";
 
 export class ReportSchedulerService {
-  private cronJobs: Map<string, cron.ScheduledTask> = new Map();
+  private cronJobs: Map<string, any> = new Map();
   private isInitialized = false;
 
   constructor(

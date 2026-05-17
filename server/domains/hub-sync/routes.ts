@@ -180,7 +180,7 @@ export function registerHubSyncRoutes(
       };
 
       const validatedConfig = insertOptimizerConfigurationSchema.parse(configData);
-      const config = await hubSyncService.createOptimizerConfiguration(validatedConfig);
+      const config = await hubSyncService.createOptimizerConfiguration(validatedConfig as any);
       res.status(201).json(config);
     })
   );

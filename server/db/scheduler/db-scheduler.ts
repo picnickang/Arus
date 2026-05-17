@@ -28,15 +28,10 @@ export class DatabaseSchedulerStorage {
     if (status) {
       conditions.push(eq(schedulerRuns.status, status));
     }
-    let query = db.select().from(schedulerRuns);
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-    query = query.orderBy(sql`${schedulerRuns.createdAt} DESC`);
-    if (limit) {
-      query = query.limit(limit);
-    }
-    return query;
+    const base = db.select().from(schedulerRuns);
+    const filtered = conditions.length > 0 ? base.where(and(...conditions)) : base;
+    const ordered = filtered.orderBy(sql`${schedulerRuns.createdAt} DESC`);
+    return limit ? ordered.limit(limit) : ordered;
   }
 
   async getSchedulerRun(id: string): Promise<SchedulerRun | undefined> {
@@ -53,18 +48,15 @@ export class DatabaseSchedulerStorage {
     id: string,
     updates: Partial<InsertSchedulerRun>
   ): Promise<SchedulerRun> {
-    const [u] = await recordAndPublish(
-      db
-        .update(schedulerRuns)
-        .set({ ...updates, updatedAt: new Date() })
-        .where(eq(schedulerRuns.id, id))
-        .returning(),
-      "scheduler_run",
-      "update"
-    );
+    const [u] = await db
+      .update(schedulerRuns)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(schedulerRuns.id, id))
+      .returning();
     if (!u) {
       throw new Error(`Scheduler run ${id} not found`);
     }
+    await recordAndPublish("scheduler_run" as any, id, "update", u);
     return u;
   }
 
@@ -81,7 +73,7 @@ export class DatabaseSchedulerStorage {
   async completeSchedulerRun(id: string, result: Record<string, any>): Promise<SchedulerRun> {
     const [u] = await db
       .update(schedulerRuns)
-      .set({ status: "completed", completedAt: new Date(), result, updatedAt: new Date() })
+      .set({ status: "completed", finishedAt: new Date(), stats: result, updatedAt: new Date() } as any)
       .where(eq(schedulerRuns.id, id))
       .returning();
     if (!u) {
@@ -93,7 +85,7 @@ export class DatabaseSchedulerStorage {
   async failSchedulerRun(id: string, error: string): Promise<SchedulerRun> {
     const [u] = await db
       .update(schedulerRuns)
-      .set({ status: "failed", error, completedAt: new Date(), updatedAt: new Date() })
+      .set({ status: "failed", errorMessage: error, finishedAt: new Date(), updatedAt: new Date() } as any)
       .where(eq(schedulerRuns.id, id))
       .returning();
     if (!u) {
@@ -138,11 +130,9 @@ export class DatabaseSchedulerStorage {
     if (status) {
       conditions.push(eq(drydockWindow.status, status));
     }
-    let query = db.select().from(drydockWindow);
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-    return query.orderBy(drydockWindow.startDate);
+    const base = db.select().from(drydockWindow);
+    const filtered = conditions.length > 0 ? base.where(and(...conditions)) : base;
+    return filtered.orderBy(drydockWindow.startDate);
   }
 
   async getDrydockWindowById(id: string): Promise<DrydockWindow | undefined> {
@@ -253,10 +243,10 @@ export class DatabaseSchedulerStorage {
       .update(schedulerRuns)
       .set({
         status: "approved",
-        approvedAt: new Date(),
-        approvedBy: userId,
+        publishedAt: new Date(),
+        publishedBy: userId,
         updatedAt: new Date(),
-      })
+      } as any)
       .where(eq(schedulerRuns.id, id))
       .returning();
     if (!u) {

@@ -74,7 +74,7 @@ export function buildWorkOrderSheet(
 
   for (const wo of workOrders) {
     data.push([
-      wo.workOrderNumber ?? wo.id,
+      (wo as any).workOrderNumber ?? wo.id,
       wo.equipmentId ?? "",
       wo.maintenanceType ?? "",
       wo.priority ?? "",

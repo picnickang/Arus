@@ -446,7 +446,7 @@ function SensorsTab({ equipmentId }: { equipmentId: string }) {
         onOpenChange={setDeleteDialogOpen}
         onConfirm={confirmDelete}
         title="Delete sensors"
-        description={
+        description={(
           <div className="space-y-2">
             <p>
               Are you sure you want to delete {selectedSensors.length}{" "}
@@ -466,7 +466,7 @@ function SensorsTab({ equipmentId }: { equipmentId: string }) {
               </ul>
             </div>
           </div>
-        }
+        ) as any}
         confirmText="Delete"
         cancelText="Cancel"
       />
@@ -491,7 +491,7 @@ function AnomaliesTab({ equipmentId }: { equipmentId: string }) {
               <div key={anomaly.id} className="p-4 border rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="font-medium">{anomaly.sensorKind}</p>
-                  <StatusBadge status={anomaly.severity || "info"} />
+                  <StatusBadge status={(anomaly.severity || "info") as any} />
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {anomaly.description || "Anomaly detected"}
@@ -518,13 +518,13 @@ function MaintenanceHistoryTab({ equipmentId }: { equipmentId: string }) {
         <CardTitle>Work Order History</CardTitle>
       </CardHeader>
       <CardContent>
-        {workOrders?.length > 0 ? (
+        {(workOrders as any)?.length > 0 ? (
           <div className="space-y-3">
-            {workOrders.map((wo: { id: string; reason?: string; description?: string; status?: string; maintenanceType?: string }) => (
+            {(workOrders as any[]).map((wo: { id: string; reason?: string; description?: string; status?: string; maintenanceType?: string }) => (
               <div key={wo.id} className="p-4 border rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="font-medium">{wo.reason || wo.description}</p>
-                  <StatusBadge status={wo.status || "pending"} />
+                  <StatusBadge status={(wo.status || "pending") as any} />
                 </div>
                 <p className="text-sm text-muted-foreground">Type: {wo.maintenanceType}</p>
               </div>

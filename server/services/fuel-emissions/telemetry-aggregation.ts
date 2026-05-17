@@ -14,13 +14,13 @@ export async function aggregateTelemetryForPeriod(
   periodEnd: Date
 ): Promise<TelemetryPeriod | null> {
   const engineEquipment = await db
-    .select({ id: equipment.id, installedPower: equipment.installedPower })
+    .select({ id: equipment.id, installedPower: (equipment as any).installedPower })
     .from(equipment)
     .where(
       and(
         eq(equipment.vesselId, vesselId),
         eq(equipment.category, "propulsion"),
-        eq(equipment.status, "operational")
+        eq((equipment as any).status, "operational")
       )
     );
 

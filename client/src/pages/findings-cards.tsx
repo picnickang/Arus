@@ -338,7 +338,7 @@ export function FindingCard({
             {item.source === "suggestion" &&
               Boolean(item.context?.costImpact) &&
               (() => {
-                const ci = item.context.costImpact as {
+                const ci = (item.context as any).costImpact as {
                   revenueImpact?: number;
                   estimatedRepairCost?: number;
                 };

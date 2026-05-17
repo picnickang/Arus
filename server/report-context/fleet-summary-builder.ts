@@ -34,11 +34,11 @@ export async function buildFleetSummaryContext(
   ]);
 
   const filteredWorkOrders = workOrders.filter(
-    (wo) => new Date(wo.createdAt) >= start && new Date(wo.createdAt) <= end
+    (wo: any) => new Date(wo.createdAt as any) >= start && new Date(wo.createdAt as any) <= end
   );
 
   const filteredAlerts = alerts.filter(
-    (alert) => new Date(alert.createdAt) >= start && new Date(alert.createdAt) <= end
+    (alert: any) => new Date(alert.createdAt as any) >= start && new Date(alert.createdAt as any) <= end
   );
 
   let intelligence: ReportContext["intelligence"];

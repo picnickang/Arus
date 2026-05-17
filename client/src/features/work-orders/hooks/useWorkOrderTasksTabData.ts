@@ -54,14 +54,14 @@ export function useWorkOrderTasksTabData(workOrderId: string) {
   });
   const { data: workOrderTasks = [], isLoading: isLoadingTasks } = useQuery<ChecklistItem[]>({
     queryKey: [`/api/work-orders/${workOrderId}/tasks`],
-    queryFn: async () => {
+    queryFn: (async () => {
       try {
         const response = await apiRequest("GET", `/api/work-orders/${workOrderId}/tasks`);
-        return response ?? [];
+        return (response as any) ?? [];
       } catch {
         return [];
       }
-    },
+    }) as any,
     staleTime: 30000,
   });
 
@@ -192,11 +192,11 @@ export function useWorkOrderTasksTabData(workOrderId: string) {
   const progress = checklistData?.progress;
   const templateCompletions = useMemo(() => checklistData?.completions ?? [], [checklistData]);
   const totalTasks = useMemo(
-    () => (progress?.totalItems || 0) + workOrderTasks.length,
+    () => (progress?.totalItems || 0) + (workOrderTasks as any).length,
     [progress, workOrderTasks]
   );
   const completedTasksCount = useMemo(
-    () => (progress?.completedItems || 0) + workOrderTasks.filter((t) => t.isCompleted).length,
+    () => (progress?.completedItems || 0) + (workOrderTasks as any).filter((t: any) => t.isCompleted).length,
     [progress, workOrderTasks]
   );
   const overallProgress = useMemo(

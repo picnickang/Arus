@@ -46,7 +46,7 @@ export interface EffectiveSettings {
 class SchedulingSettingsService {
   async getSettings(orgId: string, vesselId?: string): Promise<SelectSchedulingSettings | null> {
     if (!orgId) {
-      logger.warn("[SchedulingSettings] getSettings called without orgId");
+      (logger as any).warn("[SchedulingSettings] getSettings called without orgId");
       return null;
     }
 
@@ -58,7 +58,7 @@ class SchedulingSettingsService {
       const [result] = await db.select().from(schedulingSettings).where(conditions).limit(1);
       return result || null;
     } catch (error) {
-      logger.error("[SchedulingSettings] Error fetching settings", { orgId, vesselId, error });
+      (logger as any).error("[SchedulingSettings] Error fetching settings", { orgId, vesselId, error });
       return null;
     }
   }
@@ -135,7 +135,7 @@ class SchedulingSettingsService {
         .where(eq(schedulingSettings.id, existing.id))
         .returning();
 
-      logger.info("[SchedulingSettings] Updated settings", {
+      (logger as any).info("[SchedulingSettings] Updated settings", {
         id: existing.id,
         orgId: validated.orgId,
       });
@@ -144,7 +144,7 @@ class SchedulingSettingsService {
 
     const [created] = await db.insert(schedulingSettings).values(validated).returning();
 
-    logger.info("[SchedulingSettings] Created settings", {
+    (logger as any).info("[SchedulingSettings] Created settings", {
       id: created.id,
       orgId: validated.orgId,
     });

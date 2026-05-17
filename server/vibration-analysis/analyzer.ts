@@ -39,6 +39,8 @@ export class VibrationAnalyzer {
       const healthScore = calculateHealthScore(fftResult, anomalyDetection);
 
       const analysis: Omit<VibrationAnalysis, "id" | "createdAt"> = {
+        overallRms: 0,
+        analysisTimestamp: new Date(),
         orgId,
         equipmentId,
         sampleRate: this.sampleRate,

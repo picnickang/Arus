@@ -20,11 +20,33 @@ export function useEquipmentFeatures(equipmentId: string, from?: string, to?: st
   });
 }
 
+export interface LatestFeatures {
+  message?: string;
+  sampleCount?: number;
+  meanTemp?: number;
+  stdTemp?: number;
+  meanVibration?: number;
+  stdVibration?: number;
+  meanPressure?: number;
+  stdPressure?: number;
+  rmsVibration?: number;
+  peakToPeak?: number;
+  kurtosis?: number;
+  skewness?: number;
+  windowMinutes?: number;
+  computedAt?: string;
+  createdAt?: string;
+}
+
 export function useLatestFeatures(equipmentId: string) {
   const { currentOrgId } = useOrganization();
-  return useQuery({
+  return useQuery<LatestFeatures | undefined>({
     queryKey: ["/api/pdm/features/latest", currentOrgId, equipmentId],
-    queryFn: async () => apiRequest("GET", `/api/pdm/features/latest?equipmentId=${encodeURIComponent(equipmentId)}`),
+    queryFn: async () =>
+      apiRequest(
+        "GET",
+        `/api/pdm/features/latest?equipmentId=${encodeURIComponent(equipmentId)}`
+      ) as unknown as Promise<LatestFeatures | undefined>,
     enabled: !!equipmentId && !!currentOrgId,
   });
 }

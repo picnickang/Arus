@@ -482,11 +482,11 @@ function SoftwareUpdatesTab() {
                         {patch.appliedBy || "System"}
                       </TableCell>
                       <TableCell>
-                        {patch.status === "applied" && patch.backupId && (
+                        {patch.status === "applied" && (patch as any).backupId && (
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => s.rollbackMutation.mutate(patch.backupId)}
+                            onClick={() => s.rollbackMutation.mutate((patch as any).backupId)}
                             disabled={s.rollbackMutation.isPending}
                             data-testid={`button-rollback-${patch.id}`}
                           >
@@ -705,7 +705,7 @@ function SoftwareUpdatesTab() {
                   </div>
                 </form>
               </Form>
-              {s.previewMutation.data && (
+              {(s.previewMutation.data as any) && (
                 <div
                   className="mt-6 p-4 border rounded-lg bg-muted/50"
                   data-testid="preview-results"
@@ -715,28 +715,28 @@ function SoftwareUpdatesTab() {
                     <div>
                       <span className="text-muted-foreground">Files Changed:</span>
                       <p className="font-medium">
-                        {(s.previewMutation.data as { filesChanged?: number }).filesChanged ?? 0}
+                        {(s.previewMutation.data as unknown as { filesChanged?: number })?.filesChanged ?? 0}
                       </p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Additions:</span>
                       <p className="font-medium text-green-600">
-                        +{(s.previewMutation.data as { additions?: number }).additions ?? 0}
+                        +{(s.previewMutation.data as unknown as { additions?: number })?.additions ?? 0}
                       </p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Deletions:</span>
                       <p className="font-medium text-red-600">
-                        -{(s.previewMutation.data as { deletions?: number }).deletions ?? 0}
+                        -{(s.previewMutation.data as unknown as { deletions?: number })?.deletions ?? 0}
                       </p>
                     </div>
                   </div>
-                  {(s.previewMutation.data as { commits?: Array<{ sha: string; message: string }> })
-                    .commits && (
+                  {(s.previewMutation.data as unknown as { commits?: Array<{ sha: string; message: string }> })
+                    ?.commits && (
                     <div className="space-y-2">
                       <span className="text-sm text-muted-foreground">Commits:</span>
                       {(
-                        s.previewMutation.data as {
+                        s.previewMutation.data as unknown as {
                           commits: Array<{ sha: string; message: string }>;
                         }
                       ).commits

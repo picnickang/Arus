@@ -190,7 +190,7 @@ export function registerTestsRoutes(router: Router) {
     });
     try {
       const { smokeTestSuites } = await import("../../diagnostics-smoke-tests.js");
-      const runner = smokeTestSuites[name];
+      const runner = (smokeTestSuites as any)[name];
       if (runner) {
         const result = await runner();
         const output = formatSmokeTestOutput(result);

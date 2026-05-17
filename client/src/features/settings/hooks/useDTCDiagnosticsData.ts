@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import type { Vessel, Equipment, DtcFault, DtcDefinition } from "@shared/schema";
 
-interface EnrichedDtcFault extends DtcFault {
+interface EnrichedDtcFault extends Omit<DtcFault, "equipmentId"> {
   definition?: DtcDefinition;
   equipmentId?: string;
 }

@@ -141,7 +141,7 @@ export class PartsRepository extends TenantScopedRepository {
     const { parts } = await import("@shared/schema");
 
     const [created] = await db
-      .insert(parts)
+      .insert(parts as any)
       .values({
         ...data,
         orgId: this.orgId,

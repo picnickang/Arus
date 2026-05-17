@@ -73,7 +73,7 @@ export default function ServiceOrdersPage() {
     data: orders,
     isLoading,
     refetch,
-  } = useServiceOrders(statusFilter !== "all" ? { status: statusFilter } : {});
+  } = useServiceOrders((statusFilter !== "all" ? { status: statusFilter } : {}) as any);
   const { data: suppliers } = useQuery<
     { id: string; name: string; qualityRating?: number; responseSlaHours?: number }[]
   >({ queryKey: ["/api/suppliers"] });
@@ -265,7 +265,7 @@ export default function ServiceOrdersPage() {
             {/* UX FIX #3: Conditional rendering based on view mode */}
             {viewMode === "calendar" ? (
               <ServiceOrderCalendar
-                serviceOrders={filteredOrders.map((o) => ({
+                serviceOrders={filteredOrders.map((o): any => ({
                   id: o.id,
                   soNumber: o.soNumber,
                   status: o.status,

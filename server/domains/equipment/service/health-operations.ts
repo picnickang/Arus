@@ -13,7 +13,7 @@ function transformHealthMetrics(
   metrics: Array<{ equipment: Equipment; latestScore: any }>
 ): EquipmentHealth[] {
   return metrics.map(({ equipment, latestScore }) => {
-    const healthIndex = latestScore?.score ?? equipment.healthIndex ?? 0;
+    const healthIndex = latestScore?.score ?? (equipment as any).healthIndex ?? 0;
     const status = healthIndex >= 75 ? "healthy" : healthIndex >= 50 ? "warning" : "critical";
 
     return {
@@ -41,10 +41,10 @@ export async function getEquipmentHealth(
     operation: "getHealth",
     repositoryFn: async () => {
       const repo = TenantRepositoryFactory.equipment(orgId);
-      const metrics = await repo.getHealthMetrics(vesselId, equipmentId);
+      const metrics = await (repo as any).getHealthMetrics(vesselId, equipmentId);
       return transformHealthMetrics(metrics);
     },
-    legacyFn: async () => equipmentRepository.getHealth(orgId, vesselId, equipmentId),
+    legacyFn: async () => equipmentRepository.getHealth(orgId, vesselId as string, equipmentId),
   });
 
   const vesselHealthCounts: Record<string, Record<string, number>> = {};
@@ -62,7 +62,7 @@ export async function getEquipmentHealth(
       vesselHealthCounts[vesselIdKey] = { healthy: 0, warning: 0, critical: 0 };
     }
     vesselHealthCounts[vesselIdKey][status]++;
-    recordPdmScore(equipment.id, equipment.vessel, equipment.healthIndex);
+    recordPdmScore(equipment.id, equipment.vessel ?? "", equipment.healthIndex);
   });
 
   Object.entries(vesselHealthCounts).forEach(([vesselId, counts]) => {
@@ -90,7 +90,7 @@ export async function getEquipmentWithSensorIssues(
         const sensors = await sensorRepo.getAll({ equipmentId: equipment.id });
         const hasSensors = sensors.length > 0;
         const allDisabled = sensors.every((s) => !s.enabled);
-        const criticalDisabled = sensors.some((s) => s.isCritical && !s.enabled);
+        const criticalDisabled = sensors.some((s: any) => s.isCritical && !s.enabled);
 
         if (!hasSensors || allDisabled || criticalDisabled) {
           equipmentWithIssues.push(equipment);

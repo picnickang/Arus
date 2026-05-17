@@ -364,20 +364,11 @@ router.post("/:id/copy", async (req, res) => {
       .values({
         templateId: newTemplateId,
         name: newName,
-        description: sourceTemplate.description,
         kind: sourceTemplate.kind,
         unit: sourceTemplate.unit,
-        minValue: sourceTemplate.minValue,
-        maxValue: sourceTemplate.maxValue,
-        criticalLowThreshold: sourceTemplate.criticalLowThreshold,
-        warningLowThreshold: sourceTemplate.warningLowThreshold,
-        normalLowThreshold: sourceTemplate.normalLowThreshold,
-        normalHighThreshold: sourceTemplate.normalHighThreshold,
-        warningHighThreshold: sourceTemplate.warningHighThreshold,
-        criticalHighThreshold: sourceTemplate.criticalHighThreshold,
-        samplingIntervalSeconds: sourceTemplate.samplingIntervalSeconds,
+        fields: sourceTemplate.fields,
         equipmentTypes: sourceTemplate.equipmentTypes,
-        tags: sourceTemplate.tags,
+        notes: sourceTemplate.notes,
         orgId, // Set to current org
         isSystemDefault: false, // Always false for copies
         createdBy: res.locals.userId || "unknown",

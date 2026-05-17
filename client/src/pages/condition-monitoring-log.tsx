@@ -301,9 +301,9 @@ export default function ConditionMonitoringLogPage() {
                           {log.healthGrade}
                         </Badge>
                         <div>
-                          <p className="font-medium">{getEquipmentName(log.equipmentId)}</p>
+                          <p className="font-medium">{getEquipmentName(log.equipmentId ?? "")}</p>
                           <p className="text-sm text-muted-foreground">
-                            {format(new Date(log.periodStart), "MMM dd, HH:mm")}
+                            {format(new Date(log.periodStart as any), "MMM dd, HH:mm")}
                           </p>
                         </div>
                       </div>
@@ -357,12 +357,18 @@ export default function ConditionMonitoringLogPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {logs.slice(0, 50).map((log) => (
+                      {logs.slice(0, 50).map((logRaw) => {
+                        const log = logRaw as typeof logRaw & {
+                          alertsCount?: number | null;
+                          criticalAlertsCount?: number | null;
+                          dataQuality?: string | null;
+                        };
+                        return (
                         <TableRow key={log.id} data-testid={`row-condition-log-${log.id}`}>
                           <TableCell className="font-medium">
-                            {format(new Date(log.periodStart), "MMM dd HH:mm")}
+                            {format(new Date(log.periodStart as any), "MMM dd HH:mm")}
                           </TableCell>
-                          <TableCell>{getEquipmentName(log.equipmentId)}</TableCell>
+                          <TableCell>{getEquipmentName(log.equipmentId ?? "")}</TableCell>
                           <TableCell className="text-center">
                             <Badge className={HealthGradeColors[log.healthGrade || "F"]}>
                               {log.healthGrade}
@@ -397,7 +403,8 @@ export default function ConditionMonitoringLogPage() {
                             </Badge>
                           </TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>

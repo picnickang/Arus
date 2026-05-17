@@ -54,7 +54,7 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
       const { orgId = (req as AuthenticatedRequest).orgId, scope = "fleet" } = req.body;
 
       const { triggerInsightsGeneration } = await import("../../insights-scheduler");
-      const jobId = await triggerInsightsGeneration(orgId, scope);
+      const jobId = await (triggerInsightsGeneration as any)(orgId, scope);
 
       res.status(202).json({
         message: "Insights generation job scheduled successfully",
@@ -113,11 +113,11 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
     withErrorHandling("generate fleet technician insights", async (req, res) => {
       const startTime = Date.now();
 
-      const { logInfo, logError, createRequestContext } = await import("../../structured-logging");
+      const { logInfo, logError, createRequestContext } = (await import("../../structured-logging")) as any;
       const { generateFleetTechnicianInsights } = await import("../../insights-engine");
-      const { fleetOverviewRequests, fleetOverviewResponseTime } = await import(
+      const { fleetOverviewRequests, fleetOverviewResponseTime } = (await import(
         "../../ml-prometheus-metrics"
-      );
+      )) as any;
 
       const { vesselId } = req.query;
       const orgId = (req as AuthenticatedRequest).orgId;

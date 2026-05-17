@@ -64,7 +64,7 @@ export async function evaluateDeckMissingHourly(
   }
 
   const validEntries = deckLogComplete.hourly.filter(
-    (h) => h.course !== null || h.windDirection !== null || h.seaState !== null
+    (h: any) => h.course !== null || h.windDirection !== null || h.seaState !== null
   );
 
   if (validEntries.length < minHourlyEntries) {
@@ -132,7 +132,7 @@ export async function evaluateDeckMissingPosition(
     return { triggered: false, skipped: true, skipReason: "No deck log record for this date" };
   }
 
-  if (deckLogComplete.daily.noonLatitude === null || deckLogComplete.daily.noonLongitude === null) {
+  if ((deckLogComplete.daily as any).noonLatitude === null || (deckLogComplete.daily as any).noonLongitude === null) {
     return {
       triggered: true,
       finding: {

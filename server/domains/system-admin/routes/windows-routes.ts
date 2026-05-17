@@ -72,7 +72,7 @@ export function registerWindowsRoutes(app: Express, deps: SystemAdminDependencie
     auditAdminAction("UPDATE_MAINTENANCE_WINDOW"),
     withErrorHandling("update maintenance window", async (req: Request, res: Response) => {
       const { id } = req.params;
-      const validatedData = insertMaintenanceWindowSchema.partial().parse(req.body);
+      const validatedData = (insertMaintenanceWindowSchema as any).partial().parse(req.body);
       const window = await dbSystemAdminStorage.updateMaintenanceWindow(id, validatedData);
       res.json(window);
     })

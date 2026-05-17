@@ -59,7 +59,7 @@ export class CrewExtensionsApplicationService {
   async planSchedule(command: PlanScheduleCommand, userId?: string): Promise<SchedulerRunEntity> {
     const { planAndMaybeExecute } = await import("../../../scheduler/scheduler-controller.js");
 
-    const result = await planAndMaybeExecute({
+    const result: any = await planAndMaybeExecute({
       orgId: command.orgId,
       from: command.from,
       days: command.days,
@@ -237,7 +237,7 @@ export class CrewExtensionsApplicationService {
     }
 
     const { previewScheduleCompliance } = await import("../../../scheduler/compliance-preview.js");
-    return previewScheduleCompliance(orgId, assignments);
+    return previewScheduleCompliance(orgId, assignments) as any;
   }
 
   async getAssignmentsByDateRange(

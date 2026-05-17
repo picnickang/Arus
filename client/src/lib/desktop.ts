@@ -42,7 +42,7 @@ async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Prom
   if (!core) {
     throw new Error("Tauri core not available");
   }
-  return core.invoke<T>(cmd, args);
+  return ((core.invoke as any)(cmd, args)) as Promise<T>;
 }
 
 interface CachedUpdate {

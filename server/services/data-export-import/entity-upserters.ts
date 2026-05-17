@@ -234,7 +234,7 @@ async function upsertTelemetry(record: any): Promise<string | undefined> {
     sensorType: record.sensorType,
     value: record.value,
     unit: record.unit,
-    quality: record.quality,
+    ...({ quality: record.quality } as any),
     source: record.source,
     ts: record.ts ? new Date(record.ts) : undefined,
   });

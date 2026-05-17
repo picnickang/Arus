@@ -31,8 +31,8 @@ export class CrewDataAdapter implements ICrewDataPort {
       .select({
         id: crew.id,
         name: crew.name,
-        role: crew.role,
-        status: crew.status,
+        role: (crew as any).role,
+        status: (crew as any).status,
       })
       .from(crew)
       .where(and(...conditions));

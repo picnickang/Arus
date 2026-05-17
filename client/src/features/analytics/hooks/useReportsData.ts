@@ -11,9 +11,9 @@ export function useReportsData() {
   const [selectedStandard, setSelectedStandard] = useState<string>("ISM");
   const [reportType, setReportType] = useState<string>("fleet");
 
-  const { data: equipmentHealth, isLoading: healthLoading } = useQuery({
+  const { data: equipmentHealth, isLoading: healthLoading } = useQuery<any[]>({
     queryKey: ["/api/equipment/health"],
-    queryFn: fetchEquipmentHealth,
+    queryFn: fetchEquipmentHealth as any,
   });
   const { data: workOrders, isLoading: ordersLoading } = useQuery({
     queryKey: ["/api/work-orders"],
@@ -77,12 +77,12 @@ export function useReportsData() {
     yPosition += 10;
     pdf.text(`Critical Equipment: ${summary.criticalEquipment}`, 20, yPosition);
     yPosition += 20;
-    if (reportData.sections.equipmentHealth?.length > 0) {
+    if ((reportData.sections.equipmentHealth?.length ?? 0) > 0) {
       pdf.setFontSize(16);
       pdf.text("Equipment Health Status", 20, yPosition);
       yPosition += 15;
       pdf.setFontSize(10);
-      reportData.sections.equipmentHealth.slice(0, 15).forEach((eq) => {
+      reportData.sections.equipmentHealth!.slice(0, 15).forEach((eq) => {
         if (yPosition > 270) {
           pdf.addPage();
           yPosition = 20;
@@ -126,12 +126,12 @@ export function useReportsData() {
       yPosition += 10;
       pdf.text(`Compliance Rate: ${summary.complianceRate}%`, 20, yPosition);
       yPosition += 20;
-      if (reportData.maintenanceRecords?.length > 0) {
+      if ((reportData.maintenanceRecords?.length ?? 0) > 0) {
         pdf.setFontSize(16);
         pdf.text("Recent Maintenance Records", 20, yPosition);
         yPosition += 15;
         pdf.setFontSize(10);
-        reportData.maintenanceRecords.slice(0, 10).forEach((record) => {
+        reportData.maintenanceRecords!.slice(0, 10).forEach((record) => {
           if (yPosition > 270) {
             pdf.addPage();
             yPosition = 20;
@@ -153,12 +153,12 @@ export function useReportsData() {
       yPosition += 10;
       pdf.text(`Response Rate: ${summary.responseRate}%`, 20, yPosition);
       yPosition += 20;
-      if (reportData.alerts?.length > 0) {
+      if ((reportData.alerts?.length ?? 0) > 0) {
         pdf.setFontSize(16);
         pdf.text("Recent Alerts", 20, yPosition);
         yPosition += 15;
         pdf.setFontSize(10);
-        reportData.alerts.slice(0, 10).forEach((alert) => {
+        reportData.alerts!.slice(0, 10).forEach((alert) => {
           if (yPosition > 270) {
             pdf.addPage();
             yPosition = 20;

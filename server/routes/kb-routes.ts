@@ -276,7 +276,7 @@ export async function registerKnowledgeBaseRoutes(
 
       logger.info(`[KB Search] Query: "${validatedQuery.q}" for org ${orgId}`);
 
-      const results = await searchKnowledgeBase({
+      const results = await (searchKnowledgeBase as any)({
         orgId,
         query: validatedQuery.q,
         limit: validatedQuery.limit,
@@ -304,7 +304,7 @@ export async function registerKnowledgeBaseRoutes(
     try {
       const orgId = req.orgId;
       const userId = req.user?.id || null;
-      const userRoles = (req.user?.roles as string[]) || [];
+      const userRoles = ((req.user as any)?.roles as string[]) || [];
       const equipmentId = req.query.equipmentId as string | undefined;
 
       // Validate equipmentId belongs to org if provided (security: prevent cross-tenant probing)
@@ -359,7 +359,7 @@ export async function registerKnowledgeBaseRoutes(
   router.get("/stats", generalApiRateLimit, async (req, res) => {
     try {
       const orgId = req.orgId;
-      const stats = await getKnowledgeBaseStats(orgId);
+      const stats = await (getKnowledgeBaseStats as any)(orgId);
 
       res.json(stats);
     } catch (error) {

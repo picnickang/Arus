@@ -132,10 +132,10 @@ export function registerExtendedRoutes(app: Express, rateLimit: RateLimitMiddlew
         requestNumber,
         requestedBy: userId,
         vesselId: workOrder.vesselId,
-        supplierId: supplierId || undefined,
         notes: notes || undefined,
         requiredByDate: requestedDeliveryDate ? new Date(requestedDeliveryDate) : undefined,
         status: "draft",
+        ...({ supplierId: supplierId || undefined } as any),
       });
 
       const createdItems = [];

@@ -19,7 +19,7 @@ registerTool({
   },
   inputSchema: z.object({ equipmentId: z.string().min(1) }),
   requiresApproval: false,
-  async execute(input: { equipmentId: string }, ctx) {
+  async execute(input: any, ctx: any) {
     const [item] = await db
       .select()
       .from(equipment)
@@ -63,7 +63,7 @@ registerTool({
   },
   inputSchema: z.object({ vesselId: z.string().optional() }),
   requiresApproval: false,
-  async execute(input: { vesselId?: string }, ctx) {
+  async execute(input: any, ctx: any) {
     if (input.vesselId) {
       const [vessel] = await db
         .select()
@@ -118,7 +118,7 @@ registerTool({
   },
   inputSchema: z.object({ limit: z.number().optional(), vesselId: z.string().optional() }),
   requiresApproval: false,
-  async execute(input: { limit?: number; vesselId?: string }, ctx) {
+  async execute(input: any, ctx: any) {
     const conditions = [eq(equipment.orgId, ctx.orgId)];
     if (input.vesselId) {
       conditions.push(eq(equipment.vesselId, input.vesselId));

@@ -219,7 +219,7 @@ async function atomicClaimAlertSlotSQLite(
       const snapshot: CooldownSnapshot = {
         lastAlertAt: row.lastAlertAt,
         lastEmailAt: row.lastEmailAt,
-        alertCount: row.alertCount,
+        alertCount: row.alertCount ?? 0,
         claimUpdatedAt: now,
       };
       await db
@@ -227,7 +227,7 @@ async function atomicClaimAlertSlotSQLite(
         .set({
           lastAlertAt: now,
           lastEmailAt: null,
-          alertCount: row.alertCount + 1,
+          alertCount: (row.alertCount ?? 0) + 1,
           updatedAt: now,
         })
         .where(eq(alertCooldown.id, row.id));

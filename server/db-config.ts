@@ -150,7 +150,7 @@ if (!isLocalMode) {
       connectionTimeoutMillis: 15000,
     });
 
-    pgPool.on("error", (err) => {
+    (pgPool as any).on("error", (err: any) => {
       if (err.message?.includes("WebSocket")) {
         logger.warn("⚠️ Neon WebSocket connection error (transient, retrying...)");
       } else {
@@ -158,7 +158,7 @@ if (!isLocalMode) {
       }
     });
 
-    cloudDatabase = drizzlePgWs(pgPool, { schema });
+    cloudDatabase = drizzlePgWs(pgPool as any, { schema });
     connectionMode = "websocket";
 
     logger.info("✓ Cloud PostgreSQL: Connected (WebSocket mode)");

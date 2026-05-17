@@ -20,6 +20,7 @@ import { CIIBadge } from "@/components/compliance/CIIBadge";
 import { OperatingModeChip } from "@/components/context/OperatingModeChip";
 import { useVesselDetail } from "@/features/vessels";
 import type { Part } from "@/features/inventory/types";
+import type { Equipment } from "@/features/vessels/types";
 import { useSchematicLayout } from "@/hooks/useSchematicLayout";
 import {
   VesselSchematic,
@@ -43,7 +44,7 @@ export default function VesselDashboard() {
     vesselId,
     vessel,
     vesselLoading,
-    equipment,
+    equipment: equipmentRaw,
     equipmentLoading,
     vesselWorkOrders,
     vesselCrew,
@@ -53,6 +54,7 @@ export default function VesselDashboard() {
     crewLoading,
     schedulesLoading,
   } = useVesselDetail();
+  const equipment = equipmentRaw as unknown as Equipment[];
 
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [inventoryTab, setInventoryTab] = useState("compatible");

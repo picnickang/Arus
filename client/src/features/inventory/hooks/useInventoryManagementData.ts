@@ -125,7 +125,7 @@ export function useInventoryManagementData() {
     data: partsInventory = [],
     isLoading: isLoadingInventory,
     error,
-  } = useInventoryParts() as {
+  } = useInventoryParts() as unknown as {
     data: PartsInventoryItem[];
     isLoading: boolean;
     error: Error | null;
@@ -154,12 +154,12 @@ export function useInventoryManagementData() {
         location: data.location || "MAIN",
         orgId,
       });
-      if (result?.id) {
+      if ((result as any)?.id) {
         const supplierIds = data.supplierIds || [];
         const preferredSupplierId = supplierIds.includes(data.preferredSupplierId || "")
           ? data.preferredSupplierId
           : supplierIds[0] || undefined;
-        await apiRequest("PUT", `/api/inventory/${result.id}/suppliers`, {
+        await apiRequest("PUT", `/api/inventory/${(result as any).id}/suppliers`, {
           supplierIds,
           preferredSupplierId,
         });

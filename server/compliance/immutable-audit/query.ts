@@ -64,7 +64,7 @@ export async function queryAuditEvents(options: AuditQueryOptions): Promise<Audi
 
   const results = await query;
 
-  return results.map((r) => ({
+  return ((results as any[]).map((r: any) => ({
     ...r,
     eventCategory: r.eventCategory as AuditEventCategory,
     eventType: r.eventType as AuditEventType,
@@ -74,5 +74,5 @@ export async function queryAuditEvents(options: AuditQueryOptions): Promise<Audi
     changedFields: parseChangedFields(r.changedFields),
     metadata: parseJsonField(r.metadata),
     retentionRequired: r.retentionRequired ?? true,
-  }));
+  }))) as any;
 }

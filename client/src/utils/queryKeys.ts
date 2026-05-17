@@ -227,7 +227,7 @@ export const invalidateDomain = {
  * Helper to get all query keys that should be invalidated after equipment mutation
  */
 export function getEquipmentMutationInvalidations(equipmentId?: string) {
-  const keys = [equipmentKeys.all, analyticsKeys.dashboard(), dtcKeys.dashboard()];
+  const keys: any[] = [equipmentKeys.all, analyticsKeys.dashboard(), dtcKeys.dashboard()];
 
   if (equipmentId) {
     keys.push(
@@ -244,7 +244,7 @@ export function getEquipmentMutationInvalidations(equipmentId?: string) {
  * Helper to get all query keys that should be invalidated after sensor mutation
  */
 export function getSensorMutationInvalidations(equipmentId?: string) {
-  const keys = [sensorKeys.all];
+  const keys: any[] = [sensorKeys.all];
 
   if (equipmentId) {
     keys.push(

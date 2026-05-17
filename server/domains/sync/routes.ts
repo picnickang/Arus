@@ -172,7 +172,7 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
 
       const { detectConflicts, logConflict } = await import("../../conflict-resolution-service.js");
 
-      const result = await detectConflicts(
+      const result = await (detectConflicts as any)(
         table,
         recordId,
         data,
@@ -186,7 +186,7 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
       if (result.hasConflict && result.conflicts.length > 0) {
         const conflictIds = [];
         for (const conflict of result.conflicts) {
-          const conflictId = await logConflict(conflict, user, device, null, null, orgId);
+          const conflictId = await (logConflict as any)(conflict, user, device, null, null, orgId);
           conflictIds.push(conflictId);
         }
 
@@ -194,7 +194,7 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
           table,
           recordId,
           conflictCount: conflictIds.length,
-          requiresManual: result.requiresManualResolution,
+          requiresManual: (result as any).requiresManualResolution,
         });
 
         res.json({
@@ -312,13 +312,13 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
           or: () => Boolean(localValue) || Boolean(serverValue),
           server: () => serverValue,
         };
-        const strategyFn = resolutionStrategies[conflict.resolutionStrategy ?? ""];
+        const strategyFn = resolutionStrategies[conflict.resolutionStrategy ?? ""] as any;
         resolvedValue = strategyFn ? strategyFn() : localValue;
 
         await manuallyResolveConflict(conflict.id, resolvedValue, `system:auto-${resolvedBy}`);
         resolved.push({
           conflictId: conflict.id,
-          field: conflict.fieldName,
+          field: conflict.fieldName as string,
           resolvedValue,
         });
       }

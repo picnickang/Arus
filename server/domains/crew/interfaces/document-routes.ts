@@ -109,10 +109,10 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
             ...doc,
             crewMemberName: crewMember?.name || "Unknown",
             crewMemberRank: crewMember?.rank || "Unknown",
-            daysUntilExpiry: doc.expiresAt
-              ? Math.ceil((new Date(doc.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+            daysUntilExpiry: (doc as any).expiresAt
+              ? Math.ceil((new Date((doc as any).expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
               : null,
-            urgencyLevel: doc.expiresAt ? getExpiryUrgencyLevel(doc.expiresAt) : null,
+            urgencyLevel: (doc as any).expiresAt ? getExpiryUrgencyLevel((doc as any).expiresAt) : null,
           };
         })
       );

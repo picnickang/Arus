@@ -166,7 +166,7 @@ router.get("/trends/correlations/:equipmentId", async (req, res) => {
         });
     }
     logger.info(`[Beast Mode API] Sensor correlations for ${equipmentId} over ${hours}h`);
-    const correlations = await enhancedTrendsAnalyzer.analyzeSensorCorrelations(
+    const correlations = await (enhancedTrendsAnalyzer as any).analyzeSensorCorrelations(
       orgId,
       equipmentId,
       hours,
@@ -186,8 +186,8 @@ router.get("/trends/correlations/:equipmentId", async (req, res) => {
           sensor1: c.sensor1,
           sensor2: c.sensor2,
           correlation: c.correlation,
-          strength: c.strength,
-          interpretation: c.interpretation,
+          strength: (c as any).strength,
+          interpretation: (c as any).interpretation,
         })),
       },
       message: "Sensor correlation analysis completed successfully",

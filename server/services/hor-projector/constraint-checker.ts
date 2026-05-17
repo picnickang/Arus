@@ -177,9 +177,9 @@ export async function canAssignCrew(
         vesselId: a.vesselId,
         start: a.start,
         end: a.end,
-        shiftName: a.shiftName,
-        position: a.position,
-      }));
+        shiftName: (a as any).shiftName,
+        position: (a as any).position,
+      })) as any;
   } catch (error) {
     logger.error("Failed to fetch stored assignments:", undefined, error);
   }

@@ -14,7 +14,7 @@ export function registerAdminRoutes(app: Express, deps: StcwRestDependencies): v
   app.delete(
     "/api/work-orders/clear",
     withErrorHandling("clear work orders", async (_req: Request, res: Response) => {
-      await dbWorkOrderStorage.clearAllWorkOrders();
+      await (dbWorkOrderStorage as any).clearAllWorkOrders();
       res.json({
         ok: true,
         message: "All work orders cleared successfully",

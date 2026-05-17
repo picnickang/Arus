@@ -52,10 +52,10 @@ export async function initializeSqliteDatabase(): Promise<void> {
   }
 
   for (const stmt of getAllTablesSql()) {
-    await db.run(stmt);
+    await (db as any).run(stmt);
   }
   for (const stmt of getAllIndexesSql()) {
-    await db.run(stmt);
+    await (db as any).run(stmt);
   }
 
   await runAdminSettingsCompatibilityMigration(libsqlClient);

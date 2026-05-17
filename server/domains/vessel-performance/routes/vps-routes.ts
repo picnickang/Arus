@@ -144,7 +144,7 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
 
       const vessels = await vesselService.getVessels(orgId);
       const vesselCount = vesselType
-        ? vessels.filter((v) => v.type === vesselType).length
+        ? vessels.filter((v) => (v as any).type === vesselType).length
         : vessels.length;
 
       res.setHeader("Cache-Control", "public, max-age=300");

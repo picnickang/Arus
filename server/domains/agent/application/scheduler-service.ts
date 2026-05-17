@@ -36,7 +36,7 @@ export type BriefingHandler = (
 ) => Promise<{ briefingId: string }>;
 
 export class SchedulerService {
-  private cronJobs: Map<string, cron.ScheduledTask> = new Map();
+  private cronJobs: Map<string, any> = new Map();
   private briefingHandler: BriefingHandler | null = null;
 
   constructor(

@@ -592,7 +592,7 @@ class AmosImportService {
 
       for (const doc of ragDocuments) {
         try {
-          await ingestDocuments({
+          await (ingestDocuments as any)({
             orgId,
             documents: [
               {

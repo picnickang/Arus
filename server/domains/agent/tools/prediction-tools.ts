@@ -40,7 +40,7 @@ registerTool({
   },
   inputSchema: z.object({ equipmentId: z.string().min(1), limit: z.number().optional() }),
   requiresApproval: false,
-  async execute(input: { equipmentId: string; limit?: number }, ctx) {
+  async execute(input: any, ctx: any) {
     const predictions = await db
       .select()
       .from(failurePredictions)

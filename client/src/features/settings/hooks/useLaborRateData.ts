@@ -71,14 +71,12 @@ export function useLaborRateData() {
     defaultValues: { overtimeMultiplier: 1.5 },
   });
 
-  const createRateMutation = useCreateMutation({
-    endpoint: "/api/labor-rates",
+  const createRateMutation = useCreateMutation("/api/labor-rates", {
     invalidateKeys: ["/api/labor-rates"],
     successMessage: "New labor rate configuration has been saved.",
     onSuccess: () => newRateForm.reset(),
   });
-  const updateRateMutation = useUpdateMutation({
-    endpoint: "/api/labor-rates",
+  const updateRateMutation = useUpdateMutation("/api/labor-rates", {
     invalidateKeys: ["/api/labor-rates"],
     successMessage: "Labor rate configuration has been updated.",
     onSuccess: () => setEditingRate(null),

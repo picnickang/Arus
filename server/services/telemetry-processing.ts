@@ -160,7 +160,8 @@ export async function checkAndCreateAlerts(telemetryReading: EquipmentTelemetry)
     const isSuppressed = await dbAlertStorage.isAlertSuppressed(
       telemetryReading.equipmentId,
       telemetryReading.sensorType,
-      result.alertType
+      result.alertType,
+      telemetryReading.orgId
     );
     if (isSuppressed) {
       continue;
@@ -199,11 +200,15 @@ export async function applySensorConfiguration(
   let processedValue = value;
 
   try {
-    const config = await dbSensorsStorage.getSensorConfiguration(equipmentId, sensorType, orgId);
+    const configRaw = await dbSensorsStorage.getSensorConfiguration(equipmentId, sensorType, orgId);
 
-    if (!config) {
+    if (!configRaw) {
       return { processedValue, shouldKeep: true, flags: [] };
     }
+    const config = configRaw as typeof configRaw & {
+      minValue?: number | null;
+      maxValue?: number | null;
+    };
 
     if (config.scaleFactor && config.scaleFactor !== 1) {
       processedValue = value * config.scaleFactor;
@@ -215,11 +220,11 @@ export async function applySensorConfiguration(
       flags.push("offset_applied");
     }
 
-    if (config.minValue !== null && processedValue < config.minValue) {
+    if (config.minValue != null && processedValue < config.minValue) {
       flags.push("below_min");
     }
 
-    if (config.maxValue !== null && processedValue > config.maxValue) {
+    if (config.maxValue != null && processedValue > config.maxValue) {
       flags.push("above_max");
     }
 
@@ -269,27 +274,21 @@ export async function generateAIInsights(telemetryReading: EquipmentTelemetry): 
       return;
     }
 
-    const analysis = await analyzeEquipmentHealth({
-      equipmentId: telemetryReading.equipmentId,
-      equipmentName: equipmentDetails.name,
-      equipmentType: equipmentDetails.type,
-      sensorType: telemetryReading.sensorType,
-      currentValue: telemetryReading.value,
-      recentReadings: recentTelemetry.slice(-10).map((t) => ({
-        value: t.value,
-        timestamp: t.ts?.toISOString() || new Date().toISOString(),
-      })),
-    });
+    const analysis = (await analyzeEquipmentHealth(
+      recentTelemetry,
+      telemetryReading.equipmentId,
+      equipmentDetails.type
+    )) as unknown as { riskLevel?: string; overallHealth?: number } & Record<string, unknown>;
 
     if (analysis?.riskLevel !== "low") {
-      await analyticsInsightsAdapter.createInsightSnapshot({
+      await analyticsInsightsAdapter.createInsightSnapshot(telemetryReading.orgId, {
         orgId: telemetryReading.orgId,
         equipmentId: telemetryReading.equipmentId,
         sensorType: telemetryReading.sensorType,
         snapshotType: "ai_analysis",
         data: analysis,
         generatedAt: new Date(),
-      });
+      } as any);
     }
   } catch (error) {
     logger.error(`AI insights generation failed for ${cacheKey}:`, undefined, error);
@@ -299,18 +298,18 @@ export async function generateAIInsights(telemetryReading: EquipmentTelemetry): 
 export async function checkAndScheduleAutomaticMaintenance(
   telemetryReading: EquipmentTelemetry
 ): Promise<void> {
-  const settings = await dbSystemAdminStorage.getSettings();
+  const settings = (await dbSystemAdminStorage.getSettings()) as Record<string, unknown>;
 
   if (!settings.autoScheduleMaintenance) {
     return;
   }
 
-  const healthScore = telemetryReading.pdmScore;
+  const healthScore = (telemetryReading as typeof telemetryReading & { pdmScore?: number | null }).pdmScore;
   if (healthScore === null || healthScore === undefined) {
     return;
   }
 
-  const autoScheduleThreshold = settings.autoScheduleThreshold || 60;
+  const autoScheduleThreshold = (settings.autoScheduleThreshold as number | undefined) || 60;
   if (healthScore >= autoScheduleThreshold) {
     return;
   }

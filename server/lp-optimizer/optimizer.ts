@@ -2,7 +2,7 @@
  * LP Optimizer - Main Optimizer Class
  */
 
-import * as solver from "javascript-lp-solver";
+const solver: any = require("javascript-lp-solver");
 import type { OptimizationConstraints, OptimizationResult } from "./types.js";
 import { getPendingMaintenanceJobs, getPartsAvailability } from "./job-loader.js";
 import { formulateLinearProgram, relaxConstraints, processSolution } from "./lp-formulation.js";

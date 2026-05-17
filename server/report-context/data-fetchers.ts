@@ -29,8 +29,8 @@ export async function getVesselWorkOrders(
 ): Promise<WorkOrder[]> {
   const allOrders = await workOrderService.getWorkOrdersWithDetails();
   return allOrders.filter(
-    (wo) =>
-      wo.vesselId === vesselId && new Date(wo.createdAt) >= start && new Date(wo.createdAt) <= end
+    (wo: any) =>
+      wo.vesselId === vesselId && new Date(wo.createdAt as any) >= start && new Date(wo.createdAt as any) <= end
   );
 }
 
@@ -59,10 +59,10 @@ export async function getVesselAlerts(vesselId: string, start: Date, end: Date):
 
   const allAlerts = await dbAlertStorage.getAlertNotifications();
   return allAlerts.filter(
-    (a) =>
+    (a: any) =>
       equipmentIds.includes(a.equipmentId) &&
-      new Date(a.createdAt) >= start &&
-      new Date(a.createdAt) <= end
+      new Date(a.createdAt as any) >= start &&
+      new Date(a.createdAt as any) <= end
   );
 }
 
@@ -77,7 +77,7 @@ export async function getCrewRestSheets(vesselId: string, start: Date, end: Date
     start.toISOString().split("T")[0],
     end.toISOString().split("T")[0]
   );
-  return restData.map((r: any) => r.sheet);
+  return (restData as any).map?.((r: any) => r.sheet) ?? [];
 }
 
 export async function getComplianceLogs(start: Date, end: Date): Promise<any[]> {

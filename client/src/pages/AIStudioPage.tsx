@@ -164,61 +164,71 @@ export default function AIStudioPage() {
         {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
-            title="Active Models"
-            value={deployedModels}
-            icon={Brain}
-            trend={deployedModels > 0 ? { direction: "up", value: 12 } : undefined}
-            data-testid="kpi-active-models"
+            {...({
+              title: "Active Models",
+              value: deployedModels,
+              icon: Brain,
+              trend: deployedModels > 0 ? { direction: "up", value: 12 } : undefined,
+              "data-testid": "kpi-active-models",
+            } as any)}
           />
           <KpiCard
-            title="Avg. Accuracy"
-            value={`${avgAccuracy.toFixed(1)}%`}
-            icon={TrendingUp}
-            trend={avgAccuracy >= 80 ? { direction: "up", value: 5 } : undefined}
-            data-testid="kpi-avg-accuracy"
+            {...({
+              title: "Avg. Accuracy",
+              value: `${avgAccuracy.toFixed(1)}%`,
+              icon: TrendingUp,
+              trend: avgAccuracy >= 80 ? { direction: "up", value: 5 } : undefined,
+              "data-testid": "kpi-avg-accuracy",
+            } as any)}
           />
           <KpiCard
-            title="In Training"
-            value={trainingModels}
-            icon={Activity}
-            data-testid="kpi-in-training"
+            {...({
+              title: "In Training",
+              value: trainingModels,
+              icon: Activity,
+              "data-testid": "kpi-in-training",
+            } as any)}
           />
           <KpiCard
-            title="Need Attention"
-            value={modelsNeedingAttention}
-            icon={AlertTriangle}
-            variant={modelsNeedingAttention > 0 ? "warning" : "default"}
-            data-testid="kpi-need-attention"
+            {...({
+              title: "Need Attention",
+              value: modelsNeedingAttention,
+              icon: AlertTriangle,
+              variant: modelsNeedingAttention > 0 ? "warning" : "default",
+              "data-testid": "kpi-need-attention",
+            } as any)}
           />
         </div>
 
         {/* Insights */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InsightCard
-            title="Model Performance"
-            message={
-              avgAccuracy >= 85
-                ? "Excellent model performance across the fleet"
-                : avgAccuracy >= 70
-                  ? "Good performance, but some models need attention"
-                  : "Several models require retraining"
-            }
-            type={avgAccuracy >= 85 ? "success" : avgAccuracy >= 70 ? "info" : "warning"}
+            {...({
+              title: "Model Performance",
+              message:
+                avgAccuracy >= 85
+                  ? "Excellent model performance across the fleet"
+                  : avgAccuracy >= 70
+                    ? "Good performance, but some models need attention"
+                    : "Several models require retraining",
+              type: avgAccuracy >= 85 ? "success" : avgAccuracy >= 70 ? "info" : "warning",
+            } as any)}
           />
           <InsightCard
-            title="System Status"
-            message={
-              trainingModels > 0
-                ? `${trainingModels} model(s) currently training`
-                : "No active training jobs"
-            }
-            type="info"
+            {...({
+              title: "System Status",
+              message:
+                trainingModels > 0
+                  ? `${trainingModels} model(s) currently training`
+                  : "No active training jobs",
+              type: "info",
+            } as any)}
           />
         </div>
 
         {/* Accuracy Trend */}
         <AccuracyTrendChart
-          data={accuracyData}
+          data={accuracyData as any}
           timeRange={accuracyTimeRange}
           onTimeRangeChange={setAccuracyTimeRange}
           data-testid="accuracy-trend-chart"

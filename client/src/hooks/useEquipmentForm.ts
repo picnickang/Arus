@@ -85,9 +85,9 @@ export function useEquipmentEditForm(
         isActive: equipment.isActive,
         purchaseValue: equipment.purchaseValue ?? undefined,
         purchaseDate: equipment.purchaseDate
-          ? typeof equipment.purchaseDate === "string"
+          ? (typeof equipment.purchaseDate === "string"
             ? equipment.purchaseDate
-            : new Date(equipment.purchaseDate).toISOString()
+            : new Date(equipment.purchaseDate).toISOString()) as any
           : undefined,
         purchaseCurrency: equipment.purchaseCurrency || "USD",
         serviceLifeHours: equipment.serviceLifeHours ?? undefined,

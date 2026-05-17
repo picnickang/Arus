@@ -50,7 +50,7 @@ export class InventoryRepository {
     partId: string,
     updateData: { unitCost: number; supplier: string }
   ): Promise<PartsInventory> {
-    return dbAnalyticsStorage.updatePartCost(partId, updateData, "default-org-id");
+    return dbAnalyticsStorage.updatePartCost(partId, updateData, "default-org-id") as unknown as PartsInventory;
   }
 
   async updatePartStock(
@@ -62,7 +62,7 @@ export class InventoryRepository {
       maxStockLevel?: number;
     }
   ): Promise<PartsInventory> {
-    return dbAnalyticsStorage.updatePartStockQuantities(partId, updateData, "default-org-id");
+    return dbAnalyticsStorage.updatePartStockQuantities(partId, updateData, "default-org-id") as unknown as PartsInventory;
   }
 
   async checkAvailability(
@@ -87,11 +87,11 @@ export class InventoryRepository {
   }
 
   async updateCompatibility(partId: string, equipmentIds: string[], orgId: string): Promise<Part> {
-    return dbInventoryStorage.updatePartCatalogue(partId, { compatibleEquipment: equipmentIds });
+    return (dbInventoryStorage as any).updatePartCatalogue(partId, { compatibleEquipment: equipmentIds });
   }
 
   async findPartsForEquipment(equipmentId: string, orgId: string): Promise<Part[]> {
-    return dbInventoryStorage.getPartsForEquipment(equipmentId, orgId);
+    return (dbInventoryStorage as any).getPartsForEquipment(equipmentId, orgId);
   }
 
   async findLowStockParts(orgId?: string): Promise<PartsInventory[]> {

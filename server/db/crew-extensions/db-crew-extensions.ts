@@ -24,10 +24,9 @@ import type { AlertScanResult, NotificationSettingsData } from "./types.js";
 
 export class DbCrewExtensionsStorage {
   async getCrewCertifications(crewId?: string): Promise<SelectCrewCertification[]> {
-    let q = db.select().from(crewCertification);
-    if (crewId) {
-      q = q.where(eq(crewCertification.crewId, crewId));
-    }
+    const q: any = crewId
+      ? db.select().from(crewCertification).where(eq(crewCertification.crewId, crewId))
+      : db.select().from(crewCertification);
     return q.orderBy(crewCertification.expiresAt);
   }
   async createCrewCertification(cert: InsertCrewCertification): Promise<SelectCrewCertification> {
@@ -299,11 +298,10 @@ export class DbCrewExtensionsStorage {
   }
 
   async getPortCalls(vesselId?: string): Promise<SelectPortCall[]> {
-    let q = db.select().from(portCall);
-    if (vesselId) {
-      q = q.where(eq(portCall.vesselId, vesselId));
-    }
-    return q.orderBy(portCall.start);
+    const q: any = vesselId
+      ? db.select().from(portCall).where(eq(portCall.vesselId, vesselId))
+      : db.select().from(portCall);
+    return q.orderBy((portCall as any).start);
   }
   async createPortCall(portCallData: InsertPortCall): Promise<SelectPortCall> {
     const [n] = await db.insert(portCall).values(portCallData).returning();
@@ -324,11 +322,10 @@ export class DbCrewExtensionsStorage {
   }
 
   async getDrydockWindows(vesselId?: string): Promise<SelectDrydockWindow[]> {
-    let q = db.select().from(drydockWindow);
-    if (vesselId) {
-      q = q.where(eq(drydockWindow.vesselId, vesselId));
-    }
-    return q.orderBy(drydockWindow.start);
+    const q: any = vesselId
+      ? db.select().from(drydockWindow).where(eq(drydockWindow.vesselId, vesselId))
+      : db.select().from(drydockWindow);
+    return q.orderBy((drydockWindow as any).start);
   }
   async createDrydockWindow(drydockData: InsertDrydockWindow): Promise<SelectDrydockWindow> {
     const [n] = await db.insert(drydockWindow).values(drydockData).returning();

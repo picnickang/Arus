@@ -63,7 +63,7 @@ export async function fetchKBKnowledge(
             id: kbDocs.id,
             name: kbDocs.name,
             equipmentId: kbDocs.equipmentId,
-            extractedText: kbDocs.extractedText,
+            extractedText: (kbDocs as any).extractedText,
           })
           .from(kbDocs)
           .where(and(eq(kbDocs.orgId, orgId), inArray(kbDocs.equipmentId, equipmentIds)))
@@ -75,7 +75,7 @@ export async function fetchKBKnowledge(
 
     let semanticResults: SearchResult[] = [];
     try {
-      semanticResults = await searchKnowledgeBase({
+      semanticResults = await (searchKnowledgeBase as any)({
         query: searchQuery,
         orgId,
         limit: 5,
@@ -93,8 +93,8 @@ export async function fetchKBKnowledge(
     }));
 
     const semanticMatches = semanticResults.map((r) => ({
-      docId: r.docId,
-      text: r.text,
+      docId: r.docId ?? "",
+      text: r.text ?? "",
       score: r.score,
     }));
 
@@ -134,14 +134,14 @@ export function buildCitations(
   });
 
   const criticalOrders = workOrders
-    .filter((wo) => wo.priority === "critical" || wo.priority === "urgent")
+    .filter((wo) => (wo.priority as any) === "critical" || (wo.priority as any) === "urgent")
     .slice(0, 3);
 
   criticalOrders.forEach((order, index) => {
     citations.push({
       sourceType: "work_order",
       sourceId: order.id,
-      title: order.title,
+      title: (order as any).title ?? (order as any).description ?? order.id,
       relevance: Math.max(0.6, 0.9 - index * 0.1),
     });
   });
@@ -153,8 +153,8 @@ export function determinePriority(
   workOrders: WorkOrder[],
   alerts: any[]
 ): "low" | "medium" | "high" | "critical" {
-  const criticalOrders = workOrders.filter((wo) => wo.priority === "critical").length;
-  const urgentOrders = workOrders.filter((wo) => wo.priority === "urgent").length;
+  const criticalOrders = workOrders.filter((wo) => (wo.priority as any) === "critical").length;
+  const urgentOrders = workOrders.filter((wo) => (wo.priority as any) === "urgent").length;
   const criticalAlerts = alerts.filter((a) => a.severity === "critical").length;
 
   if (criticalOrders > 0 || criticalAlerts > 2) {

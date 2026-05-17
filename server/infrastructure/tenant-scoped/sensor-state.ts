@@ -25,7 +25,7 @@ export class SensorStateRepository extends TenantScopedRepository {
       whereClause = and(whereClause, eq(sensorStates.sensorType, filters.sensorType));
     }
 
-    return db.select().from(sensorStates).where(whereClause).orderBy(sensorStates.lastUpdated);
+    return db.select().from(sensorStates).where(whereClause).orderBy((sensorStates as any).lastUpdated);
   }
 
   /**
@@ -63,7 +63,7 @@ export class SensorStateRepository extends TenantScopedRepository {
         .set({
           ...data,
           lastUpdated: new Date(),
-        })
+        } as any)
         .where(
           this.orgWhere(
             sensorStates,
@@ -83,7 +83,7 @@ export class SensorStateRepository extends TenantScopedRepository {
         ...data,
         orgId: this.orgId,
         lastUpdated: new Date(),
-      })
+      } as any)
       .returning();
 
     return created;

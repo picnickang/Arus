@@ -201,8 +201,8 @@ export function mountHealthMetricsRoutes(router: Router) {
           const vesselMap = new Map(vesselList.map((v) => [v.id, v.name]));
           const orgEquipmentIds = new Set(healthData.map((eq) => eq.id));
           const allAlerts = rawAlerts.filter((a) => orgEquipmentIds.has(a.equipmentId));
-          const results = healthData.map((eq) =>
-            mapEquipmentToHealthResult(eq, allWorkOrders, allAlerts, vesselMap)
+          const results = healthData.map((eq: any) =>
+            mapEquipmentToHealthResult(eq as any, allWorkOrders as any, allAlerts as any, vesselMap as any)
           );
           return {
             results,
@@ -245,7 +245,7 @@ export function mountHealthMetricsRoutes(router: Router) {
           const orgPdmScores = pdmScores.filter(
             (s) => equipmentMap.get(s.equipmentId)?.orgId === orgId
           );
-          const results = orgPdmScores.map((score) => mapPdmScoreToRulResult(score, equipmentMap));
+          const results = orgPdmScores.map((score) => mapPdmScoreToRulResult(score, equipmentMap as any));
           return {
             results,
             metadata: {

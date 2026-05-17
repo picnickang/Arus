@@ -110,15 +110,16 @@ export function useOperationsModeData() {
     refetchInterval: 120000,
     staleTime: 60000,
   });
-  const { data: pdmScores = [] } = useQuery<PdmScoreData[]>({
+  const { data: pdmScoresRaw } = useQuery({
     queryKey: ["/api/pdm/scores"],
     queryFn: () => fetchPdmScores(),
     refetchInterval: 120000,
     staleTime: 60000,
   });
+  const pdmScores: PdmScoreData[] = (pdmScoresRaw ?? []) as unknown as PdmScoreData[];
 
-  const equipmentHealth: EquipmentHealthData[] = equipmentHealthResponse?.results ?? [];
-  const anomalies: AnomalyData[] = anomaliesResponse?.results ?? [];
+  const equipmentHealth: EquipmentHealthData[] = (equipmentHealthResponse?.results ?? []) as unknown as EquipmentHealthData[];
+  const anomalies: AnomalyData[] = (anomaliesResponse?.results ?? []) as unknown as AnomalyData[];
   const failurePredictions: FailurePredictionData[] = failurePredictionsResponse?.results ?? [];
 
   const equipmentCategories = useMemo(

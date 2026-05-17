@@ -15,7 +15,7 @@ export interface AuditContext {
 }
 
 interface AuthenticatedRequest extends Request {
-  user?: { id: string };
+  user?: any;
 }
 
 /**
@@ -29,7 +29,7 @@ export async function auditAction(
   data: Record<string, unknown>,
   context?: AuditContext
 ): Promise<void> {
-  await recordAndPublish(entityType, entityId, action, data, context?.userId);
+  await recordAndPublish(entityType as any, entityId, action, data, context?.userId);
 }
 
 /**

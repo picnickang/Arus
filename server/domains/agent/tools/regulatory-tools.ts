@@ -193,8 +193,8 @@ registerTool({
     );
 
     if (
-      (result.data as Record<string, unknown>)?.error ||
-      (result.data as Record<string, unknown>)?.offline
+      (result.data as unknown as Record<string, unknown>)?.error ||
+      (result.data as unknown as Record<string, unknown>)?.offline
     ) {
       const isNotConfigured = result.fetchError?.includes("not configured");
       return {
@@ -324,8 +324,8 @@ registerTool({
     );
 
     if (
-      (result.data as Record<string, unknown>)?.error ||
-      (result.data as Record<string, unknown>)?.offline
+      (result.data as unknown as Record<string, unknown>)?.error ||
+      (result.data as unknown as Record<string, unknown>)?.offline
     ) {
       const isNotConfigured = result.fetchError?.includes("not configured");
       return {

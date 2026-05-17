@@ -101,7 +101,7 @@ export function VesselEquipmentSheet({
                 : item.condition === "fair"
                   ? ("warning" as const)
                   : ("healthy" as const)),
-          } as EquipmentHealth);
+          } as unknown as EquipmentHealth);
         }
       });
     }
@@ -109,7 +109,7 @@ export function VesselEquipmentSheet({
   }, [healthResponse]);
 
   const vesselEquipment: EquipmentWithHealth[] = useMemo(
-    () => vesselEquipmentRaw.map((eq) => ({ ...eq, health: healthMap.get(eq.id) })),
+    () => vesselEquipmentRaw.map((eq) => ({ ...eq, health: healthMap.get(eq.id) })) as any,
     [vesselEquipmentRaw, healthMap]
   );
 
@@ -407,7 +407,7 @@ export function VesselEquipmentSheet({
       )}
       {selectedEquipment && (
         <SensorSetupWizard
-          equipment={selectedEquipment}
+          equipment={selectedEquipment as any}
           open={sensorWizardOpen}
           onClose={() => setSensorWizardOpen(false)}
           onSuccess={() => {

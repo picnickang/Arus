@@ -65,7 +65,7 @@ export class DbCrewExtended {
   async createCrewAssignment(assignment: InsertCrewAssignment): Promise<CrewAssignment> {
     const [n] = await db
       .insert(crewAssignmentTable)
-      .values({ id: randomUUID(), ...assignment, createdAt: new Date(), updatedAt: new Date() })
+      .values({ id: randomUUID(), ...assignment, createdAt: new Date() })
       .returning();
     return n;
   }
@@ -80,7 +80,7 @@ export class DbCrewExtended {
       : eq(crewAssignmentTable.id, id);
     const [updated] = await db
       .update(crewAssignmentTable)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates })
       .where(conditions)
       .returning();
     if (!updated) {
@@ -107,7 +107,6 @@ export class DbCrewExtended {
           id: randomUUID(),
           ...a,
           createdAt: new Date(),
-          updatedAt: new Date(),
         }))
       )
       .returning();
@@ -165,7 +164,7 @@ export class DbCrewExtended {
   async createCrewCertification(cert: InsertCrewCertification): Promise<CrewCertification> {
     const [n] = await db
       .insert(crewCertificationTable)
-      .values({ id: randomUUID(), ...cert, createdAt: new Date(), updatedAt: new Date() })
+      .values({ id: randomUUID(), ...cert, createdAt: new Date() })
       .returning();
     return n;
   }
@@ -180,7 +179,7 @@ export class DbCrewExtended {
       : eq(crewCertificationTable.id, id);
     const [updated] = await db
       .update(crewCertificationTable)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates })
       .where(conditions)
       .returning();
     if (!updated) {
@@ -198,7 +197,7 @@ export class DbCrewExtended {
   async getExpiringCertifications(days: number = 90, orgId?: string): Promise<CrewCertification[]> {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + days);
-    const conditions: any[] = [lte(crewCertificationTable.expiryDate, futureDate)];
+    const conditions: any[] = [lte(crewCertificationTable.expiresAt, futureDate)];
     if (orgId) {
       conditions.push(eq(crewCertificationTable.orgId, orgId));
     }
@@ -206,7 +205,7 @@ export class DbCrewExtended {
       .select()
       .from(crewCertificationTable)
       .where(and(...conditions))
-      .orderBy(crewCertificationTable.expiryDate);
+      .orderBy(crewCertificationTable.expiresAt);
   }
 
   async getCrewLeave(crewId?: string, orgId?: string): Promise<CrewLeave[]> {
@@ -235,9 +234,7 @@ export class DbCrewExtended {
       .values({
         id: randomUUID(),
         ...leave,
-        status: leave.status || "pending",
         createdAt: new Date(),
-        updatedAt: new Date(),
       })
       .returning();
     return n;
@@ -253,7 +250,7 @@ export class DbCrewExtended {
       : eq(crewLeaveTable.id, id);
     const [updated] = await db
       .update(crewLeaveTable)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates })
       .where(conditions)
       .returning();
     if (!updated) {
@@ -278,8 +275,8 @@ export class DbCrewExtended {
         and(
           eq(crewAssignmentTable.vesselId, vesselId),
           eq(crewAssignmentTable.orgId, orgId),
-          lte(crewAssignmentTable.startDate, date),
-          or(gte(crewAssignmentTable.endDate, date), sql`${crewAssignmentTable.endDate} IS NULL`)
+          lte(crewAssignmentTable.start, date),
+          or(gte(crewAssignmentTable.end, date), sql`${crewAssignmentTable.end} IS NULL`)
         )
       );
     if (assignments.length === 0) {

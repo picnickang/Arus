@@ -72,7 +72,7 @@ interface InsightsJobStats {
 export function useFinanceModeData() {
   const { data: costTrends = [], isLoading: costTrendsLoading } = useQuery<CostTrendData[]>({
     queryKey: ["/api/analytics/cost-trends"],
-    queryFn: () => fetchCostTrends(),
+    queryFn: () => fetchCostTrends() as unknown as Promise<CostTrendData[]>,
     refetchInterval: 300000,
     staleTime: 120000,
   });
@@ -93,7 +93,7 @@ export function useFinanceModeData() {
 
   const { data: roiAnalysis } = useQuery<RoiAnalysis | undefined>({
     queryKey: ["/api/analytics/roi-analysis"],
-    queryFn: () => fetchRoiAnalysis(12),
+    queryFn: () => fetchRoiAnalysis(12) as unknown as Promise<RoiAnalysis | undefined>,
     refetchInterval: 300000,
     staleTime: 120000,
   });
@@ -107,7 +107,7 @@ export function useFinanceModeData() {
 
   const { data: workOrders = [] } = useQuery<WorkOrderData[]>({
     queryKey: ["/api/work-orders"],
-    queryFn: () => fetchWorkOrders() as Promise<WorkOrderData[]>,
+    queryFn: () => fetchWorkOrders() as unknown as Promise<WorkOrderData[]>,
     refetchInterval: 60000,
     staleTime: 30000,
   });

@@ -5,6 +5,7 @@
 
 import pg from "pg";
 const { Pool } = pg;
+type Pool = InstanceType<typeof pg.Pool>;
 
 const DATABASE_URL = process.env.DATABASE_URL;
 

@@ -111,10 +111,10 @@ function isCrewEligible(
   if (leaveOverlaps(crewMember.id, shiftStart, shiftEnd, leaves)) {
     return false;
   }
-  if (shift.requiredSkills && !crewMember.skills.includes(shift.requiredSkills)) {
+  if (shift.requiredSkills && !(crewMember.skills ?? []).includes(shift.requiredSkills)) {
     return false;
   }
-  if (!meetsRankRequirement(crewMember, shift.rankMin)) {
+  if (!meetsRankRequirement(crewMember, shift.rankMin ?? undefined)) {
     return false;
   }
   if (
@@ -211,7 +211,7 @@ export function scheduleWithConstraints(
   for (const day of days) {
     for (const shift of shifts) {
       const vesselId = shift.vesselId || "";
-      const needed = shift.needed || 1;
+      const needed = (shift as any).needed || 1;
       const shiftDate = new Date(`${day}T${shift.start}`);
       const isNight = isNightShift(shift.start);
 

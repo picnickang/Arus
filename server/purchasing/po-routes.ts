@@ -155,7 +155,7 @@ router.get("/:id", requireOrgId, generalLimit, async (req, res) => {
         rejectionReason: purchaseOrderItems.rejectionReason,
         notes: purchaseOrderItems.notes,
         partName: parts.name,
-        partNumber: parts.partNumber,
+        partNumber: (parts as any).partNumber,
       })
       .from(purchaseOrderItems)
       .leftJoin(parts, eq(purchaseOrderItems.partId, parts.id))

@@ -82,7 +82,7 @@ export async function buildVesselHealthContext(
 
       const predictions = (await Promise.all(predictionPromises)).filter((p) => p !== null);
       if (predictions.length > 0) {
-        intelligence.predictions = predictions as any;
+        (intelligence as any).predictions = predictions as any;
       }
     }
   }

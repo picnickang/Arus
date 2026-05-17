@@ -22,7 +22,7 @@ export class WorkOrderRepository {
     orgId?: string,
     filters?: WorkOrderFilters
   ): Promise<WorkOrder[]> {
-    return workOrderService.getWorkOrdersWithDetails(equipmentId, orgId, filters);
+    return workOrderService.getWorkOrdersWithDetails(equipmentId, orgId, filters as any);
   }
 
   async findPaginated(
@@ -32,7 +32,7 @@ export class WorkOrderRepository {
     offset: number,
     filters?: WorkOrderFilters
   ): Promise<{ items: WorkOrder[]; total: number }> {
-    return workOrderService.getWorkOrdersPaginated(equipmentId, orgId, limit, offset, filters);
+    return workOrderService.getWorkOrdersPaginated(equipmentId, orgId, limit, offset, filters as any);
   }
 
   async findById(id: string, orgId: string): Promise<WorkOrder | undefined> {
@@ -139,7 +139,7 @@ export class WorkOrderRepository {
   }
 
   async addPartToWorkOrder(data: any): Promise<any> {
-    return dbInventoryStorage.addBulkPartsToWorkOrder(data);
+    return (dbInventoryStorage as any).addBulkPartsToWorkOrder(data);
   }
 
   async addBulkPartsAndReserveInventory(
@@ -151,7 +151,7 @@ export class WorkOrderRepository {
   }
 
   async updateWorkOrderPart(partId: string, data: any): Promise<any> {
-    return dbInventoryStorage.updateWorkOrderPart(partId, data);
+    return (dbInventoryStorage as any).updateWorkOrderPart(partId, data);
   }
 
   async removePartFromWorkOrder(partId: string, orgId?: string): Promise<void> {

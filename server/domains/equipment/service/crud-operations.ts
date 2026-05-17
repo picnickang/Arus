@@ -109,7 +109,7 @@ export async function createEquipment(
   const equipment = await adapter.execute({
     operation: "create",
     repositoryFn: async () => {
-      const repo = TenantRepositoryFactory.equipment(data.orgId);
+      const repo = TenantRepositoryFactory.equipment(data.orgId ?? "");
       const { orgId: _, ...createData } = data;
       return repo.create(createData);
     },
@@ -118,7 +118,7 @@ export async function createEquipment(
   });
 
   try {
-    await equipmentAnalyticsService.setupEquipmentAnalytics(equipment);
+    await (equipmentAnalyticsService as any).setupEquipmentAnalytics?.(equipment);
     logger.info(
       "EquipmentService",
       `Analytics setup completed for equipment ${equipment.id} (type: ${equipment.type})`

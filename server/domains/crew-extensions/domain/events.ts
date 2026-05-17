@@ -19,7 +19,7 @@ export type CrewExtensionsEventType =
 interface BaseCrewExtensionsEvent {
   eventId: string;
   aggregateId: string;
-  aggregateType: "SchedulerRun" | "ScheduleAssignment";
+  aggregateType: "SchedulerRun" | "ScheduleAssignment" | "SimulationPreview";
   occurredAt: Date;
   userId?: string;
   orgId: string;

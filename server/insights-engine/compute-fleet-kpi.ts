@@ -43,7 +43,7 @@ export async function computeInsights(
       ? sensorMappings.length
       : devices.reduce((sum, d) => {
           const set = new Set(
-            (d.sensors ?? "")
+            ((d.sensors as any) ?? "")
               .split(",")
               .map((s: string) => s.trim())
               .filter(Boolean)
@@ -56,7 +56,7 @@ export async function computeInsights(
         ? new Set(telemetryReadings.map((t) => `${t.equipmentId}-${t.sensorType}`)).size
         : 0;
 
-    const recentAlerts = alerts.filter((a) => new Date(a.createdAt) > since7d);
+    const recentAlerts = alerts.filter((a) => new Date(a.createdAt as any) > since7d);
     const dq7d = recentAlerts.length;
 
     const perVessel: FleetKPI["perVessel"] = {};
@@ -173,8 +173,8 @@ export async function computeInsights(
     }
 
     const anomalies = criticalAlerts.slice(0, 20).map((alert) => {
-      const created = new Date(alert.createdAt);
-      const ack = alert.acknowledgedAt ? new Date(alert.acknowledgedAt) : now;
+      const created = new Date(alert.createdAt as any);
+      const ack = alert.acknowledgedAt ? new Date(alert.acknowledgedAt as any) : now;
       const alertEquipment = equipment.find((e) => e.id === alert.equipmentId);
       return {
         vesselId: alertEquipment?.vesselId || "unassigned",

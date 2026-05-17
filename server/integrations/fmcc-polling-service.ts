@@ -281,11 +281,12 @@ export class FmccPollingService extends EventEmitter {
       if (type === "fuel") {
         if (snapshot.fuel.totalFlowKgPerH !== undefined) {
           await dbTelemetryStorage.createTelemetryReading({
+            orgId: snapshot.orgId,
             equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
             sensorType: "fuel_consumption",
             value: snapshot.fuel.totalFlowKgPerH,
             timestamp,
-            metadata: {
+            readings: {
               source: "fmcc",
               vesselId: snapshot.vesselId,
               foDensity: snapshot.fuel.foDensity,
@@ -299,21 +300,23 @@ export class FmccPollingService extends EventEmitter {
 
         if (snapshot.fuel.foDensity !== undefined) {
           await dbTelemetryStorage.createTelemetryReading({
+            orgId: snapshot.orgId,
             equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
             sensorType: "fuel_density",
             value: snapshot.fuel.foDensity,
             timestamp,
-            metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kg/m³" },
+            readings: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kg/m³" },
           });
         }
 
         if (snapshot.fuel.foTemperature !== undefined) {
           await dbTelemetryStorage.createTelemetryReading({
+            orgId: snapshot.orgId,
             equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
             sensorType: "fuel_temperature",
             value: snapshot.fuel.foTemperature,
             timestamp,
-            metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "°C" },
+            readings: { source: "fmcc", vesselId: snapshot.vesselId, unit: "°C" },
           });
         }
 
@@ -330,11 +333,12 @@ export class FmccPollingService extends EventEmitter {
         for (const [sensorType, value] of perEngineFlows) {
           if (value !== undefined) {
             await dbTelemetryStorage.createTelemetryReading({
+              orgId: snapshot.orgId,
               equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
               sensorType,
               value,
               timestamp,
-              metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kg/h" },
+              readings: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kg/h" },
             });
           }
         }
@@ -343,40 +347,44 @@ export class FmccPollingService extends EventEmitter {
       if (type === "engine" && snapshot.engine) {
         if (snapshot.engine.rpm !== undefined) {
           await dbTelemetryStorage.createTelemetryReading({
+            orgId: snapshot.orgId,
             equipmentId: `fmcc-engine-${snapshot.vesselId}`,
             sensorType: "rpm",
             value: snapshot.engine.rpm,
             timestamp,
-            metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "rpm" },
+            readings: { source: "fmcc", vesselId: snapshot.vesselId, unit: "rpm" },
           });
         }
         if (snapshot.engine.loadPercent !== undefined) {
           await dbTelemetryStorage.createTelemetryReading({
+            orgId: snapshot.orgId,
             equipmentId: `fmcc-engine-${snapshot.vesselId}`,
             sensorType: "engine_load",
             value: snapshot.engine.loadPercent,
             timestamp,
-            metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "%" },
+            readings: { source: "fmcc", vesselId: snapshot.vesselId, unit: "%" },
           });
         }
 
         if (snapshot.engine.powerKw !== undefined) {
           await dbTelemetryStorage.createTelemetryReading({
+            orgId: snapshot.orgId,
             equipmentId: `fmcc-engine-${snapshot.vesselId}`,
             sensorType: "power_output",
             value: snapshot.engine.powerKw,
             timestamp,
-            metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kW" },
+            readings: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kW" },
           });
         }
 
         if (snapshot.engine.runningHours !== undefined) {
           await dbTelemetryStorage.createTelemetryReading({
+            orgId: snapshot.orgId,
             equipmentId: `fmcc-engine-${snapshot.vesselId}`,
             sensorType: "running_hours",
             value: snapshot.engine.runningHours,
             timestamp,
-            metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "hours" },
+            readings: { source: "fmcc", vesselId: snapshot.vesselId, unit: "hours" },
           });
         }
       }
@@ -391,11 +399,12 @@ export class FmccPollingService extends EventEmitter {
         for (const [sensorType, value] of tankEntries) {
           if (value !== undefined) {
             await dbTelemetryStorage.createTelemetryReading({
+              orgId: snapshot.orgId,
               equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
               sensorType,
               value,
               timestamp,
-              metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "%" },
+              readings: { source: "fmcc", vesselId: snapshot.vesselId, unit: "%" },
             });
           }
         }
@@ -411,11 +420,12 @@ export class FmccPollingService extends EventEmitter {
         for (const [sensorType, value, unit] of shaftEntries) {
           if (value !== undefined) {
             await dbTelemetryStorage.createTelemetryReading({
+              orgId: snapshot.orgId,
               equipmentId: `fmcc-engine-${snapshot.vesselId}`,
               sensorType,
               value,
               timestamp,
-              metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit },
+              readings: { source: "fmcc", vesselId: snapshot.vesselId, unit },
             });
           }
         }
@@ -423,11 +433,12 @@ export class FmccPollingService extends EventEmitter {
 
       if (type === "bunker" && snapshot.fuel.bunkerFlowKgPerH !== undefined) {
         await dbTelemetryStorage.createTelemetryReading({
+          orgId: snapshot.orgId,
           equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
           sensorType: "bunker_flow",
           value: snapshot.fuel.bunkerFlowKgPerH,
           timestamp,
-          metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kg/h" },
+          readings: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kg/h" },
         });
       }
     } catch (error) {

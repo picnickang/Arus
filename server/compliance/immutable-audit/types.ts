@@ -42,7 +42,19 @@ export type AuditEventType =
   | "dsar_request"
   | "data_deletion"
   | "vessel_sync"
-  | "sync_conflict";
+  | "sync_conflict"
+  | "data_export_initiated"
+  | "data_export_completed"
+  | "data_export_downloaded"
+  | "dsar_list_viewed"
+  | "dsar_created"
+  | "dsar_acknowledged"
+  | "dsar_data_collected"
+  | "dsar_erasure_executed"
+  | "dsar_completed"
+  | "dsar_rejected"
+  | "engineer_override_created"
+  | "engineer_override_outcome_updated";
 
 export type PerformerType = "user" | "system" | "cron" | "ml_service" | "edge_device";
 

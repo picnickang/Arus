@@ -106,17 +106,17 @@ class VesselService {
     data: Record<string, unknown>,
     orgId: string
   ): Promise<{ vesselId: string; equipmentCount: number; crewCount: number }> {
-    const vesselData = { ...data, organizationId: orgId } as InsertVessel;
+    const vesselData = { ...data, organizationId: orgId } as unknown as InsertVessel;
     const created = await dbVesselStorage.createVessel(vesselData);
     return { vesselId: created.id, equipmentCount: 0, crewCount: 0 };
   }
 
   async resetVesselDowntime(vesselId: string, _orgId?: string): Promise<Vessel> {
-    return dbVesselStorage.updateVessel(vesselId, { status: "operational" });
+    return dbVesselStorage.updateVessel(vesselId, { status: "operational" } as any);
   }
 
   async resetVesselOperation(vesselId: string, _orgId?: string): Promise<Vessel> {
-    return dbVesselStorage.updateVessel(vesselId, { status: "operational" });
+    return dbVesselStorage.updateVessel(vesselId, { status: "operational" } as any);
   }
 
   async wipeVesselData(vesselId: string, orgId?: string): Promise<{ deletedRecords: number }> {

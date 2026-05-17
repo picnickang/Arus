@@ -3,7 +3,6 @@
  * Main acoustic analysis functions
  */
 
-// @ts-expect-error - fft-js lacks TypeScript declarations; remove this directive when the package ships types or we migrate to a typed FFT library
 import { fft } from "fft-js";
 import { mean } from "simple-statistics";
 import type { AcousticFeatures, AcousticAnalysisResult } from "./types.js";
@@ -59,8 +58,8 @@ export function analyzeAcoustic(
   const peakAmplitude = Math.max(...acValues.map(Math.abs));
   const zeroCrossingRate = calculateZeroCrossingRate(acValues);
 
-  const fftInput = acValues.map((x) => [x, 0]);
-  const fftResult = fft(fftInput);
+  const fftInput = acValues.map((x) => [x, 0] as [number, number]);
+  const fftResult = fft(fftInput as unknown as number[]);
   const magnitudes = fftResult.slice(0, Math.floor(n / 2) + 1).map((complex: [number, number]) => {
     const [real, imag] = complex;
     return Math.sqrt(real * real + imag * imag) / n;

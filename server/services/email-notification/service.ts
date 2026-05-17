@@ -35,8 +35,9 @@ import {
 class EmailNotificationService {
   private getRecipients(setting: NotificationSetting): string[] {
     const recipients: string[] = [];
-    if (setting.recipientEmails) {
-      recipients.push(...(setting.recipientEmails as string[]));
+    const emails = (setting as any).recipientEmails;
+    if (emails) {
+      recipients.push(...(emails as string[]));
     }
     return [...new Set(recipients)];
   }
@@ -72,7 +73,7 @@ class EmailNotificationService {
     }
 
     for (const setting of applicableSettings) {
-      const recipients = this.getRecipients(setting);
+      const recipients = this.getRecipients(setting as any);
       if (recipients.length === 0) {
         continue;
       }
@@ -80,7 +81,7 @@ class EmailNotificationService {
       const subject = buildComplianceSubject(finding, vesselName);
       const { text, html } = buildComplianceBody(finding, vesselName);
 
-      if (setting.digestMode) {
+      if ((setting as any).digestMode) {
         await queueNotification({
           orgId,
           notificationType: "compliance",
@@ -91,7 +92,7 @@ class EmailNotificationService {
           relatedEntityType: "compliance_finding",
           relatedEntityId: finding.id,
           status: "pending",
-          scheduledFor: this.getNextDigestTime(setting.digestSchedule),
+          scheduledFor: this.getNextDigestTime((setting as any).digestSchedule),
         });
       } else {
         const queueItem = await queueNotification({
@@ -127,7 +128,7 @@ class EmailNotificationService {
     }
 
     for (const setting of applicableSettings) {
-      const recipients = this.getRecipients(setting);
+      const recipients = this.getRecipients(setting as any);
       if (recipients.length === 0) {
         continue;
       }
@@ -166,7 +167,7 @@ class EmailNotificationService {
     }
 
     for (const setting of applicableSettings) {
-      const recipients = this.getRecipients(setting);
+      const recipients = this.getRecipients(setting as any);
       if (recipients.length === 0) {
         continue;
       }

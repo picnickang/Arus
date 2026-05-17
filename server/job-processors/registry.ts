@@ -29,7 +29,7 @@ export function registerJobProcessors(): void {
   jobQueue.registerProcessor(JOB_TYPES.TELEMETRY_PROCESSING, processTelemetryProcessing);
 
   jobQueue.registerProcessor(
-    JOB_TYPES.INSIGHTS_SNAPSHOT_GENERATION,
+    (JOB_TYPES as any).INSIGHTS_SNAPSHOT_GENERATION,
     processInsightsSnapshotGeneration
   );
 

@@ -17,13 +17,13 @@ export function enrichContextWithRAG(context: ReportContext): ReportContext {
   const knowledgeSnippets: string[] = [];
 
   if (context.data.workOrders && context.data.workOrders.length > 0) {
-    const criticalOrders = context.data.workOrders
+    const criticalOrders = (context.data.workOrders as unknown as Array<Record<string, unknown>>)
       .filter((wo) => wo.priority === "critical" || wo.priority === "urgent")
       .slice(0, 3);
 
     criticalOrders.forEach((order) => {
       knowledgeSnippets.push(
-        `Critical Work Order: ${order.title} (${order.status}) - ${order.description || "No description"}`
+        `Critical Work Order: ${order.title ?? order.description ?? "Untitled"} (${order.status}) - ${order.description || "No description"}`
       );
     });
   }
@@ -110,11 +110,12 @@ export function serializeContext(context: ReportContext): string {
   }
 
   if (context.data.workOrders) {
-    parts.push(`Work Orders: ${context.data.workOrders.length} total`);
+    const wos = context.data.workOrders as unknown as Array<Record<string, unknown>>;
+    parts.push(`Work Orders: ${wos.length} total`);
     const byPriority = {
-      critical: context.data.workOrders.filter((wo) => wo.priority === "critical").length,
-      urgent: context.data.workOrders.filter((wo) => wo.priority === "urgent").length,
-      normal: context.data.workOrders.filter((wo) => wo.priority === "normal").length,
+      critical: wos.filter((wo) => wo.priority === "critical").length,
+      urgent: wos.filter((wo) => wo.priority === "urgent").length,
+      normal: wos.filter((wo) => wo.priority === "normal").length,
     };
     parts.push(
       `  - Critical: ${byPriority.critical}, Urgent: ${byPriority.urgent}, Normal: ${byPriority.normal}`
@@ -145,7 +146,7 @@ export function buildCitations(
     citations.push({
       source: `Knowledge Base ${index + 1}`,
       relevance: Math.max(0.6, 1 - index * 0.1),
-      snippet,
+      snippet: String(snippet),
     });
   });
 

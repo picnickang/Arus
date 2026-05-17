@@ -245,7 +245,7 @@ export class DbPartsStorage {
       partUpdates.leadTimeDays = updates.leadTimeDays;
     }
     if (updates.isActive !== undefined) {
-      partUpdates.isActive = updates.isActive;
+      partUpdates.isActive = updates.isActive ?? undefined;
     }
 
     if (Object.keys(partUpdates).length > 0) {

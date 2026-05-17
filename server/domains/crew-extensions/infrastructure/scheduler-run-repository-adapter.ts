@@ -31,11 +31,12 @@ function mapToEntity(run: any): SchedulerRunEntity {
 export class SchedulerRunRepositoryAdapter implements ISchedulerRunRepository {
   async create(command: CreateSchedulerRunCommand): Promise<SchedulerRunEntity> {
     const run = await dbSchedulerStorage.createSchedulerRun({
+      startedAt: new Date(),
       orgId: command.orgId,
       status: command.status || "pending",
-      startDate: command.startDate,
-      endDate: command.endDate,
-      inputHash: command.inputHash,
+      startDate: command.startDate as any,
+      endDate: command.endDate as any,
+      inputHash: command.inputHash as any,
     });
     return mapToEntity(run);
   }

@@ -63,7 +63,7 @@ export class SensorConfigurationRepository extends TenantScopedRepository {
     const { sensorConfigurations } = await import("@shared/schema");
 
     const [created] = await db
-      .insert(sensorConfigurations)
+      .insert(sensorConfigurations as any)
       .values({
         ...data,
         orgId: this.orgId,

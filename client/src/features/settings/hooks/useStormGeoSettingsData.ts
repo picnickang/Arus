@@ -39,7 +39,7 @@ export interface ImportHistory {
 }
 
 export function useStormGeoSettingsData(vesselId?: string) {
-  const { orgId } = useOrganization();
+  const { orgId } = useOrganization() as any;
   const { toast } = useToast();
   const _queryClient = useQueryClient();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -119,8 +119,8 @@ export function useStormGeoSettingsData(vesselId?: string) {
       console.error("Save settings error:", error);
     },
   });
-  const importMutation = useMutation({
-    mutationFn: async ({
+  const importMutation = useMutation<{ status: string; recordsCreated: number; recordsFailed: number }, Error, { vesselId: string; fileContent: string; fileName: string }>({
+    mutationFn: (async ({
       vesselId,
       fileContent,
       fileName,
@@ -134,7 +134,7 @@ export function useStormGeoSettingsData(vesselId?: string) {
         fileContent,
         fileName,
         fileType: fileName.endsWith(".json") ? "json" : "csv",
-      }),
+      })) as any,
     onSuccess: (data: { status: string; recordsCreated: number; recordsFailed: number }) => {
       toast({
         title: data.status === "success" ? "Import successful" : "Import completed with issues",

@@ -18,7 +18,7 @@ export function useTemplates() {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/def/templates", currentOrgId],
-    queryFn: () => fetchJson("/api/pdm/twin/def/templates", currentOrgId),
+    queryFn: () => fetchJson("/api/pdm/twin/def/templates", currentOrgId ?? ""),
     enabled: !!currentOrgId,
   });
 }
@@ -38,7 +38,7 @@ export function useTwins() {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/def/twins", currentOrgId],
-    queryFn: () => fetchJson("/api/pdm/twin/def/twins", currentOrgId),
+    queryFn: () => fetchJson("/api/pdm/twin/def/twins", currentOrgId ?? ""),
     enabled: !!currentOrgId,
   });
 }
@@ -47,7 +47,7 @@ export function useTwin(twinId: string) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/def/twins", currentOrgId, twinId],
-    queryFn: () => fetchJson(`/api/pdm/twin/def/twins/${twinId}`, currentOrgId),
+    queryFn: () => fetchJson(`/api/pdm/twin/def/twins/${twinId}`, currentOrgId ?? ""),
     enabled: !!currentOrgId && !!twinId,
   });
 }
@@ -67,7 +67,7 @@ export function useLatestTwinState(twinId: string) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/state/latest", currentOrgId, twinId],
-    queryFn: () => fetchJson(`/api/pdm/twin/state/latest/${twinId}`, currentOrgId),
+    queryFn: () => fetchJson(`/api/pdm/twin/state/latest/${twinId}`, currentOrgId ?? ""),
     enabled: !!currentOrgId && !!twinId,
     retry: false,
   });
@@ -77,7 +77,7 @@ export function useTwinStateHistory(twinId: string, limit = 50) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/state/history", currentOrgId, twinId, limit],
-    queryFn: () => fetchJson(`/api/pdm/twin/state/history/${twinId}?limit=${limit}`, currentOrgId),
+    queryFn: () => fetchJson(`/api/pdm/twin/state/history/${twinId}?limit=${limit}`, currentOrgId ?? ""),
     enabled: !!currentOrgId && !!twinId,
   });
 }
@@ -101,7 +101,7 @@ export function useTwinResiduals(twinId: string, limit = 100) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/residuals/twin", currentOrgId, twinId, limit],
-    queryFn: () => fetchJson(`/api/pdm/twin/residuals/twin/${twinId}?limit=${limit}`, currentOrgId),
+    queryFn: () => fetchJson(`/api/pdm/twin/residuals/twin/${twinId}?limit=${limit}`, currentOrgId ?? ""),
     enabled: !!currentOrgId && !!twinId,
   });
 }
@@ -110,7 +110,7 @@ export function useResidualRankings() {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/residuals/rankings", currentOrgId],
-    queryFn: () => fetchJson("/api/pdm/twin/residuals/rankings", currentOrgId),
+    queryFn: () => fetchJson("/api/pdm/twin/residuals/rankings", currentOrgId ?? ""),
     enabled: !!currentOrgId,
   });
 }
@@ -130,7 +130,7 @@ export function useTwinScenarios(twinId: string) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/scenarios/twins", currentOrgId, twinId],
-    queryFn: () => fetchJson(`/api/pdm/twin/scenarios/twins/${twinId}`, currentOrgId),
+    queryFn: () => fetchJson(`/api/pdm/twin/scenarios/twins/${twinId}`, currentOrgId ?? ""),
     enabled: !!currentOrgId && !!twinId,
   });
 }
@@ -159,7 +159,7 @@ export function useTwinTimeline(twinId: string, startTime?: string, endTime?: st
   }
   return useQuery({
     queryKey: ["/api/pdm/twin/replay/timeline", currentOrgId, twinId, startTime, endTime],
-    queryFn: () => fetchJson(`/api/pdm/twin/replay/timeline?${params}`, currentOrgId),
+    queryFn: () => fetchJson(`/api/pdm/twin/replay/timeline?${params}`, currentOrgId ?? ""),
     enabled: !!currentOrgId && !!twinId,
   });
 }

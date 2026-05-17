@@ -157,7 +157,7 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
             key: idempotencyKey,
             endpoint: "/api/crew/rest/import",
             createdAt: new Date(),
-          })
+          } as any)
           .onConflictDoNothing();
       }
 
@@ -203,7 +203,7 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
           return;
         }
 
-        rows = restData.days;
+        rows = restData.days as any;
       }
 
       const compliance = checkMonthCompliance(rows);
@@ -235,7 +235,7 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
         return;
       }
 
-      const compliance = checkMonthCompliance(restData.days);
+      const compliance = checkMonthCompliance(restData.days as any);
       res.json(compliance);
     })
   );
@@ -286,7 +286,7 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
         month,
         status: "draft",
         orgId,
-      });
+      } as any);
 
       let rowCount = 0;
       for (const dayData of rows) {
@@ -304,7 +304,7 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
             key: idempotencyKey,
             endpoint: "/api/stcw/import",
             createdAt: new Date(),
-          })
+          } as any)
           .onConflictDoNothing();
       }
 

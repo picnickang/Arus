@@ -77,13 +77,13 @@ export class IngestTelemetryBatch {
         const timestamps = frames
           .map((f) => new Date(f.ts))
           .sort((a, b) => a.getTime() - b.getTime());
-        await this.config.batchAck.receiveBatch({
+        await this.config.batchAck!.receiveBatch({
           batchId,
           orgId: this.config.orgId!,
-          source: frames[0]?.source ?? "unknown",
+          source: frames[0]!.source ?? "unknown",
           frameCount: frames.length,
-          firstFrameTs: timestamps[0],
-          lastFrameTs: timestamps[timestamps.length - 1],
+          firstFrameTs: timestamps[0]!,
+          lastFrameTs: timestamps[timestamps.length - 1]!,
         });
       } catch (err) {
         logger.error("IngestTelemetryBatch", "Failed to register batch", { error: err });

@@ -21,5 +21,5 @@ export async function getCurrentSchemaVersion(): Promise<number> {
 }
 
 export async function recordSchemaVersion(id: number, name: string): Promise<void> {
-  await db.insert(dbSchemaVersion).values({ id, name, appliedAt: new Date() });
+  await db.insert(dbSchemaVersion).values({ id, name, appliedAt: new Date() } as any);
 }

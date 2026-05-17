@@ -87,8 +87,8 @@ export function useNotificationSettings() {
       toast({ title: "Failed to delete notification setting", variant: "destructive" });
     },
   });
-  const testMutation = useMutation({
-    mutationFn: async (email: string) =>
+  const testMutation = useMutation<{ message: string }, Error, string>({
+    mutationFn: ((async (email: string) =>
       apiRequest("/api/notifications/email/test", {
         method: "POST",
         body: JSON.stringify({
@@ -96,7 +96,7 @@ export function useNotificationSettings() {
           subject: "ARUS Marine Test",
           message: "This is a test notification.",
         }),
-      }),
+      })) as any),
     onSuccess: (data: { message: string }) => {
       toast({ title: data.message || "Test notification sent" });
     },

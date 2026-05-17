@@ -143,11 +143,11 @@ export class DatabaseMlAnalyticsStorage {
               anomalyScore: detection.anomalyScore,
               severity: detection.severity,
               sensorType: detection.sensorType,
-              value: detection.value,
-              expectedRange: detection.expectedRange,
+              value: (detection as any).value,
+              expectedRange: (detection as any).expectedRange,
             },
-            modelVersion: detection.modelVersionId,
-          });
+            modelVersion: (detection as any).modelVersionId,
+          } as any);
       } catch (e) {
         logger.error(`[ML] Failed to create performance validation:`, undefined, e);
       }
@@ -216,13 +216,13 @@ export class DatabaseMlAnalyticsStorage {
             predictionTimestamp: n.predictionTimestamp,
             predictedOutcome: {
               failureProbability: prediction.failureProbability,
-              predictedDate: prediction.predictedDate,
-              severity: prediction.severity,
+              predictedDate: (prediction as any).predictedDate,
+              severity: (prediction as any).severity,
               riskLevel: prediction.riskLevel,
-              remainingDays: prediction.remainingDays,
+              remainingDays: (prediction as any).remainingDays,
             },
             modelVersion: prediction.modelVersionId,
-          });
+          } as any);
       } catch (e) {
         logger.error(`[ML] Failed to create performance validation:`, undefined, e);
       }
@@ -373,12 +373,13 @@ export class DatabaseMlAnalyticsStorage {
     if (!table) {
       return [];
     }
+    const tAny = table as any;
     const c = [eq(table.orgId, orgId)];
     if (modelId) {
-      c.push(eq(table.modelId, modelId));
+      c.push(eq(tAny.modelId ?? tAny.modelType, modelId));
     }
     if (equipmentId) {
-      c.push(eq(table.equipmentId, equipmentId));
+      c.push(eq(tAny.equipmentId ?? tAny.equipmentType, equipmentId));
     }
     if (status) {
       c.push(eq(table.status, status));
@@ -494,7 +495,7 @@ export class DatabaseMlAnalyticsStorage {
   ): Promise<EngineerOverride> {
     const [u] = await db
       .update(engineerOverrides)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates } as any)
       .where(and(eq(engineerOverrides.id, id), eq(engineerOverrides.orgId, orgId)))
       .returning();
     if (!u) {

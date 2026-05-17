@@ -31,7 +31,7 @@ export function registerDeviceRoutes(
     withErrorHandling("fetch devices", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
 
-      const devices = await safeDbOperation(
+      const devices = await (safeDbOperation as any)(
         () => deviceService.getDevicesWithStatus(orgId),
         "getDevicesWithStatus",
         { defaultValue: [] }

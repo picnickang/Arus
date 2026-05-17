@@ -27,9 +27,9 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
         equipmentId: config.equipmentId,
         sensorType: config.sensorType,
       }));
-      const telemetryResults = await dbSensorsStorage.getLatestTelemetryForSensors(sensors, orgId);
-      const telemetryMap = new Map(
-        telemetryResults.map((result: any) => [
+      const telemetryResults = await (dbSensorsStorage as any).getLatestTelemetryForSensors(sensors, orgId);
+      const telemetryMap = new Map<string, any>(
+        (telemetryResults as any[]).map((result: any) => [
           `${result.equipmentId}:${result.sensorType}`,
           result,
         ])
@@ -86,7 +86,7 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
     withErrorHandling("create/update sensor state", async (req, res) => {
       const stateData = insertSensorStateSchema.parse(req.body);
       const orgId = (req as AuthenticatedRequest).orgId;
-      const sensorState = await dbSensorsStorage.upsertSensorState({ ...stateData, orgId });
+      const sensorState = await dbSensorsStorage.upsertSensorState({ ...stateData, orgId } as any);
       sendCreated(res, sensorState);
     })
   );

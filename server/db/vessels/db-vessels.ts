@@ -95,7 +95,7 @@ export class DatabaseVesselStorage {
     const vesselsByStatus: Record<string, number> = {};
     let activeVessels = 0;
     for (const v of list) {
-      const status = v.status ?? "unknown";
+      const status = (v as any).status ?? "unknown";
       vesselsByStatus[status] = (vesselsByStatus[status] ?? 0) + 1;
       if (status === "active" || status === "operational") {
         activeVessels++;

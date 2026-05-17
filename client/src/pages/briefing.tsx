@@ -179,7 +179,7 @@ export default function BriefingPage() {
   const dateQuery = useQuery<Briefing[]>({
     queryKey: ["/api/agent/briefings", selectedDate],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/agent/briefings?date=${selectedDate}`);
+      const res: any = await apiRequest("GET", `/api/agent/briefings?date=${selectedDate}`);
       return res.json();
     },
     enabled: !isToday,

@@ -304,9 +304,9 @@ export class ObjectStorageService {
   }): Promise<boolean> {
     return canAccessObject({
       userId,
-      objectFile,
+      file: objectFile,
       requestedPermission: requestedPermission ?? ObjectPermission.READ,
-    });
+    } as any);
   }
 
   // Check if object storage is properly configured

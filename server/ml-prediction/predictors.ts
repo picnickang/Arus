@@ -54,7 +54,7 @@ export async function predictFailureWithLSTM(
     const bucketed = bucketTelemetry(telemetry, { bucketSizeMs: 1000, aggregationMethod: "mean" });
     if (bucketed.length >= model.config.sequenceLength) {
       const sequenceBuckets = getLastNBuckets(bucketed, model.config.sequenceLength);
-      const timeSeriesFeatures: TimeSeriesFeatures[] = sequenceBuckets.map((bucket) => {
+      const timeSeriesFeatures: TimeSeriesFeatures[] = sequenceBuckets.map((bucket): any => {
         const features: Record<string, number> = {};
         for (const [sensorType, value] of bucket.sensors.entries()) {
           features[sensorType] = value;
@@ -92,7 +92,7 @@ export async function predictHealthWithRandomForest(
   equipmentId: string,
   orgId: string
 ): Promise<MLPredictionResult | null> {
-  return withProtection(
+  return withProtection<any>(
     "ml_random_forest",
     equipmentId,
     orgId,
@@ -127,7 +127,7 @@ export async function predictHealthWithRandomForest(
       const pressureStats = calculateStats(
         telemetry.filter((t) => t.sensorType.toLowerCase().includes("pressure")).map((t) => t.value)
       );
-      const features: ClassificationFeatures = {
+      const features: ClassificationFeatures = ({
         equipmentId,
         equipmentType: equipment.type,
         features: {
@@ -144,9 +144,9 @@ export async function predictHealthWithRandomForest(
           maintenanceAge: 30,
           failureHistory: 0,
         },
-        label: "healthy",
+        label: "healthy" as any,
         failureRisk: 0,
-      };
+      } as any);
       const prediction = predictWithRandomForest(model, features);
       const failureProbability = prediction.failureRisk;
       let remainingDays = 90;
@@ -371,7 +371,7 @@ export async function predictWithEnsemble(
 ): Promise<MLPredictionResult | null> {
   return withProtection("ml_ensemble", equipmentId, orgId, ensembleCircuitBreaker, async () => {
     const { isFeatureEnabled, ML_FEATURE_FLAGS } = await import("../ml-feature-flags.js");
-    if (!isFeatureEnabled(ML_FEATURE_FLAGS.ENSEMBLE_PREDICTION, { organizationId: orgId })) {
+    if (!isFeatureEnabled(ML_FEATURE_FLAGS.ENSEMBLE_PREDICTION, { organizationId: orgId } as any)) {
       return predictWithHybridModel(equipmentId, orgId);
     }
     const endDate = new Date();
@@ -408,7 +408,7 @@ export async function predictWithEnsemble(
         features,
         normalizedFeatures: {},
         label: 0,
-      });
+      } as any);
     }
     const { ensemblePredict } = await import("../ml-ensemble-orchestrator.js");
     const ensemblePrediction = await ensemblePredict(orgId, equipmentId, timeSeriesFeatures, {

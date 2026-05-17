@@ -186,13 +186,12 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       const orgId = req.orgId;
       const item = await dbNotificationsStorage.createEmailQueueItem({
         orgId,
-        notificationType: "test",
         subject: subject || "ARUS Marine Test Notification",
-        body: message || "This is a test notification from ARUS Marine.",
-        bodyHtml: `<div style="font-family: Arial, sans-serif;"><h2>Test Notification</h2><p>${message || "This is a test notification from ARUS Marine."}</p></div>`,
-        recipients: [email],
+        htmlContent: `<div style="font-family: Arial, sans-serif;"><h2>Test Notification</h2><p>${message || "This is a test notification from ARUS Marine."}</p></div>`,
+        recipientEmail: email,
         status: "pending",
-      });
+        ...({ notificationType: "test", body: message || "This is a test notification from ARUS Marine.", recipients: [email] } as any),
+      } as any);
 
       const { emailNotificationService } = await import(
         "../../services/email-notification-service"

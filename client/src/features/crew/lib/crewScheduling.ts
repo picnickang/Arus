@@ -128,8 +128,8 @@ export function parseEnhancedScheduleResponse(
 
   return {
     engine: data.engine || "unknown",
-    scheduled: Array.isArray(data.scheduled) ? data.scheduled : [],
-    unfilled: Array.isArray(data.unfilled) ? data.unfilled : [],
+    scheduled: (Array.isArray(data.scheduled) ? data.scheduled : []) as any,
+    unfilled: (Array.isArray(data.unfilled) ? data.unfilled : []) as any,
     compliance: data.compliance,
     summary: {
       totalShifts: Number(data.summary.totalShifts) || 0,
@@ -251,6 +251,7 @@ export type ShiftFormData = z.infer<typeof shiftFormSchema>;
 
 export function createDefaultShiftFormValues(): ShiftFormData {
   return {
+    orgId: "",
     vesselId: "",
     equipmentId: "",
     role: "",

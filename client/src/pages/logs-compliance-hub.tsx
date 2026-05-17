@@ -235,7 +235,7 @@ export default function LogsComplianceHub() {
                               </div>
                               <div className="text-xs text-muted-foreground flex items-center gap-1">
                                 <Ship className="h-3 w-3" />
-                                {getVesselName(finding.vesselId)}
+                                {getVesselName(finding.vesselId ?? "")}
                                 <span>·</span>
                                 {finding.logDate}
                               </div>
@@ -356,7 +356,7 @@ export default function LogsComplianceHub() {
                             <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                               <div className="flex items-center gap-1">
                                 <Ship className="h-3 w-3" />
-                                {getVesselName(finding.vesselId)}
+                                {getVesselName(finding.vesselId ?? "")}
                               </div>
                               <div className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />

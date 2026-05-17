@@ -23,7 +23,7 @@ export async function getDatabaseHealth(): Promise<DatabaseHealth> {
     };
   }
 
-  let pool: Pool | null = null;
+  let pool: any = null;
   try {
     pool = new Pool({
       connectionString: DATABASE_URL,

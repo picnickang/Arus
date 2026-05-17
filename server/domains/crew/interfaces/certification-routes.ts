@@ -102,9 +102,9 @@ export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): 
             crewMemberName: crewMember?.name || "Unknown",
             crewMemberRank: crewMember?.rank || "Unknown",
             daysUntilExpiry: Math.ceil(
-              (new Date(cert.expiresAt!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+              (new Date((cert as any).expiresAt!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
             ),
-            urgencyLevel: getExpiryUrgencyLevel(cert.expiresAt!),
+            urgencyLevel: getExpiryUrgencyLevel((cert as any).expiresAt!),
           };
         })
       );

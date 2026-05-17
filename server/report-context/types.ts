@@ -42,6 +42,7 @@ export interface ReportContext {
       equipmentType: string;
       mlPrediction: MLPredictionResult;
     }>;
+    knowledgeBase?: string[];
   };
   knowledge?: {
     documents: Array<{

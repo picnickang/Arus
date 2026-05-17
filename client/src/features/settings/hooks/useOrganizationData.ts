@@ -195,7 +195,7 @@ export function useOrganizationData() {
   };
   const handleResetPassword = async (userId: string) => {
     try {
-      const result = await apiRequest("POST", `/api/users/${userId}/reset-password`);
+      const result: any = await apiRequest("POST", `/api/users/${userId}/reset-password`);
       toast({
         title: "Password Reset Token Generated",
         description: `Token: ${result.token}\nExpires in: ${result.expiresIn}`,
@@ -212,7 +212,7 @@ export function useOrganizationData() {
   const openOrganizationDialog = (organization?: Organization) => {
     if (organization) {
       setEditingOrganization(organization);
-      organizationForm.reset(organization);
+      organizationForm.reset(organization as any);
     } else {
       setEditingOrganization(null);
       organizationForm.reset({
@@ -229,7 +229,7 @@ export function useOrganizationData() {
   const openUserDialog = (user?: User) => {
     if (user) {
       setEditingUser(user);
-      userForm.reset(user);
+      userForm.reset(user as any);
     } else {
       setEditingUser(null);
       userForm.reset({ name: "", email: "", role: "viewer", isActive: true, orgId: selectedOrgId });

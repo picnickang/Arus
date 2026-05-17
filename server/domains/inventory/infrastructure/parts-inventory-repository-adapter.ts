@@ -81,7 +81,7 @@ export class PartsInventoryRepositoryAdapter implements IPartsInventoryRepositor
   }
 
   async delete(id: string, orgId: string): Promise<void> {
-    await inventoryRepository.deleteInventoryItem(id, orgId);
+    await (inventoryRepository as any).deleteInventoryItem(id, orgId);
   }
 
   async updateQuantity(
@@ -91,7 +91,7 @@ export class PartsInventoryRepositoryAdapter implements IPartsInventoryRepositor
   ): Promise<PartsInventoryEntity> {
     const item = await inventoryRepository.updateInventoryItem(
       id,
-      { quantity: newQuantity },
+      { quantity: newQuantity } as any,
       orgId
     );
     return mapToEntity(item);
