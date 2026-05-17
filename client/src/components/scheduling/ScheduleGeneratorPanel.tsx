@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -86,12 +85,12 @@ export function ScheduleGeneratorPanel({ isOpen, onOpenChange }: ScheduleGenerat
   const to = useMemo(() => format(addDays(new Date(), days), "yyyy-MM-dd"), [days]);
 
   const simulateMutation = useMutation({
-    mutationFn: async () =>
-      apiRequest("POST", "/api/schedule/simulate", {
+    mutationFn: async (): Promise<SimulationResult> =>
+      (await apiRequest("POST", "/api/schedule/simulate", {
         from,
         days,
         fillUnassignedOnly: !allowUpdateDrafts,
-      }),
+      })) as SimulationResult,
     onSuccess: (data: SimulationResult) => {
       setSimulationResult(data);
       setAppliedRunId(null);
@@ -109,15 +108,15 @@ export function ScheduleGeneratorPanel({ isOpen, onOpenChange }: ScheduleGenerat
   });
 
   const applyMutation = useMutation({
-    mutationFn: async (vesselIds?: string[]) => {
+    mutationFn: async (vesselIds?: string[]): Promise<ApplyResult> => {
       if (!simulationResult) {
         throw new Error("No simulation result to apply");
       }
-      return apiRequest("POST", "/api/schedule/apply-draft", {
+      return (await apiRequest("POST", "/api/schedule/apply-draft", {
         simulationResult,
         skipCollisions: true,
         vesselIds: vesselIds && vesselIds.length > 0 ? vesselIds : undefined,
-      });
+      })) as ApplyResult;
     },
     onSuccess: (data: ApplyResult) => {
       setAppliedRunId(data.runId);
@@ -153,7 +152,8 @@ export function ScheduleGeneratorPanel({ isOpen, onOpenChange }: ScheduleGenerat
   });
 
   const clearHistoryMutation = useMutation({
-    mutationFn: async () => apiRequest("DELETE", "/api/schedule/runs"),
+    mutationFn: async (): Promise<{ deleted: number }> =>
+      (await apiRequest("DELETE", "/api/schedule/runs")) as { deleted: number },
     onSuccess: (data: { deleted: number }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/crew-assignments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/schedule/assignments"] });
@@ -246,7 +246,9 @@ export function ScheduleGeneratorPanel({ isOpen, onOpenChange }: ScheduleGenerat
       newSet.add(runId);
     } else {
       const firstItem = newSet.values().next().value;
-      newSet.delete(firstItem);
+      if (firstItem !== undefined) {
+        newSet.delete(firstItem);
+      }
       newSet.add(runId);
     }
     setSelectedRunsForCompare(newSet);

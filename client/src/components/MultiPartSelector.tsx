@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { Plus, Minus, Package, Search, ShoppingCart, X, AlertTriangle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -157,7 +156,7 @@ export function MultiPartSelector({ workOrderId, vesselId, onPartsAdded }: Multi
                   filteredParts.map((part) => {
                     const stockStatus = getStockStatus(part);
                     return (
-                      <TableRow key={getExistingPartId(part)}>
+                      <TableRow key={part.id}>
                         <TableCell className="font-mono text-sm">{part.partNumber}</TableCell>
                         <TableCell>
                           <div>

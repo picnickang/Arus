@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import {
   TrendingUp,
@@ -402,7 +401,9 @@ export function FinanceMode() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-purple-600" data-testid="text-roi">
-              {roiAnalysis?.overallRoi ? `${roiAnalysis.overallRoi.toFixed(0)}%` : "N/A"}
+              {(roiAnalysis as { overallRoi?: number } | undefined)?.overallRoi
+                ? `${(roiAnalysis as { overallRoi: number }).overallRoi.toFixed(0)}%`
+                : "N/A"}
             </div>
           </CardContent>
         </Card>

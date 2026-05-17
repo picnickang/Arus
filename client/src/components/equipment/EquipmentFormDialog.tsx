@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   Dialog,
   DialogContent,
@@ -309,8 +308,8 @@ export function EquipmentFormDialog({
                   <FormLabel>Location</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    value={field.value}
-                    defaultValue={field.value}
+                    value={field.value ?? undefined}
+                    defaultValue={field.value ?? undefined}
                     data-testid={`select-${testIdPrefix}location`}
                   >
                     <FormControl>
@@ -394,8 +393,8 @@ export function EquipmentFormDialog({
                         value={
                           field.value
                             ? typeof field.value === "string"
-                              ? field.value.split("T")[0]
-                              : new Date(field.value).toISOString().split("T")[0]
+                              ? (field.value as string).split("T")[0]
+                              : new Date(field.value as string | Date).toISOString().split("T")[0]
                             : ""
                         }
                         onChange={(e) => field.onChange(e.target.value || undefined)}
@@ -545,7 +544,7 @@ export function EquipmentFormDialog({
                   </div>
                   <FormControl>
                     <Switch
-                      checked={field.value}
+                      checked={field.value ?? undefined}
                       onCheckedChange={field.onChange}
                       data-testid={`switch-${testIdPrefix}active`}
                     />

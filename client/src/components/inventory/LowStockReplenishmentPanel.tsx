@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -122,10 +121,10 @@ export function LowStockReplenishmentPanel({
 
   const createPRMutation = useMutation({
     mutationFn: async (selectedParts: SmartReplenishmentSuggestion[]) => {
-      const pr = await apiRequest("POST", "/api/purchase-requests", {
+      const pr = (await apiRequest("POST", "/api/purchase-requests", {
         requestedBy,
         notes: `Auto-generated from smart replenishment — ${new Date().toLocaleDateString()}`,
-      });
+      })) as { id: string };
 
       for (const part of selectedParts) {
         const woContext =

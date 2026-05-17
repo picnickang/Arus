@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef } from "react";
 import {
@@ -430,7 +429,7 @@ export function VirtualizedInventoryTable({
                     status === "low_stock" ||
                     status === "out_of_stock") && (
                     <span onClick={(e) => e.stopPropagation()}>
-                      <QuickReorderButton part={item} variant="icon" onReorderCreated={() => {}} />
+                      <QuickReorderButton part={item as unknown as Parameters<typeof QuickReorderButton>[0]["part"]} variant="icon" onReorderCreated={() => {}} />
                     </span>
                   )}
                 </div>

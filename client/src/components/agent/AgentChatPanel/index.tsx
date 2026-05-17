@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -57,7 +56,7 @@ export function AgentChatPanel({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatFormRef = useRef<HTMLFormElement>(null);
   const convIdRef = useRef<string | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -245,7 +244,7 @@ export function AgentChatPanel({
   );
 
   const toggleVoiceInput = useCallback(() => {
-    type SpeechRecognitionConstructor = new () => SpeechRecognition;
+    type SpeechRecognitionConstructor = new () => any;
     const W = window as Window & {
       SpeechRecognition?: SpeechRecognitionConstructor;
       webkitSpeechRecognition?: SpeechRecognitionConstructor;
@@ -271,7 +270,7 @@ export function AgentChatPanel({
     recognition.interimResults = false;
     recognition.lang = "en-US";
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: any) => {
       const transcript = event.results[0]?.[0]?.transcript;
       if (transcript) {
         setMessage((prev) => (prev ? `${prev} ${transcript}` : transcript));

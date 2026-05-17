@@ -1,14 +1,4 @@
 client/src/App.tsx
-client/src/components/agent/AgentChatPanel/index.tsx
-client/src/components/analytics/FinanceMode.tsx
-client/src/components/analytics/MaintenanceMode.tsx
-client/src/components/analytics/PowerSTWChart.tsx
-client/src/components/equipment/EquipmentFormDialog.tsx
-client/src/components/inventory/LowStockReplenishmentPanel.tsx
-client/src/components/inventory/VirtualizedInventoryTable.tsx
-client/src/components/MultiPartSelector.tsx
-client/src/components/scheduling/ScheduleGeneratorPanel.tsx
-client/src/components/sensors/SensorHealthDashboard.tsx
 client/src/components/sensors/SensorSetupWizard.tsx
 client/src/components/SyncAdmin.tsx
 client/src/components/ui/export-button.tsx

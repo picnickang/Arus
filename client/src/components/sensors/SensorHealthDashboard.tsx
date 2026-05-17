@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Sensor Health Dashboard Component
  *
@@ -100,14 +99,14 @@ export function SensorHealthDashboard({ equipmentId }: SensorHealthDashboardProp
   });
 
   if (isLoading) {
-    return <LoadingState variant="card" message="Loading sensor health data..." />;
+    return <LoadingState variant="card" />;
   }
 
   if (error) {
     return (
       <ErrorState
         title="Failed to load sensor health"
-        message="Unable to retrieve sensor health metrics. Please try again."
+        error="Unable to retrieve sensor health metrics. Please try again."
       />
     );
   }

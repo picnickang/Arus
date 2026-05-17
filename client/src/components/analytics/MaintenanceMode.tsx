@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { TrendingUp, Clock, Target, DollarSign, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -325,7 +324,9 @@ export function MaintenanceMode() {
           <p className="text-sm text-muted-foreground">No high-risk equipment detected</p>
         ) : (
           <div className="space-y-2">
-            {highRiskPdmScores.map((score: PdmScoreData) => (
+            {highRiskPdmScores.map((scoreRaw: PdmScoreData) => {
+              const score = scoreRaw as PdmScoreData & { confidence?: number };
+              return (
               <div
                 key={score.equipmentId}
                 className="flex items-center justify-between p-3 border rounded-lg"
@@ -335,14 +336,15 @@ export function MaintenanceMode() {
                   <p className="font-medium text-sm">{score.equipmentName || score.equipmentId}</p>
                   <p className="text-xs text-muted-foreground">
                     Failure Risk: {score.failureRisk.toFixed(0)}% | Confidence:{" "}
-                    {(score.confidence * 100).toFixed(0)}%
+                    {((score.confidence ?? 0) * 100).toFixed(0)}%
                   </p>
                 </div>
                 <Badge variant={score.failureRisk > 85 ? "destructive" : "default"}>
                   {score.failureRisk.toFixed(0)}% risk
                 </Badge>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CollapsibleSection>
@@ -373,7 +375,12 @@ export function MaintenanceMode() {
         summary={`${maintenanceRecords.slice(0, 10).length} recent records`}
       >
         <div className="space-y-2">
-          {maintenanceRecords.slice(0, 10).map((record) => (
+          {maintenanceRecords.slice(0, 10).map((recordRaw) => {
+            const record = recordRaw as typeof recordRaw & {
+              equipmentName?: string;
+              completedAt?: string | Date | null;
+            };
+            return (
             <div
               key={record.id || `${record.equipmentId}-${record.type}-${record.completedAt}`}
               className="flex items-center justify-between p-3 border rounded-lg text-sm"
@@ -388,7 +395,8 @@ export function MaintenanceMode() {
                   : "N/A"}
               </Badge>
             </div>
-          ))}
+            );
+          })}
         </div>
       </CollapsibleSection>
     </div>
