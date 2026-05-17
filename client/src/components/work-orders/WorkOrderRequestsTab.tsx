@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -298,7 +297,7 @@ export function WorkOrderRequestsTab({
       <EnhancedServiceRequestDialog
         open={soDialogOpen}
         onOpenChange={handleSoDialogClose}
-        onSubmit={handleCreateServiceOrder}
+        onSubmit={handleCreateServiceOrder as unknown as Parameters<typeof EnhancedServiceRequestDialog>[0]["onSubmit"]}
         isPending={editingSO ? isUpdatingServiceOrder : isCreatingServiceOrder}
         initialData={
           editingSO

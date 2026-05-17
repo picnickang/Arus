@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -52,9 +51,25 @@ export function useDataIntegrityData() {
     ? Math.round((status.successfulRuns / status.totalRuns) * 100)
     : 100;
 
+  const reportExtras = useMemo(() => {
+    if (!latestReport) return null;
+    const issuesBySeverity = { critical: 0, warning: 0, info: 0 };
+    for (const issue of latestReport.issues) {
+      if (issue.severity === "critical") issuesBySeverity.critical += 1;
+      else if (issue.severity === "warning") issuesBySeverity.warning += 1;
+      else issuesBySeverity.info += 1;
+    }
+    const tables = Array.from(new Set(latestReport.issues.map((i) => i.table)));
+    return {
+      totalIssues: latestReport.issuesFound,
+      issuesBySeverity,
+      dataSourcesChecked: tables,
+    };
+  }, [latestReport]);
+
   const exportPDFSections: PDFSection[] = useMemo(
     () =>
-      status && latestReport
+      status && latestReport && reportExtras
         ? [
             {
               title: "Service Status",
@@ -72,25 +87,25 @@ export function useDataIntegrityData() {
               content: [
                 { key: "Timestamp", value: formatDate(latestReport.timestamp) },
                 { key: "Status", value: latestReport.status },
-                { key: "Total Issues", value: latestReport.totalIssues.toString() },
+                { key: "Total Issues", value: reportExtras.totalIssues.toString() },
                 {
                   key: "Critical Issues",
-                  value: latestReport.issuesBySeverity.critical.toString(),
+                  value: reportExtras.issuesBySeverity.critical.toString(),
                 },
-                { key: "Warning Issues", value: latestReport.issuesBySeverity.warning.toString() },
-                { key: "Info Issues", value: latestReport.issuesBySeverity.info.toString() },
+                { key: "Warning Issues", value: reportExtras.issuesBySeverity.warning.toString() },
+                { key: "Info Issues", value: reportExtras.issuesBySeverity.info.toString() },
               ],
             },
             {
               title: "Data Sources Checked",
-              content: latestReport.dataSourcesChecked.map((source: string) => ({
+              content: reportExtras.dataSourcesChecked.map((source: string) => ({
                 key: source,
                 value: "✓ Validated",
               })),
             },
           ]
         : [],
-    [status, latestReport, healthPercentage]
+    [status, latestReport, reportExtras, healthPercentage]
   );
 
   const exportTableData: PDFTableData | undefined = useMemo(
@@ -100,9 +115,9 @@ export function useDataIntegrityData() {
             headers: ["Severity", "Type", "Message", "Affected Records"],
             rows: latestReport.issues.map((issue) => [
               issue.severity,
-              issue.issueType,
-              issue.message,
-              issue.affectedRecords?.toString() || "N/A",
+              issue.type,
+              issue.description,
+              issue.count?.toString() || "N/A",
             ]),
           }
         : undefined,
@@ -114,9 +129,9 @@ export function useDataIntegrityData() {
       latestReport?.issues.length
         ? latestReport.issues.map((issue) => ({
             severity: issue.severity,
-            issueType: issue.issueType,
-            message: issue.message,
-            affectedRecords: issue.affectedRecords?.toString() || "N/A",
+            issueType: issue.type,
+            message: issue.description,
+            affectedRecords: issue.count?.toString() || "N/A",
           }))
         : [],
     [latestReport]

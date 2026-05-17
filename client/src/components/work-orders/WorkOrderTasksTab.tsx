@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import {
   Plus,
@@ -72,23 +71,23 @@ export function WorkOrderTasksTab({ workOrderId, isReadOnly = false }: WorkOrder
           </div>
           <Progress value={overallProgress} className="h-2" data-testid="tasks-progress-bar" />
           <div className="flex gap-2 mt-2">
-            {progress?.pendingItems > 0 && (
+            {(progress?.pendingItems ?? 0) > 0 && (
               <Badge variant="secondary" className="text-xs" data-testid="badge-pending-items">
-                {progress.pendingItems} pending
+                {progress!.pendingItems} pending
               </Badge>
             )}
-            {progress?.failedItems > 0 && (
+            {(progress?.failedItems ?? 0) > 0 && (
               <Badge variant="destructive" className="text-xs" data-testid="badge-failed-items">
-                {progress.failedItems} failed
+                {progress!.failedItems} failed
               </Badge>
             )}
-            {progress?.completedItems > 0 && (
+            {(progress?.completedItems ?? 0) > 0 && (
               <Badge
                 variant="default"
                 className="text-xs bg-green-600"
                 data-testid="badge-passed-items"
               >
-                {progress.completedItems} passed
+                {progress!.completedItems} passed
               </Badge>
             )}
           </div>
@@ -182,19 +181,19 @@ export function WorkOrderTasksTab({ workOrderId, isReadOnly = false }: WorkOrder
             </div>
           )}
 
-          {workOrderTasks.length > 0 && (
+          {(workOrderTasks as Array<{ id: string; description: string; isCompleted: boolean; completedByName?: string | null; completedAt?: string | Date | null }>).length > 0 && (
             <div className="space-y-2" data-testid="additional-tasks-section">
               {templateCompletions.length > 0 && (
                 <h4 className="text-sm font-medium text-muted-foreground mt-4">Additional Tasks</h4>
               )}
-              {workOrderTasks.map((task) => (
+              {(workOrderTasks as Array<{ id: string; description: string; isCompleted: boolean; completedByName?: string | null; completedAt?: string | Date | null }>).map((task) => (
                 <TaskItem
                   key={task.id}
                   id={task.id}
                   description={task.description}
                   isCompleted={task.isCompleted}
-                  completedByName={task.completedByName}
-                  completedAt={task.completedAt}
+                  completedByName={task.completedByName ?? undefined}
+                  completedAt={task.completedAt ? new Date(task.completedAt as string | Date).toISOString() : undefined}
                   isReadOnly={isReadOnly}
                   isPending={toggleTaskCompletion.isPending || deleteTaskMutation.isPending}
                   onToggle={(completed) =>

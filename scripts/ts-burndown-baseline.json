@@ -1,6 +1,6 @@
 {
   "_comment": "TypeScript error burndown baseline. Total must monotonically decrease. Regenerate with: node scripts/check-ts-burndown.mjs --write-baseline",
-  "generatedAt": "2026-05-17T08:47:48.790Z",
+  "generatedAt": "2026-05-17T10:18:23.523Z",
   "total": 0,
   "summary": {
     "byCode": {},

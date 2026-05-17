@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -67,7 +66,7 @@ export function ExportButton({
 
       switch (format) {
         case "csv":
-          success = exportToCSV(Array.isArray(data) ? data : [data], {
+          success = exportToCSV((Array.isArray(data) ? data : [data]) as Record<string, unknown>[], {
             filename: `${filename}-${timestamp}.csv`,
             ...csvOptions,
           });

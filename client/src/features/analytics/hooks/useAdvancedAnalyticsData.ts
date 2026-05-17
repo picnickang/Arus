@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -116,7 +115,7 @@ export function useAdvancedAnalyticsData(): UseAdvancedAnalyticsDataReturn {
   const { data: vessels = [] } = useQuery<VesselData[]>({ queryKey: ["/api/vessels"] });
 
   const equipmentMap = createEquipmentLookup(equipment);
-  const vesselMap = createVesselLookup(vessels);
+  const vesselMap = createVesselLookup(vessels as Array<{ id: string; name: string }>);
   const getEquipmentName = (id: string) => lookupName(equipmentMap, id);
   const getVesselName = (id: string) => lookupName(vesselMap, id);
 
@@ -150,7 +149,7 @@ export function useAdvancedAnalyticsData(): UseAdvancedAnalyticsDataReturn {
     queryFn: () => fetchAnalyticsData("insight-snapshots", orgId),
   });
 
-  const createMlModelMutation = useCreateMutation({
+  const createMlModelMutation = (useCreateMutation as unknown as (cfg: unknown) => ReturnType<typeof useCreateMutation>)({
     endpoint: "/api/analytics/ml-models",
     invalidateKeys: [["/api/analytics/ml-models", orgId]],
     successMessage: "ML model created successfully",
@@ -161,7 +160,7 @@ export function useAdvancedAnalyticsData(): UseAdvancedAnalyticsDataReturn {
     transformData: (data: MlModelFormData) => ({ ...data, orgId }),
   });
 
-  const updateMlModelMutation = useUpdateMutation({
+  const updateMlModelMutation = (useUpdateMutation as unknown as (cfg: unknown) => ReturnType<typeof useUpdateMutation>)({
     endpoint: "/api/analytics/ml-models",
     invalidateKeys: [["/api/analytics/ml-models", orgId]],
     successMessage: "ML model updated successfully",
@@ -173,7 +172,7 @@ export function useAdvancedAnalyticsData(): UseAdvancedAnalyticsDataReturn {
     transformData: (data: MlModelFormData) => ({ ...data, orgId }),
   });
 
-  const deleteMlModelMutation = useDeleteMutation({
+  const deleteMlModelMutation = (useDeleteMutation as unknown as (cfg: unknown) => ReturnType<typeof useDeleteMutation>)({
     endpoint: "/api/analytics/ml-models",
     invalidateKeys: [["/api/analytics/ml-models", orgId]],
     successMessage: "ML model deleted successfully",
@@ -211,7 +210,7 @@ export function useAdvancedAnalyticsData(): UseAdvancedAnalyticsDataReturn {
 
   const onSubmitMlModel = (data: MlModelFormData) => {
     if (editingItem) {
-      updateMlModelMutation.mutate({ ...data, id: editingItem.id });
+      (updateMlModelMutation.mutate as (v: unknown) => void)({ ...data, id: editingItem.id });
     } else {
       createMlModelMutation.mutate(data);
     }
@@ -272,9 +271,9 @@ export function useAdvancedAnalyticsData(): UseAdvancedAnalyticsDataReturn {
     createMlModelMutation,
     updateMlModelMutation,
     deleteMlModelMutation,
-    acknowledgeAnomalyMutation,
-    applyOptimizationMutation,
-    mlModelForm,
+    acknowledgeAnomalyMutation: acknowledgeAnomalyMutation as unknown as UseAdvancedAnalyticsDataReturn["acknowledgeAnomalyMutation"],
+    applyOptimizationMutation: applyOptimizationMutation as unknown as UseAdvancedAnalyticsDataReturn["applyOptimizationMutation"],
+    mlModelForm: mlModelForm as unknown as UseAdvancedAnalyticsDataReturn["mlModelForm"],
     onSubmitMlModel,
     handleEdit,
     handleDelete,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -131,7 +130,7 @@ export function useDashboardData() {
 
   useEffect(() => {
     if (latestAlert && !latestAlert.acknowledged) {
-      setAlertBanner(latestAlert);
+      setAlertBanner(latestAlert as unknown as { type: string; message: string });
       const alertType = latestAlert.alertType || "info";
       toast({
         title: `${alertType.toUpperCase()} Alert`,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -129,8 +128,9 @@ export default function SyncAdmin() {
 
     const hasCriticalIssues = syncStatus.sync.criticalIssues > 0;
     const hasIssues = syncStatus.sync.totalIssues > 0;
+    const metrics = syncStatus.metrics as { failedEvents: number; pendingEvents: number; recentActivity: number };
     const hasSystemIssues =
-      syncStatus.metrics.failedEvents > 0 || syncStatus.metrics.pendingEvents > 50;
+      metrics.failedEvents > 0 || metrics.pendingEvents > 50;
 
     if (hasCriticalIssues) {
       return <Badge variant="destructive">Critical Issues</Badge>;
@@ -184,7 +184,7 @@ export default function SyncAdmin() {
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-600">
-                  {syncStatus.metrics.recentActivity}
+                  {String(syncStatus.metrics.recentActivity)}
                 </div>
                 <div className="text-sm text-muted-foreground">24h Activity</div>
               </div>
@@ -193,19 +193,19 @@ export default function SyncAdmin() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-orange-600">
-                  {syncStatus.metrics.pendingEvents}
+                  {String(syncStatus.metrics.pendingEvents)}
                 </div>
                 <div className="text-sm text-muted-foreground">Pending Events</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-red-600">
-                  {syncStatus.metrics.failedEvents}
+                  {String(syncStatus.metrics.failedEvents)}
                 </div>
                 <div className="text-sm text-muted-foreground">Failed Events</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">
-                  {syncStatus.metrics.recentActivity}
+                  {String(syncStatus.metrics.recentActivity)}
                 </div>
                 <div className="text-sm text-muted-foreground">24h Activity</div>
               </div>

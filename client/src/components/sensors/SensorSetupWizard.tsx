@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   Dialog,
   DialogContent,
@@ -73,7 +72,7 @@ export function SensorSetupWizard({ equipment, open, onClose, onSuccess }: Senso
           </div>
           <Separator />
           {wizardState.currentStep === 1 && (
-            <EquipmentStep equipment={equipment} onNext={handleNext} data-testid="wizard-step-1" />
+            <EquipmentStep equipment={equipment as unknown as Pick<Equipment, "id" | "name" | "type" | "location"> & { status?: string | null }} onNext={handleNext} data-testid="wizard-step-1" />
           )}
           {wizardState.currentStep === 2 && (
             <BundleStep
@@ -87,7 +86,7 @@ export function SensorSetupWizard({ equipment, open, onClose, onSuccess }: Senso
           )}
           {wizardState.currentStep === 3 && (
             <ThresholdStep
-              equipment={equipment}
+              equipment={equipment as unknown as Equipment}
               wizardState={wizardState}
               onBack={handleBack}
               onSuccess={onSuccess}
@@ -102,7 +101,7 @@ export function SensorSetupWizard({ equipment, open, onClose, onSuccess }: Senso
 }
 
 interface EquipmentStepProps {
-  equipment: Pick<Equipment, "id" | "name" | "type" | "status" | "location">;
+  equipment: Pick<Equipment, "id" | "name" | "type" | "location"> & { status?: string | null };
   onNext: () => void;
   "data-testid"?: string;
 }
@@ -138,7 +137,7 @@ function EquipmentStep({ equipment, onNext, "data-testid": dataTestId }: Equipme
             <div className="space-y-2">
               <Label className="text-muted-foreground">Equipment Type</Label>
               <div className="font-medium" data-testid="equipment-type-display">
-                {formatEquipmentType(equipment.type)}
+                {String(formatEquipmentType(equipment.type) ?? "")}
               </div>
             </div>
             {equipment.status && (
@@ -146,7 +145,7 @@ function EquipmentStep({ equipment, onNext, "data-testid": dataTestId }: Equipme
                 <Label className="text-muted-foreground">Status</Label>
                 <div data-testid="equipment-status-display">
                   <Badge variant={equipment.status === "active" ? "default" : "outline"}>
-                    {equipment.status}
+                    {String(equipment.status)}
                   </Badge>
                 </div>
               </div>
@@ -233,9 +232,9 @@ function SensorStatusBadge({ sensor }: { sensor: SensorConfiguration }) {
         <AlertCircle className="h-3 w-3 text-gray-400" />
       )}
       <span className="text-muted-foreground">{sensor.enabled ? "Enabled" : "Disabled"}</span>
-      {sensor.lastReading && (
+      {(sensor as SensorConfiguration & { lastReading?: string | Date | null }).lastReading && (
         <span className="text-muted-foreground ml-2">
-          • Last reading: {formatDistanceToNow(new Date(sensor.lastReading), { addSuffix: true })}
+          • Last reading: {formatDistanceToNow(new Date((sensor as SensorConfiguration & { lastReading: string | Date }).lastReading), { addSuffix: true })}
         </span>
       )}
     </div>
@@ -547,31 +546,35 @@ function ThresholdStep({
                     <div>
                       <span className="text-muted-foreground">Warning Low:</span>
                       <span className="ml-2 font-medium">
-                        {template.fields?.warn_low ?? template.fields?.warnLo ?? "—"}
+                        {String(template.fields?.warn_low ?? template.fields?.warnLo ?? "—")}
                       </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Warning High:</span>
                       <span className="ml-2 font-medium">
-                        {template.fields?.warn_high ??
-                          template.fields?.warnHi ??
-                          template.fields?.warn_rms ??
-                          "—"}
+                        {String(
+                          template.fields?.warn_high ??
+                            template.fields?.warnHi ??
+                            template.fields?.warn_rms ??
+                            "—"
+                        )}
                       </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Critical Low:</span>
                       <span className="ml-2 font-medium">
-                        {template.fields?.crit_low ?? template.fields?.critLo ?? "—"}
+                        {String(template.fields?.crit_low ?? template.fields?.critLo ?? "—")}
                       </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Critical High:</span>
                       <span className="ml-2 font-medium">
-                        {template.fields?.crit_high ??
-                          template.fields?.critHi ??
-                          template.fields?.crit_rms ??
-                          "—"}
+                        {String(
+                          template.fields?.crit_high ??
+                            template.fields?.critHi ??
+                            template.fields?.crit_rms ??
+                            "—"
+                        )}
                       </span>
                     </div>
                   </div>

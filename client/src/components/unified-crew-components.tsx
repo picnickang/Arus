@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -487,10 +486,10 @@ export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentPr
         <EmploymentHistoryPanel crewId={crew.id} />
       </TabsContent>
       <TabsContent value="documents" className="mt-4">
-        <CrewDocumentsTab crewId={crew.id} />
+        <CrewDocumentsTab crewId={crew.id} crewName={crew.name} />
       </TabsContent>
       <TabsContent value="notifications" className="mt-4">
-        <CrewNotificationSettingsTab crewId={crew.id} />
+        <CrewNotificationSettingsTab crewId={crew.id} crewName={crew.name} crewEmail={crew.email} />
       </TabsContent>
     </Tabs>
   );

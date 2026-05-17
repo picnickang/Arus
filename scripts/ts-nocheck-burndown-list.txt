@@ -1,14 +1,4 @@
 client/src/App.tsx
-client/src/components/sensors/SensorSetupWizard.tsx
-client/src/components/SyncAdmin.tsx
-client/src/components/ui/export-button.tsx
-client/src/components/unified-crew-components.tsx
-client/src/components/work-orders/VirtualizedWorkOrderTable.tsx
-client/src/components/work-orders/WorkOrderRequestsTab.tsx
-client/src/components/work-orders/WorkOrderTasksTab.tsx
-client/src/features/analytics/hooks/useAdvancedAnalyticsData.ts
-client/src/features/analytics/hooks/useDashboardData.ts
-client/src/features/analytics/hooks/useDataIntegrityData.ts
 client/src/features/analytics/hooks/useDigitalTwinData.ts
 client/src/features/analytics/hooks/useExpenseTrackingData.ts
 client/src/features/analytics/hooks/useFinanceModeData.ts

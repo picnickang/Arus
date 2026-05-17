@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Eye, Edit, Trash2 } from "lucide-react";
@@ -150,7 +149,7 @@ function TableHeader({
         <div
           key={col.key}
           style={{ width: col.width, minWidth: col.width }}
-          className={cn("pr-3", col.flex && "flex-1", idx === COLUMNS.length - 1 && "text-right")}
+          className={cn("pr-3", (col as { flex?: boolean }).flex && "flex-1", idx === COLUMNS.length - 1 && "text-right")}
         >
           {[
             "woNumber",
