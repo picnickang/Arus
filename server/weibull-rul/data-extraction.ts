@@ -17,7 +17,6 @@ export async function getEquipmentLifeData(
     const workOrders = await workOrderService.getWorkOrdersWithDetails();
     const equipmentWorkOrders = workOrders
       .filter((wo) => wo.equipmentId === equipmentId)
-      // @ts-ignore -- bulk-silence
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
     if (equipmentWorkOrders.length < 2) {
@@ -29,7 +28,6 @@ export async function getEquipmentLifeData(
     let lastEventTime: Date | null = null;
 
     for (const workOrder of equipmentWorkOrders) {
-      // @ts-ignore -- bulk-silence
       const eventTime = new Date(workOrder.createdAt);
 
       if (lastEventTime) {
@@ -44,9 +42,7 @@ export async function getEquipmentLifeData(
             maintenanceEvents: [
               {
                 timestamp: eventTime,
-                // @ts-ignore -- bulk-silence
                 type: workOrder.priority === "critical" ? "corrective" : "preventive",
-                // @ts-ignore -- bulk-silence
                 description: workOrder.description,
               },
             ],
@@ -143,9 +139,7 @@ export async function getCurrentEquipmentAge(equipmentId: string, orgId: string)
   try {
     const equipmentInfo = await dbEquipmentStorage.getEquipment(orgId, equipmentId);
 
-    // @ts-ignore -- bulk-silence
     if (equipmentInfo?.commissioningDate) {
-      // @ts-ignore -- bulk-silence
       const commissioningDate = new Date(equipmentInfo.commissioningDate);
       const now = new Date();
       const ageMs = now.getTime() - commissioningDate.getTime();

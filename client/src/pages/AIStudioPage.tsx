@@ -167,7 +167,6 @@ export default function AIStudioPage() {
             title="Active Models"
             value={deployedModels}
             icon={Brain}
-            // @ts-ignore -- bulk-silence
             trend={deployedModels > 0 ? { direction: "up", value: 12 } : undefined}
             data-testid="kpi-active-models"
           />
@@ -175,19 +174,16 @@ export default function AIStudioPage() {
             title="Avg. Accuracy"
             value={`${avgAccuracy.toFixed(1)}%`}
             icon={TrendingUp}
-            // @ts-ignore -- bulk-silence
             trend={avgAccuracy >= 80 ? { direction: "up", value: 5 } : undefined}
             data-testid="kpi-avg-accuracy"
           />
           <KpiCard
-            // @ts-ignore -- bulk-silence
             title="In Training"
             value={trainingModels}
             icon={Activity}
             data-testid="kpi-in-training"
           />
           <KpiCard
-            // @ts-ignore -- bulk-silence
             title="Need Attention"
             value={modelsNeedingAttention}
             icon={AlertTriangle}
@@ -200,7 +196,6 @@ export default function AIStudioPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InsightCard
             title="Model Performance"
-            // @ts-ignore -- bulk-silence
             message={
               avgAccuracy >= 85
                 ? "Excellent model performance across the fleet"
@@ -212,7 +207,6 @@ export default function AIStudioPage() {
           />
           <InsightCard
             title="System Status"
-            // @ts-ignore -- bulk-silence
             message={
               trainingModels > 0
                 ? `${trainingModels} model(s) currently training`
@@ -224,7 +218,6 @@ export default function AIStudioPage() {
 
         {/* Accuracy Trend */}
         <AccuracyTrendChart
-          // @ts-ignore -- bulk-silence
           data={accuracyData}
           timeRange={accuracyTimeRange}
           onTimeRangeChange={setAccuracyTimeRange}

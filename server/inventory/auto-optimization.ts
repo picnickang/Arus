@@ -49,7 +49,6 @@ export async function loadPartUsageHistory(
 
     // Estimate monthly usage based on min stock quantity
     // Assumption: minStockQty represents ~1 month of safety stock
-    // @ts-ignore -- bulk-silence
     const estimatedMonthlyUsage = part.minStockQty > 0 ? part.minStockQty : 0;
 
     // If no min stock configured, try to estimate from current stock
@@ -64,7 +63,6 @@ export async function loadPartUsageHistory(
     for (let i = 11; i >= 0; i--) {
       // Add ±30% random variation to simulate real usage patterns
       const variation = 0.7 + cryptoRandom() * 0.6; // Range: 0.7 to 1.3
-      // @ts-ignore -- bulk-silence
       const monthUsage = Math.max(0, Math.floor(baseUsage * variation));
       monthlyData.push(monthUsage);
     }

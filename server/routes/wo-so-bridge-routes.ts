@@ -259,9 +259,7 @@ export function registerWoSoBridgeRoutes(
         const newSo = await createServiceOrderFromWorkOrder(defaultDb, {
           orgId,
           workOrderId,
-          // @ts-ignore -- bulk-silence
           woNumber: wo.wo_number,
-          // @ts-ignore -- bulk-silence
           woDescription: wo.description,
           serviceProviderId,
           scope,
@@ -406,10 +404,8 @@ export function registerWoSoBridgeRoutes(
           )
           .then((r) => r.rows || r);
 
-        // @ts-ignore -- bulk-silence
         const allDone = soStatus.completed + soStatus.cancelled === soStatus.total;
 
-        // @ts-ignore -- bulk-silence
         if (allDone && soStatus.completed > 0) {
           await defaultDb.execute(sql`
           UPDATE work_orders
@@ -430,7 +426,6 @@ export function registerWoSoBridgeRoutes(
 
         res.json({
           synced: false,
-          // @ts-ignore -- bulk-silence
           reason: `${soStatus.total - soStatus.completed - soStatus.cancelled} service orders still active`,
         });
       }

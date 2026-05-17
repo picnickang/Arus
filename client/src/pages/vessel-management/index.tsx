@@ -142,11 +142,9 @@ export default function VesselManagement() {
                   <DialogDescription>Create a new vessel record for your fleet</DialogDescription>
                 </DialogHeader>
                 <Form {...v.form}>
-                  {/* @ts-ignore */}
                   <form onSubmit={v.form.handleSubmit(v.handleCreate)} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
-                        // @ts-ignore -- bulk-silence
                         control={v.form.control}
                         name="name"
                         render={({ field }) => (
@@ -164,13 +162,11 @@ export default function VesselManagement() {
                         )}
                       />
                       <FormField
-                        // @ts-ignore -- bulk-silence
                         control={v.form.control}
                         name="vesselClass"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Vessel Class</FormLabel>
-                            {/* @ts-ignore */}
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger data-testid="select-vessel-class">
@@ -192,7 +188,6 @@ export default function VesselManagement() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
-                        // @ts-ignore -- bulk-silence
                         control={v.form.control}
                         name="condition"
                         render={({ field }) => (
@@ -217,14 +212,12 @@ export default function VesselManagement() {
                         )}
                       />
                       <FormField
-                        // @ts-ignore -- bulk-silence
                         control={v.form.control}
                         name="dayRateSgd"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Day Rate (SGD)</FormLabel>
                             <FormControl>
-                              {/* @ts-ignore */}
                               <Input
                                 type="number"
                                 step="0.01"
@@ -330,7 +323,6 @@ export default function VesselManagement() {
                   ),
               },
             ]}
-            // @ts-ignore -- bulk-silence
             data={v.vessels}
             keyExtractor={(vessel: Vessel) => vessel.id}
             actions={(vessel: Vessel) => (
@@ -398,11 +390,9 @@ export default function VesselManagement() {
             <DialogDescription>Update vessel information</DialogDescription>
           </DialogHeader>
           <Form {...v.editForm}>
-            {/* @ts-ignore */}
             <form onSubmit={v.editForm.handleSubmit(v.handleUpdate)} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <FormField
-                  // @ts-ignore -- bulk-silence
                   control={v.editForm.control}
                   name="name"
                   render={({ field }) => (
@@ -420,13 +410,11 @@ export default function VesselManagement() {
                   )}
                 />
                 <FormField
-                  // @ts-ignore -- bulk-silence
                   control={v.editForm.control}
                   name="vesselClass"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Vessel Class</FormLabel>
-                      {/* @ts-ignore */}
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-edit-vessel-class">
@@ -448,7 +436,6 @@ export default function VesselManagement() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <FormField
-                  // @ts-ignore -- bulk-silence
                   control={v.editForm.control}
                   name="condition"
                   render={({ field }) => (
@@ -473,14 +460,12 @@ export default function VesselManagement() {
                   )}
                 />
                 <FormField
-                  // @ts-ignore -- bulk-silence
                   control={v.editForm.control}
                   name="dayRateSgd"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Day Rate (SGD)</FormLabel>
                       <FormControl>
-                        {/* @ts-ignore */}
                         <Input
                           type="number"
                           step="0.01"

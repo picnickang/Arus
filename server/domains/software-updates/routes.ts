@@ -49,7 +49,6 @@ export function registerSoftwareUpdatesRoutes(
         const patch = await updateChecker.registerPatch(orgId, manifest);
 
         const { wsServer } = await import("../../websocket");
-        // @ts-ignore -- bulk-silence
         wsServer.broadcast({
           type: "update_available",
           version: manifest.version,

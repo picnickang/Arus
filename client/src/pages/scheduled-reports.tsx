@@ -263,7 +263,6 @@ export default function ScheduledReports() {
             "/api/scheduled-reports/schedules",
           ]);
           const updated = fresh?.data?.find((s) => s.id === scheduleId);
-          // @ts-ignore -- bulk-silence
           if (updated?.lastRunAt && updated.lastRunAt !== initialLastRunAt) {
             clearInterval(timer);
             pollingTimersRef.current.delete(scheduleId);
@@ -553,7 +552,6 @@ export default function ScheduledReports() {
                       size="sm"
                       variant="outline"
                       onClick={() =>
-                        // @ts-ignore -- bulk-silence
                         runNowMutation.mutate({ id: schedule.id, lastRunAt: schedule.lastRunAt })
                       }
                       disabled={runNowMutation.isPending}

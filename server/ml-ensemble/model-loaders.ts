@@ -102,7 +102,6 @@ export async function loadXgbPrediction(
       equipmentId,
       orgId
     );
-    // @ts-ignore -- bulk-silence
     const xgbPred = await predictWithXGBoost(xgbModel, classificationFeatures);
     const failureProb = xgbPred.failureRisk;
 

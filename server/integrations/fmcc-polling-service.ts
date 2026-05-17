@@ -285,7 +285,6 @@ export class FmccPollingService extends EventEmitter {
             sensorType: "fuel_consumption",
             value: snapshot.fuel.totalFlowKgPerH,
             timestamp,
-            // @ts-ignore -- bulk-silence
             metadata: {
               source: "fmcc",
               vesselId: snapshot.vesselId,
@@ -304,7 +303,6 @@ export class FmccPollingService extends EventEmitter {
             sensorType: "fuel_density",
             value: snapshot.fuel.foDensity,
             timestamp,
-            // @ts-ignore -- bulk-silence
             metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kg/m³" },
           });
         }
@@ -315,7 +313,6 @@ export class FmccPollingService extends EventEmitter {
             sensorType: "fuel_temperature",
             value: snapshot.fuel.foTemperature,
             timestamp,
-            // @ts-ignore -- bulk-silence
             metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "°C" },
           });
         }
@@ -337,7 +334,6 @@ export class FmccPollingService extends EventEmitter {
               sensorType,
               value,
               timestamp,
-              // @ts-ignore -- bulk-silence
               metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kg/h" },
             });
           }
@@ -351,7 +347,6 @@ export class FmccPollingService extends EventEmitter {
             sensorType: "rpm",
             value: snapshot.engine.rpm,
             timestamp,
-            // @ts-ignore -- bulk-silence
             metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "rpm" },
           });
         }
@@ -361,7 +356,6 @@ export class FmccPollingService extends EventEmitter {
             sensorType: "engine_load",
             value: snapshot.engine.loadPercent,
             timestamp,
-            // @ts-ignore -- bulk-silence
             metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "%" },
           });
         }
@@ -372,7 +366,6 @@ export class FmccPollingService extends EventEmitter {
             sensorType: "power_output",
             value: snapshot.engine.powerKw,
             timestamp,
-            // @ts-ignore -- bulk-silence
             metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kW" },
           });
         }
@@ -383,7 +376,6 @@ export class FmccPollingService extends EventEmitter {
             sensorType: "running_hours",
             value: snapshot.engine.runningHours,
             timestamp,
-            // @ts-ignore -- bulk-silence
             metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "hours" },
           });
         }
@@ -403,7 +395,6 @@ export class FmccPollingService extends EventEmitter {
               sensorType,
               value,
               timestamp,
-              // @ts-ignore -- bulk-silence
               metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "%" },
             });
           }
@@ -424,7 +415,6 @@ export class FmccPollingService extends EventEmitter {
               sensorType,
               value,
               timestamp,
-              // @ts-ignore -- bulk-silence
               metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit },
             });
           }
@@ -437,7 +427,6 @@ export class FmccPollingService extends EventEmitter {
           sensorType: "bunker_flow",
           value: snapshot.fuel.bunkerFlowKgPerH,
           timestamp,
-          // @ts-ignore -- bulk-silence
           metadata: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kg/h" },
         });
       }

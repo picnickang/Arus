@@ -238,7 +238,6 @@ export class PredictionOutcomeTracker {
         .from(predictionFeedback)
         .where(
           and(
-            // @ts-ignore -- bulk-silence
             eq(predictionFeedback.predictionId, predictionId.toString()),
             eq(predictionFeedback.orgId, orgId),
             eq(predictionFeedback.feedbackType, "outcome_tracked")

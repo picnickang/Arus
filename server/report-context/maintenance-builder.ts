@@ -48,7 +48,6 @@ export async function buildMaintenanceContext(
     equipment = await dbEquipmentStorage.getEquipmentRegistry();
     const allOrders = await workOrderService.getWorkOrdersWithDetails();
     workOrders = allOrders.filter(
-      // @ts-ignore -- bulk-silence
       (wo) => new Date(wo.createdAt) >= start && new Date(wo.createdAt) <= end
     );
     schedules = await dbMaintenanceStorage.getMaintenanceSchedules();

@@ -72,7 +72,6 @@ export function useSettingsData() {
   });
 
   const updateSettingsMutation = useCustomMutation<Partial<SystemSettings>, void>({
-    // @ts-ignore -- bulk-silence
     mutationFn: (data: Partial<SystemSettings>) => updateSettings(data),
     invalidateKeys: ["/api/settings"],
     successMessage: "System settings have been successfully updated.",

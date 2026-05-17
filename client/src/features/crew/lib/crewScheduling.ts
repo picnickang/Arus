@@ -128,9 +128,7 @@ export function parseEnhancedScheduleResponse(
 
   return {
     engine: data.engine || "unknown",
-    // @ts-ignore -- bulk-silence
     scheduled: Array.isArray(data.scheduled) ? data.scheduled : [],
-    // @ts-ignore -- bulk-silence
     unfilled: Array.isArray(data.unfilled) ? data.unfilled : [],
     compliance: data.compliance,
     summary: {
@@ -252,7 +250,6 @@ export const shiftFormSchema = insertShiftTemplateSchema.extend({
 export type ShiftFormData = z.infer<typeof shiftFormSchema>;
 
 export function createDefaultShiftFormValues(): ShiftFormData {
-  // @ts-ignore -- bulk-silence
   return {
     vesselId: "",
     equipmentId: "",

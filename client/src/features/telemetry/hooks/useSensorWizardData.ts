@@ -9,7 +9,6 @@ import type { Equipment, SensorConfiguration } from "@shared/schema";
 import type { WizardStep, WizardState } from "../lib/sensorWizardUtils";
 
 export interface UseSensorWizardDataProps {
-  // @ts-ignore -- bulk-silence
   equipment: Pick<Equipment, "id" | "name" | "type" | "status" | "location">;
   onSuccess?: () => void;
   onClose: () => void;
@@ -158,7 +157,6 @@ export function useThresholdStepData(
   onClose?: () => void
 ) {
   const { toast } = useToast();
-  // @ts-ignore -- bulk-silence
   const applySensorBundleMutation = useApplySensorBundle();
   const isCustomMode = wizardState.selectedBundleId === "custom";
 
@@ -166,7 +164,6 @@ export function useThresholdStepData(
     data: bundleDetails,
     isLoading: isBundleLoading,
     error: bundleError,
-  // @ts-ignore -- bulk-silence
   } = useSensorBundle(isCustomMode ? "" : wizardState.selectedBundleId || "");
   const {
     data: allTemplates,

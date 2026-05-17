@@ -51,7 +51,6 @@ export async function sendPR(prId: string, orgId: string, userId?: string): Prom
         remarks: purchaseRequestItems.remarks,
         createdAt: purchaseRequestItems.createdAt,
         partName: parts.name,
-        // @ts-ignore -- bulk-silence
         partNumber: parts.partNumber,
         supplierName: suppliers.name,
       })
@@ -156,7 +155,6 @@ export async function sendPR(prId: string, orgId: string, userId?: string): Prom
         const emailContent = await generatePOEmailHtmlWithTemplate(
           orgId,
           po,
-          // @ts-ignore -- bulk-silence
           group.items,
           supplier,
           pr

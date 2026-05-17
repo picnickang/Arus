@@ -88,7 +88,6 @@ export function useNotificationSettings() {
     },
   });
   const testMutation = useMutation({
-    // @ts-ignore -- bulk-silence
     mutationFn: async (email: string) =>
       apiRequest("/api/notifications/email/test", {
         method: "POST",

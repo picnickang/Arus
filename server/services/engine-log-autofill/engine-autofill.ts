@@ -46,14 +46,12 @@ async function getOrCreateDailyLog(
     if (errorCode !== "23505") {
       throw error;
     }
-    // @ts-ignore -- bulk-silence
     log("info", "Daily log already exists, fetching...", ctx);
     dailyLog = await engineLogStorage.getEngineLogDailyByDate(vesselId, logDate, orgId);
     if (!dailyLog) {
       throw new AutoFillError(
         "Failed to retrieve existing daily log after duplicate key error",
         "getOrCreateDailyLog",
-        // @ts-ignore -- bulk-silence
         ctx,
         error
       );
@@ -224,7 +222,6 @@ export async function autoFillFromTelemetry(
     }
 
     if (dailyLog.lockedAt) {
-      // @ts-ignore -- bulk-silence
       log("info", "Daily log is locked, skipping auto-fill", ctx);
       return createEmptySummary(vesselId, logDate);
     }
@@ -233,7 +230,6 @@ export async function autoFillFromTelemetry(
     const equipmentIds = vesselEquipment.map((e) => e.id);
 
     if (equipmentIds.length === 0) {
-      // @ts-ignore -- bulk-silence
       log("info", "No equipment found for vessel", ctx);
       return createEmptySummary(vesselId, logDate);
     }

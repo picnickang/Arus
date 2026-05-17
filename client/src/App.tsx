@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient, replayQueuedApiRequests } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";

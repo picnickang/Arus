@@ -430,7 +430,6 @@ registerTool({
     lng: z.number().optional(),
   }),
   requiresApproval: false,
-  // @ts-ignore -- bulk-silence
   async execute(input, ctx) {
     // Reuse getMarineWeather for the data fetch
     const weatherTool = getTool("getMarineWeather");
@@ -438,7 +437,6 @@ registerTool({
       return { error: "Weather tool not available" };
     }
 
-    // @ts-ignore -- bulk-silence
     const weatherResult = (await weatherTool.execute(
       { vesselId: input.vesselId, lat: input.lat, lng: input.lng },
       ctx
@@ -462,7 +460,6 @@ registerTool({
       general: { maxWind: 30, maxWave: 3.0 },
     };
 
-    // @ts-ignore -- bulk-silence
     const t = thresholds[activity] || thresholds.general;
     const windOk = wind <= t.maxWind;
     const waveOk = wave <= t.maxWave;
@@ -471,13 +468,11 @@ registerTool({
     const reasons: string[] = [];
     if (!windOk) {
       reasons.push(
-        // @ts-ignore -- bulk-silence
         `Wind ${wind} kts exceeds ${t.maxWind} kts limit for ${activity.replace(/_/g, " ")}`
       );
     }
     if (!waveOk) {
       reasons.push(
-        // @ts-ignore -- bulk-silence
         `Wave height ${wave}m exceeds ${t.maxWave}m limit for ${activity.replace(/_/g, " ")}`
       );
     }

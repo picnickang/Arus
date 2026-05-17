@@ -554,7 +554,6 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                     ? `${existing.notes}; ${partToAdd.notes}`
                     : partToAdd.notes
                   : existing.notes,
-                // @ts-ignore -- bulk-silence
                 updatedAt: new Date(),
               })
               .where(and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId)))
@@ -564,7 +563,6 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
           } else {
             const [newPart] = await tx
               .insert(workOrderParts)
-              // @ts-ignore -- bulk-silence
               .values({
                 id: randomUUID(),
                 orgId,
@@ -681,7 +679,6 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                     ? `${existing.notes}; ${partToAdd.notes}`
                     : partToAdd.notes
                   : existing.notes,
-                // @ts-ignore -- bulk-silence
                 updatedAt: new Date(),
               })
               .where(and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId)))
@@ -691,7 +688,6 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
           } else {
             const [newPart] = await tx
               .insert(workOrderParts)
-              // @ts-ignore -- bulk-silence
               .values({
                 id: randomUUID(),
                 orgId,

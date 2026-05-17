@@ -105,7 +105,6 @@ router.post("/audit", requireComplianceAccess, async (req: Request, res: Respons
       return res.status(401).json({ error: "Organization ID required" });
     }
     const eventData = logEventSchema.parse(req.body);
-    // @ts-ignore -- bulk-silence
     const event = await auditService.logEvent({
       orgId,
       ...eventData,
@@ -131,7 +130,6 @@ router.post("/audit", requireComplianceAccess, async (req: Request, res: Respons
       .status(201)
       .json({
         success: true,
-        // @ts-ignore -- bulk-silence
         data: { id: event.id, hash: event.hash, timestamp: event.timestamp },
       });
   } catch (error) {

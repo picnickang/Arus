@@ -33,11 +33,8 @@ export class SchedulerRunRepositoryAdapter implements ISchedulerRunRepository {
     const run = await dbSchedulerStorage.createSchedulerRun({
       orgId: command.orgId,
       status: command.status || "pending",
-      // @ts-ignore -- bulk-silence
       startDate: command.startDate,
-      // @ts-ignore -- bulk-silence
       endDate: command.endDate,
-      // @ts-ignore -- bulk-silence
       inputHash: command.inputHash,
     });
     return mapToEntity(run);

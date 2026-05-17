@@ -135,7 +135,6 @@ class SchedulingSettingsService {
         .where(eq(schedulingSettings.id, existing.id))
         .returning();
 
-      // @ts-ignore -- bulk-silence
       logger.info("[SchedulingSettings] Updated settings", {
         id: existing.id,
         orgId: validated.orgId,
@@ -145,7 +144,6 @@ class SchedulingSettingsService {
 
     const [created] = await db.insert(schedulingSettings).values(validated).returning();
 
-    // @ts-ignore -- bulk-silence
     logger.info("[SchedulingSettings] Created settings", {
       id: created.id,
       orgId: validated.orgId,

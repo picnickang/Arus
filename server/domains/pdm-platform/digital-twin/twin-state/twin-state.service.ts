@@ -104,7 +104,6 @@ export class TwinStateService {
 
     const saved = await this.statePort.saveState(stateData);
 
-    // @ts-ignore -- bulk-silence
     logger.info("[TwinStateService] State computed", {
       orgId,
       twinId,

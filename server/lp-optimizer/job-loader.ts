@@ -72,10 +72,8 @@ export async function getPendingMaintenanceJobs(orgId: string): Promise<Maintena
         equipmentName: equip.name,
         maintenanceType: "corrective",
         priority: workOrder.priority,
-        // @ts-ignore -- bulk-silence
         estimatedDuration: estimateWorkOrderDuration(workOrder.description, workOrder.priority),
         requiredSkillLevel: getRequiredSkillLevelFromPriority(workOrder.priority),
-        // @ts-ignore -- bulk-silence
         parts: estimatePartsFromDescription(workOrder.description, partsInventory),
         deadline: new Date(Date.now() + (workOrder.priority === 1 ? 1 : 3) * 24 * 60 * 60 * 1000),
       };

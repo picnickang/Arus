@@ -16,10 +16,8 @@ export async function generateScenarios(
 ): Promise<EnhancedAnalysisOutput["scenarios"]> {
   const scenarios: EnhancedAnalysisOutput["scenarios"] = [];
 
-  // @ts-ignore -- bulk-silence
   const criticalItems = (context.data.workOrders?.filter((wo) => wo.priority === "critical") ?? [])
     .length;
-  // @ts-ignore -- bulk-silence
   const urgentItems = (context.data.workOrders?.filter((wo) => wo.priority === "urgent") ?? [])
     .length;
 
@@ -75,7 +73,6 @@ export async function calculateROI(
     workOrders.reduce((sum, wo) => sum + (wo.estimatedCost ?? 0), 0) /
     Math.max(workOrders.length, 1);
 
-  // @ts-ignore -- bulk-silence
   const criticalCount = workOrders.filter((wo) => wo.priority === "critical").length;
   const preventiveCost = avgCost * 0.3;
   const failureCost = avgCost * 3;
@@ -122,9 +119,7 @@ export function generateFallbackAnalysis(context: ReportContext): string {
   const parts: string[] = ["# System Analysis (Fallback Mode)\n"];
 
   if (context.data.workOrders) {
-    // @ts-ignore -- bulk-silence
     const critical = context.data.workOrders.filter((wo) => wo.priority === "critical").length;
-    // @ts-ignore -- bulk-silence
     const urgent = context.data.workOrders.filter((wo) => wo.priority === "urgent").length;
 
     parts.push(

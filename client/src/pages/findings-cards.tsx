@@ -338,7 +338,6 @@ export function FindingCard({
             {item.source === "suggestion" &&
               Boolean(item.context?.costImpact) &&
               (() => {
-                // @ts-ignore -- bulk-silence
                 const ci = item.context.costImpact as {
                   revenueImpact?: number;
                   estimatedRepairCost?: number;

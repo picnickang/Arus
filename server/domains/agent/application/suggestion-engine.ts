@@ -174,7 +174,6 @@ export class SuggestionEngine {
 
     let config: import("@shared/schema/agent").AgentConfigType | null = null;
     try {
-      // @ts-ignore -- bulk-silence
       config = await this.repo.config.get(orgId);
     } catch {
       // Non-critical — auto-trigger defaults to off

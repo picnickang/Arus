@@ -171,7 +171,6 @@ export class SchedulePlannerReadModelAdapter implements ISchedulePlannerReadMode
         .where(and(...conditions))
         .orderBy(vessels.name);
 
-      // @ts-ignore -- bulk-silence
       return result.map((row) => ({
         id: row.id,
         name: row.name || "Unknown Vessel",
@@ -498,24 +497,20 @@ export class SchedulePlannerReadModelAdapter implements ISchedulePlannerReadMode
       ];
 
       if (filter.vesselIds?.length) {
-        // @ts-ignore -- bulk-silence
         conditions.push(inArray(scheduleUnfilled.vesselId, filter.vesselIds));
       }
 
       const result = await db
         .select({
-          // @ts-ignore -- bulk-silence
           vesselId: scheduleUnfilled.vesselId,
           date: scheduleUnfilled.date,
           shift: scheduleUnfilled.shiftId,
-          // @ts-ignore -- bulk-silence
           role: scheduleUnfilled.role,
           reason: scheduleUnfilled.reason,
           vesselName: vessels.name,
         })
         .from(scheduleUnfilled)
         .innerJoin(schedulerRuns, eq(scheduleUnfilled.runId, schedulerRuns.id))
-        // @ts-ignore -- bulk-silence
         .leftJoin(vessels, eq(scheduleUnfilled.vesselId, vessels.id))
         .where(and(...conditions))
         .orderBy(scheduleUnfilled.date);

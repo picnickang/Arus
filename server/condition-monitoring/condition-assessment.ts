@@ -184,7 +184,6 @@ export function generateConditionAssessment(
     costEstimate: undefined,
     lastOilAnalysisId: oilAnalysis.id,
     lastWearAnalysisId: wearAnalysis?.id,
-    // @ts-ignore -- bulk-silence
     lastVibrationAnalysisId: undefined,
     assessmentMethod,
     analysisSummary: buildAnalysisSummary(

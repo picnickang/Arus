@@ -189,13 +189,11 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
 
         if (result.success) {
           res.json({
-            // @ts-ignore -- bulk-silence
             success: true,
             message: `Generated ${result.sheetsCreated} rest sheets with ${result.daysCreated} days`,
             ...result,
           });
         } else {
-          // @ts-ignore -- bulk-silence
           res.status(400).json({ success: false, errors: result.errors, ...result });
         }
       }
@@ -329,7 +327,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       const shiftEnd = new Date(assignment.end || assignment.date);
 
       // Build scoring contexts for all crew
-      // @ts-ignore -- bulk-silence
       const scoringContexts: ScoringContext[] = crewList
         .filter((c: any) => c.active !== false)
         .map((crew: any) => {
@@ -363,9 +360,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           const constraints: ConstraintViolation[] = [];
 
           for (const leave of crewLeaves) {
-            // @ts-ignore -- bulk-silence
             const leaveStart = new Date(leave.startDate || leave.start);
-            // @ts-ignore -- bulk-silence
             const leaveEnd = new Date(leave.endDate || leave.end);
             if (shiftStart < leaveEnd && shiftEnd > leaveStart) {
               constraints.push({
@@ -815,7 +810,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           status: status ? status.split(",").filter(Boolean) : undefined,
           includeUnfilled: includeUnfilled !== "false",
         };
-        // @ts-ignore -- bulk-silence
         const view = await crewExtensionsAppService.getSchedulePlannerView(filter);
         res.json(view);
       }
@@ -829,7 +823,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       "refresh schedule planner view",
       async (req: AuthenticatedRequest, res: Response) => {
         const orgId = req.orgId!;
-        // @ts-ignore -- bulk-silence
         const userId = req.session?.user?.id || "system";
 
         const parseResult = refreshRequestSchema.safeParse(req.body);
@@ -863,7 +856,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       "simulate schedule generation",
       async (req: AuthenticatedRequest, res: Response) => {
         const orgId = req.orgId!;
-        // @ts-ignore -- bulk-silence
         const userId = req.session?.user?.id;
 
         const parseResult = simulateSchema.safeParse(req.body);
@@ -951,7 +943,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       "commit simulation preview",
       async (req: AuthenticatedRequest, res: Response) => {
         const orgId = req.orgId!;
-        // @ts-ignore -- bulk-silence
         const userId = req.session?.user?.id;
 
         const parseResult = commitSchema.safeParse(req.body);
@@ -993,7 +984,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       "discard simulation preview",
       async (req: AuthenticatedRequest, res: Response) => {
         const orgId = req.orgId!;
-        // @ts-ignore -- bulk-silence
         const userId = req.session?.user?.id;
         const { previewId } = req.body;
 

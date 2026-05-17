@@ -216,7 +216,6 @@ export class DatabaseHubSyncStorage {
       .values(data)
       .onConflictDoUpdate({
         target: [deviceRegistry.deviceId, deviceRegistry.orgId],
-        // @ts-ignore -- bulk-silence
         set: { ...data, lastSyncAt: new Date(), updatedAt: new Date() },
       })
       .returning();
@@ -304,7 +303,6 @@ export class DatabaseHubSyncStorage {
   }
 
   async incrementSheetVersion(data: InsertSheetVersion): Promise<SheetVersion> {
-    // @ts-ignore -- bulk-silence
     const existing = await this.getSheetVersion(data.sheetType, data.sheetId);
     if (existing) {
       const [r] = await db
@@ -316,7 +314,6 @@ export class DatabaseHubSyncStorage {
           updatedAt: new Date(),
         })
         .where(
-          // @ts-ignore -- bulk-silence
           and(eq(sheetVersion.sheetType, data.sheetType), eq(sheetVersion.sheetId, data.sheetId))
         )
         .returning();
@@ -339,14 +336,12 @@ export class DatabaseHubSyncStorage {
       c.push(eq(devices.orgId, orgId));
     }
     if (vesselId) {
-      // @ts-ignore -- bulk-silence
       c.push(eq(devices.vesselId, vesselId));
     }
     let q = db.select().from(devices);
     if (c.length > 0) {
       q = q.where(and(...c)) as typeof q;
     }
-    // @ts-ignore -- bulk-silence
     return q.orderBy(devices.name);
   }
 
@@ -356,7 +351,6 @@ export class DatabaseHubSyncStorage {
   }
 
   async getDeviceByDeviceId(deviceId: string): Promise<Device | undefined> {
-    // @ts-ignore -- bulk-silence
     const [r] = await db.select().from(devices).where(eq(devices.deviceId, deviceId));
     return r;
   }
@@ -385,9 +379,7 @@ export class DatabaseHubSyncStorage {
   async updateDeviceLastSeen(deviceId: string): Promise<void> {
     await db
       .update(devices)
-      // @ts-ignore -- bulk-silence
       .set({ lastSeenAt: new Date(), updatedAt: new Date() })
-      // @ts-ignore -- bulk-silence
       .where(eq(devices.deviceId, deviceId));
   }
 }

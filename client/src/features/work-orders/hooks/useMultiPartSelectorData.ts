@@ -278,13 +278,10 @@ export function useMultiPartSelectorData(
     availableParts: availableParts ?? [],
     isLoading,
     engineers,
-    // @ts-ignore -- bulk-silence
     existingParts,
     filteredParts,
     hasStockWarnings,
-    // @ts-ignore -- bulk-silence
     addPartsMutation,
-    // @ts-ignore -- bulk-silence
     removePartMutation,
     addPartToSelection,
     incrementPartQuantity,

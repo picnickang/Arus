@@ -71,14 +71,12 @@ export function useLaborRateData() {
     defaultValues: { overtimeMultiplier: 1.5 },
   });
 
-  // @ts-ignore -- bulk-silence
   const createRateMutation = useCreateMutation({
     endpoint: "/api/labor-rates",
     invalidateKeys: ["/api/labor-rates"],
     successMessage: "New labor rate configuration has been saved.",
     onSuccess: () => newRateForm.reset(),
   });
-  // @ts-ignore -- bulk-silence
   const updateRateMutation = useUpdateMutation({
     endpoint: "/api/labor-rates",
     invalidateKeys: ["/api/labor-rates"],

@@ -53,9 +53,7 @@ export async function autoFillFuelEmissions(
           effectiveEnd
         );
 
-        // @ts-ignore -- bulk-silence
         if (period?.dataPoints > 0) {
-          // @ts-ignore -- bulk-silence
           const logId = await createFuelEmissionsEntry(orgId, vesselId, period, periodType);
 
           if (logId) {
@@ -91,13 +89,10 @@ export async function getFuelEmissionsSummary(
 ): Promise<FuelEmissionsSummary> {
   const summary = await db
     .select({
-      // @ts-ignore -- bulk-silence
       totalFuelMt: sql<number>`sum(${fuelEmissionsLog.totalFuelMt})`,
       totalCo2Mt: sql<number>`sum(${fuelEmissionsLog.co2EmissionsMt})`,
-      // @ts-ignore -- bulk-silence
       avgCii: sql<number>`avg(${fuelEmissionsLog.cii})`,
       distanceNm: sql<number>`sum(${fuelEmissionsLog.distanceNm})`,
-      // @ts-ignore -- bulk-silence
       runningHours: sql<number>`sum(${fuelEmissionsLog.meRunningHours})`,
     })
     .from(fuelEmissionsLog)

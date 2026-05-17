@@ -103,7 +103,6 @@ function renderRegulatoryExcel(
 
   for (const wo of workOrders) {
     woData.push([
-      // @ts-ignore -- bulk-silence
       wo.workOrderNumber ?? wo.id,
       wo.equipmentId ?? "",
       wo.maintenanceType ?? "",

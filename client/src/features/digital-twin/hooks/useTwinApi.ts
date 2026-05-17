@@ -18,7 +18,6 @@ export function useTemplates() {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/def/templates", currentOrgId],
-    // @ts-ignore -- bulk-silence
     queryFn: () => fetchJson("/api/pdm/twin/def/templates", currentOrgId),
     enabled: !!currentOrgId,
   });
@@ -39,7 +38,6 @@ export function useTwins() {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/def/twins", currentOrgId],
-    // @ts-ignore -- bulk-silence
     queryFn: () => fetchJson("/api/pdm/twin/def/twins", currentOrgId),
     enabled: !!currentOrgId,
   });
@@ -49,7 +47,6 @@ export function useTwin(twinId: string) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/def/twins", currentOrgId, twinId],
-    // @ts-ignore -- bulk-silence
     queryFn: () => fetchJson(`/api/pdm/twin/def/twins/${twinId}`, currentOrgId),
     enabled: !!currentOrgId && !!twinId,
   });
@@ -70,7 +67,6 @@ export function useLatestTwinState(twinId: string) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/state/latest", currentOrgId, twinId],
-    // @ts-ignore -- bulk-silence
     queryFn: () => fetchJson(`/api/pdm/twin/state/latest/${twinId}`, currentOrgId),
     enabled: !!currentOrgId && !!twinId,
     retry: false,
@@ -81,7 +77,6 @@ export function useTwinStateHistory(twinId: string, limit = 50) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/state/history", currentOrgId, twinId, limit],
-    // @ts-ignore -- bulk-silence
     queryFn: () => fetchJson(`/api/pdm/twin/state/history/${twinId}?limit=${limit}`, currentOrgId),
     enabled: !!currentOrgId && !!twinId,
   });
@@ -106,7 +101,6 @@ export function useTwinResiduals(twinId: string, limit = 100) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/residuals/twin", currentOrgId, twinId, limit],
-    // @ts-ignore -- bulk-silence
     queryFn: () => fetchJson(`/api/pdm/twin/residuals/twin/${twinId}?limit=${limit}`, currentOrgId),
     enabled: !!currentOrgId && !!twinId,
   });
@@ -116,7 +110,6 @@ export function useResidualRankings() {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/residuals/rankings", currentOrgId],
-    // @ts-ignore -- bulk-silence
     queryFn: () => fetchJson("/api/pdm/twin/residuals/rankings", currentOrgId),
     enabled: !!currentOrgId,
   });
@@ -137,7 +130,6 @@ export function useTwinScenarios(twinId: string) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/scenarios/twins", currentOrgId, twinId],
-    // @ts-ignore -- bulk-silence
     queryFn: () => fetchJson(`/api/pdm/twin/scenarios/twins/${twinId}`, currentOrgId),
     enabled: !!currentOrgId && !!twinId,
   });
@@ -167,7 +159,6 @@ export function useTwinTimeline(twinId: string, startTime?: string, endTime?: st
   }
   return useQuery({
     queryKey: ["/api/pdm/twin/replay/timeline", currentOrgId, twinId, startTime, endTime],
-    // @ts-ignore -- bulk-silence
     queryFn: () => fetchJson(`/api/pdm/twin/replay/timeline?${params}`, currentOrgId),
     enabled: !!currentOrgId && !!twinId,
   });

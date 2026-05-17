@@ -24,7 +24,6 @@ const logger = createLogger("Repos:SequenceRepo");
 export async function nextSeq(vesselId: string, entity: string): Promise<number> {
   try {
     const result = await safeSql(
-      // @ts-ignore -- bulk-silence
       db,
       sql`
       INSERT INTO entity_offsets (vessel_id, entity, seq)
@@ -59,7 +58,6 @@ export async function nextSeq(vesselId: string, entity: string): Promise<number>
 export async function getCurrentSeq(vesselId: string, entity: string): Promise<number> {
   try {
     const result = await safeSql(
-      // @ts-ignore -- bulk-silence
       db,
       sql`
       SELECT seq FROM entity_offsets
@@ -86,7 +84,6 @@ export async function getCurrentSeq(vesselId: string, entity: string): Promise<n
 export async function resetSeq(vesselId: string, entity: string, value: number): Promise<void> {
   try {
     await safeSql(
-      // @ts-ignore -- bulk-silence
       db,
       sql`
       INSERT INTO entity_offsets (vessel_id, entity, seq)

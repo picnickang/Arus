@@ -9,7 +9,6 @@ const { Pool } = pg;
 const DATABASE_URL = process.env.DATABASE_URL;
 
 export async function enableTimescaleDB(): Promise<{ success: boolean; message: string }> {
-  // @ts-ignore -- bulk-silence
   let pool: Pool | null = null;
   try {
     pool = new Pool({ connectionString: DATABASE_URL, statement_timeout: 30000, max: 5 });
@@ -48,7 +47,6 @@ export async function enableTimescaleDB(): Promise<{ success: boolean; message: 
 }
 
 export async function createHypertable(): Promise<{ success: boolean; message: string }> {
-  // @ts-ignore -- bulk-silence
   let pool: Pool | null = null;
   try {
     pool = new Pool({ connectionString: DATABASE_URL, statement_timeout: 30000, max: 5 });
@@ -89,7 +87,6 @@ export async function createHypertable(): Promise<{ success: boolean; message: s
 }
 
 export async function createContinuousAggregate(): Promise<{ success: boolean; message: string }> {
-  // @ts-ignore -- bulk-silence
   let pool: Pool | null = null;
   try {
     pool = new Pool({ connectionString: DATABASE_URL, statement_timeout: 60000, max: 5 });
@@ -131,7 +128,6 @@ export async function createContinuousAggregate(): Promise<{ success: boolean; m
 }
 
 export async function enableCompression(): Promise<{ success: boolean; message: string }> {
-  // @ts-ignore -- bulk-silence
   let pool: Pool | null = null;
   try {
     pool = new Pool({ connectionString: DATABASE_URL, statement_timeout: 30000, max: 5 });

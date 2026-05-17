@@ -34,7 +34,6 @@ export function registerDeviceRoutes(
       const devices = await safeDbOperation(
         () => deviceService.getDevicesWithStatus(orgId),
         "getDevicesWithStatus",
-        // @ts-ignore -- bulk-silence
         { defaultValue: [] }
       );
 

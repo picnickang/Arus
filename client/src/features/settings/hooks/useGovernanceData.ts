@@ -64,13 +64,10 @@ export function useGovernanceData() {
         params.set("to", lineageFilters.toDate);
       }
       const res = await apiRequest("GET", `/api/governance/model/lineage?${params.toString()}`);
-      // @ts-ignore -- bulk-silence
       if (!res.ok) {
-        // @ts-ignore -- bulk-silence
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || "Failed to fetch lineage records");
       }
-      // @ts-ignore -- bulk-silence
       return res.json();
     },
   });
@@ -97,13 +94,10 @@ export function useGovernanceData() {
       }
       params.set("limit", String(provenanceFilters.limit));
       const res = await apiRequest("GET", `/api/governance/provenance/events?${params.toString()}`);
-      // @ts-ignore -- bulk-silence
       if (!res.ok) {
-        // @ts-ignore -- bulk-silence
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || "Failed to fetch provenance events");
       }
-      // @ts-ignore -- bulk-silence
       return res.json();
     },
     enabled: activeTab === "provenance",
@@ -112,7 +106,6 @@ export function useGovernanceData() {
   const verifyChainMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/governance/provenance/verify", {});
-      // @ts-ignore -- bulk-silence
       return res.json();
     },
     onSuccess: (data: { success: boolean; verification: VerificationResult }) => {

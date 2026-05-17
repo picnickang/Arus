@@ -113,7 +113,6 @@ export async function checkPartsAvailability(
       const stockStatus = calculateStockStatus(
         onHand,
         reserved,
-        // @ts-ignore -- bulk-silence
         part.minStockQty,
         part.maxStockQty
       );
@@ -121,9 +120,7 @@ export async function checkPartsAvailability(
       let estimatedRestockDate: Date | undefined;
       if (onOrder > 0) {
         const openPOs = openPOsByPartNo.get(partNo);
-        // @ts-ignore -- bulk-silence
         if (openPOs?.length > 0) {
-          // @ts-ignore -- bulk-silence
           const earliestPO = openPOs.reduce(
             (earliest, po) => {
               const poDate = new Date(po.expectedDate);
@@ -135,7 +132,6 @@ export async function checkPartsAvailability(
         } else {
           const now = new Date();
           estimatedRestockDate = new Date(
-            // @ts-ignore -- bulk-silence
             Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + part.leadTimeDays)
           );
         }
@@ -148,15 +144,11 @@ export async function checkPartsAvailability(
         reserved,
         available,
         onOrder,
-        // @ts-ignore -- bulk-silence
         minStock: part.minStockQty,
-        // @ts-ignore -- bulk-silence
         maxStock: part.maxStockQty,
         stockStatus,
-        // @ts-ignore -- bulk-silence
         leadTimeDays: part.leadTimeDays,
         estimatedRestockDate,
-        // @ts-ignore -- bulk-silence
         locations,
       });
     }
@@ -188,7 +180,6 @@ export async function findPartSubstitutions(
   storage: InventoryStorage,
   orgId: string
 ): Promise<Array<PartAvailability & { substitutionType: string; notes?: string }>> {
-  // @ts-ignore -- bulk-silence
   const substitutions = await storage.getPartSubstitutions(partNo, orgId);
   const substituteParts: string[] = substitutions.map(
     (sub: PartSubstitution) => sub.alternatePartNo
@@ -203,16 +194,13 @@ export async function findPartSubstitutions(
 
   const availability = await checkPartsAvailability(substituteParts, storage, orgId);
 
-  // @ts-ignore -- bulk-silence
   const subsByAlternatePartNo = new Map(substitutions.map((sub) => [sub.alternatePartNo, sub]));
 
   return availability.map((avail) => {
     const sub = subsByAlternatePartNo.get(avail.partNo);
     return {
       ...avail,
-      // @ts-ignore -- bulk-silence
       substitutionType: sub?.substitutionType ?? "unknown",
-      // @ts-ignore -- bulk-silence
       notes: sub?.notes,
     };
   });

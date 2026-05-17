@@ -48,7 +48,6 @@ export function useOptimizationData() {
       if (!r.ok) {
         throw new Error("Failed to fetch configurations");
       }
-      // @ts-ignore -- bulk-silence
       return r.json() as OptimizerConfiguration[];
     },
   });
@@ -64,7 +63,6 @@ export function useOptimizationData() {
       if (!r.ok) {
         throw new Error("Failed to fetch results");
       }
-      // @ts-ignore -- bulk-silence
       return r.json() as OptimizationResult[];
     },
     staleTime: 10000,
@@ -78,7 +76,6 @@ export function useOptimizationData() {
       if (!r.ok) {
         throw new Error("Failed to fetch trend insights");
       }
-      // @ts-ignore -- bulk-silence
       return r.json() as TrendAnalysis[];
     },
   });
@@ -188,7 +185,6 @@ export function useOptimizationData() {
       apiRequest("POST", `/api/optimization/${optimizationId}/apply`),
     invalidateKeys: ["/api/optimization/results"],
     successMessage: "Optimization applied to production successfully",
-    // @ts-ignore -- bulk-silence
     errorMessage: (error: Error) => error.message,
   });
 
@@ -219,7 +215,6 @@ export function useOptimizationData() {
   });
 
   const clearAllOptimizationsMutation = useCustomMutation({
-    // @ts-ignore -- bulk-silence
     mutationFn: async () => apiRequest("DELETE", "/api/optimization/results?orgId=default-org-id"),
     invalidateKeys: ["/api/optimization/results"],
     successMessage: (data: { deletedCount: number }) =>

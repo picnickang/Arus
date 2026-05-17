@@ -56,7 +56,6 @@ export class EquipmentRepository extends TenantScopedRepository {
     const result = await db
       .select()
       .from(equipment)
-      // @ts-ignore -- bulk-silence
       .where(this.orgWhere(equipment, eq(equipment.deviceId, deviceId)))
       .limit(1);
 
@@ -72,7 +71,6 @@ export class EquipmentRepository extends TenantScopedRepository {
 
     const [created] = await db
       .insert(equipment)
-      // @ts-ignore -- bulk-silence
       .values({
         ...data,
         orgId: this.orgId,

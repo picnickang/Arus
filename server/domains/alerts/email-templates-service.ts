@@ -160,9 +160,7 @@ export class EmailTemplatesService {
     }
 
     return {
-      // @ts-ignore -- bulk-silence
       purchaseOrder: settings.purchaseOrderEmailTemplate ?? defaults.purchaseOrder,
-      // @ts-ignore -- bulk-silence
       serviceOrder: settings.serviceOrderEmailTemplate ?? defaults.serviceOrder,
     };
   }
@@ -281,9 +279,7 @@ export class EmailTemplatesService {
           };
 
     return {
-      // @ts-ignore -- bulk-silence
       subject: this.renderTemplate(template.subject, sampleData),
-      // @ts-ignore -- bulk-silence
       body: this.renderTemplate(template.body, sampleData),
     };
   }

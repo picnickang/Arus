@@ -111,7 +111,6 @@ export class CrewApplicationService {
       ...(data.roleId !== undefined && { roleId: data.roleId || null }),
     };
 
-    // @ts-ignore -- bulk-silence
     const crew = await this.deps.crewMemberRepository.updateCrew(id, sanitizedData, orgId);
 
     await this.deps.eventPublisher.publish({
@@ -126,7 +125,6 @@ export class CrewApplicationService {
   }
 
   async deleteCrew(id: string, userId?: string, orgId?: string): Promise<void> {
-    // @ts-ignore -- bulk-silence
     await this.deps.crewMemberRepository.deleteCrew(id, orgId);
 
     await this.deps.eventPublisher.publish({

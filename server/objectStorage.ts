@@ -304,7 +304,6 @@ export class ObjectStorageService {
   }): Promise<boolean> {
     return canAccessObject({
       userId,
-      // @ts-ignore -- bulk-silence
       objectFile,
       requestedPermission: requestedPermission ?? ObjectPermission.READ,
     });

@@ -63,7 +63,6 @@ router.post(
       await auditService.logEvent({
         orgId,
         eventCategory: "compliance_event",
-        // @ts-ignore -- bulk-silence
         eventType: "data_export_initiated",
         entityType: "organization",
         entityId: orgId,
@@ -96,7 +95,6 @@ router.post(
         await auditService.logEvent({
           orgId,
           eventCategory: "compliance_event",
-          // @ts-ignore -- bulk-silence
           eventType: "data_export_completed",
           entityType: "organization",
           entityId: orgId,
@@ -150,7 +148,6 @@ router.get(
       await auditService.logEvent({
         orgId,
         eventCategory: "compliance_event",
-        // @ts-ignore -- bulk-silence
         eventType: "data_export_downloaded",
         entityType: "data_export",
         entityId: exportId,
@@ -192,7 +189,6 @@ router.get(
         sampleRecord,
         "crew_member",
         level,
-        // @ts-ignore -- bulk-silence
         { preserveIds: true, preserveTimestamps: true, preserveTechnicalData: false }
       );
       res.json({
@@ -228,7 +224,6 @@ router.get(
       await auditService.logEvent({
         orgId,
         eventCategory: "compliance_event",
-        // @ts-ignore -- bulk-silence
         eventType: "dsar_list_viewed",
         entityType: "dsar",
         entityId: "list",
@@ -289,7 +284,6 @@ router.post(
       await auditService.logEvent({
         orgId,
         eventCategory: "compliance_event",
-        // @ts-ignore -- bulk-silence
         eventType: "dsar_created",
         entityType: "dsar",
         entityId: request.id,
@@ -344,7 +338,6 @@ router.post(
       await auditService.logEvent({
         orgId,
         eventCategory: "compliance_event",
-        // @ts-ignore -- bulk-silence
         eventType: "dsar_acknowledged",
         entityType: "dsar",
         entityId: id,
@@ -401,7 +394,6 @@ router.post(
       await auditService.logEvent({
         orgId,
         eventCategory: "compliance_event",
-        // @ts-ignore -- bulk-silence
         eventType: "dsar_data_collected",
         entityType: "dsar",
         entityId: id,
@@ -475,7 +467,6 @@ router.post(
       await auditService.logEvent({
         orgId,
         eventCategory: "compliance_event",
-        // @ts-ignore -- bulk-silence
         eventType: "dsar_erasure_executed",
         entityType: "dsar",
         entityId: id,
@@ -514,7 +505,6 @@ router.post(
       await auditService.logEvent({
         orgId,
         eventCategory: "compliance_event",
-        // @ts-ignore -- bulk-silence
         eventType: "dsar_completed",
         entityType: "dsar",
         entityId: id,
@@ -553,7 +543,6 @@ router.post(
       await auditService.logEvent({
         orgId,
         eventCategory: "compliance_event",
-        // @ts-ignore -- bulk-silence
         eventType: "dsar_rejected",
         entityType: "dsar",
         entityId: id,

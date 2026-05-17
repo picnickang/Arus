@@ -82,7 +82,6 @@ export async function buildVesselHealthContext(
 
       const predictions = (await Promise.all(predictionPromises)).filter((p) => p !== null);
       if (predictions.length > 0) {
-        // @ts-ignore -- bulk-silence
         intelligence.predictions = predictions as any;
       }
     }

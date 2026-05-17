@@ -27,7 +27,6 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
         equipmentId: config.equipmentId,
         sensorType: config.sensorType,
       }));
-      // @ts-ignore -- bulk-silence
       const telemetryResults = await dbSensorsStorage.getLatestTelemetryForSensors(sensors, orgId);
       const telemetryMap = new Map(
         telemetryResults.map((result: any) => [
@@ -42,14 +41,12 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
         let status: "disabled" | "inactive" | "offline" | "online";
         if (!config.enabled) {
           status = "disabled";
-        // @ts-ignore -- bulk-silence
         } else if (!telemetry || !telemetry.ts) {
           status = "inactive";
         } else {
           const thresholdMs = config.expectedIntervalMs
             ? config.expectedIntervalMs * (config.graceMultiplier || 2)
             : DEFAULT_THRESHOLD_MS;
-          // @ts-ignore -- bulk-silence
           const elapsedMs = now.getTime() - new Date(telemetry.ts).getTime();
           status = elapsedMs < thresholdMs ? "online" : "offline";
         }
@@ -58,9 +55,7 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
           equipmentId: config.equipmentId,
           sensorType: config.sensorType,
           status,
-          // @ts-ignore -- bulk-silence
           lastTelemetry: telemetry?.ts || null,
-          // @ts-ignore -- bulk-silence
           lastValue: telemetry?.value || null,
           enabled: config.enabled,
           expectedIntervalMs: config.expectedIntervalMs || null,
@@ -91,7 +86,6 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
     withErrorHandling("create/update sensor state", async (req, res) => {
       const stateData = insertSensorStateSchema.parse(req.body);
       const orgId = (req as AuthenticatedRequest).orgId;
-      // @ts-ignore -- bulk-silence
       const sensorState = await dbSensorsStorage.upsertSensorState({ ...stateData, orgId });
       sendCreated(res, sensorState);
     })

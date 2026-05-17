@@ -71,7 +71,6 @@ export function useVesselManagementData() {
     mutationFn: (id: string) =>
       apiRequest("GET", `/api/vessels/${id}/export`, undefined, { headers: { "x-org-id": "default-org-id" } }),
     invalidateKeys: [],
-    // @ts-ignore -- bulk-silence
     onSuccess: (data: unknown, vesselId: string) => {
       const success = exportToJSON(data, {
         filename: `vessel-${vesselId}-export-${new Date().toISOString().split("T")[0]}.json`,
@@ -129,7 +128,6 @@ export function useVesselManagementData() {
       vesselClass: "",
       condition: "good",
       onlineStatus: "offline",
-      // @ts-ignore -- bulk-silence
       specifications: null,
       operatingParameters: null,
     },
@@ -142,7 +140,6 @@ export function useVesselManagementData() {
       vesselClass: "",
       condition: "good",
       onlineStatus: "offline",
-      // @ts-ignore -- bulk-silence
       specifications: null,
       operatingParameters: null,
     },
@@ -155,12 +152,9 @@ export function useVesselManagementData() {
       orgId: vessel.orgId,
       name: vessel.name,
       vesselClass: vessel.vesselClass || "",
-      // @ts-ignore -- bulk-silence
       condition: vessel.condition || "good",
       onlineStatus: vessel.onlineStatus || "offline",
-      // @ts-ignore -- bulk-silence
       specifications: vessel.specifications,
-      // @ts-ignore -- bulk-silence
       operatingParameters: vessel.operatingParameters,
       dayRateSgd: vessel.dayRateSgd || "",
     });
@@ -228,16 +222,13 @@ export function useVesselManagementData() {
         return false;
       }
       const belongsToVessel =
-        // @ts-ignore -- bulk-silence
         workOrderEquipment.vesselId === vesselId || workOrderEquipment.vesselName === vesselName;
       if (!belongsToVessel) {
         return false;
       }
       const isActive = wo.status === "in_progress" || wo.status === "open";
       const hasDowntime =
-        // @ts-ignore -- bulk-silence
         (wo.estimatedDowntimeHours && wo.estimatedDowntimeHours > 0) ||
-        // @ts-ignore -- bulk-silence
         (wo.actualDowntimeHours && wo.actualDowntimeHours > 0);
       return isActive && hasDowntime;
     });

@@ -45,7 +45,6 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
         workOrderId: req.params.id,
       };
 
-      // @ts-ignore -- bulk-silence
       const part = await workOrderService.addBulkPartsToWorkOrder(partData);
       sendCreated(res, part);
     })
@@ -179,14 +178,12 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
         newEndDate.setDate(newEndDate.getDate() + additionalDays);
 
         const updated = await workOrderService.updateWorkOrder(req.params.id, {
-          // @ts-ignore -- bulk-silence
           plannedEndDate: newEndDate.toISOString(),
         });
 
         await dbInventoryStorage.addWorkOrderHistoryEntry({
           orgId,
           workOrderId: req.params.id,
-          // @ts-ignore -- bulk-silence
           changeType: "completion_date_extended",
           description:
             reason || `Completion date extended by ${additionalDays} days for pending parts`,

@@ -138,7 +138,6 @@ export function registerExportCompleteRoutes(app: Express, config: MlAnalyticsCo
             "CreatedAt",
           ].join(","),
           ...enrichedModels.map((m) => {
-            // @ts-ignore -- bulk-silence
             const perf = (m.performanceMetrics ?? {}) as Record<string, unknown>;
             const hyper = (m.hyperparameters ?? {}) as Record<string, unknown>;
             return [

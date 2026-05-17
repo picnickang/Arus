@@ -73,7 +73,6 @@ export function usePdmPackData() {
   });
 
   const bearingAnalysisMutation = useCustomMutation({
-    // @ts-ignore -- bulk-silence
     mutationFn: async (data: BearingFormData) => {
       const series = data.series
         .split(",")
@@ -89,13 +88,11 @@ export function usePdmPackData() {
       ["/api/pdm/baseline", currentOrgId, selectedVessel, selectedAsset],
     ],
     successMessage: "Bearing vibration analysis completed successfully",
-    // @ts-ignore -- bulk-silence
     errorMessage: (error: Error) => error.message || "Failed to analyze bearing data",
     onSuccess: (data: { analysis: AnalysisResult }) => setBearingAnalysisResult(data.analysis),
   });
 
   const pumpAnalysisMutation = useCustomMutation({
-    // @ts-ignore -- bulk-silence
     mutationFn: async (data: z.infer<typeof pumpFormSchema>) => {
       const processedData: Record<string, string | boolean | number[]> = {
         vesselName: data.vesselName,
@@ -121,7 +118,6 @@ export function usePdmPackData() {
       ["/api/pdm/baseline", currentOrgId, selectedVessel, selectedAsset],
     ],
     successMessage: "Pump process analysis completed successfully",
-    // @ts-ignore -- bulk-silence
     errorMessage: (error: Error) => error.message || "Failed to analyze pump data",
     onSuccess: (data: { analysis: AnalysisResult }) => setPumpAnalysisResult(data.analysis),
   });

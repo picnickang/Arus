@@ -73,7 +73,6 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
       res.json({
         status: "active",
         timestamp: new Date().toISOString(),
-        // @ts-ignore -- bulk-silence
         statistics: cache.getStats(),
       });
     })
@@ -177,10 +176,8 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
         timestamp: new Date().toISOString(),
         healthScore: latestScore?.healthIdx ?? 100,
         status:
-          // @ts-ignore -- bulk-silence
           latestScore?.healthIdx < 30
             ? "critical"
-            // @ts-ignore -- bulk-silence
             : latestScore?.healthIdx < 60
               ? "warning"
               : "healthy",
@@ -208,10 +205,8 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
           name: eq.name,
           healthScore: latestScore?.healthIdx ?? 100,
           status:
-            // @ts-ignore -- bulk-silence
             latestScore?.healthIdx < 30
               ? "critical"
-              // @ts-ignore -- bulk-silence
               : latestScore?.healthIdx < 60
                 ? "warning"
                 : "healthy",
@@ -350,7 +345,6 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
       const { getAllCircuitBreakerStatuses } = await import(
         "../../services/external-circuit-breakers"
       );
-      // @ts-ignore -- bulk-silence
       const { circuitBreakerRegistry } = await import("../../ml-circuit-breaker");
 
       const externalStatuses = getAllCircuitBreakerStatuses();
@@ -358,7 +352,6 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
 
       const allOpen =
         Object.values(externalStatuses).some((s) => s.state === "OPEN") ||
-        // @ts-ignore -- bulk-silence
         Object.values(mlStatuses).some((s) => s.state === "OPEN");
 
       res.json({
@@ -373,7 +366,6 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
               .filter(([, s]) => s.state === "OPEN")
               .map(([n]) => n),
             ...Object.entries(mlStatuses)
-              // @ts-ignore -- bulk-silence
               .filter(([, s]) => s.state === "OPEN")
               .map(([n]) => n),
           ],
@@ -388,7 +380,6 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     generalApiRateLimit,
     withErrorHandling("check dependency health", async (req: Request, res: Response) => {
       const { inventoryCache, analyticsCache, cacheConfig } = await import("../../lib/cache");
-      // @ts-ignore -- bulk-silence
       const { mqttReliableSyncService } = await import("../../mqtt-reliable-sync");
       const { setDependencyHealthStatus } = await import("../../observability");
 

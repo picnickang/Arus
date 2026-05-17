@@ -91,7 +91,6 @@ export function useExpenseTrackingData() {
     defaultValues: { hourlyLossRate: 500 },
   });
 
-  // @ts-ignore -- bulk-silence
   const createExpenseMutation = useCreateMutation({
     endpoint: "/api/expenses",
     invalidateKeys: ["/api/expenses"],

@@ -22,7 +22,6 @@ export class WorkOrderRepository {
     orgId?: string,
     filters?: WorkOrderFilters
   ): Promise<WorkOrder[]> {
-    // @ts-ignore -- bulk-silence
     return workOrderService.getWorkOrdersWithDetails(equipmentId, orgId, filters);
   }
 
@@ -33,7 +32,6 @@ export class WorkOrderRepository {
     offset: number,
     filters?: WorkOrderFilters
   ): Promise<{ items: WorkOrder[]; total: number }> {
-    // @ts-ignore -- bulk-silence
     return workOrderService.getWorkOrdersPaginated(equipmentId, orgId, limit, offset, filters);
   }
 
@@ -141,7 +139,6 @@ export class WorkOrderRepository {
   }
 
   async addPartToWorkOrder(data: any): Promise<any> {
-    // @ts-ignore -- bulk-silence
     return dbInventoryStorage.addBulkPartsToWorkOrder(data);
   }
 
@@ -154,7 +151,6 @@ export class WorkOrderRepository {
   }
 
   async updateWorkOrderPart(partId: string, data: any): Promise<any> {
-    // @ts-ignore -- bulk-silence
     return dbInventoryStorage.updateWorkOrderPart(partId, data);
   }
 

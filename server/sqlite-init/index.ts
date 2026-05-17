@@ -52,11 +52,9 @@ export async function initializeSqliteDatabase(): Promise<void> {
   }
 
   for (const stmt of getAllTablesSql()) {
-    // @ts-ignore -- bulk-silence
     await db.run(stmt);
   }
   for (const stmt of getAllIndexesSql()) {
-    // @ts-ignore -- bulk-silence
     await db.run(stmt);
   }
 

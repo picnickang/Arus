@@ -96,7 +96,6 @@ export function useHoursOfRestManagement() {
       }
       return response.json();
     },
-    // @ts-ignore -- bulk-silence
     invalidateKeys: () => [
       stcwRestKeys.crew,
       stcwRestKeys.rest(selectedCrew, selectedYear, selectedMonth),

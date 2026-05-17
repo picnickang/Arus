@@ -470,7 +470,6 @@ export class AttentionWorkflowService {
         owner: lastResolution?.owner || asString(wo.assignedToName) || asString(wo.assignedCrewId) || "Assigned owner",
         due: lastResolution?.eta || dateLabel(wo.dueDate),
         href: `/work-orders?id=${encodeURIComponent(id)}&workflow=resolve-blocker`,
-        // @ts-ignore -- bulk-silence
         severity: lastResolution?.status === "unblocked" ? "info" : "critical",
         queue,
         status: asString(wo.status) ?? null,
@@ -541,7 +540,6 @@ export class AttentionWorkflowService {
         owner: lastResolution?.owner || "Logistics",
         due: lastResolution?.eta || "Before next maintenance window",
         href: `/inventory-management?partId=${encodeURIComponent(id)}&workflow=low-stock`,
-        // @ts-ignore -- bulk-silence
         severity: lastResolution?.status === "unblocked" ? "info" : "warning",
         queue: "waiting_parts",
         status: "low_stock",

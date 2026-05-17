@@ -24,7 +24,6 @@ export async function embedChunks(
     const chunk = chunks[i];
     logger.info(`[DocIngestion:Embed] Processing chunk ${i + 1}/${chunks.length}`);
 
-    // @ts-ignore -- bulk-silence
     const embedding = await generateEmbedding(chunk, {
       useOpenAIFallback: !!openAiKey,
       openAiKey,

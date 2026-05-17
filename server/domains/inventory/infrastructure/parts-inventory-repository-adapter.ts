@@ -81,7 +81,6 @@ export class PartsInventoryRepositoryAdapter implements IPartsInventoryRepositor
   }
 
   async delete(id: string, orgId: string): Promise<void> {
-    // @ts-ignore -- bulk-silence
     await inventoryRepository.deleteInventoryItem(id, orgId);
   }
 
@@ -92,7 +91,6 @@ export class PartsInventoryRepositoryAdapter implements IPartsInventoryRepositor
   ): Promise<PartsInventoryEntity> {
     const item = await inventoryRepository.updateInventoryItem(
       id,
-      // @ts-ignore -- bulk-silence
       { quantity: newQuantity },
       orgId
     );

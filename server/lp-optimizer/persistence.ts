@@ -83,7 +83,6 @@ export async function getOptimizationResults(resultId: string): Promise<any> {
     const optimizationRecord = await db
       .select()
       .from(optimizationResults)
-      // @ts-ignore -- bulk-silence
       .where(optimizationResults.id.equals(resultId))
       .limit(1);
 
@@ -96,7 +95,6 @@ export async function getOptimizationResults(resultId: string): Promise<any> {
     const scheduleRecords = await db
       .select()
       .from(scheduleOptimizations)
-      // @ts-ignore -- bulk-silence
       .where(scheduleOptimizations.optimizationResultId.equals(resultId));
 
     return {

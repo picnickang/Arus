@@ -29,13 +29,11 @@ export function prepareSequences(
       for (let j = i - sequenceLength; j < i; j++) {
         const features: number[] = [];
         for (const featureName of featureNames) {
-          // @ts-ignore -- bulk-silence
           features.push(points[j].features[featureName] ?? 0);
         }
         sequence.push(features);
       }
       sequences.push(sequence);
-      // @ts-ignore -- bulk-silence
       labels.push(points[i].label);
     }
   }

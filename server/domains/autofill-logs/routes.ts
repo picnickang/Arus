@@ -286,7 +286,6 @@ export function registerAutofillLogsRoutes(app: Express, deps: AutofillLogsDepen
       }
 
       if (periodType) {
-        // @ts-ignore -- bulk-silence
         conditions.push(eq(conditionLogSummary.periodType, periodType as string));
       }
 

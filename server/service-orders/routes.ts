@@ -134,7 +134,6 @@ router.patch("/:id", async (req: Request, res: Response) => {
     ((data.actualAmount !== undefined && FINALIZED_SO_STATUSES.includes(existing.status)) ||
       (data.status !== undefined && data.status !== existing.status))
   ) {
-    // @ts-ignore -- bulk-silence
     await triggerProcurementAggregation(existing.workOrderId, orgId, existing.status, newStatus);
   }
 

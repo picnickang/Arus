@@ -31,7 +31,6 @@ export function registerFleetSummaryRoutes(
       const { lookbackHours = 168 } = req.body;
 
       const [equipmentHealth, telemetryData, workOrders, pdmScores] = await Promise.all([
-        // @ts-ignore -- bulk-silence
         dbEquipmentStorage.getEquipmentHealth(),
         dbTelemetryStorage.getTelemetryTrends("", lookbackHours),
         workOrderService.getWorkOrdersWithDetails(),

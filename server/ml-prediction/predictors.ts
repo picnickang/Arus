@@ -54,7 +54,6 @@ export async function predictFailureWithLSTM(
     const bucketed = bucketTelemetry(telemetry, { bucketSizeMs: 1000, aggregationMethod: "mean" });
     if (bucketed.length >= model.config.sequenceLength) {
       const sequenceBuckets = getLastNBuckets(bucketed, model.config.sequenceLength);
-      // @ts-ignore -- bulk-silence
       const timeSeriesFeatures: TimeSeriesFeatures[] = sequenceBuckets.map((bucket) => {
         const features: Record<string, number> = {};
         for (const [sensorType, value] of bucket.sensors.entries()) {
@@ -93,7 +92,6 @@ export async function predictHealthWithRandomForest(
   equipmentId: string,
   orgId: string
 ): Promise<MLPredictionResult | null> {
-  // @ts-ignore -- bulk-silence
   return withProtection(
     "ml_random_forest",
     equipmentId,
@@ -146,7 +144,6 @@ export async function predictHealthWithRandomForest(
           maintenanceAge: 30,
           failureHistory: 0,
         },
-        // @ts-ignore -- bulk-silence
         label: "healthy",
         failureRisk: 0,
       };
@@ -374,7 +371,6 @@ export async function predictWithEnsemble(
 ): Promise<MLPredictionResult | null> {
   return withProtection("ml_ensemble", equipmentId, orgId, ensembleCircuitBreaker, async () => {
     const { isFeatureEnabled, ML_FEATURE_FLAGS } = await import("../ml-feature-flags.js");
-    // @ts-ignore -- bulk-silence
     if (!isFeatureEnabled(ML_FEATURE_FLAGS.ENSEMBLE_PREDICTION, { organizationId: orgId })) {
       return predictWithHybridModel(equipmentId, orgId);
     }
@@ -409,7 +405,6 @@ export async function predictWithEnsemble(
       timeSeriesFeatures.push({
         equipmentId,
         timestamp: new Date(timeKey),
-        // @ts-ignore -- bulk-silence
         features,
         normalizedFeatures: {},
         label: 0,

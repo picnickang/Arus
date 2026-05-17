@@ -132,7 +132,6 @@ export class DatabaseMlAnalyticsStorage {
       try {
         await db
           .insert(modelPerformanceValidations)
-          // @ts-ignore -- bulk-silence
           .values({
             orgId,
             modelId: detection.modelId,
@@ -144,12 +143,9 @@ export class DatabaseMlAnalyticsStorage {
               anomalyScore: detection.anomalyScore,
               severity: detection.severity,
               sensorType: detection.sensorType,
-              // @ts-ignore -- bulk-silence
               value: detection.value,
-              // @ts-ignore -- bulk-silence
               expectedRange: detection.expectedRange,
             },
-            // @ts-ignore -- bulk-silence
             modelVersion: detection.modelVersionId,
           });
       } catch (e) {
@@ -211,7 +207,6 @@ export class DatabaseMlAnalyticsStorage {
       try {
         await db
           .insert(modelPerformanceValidations)
-          // @ts-ignore -- bulk-silence
           .values({
             orgId,
             modelId: prediction.modelId,
@@ -221,12 +216,9 @@ export class DatabaseMlAnalyticsStorage {
             predictionTimestamp: n.predictionTimestamp,
             predictedOutcome: {
               failureProbability: prediction.failureProbability,
-              // @ts-ignore -- bulk-silence
               predictedDate: prediction.predictedDate,
-              // @ts-ignore -- bulk-silence
               severity: prediction.severity,
               riskLevel: prediction.riskLevel,
-              // @ts-ignore -- bulk-silence
               remainingDays: prediction.remainingDays,
             },
             modelVersion: prediction.modelVersionId,
@@ -383,11 +375,9 @@ export class DatabaseMlAnalyticsStorage {
     }
     const c = [eq(table.orgId, orgId)];
     if (modelId) {
-      // @ts-ignore -- bulk-silence
       c.push(eq(table.modelId, modelId));
     }
     if (equipmentId) {
-      // @ts-ignore -- bulk-silence
       c.push(eq(table.equipmentId, equipmentId));
     }
     if (status) {
@@ -504,7 +494,6 @@ export class DatabaseMlAnalyticsStorage {
   ): Promise<EngineerOverride> {
     const [u] = await db
       .update(engineerOverrides)
-      // @ts-ignore -- bulk-silence
       .set({ ...updates, updatedAt: new Date() })
       .where(and(eq(engineerOverrides.id, id), eq(engineerOverrides.orgId, orgId)))
       .returning();

@@ -53,7 +53,6 @@ export function useStorageSettings() {
       resetNewConfig();
     },
   });
-  // @ts-ignore -- bulk-silence
   const deleteConfigMutation = useDeleteMutation({
     endpoint: "/api/storage/config",
     invalidateKeys: ["/api/storage/config"],
@@ -61,7 +60,6 @@ export function useStorageSettings() {
   });
   const testConfigMutation = useCustomMutation<InsertStorageConfig, ProviderTestResult>({
     mutationFn: async (config) => apiRequest("POST", "/api/storage/config/test", config),
-    // @ts-ignore -- bulk-silence
     onSuccess: (result: ProviderTestResult, config: InsertStorageConfig) => {
       setTestResults((prev) => ({ ...prev, [config.id]: result }));
       toast({

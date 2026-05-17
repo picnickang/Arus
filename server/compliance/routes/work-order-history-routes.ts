@@ -17,7 +17,6 @@ router.post(
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
-      // @ts-ignore -- bulk-silence
       const result = await workOrderHistoryHashService.verifyWorkOrderHistory(workOrderId, orgId);
       res.json({ success: true, data: { workOrderId, ...result } });
     } catch (error) {
@@ -43,7 +42,6 @@ router.post(
       const results = await Promise.all(
         workOrderIds.map(async (id: string) => ({
           workOrderId: id,
-          // @ts-ignore -- bulk-silence
           ...(await workOrderHistoryHashService.verifyWorkOrderHistory(id, orgId)),
         }))
       );
@@ -66,7 +64,6 @@ router.get(
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
-      // @ts-ignore -- bulk-silence
       const stats = await workOrderHistoryHashService.getWorkOrderHistoryStats(workOrderId, orgId);
       res.json({ success: true, data: { workOrderId, ...stats } });
     } catch (error) {

@@ -34,7 +34,6 @@ const optimizationConstraintsSchema = z.object({
 router.post("/lp/optimize", async (req, res) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    // @ts-ignore -- bulk-silence
     const config = await beastModeManager.getFeatureConfig(orgId, "lp_optimizer");
     if (!config.enabled) {
       return res
@@ -67,7 +66,6 @@ router.get("/lp/results/:resultId", async (req, res) => {
   try {
     const { resultId } = req.params;
     const orgId = DEFAULT_ORG_ID;
-    // @ts-ignore -- bulk-silence
     const config = await beastModeManager.getFeatureConfig(orgId, "lp_optimizer");
     if (!config.enabled) {
       return res

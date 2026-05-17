@@ -178,7 +178,6 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
         data,
         version,
         new Date(timestamp),
-        // @ts-ignore -- bulk-silence
         user,
         device,
         orgId
@@ -187,7 +186,6 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
       if (result.hasConflict && result.conflicts.length > 0) {
         const conflictIds = [];
         for (const conflict of result.conflicts) {
-          // @ts-ignore -- bulk-silence
           const conflictId = await logConflict(conflict, user, device, null, null, orgId);
           conflictIds.push(conflictId);
         }
@@ -196,7 +194,6 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
           table,
           recordId,
           conflictCount: conflictIds.length,
-          // @ts-ignore -- bulk-silence
           requiresManual: result.requiresManualResolution,
         });
 
@@ -321,7 +318,6 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
         await manuallyResolveConflict(conflict.id, resolvedValue, `system:auto-${resolvedBy}`);
         resolved.push({
           conflictId: conflict.id,
-          // @ts-ignore -- bulk-silence
           field: conflict.fieldName,
           resolvedValue,
         });

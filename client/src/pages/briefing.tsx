@@ -180,7 +180,6 @@ export default function BriefingPage() {
     queryKey: ["/api/agent/briefings", selectedDate],
     queryFn: async () => {
       const res = await apiRequest("GET", `/api/agent/briefings?date=${selectedDate}`);
-      // @ts-ignore -- bulk-silence
       return res.json();
     },
     enabled: !isToday,

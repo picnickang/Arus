@@ -109,7 +109,6 @@ export async function createEquipment(
   const equipment = await adapter.execute({
     operation: "create",
     repositoryFn: async () => {
-      // @ts-ignore -- bulk-silence
       const repo = TenantRepositoryFactory.equipment(data.orgId);
       const { orgId: _, ...createData } = data;
       return repo.create(createData);
@@ -119,7 +118,6 @@ export async function createEquipment(
   });
 
   try {
-    // @ts-ignore -- bulk-silence
     await equipmentAnalyticsService.setupEquipmentAnalytics(equipment);
     logger.info(
       "EquipmentService",

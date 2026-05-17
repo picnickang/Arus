@@ -25,7 +25,6 @@ export class SensorStateRepository extends TenantScopedRepository {
       whereClause = and(whereClause, eq(sensorStates.sensorType, filters.sensorType));
     }
 
-    // @ts-ignore -- bulk-silence
     return db.select().from(sensorStates).where(whereClause).orderBy(sensorStates.lastUpdated);
   }
 
@@ -63,7 +62,6 @@ export class SensorStateRepository extends TenantScopedRepository {
         .update(sensorStates)
         .set({
           ...data,
-          // @ts-ignore -- bulk-silence
           lastUpdated: new Date(),
         })
         .where(
@@ -81,7 +79,6 @@ export class SensorStateRepository extends TenantScopedRepository {
     }
     const [created] = await db
       .insert(sensorStates)
-      // @ts-ignore -- bulk-silence
       .values({
         ...data,
         orgId: this.orgId,

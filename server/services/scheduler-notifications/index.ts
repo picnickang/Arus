@@ -97,7 +97,6 @@ async function getAdminEmails(orgId: string): Promise<string[]> {
 async function getCrewEmail(crewId: string): Promise<string | undefined> {
   try {
     const crew = await dbCrewStorage.getCrewMember(crewId);
-    // @ts-ignore -- bulk-silence
     return crew?.email;
   } catch (error) {
     logger.error("Failed to get crew email:", undefined, error);

@@ -46,12 +46,10 @@ export function jsonBuildObject(pairs: Record<string, any>): any {
   const entries = Object.entries(pairs);
 
   if (isSQLiteMode()) {
-    // @ts-ignore -- bulk-silence
     const args = entries.flatMap(([k, v]) => [sql.literal(k), v]);
     return sql`json_object(${sql.join(args, sql`, `)})`;
   }
   // PostgreSQL: keys must be SQL string literals
-  // @ts-ignore -- bulk-silence
   const args = entries.flatMap(([k, v]) => [sql.literal(k), v]);
   return sql`jsonb_build_object(${sql.join(args, sql`, `)})`;
 }

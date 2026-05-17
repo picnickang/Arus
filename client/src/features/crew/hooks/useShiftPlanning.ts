@@ -242,7 +242,6 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
   });
 
   const planScheduleMutation = useCustomMutation({
-    // @ts-ignore -- bulk-silence
     mutationFn: async (data: SchedulePlanPayload) =>
       apiRequest("POST", "/api/crew/schedule/plan", data),
     invalidateKeys: ["/api/crew/assignments"],
@@ -261,7 +260,6 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
       });
     },
     onError: () => {
-      // @ts-ignore -- bulk-silence
       const watchQualified = crew.filter((c: Crew) => c.skills?.includes("watchkeeping")).length;
       toast({
         title: "Unable to create schedule",
@@ -272,7 +270,6 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
   });
 
   const enhancedScheduleMutation = useCustomMutation({
-    // @ts-ignore -- bulk-silence
     mutationFn: async (data: EnhancedSchedulePayload) =>
       apiRequest("POST", "/api/crew/schedule/plan-enhanced", data),
     invalidateKeys: ["/api/crew/assignments"],
@@ -364,11 +361,8 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
     }
     planScheduleMutation.mutate({
       days: selectedDays,
-      // @ts-ignore -- bulk-silence
       shifts: shiftTemplates,
-      // @ts-ignore -- bulk-silence
       crew,
-      // @ts-ignore -- bulk-silence
       leaves,
       existing: [],
     });
@@ -394,15 +388,11 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
     enhancedScheduleMutation.mutate({
       engine: selectedEngine,
       days: selectedDays,
-      // @ts-ignore -- bulk-silence
       shifts: shiftTemplates,
-      // @ts-ignore -- bulk-silence
       crew,
-      // @ts-ignore -- bulk-silence
       leaves,
       portCalls,
       drydocks: drydockWindows,
-      // @ts-ignore -- bulk-silence
       certifications: certifications.reduce(
         (acc: Record<string, CrewCertification[]>, cert: CrewCertification) => {
           (acc[cert.crewId] ||= []).push(cert);
@@ -459,7 +449,6 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
 
   const getShiftTime = (start: string, end: string) => getShiftTimeRange(start, end);
   const getCrewName = (crewId: string) => {
-    // @ts-ignore -- bulk-silence
     const member = crew.find((c: Crew) => c.id === crewId);
     return member ? `${member.name} (${member.rank})` : "Unknown Crew";
   };
@@ -508,28 +497,20 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
     isShiftDialogOpen,
     setIsShiftDialogOpen,
     shiftForm,
-    // @ts-ignore -- bulk-silence
     crew,
     isLoadingCrew,
-    // @ts-ignore -- bulk-silence
     shiftTemplates,
     isLoadingShifts,
     vessels,
-    // @ts-ignore -- bulk-silence
     allPortCalls,
-    // @ts-ignore -- bulk-silence
     allDrydockWindows,
-    // @ts-ignore -- bulk-silence
     certifications,
-    // @ts-ignore -- bulk-silence
     leaves,
     isLoadingLeaves,
     createShiftMutation,
     updateShiftMutation,
     deleteShiftMutation,
-    // @ts-ignore -- bulk-silence
     planScheduleMutation,
-    // @ts-ignore -- bulk-silence
     enhancedScheduleMutation,
     addPortCallMutation,
     addDrydockMutation,

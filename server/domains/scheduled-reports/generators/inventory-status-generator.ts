@@ -62,7 +62,6 @@ export class InventoryStatusGenerator implements IInventoryStatusGenerator {
             lowStockItems.push({
               partId: item.id,
               partName: item.name,
-              // @ts-ignore -- bulk-silence
               partNumber: item.partNumber || "N/A",
               currentQuantity: currentQty,
               minimumQuantity: minQty,

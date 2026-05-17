@@ -79,7 +79,6 @@ function scheduleWithGreedy(
     certifications: certifications[crewMember.id] ?? [],
   }));
 
-  // @ts-ignore -- bulk-silence
   return greedyPlan(days, availableShifts, enhancedCrew, leaves, []);
 }
 

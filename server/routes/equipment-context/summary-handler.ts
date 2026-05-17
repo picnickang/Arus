@@ -53,7 +53,6 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
         );
       alertCount = alertResult.length;
     } catch (e) {
-      // @ts-ignore -- bulk-silence
       logger.warn("Summary alert query failed", {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),
@@ -73,7 +72,6 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
         );
       insightCount = insightResult.length;
     } catch (e) {
-      // @ts-ignore -- bulk-silence
       logger.warn("Summary insight query failed", {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),
@@ -89,7 +87,6 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
         .limit(1);
       pdmScore = pdmResult[0]?.healthIdx ?? null;
     } catch (e) {
-      // @ts-ignore -- bulk-silence
       logger.warn("Summary PDM score query failed", {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),
@@ -108,7 +105,6 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
         .limit(1);
       latestPrediction = predResult[0] ?? null;
     } catch (e) {
-      // @ts-ignore -- bulk-silence
       logger.warn("Summary prediction query failed", {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),

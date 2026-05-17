@@ -90,7 +90,6 @@ export class PredictionEngineService implements PredictionExplanationQuery {
         .where(eq(inferenceRuns.id, run.id))
         .returning();
 
-      // @ts-ignore -- bulk-silence
       logger.info("[PredictionEngine] Inference completed", {
         orgId,
         equipmentId,
@@ -324,7 +323,6 @@ export class PredictionEngineService implements PredictionExplanationQuery {
 
     return valid.map((c) => {
       const normalizedImportance = totalWeight > 0 ? c.weight / totalWeight : 0;
-      // @ts-ignore -- bulk-silence
       const deviation = c.value - c.baseline;
       return {
         predictionId,

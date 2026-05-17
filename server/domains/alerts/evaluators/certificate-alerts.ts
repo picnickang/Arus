@@ -130,7 +130,6 @@ export async function evaluateCertificateExpiryAlerts(
   ctx: EvaluationContext
 ): Promise<CrewAlertResult[]> {
   const now = ctx.now || new Date();
-  // @ts-ignore -- bulk-silence
   const settings = await alertSettingsService.getCrewAlertSettings(ctx.orgId, ctx.vesselId || null);
   if (!settings?.certExpiryAlertsEnabled) {
     return [];

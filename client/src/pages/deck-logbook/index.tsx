@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -328,7 +327,6 @@ export default function DeckLogbookPage() {
                             <HourlyLogRow
                               key={i}
                               hour={i}
-                              // @ts-ignore -- bulk-silence
                               entry={d.hourlyEntries.get(i) ?? {}}
                               isLocked={d.isLocked}
                               updateHourlyEntry={d.updateHourlyEntry}
@@ -530,7 +528,6 @@ export default function DeckLogbookPage() {
                           {d.sortedEvents.map((event, index) => (
                             <EventTimelineItem
                               key={event.id}
-                              // @ts-ignore -- bulk-silence
                               event={event}
                               index={index}
                               isLast={index === d.sortedEvents.length - 1}
@@ -560,7 +557,6 @@ export default function DeckLogbookPage() {
                         <div>
                           <Label>Noon Position Latitude</Label>
                           <Input
-                            // @ts-ignore -- bulk-silence
                             value={d.dailySummary.noonPositionLat || ""}
                             onChange={(e) =>
                               d.updateDailySummary("noonPositionLat", e.target.value)
@@ -573,7 +569,6 @@ export default function DeckLogbookPage() {
                         <div>
                           <Label>Noon Position Longitude</Label>
                           <Input
-                            // @ts-ignore -- bulk-silence
                             value={d.dailySummary.noonPositionLon || ""}
                             onChange={(e) =>
                               d.updateDailySummary("noonPositionLon", e.target.value)
@@ -590,7 +585,6 @@ export default function DeckLogbookPage() {
                           <Input
                             type="number"
                             step="0.1"
-                            // @ts-ignore -- bulk-silence
                             value={d.dailySummary.distanceMade || ""}
                             onChange={(e) => d.updateDailySummary("distanceMade", e.target.value)}
                             placeholder="245.5"
@@ -603,7 +597,6 @@ export default function DeckLogbookPage() {
                           <Input
                             type="number"
                             step="0.1"
-                            // @ts-ignore -- bulk-silence
                             value={d.dailySummary.distanceToGo || ""}
                             onChange={(e) => d.updateDailySummary("distanceToGo", e.target.value)}
                             placeholder="1250.0"
@@ -616,7 +609,6 @@ export default function DeckLogbookPage() {
                           <Input
                             type="number"
                             step="0.1"
-                            // @ts-ignore -- bulk-silence
                             value={d.dailySummary.avgSpeed || ""}
                             onChange={(e) => d.updateDailySummary("avgSpeed", e.target.value)}
                             placeholder="12.5"
@@ -642,7 +634,6 @@ export default function DeckLogbookPage() {
                           <Input
                             type="number"
                             step="0.01"
-                            // @ts-ignore -- bulk-silence
                             value={d.dailySummary.meFoConsumption || ""}
                             onChange={(e) =>
                               d.updateDailySummary("meFoConsumption", e.target.value)
@@ -657,7 +648,6 @@ export default function DeckLogbookPage() {
                           <Input
                             type="number"
                             step="0.01"
-                            // @ts-ignore -- bulk-silence
                             value={d.dailySummary.aeDoConsumption || ""}
                             onChange={(e) =>
                               d.updateDailySummary("aeDoConsumption", e.target.value)
@@ -672,7 +662,6 @@ export default function DeckLogbookPage() {
                           <Input
                             type="number"
                             step="0.01"
-                            // @ts-ignore -- bulk-silence
                             value={d.dailySummary.boilerFoConsumption || ""}
                             onChange={(e) =>
                               d.updateDailySummary("boilerFoConsumption", e.target.value)
@@ -689,7 +678,6 @@ export default function DeckLogbookPage() {
                           <Input
                             type="number"
                             step="0.1"
-                            // @ts-ignore -- bulk-silence
                             value={d.dailySummary.foRob || ""}
                             onChange={(e) => d.updateDailySummary("foRob", e.target.value)}
                             placeholder="850"
@@ -702,7 +690,6 @@ export default function DeckLogbookPage() {
                           <Input
                             type="number"
                             step="0.1"
-                            // @ts-ignore -- bulk-silence
                             value={d.dailySummary.doRob || ""}
                             onChange={(e) => d.updateDailySummary("doRob", e.target.value)}
                             placeholder="120"
@@ -727,7 +714,6 @@ export default function DeckLogbookPage() {
                           <WatchPeriodCard
                             key={period}
                             period={period}
-                            // @ts-ignore -- bulk-silence
                             watch={d.watchAssignments.get(period) ?? {}}
                             isLocked={d.isLocked}
                             updateWatchAssignment={d.updateWatchAssignment}
@@ -748,7 +734,6 @@ export default function DeckLogbookPage() {
                         <div>
                           <Label>Master's Remarks</Label>
                           <Textarea
-                            // @ts-ignore -- bulk-silence
                             value={d.dailySummary.masterRemarks || ""}
                             onChange={(e) => d.updateDailySummary("masterRemarks", e.target.value)}
                             placeholder="Master's notes for the day..."
@@ -760,7 +745,6 @@ export default function DeckLogbookPage() {
                         <div>
                           <Label>Chief Officer's Remarks</Label>
                           <Textarea
-                            // @ts-ignore -- bulk-silence
                             value={d.dailySummary.chiefOfficerRemarks || ""}
                             onChange={(e) =>
                               d.updateDailySummary("chiefOfficerRemarks", e.target.value)
@@ -783,7 +767,6 @@ export default function DeckLogbookPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      // @ts-ignore -- bulk-silence
                       {d.isSigned?.deckLogComplete.daily.signedByName && (
                         <div className="text-sm text-muted-foreground">
                           Signed by:{" "}

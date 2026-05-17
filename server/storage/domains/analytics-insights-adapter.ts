@@ -221,7 +221,6 @@ export abstract class BaseAnalyticsInsightsAdapter {
     ]);
 
     const activeEquipment = equipment.filter((eq) => eq.isActive).length;
-    // @ts-ignore -- bulk-silence
     const activeVessels = vessels.filter((v) => v.status === "active").length;
     const healthScores = pdmScores.map((s) => s.healthIdx || 0).filter((h) => h > 0);
     const avgFleetHealth =

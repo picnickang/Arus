@@ -37,7 +37,6 @@ export class EquipmentRepository {
     if (!equipment) {
       throw new Error("Equipment not found");
     }
-    // @ts-ignore -- bulk-silence
     await this.update(equipmentId, { vesselId: null }, orgId);
   }
 
@@ -63,7 +62,6 @@ export class EquipmentRepository {
       if (!existingTypes.has(sensor.type)) {
         const newSensor = await dbSensorsStorage.createSensorConfiguration({
           equipmentId,
-          // @ts-ignore -- bulk-silence
           orgId,
           sensorType: sensor.type,
           enabled: true,

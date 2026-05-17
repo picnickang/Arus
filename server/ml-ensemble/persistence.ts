@@ -41,7 +41,6 @@ export async function persistPrediction(input: PersistenceInput): Promise<void> 
     {
       orgId,
       equipmentId,
-      // @ts-ignore -- bulk-silence
       equipmentType,
       failureProbability: finalPrediction,
       confidence,
@@ -93,7 +92,6 @@ export async function persistPrediction(input: PersistenceInput): Promise<void> 
           equipmentId,
           remainingDays: daysToFailure || 30,
           riskLevel,
-          // @ts-ignore -- bulk-silence
           operatingMode: equipment.operatingMode,
         })
       );

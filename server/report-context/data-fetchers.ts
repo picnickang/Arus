@@ -30,7 +30,6 @@ export async function getVesselWorkOrders(
   const allOrders = await workOrderService.getWorkOrdersWithDetails();
   return allOrders.filter(
     (wo) =>
-      // @ts-ignore -- bulk-silence
       wo.vesselId === vesselId && new Date(wo.createdAt) >= start && new Date(wo.createdAt) <= end
   );
 }
@@ -62,9 +61,7 @@ export async function getVesselAlerts(vesselId: string, start: Date, end: Date):
   return allAlerts.filter(
     (a) =>
       equipmentIds.includes(a.equipmentId) &&
-      // @ts-ignore -- bulk-silence
       new Date(a.createdAt) >= start &&
-      // @ts-ignore -- bulk-silence
       new Date(a.createdAt) <= end
   );
 }
@@ -80,7 +77,6 @@ export async function getCrewRestSheets(vesselId: string, start: Date, end: Date
     start.toISOString().split("T")[0],
     end.toISOString().split("T")[0]
   );
-  // @ts-ignore -- bulk-silence
   return restData.map((r: any) => r.sheet);
 }
 

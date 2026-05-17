@@ -72,7 +72,6 @@ interface InsightsJobStats {
 export function useFinanceModeData() {
   const { data: costTrends = [], isLoading: costTrendsLoading } = useQuery<CostTrendData[]>({
     queryKey: ["/api/analytics/cost-trends"],
-    // @ts-ignore -- bulk-silence
     queryFn: () => fetchCostTrends(),
     refetchInterval: 300000,
     staleTime: 120000,
@@ -94,7 +93,6 @@ export function useFinanceModeData() {
 
   const { data: roiAnalysis } = useQuery<RoiAnalysis | undefined>({
     queryKey: ["/api/analytics/roi-analysis"],
-    // @ts-ignore -- bulk-silence
     queryFn: () => fetchRoiAnalysis(12),
     refetchInterval: 300000,
     staleTime: 120000,
@@ -109,7 +107,6 @@ export function useFinanceModeData() {
 
   const { data: workOrders = [] } = useQuery<WorkOrderData[]>({
     queryKey: ["/api/work-orders"],
-    // @ts-ignore -- bulk-silence
     queryFn: () => fetchWorkOrders() as Promise<WorkOrderData[]>,
     refetchInterval: 60000,
     staleTime: 30000,
@@ -118,9 +115,7 @@ export function useFinanceModeData() {
   const isLoading = costTrendsLoading || costSummaryLoading;
 
   const metrics = useMemo(() => {
-    // @ts-ignore -- bulk-silence
     const latestMonth = costTrends[costTrends.length - 1];
-    // @ts-ignore -- bulk-silence
     const previousMonth = costTrends[costTrends.length - 2];
     const monthlyChange =
       latestMonth && previousMonth
@@ -238,10 +233,8 @@ export function useFinanceModeData() {
 
   const roiTrendData = useMemo(
     () =>
-      // @ts-ignore -- bulk-silence
       costTrends.slice(-6).map((trend: CostTrendData) => {
         const monthCost = trend.totalCost || 0;
-        // @ts-ignore -- bulk-silence
         const monthSavings = metrics.totalSavings / costTrends.length || 0;
         const monthRoi = monthCost > 0 ? (monthSavings / monthCost) * 100 : 0;
         return { month: trend.month, roi: monthRoi, savings: monthSavings, cost: monthCost };
@@ -251,7 +244,6 @@ export function useFinanceModeData() {
 
   const costTrendsData = useMemo(
     () =>
-      // @ts-ignore -- bulk-silence
       costTrends.map((trend: CostTrendData) => ({
         month: trend.month,
         totalCost: trend.totalCost,
@@ -317,22 +309,17 @@ export function useFinanceModeData() {
         content: [
           {
             key: "System ROI",
-            // @ts-ignore -- bulk-silence
             value: roiAnalysis?.systemRoi ? `${roiAnalysis.systemRoi.toFixed(1)}%` : "N/A",
           },
           {
             key: "Predictive ROI",
-            // @ts-ignore -- bulk-silence
             value: roiAnalysis?.roiByType?.predictive
-              // @ts-ignore -- bulk-silence
               ? `${roiAnalysis.roiByType.predictive.toFixed(1)}%`
               : "N/A",
           },
           {
             key: "Preventive ROI",
-            // @ts-ignore -- bulk-silence
             value: roiAnalysis?.roiByType?.preventive
-              // @ts-ignore -- bulk-silence
               ? `${roiAnalysis.roiByType.preventive.toFixed(1)}%`
               : "N/A",
           },

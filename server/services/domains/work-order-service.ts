@@ -63,7 +63,6 @@ class WorkOrderService {
   ): Promise<WorkOrderWithDetails[]> {
     try {
       const query = db
-        // @ts-ignore -- bulk-silence
         .select({
           ...workOrders,
           equipmentName: equipment.name,
@@ -119,14 +118,11 @@ class WorkOrderService {
 
       const results = conditions.length > 0 ? await query.where(and(...conditions)) : await query;
 
-      // @ts-ignore -- bulk-silence
       return results.map((wo) => {
         if (!wo.woNumber) {
           const year = wo.createdAt
-            // @ts-ignore -- bulk-silence
             ? new Date(wo.createdAt).getFullYear()
             : new Date().getFullYear();
-          // @ts-ignore -- bulk-silence
           const ts = wo.createdAt ? new Date(wo.createdAt).getTime() : Date.now();
           return { ...wo, woNumber: `WO-${year}-${String(Math.abs(ts % 10000)).padStart(4, "0")}` };
         }
@@ -197,7 +193,6 @@ class WorkOrderService {
       const total = Number(countResult[0]?.count ?? 0);
 
       const query = db
-        // @ts-ignore -- bulk-silence
         .select({
           ...workOrders,
           equipmentName: equipment.name,
@@ -216,17 +211,14 @@ class WorkOrderService {
       const items = results.map((wo) => {
         if (!wo.woNumber) {
           const year = wo.createdAt
-            // @ts-ignore -- bulk-silence
             ? new Date(wo.createdAt).getFullYear()
             : new Date().getFullYear();
-          // @ts-ignore -- bulk-silence
           const ts = wo.createdAt ? new Date(wo.createdAt).getTime() : Date.now();
           return { ...wo, woNumber: `WO-${year}-${String(Math.abs(ts % 10000)).padStart(4, "0")}` };
         }
         return wo;
       });
 
-      // @ts-ignore -- bulk-silence
       return { items, total };
     } catch (error) {
       logger.error("[WorkOrderService.getWorkOrdersPaginated] Error:", undefined, error);
@@ -343,7 +335,6 @@ class WorkOrderService {
             .where(
               and(
                 eq(stock.partId, part.partId),
-                // @ts-ignore -- bulk-silence
                 eq(stock.orgId, woOrgId),
                 sql`${stock.quantityReserved} > 0`
               )
@@ -359,7 +350,6 @@ class WorkOrderService {
             await tx
               .update(stock)
               .set({ quantityReserved: currentReserved - released, updatedAt: new Date() })
-              // @ts-ignore -- bulk-silence
               .where(and(eq(stock.id, stockRow.id), eq(stock.orgId, woOrgId)));
             remaining -= released;
           }
@@ -475,7 +465,6 @@ class WorkOrderService {
           .where(
             and(
               eq(stock.partId, partId),
-              // @ts-ignore -- bulk-silence
               eq(stock.orgId, workOrder.orgId),
               sql`${stock.quantityReserved} > 0`
             )
@@ -536,7 +525,6 @@ class WorkOrderService {
       if (closeData.notes || closeData.completedBy) {
         await tx
           .insert(workOrderWorklogs)
-          // @ts-ignore -- bulk-silence
           .values({
             workOrderId: id,
             orgId: workOrder.orgId,
@@ -672,7 +660,6 @@ class WorkOrderService {
             );
         }
       }
-      // @ts-ignore -- bulk-silence
       await publishEvent("work_order", "create", clonedOrder);
       return clonedOrder;
     });
@@ -688,7 +675,6 @@ class WorkOrderService {
       const laborCost = completionData.totalLaborCost || 0,
         partsCost = completionData.totalPartsCost || 0,
         downtimeHours = completionData.actualDowntimeHours || 0,
-        // @ts-ignore -- bulk-silence
         downtimeCostPerHour = completionData.downtimeCostPerHour || 1000;
       const downtimeCost = completionData.totalCost ? 0 : downtimeHours * downtimeCostPerHour,
         totalCost = completionData.totalCost || laborCost + partsCost + downtimeCost;
@@ -697,7 +683,6 @@ class WorkOrderService {
         .set({
           status: "completed",
           actualEndDate: now,
-          // @ts-ignore -- bulk-silence
           actualDuration: completionData.actualDurationMinutes || null,
           totalLaborCost: laborCost,
           totalPartsCost: partsCost,
@@ -787,13 +772,9 @@ class WorkOrderService {
       };
     }
     const dv = c
-        // @ts-ignore -- bulk-silence
         .filter((x) => x.durationVariancePercent !== null)
-        // @ts-ignore -- bulk-silence
         .map((x) => x.durationVariancePercent!),
-      // @ts-ignore -- bulk-silence
       cv = c.filter((x) => x.costVariancePercent !== null).map((x) => x.costVariancePercent!),
-      // @ts-ignore -- bulk-silence
       ot = c.filter((x) => x.onTimeCompletion === true).length,
       td = c.reduce((s, x) => s + (x.actualDowntimeHours || 0), 0);
     return {

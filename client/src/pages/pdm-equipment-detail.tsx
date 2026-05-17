@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -447,7 +446,6 @@ function SensorsTab({ equipmentId }: { equipmentId: string }) {
         onOpenChange={setDeleteDialogOpen}
         onConfirm={confirmDelete}
         title="Delete sensors"
-        // @ts-ignore -- bulk-silence
         description={
           <div className="space-y-2">
             <p>
@@ -493,7 +491,6 @@ function AnomaliesTab({ equipmentId }: { equipmentId: string }) {
               <div key={anomaly.id} className="p-4 border rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="font-medium">{anomaly.sensorKind}</p>
-                  {/* @ts-ignore */}
                   <StatusBadge status={anomaly.severity || "info"} />
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -521,15 +518,12 @@ function MaintenanceHistoryTab({ equipmentId }: { equipmentId: string }) {
         <CardTitle>Work Order History</CardTitle>
       </CardHeader>
       <CardContent>
-        // @ts-ignore -- bulk-silence
         {workOrders?.length > 0 ? (
           <div className="space-y-3">
-            // @ts-ignore -- bulk-silence
             {workOrders.map((wo: { id: string; reason?: string; description?: string; status?: string; maintenanceType?: string }) => (
               <div key={wo.id} className="p-4 border rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="font-medium">{wo.reason || wo.description}</p>
-                  {/* @ts-ignore */}
                   <StatusBadge status={wo.status || "pending"} />
                 </div>
                 <p className="text-sm text-muted-foreground">Type: {wo.maintenanceType}</p>

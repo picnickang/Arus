@@ -54,7 +54,6 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
           const s2 = schedules[j];
           if (
             s1.scheduledDate === s2.scheduledDate &&
-            // @ts-ignore -- bulk-silence
             s1.assignedCrewId === s2.assignedCrewId
           ) {
             conflicts.push({
@@ -314,7 +313,6 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       }));
 
       const result = await dbOptimizerStorage.createOptimizationResult({
-        // @ts-ignore -- bulk-silence
         configId,
         orgId,
         inputSchedules: schedules.length,
@@ -367,7 +365,6 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         vesselId
       );
 
-      // @ts-ignore -- bulk-silence
       logger.info("[SchedulingSettings] Notifications updated", { orgId, vesselId });
       res.json(updated);
     })
@@ -389,7 +386,6 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         vesselId
       );
 
-      // @ts-ignore -- bulk-silence
       logger.info("[SchedulingSettings] Rules updated", { orgId, vesselId });
       res.json(updated);
     })
@@ -405,7 +401,6 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
 
       const updated = await schedulingSettingsService.updateAiWeights(orgId, req.body, vesselId);
 
-      // @ts-ignore -- bulk-silence
       logger.info("[SchedulingSettings] AI weights updated", { orgId, vesselId });
       res.json(updated);
     })
@@ -425,7 +420,6 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         vesselId
       );
 
-      // @ts-ignore -- bulk-silence
       logger.info("[SchedulingSettings] Publish behavior updated", { orgId, vesselId });
       res.json(updated);
     })
@@ -445,7 +439,6 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         vesselId
       );
 
-      // @ts-ignore -- bulk-silence
       logger.info("[SchedulingSettings] Rotation templates updated", { orgId, vesselId });
       res.json(updated);
     })
@@ -461,7 +454,6 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
 
       const reset = await schedulingSettingsService.resetToDefaults(orgId, vesselId);
 
-      // @ts-ignore -- bulk-silence
       logger.info("[SchedulingSettings] Settings reset to defaults", { orgId, vesselId });
       res.json(reset);
     })

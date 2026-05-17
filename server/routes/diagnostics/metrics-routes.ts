@@ -42,7 +42,6 @@ export function registerMetricsRoutes(router: Router) {
         health: {
           bufferUtilization:
             stats.bufferSize > 0
-              // @ts-ignore -- bulk-silence
               ? Math.round((stats.currentBufferSize / stats.bufferSize) * 100)
               : 0,
           evictionRate:
@@ -51,7 +50,6 @@ export function registerMetricsRoutes(router: Router) {
               : 0,
           writeSuccessRate:
             stats.totalQueued > 0
-              // @ts-ignore -- bulk-silence
               ? Math.round((stats.totalWritten / stats.totalQueued) * 10000) / 100
               : 100,
         },

@@ -123,24 +123,19 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
           setLastMessage(message);
 
           if (message.type === "telemetry" && message.data) {
-            // @ts-ignore -- bulk-silence
             setLatestTelemetry(message.data as TelemetryData);
           } else if (message.type === "alert_new" && message.data) {
-            // @ts-ignore -- bulk-silence
             setLatestAlert(message.data as AlertData);
           } else if (message.type === "alerts_initial" && message.data) {
             // Handle initial alerts backlog from server
             setInitialAlerts(Array.isArray(message.data) ? (message.data as AlertData[]) : []);
           } else if (message.type === "alert_acknowledged" && message.data) {
             // Update the latest alert if it's the same one being acknowledged
-            // @ts-ignore -- bulk-silence
             setLatestAlert((prevAlert) => {
-              // @ts-ignore -- bulk-silence
               if (prevAlert?.id === message.data.alertId) {
                 return {
                   ...prevAlert,
                   acknowledged: true,
-                  // @ts-ignore -- bulk-silence
                   acknowledgedBy: message.data.acknowledgedBy,
                   acknowledgedAt: message.timestamp,
                 };
@@ -149,7 +144,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
             });
           } else if (message.type === "update_notification" && message.data) {
             // Handle software update notifications
-            // @ts-ignore -- bulk-silence
             setLatestUpdate(message.data as UpdateNotificationData);
           }
         } catch (error) {

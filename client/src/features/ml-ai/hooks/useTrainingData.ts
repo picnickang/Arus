@@ -69,7 +69,6 @@ export function useTrainingData() {
   const uniqueEquipmentTypes = getUniqueEquipmentTypes(equipment);
 
   const trainLSTM = useCustomMutation({
-    // @ts-ignore -- bulk-silence
     mutationFn: async (params: {
       equipmentType?: string;
       epochs?: number;
@@ -84,7 +83,6 @@ export function useTrainingData() {
     invalidateKeys: [["/api/analytics/ml-models"]],
     successMessage: (data: TrainingResult) =>
       `Model trained successfully with ${(data.metrics.accuracy * 100).toFixed(1)}% accuracy`,
-    // @ts-ignore -- bulk-silence
     errorMessage: (error: Error) => error.message || "Training failed",
     onSuccess: () => {
       refetchModels();
@@ -92,7 +90,6 @@ export function useTrainingData() {
   });
 
   const trainRandomForest = useCustomMutation({
-    // @ts-ignore -- bulk-silence
     mutationFn: async (params: { equipmentType?: string; numTrees?: number }) => {
       return apiRequest("POST", "/api/ml/train/random-forest", {
         orgId,
@@ -103,7 +100,6 @@ export function useTrainingData() {
     invalidateKeys: [["/api/analytics/ml-models"]],
     successMessage: (data: TrainingResult) =>
       `Model trained successfully with ${(data.metrics.accuracy * 100).toFixed(1)}% accuracy`,
-    // @ts-ignore -- bulk-silence
     errorMessage: (error: Error) => error.message || "Training failed",
     onSuccess: () => {
       refetchModels();
@@ -125,7 +121,6 @@ export function useTrainingData() {
     },
     successMessage: (data: AcousticAnalysisResult) =>
       `Health score: ${data.healthScore?.toFixed(0)}% - ${data.severity} severity`,
-    // @ts-ignore -- bulk-silence
     errorMessage: (error: Error) => error.message || "Analysis failed",
     onSuccess: (data) => {
       setAcousticResults(data);
@@ -133,7 +128,6 @@ export function useTrainingData() {
   });
 
   const resetMLData = useCustomMutation({
-    // @ts-ignore -- bulk-silence
     mutationFn: async (params: { deleteModels?: boolean }) => {
       return apiRequest("POST", "/api/admin/ml/reset-training-data", {
         confirmationCode: "RESET_ML_DATA_CONFIRMED",
@@ -143,7 +137,6 @@ export function useTrainingData() {
     invalidateKeys: [["/api/analytics/ml-models"], ["/api/equipment"]],
     successMessage: (data: ResetResult) =>
       `Reset complete: ${data.deleted.telemetryRecords} telemetry records, ${data.deleted.predictions} predictions, ${data.deleted.anomalies} anomalies deleted`,
-    // @ts-ignore -- bulk-silence
     errorMessage: (error: Error) => error.message || "Reset failed",
     onSuccess: () => {
       refetchModels();

@@ -73,7 +73,6 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
     auditAdminAction("UPDATE_SYSTEM_SETTING"),
     withErrorHandling("update admin system setting", async (req: Request, res: Response) => {
       const { id } = req.params;
-      // @ts-ignore -- bulk-silence
       const validatedData = insertAdminSystemSettingSchema.partial().parse(req.body);
       const setting = await dbSystemAdminStorage.updateAdminSystemSetting(id, validatedData);
       res.json(setting);

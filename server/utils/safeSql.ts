@@ -57,7 +57,6 @@ export async function safeSql<T = unknown>(
   // SQLite/libSQL (VESSEL) → db.all()/db.get() (SQLite-specific API)
   if (hasPostgresFeatures) {
     // CLOUD mode: PostgreSQL/Neon uses db.execute()
-    // @ts-ignore -- bulk-silence
     return db.execute(sqlQuery);
   }
 
@@ -72,16 +71,12 @@ export async function safeSql<T = unknown>(
   // VESSEL mode: use SQLite-compatible methods
   try {
     // Attempt to use db.all() for SELECT queries (SQLite)
-    // @ts-ignore -- bulk-silence
     const result = await db.all(sqlQuery);
-    // @ts-ignore -- bulk-silence
     return { rows: result, rowCount: result?.length || 0 };
   } catch {
     // If db.all() fails, try db.get() for single-row queries
     try {
-      // @ts-ignore -- bulk-silence
       const result = await db.get(sqlQuery);
-      // @ts-ignore -- bulk-silence
       return { rows: result ? [result] : [], rowCount: result ? 1 : 0 };
     } catch (innerError) {
       logger.error("[SafeSQL] Error executing SQLite query:", undefined, innerError);

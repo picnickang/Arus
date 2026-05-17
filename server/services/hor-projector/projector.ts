@@ -211,7 +211,6 @@ function convertToProjectedRestDays(
     const restHours = countRestHours(flags);
     const workHours = countWorkHours(flags);
 
-    // @ts-ignore -- bulk-silence
     days.push({
       date,
       crewId,

@@ -69,20 +69,13 @@ export function useTelemetryStreams(options: UseTelemetryStreamsOptions = {}) {
     streams.push({
       equipmentId: trend.equipmentId,
       sensorType: trend.sensorType,
-      // @ts-ignore -- bulk-silence
       currentValue: trend.currentValue ?? trend.average ?? 0,
-      // @ts-ignore -- bulk-silence
       unit: trend.unit ?? "",
-      // @ts-ignore -- bulk-silence
       status: trend.status ?? "normal",
       hasAnomaly: matchingAnomalies.length > 0,
-      // @ts-ignore -- bulk-silence
       anomalyZScore: latestAnomaly?.zscore,
-      // @ts-ignore -- bulk-silence
       anomalyTimestamp: latestAnomaly?.timestamp,
-      // @ts-ignore -- bulk-silence
       data: trend.data ?? [],
-      // @ts-ignore -- bulk-silence
       lastUpdate: trend.lastTimestamp ?? new Date().toISOString(),
     });
   }

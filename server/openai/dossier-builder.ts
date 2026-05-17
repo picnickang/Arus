@@ -44,7 +44,6 @@ export async function buildEquipmentDossiers(
   equipmentHealthData: EquipmentHealth[],
   storageInstance: any
 ): Promise<EquipmentDossier[]> {
-  // @ts-ignore -- bulk-silence
   return Promise.all(
     equipmentHealthData.map(async (equipment) => {
       let workOrders: any[] = [];

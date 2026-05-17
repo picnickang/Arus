@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -243,11 +242,9 @@ export default function ManualTelemetryUpload() {
               <div className="text-center py-8 text-muted-foreground">
                 Loading telemetry data...
               </div>
-            // @ts-ignore -- bulk-silence
             ) : telemetryData?.length > 0 ? (
               <ScrollArea className="h-96">
                 <div className="space-y-2">
-                  // @ts-ignore -- bulk-silence
                   {telemetryData.slice(0, 50).map((item: RawTelemetry) => (
                     <div
                       key={item.id}
@@ -270,10 +267,8 @@ export default function ManualTelemetryUpload() {
                       </div>
                     </div>
                   ))}
-                  // @ts-ignore -- bulk-silence
                   {telemetryData.length > 50 && (
                     <div className="text-center py-4 text-muted-foreground">
-                      // @ts-ignore -- bulk-silence
                       ... and {telemetryData.length - 50} more records
                     </div>
                   )}

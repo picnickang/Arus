@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { format } from "date-fns";
 import {
   Activity,
@@ -302,10 +301,8 @@ export default function ConditionMonitoringLogPage() {
                           {log.healthGrade}
                         </Badge>
                         <div>
-                          {/* @ts-ignore */}
                           <p className="font-medium">{getEquipmentName(log.equipmentId)}</p>
                           <p className="text-sm text-muted-foreground">
-                            // @ts-ignore -- bulk-silence
                             {format(new Date(log.periodStart), "MMM dd, HH:mm")}
                           </p>
                         </div>
@@ -363,10 +360,8 @@ export default function ConditionMonitoringLogPage() {
                       {logs.slice(0, 50).map((log) => (
                         <TableRow key={log.id} data-testid={`row-condition-log-${log.id}`}>
                           <TableCell className="font-medium">
-                            // @ts-ignore -- bulk-silence
                             {format(new Date(log.periodStart), "MMM dd HH:mm")}
                           </TableCell>
-                          {/* @ts-ignore */}
                           <TableCell>{getEquipmentName(log.equipmentId)}</TableCell>
                           <TableCell className="text-center">
                             <Badge className={HealthGradeColors[log.healthGrade || "F"]}>
@@ -385,12 +380,9 @@ export default function ConditionMonitoringLogPage() {
                               : `${(log.mlAnomalyScoreAvg * 100).toFixed(1)}%`}
                           </TableCell>
                           <TableCell className="text-right">
-                            // @ts-ignore -- bulk-silence
                             {log.alertsCount || 0}
-                            // @ts-ignore -- bulk-silence
                             {(log.criticalAlertsCount || 0) > 0 && (
                               <Badge variant="destructive" className="ml-1 text-xs">
-                                // @ts-ignore -- bulk-silence
                                 {log.criticalAlertsCount}
                               </Badge>
                             )}
@@ -398,12 +390,9 @@ export default function ConditionMonitoringLogPage() {
                           <TableCell className="text-right">{log.rulDays || "-"}</TableCell>
                           <TableCell>
                             <Badge
-                              // @ts-ignore -- bulk-silence
                               variant={log.dataQuality === "high" ? "default" : "outline"}
-                              // @ts-ignore -- bulk-silence
                               className={log.dataQuality === "high" ? "bg-green-600" : ""}
                             >
-                              // @ts-ignore -- bulk-silence
                               {log.dataQuality}
                             </Badge>
                           </TableCell>

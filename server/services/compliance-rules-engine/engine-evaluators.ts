@@ -64,12 +64,10 @@ export async function evaluateEngineOvertemp(
   }
 
   const overTempEntries = engineLogComplete.hourly.filter(
-    // @ts-ignore -- bulk-silence
     (h) => h.meExhaustGasTemp !== null && h.meExhaustGasTemp > maxExhaustTemp
   );
 
   if (overTempEntries.length > 0) {
-    // @ts-ignore -- bulk-silence
     const maxTemp = Math.max(...overTempEntries.map((h) => h.meExhaustGasTemp!));
     return {
       triggered: true,
@@ -225,7 +223,6 @@ export async function evaluateEngineMissingHourly(
   }
 
   const validEntries = engineLogComplete.hourly.filter(
-    // @ts-ignore -- bulk-silence
     (h) => h.meRpm !== null || h.meLoad !== null || h.meFoTemp !== null
   );
 

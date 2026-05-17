@@ -77,7 +77,6 @@ export class IngestTelemetryBatch {
         const timestamps = frames
           .map((f) => new Date(f.ts))
           .sort((a, b) => a.getTime() - b.getTime());
-        // @ts-ignore -- bulk-silence
         await this.config.batchAck.receiveBatch({
           batchId,
           orgId: this.config.orgId!,

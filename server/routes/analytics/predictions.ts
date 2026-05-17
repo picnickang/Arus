@@ -99,7 +99,6 @@ export function mountPredictionsRoutes(router: Router) {
       );
       const response = await cachedAnalytics<AnomalyDetectionListResponse>(
         cacheKey,
-        // @ts-ignore -- bulk-silence
         async () => {
           const filters = [eq(anomalyDetections.orgId, orgId)];
           if (equipmentId) {
@@ -171,7 +170,6 @@ export function mountPredictionsRoutes(router: Router) {
           const equipmentData =
             equipmentIds.length > 0 ? await dbEquipmentStorage.getEquipmentRegistry(orgId) : [];
           const equipmentMap = new Map(equipmentData.map((e) => [e.id, e]));
-          // @ts-ignore -- bulk-silence
           const results = predictions.map((p) => mapPredictionToResult(p, equipmentMap));
           const highRisk = results.filter((r) => r.riskLevel === "high").length;
           const criticalRisk = results.filter((r) => r.riskLevel === "critical").length;

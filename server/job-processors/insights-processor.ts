@@ -24,9 +24,7 @@ export async function processInsightsSnapshotGeneration(data: {
       snapshotId: snapshot.id,
       scope,
       kpis: insights.kpi,
-      // @ts-ignore -- bulk-silence
       riskFactors: insights.riskFactors,
-      // @ts-ignore -- bulk-silence
       summary: insights.summary,
     };
   } catch (error) {

@@ -127,7 +127,6 @@ export function generateSOEmailHtml(
 
   const hasQuote = so.quotedAmount !== null && so.quotedAmount !== undefined;
   const quotedInfo = hasQuote
-    // @ts-ignore -- bulk-silence
     ? `<p><strong>Quoted Amount:</strong> ${so.currency || "USD"} ${so.quotedAmount.toLocaleString()}</p>`
     : "";
 

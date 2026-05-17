@@ -26,7 +26,6 @@ export class DbCrewExtensionsStorage {
   async getCrewCertifications(crewId?: string): Promise<SelectCrewCertification[]> {
     let q = db.select().from(crewCertification);
     if (crewId) {
-      // @ts-ignore -- bulk-silence
       q = q.where(eq(crewCertification.crewId, crewId));
     }
     return q.orderBy(crewCertification.expiresAt);
@@ -302,10 +301,8 @@ export class DbCrewExtensionsStorage {
   async getPortCalls(vesselId?: string): Promise<SelectPortCall[]> {
     let q = db.select().from(portCall);
     if (vesselId) {
-      // @ts-ignore -- bulk-silence
       q = q.where(eq(portCall.vesselId, vesselId));
     }
-    // @ts-ignore -- bulk-silence
     return q.orderBy(portCall.start);
   }
   async createPortCall(portCallData: InsertPortCall): Promise<SelectPortCall> {
@@ -329,10 +326,8 @@ export class DbCrewExtensionsStorage {
   async getDrydockWindows(vesselId?: string): Promise<SelectDrydockWindow[]> {
     let q = db.select().from(drydockWindow);
     if (vesselId) {
-      // @ts-ignore -- bulk-silence
       q = q.where(eq(drydockWindow.vesselId, vesselId));
     }
-    // @ts-ignore -- bulk-silence
     return q.orderBy(drydockWindow.start);
   }
   async createDrydockWindow(drydockData: InsertDrydockWindow): Promise<SelectDrydockWindow> {

@@ -344,7 +344,6 @@ export function GovernanceTab({
                     <button
                       data-testid="link-detail-model-version"
                       className="text-primary hover:underline inline-flex items-center gap-1"
-                      // @ts-ignore -- bulk-silence
                       onClick={() => onSwitchToModels(detail.modelVersionId)}
                     >
                       {detail.modelVersionId.slice(0, 12)}

@@ -78,7 +78,6 @@ export function useOfflineSync(): UseOfflineSyncResult {
     async (
       op: PendingOperation
     ): Promise<{ success: boolean; serverVersion?: Record<string, unknown> }> => {
-      // @ts-ignore -- bulk-silence
       const endpoints: Record<EntityType, string> = {
         assignment: "/api/scheduler/assignments",
         leave: "/api/crew/leave",

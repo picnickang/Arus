@@ -81,7 +81,6 @@ export class WeibullRULAnalyzer {
 
   private async storeRULAnalysis(prediction: RULPrediction, orgId: string): Promise<void> {
     try {
-      // @ts-ignore -- bulk-silence
       await db.insert(weibullEstimates).values({
         id: randomUUID(),
         orgId,

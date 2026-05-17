@@ -5,7 +5,6 @@
 import type { Express, Request, Response } from "express";
 import type { RateLimitRequestHandler } from "express-rate-limit";
 
-// @ts-ignore -- bulk-silence
 export interface AuthenticatedRequest extends Request {
   orgId?: string;
 }

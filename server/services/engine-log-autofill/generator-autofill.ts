@@ -161,7 +161,6 @@ export async function autoFillGeneratorsFromTelemetry(
   );
 
   if (generators.length === 0) {
-    // @ts-ignore -- bulk-silence
     log("info", "No generators found for vessel", ctx);
     return { hoursProcessed: 0, generatorsProcessed: 0, anomalies: 0 };
   }

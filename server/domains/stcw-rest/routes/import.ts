@@ -153,7 +153,6 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
       if (idempotencyKey) {
         await db
           .insert(idempotencyLog)
-          // @ts-ignore -- bulk-silence
           .values({
             key: idempotencyKey,
             endpoint: "/api/crew/rest/import",
@@ -204,7 +203,6 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
           return;
         }
 
-        // @ts-ignore -- bulk-silence
         rows = restData.days;
       }
 
@@ -237,7 +235,6 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
         return;
       }
 
-      // @ts-ignore -- bulk-silence
       const compliance = checkMonthCompliance(restData.days);
       res.json(compliance);
     })
@@ -287,7 +284,6 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
         crewName,
         year: Number.parseInt(year),
         month,
-        // @ts-ignore -- bulk-silence
         status: "draft",
         orgId,
       });
@@ -304,7 +300,6 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
       if (idempotencyKey) {
         await db
           .insert(idempotencyLog)
-          // @ts-ignore -- bulk-silence
           .values({
             key: idempotencyKey,
             endpoint: "/api/stcw/import",

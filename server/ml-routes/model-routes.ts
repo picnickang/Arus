@@ -41,7 +41,6 @@ router.get("/ml/accuracy-trend", async (req: AuthenticatedRequest, res: Response
       models
         .filter((m) => m.status === "deployed" && m.accuracy)
         .map(async (model) => {
-          // @ts-ignore -- bulk-silence
           const history = await dbMlAnalyticsStorage.getMlModelAccuracyHistory(model.id, req.orgId);
           return history.map((h: { recordedAt: Date; accuracy: string | null }) => ({
             date: h.recordedAt.toISOString().split("T")[0],
@@ -100,10 +99,8 @@ router.post("/ml/train", async (req: AuthenticatedRequest, res: Response) => {
       trainingMetrics: null,
       errorMessage: null,
     };
-    // @ts-ignore -- bulk-silence
     const newModel = await dbMlAnalyticsStorage.createMlModel(modelData);
     const { mlTrainingQueue } = await import("../ml-training-queue.js");
-    // @ts-ignore -- bulk-silence
     const trainingJob = await mlTrainingQueue.enqueue({
       modelId: newModel.id,
       orgId: req.orgId,
@@ -129,7 +126,6 @@ router.post("/ml/train", async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      // @ts-ignore -- bulk-silence
       return sendBadRequest(res, "Invalid training configuration", error.errors);
     }
     handleError(error, res, "start ML training");
@@ -196,7 +192,6 @@ router.post("/ml/models/:id/accuracy", async (req: AuthenticatedRequest, res: Re
       return sendNotFound(res, "ML model");
     }
     const { accuracy, validationAccuracy, testAccuracy, datasetSize } = req.body;
-    // @ts-ignore -- bulk-silence
     const historyEntry = await dbMlAnalyticsStorage.addMlModelAccuracyHistory(
       {
         modelId: req.params.id,

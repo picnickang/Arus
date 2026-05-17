@@ -101,7 +101,6 @@ export function registerComplianceReportRoutes(
         const alertNotifications = await dbAlertStorage.getAlertNotifications(undefined, orgId);
 
         const recentAlerts = alertNotifications.filter(
-          // @ts-ignore -- bulk-silence
           (alert) => new Date(alert.createdAt) >= lookbackDate
         );
 
@@ -110,7 +109,6 @@ export function registerComplianceReportRoutes(
             return false;
           }
           const responseTime =
-            // @ts-ignore -- bulk-silence
             new Date(alert.acknowledgedAt).getTime() - new Date(alert.createdAt).getTime();
           return responseTime <= slaHours * 60 * 60 * 1000;
         }).length;
@@ -152,7 +150,6 @@ export function registerComplianceReportRoutes(
                   return true;
                 }
                 const responseTime =
-                  // @ts-ignore -- bulk-silence
                   new Date(alert.acknowledgedAt).getTime() - new Date(alert.createdAt).getTime();
                 return responseTime > slaHours * 60 * 60 * 1000;
               })

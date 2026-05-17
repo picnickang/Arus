@@ -219,7 +219,6 @@ async function atomicClaimAlertSlotSQLite(
       const snapshot: CooldownSnapshot = {
         lastAlertAt: row.lastAlertAt,
         lastEmailAt: row.lastEmailAt,
-        // @ts-ignore -- bulk-silence
         alertCount: row.alertCount,
         claimUpdatedAt: now,
       };
@@ -228,7 +227,6 @@ async function atomicClaimAlertSlotSQLite(
         .set({
           lastAlertAt: now,
           lastEmailAt: null,
-          // @ts-ignore -- bulk-silence
           alertCount: row.alertCount + 1,
           updatedAt: now,
         })

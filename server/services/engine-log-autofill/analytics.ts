@@ -106,7 +106,6 @@ export async function getUnsignedLogs(
       vesselId: log.vesselId,
       vesselName: vessel?.name,
       logDate: log.logDate,
-      // @ts-ignore -- bulk-silence
       status: log.status,
       hoursWithData: hourly.filter((h) => h.meRpm !== null || h.meLoad !== null).length,
       anomalyCount: anomalySummary.totalAnomalies,

@@ -6,7 +6,6 @@ import { getSupplierPerformanceSummaries } from "../application/supplier-perform
 
 export const supplierPerformanceRouter = Router();
 
-// @ts-ignore -- bulk-silence
 const generalLimit = createRateLimiter("general");
 
 supplierPerformanceRouter.get(

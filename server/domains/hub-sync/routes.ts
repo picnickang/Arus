@@ -180,7 +180,6 @@ export function registerHubSyncRoutes(
       };
 
       const validatedConfig = insertOptimizerConfigurationSchema.parse(configData);
-      // @ts-ignore -- bulk-silence
       const config = await hubSyncService.createOptimizerConfiguration(validatedConfig);
       res.status(201).json(config);
     })

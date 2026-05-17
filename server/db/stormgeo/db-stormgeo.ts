@@ -31,7 +31,6 @@ export class DatabaseStormGeoStorage {
     }
     let q = db.select().from(stormgeoSettings);
     if (c.length > 0) {
-      // @ts-ignore -- bulk-silence
       q = q.where(and(...c));
     }
     return q.orderBy(stormgeoSettings.createdAt);
@@ -84,19 +83,15 @@ export class DatabaseStormGeoStorage {
       c.push(eq(stormgeoSnapshots.vesselId, vesselId));
     }
     if (fromDate) {
-      // @ts-ignore -- bulk-silence
       c.push(gte(stormgeoSnapshots.timestamp, fromDate));
     }
     if (toDate) {
-      // @ts-ignore -- bulk-silence
       c.push(lte(stormgeoSnapshots.timestamp, toDate));
     }
     let q = db.select().from(stormgeoSnapshots);
     if (c.length > 0) {
-      // @ts-ignore -- bulk-silence
       q = q.where(and(...c));
     }
-    // @ts-ignore -- bulk-silence
     return q.orderBy(sql`${stormgeoSnapshots.timestamp} DESC`);
   }
   async getStormgeoSnapshot(id: string): Promise<StormgeoSnapshot | undefined> {
@@ -108,7 +103,6 @@ export class DatabaseStormGeoStorage {
       .select()
       .from(stormgeoSnapshots)
       .where(eq(stormgeoSnapshots.vesselId, vesselId))
-      // @ts-ignore -- bulk-silence
       .orderBy(sql`${stormgeoSnapshots.timestamp} DESC`)
       .limit(1);
     return r;
@@ -125,7 +119,6 @@ export class DatabaseStormGeoStorage {
     return snapshots.length;
   }
   async deleteStormgeoSnapshotsBefore(date: Date): Promise<number> {
-    // @ts-ignore -- bulk-silence
     const r = await db.delete(stormgeoSnapshots).where(lte(stormgeoSnapshots.timestamp, date));
     return r.rowCount ?? 0;
   }
@@ -143,10 +136,8 @@ export class DatabaseStormGeoStorage {
     }
     let q = db.select().from(stormgeoImportHistory);
     if (c.length > 0) {
-      // @ts-ignore -- bulk-silence
       q = q.where(and(...c));
     }
-    // @ts-ignore -- bulk-silence
     return q.orderBy(sql`${stormgeoImportHistory.importedAt} DESC`);
   }
   async createStormgeoImportHistory(
@@ -173,7 +164,6 @@ export class DatabaseStormGeoStorage {
     }
     let q = db.select().from(weatherCache);
     if (c.length > 0) {
-      // @ts-ignore -- bulk-silence
       q = q.where(and(...c));
     }
     return q.orderBy(sql`${weatherCache.fetchedAt} DESC`);

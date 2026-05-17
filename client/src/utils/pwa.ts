@@ -78,7 +78,6 @@ class PWAManager {
           console.info("📨 Message from SW:", event.data);
         });
 
-        // @ts-ignore -- bulk-silence
         return registration;
       } catch (error) {
         console.error("❌ Service Worker registration failed:", error);

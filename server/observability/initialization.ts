@@ -21,7 +21,6 @@ export function initializeMetrics() {
   });
 
   initializeServiceMetrics().catch((err) => {
-    // @ts-ignore -- bulk-silence
     structuredLog("warn", "Service metrics initialization error", { error: String(err) });
   });
 

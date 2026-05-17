@@ -109,7 +109,6 @@ export class AnalyticsAggregator {
           .where(and(baseCondition, gte(ragConversations.createdAt, sevenDaysAgo))),
       ]);
 
-      // @ts-ignore -- bulk-silence
       const latencyData = ragMetrics.getLatencyStats();
 
       return {
@@ -126,7 +125,6 @@ export class AnalyticsAggregator {
 
   private async getCacheStats(orgId: string | undefined): Promise<AnalyticsSummary["cache"]> {
     try {
-      // @ts-ignore -- bulk-silence
       const metricsData = ragMetrics.getCacheStats();
 
       const totalHits = metricsData.hits;
@@ -156,12 +154,10 @@ export class AnalyticsAggregator {
         db
           .select({ count: count() })
           .from(ragFeedback)
-          // @ts-ignore -- bulk-silence
           .where(and(baseCondition, eq(ragFeedback.helpful, true))),
         db
           .select({ count: count() })
           .from(ragFeedback)
-          // @ts-ignore -- bulk-silence
           .where(and(baseCondition, eq(ragFeedback.helpful, false))),
         db
           .select({ avg: avg(ragFeedback.rating) })
@@ -205,7 +201,6 @@ export class AnalyticsAggregator {
         db
           .select({ count: count() })
           .from(kbDocs)
-          // @ts-ignore -- bulk-silence
           .where(and(docCondition, gte(kbDocs.uploadedAt, oneWeekAgo))),
       ]);
 
@@ -288,9 +283,7 @@ export class AnalyticsAggregator {
       const result = await db
         .select({
           date: sql<string>`DATE(${ragFeedback.createdAt})`,
-          // @ts-ignore -- bulk-silence
           helpful: sql<number>`SUM(CASE WHEN ${ragFeedback.helpful} = true THEN 1 ELSE 0 END)`,
-          // @ts-ignore -- bulk-silence
           notHelpful: sql<number>`SUM(CASE WHEN ${ragFeedback.helpful} = false THEN 1 ELSE 0 END)`,
         })
         .from(ragFeedback)

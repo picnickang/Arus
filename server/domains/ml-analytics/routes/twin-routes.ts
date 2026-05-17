@@ -15,7 +15,6 @@ export function registerTwinRoutes(app: Express, _config: MlAnalyticsConfig) {
     "/api/analytics/digital-twins",
     withErrorHandling("fetch digital twins", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, vesselId, twinType } = req.query;
-      // @ts-ignore -- bulk-silence
       const twins = await dbMlAnalyticsStorage.getDigitalTwins(
         orgId as string,
         vesselId as string,
@@ -30,7 +29,6 @@ export function registerTwinRoutes(app: Express, _config: MlAnalyticsConfig) {
     "/api/analytics/digital-twins/:id",
     withErrorHandling("fetch digital twin", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId } = req.query;
-      // @ts-ignore -- bulk-silence
       const twin = await dbMlAnalyticsStorage.getDigitalTwin(req.params.id, orgId as string);
       if (!twin) {
         return sendNotFound(res, "Digital twin");
@@ -49,7 +47,6 @@ export function registerTwinRoutes(app: Express, _config: MlAnalyticsConfig) {
         scenarioType,
         status,
       } = req.query;
-      // @ts-ignore -- bulk-silence
       const simulations = await dbMlAnalyticsStorage.getTwinSimulations(
         orgId as string,
         digitalTwinId as string,
@@ -64,7 +61,6 @@ export function registerTwinRoutes(app: Express, _config: MlAnalyticsConfig) {
     "/api/analytics/twin-simulations/:id",
     withErrorHandling("fetch twin simulation", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId } = req.query;
-      // @ts-ignore -- bulk-silence
       const simulation = await dbMlAnalyticsStorage.getTwinSimulation(
         req.params.id,
         orgId as string

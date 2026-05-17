@@ -46,7 +46,6 @@ router.post("/vibration/analyze/:equipmentId", async (req, res) => {
         confidence: analysis.confidence,
       },
       message: analysis.isAnomalous
-        // @ts-ignore -- bulk-silence
         ? `ANOMALY DETECTED: ${analysis.anomalyType} (score: ${analysis.anomalyScore.toFixed(2)})`
         : `Equipment operating normally (health score: ${analysis.healthScore}%)`,
     });
@@ -144,7 +143,6 @@ router.post("/vibration/batch-analyze", async (req, res) => {
       anomalies: results.filter((r) => r.isAnomalous).length,
       avgHealthScore:
         results.length > 0
-          // @ts-ignore -- bulk-silence
           ? Math.round(results.reduce((sum, r) => sum + r.healthScore, 0) / results.length)
           : 0,
     };

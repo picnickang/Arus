@@ -48,7 +48,6 @@ export function useManualTelemetryUpload() {
   });
 
   const csvImportMutation = useCustomMutation({
-    // @ts-ignore -- bulk-silence
     mutationFn: async (csvData: string) => {
       setUploadProgress(50);
       return apiRequest("POST", "/api/import/telemetry/csv", { csvData });
@@ -73,7 +72,6 @@ export function useManualTelemetryUpload() {
     },
   });
   const jsonImportMutation = useCustomMutation({
-    // @ts-ignore -- bulk-silence
     mutationFn: async (jsonData: string) => {
       setUploadProgress(50);
       const parsed = JSON.parse(jsonData);

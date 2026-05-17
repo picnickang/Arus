@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { format } from "date-fns";
 import {
   Navigation,
@@ -349,11 +348,9 @@ export default function VesselTrackLogPage() {
                                 <TableCell>
                                   <Badge
                                     className={
-                                      // @ts-ignore -- bulk-silence
                                       NavStatusColors[track.navStatus || ""] || "bg-gray-400"
                                     }
                                   >
-                                    // @ts-ignore -- bulk-silence
                                     {NavStatusLabels[track.navStatus || ""] || track.navStatus}
                                   </Badge>
                                 </TableCell>

@@ -593,7 +593,6 @@ class AmosImportService {
       for (const doc of ragDocuments) {
         try {
           await ingestDocuments({
-            // @ts-ignore -- bulk-silence
             orgId,
             documents: [
               {

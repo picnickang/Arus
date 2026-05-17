@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -125,7 +124,6 @@ export function DriftMonitoringTab() {
                     </tr>
                   </thead>
                   <tbody>
-                    // @ts-ignore -- bulk-silence
                     {driftMetrics.map((d: any) => (
                       <tr
                         key={d.id}

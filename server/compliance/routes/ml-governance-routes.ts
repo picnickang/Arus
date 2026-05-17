@@ -69,7 +69,6 @@ router.get(
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
-      // @ts-ignore -- bulk-silence
       const override = await dbMlAnalyticsStorage.getEngineerOverrides(id, orgId);
       if (!override) {
         return res.status(404).json({ error: "Engineer override not found" });
@@ -114,7 +113,6 @@ router.post(
       await auditService.logEvent({
         orgId,
         eventCategory: "ml_prediction",
-        // @ts-ignore -- bulk-silence
         eventType: "engineer_override_created",
         entityType: "engineer_override",
         entityId: override.id,
@@ -158,7 +156,6 @@ router.patch(
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
-      // @ts-ignore -- bulk-silence
       const existingOverride = await dbMlAnalyticsStorage.getEngineerOverrides(id, orgId);
       if (!existingOverride) {
         return res.status(404).json({ error: "Engineer override not found" });
@@ -172,10 +169,8 @@ router.patch(
       );
       await recordOverrideOutcome({
         overrideId: id,
-        // @ts-ignore -- bulk-silence
         equipmentId: existingOverride.equipmentId,
         vesselId: undefined,
-        // @ts-ignore -- bulk-silence
         originalOverrideType: existingOverride.overrideType as
           | "defer"
           | "escalate"
@@ -188,20 +183,16 @@ router.patch(
           | "failure_occurred",
         outcomeNotes: validatedData.outcomeNotes,
         outcomeRecordedBy,
-        // @ts-ignore -- bulk-silence
         engineerId: existingOverride.engineerId,
-        // @ts-ignore -- bulk-silence
         engineerName: existingOverride.engineerName,
         orgId,
       });
       await auditService.logEvent({
         orgId,
         eventCategory: "ml_prediction",
-        // @ts-ignore -- bulk-silence
         eventType: "engineer_override_outcome_updated",
         entityType: "engineer_override",
         entityId: id,
-        // @ts-ignore -- bulk-silence
         previousState: { outcomeStatus: existingOverride.outcomeStatus },
         newState: {
           outcomeStatus: validatedData.outcomeStatus,
@@ -241,12 +232,10 @@ router.get(
         orgId,
         equipmentId: equipmentId as string,
         engineerId: engineerId as string,
-        // @ts-ignore -- bulk-silence
         fromDate: fromDate ? new Date(fromDate as string) : undefined,
         toDate: toDate ? new Date(toDate as string) : undefined,
         limit: limit ? Number.parseInt(limit as string) : 100,
       });
-      // @ts-ignore -- bulk-silence
       res.json({ success: true, data: overrides, count: overrides.length });
     } catch (error) {
       logger.error("[Compliance] Get provenance overrides error:", undefined, error);

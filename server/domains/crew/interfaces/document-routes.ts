@@ -110,10 +110,8 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
             crewMemberName: crewMember?.name || "Unknown",
             crewMemberRank: crewMember?.rank || "Unknown",
             daysUntilExpiry: doc.expiresAt
-              // @ts-ignore -- bulk-silence
               ? Math.ceil((new Date(doc.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
               : null,
-            // @ts-ignore -- bulk-silence
             urgencyLevel: doc.expiresAt ? getExpiryUrgencyLevel(doc.expiresAt) : null,
           };
         })

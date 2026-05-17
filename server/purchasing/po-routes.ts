@@ -31,9 +31,7 @@ import { createRateLimiter } from "../lib/rate-limit-factory";
 import { fulfillItem } from "./fulfillment-service";
 
 const router = Router();
-// @ts-ignore -- bulk-silence
 const generalLimit = createRateLimiter("general");
-// @ts-ignore -- bulk-silence
 const writeLimit = createRateLimiter("write");
 
 function getOrgId(req: any): string {
@@ -157,7 +155,6 @@ router.get("/:id", requireOrgId, generalLimit, async (req, res) => {
         rejectionReason: purchaseOrderItems.rejectionReason,
         notes: purchaseOrderItems.notes,
         partName: parts.name,
-        // @ts-ignore -- bulk-silence
         partNumber: parts.partNumber,
       })
       .from(purchaseOrderItems)

@@ -60,9 +60,7 @@ export function isWindowAllowed(
 
   for (const drydock of drydocks) {
     if (drydock.vesselId === vesselId) {
-      // @ts-ignore -- bulk-silence
       const drydockStart = new Date(drydock.start);
-      // @ts-ignore -- bulk-silence
       const drydockEnd = new Date(drydock.end);
       if (overlaps(shiftStart, shiftEnd, drydockStart, drydockEnd)) {
         return false;
@@ -72,9 +70,7 @@ export function isWindowAllowed(
 
   for (const portCall of portCalls) {
     if (portCall.vesselId === vesselId) {
-      // @ts-ignore -- bulk-silence
       const portStart = new Date(portCall.start);
-      // @ts-ignore -- bulk-silence
       const portEnd = new Date(portCall.end);
       if (overlaps(shiftStart, shiftEnd, portStart, portEnd)) {
         return true;

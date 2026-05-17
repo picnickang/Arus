@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -394,15 +393,12 @@ export default function DiagnosticsDashboard({ embedded = false }: DiagnosticsDa
                 </Card>
               </div>
             )}
-            // @ts-ignore -- bulk-silence
             {telemetryStats?.batchWriter.totalEvicted > 0 && (
               <Alert variant="destructive" data-testid="alert-evictions">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Buffer Evictions Detected</AlertTitle>
                 <AlertDescription>
-                  // @ts-ignore -- bulk-silence
                   {formatNumber(telemetryStats.batchWriter.totalEvicted)} readings were evicted (
-                  // @ts-ignore -- bulk-silence
                   {telemetryStats.health.evictionRate}% eviction rate). Consider increasing buffer
                   size or reducing ingestion rate.
                 </AlertDescription>
@@ -411,13 +407,11 @@ export default function DiagnosticsDashboard({ embedded = false }: DiagnosticsDa
           </TabsContent>
 
           <TabsContent value="tests" className="space-y-4">
-            // @ts-ignore -- bulk-silence
             {metrics?.memory.utilizationPercent > 70 && (
               <Alert data-testid="alert-memory-warning">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>High Memory Usage</AlertTitle>
                 <AlertDescription>
-                  // @ts-ignore -- bulk-silence
                   Memory usage is at {metrics.memory.utilizationPercent}%. Running tests may fail
                   due to insufficient memory. For reliable test execution, use the CI/CD pipeline or
                   run tests locally with:{" "}

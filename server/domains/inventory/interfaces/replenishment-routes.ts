@@ -7,7 +7,6 @@ import { workOrderDemandRepository } from "../infrastructure/work-order-demand-r
 
 export const replenishmentRouter = Router();
 
-// @ts-ignore -- bulk-silence
 const generalLimit = createRateLimiter("general");
 const service = new ReplenishmentSuggestionService(workOrderDemandRepository);
 

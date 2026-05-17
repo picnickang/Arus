@@ -115,7 +115,6 @@ export function registerSimulationRoutes(app: Express, deps: SystemAdminDependen
       );
 
       const { TelemetryStressTest } = await import("../../../vessel-simulator.js");
-      // @ts-ignore -- bulk-silence
       const stressTest = new TelemetryStressTest(telemetryWriter);
       const result = await stressTest.run(config);
 
@@ -158,7 +157,6 @@ export function registerSimulationRoutes(app: Express, deps: SystemAdminDependen
       try {
         fleetStressTest = getFleetStressTest();
       } catch {
-        // @ts-ignore -- bulk-silence
         fleetStressTest = initFleetStressTest(telemetryWriter);
       }
       const result = await fleetStressTest.run(config);

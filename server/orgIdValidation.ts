@@ -46,7 +46,6 @@ export function validateOrgIdHeader(req: Request, res: Response, next: NextFunct
 
   const normalized = requestedOrgId.trim();
   if (!validateOrgId(normalized)) {
-    // @ts-ignore -- bulk-silence
     return res.status(403).json({
       error: "Invalid organization context for single-tenant deployment",
       code: "ORG_CONTEXT_FORBIDDEN",

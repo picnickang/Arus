@@ -12,12 +12,10 @@ export class EventPublisherAdapter implements EventPublisherPort {
     data: Record<string, unknown>,
     userId?: string
   ) {
-    // @ts-ignore -- bulk-silence
     await recordAndPublish(entity, entityId, action, data, userId);
   }
 
   publishVesselMqtt(action: string, vessel: Vessel | { id: string }) {
-    // @ts-ignore -- bulk-silence
     mqttReliableSync.publishVesselChange(action, vessel).catch((err: unknown) => {
       logger.error("FleetRegistry", `Failed to publish vessel ${action} to MQTT`, err);
     });

@@ -106,7 +106,6 @@ export function useDeckLogbookData() {
         await apiRequest("PUT", "/api/logbook/deck/hourly/bulk", { entries: hourlyArray });
       }
       for (const [period, watch] of watchAssignments) {
-        // @ts-ignore -- bulk-silence
         if (watch.officerName || watch.helmName) {
           await apiRequest("PUT", "/api/logbook/deck/watch", {
             ...watch,
@@ -213,9 +212,7 @@ export function useDeckLogbookData() {
                 ? SEA_STATES[seaStateIndex]
                 : existingEntry.seaState,
             barometer: (fields.barometer as number) || existingEntry.barometer,
-            // @ts-ignore -- bulk-silence
             airTemp: (fields.airTemperature as number) || existingEntry.airTemp,
-            // @ts-ignore -- bulk-silence
             seaTemp: (fields.seaTemperature as number) || existingEntry.seaTemp,
             visibility:
               fields.visibility === undefined
@@ -223,7 +220,6 @@ export function useDeckLogbookData() {
                 : VISIBILITY_CODES.find((v) => v.includes(String(fields.visibility))) ||
                   existingEntry.visibility,
           };
-          // @ts-ignore -- bulk-silence
           newEntries.set(hour, updatedEntry);
           actualFillCount++;
         }
@@ -310,15 +306,10 @@ export function useDeckLogbookData() {
       exportDeckToPDF({
         vesselName: selectedVessel.name,
         date: selectedDate,
-        // @ts-ignore -- bulk-silence
         dailySummary,
-        // @ts-ignore -- bulk-silence
         hourlyEntries,
-        // @ts-ignore -- bulk-silence
         watchAssignments,
-        // @ts-ignore -- bulk-silence
         events: normalizeEventsForExport(events),
-        // @ts-ignore -- bulk-silence
         daily: deckLogComplete.daily,
         getEventTypeConfig,
       });
@@ -348,15 +339,10 @@ export function useDeckLogbookData() {
       exportDeckToExcel({
         vesselName: selectedVessel.name,
         date: selectedDate,
-        // @ts-ignore -- bulk-silence
         dailySummary,
-        // @ts-ignore -- bulk-silence
         hourlyEntries,
-        // @ts-ignore -- bulk-silence
         watchAssignments,
-        // @ts-ignore -- bulk-silence
         events: normalizeEventsForExport(events),
-        // @ts-ignore -- bulk-silence
         daily: deckLogComplete.daily,
         getEventTypeConfig,
       });

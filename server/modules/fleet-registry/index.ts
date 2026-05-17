@@ -22,7 +22,6 @@ export const fleetRegistryService = new FleetRegistryService(
   vesselRepo,
   portCallRepo,
   drydockRepo,
-  // @ts-ignore -- bulk-silence
   vesselOps,
   eventPublisher
 );

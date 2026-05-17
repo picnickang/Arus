@@ -63,7 +63,6 @@ export function registerSkillsRoutes({ app, rateLimit }: CrewRouteDeps): void {
         return;
       }
 
-      // @ts-ignore -- bulk-silence
       const crewSkill = await crewService.assignSkillToCrew(crewId, skillId, level, req.user?.id);
       sendCreated(res, crewSkill);
     })

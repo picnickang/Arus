@@ -49,7 +49,6 @@ export class AlertsService {
 
     // Publish events
     await recordAndPublish(
-      // @ts-ignore -- bulk-silence
       "alert_configuration",
       configuration.id,
       "create",
@@ -73,7 +72,6 @@ export class AlertsService {
 
     // Publish events
     await recordAndPublish(
-      // @ts-ignore -- bulk-silence
       "alert_configuration",
       configuration.id,
       "update",
@@ -96,7 +94,6 @@ export class AlertsService {
 
     // Publish delete event
     if (configuration) {
-      // @ts-ignore -- bulk-silence
       await recordAndPublish("alert_configuration", id, "delete", configuration, userId);
     }
   }
@@ -133,7 +130,6 @@ export class AlertsService {
 
     // Record event
     await recordAndPublish(
-      // @ts-ignore -- bulk-silence
       "alert_notification",
       alertNotification.id,
       "create",
@@ -167,7 +163,6 @@ export class AlertsService {
     }
 
     // Record event
-    // @ts-ignore -- bulk-silence
     await recordAndPublish("alert_notification", id, "update", notification, userId);
 
     return notification;
@@ -182,7 +177,6 @@ export class AlertsService {
     const comment = await alertsRepository.addComment(commentData);
 
     // Record event
-    // @ts-ignore -- bulk-silence
     await recordAndPublish("alert_comment", comment.id, "create", comment, userId);
 
     return comment;
@@ -213,7 +207,6 @@ export class AlertsService {
     }
 
     // Record event
-    // @ts-ignore -- bulk-silence
     await recordAndPublish("alert_suppression", suppression.id, "create", suppression, userId);
 
     return suppression;
@@ -239,7 +232,6 @@ export class AlertsService {
 
     // Publish delete event
     if (suppression) {
-      // @ts-ignore -- bulk-silence
       await recordAndPublish("alert_suppression", id, "delete", suppression, userId);
     }
   }
@@ -285,7 +277,6 @@ export class AlertsService {
 
     // Record escalation event
     await recordAndPublish(
-      // @ts-ignore -- bulk-silence
       "alert_notification",
       alertId,
       "escalate",
@@ -315,7 +306,6 @@ export class AlertsService {
     }
 
     // Record event
-    // @ts-ignore -- bulk-silence
     await recordAndPublish("alert_notification", "all", "delete", { action: "clear_all" }, userId);
   }
 }

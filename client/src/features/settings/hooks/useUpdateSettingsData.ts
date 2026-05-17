@@ -176,7 +176,6 @@ export function useGitHubReleasesData(channel: string) {
     error,
   } = useQuery<GitHubRelease[]>({
     queryKey: ["/api/admin/github-releases", channel],
-    // @ts-ignore -- bulk-silence
     queryFn: adminQueryFn(["/api/admin/github-releases", { channel }]),
   });
   return { releases, isLoading, error, expandedRelease, setExpandedRelease };

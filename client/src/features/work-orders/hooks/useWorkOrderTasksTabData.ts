@@ -54,7 +54,6 @@ export function useWorkOrderTasksTabData(workOrderId: string) {
   });
   const { data: workOrderTasks = [], isLoading: isLoadingTasks } = useQuery<ChecklistItem[]>({
     queryKey: [`/api/work-orders/${workOrderId}/tasks`],
-    // @ts-ignore -- bulk-silence
     queryFn: async () => {
       try {
         const response = await apiRequest("GET", `/api/work-orders/${workOrderId}/tasks`);
@@ -193,12 +192,10 @@ export function useWorkOrderTasksTabData(workOrderId: string) {
   const progress = checklistData?.progress;
   const templateCompletions = useMemo(() => checklistData?.completions ?? [], [checklistData]);
   const totalTasks = useMemo(
-    // @ts-ignore -- bulk-silence
     () => (progress?.totalItems || 0) + workOrderTasks.length,
     [progress, workOrderTasks]
   );
   const completedTasksCount = useMemo(
-    // @ts-ignore -- bulk-silence
     () => (progress?.completedItems || 0) + workOrderTasks.filter((t) => t.isCompleted).length,
     [progress, workOrderTasks]
   );

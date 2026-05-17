@@ -103,7 +103,6 @@ export class WorkOrderWorkflowService {
       await this.legacyCompletion.completeWorkOrder(
         workOrderId,
         {
-          // @ts-ignore -- bulk-silence
           workOrderId,
           orgId,
           equipmentId: wo.equipmentId,

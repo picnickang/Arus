@@ -38,7 +38,6 @@ export class VibrationAnalyzer {
       const anomalyDetection = detectAnomalies(fftResult);
       const healthScore = calculateHealthScore(fftResult, anomalyDetection);
 
-      // @ts-ignore -- bulk-silence
       const analysis: Omit<VibrationAnalysis, "id" | "createdAt"> = {
         orgId,
         equipmentId,

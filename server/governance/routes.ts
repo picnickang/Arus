@@ -12,7 +12,6 @@ import { getProvenanceEvents, verifyChain } from "./provenance.js";
 import type { DeploymentStage, ModelFamily } from "./types.js";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
-// @ts-ignore -- bulk-silence
 interface AuthenticatedRequest extends Request {
   user?: {
     id: string;

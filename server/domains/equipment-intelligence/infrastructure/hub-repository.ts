@@ -122,13 +122,11 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
     for (const ins of insights) {
       if (ins.supportingSignals) {
         try {
-          // @ts-ignore -- bulk-silence
           const parsed: unknown[] = JSON.parse(ins.supportingSignals);
           if (Array.isArray(parsed)) {
             signals.push(...parsed.map(parseSignalEntry));
           }
         } catch {
-          // @ts-ignore -- bulk-silence
           signals.push(ins.supportingSignals);
         }
       }
@@ -218,7 +216,6 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         createdAt: r.createdAt ? new Date(r.createdAt).toISOString().split("T")[0] : "",
       }));
     } catch (error) {
-      // @ts-ignore -- bulk-silence
       logger.warn("[EquipmentHub] Failed to fetch service orders", { error: String(error) });
       return [];
     }
@@ -248,7 +245,6 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         createdAt: r.createdAt ? new Date(r.createdAt).toISOString().split("T")[0] : "",
       }));
     } catch (error) {
-      // @ts-ignore -- bulk-silence
       logger.warn("[EquipmentHub] Failed to fetch diagnostic runs", { error: String(error) });
       return [];
     }
@@ -623,7 +619,6 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         .where(and(eq(pdmScoreLogs.orgId, orgId), eq(pdmScoreLogs.equipmentId, equipmentId)))
         .orderBy(pdmScoreLogs.ts)
         .limit(20);
-      // @ts-ignore -- bulk-silence
       return rows.map((r) => Math.round(r.healthIdx)).slice(-9);
     } catch {
       return [];

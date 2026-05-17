@@ -35,9 +35,7 @@ import {
 class EmailNotificationService {
   private getRecipients(setting: NotificationSetting): string[] {
     const recipients: string[] = [];
-    // @ts-ignore -- bulk-silence
     if (setting.recipientEmails) {
-      // @ts-ignore -- bulk-silence
       recipients.push(...(setting.recipientEmails as string[]));
     }
     return [...new Set(recipients)];
@@ -74,7 +72,6 @@ class EmailNotificationService {
     }
 
     for (const setting of applicableSettings) {
-      // @ts-ignore -- bulk-silence
       const recipients = this.getRecipients(setting);
       if (recipients.length === 0) {
         continue;
@@ -130,7 +127,6 @@ class EmailNotificationService {
     }
 
     for (const setting of applicableSettings) {
-      // @ts-ignore -- bulk-silence
       const recipients = this.getRecipients(setting);
       if (recipients.length === 0) {
         continue;
@@ -170,7 +166,6 @@ class EmailNotificationService {
     }
 
     for (const setting of applicableSettings) {
-      // @ts-ignore -- bulk-silence
       const recipients = this.getRecipients(setting);
       if (recipients.length === 0) {
         continue;

@@ -30,9 +30,7 @@ export class VesselDataAdapter implements IVesselDataPort {
       .select({
         id: vessels.id,
         name: vessels.name,
-        // @ts-ignore -- bulk-silence
         type: vessels.type,
-        // @ts-ignore -- bulk-silence
         status: vessels.status,
       })
       .from(vessels)

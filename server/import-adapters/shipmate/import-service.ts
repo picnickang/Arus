@@ -355,7 +355,6 @@ class ShipmateImportService {
         // Upsert each valid row within the same transaction.
         for (const row of validRows) {
           try {
-            // @ts-ignore -- bulk-silence
             const result = await this.upsertRow(tx, orgId, options.module, row.data);
             if (result === "inserted") {
               imported++;
@@ -762,7 +761,6 @@ class ShipmateImportService {
       try {
         await db
           .update(equipment)
-          // @ts-ignore -- bulk-silence
           .set({ runningHours: hours, updatedAt: new Date() })
           .where(and(eq(equipment.id, id), eq(equipment.orgId, orgId)));
         synced++;

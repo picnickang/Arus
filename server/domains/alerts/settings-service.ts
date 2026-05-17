@@ -173,12 +173,10 @@ export class AlertSettingsService {
     const updateData: Partial<InsertAlertSettings> = { ...rest };
 
     if (apiKey) {
-      // @ts-ignore -- bulk-silence
       updateData.apiKeyEncrypted = encryptSecret(apiKey);
     }
 
     if (smtpPassword) {
-      // @ts-ignore -- bulk-silence
       updateData.smtpEncryptedPassword = encryptSecret(smtpPassword);
     }
 
@@ -199,7 +197,6 @@ export class AlertSettingsService {
     const result = await emailProviderService.testConnection(config);
 
     await alertSettingsRepository.upsertOrgSettings(orgId, {
-      // @ts-ignore -- bulk-silence
       lastTestStatus: result.success ? "success" : "failed",
       lastTestAt: new Date(),
       lastTestError: result.error || null,
@@ -258,7 +255,6 @@ export class AlertSettingsService {
     });
 
     await alertSettingsRepository.upsertOrgSettings(orgId, {
-      // @ts-ignore -- bulk-silence
       lastTestStatus: result.success ? "success" : "failed",
       lastTestAt: new Date(),
       lastTestError: result.error || null,
@@ -374,7 +370,6 @@ export class AlertSettingsService {
     const settings = await alertSettingsRepository.getOrgSettings(orgId);
     const cooldownMinutes = settings?.defaultCooldownMinutes ?? 30;
 
-    // @ts-ignore -- bulk-silence
     const existing = await alertSettingsRepository.checkCooldown(
       orgId,
       alertType,
@@ -415,12 +410,10 @@ export class AlertSettingsService {
       alertType,
       alertKey,
       vesselId,
-      // @ts-ignore -- bulk-silence
       entityId
     );
 
     if (emailSent) {
-      // @ts-ignore -- bulk-silence
       await alertSettingsRepository.recordEmailSent(cooldown.id);
     }
   }

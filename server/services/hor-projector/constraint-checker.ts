@@ -164,7 +164,6 @@ export async function canAssignCrew(
   let storedAssignments: DraftAssignment[] = [];
   try {
     const allStoredAssignments = await dbCrewStorage.getCrewAssignments("" as any, {});
-    // @ts-ignore -- bulk-silence
     storedAssignments = allStoredAssignments
       .filter((a) => a.crewId === crewId && a.id !== proposedAssignment.id)
       .filter((a) => {
@@ -178,9 +177,7 @@ export async function canAssignCrew(
         vesselId: a.vesselId,
         start: a.start,
         end: a.end,
-        // @ts-ignore -- bulk-silence
         shiftName: a.shiftName,
-        // @ts-ignore -- bulk-silence
         position: a.position,
       }));
   } catch (error) {

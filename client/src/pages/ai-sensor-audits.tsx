@@ -318,7 +318,6 @@ export default function AISensorAudits() {
                     <h3 className="font-semibold mb-2">Model Performance</h3>
                     <div className="grid grid-cols-3 gap-4">
                       {Object.entries(selectedAudit.modelPerformance).map(
-                        // @ts-ignore -- bulk-silence
                         ([model, perf]: [string, { accuracy: string; trainingTimeMs: number }]) => (
                           <Card key={model}>
                             <CardHeader className="pb-2">
@@ -343,9 +342,7 @@ export default function AISensorAudits() {
                     <div className="space-y-2">
                       {selectedAudit.featureRankings.map((ranking, i) => (
                         <div key={i} className="flex items-center justify-between">
-                          {/* @ts-ignore */}
                           <span className="text-sm">{ranking.sensor}</span>
-                          {/* @ts-ignore */}
                           <Badge variant="outline">{ranking.confidence.toFixed(1)}%</Badge>
                         </div>
                       ))}

@@ -444,7 +444,6 @@ export default function RmsMonitoringPage() {
             bunkerings={bunkerings}
             consumption={consumption}
             tanks={tanks}
-            // @ts-ignore -- bulk-silence
             rob={rob}
             alertsLoading={alertsLoading}
             acknowledgeMutation={acknowledgeMutation}

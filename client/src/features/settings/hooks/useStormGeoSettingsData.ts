@@ -39,7 +39,6 @@ export interface ImportHistory {
 }
 
 export function useStormGeoSettingsData(vesselId?: string) {
-  // @ts-ignore -- bulk-silence
   const { orgId } = useOrganization();
   const { toast } = useToast();
   const _queryClient = useQueryClient();
@@ -121,7 +120,6 @@ export function useStormGeoSettingsData(vesselId?: string) {
     },
   });
   const importMutation = useMutation({
-    // @ts-ignore -- bulk-silence
     mutationFn: async ({
       vesselId,
       fileContent,

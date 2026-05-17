@@ -96,7 +96,6 @@ export function useEngineLogbookData() {
     if (engineLogComplete) {
       const newHourlyMap = new Map<number, Partial<EngineLogHourly>>();
       engineLogComplete.hourly.forEach((entry) =>
-        // @ts-ignore -- bulk-silence
         newHourlyMap.set(entry.hour, normalizeHourlyEntry(entry))
       );
       setHourlyEntries(newHourlyMap);
@@ -219,7 +218,6 @@ export function useEngineLogbookData() {
       if (!selectedVesselId || !selectedDate) {
         throw new Error("Vessel and date required");
       }
-      // @ts-ignore -- bulk-silence
       return apiRequest("POST", "/api/logbook/engine/autofill", {
         vesselId: selectedVesselId,
         logDate: selectedDate,

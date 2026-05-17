@@ -141,7 +141,6 @@ export function registerAutofillRoutes(app: Express, rateLimit: RateLimiters) {
           await emailNotificationService.sendLogbookReminderNotification(
             "engine",
             log.vesselId,
-            // @ts-ignore -- bulk-silence
             log.vesselName,
             log.logDate,
             orgId

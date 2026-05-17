@@ -55,7 +55,6 @@ export function calculateEngineEfficiency(
   return {
     success: true,
     data: efficiency,
-    // @ts-ignore -- bulk-silence
     source: countersSource,
     responseTimeMs: 0,
   };

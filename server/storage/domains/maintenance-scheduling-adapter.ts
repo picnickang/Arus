@@ -270,7 +270,6 @@ abstract class BaseMaintenanceSchedulingAdapter implements IMaintenanceSchedulin
     if (urgencyScore >= 50) {
       return this.createScheduledPredictiveDecision(equipmentId, equipmentType, pdmScore);
     }
-    // @ts-ignore -- bulk-silence
     if (urgencyScore >= 30 && this.shouldSchedulePreventive(lifecycle, records)) {
       return this.createPreventiveDecision(equipmentId, equipmentType, pdmScore);
     }
@@ -357,7 +356,6 @@ abstract class BaseMaintenanceSchedulingAdapter implements IMaintenanceSchedulin
     }
     const decision = await this.calculateMaintenanceSchedulingDecision(equipmentId, pdmScore);
     if (decision.shouldSchedule) {
-      // @ts-ignore -- bulk-silence
       return this.deps.createSchedule({
         equipmentId,
         scheduledDate: decision.scheduledDate,

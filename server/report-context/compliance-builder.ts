@@ -45,7 +45,6 @@ export async function buildComplianceContext(
     vessels = await vesselService.getVessels();
     crew = await dbCrewStorage.getCrew();
     certifications = await getCrewCertifications(crew.map((c) => c.id));
-    // @ts-ignore -- bulk-silence
     restSheets = await dbStcwStorage.getCrewRestRange();
     complianceLogs = await getComplianceLogs(start, end);
   }
@@ -53,9 +52,7 @@ export async function buildComplianceContext(
   const workOrders = await workOrderService.getWorkOrdersWithDetails();
   const filteredOrders = workOrders.filter(
     (wo) =>
-      // @ts-ignore -- bulk-silence
       new Date(wo.createdAt) >= start &&
-      // @ts-ignore -- bulk-silence
       new Date(wo.createdAt) <= end &&
       (vesselId ? wo.vesselId === vesselId : true)
   );

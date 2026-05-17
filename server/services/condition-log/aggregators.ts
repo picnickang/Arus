@@ -75,17 +75,11 @@ export async function aggregateConditionData(
 ): Promise<ConditionAggregation> {
   const data = await db
     .select({
-      // @ts-ignore -- bulk-silence
       anomalyScoreAvg: sql<number>`avg(${conditionMonitoring.mlAnomalyScore})`,
-      // @ts-ignore -- bulk-silence
       anomalyScoreMax: sql<number>`max(${conditionMonitoring.mlAnomalyScore})`,
-      // @ts-ignore -- bulk-silence
       healthIndex: sql<number>`avg(${conditionMonitoring.healthIndex})`,
-      // @ts-ignore -- bulk-silence
       tempAvg: sql<number>`avg(${conditionMonitoring.temperature})`,
-      // @ts-ignore -- bulk-silence
       tempMax: sql<number>`max(${conditionMonitoring.temperature})`,
-      // @ts-ignore -- bulk-silence
       tempMin: sql<number>`min(${conditionMonitoring.temperature})`,
       dataPoints: sql<number>`count(*)`,
     })
@@ -94,9 +88,7 @@ export async function aggregateConditionData(
       and(
         eq(conditionMonitoring.orgId, orgId),
         eq(conditionMonitoring.equipmentId, equipmentId),
-        // @ts-ignore -- bulk-silence
         gte(conditionMonitoring.timestamp, periodStart),
-        // @ts-ignore -- bulk-silence
         lte(conditionMonitoring.timestamp, periodEnd)
       )
     );
@@ -136,7 +128,6 @@ export async function getMonitoredEquipment(vesselId: string) {
     .where(
       and(
         eq(equipment.vesselId, vesselId),
-        // @ts-ignore -- bulk-silence
         eq(equipment.status, "operational"),
         sql`${equipment.category} IN ('propulsion', 'auxiliary', 'deck_machinery')`
       )

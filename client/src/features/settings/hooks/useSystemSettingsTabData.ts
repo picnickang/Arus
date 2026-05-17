@@ -35,7 +35,6 @@ export function useSystemSettingsTabData() {
     error,
   } = useQuery({
     queryKey: systemSettingsKeys.all,
-    // @ts-ignore -- bulk-silence
     queryFn: adminQueryFn(systemSettingsKeys.all),
   });
 

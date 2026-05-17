@@ -260,9 +260,7 @@ export function sortCrew(
         compareB = b.name.toLowerCase();
         break;
       case "rank":
-        // @ts-ignore -- bulk-silence
         compareA = MARITIME_RANKS.indexOf(a.rank);
-        // @ts-ignore -- bulk-silence
         compareB = MARITIME_RANKS.indexOf(b.rank);
         break;
       case "vessel":

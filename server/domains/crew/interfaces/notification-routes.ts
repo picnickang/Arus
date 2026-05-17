@@ -74,7 +74,6 @@ export function registerNotificationRoutes({ app, rateLimit }: CrewRouteDeps): v
         crewId,
         orgId,
         settingsData,
-        // @ts-ignore -- bulk-silence
         req.user?.id
       );
 

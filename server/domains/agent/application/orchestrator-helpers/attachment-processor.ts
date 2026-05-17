@@ -47,7 +47,6 @@ export async function processAttachments(
     } else if (att.mimetype === "application/pdf") {
       try {
         const pdfBuffer = fs.readFileSync(att.path);
-        // @ts-ignore -- bulk-silence
         const pdfParse = (await import("pdf-parse")).default;
         const pdfData = await pdfParse(pdfBuffer);
         const text = pdfData.text.slice(0, 12000);

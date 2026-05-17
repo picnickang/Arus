@@ -112,15 +112,12 @@ export function useOperationsModeData() {
   });
   const { data: pdmScores = [] } = useQuery<PdmScoreData[]>({
     queryKey: ["/api/pdm/scores"],
-    // @ts-ignore -- bulk-silence
     queryFn: () => fetchPdmScores(),
     refetchInterval: 120000,
     staleTime: 60000,
   });
 
-  // @ts-ignore -- bulk-silence
   const equipmentHealth: EquipmentHealthData[] = equipmentHealthResponse?.results ?? [];
-  // @ts-ignore -- bulk-silence
   const anomalies: AnomalyData[] = anomaliesResponse?.results ?? [];
   const failurePredictions: FailurePredictionData[] = failurePredictionsResponse?.results ?? [];
 
@@ -158,12 +155,9 @@ export function useOperationsModeData() {
       equipmentHealth
         .map((eq) => {
           const eqScores = pdmScores
-            // @ts-ignore -- bulk-silence
             .filter((s: (typeof pdmScores)[number]) => s.equipmentId === eq.id)
             .sort(
-              // @ts-ignore -- bulk-silence
               (a: (typeof pdmScores)[number], b: (typeof pdmScores)[number]) =>
-                // @ts-ignore -- bulk-silence
                 new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
             )
             .slice(0, 10);

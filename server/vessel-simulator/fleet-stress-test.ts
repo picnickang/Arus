@@ -164,7 +164,6 @@ export class FleetStressTest {
                   sensorType: reading.sensorType,
                   value: reading.value,
                   timestamp: reading.timestamp,
-                  // @ts-ignore -- bulk-silence
                   metadata: reading.metadata,
                 });
               }

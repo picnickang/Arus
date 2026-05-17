@@ -63,7 +63,6 @@ export async function fetchKBKnowledge(
             id: kbDocs.id,
             name: kbDocs.name,
             equipmentId: kbDocs.equipmentId,
-            // @ts-ignore -- bulk-silence
             extractedText: kbDocs.extractedText,
           })
           .from(kbDocs)
@@ -76,7 +75,6 @@ export async function fetchKBKnowledge(
 
     let semanticResults: SearchResult[] = [];
     try {
-      // @ts-ignore -- bulk-silence
       semanticResults = await searchKnowledgeBase({
         query: searchQuery,
         orgId,
@@ -102,7 +100,6 @@ export async function fetchKBKnowledge(
 
     return {
       documents,
-      // @ts-ignore -- bulk-silence
       semanticMatches,
     };
   } catch (error) {
@@ -137,7 +134,6 @@ export function buildCitations(
   });
 
   const criticalOrders = workOrders
-    // @ts-ignore -- bulk-silence
     .filter((wo) => wo.priority === "critical" || wo.priority === "urgent")
     .slice(0, 3);
 
@@ -145,7 +141,6 @@ export function buildCitations(
     citations.push({
       sourceType: "work_order",
       sourceId: order.id,
-      // @ts-ignore -- bulk-silence
       title: order.title,
       relevance: Math.max(0.6, 0.9 - index * 0.1),
     });
@@ -158,9 +153,7 @@ export function determinePriority(
   workOrders: WorkOrder[],
   alerts: any[]
 ): "low" | "medium" | "high" | "critical" {
-  // @ts-ignore -- bulk-silence
   const criticalOrders = workOrders.filter((wo) => wo.priority === "critical").length;
-  // @ts-ignore -- bulk-silence
   const urgentOrders = workOrders.filter((wo) => wo.priority === "urgent").length;
   const criticalAlerts = alerts.filter((a) => a.severity === "critical").length;
 

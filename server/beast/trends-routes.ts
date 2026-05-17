@@ -166,7 +166,6 @@ router.get("/trends/correlations/:equipmentId", async (req, res) => {
         });
     }
     logger.info(`[Beast Mode API] Sensor correlations for ${equipmentId} over ${hours}h`);
-    // @ts-ignore -- bulk-silence
     const correlations = await enhancedTrendsAnalyzer.analyzeSensorCorrelations(
       orgId,
       equipmentId,
@@ -187,9 +186,7 @@ router.get("/trends/correlations/:equipmentId", async (req, res) => {
           sensor1: c.sensor1,
           sensor2: c.sensor2,
           correlation: c.correlation,
-          // @ts-ignore -- bulk-silence
           strength: c.strength,
-          // @ts-ignore -- bulk-silence
           interpretation: c.interpretation,
         })),
       },

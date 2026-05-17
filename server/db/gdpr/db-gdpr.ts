@@ -30,7 +30,6 @@ export class DatabaseGdprStorage {
     }
     let query = db.select().from(dataSubjectRequests);
     if (conditions.length > 0) {
-      // @ts-ignore -- bulk-silence
       query = query.where(and(...conditions));
     }
     return query.orderBy(sql`${dataSubjectRequests.createdAt} DESC`);
@@ -72,7 +71,6 @@ export class DatabaseGdprStorage {
       .update(dataSubjectRequests)
       .set({
         status: "completed",
-        // @ts-ignore -- bulk-silence
         processedBy,
         processedAt: new Date(),
         result,
@@ -89,7 +87,6 @@ export class DatabaseGdprStorage {
     return db
       .select()
       .from(dataSubjectRequests)
-      // @ts-ignore -- bulk-silence
       .where(eq(dataSubjectRequests.subjectEmail, email))
       .orderBy(sql`${dataSubjectRequests.createdAt} DESC`);
   }
@@ -284,12 +281,10 @@ export class DatabaseGdprStorage {
       conditions.push(eq(engineerOverrides.overrideType, overrideType));
     }
     if (isActive !== undefined) {
-      // @ts-ignore -- bulk-silence
       conditions.push(eq(engineerOverrides.isActive, isActive));
     }
     let query = db.select().from(engineerOverrides);
     if (conditions.length > 0) {
-      // @ts-ignore -- bulk-silence
       query = query.where(and(...conditions));
     }
     return query.orderBy(sql`${engineerOverrides.createdAt} DESC`);
@@ -308,7 +303,6 @@ export class DatabaseGdprStorage {
   ): Promise<EngineerOverride> {
     const [u] = await db
       .update(engineerOverrides)
-      // @ts-ignore -- bulk-silence
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(engineerOverrides.id, id))
       .returning();
@@ -325,7 +319,6 @@ export class DatabaseGdprStorage {
       .select()
       .from(engineerOverrides)
       .where(
-        // @ts-ignore -- bulk-silence
         and(eq(engineerOverrides.equipmentId, equipmentId), eq(engineerOverrides.isActive, true))
       )
       .orderBy(sql`${engineerOverrides.createdAt} DESC`);
@@ -333,7 +326,6 @@ export class DatabaseGdprStorage {
   async deactivateOverride(id: string, deactivatedBy: string): Promise<EngineerOverride> {
     const [u] = await db
       .update(engineerOverrides)
-      // @ts-ignore -- bulk-silence
       .set({ isActive: false, deactivatedBy, deactivatedAt: new Date(), updatedAt: new Date() })
       .where(eq(engineerOverrides.id, id))
       .returning();

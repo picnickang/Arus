@@ -31,7 +31,6 @@ export class TelemetryAdapter implements TelemetryPort {
         .orderBy(desc(equipmentTelemetry.ts))
         .limit(5000);
     } catch (error: any) {
-      // @ts-ignore -- bulk-silence
       logger.warn("[TelemetryAdapter] Failed to query telemetry, returning empty", {
         error: error.message,
       });

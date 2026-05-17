@@ -235,7 +235,6 @@ export async function processPendingEvents(limit: number = 100): Promise<number>
           .set({
             processed: true,
             processedAt: new Date(),
-            // @ts-ignore -- bulk-silence
             processingAttempts: event.processingAttempts + 1,
           })
           .where(eq(syncOutbox.id, event.id));
@@ -247,7 +246,6 @@ export async function processPendingEvents(limit: number = 100): Promise<number>
         // Increment processing attempts
         await db
           .update(syncOutbox)
-          // @ts-ignore -- bulk-silence
           .set({ processingAttempts: event.processingAttempts + 1 })
           .where(eq(syncOutbox.id, event.id));
       }

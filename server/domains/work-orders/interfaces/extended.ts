@@ -132,7 +132,6 @@ export function registerExtendedRoutes(app: Express, rateLimit: RateLimitMiddlew
         requestNumber,
         requestedBy: userId,
         vesselId: workOrder.vesselId,
-        // @ts-ignore -- bulk-silence
         supplierId: supplierId || undefined,
         notes: notes || undefined,
         requiredByDate: requestedDeliveryDate ? new Date(requestedDeliveryDate) : undefined,

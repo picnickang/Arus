@@ -29,7 +29,6 @@ export function registerJobProcessors(): void {
   jobQueue.registerProcessor(JOB_TYPES.TELEMETRY_PROCESSING, processTelemetryProcessing);
 
   jobQueue.registerProcessor(
-    // @ts-ignore -- bulk-silence
     JOB_TYPES.INSIGHTS_SNAPSHOT_GENERATION,
     processInsightsSnapshotGeneration
   );

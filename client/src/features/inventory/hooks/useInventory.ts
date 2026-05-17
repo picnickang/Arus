@@ -47,7 +47,6 @@ export function useInventoryParts(vesselId?: string) {
         "GET",
         `/api/parts-inventory${vesselId ? `?vesselId=${vesselId}` : ""}`
       );
-      // @ts-ignore -- bulk-silence
       return Array.isArray(response) ? response : (response?.items ?? []);
     },
   });

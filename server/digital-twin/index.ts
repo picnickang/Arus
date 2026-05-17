@@ -79,7 +79,6 @@ export class DigitalTwinService extends EventEmitter {
     };
     const digitalTwin = await db
       .insert(digitalTwins)
-      // @ts-ignore -- bulk-silence
       .values({
         vesselId,
         twinType,
@@ -420,17 +419,13 @@ export class DigitalTwinService extends EventEmitter {
       const daysInService = twin.lastUpdate
         ? Math.floor((Date.now() - new Date(twin.lastUpdate).getTime()) / 86400000)
         : 30;
-      // @ts-ignore -- bulk-silence
       const prediction = predictFuelConsumption(state, characteristics, conditions, daysInService);
       const updatedState = {
         ...((twin.currentState as any) ?? {}),
         fuel: {
           ...((twin.currentState as any)?.fuel ?? {}),
-          // @ts-ignore -- bulk-silence
           predictedRate: prediction.predictedFuelRate,
-          // @ts-ignore -- bulk-silence
           efficiency: prediction.efficiency,
-          // @ts-ignore -- bulk-silence
           confidence: prediction.confidence,
           lastUpdated: new Date().toISOString(),
         },
@@ -439,12 +434,10 @@ export class DigitalTwinService extends EventEmitter {
         .update(digitalTwins)
         .set({
           currentState: updatedState,
-          // @ts-ignore -- bulk-silence
           fuelEfficiency: prediction.efficiency.toString(),
           lastUpdate: new Date(),
         })
         .where(eq(digitalTwins.id, twinId));
-      // @ts-ignore -- bulk-silence
       logger.info(`[DigitalTwin] Updated fuel efficiency for ${twinId}: ${prediction.efficiency.toFixed(1)}%`);
     } catch (error) {
       logger.error(`[DigitalTwin] Failed to update fuel efficiency:`, undefined, error);

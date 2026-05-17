@@ -202,7 +202,6 @@ export function mountHealthMetricsRoutes(router: Router) {
           const orgEquipmentIds = new Set(healthData.map((eq) => eq.id));
           const allAlerts = rawAlerts.filter((a) => orgEquipmentIds.has(a.equipmentId));
           const results = healthData.map((eq) =>
-            // @ts-ignore -- bulk-silence
             mapEquipmentToHealthResult(eq, allWorkOrders, allAlerts, vesselMap)
           );
           return {
@@ -246,7 +245,6 @@ export function mountHealthMetricsRoutes(router: Router) {
           const orgPdmScores = pdmScores.filter(
             (s) => equipmentMap.get(s.equipmentId)?.orgId === orgId
           );
-          // @ts-ignore -- bulk-silence
           const results = orgPdmScores.map((score) => mapPdmScoreToRulResult(score, equipmentMap));
           return {
             results,

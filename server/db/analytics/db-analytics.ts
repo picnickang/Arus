@@ -73,7 +73,6 @@ export class DatabaseAnalyticsStorage {
       conditions.push(gte(maintenanceCosts.createdAt, dateFrom));
     }
     if (dateTo) {
-      // @ts-ignore -- bulk-silence
       conditions.push(gte(dateTo, maintenanceCosts.createdAt));
     }
     let query = db.select().from(maintenanceCosts);
@@ -335,7 +334,6 @@ export class DatabaseAnalyticsStorage {
       c.push(gte(expenses.expenseDate, dateFrom));
     }
     if (dateTo) {
-      // @ts-ignore -- bulk-silence
       c.push(gte(dateTo, expenses.expenseDate));
     }
     let query = db.select().from(expenses);
@@ -442,7 +440,6 @@ export class DatabaseAnalyticsStorage {
       conditions.push(gte(performanceMetrics.metricDate, dateFrom));
     }
     if (dateTo) {
-      // @ts-ignore -- bulk-silence
       conditions.push(gte(dateTo, performanceMetrics.metricDate));
     }
     let query = db.select().from(performanceMetrics);

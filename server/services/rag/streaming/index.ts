@@ -139,7 +139,6 @@ export class StreamingService {
       this.sendSSE(res, doneChunk);
       onChunk?.(doneChunk);
 
-      // @ts-ignore -- bulk-silence
       ragMetrics.recordQueryLatency(latencyMs / 1000);
 
       res.end();

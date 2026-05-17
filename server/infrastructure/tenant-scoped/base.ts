@@ -23,7 +23,6 @@ export abstract class TenantScopedRepository {
    * Immutable organization ID
    * Set in constructor and cannot be modified
    */
-  // @ts-ignore -- bulk-silence
   protected readonly orgId: string;
 
   /**

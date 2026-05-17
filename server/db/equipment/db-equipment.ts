@@ -87,7 +87,6 @@ export class DatabaseEquipmentStorage {
       .values({
         ...equipmentData,
         vesselName,
-        // @ts-ignore -- bulk-silence
         id: equipmentData.id || randomUUID(),
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -95,7 +94,6 @@ export class DatabaseEquipmentStorage {
       .returning();
     try {
       const { equipmentAnalyticsService } = await import("../../equipment-analytics-service.js");
-      // @ts-ignore -- bulk-silence
       await equipmentAnalyticsService.setupEquipmentAnalytics(newEquipment);
     } catch (error) {
       logger.error(`Failed to setup analytics for new equipment ${newEquipment.id}:`, undefined, error);
@@ -131,7 +129,6 @@ export class DatabaseEquipmentStorage {
           logger.warn(`Failed to lookup vessel name for ID ${equipmentData.vesselId}:`, { details: error });
         }
       } else {
-        // @ts-ignore -- bulk-silence
         updateData.vesselName = null;
       }
     }
@@ -167,22 +164,18 @@ export class DatabaseEquipmentStorage {
       await tx.delete(sensorConfigurations).where(eq(sensorConfigurations.equipmentId, id));
       await tx.delete(sensorStates).where(eq(sensorStates.equipmentId, id));
       await tx.delete(equipmentTelemetryTable).where(eq(equipmentTelemetryTable.equipmentId, id));
-      // @ts-ignore -- bulk-silence
       await tx.delete(rawTelemetry).where(eq(rawTelemetry.equipmentId, id));
       await tx.delete(pdmScoreLogsTable).where(eq(pdmScoreLogsTable.equipmentId, id));
       await tx.delete(anomalyDetections).where(eq(anomalyDetections.equipmentId, id));
       await tx.delete(failurePredictions).where(eq(failurePredictions.equipmentId, id));
       await tx.delete(vibrationFeatures).where(eq(vibrationFeatures.equipmentId, id));
       await tx.delete(vibrationAnalysis).where(eq(vibrationAnalysis.equipmentId, id));
-      // @ts-ignore -- bulk-silence
       await tx.delete(twinSimulations).where(eq(twinSimulations.equipmentId, id));
       await tx.delete(conditionMonitoring).where(eq(conditionMonitoring.equipmentId, id));
       await tx.delete(oilAnalysis).where(eq(oilAnalysis.equipmentId, id));
       await tx.delete(wearParticleAnalysis).where(eq(wearParticleAnalysis.equipmentId, id));
       await tx.delete(dtcFaults).where(eq(dtcFaults.equipmentId, id));
-      // @ts-ignore -- bulk-silence
       await tx.delete(insightReports).where(eq(insightReports.equipmentId, id));
-      // @ts-ignore -- bulk-silence
       await tx.delete(insightSnapshots).where(eq(insightSnapshots.equipmentId, id));
       const [deleted] = await tx
         .delete(equipment)
@@ -294,7 +287,6 @@ export class DatabaseEquipmentStorage {
     }
     const [n] = await db
       .insert(equipmentLifecycle)
-      // @ts-ignore -- bulk-silence
       .values({
         id: randomUUID(),
         equipmentId,
@@ -311,7 +303,6 @@ export class DatabaseEquipmentStorage {
     return db
       .select()
       .from(equipmentLifecycle)
-      // @ts-ignore -- bulk-silence
       .where(lte(equipmentLifecycle.estimatedEndOfLife, sixMonthsFromNow));
   }
 
@@ -345,7 +336,6 @@ export class DatabaseEquipmentStorage {
       .from(equipment)
       .where(and(...conditions))
       .orderBy(equipment.name);
-    // @ts-ignore -- bulk-silence
     return results.map((e) => ({
       id: e.id,
       name: e.name,
@@ -362,7 +352,6 @@ export class DatabaseEquipmentStorage {
     return db
       .select()
       .from(equipment)
-      // @ts-ignore -- bulk-silence
       .where(and(eq(equipment.orgId, orgId), sql`${partId} = ANY(${equipment.compatibleParts})`));
   }
   async getEquipmentWithSensorIssues(__orgId: string, _options?: any): Promise<any[]> {

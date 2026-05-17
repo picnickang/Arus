@@ -14,14 +14,12 @@ export async function aggregateTelemetryForPeriod(
   periodEnd: Date
 ): Promise<TelemetryPeriod | null> {
   const engineEquipment = await db
-    // @ts-ignore -- bulk-silence
     .select({ id: equipment.id, installedPower: equipment.installedPower })
     .from(equipment)
     .where(
       and(
         eq(equipment.vesselId, vesselId),
         eq(equipment.category, "propulsion"),
-        // @ts-ignore -- bulk-silence
         eq(equipment.status, "operational")
       )
     );

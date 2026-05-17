@@ -36,7 +36,6 @@ export type BriefingHandler = (
 ) => Promise<{ briefingId: string }>;
 
 export class SchedulerService {
-  // @ts-ignore -- bulk-silence
   private cronJobs: Map<string, cron.ScheduledTask> = new Map();
   private briefingHandler: BriefingHandler | null = null;
 

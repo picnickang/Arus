@@ -260,14 +260,12 @@ export function useWorkOrdersPageData() {
         `Are you sure you want to clear ALL work orders? This action cannot be undone and will remove ${workOrders?.length || 0} work orders.`
       )
     ) {
-      // @ts-ignore -- bulk-silence
       clearAllMutation.mutate();
     }
   };
   const handleFormSubmit = (formData: WorkOrderFormData) => {
     if (formDialogMode === "create") {
       const { templateId, ...restData } = formData;
-      // @ts-ignore -- bulk-silence
       const payload: InsertWorkOrder = { ...restData, orgId: getCurrentOrgId() };
       createMutation.mutate({ payload, templateId });
     } else if (selectedOrder) {
