@@ -16,6 +16,7 @@ import {
   dbAlertStorage,
   vesselService,
 } from "../../../repositories";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 export function registerLlmAnalysisRoutes(
   app: Express,
@@ -66,7 +67,7 @@ export function registerLlmAnalysisRoutes(
       const { analyzeFleetHealth } = await import("../../../openai");
 
       const [equipmentHealth, telemetryTrends] = await Promise.all([
-        dbEquipmentStorage.getEquipmentHealth(),
+        dbEquipmentStorage.getEquipmentHealth(DEFAULT_ORG_ID),
         dbTelemetryStorage.getTelemetryTrends(undefined, hours),
       ]);
 
@@ -118,7 +119,7 @@ export function registerLlmAnalysisRoutes(
 
       const [device, equipmentHealth, alerts, telemetryTrends, pdmScore] = await Promise.all([
         dbDevicesStorage.getDevice(equipmentId),
-        dbEquipmentStorage.getEquipmentHealth(),
+        dbEquipmentStorage.getEquipmentHealth(DEFAULT_ORG_ID),
         dbAlertStorage.getAlertNotifications(),
         dbTelemetryStorage.getTelemetryTrends(equipmentId, Number.parseInt(hours as string)),
         dbDevicesStorage.getLatestPdmScore(equipmentId),
@@ -134,7 +135,7 @@ export function registerLlmAnalysisRoutes(
         });
       }
 
-      const analysis = await analyzeEquipmentHealth(telemetryTrends, equipmentId, device?.type);
+      const analysis = await analyzeEquipmentHealth(telemetryTrends, equipmentId, device?.deviceType ?? undefined);
 
       let alertRecommendations: any[] = [];
       if (includeRecommendations === "true" && recentAlerts.length > 0) {
@@ -150,7 +151,7 @@ export function registerLlmAnalysisRoutes(
             "combined_analysis",
             equipmentId,
             { recentAlerts: combinedAlertContext },
-            device?.type
+            device?.deviceType ?? undefined
           );
           alertRecommendations = [combinedRecommendation];
         } catch (error) {
@@ -201,22 +202,25 @@ export function registerLlmAnalysisRoutes(
 
       const [equipment, alerts, telemetry, pdmScores] = await Promise.all([
         dbEquipmentStorage
-          .getEquipmentHealth()
-          .then((all) => all.filter((e) => e.vessel === vesselId)),
+          .getEquipmentHealth(DEFAULT_ORG_ID)
+          .then((all) => all.filter((e) => (e as unknown as { vessel?: string }).vessel === vesselId)),
         dbAlertStorage
           .getAlertNotifications()
           .then((all) => all.filter((a) => a.vesselId === vesselId).slice(0, 20)),
         dbTelemetryStorage.getLatestTelemetryReadings(undefined, 500, vesselId).catch(() => []),
         dbDevicesStorage
           .getPdmScores()
-          .then((scores) => scores.filter((s) => s.vessel === vesselId)),
+          .then((scores) => scores.filter((s) => (s as unknown as { vessel?: string }).vessel === vesselId)),
       ]);
 
+      const vesselExtra = vessel as unknown as { type?: string; operational_status?: string };
+      const alertsExtra = alerts as unknown as Array<{ severity?: string; status?: string }>;
+      const pdmExtra = pdmScores as unknown as Array<{ anomalyScore?: number; failureProbability?: number }>;
       const intelligence = {
         vesselName: vessel.name,
         vesselId: vessel.id,
-        vesselType: vessel.type,
-        operationalStatus: vessel.operational_status || "active",
+        vesselType: vesselExtra.type ?? vessel.vesselType,
+        operationalStatus: vesselExtra.operational_status || "active",
         totalEquipment: equipment.length,
         healthyEquipment: equipment.filter((e) => (e.healthIndex || 0) > 70).length,
         atRiskEquipment: equipment.filter((e) => {
@@ -225,19 +229,19 @@ export function registerLlmAnalysisRoutes(
         }).length,
         criticalEquipment: equipment.filter((e) => (e.healthIndex || 0) < 30).length,
         totalAlerts: alerts.length,
-        criticalAlerts: alerts.filter((a) => a.severity === "critical").length,
-        unresolvedAlerts: alerts.filter((a) => a.status !== "resolved").length,
+        criticalAlerts: alertsExtra.filter((a) => a.severity === "critical").length,
+        unresolvedAlerts: alertsExtra.filter((a) => a.status !== "resolved").length,
         averagePdmScore:
           pdmScores.length > 0
-            ? pdmScores.reduce((sum, s) => sum + (s.anomalyScore || 0), 0) / pdmScores.length
+            ? pdmExtra.reduce((sum, s) => sum + (s.anomalyScore || 0), 0) / pdmScores.length
             : null,
-        failurePredictions: pdmScores.filter((s) => (s.failureProbability || 0) > 0.5).length,
+        failurePredictions: pdmExtra.filter((s) => (s.failureProbability || 0) > 0.5).length,
         recentTelemetryPoints: telemetry.length,
         dataFreshness:
           telemetry.length > 0 && telemetry[0].timestamp
             ? new Date(telemetry[0].timestamp).toISOString()
             : null,
-        topIssues: alerts
+        topIssues: alertsExtra
           .filter((a) => a.status !== "resolved")
           .sort((a, b) => {
             const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };

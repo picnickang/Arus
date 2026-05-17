@@ -20,6 +20,15 @@ export interface AuthenticatedRequest extends Request {
     name?: string;
     isActive: boolean;
   };
+  session?: {
+    user?: {
+      id: string;
+      email?: string;
+      role?: string;
+      name?: string;
+    };
+    [key: string]: unknown;
+  };
 }
 
 /**

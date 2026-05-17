@@ -3,7 +3,7 @@
  * Part of IStorage modularization for improved maintainability
  */
 
-import type { Part, PartsInventory, InsertPartsInventory, Equipment } from "@shared/schema";
+import type { Part, PartsInventory, InsertPartsInventory, Equipment, Stock } from "@shared/schema";
 
 /**
  * Inventory storage operations for parts management
@@ -101,17 +101,12 @@ export interface IInventoryStorage {
     orgId?: string
   ): Promise<void>;
   cancelReservation(workOrderId: string, orgId?: string): Promise<void>;
-  suggestPartSubstitutions(
-    partId: string,
-    quantityRequired: number,
-    orgId?: string
-  ): Promise<
-    Array<{
-      partId: string;
-      partNumber: string;
-      description: string;
-      quantityAvailable: number;
-      reason: string;
-    }>
-  >;
+  suggestPartSubstitutions(partId: string, orgId: string): Promise<Part[]>;
+
+  // Part lookup by number (used by inventory adapter and engines)
+  getPartByPartNo(partNo: string, orgId?: string): Promise<Part | undefined>;
+  getPartsByNumbers(partNumbers: string[], orgId: string): Promise<Part[]>;
+  getStockByPart(partId: string, orgId?: string): Promise<Stock[]>;
+  getStockByParts(partIds: string[], orgId: string): Promise<Stock[]>;
+  getStockByPartNumber(partNo: string, orgId?: string): Promise<Stock[]>;
 }

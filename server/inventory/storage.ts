@@ -10,7 +10,7 @@
  * without duplicating business logic.
  */
 
-import type { Part, Stock, PartSubstitution } from "@shared/schema";
+import type { Part, Stock } from "@shared/schema";
 import type { IStorage } from "../storage/interfaces/storage.types";
 
 /**
@@ -43,7 +43,7 @@ export interface InventoryStorage {
   /**
    * Get substitution mappings for a part
    */
-  suggestPartSubstitutions(partNo: string, orgId: string): Promise<PartSubstitution[]>;
+  suggestPartSubstitutions(partNo: string, orgId: string): Promise<Part[]>;
 
   /**
    * Get parts required by a work order
@@ -78,7 +78,7 @@ export class InventoryStorageAdapter implements InventoryStorage {
    * Get part by number - direct passthrough
    */
   async getPartByNumber(partNo: string, orgId: string): Promise<Part | null> {
-    const part = await this.storage.getPartByNumber(partNo, orgId);
+    const part = await this.storage.getPartByPartNo(partNo, orgId);
     return part ?? null;
   }
 
@@ -93,10 +93,10 @@ export class InventoryStorageAdapter implements InventoryStorage {
 
     // Use existing storage method for each part (storage layer should batch internally)
     // If storage doesn't support batching, this still prevents caller-level N+1
-    const partsPromises = partNos.map((partNo) => this.storage.getPartByNumber(partNo, orgId));
+    const partsPromises = partNos.map((partNo) => this.storage.getPartByPartNo(partNo, orgId));
 
     const parts = await Promise.all(partsPromises);
-    return parts.filter((part): part is Part => part !== undefined && part !== null);
+    return parts.filter((part: Part | undefined | null): part is Part => part !== undefined && part !== null);
   }
 
   /**
@@ -105,7 +105,7 @@ export class InventoryStorageAdapter implements InventoryStorage {
    */
   async getStockByPart(partNo: string, orgId: string): Promise<Stock[]> {
     // First get the part to get its ID
-    const part = await this.storage.getPartByNumber(partNo, orgId);
+    const part = await this.storage.getPartByPartNo(partNo, orgId);
     if (!part) {
       return [];
     }
@@ -138,14 +138,14 @@ export class InventoryStorageAdapter implements InventoryStorage {
    * Get part substitutions
    * Note: Database uses originalPartId/partId, not partNo
    */
-  async suggestPartSubstitutions(partNo: string, orgId: string): Promise<PartSubstitution[]> {
+  async suggestPartSubstitutions(partNo: string, orgId: string): Promise<Part[]> {
     // Get the part first to resolve ID
-    const part = await this.storage.getPartByNumber(partNo, orgId);
+    const part = await this.storage.getPartByPartNo(partNo, orgId);
     if (!part) {
       return [];
     }
 
-    // Get substitutions by part ID
+    // Get substitutions by part ID (runtime returns Part[])
     return this.storage.suggestPartSubstitutions(part.id, orgId);
   }
 

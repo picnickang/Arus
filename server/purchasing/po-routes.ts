@@ -27,12 +27,12 @@ import {
   parts,
 } from "@shared/schema";
 import { requireOrgId, type AuthenticatedRequest } from "../middleware/auth";
-import { createRateLimiter } from "../lib/rate-limit-factory";
+import { RateLimiters } from "../lib/rate-limit-factory";
 import { fulfillItem } from "./fulfillment-service";
 
 const router = Router();
-const generalLimit = createRateLimiter("general");
-const writeLimit = createRateLimiter("write");
+const generalLimit = RateLimiters.general();
+const writeLimit = RateLimiters.write();
 
 function getOrgId(req: any): string {
   return (req as AuthenticatedRequest).orgId as string;

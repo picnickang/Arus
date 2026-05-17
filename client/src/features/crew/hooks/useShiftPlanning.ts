@@ -190,28 +190,31 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
     defaultValues: createDefaultShiftFormValues(),
   });
 
-  const { data: crew = [], isLoading: isLoadingCrew } = useCrewList();
-  const { data: shiftTemplates = [], isLoading: isLoadingShifts } = useShiftTemplates();
-  const { data: vessels = [] } = useVessels();
+  const { data: crewRaw = [], isLoading: isLoadingCrew } = useCrewList();
+  const crew = crewRaw as unknown as Crew[];
+  const { data: shiftTemplatesRaw = [], isLoading: isLoadingShifts } = useShiftTemplates();
+  const shiftTemplates = shiftTemplatesRaw as unknown as SelectShiftTemplate[];
+  const { data: vesselsRaw = [] } = useVessels();
+  const vessels = vesselsRaw as unknown as VesselData[];
 
-  const { data: allPortCalls = [] } = useQuery({
+  const { data: allPortCalls = [] } = useQuery<PortCall[]>({
     queryKey: ["/api/port-calls"],
     staleTime: 300000,
     refetchInterval: 300000,
   });
-  const { data: allDrydockWindows = [] } = useQuery({
+  const { data: allDrydockWindows = [] } = useQuery<DrydockWindow[]>({
     queryKey: ["/api/drydock-windows"],
     staleTime: 300000,
     refetchInterval: 300000,
   });
-  const { data: certifications = [] } = useQuery({
+  const { data: certifications = [] } = useQuery<CrewCertification[]>({
     queryKey: ["/api/crew/certifications"],
     staleTime: 300000,
     refetchInterval: 300000,
   });
-  const { data: leaves = [], isLoading: isLoadingLeaves } = useQuery({
+  const { data: leaves = [], isLoading: isLoadingLeaves } = useQuery<LeaveData[]>({
     queryKey: ["/api/crew/leave"],
-    queryFn: () => apiRequest("GET", "/api/crew/leave"),
+    queryFn: () => apiRequest("GET", "/api/crew/leave") as Promise<LeaveData[]>,
     staleTime: 120000,
     refetchInterval: 120000,
   });
@@ -241,9 +244,9 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
     errorMessage: "Failed to delete shift",
   });
 
-  const planScheduleMutation = useCustomMutation({
+  const planScheduleMutation = useCustomMutation<SchedulePlanPayload, SchedulePlanResponse>({
     mutationFn: async (data: SchedulePlanPayload) =>
-      apiRequest("POST", "/api/crew/schedule/plan", data),
+      apiRequest("POST", "/api/crew/schedule/plan", data) as Promise<SchedulePlanResponse>,
     invalidateKeys: ["/api/crew/assignments"],
     onSuccess: (data: SchedulePlanResponse) => {
       setScheduleResult(data);
@@ -269,9 +272,9 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
     },
   });
 
-  const enhancedScheduleMutation = useCustomMutation({
+  const enhancedScheduleMutation = useCustomMutation<EnhancedSchedulePayload, EnhancedSchedulePlanResponse>({
     mutationFn: async (data: EnhancedSchedulePayload) =>
-      apiRequest("POST", "/api/crew/schedule/plan-enhanced", data),
+      apiRequest("POST", "/api/crew/schedule/plan-enhanced", data) as Promise<EnhancedSchedulePlanResponse>,
     invalidateKeys: ["/api/crew/assignments"],
     onSuccess: (data: EnhancedSchedulePlanResponse) => {
       try {

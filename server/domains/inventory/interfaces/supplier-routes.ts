@@ -4,13 +4,13 @@ import { inventorySupplierService } from "../supplier-service";
 import { asyncHandler } from "../../../lib/async-handler";
 import { createLogger } from "../../../lib/structured-logger";
 import { requireOrgId, AuthenticatedRequest } from "../../../middleware/auth";
-import { createRateLimiter } from "../../../lib/rate-limit-factory";
+import { RateLimiters } from "../../../lib/rate-limit-factory";
 
 const logger = createLogger("inventory-supplier-routes");
 export const inventorySupplierRouter = Router();
 
-const writeLimit = createRateLimiter("write");
-const generalLimit = createRateLimiter("general");
+const writeLimit = RateLimiters.write();
+const generalLimit = RateLimiters.general();
 
 const linkSupplierSchema = z.object({
   supplierId: z.string().min(1),
