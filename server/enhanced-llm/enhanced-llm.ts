@@ -4,7 +4,6 @@
  * Main service class for generating AI-powered reports and analysis.
  */
 
-import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { dbSystemAdminStorage } from "../repositories";
 import { db } from "../db";
@@ -32,7 +31,7 @@ import {
 import { generateWithOpenAI, generateWithAnthropic } from "./providers.js";
 
 export class EnhancedLLMService {
-  private openaiClient: OpenAI | null = null;
+  private openaiEnabled: boolean = false;
   private anthropicClient: Anthropic | null = null;
 
   constructor() {
@@ -43,10 +42,7 @@ export class EnhancedLLMService {
     try {
       if (!db) {
         logger.warn("[Enhanced LLM] Disabled: database not initialized (embedded/local mode)");
-        const openaiKey = process.env.OPENAI_API_KEY;
-        if (openaiKey) {
-          this.openaiClient = new OpenAI({ apiKey: openaiKey, timeout: 60000 });
-        }
+        this.openaiEnabled = Boolean(process.env.OPENAI_API_KEY);
 
         if (process.env.ANTHROPIC_API_KEY) {
           this.anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -55,11 +51,7 @@ export class EnhancedLLMService {
       }
 
       const settings = await dbSystemAdminStorage.getSettings();
-      const openaiKey = settings.openaiApiKey || process.env.OPENAI_API_KEY;
-
-      if (openaiKey) {
-        this.openaiClient = new OpenAI({ apiKey: openaiKey, timeout: 60000 });
-      }
+      this.openaiEnabled = Boolean(settings.openaiApiKey || process.env.OPENAI_API_KEY);
 
       if (process.env.ANTHROPIC_API_KEY) {
         this.anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -267,7 +259,7 @@ export class EnhancedLLMService {
   }
 
   private resolveModelConfig(preference?: string): ModelConfig {
-    return getModelConfig(preference, !!this.openaiClient, !!this.anthropicClient);
+    return getModelConfig(preference, this.openaiEnabled, !!this.anthropicClient);
   }
 
   private async generateWithModel(
@@ -284,11 +276,10 @@ export class EnhancedLLMService {
       let result: string;
 
       if (modelConfig.provider === "openai") {
-        if (!this.openaiClient) {
-          throw new Error("OpenAI client not initialized");
+        if (!this.openaiEnabled) {
+          throw new Error("OpenAI is not configured. Please set up your API key.");
         }
         result = await generateWithOpenAI(
-          this.openaiClient,
           promptTemplate.systemPrompt,
           userPrompt,
           modelConfig,

@@ -4,16 +4,20 @@
  * OpenAI and Anthropic-specific generation methods.
  */
 
-import type OpenAI from "openai";
 import type Anthropic from "@anthropic-ai/sdk";
 import type { ModelConfig, PromptTemplate, CostTrackingContext } from "./types.js";
 import { logCostTracking } from "./cost-tracking.js";
+import { llmGateway } from "../composition/llm-gateway";
+import type { LLMMessage } from "../lib/llm-gateway/types";
 
 /**
- * Generate using OpenAI with chain-of-thought if requested
+ * Generate using OpenAI (via the LLM gateway) with chain-of-thought if requested.
+ *
+ * Routes through `llmGateway.chat` so retries, model fallback, and cost
+ * telemetry are uniform across the codebase. Per-report cost tracking is
+ * still emitted here using usage returned by the gateway.
  */
 export async function generateWithOpenAI(
-  client: OpenAI,
   systemPrompt: string,
   userPrompt: string,
   modelConfig: ModelConfig,
@@ -21,7 +25,7 @@ export async function generateWithOpenAI(
   costContext: CostTrackingContext,
   startTime: number
 ): Promise<string> {
-  const messages: any[] = [{ role: "system", content: systemPrompt }];
+  const messages: LLMMessage[] = [{ role: "system", content: systemPrompt }];
 
   if (promptTemplate.fewShotExamples && promptTemplate.fewShotExamples.length > 0) {
     promptTemplate.fewShotExamples.forEach((example) => {
@@ -41,29 +45,32 @@ export async function generateWithOpenAI(
     messages.push({ role: "user", content: userPrompt });
   }
 
-  const completion = await client.chat.completions.create({
+  const completion = await llmGateway.chat({
     model: modelConfig.model,
     messages,
-    max_tokens: modelConfig.maxTokens,
+    maxCompletionTokens: modelConfig.maxTokens,
     temperature: modelConfig.temperature,
+    meta: {
+      caller: "enhanced-llm-report",
+      orgId: costContext.orgId,
+      reportType: costContext.reportType,
+      audience: costContext.audience,
+    },
   });
 
   const latencyMs = Date.now() - startTime;
-  const usage = completion.usage;
-  const inputTokens = usage?.prompt_tokens ?? 0;
-  const outputTokens = usage?.completion_tokens ?? 0;
 
   await logCostTracking({
     ...costContext,
     provider: "openai",
     model: modelConfig.model,
-    inputTokens,
-    outputTokens,
+    inputTokens: completion.usage.promptTokens,
+    outputTokens: completion.usage.completionTokens,
     latencyMs,
     success: true,
   });
 
-  return completion.choices[0]?.message?.content || "No response generated";
+  return completion.content || "No response generated";
 }
 
 /**
