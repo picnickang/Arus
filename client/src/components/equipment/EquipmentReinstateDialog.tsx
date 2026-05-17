@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Equipment } from "@shared/schema";
 import {
   Dialog,
@@ -109,7 +108,7 @@ export function EquipmentReinstateDialog({
             {equipment.decommissionedAt && (
               <div>
                 <span className="text-muted-foreground">Previous Decommission Reason:</span>{" "}
-                <span className="font-medium">{equipment.decommissionedAt}</span>
+                <span className="font-medium">{String(equipment.decommissionedAt)}</span>
               </div>
             )}
           </div>

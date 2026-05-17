@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import {
   Dialog,
@@ -39,6 +38,7 @@ import {
 } from "@shared/schema";
 import { AlertTriangle, ChevronDown, DollarSign, Trash2, RefreshCw, FileText } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
+import { useToast } from "@/hooks/use-toast";
 
 interface EquipmentDecommissionDialogProps {
   open: boolean;
@@ -111,6 +111,7 @@ export function EquipmentDecommissionDialog({
   onSubmit,
   isPending,
 }: EquipmentDecommissionDialogProps) {
+  const { toast } = useToast();
   const [saleOpen, setSaleOpen] = useState(false);
   const [disposalOpen, setDisposalOpen] = useState(false);
 
@@ -152,6 +153,14 @@ export function EquipmentDecommissionDialog({
 
   const handleSubmit = (data: DecommissionFormData) => {
     if (!equipment) {
+      return;
+    }
+    if (!equipment.orgId) {
+      toast({
+        title: "Cannot decommission equipment",
+        description: "Equipment is missing an organization assignment. Please contact an administrator.",
+        variant: "destructive",
+      });
       return;
     }
 

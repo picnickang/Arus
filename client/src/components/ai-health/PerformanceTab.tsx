@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Performance Tab
  *
@@ -212,13 +211,19 @@ export default function PerformanceTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {m.summary.map((model, index) => (
+                  {m.summary.map((modelRow, index) => {
+                    const model = modelRow as typeof modelRow & {
+                      modelName?: string;
+                      totalPredictions?: number;
+                      validatedPredictions?: number;
+                    };
+                    return (
                     <TableRow key={model.modelId} data-testid={`row-model-${index}`}>
                       <TableCell className="font-medium">
                         {model.modelName || model.modelId}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{getFriendlyModelName(model.modelType)}</Badge>
+                        <Badge variant="outline">{getFriendlyModelName(model.modelType ?? "")}</Badge>
                       </TableCell>
                       <TableCell className="text-right">{model.totalPredictions}</TableCell>
                       <TableCell className="text-right">{model.validatedPredictions}</TableCell>
@@ -231,7 +236,8 @@ export default function PerformanceTab() {
                           : "Never"}
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -700,7 +706,7 @@ function ExplainabilitySection() {
             explanationLoading ? (
               <Skeleton className="h-48 w-full" />
             ) : explanation ? (
-              <ExplainabilityVisualization explanation={explanation} />
+              <ExplainabilityVisualization data={explanation as Parameters<typeof ExplainabilityVisualization>[0]["data"]} />
             ) : (
               <div className="text-center py-8 text-muted-foreground border rounded-lg">
                 <p>No explanation data available for this prediction</p>

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 import { ChartWrapper } from "./ChartWrapper";
 import type { ReconciliationReport } from "@shared/analytics-types";
@@ -32,8 +31,9 @@ export function IssueTypeChart({
     ? Object.entries(
         report.issues.reduce(
           (acc, issue) => {
-            const key = issue.issueType || "unknown";
-            acc[key] = (acc[key] || 0) + (issue.affectedRecords || 1);
+            const issueAny = issue as { issueType?: string; affectedRecords?: number };
+            const key = issueAny.issueType || issue.type || "unknown";
+            acc[key] = (acc[key] || 0) + (issueAny.affectedRecords ?? issue.count ?? 1);
             return acc;
           },
           {} as Record<string, number>

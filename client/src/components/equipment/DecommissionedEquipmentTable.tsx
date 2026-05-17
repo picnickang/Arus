@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Equipment, Vessel } from "@shared/schema";
 import {
   Table,
@@ -84,7 +83,7 @@ export function DecommissionedEquipmentTable({
               </TableCell>
               <TableCell data-testid={`text-reason-${item.id}`}>
                 <span className="text-sm text-muted-foreground">
-                  {item.decommissionedAt || "-"}
+                  {item.decommissionedAt ? String(item.decommissionedAt) : "-"}
                 </span>
               </TableCell>
               <TableCell className="text-right">

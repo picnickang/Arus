@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell } from "recharts";
 import { ChartWrapper } from "./ChartWrapper";
 import type { ReconciliationReport } from "@shared/analytics-types";
@@ -28,7 +27,7 @@ export function DataQualityChart({
         report.issues.reduce(
           (acc, issue) => {
             const key = issue.severity;
-            acc[key] = (acc[key] || 0) + (issue.affectedRecords || 1);
+            acc[key] = (acc[key] || 0) + ((issue as { affectedRecords?: number }).affectedRecords ?? issue.count ?? 1);
             return acc;
           },
           {} as Record<string, number>

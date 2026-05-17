@@ -107,7 +107,7 @@ export function useTrainingData() {
     },
   });
 
-  const analyzeAcoustic = useCustomMutation({
+  const analyzeAcoustic = useCustomMutation<void, AcousticAnalysisResult>({
     mutationFn: async () => {
       const data = parseAcousticData(acousticData);
       const validation = validateAcousticData(data);

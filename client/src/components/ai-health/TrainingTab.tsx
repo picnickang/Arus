@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Training Tab
  *
@@ -374,11 +373,11 @@ export default function TrainingTab() {
                         <div className="flex-1 bg-muted rounded-full h-2">
                           <div
                             className="bg-primary h-2 rounded-full transition-all"
-                            style={{ width: `${t.acousticResults.healthScore}%` }}
+                            style={{ width: `${t.acousticResults.healthScore ?? 0}%` }}
                           />
                         </div>
                         <span className="text-sm font-medium">
-                          {t.acousticResults.healthScore.toFixed(0)}%
+                          {(t.acousticResults.healthScore ?? 0).toFixed(0)}%
                         </span>
                       </div>
                     </div>
@@ -490,7 +489,8 @@ export default function TrainingTab() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {t.mlModels.map((model) => {
+                      {t.mlModels.map((modelRow) => {
+                        const model = modelRow as Record<string, any>;
                         const tier = model.hyperparameters?.dataQualityTier;
                         return (
                           <TableRow key={model.id}>
@@ -525,7 +525,7 @@ export default function TrainingTab() {
                               )}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
-                              {new Date(model.createdAt).toLocaleDateString()}
+                              {model.createdAt ? new Date(model.createdAt).toLocaleDateString() : "—"}
                             </TableCell>
                           </TableRow>
                         );

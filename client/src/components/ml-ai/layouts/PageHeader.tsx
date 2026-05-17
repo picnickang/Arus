@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { LucideIcon, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
@@ -29,7 +28,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <div className={cn("space-y-4", className)} data-testid={testId}>
-      {breadcrumbs?.length > 0 && (
+      {breadcrumbs && breadcrumbs.length > 0 && (
         <nav
           className="flex items-center gap-2 text-sm text-muted-foreground"
           data-testid={`${testId}-breadcrumbs`}

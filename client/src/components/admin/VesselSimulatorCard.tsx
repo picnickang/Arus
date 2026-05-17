@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Vessel Simulator Card Component
  *
@@ -38,7 +37,7 @@ interface SimulationResult {
   dataPointsGenerated?: number;
   telemetryRecordsCreated?: number;
   vesselType?: string;
-  duration?: string;
+  duration?: string | number;
 }
 
 export function VesselSimulatorCard() {

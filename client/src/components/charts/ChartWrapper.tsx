@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, BarChart3 } from "lucide-react";
@@ -146,7 +145,7 @@ export function ChartWrapper({
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={300}>
-            {enhancedChildren}
+            {enhancedChildren as React.ReactElement}
           </ResponsiveContainer>
         )}
       </CardContent>
