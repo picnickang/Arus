@@ -1,5 +1,16 @@
 /**
  * Telemetry Aggregation - Aggregate equipment telemetry for fuel calculations
+ *
+ * Reconciled to the canonical equipment_telemetry shape: one row per
+ * (equipment_id, sensor_type, value, ts). Previous implementation used a
+ * phantom jsonb `readings` column and a phantom `timestamp` column that do
+ * not exist in the database — every query silently returned no rows.
+ *
+ * Sensor type names follow the convention used by ingestion paths:
+ *   engineLoad, rpm, sog, distanceNm, generatorLoad
+ *
+ * Installed power is read from equipment.specifications JSONB (->>'installedPower')
+ * because the canonical equipment table has no installed_power column.
  */
 
 import { db } from "../../db";
@@ -13,14 +24,20 @@ export async function aggregateTelemetryForPeriod(
   periodStart: Date,
   periodEnd: Date
 ): Promise<TelemetryPeriod | null> {
+  // Canonical equipment has `type` and `system_type`; no `category` or `status`
+  // columns. Treat any active equipment whose systemType or type marks it as
+  // propulsion as an engine for aggregation purposes.
   const engineEquipment = await db
-    .select({ id: equipment.id, installedPower: (equipment as any).installedPower })
+    .select({
+      id: equipment.id,
+      installedPower: sql<number | null>`CAST(${equipment.specifications}->>'installedPower' AS FLOAT)`,
+    })
     .from(equipment)
     .where(
       and(
         eq(equipment.vesselId, vesselId),
-        eq(equipment.category, "propulsion"),
-        eq((equipment as any).status, "operational")
+        eq(equipment.isActive, true),
+        sql`(${equipment.systemType} = 'propulsion' OR ${equipment.type} ILIKE '%propulsion%' OR ${equipment.type} ILIKE '%main engine%')`
       )
     );
 
@@ -31,16 +48,19 @@ export async function aggregateTelemetryForPeriod(
   const equipmentIds = engineEquipment.map((e) => e.id);
   const totalInstalledPower = engineEquipment.reduce((sum, e) => sum + (e.installedPower ?? 0), 0);
 
+  // Pivot the normalized (sensor_type, value) rows into per-metric averages
+  // using FILTER clauses. Each FILTER restricts the aggregation to rows of
+  // the matching sensor_type.
   const telemetryData = await db
     .select({
-      avgEngineLoad: sql<number>`avg(CAST(${equipmentTelemetry.readings}->>'engineLoad' AS FLOAT))`,
-      avgRpm: sql<number>`avg(CAST(${equipmentTelemetry.readings}->>'rpm' AS FLOAT))`,
-      avgSog: sql<number>`avg(CAST(${equipmentTelemetry.readings}->>'sog' AS FLOAT))`,
-      sumDistance: sql<number>`sum(CAST(${equipmentTelemetry.readings}->>'distanceNm' AS FLOAT))`,
+      avgEngineLoad: sql<number>`avg(${equipmentTelemetry.value}) FILTER (WHERE ${equipmentTelemetry.sensorType} = 'engineLoad')`,
+      avgRpm: sql<number>`avg(${equipmentTelemetry.value}) FILTER (WHERE ${equipmentTelemetry.sensorType} = 'rpm')`,
+      avgSog: sql<number>`avg(${equipmentTelemetry.value}) FILTER (WHERE ${equipmentTelemetry.sensorType} = 'sog')`,
+      sumDistance: sql<number>`sum(${equipmentTelemetry.value}) FILTER (WHERE ${equipmentTelemetry.sensorType} = 'distanceNm')`,
+      avgGeneratorLoad: sql<number>`avg(${equipmentTelemetry.value}) FILTER (WHERE ${equipmentTelemetry.sensorType} = 'generatorLoad')`,
       dataPoints: sql<number>`count(*)`,
-      minTimestamp: sql<Date>`min(${equipmentTelemetry.timestamp})`,
-      maxTimestamp: sql<Date>`max(${equipmentTelemetry.timestamp})`,
-      avgGeneratorLoad: sql<number>`avg(CAST(${equipmentTelemetry.readings}->>'generatorLoad' AS FLOAT))`,
+      minTimestamp: sql<Date>`min(${equipmentTelemetry.ts})`,
+      maxTimestamp: sql<Date>`max(${equipmentTelemetry.ts})`,
     })
     .from(equipmentTelemetry)
     .where(
@@ -50,8 +70,8 @@ export async function aggregateTelemetryForPeriod(
           equipmentIds.map((id: string) => sql`${id}`),
           sql`, `
         )}]::text[])`,
-        gte(equipmentTelemetry.timestamp, periodStart),
-        lte(equipmentTelemetry.timestamp, periodEnd)
+        gte(equipmentTelemetry.ts, periodStart),
+        lte(equipmentTelemetry.ts, periodEnd)
       )
     );
 

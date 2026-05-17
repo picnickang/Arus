@@ -217,7 +217,7 @@ export function generateTelemetryAnalysis(
   period: { startDate: Date; endDate: Date }
 ): ComplianceReport["telemetryAnalysis"] {
   const periodData = telemetryData.filter((reading) => {
-    const timestamp = new Date(reading.timestamp as any);
+    const timestamp = reading.ts instanceof Date ? reading.ts : new Date(reading.ts as unknown as string);
     return (
       timestamp >= period.startDate &&
       timestamp <= period.endDate &&
@@ -234,7 +234,7 @@ export function generateTelemetryAnalysis(
     );
   });
 
-  const uniqueTimestamps = new Set(periodData.map((r) => r.timestamp));
+  const uniqueTimestamps = new Set(periodData.map((r) => (r.ts instanceof Date ? r.ts.getTime() : r.ts)));
   const monitoringHours = (uniqueTimestamps.size * 5) / 60;
 
   const periodHours = (period.endDate.getTime() - period.startDate.getTime()) / (1000 * 60 * 60);
@@ -244,7 +244,7 @@ export function generateTelemetryAnalysis(
   const anomalousReadings = periodData.filter((reading) => {
     return periodAlerts.some(
       (alert) =>
-        Math.abs(new Date((alert as any).timestamp ?? (alert as any).createdAt).getTime() - new Date(reading.timestamp as any).getTime()) <
+        Math.abs(new Date((alert as any).timestamp ?? (alert as any).createdAt).getTime() - (reading.ts instanceof Date ? reading.ts.getTime() : new Date(reading.ts as unknown as string).getTime())) <
         5 * 60 * 1000
     );
   });

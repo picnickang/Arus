@@ -253,8 +253,8 @@ export function registerLlmAnalysisRoutes(
         failurePredictions: pdmExtra.filter((s) => (s.failureProbability || 0) > 0.5).length,
         recentTelemetryPoints: telemetry.length,
         dataFreshness:
-          telemetry.length > 0 && telemetry[0].timestamp
-            ? new Date(telemetry[0].timestamp).toISOString()
+          telemetry.length > 0 && telemetry[0].ts
+            ? new Date(telemetry[0].ts).toISOString()
             : null,
         topIssues: alertsExtra
           .filter((a) => !a.acknowledged)

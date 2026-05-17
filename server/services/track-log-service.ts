@@ -193,46 +193,71 @@ export class TrackLogService {
     };
 
     try {
-      // Get GPS/Navigation equipment for this vessel
+      // Canonical equipment table has `type` and `system_type` only — no
+      // `category` or `equipment_type`. Identify navigation/GPS/AIS equipment
+      // via `type` or `system_type` matching.
       const gpsEquipment = await db
         .select({ id: equipment.id })
         .from(equipment)
         .where(
           and(
             eq(equipment.vesselId, vesselId),
-            sql`(${equipment.category} = 'navigation' OR ${equipment.equipmentType} ILIKE '%gps%' OR ${equipment.equipmentType} ILIKE '%ais%')`
+            sql`(${equipment.systemType} = 'navigation' OR ${equipment.type} ILIKE '%gps%' OR ${equipment.type} ILIKE '%ais%' OR ${equipment.type} ILIKE '%navigation%')`
           )
         );
 
-      // Also check for position data in all equipment telemetry
-      const telemetryData = await db
-        .select({
-          id: equipmentTelemetry.id,
-          equipmentId: equipmentTelemetry.equipmentId,
-          timestamp: equipmentTelemetry.timestamp,
-          readings: equipmentTelemetry.readings,
-        })
-        .from(equipmentTelemetry)
-        .where(
-          and(
-            eq(equipmentTelemetry.orgId, orgId),
-            gte(equipmentTelemetry.timestamp, startDate),
-            lte(equipmentTelemetry.timestamp, endDate),
-            sql`${equipmentTelemetry.readings}->>'latitude' IS NOT NULL`
-          )
-        )
-        .orderBy(equipmentTelemetry.timestamp);
+      // Canonical equipment_telemetry stores one row per (equipment_id,
+      // sensor_type, value, ts) — no jsonb `readings` column. Reconstruct
+      // (latitude, longitude, sog, cog, heading) positions by grouping all
+      // sensor readings at the same timestamp for an equipment record into a
+      // single position fix.
+      const equipmentFilter =
+        gpsEquipment.length > 0
+          ? sql`AND ${equipmentTelemetry.equipmentId} = ANY(ARRAY[${sql.join(
+              gpsEquipment.map((e) => sql`${e.id}`),
+              sql`, `
+            )}]::text[])`
+          : sql``;
 
-      for (const telemetry of telemetryData) {
-        const readings = telemetry.readings as Record<string, unknown>;
-        const lat = Number.parseFloat(String(readings.latitude));
-        const lon = Number.parseFloat(String(readings.longitude));
+      const positionRows = await db.execute<{
+        equipment_id: string;
+        ts: Date;
+        latitude: number | null;
+        longitude: number | null;
+        sog: number | null;
+        cog: number | null;
+        heading: number | null;
+      }>(sql`
+        SELECT
+          ${equipmentTelemetry.equipmentId} AS equipment_id,
+          ${equipmentTelemetry.ts} AS ts,
+          max(${equipmentTelemetry.value}) FILTER (WHERE ${equipmentTelemetry.sensorType} = 'latitude') AS latitude,
+          max(${equipmentTelemetry.value}) FILTER (WHERE ${equipmentTelemetry.sensorType} = 'longitude') AS longitude,
+          max(${equipmentTelemetry.value}) FILTER (WHERE ${equipmentTelemetry.sensorType} = 'sog') AS sog,
+          max(${equipmentTelemetry.value}) FILTER (WHERE ${equipmentTelemetry.sensorType} = 'cog') AS cog,
+          max(${equipmentTelemetry.value}) FILTER (WHERE ${equipmentTelemetry.sensorType} = 'heading') AS heading
+        FROM ${equipmentTelemetry}
+        WHERE ${equipmentTelemetry.orgId} = ${orgId}
+          AND ${equipmentTelemetry.ts} >= ${startDate}
+          AND ${equipmentTelemetry.ts} <= ${endDate}
+          AND ${equipmentTelemetry.sensorType} IN ('latitude', 'longitude', 'sog', 'cog', 'heading')
+          ${equipmentFilter}
+        GROUP BY ${equipmentTelemetry.equipmentId}, ${equipmentTelemetry.ts}
+        HAVING max(${equipmentTelemetry.value}) FILTER (WHERE ${equipmentTelemetry.sensorType} = 'latitude') IS NOT NULL
+           AND max(${equipmentTelemetry.value}) FILTER (WHERE ${equipmentTelemetry.sensorType} = 'longitude') IS NOT NULL
+        ORDER BY ${equipmentTelemetry.ts}
+      `);
+
+      const rows = (positionRows as unknown as { rows?: Array<Record<string, unknown>> }).rows
+        ?? (positionRows as unknown as Array<Record<string, unknown>>);
+
+      for (const row of rows ?? []) {
+        const lat = Number(row.latitude);
+        const lon = Number(row.longitude);
 
         if (Number.isNaN(lat) || Number.isNaN(lon)) {
           continue;
         }
-
-        // Validate coordinates
         if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
           continue;
         }
@@ -240,12 +265,12 @@ export class TrackLogService {
         const position: Position = {
           latitude: lat,
           longitude: lon,
-          timestamp: telemetry.timestamp as Date,
-          sog: readings.sog ? Number.parseFloat(String(readings.sog)) : undefined,
-          cog: readings.cog ? Number.parseFloat(String(readings.cog)) : undefined,
-          heading: readings.heading ? Number.parseFloat(String(readings.heading)) : undefined,
+          timestamp: row.ts instanceof Date ? row.ts : new Date(String(row.ts)),
+          sog: row.sog == null ? undefined : Number(row.sog),
+          cog: row.cog == null ? undefined : Number(row.cog),
+          heading: row.heading == null ? undefined : Number(row.heading),
           source: "gps",
-          equipmentId: telemetry.equipmentId,
+          equipmentId: String(row.equipment_id),
         };
 
         const logId = await this.logPosition(orgId, vesselId, position);

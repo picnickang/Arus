@@ -625,40 +625,44 @@ export const ENGINE_LOG_EVENT_SOURCES = {
 // AUTOFILL TABLES FOR DECK LOG
 // ============================================================================
 
+// Real Postgres shape: stores a single row per hourly log capturing all
+// auto-filled and overridden fields as JSONB blobs (not one-row-per-field).
+// There is no org_id column — org scope is resolved via hourly_log_id →
+// deck_log_hourly → vessel → organizations.
 export const deckLogHourlyAutoFill = pgTable(
   "deck_log_hourly_autofill",
   {
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id")
-      .notNull()
-      .references(() => organizations.id),
     hourlyLogId: varchar("hourly_log_id")
       .notNull()
       .references(() => deckLogHourly.id, { onDelete: "cascade" }),
-    fieldName: text("field_name").notNull(),
-    sourceType: text("source_type").notNull().default("telemetry"),
-    sourceId: varchar("source_id"),
-    rawValue: text("raw_value"),
-    convertedValue: real("converted_value"),
-    unit: text("unit"),
-    confidence: real("confidence").default(1.0),
-    appliedAt: timestamp("applied_at", { mode: "date" }).defaultNow(),
+    autoFilledAt: timestamp("auto_filled_at", { mode: "date" }).defaultNow(),
+    source: text("source").notNull(),
+    snapshotId: varchar("snapshot_id"),
+    autoFilledFields: jsonb("auto_filled_fields"),
     overriddenAt: timestamp("overridden_at", { mode: "date" }),
     overriddenByUserId: varchar("overridden_by_user_id"),
+    overriddenByUserName: text("overridden_by_user_name"),
+    overriddenFields: jsonb("overridden_fields"),
+    confidenceScore: real("confidence_score"),
+    dataQuality: text("data_quality"),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({
-    hourlyLogIdx: index("idx_deck_log_autofill_hourly").on(table.hourlyLogId),
-    fieldIdx: index("idx_deck_log_autofill_field").on(table.fieldName),
+    hourlyLogIdx: index("idx_deck_log_hourly_autofill_hourly").on(table.hourlyLogId),
+    snapshotIdx: index("idx_deck_log_hourly_autofill_snapshot").on(table.snapshotId),
+    sourceIdx: index("idx_deck_log_hourly_autofill_source").on(table.source),
   })
 );
 
 export const insertDeckLogHourlyAutoFillSchema = createInsertSchema(deckLogHourlyAutoFill).omit({
   id: true,
-  appliedAt: true,
+  autoFilledAt: true,
   createdAt: true,
+  updatedAt: true,
 });
 
 export type DeckLogHourlyAutoFill = typeof deckLogHourlyAutoFill.$inferSelect;
@@ -668,6 +672,12 @@ export type InsertDeckLogHourlyAutoFill = z.infer<typeof insertDeckLogHourlyAuto
 // FUEL EMISSIONS LOG
 // ============================================================================
 
+// Real Postgres shape: period-based aggregated fuel & emissions log.
+// Pre-reconcile this declared phantom log_date/fuel_type/consumption_mt/
+// sox_emissions_mt/nox_emissions_mt/voyage_phase/eeoi_value/remarks columns
+// that don't exist in the DB. The real DB splits fuel consumption by type
+// (fo/do/lng/lo + total_fuel_mt), reports sox/nox in kg (not mt), and uses
+// period_start/period_end timestamps instead of a log_date text field.
 export const fuelEmissionsLog = pgTable(
   "fuel_emissions_log",
   {
@@ -680,26 +690,51 @@ export const fuelEmissionsLog = pgTable(
     vesselId: varchar("vessel_id")
       .notNull()
       .references(() => vessels.id),
-    logDate: text("log_date").notNull(),
-    fuelType: text("fuel_type").notNull(),
-    consumptionMt: real("consumption_mt").notNull(),
+    periodStart: timestamp("period_start", { mode: "date" }).notNull(),
+    periodEnd: timestamp("period_end", { mode: "date" }).notNull(),
+    periodType: text("period_type").notNull().default("hourly"),
+    foConsumptionMt: real("fo_consumption_mt"),
+    doConsumptionMt: real("do_consumption_mt"),
+    lngConsumptionMt: real("lng_consumption_mt"),
+    loConsumptionMt: real("lo_consumption_mt"),
+    totalFuelMt: real("total_fuel_mt"),
     co2EmissionsMt: real("co2_emissions_mt"),
-    sox_emissionsMt: real("sox_emissions_mt"),
-    nox_emissionsMt: real("nox_emissions_mt"),
+    soxEmissionsKg: real("sox_emissions_kg"),
+    noxEmissionsKg: real("nox_emissions_kg"),
+    pmEmissionsKg: real("pm_emissions_kg"),
+    avgEngineLoad: real("avg_engine_load"),
+    avgGeneratorLoad: real("avg_generator_load"),
+    meRunningHours: real("me_running_hours"),
+    dgRunningHours: real("dg_running_hours"),
     distanceNm: real("distance_nm"),
-    voyagePhase: text("voyage_phase"),
-    eeoiValue: real("eeoi_value"),
+    avgSpeedKn: real("avg_speed_kn"),
+    fuelEfficiencyMtPerNm: real("fuel_efficiency_mt_per_nm"),
+    sfocGPerKwh: real("sfoc_g_per_kwh"),
+    eeoi: real("eeoi"),
+    cii: real("cii"),
     ciiRating: text("cii_rating"),
-    remarks: text("remarks"),
-    periodStart: timestamp("period_start", { mode: "date" }),
-    periodEnd: timestamp("period_end", { mode: "date" }),
-    periodType: text("period_type"),
+    dataSource: text("data_source").notNull().default("estimated"),
+    dataQuality: text("data_quality").default("medium"),
+    confidenceScore: real("confidence_score"),
+    calculationMethod: text("calculation_method"),
+    calculationDetails: jsonb("calculation_details"),
+    voyageId: varchar("voyage_id"),
+    voyageLegId: varchar("voyage_leg_id"),
+    createdByUserId: varchar("created_by_user_id"),
+    createdByUserName: text("created_by_user_name"),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({
-    orgIdIdx: index("idx_fuel_emissions_org").on(table.orgId),
-    vesselDateIdx: index("idx_fuel_emissions_vessel_date").on(table.vesselId, table.logDate),
+    orgIdx: index("idx_fuel_emissions_log_org").on(table.orgId),
+    periodStartIdx: index("idx_fuel_emissions_log_period_start").on(table.periodStart),
+    periodTypeIdx: index("idx_fuel_emissions_log_period_type").on(table.periodType),
+    vesselIdx: index("idx_fuel_emissions_log_vessel").on(table.vesselId),
+    vesselPeriodIdx: index("idx_fuel_emissions_log_vessel_period").on(
+      table.vesselId,
+      table.periodStart
+    ),
+    voyageIdx: index("idx_fuel_emissions_log_voyage").on(table.voyageId),
   })
 );
 

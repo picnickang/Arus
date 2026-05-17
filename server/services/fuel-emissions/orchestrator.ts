@@ -89,11 +89,11 @@ export async function getFuelEmissionsSummary(
 ): Promise<FuelEmissionsSummary> {
   const summary = await db
     .select({
-      totalFuelMt: sql<number>`sum(${(fuelEmissionsLog as any).totalFuelMt})`,
+      totalFuelMt: sql<number>`sum(${fuelEmissionsLog.totalFuelMt})`,
       totalCo2Mt: sql<number>`sum(${fuelEmissionsLog.co2EmissionsMt})`,
-      avgCii: sql<number>`avg(${(fuelEmissionsLog as any).cii})`,
+      avgCii: sql<number>`avg(${fuelEmissionsLog.cii})`,
       distanceNm: sql<number>`sum(${fuelEmissionsLog.distanceNm})`,
-      runningHours: sql<number>`sum(${(fuelEmissionsLog as any).meRunningHours})`,
+      runningHours: sql<number>`sum(${fuelEmissionsLog.meRunningHours})`,
     })
     .from(fuelEmissionsLog)
     .where(

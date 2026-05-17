@@ -38,8 +38,8 @@ export const equipment = pgTable(
     vesselName: text("vessel_name"),
     name: text("name").notNull(),
     type: text("type").notNull(),
-    category: text("category"),
-    equipmentType: text("equipment_type"),
+    // NOTE: phantom `category` and `equipment_type` columns dropped — canonical
+    // Postgres uses `type`, `systemType`, and `componentType` for categorization.
     manufacturer: text("manufacturer"),
     model: text("model"),
     serialNumber: text("serial_number"),

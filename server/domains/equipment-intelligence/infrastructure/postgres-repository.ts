@@ -234,7 +234,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
         rul: pred?.remainingUsefulLife ?? 365,
         risk,
         status: statusFromRisk(risk),
-        type: row.eq.type || row.eq.equipmentType || "General",
+        type: row.eq.type || "General",
         prediction: pred?.failureMode
           ? `${pred.failureMode} — ${this.recommendedActionText(risk, pred.remainingUsefulLife ?? 365)}`
           : dataAvailability === "unavailable"
@@ -308,7 +308,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
       name: row.eq.name,
       vessel: row.vesselName || row.eq.vesselName || "Unassigned",
       vesselId: row.eq.vesselId || "unassigned",
-      type: row.eq.type || row.eq.equipmentType || "General",
+      type: row.eq.type || "General",
       health: Math.round(healthScore),
       rul: pred?.remainingUsefulLife ?? 365,
       risk,

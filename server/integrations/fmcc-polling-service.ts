@@ -285,16 +285,8 @@ export class FmccPollingService extends EventEmitter {
             equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
             sensorType: "fuel_consumption",
             value: snapshot.fuel.totalFlowKgPerH,
-            timestamp,
-            readings: {
-              source: "fmcc",
-              vesselId: snapshot.vesselId,
-              foDensity: snapshot.fuel.foDensity,
-              foTemperature: snapshot.fuel.foTemperature,
-              doDensity: snapshot.fuel.doDensity,
-              doTemperature: snapshot.fuel.doTemperature,
-              unit: "kg/h",
-            },
+            ts: timestamp,
+            unit: "kg/h",
           });
         }
 
@@ -304,8 +296,8 @@ export class FmccPollingService extends EventEmitter {
             equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
             sensorType: "fuel_density",
             value: snapshot.fuel.foDensity,
-            timestamp,
-            readings: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kg/m³" },
+            ts: timestamp,
+            unit: "kg/m³",
           });
         }
 
@@ -315,8 +307,8 @@ export class FmccPollingService extends EventEmitter {
             equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
             sensorType: "fuel_temperature",
             value: snapshot.fuel.foTemperature,
-            timestamp,
-            readings: { source: "fmcc", vesselId: snapshot.vesselId, unit: "°C" },
+            ts: timestamp,
+            unit: "°C",
           });
         }
 
@@ -337,8 +329,8 @@ export class FmccPollingService extends EventEmitter {
               equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
               sensorType,
               value,
-              timestamp,
-              readings: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kg/h" },
+              ts: timestamp,
+              unit: "kg/h",
             });
           }
         }
@@ -351,8 +343,8 @@ export class FmccPollingService extends EventEmitter {
             equipmentId: `fmcc-engine-${snapshot.vesselId}`,
             sensorType: "rpm",
             value: snapshot.engine.rpm,
-            timestamp,
-            readings: { source: "fmcc", vesselId: snapshot.vesselId, unit: "rpm" },
+            ts: timestamp,
+            unit: "rpm",
           });
         }
         if (snapshot.engine.loadPercent !== undefined) {
@@ -361,8 +353,8 @@ export class FmccPollingService extends EventEmitter {
             equipmentId: `fmcc-engine-${snapshot.vesselId}`,
             sensorType: "engine_load",
             value: snapshot.engine.loadPercent,
-            timestamp,
-            readings: { source: "fmcc", vesselId: snapshot.vesselId, unit: "%" },
+            ts: timestamp,
+            unit: "%",
           });
         }
 
@@ -372,8 +364,8 @@ export class FmccPollingService extends EventEmitter {
             equipmentId: `fmcc-engine-${snapshot.vesselId}`,
             sensorType: "power_output",
             value: snapshot.engine.powerKw,
-            timestamp,
-            readings: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kW" },
+            ts: timestamp,
+            unit: "kW",
           });
         }
 
@@ -383,8 +375,8 @@ export class FmccPollingService extends EventEmitter {
             equipmentId: `fmcc-engine-${snapshot.vesselId}`,
             sensorType: "running_hours",
             value: snapshot.engine.runningHours,
-            timestamp,
-            readings: { source: "fmcc", vesselId: snapshot.vesselId, unit: "hours" },
+            ts: timestamp,
+            unit: "hours",
           });
         }
       }
@@ -403,8 +395,8 @@ export class FmccPollingService extends EventEmitter {
               equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
               sensorType,
               value,
-              timestamp,
-              readings: { source: "fmcc", vesselId: snapshot.vesselId, unit: "%" },
+              ts: timestamp,
+              unit: "%",
             });
           }
         }
@@ -424,8 +416,8 @@ export class FmccPollingService extends EventEmitter {
               equipmentId: `fmcc-engine-${snapshot.vesselId}`,
               sensorType,
               value,
-              timestamp,
-              readings: { source: "fmcc", vesselId: snapshot.vesselId, unit },
+              ts: timestamp,
+              unit,
             });
           }
         }
@@ -437,8 +429,8 @@ export class FmccPollingService extends EventEmitter {
           equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
           sensorType: "bunker_flow",
           value: snapshot.fuel.bunkerFlowKgPerH,
-          timestamp,
-          readings: { source: "fmcc", vesselId: snapshot.vesselId, unit: "kg/h" },
+          ts: timestamp,
+          unit: "kg/h",
         });
       }
     } catch (error) {

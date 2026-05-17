@@ -58,14 +58,14 @@ export async function createFuelEmissionsEntry(
   const completeness = period.dataPoints / expectedDataPoints;
   const dataQuality = calculateDataQuality(completeness);
 
-  const logEntry: InsertFuelEmissionsLog = ({
+  const logEntry: InsertFuelEmissionsLog = {
     orgId,
     vesselId,
     periodStart: period.periodStart,
     periodEnd: period.periodEnd,
     periodType,
-    foConsumptionMt: foConsumptionMt as any,
-    doConsumptionMt: doConsumptionMt as any,
+    foConsumptionMt,
+    doConsumptionMt,
     lngConsumptionMt: null,
     loConsumptionMt: null,
     totalFuelMt,
@@ -93,7 +93,7 @@ export async function createFuelEmissionsEntry(
       loadFactors: [period.avgEngineLoad],
       emissionFactors: EMISSION_FACTORS[fuelType],
     },
-  } as any);
+  };
 
   const result = await db
     .insert(fuelEmissionsLog)
@@ -148,15 +148,16 @@ export async function createFuelEmissionsEntryFromFMCC(
   const ciiRating = cii ? getCIIRating(cii / 1000) : null;
   const dataQuality = calculateDataQuality(fmccData.dataCompleteness);
 
-  const logEntry: InsertFuelEmissionsLog = ({
+  // Note: dropped phantom `consumptionMt` field — fuel_emissions_log uses
+  // split fo/do/lng/lo + total_fuel_mt columns, not a single consumption_mt.
+  const logEntry: InsertFuelEmissionsLog = {
     orgId,
     vesselId,
     periodStart: fmccData.periodStart,
     periodEnd: fmccData.periodEnd,
     periodType,
-    consumptionMt: foConsumptionMt,
-    foConsumptionMt: foConsumptionMt as any,
-    doConsumptionMt: doConsumptionMt as any,
+    foConsumptionMt,
+    doConsumptionMt,
     lngConsumptionMt: null,
     loConsumptionMt: null,
     totalFuelMt,
@@ -188,7 +189,7 @@ export async function createFuelEmissionsEntryFromFMCC(
       dataPoints: fmccData.dataPoints,
       emissionFactors: EMISSION_FACTORS[fuelType],
     },
-  } as any);
+  };
 
   const result = await db
     .insert(fuelEmissionsLog)
