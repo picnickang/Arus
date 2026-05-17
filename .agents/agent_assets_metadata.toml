@@ -390,3 +390,9 @@ id = "j1pfC184JzrE1M1rxRMGO"
 uri = "file://.local/ts-nocheck-files.txt"
 type = "text"
 title = "Remaining @ts-nocheck files (414)"
+
+[[outputs]]
+id = "DtDKqCvSokI6Jwwt3twqB"
+uri = "file://dist/arus-source.tar.gz"
+type = "unspecified"
+title = "ARUS full-stack source (5.5 MB, 3360 files)"
