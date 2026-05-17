@@ -36,6 +36,9 @@ const ZERO_USAGE: LLMUsage = { promptTokens: 0, completionTokens: 0, totalTokens
 
 function toOpenAIMessages(params: LLMChatParams): unknown[] {
   return params.messages.map((m) => {
+    // OpenAI's chat.completions API accepts both `string` and
+    // `ContentPart[]` for `content`; our LLMContentPart shape is the
+    // OpenAI wire shape, so we can pass arrays straight through.
     const base: Record<string, unknown> = { role: m.role, content: m.content };
     if (m.name) base.name = m.name;
     if (m.toolCallId) base.tool_call_id = m.toolCallId;

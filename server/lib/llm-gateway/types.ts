@@ -18,9 +18,31 @@
 
 export type LLMRole = "system" | "user" | "assistant" | "tool";
 
+/**
+ * Multi-modal content part. Today only text and image (URL or base64
+ * data URL) are modelled; extend with audio/file parts when needed.
+ * Providers that do not support a given part should error explicitly
+ * rather than silently dropping it.
+ */
+export type LLMContentPart =
+  | { type: "text"; text: string }
+  | {
+      type: "image_url";
+      image_url: {
+        url: string;
+        /** OpenAI-compatible detail hint. */
+        detail?: "auto" | "low" | "high";
+      };
+    };
+
 export interface LLMMessage {
   role: LLMRole;
-  content: string | null;
+  /**
+   * Message content. `string` for plain-text turns (the common case),
+   * `null` for assistant turns that only emit tool calls, and
+   * `LLMContentPart[]` for multi-modal user turns (e.g. text + image).
+   */
+  content: string | null | LLMContentPart[];
   /** Tool call id this message is responding to (role === "tool"). */
   toolCallId?: string;
   /** Tool calls emitted by an assistant message. */
