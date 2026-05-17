@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * System Admin Repository - Modular Aggregator
  */
@@ -38,7 +37,7 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
     return this.s.getAdminSystemSetting(orgId, category, key);
   }
   async createAdminSystemSetting(setting: PartialSetting) {
-    return this.s.createAdminSystemSetting(setting);
+    return this.s.createAdminSystemSetting(setting as any);
   }
   async updateAdminSystemSetting(id: string, setting: PartialSetting) {
     return this.s.updateAdminSystemSetting(id, setting);
@@ -56,7 +55,7 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
     return this.s.getIntegrationConfig(id, orgId);
   }
   async createIntegrationConfig(config: PartialConfig) {
-    return this.s.createIntegrationConfig(config);
+    return this.s.createIntegrationConfig(config as any);
   }
   async updateIntegrationConfig(id: string, config: PartialConfig) {
     return this.s.updateIntegrationConfig(id, config);
@@ -74,7 +73,7 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
     return this.s.getMaintenanceWindow(id, orgId);
   }
   async createMaintenanceWindow(window: PartialWindow) {
-    return this.s.createMaintenanceWindow(window);
+    return this.s.createMaintenanceWindow(window as any);
   }
   async updateMaintenanceWindow(id: string, window: PartialWindow) {
     return this.s.updateMaintenanceWindow(id, window);
@@ -92,7 +91,7 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
     return this.s.getSystemHealthCheck(id, orgId);
   }
   async createSystemHealthCheck(check: PartialCheck) {
-    return this.s.createSystemHealthCheck(check);
+    return this.s.createSystemHealthCheck(check as any);
   }
   async updateSystemHealthCheck(id: string, check: PartialCheck, orgId: string) {
     return this.s.updateSystemHealthCheck(id, check, orgId);
@@ -140,7 +139,7 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
     if (filters?.source) {
       conditions.push(eq(errorLogs.category, filters.source));
     }
-    let query = database.select().from(errorLogs);
+    let query = database.select().from(errorLogs).$dynamic();
     if (conditions.length > 0) {
       query = query.where(and(...conditions));
     }

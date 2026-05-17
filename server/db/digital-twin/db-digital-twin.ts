@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Digital Twin - Database Storage
  */
@@ -67,7 +66,7 @@ export class DatabaseDigitalTwinStorage {
     if (status) {
       c.push(eq(twinSimulations.status, status));
     }
-    let q = db.select().from(twinSimulations);
+    let q = db.select().from(twinSimulations).$dynamic();
     if (c.length > 0) {
       q = q.where(and(...c));
     }
@@ -98,7 +97,7 @@ export class DatabaseDigitalTwinStorage {
     if (filters?.toDate) {
       c.push(lte(errorLogs.timestamp, filters.toDate));
     }
-    let q = db.select().from(errorLogs);
+    let q = db.select().from(errorLogs).$dynamic();
     if (c.length > 0) {
       q = q.where(and(...c));
     }
@@ -163,7 +162,7 @@ export class DatabaseDigitalTwinStorage {
       cutoff.setHours(cutoff.getHours() - hours);
       c.push(gte(systemPerformanceMetrics.recordedAt, cutoff));
     }
-    let q = db.select().from(systemPerformanceMetrics);
+    let q = db.select().from(systemPerformanceMetrics).$dynamic();
     if (c.length > 0) {
       q = q.where(and(...c));
     }

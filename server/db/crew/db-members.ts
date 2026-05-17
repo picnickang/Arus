@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Crew - Database Storage Members
  */
@@ -34,9 +33,8 @@ export class DbCrewMembers {
     if (filters?.rank) {
       conditions.push(eq(crew.rank, filters.rank));
     }
-    if (filters?.status) {
-      conditions.push(eq(crew.status, filters.status));
-    }
+    // NOTE: CrewFilters.status is ignored — crew table has no `status` column
+    // (use `active` / `onDuty` / `terminationType` instead). Kept here for callsite compat.
     if (conditions.length > 0) {
       return db
         .select()
@@ -58,10 +56,9 @@ export class DbCrewMembers {
       .values({
         id: randomUUID(),
         ...crewData,
-        status: crewData.status || "active",
         createdAt: new Date(),
         updatedAt: new Date(),
-      })
+      } as any)
       .returning();
     return newCrew;
   }

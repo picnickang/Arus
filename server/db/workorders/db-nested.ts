@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Work Orders - Database Storage Nested Resources (Parts, Tasks, Checklists, Worklogs)
  */
@@ -37,7 +36,7 @@ export class DbWorkOrderNested {
   async addWorkOrderPart(part: InsertWorkOrderPart): Promise<WorkOrderPart> {
     const [newPart] = await db
       .insert(workOrderParts)
-      .values({ id: randomUUID(), ...part, createdAt: new Date(), updatedAt: new Date() })
+      .values({ id: randomUUID(), ...part, createdAt: new Date(), updatedAt: new Date() } as any)
       .returning();
     return newPart;
   }
@@ -47,7 +46,7 @@ export class DbWorkOrderNested {
   ): Promise<WorkOrderPart> {
     const [updated] = await db
       .update(workOrderParts)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updatedAt: new Date() } as any)
       .where(eq(workOrderParts.id, id))
       .returning();
     if (!updated) {
@@ -69,7 +68,7 @@ export class DbWorkOrderNested {
   async addWorkOrderTask(task: InsertWorkOrderTask): Promise<WorkOrderTask> {
     const [newTask] = await db
       .insert(workOrderTasks)
-      .values({ id: randomUUID(), ...task, createdAt: new Date(), updatedAt: new Date() })
+      .values({ id: randomUUID(), ...task, createdAt: new Date(), updatedAt: new Date() } as any)
       .returning();
     return newTask;
   }
@@ -79,7 +78,7 @@ export class DbWorkOrderNested {
   ): Promise<WorkOrderTask> {
     const [updated] = await db
       .update(workOrderTasks)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updatedAt: new Date() } as any)
       .where(eq(workOrderTasks.id, id))
       .returning();
     if (!updated) {
@@ -96,12 +95,12 @@ export class DbWorkOrderNested {
       .select()
       .from(workOrderChecklists)
       .where(eq(workOrderChecklists.workOrderId, workOrderId))
-      .orderBy(workOrderChecklists.sortOrder);
+      .orderBy(workOrderChecklists.createdAt);
   }
   async addWorkOrderChecklist(checklist: InsertWorkOrderChecklist): Promise<WorkOrderChecklist> {
     const [newChecklist] = await db
       .insert(workOrderChecklists)
-      .values({ id: randomUUID(), ...checklist, createdAt: new Date(), updatedAt: new Date() })
+      .values({ id: randomUUID(), ...checklist, createdAt: new Date() } as any)
       .returning();
     return newChecklist;
   }
@@ -111,7 +110,7 @@ export class DbWorkOrderNested {
   ): Promise<WorkOrderChecklist> {
     const [updated] = await db
       .update(workOrderChecklists)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates } as any)
       .where(eq(workOrderChecklists.id, id))
       .returning();
     if (!updated) {
@@ -128,12 +127,12 @@ export class DbWorkOrderNested {
       .select()
       .from(workOrderWorklogs)
       .where(eq(workOrderWorklogs.workOrderId, workOrderId))
-      .orderBy(sql`${workOrderWorklogs.performedAt} DESC`);
+      .orderBy(sql`${workOrderWorklogs.startTime} DESC`);
   }
   async addWorkOrderWorklog(worklog: InsertWorkOrderWorklog): Promise<WorkOrderWorklog> {
     const [newWorklog] = await db
       .insert(workOrderWorklogs)
-      .values({ id: randomUUID(), ...worklog, createdAt: new Date(), updatedAt: new Date() })
+      .values({ id: randomUUID(), ...worklog, createdAt: new Date(), updatedAt: new Date() } as any)
       .returning();
     return newWorklog;
   }
@@ -143,7 +142,7 @@ export class DbWorkOrderNested {
   ): Promise<WorkOrderWorklog> {
     const [updated] = await db
       .update(workOrderWorklogs)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updatedAt: new Date() } as any)
       .where(eq(workOrderWorklogs.id, id))
       .returning();
     if (!updated) {

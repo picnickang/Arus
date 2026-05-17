@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Devices Repository
  * Handles devices, heartbeats, and PDM scores
@@ -57,7 +56,7 @@ export class DatabaseDevicesStorage {
       .orderBy(sql`ts DESC`);
   }
   async createHeartbeat(data: InsertHeartbeat): Promise<EdgeHeartbeat> {
-    const r = await db.insert(edgeHeartbeatsTable).values(data).returning();
+    const r = await db.insert(edgeHeartbeatsTable).values(data as any).returning();
     return r[0];
   }
   async getPdmScores(equipmentId?: string, orgId?: string): Promise<PdmScoreLog[]> {
@@ -98,10 +97,10 @@ export class DatabaseDevicesStorage {
   async upsertHeartbeat(heartbeat: InsertHeartbeat): Promise<EdgeHeartbeat> {
     const r = await db
       .insert(edgeHeartbeatsTable)
-      .values(heartbeat)
+      .values(heartbeat as any)
       .onConflictDoUpdate({
         target: [edgeHeartbeatsTable.deviceId],
-        set: { ...heartbeat, ts: new Date() },
+        set: { ...heartbeat, ts: new Date() } as any,
       })
       .returning();
     return r[0];
@@ -175,10 +174,11 @@ export class MemDevicesStorage {
     return (this.heartbeats.get(deviceId) || []).filter((h) => !orgId || h.orgId === orgId);
   }
   async createHeartbeat(data: InsertHeartbeat): Promise<EdgeHeartbeat> {
-    const h = { ...data, ts: new Date() } as EdgeHeartbeat;
-    const arr = this.heartbeats.get(data.deviceId) || [];
+    const h = { ...data, ts: new Date() } as unknown as EdgeHeartbeat;
+    const deviceId = (data as any).deviceId;
+    const arr = this.heartbeats.get(deviceId) || [];
     arr.push(h);
-    this.heartbeats.set(data.deviceId, arr);
+    this.heartbeats.set(deviceId, arr);
     return h;
   }
   async getPdmScores(equipmentId?: string, orgId?: string): Promise<PdmScoreLog[]> {

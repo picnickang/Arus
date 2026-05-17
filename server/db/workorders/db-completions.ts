@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Work Orders - Database Storage Completions
  */
@@ -15,7 +14,7 @@ export class DbWorkOrderCompletions {
   ): Promise<WorkOrderCompletion> {
     const [newCompletion] = await db
       .insert(workOrderCompletions)
-      .values({ id: randomUUID(), ...completion, createdAt: new Date(), updatedAt: new Date() })
+      .values({ id: randomUUID(), ...completion, createdAt: new Date(), updatedAt: new Date() } as any)
       .returning();
     return newCompletion;
   }

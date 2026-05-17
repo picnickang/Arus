@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Notifications - Database Storage
  */
@@ -14,26 +13,24 @@ import { emailQueue, type EmailQueue, type InsertEmailQueue } from "@shared/sche
 
 export class DatabaseNotificationsStorage {
   async getNotificationSettings(orgId?: string, userId?: string): Promise<NotificationSettings[]> {
+    // NOTE: userId filter is ignored — notification_settings is org-scoped only
+    // (no user_id column in shared/schema/admin.ts). Kept in signature for compat.
+    void userId;
     const conditions = [];
     if (orgId) {
       conditions.push(eq(notificationSettings.orgId, orgId));
     }
-    if (userId) {
-      conditions.push(eq(notificationSettings.userId, userId));
-    }
-    let query = db.select().from(notificationSettings);
+    let query = db.select().from(notificationSettings).$dynamic();
     if (conditions.length > 0) {
       query = query.where(and(...conditions));
     }
     return query;
   }
   async getNotificationSettingsForUser(userId: string): Promise<NotificationSettings | undefined> {
-    const [result] = await db
-      .select()
-      .from(notificationSettings)
-      .where(eq(notificationSettings.userId, userId))
-      .limit(1);
-    return result;
+    // NOTE: notification_settings has no user_id column; per-user lookup is unsupported.
+    // Returns undefined so callers fall back to org defaults.
+    void userId;
+    return undefined;
   }
   async createNotificationSettings(
     settings: InsertNotificationSettings
@@ -79,13 +76,14 @@ export class DatabaseNotificationsStorage {
         .select()
         .from(emailQueue)
         .where(and(...conditions))
-        .orderBy(emailQueue.createdAt);
+        .orderBy(emailQueue.createdAt)
+        .$dynamic();
       if (limit) {
         q = q.limit(limit);
       }
       return q;
     }
-    let q = db.select().from(emailQueue).orderBy(emailQueue.createdAt);
+    let q = db.select().from(emailQueue).orderBy(emailQueue.createdAt).$dynamic();
     if (limit) {
       q = q.limit(limit);
     }
@@ -127,7 +125,8 @@ export class DatabaseNotificationsStorage {
       .select()
       .from(emailQueue)
       .where(eq(emailQueue.status, "pending"))
-      .orderBy(emailQueue.priority, emailQueue.createdAt);
+      .orderBy(emailQueue.createdAt)
+      .$dynamic();
     if (limit) {
       query = query.limit(limit);
     }
@@ -136,7 +135,7 @@ export class DatabaseNotificationsStorage {
   async markEmailSent(id: string): Promise<void> {
     await db
       .update(emailQueue)
-      .set({ status: "sent", sentAt: new Date(), updatedAt: new Date() })
+      .set({ status: "sent", sentAt: new Date() })
       .where(eq(emailQueue.id, id));
   }
   async markEmailFailed(id: string, error: string): Promise<void> {
@@ -146,9 +145,8 @@ export class DatabaseNotificationsStorage {
         .update(emailQueue)
         .set({
           status: "failed",
-          error,
-          retryCount: (item.retryCount || 0) + 1,
-          updatedAt: new Date(),
+          errorMessage: error,
+          attempts: ((item as any).attempts || 0) + 1,
         })
         .where(eq(emailQueue.id, id));
     }

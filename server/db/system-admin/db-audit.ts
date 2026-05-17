@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * System Admin - Database Storage Audit & Sessions
  */
@@ -26,11 +25,11 @@ export class DbAuditStorage {
     if (action) {
       conditions.push(eq(adminAuditEvents.action, action));
     }
-    let query = db.select().from(adminAuditEvents);
+    let query = db.select().from(adminAuditEvents).$dynamic();
     if (conditions.length > 0) {
       query = query.where(and(...conditions));
     }
-    query = query.orderBy(sql`${adminAuditEvents.timestamp} DESC`);
+    query = query.orderBy(sql`${adminAuditEvents.createdAt} DESC`);
     if (limit) {
       query = query.limit(limit);
     }
@@ -39,7 +38,7 @@ export class DbAuditStorage {
   async createAdminAuditEvent(event: InsertAdminAuditEvent): Promise<AdminAuditEvent> {
     const [n] = await db
       .insert(adminAuditEvents)
-      .values({ ...event, timestamp: new Date() })
+      .values({ ...event, createdAt: new Date() })
       .returning();
     return n;
   }
@@ -66,7 +65,7 @@ export class DbAuditStorage {
       .select()
       .from(adminAuditEvents)
       .where(and(...conditions))
-      .orderBy(sql`${adminAuditEvents.timestamp} DESC`);
+      .orderBy(sql`${adminAuditEvents.createdAt} DESC`);
   }
   async getAuditEventsByResource(
     resourceType: string,
@@ -84,7 +83,7 @@ export class DbAuditStorage {
       .select()
       .from(adminAuditEvents)
       .where(and(...conditions))
-      .orderBy(sql`${adminAuditEvents.timestamp} DESC`);
+      .orderBy(sql`${adminAuditEvents.createdAt} DESC`);
   }
 
   async createAdminSession(session: InsertAdminSession): Promise<AdminSession> {

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Optimizer - Database Storage
  */
@@ -22,7 +21,7 @@ import {
 
 export class DbOptimizerStorage {
   async getOptimizerConfigurations(orgId?: string): Promise<OptimizerConfiguration[]> {
-    let q = db.select().from(optimizerConfigurations);
+    let q = db.select().from(optimizerConfigurations).$dynamic();
     if (orgId) {
       q = q.where(eq(optimizerConfigurations.orgId, orgId));
     }
@@ -69,14 +68,14 @@ export class DbOptimizerStorage {
     optimizerConfigId?: string,
     orgId?: string
   ): Promise<ResourceConstraint[]> {
+    // NOTE: optimizerConfigId filter is ignored — resource_constraints has no FK to
+    // optimizer_configurations. Kept in signature for backward compat.
+    void optimizerConfigId;
     const c = [];
-    if (optimizerConfigId) {
-      c.push(eq(resourceConstraints.optimizerConfigId, optimizerConfigId));
-    }
     if (orgId) {
       c.push(eq(resourceConstraints.orgId, orgId));
     }
-    let q = db.select().from(resourceConstraints);
+    let q = db.select().from(resourceConstraints).$dynamic();
     if (c.length > 0) {
       q = q.where(and(...c));
     }
@@ -121,7 +120,7 @@ export class DbOptimizerStorage {
     if (endDate) {
       c.push(lte(optimizationResults.createdAt, endDate));
     }
-    let q = db.select().from(optimizationResults);
+    let q = db.select().from(optimizationResults).$dynamic();
     if (c.length > 0) {
       q = q.where(and(...c));
     }
@@ -168,7 +167,7 @@ export class DbOptimizerStorage {
       .select()
       .from(scheduleOptimizations)
       .where(eq(scheduleOptimizations.optimizationResultId, optimizationResultId))
-      .orderBy(asc(scheduleOptimizations.scheduledDate));
+      .orderBy(asc(scheduleOptimizations.recommendedScheduleDate));
   }
   async createScheduleOptimization(
     optimization: InsertScheduleOptimization
