@@ -13,6 +13,7 @@ import {
 import type { AgentRepositoryPort } from "../domain/ports";
 import type { AgentSuggestion } from "@shared/schema/agent";
 import type { AgentSignal } from "../domain/types";
+import { llmGateway } from "../../../composition/llm-gateway";
 
 interface SuggestionPreferences {
   maintenance: boolean;
@@ -500,9 +501,6 @@ export class SuggestionEngine {
 
   private async aiSummarizeSuggestions(suggestions: AgentSuggestion[]): Promise<void> {
     try {
-      const { default: OpenAI } = await import("openai");
-      const openai = new OpenAI();
-
       const triggerSummaries = suggestions
         .map(
           (s, i) =>
@@ -510,9 +508,9 @@ export class SuggestionEngine {
         )
         .join("\n");
 
-      const response = await openai.chat.completions.create({
+      const response = await llmGateway.chat({
         model: "gpt-4o-mini",
-        max_tokens: 800,
+        maxCompletionTokens: 800,
         messages: [
           {
             role: "system",
@@ -524,9 +522,14 @@ export class SuggestionEngine {
             content: `The following ${suggestions.length} conditions were detected:\n${triggerSummaries}\n\nProvide the executive summary and per-item recommendations.`,
           },
         ],
+        meta: {
+          caller: "agent-suggestion-summarizer",
+          orgId: suggestions[0]?.orgId,
+          suggestionCount: suggestions.length,
+        },
       });
 
-      const aiContent = response.choices[0]?.message?.content;
+      const aiContent = response.content;
       if (aiContent && suggestions.length > 0) {
         const lines = aiContent.split("\n").filter((l) => l.trim());
         for (let i = 0; i < suggestions.length; i++) {

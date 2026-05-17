@@ -1,12 +1,12 @@
 /**
  * Document Auto-Summarization Service
  *
- * Uses LLM to generate concise summaries of ingested documents.
- * Summaries are stored with documents for quick reference and
+ * Uses the shared LLM Gateway to generate concise summaries of ingested
+ * documents. Summaries are stored with documents for quick reference and
  * can be used for RAG context enhancement.
  */
 
-import { createOpenAIClient } from "../../openai/client";
+import { llmGateway } from "../../composition/llm-gateway";
 import { logger } from "../../utils/logger";
 
 const SUMMARIZATION_PROMPT = `You are a technical document summarizer for a marine fleet management system.
@@ -49,9 +49,8 @@ export async function summarizeDocument(
   const startTime = Date.now();
 
   try {
-    const client = await createOpenAIClient();
-    if (!client) {
-      logger.warn("[Summarizer] OpenAI client unavailable - skipping summarization");
+    if (!(await llmGateway.isAvailable())) {
+      logger.warn("[Summarizer] LLM unavailable - skipping summarization");
       return null;
     }
 
@@ -62,23 +61,21 @@ export async function summarizeDocument(
 
     const prompt = SUMMARIZATION_PROMPT.replace("{content}", truncatedContent);
 
-    const response = await client.chat.completions.create({
+    const response = await llmGateway.chat({
       model,
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 500,
+      maxCompletionTokens: 500,
       temperature: 0.3,
+      meta: { caller: "document-summarizer" },
     });
 
-    const summary = response.choices[0]?.message?.content || "";
-    const usage = response.usage || { prompt_tokens: 0, completion_tokens: 0 };
-
     const result: SummarizationResult = {
-      summary: summary.trim(),
+      summary: (response.content || "").trim(),
       tokenCount: {
-        prompt: usage.prompt_tokens,
-        completion: usage.completion_tokens,
+        prompt: response.usage.promptTokens,
+        completion: response.usage.completionTokens,
       },
-      model,
+      model: response.model,
       durationMs: Date.now() - startTime,
     };
 
@@ -97,14 +94,13 @@ export async function generateKeywords(
   maxKeywords: number = 10
 ): Promise<string[]> {
   try {
-    const client = await createOpenAIClient();
-    if (!client) {
+    if (!(await llmGateway.isAvailable())) {
       return [];
     }
 
     const truncated = content.slice(0, 8000);
 
-    const response = await client.chat.completions.create({
+    const response = await llmGateway.chat({
       model: "gpt-4o-mini",
       messages: [
         {
@@ -112,11 +108,12 @@ export async function generateKeywords(
           content: `Extract the ${maxKeywords} most important keywords from this marine engineering document. Return only a comma-separated list of keywords, nothing else.\n\nDocument:\n${truncated}`,
         },
       ],
-      max_tokens: 100,
+      maxCompletionTokens: 100,
       temperature: 0.1,
+      meta: { caller: "document-keyword-extractor" },
     });
 
-    const keywordsText = response.choices[0]?.message?.content || "";
+    const keywordsText = response.content || "";
     return keywordsText
       .split(",")
       .map((k) => k.trim().toLowerCase())

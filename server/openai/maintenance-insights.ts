@@ -3,7 +3,8 @@
  */
 
 import type { MaintenanceInsight, PumpAnalysisParams } from "./types";
-import { createOpenAIClient, callWithModelFallback, calculateDynamicTokens } from "./client";
+import { calculateDynamicTokens } from "./client";
+import { llmGateway } from "../composition/llm-gateway";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Openai:MaintenanceInsights");
 
@@ -43,33 +44,28 @@ export async function generateMaintenanceRecommendations(
     
     Provide specific, actionable maintenance recommendations for marine operations.`;
 
-    const openai = await createOpenAIClient();
-    if (!openai) {
-      throw new Error("OpenAI client not available - API key not configured");
-    }
-
     const inputSize = systemPrompt.length + userPrompt.length;
     const maxTokens = calculateDynamicTokens(inputSize, 1000, 2500);
 
-    const response = await callWithModelFallback(openai, {
+    const response = await llmGateway.chat({
       model: "gpt-4o",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      response_format: { type: "json_object" },
-      max_completion_tokens: maxTokens,
+      jsonMode: true,
+      maxCompletionTokens: maxTokens,
+      meta: { caller: "maintenance-insights", alertType, equipmentId },
     });
 
     let recommendation;
     try {
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
-        throw new Error("No content in OpenAI response");
+      if (!response.content) {
+        throw new Error("No content in LLM response");
       }
-      recommendation = JSON.parse(content);
+      recommendation = JSON.parse(response.content);
     } catch (parseError) {
-      logger.error("Failed to parse OpenAI maintenance recommendation response:", undefined, parseError);
+      logger.error("Failed to parse LLM maintenance recommendation response:", undefined, parseError);
       throw new Error(
         `Invalid AI response format: ${parseError instanceof Error ? parseError.message : "Unknown error"}`
       );
@@ -142,22 +138,18 @@ Overall Assessment:
 
 Provide a concise technical explanation of the pump's current condition, highlighting any concerns and recommended actions for marine operations.`;
 
-    const openai = await createOpenAIClient();
-    if (!openai) {
-      throw new Error("OpenAI client not available - API key not configured");
-    }
-
-    const response = await openai.chat.completions.create({
+    const response = await llmGateway.chat({
       model: "gpt-4o",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      max_completion_tokens: 800,
+      maxCompletionTokens: 800,
+      meta: { caller: "pump-analysis-explanation", assetId, vesselName },
     });
 
     return (
-      response.choices[0].message.content?.trim() ||
+      response.content?.trim() ||
       "Pump analysis completed. Parameters within operational limits."
     );
   } catch (error) {

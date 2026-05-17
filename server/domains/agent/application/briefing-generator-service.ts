@@ -7,6 +7,7 @@ import type {
 } from "../domain/briefing-types";
 import type { AgentRepositoryPort } from "../domain/ports";
 import { logger } from "../../../utils/logger";
+import { llmGateway } from "../../../composition/llm-gateway";
 
 const LOG_CTX = "BriefingGeneratorService";
 
@@ -327,9 +328,6 @@ export class BriefingGeneratorService {
     }
 
     try {
-      const { default: OpenAI } = await import("openai");
-      const openai = new OpenAI();
-
       const sectionSummaries = sections
         .map((s) => {
           if (s.items.length === 0) {
@@ -343,9 +341,9 @@ export class BriefingGeneratorService {
         })
         .join("\n\n");
 
-      const response = await openai.chat.completions.create({
+      const response = await llmGateway.chat({
         model: "gpt-4o-mini",
-        max_tokens: 400,
+        maxCompletionTokens: 400,
         messages: [
           {
             role: "system",
@@ -357,9 +355,10 @@ export class BriefingGeneratorService {
             content: `Daily briefing data:\n\n${sectionSummaries}\n\nWrite the executive summary paragraph.`,
           },
         ],
+        meta: { caller: "agent-briefing-summary" },
       });
 
-      return response.choices[0]?.message?.content || this.buildFallbackSummary(sections);
+      return response.content || this.buildFallbackSummary(sections);
     } catch (err) {
       logger.warn(
         LOG_CTX,
