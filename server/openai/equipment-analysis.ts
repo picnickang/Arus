@@ -1,11 +1,15 @@
 /**
- * Equipment Health Analysis using OpenAI
+ * Equipment Health Analysis — now talks to the LLM Gateway instead of the
+ * raw OpenAI SDK. Provider switching, retries, and token telemetry live
+ * inside the gateway; this file is pure prompt construction + parsing.
  */
 
 import type { EquipmentTelemetry, TelemetryTrend } from "@shared/schema";
 import type { EquipmentAnalysis } from "./types";
-import { createOpenAIClient, callWithModelFallback, calculateDynamicTokens } from "./client";
+import { calculateDynamicTokens } from "./client";
+import { llmGateway } from "../composition/llm-gateway";
 import { createLogger } from "../lib/structured-logger";
+
 const logger = createLogger("Openai:EquipmentAnalysis");
 
 /**
@@ -75,33 +79,28 @@ export async function analyzeEquipmentHealth(
     
     Provide detailed predictive maintenance analysis focusing on marine environment challenges.`;
 
-    const openai = await createOpenAIClient();
-    if (!openai) {
-      throw new Error("OpenAI client not available - API key not configured");
-    }
-
     const inputSize = systemPrompt.length + userPrompt.length;
     const maxTokens = calculateDynamicTokens(inputSize, 2048, 4096);
 
-    const response = await callWithModelFallback(openai, {
+    const response = await llmGateway.chat({
       model: "gpt-4o",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      response_format: { type: "json_object" },
-      max_completion_tokens: maxTokens,
+      jsonMode: true,
+      maxCompletionTokens: maxTokens,
+      meta: { caller: "equipment-analysis", equipmentId },
     });
 
     let analysis;
     try {
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
-        throw new Error("No content in OpenAI response");
+      if (!response.content) {
+        throw new Error("No content in LLM response");
       }
-      analysis = JSON.parse(content);
+      analysis = JSON.parse(response.content);
     } catch (parseError) {
-      logger.error("Failed to parse OpenAI response:", undefined, parseError);
+      logger.error("Failed to parse LLM response:", undefined, parseError);
       throw new Error(
         `Invalid AI response format: ${parseError instanceof Error ? parseError.message : "Unknown error"}`
       );

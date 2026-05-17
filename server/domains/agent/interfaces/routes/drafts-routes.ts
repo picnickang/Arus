@@ -3,7 +3,7 @@ const logger = createLogger("Domains:Agent:Interfaces:Routes:DraftsRoutes");
 import type { Express, Request, Response } from "express";
 import type { AuthenticatedRequest } from "../../../../middleware/auth";
 import { agentRepo } from "../../infrastructure/repository";
-import { executeDraftAction } from "../../application/draft-executor";
+import { executeDraftAction } from "../../../../composition/agent-draft-executor.js";
 import { auditAction } from "../../../../utils/audit-helpers";
 import type { RateLimitMiddleware, RoleMiddleware } from "./_shared";
 

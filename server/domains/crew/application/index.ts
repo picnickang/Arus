@@ -1,15 +1,12 @@
 /**
- * Crew Application Layer - Dependency Injection Composition Root
- * Wires up the application service with infrastructure adapters
+ * Crew Application Layer - public exports
+ *
+ * The concrete `crewAppService` instance is wired in
+ * `server/composition/crew-application-service.ts` (composition root).
+ * This module re-exports it so existing import paths
+ * (`server/domains/crew/application` and `server/domains/crew` index)
+ * continue to work unchanged.
  */
 
-import { CrewApplicationService } from "./crew-service";
-import { crewMemberRepository } from "../infrastructure/crew-repository-adapter";
-import { crewEventPublisher } from "../infrastructure/event-publisher-adapter";
-
-export const crewAppService = new CrewApplicationService({
-  crewMemberRepository,
-  eventPublisher: crewEventPublisher,
-});
-
 export { CrewApplicationService } from "./crew-service";
+export { crewAppService } from "../../../composition/crew-application-service.js";

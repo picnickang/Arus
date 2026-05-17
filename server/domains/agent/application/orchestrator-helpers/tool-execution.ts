@@ -6,7 +6,7 @@ import type { AgentConfigType } from "@shared/schema";
 import type { PermissionTier, ToolDefinition } from "../../domain/types";
 import { getTool } from "../../tools";
 import { auditAction } from "../../../../utils/audit-helpers";
-import { executeDraftAction } from "../draft-executor";
+import { executeDraftAction } from "../../../../composition/agent-draft-executor.js";
 import type { SafetyService } from "../safety-service";
 import { parseToolArgs } from "./openai-client";
 
