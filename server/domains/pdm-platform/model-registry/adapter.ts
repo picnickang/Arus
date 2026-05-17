@@ -57,7 +57,7 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
           eq(modelDeployments.deploymentStatus, "active")
         )
       )
-      .orderBy(desc(modelDeployments.deployedOn))
+      .orderBy(desc(modelDeployments.deployedAt))
       .limit(1);
     return result ?? null;
   }

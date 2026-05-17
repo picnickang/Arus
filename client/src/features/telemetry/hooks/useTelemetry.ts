@@ -42,7 +42,7 @@ export function useTelemetryReadings(
 export function useLatestTelemetry(equipmentId: string | undefined) {
   return useQuery<Record<string, TelemetryReading>>({
     queryKey: telemetryKeys.latest(equipmentId || ""),
-    queryFn: () => apiRequest("GET", `/api/telemetry/latest/${equipmentId}`),
+    queryFn: () => apiRequest<Record<string, TelemetryReading>>("GET", `/api/telemetry/latest/${equipmentId}`),
     enabled: !!equipmentId,
     refetchInterval: 60000,
   });
@@ -63,7 +63,7 @@ export function useSensorStates(equipmentId?: string) {
   return useQuery<SensorState[]>({
     queryKey: telemetryKeys.states(equipmentId ?? "all"),
     queryFn: () =>
-      apiRequest("GET", `/api/sensor-states${equipmentId ? `?equipmentId=${equipmentId}` : ""}`),
+      apiRequest<SensorState[]>("GET", `/api/sensor-states${equipmentId ? `?equipmentId=${equipmentId}` : ""}`),
     refetchInterval: 60000,
   });
 }
@@ -71,14 +71,14 @@ export function useSensorStates(equipmentId?: string) {
 export function useSensorTemplates() {
   return useQuery<SensorTemplate[]>({
     queryKey: telemetryKeys.templates(),
-    queryFn: () => apiRequest("GET", "/api/sensor-templates"),
+    queryFn: () => apiRequest<SensorTemplate[]>("GET", "/api/sensor-templates"),
   });
 }
 
 export function useDeviceHeartbeats(limit?: number) {
   return useQuery<DeviceHeartbeat[]>({
     queryKey: [...telemetryKeys.heartbeats(), limit ?? "all"],
-    queryFn: () => apiRequest("GET", `/api/heartbeats${limit ? `?limit=${limit}` : ""}`),
+    queryFn: () => apiRequest<DeviceHeartbeat[]>("GET", `/api/heartbeats${limit ? `?limit=${limit}` : ""}`),
     refetchInterval: 120000,
   });
 }

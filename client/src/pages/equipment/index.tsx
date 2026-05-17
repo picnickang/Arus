@@ -126,7 +126,7 @@ export default function EquipmentPage() {
     isLoading: isLoadingDecommissioned,
   } = useQuery<Equipment[]>({
     queryKey: equipmentKeys.decommissioned(),
-    queryFn: () => apiRequest("GET", "/api/equipment/decommissioned"),
+    queryFn: () => apiRequest<Equipment[]>("GET", "/api/equipment/decommissioned"),
     enabled: activeTab === "decommissioned",
   });
 

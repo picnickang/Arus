@@ -38,12 +38,12 @@ export function useVesselDetail(): UseVesselDetailReturn {
 
   const { data: vessel, isLoading: vesselLoading } = useQuery<Vessel>({
     queryKey: ["/api/vessels", vesselId],
-    queryFn: () => apiRequest("GET", `/api/vessels/${vesselId}`),
+    queryFn: () => apiRequest<Vessel>("GET", `/api/vessels/${vesselId}`),
     enabled: !!vesselId,
   });
   const { data: equipment = [], isLoading: equipmentLoading } = useQuery<Equipment[]>({
     queryKey: ["/api/vessels", vesselId, "equipment"],
-    queryFn: () => apiRequest("GET", `/api/vessels/${vesselId}/equipment`),
+    queryFn: () => apiRequest<Equipment[]>("GET", `/api/vessels/${vesselId}/equipment`),
     enabled: !!vesselId,
   });
   const { data: workOrders = [], isLoading: workOrdersLoading } = useWorkOrders();

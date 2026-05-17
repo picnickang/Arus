@@ -43,14 +43,14 @@ export const lifecycleKeys = {
 export function useFormerCrew() {
   return useQuery<FormerCrewMember[]>({
     queryKey: lifecycleKeys.former(),
-    queryFn: () => apiRequest("GET", "/api/crew/former"),
+    queryFn: () => apiRequest<FormerCrewMember[]>("GET", "/api/crew/former"),
   });
 }
 
 export function useEmploymentHistory(crewId: string | undefined) {
   return useQuery<EmploymentHistoryRecord[]>({
     queryKey: lifecycleKeys.history(crewId || ""),
-    queryFn: () => apiRequest("GET", `/api/crew/${crewId}/history`),
+    queryFn: () => apiRequest<EmploymentHistoryRecord[]>("GET", `/api/crew/${crewId}/history`),
     enabled: !!crewId,
   });
 }

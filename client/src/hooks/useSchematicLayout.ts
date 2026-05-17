@@ -85,7 +85,7 @@ export function useSchematicLayout(vesselId: string | undefined) {
 
   const { data: layout, isLoading } = useQuery<SchematicLayout>({
     queryKey,
-    queryFn: () => apiRequest("GET", `/api/vessels/${vesselId}/schematic-layout`),
+    queryFn: () => apiRequest<SchematicLayout>("GET", `/api/vessels/${vesselId}/schematic-layout`),
     enabled: !!vesselId,
     retry: 2,
     placeholderData: getDefaultLayout(),

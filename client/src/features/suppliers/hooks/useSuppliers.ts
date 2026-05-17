@@ -44,14 +44,14 @@ export function useSuppliers(filters?: SupplierFilters) {
 
   return useQuery<Supplier[]>({
     queryKey: supplierKeys.list(filters),
-    queryFn: () => apiRequest("GET", url),
+    queryFn: () => apiRequest<Supplier[]>("GET", url),
   });
 }
 
 export function useSupplier(id: string | undefined) {
   return useQuery<Supplier>({
     queryKey: supplierKeys.detail(id || ""),
-    queryFn: () => apiRequest("GET", `/api/suppliers/${id}`),
+    queryFn: () => apiRequest<Supplier>("GET", `/api/suppliers/${id}`),
     enabled: !!id,
   });
 }
@@ -59,28 +59,28 @@ export function useSupplier(id: string | undefined) {
 export function useSuppliersWithStats() {
   return useQuery<SupplierWithStats[]>({
     queryKey: supplierKeys.stats(),
-    queryFn: () => apiRequest("GET", "/api/suppliers/stats"),
+    queryFn: () => apiRequest<SupplierWithStats[]>("GET", "/api/suppliers/stats"),
   });
 }
 
 export function usePreferredSuppliers() {
   return useQuery<Supplier[]>({
     queryKey: supplierKeys.preferred(),
-    queryFn: () => apiRequest("GET", "/api/suppliers/preferred"),
+    queryFn: () => apiRequest<Supplier[]>("GET", "/api/suppliers/preferred"),
   });
 }
 
 export function useSuppliersOnly() {
   return useQuery<Supplier[]>({
     queryKey: supplierKeys.byType(["supplier", "both"]),
-    queryFn: () => apiRequest("GET", "/api/suppliers?type=supplier,both"),
+    queryFn: () => apiRequest<Supplier[]>("GET", "/api/suppliers?type=supplier,both"),
   });
 }
 
 export function useServiceProviders() {
   return useQuery<Supplier[]>({
     queryKey: supplierKeys.byType(["service_provider", "both"]),
-    queryFn: () => apiRequest("GET", "/api/suppliers?type=service_provider,both"),
+    queryFn: () => apiRequest<Supplier[]>("GET", "/api/suppliers?type=service_provider,both"),
   });
 }
 

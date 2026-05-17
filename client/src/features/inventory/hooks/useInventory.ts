@@ -34,7 +34,7 @@ export function useParts(searchTerm?: string) {
 export function usePart(id: string | undefined) {
   return useQuery<Part>({
     queryKey: inventoryKeys.partDetail(id || ""),
-    queryFn: () => apiRequest("GET", `/api/parts/${id}`),
+    queryFn: () => apiRequest<Part>("GET", `/api/parts/${id}`),
     enabled: !!id,
   });
 }
@@ -55,14 +55,14 @@ export function useInventoryParts(vesselId?: string) {
 export function useStock(vesselId?: string) {
   return useQuery<Stock[]>({
     queryKey: inventoryKeys.stock(vesselId ?? "all"),
-    queryFn: () => apiRequest("GET", `/api/stock${vesselId ? `?vesselId=${vesselId}` : ""}`),
+    queryFn: () => apiRequest<Stock[]>("GET", `/api/stock${vesselId ? `?vesselId=${vesselId}` : ""}`),
   });
 }
 
 export function useLowStockItems() {
   return useQuery<Part[]>({
     queryKey: inventoryKeys.lowStock(),
-    queryFn: () => apiRequest("GET", "/api/parts-inventory/low-stock"),
+    queryFn: () => apiRequest<Part[]>("GET", "/api/parts-inventory/low-stock"),
   });
 }
 
@@ -70,7 +70,7 @@ export function useInventoryMovements(partId?: string) {
   return useQuery<InventoryMovement[]>({
     queryKey: inventoryKeys.movements(partId ?? ""),
     queryFn: () =>
-      apiRequest("GET", `/api/inventory-movements${partId ? `?partId=${partId}` : ""}`),
+      apiRequest<InventoryMovement[]>("GET", `/api/inventory-movements${partId ? `?partId=${partId}` : ""}`),
     enabled: !!partId,
   });
 }
@@ -78,14 +78,14 @@ export function useInventoryMovements(partId?: string) {
 export function useSuppliers() {
   return useQuery<Supplier[]>({
     queryKey: inventoryKeys.suppliers(),
-    queryFn: () => apiRequest("GET", "/api/suppliers"),
+    queryFn: () => apiRequest<Supplier[]>("GET", "/api/suppliers"),
   });
 }
 
 export function usePurchaseOrders(status?: string) {
   return useQuery<PurchaseOrder[]>({
     queryKey: [...inventoryKeys.purchaseOrders(), status ?? "all"],
-    queryFn: () => apiRequest("GET", `/api/purchase-orders${status ? `?status=${status}` : ""}`),
+    queryFn: () => apiRequest<PurchaseOrder[]>("GET", `/api/purchase-orders${status ? `?status=${status}` : ""}`),
   });
 }
 

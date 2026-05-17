@@ -43,7 +43,7 @@ export interface InventoryStorage {
   /**
    * Get substitution mappings for a part
    */
-  getPartSubstitutions(partNo: string, orgId: string): Promise<PartSubstitution[]>;
+  suggestPartSubstitutions(partNo: string, orgId: string): Promise<PartSubstitution[]>;
 
   /**
    * Get parts required by a work order
@@ -138,7 +138,7 @@ export class InventoryStorageAdapter implements InventoryStorage {
    * Get part substitutions
    * Note: Database uses originalPartId/partId, not partNo
    */
-  async getPartSubstitutions(partNo: string, orgId: string): Promise<PartSubstitution[]> {
+  async suggestPartSubstitutions(partNo: string, orgId: string): Promise<PartSubstitution[]> {
     // Get the part first to resolve ID
     const part = await this.storage.getPartByNumber(partNo, orgId);
     if (!part) {
@@ -146,7 +146,7 @@ export class InventoryStorageAdapter implements InventoryStorage {
     }
 
     // Get substitutions by part ID
-    return this.storage.getPartSubstitutions(part.id, orgId);
+    return this.storage.suggestPartSubstitutions(part.id, orgId);
   }
 
   /**
@@ -161,7 +161,7 @@ export class InventoryStorageAdapter implements InventoryStorage {
     // Map to simplified structure needed by inventory functions
     return workOrderParts.map((wop) => ({
       partNo: wop.partNo ?? "", // Handle missing partNo
-      quantity: wop.quantityRequired ?? 0,
+      quantity: wop.quantityUsed ?? 0,
     }));
   }
 

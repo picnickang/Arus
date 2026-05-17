@@ -24,7 +24,7 @@ export function useEngineLogComplete(vesselId: string | undefined, date: string)
   return useQuery<EngineLogComplete>({
     queryKey: engineLogKeys.complete(vesselId || "", date),
     queryFn: () =>
-      apiRequest("GET", `/api/logbook/engine/complete?vesselId=${vesselId}&date=${date}`),
+      apiRequest<EngineLogComplete>("GET", `/api/logbook/engine/complete?vesselId=${vesselId}&date=${date}`),
     enabled: !!vesselId && !!date,
     staleTime: 30000,
   });
@@ -33,7 +33,7 @@ export function useEngineLogComplete(vesselId: string | undefined, date: string)
 export function useEngineLogDaily(vesselId: string | undefined, date: string) {
   return useQuery<EngineLogDaily>({
     queryKey: engineLogKeys.daily(vesselId || "", date),
-    queryFn: () => apiRequest("GET", `/api/logbook/engine/daily?vesselId=${vesselId}&date=${date}`),
+    queryFn: () => apiRequest<EngineLogDaily>("GET", `/api/logbook/engine/daily?vesselId=${vesselId}&date=${date}`),
     enabled: !!vesselId && !!date,
   });
 }

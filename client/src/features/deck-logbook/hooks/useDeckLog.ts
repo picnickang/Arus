@@ -22,7 +22,7 @@ export function useDeckLogComplete(vesselId: string | undefined, date: string) {
   return useQuery<DeckLogComplete>({
     queryKey: deckLogKeys.complete(vesselId || "", date),
     queryFn: () =>
-      apiRequest("GET", `/api/logbook/deck/complete?vesselId=${vesselId}&date=${date}`),
+      apiRequest<DeckLogComplete>("GET", `/api/logbook/deck/complete?vesselId=${vesselId}&date=${date}`),
     enabled: !!vesselId && !!date,
     staleTime: 30000,
   });
@@ -31,7 +31,7 @@ export function useDeckLogComplete(vesselId: string | undefined, date: string) {
 export function useDeckLogDaily(vesselId: string | undefined, date: string) {
   return useQuery<DeckLogDaily>({
     queryKey: deckLogKeys.daily(vesselId || "", date),
-    queryFn: () => apiRequest("GET", `/api/logbook/deck/daily?vesselId=${vesselId}&date=${date}`),
+    queryFn: () => apiRequest<DeckLogDaily>("GET", `/api/logbook/deck/daily?vesselId=${vesselId}&date=${date}`),
     enabled: !!vesselId && !!date,
   });
 }

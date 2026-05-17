@@ -1,26 +1,26 @@
 {
   "_comment": "TypeScript error burndown baseline. Total must monotonically decrease. Regenerate with: node scripts/check-ts-burndown.mjs --write-baseline",
-  "generatedAt": "2026-05-17T07:22:00.371Z",
-  "total": 1737,
+  "generatedAt": "2026-05-17T07:44:19.018Z",
+  "total": 1725,
   "summary": {
     "byCode": {
-      "TS2339": 594,
+      "TS2339": 596,
       "TS2322": 286,
-      "TS2345": 274,
+      "TS2345": 275,
       "TS2769": 104,
       "TS2353": 73,
       "TS2554": 71,
       "TS18048": 41,
       "TS2740": 39,
-      "TS2551": 38,
-      "TS18046": 37
+      "TS18046": 37,
+      "TS2352": 28
     },
     "byTopFiles": {
       "server/services/domains/work-order-service.ts": 20,
       "client/src/features/crew/hooks/useShiftPlanning.ts": 19,
       "client/src/features/analytics/hooks/useFinanceModeData.ts": 16,
-      "client/src/features/analytics/hooks/useMaintenanceModeData.ts": 16,
       "client/src/pages/deck-logbook/index.tsx": 16,
+      "client/src/features/analytics/hooks/useMaintenanceModeData.ts": 15,
       "client/src/features/deck-logbook/hooks/useDeckLogbookData.ts": 15,
       "client/src/pages/pdm-platform/FeatureStoreTab.tsx": 15,
       "client/src/pages/vessel-management/index.tsx": 15,
@@ -33,8 +33,8 @@
       "server/db/crew/db-extended.ts": 12
     },
     "byTopDirs": {
-      "client/src": 580,
-      "server/domains": 354,
+      "client/src": 579,
+      "server/domains": 349,
       "server/db": 167,
       "server/services": 146,
       "server/routes": 72,
@@ -42,7 +42,7 @@
       "server/report-context": 24,
       "server/beast": 16,
       "server/enhanced-llm": 16,
-      "server/lp-optimizer": 13
+      "server/utils": 13
     }
   }
 }

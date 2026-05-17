@@ -15,14 +15,14 @@ export const mlKeys = {
 export function useMLModels(orgId?: string) {
   return useQuery<MLModel[]>({
     queryKey: mlKeys.models(orgId ?? "all"),
-    queryFn: () => apiRequest("GET", `/api/analytics/ml-models${orgId ? `?orgId=${orgId}` : ""}`),
+    queryFn: () => apiRequest<MLModel[]>("GET", `/api/analytics/ml-models${orgId ? `?orgId=${orgId}` : ""}`),
   });
 }
 
 export function useMLModel(id: string | undefined) {
   return useQuery<MLModel>({
     queryKey: mlKeys.modelDetail(id || ""),
-    queryFn: () => apiRequest("GET", `/api/ml/models/${id}`),
+    queryFn: () => apiRequest<MLModel>("GET", `/api/ml/models/${id}`),
     enabled: !!id,
   });
 }
@@ -30,7 +30,7 @@ export function useMLModel(id: string | undefined) {
 export function useTrainingJobs() {
   return useQuery<TrainingJob[]>({
     queryKey: mlKeys.trainingJobs(),
-    queryFn: () => apiRequest("GET", "/api/ml/training-jobs"),
+    queryFn: () => apiRequest<TrainingJob[]>("GET", "/api/ml/training-jobs"),
     refetchInterval: 60000,
   });
 }
@@ -38,14 +38,14 @@ export function useTrainingJobs() {
 export function useInsightReports(limit?: number) {
   return useQuery<InsightReport[]>({
     queryKey: [...mlKeys.reports(), limit ?? "all"],
-    queryFn: () => apiRequest("GET", `/api/insight-reports${limit ? `?limit=${limit}` : ""}`),
+    queryFn: () => apiRequest<InsightReport[]>("GET", `/api/insight-reports${limit ? `?limit=${limit}` : ""}`),
   });
 }
 
 export function useRULPredictions(equipmentId?: string) {
   return useQuery<RULPrediction[]>({
     queryKey: mlKeys.rul(equipmentId ?? ""),
-    queryFn: () => apiRequest("GET", `/api/equipment/${equipmentId}/rul`),
+    queryFn: () => apiRequest<RULPrediction[]>("GET", `/api/equipment/${equipmentId}/rul`),
     enabled: !!equipmentId,
   });
 }

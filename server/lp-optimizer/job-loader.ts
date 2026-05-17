@@ -46,7 +46,7 @@ export async function getPendingMaintenanceJobs(orgId: string): Promise<Maintena
         equipmentName: equip.name,
         maintenanceType: schedule.maintenanceType,
         priority: schedule.priority,
-        estimatedDuration: schedule.estimatedDurationHours || 120,
+        estimatedDuration: schedule.estimatedDuration || 120,
         requiredSkillLevel: getRequiredSkillLevel(schedule.maintenanceType, equip.type),
         parts: estimatePartsRequired(schedule.maintenanceType, equip.type, partsInventory),
         preferredDate: schedule.scheduledDate,

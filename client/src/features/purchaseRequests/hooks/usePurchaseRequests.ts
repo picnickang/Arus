@@ -44,14 +44,14 @@ export function usePurchaseRequests(filters?: PRFilters) {
 
   return useQuery<PurchaseRequest[]>({
     queryKey: prKeys.list(filters),
-    queryFn: () => apiRequest("GET", url),
+    queryFn: () => apiRequest<PurchaseRequest[]>("GET", url),
   });
 }
 
 export function usePurchaseRequest(id: string | undefined) {
   return useQuery<PRWithItems>({
     queryKey: prKeys.detail(id || ""),
-    queryFn: () => apiRequest("GET", `/api/purchase-requests/${id}`),
+    queryFn: () => apiRequest<PRWithItems>("GET", `/api/purchase-requests/${id}`),
     enabled: !!id,
   });
 }

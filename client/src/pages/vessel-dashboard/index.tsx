@@ -102,13 +102,13 @@ export default function VesselDashboard() {
 
   const { data: compatibleParts = [] } = useQuery<Part[]>({
     queryKey: ["/api/equipment", selectedEquipment?.id, "compatible-parts"],
-    queryFn: () => apiRequest("GET", `/api/equipment/${selectedEquipment!.id}/compatible-parts`),
+    queryFn: () => apiRequest<Part[]>("GET", `/api/equipment/${selectedEquipment!.id}/compatible-parts`),
     enabled: !!selectedEquipment?.id,
   });
 
   const { data: allParts = [] } = useQuery<Part[]>({
     queryKey: ["/api/parts"],
-    queryFn: () => apiRequest("GET", "/api/parts"),
+    queryFn: () => apiRequest<Part[]>("GET", "/api/parts"),
   });
 
   const filteredParts = useMemo(() => {

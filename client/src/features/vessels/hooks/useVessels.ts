@@ -27,14 +27,14 @@ export const deviceKeys = {
 export function useVessels() {
   return useQuery<Vessel[]>({
     queryKey: vesselKeys.lists(),
-    queryFn: () => apiRequest("GET", "/api/vessels"),
+    queryFn: () => apiRequest<Vessel[]>("GET", "/api/vessels"),
   });
 }
 
 export function useVessel(id: string | undefined) {
   return useQuery<Vessel>({
     queryKey: vesselKeys.detail(id || ""),
-    queryFn: () => apiRequest("GET", `/api/vessels/${id}`),
+    queryFn: () => apiRequest<Vessel>("GET", `/api/vessels/${id}`),
     enabled: !!id,
   });
 }
@@ -42,7 +42,7 @@ export function useVessel(id: string | undefined) {
 export function useVesselEquipment(vesselId: string | undefined) {
   return useQuery<Equipment[]>({
     queryKey: vesselKeys.equipment(vesselId || ""),
-    queryFn: () => apiRequest("GET", `/api/vessels/${vesselId}/equipment`),
+    queryFn: () => apiRequest<Equipment[]>("GET", `/api/vessels/${vesselId}/equipment`),
     enabled: !!vesselId,
   });
 }
@@ -50,14 +50,14 @@ export function useVesselEquipment(vesselId: string | undefined) {
 export function useEquipmentList() {
   return useQuery<Equipment[]>({
     queryKey: equipmentKeys.list(),
-    queryFn: () => apiRequest("GET", "/api/equipment"),
+    queryFn: () => apiRequest<Equipment[]>("GET", "/api/equipment"),
   });
 }
 
 export function useEquipment(id: string | undefined) {
   return useQuery<Equipment>({
     queryKey: equipmentKeys.detail(id || ""),
-    queryFn: () => apiRequest("GET", `/api/equipment/${id}`),
+    queryFn: () => apiRequest<Equipment>("GET", `/api/equipment/${id}`),
     enabled: !!id,
   });
 }
@@ -72,7 +72,7 @@ export function useEquipmentHealth() {
 export function useDevices() {
   return useQuery<Device[]>({
     queryKey: deviceKeys.list(),
-    queryFn: () => apiRequest("GET", "/api/devices"),
+    queryFn: () => apiRequest<Device[]>("GET", "/api/devices"),
   });
 }
 

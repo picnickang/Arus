@@ -112,7 +112,7 @@ export async function getOptimizationResults(resultId: string): Promise<any> {
         scheduledDate: schedule.recommendedScheduleDate,
         maintenanceType: schedule.recommendedMaintenanceType,
         priority: schedule.recommendedPriority,
-        duration: schedule.estimatedDurationHours,
+        duration: schedule.estimatedDuration,
         cost: schedule.estimatedCost,
         assignedTechnician: schedule.assignedTechnicianId,
         reason: schedule.optimizationReason,

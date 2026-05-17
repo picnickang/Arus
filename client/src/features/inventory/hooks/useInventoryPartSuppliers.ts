@@ -42,7 +42,7 @@ export function useInventoryPartSuppliers(
 
   return useQuery<SupplierLinkWithName[]>({
     queryKey: inventorySupplierKeys.forItem(inventoryItemId || ""),
-    queryFn: () => apiRequest("GET", `/api/inventory/${inventoryItemId}/suppliers`),
+    queryFn: () => apiRequest<SupplierLinkWithName[]>("GET", `/api/inventory/${inventoryItemId}/suppliers`),
     enabled: !!inventoryItemId && shouldFetch,
   });
 }

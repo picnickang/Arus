@@ -33,7 +33,7 @@ export function useMaintenanceSchedules(equipmentId?: string) {
 export function useUpcomingMaintenance(days: number = 7) {
   return useQuery<MaintenanceSchedule[]>({
     queryKey: maintenanceKeys.upcoming(days),
-    queryFn: () => apiRequest("GET", `/api/maintenance-schedules/upcoming?days=${days}`),
+    queryFn: () => apiRequest<MaintenanceSchedule[]>("GET", `/api/maintenance-schedules/upcoming?days=${days}`),
   });
 }
 
@@ -52,14 +52,14 @@ export function useMaintenanceRecords(equipmentId?: string) {
 export function useMaintenanceTemplates() {
   return useQuery<MaintenanceTemplate[]>({
     queryKey: maintenanceKeys.templates(),
-    queryFn: () => apiRequest("GET", "/api/maintenance-templates"),
+    queryFn: () => apiRequest<MaintenanceTemplate[]>("GET", "/api/maintenance-templates"),
   });
 }
 
 export function useMaintenanceTemplateItems(templateId: string | undefined) {
   return useQuery<MaintenanceTemplateItem[]>({
     queryKey: maintenanceKeys.templateItems(templateId || ""),
-    queryFn: () => apiRequest("GET", `/api/maintenance-templates/${templateId}/items`),
+    queryFn: () => apiRequest<MaintenanceTemplateItem[]>("GET", `/api/maintenance-templates/${templateId}/items`),
     enabled: !!templateId,
   });
 }

@@ -37,7 +37,7 @@ export function EquipmentHistoryDialog({
 }: EquipmentHistoryDialogProps) {
   const { data: history = [], isLoading } = useQuery<LifecycleEvent[]>({
     queryKey: equipmentKeys.history(equipment?.id || ""),
-    queryFn: () => apiRequest("GET", `/api/equipment/${equipment?.id}/history`),
+    queryFn: () => apiRequest<LifecycleEvent[]>("GET", `/api/equipment/${equipment?.id}/history`),
     enabled: isOpen && !!equipment?.id,
   });
 

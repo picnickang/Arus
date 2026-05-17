@@ -23,7 +23,7 @@ export async function processInsightsSnapshotGeneration(data: {
     return {
       snapshotId: snapshot.id,
       scope,
-      kpis: insights.kpis,
+      kpis: insights.kpi,
       riskFactors: insights.riskFactors,
       summary: insights.summary,
     };

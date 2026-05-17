@@ -99,7 +99,7 @@ function emitTypedEvent(event: MaintenanceDomainEvent): void {
             pdmScore: event.payload.pdmScore,
             triggerSource: event.payload.triggerSource,
             modelId: event.payload.modelId,
-            modelVersion: event.payload.modelVersionId,
+            modelVersion: event.payload.modelVersion,
           },
           { aggregateId: event.aggregateId, aggregateType: "MaintenanceSchedule" }
         )

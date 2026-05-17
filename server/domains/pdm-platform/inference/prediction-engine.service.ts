@@ -232,7 +232,7 @@ export class PredictionEngineService implements PredictionExplanationQuery {
       .where(
         and(eq(modelDeployments.orgId, orgId), eq(modelDeployments.deploymentStatus, "active"))
       )
-      .orderBy(desc(modelDeployments.deployedOn))
+      .orderBy(desc(modelDeployments.deployedAt))
       .limit(1);
     return deployment?.modelVersionId ?? undefined;
   }

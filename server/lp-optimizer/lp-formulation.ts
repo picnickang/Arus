@@ -93,14 +93,14 @@ function createJobVariable(
     return null;
   }
 
-  const jobDurationHours = job.estimatedDurationHours / 60;
+  const jobDurationHours = job.estimatedDuration / 60;
   if (hour + Math.ceil(jobDurationHours) > 17) {
     return null;
   }
 
   const varName = `j${jobIdx}_c${crewIdx}_d${day}_h${hour}`;
 
-  const laborCost = (job.estimatedDurationHours / 60) * crew.hourlyRate;
+  const laborCost = (job.estimatedDuration / 60) * crew.hourlyRate;
   const partsCost = job.parts.reduce((sum, part) => sum + part.quantity * part.unitCost, 0);
   const priorityCost = getPriorityCost(job.priority, constraints.priorityWeights);
 
@@ -252,7 +252,7 @@ function extractScheduleFromSolution(
     }
 
     const scheduledDate = new Date(Date.now() + day * 24 * 60 * 60 * 1000);
-    const laborCost = (job.estimatedDurationHours / 60) * crew.hourlyRate;
+    const laborCost = (job.estimatedDuration / 60) * crew.hourlyRate;
     const partsCost = job.parts.reduce((sum, part) => sum + part.quantity * part.unitCost, 0);
 
     schedule.push({
@@ -261,12 +261,12 @@ function extractScheduleFromSolution(
       assignedCrew: crew.crewMember,
       scheduledDate,
       startTime: `${hour.toString().padStart(2, "0")}:00`,
-      duration: job.estimatedDurationHours,
+      duration: job.estimatedDuration,
       estimatedCost: laborCost + partsCost,
       priority: job.priority,
     });
 
-    crewUtilization[crew.crewMember] += job.estimatedDurationHours / 60;
+    crewUtilization[crew.crewMember] += job.estimatedDuration / 60;
     totalCost += laborCost + partsCost;
     partsUsedBudget += partsCost;
 
@@ -274,7 +274,7 @@ function extractScheduleFromSolution(
     if (!dailyWorkload[dayKey]) {
       dailyWorkload[dayKey] = { hours: 0, jobs: 0 };
     }
-    dailyWorkload[dayKey].hours += job.estimatedDurationHours / 60;
+    dailyWorkload[dayKey].hours += job.estimatedDuration / 60;
     dailyWorkload[dayKey].jobs += 1;
   }
 

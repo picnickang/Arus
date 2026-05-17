@@ -26,14 +26,14 @@ export function useCrewList(vesselId?: string) {
   const filterKey = vesselId || "all";
   return useQuery<CrewMember[]>({
     queryKey: [...crewKeys.list(), filterKey],
-    queryFn: () => apiRequest("GET", vesselId ? `/api/crew?vessel_id=${vesselId}` : "/api/crew"),
+    queryFn: () => apiRequest<CrewMember[]>("GET", vesselId ? `/api/crew?vessel_id=${vesselId}` : "/api/crew"),
   });
 }
 
 export function useCrewMember(id: string | undefined) {
   return useQuery<CrewMember>({
     queryKey: crewKeys.detail(id || ""),
-    queryFn: () => apiRequest("GET", `/api/crew/${id}`),
+    queryFn: () => apiRequest<CrewMember>("GET", `/api/crew/${id}`),
     enabled: !!id,
   });
 }
@@ -41,7 +41,7 @@ export function useCrewMember(id: string | undefined) {
 export function useCrewCertifications(crewId: string | undefined) {
   return useQuery<CrewCertification[]>({
     queryKey: crewKeys.certifications(crewId || ""),
-    queryFn: () => apiRequest("GET", `/api/crew/${crewId}/certifications`),
+    queryFn: () => apiRequest<CrewCertification[]>("GET", `/api/crew/${crewId}/certifications`),
     enabled: !!crewId,
   });
 }
@@ -49,7 +49,7 @@ export function useCrewCertifications(crewId: string | undefined) {
 export function useCrewLeave(crewId: string | undefined) {
   return useQuery<CrewLeave[]>({
     queryKey: crewKeys.leave(crewId || ""),
-    queryFn: () => apiRequest("GET", `/api/crew/${crewId}/leave`),
+    queryFn: () => apiRequest<CrewLeave[]>("GET", `/api/crew/${crewId}/leave`),
     enabled: !!crewId,
   });
 }
@@ -57,21 +57,21 @@ export function useCrewLeave(crewId: string | undefined) {
 export function useShiftTemplates() {
   return useQuery<ShiftTemplate[]>({
     queryKey: crewKeys.shifts(),
-    queryFn: () => apiRequest("GET", "/api/shifts"),
+    queryFn: () => apiRequest<ShiftTemplate[]>("GET", "/api/shifts"),
   });
 }
 
 export function useCrewAssignments(date?: string) {
   return useQuery<CrewAssignment[]>({
     queryKey: [...crewKeys.assignments(), date],
-    queryFn: () => apiRequest("GET", `/api/crew/assignments${date ? `?date=${date}` : ""}`),
+    queryFn: () => apiRequest<CrewAssignment[]>("GET", `/api/crew/assignments${date ? `?date=${date}` : ""}`),
   });
 }
 
 export function useRestSheet(crewId: string | undefined, month: string) {
   return useQuery<CrewRestSheet>({
     queryKey: crewKeys.restSheets(crewId || "", month),
-    queryFn: () => apiRequest("GET", `/api/stcw/rest/sheet?crewId=${crewId}&month=${month}`),
+    queryFn: () => apiRequest<CrewRestSheet>("GET", `/api/stcw/rest/sheet?crewId=${crewId}&month=${month}`),
     enabled: !!crewId && !!month,
   });
 }
@@ -79,7 +79,7 @@ export function useRestSheet(crewId: string | undefined, month: string) {
 export function useRestDays(sheetId: string | undefined) {
   return useQuery<CrewRestDay[]>({
     queryKey: crewKeys.restDays(sheetId || ""),
-    queryFn: () => apiRequest("GET", `/api/stcw/rest/days?sheetId=${sheetId}`),
+    queryFn: () => apiRequest<CrewRestDay[]>("GET", `/api/stcw/rest/days?sheetId=${sheetId}`),
     enabled: !!sheetId,
   });
 }

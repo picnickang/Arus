@@ -25,7 +25,7 @@ export const pipelineKeys = {
 export function usePurchasePipeline(prId: string | undefined) {
   return useQuery<PurchasePipeline>({
     queryKey: pipelineKeys.detail(prId || ""),
-    queryFn: () => apiRequest("GET", `/api/purchase-requests/${prId}/pipeline`),
+    queryFn: () => apiRequest<PurchasePipeline>("GET", `/api/purchase-requests/${prId}/pipeline`),
     enabled: !!prId,
     refetchInterval: 30000,
   });

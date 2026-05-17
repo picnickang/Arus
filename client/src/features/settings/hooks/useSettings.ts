@@ -20,14 +20,14 @@ export const settingsKeys = {
 export function useSystemSettings(category?: string) {
   return useQuery<SystemSettings[]>({
     queryKey: [...settingsKeys.system(), category ?? "all"],
-    queryFn: () => apiRequest("GET", `/api/settings${category ? `?category=${category}` : ""}`),
+    queryFn: () => apiRequest<SystemSettings[]>("GET", `/api/settings${category ? `?category=${category}` : ""}`),
   });
 }
 
 export function useIntegrationConfigs() {
   return useQuery<IntegrationConfig[]>({
     queryKey: settingsKeys.integrations(),
-    queryFn: () => apiRequest("GET", "/api/integrations"),
+    queryFn: () => apiRequest<IntegrationConfig[]>("GET", "/api/integrations"),
   });
 }
 
@@ -51,21 +51,21 @@ export function useAuditEvents(filters?: {
 
   return useQuery<AuditEvent[]>({
     queryKey: [...settingsKeys.audit(), filterKey],
-    queryFn: () => apiRequest("GET", `/api/admin/audit${queryString ? `?${queryString}` : ""}`),
+    queryFn: () => apiRequest<AuditEvent[]>("GET", `/api/admin/audit${queryString ? `?${queryString}` : ""}`),
   });
 }
 
 export function useTransportSettings() {
   return useQuery<TransportSettings>({
     queryKey: settingsKeys.transport(),
-    queryFn: () => apiRequest("GET", "/api/transport-settings"),
+    queryFn: () => apiRequest<TransportSettings>("GET", "/api/transport-settings"),
   });
 }
 
 export function useStorageConfig() {
   return useQuery<StorageConfig>({
     queryKey: settingsKeys.storage(),
-    queryFn: () => apiRequest("GET", "/api/storage/config"),
+    queryFn: () => apiRequest<StorageConfig>("GET", "/api/storage/config"),
   });
 }
 

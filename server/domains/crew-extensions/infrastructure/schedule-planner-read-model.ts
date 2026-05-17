@@ -504,7 +504,7 @@ export class SchedulePlannerReadModelAdapter implements ISchedulePlannerReadMode
         .select({
           vesselId: scheduleUnfilled.vesselId,
           date: scheduleUnfilled.date,
-          shift: scheduleUnfilled.shift,
+          shift: scheduleUnfilled.shiftId,
           role: scheduleUnfilled.role,
           reason: scheduleUnfilled.reason,
           vesselName: vessels.name,

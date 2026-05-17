@@ -72,7 +72,7 @@ export async function compileUserPermissions(
       conditions: permissionGrants.conditions,
     })
     .from(permissionGrants)
-    .innerJoin(permissionResources, eq(permissionGrants.resourceId, permissionResources.id))
+    .innerJoin(permissionResources, eq(permissionGrants.resourceCode, permissionResources.id))
     .innerJoin(permissionActions, eq(permissionGrants.actionId, permissionActions.id))
     .where(and(eq(permissionGrants.orgId, orgId), inArray(permissionGrants.roleId, roleIds)));
 

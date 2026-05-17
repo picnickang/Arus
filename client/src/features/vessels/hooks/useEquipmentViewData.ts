@@ -81,7 +81,7 @@ export function useEquipmentViewData(
 
   const { data: sensorConfigs = [] } = useQuery<SensorConfiguration[]>({
     queryKey: sensorKeys.byEquipment(equipment?.id || ""),
-    queryFn: () => apiRequest("GET", `/api/sensor-config?equipmentId=${equipment?.id}`),
+    queryFn: () => apiRequest<SensorConfiguration[]>("GET", `/api/sensor-config?equipmentId=${equipment?.id}`),
     enabled: !!equipment?.id && isOpen,
     staleTime: 10000,
   });
@@ -104,7 +104,7 @@ export function useEquipmentViewData(
   });
   const { data: allSensorConfigs = [] } = useQuery<SensorConfiguration[]>({
     queryKey: sensorKeys.lists(),
-    queryFn: () => apiRequest("GET", "/api/sensor-configs"),
+    queryFn: () => apiRequest<SensorConfiguration[]>("GET", "/api/sensor-configs"),
     enabled: isAssignSensorDialogOpen,
   });
   const { data: sensorTemplates = [] } = useQuery<SensorTemplate[]>({
@@ -143,7 +143,7 @@ export function useEquipmentViewData(
   });
   const { data: operatingParams = [] } = useQuery<OperatingParam[]>({
     queryKey: operatingParamKeys.byEquipmentType(equipment?.type || ""),
-    queryFn: () => apiRequest("GET", `/api/operating-parameters?equipmentType=${equipment?.type}`),
+    queryFn: () => apiRequest<OperatingParam[]>("GET", `/api/operating-parameters?equipmentType=${equipment?.type}`),
     enabled: !!equipment?.type && isOpen,
   });
 
