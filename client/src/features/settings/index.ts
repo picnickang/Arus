@@ -5,11 +5,18 @@ export * from "./hooks/useSystemSettingsTabData";
 export * from "./hooks/useOrganizationData";
 export * from "./hooks/useUpdateSettingsData";
 export * from "./hooks/useGovernanceData";
-export * from "./hooks/useDiagnosticsData";
+export { useDiagnosticsData } from "./hooks/useDiagnosticsData";
+export type {
+  CheckResult,
+  ServiceStatus,
+  SystemMetrics,
+  TelemetryStats,
+  TestRunResult,
+} from "./hooks/useDiagnosticsData";
 export * from "./hooks/useDTCDiagnosticsData";
 export * from "./hooks/useStormGeoSettingsData";
 export * from "./hooks/useLaborRateData";
-export * from "./hooks/useSettingsData";
+export { useSettingsData } from "./hooks/useSettingsData";
 export * from "./hooks/useStorageSettings";
 export * from "./hooks/useNotificationSettings";
 export * from "./hooks/useSchedulingSettingsData";

@@ -1,7 +1,7 @@
 export type {
   Vessel,
+  Vessel as SelectVessel,
   InsertVessel,
-  SelectVessel,
   PortCall,
   InsertPortCall,
   DrydockWindow,

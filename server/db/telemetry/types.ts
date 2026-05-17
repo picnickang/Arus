@@ -2,14 +2,18 @@
  * Telemetry - Types
  */
 
-export type {
-  EquipmentTelemetry,
-  InsertTelemetry,
-  PdmScoreLog,
-  InsertPdmScore,
-  EdgeHeartbeat,
-  InsertHeartbeat,
+import type {
+  equipmentTelemetry,
+  pdmScoreLogs,
+  edgeHeartbeats,
 } from "@shared/schema-runtime";
+
+export type EquipmentTelemetry = typeof equipmentTelemetry.$inferSelect;
+export type InsertTelemetry = typeof equipmentTelemetry.$inferInsert;
+export type PdmScoreLog = typeof pdmScoreLogs.$inferSelect;
+export type InsertPdmScore = typeof pdmScoreLogs.$inferInsert;
+export type EdgeHeartbeat = typeof edgeHeartbeats.$inferSelect;
+export type InsertHeartbeat = typeof edgeHeartbeats.$inferInsert;
 
 export interface TelemetryFilters {
   equipmentId?: string;

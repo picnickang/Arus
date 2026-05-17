@@ -46,7 +46,7 @@ export function setWorkOrderWebSocketServer(server: WebSocketServerLike | null) 
   wsServer = server;
 }
 
-export function getWebSocketServer(): WebSocketServerLike | null {
+function getWebSocketServer(): WebSocketServerLike | null {
   return wsServer;
 }
 

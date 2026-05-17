@@ -3,7 +3,7 @@ import type {
   InsertPortCall,
   InsertDrydockWindow,
   Vessel,
-  SelectVessel,
+  Vessel as SelectVessel,
   PortCall,
   DrydockWindow,
   FleetOverview,

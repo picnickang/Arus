@@ -4,7 +4,7 @@
 
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("JobProcessors:TelemetryProcessor");
-import { storage } from "../repositories";
+import { dbSystemAdminStorage } from "../repositories";
 import { generateAIInsights } from "../services/telemetry-processing";
 
 export async function processTelemetryProcessing(data: {
@@ -17,7 +17,7 @@ export async function processTelemetryProcessing(data: {
   };
 
   try {
-    const settings = await storage.getSettings();
+    const settings = await dbSystemAdminStorage.getSettings();
 
     if (settings.llmEnabled) {
       results.insights = await generateAIInsights(data.telemetryReading);

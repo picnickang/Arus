@@ -203,15 +203,7 @@ export function createTenantMiddleware(): RequestHandler {
   };
 }
 
-export function createRateLimitBundle() {
-  return {
-    general: { windowMs: 60000, max: 100 },
-    write: { windowMs: 60000, max: 30 },
-    critical: { windowMs: 60000, max: 10 },
-    report: { windowMs: 60000, max: 5 },
-    crew: { windowMs: 60000, max: 20 },
-  };
-}
+// createRateLimitBundle is provided by ./middleware to avoid duplicate barrel exports.
 
 export function logDomainError(error: DomainError, context: string): void {
   logger.error(`[${context}] ${error.name}: ${error.message}`, undefined, {

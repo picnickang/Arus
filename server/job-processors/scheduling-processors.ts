@@ -2,31 +2,41 @@
  * Scheduling Job Processors
  */
 
-import { scheduleWithORTools } from "../crew-scheduler-ortools";
-import { storage } from "../repositories";
+import { planWithEngine } from "../crew-scheduler-ortools/scheduler.js";
+import { ENGINE_OR_TOOLS } from "../crew-scheduler-ortools/types.js";
+import type {
+  SelectShiftTemplate,
+  SelectCrewLeave,
+  SelectCrewCertification,
+  CrewWithSkills,
+  SchedulingPreferences,
+  ScheduleResult,
+} from "../crew-scheduler-ortools/types.js";
+import { dbMaintenanceStorage } from "../repositories";
 
 export async function processCrewScheduling(data: {
   days: string[];
-  shifts: any[];
-  crew: any[];
-  leaves: any[];
-  options: any;
-}): Promise<any> {
-  return scheduleWithORTools(
-    data.days,
-    data.shifts,
-    data.crew,
-    data.leaves,
-    [],
-    [],
-    {},
-    data.options.preferences
-  );
+  shifts: SelectShiftTemplate[];
+  crew: CrewWithSkills[];
+  leaves: SelectCrewLeave[];
+  options: { preferences?: SchedulingPreferences };
+}): Promise<ScheduleResult> {
+  return planWithEngine({
+    engine: ENGINE_OR_TOOLS,
+    days: data.days,
+    shifts: data.shifts,
+    crew: data.crew,
+    leaves: data.leaves,
+    portCalls: [],
+    drydocks: [],
+    certifications: {} as { [crewId: string]: SelectCrewCertification[] },
+    preferences: data.options.preferences,
+  });
 }
 
 export async function processMaintenanceScheduling(data: {
   equipmentId: string;
   pdmScore: number;
-}): Promise<any> {
-  return storage.autoScheduleMaintenance(data.equipmentId, data.pdmScore);
+}): Promise<unknown> {
+  return dbMaintenanceStorage.autoScheduleMaintenance(data.equipmentId, data.pdmScore);
 }

@@ -7,14 +7,23 @@ export {
   type WorkOrderFormData,
   MAINTENANCE_TYPES,
 } from "./hooks/useWorkOrderFormDialogData";
-export * from "./hooks/useWorkOrderTasksTabData";
+export { useWorkOrderTasksTabData } from "./hooks/useWorkOrderTasksTabData";
+export type { WorkOrderTask } from "./hooks/useWorkOrderTasksTabData";
 export * from "./hooks/useMultiPartSelectorData";
 export {
   useWorkOrderFilterData,
   type WorkOrderFilters,
   type UseWorkOrderFilterDataReturn,
 } from "./hooks/useWorkOrderFilterData";
-export * from "./hooks/useWorkOrderDetailData";
+export {
+  useWorkOrderDetailData,
+} from "./hooks/useWorkOrderDetailData";
+export type {
+  WorkOrderCost,
+  ProcurementCosts,
+  UseWorkOrderDetailDataProps,
+  UseWorkOrderDetailDataReturn,
+} from "./hooks/useWorkOrderDetailData";
 export * from "./hooks/useWorkOrderRequests";
 export * from "./hooks/useEnrichedParts";
 export * from "./components/ServiceOrderCard";

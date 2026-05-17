@@ -8,9 +8,9 @@ export type {
   SelectCrewDocument,
   InsertCrewDocument,
   CrewNotificationSettings,
-  SelectPortCall,
+  PortCall as SelectPortCall,
   InsertPortCall,
-  SelectDrydockWindow,
+  DrydockWindow as SelectDrydockWindow,
   InsertDrydockWindow,
 } from "@shared/schema";
 

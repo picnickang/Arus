@@ -4,4 +4,20 @@ export * from "./hooks/useTrainingData";
 export * from "./hooks/useModelPerformanceData";
 export * from "./hooks/useAiInsightsData";
 export * from "./hooks/useKnowledgeBase";
-export * from "./lib/trainingUtils";
+export {
+  createDefaultLstmConfig,
+  createDefaultRandomForestConfig,
+  DATA_QUALITY_TIERS,
+  getTierIcon,
+  getTierColor,
+  getModelStatusBadgeVariant,
+  formatModelAccuracy,
+  parseAcousticData,
+  validateAcousticData,
+  getUniqueEquipmentTypes,
+} from "./lib/trainingUtils";
+export type {
+  TrainingWindowConfig,
+  LstmConfig,
+  RandomForestConfig,
+} from "./lib/trainingUtils";

@@ -3,7 +3,7 @@ export * from "./hooks/useVessels";
 export * from "./hooks/useVesselManagementData";
 export * from "./hooks/useEquipmentViewData";
 export * from "./hooks/useEquipmentPageData";
-export * from "./hooks/useFleetData";
+export { useFleetData } from "./hooks/useFleetData";
 export * from "./hooks/useDevicesPage";
 export * from "./hooks/useVesselDetail";
 export * from "./hooks/useFleetOverviewData";

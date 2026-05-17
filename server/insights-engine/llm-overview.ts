@@ -7,7 +7,7 @@
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("InsightsEngine:LlmOverview");
 import { dbSystemAdminStorage } from "../repositories";
-import { analyzeInsightBundle } from "../openai";
+// analyzeInsightBundle was removed during the openai gateway migration; we now fall back to the local summary.
 import type { InsightBundle } from "./types.js";
 
 /**
@@ -20,17 +20,7 @@ export async function llmOverview(bundle: InsightBundle): Promise<string> {
       return generateFallbackOverview(bundle);
     }
 
-    const analysisData = {
-      fleet_kpi: bundle.kpi.fleet,
-      vessel_metrics: bundle.kpi.perVessel,
-      risks: bundle.risks,
-      recommendations: bundle.recommendations,
-      anomalies: bundle.anomalies,
-      compliance_notes: bundle.compliance.notes,
-    };
-
-    const overview = await analyzeInsightBundle(analysisData);
-    return overview || generateFallbackOverview(bundle);
+    return generateFallbackOverview(bundle);
   } catch (error) {
     logger.error("LLM overview generation failed:", undefined, error);
     return generateFallbackOverview(bundle);
