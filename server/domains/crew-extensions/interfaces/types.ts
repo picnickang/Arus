@@ -1,14 +1,15 @@
 /**
  * Crew Extensions Routes - Types
- * Interface definitions for route configuration
+ *
+ * Interface definitions for crew-extensions route configuration.
+ * Re-exports the canonical AuthenticatedRequest from the auth middleware
+ * so domain code shares a single source of truth (avoids structural Request
+ * conflicts when domains declare their own variant).
  */
 
-import type { Request } from "express";
 import type { RateLimitRequestHandler } from "express-rate-limit";
 
-export interface AuthenticatedRequest extends Request {
-  orgId?: string;
-}
+export type { AuthenticatedRequest } from "../../../middleware/auth";
 
 export interface CrewExtensionsRoutesConfig {
   crewOperationRateLimit: RateLimitRequestHandler;
