@@ -5,7 +5,8 @@
 import type { EquipmentTelemetry, TelemetryTrend } from "@shared/schema";
 import type { EquipmentHealth } from "../db/equipment/types.js";
 import type { FleetAnalysis } from "./types";
-import { createOpenAIClient, callWithModelFallback, calculateDynamicTokens } from "./client";
+import { calculateDynamicTokens } from "./client";
+import { llmGateway } from "../composition/llm-gateway";
 import { buildEquipmentDossiers, type EquipmentDossier } from "./dossier-builder";
 import { parseRecommendations } from "./risk-parser";
 import { calculateFleetBenchmarks } from "./fleet-benchmarks";
@@ -116,33 +117,28 @@ export async function analyzeFleetHealth(
     const systemPrompt = buildSystemPrompt();
     const userPrompt = buildUserPrompt(equipmentDossiers, telemetrySummary);
 
-    const openai = await createOpenAIClient();
-    if (!openai) {
-      throw new Error("OpenAI client not available - API key not configured");
-    }
-
     const inputSize = systemPrompt.length + userPrompt.length;
     const maxTokens = calculateDynamicTokens(inputSize, 1500, 3500);
 
-    const response = await callWithModelFallback(openai, {
+    const response = await llmGateway.chat({
       model: "gpt-4o",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      response_format: { type: "json_object" },
-      max_completion_tokens: maxTokens,
+      jsonMode: true,
+      maxCompletionTokens: maxTokens,
+      meta: { caller: "fleet-analysis", equipmentCount: equipmentHealthData.length },
     });
 
     let analysis;
     try {
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
-        throw new Error("No content in OpenAI response");
+      if (!response.content) {
+        throw new Error("No content in LLM response");
       }
-      analysis = JSON.parse(content);
+      analysis = JSON.parse(response.content);
     } catch (parseError) {
-      logger.error("Failed to parse OpenAI fleet analysis response:", undefined, parseError);
+      logger.error("Failed to parse LLM fleet analysis response:", undefined, parseError);
       throw new Error(
         `Invalid AI response format: ${parseError instanceof Error ? parseError.message : "Unknown error"}`
       );

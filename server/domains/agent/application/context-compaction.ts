@@ -1,8 +1,9 @@
 import { createLogger } from "../../../lib/structured-logger";
 const logger = createLogger("Domains:Agent:Application:ContextCompaction");
-import OpenAI from "openai";
+import type OpenAI from "openai";
 import type { AgentMessage } from "@shared/schema";
 import { buildSystemPrompt } from "../domain/system-prompt";
+import { llmGateway } from "../../../composition/llm-gateway";
 
 const DEFAULT_TOOL_OUTPUT_CHAR_LIMIT = 4000;
 
@@ -83,15 +84,13 @@ export function compactToolOutput(
 }
 
 export async function generateConversationSummary(
-  client: OpenAI,
   messages: AgentMessage[],
   _model: string
 ): Promise<string> {
-  return generateProgressiveSummary(client, messages, null);
+  return generateProgressiveSummary(messages, null);
 }
 
 export async function generateProgressiveSummary(
-  client: OpenAI,
   messages: AgentMessage[],
   existingSummary: string | null | undefined
 ): Promise<string> {
@@ -122,7 +121,7 @@ Conversation:
 ${condensed}`;
 
   try {
-    const response = await client.chat.completions.create({
+    const response = await llmGateway.chat({
       model: "gpt-4o-mini",
       messages: [
         {
@@ -132,9 +131,10 @@ ${condensed}`;
         { role: "user", content: summaryPrompt },
       ],
       temperature: 0.2,
-      max_tokens: 500,
+      maxCompletionTokens: 500,
+      meta: { caller: "agent-context-compaction" },
     });
-    return response.choices[0]?.message?.content || "No summary generated.";
+    return response.content || "No summary generated.";
   } catch (err) {
     logger.warn("[ContextCompaction] Summary generation failed:", { details: err instanceof Error ? err.message : "unknown" });
     return "";

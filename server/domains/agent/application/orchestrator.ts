@@ -829,7 +829,6 @@ export class AgentOrchestrator {
     }
 
     const summary = await generateProgressiveSummary(
-      client,
       messagesToSummarize,
       conversation.contextSummary
     );

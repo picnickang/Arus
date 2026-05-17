@@ -2,15 +2,11 @@
  * RAG Answer Generator Service
  *
  * Generates answers to user queries using retrieved context from the knowledge base.
- * Features:
- * - OpenAI integration with model fallback
- * - Citation formatting and tracking
- * - Context window management
- * - Prometheus metrics integration
+ * The LLM call (including retry, model fallback, and cost telemetry) is delegated
+ * to the shared LLM Gateway.
  */
 
-import OpenAI from "openai";
-import { createOpenAIClient, analyzeErrorType } from "../../openai/client";
+import { llmGateway } from "../../composition/llm-gateway";
 import { searchKnowledgeBase, type SearchResult } from "../../vector-search-service";
 import type {
   RagAnswerRequest,
@@ -109,68 +105,37 @@ export class AnswerGenerator {
       contextText
     );
 
-    const openai = await createOpenAIClient();
-    if (!openai) {
-      throw new Error("OpenAI client unavailable - please configure API key");
-    }
+    const requestedModel = modelOverride || this.config.defaultModel;
 
-    let model = modelOverride || this.config.defaultModel;
-    let response: OpenAI.Chat.Completions.ChatCompletion;
-    let attempts = 0;
-    const maxAttempts = 3;
+    // Retry + model fallback live inside the gateway. A single call here.
+    const response = await llmGateway.chat({
+      model: requestedModel,
+      messages: [
+        { role: "system", content: effectiveSystemPrompt },
+        { role: "user", content: query },
+      ],
+      temperature,
+      maxCompletionTokens: maxTokens,
+      meta: { caller: "rag-answer-generator", orgId, userId },
+    });
 
-    while (attempts < maxAttempts) {
-      try {
-        response = await openai.chat.completions.create({
-          model,
-          messages: [
-            { role: "system", content: effectiveSystemPrompt },
-            { role: "user", content: query },
-          ],
-          temperature,
-          max_tokens: maxTokens,
-        });
+    const answer = response.content;
+    const citations = this.extractCitationsFromAnswer(answer, contextChunks);
+    const usedChunkIds = citations.map((c) => c.chunkId);
 
-        const answer = response.choices[0]?.message?.content || "";
-        const citations = this.extractCitationsFromAnswer(answer, contextChunks);
-        const usedChunkIds = citations.map((c) => c.chunkId);
+    logger.info(
+      `[AnswerGenerator] Generated answer with ${citations.length} citations using ${response.model}`
+    );
 
-        logger.info(
-          `[AnswerGenerator] Generated answer with ${citations.length} citations using ${model}`
-        );
-
-        return {
-          answer,
-          citations,
-          sourceChunkIds: usedChunkIds,
-          modelUsed: model,
-          tokenCount: response.usage?.total_tokens,
-          latencyMs: Date.now() - startTime,
-          cached: false,
-        };
-      } catch (error: any) {
-        attempts++;
-        const analysis = analyzeErrorType(error);
-
-        if (!analysis.shouldRetry || attempts >= maxAttempts) {
-          logger.error(`[AnswerGenerator] Failed after ${attempts} attempts:`, error);
-          throw error;
-        }
-
-        if (analysis.fallbackModel && model !== analysis.fallbackModel) {
-          logger.warn(
-            `[AnswerGenerator] Falling back to ${analysis.fallbackModel}: ${analysis.recommendation}`
-          );
-          model = analysis.fallbackModel;
-        }
-
-        if (analysis.suggestedDelay) {
-          await this.delay(analysis.suggestedDelay);
-        }
-      }
-    }
-
-    throw new Error("Failed to generate answer after maximum attempts");
+    return {
+      answer,
+      citations,
+      sourceChunkIds: usedChunkIds,
+      modelUsed: response.model,
+      tokenCount: response.usage.totalTokens,
+      latencyMs: Date.now() - startTime,
+      cached: false,
+    };
   }
 
   private prepareContextChunks(searchResults: SearchResult[]): ContextChunk[] {
@@ -227,10 +192,6 @@ export class AnswerGenerator {
     }
 
     return citations;
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 

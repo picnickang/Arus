@@ -1,15 +1,15 @@
 /**
  * RAG Query Rewriter Service
  *
- * Uses LLM to expand and improve user queries for better retrieval.
- * Features:
+ * Uses the shared LLM Gateway to expand and improve user queries for
+ * better retrieval. Features:
  * - Query expansion for better recall
  * - Intent detection
  * - Spelling/grammar correction
  * - Domain-specific term normalization
  */
 
-import { createOpenAIClient } from "../../openai/client";
+import { llmGateway } from "../../composition/llm-gateway";
 import type { QueryRewriteResult } from "./types";
 import { logger } from "../../utils/logger";
 
@@ -59,9 +59,8 @@ export class QueryRewriter {
       };
     }
 
-    const openai = await createOpenAIClient();
-    if (!openai) {
-      logger.warn("[QueryRewriter] OpenAI unavailable, returning original query");
+    if (!(await llmGateway.isAvailable())) {
+      logger.warn("[QueryRewriter] LLM unavailable, returning original query");
       return {
         originalQuery: query,
         rewrittenQuery: query,
@@ -69,23 +68,23 @@ export class QueryRewriter {
     }
 
     try {
-      const response = await openai.chat.completions.create({
+      const response = await llmGateway.chat({
         model: this.model,
         messages: [
           { role: "system", content: REWRITE_SYSTEM_PROMPT },
           { role: "user", content: query },
         ],
         temperature: 0.2,
-        max_tokens: 300,
-        response_format: { type: "json_object" },
+        maxCompletionTokens: 300,
+        jsonMode: true,
+        meta: { caller: "rag-query-rewriter" },
       });
 
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
+      if (!response.content) {
         throw new Error("Empty response from LLM");
       }
 
-      const parsed = JSON.parse(content);
+      const parsed = JSON.parse(response.content);
 
       logger.info(`[QueryRewriter] Rewrote "${query}" -> "${parsed.rewritten}"`);
 
