@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Permission Service - Authorization Logic with Caching
  *
@@ -70,12 +69,12 @@ export async function compileUserPermissions(
       resourceCode: permissionResources.code,
       actionCode: permissionActions.code,
       isGranted: permissionGrants.isGranted,
-      conditions: permissionGrants.conditions,
+      condition: permissionGrants.condition,
     })
     .from(permissionGrants)
-    .innerJoin(permissionResources, eq(permissionGrants.resourceCode, permissionResources.id))
-    .innerJoin(permissionActions, eq(permissionGrants.actionId, permissionActions.id))
-    .where(and(eq(permissionGrants.orgId, orgId), inArray(permissionGrants.roleId, roleIds)));
+    .innerJoin(permissionResources, eq(permissionGrants.resourceCode, permissionResources.code))
+    .innerJoin(permissionActions, eq(permissionGrants.actionCode, permissionActions.code))
+    .where(inArray(permissionGrants.roleId, roleIds));
 
   const grantMatrix: CompiledPermissions["grants"] = {};
 
@@ -86,7 +85,7 @@ export async function compileUserPermissions(
     if (grant.isGranted) {
       grantMatrix[grant.resourceCode][grant.actionCode] = {
         allowed: true,
-        conditions: grant.conditions || undefined,
+        conditions: grant.condition || undefined,
       };
     }
   }

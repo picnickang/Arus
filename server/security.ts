@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Enhanced Security Middleware and Utilities
  * Provides additional security measures beyond basic rate limiting and HMAC validation
@@ -14,7 +13,6 @@ declare global {
         email: string;
         name?: string;
         role: string;
-        orgId: string;
         isActive: boolean;
       };
     }

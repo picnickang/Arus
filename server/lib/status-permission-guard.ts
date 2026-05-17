@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Status-Aware Permission Guard
  *
@@ -11,10 +10,7 @@ import type { Request } from "express";
 import { permissionService } from "../domains/permissions/service";
 import type { ActionCode } from "../config/permission-registry";
 
-interface AuthenticatedRequest extends Request {
-  user?: { id: string; role?: string };
-  orgId?: string;
-}
+type AuthenticatedRequest = Request;
 
 interface StatusAwareGuardOptions {
   resource: string;

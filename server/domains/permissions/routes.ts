@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Permission Routes - API Endpoints for Permission Management
  *
@@ -295,8 +294,7 @@ export function registerPermissionRoutes(app: Express) {
     "/api/permissions/roles/:id/grants",
     requireOrgId,
     withErrorHandling("get role permission grants", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
-      const grants = await permissionRepository.getPermissionGrantsForRole(req.params.id, orgId);
+      const grants = await permissionRepository.getPermissionGrantsForRole(req.params.id);
       res.json(
         validateResponse(
           roleGrantsResponseSchema,
@@ -325,7 +323,7 @@ export function registerPermissionRoutes(app: Express) {
 
       const grantsArray = z.array(grantSchema).parse(req.body.grants || req.body);
 
-      await permissionRepository.bulkSetPermissionGrants(orgId, req.params.id, grantsArray);
+      await permissionRepository.bulkSetPermissionGrants(req.params.id, grantsArray);
 
       const authReq = req as AuthenticatedRequest;
       await permissionRepository.logPermissionChange(

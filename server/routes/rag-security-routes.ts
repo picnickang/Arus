@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * RAG Security Settings Routes
  * API endpoints for managing RAG security configuration
@@ -15,6 +14,7 @@ import {
   updateRagSecurityConfig,
   getRagSecurityServices,
 } from "../services/rag/security/index.js";
+import type { RagSecurityConfig } from "../services/rag/security/types.js";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 /**
@@ -167,21 +167,14 @@ export function registerRagSecurityRoutes(app: Express): void {
         return;
       }
 
-      const updates = parseResult.data;
+      const updates = parseResult.data as Partial<RagSecurityConfig>;
       const newConfig = updateRagSecurityConfig(updates);
 
-      const { auditLogger } = getRagSecurityServices();
       const session = (req as any).session;
-
-      auditLogger.log({
-        eventType: "config_change",
+      logger.info("RagSecurityRoutes", "security_config_update", {
         userId: session?.userId || "unknown",
         orgId: DEFAULT_ORG_ID,
-        details: {
-          action: "security_config_update",
-          changedSections: Object.keys(updates),
-        },
-        success: true,
+        changedSections: Object.keys(updates),
       });
 
       logger.info("RagSecurityRoutes", "Security configuration updated by admin", {

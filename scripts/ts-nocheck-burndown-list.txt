@@ -149,7 +149,6 @@ server/compliance/immutable-audit/query.ts
 server/compliance/routes/audit-routes.ts
 server/compliance/routes/data-privacy-routes.ts
 server/compliance/routes/ml-governance-routes.ts
-server/compliance/routes/session-routes.ts
 server/compliance/routes/work-order-history-routes.ts
 server/composition/crew-application-service.ts
 server/condition-monitoring/condition-assessment.ts
@@ -273,9 +272,6 @@ server/domains/pdm-platform/fleet-analytics/adapter.ts
 server/domains/pdm-platform/inference/prediction-engine.service.ts
 server/domains/pdm-platform/model-registry/adapter.ts
 server/domains/pdm-platform/monitoring/adapter.ts
-server/domains/permissions/middleware.ts
-server/domains/permissions/routes.ts
-server/domains/permissions/service.ts
 server/domains/scheduled-reports/application/report-scheduler-service.ts
 server/domains/scheduled-reports/generators/crew-compliance-generator.ts
 server/domains/scheduled-reports/generators/inventory-status-generator.ts
@@ -338,7 +334,6 @@ server/job-processors/scheduling-processors.ts
 server/job-queue-service.ts
 server/lib/domain-event-bus/bridge.ts
 server/lib/rate-limit-factory.ts
-server/lib/status-permission-guard.ts
 server/lp-optimizer/job-loader.ts
 server/lp-optimizer/optimizer.ts
 server/lp-optimizer/persistence.ts
@@ -397,13 +392,10 @@ server/routes/insights-routes.ts
 server/routes/kb-ask-route.ts
 server/routes/kb-routes.ts
 server/routes/rag-routes.ts
-server/routes/rag-security-routes.ts
 server/routes/sensorTemplates.ts
 server/routes/wo-so-bridge-routes.ts
 server/scheduler/scheduler-controller.ts
 server/scripts/test/seedPdMCases.ts
-server/security/audit.ts
-server/security.ts
 server/service-orders/email-templates.ts
 server/service-orders/repository.ts
 server/service-orders/routes.ts

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Audit Logging - Admin action tracking (fail-closed)
  */
@@ -98,7 +97,7 @@ export function auditAdminAction(action: string) {
         }
       })();
 
-      return originalEnd.apply(this, args);
+      return (originalEnd as (...a: unknown[]) => Response).apply(this, args);
     };
 
     next();

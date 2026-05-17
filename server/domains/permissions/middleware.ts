@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Permission Middleware - Route-level Authorization
  *
@@ -10,10 +9,7 @@ import type { Request, Response, NextFunction } from "express";
 import { permissionService } from "./service";
 import type { ActionCode } from "../../config/permission-registry";
 
-interface AuthenticatedRequest extends Request {
-  user?: { id: string; role?: string; name?: string; email?: string };
-  orgId: string;
-}
+type AuthenticatedRequest = Request;
 
 export function requirePermission(resource: string, action: ActionCode) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {

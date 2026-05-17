@@ -12,6 +12,7 @@ import type {
   SuspiciousActivityResult,
 } from "./types.js";
 import { DEFAULT_SESSION_CONFIG } from "./types.js";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 import { hashToken } from "./token-utils.js";
 import {
   createSession,
@@ -120,6 +121,20 @@ class SessionManagementService {
     }
   ): Promise<LoginEvent[]> {
     return getLoginEvents(orgId, options);
+  }
+
+  async flagSuspiciousSession(
+    sessionId: string,
+    flagType: string,
+    metadata?: Record<string, unknown>
+  ): Promise<void> {
+    await this.logLoginEvent({
+      orgId: DEFAULT_ORG_ID,
+      userId: "system",
+      eventType: "suspicious_flag",
+      success: false,
+      metadata: { sessionId, flagType, ...(metadata ?? {}) },
+    } as unknown as LoginEventInput);
   }
 
   async detectSuspiciousActivity(
