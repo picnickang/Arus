@@ -396,3 +396,9 @@ id = "DtDKqCvSokI6Jwwt3twqB"
 uri = "file://dist/arus-source.tar.gz"
 type = "unspecified"
 title = "ARUS full-stack source (5.5 MB, 3360 files)"
+
+[[outputs]]
+id = "bVUzHIAmr0XWiPOteggo5"
+uri = "file://.local/schema-drift-report.md"
+type = "text"
+title = "Schema Drift Audit Report"
