@@ -1,61 +1,39 @@
-import { createLogger } from "../../../../lib/structured-logger";
-const logger = createLogger("Domains:Agent:Application:OrchestratorHelpers:OpenaiClient");
-import type OpenAI from "openai";
-import type { getToolOpenAIDefinitions } from "../../tools";
+/**
+ * LLM-call helper for the Agent Orchestrator.
+ *
+ * Previously this wrapped the raw OpenAI SDK with bounded retry. Retries and
+ * model-fallback now live inside the LLM gateway (`llmGateway.chat`), so this
+ * file is a thin pass-through that keeps the orchestrator's call-site shape
+ * stable while consolidating provider concerns behind the gateway port.
+ */
+
+import { llmGateway } from "../../../../composition/llm-gateway";
+import type {
+  LLMChatResponse,
+  LLMMessage,
+  LLMToolDefinition,
+} from "../../../../lib/llm-gateway/types";
 
 /**
- * Call OpenAI chat completions with bounded retry on transient errors.
- *
- * Retries up to 2 times (3 attempts total) with exponential backoff on:
- * 429, 500, 502, 503, ECONNRESET, ETIMEDOUT, ENOTFOUND, or messages
- * containing "timeout"/"network".
+ * Call the LLM gateway with the orchestrator's standard parameters
+ * (temperature 0.3, max_completion_tokens 4096, optional tool defs) and
+ * forward caller metadata for cost attribution. Errors propagate; the
+ * gateway has already applied retry / model-fallback.
  */
-export async function callOpenAIWithRetry(
-  client: OpenAI,
+export async function callLLMWithRetry(
   model: string,
-  messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-  toolDefs?: ReturnType<typeof getToolOpenAIDefinitions>
-): Promise<OpenAI.Chat.Completions.ChatCompletion> {
-  const maxRetries = 2;
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await client.chat.completions.create({
-        model,
-        messages,
-        tools: toolDefs && toolDefs.length > 0 ? toolDefs : undefined,
-        temperature: 0.3,
-        max_tokens: 4096,
-      });
-    } catch (err: unknown) {
-      lastError = err instanceof Error ? err : new Error("OpenAI call failed");
-      const statusCode = (err as { status?: number })?.status || 0;
-      const errorCode = (err as { code?: string })?.code || "";
-      const isRetryable =
-        statusCode === 429 ||
-        statusCode === 500 ||
-        statusCode === 503 ||
-        statusCode === 502 ||
-        errorCode === "ECONNRESET" ||
-        errorCode === "ETIMEDOUT" ||
-        errorCode === "ENOTFOUND" ||
-        lastError.message.includes("timeout") ||
-        lastError.message.includes("network");
-
-      if (!isRetryable || attempt === maxRetries) {
-        break;
-      }
-
-      const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
-      logger.warn(`[Agent] OpenAI attempt ${attempt + 1} failed, retrying in ${delay}ms:`, { details: lastError.message });
-      await new Promise((r) => setTimeout(r, delay));
-    }
-  }
-
-  throw new Error(
-    `AI service is temporarily unavailable. Please try again in a moment. (${lastError?.message || "unknown error"})`
-  );
+  messages: LLMMessage[],
+  toolDefs?: LLMToolDefinition[],
+  meta?: Record<string, unknown>
+): Promise<LLMChatResponse> {
+  return llmGateway.chat({
+    model,
+    messages,
+    tools: toolDefs && toolDefs.length > 0 ? toolDefs : undefined,
+    temperature: 0.3,
+    maxCompletionTokens: 4096,
+    meta: { caller: "agent-orchestrator", ...meta },
+  });
 }
 
 /**

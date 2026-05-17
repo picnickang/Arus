@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { registerTool } from "./registry";
-import { createOpenAIClient } from "../../../openai/client";
+import { llmGateway } from "../../../composition/llm-gateway";
 import { resolveFile } from "../infrastructure/file-registry";
 import fs from "fs";
 
@@ -58,11 +58,6 @@ registerTool({
       return { error: `File is not an image (type: ${record.mimetype})` };
     }
 
-    const client = await createOpenAIClient();
-    if (!client) {
-      return { error: "OpenAI is not configured for image analysis" };
-    }
-
     const base64 = fs.readFileSync(record.storedPath, "base64");
     const dataUrl = `data:${record.mimetype};base64,${base64}`;
 
@@ -93,7 +88,7 @@ IMPORTANT: Return your analysis as a JSON object with these fields:
 Only include fields relevant to the analysis type. Return valid JSON only.`;
 
     try {
-      const response = await client.chat.completions.create({
+      const response = await llmGateway.chat({
         model: "gpt-4o",
         messages: [
           { role: "system", content: structuredPrompt },
@@ -105,11 +100,12 @@ Only include fields relevant to the analysis type. Return valid JSON only.`;
             ],
           },
         ],
-        max_tokens: 1500,
-        response_format: { type: "json_object" },
+        maxCompletionTokens: 1500,
+        jsonMode: true,
+        meta: { caller: "agent-tool-analyze-image", fileId, analysisType },
       });
 
-      const rawContent = response.choices[0]?.message?.content || "{}";
+      const rawContent = response.content || "{}";
       let structured: Record<string, unknown>;
       try {
         structured = JSON.parse(rawContent);
@@ -127,7 +123,7 @@ Only include fields relevant to the analysis type. Return valid JSON only.`;
         recommendations: structured.recommendations || [],
         urgencyLevel: structured.urgencyLevel || null,
         summary: structured.summary || "",
-        tokensUsed: response.usage?.total_tokens || 0,
+        tokensUsed: response.usage.totalTokens,
       };
     } catch (err) {
       return {

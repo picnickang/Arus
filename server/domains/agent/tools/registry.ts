@@ -1,4 +1,5 @@
 import type { ToolDefinition, ToolCategory } from "../domain/types";
+import type { LLMToolDefinition } from "../../../lib/llm-gateway/types";
 
 const tools: Map<string, ToolDefinition> = new Map();
 
@@ -112,7 +113,7 @@ export type ToolLoadingMode = "full" | "light";
 export function getToolOpenAIDefinitions(
   enabledTools?: string[] | null,
   options?: { mode?: ToolLoadingMode; activatedTools?: string[] }
-) {
+): LLMToolDefinition[] {
   const mode = options?.mode || "light";
   const activatedTools = options?.activatedTools || [];
 

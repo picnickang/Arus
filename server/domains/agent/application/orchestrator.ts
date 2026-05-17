@@ -1,7 +1,12 @@
 import { createLogger } from "../../../lib/structured-logger";
 const logger = createLogger("Domains:Agent:Application:Orchestrator");
-import OpenAI from "openai";
-import { createOpenAIClient } from "../../../openai/client";
+import type {
+  LLMChatResponse,
+  LLMContentPart,
+  LLMMessage,
+  LLMToolCall,
+  LLMToolDefinition,
+} from "../../../lib/llm-gateway/types";
 import type { AgentRepositoryPort, KnowledgeBasePort } from "../domain/ports";
 import type { AgentRunResult, AgentSignal, FileAttachment, ToolCallTrace } from "../domain/types";
 import { getToolOpenAIDefinitions } from "../tools";
@@ -19,7 +24,7 @@ import {
 } from "./context-compaction";
 import type { AgentConversation, AgentConfigType } from "@shared/schema";
 
-import { callOpenAIWithRetry, parseToolArgs } from "./orchestrator-helpers/openai-client";
+import { callLLMWithRetry, parseToolArgs } from "./orchestrator-helpers/openai-client";
 import { processAttachments as processAttachmentsHelper } from "./orchestrator-helpers/attachment-processor";
 import {
   executeTool as executeToolHelper,
@@ -40,7 +45,6 @@ import {
 
 /** Shared state produced by the common initialisation step. */
 interface RunContext {
-  client: OpenAI;
   config: AgentConfigType | null | undefined;
   model: string;
   maxIterations: number;
@@ -64,7 +68,7 @@ interface LoopOptions {
    * For multimodal: if set, the last user message in `openaiMessages` is
    * replaced with these content parts before the first API call.
    */
-  contentParts?: OpenAI.Chat.Completions.ChatCompletionContentPart[];
+  contentParts?: LLMContentPart[];
 }
 
 /** Counters & traces returned by the iteration loop. */
@@ -363,11 +367,6 @@ export class AgentOrchestrator {
     userRole?: string,
     modelOverride?: string
   ): Promise<RunContext> {
-    const client = await createOpenAIClient();
-    if (!client) {
-      throw new Error("OpenAI is not configured. Please set up your API key.");
-    }
-
     const config = await this.repo.config.get(orgId);
     const model = modelOverride || config?.defaultModel || "gpt-4o-mini";
     const maxIterations = config?.maxIterationsPerRun || 10;
@@ -406,7 +405,6 @@ export class AgentOrchestrator {
     };
 
     return {
-      client,
       config,
       model,
       maxIterations,
@@ -424,11 +422,8 @@ export class AgentOrchestrator {
   /**
    * Load history, apply compaction, and produce the OpenAI message array.
    */
-  private async buildContext(
-    ctx: RunContext
-  ): Promise<OpenAI.Chat.Completions.ChatCompletionMessageParam[]> {
+  private async buildContext(ctx: RunContext): Promise<LLMMessage[]> {
     const contextSummary = await this.maybeSummarize(
-      ctx.client,
       ctx.conversation,
       ctx.compactionCfg,
       ctx.model
@@ -455,7 +450,7 @@ export class AgentOrchestrator {
   private async appendFileContext(
     conversationId: string,
     orgId: string,
-    messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[]
+    messages: LLMMessage[]
   ): Promise<void> {
     const convFiles = await listConversationFiles(conversationId, orgId);
     if (convFiles.length === 0) {
@@ -484,7 +479,7 @@ export class AgentOrchestrator {
    */
   private async executeLoop(
     ctx: RunContext,
-    openaiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+    openaiMessages: LLMMessage[],
     opts: LoopOptions
   ): Promise<LoopResult> {
     const { mode, onChunk, maxTokenBudget, runtimeAllowlist, contentParts } = opts;
@@ -530,24 +525,30 @@ export class AgentOrchestrator {
       const isLastChance = mode === "stream" && iteration === ctx.maxIterations - 1;
       const iterToolDefs = isLastChance ? undefined : toolDefs;
 
-      const response = await this.callOpenAI(ctx.client, ctx.model, openaiMessages, iterToolDefs);
-      const choice = response.choices[0];
-      const iterTokens = response.usage?.total_tokens || 0;
+      const response = await this.callLLM(ctx.model, openaiMessages, iterToolDefs, {
+        conversationId: ctx.conversation.id,
+        orgId: ctx.toolContext.orgId,
+      });
+      const iterTokens = response.usage.totalTokens;
       totalTokens += iterTokens;
-      promptTokens += response.usage?.prompt_tokens || 0;
-      completionTokens += response.usage?.completion_tokens || 0;
+      promptTokens += response.usage.promptTokens;
+      completionTokens += response.usage.completionTokens;
 
       // --- Tool-call branch ---
-      if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
-        for (const tc of choice.message.tool_calls) {
+      if (response.toolCalls && response.toolCalls.length > 0) {
+        const toolCalls = response.toolCalls;
+        for (const tc of toolCalls) {
           activatedTools.add(tc.function.name);
         }
 
         const assistantMsg = await this.repo.messages.create({
           conversationId: ctx.conversation.id,
           role: "assistant",
-          content: choice.message.content,
-          toolCalls: choice.message.tool_calls,
+          content: response.content,
+          // Persisted in OpenAI wire shape ({id,type,function:{name,arguments}})
+          // — same as LLMToolCall. activity-repository-adapter and
+          // context-compaction reader both expect this shape.
+          toolCalls,
           tokenCount: iterTokens,
           model: ctx.model,
         });
@@ -555,11 +556,11 @@ export class AgentOrchestrator {
 
         openaiMessages.push({
           role: "assistant",
-          content: choice.message.content,
-          tool_calls: choice.message.tool_calls,
+          content: response.content,
+          toolCalls,
         });
 
-        for (const tc of choice.message.tool_calls) {
+        for (const tc of toolCalls) {
           const parsedInput = this.parseJson(tc.function.arguments);
 
           if (mode === "stream" && onChunk) {
@@ -628,7 +629,7 @@ export class AgentOrchestrator {
             ? compactToolOutput(toolMsgContent, ctx.compactionCfg.toolOutputCharLimit)
             : toolMsgContent;
 
-          openaiMessages.push({ role: "tool", tool_call_id: tc.id, content: compactedContent });
+          openaiMessages.push({ role: "tool", toolCallId: tc.id, content: compactedContent });
         }
 
         // Refresh tool definitions after activating new tools
@@ -640,7 +641,7 @@ export class AgentOrchestrator {
       }
 
       // --- Text response branch ---
-      finalResponse = choice.message.content || "";
+      finalResponse = response.content || "";
 
       // Deferred-loading fallback: if the model refused on its first try with
       // a lightweight tool set, retry with the full set.
@@ -733,7 +734,7 @@ export class AgentOrchestrator {
     sanitizedMessage: string,
     attachments: FileAttachment[]
   ): Promise<{
-    contentParts: OpenAI.Chat.Completions.ChatCompletionContentPart[];
+    contentParts: LLMContentPart[];
     displayContent: string;
     kbIngested: Array<{ filename: string; chunkCount: number }>;
   }> {
@@ -803,7 +804,6 @@ export class AgentOrchestrator {
   // ===== CONTEXT COMPACTION =====
 
   private async maybeSummarize(
-    client: OpenAI,
     conversation: AgentConversation,
     compactionCfg: CompactionConfig,
     _model: string
@@ -874,7 +874,7 @@ export class AgentOrchestrator {
   // ===== TOOL EXECUTION (delegated to ./orchestrator-helpers/tool-execution.ts) =====
 
   private async executeTool(
-    tc: OpenAI.Chat.Completions.ChatCompletionMessageToolCall,
+    tc: LLMToolCall,
     toolContext: ToolContext,
     orgId: string,
     userId: string | undefined,
@@ -894,15 +894,15 @@ export class AgentOrchestrator {
     );
   }
 
-  // ===== OPENAI CALL WITH RETRY (delegated to ./orchestrator-helpers/openai-client.ts) =====
+  // ===== LLM CALL (delegated to ./orchestrator-helpers/openai-client.ts) =====
 
-  private async callOpenAI(
-    client: OpenAI,
+  private async callLLM(
     model: string,
-    messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-    toolDefs?: ReturnType<typeof getToolOpenAIDefinitions>
-  ): Promise<OpenAI.Chat.Completions.ChatCompletion> {
-    return callOpenAIWithRetry(client, model, messages, toolDefs);
+    messages: LLMMessage[],
+    toolDefs?: LLMToolDefinition[],
+    meta?: Record<string, unknown>
+  ): Promise<LLMChatResponse> {
+    return callLLMWithRetry(model, messages, toolDefs, meta);
   }
 
   // ===== UTILITIES =====

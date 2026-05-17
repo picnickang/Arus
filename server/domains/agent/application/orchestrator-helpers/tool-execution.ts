@@ -1,6 +1,6 @@
 import { createLogger } from "../../../../lib/structured-logger";
 const logger = createLogger("Domains:Agent:Application:OrchestratorHelpers:ToolExecution");
-import type OpenAI from "openai";
+import type { LLMToolCall } from "../../../../lib/llm-gateway/types";
 import type { AgentRepositoryPort, KnowledgeBasePort } from "../../domain/ports";
 import type { AgentConfigType } from "@shared/schema";
 import type { PermissionTier, ToolDefinition } from "../../domain/types";
@@ -42,7 +42,7 @@ export interface ToolExecutionResult {
  */
 export async function executeTool(
   deps: ToolExecutionDeps,
-  tc: OpenAI.Chat.Completions.ChatCompletionMessageToolCall,
+  tc: LLMToolCall,
   toolContext: ToolContext,
   orgId: string,
   userId: string | undefined,

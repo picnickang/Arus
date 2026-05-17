@@ -1,9 +1,9 @@
 import { createLogger } from "../../../lib/structured-logger";
 const logger = createLogger("Domains:Agent:Application:ContextCompaction");
-import type OpenAI from "openai";
 import type { AgentMessage } from "@shared/schema";
 import { buildSystemPrompt } from "../domain/system-prompt";
 import { llmGateway } from "../../../composition/llm-gateway";
+import type { LLMMessage, LLMToolCall } from "../../../lib/llm-gateway/types";
 
 const DEFAULT_TOOL_OUTPUT_CHAR_LIMIT = 4000;
 
@@ -157,8 +157,8 @@ export function buildCompactedMessages(
   customPrompt: string | null | undefined,
   contextSummary: string | null | undefined,
   compactionConfig: CompactionConfig
-): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
-  const result: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+): LLMMessage[] {
+  const result: LLMMessage[] = [
     { role: "system", content: buildSystemPrompt(customPrompt) },
   ];
 
@@ -179,7 +179,7 @@ export function buildCompactedMessages(
 
   const budgetRemaining = maxContextTokens - systemTokens - 4096;
 
-  const mappedMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
+  const mappedMessages: LLMMessage[] = [];
 
   for (const m of history) {
     if (m.role === "tool") {
@@ -193,15 +193,17 @@ export function buildCompactedMessages(
       mappedMessages.push({
         role: "tool" as const,
         content,
-        tool_call_id: ref?.toolCallId || "unknown",
+        toolCallId: ref?.toolCallId || "unknown",
       });
     } else if (m.role === "assistant" && m.toolCalls) {
-      const calls =
-        m.toolCalls as unknown as OpenAI.Chat.Completions.ChatCompletionMessageToolCall[];
+      // Persisted toolCalls already use the OpenAI / LLMToolCall wire
+      // shape ({id, type, function:{name, arguments}}), so a cast is
+      // sufficient — no field-name translation needed.
+      const calls = m.toolCalls as unknown as LLMToolCall[];
       mappedMessages.push({
         role: "assistant" as const,
         content: m.content || null,
-        tool_calls: calls,
+        toolCalls: calls,
       });
     } else {
       mappedMessages.push({
@@ -217,7 +219,7 @@ export function buildCompactedMessages(
   }
 
   interface MessageGroup {
-    messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[];
+    messages: LLMMessage[];
     tokens: number;
   }
 
@@ -225,9 +227,10 @@ export function buildCompactedMessages(
   let i = 0;
   while (i < mappedMessages.length) {
     const msg = mappedMessages[i];
-    if (msg.role === "assistant" && "tool_calls" in msg && msg.tool_calls) {
-      const group: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [msg];
-      let groupTokens = estimateTokens((msg.content || "") + JSON.stringify(msg.tool_calls));
+    if (msg.role === "assistant" && msg.toolCalls && msg.toolCalls.length > 0) {
+      const group: LLMMessage[] = [msg];
+      const headerText = typeof msg.content === "string" ? msg.content : "";
+      let groupTokens = estimateTokens(headerText + JSON.stringify(msg.toolCalls));
       let j = i + 1;
       while (j < mappedMessages.length && mappedMessages[j].role === "tool") {
         group.push(mappedMessages[j]);

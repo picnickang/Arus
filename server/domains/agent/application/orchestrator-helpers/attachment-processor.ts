@@ -1,14 +1,14 @@
 import fs from "fs";
-import type OpenAI from "openai";
 import type { KnowledgeBasePort } from "../../domain/ports";
 import type { FileAttachment } from "../../domain/types";
+import type { LLMContentPart } from "../../../../lib/llm-gateway/types";
 import { registerFile, listConversationFiles } from "../../infrastructure/file-registry";
 import { ingestFilesToKB } from "../../infrastructure/kb-ingestion-helper";
 import { createLogger } from "../../../../lib/structured-logger";
 const logger = createLogger("Domains:Agent:Application:OrchestratorHelpers:AttachmentProcessor");
 
 export interface ProcessedAttachments {
-  contentParts: OpenAI.Chat.Completions.ChatCompletionContentPart[];
+  contentParts: LLMContentPart[];
   displayContent: string;
   kbIngested: Array<{ filename: string; chunkCount: number }>;
 }
@@ -31,7 +31,7 @@ export async function processAttachments(
   attachments: FileAttachment[],
   knowledgeBase?: KnowledgeBasePort
 ): Promise<ProcessedAttachments> {
-  const contentParts: OpenAI.Chat.Completions.ChatCompletionContentPart[] = [
+  const contentParts: LLMContentPart[] = [
     { type: "text", text: sanitizedMessage },
   ];
   const fileDescriptions: string[] = [];
