@@ -17,16 +17,19 @@ import {
 import { useCustomMutation } from "@/hooks/useCrudMutations";
 import { formatDate } from "@/lib/formatters";
 
-interface SyncMetrics {
-  [key: string]: unknown;
-}
-
 interface DataIssue {
   code: string;
   message: string;
   severity: "low" | "medium" | "high" | "critical";
   reference?: Record<string, unknown>;
 }
+
+/**
+ * Shape of the metrics blob returned by GET /api/sync/status.
+ * Server type is `Record<string, unknown>` (see server/sync-events.ts), so we
+ * keep this open-ended; consumers should narrow individual fields when reading.
+ */
+type SyncMetrics = Record<string, unknown>;
 
 interface SyncStatus {
   status: string;

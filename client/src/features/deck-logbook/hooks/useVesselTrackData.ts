@@ -94,7 +94,7 @@ export function useVesselTrackData() {
           endDate: dateParams.end.toISOString(),
         }),
       }),
-    onSuccess: (data) => {
+    onSuccess: (data: { recordsCreated?: number; recordsSkipped?: number }) => {
       toast({
         title: "Track Processing Complete",
         description: `Created ${data.recordsCreated} track points, skipped ${data.recordsSkipped}`,

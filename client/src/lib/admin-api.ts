@@ -13,7 +13,12 @@ const DEV_MODE = import.meta.env.DEV === true;
 const DEV_SESSION_TOKEN = "dev-admin-session-token";
 
 /**
- * Admin API request function with session-based authentication
+ * Admin API request function with session-based authentication.
+ *
+ * Generic on the response shape: callers may pass a type argument to narrow
+ * the result, e.g. `adminApiRequest<{ message: string }>("POST", url, body)`.
+ * Defaults to `unknown` to preserve safe-by-default semantics for callers
+ * that don't supply a type.
  */
 export async function adminApiRequest<T = unknown>(
   method: string,

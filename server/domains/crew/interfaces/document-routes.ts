@@ -103,7 +103,7 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
       );
 
       const enrichedDocs = await Promise.all(
-        expiringDocs.map(async (doc) => {
+        expiringDocs.map(async (doc: Record<string, unknown> & { crewId: string }) => {
           const crewMember = await crewService.getCrewById(doc.crewId);
           return {
             ...doc,

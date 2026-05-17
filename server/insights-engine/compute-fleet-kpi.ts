@@ -45,7 +45,7 @@ export async function computeInsights(
           const set = new Set(
             (d.sensors ?? "")
               .split(",")
-              .map((s) => s.trim())
+              .map((s: string) => s.trim())
               .filter(Boolean)
           );
           return sum + set.size;

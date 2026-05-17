@@ -71,7 +71,7 @@ export function useVesselManagementData() {
     mutationFn: (id: string) =>
       apiRequest("GET", `/api/vessels/${id}/export`, undefined, { headers: { "x-org-id": "default-org-id" } }),
     invalidateKeys: [],
-    onSuccess: (data, vesselId: string) => {
+    onSuccess: (data: unknown, vesselId: string) => {
       const success = exportToJSON(data, {
         filename: `vessel-${vesselId}-export-${new Date().toISOString().split("T")[0]}.json`,
       });
@@ -213,7 +213,7 @@ export function useVesselManagementData() {
   };
 
   const getVesselEquipment = (vesselName: string) =>
-    !Array.isArray(equipmentHealth) ? [] : equipmentHealth.filter((eq) => eq.vessel === vesselName);
+    !Array.isArray(equipmentHealth) ? [] : equipmentHealth.filter((eq) => eq.vesselId === vesselName);
 
   const hasActiveDowntime = (vesselName: string, vesselId: string) =>
     workOrders.some((wo) => {

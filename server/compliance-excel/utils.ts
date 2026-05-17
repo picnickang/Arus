@@ -49,7 +49,7 @@ export function buildEquipmentSheet(
       eq.id,
       eq.name ?? "",
       eq.type ?? "",
-      eq.vessel ?? "",
+      eq.vesselId ?? "",
       eq.status ?? "",
       eq.healthIndex ?? 0,
     ];

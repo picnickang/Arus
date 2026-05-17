@@ -331,7 +331,7 @@ export function useFinanceModeData() {
 
   const exportCostTrendsData = useMemo(
     () =>
-      costTrendsData.map((trend) => ({
+      costTrendsData.map((trend: { month: string; totalCost: number; labor: number; parts: number; downtime: number }) => ({
         month: trend.month,
         totalCost: formatCurrency(trend.totalCost),
         labor: formatCurrency(trend.labor),

@@ -141,7 +141,7 @@ export function buildCitations(
   const citations: { source: string; relevance: number; snippet: string }[] = [];
 
   const knowledgeBase = enrichedContext.intelligence?.knowledgeBase ?? [];
-  knowledgeBase.forEach((snippet, index) => {
+  knowledgeBase.forEach((snippet: unknown, index: number) => {
     citations.push({
       source: `Knowledge Base ${index + 1}`,
       relevance: Math.max(0.6, 1 - index * 0.1),

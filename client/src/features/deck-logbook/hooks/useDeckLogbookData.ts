@@ -176,7 +176,10 @@ export function useDeckLogbookData() {
       if (!selectedVesselId) {
         return { filledCount: 0 };
       }
-      const result = await apiRequest("POST", "/api/stormgeo/autofill-daily", {
+      const result = await apiRequest<{
+        success: boolean;
+        results?: Record<string, Record<string, unknown>>;
+      }>("POST", "/api/stormgeo/autofill-daily", {
         vesselId: selectedVesselId,
         logDate: selectedDate,
         skipExisting: true,

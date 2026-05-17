@@ -15,7 +15,7 @@ import {
   Legend,
 } from "recharts";
 import { formatDistanceToNow } from "date-fns";
-import { useMaintenanceModeData } from "@/features/analytics";
+import { useMaintenanceModeData, type WorkOrderData, type PdmScoreData } from "@/features/analytics";
 import { formatNumber } from "@/lib/formatters";
 
 export function MaintenanceMode() {
@@ -255,7 +255,7 @@ export function MaintenanceMode() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {overdueWorkOrders.map((wo) => (
+              {overdueWorkOrders.map((wo: WorkOrderData) => (
                 <div
                   key={wo.id}
                   className="flex items-center justify-between p-3 border rounded-lg"
@@ -324,7 +324,7 @@ export function MaintenanceMode() {
           <p className="text-sm text-muted-foreground">No high-risk equipment detected</p>
         ) : (
           <div className="space-y-2">
-            {highRiskPdmScores.map((score) => (
+            {highRiskPdmScores.map((score: PdmScoreData) => (
               <div
                 key={score.equipmentId}
                 className="flex items-center justify-between p-3 border rounded-lg"

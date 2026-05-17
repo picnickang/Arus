@@ -176,7 +176,7 @@ export class ObjectStorageService {
       // Stream the file to the response
       const stream = file.createReadStream();
 
-      stream.on("error", (err) => {
+      stream.on("error", (err: Error) => {
         logger.error("Stream error:", undefined, err);
         if (!res.headersSent) {
           res.status(500).json({ error: "Error streaming file" });

@@ -33,12 +33,12 @@ export function useOrganizationData() {
     data: organizations = [],
     isLoading: organizationsLoading,
     refetch: refetchOrganizations,
-  } = useQuery({ queryKey: ["/api/organizations"], refetchInterval: 60000 });
+  } = useQuery<Organization[]>({ queryKey: ["/api/organizations"], refetchInterval: 60000 });
   const {
     data: users = [],
     isLoading: usersLoading,
     refetch: refetchUsers,
-  } = useQuery({
+  } = useQuery<User[]>({
     queryKey: ["/api/users", selectedOrgId],
     queryFn: async () => {
       if (!selectedOrgId) {

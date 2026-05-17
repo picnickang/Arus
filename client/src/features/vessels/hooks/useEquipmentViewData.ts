@@ -222,7 +222,7 @@ export function useEquipmentViewData(
         setSelectedBundleId("");
         onEquipmentUpdated?.();
       },
-      onError: (error) => handleMutationError(error, "Error applying sensor bundle"),
+      onError: (error: unknown) => handleMutationError(error, "Error applying sensor bundle"),
     }
   );
 

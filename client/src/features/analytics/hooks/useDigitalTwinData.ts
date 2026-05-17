@@ -29,7 +29,7 @@ export function useDigitalTwinData() {
   const [isSimulating, setIsSimulating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const { data: twins = [], isLoading: twinsLoading } = useQuery({
+  const { data: twins = [], isLoading: twinsLoading } = useQuery<DigitalTwin[]>({
     queryKey: ["/api/digital-twins"],
     staleTime: 60000,
     refetchInterval: 60000,

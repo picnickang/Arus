@@ -86,7 +86,7 @@ export function analyzeAcoustic(
   const harmonicRatio = calculateHarmonicRatio(magnitudes, maxMagIndex);
   const noiseFloor = magnitudes
     .slice(1)
-    .reduce((min, mag) => Math.min(min, mag), magnitudes[1] ?? 0);
+    .reduce((min: number, mag: number) => Math.min(min, mag), magnitudes[1] ?? 0);
   const snr = noiseFloor > 0 ? 20 * Math.log10(maxMag / noiseFloor) : 0;
 
   const frequencyBands = { lowFreq: 0, midFreq: 0, highFreq: 0, ultrasonic: 0 };

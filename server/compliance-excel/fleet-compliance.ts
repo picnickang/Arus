@@ -79,7 +79,7 @@ function renderFleetOverviewExcel(
       eq.id,
       eq.name ?? "",
       eq.type ?? "",
-      eq.vessel ?? "",
+      eq.vesselId ?? "",
       eq.status ?? "",
       eq.healthIndex ?? 0,
       eq.riskScore ?? 0,

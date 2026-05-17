@@ -52,7 +52,7 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
           )
         );
       alertCount = alertResult.length;
-    } catch {
+    } catch (e) {
       logger.warn("Summary alert query failed", {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),
@@ -71,7 +71,7 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
           )
         );
       insightCount = insightResult.length;
-    } catch {
+    } catch (e) {
       logger.warn("Summary insight query failed", {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),
@@ -86,7 +86,7 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
         .orderBy(sql`${pdmScoreLogs.ts} DESC`)
         .limit(1);
       pdmScore = pdmResult[0]?.healthIdx ?? null;
-    } catch {
+    } catch (e) {
       logger.warn("Summary PDM score query failed", {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),
@@ -104,7 +104,7 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
         .orderBy(sql`${failurePredictions.predictionTimestamp} DESC`)
         .limit(1);
       latestPrediction = predResult[0] ?? null;
-    } catch {
+    } catch (e) {
       logger.warn("Summary prediction query failed", {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),

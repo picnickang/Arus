@@ -67,7 +67,7 @@ export async function validateTelemetryIntegrity(orgId: string): Promise<Validat
           metadata: { quality: point.quality, sensorType: record.sensorType },
         });
       }
-    } catch {
+    } catch (error) {
       issues.push({
         type: "invalid_sensor",
         severity: "medium",

@@ -82,7 +82,7 @@ export function useDataIntegrityData() {
             },
             {
               title: "Data Sources Checked",
-              content: latestReport.dataSourcesChecked.map((source) => ({
+              content: latestReport.dataSourcesChecked.map((source: string) => ({
                 key: source,
                 value: "✓ Validated",
               })),

@@ -264,8 +264,8 @@ export class FileValidator {
     sanitized = sanitized.replace(/\.{2,}/g, ".");
 
     // Limit length
+    const ext = path.extname(sanitized);
     if (sanitized.length > 200) {
-      const ext = path.extname(sanitized);
       sanitized = sanitized.slice(0, 200 - ext.length) + ext;
     }
 

@@ -42,7 +42,7 @@ router.post("/ml/acoustic-analysis", async (req: AuthenticatedRequest, res: Resp
     const validFrequencies = frequencies.slice(0, nyquistIndex);
 
     const rmsValue = Math.sqrt(
-      dataPoints.reduce((sum, val) => sum + val * val, 0) / dataPoints.length
+      dataPoints.reduce((sum: number, val: number) => sum + val * val, 0) / dataPoints.length
     );
     let maxMagnitude = 0,
       peakFrequencyIndex = 0;

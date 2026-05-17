@@ -56,14 +56,14 @@ export async function getBackupStatus(): Promise<{
       healthStatus,
       issues,
     };
-  } catch {
+  } catch (error) {
     return {
       totalBackups: 0,
       latestBackup: null,
       backupSizeTotal: 0,
       retentionSummary: { daily: 0, weekly: 0, monthly: 0 },
       healthStatus: "error",
-      issues: [`Failed to get backup status: ${error}`],
+      issues: [`Failed to get backup status: ${error instanceof Error ? error.message : String(error)}`],
     };
   }
 }

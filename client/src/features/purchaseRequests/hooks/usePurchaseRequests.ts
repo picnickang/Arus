@@ -56,10 +56,21 @@ export function usePurchaseRequest(id: string | undefined) {
   });
 }
 
+export interface PurchaseRequestRecord {
+  id: string;
+  prNumber?: string;
+  status?: string;
+  requestedBy?: string;
+  notes?: string;
+  createdAt?: string | Date;
+  [key: string]: unknown;
+}
+
 export function useCreatePR() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: PRFormData) => apiRequest("POST", "/api/purchase-requests", data),
+    mutationFn: (data: PRFormData) =>
+      apiRequest<PurchaseRequestRecord>("POST", "/api/purchase-requests", data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: prKeys.all }),
   });
 }

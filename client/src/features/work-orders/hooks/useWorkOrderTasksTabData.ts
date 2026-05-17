@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-interface ChecklistItem {
+export interface ChecklistItem {
   id: string;
   itemId?: string;
   workOrderId: string;
@@ -18,6 +18,8 @@ interface ChecklistItem {
   category?: string;
   sortOrder?: number;
 }
+/** Alias kept for clarity at consumer sites. */
+export type WorkOrderTask = ChecklistItem;
 interface ChecklistProgress {
   totalItems: number;
   completedItems: number;

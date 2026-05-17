@@ -93,7 +93,7 @@ export function useConditionMonitoringData() {
           periodType: "hourly",
         }),
       }),
-    onSuccess: (data) => {
+    onSuccess: (data: { recordsCreated?: number; recordsSkipped?: number }) => {
       toast({
         title: "Auto-fill Complete",
         description: `Created ${data.recordsCreated} condition log entries`,

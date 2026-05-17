@@ -6,6 +6,12 @@ import {
   EQUIPMENT_CATEGORIES,
 } from "../constants";
 
+// Re-exported with shorter names for consumer convenience.
+// Local aliases follow so this module can use them too — `export { X as Y }`
+// only adjusts the public name, it does not create a local binding.
+const STATUS_OPTIONS = WORK_ORDER_FILTER_STATUS_OPTIONS;
+const PRIORITY_OPTIONS = WORK_ORDER_FILTER_PRIORITY_OPTIONS;
+
 export interface WorkOrderFilters {
   search: string;
   status: string;
@@ -181,11 +187,11 @@ export function useWorkOrderFilterData(
   }, []);
 
   const getStatusLabel = useCallback(
-    (value: string) => STATUS_OPTIONS.find((s) => s.value === value)?.label,
+    (value: string) => STATUS_OPTIONS.find((s: { value: string; label: string }) => s.value === value)?.label,
     []
   );
   const getPriorityLabel = useCallback(
-    (value: string) => PRIORITY_OPTIONS.find((p) => p.value === value)?.label,
+    (value: string) => PRIORITY_OPTIONS.find((p: { value: string; label: string }) => p.value === value)?.label,
     []
   );
   const getVesselName = useCallback(

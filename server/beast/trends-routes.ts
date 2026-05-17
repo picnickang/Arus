@@ -180,9 +180,9 @@ router.get("/trends/correlations/:equipmentId", async (req, res) => {
       minCorrelationThreshold: minCorrelation,
       correlations: {
         total: correlations.length,
-        positive: correlations.filter((c) => c.correlation > 0).length,
-        negative: correlations.filter((c) => c.correlation < 0).length,
-        pairs: correlations.map((c) => ({
+        positive: correlations.filter((c: { correlation: number }) => c.correlation > 0).length,
+        negative: correlations.filter((c: { correlation: number }) => c.correlation < 0).length,
+        pairs: correlations.map((c: { correlation: number; lag?: number; sensor1?: string; sensor2?: string }) => ({
           sensor1: c.sensor1,
           sensor2: c.sensor2,
           correlation: c.correlation,

@@ -487,7 +487,7 @@ function AnomaliesTab({ equipmentId }: { equipmentId: string }) {
       <CardContent>
         {anomalies?.length > 0 ? (
           <div className="space-y-3">
-            {anomalies.map((anomaly) => (
+            {anomalies.map((anomaly: { id: string; sensorKind?: string; severity?: string; description?: string }) => (
               <div key={anomaly.id} className="p-4 border rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="font-medium">{anomaly.sensorKind}</p>
@@ -520,7 +520,7 @@ function MaintenanceHistoryTab({ equipmentId }: { equipmentId: string }) {
       <CardContent>
         {workOrders?.length > 0 ? (
           <div className="space-y-3">
-            {workOrders.map((wo) => (
+            {workOrders.map((wo: { id: string; reason?: string; description?: string; status?: string; maintenanceType?: string }) => (
               <div key={wo.id} className="p-4 border rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="font-medium">{wo.reason || wo.description}</p>

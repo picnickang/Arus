@@ -127,7 +127,7 @@ export function useMaintenanceTemplatesData() {
       name: template.name,
       description: template.description || "",
       frequency: template.frequency,
-      estimatedDuration: template.estimatedDurationHours,
+      estimatedDuration: template.estimatedDuration,
       priority: template.priority,
     });
     setIsEditDialogOpen(true);

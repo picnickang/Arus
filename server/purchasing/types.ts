@@ -12,6 +12,8 @@ import type {
   InsertPurchaseRequest,
   InsertPurchaseRequestItem,
   InsertItemSupplier,
+  EmailQueue,
+  InsertEmailQueue,
 } from "@shared/schema";
 
 export type PRStatus =

@@ -97,7 +97,7 @@ function renderEquipmentComplianceExcel(
       eq.id,
       eq.name ?? "",
       eq.type ?? "",
-      eq.vessel ?? "",
+      eq.vesselId ?? "",
       eq.status ?? "",
       eq.healthIndex ?? 0,
       formatDate(eq.lastMaintenance) ?? "N/A",

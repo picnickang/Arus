@@ -95,7 +95,7 @@ export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): 
       );
 
       const enrichedCerts = await Promise.all(
-        expiringCerts.map(async (cert) => {
+        expiringCerts.map(async (cert: Record<string, unknown> & { crewId: string }) => {
           const crewMember = await crewService.getCrewMemberById(cert.crewId);
           return {
             ...cert,

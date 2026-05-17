@@ -447,7 +447,7 @@ function TemplateCard({
             <Clock className="h-4 w-4 text-muted-foreground" />
             <span className="text-muted-foreground">Duration:</span>
             <span className="font-medium" data-testid={`template-duration-${template.id}`}>
-              {template.estimatedDurationHours} min
+              {template.estimatedDuration} min
             </span>
           </div>
         </div>
@@ -688,7 +688,7 @@ function ViewTemplateContent({
         <div>
           <label className="text-sm font-medium text-muted-foreground">Duration</label>
           <p className="text-sm" data-testid="view-duration">
-            {template.estimatedDurationHours} minutes
+            {template.estimatedDuration} minutes
           </p>
         </div>
         <div>

@@ -74,3 +74,15 @@ export const COST_TYPES = ["labor", "parts", "external", "other"] as const;
 
 export type ScheduleType = (typeof SCHEDULE_TYPES)[number];
 export type CostType = (typeof COST_TYPES)[number];
+
+// Re-export form-data types defined alongside their zod schemas.
+// These are imported from `../types` by hooks (per project convention) but
+// physically live in `../lib/*Utils` next to the schemas they're derived from.
+export type { TemplateFormData, ChecklistItemFormData } from "./lib/templateUtils";
+export type {
+  PdmAlert,
+  PdmBaseline,
+  AnalysisResult,
+  BearingFormData,
+  PumpFormData,
+} from "./lib/pdmUtils";

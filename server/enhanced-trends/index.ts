@@ -210,7 +210,7 @@ export class EnhancedTrendsAnalyzer {
         endTime
       );
 
-      return readings.map((reading) => ({
+      return readings.map((reading: { ts: string | Date; value: number; unit?: string }) => ({
         timestamp: reading.ts,
         value: reading.value,
         unit: reading.unit || "unknown",

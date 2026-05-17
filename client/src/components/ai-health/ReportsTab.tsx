@@ -33,7 +33,7 @@ import { ReportSummaryCards } from "@/components/ReportSummaryCards";
 import {
   type ReportType,
   type AudienceType,
-  type ModelType,
+  type LlmModelType,
   useAiInsightsData,
 } from "@/features/ml-ai";
 import { formatNumber, formatDate } from "@/lib/formatters";
@@ -136,7 +136,7 @@ export default function ReportsTab() {
                 AI Model
                 <InfoTooltip content="GPT-4o: Balanced speed & quality | Claude: Detailed analysis | O1: Advanced reasoning" />
               </Label>
-              <Select value={selectedModel} onValueChange={(v) => setSelectedModel(v as ModelType)}>
+              <Select value={selectedModel} onValueChange={(v) => setSelectedModel(v as LlmModelType)}>
                 <SelectTrigger className="h-9" data-testid="select-model">
                   <SelectValue />
                 </SelectTrigger>

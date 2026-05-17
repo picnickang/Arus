@@ -32,7 +32,7 @@ export async function generateMaintenanceCompliancePDF(
   const equipmentHealth = await storage.getEquipmentHealth(orgId);
 
   const vesselEquipment = equipmentHealth.filter(
-    (eq) => eq.vessel === vesselId || eq.vessel?.includes(vesselId)
+    (eq) => eq.vesselId === vesselId || eq.vesselId?.includes(vesselId)
   );
   const vesselEquipmentIds = new Set(vesselEquipment.map((eq) => eq.id));
 

@@ -16,14 +16,18 @@ interface EquipmentHealth {
   [key: string]: unknown;
 }
 
-interface WorkOrderData {
+export interface WorkOrderData {
   id: string;
   status: string;
   priority: number;
   createdAt?: string;
   completedAt?: string;
+  reason?: string;
+  description?: string;
+  equipmentId?: string;
+  equipmentName?: string;
 }
-interface PdmScoreData {
+export interface PdmScoreData {
   equipmentId: string;
   equipmentName?: string;
   failureRisk: number;

@@ -110,7 +110,13 @@ export function VesselSimulatorCard() {
 
       setProgress(30);
 
-      const result = await adminApiRequest<{ message?: string; dataPoints?: number; telemetryRecords?: number; vesselType?: string; duration?: string }>("POST", "/api/admin/simulate-telemetry", payload);
+      const result = await adminApiRequest<{
+        message?: string;
+        dataPoints?: number;
+        telemetryRecords?: number;
+        vesselType?: string;
+        duration?: number;
+      }>("POST", "/api/admin/simulate-telemetry", payload);
 
       setProgress(100);
       setLastResult({
