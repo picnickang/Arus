@@ -353,7 +353,7 @@ title = "Frontend source bundle (5.5 MB, 793 files) — RECOMMENDED for UX/workf
 id = "l8RZbkJc2KJwExvVQiYms"
 uri = "file://.local/exports/arus-source.tar.gz"
 type = "unspecified"
-title = "Complete source tarball (2.3 MB compressed, frontend+backend+configs)"
+title = "ARUS full source (tar.gz, 2.3 MB) — recommended for ChatGPT"
 
 [[outputs]]
 id = "Qfc0TwS8NPMtxzglvnomk"
@@ -371,10 +371,16 @@ title = "ARUS PdM Decision Support — Full Source Bundle"
 id = "jdZBX-bTjiniwqY5EyD3z"
 uri = "file://.local/exports/arus-fullstack-bundle.txt"
 type = "text"
-title = "ARUS Full-Stack Source Bundle (13 MB, 392,131 lines, 2,316 files)"
+title = "ARUS full source (single text file, 12 MB) — fallback"
 
 [[outputs]]
 id = "xS8XB7XMwTNnR6UsgNneA"
 uri = "file://exports/arus-fullstack-source.tar.gz"
 type = "unspecified"
 title = "ARUS full-stack source (4.1 MB tar.gz)"
+
+[[outputs]]
+id = "h7BdFdUPDP97L-rwhuadQ"
+uri = "file://.local/exports/tsc-errors.txt"
+type = "text"
+title = "Full tsc --noEmit error log (2,732 errors, 1.1 MB)"
