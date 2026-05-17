@@ -384,3 +384,9 @@ id = "h7BdFdUPDP97L-rwhuadQ"
 uri = "file://.local/exports/tsc-errors.txt"
 type = "text"
 title = "Full tsc --noEmit error log (2,732 errors, 1.1 MB)"
+
+[[outputs]]
+id = "j1pfC184JzrE1M1rxRMGO"
+uri = "file://.local/ts-nocheck-files.txt"
+type = "text"
+title = "Remaining @ts-nocheck files (414)"
