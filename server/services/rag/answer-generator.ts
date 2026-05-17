@@ -79,13 +79,10 @@ export class AnswerGenerator {
       `[AnswerGenerator] Processing query for org ${orgId}: "${query.substring(0, 50)}..."`
     );
 
-    const searchResults = await searchKnowledgeBase({
-      orgId,
-      query,
+    const searchResults = await searchKnowledgeBase(query, {
       limit: maxSources,
       threshold,
-      visibilityFilter: userId || userRoles ? { userId, userRoles } : undefined,
-    });
+    } as any);
 
     if (searchResults.length === 0) {
       return {
@@ -121,7 +118,7 @@ export class AnswerGenerator {
 
     const answer = response.content;
     const citations = this.extractCitationsFromAnswer(answer, contextChunks);
-    const usedChunkIds = citations.map((c) => c.chunkId);
+    const usedChunkIds = citations.map((c) => c.chunkId ?? "");
 
     logger.info(
       `[AnswerGenerator] Generated answer with ${citations.length} citations using ${response.model}`
@@ -148,8 +145,8 @@ export class AnswerGenerator {
   private formatContextForPrompt(chunks: ContextChunk[]): string {
     return chunks
       .map((chunk) => {
-        const header = `[${chunk.citationIndex}] From "${chunk.docName}" (relevance: ${(chunk.similarity * 100).toFixed(1)}%):`;
-        return `${header}\n${chunk.text}\n`;
+        const header = `[${chunk.citationIndex}] From "${chunk.docName}" (relevance: ${((chunk.similarity ?? 0) * 100).toFixed(1)}%):`;
+        return `${header}\n${chunk.text ?? ""}\n`;
       })
       .join("\n---\n");
   }
@@ -166,13 +163,14 @@ export class AnswerGenerator {
     const citations: Citation[] = [];
     for (const chunk of chunks) {
       if (usedIndices.has(chunk.citationIndex)) {
+        const t = chunk.text ?? "";
         citations.push({
-          docId: chunk.docId,
-          docName: chunk.docName,
-          chunkId: chunk.chunkId,
-          text: chunk.text.substring(0, 200) + (chunk.text.length > 200 ? "..." : ""),
-          relevance: chunk.similarity,
-          ord: chunk.ord,
+          docId: chunk.docId ?? "",
+          docName: chunk.docName ?? "",
+          chunkId: chunk.chunkId ?? chunk.id ?? "",
+          text: t.substring(0, 200) + (t.length > 200 ? "..." : ""),
+          relevance: chunk.similarity ?? 0,
+          ord: chunk.ord ?? 0,
         });
       }
     }
@@ -180,13 +178,14 @@ export class AnswerGenerator {
     if (citations.length === 0 && chunks.length > 0) {
       const topChunks = chunks.slice(0, Math.min(3, chunks.length));
       for (const chunk of topChunks) {
+        const t = chunk.text ?? "";
         citations.push({
-          docId: chunk.docId,
-          docName: chunk.docName,
-          chunkId: chunk.chunkId,
-          text: chunk.text.substring(0, 200) + (chunk.text.length > 200 ? "..." : ""),
-          relevance: chunk.similarity,
-          ord: chunk.ord,
+          docId: chunk.docId ?? "",
+          docName: chunk.docName ?? "",
+          chunkId: chunk.chunkId ?? chunk.id ?? "",
+          text: t.substring(0, 200) + (t.length > 200 ? "..." : ""),
+          relevance: chunk.similarity ?? 0,
+          ord: chunk.ord ?? 0,
         });
       }
     }

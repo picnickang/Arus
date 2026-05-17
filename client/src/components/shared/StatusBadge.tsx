@@ -17,7 +17,8 @@ export type StatusType =
   | "completed"
   | "in_progress"
   | "awaiting_service"
-  | "pending";
+  | "pending"
+  | "unknown";
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -94,6 +95,7 @@ const statusConfig: Record<
     className: "bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/50",
   },
   pending: { variant: "outline", label: "Pending", className: "text-muted-foreground" },
+  unknown: { variant: "outline", label: "Unknown", className: "text-muted-foreground" },
 };
 
 export function StatusBadge({ status, label, className }: StatusBadgeProps) {

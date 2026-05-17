@@ -10,7 +10,7 @@ import type { VesselLearnings, HistoricalContext } from "./types.js";
 export function calculateOperatingHours(vessel: SelectVessel): number {
   const commissionDate = vessel.commissionDate
     ? new Date(vessel.commissionDate)
-    : new Date(vessel.createdAt);
+    : new Date(vessel.createdAt ?? Date.now());
   const ageYears = (Date.now() - commissionDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
   return Math.round(ageYears * 365.25 * 24);
 }
@@ -18,7 +18,7 @@ export function calculateOperatingHours(vessel: SelectVessel): number {
 export function calculateVesselAge(vessel: SelectVessel): number {
   const commissionDate = vessel.commissionDate
     ? new Date(vessel.commissionDate)
-    : new Date(vessel.createdAt);
+    : new Date(vessel.createdAt ?? Date.now());
   return Math.round((Date.now() - commissionDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
 }
 
@@ -29,7 +29,7 @@ export function calculateAverageResolutionTime(workOrders: WorkOrder[]): number 
   }
 
   const totalHours = completed.reduce((sum, wo) => {
-    const start = new Date(wo.createdAt).getTime();
+    const start = new Date(wo.createdAt ?? Date.now()).getTime();
     const end = new Date(wo.completedAt!).getTime();
     return sum + (end - start) / (60 * 60 * 1000);
   }, 0);
@@ -42,7 +42,7 @@ export function calculatePerformanceMetrics(
   vesselAge: number
 ): HistoricalContext["performanceMetrics"] {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const recentWorkOrders = workOrders.filter((wo) => new Date(wo.createdAt) >= thirtyDaysAgo);
+  const recentWorkOrders = workOrders.filter((wo) => new Date(wo.createdAt ?? Date.now()) >= thirtyDaysAgo);
 
   const totalDowntimeHours = recentWorkOrders
     .filter((wo) => wo.affectsVesselDowntime)
@@ -53,7 +53,7 @@ export function calculatePerformanceMetrics(
   const availability = analysisPeriodHours > 0 ? (operatingHours / analysisPeriodHours) * 100 : 100;
 
   const failureOrders = recentWorkOrders.filter(
-    (wo) => wo.type === "corrective" || wo.priority === "critical" || wo.priority === "urgent"
+    (wo) => (wo.type as any) === "corrective" || (wo.priority as any) === "critical" || (wo.priority as any) === "urgent"
   );
   const mtbf =
     operatingHours > 0 && failureOrders.length > 0
@@ -110,7 +110,7 @@ export function calculateComplianceScore(
 }
 
 export function byCreatedAtAsc(a: WorkOrder, b: WorkOrder): number {
-  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  return new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime();
 }
 
 export function calculateAverageDaysBetween(orders: WorkOrder[]): number {
@@ -123,7 +123,7 @@ export function calculateAverageDaysBetween(orders: WorkOrder[]): number {
 
   for (let i = 1; i < sorted.length; i++) {
     const days =
-      (new Date(sorted[i].createdAt).getTime() - new Date(sorted[i - 1].createdAt).getTime()) /
+      (new Date(sorted[i].createdAt ?? 0).getTime() - new Date(sorted[i - 1].createdAt ?? 0).getTime()) /
       (24 * 60 * 60 * 1000);
     totalDays += days;
   }
@@ -247,7 +247,7 @@ export function determineCostTrend(
   }
 
   const sorted = [...ordersWithCost].sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    (a, b) => new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime()
   );
 
   const firstQuarter = sorted.slice(0, Math.floor(sorted.length / 4));
@@ -277,7 +277,7 @@ export function calculatePredictiveLeadTime(
   const leadTimes: number[] = [];
 
   failures.forEach((failure) => {
-    const failureTime = new Date(failure.createdAt).getTime();
+    const failureTime = new Date(failure.createdAt ?? 0).getTime();
     const beforeFailure = readings
       .filter(
         (r) =>

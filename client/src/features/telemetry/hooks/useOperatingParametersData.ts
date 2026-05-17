@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useCustomMutation } from "@/hooks/useCrudMutations";
 import {
-  insertOperatingParameterSchema,
   OperatingParameter,
   InsertOperatingParameter,
 } from "@shared/schema";
@@ -22,13 +21,23 @@ export const equipmentTypes = [
   { value: "other", label: "Other" },
 ];
 
-const formSchema = insertOperatingParameterSchema
-  .omit({ id: true, orgId: true, createdAt: true, updatedAt: true })
-  .extend({
+// Hand-rolled to bypass drizzle-zod inference dropping optional columns
+// from the inferred form type for `operating_parameters`.
+const formSchema = z
+  .object({
     equipmentType: z.string().min(1, "Equipment type is required"),
+    manufacturer: z.string().optional().nullable(),
+    model: z.string().optional().nullable(),
     parameterName: z.string().min(1, "Parameter name is required"),
     parameterType: z.string().min(1, "Parameter type is required"),
     unit: z.string().min(1, "Unit is required"),
+    optimalMin: z.number().nullable().optional(),
+    optimalMax: z.number().nullable().optional(),
+    criticalMin: z.number().nullable().optional(),
+    criticalMax: z.number().nullable().optional(),
+    lifeImpactDescription: z.string().optional().nullable(),
+    recommendedAction: z.string().optional().nullable(),
+    isActive: z.boolean().optional().nullable(),
   })
   .refine(
     (data) => {

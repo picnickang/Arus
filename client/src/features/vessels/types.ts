@@ -33,18 +33,24 @@ export interface Equipment {
   vesselId: string;
   name: string;
   type: string;
-  manufacturer?: string;
-  model?: string;
-  serialNumber?: string;
-  installDate?: Date;
-  lastMaintenanceDate?: Date;
-  nextMaintenanceDate?: Date;
-  status: "operational" | "degraded" | "warning" | "critical" | "offline";
-  location?: string;
-  runningHours?: number;
-  healthScore?: number;
-  createdAt?: Date;
-  updatedAt?: Date;
+  manufacturer?: string | null;
+  model?: string | null;
+  serialNumber?: string | null;
+  installDate?: Date | string | null;
+  lastMaintenanceDate?: Date | string | null;
+  nextMaintenanceDate?: Date | string | null;
+  status: "operational" | "degraded" | "warning" | "critical" | "offline" | string;
+  location?: string | null;
+  runningHours?: number | null;
+  healthScore?: number | null;
+  healthIndex?: number | null;
+  predictedDueDays?: number | null;
+  category?: string | null;
+  criticality?: string | null;
+  parentId?: string | null;
+  description?: string | null;
+  createdAt?: Date | string | null;
+  updatedAt?: Date | string | null;
 }
 
 export interface Device {

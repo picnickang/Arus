@@ -4,6 +4,16 @@ export interface SearchResult {
   content: string;
   score: number;
   metadata?: Record<string, any>;
+  docName?: string;
+  docId?: string;
+  chunkId?: string;
+  ord?: number;
+  similarity?: number;
+  text?: string;
+}
+
+export async function searchSimilarChunks(_opts: any): Promise<SearchResult[]> {
+  return [];
 }
 
 export async function searchKnowledgeBase(

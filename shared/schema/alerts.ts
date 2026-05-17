@@ -73,6 +73,8 @@ export const alertNotifications = pgTable("alert_notifications", {
   acknowledged: boolean("acknowledged").default(false),
   acknowledgedAt: timestamp("acknowledged_at", { mode: "date" }),
   acknowledgedBy: text("acknowledged_by"),
+  severity: text("severity"),
+  vesselId: varchar("vessel_id").references(() => vessels.id),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
 });
 

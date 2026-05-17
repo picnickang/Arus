@@ -126,7 +126,7 @@ export function exportDeckToPDF(data: ExportDeckPDFData): void {
   yPos += 4;
 
   const hourlyRows = Array.from({ length: 24 }, (_, i) => {
-    const entry = hourlyEntries.get(i) ?? {};
+    const entry: Partial<HourlyEntry> = hourlyEntries.get(i) ?? {};
     return [
       `${String(i).padStart(2, "0")}:00`,
       entry.course || "-",
@@ -330,7 +330,7 @@ export function exportDeckToExcel(data: ExportDeckExcelData): void {
   ];
   const hourlyData: (string | number | undefined)[][] = [hourlyHeaders];
   for (let i = 0; i < 24; i++) {
-    const entry = hourlyEntries.get(i) ?? {};
+    const entry: Partial<HourlyEntry> = hourlyEntries.get(i) ?? {};
     hourlyData.push([
       `${String(i).padStart(2, "0")}:00`,
       entry.course || "",

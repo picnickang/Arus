@@ -2,7 +2,7 @@ import { useMutation, UseMutationResult } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-type InvalidateKey = string | string[];
+type InvalidateKey = string | ReadonlyArray<string | number | undefined | null>;
 
 interface CrudMutationOptions<TData = unknown> {
   onSuccess?: (data: TData) => void;

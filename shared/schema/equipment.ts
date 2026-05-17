@@ -38,6 +38,8 @@ export const equipment = pgTable(
     vesselName: text("vessel_name"),
     name: text("name").notNull(),
     type: text("type").notNull(),
+    category: text("category"),
+    equipmentType: text("equipment_type"),
     manufacturer: text("manufacturer"),
     model: text("model"),
     serialNumber: text("serial_number"),

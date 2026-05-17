@@ -23,6 +23,32 @@ import type {
   InsertCrewAlertSettings,
 } from "@shared/schema";
 
+// Schema-drift bridge: the alertSettings table only persists a subset of fields,
+// but the service surface still exposes legacy email/SMTP configuration. Treat
+// the raw record as the schema row plus these optional legacy columns so reads
+// stay null-safe without forcing a destructive schema migration.
+type AlertSettingsRaw = AlertSettings & Partial<{
+  emailEnabled: boolean | null;
+  defaultToEmail: string | null;
+  ccEmails: unknown;
+  bccEmails: unknown;
+  timezone: string | null;
+  provider: string | null;
+  smtpHost: string | null;
+  smtpPort: number | null;
+  smtpUser: string | null;
+  smtpUseTls: boolean | null;
+  smtpEncryptedPassword: string | null;
+  fromEmail: string | null;
+  fromName: string | null;
+  apiKeyEncrypted: string | null;
+  dailyDigestEnabled: boolean | null;
+  dailyDigestTime: string | null;
+  lastTestStatus: string | null;
+  lastTestAt: Date | null;
+  lastTestError: string | null;
+}>;
+
 export interface AlertSettingsPublic {
   id: string;
   orgId: string;
@@ -107,28 +133,28 @@ export class AlertSettingsService {
     };
   }
 
-  private toPublicSettings(settings: AlertSettings): AlertSettingsPublic {
+  private toPublicSettings(settings: AlertSettingsRaw): AlertSettingsPublic {
     return {
       id: settings.id,
       orgId: settings.orgId,
       emailEnabled: settings.emailEnabled ?? false,
-      defaultToEmail: settings.defaultToEmail,
+      defaultToEmail: settings.defaultToEmail ?? null,
       ccEmails: settings.ccEmails as string[] | null,
       bccEmails: settings.bccEmails as string[] | null,
       timezone: settings.timezone || "Asia/Singapore",
       provider: settings.provider || "sendgrid",
-      smtpHost: settings.smtpHost,
-      smtpPort: settings.smtpPort,
-      smtpUser: settings.smtpUser,
+      smtpHost: settings.smtpHost ?? null,
+      smtpPort: settings.smtpPort ?? null,
+      smtpUser: settings.smtpUser ?? null,
       smtpUseTls: settings.smtpUseTls ?? true,
       fromEmail: settings.fromEmail || "noreply@arus-marine.com",
       fromName: settings.fromName || "ARUS Marine",
-      alertCooldownMinutes: settings.defaultCooldownMinutes ?? 30,
+      alertCooldownMinutes: (settings as any).defaultCooldownMinutes ?? 30,
       dailyDigestEnabled: settings.dailyDigestEnabled ?? false,
-      dailyDigestTime: settings.dailyDigestTime,
-      lastTestStatus: settings.lastTestStatus,
-      lastTestAt: settings.lastTestAt,
-      lastTestError: settings.lastTestError,
+      dailyDigestTime: settings.dailyDigestTime ?? null,
+      lastTestStatus: settings.lastTestStatus ?? null,
+      lastTestAt: settings.lastTestAt ?? null,
+      lastTestError: settings.lastTestError ?? null,
       hasApiKey: !!settings.apiKeyEncrypted,
       hasSmtpPassword: !!settings.smtpEncryptedPassword,
       createdAt: settings.createdAt,
@@ -243,7 +269,7 @@ export class AlertSettingsService {
     return result;
   }
 
-  private buildEmailConfig(settings: AlertSettings): EmailConfig {
+  private buildEmailConfig(settings: AlertSettingsRaw): EmailConfig {
     return {
       provider: (settings.provider || "sendgrid") as "sendgrid" | "smtp" | "ses",
       sendgridApiKey: settings.apiKeyEncrypted || undefined,

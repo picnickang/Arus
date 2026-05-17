@@ -18,6 +18,7 @@ import {
   unique,
   serial,
   index,
+  uniqueIndex,
   numeric,
   vector,
 } from "drizzle-orm/pg-core";
@@ -38,6 +39,7 @@ export {
   unique,
   serial,
   index,
+  uniqueIndex,
   numeric,
   vector,
   createInsertSchema,

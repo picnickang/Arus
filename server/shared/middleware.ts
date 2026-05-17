@@ -7,7 +7,6 @@ import { AuthorizationError, TenantIsolationError, handleRouteError } from "./er
 declare global {
   namespace Express {
     interface Request {
-      orgId?: string;
       userId?: string;
       isAdmin?: boolean;
     }

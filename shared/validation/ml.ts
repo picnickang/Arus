@@ -1,7 +1,11 @@
 import { z } from "zod";
 
 export const mlTrainConfigSchema = z.object({
-  modelType: z.enum(["lstm", "gru", "tft", "rf", "gnn", "hybrid"]),
+  modelType: z.enum(["lstm", "gru", "tft", "rf", "gnn", "hybrid"]).optional(),
+  algorithm: z.string().min(1),
+  equipmentType: z.string().min(1),
+  dataWindowDays: z.number().int().positive().max(3650).optional().default(90),
+  hyperparameters: z.record(z.string(), z.unknown()).optional(),
   epochs: z.number().int().positive().max(1000).optional().default(100),
   batchSize: z.number().int().positive().max(512).optional().default(32),
   learningRate: z.number().positive().max(1).optional().default(0.001),

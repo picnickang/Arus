@@ -21,14 +21,14 @@ export interface CheckResult {
   status: "pass" | "warn" | "fail";
   responseTimeMs?: number;
   message?: string;
-  details?: Record<string, unknown>;
+  details?: Record<string, any>;
 }
 
 export interface ServiceStatus {
   name: string;
   status: "running" | "stopped" | "error";
   lastHealthCheck?: string;
-  details?: Record<string, unknown>;
+  details?: Record<string, any>;
 }
 
 export interface SystemMetrics {
@@ -104,7 +104,9 @@ export function useDiagnosticsData() {
     staleTime: 5000,
     refetchInterval: 10000,
   });
-  const { data: config } = useQuery({ queryKey: ["/api/diagnostics/config"] });
+  const { data: config } = useQuery<Record<string, any>>({
+    queryKey: ["/api/diagnostics/config"],
+  });
 
   const runTestMutation = useMutation({
     mutationFn: async (suiteName: string) =>
@@ -149,9 +151,7 @@ export function useDiagnosticsData() {
     return variants[status] || "outline";
   };
 
-  const getStatusIcon = (
-    status: "pass" | "warn" | "fail" | "healthy" | "degraded" | "unhealthy"
-  ) => {
+  const getStatusIcon = (status: string | undefined) => {
     switch (status) {
       case "pass":
       case "healthy":

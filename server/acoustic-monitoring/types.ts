@@ -35,5 +35,5 @@ export interface AcousticAnalysisResult {
   severity: "normal" | "warning" | "critical";
   primaryIssues: string[];
   recommendations: string[];
-  healthScore: number;
+  healthScore?: number;
 }

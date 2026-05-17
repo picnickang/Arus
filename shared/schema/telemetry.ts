@@ -43,6 +43,8 @@ export const equipmentTelemetry = pgTable(
     threshold: real("threshold"),
     status: text("status").notNull().default("normal"),
     idempotencyKey: varchar("idempotency_key"),
+    timestamp: timestamp("timestamp", { mode: "date" }),
+    readings: jsonb("readings"),
   },
   (table) => ({
     pk: sql`PRIMARY KEY (org_id, ts, id)`,

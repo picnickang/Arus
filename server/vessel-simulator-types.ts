@@ -1,4 +1,5 @@
-// Stub file - vessel simulator types
+// Vessel simulator types
+
 export interface VesselOperationalPattern {
   name: string;
   speed: number;
@@ -8,9 +9,26 @@ export interface VesselOperationalPattern {
 
 export interface SimulatedTelemetryPoint {
   timestamp: Date;
-  sensorId: string;
-  value: number;
-  unit: string;
+  rpm: number;
+  shaft_torque: number;
+  vibration_x: number;
+  vibration_y: number;
+  vibration_z: number;
+  oil_temp: number;
+  coolant_temp: number;
+  fuel_rate: number;
+  hyd_pressure?: number;
+  winch_tension?: number;
+  towline_tension?: number;
+  cargo_pump_pressure?: number;
+  cargo_pump_temp?: number;
+  gen_load?: number;
+  thruster_load?: number;
+  dp_status?: number;
+  imu_heave: number;
+  imu_pitch: number;
+  imu_roll: number;
+  ramp_hyd_pressure?: number;
 }
 
 export const VESSEL_TYPE_PRESETS = {

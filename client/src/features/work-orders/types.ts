@@ -5,17 +5,35 @@ export interface WorkOrder {
   equipmentId: string;
   title: string;
   description?: string;
-  priority: "low" | "medium" | "high" | "critical";
-  status: "open" | "in_progress" | "on_hold" | "awaiting_service" | "completed" | "cancelled";
-  type: "corrective" | "preventive" | "predictive" | "emergency";
+  priority: "low" | "medium" | "high" | "critical" | number;
+  status: "open" | "in_progress" | "on_hold" | "awaiting_service" | "completed" | "cancelled" | string;
+  type: "corrective" | "preventive" | "predictive" | "emergency" | string;
   assignedTo?: string;
-  dueDate?: Date;
-  completedAt?: Date;
-  estimatedHours?: number;
-  actualHours?: number;
+  dueDate?: Date | string | null;
+  completedAt?: Date | string | null;
+  estimatedHours?: number | null;
+  actualHours?: number | null;
   createdBy?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: Date | string | null;
+  updatedAt?: Date | string | null;
+  woNumber?: string | null;
+  reason?: string | null;
+  assignedCrewId?: string | null;
+  plannedStartDate?: Date | string | null;
+  plannedEndDate?: Date | string | null;
+  actualStartDate?: Date | string | null;
+  actualEndDate?: Date | string | null;
+  maintenanceType?: string | null;
+  workOrderType?: string | null;
+  estimatedCost?: number | null;
+  actualCost?: number | null;
+  totalCost?: number | null;
+  totalPartsCost?: number | null;
+  totalLaborCost?: number | null;
+  laborHours?: number | null;
+  laborCost?: number | null;
+  notes?: string | null;
+  scheduleId?: string | null;
 }
 
 export interface WorkOrderPart {

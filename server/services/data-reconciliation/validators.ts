@@ -45,26 +45,27 @@ export async function validateTelemetryIntegrity(orgId: string): Promise<Validat
     }
 
     try {
+      const r = record as any;
       const point: TelemetryPoint = {
+        orgId,
+        equipmentId: record.equipmentId,
         timestamp: record.ts,
         value: record.value,
-        unit: record.unit ?? "",
-        sensorType: record.sensorType,
-        quality: record.quality ?? 1,
-        dataSource: record.dataSource ?? "unknown",
-        metadata: record.metadata as Record<string, unknown> | undefined,
+        unit: record.unit ?? undefined,
+        sensorType: record.sensorType as any,
       };
       telemetryPointSchema.parse(point);
-      if (point.quality < 0.5) {
+      const pQuality = (r.quality ?? 1) as number;
+      if (pQuality < 0.5) {
         issues.push({
           type: "data_quality",
-          severity: point.quality < 0.3 ? "high" : "medium",
+          severity: pQuality < 0.3 ? "high" : "medium",
           recordId: record.id,
           equipmentId: record.equipmentId,
           orgId,
-          message: `Low data quality score: ${point.quality.toFixed(2)}`,
+          message: `Low data quality score: ${pQuality.toFixed(2)}`,
           detectedAt: new Date(),
-          metadata: { quality: point.quality, sensorType: record.sensorType },
+          metadata: { quality: pQuality, sensorType: record.sensorType },
         });
       }
     } catch (error) {
@@ -101,7 +102,7 @@ export async function validateAnomalyDetections(orgId: string): Promise<Validati
       issues.push({
         type: "orphaned_record",
         severity: "medium",
-        recordId: anomaly.id,
+        recordId: String(anomaly.id),
         equipmentId: anomaly.equipmentId,
         orgId,
         message: `Anomaly detection references deleted equipment: ${anomaly.equipmentId}`,
@@ -115,7 +116,7 @@ export async function validateAnomalyDetections(orgId: string): Promise<Validati
       issues.push({
         type: "org_mismatch",
         severity: "critical",
-        recordId: anomaly.id,
+        recordId: String(anomaly.id),
         equipmentId: anomaly.equipmentId,
         orgId,
         message: `Anomaly orgId (${anomaly.orgId}) doesn't match equipment orgId (${existingEquipment.orgId})`,
@@ -145,7 +146,7 @@ export async function validateFailurePredictions(orgId: string): Promise<Validat
       issues.push({
         type: "orphaned_record",
         severity: "high",
-        recordId: prediction.id,
+        recordId: String(prediction.id),
         equipmentId: prediction.equipmentId,
         orgId,
         message: `Failure prediction references deleted equipment: ${prediction.equipmentId}`,
@@ -159,7 +160,7 @@ export async function validateFailurePredictions(orgId: string): Promise<Validat
       issues.push({
         type: "org_mismatch",
         severity: "critical",
-        recordId: prediction.id,
+        recordId: String(prediction.id),
         equipmentId: prediction.equipmentId,
         orgId,
         message: `Prediction orgId (${prediction.orgId}) doesn't match equipment orgId (${existingEquipment.orgId})`,

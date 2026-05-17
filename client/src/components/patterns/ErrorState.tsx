@@ -13,7 +13,8 @@ export interface NormalizedError {
 
 interface ErrorStateProps {
   error: NormalizedError | Error | string;
-  onRetry?: () => void;
+  title?: string;
+  onRetry?: () => void | Promise<void>;
   onBack?: () => void;
   variant?: "inline" | "page";
   className?: string;

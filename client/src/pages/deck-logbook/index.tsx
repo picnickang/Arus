@@ -351,7 +351,7 @@ export default function DeckLogbookPage() {
                         Automated and manual operational events for the day
                       </CardDescription>
                     </div>
-                    {!d.isLocked?.deckLogComplete?.daily?.id && (
+                    {!(d.isLocked as any)?.deckLogComplete?.daily?.id && (
                       <Dialog
                         open={d.newEventDialogOpen}
                         onOpenChange={(open) => {

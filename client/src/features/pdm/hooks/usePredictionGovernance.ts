@@ -2,9 +2,27 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
+export interface GovernancePrediction {
+  id: number;
+  equipmentId: string;
+  riskLevel: string;
+  reviewStatus: string | null;
+  failureProbability: number | null;
+  remainingUsefulLife: number | null;
+  predictionTimestamp: string | Date | null;
+  predictionValidUntil: string | Date | null;
+  modelVersionId: string | null;
+  featureSetVersion: string | null;
+  featureSnapshotId: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | Date | null;
+  suppressionReason: string | null;
+  [key: string]: unknown;
+}
+
 export function usePredictionGovernance(status?: string) {
   const { currentOrgId } = useOrganization();
-  return useQuery({
+  return useQuery<GovernancePrediction[]>({
     queryKey: ["/api/pdm/governance/predictions", { status }],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -12,7 +30,7 @@ export function usePredictionGovernance(status?: string) {
         params.set("status", status);
       }
       const url = `/api/pdm/governance/predictions${params.toString() ? `?${params}` : ""}`;
-      return apiRequest("GET", url);
+      return (await apiRequest("GET", url)) as GovernancePrediction[];
     },
     enabled: !!currentOrgId,
   });
@@ -20,9 +38,13 @@ export function usePredictionGovernance(status?: string) {
 
 export function useGovernanceDetail(id: number | null) {
   const { currentOrgId } = useOrganization();
-  return useQuery({
+  return useQuery<GovernancePrediction>({
     queryKey: ["/api/pdm/governance/predictions", id],
-    queryFn: async () => apiRequest("GET", `/api/pdm/governance/predictions/${id}`),
+    queryFn: async () =>
+      (await apiRequest(
+        "GET",
+        `/api/pdm/governance/predictions/${id}`
+      )) as GovernancePrediction,
     enabled: id != null && !!currentOrgId,
   });
 }

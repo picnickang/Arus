@@ -122,9 +122,9 @@ export default function ReportsTab() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {audiences.map((aud) => (
+                  {audiences.map((aud: any) => (
                     <SelectItem key={aud.id} value={aud.id}>
-                      {aud.name}
+                      {aud.name ?? aud.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -141,7 +141,7 @@ export default function ReportsTab() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {models.map((model) => (
+                  {models.map((model: any) => (
                     <SelectItem key={model.id} value={model.id}>
                       {model.recommended && (
                         <Sparkles className="h-3 w-3 mr-1 inline text-yellow-500" />
@@ -197,7 +197,7 @@ export default function ReportsTab() {
             <ScrollArea className="h-[600px]">
               <div className="space-y-6 pr-4">
                 <ReportSummaryCards
-                  content={generatedReport.content}
+                  content={(generatedReport.content as any)}
                   reportType={generatedReport.reportType}
                   audience={generatedReport.audience}
                 />
@@ -222,13 +222,13 @@ export default function ReportsTab() {
                   </CollapsibleTrigger>
                   <CollapsibleContent className="pt-2">
                     <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-                      {generatedReport.content.analysis}
+                      {(generatedReport.content as any).analysis}
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
 
-                {generatedReport.content.scenarios &&
-                  generatedReport.content.scenarios.length > 0 && (
+                {(generatedReport.content as any).scenarios &&
+                  (generatedReport.content as any).scenarios.length > 0 && (
                     <Collapsible
                       open={openSections.scenarios}
                       onOpenChange={(open) =>
@@ -238,7 +238,7 @@ export default function ReportsTab() {
                       <CollapsibleTrigger className="flex items-center justify-between w-full hover:opacity-70 transition-opacity mb-3">
                         <h3 className="font-semibold text-sm flex items-center gap-2">
                           <TrendingUp className="h-4 w-4" />
-                          Scenario Analysis ({generatedReport.content.scenarios.length})
+                          Scenario Analysis ({(generatedReport.content as any).scenarios.length})
                           <InfoTooltip content="Possible future outcomes based on current equipment data and trends." />
                         </h3>
                         <ChevronDown
@@ -247,7 +247,7 @@ export default function ReportsTab() {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <div className="space-y-4">
-                          {generatedReport.content.scenarios.map(
+                          {(generatedReport.content as any).scenarios.map(
                             (
                               scenario: {
                                 impact: string;
@@ -300,7 +300,7 @@ export default function ReportsTab() {
                     </Collapsible>
                   )}
 
-                {generatedReport.content.roi && (
+                {(generatedReport.content as any).roi && (
                   <Collapsible
                     open={openSections.roi}
                     onOpenChange={(open) => setOpenSections((prev) => ({ ...prev, roi: open }))}
@@ -320,7 +320,7 @@ export default function ReportsTab() {
                           <CardContent className="pt-4">
                             <p className="text-xs text-muted-foreground mb-1">Estimated Savings</p>
                             <p className="text-xl font-bold text-green-600 dark:text-green-400">
-                              ${formatNumber(generatedReport.content.roi.estimatedSavings)}
+                              ${formatNumber((generatedReport.content as any).roi.estimatedSavings)}
                             </p>
                           </CardContent>
                         </Card>
@@ -330,7 +330,7 @@ export default function ReportsTab() {
                               Investment Required
                             </p>
                             <p className="text-xl font-bold">
-                              ${formatNumber(generatedReport.content.roi.investmentRequired)}
+                              ${formatNumber((generatedReport.content as any).roi.investmentRequired)}
                             </p>
                           </CardContent>
                         </Card>
@@ -338,7 +338,7 @@ export default function ReportsTab() {
                           <CardContent className="pt-4">
                             <p className="text-xs text-muted-foreground mb-1">Payback Period</p>
                             <p className="text-xl font-bold">
-                              {generatedReport.content.roi.paybackPeriod} months
+                              {(generatedReport.content as any).roi.paybackPeriod} months
                             </p>
                           </CardContent>
                         </Card>
@@ -346,7 +346,7 @@ export default function ReportsTab() {
                           <CardContent className="pt-4">
                             <p className="text-xs text-muted-foreground mb-1">Risk Reduction</p>
                             <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                              {Math.round(generatedReport.content.roi.riskReduction * 100)}%
+                              {Math.round((generatedReport.content as any).roi.riskReduction * 100)}%
                             </p>
                           </CardContent>
                         </Card>
@@ -355,8 +355,8 @@ export default function ReportsTab() {
                   </Collapsible>
                 )}
 
-                {generatedReport.content.citations &&
-                  generatedReport.content.citations.length > 0 && (
+                {(generatedReport.content as any).citations &&
+                  (generatedReport.content as any).citations.length > 0 && (
                     <Collapsible
                       open={openSections.citations}
                       onOpenChange={(open) =>
@@ -365,7 +365,7 @@ export default function ReportsTab() {
                     >
                       <CollapsibleTrigger className="flex items-center justify-between w-full hover:opacity-70 transition-opacity mb-3">
                         <h3 className="font-semibold text-sm flex items-center gap-2">
-                          Sources & Citations ({generatedReport.content.citations.length})
+                          Sources & Citations ({(generatedReport.content as any).citations.length})
                           <InfoTooltip content="Data sources used to generate this report." />
                         </h3>
                         <ChevronDown
@@ -374,7 +374,7 @@ export default function ReportsTab() {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <div className="space-y-2">
-                          {generatedReport.content.citations.map(
+                          {(generatedReport.content as any).citations.map(
                             (
                               citation: { relevance: number; source: string; snippet: string },
                               idx: number

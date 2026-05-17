@@ -291,14 +291,14 @@ function OverviewTab({
           <CardTitle>Risk Factors</CardTitle>
         </CardHeader>
         <CardContent>
-          {healthData?.pFail30d > 40 ? (
+          {healthData && (healthData.pFail30d ?? 0) > 40 ? (
             <div className="space-y-2">
               <p className="text-sm font-medium">
-                Elevated failure probability detected ({healthData.pFail30d.toFixed(1)}%)
+                Elevated failure probability detected ({(healthData.pFail30d ?? 0).toFixed(1)}%)
               </p>
               <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-                {healthData.pFail30d > 70 && <li>Critical failure risk within 30 days</li>}
-                {healthData.healthScore < 50 && <li>Low health score indicates degradation</li>}
+                {(healthData.pFail30d ?? 0) > 70 && <li>Critical failure risk within 30 days</li>}
+                {(healthData.healthScore ?? 100) < 50 && <li>Low health score indicates degradation</li>}
                 {healthData.status === "critical" && (
                   <li>Equipment requires immediate attention</li>
                 )}
@@ -357,7 +357,7 @@ function SensorsTab({ equipmentId }: { equipmentId: string }) {
           </div>
         </CardHeader>
         <CardContent>
-          {sensorConfigs?.length > 0 ? (
+          {sensorConfigs && sensorConfigs.length > 0 ? (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
@@ -421,11 +421,11 @@ function SensorsTab({ equipmentId }: { equipmentId: string }) {
           open={isWizardOpen}
           onClose={() => setIsWizardOpen(false)}
           equipment={{
-            id: equipment.id,
-            name: equipment.name,
-            type: equipment.type,
-            status: equipment.status || (equipment.isActive ? "active" : "inactive"),
-            location: equipment.location || "Unknown",
+            id: (equipment as any).id,
+            name: (equipment as any).name,
+            type: (equipment as any).type,
+            status: (equipment as any).status || ((equipment as any).isActive ? "active" : "inactive"),
+            location: (equipment as any).location || "Unknown",
           }}
           onSuccess={handleWizardSuccess}
         />
@@ -485,9 +485,9 @@ function AnomaliesTab({ equipmentId }: { equipmentId: string }) {
         <CardTitle>Anomaly Detections</CardTitle>
       </CardHeader>
       <CardContent>
-        {anomalies?.length > 0 ? (
+        {(anomalies as any)?.length > 0 ? (
           <div className="space-y-3">
-            {anomalies.map((anomaly: { id: string; sensorKind?: string; severity?: string; description?: string }) => (
+            {(anomalies as any[]).map((anomaly: { id: string; sensorKind?: string; severity?: string; description?: string }) => (
               <div key={anomaly.id} className="p-4 border rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="font-medium">{anomaly.sensorKind}</p>

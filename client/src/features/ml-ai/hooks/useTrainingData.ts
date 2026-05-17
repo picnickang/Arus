@@ -16,6 +16,9 @@ import type { MlModelDisplay } from "../types";
 interface AcousticAnalysisResult {
   healthScore?: number;
   severity: string;
+  features?: Record<string, any>;
+  primaryIssues: string[];
+  recommendations: string[];
 }
 interface TrainingResult {
   metrics: { accuracy: number };

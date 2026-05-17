@@ -105,4 +105,7 @@ export const DEFAULT_RAG_CONFIG: RagServiceConfig = {
 
 export interface ContextChunk extends SearchResult {
   citationIndex: number;
+  docId?: string;
+  ord?: number;
+  chunkId?: string;
 }

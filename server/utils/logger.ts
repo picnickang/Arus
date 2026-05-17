@@ -61,42 +61,52 @@ class Logger {
     return `[${levelStr}] ${timestamp} [${module}] ${message}`;
   }
 
-  debug(module: string, message: string, data?: unknown) {
+  debug(moduleOrMessage: string, message?: string, data?: unknown) {
     if (!this.shouldLog("debug")) {
       return;
     }
-    console.log(this.formatMessage("debug", module, message), data ?? "");
+    const [mod, msg] = message === undefined ? ["app", moduleOrMessage] : [moduleOrMessage, message];
+    console.log(this.formatMessage("debug", mod, msg), data ?? "");
   }
 
-  info(module: string, message: string, data?: unknown) {
+  info(moduleOrMessage: string, message?: string, data?: unknown) {
     if (!this.shouldLog("info")) {
       return;
     }
-    console.log(this.formatMessage("info", module, message), data ?? "");
+    const [mod, msg] = message === undefined ? ["app", moduleOrMessage] : [moduleOrMessage, message];
+    console.log(this.formatMessage("info", mod, msg), data ?? "");
   }
 
   /**
    * Warning for unexpected but non-critical issues
    * Suppresses expected warnings in embedded/offline mode
    */
-  warn(module: string, message: string, data?: unknown, suppressInEmbedded = false) {
+  warn(moduleOrMessage: string, message?: string, data?: unknown, suppressInEmbedded = false) {
     if (!this.shouldLog("warn")) {
       return;
     }
+    const [mod, msg] = message === undefined ? ["app", moduleOrMessage] : [moduleOrMessage, message];
 
     // Suppress expected warnings in embedded mode
     if (suppressInEmbedded && this.config.isEmbedded) {
-      this.debug(module, `[Suppressed] ${message}`, data);
+      this.debug(mod, `[Suppressed] ${msg}`, data);
       return;
     }
 
-    console.warn(this.formatMessage("warn", module, message), data ?? "");
+    console.warn(this.formatMessage("warn", mod, msg), data ?? "");
   }
 
   /**
    * Error for actual failures requiring attention
    */
-  error(module: string, message: string, error?: unknown) {
+  error(moduleOrMessage: string, messageOrError?: string | unknown, error?: unknown) {
+    const module = typeof messageOrError === "string" ? moduleOrMessage : "app";
+    const message = typeof messageOrError === "string" ? messageOrError : moduleOrMessage;
+    const err = typeof messageOrError === "string" ? error : messageOrError;
+    return this._error(module, message, err);
+  }
+
+  private _error(module: string, message: string, error?: unknown) {
     if (!this.shouldLog("error")) {
       return;
     }

@@ -11,11 +11,13 @@ export type {
 
 export interface EquipmentHealthFilters {
   vesselId?: string;
+  equipmentId?: string;
   category?: string;
   status?: string;
 }
 export interface EquipmentHealth {
   id: string;
+  equipmentId?: string;
   name: string;
   type: string;
   category?: string;
@@ -25,4 +27,7 @@ export interface EquipmentHealth {
   alertCount?: number;
   vesselId?: string;
   vesselName?: string;
+  vessel?: string;
+  healthIndex: number;
+  predictedDueDays: number;
 }

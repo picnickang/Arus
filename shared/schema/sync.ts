@@ -14,6 +14,7 @@ import {
   boolean,
   jsonb,
   index,
+  uniqueIndex,
   createInsertSchema,
   z,
 } from "./base";
@@ -104,23 +105,43 @@ export const replayIncoming = pgTable("replay_incoming", {
     .default(sql`gen_random_uuid()`),
   payload: jsonb("payload"),
   processedAt: timestamp("processed_at", { mode: "date" }),
+  deviceId: varchar("device_id"),
+  status: text("status"),
+  updatedAt: timestamp("updated_at", { mode: "date" }),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
 });
 
 // Sheet lock for concurrent edit prevention
-export const sheetLock = pgTable("sheet_lock", {
-  sheetId: varchar("sheet_id").primaryKey(),
-  lockedBy: varchar("locked_by").notNull(),
-  lockedAt: timestamp("locked_at", { mode: "date" }).defaultNow(),
-  expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
-});
+export const sheetLock = pgTable(
+  "sheet_lock",
+  {
+    sheetId: varchar("sheet_id").primaryKey(),
+    lockedBy: varchar("locked_by").notNull(),
+    lockedAt: timestamp("locked_at", { mode: "date" }).defaultNow(),
+    expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
+    sheetType: text("sheet_type").notNull().default(""),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
+  },
+  (t) => ({
+    sheetTypeIdUnique: uniqueIndex("sheet_lock_type_id_uq").on(t.sheetType, t.sheetId),
+  })
+);
 
 // Sheet version for optimistic concurrency
-export const sheetVersion = pgTable("sheet_version", {
-  sheetId: varchar("sheet_id").primaryKey(),
-  version: integer("version").notNull().default(1),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
-});
+export const sheetVersion = pgTable(
+  "sheet_version",
+  {
+    sheetId: varchar("sheet_id").primaryKey(),
+    sheetType: text("sheet_type").notNull().default(""),
+    version: integer("version").notNull().default(1),
+    lastModifiedBy: varchar("last_modified_by"),
+    lastModifiedDevice: varchar("last_modified_device"),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
+  },
+  (t) => ({
+    sheetTypeIdUnique: uniqueIndex("sheet_version_type_id_uq").on(t.sheetType, t.sheetId),
+  })
+);
 
 // Insert schemas
 export const insertSyncJournalSchema = createInsertSchema(syncJournal).omit({
@@ -147,3 +168,4 @@ export type ReplayIncoming = typeof replayIncoming.$inferSelect;
 export type SheetLock = typeof sheetLock.$inferSelect;
 export type InsertSheetLock = typeof sheetLock.$inferInsert;
 export type SheetVersion = typeof sheetVersion.$inferSelect;
+export type InsertSheetVersion = typeof sheetVersion.$inferInsert;
