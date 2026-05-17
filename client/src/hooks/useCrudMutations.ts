@@ -2,12 +2,16 @@ import { useMutation, UseMutationResult } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+type InvalidateKey = string | string[];
+
 interface CrudMutationOptions<TData = unknown> {
   onSuccess?: (data: TData) => void;
   onError?: (error: Error) => void;
   successMessage?: string;
   errorMessage?: string;
   invalidateKeys?: string[]; // Additional query keys to invalidate
+  /** @deprecated Use invalidateKeys. Kept for legacy hooks during type-debt burndown. */
+  invalidateQueries?: InvalidateKey[];
 }
 
 /**
@@ -33,8 +37,14 @@ export function useCreateMutation<TInput, TOutput = unknown>(
       queryClient.invalidateQueries({ queryKey: [endpoint], exact: false });
 
       // Invalidate any additional queries specified (prefix match)
-      options?.invalidateKeys?.forEach((queryKey) => {
+      const invalidateKeys = options?.invalidateKeys ?? [];
+      const legacyInvalidateQueries = options?.invalidateQueries ?? [];
+      invalidateKeys.forEach((queryKey) => {
         queryClient.invalidateQueries({ queryKey: [queryKey], exact: false });
+      });
+      legacyInvalidateQueries.forEach((key) => {
+        const queryKey = Array.isArray(key) ? key : [key];
+        queryClient.invalidateQueries({ queryKey, exact: false });
       });
 
       toast({
@@ -81,8 +91,14 @@ export function useUpdateMutation<TInput, TOutput = unknown>(
       queryClient.invalidateQueries({ queryKey: [endpoint], exact: false });
 
       // Invalidate any additional queries specified (prefix match)
-      options?.invalidateKeys?.forEach((queryKey) => {
+      const invalidateKeys = options?.invalidateKeys ?? [];
+      const legacyInvalidateQueries = options?.invalidateQueries ?? [];
+      invalidateKeys.forEach((queryKey) => {
         queryClient.invalidateQueries({ queryKey: [queryKey], exact: false });
+      });
+      legacyInvalidateQueries.forEach((key) => {
+        const queryKey = Array.isArray(key) ? key : [key];
+        queryClient.invalidateQueries({ queryKey, exact: false });
       });
 
       toast({
@@ -127,8 +143,14 @@ export function useDeleteMutation<TOutput = unknown>(
       queryClient.invalidateQueries({ queryKey: [endpoint], exact: false });
 
       // Invalidate any additional queries specified (prefix match)
-      options?.invalidateKeys?.forEach((queryKey) => {
+      const invalidateKeys = options?.invalidateKeys ?? [];
+      const legacyInvalidateQueries = options?.invalidateQueries ?? [];
+      invalidateKeys.forEach((queryKey) => {
         queryClient.invalidateQueries({ queryKey: [queryKey], exact: false });
+      });
+      legacyInvalidateQueries.forEach((key) => {
+        const queryKey = Array.isArray(key) ? key : [key];
+        queryClient.invalidateQueries({ queryKey, exact: false });
       });
 
       toast({
@@ -173,8 +195,14 @@ export function useBatchDeleteMutation<TOutput = unknown>(
       queryClient.invalidateQueries({ queryKey: [endpoint], exact: false });
 
       // Invalidate any additional queries specified (prefix match)
-      options?.invalidateKeys?.forEach((queryKey) => {
+      const invalidateKeys = options?.invalidateKeys ?? [];
+      const legacyInvalidateQueries = options?.invalidateQueries ?? [];
+      invalidateKeys.forEach((queryKey) => {
         queryClient.invalidateQueries({ queryKey: [queryKey], exact: false });
+      });
+      legacyInvalidateQueries.forEach((key) => {
+        const queryKey = Array.isArray(key) ? key : [key];
+        queryClient.invalidateQueries({ queryKey, exact: false });
       });
 
       toast({
@@ -196,7 +224,6 @@ export function useBatchDeleteMutation<TOutput = unknown>(
   });
 }
 
-type InvalidateKey = string | string[];
 interface CustomMutationOptions<TInput, TOutput> {
   mutationFn: (data: TInput) => Promise<TOutput>;
   invalidateKeys?: InvalidateKey[];

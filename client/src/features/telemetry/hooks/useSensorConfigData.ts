@@ -88,7 +88,7 @@ export function useSensorConfigData() {
 
   const createConfigMutation = useCreateMutation<SensorConfigFormData>("/api/sensor-configs", {
     successMessage: "Sensor configuration created successfully",
-    invalidateQueries: ["/api/sensor-configs/status"],
+    invalidateKeys: ["/api/sensor-configs/status"],
     onSuccess: () => {
       setIsDialogOpen(false);
       setFormData(defaultSensorConfigFormData);
@@ -96,7 +96,7 @@ export function useSensorConfigData() {
   });
   const updateConfigMutation = useUpdateMutation<SensorConfigFormData>("/api/sensor-configs", {
     successMessage: "Sensor configuration updated successfully",
-    invalidateQueries: ["/api/sensor-configs/status"],
+    invalidateKeys: ["/api/sensor-configs/status"],
     onSuccess: () => {
       setIsDialogOpen(false);
       setEditingConfig(null);
@@ -105,7 +105,7 @@ export function useSensorConfigData() {
   });
   const deleteConfigMutation = useDeleteMutation("/api/sensor-configs", {
     successMessage: "Sensor configuration deleted successfully",
-    invalidateQueries: ["/api/sensor-configs/status"],
+    invalidateKeys: ["/api/sensor-configs/status"],
   });
 
   const handleCreate = () => {

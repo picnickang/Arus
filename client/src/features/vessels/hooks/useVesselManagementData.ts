@@ -69,7 +69,7 @@ export function useVesselManagementData() {
 
   const exportVesselMutation = useCustomMutation<string, VesselExportData>({
     mutationFn: (id: string) =>
-      apiRequest("GET", `/api/vessels/${id}/export`, undefined, { "x-org-id": "default-org-id" }),
+      apiRequest("GET", `/api/vessels/${id}/export`, undefined, { headers: { "x-org-id": "default-org-id" } }),
     invalidateKeys: [],
     onSuccess: (data, vesselId: string) => {
       const success = exportToJSON(data, {
@@ -88,7 +88,7 @@ export function useVesselManagementData() {
 
   const importVesselMutation = useCustomMutation<VesselExportData, VesselImportResult>({
     mutationFn: (data: VesselExportData) =>
-      apiRequest("POST", `/api/vessels/import`, data, { "x-org-id": "default-org-id" }),
+      apiRequest("POST", `/api/vessels/import`, data, { headers: { "x-org-id": "default-org-id" } }),
     invalidateKeys: [["/api/vessels"], ["/api/equipment"], ["/api/crew"]],
     onSuccess: (result) =>
       `Imported ${result.equipmentCount} equipment and ${result.crewCount} crew members`,

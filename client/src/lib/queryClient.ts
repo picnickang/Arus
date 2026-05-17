@@ -82,6 +82,7 @@ export function createHeaders(includeContentType: boolean = false): Record<strin
 
 export interface ApiRequestOptions {
   signal?: AbortSignal;
+  headers?: Record<string, string>;
 }
 export interface QueuedApiResponse {
   queuedForSync: true;
@@ -140,7 +141,7 @@ export async function apiRequest<T = unknown>(
   try {
     res = await fetch(resolveUrl(url), {
       method,
-      headers: createHeaders(!!data),
+      headers: { ...createHeaders(!!data), ...(options?.headers ?? {}) },
       body: data ? JSON.stringify(data) : undefined,
       credentials: "include",
       signal: options?.signal,

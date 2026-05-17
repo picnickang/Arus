@@ -128,7 +128,7 @@ export function useOperatingParametersData() {
 
   const createMutation = useCustomMutation<InsertOperatingParameter, void>({
     mutationFn: (data: InsertOperatingParameter) =>
-      apiRequest("POST", "/api/operating-parameters", data, { "x-org-id": "default-org-id" }),
+      apiRequest("POST", "/api/operating-parameters", data, { headers: { "x-org-id": "default-org-id" } }),
     invalidateKeys: ["/api/operating-parameters"],
     successMessage: "Operating parameter created successfully",
     onSuccess: () => {
@@ -141,7 +141,7 @@ export function useOperatingParametersData() {
     void
   >({
     mutationFn: ({ id, data }) =>
-      apiRequest("PUT", `/api/operating-parameters/${id}`, data, { "x-org-id": "default-org-id" }),
+      apiRequest("PUT", `/api/operating-parameters/${id}`, data, { headers: { "x-org-id": "default-org-id" } }),
     invalidateKeys: ["/api/operating-parameters"],
     successMessage: "Operating parameter updated successfully",
     onSuccess: () => {
@@ -153,7 +153,7 @@ export function useOperatingParametersData() {
   const deleteMutation = useCustomMutation<string, void>({
     mutationFn: (id: string) =>
       apiRequest("DELETE", `/api/operating-parameters/${id}`, undefined, {
-        "x-org-id": "default-org-id",
+        headers: { "x-org-id": "default-org-id" },
       }),
     invalidateKeys: ["/api/operating-parameters"],
     successMessage: "Operating parameter deleted successfully",
