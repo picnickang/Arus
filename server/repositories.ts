@@ -92,3 +92,47 @@ const schedulingDeps: MaintenanceSchedulingDeps = {
   getAlertNotifications: async () => dbAlertStorage.getAlertNotifications(),
 };
 export const schedulingAdapter = new DbMaintenanceSchedulingAdapter(schedulingDeps);
+
+// Aggregated `storage` facade. Several legacy modules import `{ storage }` from
+// this barrel and call domain methods on it (e.g. storage.getTelemetryHistory).
+// Rather than reach into individual db* storages, those callers can use this
+// merged proxy. Method dispatch walks the underlying domain storages in order.
+import { dbTelemetryStorage } from "./db/telemetry/index.js";
+import { dbEquipmentStorage } from "./db/equipment/index.js";
+import { dbAlertStorage } from "./db/alerts/index.js";
+import { dbWorkOrderStorage } from "./db/workorders/index.js";
+import { dbVesselStorage } from "./db/vessels/index.js";
+import { dbInventoryStorage } from "./db/inventory/index.js";
+import { dbMaintenanceStorage } from "./db/maintenance/index.js";
+import { dbAnalyticsStorage } from "./db/analytics/index.js";
+import { dbSensorsStorage } from "./db/sensors/index.js";
+import { dbCrewStorage } from "./db/crew/index.js";
+import { dbMlAnalyticsStorage } from "./db/ml-analytics/index.js";
+
+const STORAGE_BACKENDS: ReadonlyArray<Record<string | symbol, unknown>> = [
+  dbTelemetryStorage as unknown as Record<string | symbol, unknown>,
+  dbEquipmentStorage as unknown as Record<string | symbol, unknown>,
+  dbAlertStorage as unknown as Record<string | symbol, unknown>,
+  dbWorkOrderStorage as unknown as Record<string | symbol, unknown>,
+  dbVesselStorage as unknown as Record<string | symbol, unknown>,
+  dbInventoryStorage as unknown as Record<string | symbol, unknown>,
+  dbMaintenanceStorage as unknown as Record<string | symbol, unknown>,
+  dbAnalyticsStorage as unknown as Record<string | symbol, unknown>,
+  dbSensorsStorage as unknown as Record<string | symbol, unknown>,
+  dbCrewStorage as unknown as Record<string | symbol, unknown>,
+  dbMlAnalyticsStorage as unknown as Record<string | symbol, unknown>,
+];
+
+type StorageFacade = Record<string | symbol, unknown>;
+
+export const storage: StorageFacade = new Proxy({} as StorageFacade, {
+  get(_target, prop) {
+    for (const backend of STORAGE_BACKENDS) {
+      const value = backend[prop];
+      if (value !== undefined) {
+        return typeof value === "function" ? value.bind(backend) : value;
+      }
+    }
+    return undefined;
+  },
+});

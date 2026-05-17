@@ -88,11 +88,13 @@ export class PredictionOutcomeTracker {
   private db: any;
   private deps: OutcomeTrackerDeps;
   private config: TrackerConfig;
+  private storage: any;
 
-  constructor(db: any, deps: OutcomeTrackerDeps, config?: Partial<TrackerConfig>) {
+  constructor(db: any, deps: OutcomeTrackerDeps, config?: Partial<TrackerConfig>, storage?: any) {
     this.db = db;
     this.deps = deps;
     this.config = { ...DEFAULT_CONFIG, ...config };
+    this.storage = storage;
   }
 
   /**

@@ -433,3 +433,22 @@ class TelemetryWebSocketServer {
 }
 
 export { TelemetryWebSocketServer };
+
+// Proxy export so callers can do `const { wsServer } = await import("./websocket")`.
+// Delegates to the singleton in ./websocket-server. Methods are no-ops if the
+// server isn't initialized yet, so callers never crash during early boot.
+import { getWebSocketServer as _getWebSocketServer } from "./websocket-server";
+export const wsServer: TelemetryWebSocketServer = new Proxy(
+  {} as TelemetryWebSocketServer,
+  {
+    get(_target, prop: string | symbol) {
+      const instance = _getWebSocketServer();
+      if (!instance) {
+        // Return a no-op function for any method access to keep runtime safe.
+        return () => undefined;
+      }
+      const value = (instance as unknown as Record<string | symbol, unknown>)[prop];
+      return typeof value === "function" ? value.bind(instance) : value;
+    },
+  },
+);

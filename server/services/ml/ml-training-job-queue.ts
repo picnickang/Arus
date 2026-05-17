@@ -69,12 +69,14 @@ export class MlTrainingJobQueue {
   private boss: any;
   private db: any;
   private wsServer: any;
+  private storage: any;
   private isWorkerRegistered = false;
 
-  constructor(pgBoss: any, db: any, wsServer?: any) {
+  constructor(pgBoss: any, db: any, wsServer?: any, storage?: any) {
     this.boss = pgBoss;
     this.db = db;
     this.wsServer = wsServer;
+    this.storage = storage;
   }
 
   /**
