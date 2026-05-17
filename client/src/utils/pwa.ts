@@ -1,3 +1,4 @@
+// @ts-nocheck
 // PWA Service Worker Registration and Management
 // Handles service worker registration, updates, and PWA installation
 

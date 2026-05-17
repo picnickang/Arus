@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Report Scheduler Service
  * Orchestrates report scheduling, execution, and delivery

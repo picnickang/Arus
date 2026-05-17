@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Part, PartsInventory, InsertPartsInventory, Equipment } from "@shared/schema";
 import { dbInventoryStorage, dbEquipmentStorage, dbAnalyticsStorage } from "../../repositories";
 

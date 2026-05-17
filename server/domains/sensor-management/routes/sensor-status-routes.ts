@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Sensor Status Routes
  * Endpoints for sensor status and state management

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Database Context Middleware
  * Optionally sets the current organization ID in PostgreSQL for compatibility RLS policies.

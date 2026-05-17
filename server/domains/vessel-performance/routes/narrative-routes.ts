@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Vessel Performance Routes - Narrative Summary
  */

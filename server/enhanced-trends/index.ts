@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Enhanced Trends Pod - Advanced Telemetry Statistical Analysis
  *

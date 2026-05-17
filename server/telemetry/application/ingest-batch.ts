@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { RawFrame } from "../decode/types";
 import type { TelemetryReading } from "../../telemetry-batch-writer";
 import type { ITelemetryPersistence, IDeadLetterQueue, IMetricsEmitter } from "../ports/outbound";

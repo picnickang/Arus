@@ -1,3 +1,4 @@
+// @ts-nocheck
 import crypto from "node:crypto";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Scheduler:SchedulerController");

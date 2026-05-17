@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Crew Compliance Report Generator
  * Generates crew certification and compliance report

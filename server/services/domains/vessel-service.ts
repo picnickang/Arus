@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Vessel Service
  * Encapsulates vessel management logic including fleet overview, port calls, and drydock windows

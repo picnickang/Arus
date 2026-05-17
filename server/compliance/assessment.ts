@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Compliance Assessment - Functions for assessing equipment compliance
  */

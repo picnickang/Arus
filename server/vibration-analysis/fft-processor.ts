@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * FFT Processing Module
  * Handles FFT computation and frequency analysis

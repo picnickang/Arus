@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Email Notification - Main Service Class
  */

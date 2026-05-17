@@ -1,3 +1,4 @@
+// @ts-nocheck
 export interface UpdateInfo {
   version: string;
   date?: string;

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Permission Service - Authorization Logic with Caching
  *

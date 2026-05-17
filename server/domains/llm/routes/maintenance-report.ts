@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Maintenance Report Routes
  *

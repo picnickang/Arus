@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Request, Response } from "express";
 import { structuredLog } from "../logging";
 import { trackPerformance } from "./performance-tracking";

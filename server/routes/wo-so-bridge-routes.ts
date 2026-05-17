@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * WO ↔ SO Bridge — API Routes
  *

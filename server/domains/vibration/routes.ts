@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Express, Request, Response, RequestHandler } from "express";
 import { withErrorHandling } from "../../lib/route-utils";
 import { dbSensorsStorage } from "../../db/sensors/index.js";

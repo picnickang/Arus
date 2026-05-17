@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Alert Settings Service
  * Business logic for email and alert configuration

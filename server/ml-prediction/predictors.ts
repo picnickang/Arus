@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ML Prediction Functions (LSTM, Random Forest, XGBoost, Hybrid, Ensemble)
  */

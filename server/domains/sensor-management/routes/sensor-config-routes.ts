@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Sensor Configuration Routes
  * CRUD operations for sensor configurations

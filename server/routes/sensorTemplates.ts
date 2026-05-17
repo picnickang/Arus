@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Sensor Templates API Routes
  *

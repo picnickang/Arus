@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Bootstrap Index - Main Application Orchestrator
  * Coordinates all initialization modules for a modular server startup

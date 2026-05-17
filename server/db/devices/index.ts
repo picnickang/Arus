@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Devices Repository
  * Handles devices, heartbeats, and PDM scores

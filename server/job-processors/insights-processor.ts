@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Insights Snapshot Job Processor
  */

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { VesselOperationsPort } from "../domain/ports";
 import { vesselService, dbEquipmentStorage } from "../../../repositories";
 

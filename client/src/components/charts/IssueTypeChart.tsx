@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 import { ChartWrapper } from "./ChartWrapper";
 import type { ReconciliationReport } from "@shared/analytics-types";

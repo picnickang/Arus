@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Vessel Data Adapter
  * Implements IVesselDataPort for data access

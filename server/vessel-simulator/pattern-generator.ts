@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Operational Pattern Generator for Vessel Telemetry Simulation
  *

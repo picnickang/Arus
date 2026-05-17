@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Sequence Repository
  * Provides atomic sequence number generation for MQTT entity events

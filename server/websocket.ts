@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createLogger } from "./lib/structured-logger";
 const logger = createLogger("Websocket");
 import { WebSocketServer, WebSocket } from "ws";

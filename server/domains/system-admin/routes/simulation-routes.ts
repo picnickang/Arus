@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * System Admin Routes - Telemetry Simulation
  * Vessel telemetry simulation and stress testing

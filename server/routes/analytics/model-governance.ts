@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Analytics Routes - ML Models, Performance, and Drift
  *

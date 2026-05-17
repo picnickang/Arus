@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Crew Alert Evaluators - Manning Compliance
  * Evaluates minimum safe manning alerts

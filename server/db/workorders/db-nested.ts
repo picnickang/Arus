@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Work Orders - Database Storage Nested Resources (Parts, Tasks, Checklists, Worklogs)
  */

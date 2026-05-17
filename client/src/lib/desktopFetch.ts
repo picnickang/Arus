@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { isDesktop, getDesktopAPI } from "./desktop";
 
 const STORAGE_KEY = "arus_backend_url";

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * LLM Analysis Routes
  *

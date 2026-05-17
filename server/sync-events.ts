@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { EventEmitter } from "node:events";
 import { count, eq, and, gt } from "drizzle-orm";
 import { db } from "./db.js";

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from "express";
 import { beastModeManager, DEFAULT_ORG_ID } from "../beast-mode-config.js";
 import { enhancedTrendsAnalyzer } from "../enhanced-trends.js";

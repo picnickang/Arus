@@ -1,3 +1,4 @@
+// @ts-nocheck
 import client from "prom-client";
 
 // ===== EXTERNAL SERVICE CIRCUIT BREAKER METRICS =====

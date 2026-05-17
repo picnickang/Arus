@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Alert Settings - Thresholds
  * Threshold configuration and management

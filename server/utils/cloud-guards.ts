@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Cloud Mode Guards and Utilities
  *

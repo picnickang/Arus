@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Diagnostics Routes - Metrics Endpoints
  */

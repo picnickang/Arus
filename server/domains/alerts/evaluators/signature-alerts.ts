@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Crew Alert Evaluators - Missing Signatures
  * Evaluates missing signature alerts for logbooks

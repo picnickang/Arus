@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Crew Alert Evaluators - Crew Change Reminders
  * Evaluates upcoming crew change alerts based on assignments

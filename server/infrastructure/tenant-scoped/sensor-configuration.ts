@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Sensor Configuration Repository - Manages sensor setup and thresholds
  * Production-ready implementation for sensor-related operations

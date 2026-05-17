@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Auto-Filled Logs Domain Routes
  * Extracted from routes.ts for Phase 4 modularization

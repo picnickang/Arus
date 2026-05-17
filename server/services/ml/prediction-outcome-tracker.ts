@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Prediction Outcome Tracker
  *

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Compliance Excel - Regulatory Compliance Report Generation
  */

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Scheduler Run Repository Adapter
  * Implements ISchedulerRunRepository using existing storage

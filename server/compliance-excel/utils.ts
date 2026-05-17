@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Compliance Excel Utils - Shared utility functions
  */

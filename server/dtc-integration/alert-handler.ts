@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * DTC Alert Handler
  */

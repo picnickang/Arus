@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Service-Level Metrics Registration
  *

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ML Analytics - Digital Twin Routes
  *

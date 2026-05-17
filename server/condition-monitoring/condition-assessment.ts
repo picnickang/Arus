@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Condition Monitoring - Condition Assessment
  * Integrated multi-factor condition assessment

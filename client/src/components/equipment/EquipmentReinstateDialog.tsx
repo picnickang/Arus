@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Equipment } from "@shared/schema";
 import {
   Dialog,

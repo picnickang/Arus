@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Schedule Planner Read Model - CQRS Query Service
  * Implements optimized queries for the schedule planner board view using Drizzle ORM

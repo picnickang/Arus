@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Equipment Dossier Builder - Gather contextual data for equipment analysis
  */

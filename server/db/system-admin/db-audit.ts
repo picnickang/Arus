@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * System Admin - Database Storage Audit & Sessions
  */

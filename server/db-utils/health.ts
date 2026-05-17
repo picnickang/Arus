@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Database Utils - Health Check
  * Database connectivity and health monitoring

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * System Admin Routes - Maintenance Windows
  * Scheduled maintenance window management

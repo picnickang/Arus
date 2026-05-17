@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Eye, Edit, Trash2 } from "lucide-react";

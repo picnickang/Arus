@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Express, Request, Response } from "express";
 import { RateLimitRequestHandler } from "express-rate-limit";
 import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";

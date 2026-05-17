@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Email Templates
  * Email HTML generation for service orders

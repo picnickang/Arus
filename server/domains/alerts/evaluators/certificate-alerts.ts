@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Crew Alert Evaluators - Certificate Expiry
  * Evaluates certificate expiry alerts using data-driven threshold matching

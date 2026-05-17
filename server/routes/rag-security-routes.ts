@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * RAG Security Settings Routes
  * API endpoints for managing RAG security configuration

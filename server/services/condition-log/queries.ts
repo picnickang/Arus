@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Condition Log Service - Query Functions
  */

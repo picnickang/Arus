@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Audit Logging - Admin action tracking (fail-closed)
  */

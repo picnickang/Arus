@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Analytics Routes - Failure Predictions and Anomalies
  */

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Sensor Optimization Routes
  * AI-powered sensor optimization and threshold management

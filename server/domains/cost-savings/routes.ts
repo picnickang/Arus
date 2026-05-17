@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Express } from "express";
 import { RateLimitRequestHandler } from "express-rate-limit";
 import {

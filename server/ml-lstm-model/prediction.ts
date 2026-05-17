@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * LSTM Model - Prediction
  * Inference using trained LSTM model

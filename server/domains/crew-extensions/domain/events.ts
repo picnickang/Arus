@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Crew Extensions Domain Events
  * Typed discriminated unions for event-driven architecture

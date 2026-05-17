@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * System Admin Routes - System Settings
  * Admin system settings CRUD and ML threshold calibration

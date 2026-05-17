@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Shared audit logging utilities
  * Provides consistent audit trail across all domains

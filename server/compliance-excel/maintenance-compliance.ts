@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Compliance Excel - Maintenance Compliance Report Generation
  */

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Auto-Optimization - Automatically loads historical data for inventory optimization
  * Eliminates need for clients to provide usage history

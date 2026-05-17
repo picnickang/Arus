@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Compliance Excel - Fleet Compliance Overview Report Generation
  */

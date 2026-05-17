@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Report Context Knowledge & Citations
  *

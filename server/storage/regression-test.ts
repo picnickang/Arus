@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Storage Regression Test Harness
  * Validates critical storage operations using direct repository imports

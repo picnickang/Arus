@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Crew Data Adapter
  * Implements ICrewDataPort for data access

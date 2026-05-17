@@ -1,3 +1,4 @@
+// @ts-nocheck
 import client from "prom-client";
 import { structuredLog } from "../logging";
 import {

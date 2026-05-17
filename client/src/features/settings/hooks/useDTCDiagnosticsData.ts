@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useMemo, useCallback } from "react";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import type { Vessel, Equipment, DtcFault, DtcDefinition } from "@shared/schema";

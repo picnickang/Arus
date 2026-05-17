@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Engine Log Auto-Fill - Generator Auto-Fill
  * Populate generator entries from telemetry

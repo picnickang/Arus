@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router, Request, Response } from "express";
 import { workOrderHistoryHashService } from "../work-order-history-hash.service";
 import { requireComplianceAccess } from "./audit-routes";

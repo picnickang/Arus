@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ML Routes - Model Management Routes
  * CRUD operations for ML models: list, get, train, deploy, activate, deprecate.

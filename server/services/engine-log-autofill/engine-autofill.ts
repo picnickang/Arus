@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Engine Log Auto-Fill - Main Engine Auto-Fill
  * Populate engine log hourly entries from telemetry

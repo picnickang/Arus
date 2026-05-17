@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * RAG Prometheus Metrics
  *

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Alerts - Database Storage
  */

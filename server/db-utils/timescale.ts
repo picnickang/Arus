@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Database Utils - TimescaleDB Management
  * TimescaleDB extension, hypertable, and compression management

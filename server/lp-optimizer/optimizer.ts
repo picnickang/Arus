@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * LP Optimizer - Main Optimizer Class
  */

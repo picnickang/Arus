@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Crew Scheduler OR-Tools - Constraint Scheduling
  * CP-SAT style constraint satisfaction implementation

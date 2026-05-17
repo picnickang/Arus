@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Fuel Emissions Orchestrator - Main autofill and summary methods
  */

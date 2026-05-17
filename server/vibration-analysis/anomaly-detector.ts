@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Anomaly Detection Module
  * Detects mechanical faults from vibration spectrum

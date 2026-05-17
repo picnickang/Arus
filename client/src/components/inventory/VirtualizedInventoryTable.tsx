@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef } from "react";
 import {

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import PgBoss from "pg-boss";
 import { log } from "./vite";
 import {

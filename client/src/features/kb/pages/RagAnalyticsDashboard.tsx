@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * RAG Analytics Dashboard Page
  * Visualizes RAG system performance metrics

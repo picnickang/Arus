@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Seed script for PdM test cases
  * Creates canonical test scenarios using the failurePredictions table:

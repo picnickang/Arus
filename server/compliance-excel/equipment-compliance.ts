@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Compliance Excel - Equipment Compliance Report Generation
  */

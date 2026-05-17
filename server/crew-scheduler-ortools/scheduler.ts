@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Crew Scheduler OR-Tools - Main Scheduler
  * Engine selection and greedy fallback

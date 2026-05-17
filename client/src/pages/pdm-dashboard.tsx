@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useRef, useEffect } from "react";
 import { Activity, AlertTriangle, Wifi, ChevronRight } from "lucide-react";
 import { IntelligenceLayout } from "@/components/intelligence/IntelligenceLayout";

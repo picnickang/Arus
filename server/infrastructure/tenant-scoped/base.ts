@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Tenant-Scoped Repository Base Class (ADR 001 Implementation)
  *

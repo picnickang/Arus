@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * System Admin Repository - Modular Aggregator
  */

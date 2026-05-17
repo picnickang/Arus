@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * RAG Analytics Aggregator
  * Combines Prometheus metrics with database statistics

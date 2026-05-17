@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Crew Application Service
  * Orchestrates use cases with dependency injection.

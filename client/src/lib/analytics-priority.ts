@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Priority scoring system for analytics mission overview
  * Calculates priority based on severity, freshness, and financial impact

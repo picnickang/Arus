@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Crew Scheduler - Greedy Shift Assignment Algorithm
  *

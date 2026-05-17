@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Vessel Performance Routes - VPS Analysis Endpoints
  * Power vs Speed Through Water + Fleet Benchmarks

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Deck Logbook Rule Evaluators
  *

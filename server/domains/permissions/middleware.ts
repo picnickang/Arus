@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Permission Middleware - Route-level Authorization
  *

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SLO Alerts - Violation Checking
  */

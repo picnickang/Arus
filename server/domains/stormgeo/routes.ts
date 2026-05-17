@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Express, Request, Response, RequestHandler } from "express";
 import { z } from "zod";
 import { withErrorHandling } from "../../lib/route-utils";

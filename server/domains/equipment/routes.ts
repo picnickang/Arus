@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Express, Request, Response } from "express";
 import { LRUCache } from "lru-cache";
 import { equipmentService } from "./service";

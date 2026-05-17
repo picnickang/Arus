@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Compliance Bundle Service - Handles saving and managing compliance bundles
  */

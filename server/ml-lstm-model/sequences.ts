@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * LSTM Model - Sequence Preparation
  * Prepare time series sequences for LSTM

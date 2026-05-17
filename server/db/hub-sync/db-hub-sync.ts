@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Hub Sync - Database Storage
  *

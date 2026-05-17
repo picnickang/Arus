@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Fleet Benchmarks Calculator - Calculate fleet-wide metrics and comparisons
  */

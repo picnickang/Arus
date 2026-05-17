@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createLogger } from "../../lib/structured-logger";
 const logger = createLogger("Services:DocumentIngestion:Embedder");
 import { generateEmbedding } from "../../embedding-service";

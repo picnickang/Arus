@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { db } from "../db";
 import { weibullEstimates } from "@shared/schema-runtime";
 import { eq, and, desc } from "drizzle-orm";

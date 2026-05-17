@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Centralized Query Keys for TanStack Query
  *

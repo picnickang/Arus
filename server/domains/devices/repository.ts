@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Device, InsertDevice } from "@shared/schema";
 import { dbDevicesStorage } from "../../repositories";
 

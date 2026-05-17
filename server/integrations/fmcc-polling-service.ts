@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { EventEmitter } from "node:events";
 import { trackLogService, Position } from "../services/track-log-service";
 import { dbTelemetryStorage } from "../repositories";

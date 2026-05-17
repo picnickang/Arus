@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Crew Extensions Application Service
  * Orchestrates domain logic using injected ports

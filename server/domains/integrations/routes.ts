@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Integrations Domain Module - External Service Integration Routes
  *

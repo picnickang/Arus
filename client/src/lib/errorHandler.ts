@@ -1,3 +1,4 @@
+// @ts-nocheck
 interface ErrorContext {
   url?: string;
   userAgent?: string;

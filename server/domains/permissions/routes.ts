@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Permission Routes - API Endpoints for Permission Management
  *

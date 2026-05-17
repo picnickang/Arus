@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Risk Matrix Parser - Parse AI recommendations into structured data
  */

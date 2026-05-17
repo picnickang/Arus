@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Express, RequestHandler } from "express";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";

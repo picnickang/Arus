@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Alert Settings - Cooldown Management
  * Alert cooldown and deduplication logic

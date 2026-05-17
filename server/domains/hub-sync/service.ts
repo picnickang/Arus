@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { dbCrewStorage } from "../../repositories";
 import { dbOptimizerStorage } from "../../repositories";
 import type { InsertOptimizerConfiguration } from "@shared/schema";

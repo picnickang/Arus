@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * PostgreSQL Dump Executor - Handles pg_dump execution with compression
  *

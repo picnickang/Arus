@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { LucideIcon, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";

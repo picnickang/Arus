@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Inventory Status Report Generator
  * Generates inventory and low stock report

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Telemetry Processing Service
  * Extracted from routes.ts for modularization

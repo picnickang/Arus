@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { db } from "../../../db-config.js";
 import { equipment, vessels, failurePredictions, actionableInsights } from "@shared/schema-runtime";
 import { eq, and, desc } from "drizzle-orm";

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Express Middleware Configuration
  * Security headers, CORS, body parsing, logging

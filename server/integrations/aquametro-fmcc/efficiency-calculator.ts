@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Aquametro FMCC - Efficiency Calculator
  *

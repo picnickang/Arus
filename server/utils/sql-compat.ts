@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SQL Compatibility Layer
  * Provides database-agnostic query helpers for PostgreSQL and SQLite

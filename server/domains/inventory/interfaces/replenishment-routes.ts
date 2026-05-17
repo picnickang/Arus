@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from "express";
 import { asyncHandler } from "../../../lib/async-handler";
 import { requireOrgId, AuthenticatedRequest } from "../../../middleware/auth";

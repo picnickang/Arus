@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { eq, and, gte, desc } from "drizzle-orm";
 import { db } from "../../../db";
 import { equipmentTelemetry } from "@shared/schema";

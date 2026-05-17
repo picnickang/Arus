@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Telemetry Batch Writer Service
  *

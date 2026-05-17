@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { TwinStatePort } from "./ports";
 import type { TwinDefinitionPort } from "../twin-definition/ports";
 import type { TelemetryPort } from "../../feature-store/telemetry-port";

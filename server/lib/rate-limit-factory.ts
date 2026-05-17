@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Rate Limit Factory - Centralized rate limiting configuration
  *

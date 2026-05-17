@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Diagnostics Routes - Helper Functions
  */

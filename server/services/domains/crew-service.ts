@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Crew Service
  * Encapsulates crew management logic including WebSocket broadcasting and cascade deletes

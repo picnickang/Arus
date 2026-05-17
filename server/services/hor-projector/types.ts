@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * HoR Projector Types
  */

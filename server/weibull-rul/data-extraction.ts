@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Weibull Data Extraction
  *

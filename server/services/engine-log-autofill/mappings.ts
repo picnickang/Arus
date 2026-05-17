@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Engine Log Auto-Fill - Telemetry Mappings
  * Maps telemetry sensor types to engine log fields

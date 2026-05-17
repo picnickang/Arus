@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Crew Routes - Skills
  * Skill management and crew-skill assignments

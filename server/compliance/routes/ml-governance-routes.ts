@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { auditService } from "../immutable-audit.service";

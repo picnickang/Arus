@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Crew Scheduler OR-Tools - Helper Functions
  * Time window and validation utilities

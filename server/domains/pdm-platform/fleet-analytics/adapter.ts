@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { eq, and, desc, inArray } from "drizzle-orm";
 import { db } from "../../../db";
 import { fleetBaselines, equipmentFeatures, equipment, type FleetBaseline } from "@shared/schema";

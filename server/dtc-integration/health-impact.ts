@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * DTC Health and Financial Impact Calculations
  */

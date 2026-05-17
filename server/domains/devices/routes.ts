@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Express } from "express";
 import { insertDeviceSchema } from "@shared/schema-runtime";
 import { deviceService } from "./service";

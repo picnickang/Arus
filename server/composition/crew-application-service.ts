@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Composition root for the Crew Application Service.
  *

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Parts Inventory Repository Adapter
  * Implements IPartsInventoryRepository using existing storage

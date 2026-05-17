@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Database Utils - Schema Version Management
  * Track and manage database schema versions

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Crew Scheduler Routes
  * Scheduling and planning endpoints

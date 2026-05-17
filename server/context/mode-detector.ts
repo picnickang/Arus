@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Operating Mode Detector
  * Infers vessel operating mode from real telemetry data

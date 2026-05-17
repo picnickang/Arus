@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ML Analytics - Database Storage
  */

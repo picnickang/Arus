@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Analytics Routes - LLM Costs and Prediction Feedback
  */

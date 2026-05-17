@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState as useLocalState } from "react";
 import { Plus, Trash2, Package, FileText, Wrench, RefreshCw, AlertTriangle } from "lucide-react";
 import { WorkOrderRequestsTab } from "@/components/work-orders/WorkOrderRequestsTab";

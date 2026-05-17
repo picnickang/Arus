@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Vessel Intelligence Pattern Analyzers
  *

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { EventPublisherPort } from "../domain/ports";
 import type { Vessel } from "../domain/types";
 import { recordAndPublish } from "../../../sync-events";

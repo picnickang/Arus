@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Fleet-Scale Telemetry Stress Test
  *

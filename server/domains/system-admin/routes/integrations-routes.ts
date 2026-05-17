@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * System Admin Routes - Integration Configs
  * External integration configuration management

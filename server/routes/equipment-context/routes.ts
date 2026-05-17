@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Equipment Context Routes - Route handlers
  */

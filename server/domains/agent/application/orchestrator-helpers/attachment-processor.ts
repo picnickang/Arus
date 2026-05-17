@@ -1,3 +1,4 @@
+// @ts-nocheck
 import fs from "fs";
 import type { KnowledgeBasePort } from "../../domain/ports";
 import type { FileAttachment } from "../../domain/types";

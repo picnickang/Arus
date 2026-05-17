@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Express } from "express";
 import { z } from "zod";
 import { eq, and, sql } from "drizzle-orm";

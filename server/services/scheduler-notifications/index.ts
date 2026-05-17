@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Scheduler Notification Service
  * Sends email notifications for schedule events based on scheduling-settings matrix

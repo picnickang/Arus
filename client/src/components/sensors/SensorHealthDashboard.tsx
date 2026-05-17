@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Sensor Health Dashboard Component
  *

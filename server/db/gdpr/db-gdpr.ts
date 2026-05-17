@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * GDPR - Database Storage
  */

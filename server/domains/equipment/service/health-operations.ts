@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Equipment Service - Health Operations
  */

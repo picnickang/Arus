@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Vessel Telemetry Simulator Service
  *

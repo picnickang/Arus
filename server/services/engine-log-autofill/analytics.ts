@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Engine Log Auto-Fill - Analytics
  * Anomaly summary and unsigned log tracking

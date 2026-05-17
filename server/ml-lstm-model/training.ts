@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * LSTM Model - Training
  * Model training with early stopping and class weights

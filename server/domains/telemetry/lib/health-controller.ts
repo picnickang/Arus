@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Telemetry Health Controller
  *

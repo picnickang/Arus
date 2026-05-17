@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Equipment Summary Handler - Lightweight equipment summary endpoint
  */

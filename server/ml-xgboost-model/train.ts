@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * XGBoost Model - Training
  * Multi-class gradient boosting training

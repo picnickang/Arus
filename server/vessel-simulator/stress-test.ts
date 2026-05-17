@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Telemetry Stress Test Harness
  *

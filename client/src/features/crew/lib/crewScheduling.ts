@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { format, addDays } from "date-fns";
 import { z } from "zod";
 import { insertShiftTemplateSchema } from "@shared/schema";

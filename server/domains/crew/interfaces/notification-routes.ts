@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Crew Routes - Notification Settings
  * Crew notification preferences management

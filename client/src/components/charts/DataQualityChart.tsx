@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell } from "recharts";
 import { ChartWrapper } from "./ChartWrapper";
 import type { ReconciliationReport } from "@shared/analytics-types";

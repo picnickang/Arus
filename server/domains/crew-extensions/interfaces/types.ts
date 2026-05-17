@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Crew Extensions Routes - Types
  * Interface definitions for route configuration

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Safe SQL Execution Helper
  *

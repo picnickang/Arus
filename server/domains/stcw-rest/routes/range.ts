@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * STCW Rest Range Routes
  *

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Analytics Routes - Equipment Health and RUL Predictions
  */

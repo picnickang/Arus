@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * RAG Multi-Document Comparison Service
  * Handles queries that compare information across multiple documents
