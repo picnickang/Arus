@@ -135,9 +135,6 @@ server/beast/lp-routes.ts
 server/beast/trends-routes.ts
 server/beast/vibration-routes.ts
 server/beast/weibull-routes.ts
-server/bootstrap/index.ts
-server/bootstrap/middleware.ts
-server/bootstrap/services.ts
 server/compliance/assessment.ts
 server/compliance/bundle-service.ts
 server/compliance-excel/equipment-compliance.ts
@@ -150,10 +147,7 @@ server/compliance/routes/audit-routes.ts
 server/compliance/routes/data-privacy-routes.ts
 server/compliance/routes/ml-governance-routes.ts
 server/compliance/routes/work-order-history-routes.ts
-server/composition/crew-application-service.ts
 server/condition-monitoring/condition-assessment.ts
-server/context/mode-detector.ts
-server/core/insights/insightEngine.ts
 server/crew-scheduler-ortools/constraint-scheduler.ts
 server/crew-scheduler-ortools/helpers.ts
 server/crew-scheduler-ortools/scheduler.ts
@@ -332,13 +326,9 @@ server/job-processors/insights-processor.ts
 server/job-processors/registry.ts
 server/job-processors/scheduling-processors.ts
 server/job-queue-service.ts
-server/lib/domain-event-bus/bridge.ts
-server/lib/rate-limit-factory.ts
 server/lp-optimizer/job-loader.ts
 server/lp-optimizer/optimizer.ts
 server/lp-optimizer/persistence.ts
-server/middleware/api-versioning.ts
-server/middleware/db-context.ts
 server/ml-analytics/database.ts
 server/ml-ensemble/batch.ts
 server/ml-ensemble/features.ts
@@ -377,7 +367,6 @@ server/report-context/fleet-summary-builder.ts
 server/report-context/knowledge-citations.ts
 server/report-context/maintenance-builder.ts
 server/report-context/vessel-health-builder.ts
-server/repositories.ts
 server/repos/sequenceRepo.ts
 server/routes/analytics/costs-and-feedback.ts
 server/routes/analytics/health-metrics.ts

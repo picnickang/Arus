@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Express Middleware Configuration
  * Security headers, CORS, body parsing, logging
@@ -161,7 +160,7 @@ export function configureMiddleware(app: Express): void {
     const originalResJson = res.json;
     res.json = function (bodyJson: any, ...args: any[]) {
       capturedJsonResponse = bodyJson;
-      return originalResJson.apply(res, [bodyJson, ...args]);
+      return (originalResJson as (...a: unknown[]) => unknown).apply(res, [bodyJson, ...args]) as ReturnType<typeof res.json>;
     };
 
     res.on("finish", () => {

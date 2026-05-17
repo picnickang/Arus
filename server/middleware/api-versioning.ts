@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { Express } from "express";
 import { logger } from "../utils/logger";
 
@@ -9,7 +8,7 @@ export function applyApiVersioning(app: Express): void {
     }
     req.headers["x-version-rewritten"] = "true";
     req.url = `/api${req.url}`;
-    app.handle(req, res, next);
+    (app as unknown as { handle: (req: unknown, res: unknown, next: unknown) => void }).handle(req, res, next);
   });
 
   app.use("/api", (_req, res, next) => {

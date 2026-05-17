@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Database Context Middleware
  * Optionally sets the current organization ID in PostgreSQL for compatibility RLS policies.
@@ -18,16 +17,7 @@ const logger = createLogger("Middleware:DbContext");
 
 const ENABLE_PG_RLS_CONTEXT = process.env.ENABLE_PG_RLS_CONTEXT === "true";
 
-export interface DbContextRequest extends Request {
-  orgId?: string;
-  user?: {
-    id: string;
-    email: string;
-    role: string;
-    name?: string;
-    isActive: boolean;
-  };
-}
+export type DbContextRequest = Request;
 
 /**
  * Optionally sets organization context in the database session.

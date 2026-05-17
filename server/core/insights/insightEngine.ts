@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "../../db";
 import {
@@ -128,7 +127,7 @@ export class InsightEngine {
     return {
       equipmentId,
       orgId,
-      vesselId: equipmentData?.vesselId,
+      vesselId: equipmentData?.vesselId ?? undefined,
       failurePrediction,
       recentAlerts,
       recentTelemetry,
@@ -306,7 +305,7 @@ export class InsightEngine {
       .limit(1);
 
     if (existingInsight) {
-      logger.debug("Insight already exists", { equipmentId, type: insight.type });
+      logger.debug("InsightEngine", "Insight already exists", { equipmentId, type: insight.type });
       return existingInsight.id;
     }
 
@@ -329,7 +328,7 @@ export class InsightEngine {
 
     const [created] = await db.insert(actionableInsights).values(insightData).returning();
 
-    logger.info("Actionable insight created", {
+    logger.info("InsightEngine", "Actionable insight created", {
       insightId: created.id,
       equipmentId,
       type: insight.type,

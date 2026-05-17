@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Bootstrap Index - Main Application Orchestrator
  * Coordinates all initialization modules for a modular server startup
@@ -28,5 +27,6 @@ export { setupShutdownHandlers, trackConnection, isServerShuttingDown } from "./
 import { isLocalMode as isLocalModeMaybeFn } from "../db-config";
 
 export function getLocalModeFlag(): boolean {
-  return typeof isLocalModeMaybeFn === "function" ? !!isLocalModeMaybeFn() : !!isLocalModeMaybeFn;
+  const v = isLocalModeMaybeFn as unknown;
+  return typeof v === "function" ? !!(v as () => unknown)() : !!v;
 }

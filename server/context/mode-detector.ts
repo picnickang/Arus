@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Operating Mode Detector
  * Infers vessel operating mode from real telemetry data
@@ -193,17 +192,18 @@ export class ModeDetector {
    * Convert EquipmentTelemetry to TelemetryWindow format
    */
   toTelemetryWindow(telemetry: EquipmentTelemetry): TelemetryWindow {
+    const t = telemetry as unknown as Record<string, number | undefined>;
     return {
-      rpm: telemetry.rpm || undefined,
-      stw: telemetry.stw || undefined,
-      sog: telemetry.sog || undefined,
-      heading: telemetry.heading || undefined,
-      thrusterLoad: telemetry.thrusterLoad || undefined,
-      hydraulicPressure: telemetry.hydraulicPressure || undefined,
-      fuelRate: telemetry.fuelRate || undefined,
-      loadPercent: telemetry.loadPercent || undefined,
-      latitude: telemetry.latitude || undefined,
-      longitude: telemetry.longitude || undefined,
+      rpm: t.rpm || undefined,
+      stw: t.stw || undefined,
+      sog: t.sog || undefined,
+      heading: t.heading || undefined,
+      thrusterLoad: t.thrusterLoad || undefined,
+      hydraulicPressure: t.hydraulicPressure || undefined,
+      fuelRate: t.fuelRate || undefined,
+      loadPercent: t.loadPercent || undefined,
+      latitude: t.latitude || undefined,
+      longitude: t.longitude || undefined,
       timestamp: new Date(telemetry.ts),
     };
   }

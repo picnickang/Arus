@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { domainEventBus } from "./bus.js";
 import { createDomainEvent } from "./types.js";
 import type { DomainEventMap, DomainEventName } from "./types.js";
@@ -161,7 +160,7 @@ export function initSyncJournalSubscriber(): void {
   for (const eventType of trackedEvents) {
     domainEventBus.on(eventType, async (event) => {
       try {
-        if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) {
+        if ((event as unknown as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) {
           return;
         }
         const entityType = SYNC_EVENT_ENTITY_MAP[eventType];
@@ -170,7 +169,13 @@ export function initSyncJournalSubscriber(): void {
         }
         const operation = mapOperationFromEventType(eventType);
         const aggregateId = event.aggregateId || "unknown";
-        await recordJournalEntry(entityType, aggregateId, operation, event.payload, event.userId);
+        await recordJournalEntry(
+          entityType as Parameters<typeof recordJournalEntry>[0],
+          aggregateId,
+          operation,
+          event.payload,
+          event.userId
+        );
         const syncEvent = mapDomainEventToSyncEvent(eventType);
         if (syncEvent) {
           await publishEvent(syncEvent, { id: aggregateId, data: event.payload, operation }, false);
@@ -196,7 +201,7 @@ export function initMqttSubscriber(): void {
   ];
   for (const eventType of workOrderEvents) {
     domainEventBus.on(eventType, (event) => {
-      if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) {
+      if ((event as unknown as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) {
         return;
       }
       const op = mapOperationFromEventType(eventType);
@@ -218,7 +223,7 @@ export function initMqttSubscriber(): void {
   ];
   for (const eventType of crewEvents) {
     domainEventBus.on(eventType, (event) => {
-      if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) {
+      if ((event as unknown as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) {
         return;
       }
       const op = mapOperationFromEventType(eventType);
@@ -239,7 +244,7 @@ export function initMqttSubscriber(): void {
   ];
   for (const eventType of maintenanceEvents) {
     domainEventBus.on(eventType, (event) => {
-      if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) {
+      if ((event as unknown as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) {
         return;
       }
       const op = mapOperationFromEventType(eventType);
@@ -314,7 +319,7 @@ export function initSyncEventBusBridge(): void {
 
   for (const eventType of bridgedEvents) {
     domainEventBus.on(eventType, (event) => {
-      if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) {
+      if ((event as unknown as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) {
         return;
       }
       const syncEvent = mapDomainEventToSyncEvent(eventType);
@@ -386,11 +391,16 @@ export function initReverseSyncEventBusBridge(): void {
         return;
       }
       const aggregateId = (data.id as string) || "unknown";
-      const envelope = createDomainEvent(domainEventType, orgId, nested ?? data, {
-        aggregateId,
-        aggregateType: domainEventType.split(".")[0],
-      });
-      (envelope as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER] = true;
+      const envelope = createDomainEvent(
+        domainEventType,
+        orgId,
+        (nested ?? data) as unknown as Parameters<typeof createDomainEvent>[2],
+        {
+          aggregateId,
+          aggregateType: domainEventType.split(".")[0],
+        }
+      );
+      (envelope as unknown as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER] = true;
       domainEventBus.emitUnchecked(domainEventType, envelope as DomainEventMap[DomainEventName]);
     });
   }

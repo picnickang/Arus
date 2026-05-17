@@ -1,18 +1,33 @@
-// @ts-nocheck
-export { dbDevicesStorage } from "./db/devices/index.js";
-export { dbWorkOrderStorage } from "./db/workorders/index.js";
-export { dbEquipmentStorage } from "./db/equipment/index.js";
-export { dbVesselStorage } from "./db/vessels/index.js";
-export { dbAlertStorage } from "./db/alerts/index.js";
-export { dbInventoryStorage } from "./db/inventory/index.js";
-export { dbCrewStorage } from "./db/crew/index.js";
-export { dbCrewExtensionsStorage } from "./db/crew-extensions/index.js";
-export { dbSensorsStorage } from "./db/sensors/index.js";
-export { dbTelemetryStorage } from "./db/telemetry/index.js";
-export { dbMlAnalyticsStorage } from "./db/ml-analytics/index.js";
-export { dbMaintenanceStorage } from "./db/maintenance/index.js";
-export { dbMaintenanceTemplatesStorage } from "./db/maintenance-templates/index.js";
-export { dbAnalyticsStorage } from "./db/analytics/index.js";
+import { dbDevicesStorage } from "./db/devices/index.js";
+import { dbWorkOrderStorage } from "./db/workorders/index.js";
+import { dbEquipmentStorage } from "./db/equipment/index.js";
+import { dbVesselStorage } from "./db/vessels/index.js";
+import { dbAlertStorage } from "./db/alerts/index.js";
+import { dbInventoryStorage } from "./db/inventory/index.js";
+import { dbCrewStorage } from "./db/crew/index.js";
+import { dbCrewExtensionsStorage } from "./db/crew-extensions/index.js";
+import { dbSensorsStorage } from "./db/sensors/index.js";
+import { dbTelemetryStorage } from "./db/telemetry/index.js";
+import { dbMlAnalyticsStorage } from "./db/ml-analytics/index.js";
+import { dbMaintenanceStorage } from "./db/maintenance/index.js";
+import { dbMaintenanceTemplatesStorage } from "./db/maintenance-templates/index.js";
+import { dbAnalyticsStorage } from "./db/analytics/index.js";
+export {
+  dbDevicesStorage,
+  dbWorkOrderStorage,
+  dbEquipmentStorage,
+  dbVesselStorage,
+  dbAlertStorage,
+  dbInventoryStorage,
+  dbCrewStorage,
+  dbCrewExtensionsStorage,
+  dbSensorsStorage,
+  dbTelemetryStorage,
+  dbMlAnalyticsStorage,
+  dbMaintenanceStorage,
+  dbMaintenanceTemplatesStorage,
+  dbAnalyticsStorage,
+};
 export { dbSystemAdminStorage } from "./db/system-admin/index.js";
 export { dbDtcStorage } from "./db/dtc/index.js";
 export { dbNotificationsStorage } from "./db/notifications/index.js";
@@ -38,10 +53,6 @@ import {
   DatabaseAnalyticsInsightsAdapter,
   type AnalyticsDependencies,
 } from "./storage/domains/analytics-insights-adapter";
-import { dbDevicesStorage } from "./db/devices/index.js";
-import { dbEquipmentStorage } from "./db/equipment/index.js";
-import { dbTelemetryStorage } from "./db/telemetry/index.js";
-import { dbAnalyticsStorage } from "./db/analytics/index.js";
 import { workOrderService } from "./services/domains/work-order-service";
 import { vesselService } from "./services/domains/vessel-service";
 
@@ -65,8 +76,6 @@ import {
   DbMaintenanceSchedulingAdapter,
   type MaintenanceSchedulingDeps,
 } from "./storage/domains/maintenance-scheduling-adapter";
-import { dbMaintenanceStorage } from "./db/maintenance/index.js";
-import { dbAlertStorage } from "./db/alerts/index.js";
 import { maintenanceSchedules } from "@shared/schema-runtime";
 import { and, eq } from "drizzle-orm";
 import { db } from "./db-config";
@@ -86,8 +95,15 @@ const schedulingDeps: MaintenanceSchedulingDeps = {
   createSchedule: async (s) => dbMaintenanceStorage.createMaintenanceSchedule(s),
   getEquipmentLifecycle: async (eqId) =>
     dbAnalyticsStorage.getEquipmentLifecycle(eqId).then((d) => d[0] || null),
-  getMaintenanceRecords: async (eqId, from, to) =>
-    dbMaintenanceStorage.getMaintenanceRecords(eqId, from, to),
+  getMaintenanceRecords: async (eqId, from, to) => {
+    const fromTime = (from instanceof Date ? from : new Date(from)).getTime();
+    const toTime = (to instanceof Date ? to : new Date(to)).getTime();
+    const records = await dbMaintenanceStorage.getMaintenanceRecords(eqId);
+    return records.filter((r) => {
+      const created = r.createdAt ? new Date(r.createdAt).getTime() : 0;
+      return created >= fromTime && created <= toTime;
+    });
+  },
   getPerformanceMetrics: async (eqId, from, to) =>
     dbAnalyticsStorage.getPerformanceMetrics(eqId, from, to),
   getAlertNotifications: async () => dbAlertStorage.getAlertNotifications(),
@@ -98,17 +114,6 @@ export const schedulingAdapter = new DbMaintenanceSchedulingAdapter(schedulingDe
 // this barrel and call domain methods on it (e.g. storage.getTelemetryHistory).
 // Rather than reach into individual db* storages, those callers can use this
 // merged proxy. Method dispatch walks the underlying domain storages in order.
-import { dbTelemetryStorage } from "./db/telemetry/index.js";
-import { dbEquipmentStorage } from "./db/equipment/index.js";
-import { dbAlertStorage } from "./db/alerts/index.js";
-import { dbWorkOrderStorage } from "./db/workorders/index.js";
-import { dbVesselStorage } from "./db/vessels/index.js";
-import { dbInventoryStorage } from "./db/inventory/index.js";
-import { dbMaintenanceStorage } from "./db/maintenance/index.js";
-import { dbAnalyticsStorage } from "./db/analytics/index.js";
-import { dbSensorsStorage } from "./db/sensors/index.js";
-import { dbCrewStorage } from "./db/crew/index.js";
-import { dbMlAnalyticsStorage } from "./db/ml-analytics/index.js";
 
 const STORAGE_BACKENDS: ReadonlyArray<Record<string | symbol, unknown>> = [
   dbTelemetryStorage as unknown as Record<string | symbol, unknown>,

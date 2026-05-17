@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Rate Limit Factory - Centralized rate limiting configuration
  *
@@ -48,7 +47,7 @@ export const RATE_LIMIT_ERROR_CODES = {
  */
 export function createKeyGenerator(includeUserAgent = true): (req: Request) => string {
   return (req: Request): string => {
-    const ip = ipKeyGenerator(req);
+    const ip = ipKeyGenerator(req.ip ?? "");
 
     if (!includeUserAgent) {
       return ip;
@@ -70,7 +69,7 @@ export function createDeviceKeyGenerator(): (req: Request) => string {
     if (deviceId) {
       return deviceId;
     }
-    return ipKeyGenerator(req);
+    return ipKeyGenerator(req.ip ?? "");
   };
 }
 
