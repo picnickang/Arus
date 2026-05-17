@@ -17,6 +17,10 @@ import {
 import { useCustomMutation } from "@/hooks/useCrudMutations";
 import { formatDate } from "@/lib/formatters";
 
+interface SyncMetrics {
+  [key: string]: unknown;
+}
+
 interface DataIssue {
   code: string;
   message: string;

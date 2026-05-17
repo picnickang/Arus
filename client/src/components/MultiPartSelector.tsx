@@ -36,6 +36,27 @@ interface PartStockStatus {
   estimatedLeadTimeDays: number;
 }
 
+
+type ExistingPartUsage = {
+  id?: string;
+  partId: string;
+  partName?: string | null;
+  partNumber?: string | null;
+  quantity?: number;
+  quantityUsed?: number;
+  unitCost?: number;
+  totalCost?: number;
+  usedBy?: string | null;
+};
+
+function getExistingPartId(part: ExistingPartUsage): string {
+  return part.id ?? part.partId;
+}
+
+function getExistingPartQuantity(part: ExistingPartUsage): number {
+  return part.quantityUsed ?? part.quantity ?? 0;
+}
+
 interface MultiPartSelectorProps {
   workOrderId: string;
   vesselId?: string;
@@ -135,7 +156,7 @@ export function MultiPartSelector({ workOrderId, vesselId, onPartsAdded }: Multi
                   filteredParts.map((part) => {
                     const stockStatus = getStockStatus(part);
                     return (
-                      <TableRow key={part.id}>
+                      <TableRow key={getExistingPartId(part)}>
                         <TableCell className="font-mono text-sm">{part.partNumber}</TableCell>
                         <TableCell>
                           <div>
@@ -335,26 +356,26 @@ export function MultiPartSelector({ workOrderId, vesselId, onPartsAdded }: Multi
         </Card>
       )}
 
-      {existingParts.length > 0 && (
+      {(existingParts as ExistingPartUsage[]).length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Parts Already Used ({existingParts.length})</span>
+              <span>Parts Already Used ({(existingParts as ExistingPartUsage[]).length})</span>
               <span className="text-sm font-normal text-muted-foreground">
                 Total: $
-                {existingParts
-                  .reduce((sum: number, p: { totalCost?: number }) => sum + (p.totalCost || 0), 0)
+                {(existingParts as ExistingPartUsage[])
+                  .reduce((sum: number, p: ExistingPartUsage) => sum + (p.totalCost || 0), 0)
                   .toFixed(2)}
               </span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {existingParts.map((part) => (
+              {(existingParts as ExistingPartUsage[]).map((part) => (
                 <div
-                  key={part.id}
+                  key={getExistingPartId(part)}
                   className="flex items-center justify-between gap-3 p-3 border rounded-lg bg-muted/30"
-                  data-testid={`existing-part-${part.id}`}
+                  data-testid={`existing-part-${getExistingPartId(part)}`}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">
@@ -362,7 +383,7 @@ export function MultiPartSelector({ workOrderId, vesselId, onPartsAdded }: Multi
                     </div>
                     <div className="flex flex-wrap gap-2 text-sm text-muted-foreground mt-1">
                       <span className="inline-flex items-center">
-                        Qty: <strong className="ml-1">{part.quantityUsed}</strong>
+                        Qty: <strong className="ml-1">{getExistingPartQuantity(part)}</strong>
                       </span>
                       <span>•</span>
                       <span>${(part.unitCost || 0).toFixed(2)} each</span>
@@ -377,9 +398,9 @@ export function MultiPartSelector({ workOrderId, vesselId, onPartsAdded }: Multi
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => removePartMutation.mutate(part.id)}
+                      onClick={() => removePartMutation.mutate(getExistingPartId(part))}
                       disabled={removePartMutation.isPending}
-                      data-testid={`button-remove-existing-part-${part.id}`}
+                      data-testid={`button-remove-existing-part-${getExistingPartId(part)}`}
                       className="text-destructive hover:text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 className="h-4 w-4" />

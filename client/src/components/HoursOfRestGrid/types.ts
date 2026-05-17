@@ -4,3 +4,5 @@ export interface ComplianceRow {
   minRest24: number;
   splitOK: boolean;
 }
+
+export type DayRow = { date: string } & Record<`h${number}`, number>;

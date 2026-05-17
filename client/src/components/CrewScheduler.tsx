@@ -578,7 +578,7 @@ export function CrewScheduler() {
                       <h4 className="font-medium mb-2">Existing Drydock Windows</h4>
                       <div className="space-y-2">
                         {(
-                          p.allDrydockWindows as Array<{
+                          p.allDrydockWindows as unknown as Array<{
                             id: string;
                             yard: string;
                             vesselId: string;

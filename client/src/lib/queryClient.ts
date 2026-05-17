@@ -84,6 +84,11 @@ export interface ApiRequestOptions {
   signal?: AbortSignal;
   headers?: Record<string, string>;
 }
+
+export interface ApiRequestInit extends ApiRequestOptions {
+  method?: string;
+  body?: unknown;
+}
 export interface QueuedApiResponse {
   queuedForSync: true;
   offline: true;
@@ -128,9 +133,23 @@ async function queueOfflineApiRequest(
 export async function apiRequest<T = unknown>(
   method: string,
   url: string,
-  data?: unknown | undefined,
+  data?: unknown,
   options?: ApiRequestOptions
+): Promise<T>;
+export async function apiRequest<T = unknown>(url: string, init?: ApiRequestInit): Promise<T>;
+export async function apiRequest<T = unknown>(
+  first: string,
+  second?: string | ApiRequestInit,
+  third?: unknown,
+  fourth?: ApiRequestOptions
 ): Promise<T> {
+  const method = typeof second === "string" ? first : second?.method ?? "GET";
+  const url = typeof second === "string" ? second : first;
+  const data = typeof second === "string" ? third : second?.body;
+  const options = typeof second === "string" ? fourth : second;
+  const body = typeof data === "string" ? data : data !== undefined ? JSON.stringify(data) : undefined;
+  const includeContentType = body !== undefined;
+
   const shouldQueueOffline = isQueueableMutation(method, url);
 
   if (shouldQueueOffline && !isOnline()) {
@@ -141,8 +160,8 @@ export async function apiRequest<T = unknown>(
   try {
     res = await fetch(resolveUrl(url), {
       method,
-      headers: { ...createHeaders(!!data), ...(options?.headers ?? {}) },
-      body: data ? JSON.stringify(data) : undefined,
+      headers: { ...createHeaders(includeContentType), ...(options?.headers ?? {}) },
+      body,
       credentials: "include",
       signal: options?.signal,
     });

@@ -2,10 +2,10 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { chunks } from "@/features/crew";
 import { HOURS, hourValue, parseLocalDate } from "./constants";
-import type { ComplianceRow } from "./types";
+import type { ComplianceRow, DayRow } from "./types";
 
 interface MobileDayCardProps {
-  r: Record<string, number | string> & { date: string };
+  r: DayRow;
   ri: number;
   c: ComplianceRow | undefined;
   isDragging: boolean;

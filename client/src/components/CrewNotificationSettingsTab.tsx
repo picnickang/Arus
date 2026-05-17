@@ -50,10 +50,7 @@ export function CrewNotificationSettingsTab({
 
   const updateMutation = useMutation({
     mutationFn: async (data: Partial<NotificationSettings>) => {
-      return apiRequest(`/api/crew/${crewId}/notification-settings`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("PUT", `/api/crew/${crewId}/notification-settings`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crew", crewId, "notification-settings"] });

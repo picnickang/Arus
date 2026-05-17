@@ -40,15 +40,40 @@ export function useEquipmentForm(
 
 export function useEquipmentEditForm(
   equipment?: Equipment | null
-): UseFormReturn<Partial<InsertEquipment>> {
-  const form = useForm<Partial<InsertEquipment>>({
-    resolver: zodResolver(insertEquipmentSchema.partial()),
+): UseFormReturn<InsertEquipment> {
+  const { currentOrgId } = useOrganization();
+  const form = useForm<InsertEquipment>({
+    resolver: zodResolver(insertEquipmentSchema),
+    defaultValues: {
+      orgId: currentOrgId || "",
+      name: "",
+      type: "",
+      manufacturer: "",
+      model: "",
+      serialNumber: "",
+      location: "",
+      vesselId: "unassigned",
+      vesselName: "",
+      isActive: true,
+      specifications: null,
+      operatingParameters: null,
+      maintenanceSchedule: null,
+      purchaseValue: undefined,
+      purchaseDate: undefined,
+      purchaseCurrency: "USD",
+      serviceLifeHours: undefined,
+      serviceLifeYears: undefined,
+      depreciationMethod: "straight_line",
+      depreciationRate: undefined,
+      salvageValue: undefined,
+    },
   });
 
   // Reset form when equipment changes (using useEffect to avoid render-time side effects)
   useEffect(() => {
     if (equipment) {
       form.reset({
+        orgId: equipment.orgId || currentOrgId || "",
         name: equipment.name,
         type: equipment.type,
         manufacturer: equipment.manufacturer || "",
@@ -72,7 +97,7 @@ export function useEquipmentEditForm(
         salvageValue: equipment.salvageValue ?? undefined,
       });
     }
-  }, [equipment, form]);
+  }, [currentOrgId, equipment, form]);
 
   return form;
 }
@@ -84,6 +109,6 @@ export function useEquipmentEditForm(
 export function prepareEquipmentSubmission(data: InsertEquipment | Partial<InsertEquipment>) {
   return {
     ...data,
-    vesselId: data.vesselId === "unassigned" ? null : data.vesselId,
+    vesselId: data.vesselId === "unassigned" ? undefined : data.vesselId,
   };
 }

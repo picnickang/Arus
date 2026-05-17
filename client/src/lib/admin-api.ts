@@ -15,11 +15,11 @@ const DEV_SESSION_TOKEN = "dev-admin-session-token";
 /**
  * Admin API request function with session-based authentication
  */
-export async function adminApiRequest(
+export async function adminApiRequest<T = unknown>(
   method: string,
   url: string,
   data?: unknown
-): Promise<unknown> {
+): Promise<T> {
   // In dev mode, use dev token; otherwise require session
   const sessionToken = DEV_MODE ? DEV_SESSION_TOKEN : getApiSessionToken();
 
@@ -54,7 +54,7 @@ export async function adminApiRequest(
   }
 
   if (res.status === 204) {
-    return null;
+    return null as T;
   }
 
   const text = await res.text();
@@ -62,10 +62,10 @@ export async function adminApiRequest(
 
   // Handle standardized API response format (unwrap { success, data } envelope)
   if (result && typeof result === "object" && "success" in result && "data" in result) {
-    return result.data;
+    return result.data as T;
   }
 
-  return result;
+  return result as T;
 }
 
 /**

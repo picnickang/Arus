@@ -60,7 +60,7 @@ export function VesselSimulatorCard() {
   const loadVesselTypes = async () => {
     try {
       setLoadingTypes(true);
-      const types = await adminApiRequest("GET", "/api/admin/vessel-types");
+      const types = await adminApiRequest<VesselType[]>("GET", "/api/admin/vessel-types");
       setVesselTypes(types ?? []);
     } catch (error) {
       toast({
@@ -110,7 +110,7 @@ export function VesselSimulatorCard() {
 
       setProgress(30);
 
-      const result = await adminApiRequest("POST", "/api/admin/simulate-telemetry", payload);
+      const result = await adminApiRequest<{ message?: string; dataPoints?: number; telemetryRecords?: number; vesselType?: string; duration?: string }>("POST", "/api/admin/simulate-telemetry", payload);
 
       setProgress(100);
       setLastResult({

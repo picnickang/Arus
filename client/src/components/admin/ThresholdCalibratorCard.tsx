@@ -42,6 +42,16 @@ interface CalibrationResult {
   samplesAnalyzed?: number;
 }
 
+interface ThresholdCalibrationResult {
+  message?: string;
+  equipmentId?: string;
+  equipmentType?: string;
+  percentile?: number;
+  calibratedThreshold?: number;
+  previousThreshold?: number;
+  samplesAnalyzed?: number;
+}
+
 export function ThresholdCalibratorCard() {
   const { toast } = useToast();
   const [selectedEquipment, setSelectedEquipment] = useState("");
@@ -80,7 +90,7 @@ export function ThresholdCalibratorCard() {
         orgId: "default-org-id",
       };
 
-      const result = await adminApiRequest("POST", "/api/admin/calibrate-threshold", payload);
+      const result = await adminApiRequest<ThresholdCalibrationResult>("POST", "/api/admin/calibrate-threshold", payload);
 
       setLastResult({
         success: true,

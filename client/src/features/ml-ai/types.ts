@@ -68,5 +68,37 @@ export interface RULPrediction {
 export const MODEL_TYPES = ["lstm", "xgboost", "random_forest", "ensemble"] as const;
 export const MODEL_STATUSES = ["training", "validating", "active", "deprecated", "failed"] as const;
 
-export type ModelType = (typeof MODEL_TYPES)[number];
+export type ModelType = (typeof MODEL_TYPES)[number] | "gpt-4o" | "gpt-4o-mini" | "claude-sonnet" | string;
 export type ModelStatus = (typeof MODEL_STATUSES)[number];
+
+export const REPORT_TYPES = ["health", "fleet", "maintenance", "compliance"] as const;
+export const AUDIENCE_TYPES = ["executive", "technical", "operations", "compliance"] as const;
+
+export type ReportType = (typeof REPORT_TYPES)[number];
+export type AudienceType = (typeof AUDIENCE_TYPES)[number];
+
+export interface AIModel {
+  id: string;
+  name: string;
+  provider?: string;
+  model?: string;
+}
+
+export interface Audience {
+  id: AudienceType | string;
+  name: string;
+  description?: string;
+}
+
+export interface GeneratedReport {
+  reportType: ReportType;
+  audience: AudienceType;
+  model: ModelType;
+  content: Record<string, unknown>;
+  timestamp: string;
+}
+
+export interface VesselIntelligence {
+  vesselName?: string;
+  [key: string]: unknown;
+}

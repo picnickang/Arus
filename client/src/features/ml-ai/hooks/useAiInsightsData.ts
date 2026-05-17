@@ -70,9 +70,9 @@ export function useAiInsightsData() {
     };
   }, []);
 
-  const { data: modelsData } = useQuery({ queryKey: ["/api/llm/models"] });
-  const { data: vessels = [] } = useQuery({ queryKey: ["/api/vessels"] });
-  const { data: equipment = [] } = useQuery({ queryKey: ["/api/equipment/health"] });
+  const { data: modelsData } = useQuery<{ models?: AIModel[]; audiences?: Audience[] }>({ queryKey: ["/api/llm/models"] });
+  const { data: vessels = [] } = useQuery<unknown[]>({ queryKey: ["/api/vessels"] });
+  const { data: equipment = [] } = useQuery<unknown[]>({ queryKey: ["/api/equipment/health"] });
   const models: AIModel[] = modelsData?.models ?? [];
   const audiences: Audience[] = modelsData?.audiences ?? [];
 
@@ -108,7 +108,7 @@ export function useAiInsightsData() {
       if (reportType !== "fleet") {
         requestBody.vesselId = selectedVessel;
       }
-      const response = await apiRequest("POST", endpointMap[reportType], requestBody);
+      const response = await apiRequest<{ success?: boolean; error?: string; report: Record<string, unknown> & { analysis?: string } }>("POST", endpointMap[reportType], requestBody);
       if (!response.success) {
         throw new Error(response.error || "Failed to generate report");
       }

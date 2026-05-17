@@ -109,10 +109,10 @@ export function EquipmentFormDialog({
     },
   });
 
-  const handleSubmit = (data: InsertEquipment | Partial<InsertEquipment>) => {
+  const handleSubmit = (data: InsertEquipment) => {
     const submissionData = {
       ...data,
-      vesselId: data.vesselId === "unassigned" || data.vesselId === "" ? null : data.vesselId,
+      vesselId: data.vesselId === "unassigned" || data.vesselId === "" ? undefined : data.vesselId,
     };
 
     if (onSubmit) {
@@ -155,7 +155,7 @@ export function EquipmentFormDialog({
         </DialogHeader>
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(handleSubmit as never)}
+            onSubmit={form.handleSubmit(handleSubmit)}
             className="space-y-4"
             data-testid={`form-${isCreate ? "create" : "edit"}-equipment`}
           >
@@ -219,6 +219,7 @@ export function EquipmentFormDialog({
                       <Input
                         placeholder="Caterpillar"
                         {...field}
+                        value={field.value ?? ""}
                         data-testid={`input-${testIdPrefix}manufacturer`}
                       />
                     </FormControl>
@@ -236,6 +237,7 @@ export function EquipmentFormDialog({
                       <Input
                         placeholder="3516C"
                         {...field}
+                        value={field.value ?? ""}
                         data-testid={`input-${testIdPrefix}model`}
                       />
                     </FormControl>
@@ -256,6 +258,7 @@ export function EquipmentFormDialog({
                       <Input
                         placeholder="ABC123456"
                         {...field}
+                        value={field.value ?? ""}
                         data-testid={`input-${testIdPrefix}serial`}
                       />
                     </FormControl>
