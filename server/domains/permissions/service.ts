@@ -10,8 +10,6 @@ import { eq, and, inArray } from "drizzle-orm";
 import {
   permissionGrants,
   userRoleAssignments,
-  permissionResources,
-  permissionActions,
   type CompiledPermissions,
   type PermissionCheckResult,
 } from "../../../shared/schema/permissions";
@@ -64,16 +62,17 @@ export async function compileUserPermissions(
     return emptyPermissions;
   }
 
+  // permission_resources/permission_actions tables do not exist in PostgreSQL;
+  // resource_code and action_code are stored as text directly on
+  // permission_grants and validated against the static registry at use time.
   const grants = await db
     .select({
-      resourceCode: permissionResources.code,
-      actionCode: permissionActions.code,
+      resourceCode: permissionGrants.resourceCode,
+      actionCode: permissionGrants.actionCode,
       isGranted: permissionGrants.isGranted,
       condition: permissionGrants.condition,
     })
     .from(permissionGrants)
-    .innerJoin(permissionResources, eq(permissionGrants.resourceCode, permissionResources.code))
-    .innerJoin(permissionActions, eq(permissionGrants.actionCode, permissionActions.code))
     .where(inArray(permissionGrants.roleId, roleIds));
 
   const grantMatrix: CompiledPermissions["grants"] = {};

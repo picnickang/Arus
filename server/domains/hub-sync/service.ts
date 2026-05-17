@@ -15,17 +15,16 @@ export const hubSyncService = {
     const rows = await db
       .select()
       .from(replayIncoming)
-      .orderBy(desc(replayIncoming.createdAt))
+      .orderBy(desc(replayIncoming.receivedAt))
       .limit(100);
     if (!deviceId && !endpoint) {
       return rows;
     }
-    return rows.filter((row: Record<string, unknown>) => {
-      const payload = row.payload as Record<string, unknown> | null;
-      if (deviceId && payload?.deviceId !== deviceId) {
+    return rows.filter((row) => {
+      if (deviceId && row.deviceId !== deviceId) {
         return false;
       }
-      if (endpoint && payload?.endpoint !== endpoint) {
+      if (endpoint && row.endpoint !== endpoint) {
         return false;
       }
       return true;

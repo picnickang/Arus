@@ -430,8 +430,8 @@ export class SchedulePlannerReadModelAdapter implements ISchedulePlannerReadMode
 
   private async fetchAssignments(filter: SchedulePlannerFilter): Promise<ScheduleDayCell[]> {
     try {
-      const startDate = new Date(filter.startDate);
-      const endDate = new Date(filter.endDate);
+      const startDate = filter.startDate;
+      const endDate = filter.endDate;
 
       const conditions = [
         eq(schedulerRuns.orgId, filter.orgId),
@@ -453,9 +453,9 @@ export class SchedulePlannerReadModelAdapter implements ISchedulePlannerReadMode
           crewId: scheduleAssignments.crewId,
           vesselId: scheduleAssignments.vesselId,
           date: scheduleAssignments.date,
-          shift: scheduleAssignments.shift,
+          shift: scheduleAssignments.shiftId,
           role: scheduleAssignments.role,
-          status: scheduleAssignments.status,
+          executed: scheduleAssignments.executed,
           crewName: crew.name,
           vesselName: vessels.name,
         })
@@ -467,14 +467,14 @@ export class SchedulePlannerReadModelAdapter implements ISchedulePlannerReadMode
         .orderBy(scheduleAssignments.date);
 
       return result.map((row) => ({
-        date: formatDate(row.date),
+        date: formatDate(row.date as unknown as Date | null),
         shift: mapShift(row.shift),
         crewId: row.crewId,
         crewName: row.crewName || "Unknown",
         vesselId: row.vesselId || "",
         vesselName: row.vesselName || "Unknown Vessel",
         role: row.role,
-        status: mapStatus(row.status),
+        status: mapStatus(row.executed ? "applied" : "proposed"),
         assignmentId: row.assignmentId,
         runId: row.runId,
         hasViolation: false,
@@ -487,41 +487,34 @@ export class SchedulePlannerReadModelAdapter implements ISchedulePlannerReadMode
 
   private async fetchUnfilled(filter: SchedulePlannerFilter): Promise<UnfilledShiftSummary[]> {
     try {
-      const startDate = new Date(filter.startDate);
-      const endDate = new Date(filter.endDate);
+      const startDate = filter.startDate;
+      const endDate = filter.endDate;
 
       const conditions = [
-        eq(schedulerRuns.orgId, filter.orgId),
-        gte(scheduleUnfilled.date, startDate),
-        lte(scheduleUnfilled.date, endDate),
+        eq(scheduleUnfilled.orgId, filter.orgId),
+        gte(scheduleUnfilled.day, startDate),
+        lte(scheduleUnfilled.day, endDate),
       ];
-
-      if (filter.vesselIds?.length) {
-        conditions.push(inArray((scheduleUnfilled as any).vesselId, filter.vesselIds));
-      }
 
       const result = await db
         .select({
-          vesselId: (scheduleUnfilled as any).vesselId,
-          date: scheduleUnfilled.date,
+          day: scheduleUnfilled.day,
           shift: scheduleUnfilled.shiftId,
-          role: (scheduleUnfilled as any).role,
           reason: scheduleUnfilled.reason,
-          vesselName: vessels.name,
+          need: scheduleUnfilled.need,
         })
         .from(scheduleUnfilled)
         .innerJoin(schedulerRuns, eq(scheduleUnfilled.runId, schedulerRuns.id))
-        .leftJoin(vessels, eq((scheduleUnfilled as any).vesselId, vessels.id))
         .where(and(...conditions))
-        .orderBy(scheduleUnfilled.date);
+        .orderBy(scheduleUnfilled.day);
 
       return result.map((row) => ({
-        date: formatDate(row.date),
+        date: row.day,
         shift: mapShift(row.shift),
-        vesselId: row.vesselId || "",
-        vesselName: row.vesselName || "Unknown Vessel",
-        role: row.role,
-        reason: row.reason,
+        vesselId: "",
+        vesselName: "Unknown Vessel",
+        role: null,
+        reason: row.reason ?? (row.need != null ? `Need ${row.need} more` : null),
         candidateCrew: [],
       }));
     } catch (error) {

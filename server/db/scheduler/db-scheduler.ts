@@ -99,7 +99,7 @@ export class DatabaseSchedulerStorage {
       .select()
       .from(scheduleAssignments)
       .where(eq(scheduleAssignments.runId, runId))
-      .orderBy(scheduleAssignments.date);
+      .orderBy(scheduleAssignments.start);
   }
 
   async deleteSchedulerRuns(orgId: string): Promise<void> {
@@ -132,7 +132,7 @@ export class DatabaseSchedulerStorage {
     }
     const base = db.select().from(drydockWindow);
     const filtered = conditions.length > 0 ? base.where(and(...conditions)) : base;
-    return filtered.orderBy(drydockWindow.startDate);
+    return filtered.orderBy(drydockWindow.start);
   }
 
   async getDrydockWindowById(id: string): Promise<DrydockWindow | undefined> {
@@ -151,7 +151,7 @@ export class DatabaseSchedulerStorage {
   ): Promise<DrydockWindow> {
     const [u] = await db
       .update(drydockWindow)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates })
       .where(eq(drydockWindow.id, id))
       .returning();
     if (!u) {
@@ -168,7 +168,7 @@ export class DatabaseSchedulerStorage {
     const now = new Date();
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() + days);
-    const conditions = [gte(drydockWindow.startDate, now), lte(drydockWindow.startDate, cutoff)];
+    const conditions = [gte(drydockWindow.start, now), lte(drydockWindow.start, cutoff)];
     if (vesselId) {
       conditions.push(eq(drydockWindow.vesselId, vesselId));
     }
@@ -176,7 +176,7 @@ export class DatabaseSchedulerStorage {
       .select()
       .from(drydockWindow)
       .where(and(...conditions))
-      .orderBy(drydockWindow.startDate);
+      .orderBy(drydockWindow.start);
   }
 
   async getActiveDrydockWindow(vesselId: string): Promise<DrydockWindow | undefined> {
@@ -187,8 +187,8 @@ export class DatabaseSchedulerStorage {
       .where(
         and(
           eq(drydockWindow.vesselId, vesselId),
-          lte(drydockWindow.startDate, now),
-          gte(drydockWindow.endDate, now)
+          lte(drydockWindow.start, now),
+          gte(drydockWindow.end, now)
         )
       )
       .limit(1);
@@ -220,8 +220,8 @@ export class DatabaseSchedulerStorage {
         .where(
           and(
             eq(scheduleAssignments.runId, runId),
-            gte(scheduleAssignments.date, from),
-            lte(scheduleAssignments.date, to)
+            gte(scheduleAssignments.start, from),
+            lte(scheduleAssignments.start, to)
           )
         )
         .returning();
@@ -298,11 +298,11 @@ export class DatabaseSchedulerStorage {
         .where(
           and(
             eq(scheduleAssignments.runId, runId),
-            gte(scheduleAssignments.date, fromDate),
-            lte(scheduleAssignments.date, toDate)
+            gte(scheduleAssignments.start, fromDate),
+            lte(scheduleAssignments.start, toDate)
           )
         )
-        .orderBy(scheduleAssignments.date);
+        .orderBy(scheduleAssignments.start);
       allAssignments.push(...assignments);
     }
     return allAssignments;

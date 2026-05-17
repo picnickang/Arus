@@ -62,8 +62,6 @@ export const deviceRegistry = pgTable(
       .notNull()
       .references(() => organizations.id),
     label: text("label"),
-    deviceId: text("device_id"),
-    lastSyncAt: timestamp("last_sync_at", { mode: "date" }),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({ orgIdIdx: index("idx_device_registry_org_id").on(table.orgId) })

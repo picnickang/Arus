@@ -44,9 +44,12 @@ export function mapStatus(
   }
 }
 
-export function formatDate(value: Date | null): string {
+export function formatDate(value: Date | string | null): string {
   if (!value) {
     return "";
+  }
+  if (typeof value === "string") {
+    return value.length >= 10 ? value.slice(0, 10) : value;
   }
   return value.toISOString().split("T")[0];
 }

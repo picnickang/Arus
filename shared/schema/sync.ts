@@ -82,12 +82,9 @@ export const syncOutbox = pgTable(
 
 // Request idempotency tracking
 export const requestIdempotency = pgTable("request_idempotency", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  requestId: text("request_id").notNull().unique(),
+  key: varchar("key").primaryKey(),
   responseStatus: integer("response_status"),
-  responseBody: jsonb("response_body"),
+  responseBody: text("response_body"),
   expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
 });
@@ -95,7 +92,6 @@ export const requestIdempotency = pgTable("request_idempotency", {
 // Idempotency log for duplicate request detection
 export const idempotencyLog = pgTable("idempotency_log", {
   key: varchar("key").primaryKey(),
-  expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
 });
 
 // Replay incoming for sync replay
@@ -103,45 +99,28 @@ export const replayIncoming = pgTable("replay_incoming", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
-  payload: jsonb("payload"),
-  processedAt: timestamp("processed_at", { mode: "date" }),
-  deviceId: varchar("device_id"),
-  status: text("status"),
-  updatedAt: timestamp("updated_at", { mode: "date" }),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+  deviceId: text("device_id"),
+  endpoint: text("endpoint"),
+  key: text("key"),
+  receivedAt: timestamp("received_at", { mode: "date" }).defaultNow(),
 });
 
 // Sheet lock for concurrent edit prevention
-export const sheetLock = pgTable(
-  "sheet_lock",
-  {
-    sheetId: varchar("sheet_id").primaryKey(),
-    lockedBy: varchar("locked_by").notNull(),
-    lockedAt: timestamp("locked_at", { mode: "date" }).defaultNow(),
-    expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
-    sheetType: text("sheet_type").notNull().default(""),
-    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
-  },
-  (t) => ({
-    sheetTypeIdUnique: uniqueIndex("sheet_lock_type_id_uq").on(t.sheetType, t.sheetId),
-  })
-);
+export const sheetLock = pgTable("sheet_lock", {
+  sheetKey: varchar("sheet_key").primaryKey(),
+  token: varchar("token"),
+  holder: varchar("holder"),
+  expiresAt: timestamp("expires_at", { mode: "date" }),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+});
 
 // Sheet version for optimistic concurrency
-export const sheetVersion = pgTable(
-  "sheet_version",
-  {
-    sheetId: varchar("sheet_id").primaryKey(),
-    sheetType: text("sheet_type").notNull().default(""),
-    version: integer("version").notNull().default(1),
-    lastModifiedBy: varchar("last_modified_by"),
-    lastModifiedDevice: varchar("last_modified_device"),
-    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
-  },
-  (t) => ({
-    sheetTypeIdUnique: uniqueIndex("sheet_version_type_id_uq").on(t.sheetType, t.sheetId),
-  })
-);
+export const sheetVersion = pgTable("sheet_version", {
+  sheetKey: varchar("sheet_key").primaryKey(),
+  version: integer("version").default(1),
+  lastModified: timestamp("last_modified", { mode: "date" }).defaultNow(),
+  lastModifiedBy: varchar("last_modified_by"),
+});
 
 // Insert schemas
 export const insertSyncJournalSchema = createInsertSchema(syncJournal).omit({
@@ -153,7 +132,6 @@ export const insertSyncOutboxSchema = createInsertSchema(syncOutbox).omit({
   createdAt: true,
 });
 export const insertRequestIdempotencySchema = createInsertSchema(requestIdempotency).omit({
-  id: true,
   createdAt: true,
 });
 
@@ -165,6 +143,7 @@ export type InsertSyncOutbox = z.infer<typeof insertSyncOutboxSchema>;
 export type RequestIdempotency = typeof requestIdempotency.$inferSelect;
 export type IdempotencyLog = typeof idempotencyLog.$inferSelect;
 export type ReplayIncoming = typeof replayIncoming.$inferSelect;
+export type InsertReplayIncoming = typeof replayIncoming.$inferInsert;
 export type SheetLock = typeof sheetLock.$inferSelect;
 export type InsertSheetLock = typeof sheetLock.$inferInsert;
 export type SheetVersion = typeof sheetVersion.$inferSelect;

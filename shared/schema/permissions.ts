@@ -50,51 +50,30 @@ export const roles = pgTable(
   })
 );
 
-// Resources (pages/features) that can be protected
-export const permissionResources = pgTable("permission_resources", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  code: text("code").notNull().unique(),
-  name: text("name").notNull(),
-  description: text("description"),
-  category: text("category").notNull(),
-  icon: text("icon"),
-  sortOrder: integer("sort_order").default(0),
-  isActive: boolean("is_active").default(true),
-});
+// NOTE: permission_resources, permission_actions, resource_actions tables do not
+// exist in PostgreSQL — resource/action definitions live in
+// server/config/permission-registry.ts. The following are pure TypeScript types
+// (no Drizzle tables) so the existing API contracts can still be served from
+// the static registry without claiming non-existent DB tables.
+export interface PermissionResource {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  category: string;
+  icon: string | null;
+  sortOrder: number | null;
+  isActive: boolean | null;
+}
 
-// Actions that can be performed on resources
-export const permissionActions = pgTable("permission_actions", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  code: text("code").notNull().unique(),
-  name: text("name").notNull(),
-  description: text("description"),
-  riskLevel: text("risk_level").default("low"),
-  sortOrder: integer("sort_order").default(0),
-});
-
-// Available actions for each resource (many-to-many)
-export const resourceActions = pgTable(
-  "resource_actions",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-    resourceId: varchar("resource_id")
-      .notNull()
-      .references(() => permissionResources.id, { onDelete: "cascade" }),
-    actionId: varchar("action_id")
-      .notNull()
-      .references(() => permissionActions.id, { onDelete: "cascade" }),
-    isDefault: boolean("is_default").default(false),
-  },
-  (table) => ({
-    resourceActionUnique: unique("uq_resource_actions").on(table.resourceId, table.actionId),
-  })
-);
+export interface PermissionAction {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  riskLevel: string | null;
+  sortOrder: number | null;
+}
 
 // Permission grants - maps roles to resource/action pairs
 export const permissionGrants = pgTable(
@@ -123,45 +102,35 @@ export const permissionGrants = pgTable(
   })
 );
 
-// Role templates for quick setup
-export const roleTemplates = pgTable("role_templates", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  name: text("name").notNull().unique(),
-  displayName: text("display_name").notNull(),
-  description: text("description"),
-  department: text("department"),
-  hierarchyLevel: integer("hierarchy_level").notNull().default(50),
-  permissions: text("permissions").notNull(),
-  fleetType: text("fleet_type"),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
-});
+// NOTE: role_templates and permission_audit_log tables do not exist in
+// PostgreSQL. Templates live in server/config/default-role-templates.ts and
+// audit entries are emitted via structured logging only. Types kept here for
+// downstream consumers.
+export interface RoleTemplate {
+  id: string;
+  name: string;
+  displayName: string;
+  description: string | null;
+  department: string | null;
+  hierarchyLevel: number;
+  permissions: string;
+  fleetType: string | null;
+  isActive: boolean | null;
+  createdAt: Date | null;
+}
 
-// Permission audit log for tracking changes
-export const permissionAuditLog = pgTable(
-  "permission_audit_log",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id")
-      .notNull()
-      .references(() => organizations.id),
-    userId: varchar("user_id").notNull(),
-    action: text("action").notNull(),
-    targetType: text("target_type").notNull(),
-    targetId: varchar("target_id"),
-    previousValue: text("previous_value"),
-    newValue: text("new_value"),
-    ipAddress: text("ip_address"),
-    createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
-  },
-  (table) => ({
-    orgTimeIdx: index("idx_permission_audit_org_time").on(table.orgId, table.createdAt),
-  })
-);
+export interface PermissionAuditEntry {
+  id: string;
+  orgId: string;
+  userId: string;
+  action: string;
+  targetType: string;
+  targetId: string | null;
+  previousValue: string | null;
+  newValue: string | null;
+  ipAddress: string | null;
+  createdAt: Date | null;
+}
 
 // User role assignments (users can have multiple roles)
 export const userRoleAssignments = pgTable(
@@ -170,16 +139,12 @@ export const userRoleAssignments = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id")
-      .notNull()
-      .references(() => organizations.id),
+    orgId: varchar("org_id").references(() => organizations.id),
     userId: varchar("user_id").notNull(),
     roleId: varchar("role_id")
       .notNull()
       .references(() => roles.id, { onDelete: "cascade" }),
     assignedBy: varchar("assigned_by"),
-    assignedAt: timestamp("assigned_at", { mode: "date" }).defaultNow(),
-    expiresAt: timestamp("expires_at", { mode: "date" }),
     isActive: boolean("is_active").default(true),
   },
   (table) => ({
@@ -203,37 +168,39 @@ export const insertRoleSchema = createInsertSchema(roles)
     hierarchyLevel: z.number().min(1).max(100).default(50),
   });
 
-export const insertPermissionResourceSchema = createInsertSchema(permissionResources)
-  .omit({ id: true })
-  .extend({
-    code: z
-      .string()
-      .min(2)
-      .max(50)
-      .regex(/^[a-z0-9_]+$/),
-    name: z.string().min(2).max(100),
-    category: z.enum([
-      "operations",
-      "maintenance",
-      "crew",
-      "inventory",
-      "analytics",
-      "compliance",
-      "settings",
-    ]),
-  });
+export const insertPermissionResourceSchema = z.object({
+  code: z
+    .string()
+    .min(2)
+    .max(50)
+    .regex(/^[a-z0-9_]+$/),
+  name: z.string().min(2).max(100),
+  description: z.string().nullable().optional(),
+  category: z.enum([
+    "operations",
+    "maintenance",
+    "crew",
+    "inventory",
+    "analytics",
+    "compliance",
+    "settings",
+  ]),
+  icon: z.string().nullable().optional(),
+  sortOrder: z.number().nullable().optional(),
+  isActive: z.boolean().nullable().optional(),
+});
 
-export const insertPermissionActionSchema = createInsertSchema(permissionActions)
-  .omit({ id: true })
-  .extend({
-    code: z
-      .string()
-      .min(2)
-      .max(50)
-      .regex(/^[a-z0-9_]+$/),
-    name: z.string().min(2).max(100),
-    riskLevel: z.enum(["low", "medium", "high", "critical"]).default("low"),
-  });
+export const insertPermissionActionSchema = z.object({
+  code: z
+    .string()
+    .min(2)
+    .max(50)
+    .regex(/^[a-z0-9_]+$/),
+  name: z.string().min(2).max(100),
+  description: z.string().nullable().optional(),
+  riskLevel: z.enum(["low", "medium", "high", "critical"]).default("low"),
+  sortOrder: z.number().nullable().optional(),
+});
 
 export const insertPermissionGrantSchema = createInsertSchema(permissionGrants)
   .omit({ id: true, createdAt: true })
@@ -241,39 +208,35 @@ export const insertPermissionGrantSchema = createInsertSchema(permissionGrants)
     conditions: z.string().optional(),
   });
 
-export const insertRoleTemplateSchema = createInsertSchema(roleTemplates)
-  .omit({ id: true, createdAt: true })
-  .extend({
-    name: z
-      .string()
-      .min(2)
-      .max(50)
-      .regex(/^[a-z0-9_]+$/),
-    displayName: z.string().min(2).max(100),
-    permissions: z.string(),
-    fleetType: z.enum(["deep_sea", "offshore", "cruise", "cargo", "tanker"]).optional(),
-  });
+export const insertRoleTemplateSchema = z.object({
+  name: z
+    .string()
+    .min(2)
+    .max(50)
+    .regex(/^[a-z0-9_]+$/),
+  displayName: z.string().min(2).max(100),
+  description: z.string().nullable().optional(),
+  department: z.string().nullable().optional(),
+  hierarchyLevel: z.number().default(50),
+  permissions: z.string(),
+  fleetType: z.enum(["deep_sea", "offshore", "cruise", "cargo", "tanker"]).optional(),
+  isActive: z.boolean().nullable().optional(),
+});
 
-export const insertUserRoleAssignmentSchema = createInsertSchema(userRoleAssignments)
-  .omit({ id: true, assignedAt: true })
-  .extend({
-    expiresAt: z.date().optional(),
-  });
+export const insertUserRoleAssignmentSchema = createInsertSchema(userRoleAssignments).omit({
+  id: true,
+});
 
 // Types
 export type Role = typeof roles.$inferSelect;
 export type InsertRole = z.infer<typeof insertRoleSchema>;
-export type PermissionResource = typeof permissionResources.$inferSelect;
 export type InsertPermissionResource = z.infer<typeof insertPermissionResourceSchema>;
-export type PermissionAction = typeof permissionActions.$inferSelect;
 export type InsertPermissionAction = z.infer<typeof insertPermissionActionSchema>;
 export type PermissionGrant = typeof permissionGrants.$inferSelect;
 export type InsertPermissionGrant = z.infer<typeof insertPermissionGrantSchema>;
-export type RoleTemplate = typeof roleTemplates.$inferSelect;
 export type InsertRoleTemplate = z.infer<typeof insertRoleTemplateSchema>;
 export type UserRoleAssignment = typeof userRoleAssignments.$inferSelect;
 export type InsertUserRoleAssignment = z.infer<typeof insertUserRoleAssignmentSchema>;
-export type PermissionAuditEntry = typeof permissionAuditLog.$inferSelect;
 
 // Permission check result type
 export interface PermissionCheckResult {

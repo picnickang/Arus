@@ -263,11 +263,8 @@ export const downtimeEvents = pgTable(
     startTime: timestamp("start_time", { mode: "date" }).notNull(),
     endTime: timestamp("end_time", { mode: "date" }),
     durationHours: real("duration_hours"),
-    reason: text("reason").notNull(),
-    category: text("category"),
-    severity: text("severity").default("medium"),
+    reason: text("reason"),
     workOrderId: varchar("work_order_id").references(() => workOrders.id),
-    estimatedCost: real("estimated_cost"),
     notes: text("notes"),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
@@ -294,13 +291,9 @@ export const partFailureHistory = pgTable(
       .references(() => parts.id),
     equipmentId: varchar("equipment_id").references(() => equipment.id),
     failureDate: timestamp("failure_date", { mode: "date" }).notNull(),
-    failureMode: text("failure_mode").notNull(),
+    failureMode: text("failure_mode"),
     rootCause: text("root_cause"),
     operatingHours: real("operating_hours"),
-    environment: jsonb("environment"),
-    correctiveAction: text("corrective_action"),
-    replacementPartId: varchar("replacement_part_id"),
-    costImpact: real("cost_impact"),
     downtimeHours: real("downtime_hours"),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   },
@@ -318,23 +311,11 @@ export const industryBenchmarks = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id")
-      .notNull()
-      .references(() => organizations.id),
     equipmentType: text("equipment_type").notNull(),
-    metric: text("metric").notNull(),
-    benchmarkValue: real("benchmark_value").notNull(),
-    unit: text("unit"),
-    source: text("source"),
-    effectiveDate: timestamp("effective_date", { mode: "date" }),
-    expirationDate: timestamp("expiration_date", { mode: "date" }),
-    metadata: jsonb("metadata"),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
-    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({
     equipmentTypeIdx: index("idx_industry_benchmarks_equipment").on(table.equipmentType),
-    metricIdx: index("idx_industry_benchmarks_metric").on(table.metric),
   })
 );
 
@@ -501,7 +482,6 @@ export const insertPartFailureHistorySchema = createInsertSchema(partFailureHist
 export const insertIndustryBenchmarkSchema = createInsertSchema(industryBenchmarks).omit({
   id: true,
   createdAt: true,
-  updatedAt: true,
 });
 
 export const insertOperatingParameterSchema = createInsertSchema(operatingParameters).omit({

@@ -48,14 +48,16 @@ export function analyzeOperationalPatterns(
 }
 
 export function analyzeCosts(workOrders: WorkOrder[]): VesselLearnings["costAnalysis"] {
-  const ordersWithCost = workOrders.filter((wo) => wo.estimatedCost && wo.estimatedCost > 0);
-  const totalCost = ordersWithCost.reduce((sum, wo) => sum + (wo.estimatedCost || 0), 0);
+  const calcCost = (wo: any): number =>
+    (Number(wo.estimatedCostPerHour ?? 0) || 0) * (Number(wo.estimatedHours ?? 0) || 0);
+  const ordersWithCost = workOrders.filter((wo) => calcCost(wo) > 0);
+  const totalCost = ordersWithCost.reduce((sum, wo) => sum + calcCost(wo), 0);
   const avgCost = ordersWithCost.length > 0 ? totalCost / ordersWithCost.length : 0;
 
   const costByType = new Map<string, number>();
   ordersWithCost.forEach((wo) => {
-    const type = wo.type || "other";
-    costByType.set(type, (costByType.get(type) || 0) + (wo.estimatedCost || 0));
+    const type = (wo as any).workOrderType || "other";
+    costByType.set(type, (costByType.get(type) || 0) + calcCost(wo));
   });
 
   const costDrivers =
@@ -94,7 +96,7 @@ export function identifyPredictiveIndicators(
   telemetryByEquipment.forEach((readings, equipmentId) => {
     const failures = workOrders.filter(
       (wo) =>
-        wo.equipmentId === equipmentId && ((wo.priority as any) === "critical" || (wo as any).type === "corrective")
+        wo.equipmentId === equipmentId && ((wo.priority as any) === "critical" || (wo as any).workOrderType === "corrective")
     );
 
     if (failures.length > 0 && readings.length > 20) {

@@ -115,7 +115,7 @@ export const purchaseOrderItems = pgTable(
     unitPrice: real("unit_price").notNull(),
     totalPrice: real("total_price").notNull(),
     receivedQuantity: real("received_quantity").default(0),
-    rejectedQuantity: real("rejected_quantity").default(0),
+    rejectedQuantity: integer("rejected_quantity").default(0),
     rejectionReason: text("rejection_reason"),
     notes: text("notes"),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),

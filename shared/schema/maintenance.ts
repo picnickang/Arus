@@ -63,13 +63,8 @@ export const maintenanceRecords = pgTable(
     equipmentId: varchar("equipment_id")
       .notNull()
       .references(() => equipment.id),
-    scheduledDate: timestamp("scheduled_date", { mode: "date" }),
-    completedDate: timestamp("completed_date", { mode: "date" }),
     maintenanceType: text("maintenance_type").notNull(),
-    description: text("description"),
-    performedBy: text("performed_by"),
     notes: text("notes"),
-    cost: real("cost"),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({
@@ -94,14 +89,13 @@ export const maintenanceCosts = pgTable(
     amount: real("amount").notNull(),
     currency: text("currency").default("SGD"),
     description: text("description"),
-    incurredAt: timestamp("incurred_at", { mode: "date" }).notNull(),
     workOrderId: varchar("work_order_id"),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({
     equipmentCostIdx: index("idx_maintenance_costs_equipment").on(
       table.equipmentId,
-      table.incurredAt
+      table.createdAt
     ),
   })
 );
@@ -228,7 +222,6 @@ export const oilAnalysis = pgTable("oil_analysis", {
   silver: real("silver"),
   molybdenum: real("molybdenum"),
   titanium: real("titanium"),
-  vanadium: real("vanadium"),
   calcium: real("calcium"),
   magnesium: real("magnesium"),
   zinc: real("zinc"),

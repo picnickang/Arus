@@ -138,7 +138,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
       ? `${pred.failureMode} — ${risk === "critical" ? `replace within ${rul} days` : risk === "warning" ? "monitor closely" : "continue normal operations"}`
       : "Operating within normal parameters";
 
-    const lastService = workOrders.find((wo) => wo.status === "completed")?.completedAt || null;
+    const lastService = (workOrders.find((wo) => wo.status === "completed") as any)?.actualEndDate || null;
     const nextDue =
       workOrders.find(
         (wo) => wo.status === "scheduled" || wo.status === "pending" || wo.status === "open"
@@ -634,7 +634,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
           description: workOrders.description,
           status: workOrders.status,
           createdAt: workOrders.createdAt,
-          completedAt: workOrders.completedAt,
+          completedAt: workOrders.actualEndDate,
         })
         .from(workOrders)
         .where(and(eq(workOrders.equipmentId, equipmentId), eq(workOrders.orgId, orgId)))

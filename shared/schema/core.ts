@@ -144,7 +144,7 @@ export const metricsHistory = pgTable(
 // Database schema version tracking
 export const dbSchemaVersion = pgTable("db_schema_version", {
   id: serial("id").primaryKey(),
-  version: text("version").notNull(),
+  name: text("name"),
   appliedAt: timestamp("applied_at", { mode: "date" }).defaultNow(),
 });
 

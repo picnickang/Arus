@@ -85,10 +85,10 @@ export class VesselIntelligenceService {
     ).length;
 
     const maintenanceHistory = {
-      scheduled: workOrders.filter((wo) => wo.type === "scheduled").length,
-      unscheduled: workOrders.filter((wo) => wo.type === "unscheduled").length,
+      scheduled: workOrders.filter((wo) => (wo as any).workOrderType === "scheduled").length,
+      unscheduled: workOrders.filter((wo) => (wo as any).workOrderType === "unscheduled").length,
       emergency: workOrders.filter((wo) => (wo.priority as any) === "critical").length,
-      preventive: workOrders.filter((wo) => wo.type === "preventive").length,
+      preventive: workOrders.filter((wo) => (wo as any).workOrderType === "preventive").length,
     };
 
     const performanceMetrics = calculatePerformanceMetrics(workOrders, vesselAge);

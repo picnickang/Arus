@@ -126,8 +126,6 @@ export const vibrationFeatures = pgTable("vibration_features", {
   timestamp: timestamp("timestamp", { mode: "date" }).defaultNow(),
   rpm: real("rpm"),
   rms: real("rms"),
-  rmsValue: real("rms_value"),
-  peakValue: real("peak_value"),
   crestFactor: real("crest_factor"),
   kurtosis: real("kurtosis"),
   peakFrequency: real("peak_frequency"),
@@ -200,17 +198,6 @@ export const vibrationAnalysis = pgTable("vibration_analysis", {
   isoBands: jsonb("iso_bands").notNull(),
   faultBands: jsonb("fault_bands"),
   overallRms: real("overall_rms"),
-  dominantFrequency: real("dominant_frequency"),
-  dominantMagnitude: real("dominant_magnitude"),
-  harmonics: jsonb("harmonics"),
-  anomalyScore: real("anomaly_score"),
-  anomalyType: text("anomaly_type"),
-  healthScore: real("health_score"),
-  isAnomalous: boolean("is_anomalous"),
-  confidence: real("confidence"),
-  analysisConfig: jsonb("analysis_config"),
-  timestamp: timestamp("timestamp", { mode: "date" }),
-  analysisTimestamp: timestamp("analysis_timestamp", { mode: "date" }),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
 });
 
@@ -650,9 +637,7 @@ export const arMaintenanceProcedures = pgTable("ar_maintenance_procedures", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
-  equipmentId: varchar("equipment_id")
-    .references(() => equipment.id)
-    .notNull(),
+  equipmentId: varchar("equipment_id").references(() => equipment.id),
   procedureName: varchar("procedure_name").notNull(),
   procedureType: varchar("procedure_type").notNull(),
   arAssets: jsonb("ar_assets"),
@@ -660,8 +645,6 @@ export const arMaintenanceProcedures = pgTable("ar_maintenance_procedures", {
   safetyRequirements: jsonb("safety_requirements"),
   requiredTools: jsonb("required_tools"),
   estimatedDuration: integer("estimated_duration"),
-  difficultyLevel: varchar("difficulty_level"),
-  createdBy: varchar("created_by"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
@@ -702,29 +685,13 @@ export const mlModelAccuracyHistory = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id")
-      .notNull()
-      .references(() => organizations.id),
     modelId: varchar("model_id")
       .notNull()
       .references(() => mlModels.id),
-    evaluationDate: timestamp("evaluation_date", { mode: "date" }).notNull(),
     accuracy: real("accuracy"),
-    precision: real("precision"),
-    recall: real("recall"),
-    f1Score: real("f1_score"),
-    mse: real("mse"),
-    mae: real("mae"),
-    rmse: real("rmse"),
-    auc: real("auc"),
-    testSetSize: integer("test_set_size"),
-    evaluationMethod: text("evaluation_method"),
-    metadata: jsonb("metadata"),
-    createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({
     modelIdx: index("idx_ml_model_accuracy_model").on(table.modelId),
-    dateIdx: index("idx_ml_model_accuracy_date").on(table.evaluationDate),
   })
 );
 
@@ -741,20 +708,11 @@ export const predictionDataQuality = pgTable(
     equipmentId: varchar("equipment_id")
       .notNull()
       .references(() => equipment.id),
-    evaluationDate: timestamp("evaluation_date", { mode: "date" }).notNull(),
-    dataCompleteness: real("data_completeness"),
-    dataFreshness: real("data_freshness"),
-    dataConsistency: real("data_consistency"),
+    dataFreshness: text("data_freshness"),
     sensorCoverage: real("sensor_coverage"),
-    overallQuality: real("overall_quality").notNull(),
-    qualityGrade: text("quality_grade"),
-    issuesDetected: jsonb("issues_detected"),
-    recommendations: jsonb("recommendations"),
-    createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({
     equipmentIdx: index("idx_prediction_dq_equipment").on(table.equipmentId),
-    dateIdx: index("idx_prediction_dq_date").on(table.evaluationDate),
   })
 );
 
@@ -921,11 +879,9 @@ export const insertModelRegistrySchema = createInsertSchema(modelRegistry).omit(
 });
 export const insertMlModelAccuracyHistorySchema = createInsertSchema(mlModelAccuracyHistory).omit({
   id: true,
-  createdAt: true,
 });
 export const insertPredictionDataQualitySchema = createInsertSchema(predictionDataQuality).omit({
   id: true,
-  createdAt: true,
 });
 
 // Types

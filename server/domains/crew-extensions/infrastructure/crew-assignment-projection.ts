@@ -50,8 +50,8 @@ export class CrewAssignmentProjectionAdapter implements ICrewAssignmentProjectio
     const startTime = Date.now();
 
     try {
-      const startDate = new Date(filter.startDate);
-      const endDate = new Date(filter.endDate);
+      const startDate = filter.startDate;
+      const endDate = filter.endDate;
 
       const conditions = [
         eq(schedulerRuns.orgId, filter.orgId),
@@ -68,9 +68,6 @@ export class CrewAssignmentProjectionAdapter implements ICrewAssignmentProjectio
       if (filter.roles?.length) {
         conditions.push(inArray(scheduleAssignments.role, filter.roles));
       }
-      if (filter.status?.length) {
-        conditions.push(inArray(scheduleAssignments.status, filter.status));
-      }
 
       const result = await db
         .select({
@@ -80,9 +77,9 @@ export class CrewAssignmentProjectionAdapter implements ICrewAssignmentProjectio
           vesselId: scheduleAssignments.vesselId,
           vesselName: vessels.name,
           date: scheduleAssignments.date,
-          shift: scheduleAssignments.shift,
+          shift: scheduleAssignments.shiftId,
           role: scheduleAssignments.role,
-          status: scheduleAssignments.status,
+          executed: scheduleAssignments.executed,
           runId: scheduleAssignments.runId,
         })
         .from(scheduleAssignments)
@@ -101,7 +98,7 @@ export class CrewAssignmentProjectionAdapter implements ICrewAssignmentProjectio
         date: formatDate(row.date),
         shift: mapShift(row.shift),
         role: row.role,
-        status: mapStatus(row.status),
+        status: mapStatus(row.executed ? "applied" : "proposed"),
         runId: row.runId,
         projectedAt: new Date().toISOString(),
       }));
@@ -142,9 +139,9 @@ export class CrewAssignmentProjectionAdapter implements ICrewAssignmentProjectio
           vesselId: scheduleAssignments.vesselId,
           vesselName: vessels.name,
           date: scheduleAssignments.date,
-          shift: scheduleAssignments.shift,
+          shift: scheduleAssignments.shiftId,
           role: scheduleAssignments.role,
-          status: scheduleAssignments.status,
+          executed: scheduleAssignments.executed,
           runId: scheduleAssignments.runId,
         })
         .from(scheduleAssignments)
@@ -153,8 +150,8 @@ export class CrewAssignmentProjectionAdapter implements ICrewAssignmentProjectio
         .where(
           and(
             eq(scheduleAssignments.crewId, crewId),
-            gte(scheduleAssignments.date, new Date(defaultStart)),
-            lte(scheduleAssignments.date, new Date(defaultEnd))
+            gte(scheduleAssignments.date, defaultStart),
+            lte(scheduleAssignments.date, defaultEnd)
           )
         )
         .orderBy(scheduleAssignments.date);
@@ -168,7 +165,7 @@ export class CrewAssignmentProjectionAdapter implements ICrewAssignmentProjectio
         date: formatDate(row.date),
         shift: mapShift(row.shift),
         role: row.role,
-        status: mapStatus(row.status),
+        status: mapStatus(row.executed ? "applied" : "proposed"),
         runId: row.runId,
         projectedAt: new Date().toISOString(),
       }));
@@ -198,9 +195,9 @@ export class CrewAssignmentProjectionAdapter implements ICrewAssignmentProjectio
           vesselId: scheduleAssignments.vesselId,
           vesselName: vessels.name,
           date: scheduleAssignments.date,
-          shift: scheduleAssignments.shift,
+          shift: scheduleAssignments.shiftId,
           role: scheduleAssignments.role,
-          status: scheduleAssignments.status,
+          executed: scheduleAssignments.executed,
           runId: scheduleAssignments.runId,
         })
         .from(scheduleAssignments)
@@ -209,8 +206,8 @@ export class CrewAssignmentProjectionAdapter implements ICrewAssignmentProjectio
         .where(
           and(
             eq(scheduleAssignments.vesselId, vesselId),
-            gte(scheduleAssignments.date, new Date(defaultStart)),
-            lte(scheduleAssignments.date, new Date(defaultEnd))
+            gte(scheduleAssignments.date, defaultStart),
+            lte(scheduleAssignments.date, defaultEnd)
           )
         )
         .orderBy(scheduleAssignments.date);
@@ -224,7 +221,7 @@ export class CrewAssignmentProjectionAdapter implements ICrewAssignmentProjectio
         date: formatDate(row.date),
         shift: mapShift(row.shift),
         role: row.role,
-        status: mapStatus(row.status),
+        status: mapStatus(row.executed ? "applied" : "proposed"),
         runId: row.runId,
         projectedAt: new Date().toISOString(),
       }));

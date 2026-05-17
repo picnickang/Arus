@@ -110,7 +110,7 @@ export class DatabaseVesselStorage {
       .select()
       .from(portCallTable)
       .where(and(eq(portCallTable.vesselId, vesselId), eq(portCallTable.orgId, orgId)))
-      .orderBy(sql`${portCallTable.arrivalDate} DESC`);
+      .orderBy(sql`${portCallTable.start} DESC`);
   }
   async getAllPortCalls(orgId?: string): Promise<PortCall[]> {
     return orgId
@@ -118,16 +118,16 @@ export class DatabaseVesselStorage {
           .select()
           .from(portCallTable)
           .where(eq(portCallTable.orgId, orgId))
-          .orderBy(sql`${portCallTable.arrivalDate} DESC`)
+          .orderBy(sql`${portCallTable.start} DESC`)
       : db
           .select()
           .from(portCallTable)
-          .orderBy(sql`${portCallTable.arrivalDate} DESC`);
+          .orderBy(sql`${portCallTable.start} DESC`);
   }
   async createPortCall(portCallData: InsertPortCall): Promise<PortCall> {
     const [n] = await db
       .insert(portCallTable)
-      .values({ id: randomUUID(), ...portCallData, createdAt: new Date(), updatedAt: new Date() })
+      .values({ id: randomUUID(), ...portCallData, createdAt: new Date() })
       .returning();
     return n;
   }
@@ -139,7 +139,7 @@ export class DatabaseVesselStorage {
     this.validateOrgId(orgId, "updatePortCall");
     const [updated] = await db
       .update(portCallTable)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates })
       .where(and(eq(portCallTable.id, id), eq(portCallTable.orgId, orgId)))
       .returning();
     if (!updated) {
@@ -160,7 +160,7 @@ export class DatabaseVesselStorage {
       .select()
       .from(drydockWindowTable)
       .where(and(eq(drydockWindowTable.vesselId, vesselId), eq(drydockWindowTable.orgId, orgId)))
-      .orderBy(sql`${drydockWindowTable.startDate} DESC`);
+      .orderBy(sql`${drydockWindowTable.start} DESC`);
   }
   async getAllDrydockWindows(orgId?: string): Promise<DrydockWindow[]> {
     return orgId
@@ -168,16 +168,16 @@ export class DatabaseVesselStorage {
           .select()
           .from(drydockWindowTable)
           .where(eq(drydockWindowTable.orgId, orgId))
-          .orderBy(sql`${drydockWindowTable.startDate} DESC`)
+          .orderBy(sql`${drydockWindowTable.start} DESC`)
       : db
           .select()
           .from(drydockWindowTable)
-          .orderBy(sql`${drydockWindowTable.startDate} DESC`);
+          .orderBy(sql`${drydockWindowTable.start} DESC`);
   }
   async createDrydockWindow(window: InsertDrydockWindow): Promise<DrydockWindow> {
     const [n] = await db
       .insert(drydockWindowTable)
-      .values({ id: randomUUID(), ...window, createdAt: new Date(), updatedAt: new Date() })
+      .values({ id: randomUUID(), ...window, createdAt: new Date() })
       .returning();
     return n;
   }
@@ -189,7 +189,7 @@ export class DatabaseVesselStorage {
     this.validateOrgId(orgId, "updateDrydockWindow");
     const [updated] = await db
       .update(drydockWindowTable)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates })
       .where(and(eq(drydockWindowTable.id, id), eq(drydockWindowTable.orgId, orgId)))
       .returning();
     if (!updated) {

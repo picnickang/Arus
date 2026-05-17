@@ -321,7 +321,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
       trend,
       signals: signals.slice(0, 10),
       telemetry,
-      lastService: workOrders.find((wo) => wo.status === "completed")?.completedAt || null,
+      lastService: (workOrders.find((wo) => wo.status === "completed") as any)?.actualEndDate || null,
       nextDue:
         workOrders.find(
           (wo) => wo.status === "scheduled" || wo.status === "pending" || wo.status === "open"
@@ -339,7 +339,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
         description: workOrders.description,
         status: workOrders.status,
         createdAt: workOrders.createdAt,
-        completedAt: workOrders.completedAt,
+        completedAt: workOrders.actualEndDate,
       })
       .from(workOrders)
       .where(and(eq(workOrders.equipmentId, equipmentId), eq(workOrders.orgId, orgId)))

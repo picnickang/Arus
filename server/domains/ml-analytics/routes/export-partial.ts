@@ -46,7 +46,7 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
           return {
             id: m.id,
             name: m.name,
-            type: m.modelType,
+            type: (m as any).type,
             equipmentType: m.equipmentType,
             status: m.status,
             version: m.version,
@@ -65,7 +65,7 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
           ...enrichedModels.map((mRaw) => {
             const m = mRaw as typeof mRaw & { performanceMetrics?: unknown; deployedAt?: Date | null };
             const perf = (m.performanceMetrics ?? {}) as Record<string, unknown>;
-            return `${m.id},${m.name},${m.modelType},${m.equipmentType || ""},${m.status},${m.version},${perf.accuracy || ""},${perf.precision || ""},${perf.recall || ""},${perf.f1Score || ""},${(m as any).deployedOn ?? m.deployedAt ?? ""},${m.createdAt}`;
+            return `${m.id},${m.name},${(m as any).type},${m.equipmentType || ""},${m.status},${m.version},${perf.accuracy || ""},${perf.precision || ""},${perf.recall || ""},${perf.f1Score || ""},${(m as any).deployedOn ?? m.deployedAt ?? ""},${m.createdAt}`;
           }),
         ].join("\n");
 

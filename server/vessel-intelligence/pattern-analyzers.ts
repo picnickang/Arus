@@ -21,7 +21,7 @@ export function analyzeFailurePatterns(
   const patterns: VesselPattern[] = [];
 
   const failureOrders = workOrders.filter(
-    (wo) => (wo.type as any) === "corrective" || (wo.priority as any) === "critical" || (wo.priority as any) === "urgent"
+    (wo) => ((wo as any).workOrderType) === "corrective" || (wo.priority as any) === "critical" || (wo.priority as any) === "urgent"
   );
 
   const equipmentFailures = new Map<string, WorkOrder[]>();
@@ -65,7 +65,7 @@ export function analyzeMaintenancePatterns(
   const patterns: VesselPattern[] = [];
 
   const scheduledWork = workOrders.filter(
-    (wo) => wo.type === "scheduled" || wo.type === "preventive"
+    (wo) => (wo as any).workOrderType === "scheduled" || (wo as any).workOrderType === "preventive"
   );
 
   if (scheduledWork.length > 0) {

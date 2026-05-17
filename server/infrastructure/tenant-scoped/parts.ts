@@ -140,13 +140,13 @@ export class PartsRepository extends TenantScopedRepository {
   async create(data: Omit<any, "id" | "orgId">) {
     const { parts } = await import("@shared/schema");
 
-    const [created] = await db
+    const [created] = (await db
       .insert(parts as any)
       .values({
         ...data,
         orgId: this.orgId,
-      })
-      .returning();
+      } as any)
+      .returning()) as any[];
 
     return created;
   }

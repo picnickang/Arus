@@ -319,9 +319,9 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
 
       const mlModels = await dbMlAnalyticsStorage.getMlModels(orgId);
       const modelCounts = {
-        lstm: mlModels.filter((m) => m.modelType === "lstm").length,
-        randomForest: mlModels.filter((m) => m.modelType === "random_forest").length,
-        xgboost: mlModels.filter((m) => m.modelType === "xgboost").length,
+        lstm: mlModels.filter((m) => (m as any).type === "lstm").length,
+        randomForest: mlModels.filter((m) => (m as any).type === "random_forest").length,
+        xgboost: mlModels.filter((m) => (m as any).type === "xgboost").length,
       };
 
       const allCircuitsClosed = Object.values(circuitBreakers).every(

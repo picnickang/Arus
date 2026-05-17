@@ -72,8 +72,6 @@ export const mlModels = pgTable(
     recall: numeric("recall", { precision: 5, scale: 2 }),
     f1Score: numeric("f1_score", { precision: 5, scale: 2 }),
     trainedOn: timestamp("trained_on", { mode: "date" }),
-    trainedAt: timestamp("trained_at", { mode: "date" }),
-    modelType: varchar("model_type", { length: 50 }),
     deployedOn: timestamp("deployed_on", { mode: "date" }),
     archivedOn: timestamp("archived_on", { mode: "date" }),
     dataPoints: integer("data_points"),

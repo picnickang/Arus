@@ -212,8 +212,9 @@ export async function applySensorConfiguration(
       maxValue?: number | null;
     };
 
-    if (config.scaleFactor && config.scaleFactor !== 1) {
-      processedValue = value * config.scaleFactor;
+    const gain = (config as any).gain as number | null | undefined;
+    if (gain && gain !== 1) {
+      processedValue = value * gain;
       flags.push("scaled");
     }
 

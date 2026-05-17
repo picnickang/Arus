@@ -67,7 +67,7 @@ export const assetTwinState = pgTable(
     twinId: varchar("twin_id")
       .references(() => assetTwins.id)
       .notNull(),
-    timestamp: timestamp("timestamp", { mode: "date" }).defaultNow().notNull(),
+    timestamp: timestamp("timestamp", { mode: "date" }).defaultNow(),
     observedValues: jsonb("observed_values").notNull(),
     expectedValues: jsonb("expected_values").notNull(),
     healthScore: real("health_score"),

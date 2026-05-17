@@ -143,7 +143,7 @@ export function registerExportCompleteRoutes(app: Express, config: MlAnalyticsCo
             return [
               escapeCsv(m.id),
               escapeCsv(m.name),
-              escapeCsv(m.modelType),
+              escapeCsv((m as any).type),
               escapeCsv(m.equipmentType || "all"),
               escapeCsv(m.status),
               escapeCsv(m.version),

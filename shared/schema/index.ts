@@ -24,7 +24,6 @@ export * from "./rag";
 export * from "./insights";
 export * from "./optimizer";
 export * from "./permissions";
-export * from "./email-templates";
 export * from "./logbooks";
 export * from "./admin";
 export * from "./costs";

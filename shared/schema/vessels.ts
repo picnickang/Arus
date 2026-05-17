@@ -89,45 +89,40 @@ export const weatherCache = pgTable(
 );
 
 // Port calls for voyage tracking
-export const portCall = pgTable("port_calls", {
+export const portCall = pgTable("port_call", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
-  vesselId: varchar("vessel_id")
-    .notNull()
-    .references(() => vessels.id),
   orgId: varchar("org_id")
     .notNull()
     .references(() => organizations.id),
-  portName: text("port_name").notNull(),
-  portCode: text("port_code"),
-  arrivalDate: timestamp("arrival_date", { mode: "date" }),
-  departureDate: timestamp("departure_date", { mode: "date" }),
-  purpose: text("purpose"),
-  status: text("status").default("scheduled"),
+  vesselId: varchar("vessel_id")
+    .notNull()
+    .references(() => vessels.id),
+  port: text("port"),
+  start: timestamp("start", { mode: "date" }),
+  end: timestamp("end", { mode: "date" }),
+  status: text("status"),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
 });
 
 // Drydock windows for maintenance planning
-export const drydockWindow = pgTable("drydock_windows", {
+export const drydockWindow = pgTable("drydock_window", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
-  vesselId: varchar("vessel_id")
-    .notNull()
-    .references(() => vessels.id),
   orgId: varchar("org_id")
     .notNull()
     .references(() => organizations.id),
-  startDate: timestamp("start_date", { mode: "date" }).notNull(),
-  endDate: timestamp("end_date", { mode: "date" }).notNull(),
-  yardName: text("yard_name"),
-  scope: text("scope"),
-  status: text("status").default("planned"),
-  estimatedCost: real("estimated_cost"),
+  vesselId: varchar("vessel_id")
+    .notNull()
+    .references(() => vessels.id),
+  yard: text("yard"),
+  start: timestamp("start", { mode: "date" }),
+  end: timestamp("end", { mode: "date" }),
+  workType: text("work_type"),
+  status: text("status"),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
 });
 
 // Insert schemas
@@ -148,13 +143,11 @@ export const insertWeatherCacheSchema = createInsertSchema(weatherCache).omit({
 export const insertPortCallSchema = createInsertSchema(portCall).omit({
   id: true,
   createdAt: true,
-  updatedAt: true,
 });
 
 export const insertDrydockWindowSchema = createInsertSchema(drydockWindow).omit({
   id: true,
   createdAt: true,
-  updatedAt: true,
 });
 
 // Types

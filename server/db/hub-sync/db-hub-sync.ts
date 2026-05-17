@@ -205,7 +205,7 @@ export class DatabaseHubSyncStorage {
     const [r] = await db
       .select()
       .from(deviceRegistry)
-      .where(and(eq(deviceRegistry.deviceId, deviceId), eq(deviceRegistry.orgId, orgId)))
+      .where(and(eq(deviceRegistry.id, deviceId), eq(deviceRegistry.orgId, orgId)))
       .limit(1);
     return r;
   }
@@ -215,8 +215,8 @@ export class DatabaseHubSyncStorage {
       .insert(deviceRegistry)
       .values(data)
       .onConflictDoUpdate({
-        target: [deviceRegistry.deviceId, deviceRegistry.orgId],
-        set: { ...data, lastSyncAt: new Date(), updatedAt: new Date() } as any,
+        target: deviceRegistry.id,
+        set: data,
       })
       .returning();
     return r;
@@ -226,16 +226,12 @@ export class DatabaseHubSyncStorage {
   // Replay Requests
   // ──────────────────────────────────────────────────────────────────────
 
-  async getReplayRequests(deviceId: string, status?: string): Promise<ReplayIncoming[]> {
-    const c = [eq(replayIncoming.deviceId, deviceId)];
-    if (status) {
-      c.push(eq(replayIncoming.status, status));
-    }
+  async getReplayRequests(deviceId: string, _status?: string): Promise<ReplayIncoming[]> {
     return db
       .select()
       .from(replayIncoming)
-      .where(and(...c))
-      .orderBy(desc(replayIncoming.createdAt));
+      .where(eq(replayIncoming.deviceId, deviceId))
+      .orderBy(desc(replayIncoming.receivedAt));
   }
 
   async createReplayRequest(data: InsertReplayIncoming): Promise<ReplayIncoming> {
@@ -249,7 +245,7 @@ export class DatabaseHubSyncStorage {
   ): Promise<ReplayIncoming> {
     const [r] = await db
       .update(replayIncoming)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates })
       .where(eq(replayIncoming.id, id))
       .returning();
     if (!r) {
@@ -263,10 +259,11 @@ export class DatabaseHubSyncStorage {
   // ──────────────────────────────────────────────────────────────────────
 
   async getSheetLock(sheetType: string, sheetId: string): Promise<SheetLock | undefined> {
+    const key = `${sheetType}:${sheetId}`;
     const [r] = await db
       .select()
       .from(sheetLock)
-      .where(and(eq(sheetLock.sheetType, sheetType), eq(sheetLock.sheetId, sheetId)))
+      .where(eq(sheetLock.sheetKey, key))
       .limit(1);
     return r;
   }
@@ -276,17 +273,16 @@ export class DatabaseHubSyncStorage {
       .insert(sheetLock)
       .values(data)
       .onConflictDoUpdate({
-        target: [sheetLock.sheetType, sheetLock.sheetId],
-        set: { ...data, updatedAt: new Date() },
+        target: sheetLock.sheetKey,
+        set: data,
       })
       .returning();
     return r;
   }
 
   async releaseSheetLock(sheetType: string, sheetId: string): Promise<void> {
-    await db
-      .delete(sheetLock)
-      .where(and(eq(sheetLock.sheetType, sheetType), eq(sheetLock.sheetId, sheetId)));
+    const key = `${sheetType}:${sheetId}`;
+    await db.delete(sheetLock).where(eq(sheetLock.sheetKey, key));
   }
 
   // ──────────────────────────────────────────────────────────────────────
@@ -294,34 +290,39 @@ export class DatabaseHubSyncStorage {
   // ──────────────────────────────────────────────────────────────────────
 
   async getSheetVersion(sheetType: string, sheetId: string): Promise<SheetVersion | undefined> {
+    const key = `${sheetType}:${sheetId}`;
     const [r] = await db
       .select()
       .from(sheetVersion)
-      .where(and(eq(sheetVersion.sheetType, sheetType), eq(sheetVersion.sheetId, sheetId)))
+      .where(eq(sheetVersion.sheetKey, key))
       .limit(1);
     return r;
   }
 
   async incrementSheetVersion(data: InsertSheetVersion): Promise<SheetVersion> {
-    const existing = await this.getSheetVersion(data.sheetType!, data.sheetId!);
-    if (existing) {
+    const d = data as any;
+    const sheetType: string = d.sheetType ?? "";
+    const sheetId: string = d.sheetId ?? "";
+    const key: string = d.sheetKey ?? `${sheetType}:${sheetId}`;
+    const existing = await db
+      .select()
+      .from(sheetVersion)
+      .where(eq(sheetVersion.sheetKey, key))
+      .limit(1);
+    if (existing[0]) {
       const [r] = await db
         .update(sheetVersion)
         .set({
-          version: (existing.version ?? 0) + 1,
-          lastModifiedBy: data.lastModifiedBy,
-          lastModifiedDevice: data.lastModifiedDevice,
-          updatedAt: new Date(),
+          version: (existing[0].version ?? 0) + 1,
+          lastModifiedBy: d.lastModifiedBy,
         } as any)
-        .where(
-          and(eq(sheetVersion.sheetType, data.sheetType!), eq(sheetVersion.sheetId, data.sheetId!))
-        )
+        .where(eq(sheetVersion.sheetKey, key))
         .returning();
       return r;
     }
     const [r] = await db
       .insert(sheetVersion)
-      .values({ ...data, version: 1 } as any)
+      .values({ ...data, sheetKey: key, version: 1 } as any)
       .returning();
     return r;
   }

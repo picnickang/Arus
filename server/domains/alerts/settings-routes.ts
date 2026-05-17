@@ -13,12 +13,6 @@ import {
   insertAlertThresholdSchema,
   insertCrewAlertSettingsSchema,
 } from "@shared/schema";
-import {
-  insertEmailTemplateVariableSchema,
-  emailTemplateVariables,
-} from "@shared/schema/email-templates.js";
-import { db } from "../../db";
-import { eq, and } from "drizzle-orm";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import type { AuthenticatedRequest } from "../../middleware/auth";
@@ -346,66 +340,19 @@ export function registerAlertSettingsRoutes(
     })
   );
 
-  // Custom Email Template Variables CRUD
-  app.get(
-    "/api/email-template-variables",
-    generalApiRateLimit,
-    withErrorHandling("get email template variables", async (req: Request, res: Response) => {
-      const orgId = getOrgId(req);
-      const variables = await db
-        .select()
-        .from(emailTemplateVariables)
-        .where(eq(emailTemplateVariables.orgId, orgId));
-      res.json(variables);
-    })
-  );
-
-  app.post(
-    "/api/email-template-variables",
-    writeOperationRateLimit,
-    withErrorHandling("create email template variable", async (req: Request, res: Response) => {
-      const orgId = getOrgId(req);
-      const data = insertEmailTemplateVariableSchema.parse({ ...req.body, orgId });
-      const [variable] = await db.insert(emailTemplateVariables).values(data).returning();
-      res.status(201).json(variable);
-    })
-  );
-
-  app.patch(
-    "/api/email-template-variables/:id",
-    writeOperationRateLimit,
-    withErrorHandling("update email template variable", async (req: Request, res: Response) => {
-      const orgId = getOrgId(req);
-      const { id } = req.params;
-      const { name, value, description } = req.body;
-      const [variable] = await db
-        .update(emailTemplateVariables)
-        .set({ name, value, description, updatedAt: new Date() })
-        .where(and(eq(emailTemplateVariables.id, id), eq(emailTemplateVariables.orgId, orgId)))
-        .returning();
-      if (!variable) {
-        return sendNotFound(res, "Email template variable");
-      }
-      res.json(variable);
-    })
-  );
-
-  app.delete(
-    "/api/email-template-variables/:id",
-    writeOperationRateLimit,
-    withErrorHandling("delete email template variable", async (req: Request, res: Response) => {
-      const orgId = getOrgId(req);
-      const { id } = req.params;
-      const [deleted] = await db
-        .delete(emailTemplateVariables)
-        .where(and(eq(emailTemplateVariables.id, id), eq(emailTemplateVariables.orgId, orgId)))
-        .returning();
-      if (!deleted) {
-        return sendNotFound(res, "Email template variable");
-      }
-      res.json({ success: true });
-    })
-  );
+  // NOTE: The email_template_variables table does not exist in PostgreSQL.
+  // These endpoints return 501 Not Implemented until the table is provisioned
+  // or the feature is removed from the client.
+  const notImplemented = (_req: Request, res: Response) => {
+    res.status(501).json({
+      message:
+        "Email template variables are not provisioned in this environment (email_template_variables table is missing).",
+    });
+  };
+  app.get("/api/email-template-variables", generalApiRateLimit, notImplemented);
+  app.post("/api/email-template-variables", writeOperationRateLimit, notImplemented);
+  app.patch("/api/email-template-variables/:id", writeOperationRateLimit, notImplemented);
+  app.delete("/api/email-template-variables/:id", writeOperationRateLimit, notImplemented);
 
   logger.info("AlertSettingsRoutes", "Registered");
 }

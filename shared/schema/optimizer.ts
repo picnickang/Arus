@@ -142,16 +142,15 @@ export const scheduleAssignments = pgTable("schedule_assignments", {
   runId: varchar("run_id")
     .notNull()
     .references(() => schedulerRuns.id),
+  orgId: varchar("org_id").notNull(),
   crewId: varchar("crew_id").notNull(),
   shiftId: varchar("shift_id").notNull(),
-  shift: text("shift"),
-  date: timestamp("date", { mode: "date" }).notNull(),
-  assignmentType: text("assignment_type").notNull(),
+  date: varchar("date").notNull(),
   vesselId: varchar("vessel_id"),
+  start: timestamp("start", { mode: "date" }).notNull(),
+  end: timestamp("end", { mode: "date" }).notNull(),
   role: text("role"),
-  status: text("status"),
-  score: real("score"),
-  reason: text("reason"),
+  executed: boolean("executed").default(false),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
 });
 
@@ -163,10 +162,11 @@ export const scheduleUnfilled = pgTable("schedule_unfilled", {
   runId: varchar("run_id")
     .notNull()
     .references(() => schedulerRuns.id),
+  orgId: varchar("org_id").notNull(),
+  day: varchar("day").notNull(),
   shiftId: varchar("shift_id").notNull(),
-  date: timestamp("date", { mode: "date" }).notNull(),
+  need: integer("need").notNull(),
   reason: text("reason").notNull(),
-  requiredSkills: text("required_skills").array(),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
 });
 

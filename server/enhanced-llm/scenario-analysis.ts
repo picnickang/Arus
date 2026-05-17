@@ -70,7 +70,7 @@ export async function calculateROI(
 ): Promise<EnhancedAnalysisOutput["roi"]> {
   const workOrders = context.data.workOrders ?? [];
   const avgCost =
-    workOrders.reduce((sum, wo) => sum + (wo.estimatedCost ?? 0), 0) /
+    workOrders.reduce((sum, wo) => sum + ((Number((wo as any).estimatedCostPerHour ?? 0) || 0) * (Number((wo as any).estimatedHours ?? 0) || 0)), 0) /
     Math.max(workOrders.length, 1);
 
   const criticalCount = workOrders.filter((wo) => (wo as any).priority === "critical").length;

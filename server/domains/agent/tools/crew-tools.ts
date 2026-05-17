@@ -125,9 +125,9 @@ registerTool({
         id: a.id,
         crewId: a.crewId,
         shiftId: a.shiftId,
-        assignmentType: a.assignmentType,
+        assignmentType: (a as any).assignmentType,
         date: a.date,
-        score: a.score,
+        score: (a as any).score,
       })),
     };
   },

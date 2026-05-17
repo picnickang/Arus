@@ -766,8 +766,6 @@ export const vesselTrackLog = pgTable(
     timestamp: timestamp("timestamp", { mode: "date" }).notNull(),
     latitude: real("latitude").notNull(),
     longitude: real("longitude").notNull(),
-    speedOverGround: real("speed_over_ground"),
-    courseOverGround: real("course_over_ground"),
     heading: real("heading"),
     sog: real("sog"),
     cog: real("cog"),
@@ -805,18 +803,11 @@ export const conditionLogSummary = pgTable(
     vesselId: varchar("vessel_id")
       .notNull()
       .references(() => vessels.id),
-    logDate: text("log_date").notNull(),
     equipmentId: varchar("equipment_id").references(() => equipment.id),
-    equipmentName: text("equipment_name"),
-    conditionScore: real("condition_score"),
-    healthIndicator: text("health_indicator"),
-    keyMetrics: jsonb("key_metrics").$type<Record<string, number>>(),
-    alerts: jsonb("alerts").$type<string[]>(),
-    recommendations: jsonb("recommendations").$type<string[]>(),
     healthGrade: text("health_grade"),
     conditionRating: text("condition_rating"),
     healthIndex: real("health_index"),
-    rulDays: real("rul_days"),
+    rulDays: integer("rul_days"),
     periodStart: timestamp("period_start", { mode: "date" }),
     periodEnd: timestamp("period_end", { mode: "date" }),
     vibrationRmsAvg: real("vibration_rms_avg"),
@@ -826,7 +817,7 @@ export const conditionLogSummary = pgTable(
   },
   (table) => ({
     orgIdIdx: index("idx_condition_log_org").on(table.orgId),
-    vesselDateIdx: index("idx_condition_log_vessel_date").on(table.vesselId, table.logDate),
+    vesselIdx: index("idx_condition_log_vessel").on(table.vesselId),
     equipmentIdx: index("idx_condition_log_equipment").on(table.equipmentId),
   })
 );

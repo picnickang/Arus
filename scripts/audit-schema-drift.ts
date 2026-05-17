@@ -119,22 +119,32 @@ function dumpDrizzleSchema(): Map<string, DrizzleTable> {
 }
 
 function normalizeDbType(t: string): string {
-  return t
+  const lower = t.toLowerCase();
+  return lower
     .replace(/^character varying.*/, "varchar")
     .replace(/^character.*/, "char")
     .replace(/^timestamp.*/, "timestamp")
+    .replace(/^time with.*/, "time")
+    .replace(/^time without.*/, "time")
     .replace(/^double precision/, "double")
     .replace(/^integer$/, "int")
-    .toLowerCase();
+    .replace(/^smallint$/, "int")
+    .replace(/^array$/, "array");
 }
 
 function normalizeDrizzleType(t: string): string {
   return t
+    .toLowerCase()
     .replace(/^varchar.*/, "varchar")
     .replace(/^text.*/, "text")
     .replace(/^integer/, "int")
+    .replace(/^smallint/, "int")
     .replace(/^bigint/, "bigint")
+    .replace(/^serial$/, "int")
+    .replace(/^bigserial$/, "bigint")
+    .replace(/^smallserial$/, "int")
     .replace(/^numeric.*/, "numeric")
+    .replace(/^decimal.*/, "numeric")
     .replace(/^timestamp.*/, "timestamp")
     .replace(/^date$/, "date")
     .replace(/^boolean/, "boolean")
@@ -142,10 +152,16 @@ function normalizeDrizzleType(t: string): string {
     .replace(/^json$/, "json")
     .replace(/^real/, "real")
     .replace(/^double precision/, "double")
-    .toLowerCase();
+    .replace(/^vector.*/, "vector");
 }
 
 function typesCompatible(dbType: string, drizzleType: string): boolean {
+  // Postgres reports any array column as `ARRAY` in information_schema.data_type;
+  // any Drizzle column type ending in `[]` is an array and therefore compatible.
+  // Check this BEFORE normalization (normalization strips the `[]` suffix).
+  if (dbType.toLowerCase() === "array" && drizzleType.toLowerCase().endsWith("[]")) {
+    return true;
+  }
   const a = normalizeDbType(dbType);
   const b = normalizeDrizzleType(drizzleType);
   if (a === b) return true;
@@ -154,6 +170,8 @@ function typesCompatible(dbType: string, drizzleType: string): boolean {
     ["timestamp", "timestamp"],
     ["int", "int"],
     ["bigint", "bigint"],
+    ["bigint", "int"],
+    ["int", "bigint"],
     ["text", "text"],
     ["varchar", "varchar"],
     ["varchar", "text"],
@@ -163,6 +181,8 @@ function typesCompatible(dbType: string, drizzleType: string): boolean {
     ["double", "real"],
     ["real", "double"],
     ["numeric", "numeric"],
+    ["numeric", "real"],
+    ["real", "numeric"],
     ["boolean", "boolean"],
     ["jsonb", "jsonb"],
     ["json", "json"],
@@ -172,6 +192,7 @@ function typesCompatible(dbType: string, drizzleType: string): boolean {
     ["uuid", "uuid"],
     ["uuid", "varchar"],
     ["varchar", "uuid"],
+    ["vector", "vector"],
   ];
   return pairs.some(([x, y]) => a.startsWith(x) && b.startsWith(y));
 }

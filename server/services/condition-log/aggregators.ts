@@ -21,11 +21,11 @@ export async function aggregateVibrationData(
 ): Promise<VibrationAggregation | null> {
   const features = await db
     .select({
-      rmsAvg: sql<number>`avg(${vibrationFeatures.rmsValue})`,
-      rmsMax: sql<number>`max(${vibrationFeatures.rmsValue})`,
-      rmsMin: sql<number>`min(${vibrationFeatures.rmsValue})`,
-      peakAvg: sql<number>`avg(${vibrationFeatures.peakValue})`,
-      peakMax: sql<number>`max(${vibrationFeatures.peakValue})`,
+      rmsAvg: sql<number>`avg(${vibrationFeatures.rms})`,
+      rmsMax: sql<number>`max(${vibrationFeatures.rms})`,
+      rmsMin: sql<number>`min(${vibrationFeatures.rms})`,
+      peakAvg: sql<number>`avg(${vibrationFeatures.rms} * coalesce(${vibrationFeatures.crestFactor}, 1))`,
+      peakMax: sql<number>`max(${vibrationFeatures.rms} * coalesce(${vibrationFeatures.crestFactor}, 1))`,
       crestFactor: sql<number>`avg(${vibrationFeatures.crestFactor})`,
       kurtosis: sql<number>`avg(${vibrationFeatures.kurtosis})`,
     })
@@ -46,8 +46,8 @@ export async function aggregateVibrationData(
       and(
         eq(vibrationAnalysis.orgId, orgId),
         eq(vibrationAnalysis.equipmentId, equipmentId),
-        gte(vibrationAnalysis.analysisTimestamp, periodStart),
-        lte(vibrationAnalysis.analysisTimestamp, periodEnd)
+        gte(vibrationAnalysis.createdAt, periodStart),
+        lte(vibrationAnalysis.createdAt, periodEnd)
       )
     );
 

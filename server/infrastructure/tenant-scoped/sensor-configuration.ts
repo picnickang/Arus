@@ -62,13 +62,13 @@ export class SensorConfigurationRepository extends TenantScopedRepository {
   async create(data: Omit<any, "id" | "orgId">) {
     const { sensorConfigurations } = await import("@shared/schema");
 
-    const [created] = await db
+    const [created] = (await db
       .insert(sensorConfigurations as any)
       .values({
         ...data,
         orgId: this.orgId,
-      })
-      .returning();
+      } as any)
+      .returning()) as any[];
 
     return created;
   }

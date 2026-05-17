@@ -5,6 +5,17 @@ import { eq, and, desc } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { beastModeManager } from "../beast-mode-config";
 import type { VibrationAnalysis } from "@shared/schema";
+
+export type EnrichedVibrationAnalysis = VibrationAnalysis & {
+  timestamp: Date;
+  dominantFrequency: number;
+  dominantMagnitude: number;
+  anomalyScore: number;
+  anomalyType: string;
+  healthScore: number;
+  isAnomalous: boolean;
+  confidence: number;
+};
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("VibrationAnalysis:Analyzer");
 
@@ -20,7 +31,7 @@ export class VibrationAnalyzer {
   async analyzeVibration(
     equipmentId: string,
     orgId: string = "default-org-id"
-  ): Promise<VibrationAnalysis | null> {
+  ): Promise<EnrichedVibrationAnalysis | null> {
     try {
       const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "vibration_analysis");
       if (!isEnabled) {
@@ -38,11 +49,11 @@ export class VibrationAnalyzer {
       const anomalyDetection = detectAnomalies(fftResult);
       const healthScore = calculateHealthScore(fftResult, anomalyDetection);
 
-      const analysis: Omit<VibrationAnalysis, "id" | "createdAt"> = {
-        overallRms: 0,
-        analysisTimestamp: new Date(),
+      const insertRow = {
+        id: randomUUID(),
         orgId,
         equipmentId,
+        overallRms: 0,
         sampleRate: this.sampleRate,
         shaftRpm: null,
         windowType: "hann",
@@ -53,33 +64,25 @@ export class VibrationAnalyzer {
         }),
         isoBands: JSON.stringify(calculateISOBands(fftResult)),
         faultBands: JSON.stringify(calculateFaultBands(fftResult, anomalyDetection)),
+        createdAt: new Date(),
+      };
+
+      const [savedAnalysis] = await db
+        .insert(vibrationAnalysis)
+        .values(insertRow)
+        .returning();
+      logger.info(`[Vibration Analysis] Analysis completed for ${equipmentId}: ${anomalyDetection.isAnomalous ? "ANOMALY DETECTED" : "NORMAL"} (score: ${anomalyDetection.anomalyScore.toFixed(2)})`);
+      return {
+        ...savedAnalysis,
+        timestamp: savedAnalysis.createdAt ?? new Date(),
         dominantFrequency: fftResult.dominantFreq,
         dominantMagnitude: fftResult.dominantMagnitude,
-        harmonics: JSON.stringify(fftResult.harmonics),
         anomalyScore: anomalyDetection.anomalyScore,
         anomalyType: anomalyDetection.anomalyType,
         healthScore,
         isAnomalous: anomalyDetection.isAnomalous,
         confidence: anomalyDetection.confidence,
-        analysisConfig: JSON.stringify({
-          sampleRate: this.sampleRate,
-          windowSize: this.windowSize,
-          dataPoints: vibrationData.length,
-          algorithm: "FFT-based anomaly detection v1.0",
-        }),
-        timestamp: new Date(),
       };
-
-      const [savedAnalysis] = await db
-        .insert(vibrationAnalysis)
-        .values({
-          id: randomUUID(),
-          ...analysis,
-          createdAt: new Date(),
-        })
-        .returning();
-      logger.info(`[Vibration Analysis] Analysis completed for ${equipmentId}: ${anomalyDetection.isAnomalous ? "ANOMALY DETECTED" : "NORMAL"} (score: ${anomalyDetection.anomalyScore.toFixed(2)})`);
-      return savedAnalysis;
     } catch (error) {
       logger.error(`[Vibration Analysis] Error analyzing ${equipmentId}:`, undefined, error);
       return null;
@@ -110,20 +113,39 @@ export class VibrationAnalyzer {
     equipmentId: string,
     orgId: string = "default-org-id",
     limit: number = 50
-  ): Promise<VibrationAnalysis[]> {
+  ): Promise<EnrichedVibrationAnalysis[]> {
     try {
       const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "vibration_analysis");
       if (!isEnabled) {
         return [];
       }
-      return db
+      const rows = await db
         .select()
         .from(vibrationAnalysis)
         .where(
           and(eq(vibrationAnalysis.orgId, orgId), eq(vibrationAnalysis.equipmentId, equipmentId))
         )
-        .orderBy(desc(vibrationAnalysis.timestamp))
+        .orderBy(desc(vibrationAnalysis.createdAt))
         .limit(limit);
+      return rows.map((row) => {
+        let faultBands: any = {};
+        try {
+          faultBands = row.faultBands ? JSON.parse(row.faultBands as string) : {};
+        } catch {
+          faultBands = {};
+        }
+        return {
+          ...row,
+          timestamp: row.createdAt ?? new Date(),
+          dominantFrequency: Number(faultBands.dominantFreq ?? 0),
+          dominantMagnitude: Number(faultBands.dominantMagnitude ?? 0),
+          anomalyScore: Number(faultBands.anomalyScore ?? 0),
+          anomalyType: String(faultBands.anomalyType ?? "normal"),
+          healthScore: Number(faultBands.healthScore ?? 100),
+          isAnomalous: Boolean(faultBands.isAnomalous ?? false),
+          confidence: Number(faultBands.confidence ?? 0),
+        };
+      });
     } catch (error) {
       logger.error(`[Vibration Analysis] Error getting history for ${equipmentId}:`, undefined, error);
       return [];
@@ -133,8 +155,8 @@ export class VibrationAnalyzer {
   async batchAnalyze(
     equipmentIds: string[],
     orgId: string = "default-org-id"
-  ): Promise<VibrationAnalysis[]> {
-    const results: VibrationAnalysis[] = [];
+  ): Promise<EnrichedVibrationAnalysis[]> {
+    const results: EnrichedVibrationAnalysis[] = [];
     for (const equipmentId of equipmentIds) {
       const analysis = await this.analyzeVibration(equipmentId, orgId);
       if (analysis) {

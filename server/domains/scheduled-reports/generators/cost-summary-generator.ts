@@ -68,10 +68,15 @@ export class CostSummaryGenerator implements ICostSummaryGenerator {
         let actualCost = 0;
 
         for (const wo of workOrders) {
-          const completedDate = wo.completedAt ? new Date(wo.completedAt) : null;
+          const w = wo as any;
+          const completedDate = w.actualEndDate ? new Date(w.actualEndDate) : null;
           if (completedDate && completedDate >= startDate && completedDate <= endDate) {
-            plannedCost += (wo as any).estimatedCost || 0;
-            actualCost += (wo as any).actualCost || (wo as any).estimatedCost || 0;
+            const plannedRate = Number(w.estimatedCostPerHour ?? 0) || 0;
+            const actualRate = Number(w.actualCostPerHour ?? plannedRate) || 0;
+            const plannedHours = Number(w.estimatedHours ?? 0) || 0;
+            const actualHours = Number(w.actualHours ?? plannedHours) || 0;
+            plannedCost += plannedRate * plannedHours;
+            actualCost += actualRate * actualHours;
           }
         }
 
@@ -111,10 +116,13 @@ export class CostSummaryGenerator implements ICostSummaryGenerator {
         });
 
         for (const wo of workOrders) {
-          const completedDate = wo.completedAt ? new Date(wo.completedAt) : null;
+          const w = wo as any;
+          const completedDate = w.actualEndDate ? new Date(w.actualEndDate) : null;
           if (completedDate && completedDate >= startDate && completedDate <= endDate) {
-            const category = (wo as any).category || "Other";
-            const cost = (wo as any).actualCost || (wo as any).estimatedCost || 0;
+            const category = w.workOrderType || "Other";
+            const rate = Number(w.actualCostPerHour ?? w.estimatedCostPerHour ?? 0) || 0;
+            const hours = Number(w.actualHours ?? w.estimatedHours ?? 0) || 0;
+            const cost = rate * hours;
             categoryTotals[category] = (categoryTotals[category] || 0) + cost;
           }
         }

@@ -458,9 +458,9 @@ export function getWorkOrderDuration(order: WorkOrder & { actualDuration?: numbe
       const minutes = m % 60;
       return `${h}h ${minutes}m`;
     }
-    if (order.actualStartDate && order.completedAt) {
+    if (order.actualStartDate && (order as any).actualEndDate) {
       const start = new Date(order.actualStartDate).getTime();
-      const end = new Date(order.completedAt).getTime();
+      const end = new Date((order as any).actualEndDate).getTime();
       const m = Math.max(0, Math.round((end - start) / (1000 * 60)));
       const h = Math.floor(m / 60);
       const minutes = m % 60;

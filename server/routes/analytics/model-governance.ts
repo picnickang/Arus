@@ -36,7 +36,7 @@ export function mountModelGovernanceRoutes(router: Router) {
         async () => {
           const filters = [eq(mlModels.orgId, orgId)];
           if (modelType) {
-            filters.push(eq(mlModels.modelType, modelType as string));
+            filters.push(eq(mlModels.type, modelType as string));
           }
           if (status) {
             filters.push(eq(mlModels.status, status as any));
@@ -45,7 +45,7 @@ export function mountModelGovernanceRoutes(router: Router) {
             .select()
             .from(mlModels)
             .where(and(...filters))
-            .orderBy(sql`${mlModels.trainedAt} DESC`);
+            .orderBy(sql`${mlModels.trainedOn} DESC`);
           return {
             results: models,
             metadata: {
@@ -174,7 +174,7 @@ export function mountModelGovernanceRoutes(router: Router) {
           const summary = await db
             .select({
               modelId: modelPerformanceValidations.modelId,
-              modelType: mlModels.modelType,
+              modelType: mlModels.type,
               avgAccuracy: sql<number>`AVG(${(modelPerformanceValidations as any).accuracy})`,
               avgPrecision: sql<number>`AVG(${(modelPerformanceValidations as any).precision})`,
               avgRecall: sql<number>`AVG(${(modelPerformanceValidations as any).recall})`,
@@ -185,7 +185,7 @@ export function mountModelGovernanceRoutes(router: Router) {
             .from(modelPerformanceValidations)
             .innerJoin(mlModels, eq(modelPerformanceValidations.modelId, mlModels.id))
             .where(eq(modelPerformanceValidations.orgId, orgId))
-            .groupBy(modelPerformanceValidations.modelId, mlModels.modelType);
+            .groupBy(modelPerformanceValidations.modelId, mlModels.type);
           return {
             result: {
               summaryByModel: summary,
@@ -271,7 +271,7 @@ export function mountModelGovernanceRoutes(router: Router) {
               results.push({
                 id: model.id,
                 modelId: model.id,
-                modelType: model.modelType || "unknown",
+                modelType: (model as any).type || "unknown",
                 detectedAt: new Date(),
                 driftScore,
                 driftType: "performance" as const,

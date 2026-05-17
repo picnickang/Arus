@@ -175,17 +175,8 @@ export const j1939Configurations = pgTable(
     orgId: varchar("org_id")
       .notNull()
       .references(() => organizations.id),
-    deviceId: varchar("device_id")
-      .notNull()
-      .references(() => devices.id),
-    canBusId: integer("can_bus_id").default(0),
+    deviceId: varchar("device_id").references(() => devices.id),
     baudRate: integer("baud_rate").default(250000),
-    sourceAddress: integer("source_address"),
-    targetAddress: integer("target_address"),
-    pgns: jsonb("pgns").$type<number[]>(),
-    filterMode: text("filter_mode").default("whitelist"),
-    enabled: boolean("enabled").default(true),
-    pollIntervalMs: integer("poll_interval_ms").default(1000),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },

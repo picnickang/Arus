@@ -1,22 +1,26 @@
 /**
  * Permission Repository - Database Operations
  *
- * CRUD operations for roles, permissions, and user role assignments.
+ * CRUD operations for roles, permission grants, and user role assignments.
+ *
+ * NOTE: The deployed PostgreSQL schema contains only three permission-related
+ * tables: roles, permission_grants, user_role_assignments. The earlier code
+ * referenced five additional tables (permission_resources, permission_actions,
+ * resource_actions, role_templates, permission_audit_log) that do not exist.
+ * Resource/action definitions are sourced from the static permission registry
+ * in server/config/permission-registry.ts, role templates from
+ * server/config/default-role-templates.ts, and audit entries are emitted via
+ * structured logging instead of being persisted.
  */
 
 import { db } from "../../db";
-import { eq, and, sql, count } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
 import { crew } from "../../../shared/schema/crew";
 import { users } from "../../../shared/schema/core";
 import {
   roles,
-  permissionResources,
-  permissionActions,
-  resourceActions,
   permissionGrants,
-  roleTemplates,
   userRoleAssignments,
-  permissionAuditLog,
   type Role,
   type InsertRole,
   type PermissionResource,
@@ -24,93 +28,55 @@ import {
   type PermissionGrant,
   type RoleTemplate,
   type InsertRoleTemplate,
+  type PermissionAuditEntry,
   type UserRoleAssignment,
   type InsertUserRoleAssignment,
 } from "../../../shared/schema/permissions";
 import { RESOURCES, ACTIONS } from "../../config/permission-registry";
 import { DEFAULT_ROLE_TEMPLATES } from "../../config/default-role-templates";
+import { structuredLog } from "../../logging";
+
+function staticResources(): PermissionResource[] {
+  return RESOURCES.map((r) => ({
+    id: r.code,
+    code: r.code,
+    name: r.name,
+    description: r.description ?? null,
+    category: r.category,
+    icon: r.icon ?? null,
+    sortOrder: r.sortOrder ?? null,
+    isActive: true,
+  }));
+}
+
+function staticActions(): PermissionAction[] {
+  return Object.values(ACTIONS).map((a) => ({
+    id: a.code,
+    code: a.code,
+    name: a.name,
+    description: a.description ?? null,
+    riskLevel: a.riskLevel ?? null,
+    sortOrder: a.sortOrder ?? null,
+  }));
+}
+
+function staticRoleTemplates(): RoleTemplate[] {
+  return DEFAULT_ROLE_TEMPLATES.map((t) => ({
+    id: t.name,
+    name: t.name,
+    displayName: t.displayName,
+    description: t.description ?? null,
+    department: t.department ?? null,
+    hierarchyLevel: t.hierarchyLevel,
+    permissions: JSON.stringify(t.permissions),
+    fleetType: t.fleetType ?? null,
+    isActive: true,
+    createdAt: null,
+  }));
+}
 
 export async function seedResourcesAndActions(): Promise<void> {
-  for (const resource of RESOURCES) {
-    const existing = await db
-      .select()
-      .from(permissionResources)
-      .where(eq(permissionResources.code, resource.code))
-      .limit(1);
-
-    let resourceId: string;
-
-    if (existing.length === 0) {
-      const [inserted] = await db
-        .insert(permissionResources)
-        .values({
-          code: resource.code,
-          name: resource.name,
-          description: resource.description,
-          category: resource.category,
-          icon: resource.icon,
-          sortOrder: resource.sortOrder,
-          isActive: true,
-        })
-        .returning({ id: permissionResources.id });
-      resourceId = inserted.id;
-    } else {
-      resourceId = existing[0].id;
-      await db
-        .update(permissionResources)
-        .set({
-          name: resource.name,
-          description: resource.description,
-          category: resource.category,
-          icon: resource.icon,
-          sortOrder: resource.sortOrder,
-        })
-        .where(eq(permissionResources.id, resourceId));
-    }
-
-    for (const actionCode of resource.actions) {
-      const actionDef = ACTIONS[actionCode];
-
-      let actionId: string;
-      const existingAction = await db
-        .select()
-        .from(permissionActions)
-        .where(eq(permissionActions.code, actionDef.code))
-        .limit(1);
-
-      if (existingAction.length === 0) {
-        const [insertedAction] = await db
-          .insert(permissionActions)
-          .values({
-            code: actionDef.code,
-            name: actionDef.name,
-            description: actionDef.description,
-            riskLevel: actionDef.riskLevel,
-            sortOrder: actionDef.sortOrder,
-          })
-          .returning({ id: permissionActions.id });
-        actionId = insertedAction.id;
-      } else {
-        actionId = existingAction[0].id;
-      }
-
-      const existingLink = await db
-        .select()
-        .from(resourceActions)
-        .where(
-          and(eq(resourceActions.resourceId, resourceId), eq(resourceActions.actionId, actionId))
-        )
-        .limit(1);
-
-      if (existingLink.length === 0) {
-        await db.insert(resourceActions).values({
-          resourceId,
-          actionId,
-          isDefault: actionCode === "view",
-        });
-      }
-    }
-  }
+  // Resources and actions are static (no DB tables). No-op kept for API compat.
 }
 
 export async function listRoles(orgId: string): Promise<Role[]> {
@@ -166,15 +132,11 @@ export async function deleteRole(id: string, orgId: string): Promise<boolean> {
 }
 
 export async function listResources(): Promise<PermissionResource[]> {
-  return db
-    .select()
-    .from(permissionResources)
-    .where(eq(permissionResources.isActive, true))
-    .orderBy(permissionResources.sortOrder);
+  return staticResources();
 }
 
 export async function listActions(): Promise<PermissionAction[]> {
-  return db.select().from(permissionActions).orderBy(permissionActions.sortOrder);
+  return staticActions();
 }
 
 export async function getPermissionGrantsForRole(roleId: string): Promise<PermissionGrant[]> {
@@ -224,21 +186,17 @@ export async function bulkSetPermissionGrants(
 }
 
 export async function listRoleTemplates(): Promise<RoleTemplate[]> {
-  return db
-    .select()
-    .from(roleTemplates)
-    .where(eq(roleTemplates.isActive, true))
-    .orderBy(roleTemplates.hierarchyLevel);
+  return staticRoleTemplates();
 }
 
 export async function getRoleTemplateById(id: string): Promise<RoleTemplate | undefined> {
-  const [template] = await db.select().from(roleTemplates).where(eq(roleTemplates.id, id)).limit(1);
-  return template;
+  return staticRoleTemplates().find((t) => t.id === id || t.name === id);
 }
 
-export async function createRoleTemplate(data: InsertRoleTemplate): Promise<RoleTemplate> {
-  const [template] = await db.insert(roleTemplates).values(data).returning();
-  return template;
+export async function createRoleTemplate(_data: InsertRoleTemplate): Promise<RoleTemplate> {
+  throw new Error(
+    "createRoleTemplate is unsupported: role templates are defined in config/default-role-templates.ts"
+  );
 }
 
 export async function createRoleFromTemplate(
@@ -351,59 +309,32 @@ export async function logPermissionChange(
   newValue: string | null,
   ipAddress?: string
 ): Promise<void> {
-  await db.insert(permissionAuditLog).values({
+  // permission_audit_log table does not exist; emit a structured log entry.
+  structuredLog("info", "permission.audit", {
     orgId,
     userId,
-    action,
-    targetType,
-    targetId,
-    previousValue,
-    newValue,
-    ipAddress,
+    operation: action,
+    metadata: {
+      targetType,
+      targetId: targetId ?? undefined,
+      previousValue: previousValue ?? undefined,
+      newValue: newValue ?? undefined,
+      ipAddress,
+    },
   });
 }
 
 export async function getPermissionAuditLog(
-  orgId: string,
-  limit = 100
-): Promise<Array<typeof permissionAuditLog.$inferSelect>> {
-  return db
-    .select()
-    .from(permissionAuditLog)
-    .where(eq(permissionAuditLog.orgId, orgId))
-    .orderBy(sql`${permissionAuditLog.createdAt} DESC`)
-    .limit(limit);
+  _orgId: string,
+  _limit = 100
+): Promise<PermissionAuditEntry[]> {
+  // permission_audit_log table does not exist; return empty.
+  return [];
 }
 
 export async function seedDefaultRoleTemplates(): Promise<{ created: number; skipped: number }> {
-  let created = 0;
-  let skipped = 0;
-
-  for (const template of DEFAULT_ROLE_TEMPLATES) {
-    const existing = await db
-      .select()
-      .from(roleTemplates)
-      .where(eq(roleTemplates.name, template.name))
-      .limit(1);
-
-    if (existing.length > 0) {
-      skipped++;
-      continue;
-    }
-
-    await db.insert(roleTemplates).values({
-      name: template.name,
-      displayName: template.displayName,
-      description: template.description,
-      department: template.department,
-      hierarchyLevel: template.hierarchyLevel,
-      permissions: JSON.stringify(template.permissions),
-      isActive: true,
-    });
-    created++;
-  }
-
-  return { created, skipped };
+  // Templates are static config; nothing to seed.
+  return { created: 0, skipped: DEFAULT_ROLE_TEMPLATES.length };
 }
 
 export async function getCrewCountByRoleId(roleId: string, orgId: string): Promise<number> {
@@ -428,7 +359,6 @@ export async function listUsersWithRoles(orgId: string): Promise<
       userId: userRoleAssignments.userId,
       roleId: userRoleAssignments.roleId,
       roleName: roles.displayName,
-      assignedAt: userRoleAssignments.assignedAt,
     })
     .from(userRoleAssignments)
     .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
@@ -482,13 +412,14 @@ export async function listUsersWithRoles(orgId: string): Promise<
     }
   }
 
+  const nowIso = new Date().toISOString();
   for (const assignment of assignments) {
     const user = userMap.get(assignment.userId);
     if (user) {
       user.roles.push({
         roleId: assignment.roleId,
         roleName: assignment.roleName,
-        assignedAt: assignment.assignedAt?.toISOString() ?? new Date().toISOString(),
+        assignedAt: nowIso,
       });
     }
   }

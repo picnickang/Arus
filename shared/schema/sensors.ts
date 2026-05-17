@@ -94,7 +94,6 @@ export const sensorConfigurations = pgTable(
     enabled: boolean("enabled").default(true),
     sampleRateHz: real("sample_rate_hz"),
     gain: real("gain").default(1),
-    scaleFactor: real("scale_factor").default(1),
     offset: real("offset").default(0),
     deadband: real("deadband").default(0),
     minValid: real("min_valid"),
