@@ -105,6 +105,9 @@ async function createAlert(
   const equipmentDetails = equipment.find((e) => e.id === telemetryReading.equipmentId);
   const directionWord = result.isLowIsBad ? "below" : "exceeded";
 
+  // NOTE: alert_notifications table has no vessel_id column — vessel scope is
+  // resolved via equipment_id -> equipment.vessel_id when needed downstream.
+  void equipmentDetails;
   const alertNotification = await dbAlertStorage.createAlertNotification({
     equipmentId: telemetryReading.equipmentId,
     sensorType: telemetryReading.sensorType,
@@ -113,7 +116,6 @@ async function createAlert(
     value: telemetryReading.value,
     threshold: result.threshold,
     acknowledged: false,
-    vesselId: equipmentDetails?.vesselId || null,
     orgId: telemetryReading.orgId,
   });
 

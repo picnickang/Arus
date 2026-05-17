@@ -315,11 +315,14 @@ export class PredictionOutcomeTracker {
         const alerts = await this.deps.getAlertNotifications(false, orgId);
         const relevantAlerts = (alerts || []).filter((alert: any) => {
           const alertDate = new Date(alert.createdAt);
+          // alert_notifications has no `severity` column; alertType is the
+          // severity discriminator. Treat critical/high alertTypes as failure
+          // signals for prediction outcome tracking.
           return (
             alert.equipmentId === prediction.equipmentId &&
             alertDate >= windowStart &&
             alertDate <= windowEnd &&
-            (alert.severity === "critical" || alert.severity === "high")
+            (alert.alertType === "critical" || alert.alertType === "high")
           );
         });
 

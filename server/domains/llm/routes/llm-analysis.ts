@@ -143,7 +143,8 @@ export function registerLlmAnalysisRoutes(
           const combinedAlertContext = recentAlerts.slice(0, 3).map((alert) => ({
             alertType: alert.alertType,
             sensorType: alert.sensorType,
-            severity: alert.severity || "medium",
+            // alert_notifications has no severity column; fall back to alertType.
+            severity: alert.alertType || "medium",
             timestamp: alert.createdAt,
           }));
 
@@ -204,9 +205,18 @@ export function registerLlmAnalysisRoutes(
         dbEquipmentStorage
           .getEquipmentHealth(DEFAULT_ORG_ID)
           .then((all) => all.filter((e) => (e as unknown as { vessel?: string }).vessel === vesselId)),
+        // alert_notifications has no vessel_id; scope by equipment owned by the vessel.
         dbAlertStorage
           .getAlertNotifications()
-          .then((all) => all.filter((a) => a.vesselId === vesselId).slice(0, 20)),
+          .then(async (all) => {
+            const vesselEquipment = await dbEquipmentStorage.getEquipmentHealth(DEFAULT_ORG_ID);
+            const vesselEquipmentIds = new Set(
+              vesselEquipment
+                .filter((e) => (e as unknown as { vessel?: string }).vessel === vesselId)
+                .map((e) => e.id)
+            );
+            return all.filter((a) => vesselEquipmentIds.has(a.equipmentId)).slice(0, 20);
+          }),
         dbTelemetryStorage.getLatestTelemetryReadings(undefined, 500, vesselId).catch(() => []),
         dbDevicesStorage
           .getPdmScores()
@@ -214,7 +224,10 @@ export function registerLlmAnalysisRoutes(
       ]);
 
       const vesselExtra = vessel as unknown as { type?: string; operational_status?: string };
-      const alertsExtra = alerts as unknown as Array<{ severity?: string; status?: string }>;
+      // alert_notifications canonical shape: alertType is the severity discriminator,
+      // `acknowledged` is the resolution flag. Pre-reconcile this used non-existent
+      // `severity` / `status` columns and silently returned defaults.
+      const alertsExtra = alerts;
       const pdmExtra = pdmScores as unknown as Array<{ anomalyScore?: number; failureProbability?: number }>;
       const intelligence = {
         vesselName: vessel.name,
@@ -229,8 +242,10 @@ export function registerLlmAnalysisRoutes(
         }).length,
         criticalEquipment: equipment.filter((e) => (e.healthIndex || 0) < 30).length,
         totalAlerts: alerts.length,
-        criticalAlerts: alertsExtra.filter((a) => a.severity === "critical").length,
-        unresolvedAlerts: alertsExtra.filter((a) => a.status !== "resolved").length,
+        // alert_notifications has no `severity` or `status` columns; alertType is
+        // the severity discriminator and `acknowledged` is the resolution flag.
+        criticalAlerts: alertsExtra.filter((a) => a.alertType === "critical").length,
+        unresolvedAlerts: alertsExtra.filter((a) => !a.acknowledged).length,
         averagePdmScore:
           pdmScores.length > 0
             ? pdmExtra.reduce((sum, s) => sum + (s.anomalyScore || 0), 0) / pdmScores.length
@@ -242,18 +257,19 @@ export function registerLlmAnalysisRoutes(
             ? new Date(telemetry[0].timestamp).toISOString()
             : null,
         topIssues: alertsExtra
-          .filter((a) => a.status !== "resolved")
+          .filter((a) => !a.acknowledged)
           .sort((a, b) => {
-            const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+            // alertType is the severity discriminator; unknown values sort last.
+            const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
             return (
-              (severityOrder[a.severity as keyof typeof severityOrder] || 4) -
-              (severityOrder[b.severity as keyof typeof severityOrder] || 4)
+              (severityOrder[a.alertType] ?? 4) -
+              (severityOrder[b.alertType] ?? 4)
             );
           })
           .slice(0, 5)
-          .map((a: any) => ({
+          .map((a) => ({
             alertType: a.alertType,
-            severity: a.severity,
+            severity: a.alertType,
             equipmentId: a.equipmentId,
             createdAt: a.createdAt,
           })),

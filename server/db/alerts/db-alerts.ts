@@ -167,6 +167,7 @@ export class DatabaseAlertStorage {
     return result;
   }
   async createAlertNotification(notification: InsertAlertNotification): Promise<AlertNotification> {
+    // alert_notifications has no updated_at column in canonical Postgres.
     const [n] = await db
       .insert(alertNotifications)
       .values({
@@ -174,8 +175,7 @@ export class DatabaseAlertStorage {
         ...notification,
         acknowledged: notification.acknowledged || false,
         createdAt: new Date(),
-        updatedAt: new Date(),
-      } as any)
+      })
       .returning();
     return n;
   }
@@ -188,14 +188,14 @@ export class DatabaseAlertStorage {
     const conditions = orgId
       ? and(eq(alertNotifications.id, id), eq(alertNotifications.orgId, orgId))
       : eq(alertNotifications.id, id);
+    // alert_notifications has no updated_at column in canonical Postgres.
     const [updated] = await db
       .update(alertNotifications)
       .set({
         acknowledged: true,
         acknowledgedBy,
         acknowledgedAt: new Date(),
-        updatedAt: new Date(),
-      } as any)
+      })
       .where(conditions)
       .returning();
     if (!updated) {

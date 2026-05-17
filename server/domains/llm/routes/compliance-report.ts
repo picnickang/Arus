@@ -113,7 +113,8 @@ export function registerComplianceReportRoutes(
           return responseTime <= slaHours * 60 * 60 * 1000;
         }).length;
 
-        const criticalAlerts = recentAlerts.filter((a) => a.severity === "critical").length;
+        // alert_notifications has no severity column; alertType acts as the severity discriminator.
+        const criticalAlerts = recentAlerts.filter((a) => a.alertType === "critical").length;
         const acknowledgedAlerts = recentAlerts.filter((a) => a.acknowledged).length;
         const responseRate =
           recentAlerts.length > 0
@@ -143,7 +144,7 @@ export function registerComplianceReportRoutes(
               lookbackPeriod: `${lookbackHours} hours`,
             },
             recentAlerts: recentAlerts.slice(0, 20),
-            critical: recentAlerts.filter((a) => a.severity === "critical").slice(0, 10),
+            critical: recentAlerts.filter((a) => a.alertType === "critical").slice(0, 10),
             slaViolations: recentAlerts
               .filter((alert) => {
                 if (!alert.acknowledged || !alert.acknowledgedAt) {

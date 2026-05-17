@@ -23,31 +23,10 @@ import type {
   InsertCrewAlertSettings,
 } from "@shared/schema";
 
-// Schema-drift bridge: the alertSettings table only persists a subset of fields,
-// but the service surface still exposes legacy email/SMTP configuration. Treat
-// the raw record as the schema row plus these optional legacy columns so reads
-// stay null-safe without forcing a destructive schema migration.
-type AlertSettingsRaw = AlertSettings & Partial<{
-  emailEnabled: boolean | null;
-  defaultToEmail: string | null;
-  ccEmails: unknown;
-  bccEmails: unknown;
-  timezone: string | null;
-  provider: string | null;
-  smtpHost: string | null;
-  smtpPort: number | null;
-  smtpUser: string | null;
-  smtpUseTls: boolean | null;
-  smtpEncryptedPassword: string | null;
-  fromEmail: string | null;
-  fromName: string | null;
-  apiKeyEncrypted: string | null;
-  dailyDigestEnabled: boolean | null;
-  dailyDigestTime: string | null;
-  lastTestStatus: string | null;
-  lastTestAt: Date | null;
-  lastTestError: string | null;
-}>;
+// Alias kept for callsite readability after the 2026-05-17 schema
+// reconciliation: AlertSettings now natively contains every email/SMTP/test
+// column the service used to bridge via Partial<…>.
+type AlertSettingsRaw = AlertSettings;
 
 export interface AlertSettingsPublic {
   id: string;
@@ -149,7 +128,7 @@ export class AlertSettingsService {
       smtpUseTls: settings.smtpUseTls ?? true,
       fromEmail: settings.fromEmail || "noreply@arus-marine.com",
       fromName: settings.fromName || "ARUS Marine",
-      alertCooldownMinutes: (settings as any).defaultCooldownMinutes ?? 30,
+      alertCooldownMinutes: settings.alertCooldownMinutes ?? 30,
       dailyDigestEnabled: settings.dailyDigestEnabled ?? false,
       dailyDigestTime: settings.dailyDigestTime ?? null,
       lastTestStatus: settings.lastTestStatus ?? null,
@@ -368,7 +347,7 @@ export class AlertSettingsService {
     entityId?: string
   ): Promise<{ shouldSend: boolean; cooldownId?: string; minutesRemaining?: number }> {
     const settings = await alertSettingsRepository.getOrgSettings(orgId);
-    const cooldownMinutes = settings?.defaultCooldownMinutes ?? 30;
+    const cooldownMinutes = settings?.alertCooldownMinutes ?? 30;
 
     const existing: any = await (alertSettingsRepository as any).checkCooldown(
       orgId,

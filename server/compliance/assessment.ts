@@ -89,7 +89,8 @@ function evaluateThresholdStatus(
 function checkRecentCriticalAlerts(relevantAlerts: AlertNotification[]): number {
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
   return relevantAlerts.filter(
-    (alert) => alert.severity === "critical" && new Date((alert as any).timestamp ?? (alert as any).createdAt).getTime() > cutoff
+    // alert_notifications has no severity column; alertType acts as the severity discriminator.
+    (alert) => alert.alertType === "critical" && new Date((alert as any).timestamp ?? (alert as any).createdAt).getTime() > cutoff
   ).length;
 }
 

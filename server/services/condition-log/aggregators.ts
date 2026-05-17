@@ -97,7 +97,8 @@ export async function aggregateConditionData(
   const alertCounts = await db
     .select({
       total: sql<number>`count(*)`,
-      critical: sql<number>`count(*) FILTER (WHERE ${alertNotifications.severity} = 'critical')`,
+      // alert_notifications has no severity column; alertType acts as the severity discriminator.
+      critical: sql<number>`count(*) FILTER (WHERE ${alertNotifications.alertType} = 'critical')`,
     })
     .from(alertNotifications)
     .where(

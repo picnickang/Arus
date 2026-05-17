@@ -2,6 +2,11 @@
  * Schema Alerts - Alert Configurations and Notifications
  *
  * Alert settings, notifications, suppressions, and cooldowns.
+ *
+ * NOTE: Reconciled 2026-05-17 to match the real PostgreSQL DB. The previous
+ * declarations for alertSettings / alertSettingsVessel / alertNotifications /
+ * alertSuppressions were fictional and forced consumers to use `as any`
+ * casts. The shapes here now reflect what `psql \d` actually reports.
  */
 
 import {
@@ -55,6 +60,7 @@ export const alertConfigurations = pgTable(
 );
 
 // Alert notifications
+// Matches real DB: no vesselId, no severity columns.
 export const alertNotifications = pgTable("alert_notifications", {
   id: varchar("id")
     .primaryKey()
@@ -73,12 +79,12 @@ export const alertNotifications = pgTable("alert_notifications", {
   acknowledged: boolean("acknowledged").default(false),
   acknowledgedAt: timestamp("acknowledged_at", { mode: "date" }),
   acknowledgedBy: text("acknowledged_by"),
-  severity: text("severity"),
-  vesselId: varchar("vessel_id").references(() => vessels.id),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
 });
 
 // Alert suppressions
+// Real DB: equipment_id and sensor_type are NOT NULL plain text (no FK to equipment.id),
+// reason is nullable, and there is an alert_type column.
 export const alertSuppressions = pgTable(
   "alert_suppressions",
   {
@@ -88,10 +94,11 @@ export const alertSuppressions = pgTable(
     orgId: varchar("org_id")
       .notNull()
       .references(() => organizations.id),
-    equipmentId: varchar("equipment_id").references(() => equipment.id),
-    sensorType: text("sensor_type"),
-    reason: text("reason").notNull(),
+    equipmentId: text("equipment_id").notNull(),
+    sensorType: text("sensor_type").notNull(),
+    alertType: text("alert_type"),
     suppressedBy: text("suppressed_by").notNull(),
+    reason: text("reason"),
     suppressUntil: timestamp("suppress_until", { mode: "date" }).notNull(),
     active: boolean("active").default(true),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
@@ -163,6 +170,9 @@ export const actionableInsights = pgTable(
 );
 
 // Alert settings - organization-level alert configuration
+// Real DB shape: SMTP / email-provider / digest / test-status columns.
+// The previous "machineryAlertsEnabled / adminEmail / useVesselSpecificSettings"
+// columns never existed in the database.
 export const alertSettings = pgTable(
   "alert_settings",
   {
@@ -172,18 +182,29 @@ export const alertSettings = pgTable(
     orgId: varchar("org_id")
       .notNull()
       .references(() => organizations.id),
-    enabled: boolean("enabled").default(true),
-    adminEmail: text("admin_email"),
-    technicalEmail: text("technical_email"),
-    operationsEmail: text("operations_email"),
-    machineryAlertsEnabled: boolean("machinery_alerts_enabled").default(true),
-    telemetryAlertsEnabled: boolean("telemetry_alerts_enabled").default(true),
-    complianceAlertsEnabled: boolean("compliance_alerts_enabled").default(true),
-    crewAlertsEnabled: boolean("crew_alerts_enabled").default(true),
-    logbookAlertsEnabled: boolean("logbook_alerts_enabled").default(true),
-    maintenanceAlertsEnabled: boolean("maintenance_alerts_enabled").default(true),
-    defaultCooldownMinutes: integer("default_cooldown_minutes").default(60),
-    useVesselSpecificSettings: boolean("use_vessel_specific_settings").default(false),
+    emailEnabled: boolean("email_enabled").default(true),
+    defaultToEmail: text("default_to_email"),
+    ccEmails: jsonb("cc_emails").$type<string[]>(),
+    bccEmails: jsonb("bcc_emails").$type<string[]>(),
+    timezone: text("timezone").default("Asia/Singapore"),
+    provider: text("provider").default("sendgrid"),
+    smtpHost: text("smtp_host"),
+    smtpPort: integer("smtp_port").default(587),
+    smtpUser: text("smtp_user"),
+    smtpEncryptedPassword: text("smtp_encrypted_password"),
+    smtpUseTls: boolean("smtp_use_tls").default(true),
+    apiKeyEncrypted: text("api_key_encrypted"),
+    apiBaseUrl: text("api_base_url"),
+    fromEmail: text("from_email").default("noreply@arus-marine.com"),
+    fromName: text("from_name").default("ARUS Marine"),
+    alertCooldownMinutes: integer("alert_cooldown_minutes").default(30),
+    dailyDigestEnabled: boolean("daily_digest_enabled").default(false),
+    dailyDigestTime: text("daily_digest_time").default("08:00"),
+    lastTestStatus: text("last_test_status"),
+    lastTestAt: timestamp("last_test_at", { mode: "date" }),
+    lastTestError: text("last_test_error"),
+    purchaseOrderEmailTemplate: jsonb("purchase_order_email_template"),
+    serviceOrderEmailTemplate: jsonb("service_order_email_template"),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },
@@ -194,6 +215,9 @@ export const alertSettings = pgTable(
 );
 
 // Alert settings per vessel
+// Real DB: critical/warning/info booleans + override/additional emails + threshold overrides.
+// Previous "machineryAlertsEnabled / recipientEmails / cooldownMinutes" columns
+// never existed in the database.
 export const alertSettingsVessel = pgTable(
   "alert_settings_vessel",
   {
@@ -207,21 +231,19 @@ export const alertSettingsVessel = pgTable(
       .notNull()
       .references(() => vessels.id),
     enabled: boolean("enabled").default(true),
-    recipientEmails: jsonb("recipient_emails").$type<string[]>(),
-    machineryAlertsEnabled: boolean("machinery_alerts_enabled"),
-    telemetryAlertsEnabled: boolean("telemetry_alerts_enabled"),
-    complianceAlertsEnabled: boolean("compliance_alerts_enabled"),
-    crewAlertsEnabled: boolean("crew_alerts_enabled"),
-    logbookAlertsEnabled: boolean("logbook_alerts_enabled"),
-    maintenanceAlertsEnabled: boolean("maintenance_alerts_enabled"),
-    cooldownMinutes: integer("cooldown_minutes"),
+    criticalAlertsEnabled: boolean("critical_alerts_enabled").default(true),
+    warningAlertsEnabled: boolean("warning_alerts_enabled").default(true),
+    infoAlertsEnabled: boolean("info_alerts_enabled").default(false),
+    overrideEmails: jsonb("override_emails").$type<string[]>(),
+    additionalEmails: jsonb("additional_emails").$type<string[]>(),
+    thresholdOverrides: jsonb("threshold_overrides").$type<Record<string, unknown>>(),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({
     orgIdIdx: index("idx_alert_settings_vessel_org").on(table.orgId),
     vesselIdIdx: index("idx_alert_settings_vessel_vessel").on(table.vesselId),
-    uniqueOrgVessel: unique("uq_alert_settings_vessel_org_vessel").on(table.orgId, table.vesselId),
+    uniqueOrgVessel: unique("uq_alert_settings_vessel").on(table.orgId, table.vesselId),
   })
 );
 
