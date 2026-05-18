@@ -96,7 +96,9 @@ router.post("/", async (req: Request, res: Response) => {
   const orgId = DEFAULT_ORG_ID;
 
   const bodyWithOrg = sanitize({ ...req.body, orgId });
-  const parsed = insertServiceOrderSchema.safeParse(bodyWithOrg);
+  // soNumber is generated server-side (see below) — omit from validation so
+  // callers don't need to supply it.
+  const parsed = insertServiceOrderSchema.omit({ soNumber: true }).safeParse(bodyWithOrg);
   if (!parsed.success) {
     return res.status(400).json({ error: "Validation failed", details: parsed.error.flatten() });
   }

@@ -32,7 +32,7 @@ export class InventoryService {
     const part = await inventoryRepository.findPartByNumber(id, orgId);
 
     // Delete part
-    await inventoryRepository.deletePart(id);
+    await inventoryRepository.deletePart(id, orgId);
 
     // Publish delete event
     if (part) {

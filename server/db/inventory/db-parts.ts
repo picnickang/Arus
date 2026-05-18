@@ -112,8 +112,18 @@ export class DbPartsStorage {
   }
   async deletePart(id: string, orgId?: string): Promise<void> {
     this.validateOrgId(orgId, "deletePart");
-    const conditions = orgId ? and(eq(parts.id, id), eq(parts.orgId, orgId)) : eq(parts.id, id);
-    await db.delete(parts).where(conditions);
+    const partConditions = orgId
+      ? and(eq(parts.id, id), eq(parts.orgId, orgId))
+      : eq(parts.id, id);
+    const stockConditions = orgId
+      ? and(eq(stock.partId, id), eq(stock.orgId, orgId))
+      : eq(stock.partId, id);
+    // Cascade dependent stock rows first to avoid FK violation. Wrap in a
+    // transaction so a failure leaves both tables consistent.
+    await db.transaction(async (tx) => {
+      await tx.delete(stock).where(stockConditions);
+      await tx.delete(parts).where(partConditions);
+    });
   }
 
   async getPartsInventory(orgId?: string): Promise<PartsInventory[]> {

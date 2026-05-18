@@ -9,7 +9,14 @@ export function useWorkOrderRequests(workOrderId: string) {
 
   const serviceOrdersQuery = useQuery<ServiceOrderCardData[]>({
     queryKey: ["/api/work-orders", workOrderId, "service-orders"],
-    queryFn: async () => apiRequest("GET", `/api/work-orders/${workOrderId}/service-orders`),
+    queryFn: async () => {
+      // Backend wraps the array as { workOrderId, serviceOrders, count }.
+      const resp = await apiRequest<{ serviceOrders?: ServiceOrderCardData[] } | ServiceOrderCardData[]>(
+        "GET",
+        `/api/work-orders/${workOrderId}/service-orders`,
+      );
+      return Array.isArray(resp) ? resp : (resp?.serviceOrders ?? []);
+    },
   });
 
   const purchaseRequestsQuery = useQuery<PartsRequestCardData[]>({

@@ -12,8 +12,8 @@ export class InventoryRepository {
       : Promise.resolve(undefined);
   }
 
-  async deletePart(id: string): Promise<void> {
-    return dbInventoryStorage.deletePart(id);
+  async deletePart(id: string, orgId: string): Promise<void> {
+    return dbInventoryStorage.deletePart(id, orgId);
   }
 
   async syncCosts(partId: string): Promise<void> {

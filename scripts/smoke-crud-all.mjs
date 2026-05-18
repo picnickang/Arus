@@ -113,20 +113,8 @@ const RESOURCES = [
     update: { path: "/api/work-orders/:id", payload: () => ({ priority: 2 }) },
     delete: "/api/work-orders/:id",
   },
-  {
-    name: "schedule-tasks", domain: "Maintenance",
-    list: "/api/schedule-tasks",
-    resolveFks: async () => ({ equipmentId: await pickFirstId("/api/equipment") }),
-    create: { path: "/api/schedule-tasks", payload: (fk) => ({
-      equipmentId: fk.equipmentId,
-      taskName: `SMOKE Task ${Date.now()}`,
-      taskType: "inspection",
-      intervalDays: 30,
-    })},
-    getById: "/api/schedule-tasks/:id",
-    update: { path: "/api/schedule-tasks/:id", payload: () => ({ intervalDays: 60 }) },
-    delete: "/api/schedule-tasks/:id",
-  },
+  // (schedule-tasks: no `/api/schedule-tasks` route exists; schedules live under
+  // /api/scheduled-reports for ML jobs only. Removed from sweep.)
   {
     name: "service-requests", domain: "Maintenance",
     list: "/api/service-requests",
@@ -181,7 +169,8 @@ const RESOURCES = [
       unitCost: 25,
       quantityOnHand: 10,
     })},
-    getById: "/api/parts-inventory/:id",
+    // No `/api/parts-inventory/:id` GET route exists by design (list-only view).
+    getById: null,
     update: { path: "/api/parts-inventory/:id", payload: () => ({ quantityOnHand: 12 }) },
     delete: "/api/parts/:id",
   },
@@ -227,31 +216,27 @@ const RESOURCES = [
     delete: "/api/crew/:id",
   },
   {
-    name: "certificates", domain: "Crew",
+    name: "certificates", domain: "Fleet",
     list: "/api/certificates",
-    resolveFks: async () => ({ crewId: await pickFirstId("/api/crew") }),
+    resolveFks: async () => ({ vesselId: await pickFirstId("/api/vessels") }),
     create: { path: "/api/certificates", payload: (fk) => ({
-      crewId: fk.crewId,
-      type: "COC",
-      number: `CERT-SMOKE-${Date.now()}`,
+      vesselId: fk.vesselId,
+      certificateType: "safety_equipment",
+      certificateName: `SMOKE Cert ${Date.now()}`,
+      issuingAuthority: "Smoke Authority",
+      issueDate: "2025-01-01",
       expiryDate: "2027-12-31",
     })},
     getById: "/api/certificates/:id",
     update: { path: "/api/certificates/:id", payload: () => ({ expiryDate: "2028-12-31" }) },
     delete: "/api/certificates/:id",
   },
-  // Knowledge Base
+  // Knowledge Base — documents are created via multipart upload only (no
+  // plain JSON POST). LIST/GET/DELETE are JSON; we test those and skip create.
   {
     name: "kb-documents", domain: "KnowledgeBase",
     list: "/api/kb/documents",
-    create: { path: "/api/kb/documents", payload: () => ({
-      title: `SMOKE Doc ${Date.now()}`,
-      content: "Smoke test document body.",
-      tags: ["smoke"],
-    })},
-    getById: "/api/kb/documents/:id",
-    update: { path: "/api/kb/documents/:id/visibility", payload: () => ({ visibility: "private" }) },
-    delete: "/api/kb/documents/:id",
+    create: null, // upload-only; covered by KB upload smoke separately
   },
   // ML / PdM
   {
@@ -262,20 +247,12 @@ const RESOURCES = [
     update: null,
     delete: null,
   },
-  // Alerts
+  // Alerts — LIST only; alerts are emitted by rule engine and acknowledged
+  // via PATCH, not user-created.
   {
-    name: "alert-configs", domain: "Alerts",
-    list: "/api/alerts/configs",
-    create: { path: "/api/alerts/configs", payload: () => ({
-      key: `smoke_alert_${Date.now()}`,
-      name: "SMOKE alert",
-      category: "machinery",
-      thresholdValue: 95,
-      enabled: true,
-    })},
-    getById: null, // typically only list+patch+delete
-    update: { path: "/api/alerts/configs/:id", payload: () => ({ thresholdValue: 90 }) },
-    delete: "/api/alerts/configs/:id",
+    name: "alerts", domain: "Alerts",
+    list: "/api/alerts",
+    create: null,
   },
 ];
 
@@ -324,12 +301,18 @@ async function runResource(r) {
     return;
   }
 
-  // GET BY ID
+  // GET BY ID — accept either {id} at top level, in .data, or any common wrapper key.
   if (r.getById) {
     const path = r.getById.replace(":id", id);
     const g = await http("GET", path);
-    const ok = g.status === 200 && (g.body?.id === id || g.body?.data?.id === id);
-    record(r.name, "GET", ok, `status=${g.status}`);
+    const bodyId =
+      g.body?.id ||
+      g.body?.data?.id ||
+      g.body?.part?.id ||
+      g.body?.item?.id ||
+      g.body?.result?.id;
+    const ok = g.status === 200 && bodyId === id;
+    record(r.name, "GET", ok, `status=${g.status} bodyId=${bodyId}`);
     console.log(`  ${ok ? colors.ok("PASS") : colors.bad("FAIL")} GET    ${path} -> ${g.status}`);
   }
 
