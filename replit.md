@@ -6,6 +6,8 @@ ARUS (Marine Predictive Maintenance & Scheduling) is a full-stack web applicatio
 
 Preferred communication style: Simple, everyday language.
 
+After every code change, run `npx tsc --noEmit` and only treat the update as done when it reports no errors.
+
 # System Architecture
 
 ## UI/UX Decisions
