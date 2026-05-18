@@ -89,11 +89,11 @@ export default function InventoryManagement() {
 
   const getTabFromSearch = (search: string): TabValue => {
     const params = new URLSearchParams(search);
-    const tab = params.get("tab");
-    if (tab === "purchasing") {
+    const sub = params.get("subtab") ?? params.get("tab");
+    if (sub === "purchasing") {
       return "purchasing";
     }
-    if (tab === "service-requests") {
+    if (sub === "service-requests") {
       return "service-requests";
     }
     return "inventory";
@@ -110,13 +110,18 @@ export default function InventoryManagement() {
   const handleTabChange = (value: string) => {
     const next = value as TabValue;
     setActiveTab(next);
-    if (next === "purchasing") {
-      setLocation("/inventory-management?tab=purchasing", { replace: true });
-    } else if (next === "service-requests") {
-      setLocation("/inventory-management?tab=service-requests", { replace: true });
+    // Preserve the parent IconGridLayout's `tab=inventory` param by writing
+    // our own sub-tab under a distinct key (`subtab`). Using `tab` here would
+    // collide with `/logistics?tab=inventory` and get stripped by the
+    // legacy-redirect query merger in App.tsx.
+    const params = new URLSearchParams(window.location.search);
+    params.set("tab", "inventory");
+    if (next === "inventory") {
+      params.delete("subtab");
     } else {
-      setLocation("/inventory-management", { replace: true });
+      params.set("subtab", next);
     }
+    setLocation(`/logistics?${params.toString()}`, { replace: true });
   };
 
   const {
