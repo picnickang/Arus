@@ -41,6 +41,7 @@ export function useWorkOrdersPageData() {
   const [drawerOrder, setDrawerOrder] = useState<WorkOrder | null>(null);
   const [cloneDialogOpen, setCloneDialogOpen] = useState(false);
   const [cloneOrder, setCloneOrder] = useState<WorkOrder | null>(null);
+  const [pendingDeleteOrder, setPendingDeleteOrder] = useState<WorkOrder | null>(null);
   const [filters, setFilters] = useState<WorkOrderFilters>({
     search: "",
     status: "all",
@@ -234,13 +235,14 @@ export function useWorkOrdersPageData() {
     setFormDialogOpen(true);
   };
   const handleDeleteOrder = (order: WorkOrder) => {
-    const displayId = order.woNumber || order.id;
-    if (
-      confirm(
-        `Are you sure you want to delete work order "${displayId}"? This action cannot be undone.`
-      )
-    ) {
-      deleteMutation.mutate(order.id);
+    setPendingDeleteOrder(order);
+  };
+  const confirmDeleteOrder = () => {
+    if (pendingDeleteOrder) {
+      deleteMutation.mutate(pendingDeleteOrder.id, {
+        onSuccess: () => setPendingDeleteOrder(null),
+        onError: () => setPendingDeleteOrder(null),
+      });
     }
   };
   const handleCreateOrder = () => {
@@ -439,6 +441,9 @@ export function useWorkOrdersPageData() {
     handleViewOrderModal,
     handleEditOrder,
     handleDeleteOrder,
+    pendingDeleteOrder,
+    setPendingDeleteOrder,
+    confirmDeleteOrder,
     handleCreateOrder,
     handleCloneOrder,
     handleClearAllOrders,

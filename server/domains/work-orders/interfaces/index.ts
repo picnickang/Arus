@@ -12,6 +12,7 @@
 
 import type { Express } from "express";
 import { registerCoreRoutes } from "./core";
+import { registerDependentsRoutes } from "./dependents";
 import { registerTasksRoutes } from "./tasks";
 import { registerCompletionRoutes } from "./completion";
 import { registerPartsRoutes } from "./parts";
@@ -31,6 +32,7 @@ import { logger } from "../../../utils/logger.js";
 
 export function registerWorkOrderRoutes(app: Express, rateLimit: RateLimitMiddleware) {
   registerCoreRoutes(app, rateLimit);
+  registerDependentsRoutes(app);
   registerTasksRoutes(app, rateLimit);
   registerCompletionRoutes(app, rateLimit);
   registerPartsRoutes(app, rateLimit);

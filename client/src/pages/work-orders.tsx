@@ -34,6 +34,7 @@ import {
   getStatusColor,
 } from "@/features/work-orders";
 import { PermissionGate } from "@/components/PermissionGate";
+import { DeleteWorkOrderDialog } from "@/components/work-orders/DeleteWorkOrderDialog";
 import type { WorkOrder } from "@shared/schema";
 
 export default function WorkOrders() {
@@ -76,6 +77,10 @@ export default function WorkOrders() {
     handleViewOrder,
     handleEditOrder,
     handleDeleteOrder,
+    pendingDeleteOrder,
+    setPendingDeleteOrder,
+    confirmDeleteOrder,
+    deleteMutation,
     handleCreateOrder,
     handleClearAllOrders,
     handleFormSubmit,
@@ -287,6 +292,15 @@ export default function WorkOrders() {
         isSubmitting={createMutation.isPending || updateMutation.isPending}
         defaultVesselId={defaultVesselId}
         defaultEquipmentId={defaultEquipmentId}
+      />
+
+      <DeleteWorkOrderDialog
+        workOrderId={pendingDeleteOrder?.id ?? null}
+        workOrderLabel={pendingDeleteOrder?.woNumber || pendingDeleteOrder?.id || ""}
+        open={!!pendingDeleteOrder}
+        onOpenChange={(o) => { if (!o) setPendingDeleteOrder(null); }}
+        onConfirm={confirmDeleteOrder}
+        isDeleting={deleteMutation.isPending}
       />
     </div>
   );

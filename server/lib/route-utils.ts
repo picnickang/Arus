@@ -52,8 +52,34 @@ export function handleApiError(
   }
 
   // Check for domain-specific status codes (e.g., NotFound, Conflict)
-  const statusError = error as ErrorWithStatus;
-  const statusCode = statusError?.status || statusError?.statusCode;
+  const statusError = error as ErrorWithStatus & { code?: string };
+  let statusCode = statusError?.status || statusError?.statusCode;
+  const rawMessage = error instanceof Error ? error.message : String(error);
+
+  // Infer status from common error patterns when not explicitly set.
+  // This catches the 40+ `throw new Error("... not found")` sites in services/storage
+  // and turns them into proper 404/409 instead of 500.
+  if (!statusCode) {
+    if (/\bnot found\b/i.test(rawMessage)) {
+      statusCode = 404;
+    } else if (
+      /\balready exists\b|\bduplicate\b|unique constraint|unique_violation/i.test(rawMessage) ||
+      statusError?.code === "23505"
+    ) {
+      statusCode = 409;
+    } else if (
+      /foreign key|fk constraint|foreign_key_violation/i.test(rawMessage) ||
+      statusError?.code === "23503"
+    ) {
+      statusCode = 409;
+    } else if (/\bforbidden\b|\bpermission denied\b|\bnot authorized\b/i.test(rawMessage)) {
+      statusCode = 403;
+    } else if (/\bunauthorized\b|\bnot authenticated\b/i.test(rawMessage)) {
+      statusCode = 401;
+    } else if (/version mismatch|stale version|if-match/i.test(rawMessage)) {
+      statusCode = 412;
+    }
+  }
 
   if (statusCode && statusCode >= 400 && statusCode < 600) {
     if (statusCode >= 500) {
