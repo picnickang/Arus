@@ -62,12 +62,15 @@ export function registerServiceRequestRoutes(
           wo.description AS "workOrderDescription",
           e.name AS "equipmentName",
           v.name AS "vesselName",
+          so.so_number AS "serviceOrderNumber",
+          so.status AS "serviceOrderStatus",
           sr.created_at AS "createdAt",
           sr.updated_at AS "updatedAt"
         FROM service_requests sr
         LEFT JOIN work_orders wo ON wo.id = sr.work_order_id AND wo.org_id = ${orgId}
         LEFT JOIN equipment e ON e.id = wo.equipment_id
         LEFT JOIN vessels v ON v.id = wo.vessel_id
+        LEFT JOIN service_orders so ON so.id = sr.service_order_id AND so.org_id = ${orgId}
         WHERE sr.org_id = ${orgId}
       `;
 

@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   ExternalLink,
   CheckCircle,
@@ -8,7 +9,10 @@ import {
   ArrowRightCircle,
   Ship,
   Wrench,
+  Pencil,
+  Briefcase,
 } from "lucide-react";
+import { useLocation } from "wouter";
 import { SRStatusBadge } from "./SRStatusBadge";
 import { SRPriorityBadge } from "./SRPriorityBadge";
 import type { ServiceRequest } from "../types";
@@ -19,7 +23,9 @@ interface SRCardProps {
   onApprove?: (id: string) => void;
   onReject?: (id: string) => void;
   onConvert?: (id: string) => void;
+  onEdit?: (sr: ServiceRequest) => void;
   onViewDetails?: (id: string) => void;
+  highlighted?: boolean;
 }
 
 export function SRCard({
@@ -28,14 +34,25 @@ export function SRCard({
   onApprove,
   onReject,
   onConvert,
+  onEdit,
   onViewDetails,
+  highlighted,
 }: SRCardProps) {
+  const [, setLocation] = useLocation();
   const isPending = sr.status === "pending_review";
   const isUnderReview = sr.status === "under_review";
   const isApproved = sr.status === "approved";
+  const isConverted = sr.status === "converted";
+  const canEdit = isPending || isUnderReview || isApproved;
 
   return (
-    <Card className="hover:shadow-md transition-shadow" data-testid={`card-sr-${sr.id}`}>
+    <Card
+      id={`sr-card-${sr.id}`}
+      className={`hover:shadow-md transition-shadow ${
+        highlighted ? "ring-2 ring-primary ring-offset-2" : ""
+      }`}
+      data-testid={`card-sr-${sr.id}`}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <div>
@@ -51,6 +68,21 @@ export function SRCard({
       <CardContent className="space-y-3">
         {sr.description && (
           <p className="text-sm text-muted-foreground line-clamp-2">{sr.description}</p>
+        )}
+        {isConverted && sr.serviceOrderId && sr.serviceOrderNumber && (
+          <Badge
+            variant="outline"
+            className="cursor-pointer gap-1 hover:bg-accent w-fit"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLocation(`/logistics?tab=service-orders&focus=${sr.serviceOrderId}`);
+            }}
+            data-testid={`badge-produced-so-${sr.id}`}
+          >
+            <Briefcase className="h-3 w-3" />
+            Produced {sr.serviceOrderNumber}
+            {sr.serviceOrderStatus ? ` · ${sr.serviceOrderStatus}` : ""}
+          </Badge>
         )}
         <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
           {sr.workOrderNumber && (
@@ -116,6 +148,16 @@ export function SRCard({
               data-testid={`btn-reject-sr-${sr.id}`}
             >
               <XCircle className="h-3 w-3 mr-1" /> Reject
+            </Button>
+          )}
+          {canEdit && onEdit && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onEdit(sr)}
+              data-testid={`btn-edit-sr-${sr.id}`}
+            >
+              <Pencil className="h-3 w-3 mr-1" /> Edit
             </Button>
           )}
           {isApproved && onConvert && (

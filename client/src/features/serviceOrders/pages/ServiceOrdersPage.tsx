@@ -13,8 +13,10 @@
  *   client/src/features/serviceOrders/pages/ServiceOrdersPage.tsx
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +49,7 @@ import {
   useStartServiceOrder,
   useCompleteServiceOrder,
   useCancelServiceOrder,
+  useRevertServiceOrder,
 } from "../hooks/useServiceOrders";
 import type { ServiceOrder } from "../types";
 
@@ -78,18 +81,71 @@ export default function ServiceOrdersPage() {
     { id: string; name: string; qualityRating?: number; responseSlaHours?: number }[]
   >({ queryKey: ["/api/suppliers"] });
 
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const sendMutation = useSendServiceOrder();
   const confirmMutation = useConfirmServiceOrder();
   const startMutation = useStartServiceOrder();
   const completeMutation = useCompleteServiceOrder();
   const cancelMutation = useCancelServiceOrder();
+  const revertMutation = useRevertServiceOrder();
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const focus = params.get("focus");
+    if (!focus) {
+      return;
+    }
+    setFocusedId(focus);
+    // Auto-switch to cards view so the target card is in the DOM and scrollable.
+    if (viewMode !== "cards") {
+      handleViewModeChange("cards");
+    }
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(`so-card-${focus}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 250);
+    const clearTimer = window.setTimeout(() => setFocusedId(null), 1800);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearTimeout(clearTimer);
+    };
+  }, [orders]);
+
+  const handleRevert = (id: string) => {
+    if (
+      !window.confirm(
+        "Revert this Service Order back to a Service Request? The SO will be removed and the originating SR will return to Approved status."
+      )
+    ) {
+      return;
+    }
+    revertMutation.mutate(id, {
+      onSuccess: (res: any) => {
+        const srId = res?.serviceRequest?.id;
+        toast({
+          title: "Service Order reverted",
+          description: "The Service Request is back to Approved status.",
+        });
+        if (srId) {
+          setLocation(`/logistics?tab=inventory&subtab=service-requests&focus=${srId}`);
+        }
+      },
+      onError: (err) =>
+        toast({ title: "Could not revert", description: String(err), variant: "destructive" }),
+    });
+  };
 
   const isActionPending =
     sendMutation.isPending ||
     confirmMutation.isPending ||
     startMutation.isPending ||
     completeMutation.isPending ||
-    cancelMutation.isPending;
+    cancelMutation.isPending ||
+    revertMutation.isPending;
 
   const filteredOrders = (orders ?? []).filter((order) => {
     if (providerFilter !== "all" && order.serviceProviderId !== providerFilter) {
@@ -301,7 +357,9 @@ export default function ServiceOrdersPage() {
                     onStart={(id) => startMutation.mutate(id)}
                     onComplete={(id) => completeMutation.mutate({ id })}
                     onCancel={(id) => cancelMutation.mutate({ id })}
+                    onRevert={handleRevert}
                     isLoading={isActionPending}
+                    highlighted={focusedId === order.id}
                   />
                 ))}
               </div>

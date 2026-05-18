@@ -2,6 +2,7 @@ import { db } from "../db";
 import {
   serviceOrders,
   serviceOrderEvents,
+  serviceRequests,
   workOrders,
   suppliers,
   vessels,
@@ -55,12 +56,19 @@ export async function getServiceOrderById(
       serviceProviderEmail: suppliers.email,
       vesselName: vessels.name,
       equipmentName: equipment.name,
+      originatingRequestId: serviceRequests.id,
+      originatingRequestNumber: serviceRequests.requestNumber,
+      originatingRequestStatus: serviceRequests.status,
     })
     .from(serviceOrders)
     .leftJoin(workOrders, eq(serviceOrders.workOrderId, workOrders.id))
     .leftJoin(suppliers, eq(serviceOrders.serviceProviderId, suppliers.id))
     .leftJoin(vessels, eq(workOrders.vesselId, vessels.id))
     .leftJoin(equipment, eq(workOrders.equipmentId, equipment.id))
+    .leftJoin(
+      serviceRequests,
+      and(eq(serviceRequests.serviceOrderId, serviceOrders.id), eq(serviceRequests.orgId, orgId))
+    )
     .where(and(eq(serviceOrders.id, id), eq(serviceOrders.orgId, orgId)))
     .limit(1);
 
@@ -76,6 +84,9 @@ export async function getServiceOrderById(
     serviceProviderEmail: row.serviceProviderEmail ?? undefined,
     vesselName: row.vesselName ?? undefined,
     equipmentName: row.equipmentName ?? undefined,
+    originatingRequestId: row.originatingRequestId ?? undefined,
+    originatingRequestNumber: row.originatingRequestNumber ?? undefined,
+    originatingRequestStatus: row.originatingRequestStatus ?? undefined,
   };
 }
 
@@ -110,12 +121,19 @@ export async function listServiceOrders(
       serviceProviderEmail: suppliers.email,
       vesselName: vessels.name,
       equipmentName: equipment.name,
+      originatingRequestId: serviceRequests.id,
+      originatingRequestNumber: serviceRequests.requestNumber,
+      originatingRequestStatus: serviceRequests.status,
     })
     .from(serviceOrders)
     .leftJoin(workOrders, eq(serviceOrders.workOrderId, workOrders.id))
     .leftJoin(suppliers, eq(serviceOrders.serviceProviderId, suppliers.id))
     .leftJoin(vessels, eq(workOrders.vesselId, vessels.id))
     .leftJoin(equipment, eq(workOrders.equipmentId, equipment.id))
+    .leftJoin(
+      serviceRequests,
+      and(eq(serviceRequests.serviceOrderId, serviceOrders.id), eq(serviceRequests.orgId, orgId))
+    )
     .where(and(...conditions))
     .orderBy(sql`${serviceOrders.createdAt} DESC`);
 
@@ -127,6 +145,9 @@ export async function listServiceOrders(
     serviceProviderEmail: row.serviceProviderEmail ?? undefined,
     vesselName: row.vesselName ?? undefined,
     equipmentName: row.equipmentName ?? undefined,
+    originatingRequestId: row.originatingRequestId ?? undefined,
+    originatingRequestNumber: row.originatingRequestNumber ?? undefined,
+    originatingRequestStatus: row.originatingRequestStatus ?? undefined,
   }));
 }
 

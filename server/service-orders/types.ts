@@ -47,6 +47,9 @@ export interface ServiceOrderWithDetails extends ServiceOrder {
   serviceProviderEmail?: string;
   vesselName?: string;
   equipmentName?: string;
+  originatingRequestId?: string;
+  originatingRequestNumber?: string;
+  originatingRequestStatus?: string;
 }
 
 export interface ServiceOrderListFilters {

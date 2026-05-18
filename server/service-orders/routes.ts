@@ -18,6 +18,7 @@ import { insertServiceOrderSchema, emailQueue, suppliers } from "@shared/schema"
 import * as repo from "./repository";
 import { SERVICE_ORDER_STATUS_TRANSITIONS, ServiceOrderStatus } from "./types";
 import { generateSOEmailHtmlWithTemplate } from "./email-templates";
+import { syncWorkOrderFromServiceOrders } from "../routes/wo-so-bridge-routes";
 import { db } from "../db";
 import { eq, and } from "drizzle-orm";
 import { canModifyRecord, SO_PERMISSION_GUARD } from "../lib/status-permission-guard";
@@ -330,6 +331,16 @@ router.post("/:id/complete", async (req: Request, res: Response) => {
     req.body.userId
   );
   await triggerProcurementAggregation(existing.workOrderId, orgId, existing.status, "completed");
+
+  // Auto-sync the parent Work Order status when this completion makes all SOs done.
+  if (existing.workOrderId) {
+    try {
+      await syncWorkOrderFromServiceOrders(db, orgId, existing.workOrderId);
+    } catch (err) {
+      logger.error("[ServiceOrder] Failed to sync work order status after completion:", undefined, err);
+    }
+  }
+
   res.json(updated);
 });
 

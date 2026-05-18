@@ -20,6 +20,11 @@ export interface ServiceRequest {
   workOrderDescription?: string | null;
   equipmentName?: string | null;
   vesselName?: string | null;
+  serviceOrderNumber?: string | null;
+  serviceOrderStatus?: string | null;
+  previousWoStatus?: string | null;
+  serviceDetails?: string | null;
+  specialRequirements?: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -391,45 +391,164 @@ export function registerWoSoBridgeRoutes(
           return res.json({ synced: false, reason: "No linked work order" });
         }
 
-        const [soStatus] = await defaultDb
+        const result = await syncWorkOrderFromServiceOrders(
+          defaultDb,
+          orgId,
+          so.work_order_id as string
+        );
+        res.json(result);
+      }
+    )
+  );
+
+  app.post(
+    "/api/service-orders/:id/revert-to-request",
+    requireOrgIdAndValidateBody,
+    checkPermissionInDev("service_orders", "edit"),
+    writeOperationRateLimit,
+    withErrorHandling("revert service order to request", async (req: Request, res: Response) => {
+      const orgId = getOrgId(req);
+      const serviceOrderId = req.params.id;
+
+      const [so] = await defaultDb
+        .execute(
+          sql`
+            SELECT id, work_order_id, status, so_number
+            FROM service_orders
+            WHERE id = ${serviceOrderId} AND org_id = ${orgId}
+          `
+        )
+        .then((r) => r.rows || r);
+
+      if (!so) {
+        return sendNotFound(res, "Service Order");
+      }
+
+      const REVERTIBLE: string[] = ["draft", "sent", "confirmed"];
+      if (!REVERTIBLE.includes(so.status as string)) {
+        return res.status(400).json({
+          error: `Cannot revert a service order in '${so.status}' status. Only draft, sent, or confirmed orders can be reverted.`,
+        });
+      }
+
+      const [sr] = await defaultDb
+        .execute(
+          sql`
+            SELECT id, request_number, previous_wo_status
+            FROM service_requests
+            WHERE service_order_id = ${serviceOrderId} AND org_id = ${orgId}
+            LIMIT 1
+          `
+        )
+        .then((r) => r.rows || r);
+
+      if (!sr) {
+        return res.status(400).json({
+          error: "This service order was not created from a service request and cannot be reverted. Use Cancel instead.",
+        });
+      }
+
+      // Run revert atomically so a partial failure can't leave the SR/SO/WO in
+      // an inconsistent state.
+      const restored = await defaultDb.transaction(async (tx) => {
+        await tx.execute(sql`
+          UPDATE service_requests
+          SET status = 'approved',
+              service_order_id = NULL,
+              converted_at = NULL,
+              updated_at = NOW()
+          WHERE id = ${sr.id} AND org_id = ${orgId}
+        `);
+
+        if (so.work_order_id) {
+          const previous = (sr.previous_wo_status as string | null) || "open";
+          await tx.execute(sql`
+            UPDATE work_orders
+            SET status = CASE
+                  WHEN status = 'awaiting_service' THEN ${previous}
+                  ELSE status
+                END,
+                updated_at = NOW()
+            WHERE id = ${so.work_order_id} AND org_id = ${orgId}
+          `);
+        }
+
+        await tx.execute(sql`
+          DELETE FROM service_order_events
+          WHERE so_id = ${serviceOrderId} AND org_id = ${orgId}
+        `);
+        await tx.execute(sql`
+          DELETE FROM service_orders
+          WHERE id = ${serviceOrderId} AND org_id = ${orgId}
+        `);
+
+        const [row] = await tx
           .execute(
             sql`
+              SELECT * FROM service_requests
+              WHERE id = ${sr.id} AND org_id = ${orgId}
+            `
+          )
+          .then((r: any) => r.rows || r);
+        return row;
+      });
+
+      logger.info(
+        `Reverted service order ${so.so_number} back to service request ${sr.request_number}`
+      );
+      res.json({ reverted: true, serviceRequest: restored });
+    })
+  );
+}
+
+/**
+ * Shared helper used by both the standalone sync route and the SO complete
+ * handler so completing the last open SO on a WO advances the parent WO
+ * automatically.
+ */
+export async function syncWorkOrderFromServiceOrders(
+  db: typeof defaultDb,
+  orgId: string,
+  workOrderId: string
+): Promise<{ synced: boolean; workOrderStatus?: string; reason: string }> {
+  const [soStatus] = await db
+    .execute(
+      sql`
         SELECT
           COUNT(*)::int AS total,
           COUNT(*) FILTER (WHERE status = 'completed')::int AS completed,
           COUNT(*) FILTER (WHERE status = 'cancelled')::int AS cancelled
         FROM service_orders
-        WHERE work_order_id = ${so.work_order_id} AND org_id = ${orgId}
+        WHERE work_order_id = ${workOrderId} AND org_id = ${orgId}
       `
-          )
-          .then((r) => r.rows || r);
-
-        const soStatusAny = soStatus as any;
-        const allDone = Number(soStatusAny.completed) + Number(soStatusAny.cancelled) === Number(soStatusAny.total);
-
-        if (allDone && Number(soStatusAny.completed) > 0) {
-          await defaultDb.execute(sql`
-          UPDATE work_orders
-          SET
-            status = CASE
-              WHEN status = 'awaiting_service' THEN 'in_progress'
-              ELSE status
-            END,
-            updated_at = NOW()
-          WHERE id = ${so.work_order_id} AND org_id = ${orgId}
-        `);
-          return res.json({
-            synced: true,
-            workOrderStatus: "in_progress",
-            reason: "All service orders completed",
-          });
-        }
-
-        res.json({
-          synced: false,
-          reason: `${Number(soStatusAny.total) - Number(soStatusAny.completed) - Number(soStatusAny.cancelled)} service orders still active`,
-        });
-      }
     )
-  );
+    .then((r) => r.rows || r);
+
+  const stat = soStatus as any;
+  const total = Number(stat?.total ?? 0);
+  const completed = Number(stat?.completed ?? 0);
+  const cancelled = Number(stat?.cancelled ?? 0);
+  const allDone = total > 0 && completed + cancelled === total;
+
+  if (allDone && completed > 0) {
+    await db.execute(sql`
+      UPDATE work_orders
+      SET status = CASE
+            WHEN status = 'awaiting_service' THEN 'in_progress'
+            ELSE status
+          END,
+          updated_at = NOW()
+      WHERE id = ${workOrderId} AND org_id = ${orgId}
+    `);
+    return {
+      synced: true,
+      workOrderStatus: "in_progress",
+      reason: "All service orders completed",
+    };
+  }
+
+  return {
+    synced: false,
+    reason: `${total - completed - cancelled} service orders still active`,
+  };
 }

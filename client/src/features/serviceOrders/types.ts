@@ -42,6 +42,9 @@ export interface ServiceOrder {
   downtimeWindowEnd?: Date | string | null;
   justification?: string | null;
   responseDeadline?: Date | string | null;
+  originatingRequestId?: string | null;
+  originatingRequestNumber?: string | null;
+  originatingRequestStatus?: string | null;
 }
 
 export interface SOEvent {

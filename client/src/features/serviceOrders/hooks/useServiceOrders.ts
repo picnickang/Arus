@@ -135,3 +135,15 @@ export function useCancelServiceOrder() {
     },
   });
 }
+
+export function useRevertServiceOrder() {
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiRequest("POST", `/api/service-orders/${id}/revert-to-request`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: soKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["/api/service-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
+    },
+  });
+}

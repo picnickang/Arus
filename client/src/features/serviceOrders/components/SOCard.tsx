@@ -1,10 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { SOStatusBadge } from "./SOStatusBadge";
 import { SOProgressBar } from "./SOProgressBar";
 import { LinkedWorkOrderBadge } from "@/components/service-orders/LinkedWorkOrderBadge";
-import { Calendar, Clock, DollarSign, Building2, Ship } from "lucide-react";
+import { Calendar, Clock, DollarSign, Building2, Ship, Undo2, ClipboardList } from "lucide-react";
 import { format } from "date-fns";
+import { useLocation } from "wouter";
 import type { ServiceOrder } from "../types";
 import { formatNumber } from "@/lib/formatters";
 
@@ -17,7 +19,9 @@ interface SOCardProps {
   onStart?: (id: string) => void;
   onComplete?: (id: string) => void;
   onCancel?: (id: string) => void;
+  onRevert?: (id: string) => void;
   isLoading?: boolean;
+  highlighted?: boolean;
 }
 
 export function SOCard({
@@ -29,8 +33,11 @@ export function SOCard({
   onStart,
   onComplete,
   onCancel,
+  onRevert,
   isLoading,
+  highlighted,
 }: SOCardProps) {
+  const [, setLocation] = useLocation();
   const formatDate = (date: Date | string | null | undefined) => {
     if (!date) {
       return "—";
@@ -45,13 +52,22 @@ export function SOCard({
     return `${order.currency || "USD"} ${formatNumber(amount)}`;
   };
 
+  const isRevertible =
+    !!order.originatingRequestId && ["draft", "sent", "confirmed"].includes(order.status);
+
   return (
-    <Card className="hover:shadow-md transition-shadow" data-testid={`card-so-${order.id}`}>
+    <Card
+      id={`so-card-${order.id}`}
+      className={`hover:shadow-md transition-shadow ${
+        highlighted ? "ring-2 ring-primary ring-offset-2" : ""
+      }`}
+      data-testid={`card-so-${order.id}`}
+    >
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
             <CardTitle className="text-lg">{order.soNumber}</CardTitle>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
               {order.workOrderId ? (
                 <LinkedWorkOrderBadge
                   workOrderId={order.workOrderId}
@@ -59,6 +75,22 @@ export function SOCard({
                 />
               ) : (
                 <p className="text-sm text-muted-foreground">{order.workOrderNumber || "—"}</p>
+              )}
+              {order.originatingRequestId && order.originatingRequestNumber && (
+                <Badge
+                  variant="outline"
+                  className="cursor-pointer gap-1 hover:bg-accent"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLocation(
+                      `/logistics?tab=inventory&subtab=service-requests&focus=${order.originatingRequestId}`
+                    );
+                  }}
+                  data-testid={`badge-from-sr-${order.id}`}
+                >
+                  <ClipboardList className="h-3 w-3" />
+                  From {order.originatingRequestNumber}
+                </Badge>
               )}
             </div>
           </div>
@@ -149,6 +181,18 @@ export function SOCard({
               data-testid={`button-complete-so-${order.id}`}
             >
               Complete
+            </Button>
+          )}
+          {isRevertible && onRevert && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onRevert(order.id)}
+              disabled={isLoading}
+              data-testid={`button-revert-so-${order.id}`}
+            >
+              <Undo2 className="h-3 w-3 mr-1" />
+              Revert to Request
             </Button>
           )}
           {!["completed", "cancelled"].includes(order.status) && onCancel && (

@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { EditServiceRequestDialog } from "../components/EditServiceRequestDialog";
+import type { ServiceRequest } from "../types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -231,9 +233,32 @@ export function ServiceRequestsPage() {
   const [searchInput, setSearchInput] = useState("");
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingSr, setEditingSr] = useState<ServiceRequest | null>(null);
   const [selectedSRId, setSelectedSRId] = useState<string | null>(null);
+  const [focusedId, setFocusedId] = useState<string | null>(null);
 
   const { data: requests = [], isLoading } = useServiceRequests(filters);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const focus = params.get("focus");
+    if (!focus) {
+      return;
+    }
+    setFocusedId(focus);
+    const scrollTimer = window.setTimeout(() => {
+      const el = document.getElementById(`sr-card-${focus}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 200);
+    const clearTimer = window.setTimeout(() => setFocusedId(null), 1800);
+    return () => {
+      window.clearTimeout(scrollTimer);
+      window.clearTimeout(clearTimer);
+    };
+  }, [requests]);
   const reviewMutation = useReviewServiceRequest();
   const approveMutation = useApproveServiceRequest();
   const rejectMutation = useRejectServiceRequest();
@@ -342,6 +367,11 @@ export function ServiceRequestsPage() {
     if (sr?.workOrderId) {
       setLocation(`/work-orders?id=${sr.workOrderId}`);
     }
+  };
+
+  const handleEdit = (sr: ServiceRequest) => {
+    setEditingSr(sr);
+    setEditDialogOpen(true);
   };
 
   return (
@@ -471,7 +501,9 @@ export function ServiceRequestsPage() {
               onApprove={handleApprove}
               onReject={handleReject}
               onConvert={handleConvert}
+              onEdit={handleEdit}
               onViewDetails={handleViewDetails}
+              highlighted={focusedId === sr.id}
             />
           ))}
         </div>
@@ -490,6 +522,16 @@ export function ServiceRequestsPage() {
         srId={selectedSRId}
         onSubmit={handleRejectSubmit}
         isPending={rejectMutation.isPending}
+      />
+      <EditServiceRequestDialog
+        open={editDialogOpen}
+        onOpenChange={(o) => {
+          setEditDialogOpen(o);
+          if (!o) {
+            setEditingSr(null);
+          }
+        }}
+        serviceRequest={editingSr}
       />
     </div>
   );
