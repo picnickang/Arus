@@ -125,7 +125,7 @@ export function PRDetailPage() {
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"
-          onClick={() => setLocation("/inventory-management?tab=purchasing")}
+          onClick={() => setLocation("/logistics?tab=inventory&subtab=purchasing")}
           data-testid="button-back"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
