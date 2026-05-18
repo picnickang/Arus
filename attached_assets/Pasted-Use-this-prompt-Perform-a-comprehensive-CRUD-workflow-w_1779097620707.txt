@@ -1,0 +1,146 @@
+Use this prompt:
+
+⸻
+
+Perform a comprehensive CRUD workflow + workflow efficiency evaluation of this application.
+
+Evaluate the system as if you were:
+
+* senior QA engineer
+* product operations analyst
+* UX workflow specialist
+* principal software architect
+* production SaaS reliability engineer
+
+Your goal is to test whether every CRUD workflow works correctly and whether the workflow is efficient, intuitive, scalable, and production-ready.
+
+1. CRUD Validation
+
+For every major entity/module, test:
+
+Create
+
+* Can users create records successfully?
+* Are required fields clear?
+* Are validation errors helpful?
+* Are duplicates prevented?
+* Are permissions enforced?
+* Does the UI update correctly after creation?
+* Are audit logs/events/cache/search indexes updated?
+
+Read
+
+* Can users find, view, filter, sort, and search records?
+* Are list/detail pages fast and understandable?
+* Are empty states useful?
+* Are users only seeing what they are allowed to see?
+* Is stale/deleted data handled correctly?
+
+Update
+
+* Can users edit records safely?
+* Are partial updates handled?
+* Are invalid state transitions blocked?
+* Are concurrent edits handled?
+* Does the UI reflect changes immediately and correctly?
+* Are changes logged?
+
+Delete
+
+* Can users delete/archive/restore records safely?
+* Are confirmations clear?
+* Are dependent records handled correctly?
+* Are permissions enforced?
+* Are deleted records removed from lists/search/cache?
+* Is accidental deletion recoverable?
+
+2. Workflow Efficiency Evaluation
+
+For every workflow, measure:
+
+* Number of clicks/taps required
+* Number of screens/modals involved
+* Time to complete the task
+* Cognitive load
+* Required manual data entry
+* Repeated or duplicated actions
+* Error frequency
+* Confusing labels or navigation
+* Unnecessary steps
+* Missing shortcuts or bulk actions
+* Mobile usability
+* Keyboard accessibility
+* Whether users can complete the task without training
+
+3. End-to-End Workflow Testing
+
+Test real workflows such as:
+
+* create → view → edit → save → search → delete/archive
+* create parent record → add child records → update status → generate output
+* assign task → notify user → update progress → close task
+* upload file → process file → review result → approve/reject
+* multi-user concurrent updates
+* failed save → retry → recover
+* offline/stale data → refresh/reconnect
+* bulk create/update/delete
+
+4. Workflow Quality Scoring
+
+For each workflow, assign scores from 1–10 for:
+
+* Functional correctness
+* Speed
+* Ease of use
+* Error prevention
+* Error recovery
+* Data consistency
+* Permission safety
+* Mobile usability
+* Scalability
+* Overall production readiness
+
+5. Identify Inefficiencies
+
+Find:
+
+* workflows with too many steps
+* redundant data entry
+* confusing navigation
+* unclear success/failure feedback
+* missing default values
+* missing batch actions
+* slow screens
+* weak search/filtering
+* poor handoff between roles
+* places where users may abandon the workflow
+* places where mistakes are likely
+
+6. Deliverables
+
+Return:
+
+1. CRUD coverage matrix
+2. End-to-end workflow test results
+3. Workflow efficiency scorecard
+4. Broken or fragile workflows
+5. UX friction points
+6. Data consistency risks
+7. Permission/security risks
+8. Performance bottlenecks
+9. Missing automation opportunities
+10. Prioritized improvement roadmap
+
+For every issue, include:
+
+* severity
+* affected workflow
+* exact reproduction steps
+* expected behavior
+* actual behavior
+* root cause
+* business impact
+* recommended fix
+* priority
+
+Be exhaustive and skeptical. Test not only whether the system works, but whether real users can complete their work quickly, safely, and with minimal confusion.

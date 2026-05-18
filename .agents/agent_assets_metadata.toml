@@ -402,3 +402,9 @@ id = "bVUzHIAmr0XWiPOteggo5"
 uri = "file://.local/schema-drift-report.md"
 type = "text"
 title = "Schema Drift Audit Report"
+
+[[outputs]]
+id = "0X3gxA6DeK2jDPp8fh10I"
+uri = "file://reports/crud-workflow-evaluation.md"
+type = "text"
+title = "ARUS — CRUD & Workflow Efficiency Evaluation"
