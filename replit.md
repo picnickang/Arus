@@ -56,7 +56,8 @@ Implemented with Express.js and TypeScript, providing RESTful APIs with Zod vali
 
 ## System Design Choices
 
--   **Database**: Dual-mode deployment with cloud PostgreSQL (TimescaleDB) and local SQLite (Turso sync), utilizing a normalized schema.
+-   **Database**: Dual-mode deployment with cloud PostgreSQL and local SQLite (Turso sync), utilizing a normalized schema. *Note: TimescaleDB hypertables, continuous aggregates, compression, and retention policies are planned but not yet enabled — `server/timescaledb-bootstrap.ts` and `server/timescaledb-optimization.ts` are stubs that log a "skipped — standard PostgreSQL mode" message at startup. Enablement is tracked as Wave 2.8 of the gap-fill plan.*
+-   **API Versioning**: All routes are served under both `/api/v1/*` (current) and `/api/*` (legacy). The legacy unversioned surface is deprecated with a sunset date of 2026-11-18 and stamps RFC 8594 `Deprecation`, `Sunset`, `Link: rel="successor-version"`, and `Warning` headers on every response. Wiring lives in `server/middleware/api-versioning.ts` and is invoked from `server/bootstrap/middleware.ts` before the `/api` auth chain so versioned requests pass through auth once. Swagger `servers` lists `/api/v1` first and `/api` second.
 -   **Architecture**: Single-tenant with centralized configuration, implementing a Hexagonal Architecture (DDD Modular Monolith).
 -   **Authentication**: HMAC for edge devices; bcryptjs for password hashing; SHA-256 hashed session tokens; session-based admin authentication.
 -   **Security**: Admin Audit Logging, automated IP tracking, tenant isolation alerts, and comprehensive input validation.

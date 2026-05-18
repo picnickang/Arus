@@ -53,8 +53,12 @@ Admin endpoints additionally require the \`x-admin-token\` header.
   },
   servers: [
     {
+      url: "/api/v1",
+      description: "Current version (v1)",
+    },
+    {
       url: "/api",
-      description: "Current server",
+      description: "Legacy unversioned surface — deprecated, sunset 2026-11-18. Responses carry Deprecation/Sunset/Link headers.",
     },
   ],
   tags: [

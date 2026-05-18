@@ -192,6 +192,13 @@ export async function configureAuthMiddleware(app: Express): Promise<void> {
   const { withDatabaseContext } = await import("../middleware/db-context");
   const { validateOrgIdHeader } = await import("../orgIdValidation");
   const { apiReadyGate } = await import("../middleware/api-ready-gate");
+  const { applyApiVersioning } = await import("../middleware/api-versioning");
+
+  // Mount /api/v1 rewrite BEFORE the /api auth chain so versioned requests
+  // re-enter the stack at /api with a single auth pass (the rewrite calls
+  // app.handle to re-dispatch with the unversioned URL). Also stamps
+  // Deprecation / Sunset / Link headers on legacy unversioned /api/* calls.
+  applyApiVersioning(app);
 
   const skipPublicPaths = (middleware: any) => (req: any, res: any, next: any) => {
     if (isPublicApiPath(req)) {
