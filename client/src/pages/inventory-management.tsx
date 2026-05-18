@@ -17,7 +17,7 @@
  */
 
 import React from "react";
-import { useLocation, useSearch } from "wouter";
+import { useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,7 +82,6 @@ const FALLBACK_CATEGORIES = [
 ];
 
 export default function InventoryManagement() {
-  const [, setLocation] = useLocation();
   const searchString = useSearch();
 
   type TabValue = "inventory" | "purchasing" | "service-requests";
@@ -99,29 +98,33 @@ export default function InventoryManagement() {
     return "inventory";
   };
 
+  // Initial value from URL (supports deep-linking to ?subtab=purchasing).
+  // After mount we keep activeTab in pure local state. We deliberately do NOT
+  // call wouter's setLocation on tab change — the parent IconGridLayout owns
+  // `?tab=inventory`, and any router navigation here risks triggering the
+  // legacy /inventory-management → /logistics?tab=inventory redirect, whose
+  // query-merger in App.tsx would strip our sub-tab key. We sync URL silently
+  // via history.replaceState so deep-links still work without re-routing.
   const [activeTab, setActiveTab] = React.useState<TabValue>(() =>
     getTabFromSearch(searchString || window.location.search)
   );
 
-  React.useEffect(() => {
-    setActiveTab(getTabFromSearch(searchString || window.location.search));
-  }, [searchString]);
-
   const handleTabChange = (value: string) => {
     const next = value as TabValue;
     setActiveTab(next);
-    // Preserve the parent IconGridLayout's `tab=inventory` param by writing
-    // our own sub-tab under a distinct key (`subtab`). Using `tab` here would
-    // collide with `/logistics?tab=inventory` and get stripped by the
-    // legacy-redirect query merger in App.tsx.
-    const params = new URLSearchParams(window.location.search);
-    params.set("tab", "inventory");
-    if (next === "inventory") {
-      params.delete("subtab");
-    } else {
-      params.set("subtab", next);
+    if (typeof window === "undefined") return;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", "inventory");
+      if (next === "inventory") {
+        url.searchParams.delete("subtab");
+      } else {
+        url.searchParams.set("subtab", next);
+      }
+      window.history.replaceState(window.history.state, "", url.toString());
+    } catch {
+      // Best-effort URL sync; tab state is the source of truth.
     }
-    setLocation(`/logistics?${params.toString()}`, { replace: true });
   };
 
   const {
