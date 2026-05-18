@@ -24,6 +24,7 @@ import { withErrorHandling, sendCreated, sendNotFound } from "../lib/route-utils
 import { logger } from "../utils/logger";
 import { checkPermissionInDev } from "../domains/permissions/middleware";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
+import { generateSoNumber } from "../service-orders/repository";
 
 function getOrgId(req: any): string {
   const orgId = req.orgId || DEFAULT_ORG_ID;
@@ -69,23 +70,17 @@ export async function createServiceOrderFromWorkOrder(
     updateWorkOrderStatus = true,
   } = params;
 
-  const [seqResult] = await db
-    .execute(
-      sql`
-    SELECT COALESCE(
-      MAX(CAST(SUBSTRING(so_number FROM 'SO-([0-9]+)') AS INTEGER)),
-      0
-    ) + 1 AS next_num
-    FROM service_orders
-    WHERE org_id = ${orgId}
-  `
-    )
-    .then((r) => r.rows || r);
-  const soNumber = `SO-${String(seqResult?.next_num || 1).padStart(4, "0")}`;
+  // Use the canonical generator (advisory-xact-locked) inside a transaction
+  // so the lock is held until the INSERT commits. Previously this path used
+  // an inline `SELECT MAX(...)+1` with no lock, which raced under concurrent
+  // WO→SO conversions for the same org and could produce duplicate so_number
+  // values. See server/service-orders/repository.ts:generateSoNumber.
+  const newSo = await defaultDb.transaction(async (tx) => {
+    const soNumber = await generateSoNumber(orgId, tx as unknown as { execute: typeof db.execute });
 
-  const [newSo] = await db
-    .execute(
-      sql`
+    const [inserted] = await tx
+      .execute(
+        sql`
     INSERT INTO service_orders (
       id, org_id, so_number, status,
       work_order_id, work_order_number,
@@ -116,23 +111,26 @@ export async function createServiceOrderFromWorkOrder(
     )
     RETURNING *
   `
-    )
-    .then((r) => r.rows || r);
+      )
+      .then((r) => r.rows || r);
 
-  if (updateWorkOrderStatus) {
-    await db.execute(sql`
-      UPDATE work_orders
-      SET
-        status = CASE
-          WHEN status IN ('open', 'in_progress') THEN 'awaiting_service'
-          ELSE status
-        END,
-        updated_at = NOW()
-      WHERE id = ${workOrderId} AND org_id = ${orgId}
-    `);
-  }
+    if (updateWorkOrderStatus) {
+      await tx.execute(sql`
+        UPDATE work_orders
+        SET
+          status = CASE
+            WHEN status IN ('open', 'in_progress') THEN 'awaiting_service'
+            ELSE status
+          END,
+          updated_at = NOW()
+        WHERE id = ${workOrderId} AND org_id = ${orgId}
+      `);
+    }
 
-  logger.info(`Created service order ${soNumber} from work order ${workOrderId}`);
+    logger.info(`Created service order ${soNumber} from work order ${workOrderId}`);
+    return inserted;
+  });
+
   return newSo;
 }
 

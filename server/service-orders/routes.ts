@@ -14,6 +14,17 @@ import { createLogger } from "../lib/structured-logger";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 const logger = createLogger("ServiceOrders:Routes");
 import { Router, Request, Response } from "express";
+
+/**
+ * Derive orgId from the authenticated request (set by `requireOrgId` middleware,
+ * which is mounted on this router in `domain-router-registry.ts`). Falls back to
+ * DEFAULT_ORG_ID to keep behaviour identical during the project's current
+ * single-tenant phase, but funnels every handler through one seam so the day
+ * the system becomes multi-tenant, only this helper changes.
+ */
+function getOrgId(req: Request): string {
+  return (req as Request & { orgId?: string }).orgId || DEFAULT_ORG_ID;
+}
 import { insertServiceOrderSchema, emailQueue, suppliers } from "@shared/schema";
 import * as repo from "./repository";
 import { SERVICE_ORDER_STATUS_TRANSITIONS, ServiceOrderStatus } from "./types";
@@ -66,7 +77,7 @@ const sanitize = (obj: Record<string, unknown>): Record<string, unknown> => {
 
 // ── GET / ──────────────────────────────────────────────────────────────────────
 router.get("/", async (req: Request, res: Response) => {
-  const orgId = DEFAULT_ORG_ID;
+  const orgId = getOrgId(req);
 
   const filters = {
     status: req.query.status as ServiceOrderStatus | undefined,
@@ -82,7 +93,7 @@ router.get("/", async (req: Request, res: Response) => {
 
 // ── GET /:id ───────────────────────────────────────────────────────────────────
 router.get("/:id", async (req: Request, res: Response) => {
-  const orgId = DEFAULT_ORG_ID;
+  const orgId = getOrgId(req);
 
   const order = await repo.getServiceOrderById(req.params.id, orgId);
   if (!order) {
@@ -93,7 +104,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 
 // ── POST / ─────────────────────────────────────────────────────────────────────
 router.post("/", async (req: Request, res: Response) => {
-  const orgId = DEFAULT_ORG_ID;
+  const orgId = getOrgId(req);
 
   const bodyWithOrg = sanitize({ ...req.body, orgId });
   // soNumber is generated server-side (see below) — omit from validation so
@@ -103,15 +114,27 @@ router.post("/", async (req: Request, res: Response) => {
     return res.status(400).json({ error: "Validation failed", details: parsed.error.flatten() });
   }
 
-  // Improvement #3: sequence-based SO number from repository
-  const soNumber = await repo.generateSoNumber(orgId);
-  const order = await repo.createServiceOrder({ ...parsed.data, soNumber });
+  // Improvement #3: sequence-based SO number from repository.
+  // Generate the number and insert in the SAME transaction so the
+  // pg_advisory_xact_lock inside generateSoNumber is held until commit —
+  // otherwise two concurrent POSTs can read the same MAX and collide on
+  // the (org_id, so_number) unique key.
+  const order = await db.transaction(async (tx) => {
+    const soNumber = await repo.generateSoNumber(
+      orgId,
+      tx as unknown as { execute: typeof db.execute }
+    );
+    return repo.createServiceOrder(
+      { ...parsed.data, soNumber },
+      tx as unknown as { insert: typeof db.insert }
+    );
+  });
   res.status(201).json(order);
 });
 
 // ── PATCH /:id ─────────────────────────────────────────────────────────────────
 router.patch("/:id", async (req: Request, res: Response) => {
-  const orgId = DEFAULT_ORG_ID;
+  const orgId = getOrgId(req);
   const userId = req.headers["x-user-id"] as string | undefined;
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
@@ -150,7 +173,7 @@ router.patch("/:id", async (req: Request, res: Response) => {
  * The original quotedAmount is preserved; revisedAmount tracks the change.
  */
 router.patch("/:id/revise-cost", async (req: Request, res: Response) => {
-  const orgId = DEFAULT_ORG_ID;
+  const orgId = getOrgId(req);
   const userId = req.headers["x-user-id"] as string | undefined;
 
   const schema = z.object({
@@ -200,7 +223,7 @@ router.patch("/:id/revise-cost", async (req: Request, res: Response) => {
 
 // ── POST /:id/send ─────────────────────────────────────────────────────────────
 router.post("/:id/send", async (req: Request, res: Response) => {
-  const orgId = DEFAULT_ORG_ID;
+  const orgId = getOrgId(req);
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
   if (!existing) {
@@ -260,7 +283,7 @@ router.post("/:id/send", async (req: Request, res: Response) => {
 
 // ── POST /:id/confirm ──────────────────────────────────────────────────────────
 router.post("/:id/confirm", async (req: Request, res: Response) => {
-  const orgId = DEFAULT_ORG_ID;
+  const orgId = getOrgId(req);
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
   if (!existing) {
@@ -284,7 +307,7 @@ router.post("/:id/confirm", async (req: Request, res: Response) => {
 
 // ── POST /:id/start ────────────────────────────────────────────────────────────
 router.post("/:id/start", async (req: Request, res: Response) => {
-  const orgId = DEFAULT_ORG_ID;
+  const orgId = getOrgId(req);
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
   if (!existing) {
@@ -308,7 +331,7 @@ router.post("/:id/start", async (req: Request, res: Response) => {
 
 // ── POST /:id/complete ─────────────────────────────────────────────────────────
 router.post("/:id/complete", async (req: Request, res: Response) => {
-  const orgId = DEFAULT_ORG_ID;
+  const orgId = getOrgId(req);
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
   if (!existing) {
@@ -348,7 +371,7 @@ router.post("/:id/complete", async (req: Request, res: Response) => {
 
 // ── POST /:id/cancel ───────────────────────────────────────────────────────────
 router.post("/:id/cancel", async (req: Request, res: Response) => {
-  const orgId = DEFAULT_ORG_ID;
+  const orgId = getOrgId(req);
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
   if (!existing) {
@@ -374,7 +397,7 @@ router.post("/:id/cancel", async (req: Request, res: Response) => {
 
 // ── GET /:id/events ────────────────────────────────────────────────────────────
 router.get("/:id/events", async (req: Request, res: Response) => {
-  const orgId = DEFAULT_ORG_ID;
+  const orgId = getOrgId(req);
 
   const events = await repo.getServiceOrderEvents(req.params.id, orgId);
   res.json(events);
@@ -382,7 +405,7 @@ router.get("/:id/events", async (req: Request, res: Response) => {
 
 // ── DELETE /:id ────────────────────────────────────────────────────────────────
 router.delete("/:id", async (req: Request, res: Response) => {
-  const orgId = DEFAULT_ORG_ID;
+  const orgId = getOrgId(req);
   const userId = req.headers["x-user-id"] as string | undefined;
 
   const existing = await repo.getServiceOrderById(req.params.id, orgId);
@@ -410,7 +433,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
 
 // ── DELETE /bulk/by-work-order/:workOrderId ────────────────────────────────────
 router.delete("/bulk/by-work-order/:workOrderId", async (req: Request, res: Response) => {
-  const orgId = DEFAULT_ORG_ID;
+  const orgId = getOrgId(req);
 
   const result = await repo.deleteAllServiceOrdersByWorkOrder(req.params.workOrderId, orgId);
   res.json(result);

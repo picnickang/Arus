@@ -17,9 +17,12 @@ import {
   ServiceOrderStatus,
 } from "./types";
 
-export async function generateSoNumber(orgId: string): Promise<string> {
+export async function generateSoNumber(
+  orgId: string,
+  executor: { execute: typeof db.execute } = db
+): Promise<string> {
   const lockKey = Buffer.from(`so_num:${orgId}`).reduce((a, b) => (a * 31 + b) & 0x7fffffff, 0);
-  const result = await db.execute(
+  const result = await executor.execute(
     sql`SELECT pg_advisory_xact_lock(${lockKey}),
         COALESCE(MAX(CAST(SUBSTRING(so_number FROM 4) AS INTEGER)), 0) + 1 AS next_val
         FROM service_orders WHERE org_id = ${orgId} AND so_number ~ '^SO-[0-9]+$'`
@@ -27,14 +30,15 @@ export async function generateSoNumber(orgId: string): Promise<string> {
   const nextNum = Number(
     (result as unknown as { rows?: Array<{ next_val: string }> }).rows?.[0]?.next_val ?? 1
   );
-  return `SO-${String(nextNum).padStart(3, "0")}`;
+  return `SO-${String(nextNum).padStart(4, "0")}`;
 }
 
 export async function createServiceOrder(
-  data: InsertServiceOrder & { soNumber: string }
+  data: InsertServiceOrder & { soNumber: string },
+  executor: { insert: typeof db.insert } = db
 ): Promise<ServiceOrder> {
-  const [so] = await db.insert(serviceOrders).values(data).returning();
-  await db.insert(serviceOrderEvents).values({
+  const [so] = await executor.insert(serviceOrders).values(data).returning();
+  await executor.insert(serviceOrderEvents).values({
     orgId: data.orgId,
     soId: so.id,
     eventType: "created",
