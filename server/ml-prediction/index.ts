@@ -4,8 +4,6 @@
  */
 
 export {
-  MLPredictionResult,
-  MLDataStatus,
   isPrediction,
   structuredLog,
   sanitizeTelemetry,
@@ -13,6 +11,7 @@ export {
   generateRecommendations,
   DEFAULT_LOOKBACK_DAYS,
 } from "./types.js";
+export type { MLPredictionResult, MLDataStatus } from "./types.js";
 export { getModel, withProtection } from "./model-loader.js";
 export {
   predictFailureWithLSTM,

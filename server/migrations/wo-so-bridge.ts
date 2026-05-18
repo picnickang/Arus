@@ -53,8 +53,27 @@ export async function migrateWorkOrderServiceOrderBridge(db: any) {
 
   // 3. Add service_order_count to work_orders for quick badge display
   // (This is a computed column approach — alternatively use a view)
+  // DROP first because the view selects `wo.*`, and any time a column is
+  // added/removed/reordered on work_orders (e.g. migration 0010 adding
+  // `cost_justification`), CREATE OR REPLACE VIEW fails with
+  // "cannot change name of view column X to Y". A plain DROP+CREATE is safe
+  // because nothing else depends on this view (verified via pg_depend: zero
+  // dependent objects). It is consumed only via application queries, never
+  // referenced by other views or constraints.
+  //
+  // Wrapped in a single transaction with a pg_advisory_xact_lock so:
+  //   (a) DROP + CREATE are atomic under MVCC — concurrent readers in other
+  //       transactions either see the old view or the new view, never a gap.
+  //   (b) The advisory lock serializes concurrent application boots
+  //       (multi-instance deploys), preventing "view already exists" /
+  //       "view does not exist" races between the DROP and the CREATE.
+  // Lock key 0x776F73625F766965 = ASCII "wosbvie" — a stable per-view id
+  // chosen so other migrations using their own keys do not collide.
   await db.execute(sql`
-    CREATE OR REPLACE VIEW work_orders_with_service_info AS
+    BEGIN;
+    SELECT pg_advisory_xact_lock(8606482937720340837);
+    DROP VIEW IF EXISTS work_orders_with_service_info;
+    CREATE VIEW work_orders_with_service_info AS
     SELECT
       wo.*,
       COALESCE(so_agg.service_order_count, 0) AS service_order_count,
@@ -73,6 +92,7 @@ export async function migrateWorkOrderServiceOrderBridge(db: any) {
       FROM service_orders so
       WHERE so.work_order_id = wo.id
     ) so_agg ON TRUE;
+    COMMIT;
   `);
 
   // 4. Backfill existing service orders that reference work orders
