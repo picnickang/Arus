@@ -201,7 +201,13 @@ function Router() {
               ))}
 
               {allRoutes.map(({ path, component: Component }) => (
-                <Route key={path} path={path} component={Component as any} />
+                <Route key={path} path={path}>
+                  {(params) => (
+                    <ErrorBoundary key={path}>
+                      <Component {...(params as any)} />
+                    </ErrorBoundary>
+                  )}
+                </Route>
               ))}
 
               <Route component={NotFound} />
