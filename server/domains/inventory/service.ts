@@ -29,7 +29,7 @@ export class InventoryService {
    */
   async deletePart(id: string, orgId: string, userId?: string): Promise<void> {
     // Get part data before deletion for event
-    const part = await inventoryRepository.findPartByNumber(id, orgId);
+    const part = await inventoryRepository.findPartById(id, orgId);
 
     // Delete part
     await inventoryRepository.deletePart(id, orgId);

@@ -68,9 +68,15 @@ export function EquipmentFormDialog({
   const dialogOpen = open ?? isOpen ?? false;
 
   const createMutation = useMutation({
-    mutationFn: (data: InsertEquipment) => apiRequest("POST", "/api/equipment", data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: equipmentKeys.list() });
+    mutationFn: (data: InsertEquipment) =>
+      apiRequest<Equipment>("POST", "/api/equipment", data),
+    onSuccess: async (created) => {
+      if (created && (created as Equipment).id) {
+        queryClient.setQueryData<Equipment[]>(equipmentKeys.list(), (old) =>
+          old ? [...old, created as Equipment] : [created as Equipment],
+        );
+      }
+      await queryClient.invalidateQueries({ queryKey: equipmentKeys.list() });
       toast({
         title: "Equipment created",
         description: "The equipment has been added successfully",
@@ -91,8 +97,8 @@ export function EquipmentFormDialog({
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<InsertEquipment> }) =>
       apiRequest("PUT", `/api/equipment/${id}`, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: equipmentKeys.list() });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: equipmentKeys.list() });
       toast({
         title: "Equipment updated",
         description: "The equipment has been updated successfully",

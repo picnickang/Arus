@@ -12,6 +12,10 @@ export class InventoryRepository {
       : Promise.resolve(undefined);
   }
 
+  async findPartById(id: string, orgId?: string): Promise<Part | undefined> {
+    return dbInventoryStorage.getPart(id, orgId);
+  }
+
   async deletePart(id: string, orgId: string): Promise<void> {
     return dbInventoryStorage.deletePart(id, orgId);
   }
