@@ -207,12 +207,10 @@ export async function applyTimescaleOptimizations(isLocalMode: boolean): Promise
   }
 
   try {
-    logger.info("→ Applying TimescaleDB optimizations...");
-    const { applyTimescaleOptimizations: apply } = await import("../timescaledb-optimization");
-    await apply();
-    logger.info("✓ TimescaleDB optimizations applied (stub mode)");
+    const { runTimescaleBootstrap } = await import("../timescaledb-bootstrap");
+    await runTimescaleBootstrap();
   } catch (error) {
-    logger.warn("⚠️  Failed to apply TimescaleDB optimizations (non-critical):", { details: error });
+    logger.warn("⚠️  TimescaleDB bootstrap failed (non-critical):", { details: error });
   }
 }
 

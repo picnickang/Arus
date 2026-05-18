@@ -1,20 +1,22 @@
 import { createLogger } from "./lib/structured-logger";
+import { runTimescaleBootstrap } from "./timescaledb-bootstrap";
+
 const logger = createLogger("TimescaledbOptimization");
-// Stub file - TimescaleDB optimization consolidated
+
 export async function applyTimescaleOptimizations(): Promise<void> {
-  logger.info("[TimescaleDB] Optimizations skipped - standard PostgreSQL mode");
+  await runTimescaleBootstrap();
 }
 
 export async function configureChunkTimeInterval(): Promise<void> {
-  // No-op
+  logger.info("[TimescaleDB] chunk_time_interval is configured in scripts/timescale-init-hypertables.mjs");
 }
 
 export async function enableCompression(): Promise<void> {
-  // No-op
+  await runTimescaleBootstrap();
 }
 
 export async function scheduleRetentionPolicy(): Promise<void> {
-  // No-op
+  await runTimescaleBootstrap();
 }
 
 export const timescaledbOptimization = {
