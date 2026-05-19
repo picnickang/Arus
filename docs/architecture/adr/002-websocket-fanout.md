@@ -125,17 +125,28 @@ needing to migrate again.
   `SUBSCRIBE`s to the channels its connected clients actually use, so
   per-tenant traffic stays per-tenant in the wire-protocol — defence-
   in-depth on top of the Push B1 RLS layer.
-- **Deferred — orgId binding at handshake.** The substrate addresses
-  events by `(orgId, channel)` end-to-end, but `WebSocketClient.orgId`
-  is currently hardcoded to the `SYSTEM_ORG_ID` sentinel in
-  `server/websocket.ts` because no Express session middleware is wired
-  into the `/ws` upgrade yet. Until that lands (tracked as a follow-up
-  to Push B1 session middleware), every client occupies the system-org
-  namespace and per-tenant partitioning is dormant. Enabling
-  `WS_REDIS_FANOUT=true` in a shared multi-tenant deployment **before**
-  handshake orgId resolution is wired up means cross-tenant separation
-  is not enforced at the WS substrate level — operators should hold the
-  flag off in multi-tenant prod until the follow-up ships.
+- **orgId binding at handshake.** Every `/ws` upgrade resolves the
+  tenant from the connecting user's session token (passed as
+  `?token=…` on the URL, since browsers cannot set Authorization
+  headers on the native WebSocket constructor). In
+  `REQUIRE_TENANT_AUTH=true` mode anonymous or unknown-token upgrades
+  are closed with WebSocket policy-violation (1008). In legacy single-
+  tenant mode, a missing token lands in `DEFAULT_ORG_ID` to preserve
+  pre-B1 behaviour. The token lookup uses the same session-token
+  hashing as the HTTP auth path (`server/security/authentication.ts`),
+  so the two paths cannot drift in what they accept.
+- **Migration window for existing broadcasts.** The existing
+  `broadcast(channel, payload)` API still publishes to `SYSTEM_ORG_ID`
+  because the dozens of call sites haven't been migrated to pass an
+  explicit `orgId` yet. To keep these reaching their audience, every
+  client dual-subscribes: once to `(client.orgId, channel)` for
+  tenant-scoped publishers, and once to `(SYSTEM_ORG_ID, channel)` for
+  the legacy ones. Migrating a call site to publish per-tenant is a
+  one-line change; when every call site is migrated, the
+  SYSTEM_ORG_ID sub can be removed and isolation becomes strict at the
+  substrate layer. Until that migration completes, operators should
+  understand that tenant-scoped *delivery* is enforced but tenant-
+  scoped *publishing* is best-effort — tracked as a follow-up.
 - **Canonical event ids are Redis-assigned.** When the Redis adapter is
   active, `XADD *` assigns the `<ms>-<seq>` id atomically server-side
   and that id is what gets dispatched locally and published to peers.

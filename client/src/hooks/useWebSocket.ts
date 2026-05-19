@@ -20,8 +20,14 @@ interface WebSocketMessage {
    *  frames (welcome / pong) omit it. */
   eventId?: string;
   /** Which logical channel the event belongs to. Used to advance the
-   *  per-channel replay cursor without parsing the message type. */
+   *  per-(orgId, channel) replay cursor without parsing the message type. */
   channel?: string;
+  /** The fan-out namespace the event was published into. The client
+   *  may receive events on the same channel from two namespaces (its
+   *  own tenant + the legacy SYSTEM_ORG_ID), each with an independent
+   *  monotonic eventId sequence — cursors MUST be tracked per
+   *  (orgId, channel) pair. Connection / pong frames omit it. */
+  orgId?: string;
 }
 
 interface TelemetryData {
@@ -110,11 +116,20 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectCountRef = useRef(0);
   const subscriptionsRef = useRef<Set<string>>(new Set());
-  /** Push B2 — per-channel replay cursor. The server appends an
-   *  `eventId` to every fan-out event; we send the highest one seen on
-   *  re-subscribe so the server replays anything we missed during a
-   *  brief disconnect (up to 5 minutes per ADR 002). */
+  /** Push B2 — per-(orgId, channel) replay cursor, keyed as
+   *  `${orgId}::${channel}`. A client can receive events on the same
+   *  channel from its own tenant namespace AND from the legacy
+   *  SYSTEM_ORG_ID namespace; the two streams have independent
+   *  monotonic eventId sequences, so a single per-channel cursor
+   *  would either over-replay or false-dedupe across namespaces. On
+   *  re-subscribe we send `lastEventIds: { [orgId]: id }` so the
+   *  server can replay each namespace independently (5-min window
+   *  per ADR 002). */
   const lastEventIdRef = useRef<Map<string, string>>(new Map());
+  const channelCursorKey = useCallback(
+    (orgId: string, channel: string) => `${orgId}::${channel}`,
+    [],
+  );
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -124,7 +139,22 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
     setIsConnecting(true);
 
     try {
-      const ws = new WebSocket(url);
+      // Push B2 — propagate the session token on the upgrade URL so the
+      // server can resolve the tenant at handshake time. Browsers can't
+      // set Authorization headers on the native WebSocket constructor,
+      // so a query parameter is the standard channel for this.
+      let connectUrl = url;
+      try {
+        const sessionToken = globalThis.localStorage?.getItem("sessionToken");
+        if (sessionToken) {
+          const u = new URL(url);
+          u.searchParams.set("token", sessionToken);
+          connectUrl = u.toString();
+        }
+      } catch {
+        /* localStorage unavailable (SSR / restricted) — fall back to anonymous upgrade */
+      }
+      const ws = new WebSocket(connectUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -138,12 +168,24 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
         // replay anything published since the cursor. The server uses
         // a 5-min window (Redis stream MINID trim).
         subscriptionsRef.current.forEach((channel) => {
-          const lastEventId = lastEventIdRef.current.get(channel) ?? null;
+          // Collect every per-namespace cursor we have for this
+          // channel and send them as `lastEventIds: { [orgId]: id }`.
+          // The server replays each namespace independently. If we've
+          // never seen this channel before, both maps are empty and
+          // the server treats it as a fresh subscription.
+          const lastEventIds: Record<string, string> = {};
+          const suffix = `::${channel}`;
+          lastEventIdRef.current.forEach((id, key) => {
+            if (key.endsWith(suffix)) {
+              const orgId = key.slice(0, key.length - suffix.length);
+              if (orgId) lastEventIds[orgId] = id;
+            }
+          });
           ws.send(
             JSON.stringify({
               type: "subscribe",
               channel,
-              ...(lastEventId ? { lastEventId } : {}),
+              ...(Object.keys(lastEventIds).length > 0 ? { lastEventIds } : {}),
             }),
           );
         });
@@ -152,13 +194,16 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
       ws.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
-          // Push B2 — advance the per-channel replay cursor. Idempotent
-          // by `eventId` so a message arriving both live and via replay
-          // doesn't poison the cursor.
-          if (message.eventId && message.channel) {
-            const prior = lastEventIdRef.current.get(message.channel);
+          // Push B2 — advance the per-(orgId, channel) replay cursor.
+          // Idempotent by `eventId` within the namespace so a message
+          // arriving both live and via replay doesn't poison the
+          // cursor. eventIds are NOT comparable across namespaces, so
+          // we never compare an SYSTEM_ORG_ID id against a tenant id.
+          if (message.eventId && message.channel && message.orgId) {
+            const key = channelCursorKey(message.orgId, message.channel);
+            const prior = lastEventIdRef.current.get(key);
             if (!prior || compareEventIds(message.eventId, prior) > 0) {
-              lastEventIdRef.current.set(message.channel, message.eventId);
+              lastEventIdRef.current.set(key, message.eventId);
             }
           }
           setLastMessage(message);

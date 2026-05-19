@@ -1,8 +1,10 @@
 import { createLogger } from "./lib/structured-logger";
 const logger = createLogger("Websocket");
 import { WebSocketServer, WebSocket } from "ws";
-import { Server } from "node:http";
-import { dbAlertStorage } from "./repositories";
+import { Server, IncomingMessage } from "node:http";
+import crypto from "node:crypto";
+import { dbAlertStorage, dbSystemAdminStorage, dbUserStorage } from "./repositories";
+import { DEFAULT_ORG_ID, requireTenantAuth } from "@shared/config/tenant";
 import {
   setWebSocketConnections,
   incrementWebSocketMessage,
@@ -90,9 +92,20 @@ interface ChannelDeliveryState {
    *  "zero duplicate, zero missed" reconnect-with-replay contract. */
   replaying: boolean;
   buffer: FanoutEvent[];
-  /** Highest eventId delivered to the client on this channel — used
-   *  to dedupe buffered live events that overlap the replay window. */
+  /** Highest eventId delivered to the client on this (orgId, channel)
+   *  stream — used to dedupe buffered live events that overlap the
+   *  replay window. Cursors are stream-local; eventIds from different
+   *  namespaces are not directly comparable. */
   deliveredUpTo: string | null;
+}
+
+/** Delivery state is keyed by `${orgId}::${channel}` because a client
+ *  may receive events on the same channel from two distinct fan-out
+ *  namespaces (its own tenant + the global SYSTEM_ORG_ID for legacy
+ *  broadcasts). The two streams have independent monotonic eventId
+ *  sequences, so each needs its own cursor + replay buffer. */
+function deliveryKey(orgId: string, channel: string): string {
+  return `${orgId}::${channel}`;
 }
 
 interface WebSocketClient {
@@ -102,12 +115,87 @@ interface WebSocketClient {
    *  unsubscribe handle so we can release the upstream subscription
    *  when the local subscriber set for the channel becomes empty. */
   subscriptions: Set<string>;
-  /** Push B1 contract: orgId pinned at handshake when sessions are
-   *  wired in. Until then, system-org default keeps the old behaviour. */
+  /** Resolved at the WebSocket upgrade from the authenticated session.
+   *  In legacy single-tenant mode this is `DEFAULT_ORG_ID`. */
   orgId: string;
-  /** Per-channel replay/live state for the reconnect-with-replay
-   *  ordering guarantee. */
+  /** Per-(orgId, channel) replay/live state. See `deliveryKey`. */
   delivery: Map<string, ChannelDeliveryState>;
+}
+
+/** Hash a raw session/bearer token the same way the HTTP auth path does
+ *  (`server/security/authentication.ts`). The two paths must agree on
+ *  the on-disk shape or upgrade-time auth will silently fail. */
+function hashSessionToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+interface UpgradeAuthResult {
+  ok: true;
+  orgId: string;
+  userId?: string;
+}
+interface UpgradeAuthRejection {
+  ok: false;
+  reason: string;
+}
+
+/** Resolve the tenant of a WebSocket upgrade.
+ *
+ *  Tokens may arrive on `?token=` (browsers can't set Authorization
+ *  on the native WebSocket constructor) or, in server-to-server cases,
+ *  on the `Authorization: Bearer …` header. In dev we mirror the HTTP
+ *  middleware's dev-mock behaviour and land in `DEFAULT_ORG_ID`. In
+ *  `REQUIRE_TENANT_AUTH=true` mode anonymous upgrades are rejected. */
+async function resolveUpgradeOrg(
+  req: IncomingMessage,
+): Promise<UpgradeAuthResult | UpgradeAuthRejection> {
+  const tenantAuth = requireTenantAuth();
+
+  if (process.env.NODE_ENV === "development" && !tenantAuth) {
+    return { ok: true, orgId: DEFAULT_ORG_ID, userId: "dev-admin-user" };
+  }
+
+  let token: string | undefined;
+  const authHeader = req.headers["authorization"];
+  if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+    token = authHeader.slice(7).trim() || undefined;
+  }
+  if (!token && req.url) {
+    try {
+      const u = new URL(req.url, "http://x");
+      const t = u.searchParams.get("token");
+      if (t) token = t;
+    } catch {
+      /* malformed url — fall through to no-token path */
+    }
+  }
+
+  if (!token) {
+    if (tenantAuth) return { ok: false, reason: "UNAUTHENTICATED" };
+    // Legacy single-tenant deployments: same posture as the HTTP path's
+    // dev mock — land in the default org so existing single-instance
+    // boots keep working when fan-out is off.
+    return { ok: true, orgId: DEFAULT_ORG_ID };
+  }
+
+  try {
+    const session = await dbSystemAdminStorage.getAdminSessionByToken(hashSessionToken(token));
+    if (!session) return { ok: false, reason: "INVALID_TOKEN" };
+    if (new Date(session.expiresAt) < new Date()) {
+      return { ok: false, reason: "SESSION_EXPIRED" };
+    }
+    const user = session.userId ? await dbUserStorage.getUser(session.userId) : null;
+    if (!user || !user.isActive) {
+      return { ok: false, reason: tenantAuth ? "SESSION_USER_MISSING" : "USER_INACTIVE" };
+    }
+    if (tenantAuth && (!user.orgId || user.orgId.trim() === "")) {
+      return { ok: false, reason: "TENANT_CLAIM_MISSING" };
+    }
+    return { ok: true, orgId: user.orgId || DEFAULT_ORG_ID, userId: user.id };
+  } catch (err) {
+    logger.error("ws upgrade auth lookup failed", undefined, err as Error);
+    return { ok: false, reason: "AUTH_LOOKUP_FAILED" };
+  }
 }
 
 class TelemetryWebSocketServer {
@@ -128,16 +216,30 @@ class TelemetryWebSocketServer {
     this.telemetryThrottler = new TelemetryThrottler(250);
     this.telemetryThrottler.start((channel, data) => this.broadcast(channel, data));
 
-    this.wss.on("connection", (ws, _req) => {
+    this.wss.on("connection", async (ws, req) => {
       const clientId = this.generateClientId();
+      // Resolve the tenant at handshake. In tenant-auth mode we hard-
+      // reject anonymous upgrades (1008 = policy violation); in legacy
+      // single-tenant mode we land in DEFAULT_ORG_ID. System-wide
+      // broadcasts (the existing `broadcast()` API) continue to publish
+      // under SYSTEM_ORG_ID — every client also subscribes to that
+      // namespace so legacy call sites keep reaching their audience
+      // while the per-tenant addressing is layered on top.
+      const auth = await resolveUpgradeOrg(req);
+      if (!auth.ok) {
+        log(`WebSocket upgrade rejected (${auth.reason}) for ${clientId}`);
+        try {
+          ws.close(1008, auth.reason);
+        } catch {
+          /* socket already closed */
+        }
+        return;
+      }
       const client: WebSocketClient = {
         ws,
         id: clientId,
         subscriptions: new Set(),
-        // Push B2 follow-up: orgId resolution at handshake is gated on
-        // the B1.1 session middleware landing. Until then every client
-        // shares the system-org namespace — see ADR 002 "Consequences".
-        orgId: SYSTEM_ORG_ID,
+        orgId: auth.orgId,
         delivery: new Map(),
       };
 
@@ -171,7 +273,7 @@ class TelemetryWebSocketServer {
       });
 
       ws.on("close", () => {
-        this.releaseClientFanoutSubs(client);
+        this.releaseAllClientFanoutSubs(client);
         this.clients.delete(clientId);
         log(`WebSocket client disconnected: ${clientId}`);
 
@@ -181,7 +283,7 @@ class TelemetryWebSocketServer {
 
       ws.on("error", (error) => {
         log(`WebSocket error for client ${clientId}: ${error}`);
-        this.releaseClientFanoutSubs(client);
+        this.releaseAllClientFanoutSubs(client);
         this.clients.delete(clientId);
 
         // Update connection metrics and track reconnection (enhanced observability)
@@ -197,49 +299,67 @@ class TelemetryWebSocketServer {
 
   private handleMessage(
     client: WebSocketClient,
-    message: { type?: string; channel?: string; lastEventId?: string | null },
+    message: {
+      type?: string;
+      channel?: string;
+      lastEventId?: string | null;
+      lastEventIds?: Record<string, string> | null;
+    },
   ) {
     const messageHandlers: Record<string, () => void> = {
       subscribe: () => {
         if (!message.channel) return;
         const channel = message.channel;
-        const wantsReplay =
-          message.lastEventId !== undefined && message.lastEventId !== null;
-
-        if (!client.subscriptions.has(channel)) {
-          client.subscriptions.add(channel);
-          // Initialise per-client delivery state BEFORE we attach the
-          // fan-out subscription. If replay is requested we mark the
-          // channel `replaying` so onFanoutEvent buffers live events
-          // instead of racing the replay frames onto the socket. This
-          // is what guarantees the "no duplicate, no missed" contract.
-          client.delivery.set(channel, {
-            replaying: wantsReplay,
-            buffer: [],
-            deliveredUpTo: wantsReplay ? message.lastEventId ?? null : null,
-          });
-          this.acquireFanoutSub(client.orgId, channel);
-        } else if (wantsReplay) {
-          // Re-subscribe of an existing channel with a fresh cursor —
-          // re-enter replay mode and buffer live frames again.
-          const state = client.delivery.get(channel);
-          if (state) {
-            state.replaying = true;
-            state.buffer = [];
-            state.deliveredUpTo = message.lastEventId ?? null;
+        // Per-namespace cursor map: `{ [orgId]: lastEventId }`. The
+        // client tracks (orgId, channel) cursors because legacy
+        // broadcasts arrive on SYSTEM_ORG_ID while tenant-scoped
+        // publishes arrive on `client.orgId`, and the two streams
+        // are not directly comparable. We also accept the legacy
+        // single `lastEventId` form for backward compatibility with
+        // older clients — in that case the cursor is applied to the
+        // client's own tenant namespace only (the conservative
+        // default that does not over-replay SYSTEM_ORG_ID).
+        const cursors: Record<string, string> = {};
+        if (message.lastEventIds && typeof message.lastEventIds === "object") {
+          for (const [orgId, id] of Object.entries(message.lastEventIds)) {
+            if (typeof id === "string" && id.length > 0) cursors[orgId] = id;
           }
+        } else if (typeof message.lastEventId === "string" && message.lastEventId.length > 0) {
+          cursors[client.orgId] = message.lastEventId;
+        }
+        const namespaces =
+          client.orgId === SYSTEM_ORG_ID ? [SYSTEM_ORG_ID] : [client.orgId, SYSTEM_ORG_ID];
+
+        const isFreshSubscription = !client.subscriptions.has(channel);
+        if (isFreshSubscription) {
+          client.subscriptions.add(channel);
+          this.acquireClientFanoutSubs(client, channel);
+        }
+        // Initialise/refresh a delivery state per namespace BEFORE
+        // dispatching replay. While `replaying=true` the live path
+        // (onFanoutEvent) buffers events for that (orgId, channel)
+        // rather than racing them onto the socket.
+        for (const orgId of namespaces) {
+          const key = deliveryKey(orgId, channel);
+          const cursor = cursors[orgId] ?? null;
+          const wantsReplayForOrg = cursor !== null;
+          client.delivery.set(key, {
+            replaying: wantsReplayForOrg,
+            buffer: [],
+            deliveredUpTo: cursor,
+          });
         }
         log(`Client ${client.id} subscribed to ${channel}`);
 
-        if (wantsReplay) {
-          this.replayToClient(client, channel, message.lastEventId as string).catch((err) => {
-            log(`Replay failed for ${client.id}:${channel}: ${err}`);
-            // On replay failure flip back to live so the client isn't
-            // left with a permanently-buffering channel.
-            const state = client.delivery.get(channel);
+        for (const orgId of namespaces) {
+          const cursor = cursors[orgId];
+          if (!cursor) continue;
+          this.replayToClient(client, orgId, channel, cursor).catch((err) => {
+            log(`Replay failed for ${client.id}:${orgId}:${channel}: ${err}`);
+            const state = client.delivery.get(deliveryKey(orgId, channel));
             if (state) {
               state.replaying = false;
-              this.drainBuffer(client, channel);
+              this.drainBuffer(client, orgId, channel);
             }
           });
         }
@@ -250,8 +370,10 @@ class TelemetryWebSocketServer {
       unsubscribe: () => {
         if (!message.channel) return;
         if (client.subscriptions.delete(message.channel)) {
-          client.delivery.delete(message.channel);
-          this.releaseFanoutSub(client.orgId, message.channel);
+          for (const orgId of [client.orgId, SYSTEM_ORG_ID]) {
+            client.delivery.delete(deliveryKey(orgId, message.channel));
+          }
+          this.releaseClientFanoutSubs(client, message.channel);
         }
         log(`Client ${client.id} unsubscribed from ${message.channel}`);
       },
@@ -291,9 +413,28 @@ class TelemetryWebSocketServer {
     }
   }
 
-  private releaseClientFanoutSubs(client: WebSocketClient): void {
+  /** Dual-subscribe: every client listens to its own tenant namespace
+   *  AND to the legacy `SYSTEM_ORG_ID` namespace where un-migrated
+   *  `broadcast()` call sites still publish. When call sites are
+   *  migrated to publish per-tenant, removing the SYSTEM_ORG_ID sub
+   *  here will enforce strict tenant isolation at the WS substrate. */
+  private acquireClientFanoutSubs(client: WebSocketClient, channel: string): void {
+    this.acquireFanoutSub(client.orgId, channel);
+    if (client.orgId !== SYSTEM_ORG_ID) {
+      this.acquireFanoutSub(SYSTEM_ORG_ID, channel);
+    }
+  }
+
+  private releaseClientFanoutSubs(client: WebSocketClient, channel: string): void {
+    this.releaseFanoutSub(client.orgId, channel);
+    if (client.orgId !== SYSTEM_ORG_ID) {
+      this.releaseFanoutSub(SYSTEM_ORG_ID, channel);
+    }
+  }
+
+  private releaseAllClientFanoutSubs(client: WebSocketClient): void {
     for (const channel of client.subscriptions) {
-      this.releaseFanoutSub(client.orgId, channel);
+      this.releaseClientFanoutSubs(client, channel);
     }
     client.subscriptions.clear();
     client.delivery.clear();
@@ -311,11 +452,15 @@ class TelemetryWebSocketServer {
    *  arrive twice (once live, once via replay). */
   private onFanoutEvent(event: FanoutEvent): void {
     this.clients.forEach((client) => {
-      if (client.orgId !== event.orgId) return;
+      // A client receives events for its own tenant AND for the global
+      // SYSTEM_ORG_ID namespace (where legacy broadcasts still land).
+      // This keeps existing `broadcast()` call sites working while
+      // future tenant-scoped publishers reach only their own clients.
+      if (event.orgId !== client.orgId && event.orgId !== SYSTEM_ORG_ID) return;
       if (!client.subscriptions.has(event.channel)) return;
       if (client.ws.readyState !== WebSocket.OPEN) return;
 
-      const state = client.delivery.get(event.channel);
+      const state = client.delivery.get(deliveryKey(event.orgId, event.channel));
       if (state?.replaying) {
         state.buffer.push(event);
         return;
@@ -325,14 +470,15 @@ class TelemetryWebSocketServer {
   }
 
   private sendEvent(client: WebSocketClient, event: FanoutEvent): boolean {
-    const state = client.delivery.get(event.channel);
+    const state = client.delivery.get(deliveryKey(event.orgId, event.channel));
     if (state?.deliveredUpTo && compareEventIds(event.eventId, state.deliveredUpTo) <= 0) {
-      // Already delivered (either via replay or an earlier live frame)
-      // — drop silently to keep client-side dedup unnecessary.
+      // Already delivered on this (orgId, channel) stream — drop
+      // silently. Cursor is stream-local, so this never compares
+      // against an unrelated namespace's eventId.
       return false;
     }
     const frame = JSON.stringify(
-      this.envelope(event.payload as BroadcastPayload, event.channel, event.eventId),
+      this.envelope(event.payload as BroadcastPayload, event.channel, event.eventId, event.orgId),
     );
     try {
       client.ws.send(frame);
@@ -344,14 +490,15 @@ class TelemetryWebSocketServer {
     }
   }
 
-  private drainBuffer(client: WebSocketClient, channel: string): void {
-    const state = client.delivery.get(channel);
+  private drainBuffer(client: WebSocketClient, orgId: string, channel: string): void {
+    const state = client.delivery.get(deliveryKey(orgId, channel));
     if (!state) return;
     const pending = state.buffer;
     state.buffer = [];
     // Buffer is FIFO from arrival order, but the buffered events are
     // sorted by eventId for sanity in case a peer message arrived out
-    // of order during replay.
+    // of order during replay. Within a single (orgId, channel) stream
+    // eventIds ARE comparable, so this sort is well-defined.
     pending.sort((a, b) => compareEventIds(a.eventId, b.eventId));
     for (const event of pending) {
       this.sendEvent(client, event);
@@ -359,29 +506,32 @@ class TelemetryWebSocketServer {
   }
 
   /** Merge the canonical broadcast payload with the substrate-assigned
-   *  ids so the client can dedupe on `eventId` regardless of whether
-   *  the event arrived live or via replay. */
+   *  ids so the client can dedupe on `(orgId, eventId)` regardless of
+   *  whether the event arrived live or via replay. `orgId` is included
+   *  because the client tracks per-(orgId, channel) cursors. */
   private envelope(
     payload: BroadcastPayload,
     channel: string,
     eventId: string,
+    orgId: string,
   ): Record<string, unknown> {
     const base =
       payload && typeof payload === "object" && !Array.isArray(payload)
         ? (payload as Record<string, unknown>)
         : { data: payload };
-    return { ...base, eventId, channel };
+    return { ...base, eventId, channel, orgId };
   }
 
   private async replayToClient(
     client: WebSocketClient,
+    orgId: string,
     channel: string,
     lastEventId: string,
   ): Promise<void> {
     try {
-      const events = await this.fanout.replaySince(channel, client.orgId, lastEventId);
+      const events = await this.fanout.replaySince(channel, orgId, lastEventId);
       if (events.length > 0) {
-        log(`Replaying ${events.length} event(s) to ${client.id} on ${channel}`);
+        log(`Replaying ${events.length} event(s) to ${client.id} on ${orgId}:${channel}`);
         for (const event of events) {
           if (client.ws.readyState !== WebSocket.OPEN) return;
           // sendEvent dedupes against state.deliveredUpTo and advances
@@ -390,14 +540,14 @@ class TelemetryWebSocketServer {
         }
       }
     } finally {
-      // Flip out of replay mode and flush any live events that landed
-      // while replay was in flight. The buffer is deduped by eventId
-      // inside sendEvent, so any event already covered by the replay
-      // window is dropped silently.
-      const state = client.delivery.get(channel);
+      // Flip out of replay mode for this namespace and flush any live
+      // events that landed while replay was in flight. Buffer dedup is
+      // by (orgId, eventId) so events already covered by the replay
+      // window are dropped silently.
+      const state = client.delivery.get(deliveryKey(orgId, channel));
       if (state) {
         state.replaying = false;
-        this.drainBuffer(client, channel);
+        this.drainBuffer(client, orgId, channel);
       }
     }
   }

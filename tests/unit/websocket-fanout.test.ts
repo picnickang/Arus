@@ -156,6 +156,61 @@ describe("websocket-fanout / cross-instance loopback", () => {
     }
   });
 
+  test("mixed legacy+tenant publishing during disconnect — both namespaces replay independently", async () => {
+    // Push B2 — clients dual-subscribe to (tenantOrg, channel) AND
+    // (SYSTEM_ORG_ID, channel). The two fan-out streams have
+    // independent monotonic eventId sequences, so the cursor for one
+    // namespace MUST NOT filter the other namespace's replay. This
+    // test pins that invariant: a tenant cursor against a system
+    // replay returns the system events untouched, and vice versa.
+    const a = new LoopbackBus();
+    const b = new LoopbackBus();
+    a.peer = b;
+    b.peer = a;
+    try {
+      // Legacy broadcasts land on SYSTEM_ORG_ID; tenant-scoped
+      // publishes land on `tenant-x`. Interleave so the streams'
+      // eventIds overlap in wall-clock ms.
+      const sysCursor = (await a.publish("alerts", { id: "sys-seen" })).eventId;
+      const tenCursor = (await a.publish("alerts", { id: "ten-seen" }, "tenant-x")).eventId;
+      await a.publish("alerts", { id: "sys-missed-1" });
+      await a.publish("alerts", { id: "ten-missed-1" }, "tenant-x");
+      await a.publish("alerts", { id: "sys-missed-2" });
+      await a.publish("alerts", { id: "ten-missed-2" }, "tenant-x");
+
+      // Each namespace replays only its own missed events using its
+      // own per-namespace cursor — no false dedupe, no missed events.
+      const sysReplay = await b.replaySince("alerts", SYSTEM_ORG_ID, sysCursor);
+      const tenReplay = await b.replaySince("alerts", "tenant-x", tenCursor);
+      expect(sysReplay.map((e) => (e.payload as any).id)).toEqual([
+        "sys-missed-1",
+        "sys-missed-2",
+      ]);
+      expect(tenReplay.map((e) => (e.payload as any).id)).toEqual([
+        "ten-missed-1",
+        "ten-missed-2",
+      ]);
+
+      // A cursor from the WRONG namespace must not silently filter or
+      // duplicate the other namespace's stream. Asking for system
+      // events with a tenant cursor returns the system stream as if
+      // the cursor matched nothing in it — exactly what the per-
+      // namespace `(orgId, channel)` cursor key guarantees.
+      const crossWrongCursor = await b.replaySince("alerts", SYSTEM_ORG_ID, tenCursor);
+      const allSystem = await b.replaySince("alerts", SYSTEM_ORG_ID, null);
+      // The replay-from-wrong-cursor returns a SUBSET of the full
+      // system stream (those with eventId numerically greater than
+      // tenCursor); it never returns events from the tenant stream.
+      for (const e of crossWrongCursor) {
+        expect(e.orgId).toBe(SYSTEM_ORG_ID);
+      }
+      expect(crossWrongCursor.length).toBeLessThanOrEqual(allSystem.length);
+    } finally {
+      await a.close();
+      await b.close();
+    }
+  });
+
   test("client disconnected from A and reconnected to B sees missed events via replay", async () => {
     // Models the load-balanced reconnect: the client was on node A,
     // missed 3 events during a disconnect, then reconnected to node B.

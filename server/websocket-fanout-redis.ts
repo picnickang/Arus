@@ -126,7 +126,7 @@ export class RedisFanoutBus extends InProcessFanoutBus implements FanoutBus {
     if ((event as FanoutEvent & { _origin?: string })._origin === this.originId) {
       return;
     }
-    super["dispatch"](event);
+    this.dispatch(event);
   }
 
   private readonly originId = `node-${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
@@ -188,10 +188,11 @@ export class RedisFanoutBus extends InProcessFanoutBus implements FanoutBus {
 
     const event: FanoutEvent = { ...baseEvent, eventId: streamId };
     // Mirror to the in-process ring so a quick reconnect to the same
-    // node can answer replay without a Redis round-trip.
-    (this as unknown as { ring: { append: (e: FanoutEvent) => void } }).ring.append(event);
-    // Dispatch locally — synchronous, sub-ms.
-    (this as unknown as { dispatch: (e: FanoutEvent) => void }).dispatch(event);
+    // node can answer replay without a Redis round-trip. `ring` and
+    // `dispatch` are `protected` on the base class — accessing them
+    // directly keeps the contract type-checked at compile time.
+    this.ring.append(event);
+    this.dispatch(event);
 
     // Fan out to peer nodes. The `_origin` tag suppresses the loopback
     // on peers that already dispatched locally above.
