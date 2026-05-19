@@ -8,29 +8,40 @@
  * `server/composition/crew-application-service.ts`.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { ICrewMemberRepository, ICrewEventPublisher, SelectCrew, InsertCrew } from "../domain";
 import { db } from "../../../db-config";
 import { skills } from "@shared/schema-runtime";
 import { eq, and } from "drizzle-orm";
+import type {
+  SelectCrewCertification,
+  SelectCrewDocument,
+} from "@shared/schema";
+
+interface CrewNotificationSettingsLike {
+  emailAlertsEnabled?: boolean | null;
+  certExpiryEmailEnabled?: boolean | null;
+  documentExpiryEmailEnabled?: boolean | null;
+  complianceEmailEnabled?: boolean | null;
+  overrideEmail?: string | null;
+  [key: string]: unknown;
+}
 
 /**
  * Port for the crew storage adapter. Methods mirror the shape of
  * `dbCrewStorage` but the service does not know that concrete name.
  */
 export interface CrewStoragePort {
-  getCrewSkills(crewId: string): Promise<any>;
-  assignSkillToCrew(crewId: string, skillId: string, level: string): Promise<any>;
-  removeSkillFromCrew(crewId: string, skillId: string): Promise<any>;
-  getCrewLeave(crewId?: string, orgId?: string): Promise<any>;
-  createCrewLeave(data: any): Promise<any>;
-  updateCrewLeave(id: string, data: any, orgId: string): Promise<any>;
-  deleteCrewLeave(id: string, orgId: string): Promise<any>;
-  getCrewAssignments(orgId?: string, filters?: { vesselId?: string; crewId?: string }): Promise<any>;
-  createCrewAssignment(data: any): Promise<any>;
-  updateCrewAssignment(id: string, data: any, orgId: string): Promise<any>;
-  deleteCrewAssignment(id: string, orgId: string): Promise<any>;
+  getCrewSkills(crewId: string): Promise<unknown>;
+  assignSkillToCrew(crewId: string, skillId: string, level: string): Promise<unknown>;
+  removeSkillFromCrew(crewId: string, skillId: string): Promise<unknown>;
+  getCrewLeave(crewId?: string, orgId?: string): Promise<unknown>;
+  createCrewLeave(data: Record<string, unknown>): Promise<unknown>;
+  updateCrewLeave(id: string, data: Record<string, unknown>, orgId: string): Promise<unknown>;
+  deleteCrewLeave(id: string, orgId: string): Promise<unknown>;
+  getCrewAssignments(orgId?: string, filters?: { vesselId?: string; crewId?: string }): Promise<unknown>;
+  createCrewAssignment(data: Record<string, unknown>): Promise<unknown>;
+  updateCrewAssignment(id: string, data: Record<string, unknown>, orgId: string): Promise<unknown>;
+  deleteCrewAssignment(id: string, orgId: string): Promise<unknown>;
 }
 
 /**
@@ -38,23 +49,23 @@ export interface CrewStoragePort {
  * notification settings). Mirrors `dbCrewExtensionsStorage` shape only.
  */
 export interface CrewExtensionsStoragePort {
-  getCrewCertifications(crewId: string, orgId: string): Promise<any>;
-  createCrewCertification(data: any): Promise<any>;
-  updateCrewCertification(id: string, data: any, orgId: string): Promise<any>;
-  deleteCrewCertification(id: string, orgId: string): Promise<any>;
-  getCertificationsExpiring(orgId: string, daysAhead: number, includeAcknowledged: boolean): Promise<any>;
-  acknowledgeCertificationAlert(certId: string, userId: string | undefined, notes: string | undefined): Promise<any>;
-  updateCertificationAlertFlags(orgId: string): Promise<any>;
-  getCrewDocuments(crewId: string, orgId: string): Promise<any>;
-  createCrewDocument(data: any): Promise<any>;
-  updateCrewDocument(id: string, data: any, orgId: string): Promise<any>;
-  deleteCrewDocument(id: string, orgId: string): Promise<any>;
-  getDocumentsExpiring(orgId: string, daysAhead: number, includeAcknowledged: boolean): Promise<any>;
-  acknowledgeDocumentAlert(docId: string, userId: string | undefined, notes: string | undefined): Promise<any>;
-  updateDocumentAlertFlags(orgId: string): Promise<any>;
-  getCrewNotificationSettings(crewId: string, orgId: string): Promise<any>;
-  upsertCrewNotificationSettings(crewId: string, orgId: string, data: any): Promise<any>;
-  getAllCrewNotificationSettings(orgId: string): Promise<any>;
+  getCrewCertifications(crewId: string, orgId: string): Promise<unknown>;
+  createCrewCertification(data: Record<string, unknown>): Promise<unknown>;
+  updateCrewCertification(id: string, data: Record<string, unknown>, orgId: string): Promise<unknown>;
+  deleteCrewCertification(id: string, orgId: string): Promise<unknown>;
+  getCertificationsExpiring(orgId: string, daysAhead: number, includeAcknowledged: boolean): Promise<SelectCrewCertification[]>;
+  acknowledgeCertificationAlert(certId: string, userId: string | undefined, notes: string | undefined): Promise<unknown>;
+  updateCertificationAlertFlags(orgId: string): Promise<unknown>;
+  getCrewDocuments(crewId: string, orgId: string): Promise<unknown>;
+  createCrewDocument(data: Record<string, unknown>): Promise<unknown>;
+  updateCrewDocument(id: string, data: Record<string, unknown>, orgId: string): Promise<unknown>;
+  deleteCrewDocument(id: string, orgId: string): Promise<unknown>;
+  getDocumentsExpiring(orgId: string, daysAhead: number, includeAcknowledged: boolean): Promise<SelectCrewDocument[]>;
+  acknowledgeDocumentAlert(docId: string, userId: string | undefined, notes: string | undefined): Promise<unknown>;
+  updateDocumentAlertFlags(orgId: string): Promise<unknown>;
+  getCrewNotificationSettings(crewId: string, orgId: string): Promise<CrewNotificationSettingsLike | undefined>;
+  upsertCrewNotificationSettings(crewId: string, orgId: string, data: Record<string, unknown>): Promise<unknown>;
+  getAllCrewNotificationSettings(orgId: string): Promise<unknown>;
 }
 
 export interface CrewServiceDependencies {
@@ -111,7 +122,13 @@ export class CrewApplicationService {
       ...(data.roleId !== undefined && { roleId: data.roleId || null }),
     };
 
-    const crew = await (this.deps.crewMemberRepository.updateCrew as any)(id, sanitizedData, orgId);
+    const crew = await (
+      this.deps.crewMemberRepository.updateCrew as (
+        id: string,
+        data: Partial<InsertCrew>,
+        orgId?: string,
+      ) => Promise<SelectCrew>
+    )(id, sanitizedData, orgId);
 
     await this.deps.eventPublisher.publish({
       type: "CREW_MEMBER_UPDATED",
@@ -125,7 +142,9 @@ export class CrewApplicationService {
   }
 
   async deleteCrew(id: string, userId?: string, orgId?: string): Promise<void> {
-    await (this.deps.crewMemberRepository.deleteCrew as any)(id, orgId);
+    await (
+      this.deps.crewMemberRepository.deleteCrew as (id: string, orgId?: string) => Promise<void>
+    )(id, orgId);
 
     await this.deps.eventPublisher.publish({
       type: "CREW_MEMBER_DELETED",
@@ -143,12 +162,16 @@ export class CrewApplicationService {
     return [];
   }
 
-  async createCertification(data: any, userId?: string) {
+  async createCertification(data: Record<string, unknown>, userId?: string) {
     return this.deps.crewExtensionsStorage.createCrewCertification(data);
   }
 
-  async updateCertification(id: string, data: any, userId?: string, orgId?: string) {
-    return this.deps.crewExtensionsStorage.updateCrewCertification(id, data, orgId || data.orgId);
+  async updateCertification(id: string, data: Record<string, unknown>, userId?: string, orgId?: string) {
+    return this.deps.crewExtensionsStorage.updateCrewCertification(
+      id,
+      data,
+      orgId || (typeof data.orgId === "string" ? data.orgId : ""),
+    );
   }
 
   async deleteCertification(id: string, userId?: string, orgId?: string) {
@@ -176,12 +199,16 @@ export class CrewApplicationService {
     return this.deps.crewExtensionsStorage.getCrewDocuments(crewId, orgId || "");
   }
 
-  async createCrewDocument(data: any, userId?: string) {
+  async createCrewDocument(data: Record<string, unknown>, userId?: string) {
     return this.deps.crewExtensionsStorage.createCrewDocument(data);
   }
 
-  async updateCrewDocument(id: string, data: any, userId?: string, orgId?: string) {
-    return this.deps.crewExtensionsStorage.updateCrewDocument(id, data, orgId || data.orgId);
+  async updateCrewDocument(id: string, data: Record<string, unknown>, userId?: string, orgId?: string) {
+    return this.deps.crewExtensionsStorage.updateCrewDocument(
+      id,
+      data,
+      orgId || (typeof data.orgId === "string" ? data.orgId : ""),
+    );
   }
 
   async deleteCrewDocument(id: string, userId?: string, orgId?: string) {
@@ -209,7 +236,7 @@ export class CrewApplicationService {
     return this.deps.crewExtensionsStorage.getCrewNotificationSettings(crewId, orgId);
   }
 
-  async upsertCrewNotificationSettings(crewId: string, orgId: string, data: any) {
+  async upsertCrewNotificationSettings(crewId: string, orgId: string, data: Record<string, unknown>) {
     return this.deps.crewExtensionsStorage.upsertCrewNotificationSettings(crewId, orgId, data);
   }
 
@@ -221,7 +248,7 @@ export class CrewApplicationService {
     return db.select().from(skills).where(eq(skills.orgId, orgId));
   }
 
-  async createSkill(data: any, userId?: string) {
+  async createSkill(data: typeof skills.$inferInsert, userId?: string) {
     const [newSkill] = await db.insert(skills).values(data).returning();
     return newSkill;
   }
@@ -248,12 +275,16 @@ export class CrewApplicationService {
     return this.deps.crewStorage.getCrewLeave(crewId, orgId);
   }
 
-  async createLeave(data: any, userId?: string) {
+  async createLeave(data: Record<string, unknown>, userId?: string) {
     return this.deps.crewStorage.createCrewLeave(data);
   }
 
-  async updateLeave(id: string, data: any, userId?: string, orgId?: string) {
-    return this.deps.crewStorage.updateCrewLeave(id, data, orgId || data.orgId);
+  async updateLeave(id: string, data: Record<string, unknown>, userId?: string, orgId?: string) {
+    return this.deps.crewStorage.updateCrewLeave(
+      id,
+      data,
+      orgId || (typeof data.orgId === "string" ? data.orgId : ""),
+    );
   }
 
   async deleteLeave(id: string, userId?: string, orgId?: string) {
@@ -265,11 +296,11 @@ export class CrewApplicationService {
     return this.deps.crewStorage.getCrewAssignments(orgId, { vesselId, crewId });
   }
 
-  async createAssignment(data: any, userId?: string) {
+  async createAssignment(data: Record<string, unknown>, userId?: string) {
     return this.deps.crewStorage.createCrewAssignment(data);
   }
 
-  async updateAssignment(id: string, data: any, orgId: string, userId?: string) {
+  async updateAssignment(id: string, data: Record<string, unknown>, orgId: string, userId?: string) {
     return this.deps.crewStorage.updateCrewAssignment(id, data, orgId);
   }
 

@@ -16,6 +16,50 @@ import type {
   InsertMaintenanceTemplate,
 } from "@shared/schema";
 import { maintenanceAppService } from "./application";
+import type {
+  CreateScheduleCommand,
+  UpdateScheduleCommand,
+  CreateTemplateCommand,
+  UpdateTemplateCommand,
+} from "./domain/types";
+
+/**
+ * Legacy insert shapes occasionally carried an `estimatedDurationHours` /
+ * `notes` field that the hexagonal domain models as `estimatedDuration` /
+ * `notes`. These helpers narrow the legacy payload without `any` casts.
+ */
+type LegacyScheduleExtras = {
+  estimatedDurationHours?: number;
+  notes?: string;
+};
+type LegacyTemplateExtras = {
+  estimatedDurationHours?: number;
+};
+
+function pickLegacyScheduleExtras(
+  data: Partial<InsertMaintenanceSchedule>,
+): LegacyScheduleExtras {
+  const record = data as Record<string, unknown>;
+  return {
+    estimatedDurationHours:
+      typeof record.estimatedDurationHours === "number"
+        ? record.estimatedDurationHours
+        : undefined,
+    notes: typeof record.notes === "string" ? record.notes : undefined,
+  };
+}
+
+function pickLegacyTemplateExtras(
+  data: Partial<InsertMaintenanceTemplate>,
+): LegacyTemplateExtras {
+  const record = data as Record<string, unknown>;
+  return {
+    estimatedDurationHours:
+      typeof record.estimatedDurationHours === "number"
+        ? record.estimatedDurationHours
+        : undefined,
+  };
+}
 
 /**
  * Maintenance Service (Legacy API)
@@ -38,20 +82,19 @@ export class MaintenanceService {
     data: InsertMaintenanceSchedule,
     userId?: string
   ): Promise<MaintenanceSchedule> {
-    const entity = await maintenanceAppService.createSchedule(
-      {
-        orgId: data.orgId,
-        equipmentId: data.equipmentId,
-        scheduledDate: data.scheduledDate,
-        status: data.status as any,
-        priority: data.priority as any,
-        maintenanceType: data.maintenanceType as any,
-        description: data.description ?? undefined,
-        estimatedDuration: (data as any).estimatedDurationHours,
-        assignedTo: data.assignedTo ?? undefined,
-      } as any,
-      userId
-    );
+    const extras = pickLegacyScheduleExtras(data);
+    const command: CreateScheduleCommand = {
+      orgId: data.orgId,
+      equipmentId: data.equipmentId,
+      scheduledDate: data.scheduledDate,
+      status: data.status ?? undefined,
+      priority: data.priority != null ? String(data.priority) : undefined,
+      maintenanceType: data.maintenanceType,
+      description: data.description ?? undefined,
+      estimatedDuration: extras.estimatedDurationHours,
+      assignedTo: data.assignedTo ?? undefined,
+    };
+    const entity = await maintenanceAppService.createSchedule(command, userId);
     return entity as unknown as MaintenanceSchedule;
   }
 
@@ -61,21 +104,18 @@ export class MaintenanceService {
     orgId: string,
     userId?: string
   ): Promise<MaintenanceSchedule> {
-    const entity = await maintenanceAppService.updateSchedule(
-      id,
-      {
-        scheduledDate: data.scheduledDate,
-        status: data.status as any,
-        priority: data.priority as any,
-        maintenanceType: data.maintenanceType as any,
-        description: data.description ?? undefined,
-        estimatedDuration: (data as any).estimatedDurationHours,
-        assignedTo: data.assignedTo ?? undefined,
-        notes: (data as any).notes,
-      } as any,
-      orgId,
-      userId
-    );
+    const extras = pickLegacyScheduleExtras(data);
+    const command: UpdateScheduleCommand = {
+      scheduledDate: data.scheduledDate,
+      status: data.status ?? undefined,
+      priority: data.priority != null ? String(data.priority) : undefined,
+      maintenanceType: data.maintenanceType ?? undefined,
+      description: data.description ?? undefined,
+      estimatedDuration: extras.estimatedDurationHours,
+      assignedTo: data.assignedTo ?? undefined,
+      notes: extras.notes,
+    };
+    const entity = await maintenanceAppService.updateSchedule(id, command, orgId, userId);
     return entity as unknown as MaintenanceSchedule;
   }
 
@@ -124,22 +164,24 @@ export class MaintenanceService {
     data: InsertMaintenanceTemplate,
     userId?: string
   ): Promise<MaintenanceTemplate> {
-    const entity = await maintenanceAppService.createTemplate(
-      {
-        orgId: data.orgId,
-        name: data.name,
-        equipmentType: data.equipmentType,
-        maintenanceType: data.maintenanceType as any,
-        description: data.description ?? undefined,
-        estimatedDuration: (data as any).estimatedDurationHours,
-        requiredParts: data.requiredParts as string[],
-        checklistItems: data.checklistItems as string[],
-        intervalDays: data.intervalDays ?? undefined,
-        intervalHours: data.intervalHours ?? undefined,
-        isActive: data.isActive ?? undefined,
-      } as any,
-      userId
-    );
+    const extras = pickLegacyTemplateExtras(data);
+    const command: CreateTemplateCommand = {
+      orgId: data.orgId,
+      name: data.name,
+      equipmentType: data.equipmentType ?? undefined,
+      maintenanceType: data.maintenanceType,
+      description: data.description ?? undefined,
+      estimatedDuration: extras.estimatedDurationHours,
+      requiredParts: (data.requiredParts as string[] | null | undefined) ?? undefined,
+      checklistItems: (data.checklistItems as string[] | null | undefined) ?? undefined,
+      intervalDays: data.intervalDays ?? undefined,
+      intervalHours:
+        data.intervalHours != null && data.intervalHours !== ""
+          ? Number(data.intervalHours)
+          : undefined,
+      isActive: data.isActive ?? undefined,
+    };
+    const entity = await maintenanceAppService.createTemplate(command, userId);
     return entity as unknown as MaintenanceTemplate;
   }
 
@@ -149,23 +191,23 @@ export class MaintenanceService {
     orgId: string,
     userId?: string
   ): Promise<MaintenanceTemplate> {
-    const entity = await maintenanceAppService.updateTemplate(
-      id,
-      {
-        name: data.name,
-        equipmentType: data.equipmentType,
-        maintenanceType: data.maintenanceType as any,
-        description: data.description ?? undefined,
-        estimatedDuration: (data as any).estimatedDurationHours,
-        requiredParts: data.requiredParts as string[],
-        checklistItems: data.checklistItems as string[],
-        intervalDays: data.intervalDays ?? undefined,
-        intervalHours: data.intervalHours ?? undefined,
-        isActive: data.isActive ?? undefined,
-      } as any,
-      orgId,
-      userId
-    );
+    const extras = pickLegacyTemplateExtras(data);
+    const command: UpdateTemplateCommand = {
+      name: data.name ?? undefined,
+      equipmentType: data.equipmentType ?? undefined,
+      maintenanceType: data.maintenanceType ?? undefined,
+      description: data.description ?? undefined,
+      estimatedDuration: extras.estimatedDurationHours,
+      requiredParts: (data.requiredParts as string[] | null | undefined) ?? undefined,
+      checklistItems: (data.checklistItems as string[] | null | undefined) ?? undefined,
+      intervalDays: data.intervalDays ?? undefined,
+      intervalHours:
+        data.intervalHours != null && data.intervalHours !== ""
+          ? Number(data.intervalHours)
+          : undefined,
+      isActive: data.isActive ?? undefined,
+    };
+    const entity = await maintenanceAppService.updateTemplate(id, command, orgId, userId);
     return entity as unknown as MaintenanceTemplate;
   }
 

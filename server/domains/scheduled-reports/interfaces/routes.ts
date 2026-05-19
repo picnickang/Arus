@@ -3,6 +3,7 @@
  */
 
 import { Router, Request, Response } from "express";
+import type { AuthenticatedRequest } from "../../../middleware/auth.js";
 import { z } from "zod";
 import { ReportSchedulerService } from "../application/report-scheduler-service.js";
 import { ReportGenerationService } from "../application/report-generation-service.js";
@@ -81,9 +82,9 @@ export function createScheduledReportsRouter(
     next();
   };
 
-  router.get("/schedules", requireCloudFeature, async (req: Request, res: Response) => {
+  router.get("/schedules", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const orgId = req.orgId || DEFAULT_ORG_ID;
       const schedules = await schedulerService.getSchedulesByOrg(orgId);
       res.json({ data: schedules });
     } catch (error) {
@@ -92,9 +93,9 @@ export function createScheduledReportsRouter(
     }
   });
 
-  router.get("/schedules/:id", requireCloudFeature, async (req: Request, res: Response) => {
+  router.get("/schedules/:id", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const orgId = req.orgId || DEFAULT_ORG_ID;
       const schedule = await schedulerService.getSchedule(req.params.id, orgId);
 
       if (!schedule) {
@@ -108,10 +109,10 @@ export function createScheduledReportsRouter(
     }
   });
 
-  router.post("/schedules", requireCloudFeature, async (req: Request, res: Response) => {
+  router.post("/schedules", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
-      const userId = (req as any).userId || "system";
+      const orgId = req.orgId || DEFAULT_ORG_ID;
+      const userId = req.user?.id || "system";
 
       const validation = CreateScheduleSchema.safeParse(req.body);
       if (!validation.success) {
@@ -129,10 +130,10 @@ export function createScheduledReportsRouter(
     }
   });
 
-  router.patch("/schedules/:id", requireCloudFeature, async (req: Request, res: Response) => {
+  router.patch("/schedules/:id", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
-      const userId = (req as any).userId || "system";
+      const orgId = req.orgId || DEFAULT_ORG_ID;
+      const userId = req.user?.id || "system";
 
       const validation = UpdateScheduleSchema.safeParse(req.body);
       if (!validation.success) {
@@ -159,10 +160,10 @@ export function createScheduledReportsRouter(
     }
   });
 
-  router.delete("/schedules/:id", requireCloudFeature, async (req: Request, res: Response) => {
+  router.delete("/schedules/:id", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
-      const userId = (req as any).userId || "system";
+      const orgId = req.orgId || DEFAULT_ORG_ID;
+      const userId = req.user?.id || "system";
 
       await schedulerService.deleteSchedule(req.params.id, orgId, userId);
       res.status(204).send();
@@ -172,9 +173,9 @@ export function createScheduledReportsRouter(
     }
   });
 
-  router.post("/schedules/:id/run", requireCloudFeature, async (req: Request, res: Response) => {
+  router.post("/schedules/:id/run", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const orgId = req.orgId || DEFAULT_ORG_ID;
       await schedulerService.runScheduleNow(req.params.id, orgId);
       res.json({ message: "Report generation started" });
     } catch (error) {
@@ -187,9 +188,9 @@ export function createScheduledReportsRouter(
     }
   });
 
-  router.get("/schedules/:id/history", requireCloudFeature, async (req: Request, res: Response) => {
+  router.get("/schedules/:id/history", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const orgId = req.orgId || DEFAULT_ORG_ID;
       const limit = parseInt(req.query.limit as string) || 10;
       const reports = await schedulerService.getReportHistory(req.params.id, orgId, limit);
       res.json({ data: reports });
@@ -199,9 +200,9 @@ export function createScheduledReportsRouter(
     }
   });
 
-  router.get("/reports", requireCloudFeature, async (req: Request, res: Response) => {
+  router.get("/reports", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const orgId = req.orgId || DEFAULT_ORG_ID;
       const limit = parseInt(req.query.limit as string) || 50;
       const reports = await schedulerService.getAllReports(orgId, limit);
       res.json({ data: reports });
@@ -211,9 +212,9 @@ export function createScheduledReportsRouter(
     }
   });
 
-  router.post("/reports/generate", async (req: Request, res: Response) => {
+  router.post("/reports/generate", async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const orgId = req.orgId || DEFAULT_ORG_ID;
 
       const validation = GenerateOnDemandSchema.safeParse(req.body);
       if (!validation.success) {
@@ -240,7 +241,7 @@ export function createScheduledReportsRouter(
     }
   });
 
-  router.get("/report-types", (req: Request, res: Response) => {
+  router.get("/report-types", (req: AuthenticatedRequest, res: Response) => {
     res.json({
       data: REPORT_TYPES.map((type) => ({
         id: type,
@@ -304,9 +305,9 @@ export function createScheduledReportsRouter(
     }
   }
 
-  router.get("/settings", requireCloudFeature, async (req: Request, res: Response) => {
+  router.get("/settings", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const orgId = req.orgId || DEFAULT_ORG_ID;
       const settings = await getSettingsFromDb(orgId);
       res.json({ data: settings });
     } catch (error) {
@@ -315,9 +316,9 @@ export function createScheduledReportsRouter(
     }
   });
 
-  router.patch("/settings", requireCloudFeature, async (req: Request, res: Response) => {
+  router.patch("/settings", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const orgId = req.orgId || DEFAULT_ORG_ID;
 
       const validation = UpdateSettingsSchema.safeParse(req.body);
       if (!validation.success) {

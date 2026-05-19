@@ -38,9 +38,12 @@ export function registerSchedulingRoutes(
           .json({ error: "Invalid input: days, shifts, and crew must be arrays" });
       }
 
-      let planWithEngine: any, ENGINE_GREEDY: any, ENGINE_OR_TOOLS: any;
+      type OrtoolsModule = typeof import("../../../crew-scheduler-ortools");
+      let planWithEngine: OrtoolsModule["planWithEngine"];
+      let ENGINE_GREEDY: OrtoolsModule["ENGINE_GREEDY"];
+      let ENGINE_OR_TOOLS: OrtoolsModule["ENGINE_OR_TOOLS"];
       try {
-        const ortoolsModule: any = await import("../../../crew-scheduler-ortools");
+        const ortoolsModule: OrtoolsModule = await import("../../../crew-scheduler-ortools");
         planWithEngine = ortoolsModule.planWithEngine;
         ENGINE_GREEDY = ortoolsModule.ENGINE_GREEDY;
         ENGINE_OR_TOOLS = ortoolsModule.ENGINE_OR_TOOLS;
@@ -60,7 +63,7 @@ export function registerSchedulingRoutes(
           });
       }
 
-      const scheduleRequest: any = {
+      const scheduleRequest: Parameters<typeof planWithEngine>[0] = {
         engine,
         days,
         shifts,
@@ -74,7 +77,7 @@ export function registerSchedulingRoutes(
       const { scheduled, unfilled } = planWithEngine(scheduleRequest);
       const compliance: {
         overall_ok: boolean;
-        per_crew: any[];
+        per_crew: Array<Record<string, unknown>>;
         rows_by_crew: { [crewId: string]: RestDay[] };
       } = { overall_ok: true, per_crew: [], rows_by_crew: {} };
 
@@ -101,9 +104,13 @@ export function registerSchedulingRoutes(
                 const year = current.getFullYear(),
                   month = current.getMonth() + 1;
                 try {
-                  const restData: any = await (dbStcwStorage as any).getCrewRestMonth(crewId, String(year), month);
+                  const restData = await dbStcwStorage.getCrewRestMonth(
+                    crewId,
+                    year,
+                    String(month),
+                  );
                   if (restData?.days && restData.days.length > 0) {
-                    results.push(...(restData.days as RestDay[]));
+                    results.push(...(restData.days as unknown as RestDay[]));
                   }
                 } catch {
                   /* month data not found */
@@ -120,8 +127,8 @@ export function registerSchedulingRoutes(
             const crewId = crewMember.id,
               historyRows = await getHistoryRows(crewId);
             const crewAssignments = scheduled
-              .filter((a: any) => a.crewId === crewId)
-              .map((a: any) => ({
+              .filter((a) => a.crewId === crewId)
+              .map((a) => ({
                 date: a.date,
                 start: a.start,
                 end: a.end,
@@ -129,14 +136,22 @@ export function registerSchedulingRoutes(
                 shiftId: a.shiftId,
                 vesselId: a.vesselId,
               }));
-            const mergedRows = (mergeHistoryWithPlan as any)(
-              historyRows,
-              crewAssignments,
-              startDate,
-              endDate
-            ) as RestDay[];
-            const crewCompliance = checkMonthCompliance(mergedRows as any),
-              context = (summarizeHoRContext as any)(historyRows) as any;
+            const mergedRows = (
+              mergeHistoryWithPlan as unknown as (
+                history: unknown[],
+                plan: unknown[],
+                startDate: string,
+                endDate: string,
+              ) => RestDay[]
+            )(historyRows, crewAssignments, startDate, endDate);
+            const crewCompliance = checkMonthCompliance(mergedRows);
+            const context = (
+              summarizeHoRContext as unknown as (history: unknown[]) => {
+                min_rest_24: number;
+                rest_7d: number;
+                nights_this_week: number;
+              }
+            )(historyRows);
             compliance.rows_by_crew[crewId] = mergedRows;
             compliance.per_crew.push({
               crew_id: crewId,
@@ -147,7 +162,7 @@ export function registerSchedulingRoutes(
               nights_this_week: context.nights_this_week,
               violations: crewCompliance.ok
                 ? 0
-                : crewCompliance.days.filter((d: any) => !d.day_ok).length,
+                : crewCompliance.days.filter((d) => !d.day_ok).length,
             });
             if (!crewCompliance.ok) {
               compliance.overall_ok = false;
@@ -169,7 +184,7 @@ export function registerSchedulingRoutes(
         summary: {
           totalShifts: shifts.length * days.length,
           scheduledAssignments: scheduled.length,
-          unfilledPositions: unfilled.reduce((sum: number, u: any) => sum + u.need, 0),
+          unfilledPositions: unfilled.reduce((sum: number, u) => sum + u.need, 0),
           coverage: (scheduled.length / (shifts.length * days.length)) * 100,
         },
       });

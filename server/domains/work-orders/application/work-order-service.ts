@@ -7,6 +7,15 @@ import type {
 } from "../domain";
 import { workOrderRepository } from "../repository";
 import { db } from "../../../db.js";
+import type { InsertWorkOrderCompletion, WorkOrderCompletion } from "@shared/schema";
+
+type WorkOrderPriority = "low" | "medium" | "high" | "critical";
+const VALID_PRIORITIES = new Set<WorkOrderPriority>(["low", "medium", "high", "critical"]);
+function normalizePriority(p: unknown): WorkOrderPriority {
+  return typeof p === "string" && VALID_PRIORITIES.has(p as WorkOrderPriority)
+    ? (p as WorkOrderPriority)
+    : "medium";
+}
 
 export interface WorkOrderServiceDependencies {
   workOrderRepository: IWorkOrderRepository;
@@ -19,7 +28,7 @@ export class WorkOrderApplicationService {
   async listWorkOrders(
     equipmentId?: string,
     orgId?: string,
-    filters?: any
+    filters?: Record<string, unknown>,
   ): Promise<SelectWorkOrder[]> {
     return workOrderRepository.findAll(equipmentId, orgId, filters);
   }
@@ -29,7 +38,7 @@ export class WorkOrderApplicationService {
     orgId: string | undefined,
     limit: number,
     offset: number,
-    filters?: any
+    filters?: Record<string, unknown>,
   ): Promise<{ items: SelectWorkOrder[]; total: number }> {
     return workOrderRepository.findPaginated(equipmentId, orgId, limit, offset, filters);
   }
@@ -59,7 +68,7 @@ export class WorkOrderApplicationService {
           orgId: created.orgId || "default",
           vesselId: created.vesselId || undefined,
           equipmentId: created.equipmentId || undefined,
-          priority: (created.priority as any) || "medium",
+          priority: normalizePriority(created.priority),
           timestamp: new Date(),
         },
         tx
@@ -131,10 +140,10 @@ export class WorkOrderApplicationService {
 
   async completeWorkOrder(
     workOrderId: string,
-    completionData: any,
+    completionData: InsertWorkOrderCompletion,
     orgId?: string,
-    userId?: string
-  ): Promise<any> {
+    userId?: string,
+  ): Promise<WorkOrderCompletion> {
     const completion = await workOrderRepository.complete(workOrderId, completionData);
 
     await this.deps.eventPublisher.publish({
@@ -152,43 +161,50 @@ export class WorkOrderApplicationService {
     return this.deps.workOrderRepository.findOverdue(orgId);
   }
 
-  async cloneWorkOrder(workOrderId: string, orgId: string, options: any): Promise<SelectWorkOrder> {
+  async cloneWorkOrder(
+    workOrderId: string,
+    orgId: string,
+    options: Record<string, unknown>,
+  ): Promise<SelectWorkOrder> {
     return workOrderRepository.cloneWorkOrder(workOrderId, orgId, options);
   }
 
-  async getWorkOrderHistory(workOrderId: string, orgId: string): Promise<any[]> {
+  async getWorkOrderHistory(workOrderId: string, orgId: string): Promise<unknown[]> {
     return workOrderRepository.getWorkOrderHistory(workOrderId, orgId);
   }
 
-  async getInventoryMovementsByWorkOrder(workOrderId: string, orgId: string): Promise<any[]> {
+  async getInventoryMovementsByWorkOrder(workOrderId: string, orgId: string): Promise<unknown[]> {
     return workOrderRepository.getInventoryMovementsByWorkOrder(workOrderId, orgId);
   }
 
-  async createMaintenanceCost(data: any): Promise<any> {
+  async createMaintenanceCost(data: Record<string, unknown>): Promise<unknown> {
     return workOrderRepository.createMaintenanceCost(data);
   }
 
-  async getMaintenanceCostsByWorkOrder(workOrderId: string): Promise<any[]> {
+  async getMaintenanceCostsByWorkOrder(workOrderId: string): Promise<unknown[]> {
     return workOrderRepository.getMaintenanceCostsByWorkOrder(workOrderId);
   }
 
-  async getWorkOrderParts(workOrderId: string, orgId: string): Promise<any[]> {
+  async getWorkOrderParts(workOrderId: string, orgId: string): Promise<unknown[]> {
     return workOrderRepository.getWorkOrderParts(workOrderId, orgId);
   }
 
-  async addPartToWorkOrder(data: any): Promise<any> {
-    return (workOrderRepository as any).addBulkPartsToWorkOrder(data);
+  async addPartToWorkOrder(data: Record<string, unknown>): Promise<unknown> {
+    const repo = workOrderRepository as unknown as {
+      addBulkPartsToWorkOrder: (data: Record<string, unknown>) => Promise<unknown>;
+    };
+    return repo.addBulkPartsToWorkOrder(data);
   }
 
   async addBulkPartsAndReserveInventory(
     workOrderId: string,
-    parts: any[],
-    orgId: string
-  ): Promise<{ added: any[]; updated: any[]; errors: any[] }> {
+    parts: Array<Record<string, unknown>>,
+    orgId: string,
+  ): Promise<{ added: unknown[]; updated: unknown[]; errors: unknown[] }> {
     return workOrderRepository.addBulkPartsAndReserveInventory(workOrderId, parts, orgId);
   }
 
-  async updateWorkOrderPart(partId: string, data: any): Promise<any> {
+  async updateWorkOrderPart(partId: string, data: Record<string, unknown>): Promise<unknown> {
     return workOrderRepository.updateWorkOrderPart(partId, data);
   }
 
@@ -200,19 +216,19 @@ export class WorkOrderApplicationService {
     return workOrderRepository.removePartAndRestoreInventory(workOrderPartId, orgId, performedBy);
   }
 
-  async getPartsCostForWorkOrder(workOrderId: string): Promise<any> {
+  async getPartsCostForWorkOrder(workOrderId: string): Promise<unknown> {
     return workOrderRepository.getPartsCostForWorkOrder(workOrderId);
   }
 
-  async getWorkOrderTasks(workOrderId: string, orgId: string): Promise<any[]> {
+  async getWorkOrderTasks(workOrderId: string, orgId: string): Promise<unknown[]> {
     return workOrderRepository.getWorkOrderTasks(workOrderId, orgId);
   }
 
-  async createWorkOrderTask(data: any): Promise<any> {
+  async createWorkOrderTask(data: Parameters<typeof workOrderRepository.createWorkOrderTask>[0]): Promise<unknown> {
     return workOrderRepository.createWorkOrderTask(data);
   }
 
-  async updateWorkOrderTask(id: string, data: any): Promise<any> {
+  async updateWorkOrderTask(id: string, data: Parameters<typeof workOrderRepository.updateWorkOrderTask>[1]): Promise<unknown> {
     return workOrderRepository.updateWorkOrderTask(id, data);
   }
 
@@ -220,19 +236,23 @@ export class WorkOrderApplicationService {
     return workOrderRepository.deleteWorkOrderTask(id);
   }
 
-  async getCompletions(filters: any): Promise<any[]> {
+  async getCompletions(
+    filters: Parameters<typeof workOrderRepository.getWorkOrderCompletions>[0],
+  ): Promise<WorkOrderCompletion[]> {
     return workOrderRepository.getWorkOrderCompletions(filters);
   }
 
-  async getWorkOrderCompletionAnalytics(filters: any): Promise<any> {
+  async getWorkOrderCompletionAnalytics(
+    filters: Parameters<typeof workOrderRepository.getWorkOrderCompletionAnalytics>[0],
+  ): Promise<unknown> {
     return workOrderRepository.getWorkOrderCompletionAnalytics(filters);
   }
 
-  async getWorkOrderCompletion(id: string): Promise<any> {
+  async getWorkOrderCompletion(id: string): Promise<unknown> {
     return workOrderRepository.getWorkOrderCompletion(id);
   }
 
-  async getWorkOrderCompletionsByWorkOrder(workOrderId: string): Promise<any[]> {
+  async getWorkOrderCompletionsByWorkOrder(workOrderId: string): Promise<unknown[]> {
     return workOrderRepository.getWorkOrderCompletionsByWorkOrder(workOrderId);
   }
 }

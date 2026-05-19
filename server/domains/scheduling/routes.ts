@@ -3,6 +3,7 @@ import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../..
 import { schedulingSettingsService } from "../../services/scheduling-settings/service";
 import { logger } from "../../utils/logger";
 import { dbMaintenanceStorage } from "../../db/maintenance/index.js";
+import type { MaintenanceSchedule } from "@shared/schema";
 import { dbOptimizerStorage } from "../../db/optimizer/index.js";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
@@ -47,14 +48,20 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         endDate: dateTo ? new Date(dateTo as string) : undefined,
       });
 
-      const conflicts: any[] = [];
+      const conflicts: Array<{
+        schedule1: MaintenanceSchedule;
+        schedule2: MaintenanceSchedule;
+        conflictType: string;
+      }> = [];
       for (let i = 0; i < schedules.length; i++) {
         for (let j = i + 1; j < schedules.length; j++) {
           const s1 = schedules[i];
           const s2 = schedules[j];
+          const s1Bag = s1 as unknown as Record<string, unknown>;
+          const s2Bag = s2 as unknown as Record<string, unknown>;
           if (
             s1.scheduledDate === s2.scheduledDate &&
-            (s1 as any).assignedCrewId === (s2 as any).assignedCrewId
+            s1Bag.assignedCrewId === s2Bag.assignedCrewId
           ) {
             conflicts.push({
               schedule1: s1,
@@ -87,9 +94,9 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         endDate,
       });
 
-      const calendarData: Record<string, any[]> = {};
-      schedules.forEach((schedule: any) => {
-        const raw = schedule.scheduledDate;
+      const calendarData: Record<string, MaintenanceSchedule[]> = {};
+      schedules.forEach((schedule) => {
+        const raw: Date | string = schedule.scheduledDate as Date | string;
         const dateKey =
           raw instanceof Date
             ? raw.toISOString().split("T")[0]
@@ -121,23 +128,27 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         startDate: cutoffDate,
       });
 
+      const bag = (s: MaintenanceSchedule) =>
+        s as unknown as { status?: string; priority?: string | number; scheduledDate: Date };
+      const isPriority = (s: MaintenanceSchedule, name: string) =>
+        String(bag(s).priority ?? "") === name;
       const stats = {
         total: schedules.length,
-        completed: schedules.filter((s: any) => s.status === "completed").length,
-        pending: schedules.filter((s: any) => s.status === "pending").length,
-        overdue: schedules.filter((s: any) => {
+        completed: schedules.filter((s) => bag(s).status === "completed").length,
+        pending: schedules.filter((s) => bag(s).status === "pending").length,
+        overdue: schedules.filter((s) => {
           const dueDate = new Date(s.scheduledDate);
-          return s.status !== "completed" && dueDate < new Date();
+          return bag(s).status !== "completed" && dueDate < new Date();
         }).length,
         byPriority: {
-          critical: schedules.filter((s: any) => s.priority === "critical").length,
-          high: schedules.filter((s: any) => s.priority === "high").length,
-          medium: schedules.filter((s: any) => s.priority === "medium").length,
-          low: schedules.filter((s: any) => s.priority === "low").length,
+          critical: schedules.filter((s) => isPriority(s, "critical")).length,
+          high: schedules.filter((s) => isPriority(s, "high")).length,
+          medium: schedules.filter((s) => isPriority(s, "medium")).length,
+          low: schedules.filter((s) => isPriority(s, "low")).length,
         },
         completionRate:
           schedules.length > 0
-            ? (schedules.filter((s: any) => s.status === "completed").length / schedules.length) *
+            ? (schedules.filter((s) => bag(s).status === "completed").length / schedules.length) *
               100
             : 0,
       };
@@ -167,8 +178,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
 
       const upcoming = schedules
         .sort(
-          (a: any, b: any) =>
-            new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime()
+          (a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime(),
         )
         .slice(0, limitNum);
 
@@ -239,7 +249,13 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         return;
       }
       const results = await Promise.all(
-        schedules.map((s: any) => dbMaintenanceStorage.createMaintenanceSchedule({ ...s, orgId }))
+        (schedules as Array<Record<string, unknown>>).map((s) =>
+          dbMaintenanceStorage.createMaintenanceSchedule(
+            { ...s, orgId } as Parameters<
+              typeof dbMaintenanceStorage.createMaintenanceSchedule
+            >[0],
+          ),
+        )
       );
       sendCreated(res, results);
     })
@@ -305,12 +321,15 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         endDate: targetDate ? new Date(targetDate) : undefined,
       });
 
-      const optimizedSchedules = schedules.map((s: any, index: number) => ({
-        ...s,
-        optimizedScore: (index % 10) * 10 + 5,
-        suggestedDate: s.scheduledDate,
-        suggestedCrew: s.assignedCrewId,
-      }));
+      const optimizedSchedules = schedules.map((s, index: number) => {
+        const bag = s as unknown as Record<string, unknown>;
+        return {
+          ...s,
+          optimizedScore: (index % 10) * 10 + 5,
+          suggestedDate: s.scheduledDate,
+          suggestedCrew: bag.assignedCrewId,
+        };
+      });
 
       const result = await dbOptimizerStorage.createOptimizationResult({
         configurationId: configId,
@@ -320,7 +339,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         improvementScore: 15.5,
         runStatus: "completed",
         results: optimizedSchedules,
-      } as any);
+      } as Parameters<typeof dbOptimizerStorage.createOptimizationResult>[0]);
 
       res.json(result);
     })
@@ -333,8 +352,8 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const orgId = DEFAULT_ORG_ID;
       const vesselId = req.query.vesselId as string | undefined;
 
-      const effective = await (schedulingSettingsService as any).resolveEffectiveSettings({ orgId, vesselId });
-      const settings = await (schedulingSettingsService as any).getSettings({ orgId, vesselId });
+      const effective = await schedulingSettingsService.resolveEffectiveSettings(orgId, vesselId);
+      const settings = await schedulingSettingsService.getSettings(orgId, vesselId);
 
       res.json({
         id: settings?.id || "",
@@ -359,12 +378,13 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const orgId = DEFAULT_ORG_ID;
       const vesselId = req.query.vesselId as string | undefined;
 
-      const updated = await (schedulingSettingsService as any).updateNotificationSettings(
-        { orgId, vesselId },
+      const updated = await schedulingSettingsService.updateNotificationSettings(
+        orgId,
         req.body,
+        vesselId,
       );
 
-      logger.info("[SchedulingSettings] Notifications updated", { orgId, vesselId } as any);
+      logger.info("SchedulingSettings", "Notifications updated", { orgId, vesselId });
       res.json(updated);
     })
   );
@@ -378,13 +398,14 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const vesselId = req.query.vesselId as string | undefined;
       const { thresholds, enforcement } = req.body;
 
-      const updated = await (schedulingSettingsService as any).updateRuleThresholds(
-        { orgId, vesselId },
+      const updated = await schedulingSettingsService.updateRuleThresholds(
+        orgId,
         thresholds,
         enforcement,
+        vesselId,
       );
 
-      logger.info("[SchedulingSettings] Rules updated", { orgId, vesselId } as any);
+      logger.info("SchedulingSettings", "Rules updated", { orgId, vesselId });
       res.json(updated);
     })
   );
@@ -397,9 +418,9 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const orgId = DEFAULT_ORG_ID;
       const vesselId = req.query.vesselId as string | undefined;
 
-      const updated = await (schedulingSettingsService as any).updateAiWeights({ orgId, vesselId }, req.body);
+      const updated = await schedulingSettingsService.updateAiWeights(orgId, req.body, vesselId);
 
-      logger.info("[SchedulingSettings] AI weights updated", { orgId, vesselId } as any);
+      logger.info("SchedulingSettings", "AI weights updated", { orgId, vesselId });
       res.json(updated);
     })
   );
@@ -412,12 +433,13 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const orgId = DEFAULT_ORG_ID;
       const vesselId = req.query.vesselId as string | undefined;
 
-      const updated = await (schedulingSettingsService as any).updatePublishBehavior(
-        { orgId, vesselId },
+      const updated = await schedulingSettingsService.updatePublishBehavior(
+        orgId,
         req.body,
+        vesselId,
       );
 
-      logger.info("[SchedulingSettings] Publish behavior updated", { orgId, vesselId } as any);
+      logger.info("SchedulingSettings", "Publish behavior updated", { orgId, vesselId });
       res.json(updated);
     })
   );
@@ -430,12 +452,13 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const orgId = DEFAULT_ORG_ID;
       const vesselId = req.query.vesselId as string | undefined;
 
-      const updated = await (schedulingSettingsService as any).updateRotationTemplates(
-        { orgId, vesselId },
+      const updated = await schedulingSettingsService.updateRotationTemplates(
+        orgId,
         req.body,
+        vesselId,
       );
 
-      logger.info("[SchedulingSettings] Rotation templates updated", { orgId, vesselId } as any);
+      logger.info("SchedulingSettings", "Rotation templates updated", { orgId, vesselId });
       res.json(updated);
     })
   );
@@ -448,9 +471,9 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const orgId = DEFAULT_ORG_ID;
       const vesselId = req.query.vesselId as string | undefined;
 
-      const reset = await (schedulingSettingsService as any).resetToDefaults({ orgId, vesselId });
+      const reset = await schedulingSettingsService.resetToDefaults(orgId, vesselId);
 
-      logger.info("[SchedulingSettings] Settings reset to defaults", { orgId, vesselId } as any);
+      logger.info("SchedulingSettings", "Settings reset to defaults", { orgId, vesselId });
       res.json(reset);
     })
   );

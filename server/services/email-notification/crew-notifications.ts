@@ -56,16 +56,16 @@ export async function checkCrewNotificationEnabled(
     }
 
     const notificationSettingsMap: Record<string, boolean> = {
-      certExpiry: settings.certExpiryEmailEnabled,
-      documentExpiry: settings.documentExpiryEmailEnabled,
-      compliance: settings.complianceEmailEnabled,
+      certExpiry: settings.certExpiryEmailEnabled ?? true,
+      documentExpiry: settings.documentExpiryEmailEnabled ?? true,
+      compliance: settings.complianceEmailEnabled ?? true,
     };
     const typeEnabled = notificationSettingsMap[notificationType] ?? true;
 
     return {
       enabled: typeEnabled,
       email: crew.email || null,
-      overrideEmail: settings.overrideEmail,
+      overrideEmail: settings.overrideEmail ?? null,
     };
   } catch (error) {
     log("error", "Failed to check crew notification settings", {

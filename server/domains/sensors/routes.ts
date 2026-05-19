@@ -5,6 +5,28 @@ import { sql } from "drizzle-orm";
 import { requireOrgId, type AuthenticatedRequest } from "../../middleware/auth";
 import { logger } from "../../utils/logger";
 
+type SqlResultLike<T> = T[] | { rows: T[] };
+function rowsOf<T>(result: unknown): T[] {
+  if (Array.isArray(result)) return result as T[];
+  const maybe = result as { rows?: T[] } | null | undefined;
+  return Array.isArray(maybe?.rows) ? (maybe!.rows as T[]) : [];
+}
+
+interface CalibrationSummaryRow {
+  calibration_status: string;
+  sensor_type: string;
+  sensorType?: string;
+  count: number | string;
+}
+
+interface SensorRow {
+  id: string;
+  sensor_tag: string;
+  calibration_interval_days: number;
+  certificate_url: string | null;
+  [key: string]: unknown;
+}
+
 const router = Router();
 
 function getOrgId(req: Request): string {
@@ -90,7 +112,7 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
       GROUP BY calibration_status, sensor_type
     `);
 
-    const rows = Array.isArray(result) ? result : (result as any)?.rows || [];
+    const rows = rowsOf<CalibrationSummaryRow>(result);
 
     const summary = {
       total: 0,
@@ -103,7 +125,7 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
       dataQualityScore: 0,
     };
 
-    for (const row of rows as any[]) {
+    for (const row of rows) {
       const count = Number(row.count);
       summary.total += count;
       if (row.calibration_status === "calibrated") {
@@ -121,7 +143,8 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
       if (row.calibration_status === "unknown") {
         summary.unknown += count;
       }
-      summary.byType[row.sensorType] = (summary.byType[row.sensorType] || 0) + count;
+      const typeKey = row.sensor_type ?? row.sensorType ?? "unknown";
+      summary.byType[typeKey] = (summary.byType[typeKey] || 0) + count;
     }
 
     summary.dataQualityScore =
@@ -149,7 +172,7 @@ router.get("/overdue", requireOrgId, async (req: Request, res: Response) => {
       ORDER BY sc.next_calibration_due ASC
     `);
 
-    const sensors = Array.isArray(result) ? result : (result as any)?.rows || [];
+    const sensors = rowsOf<SensorRow>(result);
 
     res.json(sensors);
   } catch (err) {
@@ -187,7 +210,7 @@ router.get("/", requireOrgId, async (req: Request, res: Response) => {
     query = sql`${query} ORDER BY sc.next_calibration_due ASC NULLS LAST`;
 
     const result = await db.execute(query);
-    const sensors = Array.isArray(result) ? result : (result as any)?.rows || [];
+    const sensors = rowsOf<SensorRow>(result);
 
     res.json(sensors);
   } catch (err) {
@@ -208,7 +231,7 @@ router.get("/:id", requireOrgId, async (req: Request, res: Response) => {
       WHERE sc.id = ${req.params.id} AND sc.org_id = ${orgId}
     `);
 
-    const sensor = Array.isArray(sensorResult) ? sensorResult[0] : (sensorResult as any)?.rows?.[0];
+    const sensor = rowsOf<SensorRow>(sensorResult)[0];
 
     if (!sensor) {
       return res.status(404).json({ error: "Sensor not found" });
@@ -220,9 +243,7 @@ router.get("/:id", requireOrgId, async (req: Request, res: Response) => {
       ORDER BY calibration_date DESC
     `);
 
-    const history = Array.isArray(historyResult)
-      ? historyResult
-      : (historyResult as any)?.rows || [];
+    const history = rowsOf<Record<string, unknown>>(historyResult);
 
     res.json({ ...sensor, calibrationHistory: history });
   } catch (err) {
@@ -273,7 +294,7 @@ router.post("/", requireOrgId, async (req: Request, res: Response) => {
       RETURNING *
     `);
 
-    const sensor = Array.isArray(result) ? result[0] : (result as any)?.rows?.[0];
+    const sensor = rowsOf<SensorRow>(result)[0];
     res.status(201).json(sensor);
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -293,7 +314,7 @@ router.post("/:id/calibrate", requireOrgId, async (req: Request, res: Response) 
       SELECT * FROM sensor_calibrations
       WHERE id = ${req.params.id} AND org_id = ${orgId}
     `);
-    const sensor = Array.isArray(sensorResult) ? sensorResult[0] : (sensorResult as any)?.rows?.[0];
+    const sensor = rowsOf<SensorRow>(sensorResult)[0];
 
     if (!sensor) {
       return res.status(404).json({ error: "Sensor not found" });
@@ -318,7 +339,7 @@ router.post("/:id/calibrate", requireOrgId, async (req: Request, res: Response) 
 
     const calDate = new Date(data.calibrationDate);
     const nextDue = new Date(
-      calDate.getTime() + (sensor as any).calibration_interval_days * 24 * 60 * 60 * 1000
+      calDate.getTime() + sensor.calibration_interval_days * 24 * 60 * 60 * 1000
     );
 
     const newStatus =
@@ -330,21 +351,21 @@ router.post("/:id/calibrate", requireOrgId, async (req: Request, res: Response) 
           next_calibration_due = ${nextDue},
           calibration_status = ${newStatus},
           drift_percentage = ${data.driftAfter ?? data.driftBefore ?? null},
-          certificate_url = ${data.certificateUrl || (sensor as any).certificate_url},
+          certificate_url = ${data.certificateUrl || sensor.certificate_url},
           updated_at = NOW()
       WHERE id = ${req.params.id} AND org_id = ${orgId}
     `);
 
     logger.info("SensorCalibration", "Calibration recorded", {
       sensorId: req.params.id,
-      sensorTag: (sensor as any).sensor_tag,
+      sensorTag: sensor.sensor_tag,
       status: data.status,
       nextDue: nextDue.toISOString(),
     });
 
     res.status(201).json({
       success: true,
-      sensorTag: (sensor as any).sensor_tag,
+      sensorTag: sensor.sensor_tag,
       calibrationStatus: newStatus,
       nextCalibrationDue: nextDue,
     });

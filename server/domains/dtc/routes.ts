@@ -6,9 +6,13 @@ import { logger } from "../../utils/logger.js";
 import { dbDtcStorage } from "../../db/dtc/index.js";
 import { dbEquipmentStorage } from "../../db/equipment/index.js";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
+import type { RequestHandler } from "express";
+import type { getDtcIntegrationService } from "../../dtc-integration-service.js";
 
-let _dtcIntegrationService: any = null;
-async function getDtcService() {
+type DtcIntegrationService = ReturnType<typeof getDtcIntegrationService>;
+
+let _dtcIntegrationService: DtcIntegrationService | null = null;
+async function getDtcService(): Promise<DtcIntegrationService> {
   if (!_dtcIntegrationService) {
     const mod = await import("../../dtc-integration-service.js");
     _dtcIntegrationService = mod.getDtcIntegrationService();
@@ -16,9 +20,13 @@ async function getDtcService() {
   return _dtcIntegrationService;
 }
 
+interface WebSocketServerLike {
+  broadcast: (channel: string, payload: unknown) => void;
+}
+
 interface DtcRoutesConfig {
-  writeOperationRateLimit: any;
-  getWebSocketServer: () => any;
+  writeOperationRateLimit: RequestHandler;
+  getWebSocketServer: () => WebSocketServerLike | null | undefined;
 }
 
 const dtcDefinitionsQuerySchema = z.object({
@@ -128,20 +136,20 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
         ? await dbEquipmentStorage.getEquipmentByVessel(vesselId, orgId)
         : await dbEquipmentStorage.getEquipmentRegistry(orgId);
 
-      const equipmentIds = equipmentList.map((eq: any) => eq.id);
-      const equipmentMap = new Map(equipmentList.map((eq: any) => [eq.id, eq]));
+      const equipmentIds = equipmentList.map((eq) => eq.id);
+      const equipmentMap = new Map(equipmentList.map((eq) => [eq.id, eq] as const));
 
-      let flatDtcs: any[];
+      let flatDtcs: Array<Record<string, unknown> & { equipment?: unknown }>;
 
       if (typeof dbDtcStorage.getActiveDtcsBatch === "function" && equipmentIds.length > 0) {
         const batchResults = await dbDtcStorage.getActiveDtcsBatch(equipmentIds, orgId);
-        flatDtcs = batchResults.map((dtc: any) => ({
+        flatDtcs = batchResults.map((dtc) => ({
           ...dtc,
           equipment: equipmentMap.get(dtc.equipmentId),
         }));
       } else {
         const CHUNK_SIZE = 50;
-        const chunks: any[][] = [];
+        const chunks: Array<typeof equipmentList> = [];
         for (let i = 0; i < equipmentList.length; i += CHUNK_SIZE) {
           chunks.push(equipmentList.slice(i, i + CHUNK_SIZE));
         }
@@ -149,9 +157,9 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
         const allActiveDtcs = [];
         for (const chunk of chunks) {
           const chunkResults = await Promise.all(
-            chunk.map(async (eq: any) => {
+            chunk.map(async (eq) => {
               const dtcs = await dbDtcStorage.getActiveDtcs(eq.id, orgId);
-              return dtcs.map((dtc: any) => ({ ...dtc, equipment: eq }));
+              return dtcs.map((dtc) => ({ ...dtc, equipment: eq }));
             })
           );
           allActiveDtcs.push(...chunkResults.flat());
@@ -159,7 +167,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
         flatDtcs = allActiveDtcs;
       }
       if (severity) {
-        flatDtcs = flatDtcs.filter((dtc: any) => dtc.definition?.severity === severity);
+        flatDtcs = flatDtcs.filter((dtc) => (dtc.definition as { severity?: number } | undefined)?.severity === severity);
       }
 
       res.json(flatDtcs);
@@ -183,7 +191,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
 
       const activeDtcs = await dbDtcStorage.getActiveDtcs(dtcFault.equipmentId, orgId);
       const enrichedFault = activeDtcs.find(
-        (d: any) => d.spn === dtcFault.spn && d.fmi === dtcFault.fmi
+        (d) => d.spn === dtcFault.spn && d.fmi === dtcFault.fmi
       );
 
       sendCreated(res, enrichedFault || dtcFault);
@@ -210,7 +218,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
 
       const activeDtcs = await dbDtcStorage.getActiveDtcs(equipmentId, orgId);
       const dtc = activeDtcs.find(
-        (d: any) => d.spn === Number.parseInt(spn) && d.fmi === Number.parseInt(fmi)
+        (d) => d.spn === Number.parseInt(spn) && d.fmi === Number.parseInt(fmi)
       );
 
       if (!dtc) {
@@ -238,7 +246,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
 
       const activeDtcs2 = await dbDtcStorage.getActiveDtcs(equipmentId, orgId);
       const dtc = activeDtcs2.find(
-        (d: any) => d.spn === Number.parseInt(spn) && d.fmi === Number.parseInt(fmi)
+        (d) => d.spn === Number.parseInt(spn) && d.fmi === Number.parseInt(fmi)
       );
 
       if (!dtc) {
@@ -254,8 +262,9 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
         });
       }
 
-      if (getWebSocketServer()) {
-        getWebSocketServer().broadcast("alerts", {
+      const wss = getWebSocketServer();
+      if (wss) {
+        wss.broadcast("alerts", {
           type: "new_alert",
           alert,
           timestamp: new Date().toISOString(),
@@ -322,7 +331,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
 
       const activeDtcsCorr = await dbDtcStorage.getActiveDtcs(equipmentId, orgId);
       const dtc = activeDtcsCorr.find(
-        (d: any) => d.spn === Number.parseInt(spn) && d.fmi === Number.parseInt(fmi)
+        (d) => d.spn === Number.parseInt(spn) && d.fmi === Number.parseInt(fmi)
       );
 
       if (!dtc) {

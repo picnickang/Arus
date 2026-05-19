@@ -48,7 +48,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
   app.post(
     "/api/schedule/plan",
     crewOperationRateLimit,
-    withErrorHandling("plan schedule", async (req: any, res: Response) => {
+    withErrorHandling("plan schedule", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
       const { from, days, vessels, mode } = req.body;
       const result = await planAndMaybeExecute({
@@ -72,21 +72,25 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         undefined,
         limit ? Number.parseInt(limit as string) : 50
       );
-      const transformed = runs.map((run: any) => ({
-        id: run.id,
-        orgId: run.orgId,
-        status: run.status,
-        fromDate: run.startDate ? new Date(run.startDate).toISOString() : null,
-        toDate: run.endDate ? new Date(run.endDate).toISOString() : null,
-        createdAt: run.createdAt ? new Date(run.createdAt).toISOString() : null,
-        appliedAt: run.completedAt ? new Date(run.completedAt).toISOString() : null,
-        generatedByRunId: run.generatedByRunId ?? null,
-        stats: {
-          proposed: run.totalAssignments ?? 0,
-          unfilled: run.unfilledCount ?? 0,
-          collisions: 0,
-        },
-      }));
+      const transformed = runs.map((run) => {
+        const bag = run as unknown as Record<string, unknown>;
+        const completedAt = bag.completedAt as string | Date | null | undefined;
+        return {
+          id: run.id,
+          orgId: run.orgId,
+          status: run.status,
+          fromDate: run.startDate ? new Date(run.startDate).toISOString() : null,
+          toDate: run.endDate ? new Date(run.endDate).toISOString() : null,
+          createdAt: run.createdAt ? new Date(run.createdAt).toISOString() : null,
+          appliedAt: completedAt ? new Date(completedAt).toISOString() : null,
+          generatedByRunId: (bag.generatedByRunId as string | null | undefined) ?? null,
+          stats: {
+            proposed: (bag.totalAssignments as number | undefined) ?? 0,
+            unfilled: (bag.unfilledCount as number | undefined) ?? 0,
+            collisions: 0,
+          },
+        };
+      });
       res.json(transformed);
     })
   );
@@ -146,7 +150,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
     withErrorHandling("preview compliance", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
       const { scheduleRunId, assignments: draftAssignments } = req.body;
-      let assignments: any[] = [];
+      let assignments: Awaited<ReturnType<typeof dbSchedulerStorage.getScheduleAssignmentsByRun>> = [];
 
       if (scheduleRunId) {
         const existing = await dbSchedulerStorage.getSchedulerRun(scheduleRunId);
@@ -211,21 +215,21 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
 
         // Get assignments with org scoping
         const allAssignments = await dbCrewStorage.getCrewAssignments();
-        const orgAssignments = allAssignments.filter((a: any) => !a.orgId || a.orgId === orgId);
-        const assignment = orgAssignments.find((a: any) => a.id === assignmentId);
+        const orgAssignments = allAssignments.filter((a) => !a.orgId || a.orgId === orgId);
+        const assignment = orgAssignments.find((a) => a.id === assignmentId);
 
         if (!assignment) {
           return res.json([]);
         }
 
         const crewAssignments = orgAssignments.filter(
-          (a: any) => a.crewId === assignment.crewId && a.id !== assignmentId
+          (a) => a.crewId === assignment.crewId && a.id !== assignmentId
         );
 
         const allLeaves = await dbCrewStorage.getCrewLeave(undefined, orgId);
-        const leaves = allLeaves.filter((l: any) => !l.orgId || l.orgId === orgId);
+        const leaves = allLeaves.filter((l) => !l.orgId || l.orgId === orgId);
         const crewList = await dbCrewStorage.getCrew(orgId);
-        const crewMember = crewList.find((c: any) => c.id === assignment.crewId);
+        const crewMember = crewList.find((c) => c.id === assignment.crewId);
 
         // Calculate weekly hours from existing assignments
         const shiftStart = new Date(assignment.start || assignment.date);
@@ -233,12 +237,12 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         const weekStart = new Date(shiftStart);
         weekStart.setDate(weekStart.getDate() - 7);
 
-        const weeklyAssignments = crewAssignments.filter((a: any) => {
+        const weeklyAssignments = crewAssignments.filter((a) => {
           const aStart = new Date(a.start || a.date);
           return aStart >= weekStart && aStart <= shiftEnd;
         });
 
-        const weeklyHours = weeklyAssignments.reduce((sum: number, a: any) => {
+        const weeklyHours = weeklyAssignments.reduce((sum: number, a) => {
           const start = new Date(a.start || a.date);
           const end = new Date(a.end || a.date);
           return sum + (end.getTime() - start.getTime()) / (1000 * 60 * 60);
@@ -246,9 +250,9 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
 
         // Find last shift end for rest calculation
         const previousAssignments = crewAssignments
-          .filter((a: any) => new Date(a.end || a.date) < shiftStart)
+          .filter((a) => new Date(a.end || a.date) < shiftStart)
           .sort(
-            (a: any, b: any) =>
+            (a, b) =>
               new Date(b.end || b.date).getTime() - new Date(a.end || a.date).getTime()
           );
 
@@ -265,18 +269,21 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           date: assignment.date || shiftStart.toISOString().split("T")[0],
           shiftStart,
           shiftEnd,
-          existingAssignments: crewAssignments.map((a: any) => ({
+          existingAssignments: crewAssignments.map((a) => ({
             start: new Date(a.start || a.date),
             end: new Date(a.end || a.date),
             crewId: a.crewId,
           })),
           leaveRecords: leaves
-            .filter((l: any) => l.crewId === assignment.crewId)
-            .map((l: any) => ({
-              crewId: l.crewId,
-              start: new Date(l.startDate || l.start),
-              end: new Date(l.endDate || l.end),
-            })),
+            .filter((l) => l.crewId === assignment.crewId)
+            .map((l) => {
+              const lb = l as unknown as { startDate?: string | Date; endDate?: string | Date; start?: string | Date; end?: string | Date };
+              return {
+                crewId: l.crewId,
+                start: new Date(lb.startDate || lb.start || 0),
+                end: new Date(lb.endDate || lb.end || 0),
+              };
+            }),
           certifications: [],
           preferences: DEFAULT_SCHEDULING_PREFERENCES,
         };
@@ -312,8 +319,8 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
 
       // Get assignments with org scoping
       const allAssignments = await dbCrewStorage.getCrewAssignments();
-      const orgAssignments = allAssignments.filter((a: any) => !a.orgId || a.orgId === orgId);
-      const assignment = orgAssignments.find((a: any) => a.id === assignmentId);
+      const orgAssignments = allAssignments.filter((a) => !a.orgId || a.orgId === orgId);
+      const assignment = orgAssignments.find((a) => a.id === assignmentId);
 
       if (!assignment) {
         return res.json([]);
@@ -321,24 +328,24 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
 
       const crewList = await dbCrewStorage.getCrew(orgId);
       const allLeaves = await dbCrewStorage.getCrewLeave(undefined, orgId);
-      const leaves = allLeaves.filter((l: any) => !l.orgId || l.orgId === orgId);
+      const leaves = allLeaves.filter((l) => !l.orgId || l.orgId === orgId);
 
       const shiftStart = new Date(assignment.start || assignment.date);
       const shiftEnd = new Date(assignment.end || assignment.date);
 
       // Build scoring contexts for all crew
-      const scoringContexts: ScoringContext[] = ((crewList as any[]) as any)
-        .filter((c: any) => c.active !== false)
-        .map((crew: any) => {
+      const scoringContexts: ScoringContext[] = crewList
+        .filter((c) => c.active !== false)
+        .map((crew) => {
           // Count assignments for this crew (org scoped)
-          const crewAssignments = orgAssignments.filter((a: any) => a.crewId === crew.id);
+          const crewAssignments = orgAssignments.filter((a) => a.crewId === crew.id);
           const avgCount = orgAssignments.length / Math.max(1, crewList.length);
 
           // Find last shift end
           const previousAssignments = crewAssignments
-            .filter((a: any) => new Date(a.end || a.date) < shiftStart)
+            .filter((a) => new Date(a.end || a.date) < shiftStart)
             .sort(
-              (a: any, b: any) =>
+              (a, b) =>
                 new Date(b.end || b.date).getTime() - new Date(a.end || a.date).getTime()
             );
 
@@ -356,12 +363,13 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           }
 
           // Check for leave conflicts
-          const crewLeaves = leaves.filter((l: any) => l.crewId === crew.id);
+          const crewLeaves = leaves.filter((l) => l.crewId === crew.id);
           const constraints: ConstraintViolation[] = [];
 
           for (const leave of crewLeaves) {
-            const leaveStart = new Date((leave as any).startDate || leave.start);
-            const leaveEnd = new Date((leave as any).endDate || leave.end);
+            const leaveBag = leave as unknown as { startDate?: string | Date; endDate?: string | Date; start?: string | Date; end?: string | Date };
+            const leaveStart = new Date(leaveBag.startDate || leaveBag.start || 0);
+            const leaveEnd = new Date(leaveBag.endDate || leaveBag.end || 0);
             if (shiftStart < leaveEnd && shiftEnd > leaveStart) {
               constraints.push({
                 constraint: { type: "leave", enforcement: "hard", description: "On leave" },
@@ -382,13 +390,14 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
             fatigueRisk = "medium";
           }
 
-          return {
+          const crewBag = crew as unknown as { avatarUrl?: string | null };
+          const ctx: ScoringContext = {
             crewId: crew.id,
             crewName: crew.name,
-            rank: crew.rank,
-            avatarUrl: crew.avatarUrl,
-            vesselId: crew.vesselId,
-            targetVesselId: assignment.vesselId,
+            rank: crew.rank ?? undefined,
+            avatarUrl: crewBag.avatarUrl ?? undefined,
+            vesselId: crew.vesselId ?? undefined,
+            targetVesselId: assignment.vesselId ?? undefined,
             currentAssignmentCount: crewAssignments.length,
             avgAssignmentCount: avgCount,
             consecutiveDaysOnboard: consecutiveDays,
@@ -396,6 +405,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
             fatigueRisk,
             constraints,
           };
+          return ctx;
         });
 
       // Rank and filter suggestions
@@ -446,14 +456,14 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
 
       // Load and verify assignment belongs to this org
       const allAssignments = await dbCrewStorage.getCrewAssignments();
-      const assignment = allAssignments.find((a: any) => a.id === assignmentId);
+      const assignment = allAssignments.find((a) => a.id === assignmentId);
 
       if (!assignment || (assignment.orgId && assignment.orgId !== orgId)) {
         return res.status(404).json({ error: "Assignment not found" });
       }
 
       const crewList = await dbCrewStorage.getCrew(orgId);
-      const crewMember = crewList.find((c: any) => c.id === suggestedCrewId);
+      const crewMember = crewList.find((c) => c.id === suggestedCrewId);
 
       if (!crewMember) {
         return res.status(404).json({ error: "Crew member not found" });
@@ -502,11 +512,11 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
 
       // Get assignments with org scoping
       const allAssignments = await dbCrewStorage.getCrewAssignments();
-      const orgAssignments = allAssignments.filter((a: any) => !a.orgId || a.orgId === orgId);
+      const orgAssignments = allAssignments.filter((a) => !a.orgId || a.orgId === orgId);
       const fromDate = new Date(from);
       const toDate = new Date(to);
 
-      const assignmentsToPublish = orgAssignments.filter((a: any) => {
+      const assignmentsToPublish = orgAssignments.filter((a) => {
         const aStart = new Date(a.start || a.date);
         const aEnd = new Date(a.end || a.date);
         const inRange = aStart <= toDate && aEnd >= fromDate;
@@ -527,9 +537,9 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           const crewMembers = await dbCrewStorage.getCrew(orgId);
           const vessels = await vesselService.getVessels();
 
-          const assignmentInfos = assignmentsToPublish.map((a: any) => {
-            const crew = crewMembers.find((c: any) => c.id === a.crewId);
-            const vessel = vessels.find((v: any) => v.id === a.vesselId);
+          const assignmentInfos = assignmentsToPublish.map((a) => {
+            const crew = crewMembers.find((c) => c.id === a.crewId);
+            const vessel = vessels.find((v) => v.id === a.vesselId);
             return {
               id: a.id,
               crewId: a.crewId,
@@ -542,10 +552,13 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
             };
           });
 
-          sendSchedulePublishedNotification({ orgId, vesselId }, assignmentInfos, {
-            from,
-            to,
-          }).catch((err: any) => logger.error("Failed to send publish notifications:", undefined, err));
+          sendSchedulePublishedNotification(
+            { orgId, vesselId },
+            assignmentInfos as unknown as Parameters<typeof sendSchedulePublishedNotification>[1],
+            { from, to },
+          ).catch((err) =>
+            logger.error("Failed to send publish notifications:", undefined, err),
+          );
         } catch (notifyErr) {
           logger.error("Failed to prepare publish notifications:", undefined, notifyErr);
         }
@@ -673,14 +686,14 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         try {
           const result = await canAssignCrew(crewId, proposedAssignment, existingDrafts);
           res.json(result);
-        } catch (error: any) {
+        } catch (error) {
           logger.error("Failed to check assignment compliance:", undefined, error);
           res.json({
             canAssign: true,
             violations: [],
             projectedRestHours: 24,
             projectedWeeklyWork: 0,
-            error: error.message,
+            error: error instanceof Error ? error.message : String(error),
           });
         }
       }
@@ -740,7 +753,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
             violations: result.violations,
             summary: result.summary,
           });
-        } catch (error: any) {
+        } catch (error) {
           logger.error("Failed to project bulk compliance:", undefined, error);
           res.json({
             isCompliant: true,
@@ -751,7 +764,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
               warningCount: 0,
               errorCount: 0,
             },
-            error: error.message,
+            error: error instanceof Error ? error.message : String(error),
           });
         }
       }
@@ -810,7 +823,9 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           status: status ? status.split(",").filter(Boolean) : undefined,
           includeUnfilled: includeUnfilled !== "false",
         };
-        const view = await crewExtensionsAppService.getSchedulePlannerView(filter as any);
+        const view = await crewExtensionsAppService.getSchedulePlannerView(
+          filter as Parameters<typeof crewExtensionsAppService.getSchedulePlannerView>[0],
+        );
         res.json(view);
       }
     )

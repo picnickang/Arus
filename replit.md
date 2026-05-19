@@ -8,6 +8,8 @@ Preferred communication style: Simple, everyday language.
 
 After every code change, run `npx tsc --noEmit` and only treat the update as done when it reports no errors.
 
+Do not introduce new `any` or `as any` in route handlers (`server/domains/**/routes*.ts`, `server/domains/**/interfaces/*.ts`) or in the public methods of application services (`server/domains/**/application/*-service.ts`). Use `AuthenticatedRequest` from `server/middleware/auth.ts` for `req`, narrow `unknown` with type guards, and reach for `Parameters<typeof fn>[n]` / `Awaited<ReturnType<typeof fn>>` instead of an escape-hatch cast. Existing `any` in these files should be removed, not duplicated.
+
 # System Architecture
 
 ## UI/UX Decisions
