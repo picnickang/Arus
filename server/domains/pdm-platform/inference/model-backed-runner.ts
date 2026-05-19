@@ -2,18 +2,31 @@
  * Push A1 — Model-backed inference runner.
  *
  * Wraps the ONNX adapter so the existing PredictionEngineService can
- * serve real-model predictions when an ONNX artifact is configured,
- * while preserving failure isolation: any ONNX error (file missing,
- * shape mismatch, runtime crash) falls through to the heuristic
- * baseline so user-visible predictions never regress.
+ * serve real-model predictions when a model is deployed in the
+ * registry, while preserving failure isolation: any ONNX error
+ * (artifact missing, shape mismatch, runtime crash) falls through to
+ * the heuristic baseline so user-visible predictions never regress.
  *
- * Selection is env-gated on PDM_ONNX_MODEL_PATH so production keeps
- * the deterministic heuristic until an operator opts the path in by
- * publishing a model artifact. This honours the "shadow first, canary
- * second" rollout pattern established by Wave 3.3.
+ * Selection priority:
+ *   1. The ml_models registry — for each incoming InferenceContext
+ *      whose modelVersionId points at a `status='deployed'` row with
+ *      a `training_metrics.artifactPath` on disk, that artifact is
+ *      used as the candidate. This is the closed-loop wiring that the
+ *      weekly retraining + /ml/models/:id/promote endpoint flows
+ *      through.
+ *   2. Env `PDM_ONNX_MODEL_PATH` — operator-pinned override that
+ *      bypasses the registry. Useful for benchmarking / pre-rollout.
+ *   3. None — collapses to pure heuristic. Same as today.
+ *
+ * Selection always runs through the Wave 3.3 shadow/canary substrate
+ * so a candidate failure can never propagate to user-visible writes.
  */
 
 import { promises as fs } from "node:fs";
+import path from "node:path";
+import { eq, and, desc } from "drizzle-orm";
+import { db } from "../../../db";
+import { mlModels } from "@shared/schema";
 import { createLogger } from "../../../lib/structured-logger";
 import { OnnxInferenceAdapter } from "../../../ml-prediction/onnx-adapter";
 import { serveWithShadowOrCanary } from "../../../ml-prediction/shadow-canary";
@@ -22,60 +35,116 @@ import type { InferenceContext, InferenceRunnerPort, PredictionScore } from "./p
 
 const logger = createLogger("ModelBackedInferenceRunner");
 
-/**
- * Push A1 — Routes prediction calls through the Wave 3.3 shadow/canary
- * substrate. Production is always the deterministic heuristic so that
- * any ONNX runtime failure can never regress user-visible predictions.
- * The ONNX adapter is plumbed as the candidate model:
- *
- *   - When PDM_ONNX_MODEL_PATH is set and PDM_ONNX_MODE=shadow (default),
- *     ONNX runs in lockstep but production still serves.
- *   - When PDM_ONNX_MODE=canary, PDM_ONNX_CANARY_PERCENT of traffic is
- *     served from ONNX; the rest stays on heuristic.
- *   - When PDM_ONNX_MODEL_PATH is unset, the candidate is omitted and
- *     the call collapses to pure heuristic.
- */
+interface ResolvedArtifact {
+  modelId: string;
+  artifactPath: string;
+}
+
 export class ModelBackedInferenceRunner implements InferenceRunnerPort {
   private readonly production = new HeuristicInferenceRunner();
-  private readonly candidate?: OnnxInferenceAdapter;
   private readonly mode: "shadow" | "canary";
   private readonly canaryPercent: number;
-  private artifactReady?: Promise<boolean>;
+  private readonly envOverride?: string;
+  /** Per-artifact ONNX adapter cache. Keyed by absolute artifact path. */
+  private readonly adapters = new Map<string, OnnxInferenceAdapter>();
+  /** Per-modelVersionId resolution cache. */
+  private readonly resolveCache = new Map<string, Promise<ResolvedArtifact | null>>();
 
-  constructor(private readonly modelPath?: string) {
-    if (modelPath) {
-      this.candidate = new OnnxInferenceAdapter({ modelPath });
-    }
+  constructor(envOverride?: string) {
+    this.envOverride = envOverride;
     this.mode = (process.env.PDM_ONNX_MODE ?? "shadow") === "canary" ? "canary" : "shadow";
     const pct = Number(process.env.PDM_ONNX_CANARY_PERCENT ?? "0");
     this.canaryPercent = Number.isFinite(pct) ? Math.min(100, Math.max(0, pct)) : 0;
   }
 
-  private async hasArtifact(): Promise<boolean> {
-    if (!this.modelPath) return false;
-    if (!this.artifactReady) {
-      this.artifactReady = fs
-        .access(this.modelPath)
-        .then(() => true)
-        .catch(() => {
-          logger.warn("ONNX artifact missing — candidate path disabled", {
-            modelPath: this.modelPath,
+  private getAdapter(artifactPath: string): OnnxInferenceAdapter {
+    let a = this.adapters.get(artifactPath);
+    if (!a) {
+      a = new OnnxInferenceAdapter({ modelPath: artifactPath });
+      this.adapters.set(artifactPath, a);
+    }
+    return a;
+  }
+
+  /** Resolves the deployed ONNX artifact for a modelVersionId via the
+   *  ml_models registry. Cached per modelVersionId for process
+   *  lifetime; promotion/rollback should bump the version id, so
+   *  cache invalidation happens naturally as new modelVersionIds flow
+   *  through. */
+  private async resolveFromRegistry(modelVersionId: string): Promise<ResolvedArtifact | null> {
+    const cached = this.resolveCache.get(modelVersionId);
+    if (cached) return cached;
+    const lookup = (async (): Promise<ResolvedArtifact | null> => {
+      try {
+        const [row] = await db
+          .select({
+            id: mlModels.id,
+            status: mlModels.status,
+            metrics: mlModels.trainingMetrics,
+          })
+          .from(mlModels)
+          .where(and(eq(mlModels.id, modelVersionId), eq(mlModels.status, "deployed")))
+          .limit(1);
+        if (!row) return null;
+        const metrics = (row.metrics ?? {}) as { artifactPath?: string };
+        if (!metrics.artifactPath) return null;
+        try {
+          await fs.access(metrics.artifactPath);
+        } catch {
+          logger.warn("Deployed model artifact missing on disk", {
+            modelVersionId,
+            artifactPath: metrics.artifactPath,
           });
-          return false;
+          return null;
+        }
+        return { modelId: row.id, artifactPath: metrics.artifactPath };
+      } catch (err) {
+        logger.warn("Registry lookup failed — falling back to heuristic", {
+          modelVersionId,
+          err: err instanceof Error ? err.message : String(err),
+        });
+        return null;
+      }
+    })();
+    this.resolveCache.set(modelVersionId, lookup);
+    return lookup;
+  }
+
+  /** Resolves the operator-pinned env artifact (one-time existence check). */
+  private envArtifactReady?: Promise<ResolvedArtifact | null>;
+  private async resolveFromEnv(): Promise<ResolvedArtifact | null> {
+    if (!this.envOverride) return null;
+    if (!this.envArtifactReady) {
+      const p = this.envOverride;
+      this.envArtifactReady = fs
+        .access(p)
+        .then(() => ({ modelId: `env:${path.basename(p)}`, artifactPath: p }))
+        .catch((): ResolvedArtifact | null => {
+          logger.warn("PDM_ONNX_MODEL_PATH artifact missing — env override disabled", {
+            modelPath: p,
+          });
+          return null;
         });
     }
-    return this.artifactReady;
+    return this.envArtifactReady;
+  }
+
+  private async resolveArtifact(context: InferenceContext): Promise<ResolvedArtifact | null> {
+    if (context.modelVersionId) {
+      const fromRegistry = await this.resolveFromRegistry(context.modelVersionId);
+      if (fromRegistry) return fromRegistry;
+    }
+    return this.resolveFromEnv();
   }
 
   async scoreFeatures(context: InferenceContext): Promise<PredictionScore> {
-    const candidateReady = this.candidate && (await this.hasArtifact());
+    const artifact = await this.resolveArtifact(context);
+    const candidate = artifact ? this.getAdapter(artifact.artifactPath) : undefined;
     const result = await serveWithShadowOrCanary<PredictionScore>({
       productionModelId: "heuristic-baseline",
-      candidateModelId: candidateReady ? "onnx-candidate" : undefined,
+      candidateModelId: artifact ? artifact.modelId : undefined,
       productionPredict: () => this.production.scoreFeatures(context),
-      candidatePredict: candidateReady
-        ? () => this.candidate!.scoreFeatures(context)
-        : undefined,
+      candidatePredict: candidate ? () => candidate.scoreFeatures(context) : undefined,
       canaryPercent: this.mode === "canary" ? this.canaryPercent : undefined,
       divergence: (p, c) => Math.abs(p.failureProbability - c.failureProbability),
     });
@@ -83,16 +152,21 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
   }
 }
 
-/** Resolves the configured runner based on env. Exported for routes wiring. */
+/** Always returns the registry-backed runner. The runner itself
+ *  collapses to pure heuristic when no deployed artifact exists, so
+ *  this is safe to wire unconditionally. */
 export function resolveInferenceRunner(): InferenceRunnerPort {
-  const modelPath = process.env.PDM_ONNX_MODEL_PATH?.trim();
-  if (modelPath) {
-    logger.info("ONNX runner active via shadow/canary substrate", {
-      modelPath,
+  const envOverride = process.env.PDM_ONNX_MODEL_PATH?.trim() || undefined;
+  if (envOverride) {
+    logger.info("ONNX runner active (registry + env override)", {
+      envOverride,
       mode: process.env.PDM_ONNX_MODE ?? "shadow",
       canaryPercent: process.env.PDM_ONNX_CANARY_PERCENT ?? "0",
     });
-    return new ModelBackedInferenceRunner(modelPath);
+  } else {
+    logger.info("ONNX runner active (registry-backed)", {
+      mode: process.env.PDM_ONNX_MODE ?? "shadow",
+    });
   }
-  return new HeuristicInferenceRunner();
+  return new ModelBackedInferenceRunner(envOverride);
 }

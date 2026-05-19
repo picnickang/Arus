@@ -227,14 +227,19 @@ def main() -> int:
 
         drift_psi = psi(cand_probs, prod_cal)
 
-        # Export ONNX artifact.
+        # Export ONNX (serving) AND native UBJ (TreeSHAP) artifacts.
+        # The UBJ is the exact same trained booster — SHAP attributions
+        # are guaranteed to explain the deployed prediction, not a
+        # re-fit surrogate.
         os.makedirs(args.models_dir, exist_ok=True)
         model_id = str(uuid.uuid4())
         artifact_rel = os.path.join(args.models_dir, f"{args.type}-{model_id}.onnx")
+        native_rel = os.path.join(args.models_dir, f"{args.type}-{model_id}.ubj")
         try:
             onnx_bytes = to_onnx(model, X.shape[1])
             with open(artifact_rel, "wb") as f:
                 f.write(onnx_bytes)
+            model.get_booster().save_model(native_rel)
         except Exception as exc:
             emit({"stage": "error", "message": f"ONNX export failed: {exc}"})
             return 1
@@ -257,6 +262,7 @@ def main() -> int:
             "trainSize": int(len(X_train)),
             "evalSize": int(len(X_eval)),
             "artifactPath": artifact_rel,
+            "nativeArtifactPath": native_rel,
         }
 
         with conn.cursor() as cur:
