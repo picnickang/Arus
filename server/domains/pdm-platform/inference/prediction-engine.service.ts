@@ -327,18 +327,15 @@ export class PredictionEngineService implements PredictionExplanationQuery {
     if (Object.keys(featureMap).length === 0) return [];
 
     const { explainXGBoostPrediction } = await import("../../../ml-explainability-service");
-    const explanation = explainXGBoostPrediction(
+    const explanation = await explainXGBoostPrediction(
       {
-        predict: (f: Record<string, number>) => {
-          const score = this.runner.scoreFeatures({
+        predict: async (f: Record<string, number>) => {
+          const score = await this.runner.scoreFeatures({
             orgId: "_perm",
             equipmentId: "_perm",
             features: f as unknown as FeatureVector,
           });
-          if (score instanceof Promise) {
-            return 0.1;
-          }
-          return (score as PredictionScore).failureProbability;
+          return score.failureProbability;
         },
       },
       { features: featureMap }

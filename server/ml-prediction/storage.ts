@@ -203,7 +203,7 @@ async function computeAndStoreExplanation(
   const { explainRandomForestPrediction, storeFeatureImportances } = await import(
     "../ml-explainability-service.js"
   );
-  const explanation = explainRandomForestPrediction(model, features);
+  const explanation = await explainRandomForestPrediction(model, features);
   if (storedPrediction) {
     const models = await dbMlAnalyticsStorage.getMlModels(orgId, "random_forest");
     const modelId = models.length > 0 ? models[0].id : undefined;

@@ -115,12 +115,12 @@ function extractFeatureMap(input: unknown): Record<string, number> {
  * Returns the top-N most-impactful features with normalised importances
  * and signed directions.
  */
-function permutationImportance(
+async function permutationImportance(
   features: Record<string, number>,
-  predictFn: (f: Record<string, number>) => number,
+  predictFn: (f: Record<string, number>) => number | Promise<number>,
   topN = 8
-): { baseValue: number; predictedValue: number; topFeatures: FeatureImportance[] } {
-  const baselineProb = predictFn(features);
+): Promise<{ baseValue: number; predictedValue: number; topFeatures: FeatureImportance[] }> {
+  const baselineProb = await predictFn(features);
   const results: { feature: string; delta: number; direction: "positive" | "negative" }[] = [];
 
   for (const [name, currentValue] of Object.entries(features)) {
@@ -129,7 +129,7 @@ function permutationImportance(
     const perturbed = { ...features, [name]: baseline };
     let withoutProb: number;
     try {
-      withoutProb = predictFn(perturbed);
+      withoutProb = await predictFn(perturbed);
     } catch (err) {
       logger.warn("Permutation perturbation threw — skipping feature", {
         feature: name,
@@ -178,7 +178,7 @@ export async function explainLSTMPrediction(
   };
 
   try {
-    const out = permutationImportance(featureMap, predictFn);
+    const out = await permutationImportance(featureMap, predictFn);
     return { modelType: "lstm", ...out, metadata: { method: "permutation" } };
   } catch (err) {
     logger.warn("LSTM explanation failed — returning empty", {
@@ -188,10 +188,10 @@ export async function explainLSTMPrediction(
   }
 }
 
-export function explainRandomForestPrediction(
+export async function explainRandomForestPrediction(
   model: unknown,
   features: unknown
-): Explanation {
+): Promise<Explanation> {
   const featureMap = extractFeatureMap(features);
   if (Object.keys(featureMap).length === 0) {
     return { modelType: "random_forest", predictedValue: 0, baseValue: 0, topFeatures: [] };
@@ -204,7 +204,7 @@ export function explainRandomForestPrediction(
   };
 
   try {
-    const out = permutationImportance(featureMap, predictFn);
+    const out = await permutationImportance(featureMap, predictFn);
     return { modelType: "random_forest", ...out, metadata: { method: "permutation" } };
   } catch (err) {
     logger.warn("RF explanation failed — returning empty", {
@@ -214,17 +214,34 @@ export function explainRandomForestPrediction(
   }
 }
 
-export function explainXGBoostPrediction(model: unknown, features: unknown): Explanation {
+/**
+ * Async-capable explainer. `predict` may be sync or async — both are
+ * supported, which is required because real model adapters (ONNX, ML
+ * services) return Promises. A sync predict is run inline.
+ */
+export interface AsyncPredictableModel {
+  predict: (features: Record<string, number>) => number | Promise<number>;
+}
+
+export async function explainXGBoostPrediction(
+  model: unknown,
+  features: unknown
+): Promise<Explanation> {
   const featureMap = extractFeatureMap(features);
   if (Object.keys(featureMap).length === 0) {
     return { modelType: "xgboost", predictedValue: 0, baseValue: 0, topFeatures: [] };
   }
 
-  const m = model as PredictableModel;
-  const predictFn = (f: Record<string, number>): number => coerceProb(m.predict?.(f));
+  const m = model as PredictableModel & Partial<AsyncPredictableModel>;
+  const predictFn = async (f: Record<string, number>): Promise<number> => {
+    if (typeof m.predict !== "function") return 0.1;
+    const out = m.predict(f) as number | Promise<number> | { failureProbability?: number };
+    if (out instanceof Promise) return coerceProb(await out);
+    return coerceProb(out);
+  };
 
   try {
-    const out = permutationImportance(featureMap, predictFn);
+    const out = await permutationImportance(featureMap, predictFn);
     return { modelType: "xgboost", ...out, metadata: { method: "permutation" } };
   } catch (err) {
     logger.warn("XGBoost explanation failed — returning empty", {

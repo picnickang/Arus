@@ -16,20 +16,39 @@
 import { promises as fs } from "node:fs";
 import { createLogger } from "../../../lib/structured-logger";
 import { OnnxInferenceAdapter } from "../../../ml-prediction/onnx-adapter";
+import { serveWithShadowOrCanary } from "../../../ml-prediction/shadow-canary";
 import { HeuristicInferenceRunner } from "./heuristic-inference-runner";
 import type { InferenceContext, InferenceRunnerPort, PredictionScore } from "./ports";
 
 const logger = createLogger("ModelBackedInferenceRunner");
 
+/**
+ * Push A1 — Routes prediction calls through the Wave 3.3 shadow/canary
+ * substrate. Production is always the deterministic heuristic so that
+ * any ONNX runtime failure can never regress user-visible predictions.
+ * The ONNX adapter is plumbed as the candidate model:
+ *
+ *   - When PDM_ONNX_MODEL_PATH is set and PDM_ONNX_MODE=shadow (default),
+ *     ONNX runs in lockstep but production still serves.
+ *   - When PDM_ONNX_MODE=canary, PDM_ONNX_CANARY_PERCENT of traffic is
+ *     served from ONNX; the rest stays on heuristic.
+ *   - When PDM_ONNX_MODEL_PATH is unset, the candidate is omitted and
+ *     the call collapses to pure heuristic.
+ */
 export class ModelBackedInferenceRunner implements InferenceRunnerPort {
-  private readonly fallback = new HeuristicInferenceRunner();
-  private readonly onnx?: OnnxInferenceAdapter;
+  private readonly production = new HeuristicInferenceRunner();
+  private readonly candidate?: OnnxInferenceAdapter;
+  private readonly mode: "shadow" | "canary";
+  private readonly canaryPercent: number;
   private artifactReady?: Promise<boolean>;
 
   constructor(private readonly modelPath?: string) {
     if (modelPath) {
-      this.onnx = new OnnxInferenceAdapter({ modelPath });
+      this.candidate = new OnnxInferenceAdapter({ modelPath });
     }
+    this.mode = (process.env.PDM_ONNX_MODE ?? "shadow") === "canary" ? "canary" : "shadow";
+    const pct = Number(process.env.PDM_ONNX_CANARY_PERCENT ?? "0");
+    this.canaryPercent = Number.isFinite(pct) ? Math.min(100, Math.max(0, pct)) : 0;
   }
 
   private async hasArtifact(): Promise<boolean> {
@@ -39,7 +58,7 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
         .access(this.modelPath)
         .then(() => true)
         .catch(() => {
-          logger.warn("ONNX model artifact missing — falling back to heuristic", {
+          logger.warn("ONNX artifact missing — candidate path disabled", {
             modelPath: this.modelPath,
           });
           return false;
@@ -49,17 +68,18 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
   }
 
   async scoreFeatures(context: InferenceContext): Promise<PredictionScore> {
-    if (this.onnx && (await this.hasArtifact())) {
-      try {
-        return await this.onnx.scoreFeatures(context);
-      } catch (err) {
-        logger.warn("ONNX inference failed — falling back to heuristic", {
-          equipmentId: context.equipmentId,
-          err: err instanceof Error ? err.message : String(err),
-        });
-      }
-    }
-    return this.fallback.scoreFeatures(context);
+    const candidateReady = this.candidate && (await this.hasArtifact());
+    const result = await serveWithShadowOrCanary<PredictionScore>({
+      productionModelId: "heuristic-baseline",
+      candidateModelId: candidateReady ? "onnx-candidate" : undefined,
+      productionPredict: () => this.production.scoreFeatures(context),
+      candidatePredict: candidateReady
+        ? () => this.candidate!.scoreFeatures(context)
+        : undefined,
+      canaryPercent: this.mode === "canary" ? this.canaryPercent : undefined,
+      divergence: (p, c) => Math.abs(p.failureProbability - c.failureProbability),
+    });
+    return result.result;
   }
 }
 
@@ -67,7 +87,11 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
 export function resolveInferenceRunner(): InferenceRunnerPort {
   const modelPath = process.env.PDM_ONNX_MODEL_PATH?.trim();
   if (modelPath) {
-    logger.info("ONNX runner active", { modelPath });
+    logger.info("ONNX runner active via shadow/canary substrate", {
+      modelPath,
+      mode: process.env.PDM_ONNX_MODE ?? "shadow",
+      canaryPercent: process.env.PDM_ONNX_CANARY_PERCENT ?? "0",
+    });
     return new ModelBackedInferenceRunner(modelPath);
   }
   return new HeuristicInferenceRunner();

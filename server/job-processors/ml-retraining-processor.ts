@@ -29,7 +29,7 @@ const logger = createLogger("MlRetrainingProcessor");
 const MIN_OUTCOMES_FOR_RETRAIN = 50;
 const MIN_MAE_IMPROVEMENT_PCT = 5;
 const MAX_PSI_FOR_PROMOTION = 0.25;
-const RETRAIN_WINDOW_DAYS = 30;
+const RETRAIN_WINDOW_DAYS = 7;
 const TRAINER_TIMEOUT_MS = 10 * 60 * 1000;
 
 export interface ModelRetrainJobData {
