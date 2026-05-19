@@ -76,7 +76,9 @@ async function execCypher(
     const pg = pool as unknown as {
       query: (q: string) => Promise<{ rows: Array<Record<string, unknown>> }>;
     };
-    await pg.query(`LOAD 'ag_catalog'`);
+    // `age` is the LIBRARY name; `ag_catalog` is the schema. Loading
+    // the schema name was a bug caught in code review.
+    await pg.query(`LOAD 'age'`);
     await pg.query(`SET search_path = ag_catalog, "$user", public`);
     const result = await pg.query(sql);
     return { ok: true, rows: result.rows };

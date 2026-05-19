@@ -51,7 +51,7 @@ function cypherStr(v) {
 }
 
 async function ensureGraph(client, graph) {
-  await client.query(`LOAD 'ag_catalog'`);
+  await client.query(`LOAD 'age'`);
   await client.query(`SET search_path = ag_catalog, "$user", public`);
   const { rows } = await client.query(
     `SELECT 1 FROM ag_catalog.ag_graph WHERE name = $1`,
@@ -113,7 +113,7 @@ async function main() {
   try {
     // Probe AGE availability — refuse to silently no-op.
     try {
-      await client.query(`LOAD 'ag_catalog'`);
+      await client.query(`LOAD 'age'`);
     } catch (err) {
       console.warn(`[graph-backfill] Apache AGE unavailable: ${err.message}`);
       return;

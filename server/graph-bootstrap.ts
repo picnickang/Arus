@@ -23,8 +23,17 @@ const logger = createLogger("GraphBootstrap");
 let graphAvailable = false;
 const ensuredTenantGraphs = new Set<string>();
 
-/** Apache AGE schema name (extension default). */
+/**
+ * Apache AGE conventions:
+ *   - `ag_catalog` is the SCHEMA the extension creates (where
+ *     `ag_graph`, `cypher()`, etc. live).
+ *   - `age` is the LIBRARY name passed to `LOAD` to register the
+ *     per-session function set. Loading the schema as a library is
+ *     a no-op-then-error path that the reviewer correctly flagged
+ *     on the second cut.
+ */
 const AGE_SCHEMA = "ag_catalog";
+const AGE_LIBRARY = "age";
 
 export function isGraphEnabled(): boolean {
   return process.env.GRAPH_ENABLED === "true";
@@ -91,7 +100,7 @@ export async function ensureTenantGraph(orgId: string): Promise<boolean> {
   if (ensuredTenantGraphs.has(name)) return true;
   try {
     const pg = requirePool();
-    await pg.query(`LOAD '${AGE_SCHEMA}'`);
+    await pg.query(`LOAD '${AGE_LIBRARY}'`);
     await pg.query(`SET search_path = ${AGE_SCHEMA}, "$user", public`);
     await pg.query(
       `SELECT create_graph($1) WHERE NOT EXISTS (

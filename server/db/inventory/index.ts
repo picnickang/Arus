@@ -18,25 +18,6 @@ import { createLogger } from "../../lib/structured-logger";
 const logger = createLogger("Db:Inventory:Index");
 import { randomUUID } from "node:crypto";
 import { projectInventoryMovement } from "../../graph/projector";
-
-/**
- * Push A2 — Fire-and-forget knowledge-graph projection for an
- * inventory movement. Best-effort by contract: never throws, no-ops
- * when GRAPH_ENABLED=false. Re-running with the same movementId
- * produces the same edge tuple (MERGE-keyed) so there is no drift.
- */
-function projectMovementBestEffort(
-  orgId: string,
-  movementId: string,
-  partId: string,
-  workOrderId: string | null | undefined
-): void {
-  void projectInventoryMovement(orgId, {
-    movementId,
-    partId,
-    workOrderId,
-  }).catch(() => undefined);
-}
 import { eq, and, or, ilike, sql, desc, asc, type SQL } from "drizzle-orm";
 import { db, type DbTransaction } from "../../db-config";
 import {
@@ -60,6 +41,70 @@ import type {
 } from "@shared/schema";
 import { DbPartsStorage } from "./db-parts.js";
 import { DbStockStorage } from "./db-stock.js";
+
+/**
+ * Push A2 — Pending graph projection captured INSIDE a DB transaction
+ * but FIRED only after the transaction commits. The reviewer caught
+ * the original in-tx fire-and-forget as a divergence hazard: if the
+ * SQL transaction rolls back, in-flight graph writes would leave the
+ * graph ahead of relational truth. The post-commit pattern below
+ * guarantees the graph only ever reflects committed rows.
+ *
+ * Supplier / part name are resolved lazily here (post-commit) by a
+ * single batched lookup against the `parts` table so the SUPPLIED_BY
+ * edge is populated on live writes — backfill is no longer the only
+ * path that produces supplier linkage.
+ */
+interface PendingMovementProjection {
+  movementId: string;
+  partId: string;
+  workOrderId: string | null | undefined;
+}
+
+async function fireProjectionsAfterCommit(
+  orgId: string,
+  pending: PendingMovementProjection[]
+): Promise<void> {
+  if (pending.length === 0) return;
+  try {
+    const partIds = Array.from(new Set(pending.map((p) => p.partId)));
+    const { parts: partsTable } = await import("@shared/schema-runtime");
+    const partRows = await db
+      .select({
+        id: (partsTable as any).id,
+        name: (partsTable as any).name,
+        primarySupplierId: (partsTable as any).primarySupplierId,
+      })
+      .from(partsTable as any)
+      .where(
+        and(
+          eq((partsTable as any).orgId, orgId),
+          sql`${(partsTable as any).id} = ANY(${partIds})`
+        )
+      );
+    const partMeta = new Map<string, { name?: string | null; supplierId?: string | null }>();
+    for (const r of partRows as Array<{ id: string; name: string | null; primarySupplierId: string | null }>) {
+      partMeta.set(r.id, {
+        name: r.name,
+        supplierId: r.primarySupplierId,
+      });
+    }
+    await Promise.all(
+      pending.map((p) => {
+        const meta = partMeta.get(p.partId) ?? {};
+        return projectInventoryMovement(orgId, {
+          movementId: p.movementId,
+          partId: p.partId,
+          workOrderId: p.workOrderId,
+          partName: meta.name ?? null,
+          supplierId: meta.supplierId ?? null,
+        }).catch(() => undefined);
+      })
+    );
+  } catch {
+    // best-effort by contract; never fail the caller for graph errors
+  }
+}
 
 export * from "./types.js";
 export { DbPartsStorage } from "./db-parts.js";
@@ -542,6 +587,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       updated: [] as WorkOrderParts[],
       errors: [] as string[],
     };
+    const pendingProjections: PendingMovementProjection[] = [];
 
     await db.transaction(async (tx) => {
       const existingParts = await tx
@@ -616,6 +662,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       throw new Error("orgId is required for tenant isolation");
     }
 
+    const pendingProjections: PendingMovementProjection[] = [];
     await db.transaction(async (tx) => {
       const woParts = await tx
         .select()
@@ -650,10 +697,11 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
             notes: `Reserved ${alloc.reserved} units for work order ${workOrderId} (stock ${alloc.stockId})`,
             createdAt: new Date(),
           });
-          projectMovementBestEffort(orgId, movementId, partId, workOrderId);
+          pendingProjections.push({ movementId, partId, workOrderId });
         }
       }
     });
+    await fireProjectionsAfterCommit(orgId, pendingProjections);
   }
 
   async addBulkPartsAndReserveInventory(
@@ -669,6 +717,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       updated: [] as WorkOrderParts[],
       errors: [] as string[],
     };
+    const pendingProjections: PendingMovementProjection[] = [];
 
     await db.transaction(async (tx) => {
       const existingParts = await tx
@@ -767,11 +816,12 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
               notes: `Reserved for work order ${workOrderId} (stock ${alloc.stockId})`,
               createdAt: new Date(),
             });
-            projectMovementBestEffort(orgId, movementId, partId, workOrderId);
+            pendingProjections.push({ movementId, partId, workOrderId });
           }
         }
       }
     });
+    await fireProjectionsAfterCommit(orgId, pendingProjections);
 
     return result;
   }
@@ -781,6 +831,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       throw new Error("orgId is required for tenant isolation");
     }
 
+    const pendingProjections: PendingMovementProjection[] = [];
     await db.transaction(async (tx) => {
       const woParts = await tx
         .select()
@@ -814,10 +865,11 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
             notes: `Released from work order ${workOrderId} (stock ${rel.stockId})`,
             createdAt: new Date(),
           });
-          projectMovementBestEffort(orgId, movementId, partId, workOrderId);
+          pendingProjections.push({ movementId, partId, workOrderId });
         }
       }
     });
+    await fireProjectionsAfterCommit(orgId, pendingProjections);
   }
 
   async getWorkOrderHistory(workOrderId: string, orgId: string): Promise<WorkOrderHistory[]> {
@@ -895,6 +947,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     if (!orgId) {
       throw new Error("orgId is required for tenant isolation");
     }
+    const pendingProjections: PendingMovementProjection[] = [];
     await db.transaction(async (tx) => {
       const [woPart] = await tx
         .select()
@@ -922,12 +975,19 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
           notes: `Returned ${rel.released} units from work order (stock ${rel.stockId})`,
           createdAt: new Date(),
         });
-        projectMovementBestEffort(orgId, movementId, woPart.partId, woPart.workOrderId);
+        pendingProjections.push({
+          movementId,
+          partId: woPart.partId,
+          workOrderId: woPart.workOrderId,
+        });
       }
 
       await tx
         .delete(workOrderParts)
         .where(and(eq(workOrderParts.id, workOrderPartId), eq(workOrderParts.orgId, orgId)));
+
+      // Defer projection until after the surrounding tx commits below
+      // (see fireProjectionsAfterCommit at end of method).
 
       const [wo] = await tx
         .select()
@@ -954,6 +1014,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
           .where(and(eq(workOrders.id, woPart.workOrderId), eq(workOrders.orgId, orgId)));
       }
     });
+    await fireProjectionsAfterCommit(orgId, pendingProjections);
   }
 
   async getPartsCostForWorkOrder(
