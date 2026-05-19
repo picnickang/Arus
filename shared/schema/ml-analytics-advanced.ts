@@ -939,3 +939,70 @@ export type PredictionExplanation = typeof predictionExplanations.$inferSelect;
 export type InsertPredictionExplanation = z.infer<typeof insertPredictionExplanationSchema>;
 export type ModelDriftMetric = typeof modelDriftMetrics.$inferSelect;
 export type InsertModelDriftMetric = z.infer<typeof insertModelDriftMetricSchema>;
+
+/**
+ * Push A1 — Prediction outcomes (label pipeline).
+ *
+ * Materialised "ground truth" rows used as the training-label substrate for
+ * weekly model retraining. Each row pairs a stored prediction with the
+ * observed outcome derived from one of:
+ *   - the work-order close-out wizard (`prediction_feedback` rows where
+ *     `actualFailureMode` / `actualFailureDate` are non-null), or
+ *   - the `failure_history` table (post-hoc backfill).
+ *
+ * `featureSnapshotId` is a hard FK-by-convention to `equipment_features.id`
+ * captured at prediction time so trainers can re-load the exact feature
+ * vector that produced the prediction (point-in-time correctness).
+ *
+ * Rows are append-only; the unique constraint on
+ * (predictionId, predictionType, outcomeSource) makes the writer idempotent
+ * against replay of the same closeout event.
+ */
+export const predictionOutcomes = pgTable(
+  "prediction_outcomes",
+  {
+    id: serial("id").primaryKey(),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    predictionId: integer("prediction_id").notNull(),
+    predictionType: varchar("prediction_type").notNull(),
+    equipmentId: varchar("equipment_id")
+      .notNull()
+      .references(() => equipment.id, { onDelete: "cascade" }),
+    modelId: varchar("model_id").references(() => mlModels.id, { onDelete: "set null" }),
+    modelVersion: varchar("model_version"),
+    featureSnapshotId: varchar("feature_snapshot_id"),
+    predictedFailureProbability: real("predicted_failure_probability").notNull(),
+    predictedRul: integer("predicted_rul"),
+    predictedFailureDate: timestamp("predicted_failure_date", { withTimezone: true }),
+    actualFailureMode: varchar("actual_failure_mode"),
+    actualFailureDate: timestamp("actual_failure_date", { withTimezone: true }),
+    actualOutcomeLabel: varchar("actual_outcome_label"),
+    rulErrorDays: integer("rul_error_days"),
+    absoluteError: real("absolute_error"),
+    outcomeSource: varchar("outcome_source").notNull(),
+    sourceRecordId: varchar("source_record_id"),
+    useForRetraining: boolean("use_for_retraining").default(true).notNull(),
+    observedAt: timestamp("observed_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    orgEquipIdx: index("idx_pred_outcomes_org_equip").on(table.orgId, table.equipmentId),
+    modelIdx: index("idx_pred_outcomes_model").on(table.modelId),
+    retrainIdx: index("idx_pred_outcomes_retrain").on(table.useForRetraining, table.observedAt),
+    uniqPredictionOutcome: unique("uq_pred_outcomes_pred_source").on(
+      table.predictionId,
+      table.predictionType,
+      table.outcomeSource
+    ),
+  })
+);
+
+export const insertPredictionOutcomeSchema = createInsertSchema(predictionOutcomes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type PredictionOutcome = typeof predictionOutcomes.$inferSelect;
+export type InsertPredictionOutcome = z.infer<typeof insertPredictionOutcomeSchema>;

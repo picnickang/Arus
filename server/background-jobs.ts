@@ -39,6 +39,7 @@ export const JOB_TYPES = {
   TELEMETRY_PROCESSING: "telemetry-processing",
   INVENTORY_OPTIMIZATION: "inventory-optimization",
   INSIGHTS_SNAPSHOT_GENERATION: "insights-snapshot-generation",
+  MODEL_RETRAIN: "model-retrain-weekly",
 } as const;
 
 export type JobType = (typeof JOB_TYPES)[keyof typeof JOB_TYPES];

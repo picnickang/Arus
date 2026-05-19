@@ -14,6 +14,7 @@ import {
 import { processCrewScheduling, processMaintenanceScheduling } from "./scheduling-processors";
 import { processInsightsSnapshotGeneration } from "./insights-processor";
 import { processTelemetryProcessing } from "./telemetry-processor";
+import { processModelRetrain } from "./ml-retraining-processor";
 
 export function registerJobProcessors(): void {
   jobQueue.registerProcessor(JOB_TYPES.AI_EQUIPMENT_ANALYSIS, processEquipmentAnalysis);
@@ -32,6 +33,8 @@ export function registerJobProcessors(): void {
     (JOB_TYPES as any).INSIGHTS_SNAPSHOT_GENERATION,
     processInsightsSnapshotGeneration
   );
+
+  jobQueue.registerProcessor((JOB_TYPES as any).MODEL_RETRAIN, processModelRetrain);
 
   logger.info("[Background Jobs] All processors registered successfully");
 }
