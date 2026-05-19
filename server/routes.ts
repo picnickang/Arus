@@ -92,6 +92,17 @@ export async function registerRoutes(
       .catch(() => {});
   });
 
+  // Push B2 — opt-in Redis-backed fan-out. Default is the in-process
+  // bus so single-instance dev deployments keep their pre-B2 behaviour.
+  // When `WS_REDIS_FANOUT=true` we install the Redis bus before the WS
+  // server boots so its first subscriptions land on the right substrate.
+  if (process.env.WS_REDIS_FANOUT === "true") {
+    const [{ setFanoutBus }, { RedisFanoutBus }] = await Promise.all([
+      import("./websocket-fanout"),
+      import("./websocket-fanout-redis"),
+    ]);
+    setFanoutBus(new RedisFanoutBus());
+  }
   const wsServer = new TelemetryWebSocketServer(httpServer);
   setWebSocketServer(wsServer);
   startPerformanceMonitoring();

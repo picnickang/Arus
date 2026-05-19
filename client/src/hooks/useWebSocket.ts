@@ -1,10 +1,27 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 
+/** Push B2 — eventIds are `<unix-ms>-<seq>` (Redis Streams format).
+ *  Lexicographic ordering matches numeric ordering for same-length
+ *  millisecond strings only, so parse before compare. */
+function compareEventIds(a: string, b: string): number {
+  const [aMs, aSeq] = a.split("-").map((n) => Number.parseInt(n, 10));
+  const [bMs, bSeq] = b.split("-").map((n) => Number.parseInt(n, 10));
+  if (aMs !== bMs) return aMs - bMs;
+  return aSeq - bSeq;
+}
+
 interface WebSocketMessage {
   type: string;
   data?: Record<string, unknown>;
   timestamp?: string;
   clientId?: string;
+  /** Push B2 — every fan-out event carries a monotonic eventId so the
+   *  client can resume from `lastEventId` on reconnect. Connection
+   *  frames (welcome / pong) omit it. */
+  eventId?: string;
+  /** Which logical channel the event belongs to. Used to advance the
+   *  per-channel replay cursor without parsing the message type. */
+  channel?: string;
 }
 
 interface TelemetryData {
@@ -93,6 +110,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectCountRef = useRef(0);
   const subscriptionsRef = useRef<Set<string>>(new Set());
+  /** Push B2 — per-channel replay cursor. The server appends an
+   *  `eventId` to every fan-out event; we send the highest one seen on
+   *  re-subscribe so the server replays anything we missed during a
+   *  brief disconnect (up to 5 minutes per ADR 002). */
+  const lastEventIdRef = useRef<Map<string, string>>(new Map());
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -111,15 +133,34 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
         reconnectCountRef.current = 0;
         setConnectionCount((prev) => prev + 1);
 
-        // Re-subscribe to channels after reconnection
+        // Re-subscribe to channels after reconnection. Push B2 — if we
+        // have seen events on this channel before, ask the server to
+        // replay anything published since the cursor. The server uses
+        // a 5-min window (Redis stream MINID trim).
         subscriptionsRef.current.forEach((channel) => {
-          ws.send(JSON.stringify({ type: "subscribe", channel }));
+          const lastEventId = lastEventIdRef.current.get(channel) ?? null;
+          ws.send(
+            JSON.stringify({
+              type: "subscribe",
+              channel,
+              ...(lastEventId ? { lastEventId } : {}),
+            }),
+          );
         });
       };
 
       ws.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
+          // Push B2 — advance the per-channel replay cursor. Idempotent
+          // by `eventId` so a message arriving both live and via replay
+          // doesn't poison the cursor.
+          if (message.eventId && message.channel) {
+            const prior = lastEventIdRef.current.get(message.channel);
+            if (!prior || compareEventIds(message.eventId, prior) > 0) {
+              lastEventIdRef.current.set(message.channel, message.eventId);
+            }
+          }
           setLastMessage(message);
 
           if (message.type === "telemetry" && message.data) {
