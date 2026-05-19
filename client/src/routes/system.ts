@@ -20,6 +20,7 @@ const PermissionsSettings = lazy(() => import("@/pages/permissions-settings"));
 const StorageSettings = lazy(() => import("@/pages/storage-settings"));
 const TransportSettings = lazy(() => import("@/pages/transport-settings"));
 const AdminTenants = lazy(() => import("@/pages/admin/tenants"));
+const Admin3DModels = lazy(() => import("@/pages/admin/3d-models"));
 
 export const systemRoutes = [
   { path: "/system", component: SystemHub },
@@ -42,4 +43,5 @@ export const systemRoutes = [
   { path: "/storage-settings", component: StorageSettings },
   { path: "/transport-settings", component: TransportSettings },
   { path: "/admin/tenants", component: AdminTenants },
+  { path: "/admin/3d-models", component: Admin3DModels },
 ];
