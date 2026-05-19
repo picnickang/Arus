@@ -52,6 +52,13 @@ export interface WalCdcOptions {
   /** Publication name (created if missing). */
   publicationName?: string;
   tables: WalCdcTableConfig[];
+  /**
+   * Optional enqueue override — defaults to the real
+   * `enqueueOutbox` from `./outbox-repository.js`. Tests inject a
+   * stub here so they can assert against the WAL→outbox handler
+   * without spinning up Postgres or mocking the module graph.
+   */
+  enqueue?: (input: EnqueueOutboxInput) => Promise<void>;
 }
 
 type PgChange = {
@@ -84,9 +91,12 @@ export class PgWalCdcBridge {
   private started = false;
   private stopping = false;
 
+  private readonly enqueue: (input: EnqueueOutboxInput) => Promise<void>;
+
   constructor(private readonly opts: WalCdcOptions) {
     this.slotName = opts.slotName ?? "event_spine_slot";
     this.publicationName = opts.publicationName ?? "event_spine_pub";
+    this.enqueue = opts.enqueue ?? enqueueOutbox;
     this.tableMap = new Map(opts.tables.map((t) => [t.table, t]));
   }
 
@@ -97,10 +107,16 @@ export class PgWalCdcBridge {
       // dynamic import keeps the dependency optional at boot time
       mod = (await import("pg-logical-replication")) as typeof import("pg-logical-replication");
     } catch (err) {
-      logger.warn("pg-logical-replication not available — WAL CDC disabled", {
-        error: err instanceof Error ? err.message : String(err),
-      });
-      return;
+      // HARD-FAIL: if the WAL adapter is asked to start but the
+      // dependency is missing, the caller (startEventSpine) needs to
+      // know so it can fall back to NOTIFY mode (or surface a hard
+      // error per env policy) instead of silently logging "WAL CDC
+      // active" while producing zero events.
+      throw new Error(
+        `pg-logical-replication is required for WAL CDC mode but is not installed: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
     }
     const { LogicalReplicationService, PgoutputPlugin } = mod;
 
@@ -255,7 +271,7 @@ export class PgWalCdcBridge {
         occurredAt: new Date(),
       };
       try {
-        await enqueueOutbox(input);
+        await this.enqueue(input);
       } catch (err) {
         logger.error("Failed to enqueue WAL CDC event into outbox", {
           error: err instanceof Error ? err.message : String(err),

@@ -128,6 +128,7 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
   }
 
   let cdc: PgNotifyCdcBridge | PgWalCdcBridge | null = null;
+  let cdcModeActive: "wal" | "notify" | "off" = "off";
   const cdcEnabled = process.env.EVENT_SPINE_CDC === "1";
   // Default to the WAL/logical-replication adapter (true rebuildable
   // CDC stream); fall back to trigger+NOTIFY only when explicitly asked
@@ -135,18 +136,33 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
   // REPLICATION privilege). Both adapters land into the same outbox so
   // downstream consumers are mode-agnostic.
   const cdcMode = (process.env.EVENT_SPINE_CDC_MODE ?? "wal").toLowerCase();
+  // Strict policy: with EVENT_SPINE_CDC_STRICT=1 a WAL-start failure is
+  // treated as a hard error rather than auto-falling-back to NOTIFY.
+  // Useful in environments where silent degradation would mask the
+  // missing rebuildable-stream guarantee.
+  const cdcStrict = process.env.EVENT_SPINE_CDC_STRICT === "1";
   if (cdcEnabled) {
+    const tableDefs = [
+      { table: "work_orders", eventTypePrefix: "cdc.work_order", aggregateType: "WorkOrder" },
+      {
+        table: "maintenance_schedules",
+        eventTypePrefix: "cdc.maintenance",
+        aggregateType: "MaintenanceSchedule",
+      },
+      { table: "inventory_items", eventTypePrefix: "cdc.inventory", aggregateType: "InventoryItem" },
+    ];
+    const startNotify = async (): Promise<PgNotifyCdcBridge> => {
+      const { pool } = await import("../../db.js");
+      const notifyTables: PgNotifyCdcTableConfig[] = tableDefs;
+      const bridge = new PgNotifyCdcBridge({
+        pool: pool as unknown as import("pg").Pool,
+        tables: notifyTables,
+      });
+      await bridge.start();
+      return bridge;
+    };
     void (async () => {
       try {
-        const tableDefs = [
-          { table: "work_orders", eventTypePrefix: "cdc.work_order", aggregateType: "WorkOrder" },
-          {
-            table: "maintenance_schedules",
-            eventTypePrefix: "cdc.maintenance",
-            aggregateType: "MaintenanceSchedule",
-          },
-          { table: "inventory_items", eventTypePrefix: "cdc.inventory", aggregateType: "InventoryItem" },
-        ];
         if (cdcMode === "wal" && process.env.DATABASE_URL) {
           const walTables: WalCdcTableConfig[] = tableDefs;
           const bridge = new PgWalCdcBridge({
@@ -155,20 +171,34 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
             slotName: process.env.EVENT_SPINE_CDC_SLOT,
             publicationName: process.env.EVENT_SPINE_CDC_PUBLICATION,
           });
-          await bridge.start();
-          cdc = bridge;
-          attachCdc(bridge);
-          logger.info("Event spine CDC = WAL (logical replication)");
+          try {
+            await bridge.start();
+            cdc = bridge;
+            cdcModeActive = "wal";
+            attachCdc(bridge);
+            logger.info("Event spine CDC = WAL (logical replication)");
+          } catch (walErr) {
+            if (cdcStrict) {
+              logger.error(
+                "WAL CDC failed to start and EVENT_SPINE_CDC_STRICT=1 — refusing to fall back",
+                { error: walErr instanceof Error ? walErr.message : String(walErr) }
+              );
+              throw walErr;
+            }
+            logger.warn("WAL CDC failed to start — falling back to NOTIFY", {
+              error: walErr instanceof Error ? walErr.message : String(walErr),
+            });
+            const nbridge = await startNotify();
+            cdc = nbridge;
+            cdcModeActive = "notify";
+            attachCdc(nbridge);
+            logger.info("Event spine CDC = NOTIFY (WAL fallback)");
+          }
         } else {
-          const { pool } = await import("../../db.js");
-          const notifyTables: PgNotifyCdcTableConfig[] = tableDefs;
-          const bridge = new PgNotifyCdcBridge({
-            pool: pool as unknown as import("pg").Pool,
-            tables: notifyTables,
-          });
-          await bridge.start();
-          cdc = bridge;
-          attachCdc(bridge);
+          const nbridge = await startNotify();
+          cdc = nbridge;
+          cdcModeActive = "notify";
+          attachCdc(nbridge);
           logger.info("Event spine CDC = NOTIFY (trigger fallback)");
         }
       } catch (err) {
@@ -197,7 +227,11 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
       worker: !!worker,
       analyticsSink: !!analyticsSink,
       bridge: bridgeEnabled,
-      cdc: process.env.EVENT_SPINE_CDC === "1" ? cdcMode : "off",
+      // cdcModeActive reflects what actually came up (set by the async
+      // CDC starter above); the env-requested mode may differ if WAL
+      // failed and we fell back.
+      cdcRequested: cdcEnabled ? cdcMode : "off",
+      cdcActive: () => cdcModeActive,
       producer: producer.constructor.name,
     });
   }
