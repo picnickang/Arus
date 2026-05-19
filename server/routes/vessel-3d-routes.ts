@@ -1,7 +1,7 @@
 /**
  * Push A3 — 3D Digital Twin Viewer routes.
  *
- * - POST  /api/v1/vessels/:vesselId/3d-model    — upload glTF/glb (admin)
+ * - POST  /api/v1/vessels/:vesselId/3d-model    — upload .glb (admin)
  * - GET   /api/v1/vessels/:vesselId/3d-model    — metadata (latest)
  * - GET   /api/v1/vessels/3d-model/:modelId/binary — auth-checked file stream
  * - PATCH /api/v1/vessels/3d-model/:modelId/pins   — replace equipment pins
@@ -28,12 +28,15 @@ import { requireRole } from "../middleware/role-auth";
 const logger = createLogger("Routes:Vessel3D");
 
 const MAX_BYTES = 100 * 1024 * 1024; // 100 MB
-const ALLOWED_EXT = new Set([".gltf", ".glb"]);
+// Self-contained binary glTF only. We deliberately reject `.gltf` because that
+// format usually references external `.bin`/texture files via relative URIs,
+// and the binary-serving route only resolves the single stored model file —
+// loaders would fault on the sidecars. `.glb` bundles all buffers + textures
+// in one file, so it always renders correctly through the auth-checked route.
+const ALLOWED_EXT = new Set([".glb"]);
 const ALLOWED_MIME = new Set([
-  "model/gltf+json",
   "model/gltf-binary",
   "application/octet-stream", // common for .glb
-  "application/json", // common for .gltf
 ]);
 
 const STORAGE_BASE = (() => {
@@ -80,7 +83,7 @@ const upload = multer({
   fileFilter: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     if (!ALLOWED_EXT.has(ext)) {
-      return cb(new Error("Only .gltf or .glb files are allowed"));
+      return cb(new Error("Only self-contained .glb files are allowed"));
     }
     if (file.mimetype && !ALLOWED_MIME.has(file.mimetype)) {
       // mimetype is advisory — accept if extension matches.

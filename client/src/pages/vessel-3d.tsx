@@ -163,7 +163,7 @@ export default function Vessel3DPage() {
             </div>
           ) : modelQuery.isError || !modelQuery.data ? (
             <div className="text-sm text-muted-foreground" data-testid="text-no-3d-model">
-              No 3D model attached to this vessel. An admin can upload a glTF/glb (≤100 MB)
+              No 3D model attached to this vessel. An admin can upload a self-contained .glb (≤100 MB)
               via <code className="px-1 bg-muted rounded">POST /api/v1/vessels/{vesselId}/3d-model</code>.
             </div>
           ) : (
