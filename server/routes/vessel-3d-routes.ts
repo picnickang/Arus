@@ -271,7 +271,12 @@ router.get(
     try {
       const orgId = (req as any).orgId || DEFAULT_ORG_ID;
       const { equipmentId } = req.params;
-      const maxHops = Math.max(1, Math.min(5, Number(req.query.maxHops ?? 3)));
+      const hopsParsed = z.coerce.number().int().min(1).max(5).default(3)
+        .safeParse(req.query.maxHops ?? 3);
+      if (!hopsParsed.success) {
+        return res.status(400).json({ error: "maxHops must be an integer between 1 and 5" });
+      }
+      const maxHops = hopsParsed.data;
       const downstream = await failurePropagation(orgId, equipmentId, maxHops);
       res.json({ equipmentId, downstream });
     } catch (error: any) {
