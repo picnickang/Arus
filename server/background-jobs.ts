@@ -167,6 +167,17 @@ class BackgroundJobQueue {
       logger.info(
         `Background job queue started (schema=${BACKGROUND_JOBS_SCHEMA}, processors=${this.pendingHandlers.size})`,
       );
+
+      // Push A1 — register the weekly model-retrain cron once boss is
+      // up. Sundays 03:00 UTC. pg-boss persists the schedule so a
+      // restart does not double-enqueue.
+      try {
+        await boss.schedule(JOB_TYPES.MODEL_RETRAIN, "0 3 * * 0", {}, { retryLimit: 1 });
+        logger.info(`Scheduled weekly cron: ${JOB_TYPES.MODEL_RETRAIN} @ 0 3 * * 0 UTC`);
+      } catch (schedErr) {
+        const msg = schedErr instanceof Error ? schedErr.message : String(schedErr);
+        logger.warn(`Failed to register weekly retrain schedule: ${msg}`);
+      }
     } catch (err: unknown) {
       this.fallback = true;
       this.boss = null;

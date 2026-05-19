@@ -1,20 +1,34 @@
 #!/usr/bin/env node
 /**
- * Push A1 — Concrete (baseline) retraining harness.
+ * Push A1 — Calibration-baseline retraining harness.
  *
- * Reads labelled outcomes for (org, equipmentType), computes a
- * calibrated per-feature-type baseline classifier, scores it on a
- * held-out tail, and registers a candidate ml_models row. Production
- * MAE is computed against the currently-deployed model for the same
- * equipmentType. Emits machine-readable JSON metrics on stdout that
- * the retrain processor parses for promotion gates.
+ * This is NOT a deep-learning trainer. It does not export an ONNX
+ * artifact and it does not train an XGBoost/RF model. It is a working
+ * end-to-end exercise of the retraining contract so the orchestration
+ * (label-pull → metrics → promotion gate → mlModels registration) is
+ * provably real, and a concrete trainer can be dropped in without
+ * touching the processor.
  *
- * This is intentionally a JS-side baseline, not XGBoost. The point is
- * to exercise the full path (data → metrics → registered candidate →
- * promotion decision) so concrete XGBoost / ONNX trainers can drop in
- * during A2/A3 without changing the orchestration. PSI is computed
- * over the predicted-probability distributions of the candidate vs
- * the production model on the same evaluation slice.
+ * Specifically it:
+ *   1. Pulls labelled outcomes from prediction_outcomes joined to the
+ *      equipment table for (org, equipmentType) over the last 7 days.
+ *   2. Splits 80/20 by observation order (most-recent rows = eval).
+ *   3. Grid-searches a single-parameter calibration (scale, bias) on
+ *      the train tail that minimises MAE against actual_outcome_label.
+ *   4. Computes candidate MAE, production MAE (raw predictions), and
+ *      PSI between the two probability distributions on the eval tail.
+ *   5. Registers an ml_models row of type "calibration_baseline" with
+ *      the fitted params in hyperparameters and metrics in
+ *      training_metrics. NO ONNX artifact is written.
+ *   6. Emits a single {stage:"metrics", modelId, mae, productionMae,
+ *      psi} JSON line on stdout, then {stage:"complete"}. NO artifactPath
+ *      is emitted because no artifact exists.
+ *
+ * The retrain processor reads the JSON, applies the MAE-improvement +
+ * PSI gates, and uses the registered modelId for promotion. Real
+ * model trainers (bearing/pump XGBoost + ONNX export) will replace
+ * this harness once labelled fleet data is available; the processor
+ * contract is stable across that swap.
  *
  * Usage:
  *   node scripts/ml/train-model-skeleton.mjs --org=<id> --type=<type>
@@ -23,7 +37,7 @@
  *   0  metrics emitted (caller decides promotion)
  *   1  fatal error
  *   2  invalid args
- *   3  insufficient labelled data — emits {stage: "skipped"} on stdout
+ *   3  insufficient labelled data — emits {stage:"skipped"} on stdout
  */
 
 import { argv, exit, env } from "node:process";
@@ -47,10 +61,6 @@ function emit(obj) {
   console.log(JSON.stringify(obj));
 }
 
-function probToLabel(p) {
-  return p >= 0.5 ? 1 : 0;
-}
-
 function mae(predictions, labels) {
   if (predictions.length === 0) return 0;
   let s = 0;
@@ -60,7 +70,6 @@ function mae(predictions, labels) {
   return s / predictions.length;
 }
 
-/** Population Stability Index between two probability distributions. */
 function psi(a, b) {
   if (a.length === 0 || b.length === 0) return 0;
   const buckets = PSI_BUCKETS;
@@ -77,13 +86,6 @@ function psi(a, b) {
   return Math.abs(total);
 }
 
-/**
- * Fit a tiny logistic-regression-style calibration: learn a single
- * scale + bias on the predicted_failure_probability so the model
- * minimises MAE against the actual_outcome_label on the training tail.
- * This is a defensible improvement when feedback shows systematic
- * over- or under-confidence in the current production model.
- */
 function fitCalibration(rows) {
   if (rows.length < 5) return { scale: 1, bias: 0 };
   let bestMae = Infinity;
@@ -151,7 +153,6 @@ async function main() {
       actual: r.label === "confirmed" || r.label === "true_positive" ? 1 : 0,
     }));
 
-    // 80/20 split (chronological — most recent rows used as eval).
     const splitIdx = Math.floor(rows.length * 0.8);
     const train = rows.slice(0, splitIdx);
     const evalSet = rows.slice(splitIdx);
@@ -167,12 +168,12 @@ async function main() {
     const productionMae = mae(productionPreds, labels);
     const driftPsi = psi(productionPreds, candidatePreds);
 
-    // Register the candidate in ml_models.
     const modelId = randomUUID();
     const hyperparameters = JSON.stringify({
       kind: "calibration_baseline",
       scale: cal.scale,
       bias: cal.bias,
+      note: "no ONNX export — see scripts/ml/train-model-skeleton.mjs",
     });
     const trainingMetrics = JSON.stringify({
       mae: candidateMae,
