@@ -42,6 +42,26 @@ function healthToColor(h: number | undefined, highlighted: boolean): string {
   return "#ef4444"; // red
 }
 
+function disposeMaterial(mat: THREE.Material): void {
+  // Dispose any texture maps attached to the material before the material
+  // itself — leaking textures is the most common Three.js GPU-memory bug.
+  const anyMat = mat as unknown as Record<string, THREE.Texture | undefined>;
+  for (const key of [
+    "map",
+    "normalMap",
+    "roughnessMap",
+    "metalnessMap",
+    "emissiveMap",
+    "aoMap",
+    "alphaMap",
+    "bumpMap",
+    "displacementMap",
+  ]) {
+    anyMat[key]?.dispose?.();
+  }
+  mat.dispose();
+}
+
 function makePinSprite(color: string): THREE.Sprite {
   const canvas = document.createElement("canvas");
   canvas.width = 64;
@@ -133,10 +153,12 @@ export default function Vessel3DTwin({
 
     const loader = new GLTFLoader();
     let disposed = false;
+    let loadedRoot: THREE.Object3D | null = null;
     loader.load(
       modelUrl,
       (gltf) => {
         if (disposed) return;
+        loadedRoot = gltf.scene;
         scene.add(gltf.scene);
         // Frame the model.
         const box = new THREE.Box3().setFromObject(gltf.scene);
@@ -179,6 +201,28 @@ export default function Vessel3DTwin({
       window.removeEventListener("resize", handleResize);
       renderer.domElement.removeEventListener("click", handleClick);
       controls.dispose();
+      // Deep-dispose loaded GLTF geometry + materials + textures so frequent
+      // mount/unmount cycles don't accumulate GPU memory.
+      if (loadedRoot) {
+        loadedRoot.traverse((obj) => {
+          const mesh = obj as THREE.Mesh;
+          if (mesh.geometry) mesh.geometry.dispose();
+          const mat = mesh.material;
+          if (Array.isArray(mat)) {
+            mat.forEach((m) => disposeMaterial(m));
+          } else if (mat) {
+            disposeMaterial(mat);
+          }
+        });
+        scene.remove(loadedRoot);
+      }
+      // Dispose remaining pin sprites still attached to the group.
+      for (const child of [...pinGroup.children]) {
+        pinGroup.remove(child);
+        const sprite = child as THREE.Sprite;
+        sprite.material.map?.dispose();
+        sprite.material.dispose();
+      }
       renderer.dispose();
       if (renderer.domElement.parentNode === mount) {
         mount.removeChild(renderer.domElement);
@@ -191,10 +235,12 @@ export default function Vessel3DTwin({
   useEffect(() => {
     const group = pinGroupRef.current;
     if (!group) return;
-    // Clear existing.
-    while (group.children.length) {
-      const c = group.children.pop()!;
-      const sprite = c as THREE.Sprite;
+    // Clear existing. Use group.remove() (not pop()) so Three.js detaches
+    // the parent reference cleanly, then dispose texture + material to free
+    // GPU memory.
+    for (const child of [...group.children]) {
+      group.remove(child);
+      const sprite = child as THREE.Sprite;
       sprite.material.map?.dispose();
       sprite.material.dispose();
     }
