@@ -98,11 +98,26 @@ export async function ensureTenantGraph(orgId: string): Promise<boolean> {
   if (!graphAvailable) return false;
   const name = tenantGraphName(orgId);
   if (ensuredTenantGraphs.has(name)) return true;
+  // LOAD / SET search_path are session-scoped — must run on the SAME
+  // physical connection as the create_graph call. Without this, a
+  // different pool connection could execute `create_graph` without
+  // having `ag_catalog` loaded into its session and fail with
+  // "function does not exist".
+  const pg = requirePool() as unknown as {
+    connect: () => Promise<{
+      query: (q: string, params?: unknown[]) => Promise<{ rows: unknown[] }>;
+      release: () => void;
+    }>;
+  };
+  let client: {
+    query: (q: string, params?: unknown[]) => Promise<{ rows: unknown[] }>;
+    release: () => void;
+  } | null = null;
   try {
-    const pg = requirePool();
-    await pg.query(`LOAD '${AGE_LIBRARY}'`);
-    await pg.query(`SET search_path = ${AGE_SCHEMA}, "$user", public`);
-    await pg.query(
+    client = await pg.connect();
+    await client.query(`LOAD '${AGE_LIBRARY}'`);
+    await client.query(`SET search_path = ${AGE_SCHEMA}, "$user", public`);
+    await client.query(
       `SELECT create_graph($1) WHERE NOT EXISTS (
          SELECT 1 FROM ag_catalog.ag_graph WHERE name = $1
        )`,
@@ -115,6 +130,8 @@ export async function ensureTenantGraph(orgId: string): Promise<boolean> {
       details: err instanceof Error ? err.message : String(err),
     });
     return false;
+  } finally {
+    client?.release();
   }
 }
 

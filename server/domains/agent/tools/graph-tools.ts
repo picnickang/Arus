@@ -128,7 +128,13 @@ registerTool({
       .where(
         and(
           eq(inventoryMovements.orgId, ctx.orgId),
-          inArray(inventoryMovements.workOrderId, woIds)
+          inArray(inventoryMovements.workOrderId, woIds),
+          // Align with graph semantics: REQUIRES_PART counts only
+          // forward-consumption movements. `release` cancels a
+          // reservation, `return` undoes a use — including them
+          // here would flip-count and disagree with the graph path
+          // (reviewer comment on the fourth pass).
+          inArray(inventoryMovements.movementType, ["reserve", "consume"])
         )
       )
       .groupBy(inventoryMovements.partId, parts.name)

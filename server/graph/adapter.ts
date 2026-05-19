@@ -72,15 +72,25 @@ async function execCypher(
   // `returnColumns` is a static template fragment provided by the caller —
   // never derived from user input — declaring the AGE (col agtype) tuple.
   const sql = `SELECT * FROM cypher('${graph}', $$ ${cypher} $$) AS (${returnColumns})`;
-  try {
-    const pg = pool as unknown as {
+  // CRITICAL: `LOAD 'age'` and `SET search_path` are SESSION-scoped.
+  // `pool.query` can return a different physical connection on each
+  // call, so we MUST check out a single client and run the prelude +
+  // cypher on it (the reviewer caught this as a non-deterministic
+  // production failure on the fourth pass). Always released in
+  // `finally`.
+  const pg = pool as unknown as {
+    connect: () => Promise<{
       query: (q: string) => Promise<{ rows: Array<Record<string, unknown>> }>;
-    };
-    // `age` is the LIBRARY name; `ag_catalog` is the schema. Loading
-    // the schema name was a bug caught in code review.
-    await pg.query(`LOAD 'age'`);
-    await pg.query(`SET search_path = ag_catalog, "$user", public`);
-    const result = await pg.query(sql);
+      release: () => void;
+    }>;
+  };
+  let client: Awaited<ReturnType<typeof pg.connect>> | null = null;
+  try {
+    client = await pg.connect();
+    // `age` is the LIBRARY name; `ag_catalog` is the schema.
+    await client.query(`LOAD 'age'`);
+    await client.query(`SET search_path = ag_catalog, "$user", public`);
+    const result = await client.query(sql);
     return { ok: true, rows: result.rows };
   } catch (err) {
     logger.warn("[Graph] Cypher exec failed", {
@@ -88,6 +98,8 @@ async function execCypher(
       details: err instanceof Error ? err.message : String(err),
     });
     return { ok: false, rows: [] };
+  } finally {
+    client?.release();
   }
 }
 
