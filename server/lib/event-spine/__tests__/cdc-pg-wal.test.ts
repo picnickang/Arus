@@ -1,6 +1,104 @@
 import { jest } from "@jest/globals";
 import { readFileSync } from "node:fs";
 
+describe("WorkOrder publisher: post-commit emit semantics", () => {
+  // Guards against the prior regression where domainEventBus.emit ran
+  // inside the tx, exposing uncommitted events to in-process subscribers.
+  beforeEach(() => {
+    jest.resetModules();
+    jest.doMock("../../../db", () => ({ db: {}, pool: {} }));
+    jest.doMock("../outbox-repository", () => ({
+      __esModule: true,
+      enqueueOutboxFromEnvelope: jest.fn(async () => undefined),
+      enqueueOutbox: jest.fn(async () => undefined),
+    }));
+    const onceBus = new (require("node:events").EventEmitter)();
+    jest.doMock("../../domain-event-bus/index", () => ({
+      __esModule: true,
+      domainEventBus: onceBus,
+      createDomainEvent: (name: string, orgId: string, payload: unknown, meta: unknown) => ({
+        name,
+        orgId,
+        payload,
+        ...((meta as object) ?? {}),
+      }),
+    }));
+  });
+
+  async function loadAdapter() {
+    return (await import(
+      "../../../domains/work-orders/infrastructure/event-publisher-adapter"
+    )) as typeof import("../../../domains/work-orders/infrastructure/event-publisher-adapter");
+  }
+
+  test("publish(event, tx) defers in-process emit — caller must invoke thunk after commit", async () => {
+    const { workOrderEventPublisher } = await loadAdapter();
+    const bus = (await import("../../domain-event-bus/index")).domainEventBus as unknown as {
+      emit: jest.Mock;
+      on: (n: string, cb: (e: unknown) => void) => void;
+    };
+    bus.emit = jest.fn() as never;
+
+    const fakeTx = {} as unknown as object;
+    const post = await workOrderEventPublisher.publish(
+      {
+        type: "WORK_ORDER_CREATED",
+        workOrderId: "wo-1",
+        orgId: "org-1",
+        timestamp: new Date(),
+      } as never,
+      fakeTx
+    );
+    // Critical: emit MUST NOT have fired during publish (would leak
+    // uncommitted events to in-process subscribers).
+    expect(bus.emit).not.toHaveBeenCalled();
+    expect(typeof post).toBe("function");
+
+    // Now simulate post-commit invocation.
+    (post as () => void)();
+    expect(bus.emit).toHaveBeenCalledTimes(1);
+  });
+
+  test("publish(event) without tx emits inline (legacy fast path)", async () => {
+    const { workOrderEventPublisher } = await loadAdapter();
+    const bus = (await import("../../domain-event-bus/index")).domainEventBus as unknown as {
+      emit: jest.Mock;
+    };
+    bus.emit = jest.fn() as never;
+
+    const post = await workOrderEventPublisher.publish({
+      type: "WORK_ORDER_CREATED",
+      workOrderId: "wo-2",
+      orgId: "org-2",
+      timestamp: new Date(),
+    } as never);
+    expect(bus.emit).toHaveBeenCalledTimes(1);
+    expect(post).toBeNull();
+  });
+
+  test("rollback (thunk never invoked) → no in-process emit", async () => {
+    const { workOrderEventPublisher } = await loadAdapter();
+    const bus = (await import("../../domain-event-bus/index")).domainEventBus as unknown as {
+      emit: jest.Mock;
+    };
+    bus.emit = jest.fn() as never;
+    const fakeTx = {} as unknown as object;
+    const post = await workOrderEventPublisher.publish(
+      {
+        type: "WORK_ORDER_CREATED",
+        workOrderId: "wo-3",
+        orgId: "org-3",
+        timestamp: new Date(),
+      } as never,
+      fakeTx
+    );
+    expect(typeof post).toBe("function");
+    // Simulate the application service deciding NOT to call the thunk
+    // because db.transaction rolled back.
+    expect(bus.emit).not.toHaveBeenCalled();
+  });
+});
+
 describe("PgWalCdcBridge.handle (committed change → outbox event)", () => {
   beforeEach(() => {
     jest.resetModules();

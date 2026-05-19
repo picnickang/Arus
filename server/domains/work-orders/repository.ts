@@ -41,9 +41,16 @@ export class WorkOrderRepository {
 
   async create(
     workOrder: InsertWorkOrder & { woNumber?: string },
-    tx?: unknown
+    tx?: import("../../lib/event-spine/outbox-repository").TxOrDb
   ): Promise<WorkOrder> {
-    return workOrderService.createWorkOrder(workOrder, tx as never);
+    // `tx` is intentionally typed as `TxOrDb` (the same handle the
+    // outbox repository accepts) so the publisher and the repository
+    // operate on a shared transaction; the underlying drizzle
+    // PgTransaction satisfies both call sites without any cast.
+    return workOrderService.createWorkOrder(
+      workOrder,
+      tx as Parameters<typeof workOrderService.createWorkOrder>[1]
+    );
   }
 
   async update(id: string, data: Partial<InsertWorkOrder>): Promise<WorkOrder> {

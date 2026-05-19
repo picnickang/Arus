@@ -44,12 +44,15 @@ export class WorkOrderApplicationService {
 
   async createWorkOrder(data: InsertWorkOrder, userId?: string): Promise<SelectWorkOrder> {
     // True transactional outbox: the WO insert and the outbox enqueue
-    // commit or roll back together. If either step fails the whole
-    // transaction aborts and no event is ever published — which is the
-    // commit→emit loss-window the architecture-doc constraint forbids.
+    // commit or roll back together. The in-process bus emit is
+    // deferred — `publisher.publish(event, tx)` returns a thunk that
+    // we ONLY invoke after `db.transaction(...)` resolves. If the tx
+    // rolls back the thunk is never called, so existing in-process
+    // subscribers never observe an uncommitted event.
+    let postCommit: (() => void) | null = null;
     const workOrder = await db.transaction(async (tx) => {
       const created = await workOrderRepository.create(data, tx);
-      await this.deps.eventPublisher.publish(
+      postCommit = await this.deps.eventPublisher.publish(
         {
           type: "WORK_ORDER_CREATED",
           workOrderId: created.id,
@@ -63,6 +66,7 @@ export class WorkOrderApplicationService {
       );
       return created;
     });
+    if (postCommit) (postCommit as () => void)();
 
     return workOrder;
   }

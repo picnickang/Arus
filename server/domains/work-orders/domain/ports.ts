@@ -50,15 +50,29 @@ export interface IWorkOrderCostRepository {
   getFleetCosts(orgId: string, startDate?: Date, endDate?: Date): Promise<WorkOrderCostSummary[]>;
 }
 
+/**
+ * Optional post-commit hook returned by `publish(event, tx)` when a tx
+ * is supplied. The caller MUST invoke it after the surrounding
+ * transaction has actually committed so in-process subscribers do not
+ * observe events from a tx that may still roll back.
+ */
+export type PostCommitEmit = () => void;
+
 export interface IWorkOrderEventPublisher {
   /**
-   * Publish a single work-order domain event. When `tx` is provided the
-   * outbox enqueue runs inside the caller's transaction so the outbox
-   * row commits or rolls back atomically with the business write
-   * (true transactional outbox). Without `tx` the publish is still
-   * durable via the outbox but is committed on its own connection —
-   * callers that need atomic semantics MUST pass `tx`.
+   * Publish a single work-order domain event using the transactional-
+   * outbox pattern.
+   *
+   * - With `tx`: enqueues the envelope into `event_outbox` inside the
+   *   caller's transaction (atomic with the business write) and
+   *   returns a `PostCommitEmit` thunk. The in-process bus emit is
+   *   deferred — the caller MUST invoke the thunk *after* the
+   *   surrounding `db.transaction(...)` returns successfully. If the
+   *   transaction rolls back, the thunk must NOT be called.
+   * - Without `tx`: enqueues on the default connection and emits to
+   *   the in-process bus immediately (legacy fast path); returns null
+   *   because there is nothing to defer.
    */
-  publish(event: WorkOrderDomainEvent, tx?: unknown): Promise<void>;
-  publishBatch(events: WorkOrderDomainEvent[], tx?: unknown): Promise<void>;
+  publish(event: WorkOrderDomainEvent, tx?: unknown): Promise<PostCommitEmit | null>;
+  publishBatch(events: WorkOrderDomainEvent[], tx?: unknown): Promise<PostCommitEmit | null>;
 }

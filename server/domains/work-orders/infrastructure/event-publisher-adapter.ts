@@ -1,4 +1,4 @@
-import type { IWorkOrderEventPublisher } from "../domain/ports";
+import type { IWorkOrderEventPublisher, PostCommitEmit } from "../domain/ports";
 import type { WorkOrderDomainEvent } from "../domain/events";
 import {
   domainEventBus,
@@ -6,7 +6,10 @@ import {
   type DomainEventName,
   type DomainEventMap,
 } from "../../../lib/domain-event-bus/index.js";
-import { enqueueOutboxFromEnvelope } from "../../../lib/event-spine/outbox-repository.js";
+import {
+  enqueueOutboxFromEnvelope,
+  type TxOrDb,
+} from "../../../lib/event-spine/outbox-repository.js";
 import { createLogger } from "../../../lib/structured-logger";
 
 const logger = createLogger("WorkOrderEventPublisher");
@@ -125,27 +128,40 @@ function envelopeFor(event: WorkOrderDomainEvent): {
   }
 }
 
+function emitInProcess(built: { name: DomainEventName; envelope: DomainEventMap[DomainEventName] }) {
+  try {
+    domainEventBus.emit(built.name, built.envelope as DomainEventMap[DomainEventName]);
+    logger.info("Published work order domain event", { eventType: built.name });
+  } catch (error) {
+    logger.warn("In-process bus emit failed (outbox row already persisted)", {
+      eventType: built.name,
+      error,
+    });
+  }
+}
+
 export const workOrderEventPublisher: IWorkOrderEventPublisher = {
   /**
-   * Transactional-outbox emit:
-   *   1) write envelope into `event_outbox` inside the caller's `tx`
-   *      (idempotent on eventId) — same transaction as the business
-   *      write, so the row commits or rolls back atomically.
-   *   2) AFTER the surrounding tx commits, emit on the in-process bus
-   *      for legacy subscribers. The in-process emit is best-effort
-   *      and never blocks the publish path.
-   * When called without a tx the outbox enqueue is still durable but
-   * commits on the default connection (transitional path — services
-   * that need atomic semantics must pass `tx`).
+   * Transactional-outbox publish:
+   *   1) write the envelope into `event_outbox` inside the caller's
+   *      `tx` (idempotent on eventId) so the outbox row commits or
+   *      rolls back atomically with the business write.
+   *   2) DEFER the in-process bus emit — return a thunk the caller
+   *      MUST invoke after `db.transaction(...)` returns. If the
+   *      transaction rolls back the thunk is never invoked, so
+   *      in-process subscribers never observe an uncommitted event.
+   * When called without a tx, the publisher falls back to the legacy
+   * fast path: enqueue on the default connection and emit inline
+   * (returns null because there is nothing to defer).
    */
-  async publish(event: WorkOrderDomainEvent, tx?: unknown): Promise<void> {
+  async publish(
+    event: WorkOrderDomainEvent,
+    tx?: unknown
+  ): Promise<PostCommitEmit | null> {
     const built = envelopeFor(event);
-    if (!built) return;
+    if (!built) return null;
     try {
-      await enqueueOutboxFromEnvelope(
-        built.envelope,
-        tx as Parameters<typeof enqueueOutboxFromEnvelope>[1]
-      );
+      await enqueueOutboxFromEnvelope(built.envelope, tx as TxOrDb | undefined);
     } catch (error) {
       logger.error("Failed to enqueue work-order event to outbox", {
         eventType: event.type,
@@ -153,20 +169,27 @@ export const workOrderEventPublisher: IWorkOrderEventPublisher = {
       });
       throw error;
     }
-    try {
-      domainEventBus.emit(built.name, built.envelope as never);
-      logger.info("Published work order domain event", { eventType: event.type });
-    } catch (error) {
-      logger.warn("In-process bus emit failed (outbox row already persisted)", {
-        eventType: event.type,
-        error,
-      });
+    if (tx === undefined) {
+      // legacy path — no surrounding transaction, emit immediately.
+      emitInProcess(built);
+      return null;
     }
+    // transactional path — emit only after caller confirms commit.
+    return () => emitInProcess(built);
   },
 
-  async publishBatch(events: WorkOrderDomainEvent[], tx?: unknown): Promise<void> {
+  async publishBatch(
+    events: WorkOrderDomainEvent[],
+    tx?: unknown
+  ): Promise<PostCommitEmit | null> {
+    const deferred: PostCommitEmit[] = [];
     for (const event of events) {
-      await this.publish(event, tx);
+      const post = await this.publish(event, tx);
+      if (post) deferred.push(post);
     }
+    if (deferred.length === 0) return null;
+    return () => {
+      for (const fn of deferred) fn();
+    };
   },
 };
