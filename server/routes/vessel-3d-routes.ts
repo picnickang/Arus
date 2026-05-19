@@ -46,7 +46,10 @@ const STORAGE_BASE = (() => {
     return preferred;
   } catch {
     const fallback = "/tmp/vessel-3d";
-    fs.mkdirSync(fallback, { recursive: true });
+    // Match the primary path's 0o700 perms so fallback can't widen access
+    // when multiple users share /tmp.
+    fs.mkdirSync(fallback, { recursive: true, mode: 0o700 });
+    try { fs.chmodSync(fallback, 0o700); } catch { /* noop */ }
     logger.warn("Falling back to /tmp/vessel-3d for model storage");
     return fallback;
   }

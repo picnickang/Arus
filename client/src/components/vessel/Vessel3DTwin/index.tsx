@@ -105,6 +105,10 @@ export default function Vessel3DTwin({
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
+    // Reset to loading so a stale "ready" from the previous model is not
+    // shown while the new GLTF is fetched.
+    setStatus("loading");
+    setError(null);
 
     const width = mount.clientWidth || 800;
     const height = mount.clientHeight || 500;
