@@ -1,23 +1,29 @@
 import { createLogger } from "../structured-logger.js";
 import { initEventSpineOutboxBridge } from "./bridge.js";
+import { KafkaEventSpineProducer } from "./kafka-producer.js";
 import { InMemoryFanoutProducer, NoopProducer } from "./producers.js";
 import { TelemetryAnalyticsSink } from "./telemetry-analytics-sink.js";
 import type { EventSpineProducer, EventSpineFanout } from "./types.js";
 import { EventSpineWorker } from "./worker.js";
+import { PgNotifyCdcBridge, type PgNotifyCdcTableConfig } from "./cdc-pg-notify.js";
 
 const logger = createLogger("EventSpine");
 
-export { enqueueOutbox } from "./outbox-repository.js";
+export { enqueueOutbox, enqueueOutboxFromEnvelope } from "./outbox-repository.js";
 export type { EventSpineMessage, EventSpineProducer, EventSpineFanout } from "./types.js";
 export { NoopProducer, InMemoryFanoutProducer } from "./producers.js";
+export { KafkaEventSpineProducer } from "./kafka-producer.js";
 export { TelemetryAnalyticsSink } from "./telemetry-analytics-sink.js";
 export { EventSpineWorker } from "./worker.js";
 export { initEventSpineOutboxBridge } from "./bridge.js";
+export { PgNotifyCdcBridge } from "./cdc-pg-notify.js";
+export type { PgNotifyCdcTableConfig } from "./cdc-pg-notify.js";
 
 export interface EventSpineHandle {
   producer: EventSpineProducer;
   worker: EventSpineWorker | null;
   analyticsSink: TelemetryAnalyticsSink | null;
+  cdc: PgNotifyCdcBridge | null;
   stop(): Promise<void>;
 }
 
@@ -32,7 +38,11 @@ export interface StartEventSpineOptions {
   bridgeEnabled?: boolean;
 }
 
-let handle: EventSpineHandle | null = null;
+let handle: EventSpineHandle | null = null as EventSpineHandle | null;
+
+function attachCdc(bridge: PgNotifyCdcBridge): void {
+  if (handle) handle.cdc = bridge;
+}
 
 /**
  * Boot wiring for the event-streaming spine. Safe to call multiple times
@@ -55,7 +65,32 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
   if (handle) return handle;
 
   const provided = opts.producer;
-  const producer: EventSpineProducer | EventSpineFanout = provided ?? new InMemoryFanoutProducer();
+  const brokers = process.env.EVENT_SPINE_BROKERS;
+  let producer: EventSpineProducer | EventSpineFanout;
+  if (provided) {
+    producer = provided;
+  } else if (brokers) {
+    producer = new KafkaEventSpineProducer({
+      brokers,
+      topicPrefix: process.env.EVENT_SPINE_TOPIC_PREFIX ?? "arus.",
+      clientId: process.env.EVENT_SPINE_CLIENT_ID,
+      sasl:
+        process.env.EVENT_SPINE_SASL_USERNAME && process.env.EVENT_SPINE_SASL_PASSWORD
+          ? {
+              mechanism:
+                (process.env.EVENT_SPINE_SASL_MECHANISM as
+                  | "plain"
+                  | "scram-sha-256"
+                  | "scram-sha-512") ?? "plain",
+              username: process.env.EVENT_SPINE_SASL_USERNAME,
+              password: process.env.EVENT_SPINE_SASL_PASSWORD,
+            }
+          : undefined,
+    });
+    logger.info("Event spine producer = Kafka", { brokers });
+  } else {
+    producer = new InMemoryFanoutProducer();
+  }
   const fanout = "onMessage" in producer ? (producer as EventSpineFanout) : null;
 
   const workerEnabled = opts.workerEnabled ?? process.env.EVENT_SPINE_WORKER !== "0";
@@ -83,11 +118,44 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
     logger.info("Event spine worker disabled (outbox-only mode)");
   }
 
+  let cdc: PgNotifyCdcBridge | null = null;
+  const cdcEnabled = process.env.EVENT_SPINE_CDC === "1";
+  if (cdcEnabled) {
+    // CDC is opt-in: only starts when explicitly enabled because it
+    // installs PG triggers on the listed tables and holds a dedicated
+    // LISTEN connection. Table set kept narrow on purpose — capturing
+    // every table without curation would flood the outbox.
+    void (async () => {
+      try {
+        const { pool } = await import("../../db.js");
+        const tables: PgNotifyCdcTableConfig[] = [
+          { table: "work_orders", eventTypePrefix: "cdc.work_order", aggregateType: "WorkOrder" },
+          {
+            table: "maintenance_schedules",
+            eventTypePrefix: "cdc.maintenance",
+            aggregateType: "MaintenanceSchedule",
+          },
+          { table: "inventory_items", eventTypePrefix: "cdc.inventory", aggregateType: "InventoryItem" },
+        ];
+        const bridge = new PgNotifyCdcBridge({ pool: pool as unknown as import("pg").Pool, tables });
+        await bridge.start();
+        cdc = bridge;
+        attachCdc(bridge);
+      } catch (err) {
+        logger.error("CDC bridge failed to start", {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    })();
+  }
+
   handle = {
     producer,
     worker,
     analyticsSink,
+    cdc,
     async stop() {
+      if (cdc) await cdc.stop().catch(() => {});
       if (worker) await worker.stop();
       else await producer.close().catch(() => {});
       handle = null;
@@ -99,6 +167,7 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
       worker: !!worker,
       analyticsSink: !!analyticsSink,
       bridge: bridgeEnabled,
+      cdc: process.env.EVENT_SPINE_CDC === "1",
       producer: producer.constructor.name,
     });
   }
@@ -118,10 +187,5 @@ export async function __resetEventSpineForTests(): Promise<void> {
 
 /** Default no-op producer (e.g. when a non-fanout producer is needed in CLI). */
 export function createDefaultProducer(): EventSpineProducer {
-  if (process.env.EVENT_SPINE_BROKERS) {
-    logger.warn(
-      "EVENT_SPINE_BROKERS set but Kafka/Redpanda adapter not yet implemented; falling back to NoopProducer"
-    );
-  }
   return new NoopProducer();
 }

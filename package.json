@@ -197,6 +197,7 @@
     "jscpd": "^4.0.5",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
+    "kafkajs": "^2.2.4",
     "knip": "^5.79.0",
     "lru-cache": "^11.2.7",
     "lucide-react": "^0.453.0",

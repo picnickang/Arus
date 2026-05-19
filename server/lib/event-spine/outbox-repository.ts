@@ -56,6 +56,32 @@ export async function enqueueOutbox(
 }
 
 /**
+ * Transactional convenience: insert a `DomainEventEnvelope` into the
+ * outbox using the caller's tx. This is the *canonical* path for new
+ * code — by enqueueing inside the same DB transaction as the business
+ * write, we eliminate the commit→publish loss window the best-effort
+ * bridge subscriber has. The eventId still flows through the in-process
+ * bus; the bridge's `ON CONFLICT DO NOTHING` makes the duplicate a no-op.
+ */
+export async function enqueueOutboxFromEnvelope(
+  envelope: import("../domain-event-bus/types.js").DomainEventEnvelope,
+  tx?: TxOrDb
+): Promise<void> {
+  await enqueueOutbox(
+    {
+      eventId: envelope.eventId,
+      eventType: envelope.eventType,
+      orgId: envelope.orgId,
+      aggregateId: envelope.aggregateId ?? null,
+      aggregateType: envelope.aggregateType ?? null,
+      occurredAt: envelope.occurredAt,
+      payload: envelope,
+    },
+    tx
+  );
+}
+
+/**
  * Claim a batch of pending rows for dispatch.
  *
  * Per-tenant ordering is a hard invariant: within an `orgId`, events MUST
@@ -82,9 +108,21 @@ export async function claimPendingBatch(
       WHERE eo.status = 'pending'
         AND eo.next_attempt_at <= ${now}
         AND NOT EXISTS (
+          -- Per-org head-of-line dispatch: refuse to claim if any
+          -- *older* row for this org is either already in-flight
+          -- (status='dispatching') OR still pending — even if pending
+          -- is deferred by exponential backoff. This guarantees an
+          -- earlier failed event of org X is published before a newer
+          -- event of org X across multiple worker replicas.
           SELECT 1 FROM ${eventOutbox} blocker
           WHERE blocker.org_id = eo.org_id
-            AND blocker.status = 'dispatching'
+            AND (
+              blocker.status = 'dispatching'
+              OR (
+                blocker.status = 'pending'
+                AND (blocker.created_at, blocker.id) < (eo.created_at, eo.id)
+              )
+            )
         )
       ORDER BY eo.next_attempt_at ASC, eo.created_at ASC
       LIMIT ${limit}
