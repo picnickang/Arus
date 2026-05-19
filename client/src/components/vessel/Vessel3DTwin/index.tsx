@@ -5,11 +5,14 @@
  * - Camera: OrbitControls (mouse / touch).
  * - Equipment pins: sprites positioned from the model's pin metadata.
  * - Health colours: green/amber/red based on `healthByEquipmentId` prop.
- * - Click a pin → fires `onSelectEquipment(equipmentId)`. The parent page
- *   navigates to `/equipment` and also calls `loadDependencies` so the
- *   downstream pins are tinted amber (system-dependency overlay, Push A2).
- * - Replay: `replayState` lets the parent feed projected health/RUL from
- *   `ScenarioSimService` so the viewer re-tints without a re-fetch.
+ * - Click a pin → fires `onSelectEquipment(equipmentId)`. The parent loads
+ *   the Push A2 dependency graph and feeds downstream IDs back via
+ *   `highlightedEquipmentIds` so those pins tint amber in-scene. A separate
+ *   "Open detail" action navigates to `/equipment` so the 3D overlay stays
+ *   on screen while the operator inspects it.
+ * - Replay: `healthByEquipmentId` is recomputed by the parent from
+ *   `TwinStateService.getStateHistory()` snapshots as the scrubber moves;
+ *   this component just re-tints pins from that map.
  *
  * Three.js is heavy — the parent must lazy-load this module.
  */

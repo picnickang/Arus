@@ -136,11 +136,16 @@ export default function Vessel3DPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEquipmentId]);
 
-  // Pin click: navigate to equipment detail immediately, AND fire the
-  // dependency lookup so the overlay is ready when the operator returns.
+  // Pin click: select in-scene and load the dependency overlay so the
+  // operator can see what degrades downstream. Navigation to the equipment
+  // detail page is a separate explicit action ("Open detail" button) so the
+  // 3D dependency view stays on screen while they inspect it.
   const handleSelectEquipment = (equipmentId: string) => {
     setSelectedEquipmentId(equipmentId);
     dependencyMutation.mutate(equipmentId);
+  };
+
+  const openEquipmentDetail = (equipmentId: string) => {
     navigate(`/equipment?id=${encodeURIComponent(equipmentId)}`);
   };
 
@@ -207,8 +212,18 @@ export default function Vessel3DPage() {
               </div>
 
               {selectedEquipmentId && (
-                <div className="text-sm space-y-1">
-                  <div data-testid="text-selected-equipment">Selected: {selectedEquipmentId}</div>
+                <div className="text-sm space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div data-testid="text-selected-equipment">Selected: {selectedEquipmentId}</div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEquipmentDetail(selectedEquipmentId)}
+                      data-testid="button-open-equipment-detail"
+                    >
+                      Open detail
+                    </Button>
+                  </div>
                   {dependencyMutation.isPending && (
                     <div className="text-muted-foreground">Fetching dependency graph…</div>
                   )}
