@@ -1,0 +1,127 @@
+/**
+ * Push A2 — Apache AGE bootstrap.
+ *
+ * Mirrors the TimescaleDB opt-in pattern (`server/timescaledb-bootstrap.ts`,
+ * Wave 2.8). The graph is gated behind `GRAPH_ENABLED=true`; if the
+ * `age` extension is missing or the executing role lacks permission to
+ * install it, we log a warning and continue. Downstream adapters
+ * (`server/graph/adapter.ts`) check `isGraphAvailable()` and degrade
+ * to a no-op so the application keeps booting.
+ *
+ * Tenant isolation: per ADR 001, each tenant gets its own named graph
+ * `arus_graph_<orgId>` so cross-tenant traversal is impossible by
+ * construction. We do NOT pre-create per-tenant graphs here — they are
+ * created lazily on first projector write via `ensureTenantGraph()`.
+ */
+
+import type { Pool } from "pg";
+import { createLogger } from "./lib/structured-logger";
+import { pool } from "./db";
+
+const logger = createLogger("GraphBootstrap");
+
+let graphAvailable = false;
+const ensuredTenantGraphs = new Set<string>();
+
+/** Apache AGE schema name (extension default). */
+const AGE_SCHEMA = "ag_catalog";
+
+export function isGraphEnabled(): boolean {
+  return process.env.GRAPH_ENABLED === "true";
+}
+
+/** True iff the AGE extension was successfully installed/verified at boot. */
+export function isGraphAvailable(): boolean {
+  return graphAvailable;
+}
+
+function requirePool(): Pool {
+  if (!pool) {
+    throw new Error("Graph bootstrap requires a PostgreSQL pool");
+  }
+  return pool as unknown as Pool;
+}
+
+async function extensionInstalled(pg: Pool): Promise<boolean> {
+  const res = await pg.query(
+    "SELECT 1 FROM pg_extension WHERE extname = 'age' LIMIT 1"
+  );
+  return res.rowCount !== null && res.rowCount > 0;
+}
+
+async function ensureExtension(pg: Pool): Promise<boolean> {
+  if (await extensionInstalled(pg)) {
+    logger.info("[Graph] Apache AGE extension already installed");
+    return true;
+  }
+  try {
+    await pg.query("CREATE EXTENSION IF NOT EXISTS age CASCADE");
+    logger.info("[Graph] Apache AGE extension installed");
+    return true;
+  } catch (err) {
+    logger.warn(
+      "[Graph] Apache AGE extension not available — graph features disabled",
+      { details: err instanceof Error ? err.message : String(err) }
+    );
+    return false;
+  }
+}
+
+/**
+ * Strict allowlist for graph names. AGE graph names are interpolated
+ * into DDL (no bind params for SET / LOAD / create_graph identifiers),
+ * so the source string MUST be sanitised the same way the org_id is
+ * sanitised in `middleware/db-context.ts`.
+ */
+export function tenantGraphName(orgId: string): string {
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(orgId)) {
+    throw new Error(`Refusing to derive graph name from invalid orgId: ${orgId}`);
+  }
+  return `arus_graph_${orgId.replace(/-/g, "_")}`;
+}
+
+/**
+ * Lazily ensure a per-tenant graph exists. No-ops when AGE is
+ * unavailable or `GRAPH_ENABLED` is false. Memoised in-process so the
+ * common path is a Set lookup.
+ */
+export async function ensureTenantGraph(orgId: string): Promise<boolean> {
+  if (!graphAvailable) return false;
+  const name = tenantGraphName(orgId);
+  if (ensuredTenantGraphs.has(name)) return true;
+  try {
+    const pg = requirePool();
+    await pg.query(`LOAD '${AGE_SCHEMA}'`);
+    await pg.query(`SET search_path = ${AGE_SCHEMA}, "$user", public`);
+    await pg.query(
+      `SELECT create_graph($1) WHERE NOT EXISTS (
+         SELECT 1 FROM ag_catalog.ag_graph WHERE name = $1
+       )`,
+      [name]
+    );
+    ensuredTenantGraphs.add(name);
+    return true;
+  } catch (err) {
+    logger.warn(`[Graph] Failed to ensure tenant graph for ${orgId}`, {
+      details: err instanceof Error ? err.message : String(err),
+    });
+    return false;
+  }
+}
+
+export async function runGraphBootstrap(): Promise<void> {
+  if (!isGraphEnabled()) {
+    logger.info("[Graph] Disabled (set GRAPH_ENABLED=true to opt in)");
+    return;
+  }
+  try {
+    const pg = requirePool();
+    graphAvailable = await ensureExtension(pg);
+    if (graphAvailable) {
+      logger.info("[Graph] Bootstrap complete — per-tenant graphs created lazily");
+    }
+  } catch (err) {
+    logger.error("[Graph] Bootstrap failed (non-fatal, continuing without graph)", undefined, err);
+    graphAvailable = false;
+  }
+}

@@ -13,6 +13,7 @@ import "./weather-tools";
 import "./regulatory-tools";
 import "./parts-supplier-tools";
 import "./task-finding-tools";
+import "./graph-tools";
 
 import { registerListAvailableToolsMeta } from "./registry";
 registerListAvailableToolsMeta();

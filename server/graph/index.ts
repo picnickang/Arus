@@ -1,0 +1,38 @@
+/**
+ * Push A2 — Knowledge graph public surface. Single import site so the
+ * rest of the codebase never reaches into AGE-specific files directly.
+ */
+
+export {
+  isGraphEnabled,
+  isGraphAvailable,
+  runGraphBootstrap,
+  ensureTenantGraph,
+  tenantGraphName,
+} from "../graph-bootstrap";
+
+export {
+  findSimilarFailures,
+  whatPartsForFailureMode,
+  failurePropagation,
+  upsertNode,
+  upsertEdge,
+} from "./adapter";
+
+export {
+  projectEquipment,
+  projectFailureHistory,
+  projectInventoryMovement,
+  projectDependency,
+} from "./projector";
+
+export {
+  NodeLabel,
+  EdgeType,
+} from "./types";
+
+export type {
+  EquipmentProjection,
+  FailureHistoryProjection,
+  InventoryMovementProjection,
+} from "./projector";

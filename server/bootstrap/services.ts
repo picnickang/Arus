@@ -224,6 +224,16 @@ export async function applyTimescaleOptimizations(isLocalMode: boolean): Promise
   } catch (error) {
     logger.warn("⚠️  TimescaleDB bootstrap failed (non-critical):", { details: error });
   }
+
+  // Push A2 — Knowledge graph bootstrap. Opt-in via GRAPH_ENABLED, falls
+  // back to no-op when the Apache AGE extension is unavailable so the
+  // app keeps booting on managed-Postgres deployments without it.
+  try {
+    const { runGraphBootstrap } = await import("../graph-bootstrap");
+    await runGraphBootstrap();
+  } catch (error) {
+    logger.warn("⚠️  Knowledge graph bootstrap failed (non-critical):", { details: error });
+  }
 }
 
 export async function startSyncServices(isLocalMode: boolean): Promise<void> {
