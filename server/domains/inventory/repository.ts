@@ -1,5 +1,11 @@
 import type { Part, PartsInventory, InsertPartsInventory, Equipment } from "@shared/schema";
-import { dbInventoryStorage, dbEquipmentStorage, dbAnalyticsStorage } from "../../repositories";
+// Push B4: inventory domain imports its data adapters directly from
+// `server/db/<domain>` — not from the legacy `server/repositories.ts`
+// service-locator barrel. This removes inventory from the proxy's
+// "architectural drift trap".
+import { dbInventoryStorage } from "../../db/inventory/index.js";
+import { dbEquipmentStorage } from "../../db/equipment/index.js";
+import { dbAnalyticsStorage } from "../../db/analytics/index.js";
 
 export class InventoryRepository {
   async findAllParts(orgId?: string): Promise<Part[]> {

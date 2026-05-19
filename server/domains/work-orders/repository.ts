@@ -6,14 +6,16 @@ import type {
   WorkOrderTask,
   InsertWorkOrderTask,
 } from "@shared/schema";
-import {
-  workOrderService,
-  dbWorkOrderStorage,
-  dbChecklistsStorage,
-  dbInventoryStorage,
-  dbMaintenanceStorage,
-  dbEquipmentStorage,
-} from "../../repositories";
+// Push B4: imports go to the canonical homes (`server/db/<domain>` and
+// `server/services/domains/*`) directly, not through the legacy
+// `server/repositories.ts` service-locator barrel. The work-orders
+// domain stays free of that proxy.
+import { workOrderService } from "../../services/domains/work-order-service";
+import { dbWorkOrderStorage } from "../../db/workorders/index.js";
+import { dbChecklistsStorage } from "../../db/checklists/index.js";
+import { dbInventoryStorage } from "../../db/inventory/index.js";
+import { dbMaintenanceStorage } from "../../db/maintenance/index.js";
+import { dbEquipmentStorage } from "../../db/equipment/index.js";
 import type { WorkOrderFilters } from "../../db/workorders/types";
 
 export class WorkOrderRepository {

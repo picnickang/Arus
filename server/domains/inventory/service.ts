@@ -1,7 +1,9 @@
 import type { Part, PartsInventory, InsertPartsInventory, Equipment } from "@shared/schema";
 import { inventoryRepository } from "./repository";
 import { recordAndPublish } from "../../sync-events";
-import { dbInventoryStorage } from "../../repositories";
+// Push B4: direct import from the canonical home in `server/db/inventory`
+// (not from the legacy `server/repositories.ts` proxy).
+import { dbInventoryStorage } from "../../db/inventory/index.js";
 
 /**
  * Inventory (Parts) Service

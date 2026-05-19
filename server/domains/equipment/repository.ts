@@ -1,6 +1,13 @@
 import type { Equipment, InsertEquipment } from "@shared/schema";
 import type { EquipmentHealth } from "../../db/equipment/types.js";
-import { dbEquipmentStorage, dbSensorsStorage, dbInventoryStorage } from "../../repositories";
+// Push B4: the equipment domain owns its data access. It imports the
+// canonical `dbEquipmentStorage` (and the two cross-domain storages it
+// genuinely needs) directly from `server/db/*`, never from the legacy
+// `server/repositories.ts` proxy barrel. This keeps the equipment
+// domain free of the service-locator pattern.
+import { dbEquipmentStorage } from "../../db/equipment/index.js";
+import { dbSensorsStorage } from "../../db/sensors/index.js";
+import { dbInventoryStorage } from "../../db/inventory/index.js";
 import { DEFAULT_SENSORS } from "./service/types.js";
 
 export class EquipmentRepository {
