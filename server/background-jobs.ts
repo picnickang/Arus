@@ -22,8 +22,26 @@
 
 import PgBoss from "pg-boss";
 import { createLogger } from "./lib/structured-logger";
+import { withTenantContext } from "./middleware/db-context";
+import { requireTenantAuth } from "@shared/config/tenant";
+import { supportsPinnedConnection } from "./db-config";
 
 const logger = createLogger("BackgroundJobs");
+
+/**
+ * Task #88: pull the tenant `orgId` out of a job payload if present.
+ * Convention: every tenant-scoped job packs `{ orgId: "...", ... }` into
+ * its data (matches the `pgboss-trace` shape). Returns `undefined` for
+ * fleet-wide jobs that intentionally have no tenant scope.
+ */
+function extractOrgId(data: unknown): string | undefined {
+  if (!data || typeof data !== "object") return undefined;
+  const candidate = (data as Record<string, unknown>).orgId;
+  if (typeof candidate === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(candidate)) {
+    return candidate;
+  }
+  return undefined;
+}
 
 export const JOB_TYPES = {
   PROCESS_TELEMETRY: "process-telemetry",
@@ -231,7 +249,27 @@ class BackgroundJobQueue {
     this.pushRecent(recentEntry);
 
     try {
-      await handler(data);
+      // Task #88: pinned-RLS parity for background workers. If the job
+      // payload carries an orgId (the pgboss-trace convention) and the
+      // driver supports pinned connections, wrap the handler in a
+      // per-job transaction with `SET LOCAL app.current_org_id` so any
+      // `db.*` call the handler makes routes through the same pinned
+      // client via `tenantContextStore`. If no orgId is present, run
+      // the handler unwrapped — workers that don't touch tenant tables
+      // (e.g. fleet-wide cron) are unaffected.
+      const jobOrgId = extractOrgId(data);
+      if (jobOrgId && supportsPinnedConnection) {
+        await withTenantContext(jobOrgId, async () => {
+          await handler(data);
+        });
+      } else {
+        if (!jobOrgId && requireTenantAuth()) {
+          logger.warn(
+            `[${type}] job ${jobId} has no orgId in payload — running without pinned RLS context (REQUIRE_TENANT_AUTH=true)`,
+          );
+        }
+        await handler(data);
+      }
       this.counters.processing = Math.max(0, this.counters.processing - 1);
       this.counters.completed += 1;
       recentEntry.status = "completed";

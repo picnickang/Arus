@@ -13,6 +13,7 @@ import path from "node:path";
 import * as fs from "node:fs";
 import { logExpectedLimitation } from "./utils/logger.js";
 import { createLogger } from "./lib/structured-logger";
+import { tenantContextStore } from "./db/tenant-context.js";
 const logger = createLogger("DbConfig");
 
 // Detect database type from DATABASE_URL
@@ -308,39 +309,63 @@ type DbType = ReturnType<typeof drizzlePgWs<typeof schema>>;
 
 // Export the appropriate database instance based on mode
 // This will be null initially in local mode, then set after initializeLocalDatabase()
+/**
+ * Resolve the active drizzle handle for the current async context.
+ *
+ * Task #88: when a request middleware (`server/middleware/db-context.ts`)
+ * or a background-job wrapper (`server/background-jobs.ts`) has opened a
+ * pinned-client transaction and stashed it in `tenantContextStore`, every
+ * `db.*` access in that async scope routes through the pinned drizzle
+ * handle so the in-flight `SET LOCAL app.current_org_id` applies. Outside
+ * a tenant context (startup, cron without an org, tests) we fall back to
+ * the shared pool-backed instance — which is fine because those paths
+ * either don't touch tenant tables or run in legacy single-tenant mode.
+ */
+function resolveActiveDb(): unknown {
+  const ctx = tenantContextStore.getStore();
+  if (ctx?.tx) return ctx.tx;
+  return dbInstance;
+}
+
+// Export the appropriate database instance based on mode
+// This will be null initially in local mode, then set after initializeLocalDatabase()
 export const db = new Proxy({} as any, {
-  get(target, prop) {
-    if (!dbInstance) {
+  get(_target, prop) {
+    const active = resolveActiveDb();
+    if (!active) {
       throw new Error(
         `Database not initialized. In ${isLocalMode ? "local" : "cloud"} mode, ensure initializeLocalDatabase() is called before accessing db.`
       );
     }
-    const value = (dbInstance as any)[prop];
-    // If it's a function, bind it to the dbInstance to preserve 'this' context
+    const value = (active as any)[prop];
+    // If it's a function, bind it to the active handle to preserve 'this' context
     if (typeof value === "function") {
-      return value.bind(dbInstance);
+      return value.bind(active);
     }
     return value;
   },
   // Handle property checks (for 'in' operator and hasOwnProperty)
-  has(target, prop) {
-    if (!dbInstance) {
+  has(_target, prop) {
+    const active = resolveActiveDb();
+    if (!active) {
       return false;
     }
-    return prop in dbInstance;
+    return prop in (active as object);
   },
   // Handle Object.keys, Object.getOwnPropertyNames, etc.
-  ownKeys(target) {
-    if (!dbInstance) {
+  ownKeys(_target) {
+    const active = resolveActiveDb();
+    if (!active) {
       return [];
     }
-    return Reflect.ownKeys(dbInstance);
+    return Reflect.ownKeys(active as object);
   },
-  getOwnPropertyDescriptor(target, prop) {
-    if (!dbInstance) {
+  getOwnPropertyDescriptor(_target, prop) {
+    const active = resolveActiveDb();
+    if (!active) {
       return undefined;
     }
-    return Reflect.getOwnPropertyDescriptor(dbInstance, prop);
+    return Reflect.getOwnPropertyDescriptor(active as object, prop);
   },
 }) as DbType;
 
@@ -353,6 +378,32 @@ export type DbTransaction = Parameters<Parameters<DbType["transaction"]>[0]>[0];
 export type Database = DbType;
 
 export const pool = pgPool;
+
+/**
+ * Task #88: drivers that hold a session across statements. `neon-http`
+ * is a single-statement driver — `SET LOCAL app.current_org_id` does not
+ * survive past the HTTP call that ran it — so pinned-RLS deployments
+ * MUST use `standard` (node-postgres pool) or `websocket` (neon-serverless
+ * pool). The boot gate below enforces that contract.
+ */
+export const supportsPinnedConnection: boolean =
+  connectionMode === "standard" || connectionMode === "websocket";
+
+if (!isLocalMode && requireTenantAuthFromEnv() && !supportsPinnedConnection) {
+  // eslint-disable-next-line no-console
+  console.error(
+    `[DB Config] REQUIRE_TENANT_AUTH=true requires a pooled Postgres driver ` +
+      `that supports session state across statements (standard | websocket). ` +
+      `Current driver mode: "${connectionMode}". Refusing to boot — the ` +
+      `pinned-RLS context (SET LOCAL app.current_org_id) would silently ` +
+      `evaporate on every neon-http call, leaving RLS matching zero rows.`,
+  );
+  process.exit(1);
+}
+
+function requireTenantAuthFromEnv(): boolean {
+  return process.env.REQUIRE_TENANT_AUTH === "true";
+}
 
 // Mode-aware table exports for storage layer
 // These provide a unified interface regardless of PostgreSQL vs SQLite

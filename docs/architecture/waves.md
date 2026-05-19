@@ -82,16 +82,24 @@ Each bullet is one wave from the v2 ARUS Gap-Fill Plan. Implementation details l
     `TenantDeleteService` allowlist, and quota usage queries. New
     tenant-scoped tables MUST be appended here AND mirrored into
     migration 0018's `TENANT_TABLES` array; drift is a security regression.
--   **Known limitation — pinned-connection RLS context**: `server/middleware/db-context.ts`
-    calls `set_config('app.current_org_id', …, false)` on the shared
-    `db` handle. On a connection pool this can leak across requests;
-    on neon-http the value doesn't survive past a single HTTP call. RLS
-    therefore remains a *second* line of defense in Push B1 — the
-    primary boundary is still the repository-level `WHERE org_id = …`
-    filter. Wrapping every handler in `BEGIN; SET LOCAL; …; COMMIT`
-    against a per-request pinned client is tracked as a follow-up that
-    must land before `REQUIRE_TENANT_AUTH=true` is the sole isolation
-    boundary in a multi-tenant deployment.
+-   **Pinned-connection RLS context (Task #88)**: `server/middleware/db-context.ts`
+    wraps every authenticated `/api/*` request in `BEGIN; SELECT
+    set_config('app.current_org_id', $orgId, true); …; COMMIT/ROLLBACK`
+    against a single pinned `pg.PoolClient`. The drizzle handle bound to
+    that client is stashed in `tenantContextStore`
+    (`server/db/tenant-context.ts`) and the `db` Proxy in
+    `server/db-config.ts` routes through it for the rest of the request,
+    so existing repositories don't need plumbing changes. RLS is now the
+    authoritative tenant boundary — the repository-level `WHERE org_id =
+    …` filters are kept as defense-in-depth. Background-job workers
+    (`server/background-jobs.ts`) use the same `withTenantContext`
+    wrapper keyed on the `orgId` packed into the job payload. The boot
+    gate in `db-config.ts` refuses to start `REQUIRE_TENANT_AUTH=true`
+    on `neon-http` (single-statement driver), forcing
+    `standard`/`websocket` deployments. In legacy single-tenant mode the
+    `DEFAULT_ORG_ID` fallback still applies; in tenant-auth mode a
+    missing `req.orgId` is a hard `401 TENANT_CONTEXT_MISSING`. Verified
+    by `tests/integration/rls-cross-tenant.test.ts`.
 
 **Wave 6 — Compliance & Eventing**
 -   **6.6 GDPR Tenant-Delete**: `server/domains/gdpr/tenant-delete-service.ts` single tx, SERIALIZABLE (best-effort), identifiers allowlisted, PII redacted not deleted. HMAC-SHA256 `DeletionCertificate`.

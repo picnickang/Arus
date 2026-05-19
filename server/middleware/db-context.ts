@@ -1,158 +1,289 @@
 /**
- * Database Context Middleware
- * Sets the current organization ID in PostgreSQL for RLS policies.
+ * Database Context Middleware — pinned per-request RLS (Task #88).
  *
- * ⚠️ Push B1 KNOWN LIMITATION — pinned-connection follow-up required.
+ * Every authenticated `/api/*` request is wrapped in a per-request
+ * Postgres transaction against a single physical pool client:
  *
- * The current implementation calls `set_config('app.current_org_id', x, false)`
- * on the shared `db` handle. This is correct on a *pinned* connection (one
- * physical socket per request) but the shared handle pulls a connection
- * from the pool per `db.execute()`. Two consequences:
+ *     BEGIN;
+ *     SELECT set_config('app.current_org_id', $orgId, true);  -- LOCAL
+ *     <route handler runs here>
+ *     COMMIT  (on 2xx/3xx/4xx)
+ *     ROLLBACK (on 5xx or uncaught exception)
  *
- *   1. With node-postgres pool (multi-statement driver): the value can
- *      leak into a different request that happens to land on the same
- *      backend before `RESET` runs. Architect-review flagged this.
- *   2. With neon-http (1-statement driver, the typical Replit setup):
- *      `set_config` is scoped to that single HTTP call; the value is
- *      not visible to the next call, so RLS would silently match no
- *      rows for every request.
+ * The pinned drizzle handle is stashed in `tenantContextStore`
+ * (`server/db/tenant-context.ts`) and the shared `db` Proxy in
+ * `server/db-config.ts` routes through it for the rest of the request,
+ * so existing repositories don't need plumbing changes — every
+ * `db.select(...)` they make lands on the held client inside the open
+ * transaction, and the in-flight `SET LOCAL` applies.
  *
- * Neither failure mode is acceptable as the sole isolation boundary,
- * which is why this file historically documented itself as "defense-in-
- * depth only, repository filters are authoritative". Push B1 keeps that
- * contract: repository-level `WHERE org_id = …` remains the primary
- * boundary; RLS is the second line of defense.
+ * Why this replaces the old shared-handle `set_config` path:
+ *   - On `neon-http` (single-statement driver) the value evaporated after
+ *     the call that ran it; RLS matched zero rows for every subsequent
+ *     query. The boot gate in `db-config.ts` now refuses to start
+ *     `REQUIRE_TENANT_AUTH=true` on non-pooled drivers.
+ *   - On `node-postgres Pool` / `neon-serverless` the value could leak
+ *     into whatever request next checked out the same backend before
+ *     `RESET` ran. Now the value is `LOCAL` to the request's transaction
+ *     and disappears automatically on COMMIT/ROLLBACK.
  *
- * The proper fix — wrap each request handler in a `BEGIN; SET LOCAL …;
- * <handler>; COMMIT;` against a per-request pinned client and route all
- * `db.*` calls through that client — is tracked as a follow-up task
- * because it touches every domain repository's `db` import. See the
- * Push B1 follow-up issue.
+ * Repository-layer `WHERE org_id = …` filters are kept as defense-in-
+ * depth — a single bug in this wrapper would otherwise open a
+ * cross-tenant hole — but RLS is now the authoritative boundary.
  *
- * For now: this middleware still sets the variable best-effort so that
- * test fixtures and pinned-connection deployments (e.g. running drizzle
- * via a dedicated `Client`, not a `Pool`) benefit immediately, while
- * the multi-tenant data plane continues to rely on the repository-level
- * WHERE clauses already in place.
- *
- * Skipped in SQLite mode.
+ * Skipped in SQLite (vessel) mode where there's only one tenant.
  */
 
-import { Request, Response, NextFunction } from "express";
-import { db, isLocalMode } from "../db-config";
-import { sql } from "drizzle-orm";
+import type { Request, Response, NextFunction } from "express";
+import type { PoolClient } from "pg";
+import { drizzle as drizzleNodePg } from "drizzle-orm/node-postgres";
+import { drizzle as drizzleNeonWs } from "drizzle-orm/neon-serverless";
+import * as schema from "@shared/schema-runtime";
+import {
+  isLocalMode,
+  pool as sharedPool,
+  connectionMode,
+  supportsPinnedConnection,
+} from "../db-config";
 import { DEFAULT_ORG_ID, requireTenantAuth } from "@shared/config/tenant";
+import { tenantContextStore } from "../db/tenant-context";
 import { createLogger } from "../lib/structured-logger";
+
 const logger = createLogger("Middleware:DbContext");
 
-// Push B1: when tenant-auth is required the RLS context is mandatory —
-// the policies in migration 0018 read `app.current_org_id` and fail
-// closed if it's unset. In legacy mode the explicit flag still gates it
-// so single-tenant deployments don't pay the per-request SET cost.
+// Push B1 / Task #88: in REQUIRE_TENANT_AUTH mode the pinned context is
+// mandatory (RLS is the authoritative boundary). In legacy mode an
+// explicit flag opts in so single-tenant deployments don't pay the
+// per-request transaction cost.
 const ENABLE_PG_RLS_CONTEXT =
   process.env.ENABLE_PG_RLS_CONTEXT === "true" || requireTenantAuth();
 
-export type DbContextRequest = Request;
+const ORG_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 
-/**
- * Optionally sets organization context in the database session.
- * Disabled by default because request safety requires a request-scoped transaction
- * or pinned connection; pooled one-off queries cannot guarantee the context is
- * visible to later repository calls.
- */
-export async function setDatabaseContext(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    // Skip unless explicitly enabled. Repository filters are authoritative.
-    if (isLocalMode || !ENABLE_PG_RLS_CONTEXT) {
-      next();
-      return;
-    }
+export type DbContextRequest = Request & { orgId?: string };
 
-    // SINGLE-TENANT: Always use default org ID
-    const orgId = (req as DbContextRequest).orgId || DEFAULT_ORG_ID;
-
-    if (orgId) {
-      // Set a compatibility organization ID in the PostgreSQL session.
-      // This is optional defense-in-depth only, not the authoritative boundary.
-      // Note: SET commands don't support parameterized queries, so we use sql.raw.
-      // orgId is validated by auth middleware, but we defense-in-depth here: a
-      // future regression in auth middleware (or a new code path that bypasses
-      // it) would otherwise turn this into SQL injection via set_config. Allow
-      // only the safe character class used by all real org IDs in the system.
-      if (!/^[A-Za-z0-9_-]{1,64}$/.test(orgId)) {
-        logger.warn(`[DB_CONTEXT] Refusing to set malformed orgId for ${req.path}`);
-        next();
-        return;
-      }
-      await db.execute(sql.raw(`SELECT set_config('app.current_org_id', '${orgId}', false)`));
-
-      // Log for debugging (remove in production)
-      if (process.env.NODE_ENV === "development") {
-        logger.info(`[DB_CONTEXT] Set org context: ${orgId} for ${req.path}`);
-      }
-    }
-
-    next();
-  } catch (error) {
-    logger.error("[DB_CONTEXT] Error setting database context:", undefined, error);
-    // Don't block the request, but log the error
-    next();
+function buildClientDrizzle(client: PoolClient): unknown {
+  // node-postgres and neon-serverless both accept a PoolClient and
+  // return a drizzle handle with the same query-builder shape as the
+  // shared pool-backed instance. The Proxy in db-config.ts treats it
+  // structurally so either driver works here.
+  if (connectionMode === "websocket") {
+    // neon-serverless WS driver expects its own PoolClient type; the
+    // shape is identical at runtime to pg.PoolClient for our use.
+    return drizzleNeonWs(client as never, { schema });
   }
+  return drizzleNodePg(client, { schema });
 }
 
 /**
- * Resets the database context after request completion
- * This ensures isolation between requests in connection pooling scenarios
- */
-export async function resetDatabaseContext(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    // Skip unless explicitly enabled. Repository filters are authoritative.
-    if (isLocalMode || !ENABLE_PG_RLS_CONTEXT) {
-      next();
-      return;
-    }
-
-    // Reset the session variable
-    await db.execute(sql.raw(`RESET app.current_org_id`));
-
-    if (process.env.NODE_ENV === "development") {
-      logger.info(`[DB_CONTEXT] Reset org context for ${req.path}`);
-    }
-  } catch (error) {
-    logger.error("[DB_CONTEXT] Error resetting database context:", undefined, error);
-  }
-
-  next();
-}
-
-/**
- * Combined middleware that ensures database context is set and cleaned up
+ * Combined middleware that opens a pinned-client transaction, sets
+ * `app.current_org_id` LOCAL to it, runs the rest of the request inside
+ * the `tenantContextStore`, and commits/rolls back on response finish.
+ *
+ * Fail-closed: in `REQUIRE_TENANT_AUTH=true` mode a missing or malformed
+ * `req.orgId` rejects the request with `401 TENANT_CONTEXT_MISSING`
+ * instead of silently falling back to `DEFAULT_ORG_ID`.
  */
 export function withDatabaseContext(req: Request, res: Response, next: NextFunction): void {
-  // Skip unless explicitly enabled. Repository filters are authoritative.
   if (isLocalMode || !ENABLE_PG_RLS_CONTEXT) {
     next();
     return;
   }
 
-  // Set context before request
-  setDatabaseContext(req, res, () => {
-    // Clean up after response
-    res.on("finish", async () => {
-      try {
-        await db.execute(sql.raw(`RESET app.current_org_id`));
-      } catch (error) {
-        logger.error("[DB_CONTEXT] Error in cleanup:", undefined, error);
-      }
-    });
+  const tenantAuth = requireTenantAuth();
+  const claim = (req as DbContextRequest).orgId;
+
+  if (tenantAuth) {
+    if (!claim || !ORG_ID_PATTERN.test(claim)) {
+      res.status(401).json({
+        message: "Tenant context required",
+        code: "TENANT_CONTEXT_MISSING",
+      });
+      return;
+    }
+  } else {
+    // Legacy single-tenant fallback. Still validate the shape so we
+    // never interpolate junk into SET LOCAL.
+    const legacyId = claim ?? DEFAULT_ORG_ID;
+    if (!ORG_ID_PATTERN.test(legacyId)) {
+      logger.warn(`[DB_CONTEXT] Refusing malformed orgId for ${req.path}`);
+      next();
+      return;
+    }
+    (req as DbContextRequest).orgId = legacyId;
+  }
+
+  const orgId = (req as DbContextRequest).orgId as string;
+
+  if (!sharedPool || !supportsPinnedConnection) {
+    // Boot gate in db-config.ts already refused to start in this
+    // configuration when REQUIRE_TENANT_AUTH=true, so reaching here
+    // means legacy mode on an http driver — RLS is best-effort only.
+    // Skip silently rather than failing the request: repository-level
+    // WHERE filters remain authoritative in that mode.
+    logger.warn(
+      `[DB_CONTEXT] Pinned context unavailable (driver=${connectionMode}); skipping for ${req.path}`,
+    );
     next();
-  });
+    return;
+  }
+
+  void (async () => {
+    let client: PoolClient;
+    try {
+      client = (await (sharedPool as { connect(): Promise<PoolClient> }).connect()) as PoolClient;
+    } catch (err) {
+      logger.error("[DB_CONTEXT] Failed to acquire pool client", undefined, err);
+      res.status(503).json({ message: "Database unavailable", code: "DB_UNAVAILABLE" });
+      return;
+    }
+
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      try {
+        client.release();
+      } catch (err) {
+        logger.warn(
+          `[DB_CONTEXT] client.release() failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    };
+
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT set_config('app.current_org_id', $1, true)", [orgId]);
+    } catch (err) {
+      logger.error("[DB_CONTEXT] Failed to open tenant tx", undefined, err);
+      try {
+        await client.query("ROLLBACK");
+      } catch {
+        /* ignore */
+      }
+      release();
+      res.status(503).json({ message: "Database unavailable", code: "DB_UNAVAILABLE" });
+      return;
+    }
+
+    let tx: unknown;
+    try {
+      tx = buildClientDrizzle(client);
+    } catch (err) {
+      logger.error("[DB_CONTEXT] Failed to build drizzle wrapper", undefined, err);
+      try {
+        await client.query("ROLLBACK");
+      } catch {
+        /* ignore */
+      }
+      release();
+      res.status(503).json({ message: "Database unavailable", code: "DB_UNAVAILABLE" });
+      return;
+    }
+
+    let finalized = false;
+    const finalize = async () => {
+      if (finalized) return;
+      finalized = true;
+      try {
+        // 5xx and aborted-mid-flight requests roll back so partial
+        // writes are not committed. 4xx are user errors with already-
+        // shaped responses — keep their writes (most are no-ops anyway).
+        const aborted = !res.writableEnded;
+        if (aborted || res.statusCode >= 500) {
+          await client.query("ROLLBACK");
+        } else {
+          await client.query("COMMIT");
+        }
+      } catch (err) {
+        logger.warn(
+          `[DB_CONTEXT] tx finalize failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      } finally {
+        release();
+      }
+    };
+
+    res.on("finish", () => {
+      void finalize();
+    });
+    res.on("close", () => {
+      void finalize();
+    });
+
+    tenantContextStore.run({ orgId, tx }, () => {
+      next();
+    });
+  })();
+}
+
+/**
+ * Back-compat exports — older modules import these by name. The pinned
+ * `withDatabaseContext` does everything in one wrapper now, so these
+ * are kept as no-op shims to avoid an import storm.
+ */
+export async function setDatabaseContext(
+  _req: Request,
+  _res: Response,
+  next: NextFunction,
+): Promise<void> {
+  next();
+}
+
+export async function resetDatabaseContext(
+  _req: Request,
+  _res: Response,
+  next: NextFunction,
+): Promise<void> {
+  next();
+}
+
+/**
+ * Programmatic entry point used by background workers
+ * (`server/background-jobs.ts`) and ad-hoc admin scripts that need to
+ * run a block under a pinned tenant context outside the Express request
+ * lifecycle. Opens its own pinned transaction, runs `fn` inside the
+ * `tenantContextStore`, and commits on success / rolls back on throw.
+ *
+ * Returns whatever `fn` returns. Throws if no pool is available or the
+ * driver does not support pinned connections.
+ */
+export async function withTenantContext<T>(orgId: string, fn: () => Promise<T>): Promise<T> {
+  if (isLocalMode) {
+    // No RLS in SQLite vessel mode — just run.
+    return fn();
+  }
+  if (!ORG_ID_PATTERN.test(orgId)) {
+    throw new Error(`withTenantContext: malformed orgId "${orgId}"`);
+  }
+  if (!sharedPool || !supportsPinnedConnection) {
+    throw new Error(
+      `withTenantContext requires a pooled Postgres driver (current: ${connectionMode})`,
+    );
+  }
+
+  const client = (await (sharedPool as { connect(): Promise<PoolClient> }).connect()) as PoolClient;
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT set_config('app.current_org_id', $1, true)", [orgId]);
+    const tx = buildClientDrizzle(client);
+    try {
+      const result = await tenantContextStore.run({ orgId, tx }, fn);
+      await client.query("COMMIT");
+      return result;
+    } catch (err) {
+      try {
+        await client.query("ROLLBACK");
+      } catch {
+        /* ignore */
+      }
+      throw err;
+    }
+  } finally {
+    try {
+      client.release();
+    } catch {
+      /* ignore */
+    }
+  }
 }
