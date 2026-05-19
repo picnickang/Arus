@@ -162,24 +162,39 @@ router.post(
         pins = v.data;
       }
 
-      const [row] = await db
-        .insert(vessel3dModels)
-        .values({
-          orgId,
+      let row;
+      try {
+        [row] = await db
+          .insert(vessel3dModels)
+          .values({
+            orgId,
+            vesselId,
+            filename: file.originalname,
+            // Canonicalise to the GLB spec mime; the uploaded mimetype is
+            // advisory and varies by client. We've already verified the magic
+            // header so it's safe to assert this on serve.
+            mimetype: "model/gltf-binary",
+            sizeBytes: file.size,
+            storedPath: file.path,
+            equipmentPins: pins,
+          })
+          .returning();
+      } catch (dbErr: any) {
+        // Avoid orphaning the on-disk GLB if the metadata insert fails.
+        try { fs.unlinkSync(file.path); } catch { /* noop */ }
+        logger.error("Vessel 3D model DB insert failed; uploaded file removed", {
+          error: dbErr?.message,
           vesselId,
-          filename: file.originalname,
-          // Canonicalise to the GLB spec mime; the uploaded mimetype is
-          // advisory and varies by client. We've already verified the magic
-          // header so it's safe to assert this on serve.
-          mimetype: "model/gltf-binary",
-          sizeBytes: file.size,
-          storedPath: file.path,
-          equipmentPins: pins,
-        })
-        .returning();
+        });
+        return res.status(500).json({ error: "Failed to persist model metadata" });
+      }
 
       res.status(201).json(row);
     } catch (error: any) {
+      // Last-resort cleanup if anything above the DB insert threw unexpectedly.
+      if (req.file?.path) {
+        try { fs.unlinkSync(req.file.path); } catch { /* noop */ }
+      }
       logger.error("Upload failed", { error: error.message });
       res.status(500).json({ error: error.message });
     }
