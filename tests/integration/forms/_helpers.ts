@@ -16,7 +16,19 @@ import { Pool } from "pg";
 export const BASE_URL = process.env.TEST_BASE_URL || "http://localhost:5000";
 export const TEST_ORG_ID = "default-org-id";
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+/**
+ * Pool is stored on `process` (a singleton truly shared across Jest's
+ * sandboxed module registries and globalTeardown's loader) so that
+ * `tests/integration/_global-teardown.ts` can close the exact instance the
+ * tests opened, rather than re-importing this module and instantiating a
+ * fresh Pool that nothing was ever connected through.
+ */
+const POOL_KEY = "__ARUS_INTEGRATION_PG_POOL__" as const;
+type PoolHolder = { [POOL_KEY]?: Pool };
+const _holder = process as unknown as PoolHolder;
+export const pool: Pool =
+  _holder[POOL_KEY] ??
+  (_holder[POOL_KEY] = new Pool({ connectionString: process.env.DATABASE_URL }));
 
 /**
  * Build a fresh RUN_ID for the calling suite. Each test file should create
