@@ -16,7 +16,7 @@
 
 import { and, desc, eq, lte } from "drizzle-orm";
 import { db } from "../../../db";
-import { equipmentFeatures } from "@shared/schema";
+import { equipmentFeatures, failurePredictions } from "@shared/schema";
 import type { EquipmentFeature } from "@shared/schema";
 
 export async function getFeaturesBySnapshotId(
@@ -37,6 +37,29 @@ export async function getFeaturesBySnapshotId(
  * arbitrary historical instant, regardless of whether a snapshot was
  * persisted at that exact moment.
  */
+/**
+ * Push A1 — Single-call reproducibility helper. Given a stored
+ * prediction id, resolves the exact `equipment_features` row that
+ * produced it via `failure_predictions.feature_snapshot_id`. Returns
+ * null when either the prediction or its snapshot is missing.
+ * Powers the "what features did this prediction see?" audit path
+ * without the caller having to walk two tables.
+ */
+export async function getFeaturesByPredictionId(
+  orgId: string,
+  predictionId: number
+): Promise<EquipmentFeature | null> {
+  const [pred] = await db
+    .select({ snapshotId: failurePredictions.featureSnapshotId })
+    .from(failurePredictions)
+    .where(
+      and(eq(failurePredictions.id, predictionId), eq(failurePredictions.orgId, orgId))
+    )
+    .limit(1);
+  if (!pred?.snapshotId) return null;
+  return getFeaturesBySnapshotId(orgId, pred.snapshotId);
+}
+
 export async function getFeaturesAsOf(
   orgId: string,
   equipmentId: string,

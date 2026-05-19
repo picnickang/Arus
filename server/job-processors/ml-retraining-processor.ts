@@ -64,12 +64,47 @@ export interface ModelRetrainJobResult {
   candidatesPromoted: number;
 }
 
-interface TrainerMetrics {
+export interface TrainerMetrics {
   mae?: number;
   productionMae?: number;
   psi?: number;
   artifactPath?: string;
   modelId?: string;
+}
+
+export interface PromotionGateDecision {
+  promote: boolean;
+  improvementPct?: number;
+  skipped?: string;
+}
+
+/** Push A1 — pure gate predicate, exported so the unit test can drive
+ *  it against the same code the weekly job runs (no logic drift). */
+export function evaluatePromotionGate(metrics: TrainerMetrics): PromotionGateDecision {
+  const improvementPct =
+    metrics.mae != null && metrics.productionMae != null && metrics.productionMae > 0
+      ? ((metrics.productionMae - metrics.mae) / metrics.productionMae) * 100
+      : undefined;
+  if (!metrics.modelId) {
+    return { promote: false, improvementPct, skipped: "trainer did not register a candidate model" };
+  }
+  const maeOk = improvementPct != null && improvementPct >= MIN_MAE_IMPROVEMENT_PCT;
+  if (!maeOk) {
+    return {
+      promote: false,
+      improvementPct,
+      skipped: `MAE improvement ${improvementPct?.toFixed(2)}% < ${MIN_MAE_IMPROVEMENT_PCT}%`,
+    };
+  }
+  const psiOk = metrics.psi == null || metrics.psi < MAX_PSI_FOR_PROMOTION;
+  if (!psiOk) {
+    return {
+      promote: false,
+      improvementPct,
+      skipped: `PSI ${metrics.psi?.toFixed(3)} >= ${MAX_PSI_FOR_PROMOTION}`,
+    };
+  }
+  return { promote: true, improvementPct };
 }
 
 async function fetchEligibleOutcomesCount(orgId: string, sinceMs: number): Promise<number> {
@@ -122,7 +157,7 @@ async function listEquipmentTypes(orgId: string): Promise<string[]> {
   }
 }
 
-function parseTrainerMetrics(stdout: string): TrainerMetrics {
+export function parseTrainerMetrics(stdout: string): TrainerMetrics {
   const metrics: TrainerMetrics = {};
   for (const line of stdout.split("\n")) {
     const trimmed = line.trim();
@@ -264,23 +299,12 @@ export async function processModelRetrain(
     for (const equipmentType of types) {
       const { stdout, code } = await runTrainer(orgId, equipmentType);
       const metrics = parseTrainerMetrics(stdout);
-      const improvement =
-        metrics.mae != null && metrics.productionMae != null && metrics.productionMae > 0
-          ? ((metrics.productionMae - metrics.mae) / metrics.productionMae) * 100
-          : undefined;
-      const psiOk = metrics.psi == null || metrics.psi < MAX_PSI_FOR_PROMOTION;
-      const maeOk = improvement != null && improvement >= MIN_MAE_IMPROVEMENT_PCT;
+      const gate = evaluatePromotionGate(metrics);
       let promoted = false;
-      let skipped: string | undefined;
+      let skipped: string | undefined = gate.skipped;
       if (code !== 0) {
         skipped = `trainer exit code ${code}`;
-      } else if (!metrics.modelId) {
-        skipped = "trainer did not register a candidate model";
-      } else if (!maeOk) {
-        skipped = `MAE improvement ${improvement?.toFixed(2)}% < ${MIN_MAE_IMPROVEMENT_PCT}%`;
-      } else if (!psiOk) {
-        skipped = `PSI ${metrics.psi?.toFixed(3)} >= ${MAX_PSI_FOR_PROMOTION}`;
-      } else {
+      } else if (gate.promote && metrics.modelId) {
         promoted = await attemptPromote(orgId, metrics.modelId, metrics, !!data.dryRun);
         if (promoted) candidatesPromoted += 1;
         else if (data.dryRun) skipped = "dryRun";
@@ -291,7 +315,7 @@ export async function processModelRetrain(
         outcomesUsed,
         candidateMae: metrics.mae,
         productionMae: metrics.productionMae,
-        maeImprovementPct: improvement,
+        maeImprovementPct: gate.improvementPct,
         candidatePsi: metrics.psi,
         artifactPath: metrics.artifactPath,
         trainerExitCode: code,
