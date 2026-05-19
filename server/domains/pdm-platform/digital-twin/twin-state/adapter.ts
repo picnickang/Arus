@@ -1,4 +1,4 @@
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, gte } from "drizzle-orm";
 import { db } from "../../../../db";
 import { assetTwinState, type AssetTwinState, type InsertAssetTwinState } from "@shared/schema";
 import type { TwinStatePort } from "./ports";
@@ -14,11 +14,18 @@ export class TwinStateAdapter implements TwinStatePort {
     return result ?? null;
   }
 
-  async getStateHistory(orgId: string, twinId: string, limit = 100): Promise<AssetTwinState[]> {
+  async getStateHistory(
+    orgId: string,
+    twinId: string,
+    limit = 100,
+    since?: Date
+  ): Promise<AssetTwinState[]> {
+    const conditions = [eq(assetTwinState.orgId, orgId), eq(assetTwinState.twinId, twinId)];
+    if (since) conditions.push(gte(assetTwinState.timestamp, since));
     return db
       .select()
       .from(assetTwinState)
-      .where(and(eq(assetTwinState.orgId, orgId), eq(assetTwinState.twinId, twinId)))
+      .where(and(...conditions))
       .orderBy(desc(assetTwinState.timestamp))
       .limit(limit);
   }

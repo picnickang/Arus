@@ -92,13 +92,24 @@ export default function Vessel3DPage() {
     return twins.filter((t) => wanted.has(t.equipmentId));
   }, [twinsQuery.data, pins]);
 
+  // Replay window: cover the full scrubber range (6h) by timestamp, not by
+  // sample count, so we don't silently truncate when telemetry is high-rate.
+  // Bumped to 7h to give the nearest-snapshot picker some headroom at the
+  // edge, and capped at 5000 rows per twin as a safety limit.
+  const REPLAY_HOURS = 7;
+  const sinceIso = useMemo(
+    () => new Date(Date.now() - REPLAY_HOURS * 3600 * 1000).toISOString(),
+    // Pin the window for the page-lifetime so cache keys stay stable while
+    // the scrubber moves; refreshes naturally on remount.
+    []
+  );
   const historyQueries = useQueries({
     queries: pinnedTwins.map((twin) => ({
-      queryKey: ["/api/pdm/twin/state/history", twin.id, { limit: 120 }],
+      queryKey: ["/api/pdm/twin/state/history", twin.id, { since: sinceIso }],
       queryFn: async () => {
         const arr = await apiRequest<AssetTwinState[]>(
           "GET",
-          `/api/pdm/twin/state/history/${encodeURIComponent(twin.id)}?limit=120`
+          `/api/pdm/twin/state/history/${encodeURIComponent(twin.id)}?since=${encodeURIComponent(sinceIso)}&limit=5000`
         );
         return { twinId: twin.id, equipmentId: twin.equipmentId, history: arr };
       },

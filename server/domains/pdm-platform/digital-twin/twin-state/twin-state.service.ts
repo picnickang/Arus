@@ -119,8 +119,13 @@ export class TwinStateService {
     return this.statePort.getLatestState(orgId, twinId);
   }
 
-  async getStateHistory(orgId: string, twinId: string, limit?: number): Promise<AssetTwinState[]> {
-    return this.statePort.getStateHistory(orgId, twinId, limit);
+  async getStateHistory(
+    orgId: string,
+    twinId: string,
+    limit?: number,
+    since?: Date
+  ): Promise<AssetTwinState[]> {
+    return this.statePort.getStateHistory(orgId, twinId, limit, since);
   }
 
   private computeHealthScore(

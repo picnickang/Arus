@@ -48,7 +48,10 @@ router.get("/latest/:twinId", async (req: Request, res: Response) => {
 });
 
 const historyQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(1000).optional(),
+  limit: z.coerce.number().int().min(1).max(5000).optional(),
+  // ISO timestamp — return only snapshots at/after this point. Used by the
+  // 3D twin viewer's replay scrubber to cap the window to last N hours.
+  since: z.string().datetime().optional(),
 });
 
 router.get("/history/:twinId", async (req: Request, res: Response) => {
@@ -57,7 +60,8 @@ router.get("/history/:twinId", async (req: Request, res: Response) => {
     const { twinId } = req.params;
     const parsed = historyQuerySchema.safeParse(req.query);
     const limit = parsed.success ? parsed.data.limit : undefined;
-    const result = await stateService.getStateHistory(orgId, twinId, limit);
+    const since = parsed.success && parsed.data.since ? new Date(parsed.data.since) : undefined;
+    const result = await stateService.getStateHistory(orgId, twinId, limit, since);
     res.json(result);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
