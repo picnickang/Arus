@@ -13,6 +13,7 @@ export {
   initializeJobQueue,
   initializeMLServices,
   applyTimescaleOptimizations,
+  applyGraphBootstrap,
   startSyncServices,
   initializeTelemetryBatchWriter,
   initializeAutoReplanPolicy,

@@ -224,10 +224,18 @@ export async function applyTimescaleOptimizations(isLocalMode: boolean): Promise
   } catch (error) {
     logger.warn("⚠️  TimescaleDB bootstrap failed (non-critical):", { details: error });
   }
+}
 
-  // Push A2 — Knowledge graph bootstrap. Opt-in via GRAPH_ENABLED, falls
-  // back to no-op when the Apache AGE extension is unavailable so the
-  // app keeps booting on managed-Postgres deployments without it.
+/**
+ * Push A2 — Knowledge graph bootstrap. Decoupled from the Timescale
+ * gate (reviewer's sixth-pass non-blocking comment): graph runs on
+ * local PG too as long as `DATABASE_URL` is set and `GRAPH_ENABLED`
+ * opt-in is on. Falls back to no-op when the Apache AGE extension
+ * is unavailable so the app keeps booting on managed-Postgres
+ * deployments without it.
+ */
+export async function applyGraphBootstrap(): Promise<void> {
+  if (!process.env.DATABASE_URL) return;
   try {
     const { runGraphBootstrap } = await import("../graph-bootstrap");
     await runGraphBootstrap();

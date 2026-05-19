@@ -30,6 +30,7 @@ import {
   initializeJobQueue,
   initializeMLServices,
   applyTimescaleOptimizations,
+  applyGraphBootstrap,
   startSyncServices,
   initializeTelemetryBatchWriter,
   initializeAutoReplanPolicy,
@@ -189,6 +190,15 @@ if (!isInitDbMode && !isHealthCheckMode) {
         await applyTimescaleOptimizations(localModeFlag);
       } catch (e: any) {
         logger.warn("⚠️ TimescaleDB optimizations skipped:", { details: e.message });
+      }
+
+      // Push A2 — Knowledge graph bootstrap runs independently of
+      // the Timescale gate (reviewer's sixth-pass comment) so local
+      // PG + AGE testing works without Timescale being enabled.
+      try {
+        await applyGraphBootstrap();
+      } catch (e: any) {
+        logger.warn("⚠️ Knowledge graph bootstrap skipped:", { details: e.message });
       }
 
       try {

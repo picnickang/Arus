@@ -47,8 +47,13 @@ registerTool({
   requiresApproval: false,
   async execute(input: any, ctx: any) {
     if (isGraphAvailable()) {
+      // Fall back to relational ONLY when the graph is unavailable
+      // (env-gated off / extension missing). An EMPTY graph result
+      // is the correct authoritative answer when the graph is up —
+      // falling through to relational here would mask graph drift
+      // (reviewer's sixth-pass non-blocking comment).
       const rows = await graphFindSimilarFailures(ctx.orgId, input.equipmentId);
-      if (rows.length > 0) return { source: "graph", results: rows };
+      return { source: "graph", results: rows };
     }
     // Relational fallback — same business question via JOIN.
     const [src] = await db
@@ -88,23 +93,38 @@ registerTool({
   category: "inventory",
   riskLevel: "read",
   description:
-    "Given a failure mode LABEL (string, e.g. 'vibration', 'bearing-wear' — the canonical text stored in failure_history.failure_mode, NOT a numeric id), return the parts historically consumed when that failure was repaired, ranked by usage count. Only forward-consumption movements ('reserve'/'consume') are counted; release/return reversals are excluded. Use when answering 'what parts do I need when this failure appears?'.",
+    "Given a failure mode LABEL (string, e.g. 'vibration', 'bearing-wear' — the canonical text stored in failure_history.failure_mode, NOT a numeric id), return the parts historically consumed when that failure was repaired, ranked by usage count. Only forward-consumption movements ('reserve'/'consume') are counted; release/return reversals are excluded. Use when answering 'what parts do I need when this failure appears?'. Accepts either `failureMode` (preferred) or `failureModeId` (alias, same string label) for compatibility with callers that name the slot by id.",
   parameters: {
     type: "object",
     properties: {
       failureMode: {
         type: "string",
-        description: "Failure mode label (string, not id) — matches failure_history.failure_mode exactly",
+        description: "Failure mode label (string, not numeric id) — matches failure_history.failure_mode exactly",
+      },
+      failureModeId: {
+        type: "string",
+        description: "Alias for `failureMode`. Same string label; provided so callers that name the slot 'id' still resolve.",
       },
     },
-    required: ["failureMode"],
   },
-  inputSchema: z.object({ failureMode: z.string().min(1) }),
+  // Accept either spelling; require at least one. Normalised below
+  // to a single `failureMode` string before the graph/relational call.
+  inputSchema: z
+    .object({
+      failureMode: z.string().min(1).optional(),
+      failureModeId: z.string().min(1).optional(),
+    })
+    .refine((v) => !!(v.failureMode ?? v.failureModeId), {
+      message: "failureMode (or failureModeId alias) is required",
+    }),
   requiresApproval: false,
   async execute(input: any, ctx: any) {
+    const failureMode: string = input.failureMode ?? input.failureModeId;
     if (isGraphAvailable()) {
-      const rows = await graphWhatPartsForFailureMode(ctx.orgId, input.failureMode);
-      if (rows.length > 0) return { source: "graph", results: rows };
+      // Same fallback policy as findSimilarFailures: empty graph
+      // result is authoritative when the graph is up.
+      const rows = await graphWhatPartsForFailureMode(ctx.orgId, failureMode);
+      return { source: "graph", results: rows };
     }
     const woIds = (
       await db
@@ -113,7 +133,7 @@ registerTool({
         .where(
           and(
             eq(failureHistory.orgId, ctx.orgId),
-            eq(failureHistory.failureMode, input.failureMode)
+            eq(failureHistory.failureMode, failureMode)
           )
         )
     )
