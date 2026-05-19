@@ -31,6 +31,7 @@ import { Vessel } from "@shared/schema";
 import {
   AlertTriangle,
   Download,
+  Box,
   Eye,
   Pencil,
   Plus,
@@ -344,6 +345,16 @@ export default function VesselManagement() {
                 >
                   <Eye className="h-4 w-4" />
                 </Button>
+                <Link href={`/vessels/${vessel.id}/3d`}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    data-testid={`button-view-3d-${vessel.id}`}
+                    title="Open 3D digital twin"
+                  >
+                    <Box className="h-4 w-4" />
+                  </Button>
+                </Link>
                 <Button
                   variant="outline"
                   size="sm"
