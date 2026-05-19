@@ -16,7 +16,10 @@ interface FFTUtils {
   fftMag: (phasors: [number, number][]) => number[];
   fftFreq: (phasors: [number, number][], sampleRate: number) => number[];
 }
-const fftjs = require("fft-js") as {
+// ESM-safe import of the CJS `fft-js` package. With esModuleInterop the
+// default import returns `module.exports`, which is `{ fft, ifft, util, … }`.
+import fftjsDefault from "fft-js";
+const fftjs = fftjsDefault as unknown as {
   fft: (signal: number[]) => [number, number][];
   util: FFTUtils;
 };

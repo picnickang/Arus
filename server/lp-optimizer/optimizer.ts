@@ -2,8 +2,22 @@
  * LP Optimizer - Main Optimizer Class
  */
 
-const solver: any = require("javascript-lp-solver");
+import solverDefault from "javascript-lp-solver";
 import type { OptimizationConstraints, OptimizationResult } from "./types.js";
+// ESM-safe wrapper: the package is CJS and `module.exports` is an object
+// of named entries (Model, Solve, Constraint, …). With esModuleInterop the
+// default import returns that object.
+//
+// IMPORTANT: the package exports `Solve` (capital S), not `solve`. Older
+// branches of this codebase called `solver.solve(...)`, which silently
+// resolved to `undefined` and threw "TypeError: not a function" the first
+// time an optimization actually ran. We normalize here by preferring the
+// canonical `Solve` and falling back to a lowercase alias if a future
+// version of the package adds one — this keeps the call sites readable
+// (`solver.solve(...)`) while routing to the correct underlying function.
+const solver: { solve: (...args: any[]) => any } = {
+  solve: (solverDefault as any).Solve ?? (solverDefault as any).solve,
+};
 import { getPendingMaintenanceJobs, getPartsAvailability } from "./job-loader.js";
 import { formulateLinearProgram, relaxConstraints, processSolution } from "./lp-formulation.js";
 import { createEmptyResult } from "./estimation-helpers.js";
