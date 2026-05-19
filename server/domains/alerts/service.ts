@@ -17,6 +17,18 @@ import { incrementAlertAcknowledged } from "../../observability";
 import { logger } from "../../utils/logger.js";
 
 /**
+ * Minimal contract the alerts service needs from the WebSocket server.
+ * Kept structural so the existing concrete implementation in
+ * `server/websocket-*` continues to satisfy it without modification.
+ */
+export interface AlertsWsBroadcaster {
+  broadcastAlert: (alert: AlertNotification) => void;
+  broadcastAlertAcknowledged: (id: string, acknowledgedBy: string) => void;
+  broadcastAlertSuppression: (suppression: AlertSuppression) => void;
+  broadcastToAll: (message: { type: string; [key: string]: unknown }) => void;
+}
+
+/**
  * Alerts Service
  * Handles business logic, orchestration, and event publishing for alerts domain
  */
@@ -113,7 +125,7 @@ export class AlertsService {
   async createNotification(
     notification: InsertAlertNotification,
     userId?: string,
-    wsServerInstance?: any
+    wsServerInstance?: AlertsWsBroadcaster
   ): Promise<AlertNotification> {
     // Create notification
     const alertNotification = await alertsRepository.createNotification(notification);
@@ -147,7 +159,7 @@ export class AlertsService {
     id: string,
     acknowledgedBy: string,
     userId?: string,
-    wsServerInstance?: any
+    wsServerInstance?: AlertsWsBroadcaster
   ): Promise<AlertNotification> {
     // Acknowledge notification
     const notification = await alertsRepository.acknowledgeNotification(id, acknowledgedBy);
@@ -197,7 +209,7 @@ export class AlertsService {
   async createSuppression(
     suppressionData: InsertAlertSuppression,
     userId?: string,
-    wsServerInstance?: any
+    wsServerInstance?: AlertsWsBroadcaster
   ): Promise<AlertSuppression> {
     const suppression = await alertsRepository.createSuppression(suppressionData);
 
@@ -279,7 +291,7 @@ export class AlertsService {
     await recordAndPublish(
       "alert_notification",
       alertId,
-      "escalate" as any,
+      "escalate" as Parameters<typeof recordAndPublish>[2],
       {
         alertId,
         workOrderId: workOrder.id,
@@ -294,7 +306,10 @@ export class AlertsService {
   /**
    * Clear all alerts and notifications with WebSocket broadcast
    */
-  async deleteAllNotifications(userId?: string, wsServerInstance?: any): Promise<void> {
+  async deleteAllNotifications(
+    userId?: string,
+    wsServerInstance?: AlertsWsBroadcaster
+  ): Promise<void> {
     await alertsRepository.deleteAllNotifications();
 
     // Broadcast clear all alerts via WebSocket

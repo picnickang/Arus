@@ -19,11 +19,35 @@
 
 import { sql } from "drizzle-orm";
 import { z } from "zod";
+import type { RequestHandler } from "express";
 import { db } from "../../../db-config";
 import { TenantDeleteService } from "../../gdpr/tenant-delete-service";
 import { TENANT_TABLE_NAMES } from "../../../tenancy/tenant-tables";
 import { createLogger } from "../../../lib/structured-logger";
+import type { AuthenticatedRequest } from "../../../middleware/auth";
 import type { Express, SystemAdminDependencies } from "./types.js";
+
+// SystemAdminDependencies declares admin middleware with `unknown` req/res to
+// avoid pulling express types into the dependency surface. Cast them back to
+// RequestHandler at the registration boundary so the Express router accepts
+// them without leaking `any`.
+type AdminHandler = RequestHandler;
+
+interface PgExecResult {
+  rows?: unknown[];
+  [key: string]: unknown;
+}
+
+interface TenantRow {
+  id: string;
+  name: string;
+  slug: string | null;
+  suspended_at: string | null;
+  suspension_reason: string | null;
+  max_storage_bytes: number | null;
+  max_equipment_count: number | null;
+  max_telemetry_rows_per_day: number | null;
+}
 
 const logger = createLogger("SystemAdmin:TenantRoutes");
 
@@ -60,20 +84,22 @@ export function registerTenantRoutes(
   app.get(
     "/api/admin/tenants",
     criticalOperationRateLimit,
-    requireAdminAuth as any,
+    requireAdminAuth as AdminHandler,
     async (_req, res) => {
       try {
-        const result: any = await db.execute(
+        const result = (await db.execute(
           sql`SELECT o.id, o.name, o.slug, o.suspended_at, o.suspension_reason,
                      q.max_storage_bytes, q.max_equipment_count,
                      q.max_telemetry_rows_per_day
               FROM organizations o
               LEFT JOIN tenant_quotas q ON q.org_id = o.id
               ORDER BY o.id`
-        );
-        const rows: any[] = Array.isArray(result) ? result : result?.rows ?? [];
+        )) as unknown as PgExecResult | TenantRow[];
+        const rows: TenantRow[] = Array.isArray(result)
+          ? (result as TenantRow[])
+          : ((result as PgExecResult).rows as TenantRow[] | undefined) ?? [];
         res.json({ tenants: rows });
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error("List tenants failed", undefined, err);
         res
           .status(500)
@@ -86,8 +112,8 @@ export function registerTenantRoutes(
   app.post(
     "/api/admin/tenants",
     criticalOperationRateLimit,
-    requireAdminAuth as any,
-    auditAdminAction("tenant_provision") as any,
+    requireAdminAuth as AdminHandler,
+    auditAdminAction("tenant_provision") as AdminHandler,
     async (req, res) => {
       const parsed = provisionSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -121,7 +147,7 @@ export function registerTenantRoutes(
         });
         logger.info("Provisioned tenant", { orgId: t.id });
         res.status(201).json({ orgId: t.id, status: "provisioned" });
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error("Provision tenant failed", undefined, err);
         res.status(500).json({
           error: "Failed to provision tenant",
@@ -135,8 +161,8 @@ export function registerTenantRoutes(
   app.patch(
     "/api/admin/tenants/:orgId/suspend",
     criticalOperationRateLimit,
-    requireAdminAuth as any,
-    auditAdminAction("tenant_suspend") as any,
+    requireAdminAuth as AdminHandler,
+    auditAdminAction("tenant_suspend") as AdminHandler,
     async (req, res) => {
       const parsed = suspendSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -151,7 +177,7 @@ export function registerTenantRoutes(
               WHERE id = ${req.params.orgId}`
         );
         res.json({ orgId: req.params.orgId, suspended: true });
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error("Suspend tenant failed", undefined, err);
         res
           .status(500)
@@ -163,8 +189,8 @@ export function registerTenantRoutes(
   app.patch(
     "/api/admin/tenants/:orgId/unsuspend",
     criticalOperationRateLimit,
-    requireAdminAuth as any,
-    auditAdminAction("tenant_unsuspend") as any,
+    requireAdminAuth as AdminHandler,
+    auditAdminAction("tenant_unsuspend") as AdminHandler,
     async (req, res) => {
       try {
         await db.execute(
@@ -173,7 +199,7 @@ export function registerTenantRoutes(
               WHERE id = ${req.params.orgId}`
         );
         res.json({ orgId: req.params.orgId, suspended: false });
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error("Unsuspend tenant failed", undefined, err);
         res.status(500).json({
           error: "Failed to unsuspend tenant",
@@ -187,8 +213,8 @@ export function registerTenantRoutes(
   app.delete(
     "/api/admin/tenants/:orgId",
     criticalOperationRateLimit,
-    requireAdminAuth as any,
-    auditAdminAction("tenant_delete") as any,
+    requireAdminAuth as AdminHandler,
+    auditAdminAction("tenant_delete") as AdminHandler,
     async (req, res) => {
       const parsed = deleteSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -199,7 +225,7 @@ export function registerTenantRoutes(
         });
       }
       try {
-        const adminId = (req as any).user?.id ?? "admin";
+        const adminId = (req as AuthenticatedRequest).user?.id ?? "admin";
         // Fail-closed: in production we refuse to mint a deletion
         // certificate without an explicit signing secret — the dev
         // fallback would silently produce non-verifiable certs.
@@ -221,7 +247,10 @@ export function registerTenantRoutes(
           );
         }
         const service = new TenantDeleteService({
-          db: db as any,
+          // TenantDeleteService accepts the same drizzle handle the rest of
+          // the server uses; the constructor's `db` parameter is intentionally
+          // typed loosely so it can also accept a transaction inside tests.
+          db: db as unknown as ConstructorParameters<typeof TenantDeleteService>[0]["db"],
           tables: TENANT_TABLE_NAMES.map((table) => ({ table })),
           signingSecret:
             signingSecret ?? "dev-only-fallback-secret-do-not-use-in-prod",
@@ -236,12 +265,12 @@ export function registerTenantRoutes(
           certificateId: result.certificate.certificateId,
         });
         res.json({ status: "deleted", ...result });
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error("Delete tenant failed", undefined, err);
         res.status(500).json({
           error: "Failed to delete tenant",
           code: "TENANT_DELETE_FAILED",
-          message: err?.message,
+          message: err instanceof Error ? err.message : undefined,
         });
       }
     }

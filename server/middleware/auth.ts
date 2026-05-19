@@ -57,18 +57,20 @@ export async function requireOrgId(req: Request, res: Response, next: NextFuncti
   const authReq = req as AuthenticatedRequest;
 
   if (!authReq.user) {
-    return res.status(401).json({
+    res.status(401).json({
       message: "Authentication required",
       code: "UNAUTHENTICATED",
-    }) as any;
+    });
+    return;
   }
 
   const { orgId, error } = resolveOrgId(authReq);
   if (error || !orgId) {
-    return res.status(401).json({
+    res.status(401).json({
       message: "Authenticated user has no organization claim",
       code: error ?? "TENANT_CLAIM_MISSING",
-    }) as any;
+    });
+    return;
   }
 
   authReq.orgId = orgId;
@@ -87,18 +89,20 @@ export async function requireOrgIdAndValidateBody(
   const authReq = req as AuthenticatedRequest;
 
   if (!authReq.user) {
-    return res.status(401).json({
+    res.status(401).json({
       message: "Authentication required",
       code: "UNAUTHENTICATED",
-    }) as any;
+    });
+    return;
   }
 
   const { orgId, error } = resolveOrgId(authReq);
   if (error || !orgId) {
-    return res.status(401).json({
+    res.status(401).json({
       message: "Authenticated user has no organization claim",
       code: error ?? "TENANT_CLAIM_MISSING",
-    }) as any;
+    });
+    return;
   }
 
   authReq.orgId = orgId;

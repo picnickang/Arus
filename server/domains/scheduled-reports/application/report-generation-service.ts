@@ -214,7 +214,12 @@ export class ReportGenerationService {
 
     switch (reportType) {
       case "fleet_health": {
-        const healthData = data as any;
+        const healthData = data as {
+          vessels?: unknown[];
+          criticalEquipment?: unknown[];
+          upcomingMaintenance?: unknown[];
+          overallScore?: number | string;
+        };
         if (healthData.vessels) {
           sections.push({
             title: "Vessel Health Overview",
@@ -222,14 +227,14 @@ export class ReportGenerationService {
             data: healthData.vessels,
           });
         }
-        if (healthData.criticalEquipment?.length > 0) {
+        if ((healthData.criticalEquipment?.length ?? 0) > 0) {
           sections.push({
             title: "Critical Equipment Alerts",
             type: "table",
             data: healthData.criticalEquipment,
           });
         }
-        if (healthData.upcomingMaintenance?.length > 0) {
+        if ((healthData.upcomingMaintenance?.length ?? 0) > 0) {
           sections.push({
             title: "Upcoming Maintenance",
             type: "table",
@@ -248,15 +253,19 @@ export class ReportGenerationService {
         break;
 
       case "inventory_status": {
-        const invData = data as any;
-        if (invData.lowStockItems?.length > 0) {
+        const invData = data as {
+          lowStockItems?: unknown[];
+          vesselBreakdown?: unknown[];
+          reorderRequired?: number;
+        };
+        if ((invData.lowStockItems?.length ?? 0) > 0) {
           sections.push({
             title: "Low Stock Items",
             type: "table",
             data: invData.lowStockItems,
           });
         }
-        if (invData.vesselBreakdown?.length > 0) {
+        if ((invData.vesselBreakdown?.length ?? 0) > 0) {
           sections.push({
             title: "Inventory by Vessel",
             type: "table",
@@ -267,15 +276,19 @@ export class ReportGenerationService {
       }
 
       case "crew_compliance": {
-        const crewData = data as any;
-        if (crewData.expiringCertifications?.length > 0) {
+        const crewData = data as {
+          expiringCertifications?: unknown[];
+          hoursOfRestViolations?: unknown[];
+          complianceScore?: number | string;
+        };
+        if ((crewData.expiringCertifications?.length ?? 0) > 0) {
           sections.push({
             title: "Expiring Certifications",
             type: "table",
             data: crewData.expiringCertifications,
           });
         }
-        if (crewData.hoursOfRestViolations?.length > 0) {
+        if ((crewData.hoursOfRestViolations?.length ?? 0) > 0) {
           sections.push({
             title: "Hours of Rest Violations",
             type: "table",
@@ -286,7 +299,11 @@ export class ReportGenerationService {
       }
 
       case "cost_summary": {
-        const costData = data as any;
+        const costData = data as {
+          totalMaintenanceCost?: number;
+          savingsFromPredictive?: number;
+          costByVessel?: unknown[];
+        };
         sections.push({
           title: "Cost Overview",
           type: "text",
@@ -295,7 +312,7 @@ export class ReportGenerationService {
             savings: costData.savingsFromPredictive,
           },
         });
-        if (costData.costByVessel?.length > 0) {
+        if ((costData.costByVessel?.length ?? 0) > 0) {
           sections.push({
             title: "Cost by Vessel",
             type: "table",
@@ -320,7 +337,11 @@ export class ReportGenerationService {
 
     switch (reportType) {
       case "fleet_health": {
-        const healthData = data as any;
+        const healthData = data as {
+          vessels?: unknown[];
+          criticalEquipment?: unknown[];
+          overallScore?: number | string;
+        };
         summary.totalItems = healthData.vessels?.length || 0;
         summary.criticalCount = healthData.criticalEquipment?.length || 0;
         summary.highlights.push(`Overall fleet health score: ${healthData.overallScore || "N/A"}%`);
@@ -328,7 +349,10 @@ export class ReportGenerationService {
       }
 
       case "inventory_status": {
-        const invData = data as any;
+        const invData = data as {
+          lowStockItems?: unknown[];
+          reorderRequired?: number;
+        };
         summary.totalItems = invData.lowStockItems?.length || 0;
         summary.criticalCount = invData.reorderRequired || 0;
         summary.highlights.push(`${summary.criticalCount} items require reorder`);
@@ -336,7 +360,11 @@ export class ReportGenerationService {
       }
 
       case "crew_compliance": {
-        const crewData = data as any;
+        const crewData = data as {
+          expiringCertifications?: unknown[];
+          hoursOfRestViolations?: unknown[];
+          complianceScore?: number | string;
+        };
         summary.criticalCount = crewData.expiringCertifications?.length || 0;
         summary.warningCount = crewData.hoursOfRestViolations?.length || 0;
         summary.highlights.push(`Compliance score: ${crewData.complianceScore || "N/A"}%`);
