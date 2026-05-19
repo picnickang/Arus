@@ -142,16 +142,24 @@ router.post(
         return res.status(404).json({ error: "Vessel not found" });
       }
 
-      // Parse optional equipment pins from JSON body field.
+      // Parse optional equipment pins from JSON body field. Reject malformed
+      // input with 400 so admins notice typos instead of silently shipping
+      // an empty pin set.
       let pins: EquipmentPin[] = [];
-      if (typeof req.body?.equipmentPins === "string") {
+      if (typeof req.body?.equipmentPins === "string" && req.body.equipmentPins.length > 0) {
+        let parsed: unknown;
         try {
-          const parsed: unknown = JSON.parse(req.body.equipmentPins);
-          const v = z.array(equipmentPinSchema).max(2000).safeParse(parsed);
-          if (v.success) pins = v.data;
+          parsed = JSON.parse(req.body.equipmentPins);
         } catch {
-          // ignore malformed pins on initial upload
+          try { fs.unlinkSync(file.path); } catch { /* noop */ }
+          return res.status(400).json({ error: "equipmentPins is not valid JSON" });
         }
+        const v = z.array(equipmentPinSchema).max(2000).safeParse(parsed);
+        if (!v.success) {
+          try { fs.unlinkSync(file.path); } catch { /* noop */ }
+          return res.status(400).json({ error: v.error.flatten().fieldErrors });
+        }
+        pins = v.data;
       }
 
       const [row] = await db
