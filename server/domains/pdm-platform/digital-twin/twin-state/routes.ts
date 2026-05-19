@@ -59,8 +59,13 @@ router.get("/history/:twinId", async (req: Request, res: Response) => {
     const orgId = DEFAULT_ORG_ID;
     const { twinId } = req.params;
     const parsed = historyQuerySchema.safeParse(req.query);
-    const limit = parsed.success ? parsed.data.limit : undefined;
-    const since = parsed.success && parsed.data.since ? new Date(parsed.data.since) : undefined;
+    if (!parsed.success) {
+      // Reject bad query params explicitly so callers cannot trigger an
+      // accidentally-unbounded scan by malforming `since` or `limit`.
+      return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+    }
+    const limit = parsed.data.limit;
+    const since = parsed.data.since ? new Date(parsed.data.since) : undefined;
     const result = await stateService.getStateHistory(orgId, twinId, limit, since);
     res.json(result);
   } catch (error: any) {

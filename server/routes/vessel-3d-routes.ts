@@ -112,6 +112,22 @@ router.post(
       const file = req.file;
       if (!file) return res.status(400).json({ error: "No file uploaded" });
 
+      // Magic-byte check: GLB files start with ASCII "glTF" (0x67 0x6C 0x54 0x46).
+      // Extension alone is spoofable; verify the on-disk bytes before trusting it.
+      try {
+        const fd = fs.openSync(file.path, "r");
+        const header = Buffer.alloc(4);
+        fs.readSync(fd, header, 0, 4, 0);
+        fs.closeSync(fd);
+        if (header.toString("ascii") !== "glTF") {
+          try { fs.unlinkSync(file.path); } catch { /* noop */ }
+          return res.status(400).json({ error: "File is not a valid GLB (missing glTF magic header)" });
+        }
+      } catch (err) {
+        try { fs.unlinkSync(file.path); } catch { /* noop */ }
+        return res.status(400).json({ error: "Could not read uploaded file" });
+      }
+
       // Verify vessel belongs to org.
       const [vessel] = await db
         .select({ id: vessels.id })
@@ -141,7 +157,10 @@ router.post(
           orgId,
           vesselId,
           filename: file.originalname,
-          mimetype: file.mimetype,
+          // Canonicalise to the GLB spec mime; the uploaded mimetype is
+          // advisory and varies by client. We've already verified the magic
+          // header so it's safe to assert this on serve.
+          mimetype: "model/gltf-binary",
           sizeBytes: file.size,
           storedPath: file.path,
           equipmentPins: pins,
@@ -197,7 +216,10 @@ router.get("/vessels/3d-model/:modelId/binary", async (req: Request, res: Respon
     if (!fs.existsSync(resolved)) {
       return res.status(410).json({ error: "Stored file missing" });
     }
-    res.setHeader("Content-Type", row.mimetype || "application/octet-stream");
+    // Always serve as the canonical GLB mime — extension/file metadata is
+    // not trusted on the wire.
+    res.setHeader("Content-Type", "model/gltf-binary");
+    res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Content-Length", String(row.sizeBytes));
     res.setHeader("Cache-Control", "private, max-age=300");
     fs.createReadStream(resolved).pipe(res);
