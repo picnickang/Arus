@@ -159,32 +159,50 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
 
   async scoreFeatures(context: InferenceContext): Promise<PredictionScore> {
     const artifact = await this.resolveArtifact(context);
+
+    // No deployed ONNX model resolvable — heuristic is sole production.
+    // Still route through serveWithShadowOrCanary (pure-production
+    // mode) so every inference passes through the Wave 3.3 contract.
     if (!artifact) {
-      // No deployed ONNX model resolvable — heuristic is sole production.
-      return this.heuristic.scoreFeatures(context);
+      const result = await serveWithShadowOrCanary<PredictionScore>({
+        productionModelId: "heuristic-baseline",
+        productionPredict: () => this.heuristic.scoreFeatures(context),
+      });
+      return result.result;
     }
+
     const onnx = this.getAdapter(artifact.artifactPath);
 
     if (this.mode === "live") {
-      // Deployed ONNX IS production. Heuristic only catches hard
-      // failures (artifact corrupt, runtime crash) so the user never
-      // sees an exception — but every successful call is real-model.
-      try {
-        return await onnx.scoreFeatures(context);
-      } catch (err) {
-        logger.warn("Deployed ONNX scoring failed — heuristic fallback", {
-          modelVersionId: context.modelVersionId,
-          modelId: artifact.modelId,
-          err: err instanceof Error ? err.message : String(err),
-        });
-        return this.heuristic.scoreFeatures(context);
-      }
+      // Deployed ONNX IS production. The wrapped productionPredict
+      // calls ONNX first and falls back to heuristic ONLY on a hard
+      // failure (artifact corrupt / runtime crash) so users never see
+      // an exception. We still go through serveWithShadowOrCanary so
+      // metrics + the candidate-failure-isolation contract apply
+      // uniformly across all serving paths (Wave 3.3).
+      const productionPredict = async (): Promise<PredictionScore> => {
+        try {
+          return await onnx.scoreFeatures(context);
+        } catch (err) {
+          logger.warn("Deployed ONNX scoring failed — heuristic fallback", {
+            modelVersionId: context.modelVersionId,
+            modelId: artifact.modelId,
+            err: err instanceof Error ? err.message : String(err),
+          });
+          return this.heuristic.scoreFeatures(context);
+        }
+      };
+      const result = await serveWithShadowOrCanary<PredictionScore>({
+        productionModelId: artifact.modelId,
+        productionPredict,
+      });
+      return result.result;
     }
 
     // Observation modes (operator-led pre-rollout): deployed ONNX is
-    // the *candidate*, heuristic is *production*. Switches semantics
-    // back to the Wave 3.3 substrate so operators can A/B / divergence-
-    // test before flipping PDM_ONNX_MODE=live.
+    // the *candidate*, heuristic is *production*. This is the
+    // canonical Wave 3.3 substrate used for A/B / divergence-testing
+    // BEFORE flipping PDM_ONNX_MODE=live.
     const result = await serveWithShadowOrCanary<PredictionScore>({
       productionModelId: "heuristic-baseline",
       candidateModelId: artifact.modelId,
