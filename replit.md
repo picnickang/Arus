@@ -50,6 +50,28 @@ Implemented with Express.js and TypeScript, providing RESTful APIs with Zod vali
 -   **Prediction Lineage**: Tracks `modelVersionId`, `featureSetVersion`, `featureSnapshotId` for audit and reproducibility.
 -   **API Response Contracts**: `validateResponse<T>` outbound response validation against Zod schemas with drift tolerance.
 -   **Structured Logging**: `server/lib/structured-logger.ts` — leveled (debug/info/warn/error), auto-enriches with correlation and request context.
+-   **Push A1 — Real PdM Inference**: Python XGBoost trainer
+    (`scripts/ml/python/train_xgb.py`) exports ONNX (serving) +
+    native UBJ (TreeSHAP) per `(orgId, equipmentType)`, registers an
+    `ml_models` row with `artifactPath`/`nativeArtifactPath` in
+    `training_metrics`. Inference resolves the deployed artifact via
+    `PredictionEngineService.resolveActiveVersion()` (reads `ml_models`
+    by `orgId` + equipment type + `status='deployed'`) and serves it
+    through `ModelBackedInferenceRunner` (`onnxruntime-node`) behind
+    `serveWithShadowOrCanary` so candidate failures never reach users.
+    `/ml/models/:id/promote` and `/rollback` mutate the same rows the
+    runtime reads — closed loop. TreeSHAP via Python sidecar
+    (`server/ml-explainability-python-shap.ts`, gated `ML_PYTHON_SHAP=1`)
+    loads the deployed UBJ directly; permutation fallback in
+    `prediction-engine.service.ts` scores against the same
+    `modelVersionId` so attributions stay tied to the deployed model.
+    Bearing+pump retrains HARD-FAIL when Python is unavailable
+    (`scripts/ml/train-model-sidecar.mjs`) rather than silently
+    downgrading to the calibration baseline. **Client-side ONNX
+    (`onnxruntime-web`) is intentionally NOT in A1** — A1 is
+    server-authoritative so promotion/rollback and audit trail live
+    in one place; client inference is deferred to A3 where offline
+    PWA scoring becomes relevant.
 -   **Workflow-Hexagonal Boundary**: Workflow Attention domain consumes other domains via four narrow ports in `server/domains/workflow/domain/ports.ts`. Real adapters wired in `server/composition/workflow-attention-sources.ts` and injected via the `createAttentionWorkflowService(sources)` factory. Setup route delegates admin-settings I/O to `server/domains/system-admin/application/setup-bootstrap-service.ts`. Enforced by `npm run check:domain-leaks`.
 -   **Operational Workflow Layer**: Action-oriented layer including unified `/attention-inbox`, Operations Command Center, role-based "Today" panels, `WorkOrderCloseoutWizard` (work performed / cause / parts / labour / verification / PdM feedback), `/offline-outbox` page for queued mutations / conflicts / retries, `/equipment-scan` QR/text lookup (with optional `BarcodeDetector`), PdM decision-summary on schedule task detail. Legacy paths redirect to canonical routes via `buildRedirectTarget` in `client/src/App.tsx`. The shared API client queues mutating requests in an offline outbox and replays on connectivity return or on `ARUS_SYNC_OUTBOX_REQUEST` SW messages. Each op carries a unique `clientMutationId` and a `conflictPaused` flag for 409/412 handling (Keep-local / Merge / Use-server). WO completion via `POST /api/work-orders/:id/complete-with-feedback` accepts a structured `closeout` payload.
 

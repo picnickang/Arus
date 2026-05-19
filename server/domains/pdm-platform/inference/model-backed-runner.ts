@@ -67,12 +67,17 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
   }
 
   /** Resolves the deployed ONNX artifact for a modelVersionId via the
-   *  ml_models registry. Cached per modelVersionId for process
-   *  lifetime; promotion/rollback should bump the version id, so
-   *  cache invalidation happens naturally as new modelVersionIds flow
-   *  through. */
-  private async resolveFromRegistry(modelVersionId: string): Promise<ResolvedArtifact | null> {
-    const cached = this.resolveCache.get(modelVersionId);
+   *  ml_models registry. Cached per (orgId, modelVersionId) for process
+   *  lifetime; promotion/rollback bumps the version id, so cache
+   *  invalidation happens naturally as new modelVersionIds flow
+   *  through. The orgId predicate enforces strict tenancy even if a
+   *  modelVersionId from an external request leaks across orgs. */
+  private async resolveFromRegistry(
+    orgId: string,
+    modelVersionId: string
+  ): Promise<ResolvedArtifact | null> {
+    const cacheKey = `${orgId}::${modelVersionId}`;
+    const cached = this.resolveCache.get(cacheKey);
     if (cached) return cached;
     const lookup = (async (): Promise<ResolvedArtifact | null> => {
       try {
@@ -83,7 +88,13 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
             metrics: mlModels.trainingMetrics,
           })
           .from(mlModels)
-          .where(and(eq(mlModels.id, modelVersionId), eq(mlModels.status, "deployed")))
+          .where(
+            and(
+              eq(mlModels.id, modelVersionId),
+              eq(mlModels.orgId, orgId),
+              eq(mlModels.status, "deployed")
+            )
+          )
           .limit(1);
         if (!row) return null;
         const metrics = (row.metrics ?? {}) as { artifactPath?: string };
@@ -106,7 +117,7 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
         return null;
       }
     })();
-    this.resolveCache.set(modelVersionId, lookup);
+    this.resolveCache.set(cacheKey, lookup);
     return lookup;
   }
 
@@ -130,8 +141,11 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
   }
 
   private async resolveArtifact(context: InferenceContext): Promise<ResolvedArtifact | null> {
-    if (context.modelVersionId) {
-      const fromRegistry = await this.resolveFromRegistry(context.modelVersionId);
+    if (context.modelVersionId && context.orgId) {
+      const fromRegistry = await this.resolveFromRegistry(
+        context.orgId,
+        context.modelVersionId
+      );
       if (fromRegistry) return fromRegistry;
     }
     return this.resolveFromEnv();

@@ -2,21 +2,24 @@
  * Push A1 — Weekly model retraining processor (orchestration only).
  *
  * Per org with sufficient labelled outcomes in the rolling 7-day window:
- *   1. Invoke scripts/ml/train-model-skeleton.mjs as a child process per
- *      equipment type. The current harness is a calibration baseline
- *      (NOT XGBoost, no ONNX export — see that script's header). It
- *      loads outcomes from prediction_outcomes, fits a scale+bias
- *      calibration, registers an ml_models row, and emits JSON
- *      {stage:"metrics", modelId, mae, productionMae, psi}.
- *   2. Parse the reported MAE / PSI / modelId from stdout.
+ *   1. Invoke scripts/ml/train-model-sidecar.mjs as a child process per
+ *      equipment type. The sidecar wrapper routes to the Python
+ *      XGBoost+ONNX trainer (scripts/ml/python/train_xgb.py) for A1
+ *      target types (bearing, pump — these HARD-FAIL when Python is
+ *      unavailable) and to the JS calibration baseline otherwise.
+ *      Either trainer emits the same JSON line:
+ *      {stage:"metrics", modelId, mae, productionMae, psi, artifactPath?, nativeArtifactPath?}.
+ *   2. Parse the reported MAE / PSI / modelId / artifactPath from stdout.
  *   3. Apply promotion gates: MAE improvement >= MIN_MAE_IMPROVEMENT_PCT
  *      AND PSI < MAX_PSI_FOR_PROMOTION. When both pass, perform the
  *      same atomic archive-deployed → deploy-candidate swap that the
- *      /ml/models/:id/promote endpoint performs (Wave 3.2).
- *   4. Skip artifactPath capture for now — the calibration harness does
- *      not produce a binary artifact. The field is preserved on the
- *      result shape so concrete trainers (A2/A3) can populate it
- *      without changing this processor.
+ *      /ml/models/:id/promote endpoint performs (Wave 3.2). The
+ *      promoted ml_models row is exactly what
+ *      PredictionEngineService.resolveActiveVersion() and
+ *      ModelBackedInferenceRunner read at serving time — closed loop.
+ *   4. artifactPath / nativeArtifactPath are persisted by the Python
+ *      trainer into ml_models.training_metrics so the registry-backed
+ *      runner can locate the ONNX artifact on disk per modelVersionId.
  */
 
 import { spawn } from "node:child_process";
