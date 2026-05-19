@@ -26,6 +26,7 @@ import {
   inventoryMovements,
   workOrders,
   stock,
+  parts as partsTable,
 } from "@shared/schema-runtime";
 import { failureHistory } from "../../../shared/schema/ml-analytics-core";
 import type {
@@ -78,21 +79,17 @@ async function fireProjectionsAfterCommit(
   if (pending.length === 0) return;
   try {
     const partIds = Array.from(new Set(pending.map((p) => p.partId)));
-    const { parts: partsTable } = (await import("@shared/schema-runtime")) as {
-      parts: {
-        id: any;
-        name: any;
-        primarySupplierId: any;
-        orgId: any;
-      };
-    };
+    // Statically imported `partsTable` (was dynamic import + `as any`
+    // shape — reviewer asked for typed schema bindings on this hot
+    // path). Drizzle infers column types from the schema runtime
+    // module directly.
     const partRows = await db
       .select({
         id: partsTable.id,
         name: partsTable.name,
         primarySupplierId: partsTable.primarySupplierId,
       })
-      .from(partsTable as any)
+      .from(partsTable)
       .where(
         and(
           eq(partsTable.orgId, orgId),
