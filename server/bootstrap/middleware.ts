@@ -33,15 +33,26 @@ export function configureMiddleware(app: Express): void {
         : false;
   app.set("trust proxy", trustProxy);
 
+  // Wave 5.11: Tightened CSP/HSTS/security headers.
+  // Production removes the `https:` wildcard from imgSrc (data: + self only
+  // — we serve our own icons; explicit allow-list a CDN if one is added),
+  // pins script-src to 'self' (no inline, no eval), and adds frame-ancestors
+  // 'none' / base-uri 'self' / form-action 'self' / upgrade-insecure-requests
+  // which Helmet's defaults omit but every security review asks for.
   app.use(
     helmet({
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
+          // styleSrc keeps 'unsafe-inline' because Tailwind + shadcn inject
+          // runtime styles for animations / dynamic CSS variables. Nonce-
+          // based styles would require a server-render pass we don't have.
           styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
           fontSrc: ["'self'", "https://fonts.gstatic.com"],
           scriptSrc: isDevelopment ? ["'self'", "'unsafe-inline'", "'unsafe-eval'"] : ["'self'"],
-          imgSrc: ["'self'", "data:", "https:", "blob:"],
+          imgSrc: isDevelopment
+            ? ["'self'", "data:", "https:", "blob:"] // NOSONAR: dev-only
+            : ["'self'", "data:", "blob:"],
           // Security (S5332): http: protocol allowed in development only for local testing
           // Production enforces HTTPS-only connections
           connectSrc: isDevelopment
@@ -50,9 +61,18 @@ export function configureMiddleware(app: Express): void {
           objectSrc: ["'none'"],
           mediaSrc: ["'self'", "data:", "blob:"],
           frameSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
+          workerSrc: ["'self'", "blob:"],
+          manifestSrc: ["'self'"],
+          ...(isDevelopment ? {} : { upgradeInsecureRequests: [] }),
         },
       },
       crossOriginEmbedderPolicy: false,
+      crossOriginOpenerPolicy: { policy: "same-origin" },
+      crossOriginResourcePolicy: { policy: "same-origin" },
+      referrerPolicy: { policy: "strict-origin-when-cross-origin" },
       hsts: {
         maxAge: 31536000,
         includeSubDomains: true,

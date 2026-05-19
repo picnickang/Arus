@@ -72,6 +72,14 @@ export async function registerRoutes(
   // run for /api/healthz and /api/readyz and reject them with 401.
   registerObservabilityRoutes(app);
 
+  // Wave 5.9: web-vitals beacon receipt. Registered on both /api/v1
+  // (primary) and /api (legacy mirror) so older clients keep working
+  // during the deprecation window from Wave 0.5.
+  const { createWebVitalsRouter } = await import("./observability/web-vitals-route");
+  const webVitalsRouter = createWebVitalsRouter();
+  app.use("/api/v1", webVitalsRouter);
+  app.use("/api", webVitalsRouter);
+
   await registerAllDomainRouters(app);
 
   const httpServer = createServer(app);

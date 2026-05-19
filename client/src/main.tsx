@@ -1,6 +1,12 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
+import { initWebVitals } from "./lib/web-vitals";
+
+// Wave 5.9: Core Web Vitals — fire-and-forget initializer. Uses the
+// native PerformanceObserver API (no extra dependency). Posts a single
+// beacon to /api/v1/observability/web-vitals on page-hide.
+initWebVitals();
 
 // Suppress Vite HMR WebSocket unhandled rejections in development
 if (import.meta.env.DEV) {

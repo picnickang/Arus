@@ -36,7 +36,18 @@ export function idempotencyMiddleware(options?: { required?: boolean }) {
   const required = options?.required ?? false;
 
   return (req: Request, res: Response, next: NextFunction): void => {
-    const idempotencyKey = req.headers["idempotency-key"] as string;
+    // Wave 2.5: accept Idempotency-Key header OR a `clientMutationId`
+    // in the request body. The offline-outbox queues mutations with a
+    // clientMutationId already; this lets every replay land at the same
+    // cached response without the queue code having to add a second
+    // header.
+    let idempotencyKey = req.headers["idempotency-key"] as string | undefined;
+    if (!idempotencyKey && req.body && typeof req.body === "object" && !Array.isArray(req.body)) {
+      const fromBody = (req.body as Record<string, unknown>).clientMutationId;
+      if (typeof fromBody === "string" && fromBody.length > 0 && fromBody.length <= 128) {
+        idempotencyKey = fromBody;
+      }
+    }
 
     if (!idempotencyKey) {
       if (required) {

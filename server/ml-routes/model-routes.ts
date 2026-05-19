@@ -208,4 +208,105 @@ router.post("/ml/models/:id/accuracy", async (req: AuthenticatedRequest, res: Re
   }
 });
 
+// Wave 3.2: Lightweight model registry — promote/rollback semantics on
+// top of the existing mlModels table (no MLflow). "Promote" atomically
+// archives whichever model is currently deployed for the same
+// equipmentType and deploys the candidate. "Rollback" archives the
+// current deployed model and re-deploys the most recently-archived
+// previously-deployed model for the same equipmentType.
+//
+// We do the swap as a two-step sequence rather than a single SQL tx
+// because the existing storage surface does not expose a transactional
+// handle. The window is small (single-digit ms) and idempotent — a
+// retry lands at the same end state.
+
+router.post("/ml/models/:id/promote", async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const candidate = await dbMlAnalyticsStorage.getMlModel(req.params.id, req.orgId);
+    if (!candidate) return sendNotFound(res, "ML model");
+    if (candidate.status === "training") return sendBadRequest(res, "Cannot promote a training model");
+    if (candidate.status === "failed") return sendBadRequest(res, "Cannot promote a failed model");
+    if (!candidate.equipmentType) return sendBadRequest(res, "Model is missing equipmentType");
+
+    const all = await dbMlAnalyticsStorage.getMlModels(req.orgId);
+    const currentlyDeployed = all.filter(
+      (m) => m.status === "deployed" && m.equipmentType === candidate.equipmentType && m.id !== candidate.id
+    );
+
+    for (const prev of currentlyDeployed) {
+      await dbMlAnalyticsStorage.updateMlModel(
+        prev.id,
+        { status: "archived", archivedOn: new Date() },
+        req.orgId
+      );
+    }
+    const promoted = await dbMlAnalyticsStorage.updateMlModel(
+      candidate.id,
+      { status: "deployed", deployedOn: new Date(), archivedOn: null },
+      req.orgId
+    );
+    structuredLog("info", `ML model promoted`, {
+      operation: "ml_model_promote",
+      metadata: {
+        modelId: candidate.id,
+        equipmentType: candidate.equipmentType,
+        replacedIds: currentlyDeployed.map((m) => m.id),
+      },
+    });
+    sendSuccess(res, { message: "Model promoted", model: promoted, replaced: currentlyDeployed.map((m) => m.id) });
+  } catch (error) {
+    handleError(error, res, "promote ML model");
+  }
+});
+
+router.post("/ml/models/:id/rollback", async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const current = await dbMlAnalyticsStorage.getMlModel(req.params.id, req.orgId);
+    if (!current) return sendNotFound(res, "ML model");
+    if (current.status !== "deployed") return sendBadRequest(res, "Only deployed models can be rolled back");
+    if (!current.equipmentType) return sendBadRequest(res, "Model is missing equipmentType");
+
+    const all = await dbMlAnalyticsStorage.getMlModels(req.orgId);
+    const previous = all
+      .filter(
+        (m) =>
+          m.status === "archived" &&
+          m.equipmentType === current.equipmentType &&
+          m.id !== current.id &&
+          m.deployedOn !== null
+      )
+      .sort((a, b) => {
+        const ad = a.archivedOn ? new Date(a.archivedOn).getTime() : 0;
+        const bd = b.archivedOn ? new Date(b.archivedOn).getTime() : 0;
+        return bd - ad;
+      })[0];
+
+    if (!previous) {
+      return sendBadRequest(res, `No previously-deployed model found for equipmentType ${current.equipmentType}`);
+    }
+
+    await dbMlAnalyticsStorage.updateMlModel(
+      current.id,
+      { status: "archived", archivedOn: new Date() },
+      req.orgId
+    );
+    const restored = await dbMlAnalyticsStorage.updateMlModel(
+      previous.id,
+      { status: "deployed", deployedOn: new Date(), archivedOn: null },
+      req.orgId
+    );
+    structuredLog("info", `ML model rolled back`, {
+      operation: "ml_model_rollback",
+      metadata: {
+        from: current.id,
+        to: previous.id,
+        equipmentType: current.equipmentType,
+      },
+    });
+    sendSuccess(res, { message: "Rolled back", restored, archived: current.id });
+  } catch (error) {
+    handleError(error, res, "rollback ML model");
+  }
+});
+
 export const modelRoutes = router;

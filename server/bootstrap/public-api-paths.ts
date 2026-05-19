@@ -21,6 +21,10 @@ const PUBLIC_API_PREFIXES = [
   "/healthz",
   "/readyz",
   "/metrics",
+  // Wave 5.9: Web Vitals beacon receipt. sendBeacon cannot always
+  // attach session cookies; the payload is intrinsically untrusted and
+  // sanitized server-side, so the endpoint runs without auth.
+  "/observability/web-vitals",
 ];
 
 const SENSITIVE_API_PREFIXES = [
