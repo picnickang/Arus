@@ -78,18 +78,25 @@ async function fireProjectionsAfterCommit(
   if (pending.length === 0) return;
   try {
     const partIds = Array.from(new Set(pending.map((p) => p.partId)));
-    const { parts: partsTable } = await import("@shared/schema-runtime");
+    const { parts: partsTable } = (await import("@shared/schema-runtime")) as {
+      parts: {
+        id: any;
+        name: any;
+        primarySupplierId: any;
+        orgId: any;
+      };
+    };
     const partRows = await db
       .select({
-        id: (partsTable as any).id,
-        name: (partsTable as any).name,
-        primarySupplierId: (partsTable as any).primarySupplierId,
+        id: partsTable.id,
+        name: partsTable.name,
+        primarySupplierId: partsTable.primarySupplierId,
       })
       .from(partsTable as any)
       .where(
         and(
-          eq((partsTable as any).orgId, orgId),
-          sql`${(partsTable as any).id} = ANY(${partIds})`
+          eq(partsTable.orgId, orgId),
+          sql`${partsTable.id} = ANY(${partIds})`
         )
       );
     const partMeta = new Map<string, { name?: string | null; supplierId?: string | null }>();
@@ -643,7 +650,10 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       updated: [] as WorkOrderParts[],
       errors: [] as string[],
     };
-    const pendingProjections: PendingMovementProjection[] = [];
+    // No graph projections here — addBulkPartsToWorkOrder only writes
+    // to `work_order_parts`, not `inventory_movements`. REQUIRES_PART
+    // edges are produced by the reserve / release / return paths via
+    // fireProjectionsAfterCommit().
 
     await db.transaction(async (tx) => {
       const existingParts = await tx

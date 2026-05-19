@@ -88,11 +88,14 @@ registerTool({
   category: "inventory",
   riskLevel: "read",
   description:
-    "Given a failure mode, return the parts historically consumed when that failure was repaired, ranked by usage count. Use when answering 'what parts do I need when this failure appears?' (graph traversal; falls back to relational lookup when offline).",
+    "Given a failure mode LABEL (string, e.g. 'vibration', 'bearing-wear' — the canonical text stored in failure_history.failure_mode, NOT a numeric id), return the parts historically consumed when that failure was repaired, ranked by usage count. Only forward-consumption movements ('reserve'/'consume') are counted; release/return reversals are excluded. Use when answering 'what parts do I need when this failure appears?'.",
   parameters: {
     type: "object",
     properties: {
-      failureMode: { type: "string", description: "Failure mode label" },
+      failureMode: {
+        type: "string",
+        description: "Failure mode label (string, not id) — matches failure_history.failure_mode exactly",
+      },
     },
     required: ["failureMode"],
   },
