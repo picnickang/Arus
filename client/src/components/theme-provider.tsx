@@ -54,7 +54,17 @@ export function ThemeProvider({
       effectiveTheme = theme;
     }
 
-    root.classList.add(effectiveTheme);
+    // Tailwind dark-variant compat: "bridge" is night-vision (read: dark) and
+    // must inherit the `dark:` utility variants. "daylight" is high-contrast
+    // light. Class drives Tailwind variants; data-theme drives token rules in
+    // index.css. Both are set so existing `dark:` utilities and new theme-
+    // specific token blocks work side by side.
+    if (effectiveTheme === "bridge") {
+      root.classList.add("dark");
+    } else {
+      root.classList.add(effectiveTheme);
+    }
+    root.setAttribute("data-theme", effectiveTheme);
     setResolvedTheme(effectiveTheme);
   }, [theme]);
 

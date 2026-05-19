@@ -1,9 +1,11 @@
-import { Moon, Sun, Monitor } from "lucide-react";
+import { Moon, Sun, Monitor, Ship, SunDim } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/components/theme-provider";
@@ -50,6 +52,26 @@ export function ThemeToggle() {
         >
           <Monitor className="mr-2 h-4 w-4" />
           <span>System</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-xs text-muted-foreground">
+          Marine Operations
+        </DropdownMenuLabel>
+        <DropdownMenuItem
+          onClick={() => setTheme("bridge")}
+          className={theme === "bridge" ? "bg-accent" : ""}
+          data-testid="theme-bridge"
+        >
+          <Ship className="mr-2 h-4 w-4" />
+          <span>Bridge (Night)</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => setTheme("daylight")}
+          className={theme === "daylight" ? "bg-accent" : ""}
+          data-testid="theme-daylight"
+        >
+          <SunDim className="mr-2 h-4 w-4" />
+          <span>Daylight (Outdoor)</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
