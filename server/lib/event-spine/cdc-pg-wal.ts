@@ -220,7 +220,21 @@ export class PgWalCdcBridge {
       const row = (op === "delete" ? change.old : change.new) ?? {};
       const orgColumn = cfg.orgIdColumn ?? "org_id";
       const idColumn = cfg.aggregateIdColumn ?? "id";
-      const orgId = String(row[orgColumn] ?? "unknown");
+      const rawOrg = row[orgColumn];
+      if (rawOrg == null || rawOrg === "") {
+        // Per-tenant ordering depends on a real orgId partition key.
+        // Synthesising "unknown" would silently break the contract for
+        // every downstream consumer, so we drop + warn instead. The LSN
+        // is still acknowledged at the end so the slot does not stall
+        // on a malformed row (operator must fix the table).
+        logger.warn("WAL CDC: dropping row with missing orgId", {
+          table: tableName,
+          op,
+          aggregateId: row[idColumn] ?? null,
+        });
+        continue;
+      }
+      const orgId = String(rawOrg);
       const aggregateId = row[idColumn] != null ? String(row[idColumn]) : null;
       const eventType = `${cfg.eventTypePrefix}.${op}`;
 

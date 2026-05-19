@@ -51,6 +51,14 @@ export interface IWorkOrderCostRepository {
 }
 
 export interface IWorkOrderEventPublisher {
-  publish(event: WorkOrderDomainEvent): Promise<void>;
-  publishBatch(events: WorkOrderDomainEvent[]): Promise<void>;
+  /**
+   * Publish a single work-order domain event. When `tx` is provided the
+   * outbox enqueue runs inside the caller's transaction so the outbox
+   * row commits or rolls back atomically with the business write
+   * (true transactional outbox). Without `tx` the publish is still
+   * durable via the outbox but is committed on its own connection —
+   * callers that need atomic semantics MUST pass `tx`.
+   */
+  publish(event: WorkOrderDomainEvent, tx?: unknown): Promise<void>;
+  publishBatch(events: WorkOrderDomainEvent[], tx?: unknown): Promise<void>;
 }

@@ -6,6 +6,7 @@ import type {
   WorkOrderSearchCriteria,
 } from "../domain";
 import { workOrderRepository } from "../repository";
+import { db } from "../../../db.js";
 
 export interface WorkOrderServiceDependencies {
   workOrderRepository: IWorkOrderRepository;
@@ -42,16 +43,25 @@ export class WorkOrderApplicationService {
   }
 
   async createWorkOrder(data: InsertWorkOrder, userId?: string): Promise<SelectWorkOrder> {
-    const workOrder = await workOrderRepository.create(data);
-
-    await this.deps.eventPublisher.publish({
-      type: "WORK_ORDER_CREATED",
-      workOrderId: workOrder.id,
-      orgId: workOrder.orgId || "default",
-      vesselId: workOrder.vesselId || undefined,
-      equipmentId: workOrder.equipmentId || undefined,
-      priority: (workOrder.priority as any) || "medium",
-      timestamp: new Date(),
+    // True transactional outbox: the WO insert and the outbox enqueue
+    // commit or roll back together. If either step fails the whole
+    // transaction aborts and no event is ever published — which is the
+    // commit→emit loss-window the architecture-doc constraint forbids.
+    const workOrder = await db.transaction(async (tx) => {
+      const created = await workOrderRepository.create(data, tx);
+      await this.deps.eventPublisher.publish(
+        {
+          type: "WORK_ORDER_CREATED",
+          workOrderId: created.id,
+          orgId: created.orgId || "default",
+          vesselId: created.vesselId || undefined,
+          equipmentId: created.equipmentId || undefined,
+          priority: (created.priority as any) || "medium",
+          timestamp: new Date(),
+        },
+        tx
+      );
+      return created;
     });
 
     return workOrder;

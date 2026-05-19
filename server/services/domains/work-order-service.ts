@@ -393,9 +393,10 @@ class WorkOrderService {
   }
 
   async createWorkOrder(
-    order: InsertWorkOrder & { woNumber?: string; id?: string }
+    order: InsertWorkOrder & { woNumber?: string; id?: string },
+    tx?: typeof db
   ): Promise<WorkOrder> {
-    return dbWorkOrderStorage.createWorkOrder(order);
+    return dbWorkOrderStorage.createWorkOrder(order, tx);
   }
 
   async deleteWorkOrder(id: string): Promise<void> {

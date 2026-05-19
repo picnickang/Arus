@@ -74,22 +74,27 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
   if (provided) {
     producer = provided;
   } else if (brokers) {
+    const saslUser = process.env.EVENT_SPINE_SASL_USERNAME;
+    const saslPass = process.env.EVENT_SPINE_SASL_PASSWORD;
+    const saslMech = (process.env.EVENT_SPINE_SASL_MECHANISM ?? "plain") as
+      | "plain"
+      | "scram-sha-256"
+      | "scram-sha-512";
+    let sasl: import("./kafka-producer.js").KafkaSaslConfig | undefined;
+    if (saslUser && saslPass) {
+      if (saslMech === "plain") {
+        sasl = { mechanism: "plain", username: saslUser, password: saslPass };
+      } else if (saslMech === "scram-sha-256") {
+        sasl = { mechanism: "scram-sha-256", username: saslUser, password: saslPass };
+      } else {
+        sasl = { mechanism: "scram-sha-512", username: saslUser, password: saslPass };
+      }
+    }
     producer = new KafkaEventSpineProducer({
       brokers,
       topicPrefix: process.env.EVENT_SPINE_TOPIC_PREFIX ?? "arus.",
       clientId: process.env.EVENT_SPINE_CLIENT_ID,
-      sasl:
-        process.env.EVENT_SPINE_SASL_USERNAME && process.env.EVENT_SPINE_SASL_PASSWORD
-          ? {
-              mechanism:
-                (process.env.EVENT_SPINE_SASL_MECHANISM as
-                  | "plain"
-                  | "scram-sha-256"
-                  | "scram-sha-512") ?? "plain",
-              username: process.env.EVENT_SPINE_SASL_USERNAME,
-              password: process.env.EVENT_SPINE_SASL_PASSWORD,
-            }
-          : undefined,
+      sasl,
     });
     logger.info("Event spine producer = Kafka", { brokers });
   } else {

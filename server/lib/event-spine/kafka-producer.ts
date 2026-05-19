@@ -3,6 +3,11 @@ import type { EventSpineMessage, EventSpineProducer } from "./types.js";
 
 const logger = createLogger("EventSpine:Kafka");
 
+export type KafkaSaslConfig =
+  | { mechanism: "plain"; username: string; password: string }
+  | { mechanism: "scram-sha-256"; username: string; password: string }
+  | { mechanism: "scram-sha-512"; username: string; password: string };
+
 export interface KafkaProducerOptions {
   /** Comma-separated `host:port` list (matches `EVENT_SPINE_BROKERS`). */
   brokers: string;
@@ -11,7 +16,7 @@ export interface KafkaProducerOptions {
   /** Kafka client id (defaults to `arus-event-spine`). */
   clientId?: string;
   /** SASL config (optional). */
-  sasl?: { mechanism: "plain" | "scram-sha-256" | "scram-sha-512"; username: string; password: string };
+  sasl?: KafkaSaslConfig;
   /** Enable SSL (auto-on when sasl provided). */
   ssl?: boolean;
   /** Connection timeout (ms). */
@@ -58,10 +63,7 @@ export class KafkaEventSpineProducer implements EventSpineProducer {
         clientId: this.opts.clientId,
         brokers: this.opts.brokers.split(",").map((s) => s.trim()).filter(Boolean),
         ssl: this.opts.ssl ?? !!this.opts.sasl,
-        // kafkajs SASL is a discriminated union over `mechanism`; cast
-        // is safe because callers must supply username+password when
-        // setting any mechanism.
-        sasl: this.opts.sasl as never,
+        sasl: this.opts.sasl,
         connectionTimeout: this.opts.connectionTimeout ?? 10_000,
       });
       const producer = kafka.producer({

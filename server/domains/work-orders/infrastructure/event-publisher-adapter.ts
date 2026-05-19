@@ -128,17 +128,24 @@ function envelopeFor(event: WorkOrderDomainEvent): {
 export const workOrderEventPublisher: IWorkOrderEventPublisher = {
   /**
    * Transactional-outbox emit:
-   *   1) write envelope into `event_outbox` (idempotent on eventId)
-   *   2) emit on the in-process bus for legacy subscribers
-   * The outbox write is the durable contract; if it fails, we surface
-   * the error so the caller can roll back. The in-process emit is
-   * best-effort and never blocks the publish path.
+   *   1) write envelope into `event_outbox` inside the caller's `tx`
+   *      (idempotent on eventId) — same transaction as the business
+   *      write, so the row commits or rolls back atomically.
+   *   2) AFTER the surrounding tx commits, emit on the in-process bus
+   *      for legacy subscribers. The in-process emit is best-effort
+   *      and never blocks the publish path.
+   * When called without a tx the outbox enqueue is still durable but
+   * commits on the default connection (transitional path — services
+   * that need atomic semantics must pass `tx`).
    */
-  async publish(event: WorkOrderDomainEvent): Promise<void> {
+  async publish(event: WorkOrderDomainEvent, tx?: unknown): Promise<void> {
     const built = envelopeFor(event);
     if (!built) return;
     try {
-      await enqueueOutboxFromEnvelope(built.envelope);
+      await enqueueOutboxFromEnvelope(
+        built.envelope,
+        tx as Parameters<typeof enqueueOutboxFromEnvelope>[1]
+      );
     } catch (error) {
       logger.error("Failed to enqueue work-order event to outbox", {
         eventType: event.type,
@@ -157,9 +164,9 @@ export const workOrderEventPublisher: IWorkOrderEventPublisher = {
     }
   },
 
-  async publishBatch(events: WorkOrderDomainEvent[]): Promise<void> {
+  async publishBatch(events: WorkOrderDomainEvent[], tx?: unknown): Promise<void> {
     for (const event of events) {
-      await this.publish(event);
+      await this.publish(event, tx);
     }
   },
 };

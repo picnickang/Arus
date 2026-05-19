@@ -39,8 +39,11 @@ export class WorkOrderRepository {
     return workOrderService.getWorkOrderById(id, orgId);
   }
 
-  async create(workOrder: InsertWorkOrder & { woNumber?: string }): Promise<WorkOrder> {
-    return workOrderService.createWorkOrder(workOrder);
+  async create(
+    workOrder: InsertWorkOrder & { woNumber?: string },
+    tx?: unknown
+  ): Promise<WorkOrder> {
+    return workOrderService.createWorkOrder(workOrder, tx as never);
   }
 
   async update(id: string, data: Partial<InsertWorkOrder>): Promise<WorkOrder> {

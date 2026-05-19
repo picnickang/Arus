@@ -79,18 +79,22 @@ const _exhaustive: _Missing extends never ? true : never = true;
 void _exhaustive;
 
 /**
- * Subscribes to the in-process domain event bus and writes every emitted
- * envelope to `event_outbox`. This is a *best-effort capture* layer that
- * gives the streaming spine coverage of every existing emit site without
- * having to refactor every service to call `enqueueOutbox(tx, envelope)`
- * inline.
+ * TRANSITIONAL bridge — subscribes to the in-process domain event bus
+ * and writes every emitted envelope to `event_outbox`. This is *not* a
+ * transactional outbox: it cannot guarantee the envelope lands on the
+ * spine if the bridge subscriber crashes between the commit and the
+ * enqueue. It exists only so that legacy emit sites (the ones that have
+ * not yet been migrated to inline `enqueueOutboxFromEnvelope(env, tx)`)
+ * still get spine coverage during the migration.
  *
- * It is NOT transactional with respect to the business write — if the DB
- * commit succeeds and then the bridge subscriber fails, the event is lost.
- * Domains that require strict transactional safety MUST migrate to inline
- * `enqueueOutbox(tx, envelope)` calls inside the service transaction (the
- * idempotent `eventId` constraint means the bridge subscriber is safe to
- * leave running during incremental migration).
+ * The canonical pattern — and the only one that satisfies the
+ * outbox-then-publish constraint stated in the task description — is
+ * `db.transaction(async tx => { repo.write(tx); publisher.publish(ev, tx); })`,
+ * which the work-orders application service uses as the reference
+ * implementation. New emit sites MUST follow that pattern. Once every
+ * legacy emit site is migrated, this bridge can be removed entirely
+ * (the `eventId` unique index makes the duplicate enqueue safe in the
+ * meantime).
  */
 export function initEventSpineOutboxBridge(): void {
   for (const eventType of TRACKED_EVENTS) {

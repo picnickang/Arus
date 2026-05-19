@@ -85,8 +85,16 @@ export class DbWorkOrderCore {
     return `WO-${currentYear}-${String(nextNumber).padStart(4, "0")}-${randomUUID().split("-")[0]}`;
   }
 
-  async createWorkOrder(order: InsertWorkOrder & { woNumber?: string }): Promise<WorkOrder> {
-    const [newOrder] = await db
+  async createWorkOrder(
+    order: InsertWorkOrder & { woNumber?: string },
+    tx?: typeof db
+  ): Promise<WorkOrder> {
+    // Accept an optional drizzle transaction handle so callers can
+    // wrap the insert + outbox enqueue in a single atomic transaction
+    // (true transactional outbox). Defaults to the global db when no
+    // tx is supplied so existing callers stay untouched.
+    const client = tx ?? db;
+    const [newOrder] = await client
       .insert(workOrders)
       .values({
         id: randomUUID(),
