@@ -7,13 +7,14 @@
  * existing `TwinStateService.getStateHistory()` records — keeping twin
  * computation server-side per architectural constraint.
  *
- * Pin click → immediately routes to the equipment detail page; the
- * dependency graph fetch fires in parallel so the operator sees the
- * downstream amber tint when they return.
+ * Pin click → selects the equipment in-scene and tints downstream
+ * dependency pins amber via a cached `useQuery` (so the overlay survives
+ * navigation). An explicit "Open detail" button on the selection card
+ * routes to `/equipment?id=...`.
  */
-import { useMemo, useState, useEffect, lazy, Suspense } from "react";
+import { useMemo, useState, lazy, Suspense } from "react";
 import { useParams, useLocation } from "wouter";
-import { useQuery, useQueries, useMutation } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -64,14 +65,20 @@ export default function Vessel3DPage() {
     queryKey: ["/api/pdm/twin/def/twins"],
   });
 
-  const dependencyMutation = useMutation<DependencyResponse, Error, string>({
-    mutationFn: async (equipmentId) => {
+  // Dependency overlay is a *query* (not a mutation) so the result survives
+  // navigation to /equipment and back via react-query cache. Triggered by
+  // setting selectedEquipmentId from the pin click.
+  const dependencyQuery = useQuery<DependencyResponse>({
+    queryKey: ["/api/v1/vessels/equipment", selectedEquipmentId, "dependencies"],
+    queryFn: async () => {
       const res = (await apiRequest(
         "GET",
-        `/api/v1/vessels/equipment/${encodeURIComponent(equipmentId)}/dependencies`
+        `/api/v1/vessels/equipment/${encodeURIComponent(selectedEquipmentId!)}/dependencies`
       )) as Response;
       return res.json();
     },
+    enabled: !!selectedEquipmentId,
+    staleTime: 5 * 60 * 1000,
   });
 
   const pins: PinList = useMemo(
@@ -127,22 +134,15 @@ export default function Vessel3DPage() {
     return map;
   }, [historyQueries, scrubHoursAgo]);
 
-  const highlighted = dependencyMutation.data?.downstream.map((d) => d.equipmentId) ?? [];
+  const highlighted = dependencyQuery.data?.downstream.map((d) => d.equipmentId) ?? [];
 
-  // Reset the dependency overlay when the model or selection clears.
-  useEffect(() => {
-    if (!selectedEquipmentId) dependencyMutation.reset();
-    // dependencyMutation is stable from react-query; intentionally not in deps.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedEquipmentId]);
-
-  // Pin click → route to the existing equipment detail page (core A3
-  // requirement). We also fire the dependency lookup so the result is in
-  // react-query cache when the operator returns to this view.
+  // Pin click → select in-scene so the downstream-dependency overlay tints
+  // pins amber (core A3: "Click a pump → see downstream systems that would
+  // degrade"). The "Open detail" button below is an explicit CTA that
+  // routes to the existing equipment detail page; selection state and the
+  // cached dependency query survive that navigation.
   const handleSelectEquipment = (equipmentId: string) => {
     setSelectedEquipmentId(equipmentId);
-    dependencyMutation.mutate(equipmentId);
-    navigate(`/equipment?id=${encodeURIComponent(equipmentId)}`);
   };
 
   return (
@@ -209,8 +209,17 @@ export default function Vessel3DPage() {
 
               {selectedEquipmentId && (
                 <div className="text-sm space-y-2">
-                  <div data-testid="text-selected-equipment">Selected: {selectedEquipmentId}</div>
-                  {dependencyMutation.isPending && (
+                  <div className="flex items-center justify-between gap-2">
+                    <div data-testid="text-selected-equipment">Selected: {selectedEquipmentId}</div>
+                    <Button
+                      size="sm"
+                      onClick={() => navigate(`/equipment?id=${encodeURIComponent(selectedEquipmentId)}`)}
+                      data-testid="button-open-equipment-detail"
+                    >
+                      Open detail
+                    </Button>
+                  </div>
+                  {dependencyQuery.isLoading && (
                     <div className="text-muted-foreground">Fetching dependency graph…</div>
                   )}
                   {highlighted.length > 0 && (
@@ -218,7 +227,7 @@ export default function Vessel3DPage() {
                       {highlighted.length} downstream equipment would degrade if this fails (amber pins).
                     </div>
                   )}
-                  {!dependencyMutation.isPending && highlighted.length === 0 && dependencyMutation.data && (
+                  {!dependencyQuery.isLoading && highlighted.length === 0 && dependencyQuery.data && (
                     <div className="text-muted-foreground">No downstream dependencies recorded.</div>
                   )}
                 </div>
