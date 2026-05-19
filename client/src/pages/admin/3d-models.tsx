@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueries } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, createHeaders, resolveUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,11 +55,11 @@ export default function Admin3DModelsPage() {
       queryKey: ["/api/v1/vessels", v.id, "3d-model"] as const,
       queryFn: async () => {
         const res = await fetch(
-          `/api/v1/vessels/${encodeURIComponent(v.id)}/3d-model`,
-          { credentials: "include" }
+          resolveUrl(`/api/v1/vessels/${encodeURIComponent(v.id)}/3d-model`),
+          { credentials: "include", headers: createHeaders() }
         );
         if (res.status === 404) return null;
-        if (!res.ok) throw new Error(await res.text().catch(() => res.statusText));
+        if (!res.ok) throw new Error(`${res.status}: ${await res.text().catch(() => res.statusText)}`);
         return (await res.json()) as ModelMetadata;
       },
     })),
@@ -134,9 +134,17 @@ function VesselModelCard({
     try {
       const fd = new FormData();
       fd.append("model", file);
+      // Use shared header builder so x-org-id / session token travel with
+      // the multipart upload; do NOT include Content-Type so the browser
+      // sets the multipart boundary itself.
       const res = await fetch(
-        `/api/v1/vessels/${encodeURIComponent(vessel.id)}/3d-model`,
-        { method: "POST", body: fd, credentials: "include" }
+        resolveUrl(`/api/v1/vessels/${encodeURIComponent(vessel.id)}/3d-model`),
+        {
+          method: "POST",
+          body: fd,
+          credentials: "include",
+          headers: createHeaders(),
+        }
       );
       if (!res.ok) {
         let msg = res.statusText;
@@ -301,15 +309,17 @@ function PinEditor({
       setDirty(false);
       onSaved();
     },
-    onError: (e: any) =>
+    onError: (e: any) => {
+      const raw = typeof e?.message === "string" ? e.message : JSON.stringify(e?.message ?? e);
+      const friendly = /^403:/.test(raw) || /forbidden/i.test(raw)
+        ? "Admin role required to edit equipment pins."
+        : raw;
       toast({
         title: "Save failed",
-        description:
-          typeof e?.message === "string"
-            ? e.message
-            : JSON.stringify(e?.message ?? e),
+        description: friendly,
         variant: "destructive",
-      }),
+      });
+    },
   });
 
   const updatePin = (i: number, patch: Partial<EquipmentPin>) => {
