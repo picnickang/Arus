@@ -1,7 +1,10 @@
 /**
- * SINGLE-TENANT SYSTEM
- * - orgId is always "default-org-id" (single tenant)
- * - user tracking preserved for traceability
+ * Push B1 (Multi-tenancy with Postgres RLS):
+ * - `req.orgId` is derived from the authenticated user's claim when
+ *   `REQUIRE_TENANT_AUTH=true`. In legacy single-tenant mode it falls
+ *   back to `DEFAULT_ORG_ID`.
+ * - `req.user.orgId` carries the source-of-truth tenant id read from
+ *   the session token.
  */
 declare global {
   namespace Express {
@@ -13,6 +16,7 @@ declare global {
         role: string;
         name?: string;
         isActive: boolean;
+        orgId?: string;
       };
     }
   }

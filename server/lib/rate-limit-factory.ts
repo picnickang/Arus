@@ -42,19 +42,26 @@ export const RATE_LIMIT_ERROR_CODES = {
 } as const;
 
 /**
- * Shared key generator that combines IP and User-Agent for better request identification
- * Prevents rate limit bypass by clients with rotating IPs
+ * Shared key generator. Composes orgId + IP (+ User-Agent) so that one
+ * tenant's burst traffic exhausts only its own bucket — Push B1 step 3.
+ *
+ * `orgId` is preferred over IP because multiple tenants can NAT through
+ * the same egress IP (corporate VPN, mobile carrier). Falling back to
+ * IP keeps anonymous / pre-auth traffic rate-limited too, which is the
+ * single-tenant behaviour we shipped before B1.
  */
 export function createKeyGenerator(includeUserAgent = true): (req: Request) => string {
   return (req: Request): string => {
+    const orgId = (req as any).orgId as string | undefined;
     const ip = ipKeyGenerator(req.ip ?? "");
+    const tenantOrIp = orgId ? `org:${orgId}` : `ip:${ip}`;
 
     if (!includeUserAgent) {
-      return ip;
+      return tenantOrIp;
     }
 
     const userAgent = req.get("User-Agent")?.slice(0, 50) || "unknown";
-    return `${ip}-${userAgent}`;
+    return `${tenantOrIp}-${userAgent}`;
   };
 }
 

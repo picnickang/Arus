@@ -127,6 +127,60 @@ Each bullet is one wave from the v2 ARUS Gap-Fill Plan. Implementation details l
 -   **5.9 Web Vitals**: `client/src/lib/web-vitals.ts` native `PerformanceObserver` (no extra dep), beacon to `POST /api/v1/observability/web-vitals` on pagehide. Budgets LCP<2.5s INP<200ms CLS<0.1. Receipt sanitizes + Prom histogram.
 -   **5.11 CSP/HSTS Hardening**: `server/bootstrap/middleware.ts` helmet — prod `imgSrc` no `https:` wildcard, added `frameAncestors 'none'`/`baseUri 'self'`/`formAction 'self'`/`workerSrc`/`manifestSrc` + `upgradeInsecureRequests`; COOP/CORP `same-origin`; `styleSrc` keeps `'unsafe-inline'` (Tailwind runtime styles, nonce would need SSR).
 
+**Push B1 — Multi-tenancy with Postgres RLS**
+-   **Tenant claim → req.orgId**: `shared/config/tenant.ts` exposes
+    `requireTenantAuth()` (true when `REQUIRE_TENANT_AUTH=true`) and
+    `fallbackOrgId()` (throws in tenant-auth mode). `server/middleware/auth.ts`
+    derives `req.orgId` from `req.user.orgId`; missing claim → 401 in
+    tenant-auth mode, falls back to `DEFAULT_ORG_ID` in legacy mode.
+    `server/security/authentication.ts` populates `req.user.orgId` from the
+    persisted `users` row (sessions without a `userId` get 401 in tenant-auth
+    mode). Dev mock user still carries `DEFAULT_ORG_ID` so existing dev flows
+    keep booting.
+-   **Postgres RLS** (`migrations/0018_rls_policies.sql`): idempotent
+    `ENABLE + FORCE ROW LEVEL SECURITY` on every table in the canonical
+    `server/tenancy/tenant-tables.ts` registry. Policies key on
+    `current_setting('app.current_org_id', true)` — unset session var
+    means NULL means 0 rows (fail-closed). FORCE so RLS still applies
+    when the app connects as the DB owner (the Replit/Neon default that
+    audits called out). `server/middleware/db-context.ts` auto-enables
+    the per-request `SET LOCAL` when `REQUIRE_TENANT_AUTH=true` so the
+    runtime and the policies are switched on by the same flag.
+-   **Per-tenant rate limits**: `server/lib/rate-limit-factory.ts`
+    `createKeyGenerator()` composes `org:<orgId>` (preferred) or
+    `ip:<addr>` (pre-auth). One tenant's burst can no longer drain
+    another's bucket — even when both NAT through the same egress IP.
+-   **Tenant lifecycle**: `server/domains/system-admin/routes/tenant-routes.ts`
+    `POST /api/admin/tenants` (provision + default quotas),
+    `PATCH /:orgId/{suspend,unsuspend}` (writes `organizations.suspended_at`),
+    `DELETE /:orgId` (requires `{ confirm: "DELETE_TENANT", reason }`,
+    wraps the Wave 6.6 `TenantDeleteService` with the central
+    `TENANT_TABLE_NAMES` allowlist, returns the HMAC-signed
+    `DeletionCertificate`). Admin UI at `/admin/tenants`.
+-   **Quotas** (`server/tenancy/quota-service.ts` +
+    `server/middleware/tenant-quota.ts`): per-tenant `storage_bytes`,
+    `equipment_count`, `telemetry_rows_today`. 80% soft → response
+    carries `X-Tenant-Quota-Warning`; 100% hard → 429 with
+    `Retry-After` (next UTC midnight for daily windows). Limits live in
+    `tenant_quotas`; running usage in `tenant_usage` (keyed
+    `org_id × metric × window_start`). Service is fail-open if its own
+    tables are unavailable — RLS remains the hard-isolation boundary.
+-   **Canonical tenant-table registry**: `server/tenancy/tenant-tables.ts`
+    is the single source of truth shared by the RLS migration, the GDPR
+    `TenantDeleteService` allowlist, and quota usage queries. New
+    tenant-scoped tables MUST be appended here AND mirrored into
+    migration 0018's `TENANT_TABLES` array; drift is a security regression.
+-   **Known limitation — pinned-connection RLS context**: `server/middleware/db-context.ts`
+    calls `set_config('app.current_org_id', …, false)` on the shared
+    `db` handle. On a connection pool this can leak across requests;
+    on neon-http the value doesn't survive past a single HTTP call. RLS
+    therefore remains a *second* line of defense in Push B1 — the
+    primary boundary is still the repository-level `WHERE org_id = …`
+    filter. Wrapping every handler in `BEGIN; SET LOCAL; …; COMMIT`
+    against a per-request pinned client is tracked as a follow-up that
+    must land before `REQUIRE_TENANT_AUTH=true` is the sole isolation
+    boundary in a multi-tenant deployment.
+
 **Wave 6 — Compliance & Eventing**
 -   **6.6 GDPR Tenant-Delete**: `server/domains/gdpr/tenant-delete-service.ts` single tx, SERIALIZABLE (best-effort), identifiers allowlisted, PII redacted not deleted. HMAC-SHA256 `DeletionCertificate`.
 -   **6.7 Outbound Webhooks**: `server/webhooks/webhook-delivery.ts` Stripe-style HMAC over `timestamp.body`, 5 attempts exp backoff + jitter, 10s AbortController, `verifySignature()` timing-safe.

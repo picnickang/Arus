@@ -13,6 +13,7 @@ import { registerSimulationRoutes } from "./simulation-routes.js";
 import { registerIntegrationsRoutes } from "./integrations-routes.js";
 import { registerWindowsRoutes } from "./windows-routes.js";
 import { registerMetricsRoutes } from "./metrics-routes.js";
+import { registerTenantRoutes } from "./tenant-routes.js";
 
 export type { SystemAdminDependencies, ThresholdCalibrator };
 
@@ -24,6 +25,7 @@ export function registerSystemAdminRoutes(app: Express, deps: SystemAdminDepende
   registerIntegrationsRoutes(app, deps);
   registerWindowsRoutes(app, deps);
   registerMetricsRoutes(app, deps);
+  registerTenantRoutes(app, deps);
 
   logger.info(
     "SystemAdminRoutes",

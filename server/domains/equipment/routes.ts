@@ -15,6 +15,8 @@ import {
   reinstateEquipmentSchema,
 } from "./lifecycle";
 import { requirePermission } from "../permissions/middleware";
+import { enforceQuota } from "../../middleware/tenant-quota";
+import { quotaService } from "../../tenancy/quota-service";
 
 const equipmentCache = new LRUCache<string, any>({ max: 200, ttl: 30_000 });
 
@@ -298,11 +300,17 @@ export function registerEquipmentRoutes(
   );
 
   // POST create equipment
+  // Push B1 step 6: equipment count is a per-tenant quota. `enforceQuota`
+  // returns 429 + Retry-After when usage hits the hard ceiling and
+  // sets `X-Tenant-Quota-Warning` at 80%. On success we increment the
+  // usage counter so subsequent calls see fresh state without waiting
+  // for the nightly aggregator.
   app.post(
     "/api/equipment",
     requireOrgIdAndValidateBody,
     requirePermission("equipment", "create"),
     writeOperationRateLimit,
+    enforceQuota("equipment_count"),
     withErrorHandling("create equipment", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
 
@@ -318,6 +326,7 @@ export function registerEquipmentRoutes(
 
       const equipment = await equipmentService.createEquipment(validationResult.data);
       invalidateCache(`equipment:`);
+      void quotaService.incrementUsage(orgId, "equipment_count", 1);
       res.status(201).json(equipment);
     })
   );

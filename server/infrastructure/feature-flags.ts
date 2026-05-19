@@ -51,7 +51,7 @@ export interface FlagContext {
   userId?: string | null;
 }
 
-class FeatureFlagManager {
+export class FeatureFlagManager {
   private flags: FeatureFlags;
 
   // Override cache keyed by flag_key. Each entry holds rows sorted by

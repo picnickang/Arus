@@ -4,7 +4,7 @@ import { Request, Response, NextFunction } from "express";
 import { dbSystemAdminStorage, dbUserStorage } from "../repositories";
 import crypto from "crypto";
 import { isPublicApiPath } from "../bootstrap/public-api-paths";
-import { DEFAULT_ORG_ID } from "@shared/config/tenant";
+import { DEFAULT_ORG_ID, requireTenantAuth } from "@shared/config/tenant";
 
 function hashSessionToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
@@ -17,12 +17,17 @@ export async function requireAuthentication(req: Request, res: Response, next: N
     }
 
     if (process.env.NODE_ENV === "development") {
+      // Push B1: dev mock user carries the legacy DEFAULT_ORG_ID so
+      // unmigrated dev workflows keep working. In REQUIRE_TENANT_AUTH
+      // mode this still works because the dev user does have an orgId
+      // claim — it's just the default one.
       req.user = {
         id: "dev-admin-user",
         email: "admin@example.com",
         role: "admin",
         name: "Development Admin",
         isActive: true,
+        orgId: DEFAULT_ORG_ID,
       };
       return next();
     }
@@ -69,14 +74,31 @@ export async function requireAuthentication(req: Request, res: Response, next: N
 
       await dbSystemAdminStorage.updateAdminSessionActivity(session.id);
 
-      const mockOrgId = DEFAULT_ORG_ID;
+      // Push B1: source orgId from the persisted user record. In legacy
+      // mode (REQUIRE_TENANT_AUTH unset) we still auto-provision the
+      // admin user under DEFAULT_ORG_ID so existing single-tenant boots
+      // keep working. In tenant-auth mode the session MUST already have
+      // a `userId` pointing at a real user — there's no safe "default
+      // tenant" to land in.
+      const tenantAuth = requireTenantAuth();
       let user = session.userId
         ? await dbUserStorage.getUser(session.userId)
-        : await dbUserStorage.getUserByEmail(session.adminEmail || "admin@example.com", mockOrgId);
+        : tenantAuth
+          ? null
+          : await dbUserStorage.getUserByEmail(
+              session.adminEmail || "admin@example.com",
+              DEFAULT_ORG_ID
+            );
 
       if (!user) {
+        if (tenantAuth) {
+          return res.status(401).json({
+            error: "Session has no associated user",
+            code: "SESSION_USER_MISSING",
+          });
+        }
         user = await dbUserStorage.createUser({
-          orgId: mockOrgId,
+          orgId: DEFAULT_ORG_ID,
           email: session.adminEmail || "admin@example.com",
           name: "System Administrator",
           role: "admin",
@@ -97,6 +119,7 @@ export async function requireAuthentication(req: Request, res: Response, next: N
         email: user.email,
         role: user.role,
         isActive: user.isActive,
+        orgId: user.orgId,
       };
 
       return next();

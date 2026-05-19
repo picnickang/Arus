@@ -1,21 +1,56 @@
 /**
  * Database Context Middleware
- * Optionally sets the current organization ID in PostgreSQL for compatibility RLS policies.
+ * Sets the current organization ID in PostgreSQL for RLS policies.
  *
- * SINGLE-TENANT SYSTEM: Always uses default-org-id. This is a defense-in-depth
- * context value only; repository-level filtering remains the authoritative boundary.
+ * ⚠️ Push B1 KNOWN LIMITATION — pinned-connection follow-up required.
  *
- * NOTE: This middleware is PostgreSQL-specific and is skipped in SQLite mode
+ * The current implementation calls `set_config('app.current_org_id', x, false)`
+ * on the shared `db` handle. This is correct on a *pinned* connection (one
+ * physical socket per request) but the shared handle pulls a connection
+ * from the pool per `db.execute()`. Two consequences:
+ *
+ *   1. With node-postgres pool (multi-statement driver): the value can
+ *      leak into a different request that happens to land on the same
+ *      backend before `RESET` runs. Architect-review flagged this.
+ *   2. With neon-http (1-statement driver, the typical Replit setup):
+ *      `set_config` is scoped to that single HTTP call; the value is
+ *      not visible to the next call, so RLS would silently match no
+ *      rows for every request.
+ *
+ * Neither failure mode is acceptable as the sole isolation boundary,
+ * which is why this file historically documented itself as "defense-in-
+ * depth only, repository filters are authoritative". Push B1 keeps that
+ * contract: repository-level `WHERE org_id = …` remains the primary
+ * boundary; RLS is the second line of defense.
+ *
+ * The proper fix — wrap each request handler in a `BEGIN; SET LOCAL …;
+ * <handler>; COMMIT;` against a per-request pinned client and route all
+ * `db.*` calls through that client — is tracked as a follow-up task
+ * because it touches every domain repository's `db` import. See the
+ * Push B1 follow-up issue.
+ *
+ * For now: this middleware still sets the variable best-effort so that
+ * test fixtures and pinned-connection deployments (e.g. running drizzle
+ * via a dedicated `Client`, not a `Pool`) benefit immediately, while
+ * the multi-tenant data plane continues to rely on the repository-level
+ * WHERE clauses already in place.
+ *
+ * Skipped in SQLite mode.
  */
 
 import { Request, Response, NextFunction } from "express";
 import { db, isLocalMode } from "../db-config";
 import { sql } from "drizzle-orm";
-import { DEFAULT_ORG_ID } from "@shared/config/tenant";
+import { DEFAULT_ORG_ID, requireTenantAuth } from "@shared/config/tenant";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Middleware:DbContext");
 
-const ENABLE_PG_RLS_CONTEXT = process.env.ENABLE_PG_RLS_CONTEXT === "true";
+// Push B1: when tenant-auth is required the RLS context is mandatory —
+// the policies in migration 0018 read `app.current_org_id` and fail
+// closed if it's unset. In legacy mode the explicit flag still gates it
+// so single-tenant deployments don't pay the per-request SET cost.
+const ENABLE_PG_RLS_CONTEXT =
+  process.env.ENABLE_PG_RLS_CONTEXT === "true" || requireTenantAuth();
 
 export type DbContextRequest = Request;
 

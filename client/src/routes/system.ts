@@ -19,6 +19,7 @@ const EmailAlertsSettings = lazy(() => import("@/pages/email-alerts-settings"));
 const PermissionsSettings = lazy(() => import("@/pages/permissions-settings"));
 const StorageSettings = lazy(() => import("@/pages/storage-settings"));
 const TransportSettings = lazy(() => import("@/pages/transport-settings"));
+const AdminTenants = lazy(() => import("@/pages/admin/tenants"));
 
 export const systemRoutes = [
   { path: "/system", component: SystemHub },
@@ -40,4 +41,5 @@ export const systemRoutes = [
   { path: "/permissions-settings", component: PermissionsSettings },
   { path: "/storage-settings", component: StorageSettings },
   { path: "/transport-settings", component: TransportSettings },
+  { path: "/admin/tenants", component: AdminTenants },
 ];

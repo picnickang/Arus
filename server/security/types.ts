@@ -1,7 +1,8 @@
 /**
  * Security Types - Interfaces and type definitions
  *
- * SINGLE-TENANT SYSTEM: orgId removed from user (uses default-org-id)
+ * Push B1: `orgId` is sourced from the authenticated user's claim
+ * (`server/types/express.d.ts` declares the authoritative shape).
  */
 
 declare global {
@@ -13,6 +14,7 @@ declare global {
         name?: string;
         role: string;
         isActive: boolean;
+        orgId?: string;
       };
     }
   }
