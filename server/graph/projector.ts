@@ -3,26 +3,32 @@
  *
  * The graph is a *read-side projection of relational truth*. This
  * module owns the only write paths into the graph so the projection
- * rules live in exactly one place. Every call is idempotent (the
- * adapter uses Cypher MERGE) — re-running the backfill must never
- * duplicate nodes or inflate edge weights from the same source row
- * twice (callers should set `incrementWeight=0` on replay, or pass
- * the natural counting input once).
+ * rules live in exactly one place.
+ *
+ * Idempotency: every counting edge (HAS_FAILURE_MODE, REQUIRES_PART,
+ * RESOLVED_BY) carries the originating relational row's id as
+ * `sourceId`. The adapter MERGEs on (from, to, type, sourceId), so
+ * re-running the backfill projects the same edge tuple and `count()`
+ * queries return relational truth — zero drift on replay (this was
+ * the reviewer's #1 blocking finding on the first cut).
  *
  * Hook points:
- *   - Write paths (equipment create/update, failure_history insert,
- *     inventory_movements insert) call `projectEquipment` /
- *     `projectFailureHistory` / `projectInventoryMovement` opportunistically.
+ *   - Live write paths (equipment create, inventory_movements insert)
+ *     call the projector after commit. The calls are best-effort —
+ *     a graph failure must NEVER break the underlying relational write.
  *   - `scripts/graph/backfill.mjs` invokes the same projectors over
- *     historical relational rows.
- *   - When `GRAPH_ENABLED=false` or AGE is unavailable, every projector
- *     resolves to false without throwing — safe to call from every
- *     write site unconditionally.
+ *     historical rows.
+ *   - When `GRAPH_ENABLED=false` or AGE is unavailable, every
+ *     projector resolves to a no-op without throwing — safe to call
+ *     from every write site unconditionally.
  */
 
 import { isGraphAvailable } from "../graph-bootstrap";
-import { upsertEdge, upsertNode } from "./adapter";
+import { upsertEdge, upsertNode, STATIC_EDGE_SOURCE } from "./adapter";
 import { EdgeType, NodeLabel } from "./types";
+import { createLogger } from "../lib/structured-logger";
+
+const logger = createLogger("GraphProjector");
 
 export interface EquipmentProjection {
   id: string;
@@ -33,6 +39,8 @@ export interface EquipmentProjection {
 }
 
 export interface FailureHistoryProjection {
+  /** failure_history.id — the canonical source id for HAS_FAILURE_MODE / RESOLVED_BY edges. */
+  failureHistoryId: string | number;
   equipmentId: string;
   failureMode: string;
   technicianId?: string | null;
@@ -40,13 +48,26 @@ export interface FailureHistoryProjection {
 }
 
 export interface InventoryMovementProjection {
+  /** inventory_movements.id — the canonical source id for REQUIRES_PART edges. */
+  movementId: string;
   partId: string;
   workOrderId?: string | null;
-  /** Failure mode (if known) that this part consumption was tied to. */
+  /** Failure mode (if known) this part consumption was tied to. */
   failureMode?: string | null;
-  /** Optional supplier on which this part is canonically sourced. */
+  /** Canonical supplier of the part (pure fact, not counted). */
   supplierId?: string | null;
   partName?: string | null;
+}
+
+/** Best-effort wrapper — never throws. Used by live writers. */
+async function safe<T>(fn: () => Promise<T>, ctx: string): Promise<void> {
+  try {
+    await fn();
+  } catch (err) {
+    logger.warn(`[GraphProjector] ${ctx} failed (non-fatal)`, {
+      details: err instanceof Error ? err.message : String(err),
+    });
+  }
 }
 
 export async function projectEquipment(
@@ -54,24 +75,25 @@ export async function projectEquipment(
   eq: EquipmentProjection
 ): Promise<void> {
   if (!isGraphAvailable()) return;
-  await upsertNode(orgId, NodeLabel.Equipment, eq.id, {
-    name: eq.name ?? undefined,
-    type: eq.type ?? undefined,
-    systemType: eq.systemType ?? undefined,
-  });
-  if (eq.vesselId) {
-    await upsertNode(orgId, NodeLabel.Vessel, eq.vesselId, {});
-    await upsertEdge(
-      orgId,
-      NodeLabel.Equipment,
-      eq.id,
-      EdgeType.InstalledOn,
-      NodeLabel.Vessel,
-      eq.vesselId,
-      // INSTALLED_ON is a relational fact, not a count — keep weight at 1.
-      0
-    );
-  }
+  await safe(async () => {
+    await upsertNode(orgId, NodeLabel.Equipment, eq.id, {
+      name: eq.name ?? undefined,
+      type: eq.type ?? undefined,
+      systemType: eq.systemType ?? undefined,
+    });
+    if (eq.vesselId) {
+      await upsertNode(orgId, NodeLabel.Vessel, eq.vesselId, {});
+      await upsertEdge(
+        orgId,
+        NodeLabel.Equipment,
+        eq.id,
+        EdgeType.InstalledOn,
+        NodeLabel.Vessel,
+        eq.vesselId,
+        STATIC_EDGE_SOURCE
+      );
+    }
+  }, `projectEquipment(${eq.id})`);
 }
 
 export async function projectFailureHistory(
@@ -79,28 +101,31 @@ export async function projectFailureHistory(
   fh: FailureHistoryProjection
 ): Promise<void> {
   if (!isGraphAvailable()) return;
-  await upsertNode(orgId, NodeLabel.FailureMode, fh.failureMode, {});
-  await upsertEdge(
-    orgId,
-    NodeLabel.Equipment,
-    fh.equipmentId,
-    EdgeType.HasFailureMode,
-    NodeLabel.FailureMode,
-    fh.failureMode,
-    1
-  );
-  if (fh.technicianId) {
-    await upsertNode(orgId, NodeLabel.Technician, fh.technicianId, {});
+  const sourceId = `fh:${String(fh.failureHistoryId)}`;
+  await safe(async () => {
+    await upsertNode(orgId, NodeLabel.FailureMode, fh.failureMode, {});
     await upsertEdge(
       orgId,
+      NodeLabel.Equipment,
+      fh.equipmentId,
+      EdgeType.HasFailureMode,
       NodeLabel.FailureMode,
       fh.failureMode,
-      EdgeType.ResolvedBy,
-      NodeLabel.Technician,
-      fh.technicianId,
-      1
+      sourceId
     );
-  }
+    if (fh.technicianId) {
+      await upsertNode(orgId, NodeLabel.Technician, fh.technicianId, {});
+      await upsertEdge(
+        orgId,
+        NodeLabel.FailureMode,
+        fh.failureMode,
+        EdgeType.ResolvedBy,
+        NodeLabel.Technician,
+        fh.technicianId,
+        sourceId
+      );
+    }
+  }, `projectFailureHistory(${sourceId})`);
 }
 
 export async function projectInventoryMovement(
@@ -108,39 +133,41 @@ export async function projectInventoryMovement(
   mv: InventoryMovementProjection
 ): Promise<void> {
   if (!isGraphAvailable()) return;
-  await upsertNode(orgId, NodeLabel.Part, mv.partId, {
-    name: mv.partName ?? undefined,
-  });
-  if (mv.supplierId) {
-    await upsertNode(orgId, NodeLabel.Supplier, mv.supplierId, {});
-    await upsertEdge(
-      orgId,
-      NodeLabel.Part,
-      mv.partId,
-      EdgeType.SuppliedBy,
-      NodeLabel.Supplier,
-      mv.supplierId,
-      0
-    );
-  }
-  if (mv.failureMode) {
-    await upsertNode(orgId, NodeLabel.FailureMode, mv.failureMode, {});
-    await upsertEdge(
-      orgId,
-      NodeLabel.FailureMode,
-      mv.failureMode,
-      EdgeType.RequiresPart,
-      NodeLabel.Part,
-      mv.partId,
-      1
-    );
-  }
+  const sourceId = `mv:${mv.movementId}`;
+  await safe(async () => {
+    await upsertNode(orgId, NodeLabel.Part, mv.partId, {
+      name: mv.partName ?? undefined,
+    });
+    if (mv.supplierId) {
+      await upsertNode(orgId, NodeLabel.Supplier, mv.supplierId, {});
+      await upsertEdge(
+        orgId,
+        NodeLabel.Part,
+        mv.partId,
+        EdgeType.SuppliedBy,
+        NodeLabel.Supplier,
+        mv.supplierId,
+        STATIC_EDGE_SOURCE
+      );
+    }
+    if (mv.failureMode) {
+      await upsertNode(orgId, NodeLabel.FailureMode, mv.failureMode, {});
+      await upsertEdge(
+        orgId,
+        NodeLabel.FailureMode,
+        mv.failureMode,
+        EdgeType.RequiresPart,
+        NodeLabel.Part,
+        mv.partId,
+        sourceId
+      );
+    }
+  }, `projectInventoryMovement(${sourceId})`);
 }
 
 /**
- * Admin-curated dependency edge. Surfaced as a separate projector so
- * an admin UI / import script can wire downstream-degrade relationships
- * (used by `failurePropagation` Copilot tool).
+ * Admin-curated dependency edge (Equipment DEPENDS_ON Equipment).
+ * Pure relational fact — no count semantics.
  */
 export async function projectDependency(
   orgId: string,
@@ -148,13 +175,15 @@ export async function projectDependency(
   downstreamEquipmentId: string
 ): Promise<void> {
   if (!isGraphAvailable()) return;
-  await upsertEdge(
-    orgId,
-    NodeLabel.Equipment,
-    upstreamEquipmentId,
-    EdgeType.DependsOn,
-    NodeLabel.Equipment,
-    downstreamEquipmentId,
-    0
-  );
+  await safe(async () => {
+    await upsertEdge(
+      orgId,
+      NodeLabel.Equipment,
+      upstreamEquipmentId,
+      EdgeType.DependsOn,
+      NodeLabel.Equipment,
+      downstreamEquipmentId,
+      STATIC_EDGE_SOURCE
+    );
+  }, `projectDependency(${upstreamEquipmentId}→${downstreamEquipmentId})`);
 }

@@ -17,6 +17,26 @@
 import { createLogger } from "../../lib/structured-logger";
 const logger = createLogger("Db:Inventory:Index");
 import { randomUUID } from "node:crypto";
+import { projectInventoryMovement } from "../../graph/projector";
+
+/**
+ * Push A2 — Fire-and-forget knowledge-graph projection for an
+ * inventory movement. Best-effort by contract: never throws, no-ops
+ * when GRAPH_ENABLED=false. Re-running with the same movementId
+ * produces the same edge tuple (MERGE-keyed) so there is no drift.
+ */
+function projectMovementBestEffort(
+  orgId: string,
+  movementId: string,
+  partId: string,
+  workOrderId: string | null | undefined
+): void {
+  void projectInventoryMovement(orgId, {
+    movementId,
+    partId,
+    workOrderId,
+  }).catch(() => undefined);
+}
 import { eq, and, or, ilike, sql, desc, asc, type SQL } from "drizzle-orm";
 import { db, type DbTransaction } from "../../db-config";
 import {
@@ -614,8 +634,9 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       for (const [partId, totalQty] of Array.from(partQuantities.entries())) {
         const { rows } = await allocateReservation(tx, partId, orgId, totalQty);
         for (const alloc of rows) {
+          const movementId = randomUUID();
           await tx.insert(inventoryMovements).values({
-            id: randomUUID(),
+            id: movementId,
             orgId,
             partId,
             workOrderId,
@@ -629,6 +650,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
             notes: `Reserved ${alloc.reserved} units for work order ${workOrderId} (stock ${alloc.stockId})`,
             createdAt: new Date(),
           });
+          projectMovementBestEffort(orgId, movementId, partId, workOrderId);
         }
       }
     });
@@ -729,8 +751,9 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
         for (const [partId, totalQty] of Array.from(partQuantities.entries())) {
           const { rows } = await allocateReservation(tx, partId, orgId, totalQty);
           for (const alloc of rows) {
+            const movementId = randomUUID();
             await tx.insert(inventoryMovements).values({
-              id: randomUUID(),
+              id: movementId,
               orgId,
               partId,
               workOrderId,
@@ -744,6 +767,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
               notes: `Reserved for work order ${workOrderId} (stock ${alloc.stockId})`,
               createdAt: new Date(),
             });
+            projectMovementBestEffort(orgId, movementId, partId, workOrderId);
           }
         }
       }
@@ -774,8 +798,9 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       for (const [partId, totalQty] of Array.from(partQuantities.entries())) {
         const { rows } = await distributeRelease(tx, partId, orgId, totalQty);
         for (const rel of rows) {
+          const movementId = randomUUID();
           await tx.insert(inventoryMovements).values({
-            id: randomUUID(),
+            id: movementId,
             orgId,
             partId,
             workOrderId,
@@ -789,6 +814,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
             notes: `Released from work order ${workOrderId} (stock ${rel.stockId})`,
             createdAt: new Date(),
           });
+          projectMovementBestEffort(orgId, movementId, partId, workOrderId);
         }
       }
     });
@@ -880,8 +906,9 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
 
       const { rows } = await distributeRelease(tx, woPart.partId, orgId, woPart.quantityUsed ?? 0);
       for (const rel of rows) {
+        const movementId = randomUUID();
         await tx.insert(inventoryMovements).values({
-          id: randomUUID(),
+          id: movementId,
           orgId,
           partId: woPart.partId,
           workOrderId: woPart.workOrderId,
@@ -895,6 +922,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
           notes: `Returned ${rel.released} units from work order (stock ${rel.stockId})`,
           createdAt: new Date(),
         });
+        projectMovementBestEffort(orgId, movementId, woPart.partId, woPart.workOrderId);
       }
 
       await tx

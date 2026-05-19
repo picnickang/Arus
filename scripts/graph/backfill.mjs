@@ -2,22 +2,22 @@
 /**
  * Push A2 — Knowledge graph backfill.
  *
- * Re-projects historical relational rows (equipment, failure_history,
- * inventory_movements) through the same projectors used by the live
- * write paths. Idempotent: Cypher MERGE means re-running this script
- * does not duplicate nodes. Edge weights for HAS_FAILURE_MODE and
- * REQUIRES_PART will accumulate on repeat runs because every source
- * row legitimately represents one occurrence — pass `--reset` to drop
- * each tenant graph first if you want a clean rebuild.
+ * Re-projects relational truth (equipment, failure_history,
+ * inventory_movements + their work_order → failure_mode linkage)
+ * through the same projectors used by live write paths.
+ *
+ * Idempotent by construction: every counting edge is MERGE-keyed on
+ * the originating relational row id (via `sourceId`), so re-running
+ * this script writes the same tuples back to the graph and
+ * `count(DISTINCT sourceId)`-based queries return the relational
+ * truth. There is no need for a `--reset` flag to keep counts
+ * accurate; it remains available for a clean rebuild if the schema
+ * ever changes.
  *
  * Usage:
  *   GRAPH_ENABLED=true node scripts/graph/backfill.mjs              # all orgs
  *   GRAPH_ENABLED=true node scripts/graph/backfill.mjs --org=acme   # one org
  *   GRAPH_ENABLED=true node scripts/graph/backfill.mjs --reset      # drop+rebuild
- *
- * Exits 0 on success, 1 on hard failure, 0 with a warning when the
- * graph substrate is unavailable (so CI / post-merge can call it
- * unconditionally and we still don't break the build).
  */
 
 import process from "node:process";
@@ -88,23 +88,33 @@ async function main() {
 
     const fhRows = (
       await pool.query(
-        `SELECT equipment_id AS "equipmentId", failure_mode AS "failureMode",
+        `SELECT id, equipment_id AS "equipmentId", failure_mode AS "failureMode",
                 verified_by AS "technicianId", work_order_id AS "workOrderId"
            FROM failure_history WHERE org_id = $1`,
         [orgId]
       )
     ).rows;
     for (const r of fhRows) {
-      await projectFailureHistory(orgId, r);
+      await projectFailureHistory(orgId, { ...r, failureHistoryId: r.id });
       failuresProjected += 1;
     }
 
+    // Inventory movements joined to failure_history via the shared
+    // work_order_id, so REQUIRES_PART edges are populated deterministically
+    // from relational truth (reviewer comment #3 on the first cut).
     const mvRows = (
       await pool.query(
-        `SELECT m.part_id AS "partId", m.work_order_id AS "workOrderId",
-                p.primary_supplier_id AS "supplierId", p.name AS "partName"
+        `SELECT m.id AS "movementId",
+                m.part_id AS "partId",
+                m.work_order_id AS "workOrderId",
+                p.primary_supplier_id AS "supplierId",
+                p.name AS "partName",
+                fh.failure_mode AS "failureMode"
            FROM inventory_movements m
            LEFT JOIN parts p ON p.id = m.part_id
+           LEFT JOIN failure_history fh
+                  ON fh.work_order_id = m.work_order_id
+                 AND fh.org_id = m.org_id
           WHERE m.org_id = $1`,
         [orgId]
       )

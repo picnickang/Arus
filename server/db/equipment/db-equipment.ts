@@ -92,6 +92,21 @@ export class DatabaseEquipmentStorage {
         updatedAt: new Date(),
       } as any)
       .returning();
+    // Push A2 — project new equipment into the knowledge graph. No-op
+    // when GRAPH_ENABLED=false; never throws (best-effort wrapper).
+    try {
+      const { projectEquipment } = await import("../../graph/projector.js");
+      if (!newEquipment.orgId) throw new Error("missing orgId");
+      await projectEquipment(newEquipment.orgId, {
+        id: newEquipment.id,
+        name: newEquipment.name,
+        type: newEquipment.type,
+        vesselId: newEquipment.vesselId,
+        systemType: newEquipment.systemType,
+      });
+    } catch {
+      // projector is best-effort; never fail the relational write
+    }
     try {
       const { equipmentAnalyticsService } = await import("../../equipment-analytics-service.js");
       await (equipmentAnalyticsService as any).setupEquipmentAnalytics(newEquipment);
