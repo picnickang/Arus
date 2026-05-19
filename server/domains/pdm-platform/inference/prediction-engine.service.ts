@@ -73,7 +73,13 @@ export class PredictionEngineService implements PredictionExplanationQuery {
         })
         .returning();
 
-      const explanationRows = await this.generateExplanations(predictionRecord.id, run.id, features);
+      const explanationRows = await this.generateExplanations(
+        predictionRecord.id,
+        run.id,
+        features,
+        orgId,
+        resolvedVersionId
+      );
       if (explanationRows.length > 0) {
         await db.insert(predictionExplanations).values(explanationRows);
       }
@@ -315,7 +321,9 @@ export class PredictionEngineService implements PredictionExplanationQuery {
   private async generateExplanations(
     predictionId: number,
     inferenceRunId: string,
-    features: FeatureVector | null
+    features: FeatureVector | null,
+    orgId?: string,
+    modelVersionId?: string
   ) {
     if (!features) {
       return [];
@@ -325,6 +333,36 @@ export class PredictionEngineService implements PredictionExplanationQuery {
       if (typeof v === "number" && Number.isFinite(v)) featureMap[k] = v;
     }
     if (Object.keys(featureMap).length === 0) return [];
+
+    // Prefer real TreeSHAP via the Python sidecar when enabled and the
+    // deployed model is an xgboost tree ensemble. Falls back silently
+    // to the TS permutation-importance path on any failure.
+    if (orgId && modelVersionId) {
+      try {
+        const { isPythonShapEnabled, shapAttribute } = await import("../../../ml-explainability-python-shap");
+        if (isPythonShapEnabled()) {
+          const shap = await shapAttribute(modelVersionId, orgId, featureMap);
+          if (shap && Object.keys(shap.shapValues).length > 0) {
+            const entries = Object.entries(shap.shapValues)
+              .filter(([, v]) => Number.isFinite(v) && Math.abs(v) > 1e-9)
+              .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+              .slice(0, 8);
+            const totalMag = entries.reduce((s, [, v]) => s + Math.abs(v), 0) || 1;
+            return entries.map(([feature, shapValue]) => ({
+              predictionId,
+              inferenceRunId,
+              featureName: feature,
+              importance: Math.round((Math.abs(shapValue) / totalMag) * 1000) / 1000,
+              featureValue: featureMap[feature] ?? null,
+              baselineValue: null,
+              direction: shapValue > 0 ? "increasing" : "decreasing",
+            }));
+          }
+        }
+      } catch {
+        // Fall through to permutation path.
+      }
+    }
 
     const { explainXGBoostPrediction } = await import("../../../ml-explainability-service");
     const explanation = await explainXGBoostPrediction(

@@ -142,7 +142,10 @@ function parseTrainerMetrics(stdout: string): TrainerMetrics {
 
 function runTrainer(orgId: string, equipmentType: string): Promise<{ stdout: string; code: number }> {
   return new Promise((resolve) => {
-    const script = path.resolve(process.cwd(), "scripts/ml/train-model-skeleton.mjs");
+    // Routes through train-model-sidecar.mjs so the Python XGBoost
+    // trainer is used when ML_PYTHON_TRAINER=1 and falls back to the
+    // JS calibration baseline otherwise. Same JSON-line contract.
+    const script = path.resolve(process.cwd(), "scripts/ml/train-model-sidecar.mjs");
     const child = spawn("node", [script, `--org=${orgId}`, `--type=${equipmentType}`], {
       stdio: ["ignore", "pipe", "pipe"],
       env: process.env,
