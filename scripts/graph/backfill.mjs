@@ -27,6 +27,7 @@ import { argv, exit, env } from "node:process";
 import pg from "pg";
 
 const STATIC_EDGE_SOURCE = "static";
+let cypherFailures = 0;
 
 function parseArgs(args) {
   const out = { reset: false };
@@ -68,6 +69,7 @@ async function exec(client, graph, cypher) {
     await client.query(sql);
     return true;
   } catch (err) {
+    cypherFailures += 1;
     console.warn(`[graph-backfill] cypher failed: ${err.message}`);
     return false;
   }
@@ -268,10 +270,21 @@ async function main() {
       }
     }
 
+    // Surface a non-zero exit on partial projection failure so
+    // CI / cron operators don't silently accept a half-synced graph
+    // (reviewer's seventh-pass non-blocking comment). Counts every
+    // cypher write that threw at the adapter layer.
     console.log(
       `[graph-backfill] Done — ${eqCount} equipment, ${fhCount} failures, ` +
-        `${mvCount} movements across ${orgRows.length} orgs`
+        `${mvCount} movements across ${orgRows.length} orgs ` +
+        `(cypherFailures=${cypherFailures})`
     );
+    if (cypherFailures > 0) {
+      console.error(
+        `[graph-backfill] ${cypherFailures} cypher write(s) failed — exiting non-zero`
+      );
+      exit(2);
+    }
   } finally {
     await client.end();
   }

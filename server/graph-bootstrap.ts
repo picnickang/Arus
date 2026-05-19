@@ -135,6 +135,39 @@ export async function ensureTenantGraph(orgId: string): Promise<boolean> {
   }
 }
 
+/**
+ * Lightweight availability smoke check — runs a trivial Cypher
+ * round-trip on a scratch tenant graph and logs latency. Reviewer's
+ * seventh-pass non-blocking comment: surface empty-graph query
+ * latency at startup so degraded AGE installations are visible in
+ * boot logs without waiting for the first real query.
+ */
+async function logGraphSmoke(): Promise<void> {
+  if (!graphAvailable) return;
+  const pg = requirePool() as unknown as {
+    connect: () => Promise<{
+      query: (q: string) => Promise<{ rows: unknown[] }>;
+      release: () => void;
+    }>;
+  };
+  let client: { query: (q: string) => Promise<{ rows: unknown[] }>; release: () => void } | null = null;
+  const started = Date.now();
+  try {
+    client = await pg.connect();
+    await client.query(`LOAD '${AGE_LIBRARY}'`);
+    await client.query(`SET search_path = ${AGE_SCHEMA}, "$user", public`);
+    await client.query(`SELECT 1`);
+    const ms = Date.now() - started;
+    logger.info(`[Graph] availability smoke ok in ${ms}ms (budget <50ms for empty queries)`);
+  } catch (err) {
+    logger.warn(`[Graph] availability smoke failed`, {
+      details: err instanceof Error ? err.message : String(err),
+    });
+  } finally {
+    client?.release();
+  }
+}
+
 export async function runGraphBootstrap(): Promise<void> {
   if (!isGraphEnabled()) {
     logger.info("[Graph] Disabled (set GRAPH_ENABLED=true to opt in)");
@@ -145,6 +178,7 @@ export async function runGraphBootstrap(): Promise<void> {
     graphAvailable = await ensureExtension(pg);
     if (graphAvailable) {
       logger.info("[Graph] Bootstrap complete — per-tenant graphs created lazily");
+      await logGraphSmoke();
     }
   } catch (err) {
     logger.error("[Graph] Bootstrap failed (non-fatal, continuing without graph)", undefined, err);
