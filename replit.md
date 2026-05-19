@@ -76,6 +76,7 @@ Each bullet is one wave from the v2 ARUS Gap-Fill Plan. Implementation details l
 -   **2.2 Loki Log Shipping**: `server/lib/loki-transport.ts` — optional Pino transport gated `LOKI_URL`; runs in Worker. stdout JSON stays canonical sink. `LOKI_BASIC_AUTH`/`LOKI_BEARER_TOKEN`.
 -   **2.5 Generalized Idempotency**: `server/middleware/idempotency.ts` reads `clientMutationId` from body when `Idempotency-Key` absent. Key `(orgId:method:path:key)`, 24h TTL, 2xx caching.
 -   **2.6 k6 Load Tests**: `tests/load/{smoke,steady,spike}.js` with embedded SLO thresholds. Out of unit runner; k6 installed out-of-band.
+-   **2.3 Backup Verification Harness**: `scripts/dr/verify-backup.mjs` — restores a `pg_dump` into a scratch DB, asserts schema parity + per-table row-count drift (±20% default) + anchor-table non-emptiness vs live read-only. Exits non-zero w/ JSON report for CI gating. Refuses to validate <1KiB dumps (catches 0-byte "success" failures). Companion to runbook §10 drill.
 -   **2.7 DR Runbook**: `docs/operations/dr-runbook.md` — RTO 2h / RPO 5min, 5 incident classes (app outage / PITR / region failover / compromise / tenant-scoped), pre-flight evidence capture, comms checklist, quarterly drill checklist.
 -   **2.8 TimescaleDB (opt-in)**: `TIMESCALEDB_ENABLED=true` runs `server/timescaledb-bootstrap.ts`. Never auto-converts non-hypertables (destructive); use `scripts/timescale-init-hypertables.mjs --apply`. Default OFF.
 
