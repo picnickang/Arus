@@ -84,6 +84,18 @@ export async function initializeDatabase(): Promise<void> {
         logger.warn("[WO-SO Bridge] Migration skipped or already applied:", { details: (err as Error).message });
       }
 
+      // Wave 0.6 — Feature flag overrides table + cache priming.
+      try {
+        const { migrateFeatureFlagOverrides } = await import("../migrations/011-feature-flag-overrides");
+        await migrateFeatureFlagOverrides(db);
+        const { featureFlags } = await import("../infrastructure/feature-flags");
+        await featureFlags.refresh(db);
+        featureFlags.startAutoRefresh(db, 60_000);
+        logger.info("✓ Feature flag overrides table ready (cache primed, auto-refresh every 60s)");
+      } catch (err) {
+        logger.warn("[FeatureFlags] Override table setup skipped:", { details: (err as Error).message });
+      }
+
       return;
     } catch (error: any) {
       const isLastAttempt = attempt === maxRetries;
