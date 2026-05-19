@@ -3,6 +3,12 @@ import App from "./App";
 import "./index.css";
 import { initWebVitals } from "./lib/web-vitals";
 import { initSentry } from "./lib/sentry";
+import { initBrowserOtel } from "./lib/otel";
+
+// Wave 2.1: OpenTelemetry browser tracer (fetch + XHR auto-instrumented).
+// Async + fire-and-forget — never blocks first paint.
+// No-op if VITE_OTEL_EXPORTER_OTLP_ENDPOINT is unset.
+void initBrowserOtel();
 
 // Wave 0.4: Sentry init runs before App mounts so the first paint
 // errors are captured. No-op if VITE_SENTRY_DSN is unset.

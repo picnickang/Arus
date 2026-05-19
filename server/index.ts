@@ -5,9 +5,15 @@
 
 process.env.TF_CPP_MIN_LOG_LEVEL = "2";
 
-// Wave 0.4: Sentry MUST init before any other app module so its
-// auto-instrumentation can hook into Node's module loader (Express,
-// http, pg, etc.). No-op if SENTRY_DSN is absent.
+// Wave 2.1: OpenTelemetry MUST init before any other app module so its
+// auto-instrumentation hooks Node's module loader (Express, http, pg,
+// pg-boss) before they're first required. No-op when
+// OTEL_EXPORTER_OTLP_ENDPOINT is absent.
+import "./otel";
+
+// Wave 0.4: Sentry inits next, also before any domain code. Sentry v10
+// integrates with the OTel tracer provider when both are enabled.
+// No-op if SENTRY_DSN is absent.
 import "./instrument";
 
 import { createLogger } from "./lib/structured-logger";
