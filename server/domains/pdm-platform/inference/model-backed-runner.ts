@@ -1,25 +1,30 @@
 /**
  * Push A1 — Model-backed inference runner.
  *
- * Wraps the ONNX adapter so the existing PredictionEngineService can
- * serve real-model predictions when a model is deployed in the
- * registry, while preserving failure isolation: any ONNX error
- * (artifact missing, shape mismatch, runtime crash) falls through to
- * the heuristic baseline so user-visible predictions never regress.
+ * When a deployed ONNX artifact is resolvable for the incoming
+ * InferenceContext, that artifact IS the production predictor — its
+ * scoring output is what the user sees. The heuristic runner is a
+ * fallback only: if the ONNX call throws (missing artifact, shape
+ * mismatch, runtime crash) the runner silently substitutes the
+ * heuristic so user-visible predictions never go to error. When no
+ * deployed artifact is resolvable at all, the heuristic remains the
+ * sole production path (same behaviour as pre-A1).
  *
  * Selection priority:
- *   1. The ml_models registry — for each incoming InferenceContext
- *      whose modelVersionId points at a `status='deployed'` row with
- *      a `training_metrics.artifactPath` on disk, that artifact is
- *      used as the candidate. This is the closed-loop wiring that the
- *      weekly retraining + /ml/models/:id/promote endpoint flows
- *      through.
+ *   1. The ml_models registry — for each InferenceContext whose
+ *      modelVersionId points at a `status='deployed'` row with a
+ *      `training_metrics.artifactPath` on disk, that artifact is the
+ *      production predictor. This is the closed-loop wiring that the
+ *      weekly retraining + /ml/models/:id/promote endpoint mutates.
  *   2. Env `PDM_ONNX_MODEL_PATH` — operator-pinned override that
  *      bypasses the registry. Useful for benchmarking / pre-rollout.
- *   3. None — collapses to pure heuristic. Same as today.
+ *   3. None — collapses to pure heuristic.
  *
- * Selection always runs through the Wave 3.3 shadow/canary substrate
- * so a candidate failure can never propagate to user-visible writes.
+ * `PDM_ONNX_MODE=shadow|canary` re-enables the Wave 3.3 observation
+ * substrate where the deployed ONNX is the *candidate* and heuristic
+ * is *production*; this is intended for operator-led rollout drills
+ * BEFORE flipping the default. The default mode is `live`: deployed
+ * ONNX serves user traffic directly with heuristic fallback.
  */
 
 import { promises as fs } from "node:fs";
@@ -41,18 +46,19 @@ interface ResolvedArtifact {
 }
 
 export class ModelBackedInferenceRunner implements InferenceRunnerPort {
-  private readonly production = new HeuristicInferenceRunner();
-  private readonly mode: "shadow" | "canary";
+  private readonly heuristic = new HeuristicInferenceRunner();
+  private readonly mode: "live" | "shadow" | "canary";
   private readonly canaryPercent: number;
   private readonly envOverride?: string;
   /** Per-artifact ONNX adapter cache. Keyed by absolute artifact path. */
   private readonly adapters = new Map<string, OnnxInferenceAdapter>();
-  /** Per-modelVersionId resolution cache. */
+  /** Per-(orgId,modelVersionId) resolution cache. */
   private readonly resolveCache = new Map<string, Promise<ResolvedArtifact | null>>();
 
   constructor(envOverride?: string) {
     this.envOverride = envOverride;
-    this.mode = (process.env.PDM_ONNX_MODE ?? "shadow") === "canary" ? "canary" : "shadow";
+    const rawMode = (process.env.PDM_ONNX_MODE ?? "live").toLowerCase();
+    this.mode = rawMode === "shadow" || rawMode === "canary" ? rawMode : "live";
     const pct = Number(process.env.PDM_ONNX_CANARY_PERCENT ?? "0");
     this.canaryPercent = Number.isFinite(pct) ? Math.min(100, Math.max(0, pct)) : 0;
   }
@@ -153,12 +159,37 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
 
   async scoreFeatures(context: InferenceContext): Promise<PredictionScore> {
     const artifact = await this.resolveArtifact(context);
-    const candidate = artifact ? this.getAdapter(artifact.artifactPath) : undefined;
+    if (!artifact) {
+      // No deployed ONNX model resolvable — heuristic is sole production.
+      return this.heuristic.scoreFeatures(context);
+    }
+    const onnx = this.getAdapter(artifact.artifactPath);
+
+    if (this.mode === "live") {
+      // Deployed ONNX IS production. Heuristic only catches hard
+      // failures (artifact corrupt, runtime crash) so the user never
+      // sees an exception — but every successful call is real-model.
+      try {
+        return await onnx.scoreFeatures(context);
+      } catch (err) {
+        logger.warn("Deployed ONNX scoring failed — heuristic fallback", {
+          modelVersionId: context.modelVersionId,
+          modelId: artifact.modelId,
+          err: err instanceof Error ? err.message : String(err),
+        });
+        return this.heuristic.scoreFeatures(context);
+      }
+    }
+
+    // Observation modes (operator-led pre-rollout): deployed ONNX is
+    // the *candidate*, heuristic is *production*. Switches semantics
+    // back to the Wave 3.3 substrate so operators can A/B / divergence-
+    // test before flipping PDM_ONNX_MODE=live.
     const result = await serveWithShadowOrCanary<PredictionScore>({
       productionModelId: "heuristic-baseline",
-      candidateModelId: artifact ? artifact.modelId : undefined,
-      productionPredict: () => this.production.scoreFeatures(context),
-      candidatePredict: candidate ? () => candidate.scoreFeatures(context) : undefined,
+      candidateModelId: artifact.modelId,
+      productionPredict: () => this.heuristic.scoreFeatures(context),
+      candidatePredict: () => onnx.scoreFeatures(context),
       canaryPercent: this.mode === "canary" ? this.canaryPercent : undefined,
       divergence: (p, c) => Math.abs(p.failureProbability - c.failureProbability),
     });
@@ -171,16 +202,15 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
  *  this is safe to wire unconditionally. */
 export function resolveInferenceRunner(): InferenceRunnerPort {
   const envOverride = process.env.PDM_ONNX_MODEL_PATH?.trim() || undefined;
+  const mode = process.env.PDM_ONNX_MODE ?? "live";
   if (envOverride) {
     logger.info("ONNX runner active (registry + env override)", {
       envOverride,
-      mode: process.env.PDM_ONNX_MODE ?? "shadow",
+      mode,
       canaryPercent: process.env.PDM_ONNX_CANARY_PERCENT ?? "0",
     });
   } else {
-    logger.info("ONNX runner active (registry-backed)", {
-      mode: process.env.PDM_ONNX_MODE ?? "shadow",
-    });
+    logger.info("ONNX runner active (registry-backed)", { mode });
   }
   return new ModelBackedInferenceRunner(envOverride);
 }

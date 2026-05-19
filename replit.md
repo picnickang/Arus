@@ -57,8 +57,13 @@ Implemented with Express.js and TypeScript, providing RESTful APIs with Zod vali
     `training_metrics`. Inference resolves the deployed artifact via
     `PredictionEngineService.resolveActiveVersion()` (reads `ml_models`
     by `orgId` + equipment type + `status='deployed'`) and serves it
-    through `ModelBackedInferenceRunner` (`onnxruntime-node`) behind
-    `serveWithShadowOrCanary` so candidate failures never reach users.
+    through `ModelBackedInferenceRunner` (`onnxruntime-node`). In the
+    default `PDM_ONNX_MODE=live`, the deployed ONNX artifact IS the
+    production predictor — the heuristic runner is invoked only as a
+    hard-failure fallback (artifact corrupt / runtime crash) so users
+    never see an exception. `PDM_ONNX_MODE=shadow|canary` re-enables
+    the Wave 3.3 observation substrate (heuristic-as-production, ONNX
+    as candidate) for operator-led pre-rollout drills.
     `/ml/models/:id/promote` and `/rollback` mutate the same rows the
     runtime reads — closed loop. TreeSHAP via Python sidecar
     (`server/ml-explainability-python-shap.ts`, gated `ML_PYTHON_SHAP=1`)
