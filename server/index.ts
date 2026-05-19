@@ -5,6 +5,11 @@
 
 process.env.TF_CPP_MIN_LOG_LEVEL = "2";
 
+// Wave 0.4: Sentry MUST init before any other app module so its
+// auto-instrumentation can hook into Node's module loader (Express,
+// http, pg, etc.). No-op if SENTRY_DSN is absent.
+import "./instrument";
+
 import { createLogger } from "./lib/structured-logger";
 const logger = createLogger("Index");
 import {

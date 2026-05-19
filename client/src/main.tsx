@@ -2,6 +2,11 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { initWebVitals } from "./lib/web-vitals";
+import { initSentry } from "./lib/sentry";
+
+// Wave 0.4: Sentry init runs before App mounts so the first paint
+// errors are captured. No-op if VITE_SENTRY_DSN is unset.
+initSentry();
 
 // Wave 5.9: Core Web Vitals — fire-and-forget initializer. Uses the
 // native PerformanceObserver API (no extra dependency). Posts a single
