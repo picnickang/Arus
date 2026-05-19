@@ -95,7 +95,23 @@ export class RedisFanoutBus extends InProcessFanoutBus implements FanoutBus {
         sub.on("messageBuffer", (channelBuf: Buffer, messageBuf: Buffer) => {
           this.onPeerMessage(channelBuf.toString("utf8"), messageBuf.toString("utf8"));
         });
+        // On reconnect (ioredis emits "ready" after the underlying
+        // socket transitions back to a usable state) re-issue
+        // SUBSCRIBE for every channel we currently care about.
+        // Without this, a transient Redis blip would silently sever
+        // cross-node fan-out for the lifetime of every existing
+        // (count>0) channel — local delivery would keep working, so
+        // the failure is invisible until a peer publishes.
+        sub.on("ready", () => {
+          this.resubscribeAll().catch((err) => {
+            logger.warn("redis resubscribe after reconnect failed", { err: String(err) });
+          });
+        });
         this.subscriber = sub;
+        // First-time bring-up may have raced ahead of any subscribe()
+        // calls that arrived while ensureClients was pending; replay
+        // the current channel set now too.
+        await this.resubscribeAll();
       } catch (err) {
         logger.warn("failed to open redis subscriber, degrading to in-process", {
           err: String(err),
@@ -105,6 +121,26 @@ export class RedisFanoutBus extends InProcessFanoutBus implements FanoutBus {
     }
 
     return { publisher: this.publisher, subscriber: this.subscriber };
+  }
+
+  /** Re-issue SUBSCRIBE for every wire channel with a non-zero local
+   *  refcount. Safe to call repeatedly: Redis SUBSCRIBE is idempotent
+   *  per-connection, and we never grow the local refcount here. */
+  private async resubscribeAll(): Promise<void> {
+    const sub = this.subscriber;
+    if (!sub) return;
+    const channels = Array.from(this.subscribedChannels.entries())
+      .filter(([, count]) => count > 0)
+      .map(([wireChannel]) => wireChannel);
+    if (channels.length === 0) return;
+    try {
+      await sub.subscribe(...channels);
+    } catch (err) {
+      logger.warn("redis bulk subscribe failed", {
+        err: String(err),
+        channelCount: channels.length,
+      });
+    }
   }
 
   private onPeerMessage(rawChannel: string, raw: string): void {

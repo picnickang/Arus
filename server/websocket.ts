@@ -806,6 +806,15 @@ class TelemetryWebSocketServer {
     this.clients.clear();
 
     this.wss.close();
+
+    // Push B2 — release the fan-out substrate itself so the Redis
+    // subscriber connection + interval timers are closed for long-
+    // lived processes / hot reloads. Best-effort fire-and-forget;
+    // destroy() is sync by contract and any leftover I/O is bounded
+    // by the substrate's own quit timeout.
+    void this.fanout.close().catch((err) => {
+      log(`fanout close failed: ${err}`);
+    });
   }
 }
 
