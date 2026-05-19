@@ -5,7 +5,8 @@ import {
   failurePredictions,
   predictionExplanations,
   equipmentFeatures,
-  modelDeployments,
+  mlModels,
+  equipment,
 } from "@shared/schema";
 import type { FeatureVector, InferenceRunnerPort, InferenceResult, PredictionScore } from "./ports";
 import { logger } from "../../../utils/logger";
@@ -24,7 +25,8 @@ export class PredictionEngineService implements PredictionExplanationQuery {
   ): Promise<InferenceResult> {
     const startTime = Date.now();
 
-    const resolvedVersionId = modelVersionId ?? (await this.resolveActiveVersion(orgId));
+    const resolvedVersionId =
+      modelVersionId ?? (await this.resolveActiveVersion(orgId, equipmentId));
 
     const [run] = await db
       .insert(inferenceRuns)
@@ -231,16 +233,45 @@ export class PredictionEngineService implements PredictionExplanationQuery {
     };
   }
 
-  private async resolveActiveVersion(orgId: string): Promise<string | undefined> {
-    const [deployment] = await db
-      .select()
-      .from(modelDeployments)
-      .where(
-        and(eq(modelDeployments.orgId, orgId), eq(modelDeployments.deploymentStatus, "active"))
-      )
-      .orderBy(desc(modelDeployments.deployedAt))
+  /**
+   * Push A1 — Single source of truth: ml_models. Resolves the
+   * currently-deployed model id for the equipment's type. This is the
+   * exact row the /ml/models/:id/promote and /rollback endpoints
+   * mutate, so promotion now directly takes effect at runtime. Falls
+   * back to org-wide deployed model when no equipmentType-specific
+   * row exists, then to undefined (=> heuristic).
+   */
+  private async resolveActiveVersion(
+    orgId: string,
+    equipmentId: string
+  ): Promise<string | undefined> {
+    const [equip] = await db
+      .select({ type: equipment.type })
+      .from(equipment)
+      .where(and(eq(equipment.orgId, orgId), eq(equipment.id, equipmentId)))
       .limit(1);
-    return deployment?.modelVersionId ?? undefined;
+    if (equip?.type) {
+      const [deployed] = await db
+        .select({ id: mlModels.id })
+        .from(mlModels)
+        .where(
+          and(
+            eq(mlModels.orgId, orgId),
+            eq(mlModels.status, "deployed"),
+            eq(mlModels.equipmentType, equip.type)
+          )
+        )
+        .orderBy(desc(mlModels.deployedOn))
+        .limit(1);
+      if (deployed?.id) return deployed.id;
+    }
+    const [anyDeployed] = await db
+      .select({ id: mlModels.id })
+      .from(mlModels)
+      .where(and(eq(mlModels.orgId, orgId), eq(mlModels.status, "deployed")))
+      .orderBy(desc(mlModels.deployedOn))
+      .limit(1);
+    return anyDeployed?.id ?? undefined;
   }
 
   private async fetchLatestFeatures(orgId: string, equipmentId: string) {
@@ -368,9 +399,16 @@ export class PredictionEngineService implements PredictionExplanationQuery {
     const explanation = await explainXGBoostPrediction(
       {
         predict: async (f: Record<string, number>) => {
+          // Push A1 — use the real prediction context so permutation
+          // attribution is scored against the SAME deployed model the
+          // original prediction used. Falling back to a synthetic
+          // context here would silently route to heuristic via the
+          // registry resolver and detach the explanation from the
+          // model that produced the prediction.
           const score = await this.runner.scoreFeatures({
-            orgId: "_perm",
+            orgId: orgId ?? "_perm",
             equipmentId: "_perm",
+            modelVersionId,
             features: f as unknown as FeatureVector,
           });
           return score.failureProbability;
