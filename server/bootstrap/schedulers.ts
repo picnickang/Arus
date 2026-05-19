@@ -120,6 +120,6 @@ export async function initializeBackgroundJobs(isEmbedded: boolean): Promise<voi
 
   logger.info("→ Starting background jobs...");
   const { startBackgroundJobs } = await import("../job-processors");
-  startBackgroundJobs();
+  await startBackgroundJobs();
   logger.info("✓ Background jobs started");
 }

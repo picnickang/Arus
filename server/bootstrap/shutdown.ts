@@ -101,6 +101,14 @@ async function shutdown(sig: string): Promise<void> {
     }
 
     try {
+      const { jobQueue } = await import("../background-jobs");
+      await withTimeout(jobQueue.stop(), 6000);
+      logger.info("  ✓ Background job queue stopped");
+    } catch {
+      /* module not loaded or already stopped */
+    }
+
+    try {
       const { stopEventLoopMonitoring } = await import("../observability");
       stopEventLoopMonitoring();
       logger.info("  ✓ Observability stopped");

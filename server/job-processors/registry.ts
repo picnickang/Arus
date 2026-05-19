@@ -36,8 +36,8 @@ export function registerJobProcessors(): void {
   logger.info("[Background Jobs] All processors registered successfully");
 }
 
-export function startBackgroundJobs(): void {
+export async function startBackgroundJobs(): Promise<void> {
   registerJobProcessors();
-  jobQueue.start();
+  await jobQueue.start();
   logger.info("[Background Jobs] Job queue started");
 }
