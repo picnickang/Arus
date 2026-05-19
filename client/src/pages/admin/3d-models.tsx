@@ -50,6 +50,29 @@ export default function Admin3DModelsPage() {
   const vesselsQuery = useQuery<Vessel[]>({ queryKey: ["/api/vessels"] });
   const vessels = vesselsQuery.data ?? [];
 
+  // Page-level admin gate. The backend role check sits on the mutating
+  // routes, but if a non-admin opens this page we want a clear "Admin
+  // only" empty state rather than letting them poke around an empty UI.
+  const vesselsErr = vesselsQuery.error as Error | null;
+  const isForbidden =
+    !!vesselsErr && (/^403:/.test(vesselsErr.message) || /forbidden/i.test(vesselsErr.message));
+
+  if (isForbidden) {
+    return (
+      <div className="p-6" data-testid="page-admin-3d-models-forbidden">
+        <Card>
+          <CardContent className="py-12 text-center space-y-2">
+            <h1 className="text-lg font-semibold">Admin only</h1>
+            <p className="text-sm text-muted-foreground">
+              You need the admin or chief engineer role to manage 3D vessel
+              models and equipment pins.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const modelQueries = useQueries({
     queries: vessels.map((v) => ({
       queryKey: ["/api/v1/vessels", v.id, "3d-model"] as const,
