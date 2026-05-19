@@ -6,6 +6,7 @@ import { TelemetryAnalyticsSink } from "./telemetry-analytics-sink.js";
 import type { EventSpineProducer, EventSpineFanout } from "./types.js";
 import { EventSpineWorker } from "./worker.js";
 import { PgNotifyCdcBridge, type PgNotifyCdcTableConfig } from "./cdc-pg-notify.js";
+import { PgWalCdcBridge, type WalCdcTableConfig } from "./cdc-pg-wal.js";
 
 const logger = createLogger("EventSpine");
 
@@ -18,12 +19,15 @@ export { EventSpineWorker } from "./worker.js";
 export { initEventSpineOutboxBridge } from "./bridge.js";
 export { PgNotifyCdcBridge } from "./cdc-pg-notify.js";
 export type { PgNotifyCdcTableConfig } from "./cdc-pg-notify.js";
+export { PgWalCdcBridge } from "./cdc-pg-wal.js";
+export type { WalCdcTableConfig } from "./cdc-pg-wal.js";
+export { readTelemetryFromSink, analyticsReadMode } from "./analytics-sink-reader.js";
 
 export interface EventSpineHandle {
   producer: EventSpineProducer;
   worker: EventSpineWorker | null;
   analyticsSink: TelemetryAnalyticsSink | null;
-  cdc: PgNotifyCdcBridge | null;
+  cdc: PgNotifyCdcBridge | PgWalCdcBridge | null;
   stop(): Promise<void>;
 }
 
@@ -40,7 +44,7 @@ export interface StartEventSpineOptions {
 
 let handle: EventSpineHandle | null = null as EventSpineHandle | null;
 
-function attachCdc(bridge: PgNotifyCdcBridge): void {
+function attachCdc(bridge: PgNotifyCdcBridge | PgWalCdcBridge): void {
   if (handle) handle.cdc = bridge;
 }
 
@@ -118,17 +122,18 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
     logger.info("Event spine worker disabled (outbox-only mode)");
   }
 
-  let cdc: PgNotifyCdcBridge | null = null;
+  let cdc: PgNotifyCdcBridge | PgWalCdcBridge | null = null;
   const cdcEnabled = process.env.EVENT_SPINE_CDC === "1";
+  // Default to the WAL/logical-replication adapter (true rebuildable
+  // CDC stream); fall back to trigger+NOTIFY only when explicitly asked
+  // for via EVENT_SPINE_CDC_MODE=notify (e.g. managed PG without
+  // REPLICATION privilege). Both adapters land into the same outbox so
+  // downstream consumers are mode-agnostic.
+  const cdcMode = (process.env.EVENT_SPINE_CDC_MODE ?? "wal").toLowerCase();
   if (cdcEnabled) {
-    // CDC is opt-in: only starts when explicitly enabled because it
-    // installs PG triggers on the listed tables and holds a dedicated
-    // LISTEN connection. Table set kept narrow on purpose — capturing
-    // every table without curation would flood the outbox.
     void (async () => {
       try {
-        const { pool } = await import("../../db.js");
-        const tables: PgNotifyCdcTableConfig[] = [
+        const tableDefs = [
           { table: "work_orders", eventTypePrefix: "cdc.work_order", aggregateType: "WorkOrder" },
           {
             table: "maintenance_schedules",
@@ -137,10 +142,30 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
           },
           { table: "inventory_items", eventTypePrefix: "cdc.inventory", aggregateType: "InventoryItem" },
         ];
-        const bridge = new PgNotifyCdcBridge({ pool: pool as unknown as import("pg").Pool, tables });
-        await bridge.start();
-        cdc = bridge;
-        attachCdc(bridge);
+        if (cdcMode === "wal" && process.env.DATABASE_URL) {
+          const walTables: WalCdcTableConfig[] = tableDefs;
+          const bridge = new PgWalCdcBridge({
+            connectionString: process.env.DATABASE_URL,
+            tables: walTables,
+            slotName: process.env.EVENT_SPINE_CDC_SLOT,
+            publicationName: process.env.EVENT_SPINE_CDC_PUBLICATION,
+          });
+          await bridge.start();
+          cdc = bridge;
+          attachCdc(bridge);
+          logger.info("Event spine CDC = WAL (logical replication)");
+        } else {
+          const { pool } = await import("../../db.js");
+          const notifyTables: PgNotifyCdcTableConfig[] = tableDefs;
+          const bridge = new PgNotifyCdcBridge({
+            pool: pool as unknown as import("pg").Pool,
+            tables: notifyTables,
+          });
+          await bridge.start();
+          cdc = bridge;
+          attachCdc(bridge);
+          logger.info("Event spine CDC = NOTIFY (trigger fallback)");
+        }
       } catch (err) {
         logger.error("CDC bridge failed to start", {
           error: err instanceof Error ? err.message : String(err),
@@ -167,7 +192,7 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
       worker: !!worker,
       analyticsSink: !!analyticsSink,
       bridge: bridgeEnabled,
-      cdc: process.env.EVENT_SPINE_CDC === "1",
+      cdc: process.env.EVENT_SPINE_CDC === "1" ? cdcMode : "off",
       producer: producer.constructor.name,
     });
   }
