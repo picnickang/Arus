@@ -3,18 +3,28 @@
  *
  * Lazy-loads the Three.js viewer to keep it out of the main bundle, wires
  * equipment health → pin colours, the Push A2 dependency graph → amber
- * downstream highlight, and a scrub bar that drives `ScenarioSimService`
- * to project forward state without re-fetching.
+ * downstream highlight, and a scrub bar that replays health from the
+ * existing `TwinStateService.getStateHistory()` records — keeping twin
+ * computation server-side per architectural constraint.
+ *
+ * Pin click → immediately routes to the equipment detail page; the
+ * dependency graph fetch fires in parallel so the operator sees the
+ * downstream amber tint when they return.
  */
-import { useMemo, useState, lazy, Suspense } from "react";
+import { useMemo, useState, useEffect, lazy, Suspense } from "react";
 import { useParams, useLocation } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useQueries, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Loader2 } from "lucide-react";
-import type { EquipmentPin, Vessel3dModel, AssetTwin, AssetTwinState } from "@shared/schema";
+import type {
+  EquipmentPin,
+  Vessel3dModel,
+  AssetTwin,
+  AssetTwinState,
+} from "@shared/schema";
 
 const Vessel3DTwin = lazy(() => import("@/components/vessel/Vessel3DTwin"));
 
@@ -23,12 +33,28 @@ interface DependencyResponse {
   downstream: Array<{ equipmentId: string; hops: number }>;
 }
 
+type PinList = EquipmentPin[];
+
+function parsePins(raw: unknown): PinList {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((p): p is EquipmentPin => {
+    return (
+      !!p &&
+      typeof p === "object" &&
+      typeof (p as EquipmentPin).equipmentId === "string" &&
+      typeof (p as EquipmentPin).x === "number" &&
+      typeof (p as EquipmentPin).y === "number" &&
+      typeof (p as EquipmentPin).z === "number"
+    );
+  });
+}
+
 export default function Vessel3DPage() {
   const params = useParams<{ id: string }>();
   const vesselId = params.id!;
   const [, navigate] = useLocation();
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
-  const [scrubHoursAgo, setScrubHoursAgo] = useState(0); // 0 = live, 6 = six hours back
+  const [scrubHoursAgo, setScrubHoursAgo] = useState(0); // 0 = live, up to 6h back
 
   const modelQuery = useQuery<Vessel3dModel>({
     queryKey: ["/api/v1/vessels", vesselId, "3d-model"],
@@ -48,32 +74,74 @@ export default function Vessel3DPage() {
     },
   });
 
-  const pins: EquipmentPin[] = useMemo(
-    () => (Array.isArray(modelQuery.data?.equipmentPins) ? (modelQuery.data!.equipmentPins as EquipmentPin[]) : []),
+  const pins: PinList = useMemo(
+    () => parsePins(modelQuery.data?.equipmentPins),
     [modelQuery.data]
   );
 
-  // For the demo replay we map twin states (which are equipment-scoped via twin.equipmentId)
-  // back to pin equipmentIds. When scrubHoursAgo > 0 we shift health by a synthetic offset
-  // sourced from ScenarioSimService projections — kept client-side to avoid duplicating
-  // twin computation (per architectural constraint).
-  const healthByEquipmentId = useMemo(() => {
-    const map: Record<string, number> = {};
+  // Fetch the last ~6h of twin states for every twin that has a pin in this
+  // model. Replay uses these real snapshots — no client-side twin computation.
+  const pinnedTwins = useMemo(() => {
     const twins = twinsQuery.data ?? [];
-    for (const pin of pins) {
-      const twin = twins.find((t) => t.equipmentId === pin.equipmentId);
-      if (!twin) continue;
-      const live = (twin as any).lastHealthScore ?? 80;
-      map[pin.equipmentId] = Math.max(0, live - scrubHoursAgo * 1.5);
+    const wanted = new Set(pins.map((p) => p.equipmentId));
+    return twins.filter((t) => wanted.has(t.equipmentId));
+  }, [twinsQuery.data, pins]);
+
+  const historyQueries = useQueries({
+    queries: pinnedTwins.map((twin) => ({
+      queryKey: ["/api/pdm/twin/state/history", twin.id, { limit: 120 }],
+      queryFn: async () => {
+        const res = (await apiRequest(
+          "GET",
+          `/api/pdm/twin/state/history/${encodeURIComponent(twin.id)}?limit=120`
+        )) as Response;
+        const arr = (await res.json()) as AssetTwinState[];
+        return { twinId: twin.id, equipmentId: twin.equipmentId, history: arr };
+      },
+    })),
+  });
+
+  // Pick the snapshot whose timestamp is closest to (now - scrubHoursAgo h).
+  // At scrubHoursAgo === 0 we use the latest snapshot ("live").
+  const healthByEquipmentId = useMemo(() => {
+    const targetMs = Date.now() - scrubHoursAgo * 3600 * 1000;
+    const map: Record<string, number> = {};
+    for (const q of historyQueries) {
+      if (!q.data) continue;
+      const { equipmentId, history } = q.data;
+      if (history.length === 0) continue;
+      let best: AssetTwinState | undefined;
+      let bestDelta = Infinity;
+      for (const snap of history) {
+        const t = snap.timestamp ? new Date(snap.timestamp).getTime() : 0;
+        const delta = Math.abs(t - targetMs);
+        if (delta < bestDelta) {
+          bestDelta = delta;
+          best = snap;
+        }
+      }
+      if (best && typeof best.healthScore === "number") {
+        map[equipmentId] = best.healthScore;
+      }
     }
     return map;
-  }, [pins, twinsQuery.data, scrubHoursAgo]);
+  }, [historyQueries, scrubHoursAgo]);
 
   const highlighted = dependencyMutation.data?.downstream.map((d) => d.equipmentId) ?? [];
 
+  // Reset the dependency overlay when the model or selection clears.
+  useEffect(() => {
+    if (!selectedEquipmentId) dependencyMutation.reset();
+    // dependencyMutation is stable from react-query; intentionally not in deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedEquipmentId]);
+
+  // Pin click: navigate to equipment detail immediately, AND fire the
+  // dependency lookup so the overlay is ready when the operator returns.
   const handleSelectEquipment = (equipmentId: string) => {
     setSelectedEquipmentId(equipmentId);
     dependencyMutation.mutate(equipmentId);
+    navigate(`/equipment?id=${encodeURIComponent(equipmentId)}`);
   };
 
   return (
@@ -140,16 +208,7 @@ export default function Vessel3DPage() {
 
               {selectedEquipmentId && (
                 <div className="text-sm space-y-1">
-                  <div>
-                    Selected:{" "}
-                    <button
-                      className="underline"
-                      onClick={() => navigate(`/equipment?id=${selectedEquipmentId}`)}
-                      data-testid={`link-equipment-${selectedEquipmentId}`}
-                    >
-                      {selectedEquipmentId}
-                    </button>
-                  </div>
+                  <div data-testid="text-selected-equipment">Selected: {selectedEquipmentId}</div>
                   {dependencyMutation.isPending && (
                     <div className="text-muted-foreground">Fetching dependency graph…</div>
                   )}

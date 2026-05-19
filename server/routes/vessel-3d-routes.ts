@@ -19,10 +19,11 @@ import { randomUUID } from "crypto";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
-import { vessel3dModels, equipmentPinSchema, vessels } from "@shared/schema";
+import { vessel3dModels, equipmentPinSchema, vessels, type EquipmentPin } from "@shared/schema";
 import { z } from "zod";
 import { createLogger } from "../lib/structured-logger";
 import { failurePropagation } from "../graph/adapter";
+import { requireRole } from "../middleware/role-auth";
 
 const logger = createLogger("Routes:Vessel3D");
 
@@ -96,9 +97,10 @@ const pinsSchema = z.object({ pins: z.array(equipmentPinSchema).max(2000) });
 
 const router = Router();
 
-// ---------- Upload ----------
+// ---------- Upload (admin only) ----------
 router.post(
   "/vessels/:vesselId/3d-model",
+  requireRole("admin", "chief_engineer"),
   upload.single("model"),
   async (req: Request, res: Response) => {
     try {
@@ -119,10 +121,10 @@ router.post(
       }
 
       // Parse optional equipment pins from JSON body field.
-      let pins: any[] = [];
+      let pins: EquipmentPin[] = [];
       if (typeof req.body?.equipmentPins === "string") {
         try {
-          const parsed = JSON.parse(req.body.equipmentPins);
+          const parsed: unknown = JSON.parse(req.body.equipmentPins);
           const v = z.array(equipmentPinSchema).max(2000).safeParse(parsed);
           if (v.success) pins = v.data;
         } catch {
@@ -139,7 +141,7 @@ router.post(
           mimetype: file.mimetype,
           sizeBytes: file.size,
           storedPath: file.path,
-          equipmentPins: pins as any,
+          equipmentPins: pins,
         })
         .returning();
 
@@ -201,8 +203,8 @@ router.get("/vessels/3d-model/:modelId/binary", async (req: Request, res: Respon
   }
 });
 
-// ---------- Replace equipment pins ----------
-router.patch("/vessels/3d-model/:modelId/pins", async (req: Request, res: Response) => {
+// ---------- Replace equipment pins (admin only) ----------
+router.patch("/vessels/3d-model/:modelId/pins", requireRole("admin", "chief_engineer"), async (req: Request, res: Response) => {
   try {
     const orgId = (req as any).orgId || DEFAULT_ORG_ID;
     const { modelId } = req.params;
@@ -212,7 +214,7 @@ router.patch("/vessels/3d-model/:modelId/pins", async (req: Request, res: Respon
     }
     const [row] = await db
       .update(vessel3dModels)
-      .set({ equipmentPins: parsed.data.pins as any, updatedAt: new Date() })
+      .set({ equipmentPins: parsed.data.pins, updatedAt: new Date() })
       .where(and(eq(vessel3dModels.id, modelId), eq(vessel3dModels.orgId, orgId)))
       .returning();
     if (!row) return res.status(404).json({ error: "Model not found" });

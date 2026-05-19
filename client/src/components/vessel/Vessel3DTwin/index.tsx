@@ -112,8 +112,8 @@ export default function Vessel3DTwin({
       raycaster.setFromCamera(pointer, camera);
       const hits = raycaster.intersectObjects(pinGroup.children, false);
       if (hits.length > 0) {
-        const eqId = (hits[0].object as any).userData?.equipmentId;
-        if (eqId && onSelectEquipment) onSelectEquipment(eqId);
+        const data = hits[0].object.userData as { equipmentId?: string };
+        if (data.equipmentId && onSelectEquipment) onSelectEquipment(data.equipmentId);
       }
     }
     renderer.domElement.addEventListener("click", handleClick);
