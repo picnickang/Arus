@@ -884,6 +884,14 @@ export const domainRouters: DomainRouterConfig[] = [
     middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
     getDeps: () => ({ requireOrgId, generalApiRateLimit }),
   },
+  {
+    name: "Vessel3D",
+    importPath: "../routes/vessel-3d-routes.js",
+    functionName: "vessel3dRouter",
+    mountPath: "/api/v1",
+    middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }),
+  },
 
   // ===== Other direct mounts =====
 

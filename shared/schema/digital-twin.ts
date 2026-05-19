@@ -1,8 +1,9 @@
-import { pgTable, varchar, text, real, timestamp, jsonb, index, sql } from "./base";
+import { pgTable, varchar, text, real, integer, timestamp, jsonb, index, sql } from "./base";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { organizations } from "./core";
 import { equipment } from "./equipment";
+import { vessels } from "./vessels";
 
 export const assetTwinTemplates = pgTable(
   "asset_twin_templates",
@@ -156,6 +157,54 @@ export const twinEvents = pgTable(
     tsIdx: index("idx_twin_events_ts").on(table.twinId, table.timestamp),
   })
 );
+
+// Push A3 — Vessel 3D Twin Viewer: glTF asset registry per vessel.
+// Equipment-pin coordinates live in metadata, not hardcoded — works for any
+// vessel owner's model. Files are stored on the application-owned filesystem
+// and served through the auth-checked GET route (never publicly addressable).
+export const vessel3dModels = pgTable(
+  "vessel_3d_models",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .references(() => organizations.id)
+      .notNull(),
+    vesselId: varchar("vessel_id")
+      .references(() => vessels.id)
+      .notNull(),
+    filename: text("filename").notNull(),
+    mimetype: text("mimetype").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    storedPath: text("stored_path").notNull(),
+    // Array of { equipmentId: string; x: number; y: number; z: number; label?: string }
+    equipmentPins: jsonb("equipment_pins").notNull().default(sql`'[]'::jsonb`),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
+  },
+  (table) => ({
+    orgIdx: index("idx_vessel_3d_models_org").on(table.orgId),
+    vesselIdx: index("idx_vessel_3d_models_vessel").on(table.orgId, table.vesselId),
+  })
+);
+
+export const equipmentPinSchema = z.object({
+  equipmentId: z.string().min(1),
+  x: z.number(),
+  y: z.number(),
+  z: z.number(),
+  label: z.string().optional(),
+});
+export type EquipmentPin = z.infer<typeof equipmentPinSchema>;
+
+export const insertVessel3dModelSchema = createInsertSchema(vessel3dModels).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type Vessel3dModel = typeof vessel3dModels.$inferSelect;
+export type InsertVessel3dModel = z.infer<typeof insertVessel3dModelSchema>;
 
 export const insertAssetTwinTemplateSchema = createInsertSchema(assetTwinTemplates).omit({
   id: true,
