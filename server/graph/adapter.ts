@@ -159,6 +159,39 @@ export async function upsertEdge(
  * distinct edge `sourceId`s so re-running the backfill never inflates
  * the count.
  */
+/**
+ * Decode an AGE agtype value into a plain JS value. Centralised so
+ * that adapter callers don't open-code `String(v).replace(/"/g, '')`
+ * everywhere (reviewer's eighth-pass non-blocking comment — brittle
+ * inline string-stripping was a regression risk as query shapes
+ * expand).
+ *
+ * AGE returns agtype as a string in node-postgres: scalars come back
+ * as JSON-ish ('"foo"' for strings, '123' for numbers, 'null'); we
+ * try JSON.parse first and only fall back to raw-string stripping
+ * when the value isn't parseable.
+ */
+function decodeAgtype(v: unknown): unknown {
+  if (v === null || v === undefined) return null;
+  if (typeof v === "number" || typeof v === "boolean") return v;
+  const s = String(v);
+  try {
+    return JSON.parse(s);
+  } catch {
+    // Last-resort: strip quote artifacts so legacy paths keep working.
+    return s.replace(/^"|"$/g, "");
+  }
+}
+function agString(v: unknown): string {
+  const d = decodeAgtype(v);
+  return d === null || d === undefined ? "" : String(d);
+}
+function agNumber(v: unknown): number {
+  const d = decodeAgtype(v);
+  const n = typeof d === "number" ? d : Number(d);
+  return Number.isFinite(n) ? n : 0;
+}
+
 export async function findSimilarFailures(
   orgId: string,
   equipmentId: string
@@ -171,8 +204,8 @@ export async function findSimilarFailures(
     `ORDER BY occurrences DESC LIMIT 10`;
   const res = await execCypher(orgId, cypher, "failureMode agtype, occurrences agtype");
   return res.rows.map((r) => ({
-    failureMode: String(r.failureMode ?? "").replace(/"/g, ""),
-    occurrences: Number(r.occurrences ?? 0),
+    failureMode: agString(r.failureMode),
+    occurrences: agNumber(r.occurrences),
   }));
 }
 
@@ -191,8 +224,8 @@ export async function whatPartsForFailureMode(
     `ORDER BY occurrences DESC LIMIT 25`;
   const res = await execCypher(orgId, cypher, "partId agtype, occurrences agtype");
   return res.rows.map((r) => ({
-    partId: String(r.partId ?? "").replace(/"/g, ""),
-    occurrences: Number(r.occurrences ?? 0),
+    partId: agString(r.partId),
+    occurrences: agNumber(r.occurrences),
   }));
 }
 
@@ -213,7 +246,7 @@ export async function failurePropagation(
     `ORDER BY hops ASC LIMIT 50`;
   const res = await execCypher(orgId, cypher, "equipmentId agtype, hops agtype");
   return res.rows.map((r) => ({
-    equipmentId: String(r.equipmentId ?? "").replace(/"/g, ""),
-    hops: Number(r.hops ?? 0),
+    equipmentId: agString(r.equipmentId),
+    hops: agNumber(r.hops),
   }));
 }

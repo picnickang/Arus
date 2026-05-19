@@ -144,6 +144,18 @@ export async function ensureTenantGraph(orgId: string): Promise<boolean> {
  */
 async function logGraphSmoke(): Promise<void> {
   if (!graphAvailable) return;
+  // Use a scratch tenant ('__smoke__') so we exercise the real
+  // create_graph + cypher() round-trip — reviewer's eighth-pass
+  // comment: a SELECT 1 doesn't validate the graph-query latency
+  // budget, only PG round-trip. ensureTenantGraph is idempotent so
+  // subsequent boots are a Set lookup.
+  const smokeOrg = "__smoke__";
+  const ok = await ensureTenantGraph(smokeOrg);
+  if (!ok) {
+    logger.warn(`[Graph] availability smoke skipped — tenant graph creation failed`);
+    return;
+  }
+  const graph = tenantGraphName(smokeOrg);
   const pg = requirePool() as unknown as {
     connect: () => Promise<{
       query: (q: string) => Promise<{ rows: unknown[] }>;
@@ -156,7 +168,9 @@ async function logGraphSmoke(): Promise<void> {
     client = await pg.connect();
     await client.query(`LOAD '${AGE_LIBRARY}'`);
     await client.query(`SET search_path = ${AGE_SCHEMA}, "$user", public`);
-    await client.query(`SELECT 1`);
+    await client.query(
+      `SELECT * FROM cypher('${graph}', $$ RETURN 1 $$) AS (r agtype)`
+    );
     const ms = Date.now() - started;
     logger.info(`[Graph] availability smoke ok in ${ms}ms (budget <50ms for empty queries)`);
   } catch (err) {
