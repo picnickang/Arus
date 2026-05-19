@@ -200,13 +200,31 @@ export function registerTenantRoutes(
       }
       try {
         const adminId = (req as any).user?.id ?? "admin";
+        // Fail-closed: in production we refuse to mint a deletion
+        // certificate without an explicit signing secret — the dev
+        // fallback would silently produce non-verifiable certs.
+        const signingSecret =
+          process.env.GDPR_DELETION_HMAC_SECRET ??
+          process.env.SESSION_SECRET;
+        if (!signingSecret) {
+          if (process.env.NODE_ENV === "production") {
+            logger.error(
+              "Tenant delete refused: GDPR_DELETION_HMAC_SECRET (or SESSION_SECRET) is not configured"
+            );
+            return res.status(503).json({
+              error:
+                "Tenant deletion is unavailable: GDPR signing secret is not configured",
+            });
+          }
+          logger.warn(
+            "Tenant delete: GDPR signing secret missing; using non-prod dev fallback"
+          );
+        }
         const service = new TenantDeleteService({
           db: db as any,
           tables: TENANT_TABLE_NAMES.map((table) => ({ table })),
           signingSecret:
-            process.env.GDPR_DELETION_HMAC_SECRET ??
-            process.env.SESSION_SECRET ??
-            "dev-only-fallback-secret-do-not-use-in-prod",
+            signingSecret ?? "dev-only-fallback-secret-do-not-use-in-prod",
         });
         const result = await service.execute(
           req.params.orgId,
