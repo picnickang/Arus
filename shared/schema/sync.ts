@@ -80,6 +80,49 @@ export const syncOutbox = pgTable(
   })
 );
 
+// Event-streaming spine outbox (Push B3 — durable, partitioned by orgId).
+// Distinct concern from sync_outbox above (which is vessel-aware offline
+// replication). Rows are written inside the same DB tx as the business write
+// for transactional publish-after-commit; an out-of-process worker polls
+// pending rows and dispatches to the streaming substrate (Redpanda).
+export const eventOutbox = pgTable(
+  "event_outbox",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    eventId: varchar("event_id").notNull(),
+    eventType: text("event_type").notNull(),
+    orgId: varchar("org_id").notNull(),
+    aggregateId: varchar("aggregate_id"),
+    aggregateType: text("aggregate_type"),
+    payload: jsonb("payload").notNull(),
+    occurredAt: timestamp("occurred_at", { mode: "date" }).notNull().defaultNow(),
+    status: text("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    nextAttemptAt: timestamp("next_attempt_at", { mode: "date" }).notNull().defaultNow(),
+    dispatchedAt: timestamp("dispatched_at", { mode: "date" }),
+    publishedAt: timestamp("published_at", { mode: "date" }),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => ({
+    eventIdUnique: uniqueIndex("uniq_event_outbox_event_id").on(table.eventId),
+    pendingIdx: index("idx_event_outbox_pending").on(
+      table.status,
+      table.nextAttemptAt
+    ),
+    orgEventIdx: index("idx_event_outbox_org_event").on(table.orgId, table.eventType),
+  })
+);
+
+export const insertEventOutboxSchema = createInsertSchema(eventOutbox).omit({
+  id: true,
+  createdAt: true,
+});
+export type EventOutbox = typeof eventOutbox.$inferSelect;
+export type InsertEventOutbox = z.infer<typeof insertEventOutboxSchema>;
+
 // Request idempotency tracking
 export const requestIdempotency = pgTable("request_idempotency", {
   key: varchar("key").primaryKey(),

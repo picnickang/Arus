@@ -216,6 +216,18 @@ if (!isInitDbMode && !isHealthCheckMode) {
         logger.warn("⚠️ Domain event bus initialization skipped:", { details: e instanceof Error ? e.message : String(e) });
       }
 
+      // Push B3 — Event-streaming spine. Outbox bridge + worker + analytics
+      // sink default-on; env-gated off for read-only / CLI processes.
+      try {
+        const { startEventSpine } = await import("./lib/event-spine/index.js");
+        startEventSpine();
+        logger.info("✓ Event-streaming spine initialized");
+      } catch (e: unknown) {
+        logger.warn("⚠️ Event-streaming spine initialization skipped:", {
+          details: e instanceof Error ? e.message : String(e),
+        });
+      }
+
       const isEmbedded = process.env.EMBEDDED_MODE === "true";
 
       try {
