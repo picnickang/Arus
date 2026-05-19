@@ -11,6 +11,32 @@ import {
 import type { FeatureVector, InferenceRunnerPort, InferenceResult, PredictionScore } from "./ports";
 import { logger } from "../../../utils/logger";
 
+/**
+ * Push A1 — Typed coercer: turns a permutation-driver's generic
+ * numeric record into the canonical FeatureVector used by every
+ * downstream runner. Only known feature names are forwarded; any
+ * extra keys land on the `[key: string]: unknown` index signature
+ * declared on FeatureVector, with no `as unknown` escape needed.
+ */
+function recordToFeatureVector(record: Record<string, number>): FeatureVector {
+  const fv: FeatureVector = {};
+  const known: ReadonlyArray<keyof FeatureVector> = [
+    "meanTemp",
+    "meanVibration",
+    "rmsVibration",
+    "meanPressure",
+    "kurtosis",
+    "peakToPeak",
+  ];
+  for (const k of known) {
+    const v = record[k as string];
+    if (typeof v === "number" && Number.isFinite(v)) {
+      (fv as Record<string, unknown>)[k as string] = v;
+    }
+  }
+  return fv;
+}
+
 export interface PredictionExplanationQuery {
   getExplanations(orgId: string, predictionId: number): Promise<any[]>;
 }
@@ -390,8 +416,17 @@ export class PredictionEngineService implements PredictionExplanationQuery {
             }));
           }
         }
-      } catch {
-        // Fall through to permutation path.
+      } catch (err) {
+        // Hard failure of the SHAP path is rare but recoverable —
+        // emit telemetry and fall through to the permutation path.
+        logger.warn(
+          "[PredictionEngine] Python TreeSHAP failed, using permutation fallback",
+          undefined,
+          {
+            modelVersionId,
+            err: err instanceof Error ? err.message : String(err),
+          }
+        );
       }
     }
 
@@ -409,7 +444,7 @@ export class PredictionEngineService implements PredictionExplanationQuery {
             orgId: orgId ?? "_perm",
             equipmentId: "_perm",
             modelVersionId,
-            features: f as unknown as FeatureVector,
+            features: recordToFeatureVector(f),
           });
           return score.failureProbability;
         },

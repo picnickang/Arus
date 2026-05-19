@@ -27,11 +27,18 @@ export interface PythonShapResult {
   featureOrder: string[];
 }
 
+/**
+ * Push A1 — TreeSHAP is the DEFAULT explainability path for deployed
+ * XGBoost models. Operators can opt out with ML_PYTHON_SHAP=0 (e.g.
+ * deployments without Python). The sidecar script must exist on disk
+ * — if it doesn't, we treat it as opt-out so callers fall through to
+ * the permutation path with telemetry rather than spawning failures.
+ */
 export function isPythonShapEnabled(): boolean {
-  return (
-    (process.env.ML_PYTHON_SHAP === "1" || process.env.ML_PYTHON_SHAP === "true") &&
-    existsSync(SHAP_SCRIPT)
-  );
+  const flag = process.env.ML_PYTHON_SHAP;
+  const explicitlyDisabled = flag === "0" || flag === "false";
+  if (explicitlyDisabled) return false;
+  return existsSync(SHAP_SCRIPT);
 }
 
 export async function shapAttribute(

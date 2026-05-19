@@ -34,6 +34,42 @@ router.get("/ml/models/:id", async (req: AuthenticatedRequest, res: Response) =>
   }
 });
 
+/**
+ * Push A1 — Serve the raw ONNX artifact for a deployed model so the
+ * client-side onnxruntime-web adapter (client/src/lib/ml/onnx-web-adapter.ts)
+ * can score offline / for what-if previews. Tenancy-scoped on orgId,
+ * only deployed models are served, and the disk path is read from the
+ * registry's training_metrics — not user input — so this cannot be
+ * abused as an arbitrary-file read.
+ */
+router.get("/ml/models/:id/artifact", async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const model = await dbMlAnalyticsStorage.getMlModel(req.params.id, req.orgId);
+    if (!model) return sendNotFound(res, "ML model");
+    if (model.status !== "deployed") {
+      return sendBadRequest(res, "Only deployed models expose artifacts");
+    }
+    const metrics = (model.trainingMetrics ?? {}) as { artifactPath?: string };
+    const artifactPath = metrics.artifactPath;
+    if (!artifactPath || !artifactPath.endsWith(".onnx")) {
+      return sendNotFound(res, "Model artifact");
+    }
+    const path = await import("node:path");
+    const fs = await import("node:fs/promises");
+    const repoRoot = process.cwd();
+    const abs = path.resolve(repoRoot, artifactPath);
+    if (!abs.startsWith(path.resolve(repoRoot, "models") + path.sep)) {
+      return sendBadRequest(res, "Artifact path outside models directory");
+    }
+    const bytes = await fs.readFile(abs);
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    res.send(bytes);
+  } catch (error) {
+    handleError(error, res, "fetch ML model artifact");
+  }
+});
+
 router.get("/ml/accuracy-trend", async (req: AuthenticatedRequest, res: Response) => {
   try {
     const models = await dbMlAnalyticsStorage.getMlModels(req.orgId);
