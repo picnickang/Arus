@@ -104,10 +104,26 @@ const pinsSchema = z.object({ pins: z.array(equipmentPinSchema).max(2000) });
 const router = Router();
 
 // ---------- Upload (admin only) ----------
+// Wrap multer so its errors (size, type, etc.) map to explicit 400/413
+// responses instead of falling through to the global 500 handler.
+function uploadSingleModel(req: Request, res: Response, next: (err?: any) => void) {
+  upload.single("model")(req, res, (err: any) => {
+    if (!err) return next();
+    if (err instanceof multer.MulterError) {
+      const status = err.code === "LIMIT_FILE_SIZE" ? 413 : 400;
+      return res.status(status).json({ error: err.message, code: err.code });
+    }
+    if (typeof err?.message === "string") {
+      return res.status(400).json({ error: err.message });
+    }
+    return next(err);
+  });
+}
+
 router.post(
   "/vessels/:vesselId/3d-model",
   requireRole("admin", "chief_engineer"),
-  upload.single("model"),
+  uploadSingleModel,
   async (req: Request, res: Response) => {
     try {
       const orgId = (req as any).orgId || DEFAULT_ORG_ID;
