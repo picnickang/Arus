@@ -1,11 +1,11 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
-import { HeuristicInferenceRunner } from "./heuristic-inference-runner";
+import { resolveInferenceRunner } from "./model-backed-runner";
 import { PredictionEngineService } from "./prediction-engine.service";
 
 const router = Router();
-const runner = new HeuristicInferenceRunner();
+const runner = resolveInferenceRunner();
 const predictionEngine = new PredictionEngineService(runner);
 
 const inferSchema = z.object({

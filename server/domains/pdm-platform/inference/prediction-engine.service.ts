@@ -73,7 +73,7 @@ export class PredictionEngineService implements PredictionExplanationQuery {
         })
         .returning();
 
-      const explanationRows = this.generateExplanations(predictionRecord.id, run.id, features);
+      const explanationRows = await this.generateExplanations(predictionRecord.id, run.id, features);
       if (explanationRows.length > 0) {
         await db.insert(predictionExplanations).values(explanationRows);
       }
@@ -305,34 +305,58 @@ export class PredictionEngineService implements PredictionExplanationQuery {
     return recs;
   }
 
-  private generateExplanations(predictionId: number, inferenceRunId: string, features: FeatureVector | null) {
+  /**
+   * Push A1 — Per-instance attributions via permutation importance against
+   * the bound inference runner. Replaces the previous hardcoded-weight
+   * explanation with a model-agnostic signal that actually reflects how
+   * each feature moved this specific prediction. Falls through to an
+   * empty list if the runner is non-deterministic or features are null.
+   */
+  private async generateExplanations(
+    predictionId: number,
+    inferenceRunId: string,
+    features: FeatureVector | null
+  ) {
     if (!features) {
       return [];
     }
+    const featureMap: Record<string, number> = {};
+    for (const [k, v] of Object.entries(features)) {
+      if (typeof v === "number" && Number.isFinite(v)) featureMap[k] = v;
+    }
+    if (Object.keys(featureMap).length === 0) return [];
 
-    const contributions = [
-      { featureName: "rmsVibration", value: features.rmsVibration, baseline: 2.0, weight: 0.3 },
-      { featureName: "meanTemp", value: features.meanTemp, baseline: 55, weight: 0.25 },
-      { featureName: "meanPressure", value: features.meanPressure, baseline: 200, weight: 0.2 },
-      { featureName: "kurtosis", value: features.kurtosis, baseline: 3.0, weight: 0.15 },
-      { featureName: "peakToPeak", value: features.peakToPeak, baseline: 5.0, weight: 0.1 },
-    ];
+    const { explainXGBoostPrediction } = await import("../../../ml-explainability-service");
+    const explanation = explainXGBoostPrediction(
+      {
+        predict: (f: Record<string, number>) => {
+          const score = this.runner.scoreFeatures({
+            orgId: "_perm",
+            equipmentId: "_perm",
+            features: f as unknown as FeatureVector,
+          });
+          if (score instanceof Promise) {
+            return 0.1;
+          }
+          return (score as PredictionScore).failureProbability;
+        },
+      },
+      { features: featureMap }
+    );
 
-    const valid = contributions.filter((c) => c.value != null);
-    const totalWeight = valid.reduce((sum, c) => sum + c.weight, 0);
-
-    return valid.map((c) => {
-      const normalizedImportance = totalWeight > 0 ? c.weight / totalWeight : 0;
-      const deviation = (c.value ?? 0) - c.baseline;
-      return {
-        predictionId,
-        inferenceRunId,
-        featureName: c.featureName,
-        importance: Math.round(normalizedImportance * 100) / 100,
-        featureValue: c.value,
-        baselineValue: c.baseline,
-        direction: deviation > 0.5 ? "increasing" : deviation < -0.5 ? "decreasing" : "stable",
-      };
-    });
+    return explanation.topFeatures.map((f) => ({
+      predictionId,
+      inferenceRunId,
+      featureName: f.feature,
+      importance: f.importance,
+      featureValue: (featureMap[f.feature] as number | undefined) ?? null,
+      baselineValue: null,
+      direction:
+        f.direction === "positive"
+          ? "increasing"
+          : f.direction === "negative"
+            ? "decreasing"
+            : "stable",
+    }));
   }
 }

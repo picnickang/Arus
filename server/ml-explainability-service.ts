@@ -269,18 +269,25 @@ export async function storeFeatureImportances(
       return;
     }
 
-    await db.insert(featureImportancesTable).values(
-      explanation.topFeatures.map((f) => ({
-        orgId,
-        modelId: ctx.modelId,
-        equipmentId: ctx.equipmentId,
-        featureName: f.feature,
-        importanceScore: f.importance,
-        rank: explanation.topFeatures.indexOf(f) + 1,
-        method: (ctx.explanationMethod ?? "permutation") as any,
-        contextWindow: "instance",
-      })) as any
-    );
+    const shapValues: Record<string, number> = {};
+    const featureValues: Record<string, number> = {};
+    const topFeatures: { feature: string; importance: number; direction?: string }[] = [];
+    for (const f of explanation.topFeatures) {
+      shapValues[f.feature] = f.importance * (f.direction === "negative" ? -1 : 1);
+      featureValues[f.feature] = DEFAULT_BASELINES[f.feature] ?? 0;
+      topFeatures.push(f);
+    }
+    await db.insert(featureImportancesTable).values({
+      orgId,
+      modelId: ctx.modelId,
+      equipmentId: ctx.equipmentId,
+      failurePredictionId: Number.isFinite(predictionIdNum) ? predictionIdNum : null,
+      baseValue: explanation.baseValue,
+      shapValues,
+      topFeatures,
+      featureValues,
+      explanationMethod: ctx.explanationMethod ?? "permutation",
+    });
   } catch (err) {
     logger.warn("Failed to persist feature importances — non-fatal", {
       orgId,

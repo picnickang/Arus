@@ -30,11 +30,11 @@ export function registerJobProcessors(): void {
   jobQueue.registerProcessor(JOB_TYPES.TELEMETRY_PROCESSING, processTelemetryProcessing);
 
   jobQueue.registerProcessor(
-    (JOB_TYPES as any).INSIGHTS_SNAPSHOT_GENERATION,
+    JOB_TYPES.INSIGHTS_SNAPSHOT_GENERATION,
     processInsightsSnapshotGeneration
   );
 
-  jobQueue.registerProcessor((JOB_TYPES as any).MODEL_RETRAIN, processModelRetrain);
+  jobQueue.registerProcessor(JOB_TYPES.MODEL_RETRAIN, processModelRetrain);
 
   logger.info("[Background Jobs] All processors registered successfully");
 }
