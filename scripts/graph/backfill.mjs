@@ -210,6 +210,13 @@ async function main() {
       // inventory_movements joined to failure_history via work_order_id so
       // REQUIRES_PART edges follow relational truth (reviewer comment #3
       // on the first cut).
+      //
+      // Movement-type filter: REQUIRES_PART means "parts actually needed
+      // to resolve this failure mode". `release` cancels a reservation
+      // and `return` undoes a use, so including them would double-count
+      // (or even flip-count) the requirement signal — that was the
+      // semantics drift the reviewer flagged on the third pass. We
+      // count `reserve` and `consume` (forward consumption) only.
       const mvRows = (
         await client.query(
           `SELECT m.id AS "movementId",
@@ -223,7 +230,8 @@ async function main() {
              LEFT JOIN failure_history fh
                     ON fh.work_order_id = m.work_order_id
                    AND fh.org_id = m.org_id
-            WHERE m.org_id = $1`,
+            WHERE m.org_id = $1
+              AND m.movement_type IN ('reserve', 'consume')`,
           [orgId]
         )
       ).rows;

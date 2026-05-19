@@ -94,6 +94,8 @@ export class DatabaseEquipmentStorage {
       .returning();
     // Push A2 — project new equipment into the knowledge graph. No-op
     // when GRAPH_ENABLED=false; never throws (best-effort wrapper).
+    // Failures are logged at warn level (with orgId/equipmentId) so
+    // graph drift is observable, not silent.
     try {
       const { projectEquipment } = await import("../../graph/projector.js");
       if (!newEquipment.orgId) throw new Error("missing orgId");
@@ -104,8 +106,11 @@ export class DatabaseEquipmentStorage {
         vesselId: newEquipment.vesselId,
         systemType: newEquipment.systemType,
       });
-    } catch {
-      // projector is best-effort; never fail the relational write
+    } catch (err) {
+      logger.warn(`[Graph] projectEquipment(${newEquipment.id}) failed`, {
+        orgId: newEquipment.orgId,
+        details: err instanceof Error ? err.message : String(err),
+      });
     }
     try {
       const { equipmentAnalyticsService } = await import("../../equipment-analytics-service.js");

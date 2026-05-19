@@ -98,11 +98,23 @@ async function fireProjectionsAfterCommit(
           workOrderId: p.workOrderId,
           partName: meta.name ?? null,
           supplierId: meta.supplierId ?? null,
-        }).catch(() => undefined);
+        }).catch((err) => {
+          logger.warn(`[Graph] projectInventoryMovement(${p.movementId}) failed`, {
+            orgId,
+            partId: p.partId,
+            details: err instanceof Error ? err.message : String(err),
+          });
+        });
       })
     );
-  } catch {
-    // best-effort by contract; never fail the caller for graph errors
+  } catch (err) {
+    // best-effort by contract; never fail the caller for graph errors,
+    // but emit a structured warning so projector drift is observable.
+    logger.warn(`[Graph] fireProjectionsAfterCommit failed`, {
+      orgId,
+      pendingCount: pending.length,
+      details: err instanceof Error ? err.message : String(err),
+    });
   }
 }
 
