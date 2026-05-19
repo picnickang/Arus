@@ -5,11 +5,13 @@
  * - Camera: OrbitControls (mouse / touch).
  * - Equipment pins: sprites positioned from the model's pin metadata.
  * - Health colours: green/amber/red based on `healthByEquipmentId` prop.
- * - Click a pin → fires `onSelectEquipment(equipmentId)`. The parent loads
- *   the Push A2 dependency graph and feeds downstream IDs back via
- *   `highlightedEquipmentIds` so those pins tint amber in-scene. A separate
- *   "Open detail" action navigates to `/equipment` so the 3D overlay stays
- *   on screen while the operator inspects it.
+ * - Click a pin → fires `onSelectEquipment(equipmentId)`. The parent
+ *   routes to the equipment detail page and also loads the Push A2
+ *   dependency graph so downstream IDs returned via
+ *   `highlightedEquipmentIds` tint amber when the operator returns to
+ *   this view. The click handler reads the callback from a ref so the
+ *   Three.js scene is *not* re-initialized when the parent passes a
+ *   fresh inline handler.
  * - Replay: `healthByEquipmentId` is recomputed by the parent from
  *   `TwinStateService.getStateHistory()` snapshots as the scrubber moves;
  *   this component just re-tints pins from that map.
@@ -69,8 +71,15 @@ export default function Vessel3DTwin({
 }: Vessel3DTwinProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const pinGroupRef = useRef<THREE.Group | null>(null);
+  const onSelectRef = useRef<typeof onSelectEquipment>(onSelectEquipment);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
+
+  // Keep the latest callback in a ref so the scene effect never re-runs
+  // when the parent passes a new inline handler (which it does every render).
+  useEffect(() => {
+    onSelectRef.current = onSelectEquipment;
+  }, [onSelectEquipment]);
 
   // Boot scene exactly once per modelUrl change.
   useEffect(() => {
@@ -116,7 +125,8 @@ export default function Vessel3DTwin({
       const hits = raycaster.intersectObjects(pinGroup.children, false);
       if (hits.length > 0) {
         const data = hits[0].object.userData as { equipmentId?: string };
-        if (data.equipmentId && onSelectEquipment) onSelectEquipment(data.equipmentId);
+        const cb = onSelectRef.current;
+        if (data.equipmentId && cb) cb(data.equipmentId);
       }
     }
     renderer.domElement.addEventListener("click", handleClick);
@@ -175,7 +185,7 @@ export default function Vessel3DTwin({
       }
       pinGroupRef.current = null;
     };
-  }, [modelUrl, onSelectEquipment]);
+  }, [modelUrl]);
 
   // Re-render pins whenever inputs change.
   useEffect(() => {
