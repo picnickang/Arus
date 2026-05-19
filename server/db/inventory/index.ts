@@ -27,6 +27,7 @@ import {
   workOrders,
   stock,
 } from "@shared/schema-runtime";
+import { failureHistory } from "../../../shared/schema/ml-analytics-core";
 import type {
   WorkOrderParts,
   WorkOrderHistory,
@@ -59,6 +60,15 @@ interface PendingMovementProjection {
   movementId: string;
   partId: string;
   workOrderId: string | null | undefined;
+  /**
+   * Movement direction. Only forward-consumption types ('reserve',
+   * 'consume') count toward REQUIRES_PART semantics. 'release' /
+   * 'return' are reversals and must NOT contribute to the
+   * failure→part edge (otherwise the live path would flip-count
+   * vs. the backfill, which the reviewer flagged on the fourth
+   * pass).
+   */
+  movementType: string;
 }
 
 async function fireProjectionsAfterCommit(
@@ -89,15 +99,49 @@ async function fireProjectionsAfterCommit(
         supplierId: r.primarySupplierId,
       });
     }
+    // Resolve failureMode per workOrderId so REQUIRES_PART edges are
+    // produced on live writes (not just backfill). Limited to
+    // forward-consumption movement types — `release`/`return` are
+    // reversals and would flip-count the edge. Reviewer's fifth-pass
+    // blocker: without this, the most important counting edge for
+    // operational reasoning drifted immediately after bootstrap.
+    const consumingPending = pending.filter(
+      (p) => p.workOrderId && (p.movementType === "reserve" || p.movementType === "consume")
+    );
+    const woIds = Array.from(
+      new Set(consumingPending.map((p) => p.workOrderId).filter((id): id is string => !!id))
+    );
+    const failureModeByWo = new Map<string, string>();
+    if (woIds.length > 0) {
+      const fhRows = await db
+        .select({
+          workOrderId: failureHistory.workOrderId,
+          failureMode: failureHistory.failureMode,
+        })
+        .from(failureHistory)
+        .where(
+          and(
+            eq(failureHistory.orgId, orgId),
+            sql`${failureHistory.workOrderId} = ANY(${woIds})`
+          )
+        );
+      for (const r of fhRows as Array<{ workOrderId: string | null; failureMode: string | null }>) {
+        if (r.workOrderId && r.failureMode) failureModeByWo.set(r.workOrderId, r.failureMode);
+      }
+    }
     await Promise.all(
       pending.map((p) => {
         const meta = partMeta.get(p.partId) ?? {};
+        const isConsuming = p.movementType === "reserve" || p.movementType === "consume";
+        const failureMode =
+          isConsuming && p.workOrderId ? failureModeByWo.get(p.workOrderId) ?? null : null;
         return projectInventoryMovement(orgId, {
           movementId: p.movementId,
           partId: p.partId,
           workOrderId: p.workOrderId,
           partName: meta.name ?? null,
           supplierId: meta.supplierId ?? null,
+          failureMode,
         }).catch((err) => {
           logger.warn(`[Graph] projectInventoryMovement(${p.movementId}) failed`, {
             orgId,
@@ -709,7 +753,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
             notes: `Reserved ${alloc.reserved} units for work order ${workOrderId} (stock ${alloc.stockId})`,
             createdAt: new Date(),
           });
-          pendingProjections.push({ movementId, partId, workOrderId });
+          pendingProjections.push({ movementId, partId, workOrderId, movementType: "reserve" });
         }
       }
     });
@@ -828,7 +872,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
               notes: `Reserved for work order ${workOrderId} (stock ${alloc.stockId})`,
               createdAt: new Date(),
             });
-            pendingProjections.push({ movementId, partId, workOrderId });
+            pendingProjections.push({ movementId, partId, workOrderId, movementType: "reserve" });
           }
         }
       }
@@ -877,7 +921,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
             notes: `Released from work order ${workOrderId} (stock ${rel.stockId})`,
             createdAt: new Date(),
           });
-          pendingProjections.push({ movementId, partId, workOrderId });
+          pendingProjections.push({ movementId, partId, workOrderId, movementType: "release" });
         }
       }
     });
@@ -991,6 +1035,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
           movementId,
           partId: woPart.partId,
           workOrderId: woPart.workOrderId,
+          movementType: "return",
         });
       }
 
