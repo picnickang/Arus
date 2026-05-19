@@ -70,13 +70,11 @@ export default function Vessel3DPage() {
   // setting selectedEquipmentId from the pin click.
   const dependencyQuery = useQuery<DependencyResponse>({
     queryKey: ["/api/v1/vessels/equipment", selectedEquipmentId, "dependencies"],
-    queryFn: async () => {
-      const res = (await apiRequest(
+    queryFn: () =>
+      apiRequest<DependencyResponse>(
         "GET",
         `/api/v1/vessels/equipment/${encodeURIComponent(selectedEquipmentId!)}/dependencies`
-      )) as Response;
-      return res.json();
-    },
+      ),
     enabled: !!selectedEquipmentId,
     staleTime: 5 * 60 * 1000,
   });
@@ -98,11 +96,10 @@ export default function Vessel3DPage() {
     queries: pinnedTwins.map((twin) => ({
       queryKey: ["/api/pdm/twin/state/history", twin.id, { limit: 120 }],
       queryFn: async () => {
-        const res = (await apiRequest(
+        const arr = await apiRequest<AssetTwinState[]>(
           "GET",
           `/api/pdm/twin/state/history/${encodeURIComponent(twin.id)}?limit=120`
-        )) as Response;
-        const arr = (await res.json()) as AssetTwinState[];
+        );
         return { twinId: twin.id, equipmentId: twin.equipmentId, history: arr };
       },
     })),
