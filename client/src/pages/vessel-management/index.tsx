@@ -115,7 +115,7 @@ export default function VesselManagement() {
 
   return (
     <div className="min-h-screen">
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="container mx-auto p-4 md:p-6 space-y-6">
         <div className="flex flex-wrap items-center justify-end gap-3">
           <PermissionGate resource="vessels" action="create">
             <Button
@@ -137,14 +137,14 @@ export default function VesselManagement() {
                   Add Vessel
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto max-md:left-0 max-md:top-auto max-md:bottom-0 max-md:translate-x-0 max-md:translate-y-0 max-md:w-full max-md:max-w-full max-md:rounded-t-xl max-md:rounded-b-none max-md:max-h-[90vh]">
                 <DialogHeader>
                   <DialogTitle>Add New Vessel</DialogTitle>
                   <DialogDescription>Create a new vessel record for your fleet</DialogDescription>
                 </DialogHeader>
                 <Form {...v.form}>
                   <form onSubmit={v.form.handleSubmit(v.handleCreate)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <FormField
                         control={v.form.control}
                         name="name"
@@ -187,7 +187,7 @@ export default function VesselManagement() {
                         )}
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <FormField
                         control={v.form.control}
                         name="condition"
@@ -396,14 +396,14 @@ export default function VesselManagement() {
       />
 
       <Dialog open={v.isEditDialogOpen} onOpenChange={v.setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto max-md:left-0 max-md:top-auto max-md:bottom-0 max-md:translate-x-0 max-md:translate-y-0 max-md:w-full max-md:max-w-full max-md:rounded-t-xl max-md:rounded-b-none max-md:max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Edit Vessel</DialogTitle>
             <DialogDescription>Update vessel information</DialogDescription>
           </DialogHeader>
           <Form {...v.editForm}>
             <form onSubmit={v.editForm.handleSubmit(v.handleUpdate)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={v.editForm.control}
                   name="name"
@@ -446,7 +446,7 @@ export default function VesselManagement() {
                   )}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={v.editForm.control}
                   name="condition"

@@ -561,7 +561,7 @@ export default function BridgeDashboard() {
       </div>
 
       <div className="px-4 lg:px-6 pb-6 space-y-6">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <MetricCard
             label="Fleet Health"
             value={`${fleetHealth}%`}

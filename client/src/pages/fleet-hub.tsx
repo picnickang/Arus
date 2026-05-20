@@ -34,9 +34,9 @@ export default function FleetPage() {
 
   return (
     <div className="min-h-screen">
-      <div className="px-6 pt-4">
+      <div className="px-4 lg:px-6 pt-4">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList data-testid="fleet-tabs">
+          <TabsList className="w-full justify-start overflow-x-auto" data-testid="fleet-tabs">
             <TabsTrigger
               value="vessels"
               className="flex items-center gap-2"

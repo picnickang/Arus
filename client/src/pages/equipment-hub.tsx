@@ -356,7 +356,7 @@ export default function EquipmentHub() {
         </Card>
 
         {/* Section 4: Operational Context */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-testid="operational-context">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3" data-testid="operational-context">
           <div className="p-3 rounded-lg bg-white/[0.02] border border-slate-700/10">
             <div className="flex items-center gap-1.5 mb-1">
               <Ship className="h-3.5 w-3.5 text-blue-400" />

@@ -39,6 +39,10 @@ import {
   ChevronLeft,
   ChevronRight,
   ArchiveX,
+  Ship,
+  Wrench,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   EquipmentCreateDialog,
@@ -60,6 +64,7 @@ import { PermissionGate } from "@/components/PermissionGate";
 
 import { HealthBadge } from "./HealthBadge";
 import { StatusBadge } from "./StatusBadge";
+import { CertStatusBadge } from "./CertStatusBadge";
 import { EquipmentTableRow } from "./EquipmentTableRow";
 import { EquipmentDetailsTab } from "./EquipmentDetailsTab";
 import { EquipmentHealthTab } from "./EquipmentHealthTab";
@@ -390,7 +395,7 @@ export default function EquipmentPage() {
                 </div>
               </div>
               <div className="p-0">
-                <Table data-testid="table-equipment">
+                <Table data-testid="table-equipment" className="hidden md:table">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
@@ -426,6 +431,93 @@ export default function EquipmentPage() {
                     )}
                   </TableBody>
                 </Table>
+                <div className="md:hidden divide-y" data-testid="list-equipment-mobile">
+                  {paginatedEquipment.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      {hasActiveFilters
+                        ? "No equipment matches your filters"
+                        : "No equipment found"}
+                    </div>
+                  ) : (
+                    paginatedEquipment.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleView(item)}
+                        className="w-full text-left p-4 hover:bg-accent/50 active:bg-accent/70 transition-colors"
+                        data-testid={`card-equipment-${item.id}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium truncate">{item.name}</div>
+                            {(item.manufacturer || item.model) && (
+                              <div className="text-xs text-muted-foreground truncate">
+                                {item.manufacturer}
+                                {item.model && ` • ${item.model}`}
+                              </div>
+                            )}
+                          </div>
+                          <HealthBadge health={item.health} />
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                          <Badge variant="outline">{item.type || "Unknown"}</Badge>
+                          {item.vesselId && (
+                            <span className="inline-flex items-center gap-1 text-muted-foreground">
+                              <Ship className="h-3 w-3" />
+                              {getVesselName(item.vesselId)}
+                            </span>
+                          )}
+                          <StatusBadge isActive={item.isActive ?? true} />
+                          <CertStatusBadge equipmentId={item.id} allCerts={allCerts} />
+                        </div>
+                        <div
+                          className="mt-3 flex items-center gap-1"
+                          onClick={(e) => e.stopPropagation()}
+                          role="presentation"
+                        >
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 flex-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSetupSensors(item);
+                            }}
+                            data-testid={`button-sensors-mobile-${item.id}`}
+                          >
+                            <Wrench className="h-4 w-4 mr-1" />
+                            Sensors
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 flex-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(item);
+                            }}
+                            data-testid={`button-edit-mobile-${item.id}`}
+                          >
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 w-9 p-0 text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(item);
+                            }}
+                            data-testid={`button-delete-mobile-${item.id}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between px-4 py-3 border-t">
                     <p className="text-sm text-muted-foreground">

@@ -359,7 +359,7 @@ function ViewOrderTabs({
 
   return (
     <Tabs defaultValue="details" className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
+      <TabsList className="flex w-full justify-start overflow-x-auto md:grid md:grid-cols-3 [&>*]:flex-shrink-0 [&>*]:min-h-[44px]">
         <TabsTrigger value="details" className="flex items-center gap-2">
           <FileText className="h-4 w-4" />
           Order Details
