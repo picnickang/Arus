@@ -25,6 +25,7 @@ import {
   PredictionFeedbackWorkflowAdapter,
   LegacyCompletionAdapter,
   WorkOrderEventAdapter,
+  FailureHistoryAdapter,
 } from "../infrastructure/workflow-adapters";
 import { WorkOrderWorkflowService } from "../application/wo-workflow-service";
 import type { RateLimitMiddleware } from "./types";
@@ -44,12 +45,14 @@ export function registerWorkOrderRoutes(app: Express, rateLimit: RateLimitMiddle
   const predictionFeedback = new PredictionFeedbackWorkflowAdapter();
   const legacyCompletion = new LegacyCompletionAdapter();
   const events = new WorkOrderEventAdapter();
+  const failureHistory = new FailureHistoryAdapter();
   const workflowService = new WorkOrderWorkflowService(
     woRepo,
     savings,
     predictionFeedback,
     legacyCompletion,
-    events
+    events,
+    failureHistory
   );
   registerWorkOrderWorkflowRoutes(app, workflowService, rateLimit);
 

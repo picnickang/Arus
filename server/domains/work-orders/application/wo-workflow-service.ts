@@ -6,6 +6,7 @@ import type {
   IPredictionFeedbackPort,
   ILegacyCompletionPort,
   IWorkOrderEventPort,
+  IFailureHistoryPort,
 } from "../domain/workflow-ports";
 import type {
   WorkOrderCompletionInput,
@@ -21,7 +22,8 @@ export class WorkOrderWorkflowService {
     private savings: ICostSavingsPort,
     private predictionFeedback: IPredictionFeedbackPort,
     private legacyCompletion: ILegacyCompletionPort,
-    private events: IWorkOrderEventPort
+    private events: IWorkOrderEventPort,
+    private failureHistory?: IFailureHistoryPort
   ) {}
 
   async completeWithFeedback(
@@ -133,6 +135,21 @@ export class WorkOrderWorkflowService {
 
     await this.events.emitStatusChanged(workOrderId, orgId, wo.status, "completed", userId);
     await this.events.emitCompleted(workOrderId, orgId, userId, laborHours, structuredCompletionNotes);
+
+    // Task #80 — capture a failure_history row when the closeout
+    // carries a cause. Best-effort: the port itself swallows errors
+    // so a graph/db issue here cannot fail the completion.
+    if (this.failureHistory && closeout?.causeFound && closeout.causeFound.trim() && wo.equipmentId) {
+      await this.failureHistory.recordFailure({
+        workOrderId,
+        orgId,
+        equipmentId: wo.equipmentId,
+        cause: closeout.causeFound.trim(),
+        notes: closeout.workPerformed,
+        recordedBy: userId,
+        recordedAt: new Date(),
+      });
+    }
 
     try {
       await this.legacyCompletion.aggregateProcurementCosts(workOrderId, orgId);

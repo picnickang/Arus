@@ -85,6 +85,28 @@ export interface ILegacyCompletionPort {
   aggregateProcurementCosts(workOrderId: string, orgId: string): Promise<void>;
 }
 
+export interface FailureHistoryRecordInput {
+  workOrderId: string;
+  orgId: string;
+  equipmentId: string;
+  /** Free-text cause from closeout — used as the canonical failureMode label. */
+  cause: string;
+  /** Optional severity hint; defaults to "medium" if not supplied. */
+  severity?: string;
+  notes?: string;
+  recordedBy?: string;
+  recordedAt?: Date;
+}
+
+export interface IFailureHistoryPort {
+  /**
+   * Insert a failure_history row for a completed work order whose closeout
+   * carried a cause, then fire `projectFailureHistory` post-commit so the
+   * knowledge graph stays in sync. Best-effort: must never throw.
+   */
+  recordFailure(input: FailureHistoryRecordInput): Promise<void>;
+}
+
 export interface IWorkOrderEventPort {
   emitCompleted(
     workOrderId: string,

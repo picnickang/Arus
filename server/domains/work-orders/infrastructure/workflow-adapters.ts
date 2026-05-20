@@ -1,5 +1,7 @@
 import { db } from "../../../db";
 import { workOrders, costSavings, failurePredictions } from "@shared/schema-runtime";
+import { IS_POSTGRES } from "@shared/schema-runtime";
+import { failureHistory as failureHistoryPg, type InsertFailureHistory } from "@shared/schema/ml-analytics-core";
 import { eq, and, sql, ne } from "drizzle-orm";
 import { processWorkOrderCompletion } from "../../../cost-savings-engine/persistence";
 import type {
@@ -8,6 +10,8 @@ import type {
   IPredictionFeedbackPort,
   ILegacyCompletionPort,
   IWorkOrderEventPort,
+  IFailureHistoryPort,
+  FailureHistoryRecordInput,
   WorkOrderWithWorkflowContext,
   LegacyCompletionData,
 } from "../domain/workflow-ports";
@@ -16,6 +20,10 @@ import type {
   QuickWorkOrderResult,
   CompletionPredictionFeedback,
 } from "../domain/workflow-types";
+import { projectFailureHistory } from "../../../graph/projector";
+import { createLogger } from "../../../lib/structured-logger";
+
+const failureHistoryLogger = createLogger("Domains:WorkOrders:Infrastructure:FailureHistoryAdapter");
 
 export class WorkOrderWorkflowRepositoryAdapter implements IWorkOrderWorkflowRepository {
   async createQuick(orgId: string, input: QuickWorkOrderInput): Promise<QuickWorkOrderResult> {
@@ -307,6 +315,68 @@ export class PredictionFeedbackWorkflowAdapter implements IPredictionFeedbackPor
           } as any)
           .where(eq(workOrders.id, feedback.workOrderId));
       }
+    }
+  }
+}
+
+/**
+ * Failure-history adapter — inserts a failure_history row when a work
+ * order is completed with a closeout cause, then fires the graph
+ * projector post-commit so the knowledge graph stays in lockstep with
+ * relational truth (Task #80).
+ *
+ * Contract: best-effort. A failure here must NEVER break the work-order
+ * completion flow that already succeeded.
+ */
+export class FailureHistoryAdapter implements IFailureHistoryPort {
+  async recordFailure(input: FailureHistoryRecordInput): Promise<void> {
+    // SQLite (local/vessel) mode uses a DIFFERENT `failure_history`
+    // schema (failureDate/failureType/severity, text PK) that the
+    // Push-A1 PdM aggregation does not consume. Cross-vessel pattern
+    // queries only run against the cloud Postgres deployment, so
+    // gate the insert + projection on the Postgres runtime to avoid
+    // corrupting the SQLite table with PG-shaped column writes.
+    if (!IS_POSTGRES) {
+      return;
+    }
+    try {
+      const failureTimestamp = input.recordedAt ?? new Date();
+      const failureMode = input.cause.trim().slice(0, 255) || "unknown";
+      const failureSeverity = (input.severity ?? "medium").toLowerCase();
+      const insertValues: InsertFailureHistory = {
+        orgId: input.orgId,
+        equipmentId: input.equipmentId,
+        failureTimestamp,
+        failureMode,
+        failureSeverity,
+        rootCause: input.cause,
+        workOrderId: input.workOrderId,
+        verifiedBy: input.recordedBy,
+        verifiedAt: input.recordedAt ?? new Date(),
+        status: "resolved",
+        resolvedAt: input.recordedAt ?? new Date(),
+        lessonsLearned: input.notes,
+      };
+      const [row] = await db
+        .insert(failureHistoryPg)
+        .values(insertValues)
+        .returning({ id: failureHistoryPg.id });
+
+      if (row?.id !== undefined && row?.id !== null) {
+        // Post-commit graph projection — best-effort by contract.
+        await projectFailureHistory(input.orgId, {
+          failureHistoryId: row.id,
+          equipmentId: input.equipmentId,
+          failureMode,
+          technicianId: input.recordedBy ?? null,
+          workOrderId: input.workOrderId,
+        });
+      }
+    } catch (err) {
+      failureHistoryLogger.warn(
+        `[FailureHistoryAdapter] recordFailure failed for WO ${input.workOrderId} (non-fatal)`,
+        { details: err instanceof Error ? err.message : String(err) }
+      );
     }
   }
 }
