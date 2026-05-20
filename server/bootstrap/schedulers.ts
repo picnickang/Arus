@@ -15,6 +15,11 @@ export async function initializeSchedulers(isEmbedded: boolean): Promise<void> {
 
   logger.info("→ Setting up schedulers...");
 
+  // Dynamic imports below are intentional: in embedded / standalone /
+  // ENABLE_SCHEDULERS=false modes we return above before this point, so
+  // these scheduler modules (and their heavy transitive deps — twin
+  // services, ML retraining, materialized-view refresh) must NOT be
+  // pulled into the module graph at boot. Do not convert to static.
   const { setupInsightsSchedule, setupPredictiveMaintenanceSchedule, setupMLRetrainingSchedule } =
     await import("../insights-scheduler");
   const { setupVesselSchedules } = await import("../vessel-scheduler");

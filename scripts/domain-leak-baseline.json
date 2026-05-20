@@ -1,22 +1,14 @@
 {
   "_comment": "Domain leak baseline. Counts must monotonically decrease. Regenerate with: node scripts/check-domain-leaks.mjs --write-baseline",
-  "generatedAt": "2026-05-19T13:35:33.634Z",
+  "generatedAt": "2026-05-20T15:02:33.531Z",
   "totals": {
-    "dynamicImports": 420,
+    "dynamicImports": 417,
     "routeStorageImports": 104,
     "crossDomainStorage": 78,
-    "total": 602
+    "total": 599
   },
   "samples": {
     "dynamicImports": [
-      {
-        "file": "server/adaptive-training-window/data-range.ts",
-        "target": "../db"
-      },
-      {
-        "file": "server/adaptive-training-window/data-range.ts",
-        "target": "@shared/schema"
-      },
       {
         "file": "server/app.ts",
         "target": "./routes.js"
@@ -108,6 +100,14 @@
       {
         "file": "server/bootstrap/schedulers.ts",
         "target": "../domains/pdm-platform/prediction-governance/adapter"
+      },
+      {
+        "file": "server/bootstrap/schedulers.ts",
+        "target": "../job-processors"
+      },
+      {
+        "file": "server/bootstrap/services.ts",
+        "target": "../db-config"
       }
     ],
     "routeStorageImports": [

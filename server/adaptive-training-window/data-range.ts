@@ -6,6 +6,9 @@ import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("AdaptiveTrainingWindow:DataRange");
 import { workOrderService } from "../services/domains/work-order-service.js";
 import { dbEquipmentStorage } from "../db/equipment/index.js";
+import { db } from "../db";
+import { equipmentTelemetry } from "@shared/schema";
+import { sql, eq, inArray, and } from "drizzle-orm";
 import type { EquipmentDataRange } from "./types";
 
 export async function getEquipmentDataRange(
@@ -39,10 +42,6 @@ export async function getEquipmentDataRange(
   let oldestDate: Date | null = null;
 
   try {
-    const { db } = await import("../db");
-    const { equipmentTelemetry } = await import("@shared/schema");
-    const { sql, eq, inArray, and } = await import("drizzle-orm");
-
     logger.info("[Adaptive Training Window] Querying telemetry for equipment IDs:", { details: equipmentIds });
 
     const result = await db

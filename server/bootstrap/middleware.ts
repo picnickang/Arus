@@ -207,6 +207,13 @@ export function configureMiddleware(app: Express): void {
 }
 
 export async function configureAuthMiddleware(app: Express): Promise<void> {
+  // Dynamic imports here are intentional: this is the auth boot ordering
+  // seam. `../security`, `../middleware/auth`, and `../middleware/db-context`
+  // each transitively touch the DB / session store / Redis circuit breaker
+  // at module-eval time, so they MUST resolve AFTER configureMiddleware()
+  // and the DB pool have initialized. Statically importing them would pull
+  // their side-effect initialization into server/app.ts's import graph and
+  // re-introduce the boot races we hit in Wave 5. Do not convert to static.
   const { requireAuthentication } = await import("../security");
   const { requireOrgId } = await import("../middleware/auth");
   const { withDatabaseContext } = await import("../middleware/db-context");
