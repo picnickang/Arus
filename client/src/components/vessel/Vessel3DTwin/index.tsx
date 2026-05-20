@@ -32,6 +32,17 @@ export interface Vessel3DTwinProps {
   healthByEquipmentId: HealthMap;
   highlightedEquipmentIds?: string[]; // dependency-overlay tint
   onSelectEquipment?: (equipmentId: string) => void;
+  /**
+   * #112 — admin placement mode. When true, a left-click raycasts
+   * against the loaded GLB mesh (NOT the pin sprites) and fires
+   * `onPlaceAt` with the world-space hit point. Pin-select fires are
+   * suppressed in this mode so the admin can place an existing pin
+   * over an existing pin without selecting it. The mode itself is
+   * controlled by the parent so the admin UI can arm a specific pin
+   * before clicking and disarm after.
+   */
+  placementMode?: boolean;
+  onPlaceAt?: (point: { x: number; y: number; z: number }) => void;
 }
 
 function healthToColor(h: number | undefined, highlighted: boolean): string {
@@ -88,18 +99,30 @@ export default function Vessel3DTwin({
   healthByEquipmentId,
   highlightedEquipmentIds = [],
   onSelectEquipment,
+  placementMode = false,
+  onPlaceAt,
 }: Vessel3DTwinProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const pinGroupRef = useRef<THREE.Group | null>(null);
+  const loadedRootRef = useRef<THREE.Object3D | null>(null);
   const onSelectRef = useRef<typeof onSelectEquipment>(onSelectEquipment);
+  const onPlaceAtRef = useRef<typeof onPlaceAt>(onPlaceAt);
+  const placementModeRef = useRef<boolean>(placementMode);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
 
-  // Keep the latest callback in a ref so the scene effect never re-runs
-  // when the parent passes a new inline handler (which it does every render).
+  // Keep the latest callbacks/mode in refs so the scene effect never
+  // re-runs when the parent passes new inline handlers or toggles
+  // placement (which it does every render).
   useEffect(() => {
     onSelectRef.current = onSelectEquipment;
   }, [onSelectEquipment]);
+  useEffect(() => {
+    onPlaceAtRef.current = onPlaceAt;
+  }, [onPlaceAt]);
+  useEffect(() => {
+    placementModeRef.current = placementMode;
+  }, [placementMode]);
 
   // Boot scene exactly once per modelUrl change.
   useEffect(() => {
@@ -146,6 +169,23 @@ export default function Vessel3DTwin({
       pointer.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
       pointer.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(pointer, camera);
+
+      // Placement-mode (admin) takes precedence: raycast against the
+      // loaded GLB mesh and report the world-space hit point. Pin
+      // selection is intentionally suppressed so the admin can drop a
+      // pin on top of an existing one.
+      if (placementModeRef.current) {
+        const root = loadedRootRef.current;
+        const cb = onPlaceAtRef.current;
+        if (!root || !cb) return;
+        const meshHits = raycaster.intersectObject(root, true);
+        if (meshHits.length > 0) {
+          const p = meshHits[0].point;
+          cb({ x: p.x, y: p.y, z: p.z });
+        }
+        return;
+      }
+
       const hits = raycaster.intersectObjects(pinGroup.children, false);
       if (hits.length > 0) {
         const data = hits[0].object.userData as { equipmentId?: string };
@@ -163,6 +203,7 @@ export default function Vessel3DTwin({
       (gltf) => {
         if (disposed) return;
         loadedRoot = gltf.scene;
+        loadedRootRef.current = gltf.scene;
         scene.add(gltf.scene);
         // Frame the model.
         const box = new THREE.Box3().setFromObject(gltf.scene);
@@ -207,6 +248,7 @@ export default function Vessel3DTwin({
       controls.dispose();
       // Deep-dispose loaded GLTF geometry + materials + textures so frequent
       // mount/unmount cycles don't accumulate GPU memory.
+      loadedRootRef.current = null;
       if (loadedRoot) {
         loadedRoot.traverse((obj) => {
           const mesh = obj as THREE.Mesh;

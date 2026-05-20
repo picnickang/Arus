@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo, lazy, Suspense } from "react";
 import { useQuery, useMutation, useQueries } from "@tanstack/react-query";
 import { apiRequest, queryClient, createHeaders, resolveUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -8,6 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -15,8 +22,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, Plus, Trash2, Upload } from "lucide-react";
-import type { Vessel } from "@shared/schema";
+import { Crosshair, Loader2, Plus, Trash2, Upload } from "lucide-react";
+import type { Equipment, Vessel } from "@shared/schema";
+
+// Lazy so the admin page doesn't pull Three.js into the system-hub
+// bundle for non-admins who never reach the 3D editor.
+const Vessel3DTwin = lazy(() => import("@/components/vessel/Vessel3DTwin"));
 
 interface EquipmentPin {
   equipmentId: string;
@@ -186,10 +197,11 @@ function VesselModelCard({
         throw new Error(msg);
       }
       onChanged();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const description = err instanceof Error ? err.message : String(err);
       toast({
         title: "Upload failed",
-        description: err?.message ?? String(err),
+        description,
         variant: "destructive",
       });
     } finally {
@@ -295,6 +307,18 @@ function VesselModelCard({
   );
 }
 
+/**
+ * #112 — Placement arming state. The admin clicks "Place" on a row
+ * (or "Add pin via 3D click") to arm placement; the next click on the
+ * 3D model writes that pin's coordinates and disarms. `mode === "add"`
+ * appends a new pin once placed; `mode === "move"` updates the
+ * existing row at `targetIdx`.
+ */
+type PlacementArm =
+  | { mode: "add" }
+  | { mode: "move"; targetIdx: number }
+  | null;
+
 function PinEditor({
   model,
   vesselId,
@@ -307,6 +331,24 @@ function PinEditor({
   const { toast } = useToast();
   const [pins, setPins] = useState<EquipmentPin[]>(model.equipmentPins ?? []);
   const [dirty, setDirty] = useState(false);
+  const [placement, setPlacement] = useState<PlacementArm>(null);
+
+  // Vessel-scoped equipment list for the picker — admins shouldn't have
+  // to memorize equipment IDs. Falls back to a free-text input below if
+  // the list is empty or the request fails.
+  // Default fetcher (`getQueryFn` in queryClient.ts) serializes the
+  // second array element as URL params, so this hits
+  // `/api/equipment?vesselId=…` without a custom queryFn — keeps the
+  // cache key aligned with the rest of the app.
+  const equipmentQuery = useQuery<Equipment[]>({
+    queryKey: ["/api/equipment", { vesselId }],
+  });
+  const equipmentList = equipmentQuery.data ?? [];
+  const equipmentById = useMemo(() => {
+    const map = new Map<string, Equipment>();
+    for (const e of equipmentList) map.set(e.id, e);
+    return map;
+  }, [equipmentList]);
 
   const save = useMutation({
     mutationFn: async () => {
@@ -332,8 +374,8 @@ function PinEditor({
       setDirty(false);
       onSaved();
     },
-    onError: (e: any) => {
-      const raw = typeof e?.message === "string" ? e.message : JSON.stringify(e?.message ?? e);
+    onError: (e: unknown) => {
+      const raw = e instanceof Error ? e.message : JSON.stringify(e);
       const friendly = /^403:/.test(raw) || /forbidden/i.test(raw)
         ? "Admin role required to edit equipment pins."
         : raw;
@@ -360,23 +402,81 @@ function PinEditor({
   const removePin = (i: number) => {
     setPins((prev) => prev.filter((_, idx) => idx !== i));
     setDirty(true);
+    // If the removed row was the placement target, disarm.
+    setPlacement((arm) =>
+      arm?.mode === "move" && arm.targetIdx === i ? null : arm
+    );
   };
+
+  /** Arm "Add via 3D click" mode; the next model click creates a pin. */
+  const armAddViaClick = () => {
+    setPlacement({ mode: "add" });
+  };
+
+  /** Arm "Move via 3D click" for an existing row. */
+  const armMoveViaClick = (idx: number) => {
+    setPlacement({ mode: "move", targetIdx: idx });
+  };
+
+  /** Disarm without placing (e.g. user clicked away). */
+  const disarmPlacement = () => setPlacement(null);
+
+  /** Fires when the admin clicks a point on the model in placement mode. */
+  const handlePlaceAt = (point: { x: number; y: number; z: number }) => {
+    if (!placement) return;
+    // Round to 0.001 — pin precision below mm-of-mesh is noise and
+    // makes the table easier to read.
+    const round = (n: number) => Math.round(n * 1000) / 1000;
+    const next = { x: round(point.x), y: round(point.y), z: round(point.z) };
+    if (placement.mode === "add") {
+      setPins((prev) => [...prev, { equipmentId: "", ...next }]);
+      setDirty(true);
+      // After adding, arm "move" on the new row so the admin can
+      // immediately re-place it if the first hit was off.
+      setPlacement(null);
+    } else {
+      setPins((prev) =>
+        prev.map((p, idx) =>
+          idx === placement.targetIdx ? { ...p, ...next } : p
+        )
+      );
+      setDirty(true);
+      setPlacement(null);
+    }
+  };
+
+  const placementHint = placement
+    ? placement.mode === "add"
+      ? "Click on the 3D model to drop a new pin at that point."
+      : `Click on the 3D model to move pin #${placement.targetIdx + 1}.`
+    : null;
 
   return (
     <div
       className="border-t pt-4 space-y-3"
       data-testid={`pin-editor-${vesselId}`}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="font-medium">Equipment Pins ({pins.length})</h3>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button
             size="sm"
             variant="outline"
             onClick={addPin}
             data-testid={`button-add-pin-${vesselId}`}
           >
-            <Plus className="h-4 w-4 mr-1" /> Add pin
+            <Plus className="h-4 w-4 mr-1" /> Add empty row
+          </Button>
+          <Button
+            size="sm"
+            variant={placement?.mode === "add" ? "default" : "outline"}
+            onClick={() =>
+              placement?.mode === "add" ? disarmPlacement() : armAddViaClick()
+            }
+            data-testid={`button-add-pin-via-click-${vesselId}`}
+          >
+            <Crosshair className="h-4 w-4 mr-1" />
+            {placement?.mode === "add" ? "Cancel placement" : "Add via 3D click"}
           </Button>
           <Button
             size="sm"
@@ -397,67 +497,197 @@ function PinEditor({
         </div>
       </div>
 
+      {/* Embedded 3D viewer — shows current (unsaved) pin state and
+          accepts click-to-place when placement is armed. Lazy + Suspense
+          keeps Three.js out of the system-hub bundle. */}
+      <div
+        className={`h-[420px] rounded-md overflow-hidden border ${
+          placement ? "ring-2 ring-primary cursor-crosshair" : ""
+        }`}
+        data-testid={`viewer-3d-${vesselId}`}
+      >
+        <Suspense
+          fallback={
+            <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading 3D viewer…
+            </div>
+          }
+        >
+          <Vessel3DTwin
+            modelUrl={`/api/v1/vessels/3d-model/${encodeURIComponent(model.id)}/binary`}
+            pins={pins.filter((p) => p.equipmentId.trim().length > 0)}
+            healthByEquipmentId={{}}
+            placementMode={placement !== null}
+            onPlaceAt={handlePlaceAt}
+          />
+        </Suspense>
+      </div>
+
+      {placementHint && (
+        <p
+          className="text-xs text-primary"
+          data-testid={`text-placement-hint-${vesselId}`}
+        >
+          {placementHint}{" "}
+          <button
+            type="button"
+            className="underline"
+            onClick={disarmPlacement}
+            data-testid={`button-cancel-placement-${vesselId}`}
+          >
+            Cancel
+          </button>
+        </p>
+      )}
+
+      {dirty && (
+        <p className="text-xs text-muted-foreground" data-testid={`text-pins-unsaved-${vesselId}`}>
+          Unsaved changes — click "Save pins" to persist.
+        </p>
+      )}
+
+      {pins.some((p) => p.equipmentId.trim().length === 0) && (
+        <p
+          className="text-xs text-destructive"
+          data-testid={`text-pins-missing-equipment-${vesselId}`}
+        >
+          {pins.filter((p) => p.equipmentId.trim().length === 0).length} pin(s)
+          have no equipment selected and will be discarded on save. Use the
+          Equipment selector on each row.
+        </p>
+      )}
+
       {pins.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No pins yet. Add a pin to mark an equipment location on the model.
+          No pins yet. Use "Add via 3D click" to drop a pin directly on the
+          model, or "Add empty row" to enter coordinates manually.
         </p>
       ) : (
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Equipment ID</TableHead>
+              <TableHead>Equipment</TableHead>
               <TableHead className="w-24">X</TableHead>
               <TableHead className="w-24">Y</TableHead>
               <TableHead className="w-24">Z</TableHead>
               <TableHead>Label (optional)</TableHead>
-              <TableHead className="w-12" />
+              <TableHead className="w-32" />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {pins.map((p, i) => (
-              <TableRow key={i} data-testid={`row-pin-${vesselId}-${i}`}>
-                <TableCell>
-                  <Input
-                    value={p.equipmentId}
-                    onChange={(e) => updatePin(i, { equipmentId: e.target.value })}
-                    placeholder="eq_…"
-                    data-testid={`input-pin-equipment-${vesselId}-${i}`}
-                  />
-                </TableCell>
-                {(["x", "y", "z"] as const).map((axis) => (
-                  <TableCell key={axis}>
+            {pins.map((p, i) => {
+              const known = equipmentById.get(p.equipmentId);
+              const isMoveTarget =
+                placement?.mode === "move" && placement.targetIdx === i;
+              return (
+                <TableRow key={i} data-testid={`row-pin-${vesselId}-${i}`}>
+                  <TableCell>
+                    {equipmentList.length > 0 ? (
+                      <Select
+                        value={p.equipmentId || undefined}
+                        onValueChange={(v) => updatePin(i, { equipmentId: v })}
+                      >
+                        <SelectTrigger
+                          data-testid={`select-pin-equipment-${vesselId}-${i}`}
+                        >
+                          <SelectValue
+                            placeholder={
+                              p.equipmentId && !known
+                                ? `${p.equipmentId} (not on vessel)`
+                                : "Select equipment"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {equipmentList.map((eq) => (
+                            <SelectItem
+                              key={eq.id}
+                              value={eq.id}
+                              data-testid={`option-pin-equipment-${vesselId}-${i}-${eq.id}`}
+                            >
+                              {eq.name} ({eq.type})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        value={p.equipmentId}
+                        onChange={(e) =>
+                          updatePin(i, { equipmentId: e.target.value })
+                        }
+                        placeholder={
+                          equipmentQuery.isLoading
+                            ? "Loading equipment…"
+                            : equipmentQuery.isError
+                              ? "Equipment list unavailable — enter ID"
+                              : "eq_…"
+                        }
+                        data-testid={`input-pin-equipment-${vesselId}-${i}`}
+                      />
+                    )}
+                  </TableCell>
+                  {(["x", "y", "z"] as const).map((axis) => (
+                    <TableCell key={axis}>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={p[axis]}
+                        onChange={(e) =>
+                          updatePin(i, {
+                            [axis]: Number(e.target.value),
+                          } as Partial<EquipmentPin>)
+                        }
+                        data-testid={`input-pin-${axis}-${vesselId}-${i}`}
+                      />
+                    </TableCell>
+                  ))}
+                  <TableCell>
                     <Input
-                      type="number"
-                      step="0.01"
-                      value={p[axis]}
-                      onChange={(e) =>
-                        updatePin(i, { [axis]: Number(e.target.value) } as Partial<EquipmentPin>)
-                      }
-                      data-testid={`input-pin-${axis}-${vesselId}-${i}`}
+                      value={p.label ?? ""}
+                      onChange={(e) => updatePin(i, { label: e.target.value })}
+                      placeholder="(optional)"
+                      data-testid={`input-pin-label-${vesselId}-${i}`}
                     />
                   </TableCell>
-                ))}
-                <TableCell>
-                  <Input
-                    value={p.label ?? ""}
-                    onChange={(e) => updatePin(i, { label: e.target.value })}
-                    placeholder="(optional)"
-                    data-testid={`input-pin-label-${vesselId}-${i}`}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => removePin(i)}
-                    data-testid={`button-remove-pin-${vesselId}-${i}`}
-                    aria-label="Remove pin"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant={isMoveTarget ? "default" : "ghost"}
+                        onClick={() =>
+                          isMoveTarget
+                            ? disarmPlacement()
+                            : armMoveViaClick(i)
+                        }
+                        data-testid={`button-place-pin-${vesselId}-${i}`}
+                        aria-label={
+                          isMoveTarget
+                            ? "Cancel placement"
+                            : "Move pin via 3D click"
+                        }
+                        title={
+                          isMoveTarget
+                            ? "Cancel placement"
+                            : "Click here, then click on the 3D model"
+                        }
+                      >
+                        <Crosshair className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => removePin(i)}
+                        data-testid={`button-remove-pin-${vesselId}-${i}`}
+                        aria-label="Remove pin"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       )}
