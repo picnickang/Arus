@@ -29,6 +29,7 @@ Implemented with Express.js and TypeScript, providing RESTful APIs with Zod vali
 #### Feature Specifications
 
 > Wave-by-wave implementation history (Wave 0–6, Push A/B, hardening notes) lives in `docs/architecture/waves.md`.
+> Telemetry warehouse export (daily Parquet to object storage) — bucket layout, Parquet schema, manifest shape, retention env var, and example Athena/BigQuery/Snowflake DDL live in `docs/telemetry-warehouse-export.md`.
 
 -   **Predictive Maintenance**: Automated scheduling, real-time notifications, and AI/ML-driven failure prediction using ensemble models and RUL-based task windows.
 -   **Telemetry Ingestion**: Hybrid C# Windows Service and Node.js architecture for offline-first data collection, supporting marine protocols.
