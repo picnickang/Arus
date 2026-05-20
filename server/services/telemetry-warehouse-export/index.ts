@@ -22,6 +22,7 @@ import {
 import { loadManifest, mergeEntry, saveManifest } from "./manifest";
 import { pruneOldExports } from "./retention";
 import { recordRun } from "./last-run";
+import { previousUtcDate, dateStrToUtcStart } from "./date-utils";
 import type {
   WarehouseExportJobSummary,
   WarehouseExportRunSummary,
@@ -36,22 +37,6 @@ export interface RunOptions {
   orgIds?: string[];
   /** Override "now" for tests. */
   now?: Date;
-}
-
-function previousUtcDate(now: Date): { dayStart: Date; dateStr: string } {
-  const todayStart = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
-  const dayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
-  return { dayStart, dateStr: dayStart.toISOString().slice(0, 10) };
-}
-
-function dateStrToUtcStart(dateStr: string): Date {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    throw new Error(`Invalid date string (expected YYYY-MM-DD): ${dateStr}`);
-  }
-  const [y, m, d] = dateStr.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d));
 }
 
 export async function runTelemetryWarehouseExport(
@@ -194,6 +179,7 @@ export async function runTelemetryWarehouseExport(
 
 export { getRecentRuns } from "./last-run";
 export { loadManifest } from "./manifest";
+export { previousUtcDate } from "./date-utils";
 export type {
   WarehouseExportEntry,
   WarehouseExportJobSummary,

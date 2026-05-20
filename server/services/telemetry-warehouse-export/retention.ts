@@ -24,7 +24,7 @@ import { loadManifest, pruneEntries, saveManifest } from "./manifest";
 
 const logger = createLogger("TelemetryWarehouseExport:Retention");
 
-function resolveRetentionDays(): number {
+export function resolveRetentionDays(): number {
   const raw = process.env.TELEMETRY_WAREHOUSE_RETENTION_DAYS;
   if (raw === undefined || raw === "") return 0;
   const n = Number(raw);
@@ -39,6 +39,16 @@ function resolveRetentionDays(): number {
 
 function toUtcDateString(d: Date): string {
   return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Compute the UTC date string (YYYY-MM-DD) before which partitions are
+ * considered expired. Partitions whose date is strictly less than this
+ * cutoff are eligible for deletion.
+ */
+export function computeRetentionCutoffDate(now: Date, retentionDays: number): string {
+  const cutoff = new Date(now.getTime() - retentionDays * 24 * 60 * 60 * 1000);
+  return toUtcDateString(cutoff);
 }
 
 /** Extract `YYYY-MM-DD` from a `date=YYYY-MM-DD/...` segment, or null. */
@@ -75,8 +85,7 @@ export async function pruneOldExports(now: Date = new Date()): Promise<Retention
     };
   }
 
-  const cutoff = new Date(now.getTime() - retentionDays * 24 * 60 * 60 * 1000);
-  const cutoffDate = toUtcDateString(cutoff);
+  const cutoffDate = computeRetentionCutoffDate(now, retentionDays);
 
   const target = resolveWarehouseStorageTarget();
   const bucket = objectStorageClient.bucket(target.bucketName);
