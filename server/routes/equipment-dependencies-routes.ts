@@ -182,6 +182,54 @@ router.post(
   }
 );
 
+// ---------- PATCH notes ----------
+const patchBodySchema = z.object({
+  notes: z.string().max(500).nullable(),
+});
+
+router.patch(
+  "/equipment-dependencies/:id",
+  requireRole("admin", "chief_engineer"),
+  async (req, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+    const parsed = patchBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid body", details: parsed.error.flatten() });
+      return;
+    }
+    const trimmed =
+      typeof parsed.data.notes === "string"
+        ? parsed.data.notes.trim().length === 0
+          ? null
+          : parsed.data.notes
+        : null;
+    try {
+      const [updated] = await db
+        .update(equipmentDependencies)
+        .set({ notes: trimmed, updatedAt: new Date() })
+        .where(
+          and(
+            eq(equipmentDependencies.orgId, authReq.orgId),
+            eq(equipmentDependencies.id, id)
+          )
+        )
+        .returning();
+
+      if (!updated) {
+        res.status(404).json({ error: "Dependency not found" });
+        return;
+      }
+      res.json({ dependency: updated });
+    } catch (err) {
+      logger.error("patch failed", {
+        details: err instanceof Error ? err.message : String(err),
+      });
+      res.status(500).json({ error: "Failed to update dependency" });
+    }
+  }
+);
+
 // ---------- DELETE ----------
 router.delete(
   "/equipment-dependencies/:id",

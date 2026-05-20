@@ -29,6 +29,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Plus, Trash2, Upload, ArrowRight } from "lucide-react";
 import ReactFlow, {
   Background,
@@ -273,6 +281,34 @@ export default function EquipmentDependenciesPage() {
     onSettled: () => invalidateDeps(),
   });
 
+  const graphPatchMutation = useMutation({
+    mutationFn: async (input: { id: string; notes: string | null }) =>
+      apiRequest<{ dependency: EquipmentDependency }>(
+        "PATCH",
+        `/api/v1/equipment-dependencies/${input.id}`,
+        { notes: input.notes }
+      ),
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey: depsQueryKey });
+      const prev = queryClient.getQueryData<DependenciesResponse>(depsQueryKey);
+      queryClient.setQueryData<DependenciesResponse>(depsQueryKey, {
+        dependencies: (prev?.dependencies ?? []).map((d) =>
+          d.id === input.id ? { ...d, notes: input.notes } : d
+        ),
+      });
+      return { prev };
+    },
+    onError: (err: Error, _input, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(depsQueryKey, ctx.prev);
+      toast({
+        title: "Couldn't save notes",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => invalidateDeps(),
+  });
+
   const graphDeleteMutation = useMutation({
     mutationFn: async (id: string) =>
       apiRequest("DELETE", `/api/v1/equipment-dependencies/${id}`),
@@ -350,6 +386,26 @@ export default function EquipmentDependenciesPage() {
     },
     enabled: !!selectedVesselId,
   });
+
+  // Task #130 — Notes editor: either edits an existing edge
+  // (`mode: "edit"`) or captures notes for a brand-new edge before
+  // persisting (`mode: "create"`).
+  type NotesDialogState =
+    | {
+        mode: "edit";
+        dependencyId: string;
+        upstreamId: string;
+        downstreamId: string;
+        notes: string;
+      }
+    | {
+        mode: "create";
+        upstreamId: string;
+        downstreamId: string;
+        notes: string;
+      }
+    | null;
+  const [notesDialog, setNotesDialog] = useState<NotesDialogState>(null);
 
   // When the layout or equipment list changes, merge: prefer the
   // server-saved position, fall back to the circular slot. Equipment
@@ -526,12 +582,30 @@ export default function EquipmentDependenciesPage() {
         toast({ title: "That dependency already exists" });
         return;
       }
-      graphCreateMutation.mutate({
-        upstreamEquipmentId: conn.source,
-        downstreamEquipmentId: conn.target,
+      setNotesDialog({
+        mode: "create",
+        upstreamId: conn.source,
+        downstreamId: conn.target,
+        notes: "",
       });
     },
-    [dependencies, graphCreateMutation, toast]
+    [dependencies, toast]
+  );
+
+  const onEdgeClick = useCallback(
+    (_evt: React.MouseEvent, edge: Edge) => {
+      if (edge.id.startsWith("optimistic-")) return;
+      const dep = dependencies.find((d) => d.id === edge.id);
+      if (!dep) return;
+      setNotesDialog({
+        mode: "edit",
+        dependencyId: dep.id,
+        upstreamId: dep.upstreamEquipmentId,
+        downstreamId: dep.downstreamEquipmentId,
+        notes: dep.notes ?? "",
+      });
+    },
+    [dependencies]
   );
 
   if (isForbidden) {
@@ -661,6 +735,7 @@ export default function EquipmentDependenciesPage() {
                       onNodesChange={onNodesChange}
                       onEdgesChange={onEdgesChange}
                       onConnect={onConnect}
+                      onEdgeClick={onEdgeClick}
                       fitView
                       deleteKeyCode={["Backspace", "Delete"]}
                       proOptions={{ hideAttribution: true }}
@@ -917,6 +992,107 @@ export default function EquipmentDependenciesPage() {
           </TabsContent>
         </Tabs>
       )}
+
+      <Dialog
+        open={notesDialog !== null}
+        onOpenChange={(open) => {
+          if (!open) setNotesDialog(null);
+        }}
+      >
+        <DialogContent data-testid="dialog-edge-notes">
+          <DialogHeader>
+            <DialogTitle>
+              {notesDialog?.mode === "create"
+                ? "Add dependency notes"
+                : "Edit dependency notes"}
+            </DialogTitle>
+            <DialogDescription>
+              {notesDialog
+                ? `${equipmentLabel(notesDialog.upstreamId)} → ${equipmentLabel(notesDialog.downstreamId)}`
+                : null}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="edge-notes">Notes (optional)</Label>
+            <Textarea
+              id="edge-notes"
+              rows={4}
+              maxLength={500}
+              placeholder="e.g. shared cooling loop"
+              value={notesDialog?.notes ?? ""}
+              onChange={(e) =>
+                setNotesDialog((prev) =>
+                  prev ? { ...prev, notes: e.target.value } : prev
+                )
+              }
+              data-testid="textarea-edge-notes"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setNotesDialog(null)}
+              data-testid="button-edge-notes-cancel"
+            >
+              Cancel
+            </Button>
+            {notesDialog?.mode === "create" && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  if (!notesDialog) return;
+                  graphCreateMutation.mutate({
+                    upstreamEquipmentId: notesDialog.upstreamId,
+                    downstreamEquipmentId: notesDialog.downstreamId,
+                  });
+                  setNotesDialog(null);
+                }}
+                data-testid="button-edge-notes-skip"
+              >
+                Skip notes
+              </Button>
+            )}
+            <Button
+              onClick={() => {
+                if (!notesDialog) return;
+                const trimmed = notesDialog.notes.trim();
+                const notesValue = trimmed.length === 0 ? null : trimmed;
+                if (notesDialog.mode === "edit") {
+                  graphPatchMutation.mutate({
+                    id: notesDialog.dependencyId,
+                    notes: notesValue,
+                  });
+                  setNotesDialog(null);
+                  return;
+                }
+                // create: insert first, then patch notes once we have an id.
+                const upstreamEquipmentId = notesDialog.upstreamId;
+                const downstreamEquipmentId = notesDialog.downstreamId;
+                graphCreateMutation.mutate(
+                  { upstreamEquipmentId, downstreamEquipmentId },
+                  {
+                    onSuccess: (res) => {
+                      if (notesValue && res?.dependency?.id) {
+                        graphPatchMutation.mutate({
+                          id: res.dependency.id,
+                          notes: notesValue,
+                        });
+                      }
+                    },
+                  }
+                );
+                setNotesDialog(null);
+              }}
+              disabled={
+                graphPatchMutation.isPending || graphCreateMutation.isPending
+              }
+              data-testid="button-edge-notes-save"
+            >
+              {notesDialog?.mode === "create" ? "Add edge" : "Save notes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
