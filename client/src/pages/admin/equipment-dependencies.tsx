@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -28,7 +28,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Upload, ArrowRight } from "lucide-react";
+import ReactFlow, {
+  Background,
+  Controls,
+  MiniMap,
+  MarkerType,
+  applyNodeChanges,
+  type Node,
+  type Edge,
+  type Connection,
+  type NodeChange,
+  type EdgeChange,
+} from "reactflow";
+import "reactflow/dist/style.css";
 import type {
   Equipment,
   Vessel,
@@ -86,6 +100,28 @@ function parseCsv(text: string): { rows: CsvRow[]; errors: string[] } {
   return { rows, errors };
 }
 
+/**
+ * Deterministic circular layout — `equipmentDependencies` has no
+ * position columns, so we lay nodes out around a ring on first load
+ * and let the admin drag them around locally (positions are not
+ * persisted; refreshing returns to the ring).
+ */
+function circularLayout(ids: string[]): Record<string, { x: number; y: number }> {
+  const out: Record<string, { x: number; y: number }> = {};
+  const n = Math.max(ids.length, 1);
+  const radius = Math.max(180, n * 28);
+  const cx = radius + 80;
+  const cy = radius + 80;
+  ids.forEach((id, i) => {
+    const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+    out[id] = {
+      x: cx + Math.cos(angle) * radius,
+      y: cy + Math.sin(angle) * radius,
+    };
+  });
+  return out;
+}
+
 export default function EquipmentDependenciesPage() {
   const { toast } = useToast();
   const [selectedVesselId, setSelectedVesselId] = useState<string>("");
@@ -122,8 +158,13 @@ export default function EquipmentDependenciesPage() {
     return m;
   }, [equipmentList]);
 
+  const depsQueryKey = useMemo(
+    () => ["/api/v1/vessels", selectedVesselId, "equipment-dependencies"] as const,
+    [selectedVesselId]
+  );
+
   const depsQuery = useQuery<DependenciesResponse>({
-    queryKey: ["/api/v1/vessels", selectedVesselId, "equipment-dependencies"],
+    queryKey: depsQueryKey,
     queryFn: async () => {
       const res = await fetch(
         `/api/v1/vessels/${encodeURIComponent(selectedVesselId)}/equipment-dependencies`,
@@ -137,9 +178,7 @@ export default function EquipmentDependenciesPage() {
   const dependencies = depsQuery.data?.dependencies ?? [];
 
   const invalidateDeps = () =>
-    queryClient.invalidateQueries({
-      queryKey: ["/api/v1/vessels", selectedVesselId, "equipment-dependencies"],
-    });
+    queryClient.invalidateQueries({ queryKey: depsQueryKey });
 
   const createMutation = useMutation({
     mutationFn: async () =>
@@ -181,6 +220,74 @@ export default function EquipmentDependenciesPage() {
     },
   });
 
+  // ----- Graph editor mutations: optimistic so the canvas feels live.
+  // On failure we roll back to the previous snapshot and surface a toast.
+  const graphCreateMutation = useMutation({
+    mutationFn: async (input: {
+      upstreamEquipmentId: string;
+      downstreamEquipmentId: string;
+    }) =>
+      apiRequest<{ dependency: EquipmentDependency }>(
+        "POST",
+        "/api/v1/equipment-dependencies",
+        {
+          vesselId: selectedVesselId,
+          upstreamEquipmentId: input.upstreamEquipmentId,
+          downstreamEquipmentId: input.downstreamEquipmentId,
+          notes: null,
+        }
+      ),
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey: depsQueryKey });
+      const prev = queryClient.getQueryData<DependenciesResponse>(depsQueryKey);
+      const optimistic: EquipmentDependency = {
+        id: `optimistic-${input.upstreamEquipmentId}-${input.downstreamEquipmentId}`,
+        orgId: "",
+        vesselId: selectedVesselId,
+        upstreamEquipmentId: input.upstreamEquipmentId,
+        downstreamEquipmentId: input.downstreamEquipmentId,
+        notes: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      queryClient.setQueryData<DependenciesResponse>(depsQueryKey, {
+        dependencies: [...(prev?.dependencies ?? []), optimistic],
+      });
+      return { prev };
+    },
+    onError: (err: Error, _input, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(depsQueryKey, ctx.prev);
+      toast({
+        title: "Couldn't add edge",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => invalidateDeps(),
+  });
+
+  const graphDeleteMutation = useMutation({
+    mutationFn: async (id: string) =>
+      apiRequest("DELETE", `/api/v1/equipment-dependencies/${id}`),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: depsQueryKey });
+      const prev = queryClient.getQueryData<DependenciesResponse>(depsQueryKey);
+      queryClient.setQueryData<DependenciesResponse>(depsQueryKey, {
+        dependencies: (prev?.dependencies ?? []).filter((d) => d.id !== id),
+      });
+      return { prev };
+    },
+    onError: (err: Error, _id, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(depsQueryKey, ctx.prev);
+      toast({
+        title: "Couldn't remove edge",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => invalidateDeps(),
+  });
+
   const importMutation = useMutation({
     mutationFn: async (rows: CsvRow[]) =>
       apiRequest<{ ok: true; inserted: number; skipped: number }>(
@@ -204,6 +311,109 @@ export default function EquipmentDependenciesPage() {
       });
     },
   });
+
+  // ----- ReactFlow local state (positions only; nodes/edges are
+  // derived from server data so the canvas stays in lockstep with
+  // the dependencies query as it refetches).
+  const [nodePositions, setNodePositions] = useState<
+    Record<string, { x: number; y: number }>
+  >({});
+
+  // When the equipment list changes (vessel switch / load), reset to
+  // a fresh circular layout so the canvas isn't empty and previous
+  // positions for a different vessel don't leak.
+  useEffect(() => {
+    if (equipmentList.length === 0) {
+      setNodePositions({});
+      return;
+    }
+    setNodePositions(circularLayout(equipmentList.map((e) => e.id)));
+  }, [selectedVesselId, equipmentList]);
+
+  const nodes: Node[] = useMemo(
+    () =>
+      equipmentList.map((e) => ({
+        id: e.id,
+        type: "default",
+        position: nodePositions[e.id] ?? { x: 0, y: 0 },
+        data: { label: e.name },
+        // Keep the parent listening for clicks even when dragging.
+        draggable: true,
+      })),
+    [equipmentList, nodePositions]
+  );
+
+  const edges: Edge[] = useMemo(
+    () =>
+      dependencies.map((d) => ({
+        id: d.id,
+        source: d.upstreamEquipmentId,
+        target: d.downstreamEquipmentId,
+        label: d.notes ?? undefined,
+        markerEnd: { type: MarkerType.ArrowClosed },
+        // Optimistic rows have a synthetic id — visually dim them so
+        // the operator knows the server hasn't confirmed yet.
+        animated: d.id.startsWith("optimistic-"),
+        style: d.id.startsWith("optimistic-") ? { opacity: 0.6 } : undefined,
+        data: { dependencyId: d.id },
+      })),
+    [dependencies]
+  );
+
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setNodePositions((prev) => {
+      const next = { ...prev };
+      const updated = applyNodeChanges(
+        changes,
+        Object.entries(prev).map(([id, pos]) => ({
+          id,
+          position: pos,
+          data: {},
+        })) as Node[]
+      );
+      for (const n of updated) next[n.id] = n.position;
+      return next;
+    });
+  }, []);
+
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      for (const c of changes) {
+        if (c.type === "remove" && !c.id.startsWith("optimistic-")) {
+          graphDeleteMutation.mutate(c.id);
+        }
+      }
+    },
+    [graphDeleteMutation]
+  );
+
+  const onConnect = useCallback(
+    (conn: Connection) => {
+      if (!conn.source || !conn.target) return;
+      if (conn.source === conn.target) {
+        toast({
+          title: "Self-loop not allowed",
+          description: "An equipment can't depend on itself.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const exists = dependencies.some(
+        (d) =>
+          d.upstreamEquipmentId === conn.source &&
+          d.downstreamEquipmentId === conn.target
+      );
+      if (exists) {
+        toast({ title: "That dependency already exists" });
+        return;
+      }
+      graphCreateMutation.mutate({
+        upstreamEquipmentId: conn.source,
+        downstreamEquipmentId: conn.target,
+      });
+    },
+    [dependencies, graphCreateMutation, toast]
+  );
 
   if (isForbidden) {
     return (
@@ -278,236 +488,309 @@ export default function EquipmentDependenciesPage() {
       </Card>
 
       {selectedVesselId && (
-        <>
-          <Card>
-            <CardHeader>
-              <CardTitle>Add dependency</CardTitle>
-              <CardDescription>
-                Pick the upstream equipment (the source of the dependency) and the
-                downstream equipment that depends on it.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {equipmentQuery.isError && (
-                <p
-                  className="text-sm text-destructive"
-                  data-testid="text-equipment-error"
-                >
-                  Couldn't load equipment for this vessel:{" "}
-                  {equipmentQuery.error instanceof Error
-                    ? equipmentQuery.error.message
-                    : "unknown error"}
+        <Tabs defaultValue="graph" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="graph" data-testid="tab-graph">
+              Graph
+            </TabsTrigger>
+            <TabsTrigger value="bulk" data-testid="tab-bulk">
+              Bulk edit (form / CSV)
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="graph" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Dependency map</CardTitle>
+                <CardDescription>
+                  Drag a node by its body to reposition it. Drag from a node's
+                  edge handle to another node to add a new dependency
+                  (upstream → downstream). Select an edge and press Backspace
+                  or Delete to remove it. Changes auto-save through the
+                  existing dependency API.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {equipmentQuery.isError && (
+                  <p
+                    className="text-sm text-destructive mb-2"
+                    data-testid="text-graph-equipment-error"
+                  >
+                    Couldn't load equipment:{" "}
+                    {equipmentQuery.error instanceof Error
+                      ? equipmentQuery.error.message
+                      : "unknown error"}
+                  </p>
+                )}
+                {equipmentList.length === 0 ? (
+                  <p
+                    className="text-sm text-muted-foreground"
+                    data-testid="text-graph-empty"
+                  >
+                    {equipmentQuery.isLoading
+                      ? "Loading equipment…"
+                      : "No equipment on this vessel — add equipment before drawing dependencies."}
+                  </p>
+                ) : (
+                  <div
+                    className="h-[600px] w-full border rounded-md bg-background"
+                    data-testid="graph-canvas"
+                  >
+                    <ReactFlow
+                      nodes={nodes}
+                      edges={edges}
+                      onNodesChange={onNodesChange}
+                      onEdgesChange={onEdgesChange}
+                      onConnect={onConnect}
+                      fitView
+                      deleteKeyCode={["Backspace", "Delete"]}
+                      proOptions={{ hideAttribution: true }}
+                    >
+                      <Background />
+                      <MiniMap pannable zoomable />
+                      <Controls />
+                    </ReactFlow>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground mt-2">
+                  Node positions are local to this session and aren't saved
+                  to the server.
                 </p>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label>Upstream (source)</Label>
-                  <Select value={upstreamId} onValueChange={setUpstreamId}>
-                    <SelectTrigger
-                      data-testid="select-upstream"
-                      disabled={
-                        equipmentQuery.isLoading ||
-                        equipmentQuery.isError ||
-                        equipmentList.length === 0
-                      }
-                    >
-                      <SelectValue
-                        placeholder={
-                          equipmentQuery.isLoading
-                            ? "Loading equipment…"
-                            : equipmentQuery.isError
-                              ? "Equipment unavailable"
-                              : equipmentList.length === 0
-                                ? "No equipment on this vessel"
-                                : "Choose upstream equipment"
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="bulk" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Add dependency</CardTitle>
+                <CardDescription>
+                  Pick the upstream equipment (the source of the dependency) and the
+                  downstream equipment that depends on it.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {equipmentQuery.isError && (
+                  <p
+                    className="text-sm text-destructive"
+                    data-testid="text-equipment-error"
+                  >
+                    Couldn't load equipment for this vessel:{" "}
+                    {equipmentQuery.error instanceof Error
+                      ? equipmentQuery.error.message
+                      : "unknown error"}
+                  </p>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label>Upstream (source)</Label>
+                    <Select value={upstreamId} onValueChange={setUpstreamId}>
+                      <SelectTrigger
+                        data-testid="select-upstream"
+                        disabled={
+                          equipmentQuery.isLoading ||
+                          equipmentQuery.isError ||
+                          equipmentList.length === 0
                         }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {equipmentList.map((e) => (
-                        <SelectItem key={e.id} value={e.id} data-testid={`option-upstream-${e.id}`}>
-                          {e.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label>Downstream (depends on upstream)</Label>
-                  <Select value={downstreamId} onValueChange={setDownstreamId}>
-                    <SelectTrigger
-                      data-testid="select-downstream"
-                      disabled={
-                        equipmentQuery.isLoading ||
-                        equipmentQuery.isError ||
-                        equipmentList.length === 0
-                      }
-                    >
-                      <SelectValue
-                        placeholder={
-                          equipmentQuery.isLoading
-                            ? "Loading equipment…"
-                            : equipmentQuery.isError
-                              ? "Equipment unavailable"
-                              : equipmentList.length === 0
-                                ? "No equipment on this vessel"
-                                : "Choose downstream equipment"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {equipmentList
-                        .filter((e) => e.id !== upstreamId)
-                        .map((e) => (
-                          <SelectItem key={e.id} value={e.id} data-testid={`option-downstream-${e.id}`}>
+                      >
+                        <SelectValue
+                          placeholder={
+                            equipmentQuery.isLoading
+                              ? "Loading equipment…"
+                              : equipmentQuery.isError
+                                ? "Equipment unavailable"
+                                : equipmentList.length === 0
+                                  ? "No equipment on this vessel"
+                                  : "Choose upstream equipment"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {equipmentList.map((e) => (
+                          <SelectItem key={e.id} value={e.id} data-testid={`option-upstream-${e.id}`}>
                             {e.name}
                           </SelectItem>
                         ))}
-                    </SelectContent>
-                  </Select>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Downstream (depends on upstream)</Label>
+                    <Select value={downstreamId} onValueChange={setDownstreamId}>
+                      <SelectTrigger
+                        data-testid="select-downstream"
+                        disabled={
+                          equipmentQuery.isLoading ||
+                          equipmentQuery.isError ||
+                          equipmentList.length === 0
+                        }
+                      >
+                        <SelectValue
+                          placeholder={
+                            equipmentQuery.isLoading
+                              ? "Loading equipment…"
+                              : equipmentQuery.isError
+                                ? "Equipment unavailable"
+                                : equipmentList.length === 0
+                                  ? "No equipment on this vessel"
+                                  : "Choose downstream equipment"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {equipmentList
+                          .filter((e) => e.id !== upstreamId)
+                          .map((e) => (
+                            <SelectItem key={e.id} value={e.id} data-testid={`option-downstream-${e.id}`}>
+                              {e.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-1">
-                <Label>Notes (optional)</Label>
-                <Input
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  maxLength={500}
-                  placeholder="e.g. shared cooling loop"
-                  data-testid="input-notes"
-                />
-              </div>
-              <Button
-                onClick={() => createMutation.mutate()}
-                disabled={!canSubmit}
-                data-testid="button-add-dependency"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                {createMutation.isPending ? "Adding…" : "Add dependency"}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>CSV bulk import</CardTitle>
-              <CardDescription>
-                Paste rows as <code>upstreamEquipmentId,downstreamEquipmentId,notes</code>.
-                Header row optional. Duplicate edges are skipped silently; equipment ids
-                must belong to this vessel.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Textarea
-                value={csvText}
-                onChange={(e) => setCsvText(e.target.value)}
-                rows={8}
-                className="font-mono text-xs"
-                placeholder={
-                  "upstreamEquipmentId,downstreamEquipmentId,notes\nuuid-a,uuid-b,powers downstream"
-                }
-                data-testid="textarea-csv-import"
-              />
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  const parsed = parseCsv(csvText);
-                  if (parsed.errors.length > 0) {
-                    toast({
-                      title: "CSV has errors",
-                      description: parsed.errors.slice(0, 5).join("; "),
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-                  if (parsed.rows.length === 0) {
-                    toast({
-                      title: "Nothing to import",
-                      description: "Paste at least one row.",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-                  importMutation.mutate(parsed.rows);
-                }}
-                disabled={importMutation.isPending || !csvText.trim()}
-                data-testid="button-import-csv"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {importMutation.isPending ? "Importing…" : "Import rows"}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Existing dependencies</CardTitle>
-              <CardDescription>
-                {depsQuery.isLoading
-                  ? "Loading…"
-                  : `${dependencies.length} edge${dependencies.length === 1 ? "" : "s"} defined for this vessel.`}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {depsQuery.isError ? (
-                <p
-                  className="text-sm text-destructive"
-                  data-testid="text-deps-error"
+                <div className="space-y-1">
+                  <Label>Notes (optional)</Label>
+                  <Input
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    maxLength={500}
+                    placeholder="e.g. shared cooling loop"
+                    data-testid="input-notes"
+                  />
+                </div>
+                <Button
+                  onClick={() => createMutation.mutate()}
+                  disabled={!canSubmit}
+                  data-testid="button-add-dependency"
                 >
-                  Failed to load dependencies:{" "}
-                  {depsQuery.error instanceof Error
-                    ? depsQuery.error.message
-                    : "unknown error"}
-                </p>
-              ) : dependencies.length === 0 && !depsQuery.isLoading ? (
-                <p className="text-sm text-muted-foreground" data-testid="text-deps-empty">
-                  No dependencies yet. Add one above or paste a CSV.
-                </p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Upstream</TableHead>
-                      <TableHead></TableHead>
-                      <TableHead>Downstream</TableHead>
-                      <TableHead>Notes</TableHead>
-                      <TableHead className="w-12"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {dependencies.map((d) => (
-                      <TableRow key={d.id} data-testid={`row-dependency-${d.id}`}>
-                        <TableCell className="text-sm">
-                          {equipmentLabel(d.upstreamEquipmentId)}
-                        </TableCell>
-                        <TableCell>
-                          <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {equipmentLabel(d.downstreamEquipmentId)}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {d.notes ?? "—"}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteMutation.mutate(d.id)}
-                            disabled={deleteMutation.isPending}
-                            data-testid={`button-delete-${d.id}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
+                  <Plus className="h-4 w-4 mr-2" />
+                  {createMutation.isPending ? "Adding…" : "Add dependency"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>CSV bulk import</CardTitle>
+                <CardDescription>
+                  Paste rows as <code>upstreamEquipmentId,downstreamEquipmentId,notes</code>.
+                  Header row optional. Duplicate edges are skipped silently; equipment ids
+                  must belong to this vessel.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Textarea
+                  value={csvText}
+                  onChange={(e) => setCsvText(e.target.value)}
+                  rows={8}
+                  className="font-mono text-xs"
+                  placeholder={
+                    "upstreamEquipmentId,downstreamEquipmentId,notes\nuuid-a,uuid-b,powers downstream"
+                  }
+                  data-testid="textarea-csv-import"
+                />
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    const parsed = parseCsv(csvText);
+                    if (parsed.errors.length > 0) {
+                      toast({
+                        title: "CSV has errors",
+                        description: parsed.errors.slice(0, 5).join("; "),
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    if (parsed.rows.length === 0) {
+                      toast({
+                        title: "Nothing to import",
+                        description: "Paste at least one row.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    importMutation.mutate(parsed.rows);
+                  }}
+                  disabled={importMutation.isPending || !csvText.trim()}
+                  data-testid="button-import-csv"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {importMutation.isPending ? "Importing…" : "Import rows"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Existing dependencies</CardTitle>
+                <CardDescription>
+                  {depsQuery.isLoading
+                    ? "Loading…"
+                    : `${dependencies.length} edge${dependencies.length === 1 ? "" : "s"} defined for this vessel.`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {depsQuery.isError ? (
+                  <p
+                    className="text-sm text-destructive"
+                    data-testid="text-deps-error"
+                  >
+                    Failed to load dependencies:{" "}
+                    {depsQuery.error instanceof Error
+                      ? depsQuery.error.message
+                      : "unknown error"}
+                  </p>
+                ) : dependencies.length === 0 && !depsQuery.isLoading ? (
+                  <p className="text-sm text-muted-foreground" data-testid="text-deps-empty">
+                    No dependencies yet. Add one above or paste a CSV.
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Upstream</TableHead>
+                        <TableHead></TableHead>
+                        <TableHead>Downstream</TableHead>
+                        <TableHead>Notes</TableHead>
+                        <TableHead className="w-12"></TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </>
+                    </TableHeader>
+                    <TableBody>
+                      {dependencies.map((d) => (
+                        <TableRow key={d.id} data-testid={`row-dependency-${d.id}`}>
+                          <TableCell className="text-sm">
+                            {equipmentLabel(d.upstreamEquipmentId)}
+                          </TableCell>
+                          <TableCell>
+                            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {equipmentLabel(d.downstreamEquipmentId)}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {d.notes ?? "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteMutation.mutate(d.id)}
+                              disabled={deleteMutation.isPending}
+                              data-testid={`button-delete-${d.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );
