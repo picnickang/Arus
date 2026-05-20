@@ -23,6 +23,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { Ship, Play, AlertCircle, CheckCircle, Waves } from "lucide-react";
 import { adminApiRequest } from "@/lib/admin-api";
+import { useQuery } from "@tanstack/react-query";
+import type { Equipment } from "@shared/schema";
 
 interface VesselType {
   id: string;
@@ -47,6 +49,13 @@ export function VesselSimulatorCard() {
 
   const [selectedVesselType, setSelectedVesselType] = useState("");
   const [equipmentId, setEquipmentId] = useState("");
+  // #100 — admins pick from a dropdown rather than typing free-form
+  // IDs that may not exist; the simulator otherwise silently writes
+  // telemetry for unknown equipment.
+  const { data: equipmentList = [], isLoading: equipmentLoading } = useQuery<Equipment[]>({
+    queryKey: ["/api/equipment"],
+    select: (data) => data ?? [],
+  });
   const [deviceId, setDeviceId] = useState("simulator-device");
   const [duration, setDuration] = useState(60);
   const [samplingInterval, setSamplingInterval] = useState(1);
@@ -202,14 +211,35 @@ export function VesselSimulatorCard() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="equipment-id">Equipment ID</Label>
-            <Input
-              id="equipment-id"
+            <Label htmlFor="equipment-id">Equipment</Label>
+            <Select
               value={equipmentId}
-              onChange={(e) => setEquipmentId(e.target.value)}
-              placeholder="e.g., main-engine-001"
-              data-testid="input-equipment-id"
-            />
+              onValueChange={setEquipmentId}
+              disabled={equipmentLoading || equipmentList.length === 0}
+            >
+              <SelectTrigger id="equipment-id" data-testid="select-equipment-id">
+                <SelectValue
+                  placeholder={
+                    equipmentLoading
+                      ? "Loading equipment…"
+                      : equipmentList.length === 0
+                        ? "No equipment registered"
+                        : "Select equipment"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {equipmentList.map((eq) => (
+                  <SelectItem
+                    key={eq.id}
+                    value={eq.id}
+                    data-testid={`option-equipment-${eq.id}`}
+                  >
+                    {eq.name} ({eq.type})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

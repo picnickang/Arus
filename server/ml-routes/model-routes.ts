@@ -4,6 +4,8 @@
  */
 
 import { Router, Response } from "express";
+import path from "node:path";
+import { readFile } from "node:fs/promises";
 import { AuthenticatedRequest } from "../middleware/auth.js";
 import { dbMlAnalyticsStorage } from "../repositories.js";
 import { mlTrainConfigSchema } from "@shared/schema-runtime";
@@ -11,6 +13,10 @@ import type { InsertMlModel } from "@shared/schema";
 import { z } from "zod";
 import { structuredLog } from "../logging.js";
 import { sendSuccess, sendNotFound, sendBadRequest, handleError } from "../utils/api-response.js";
+import {
+  getReadAdapterForUri,
+  parseArtifactUri,
+} from "../domains/pdm-platform/infrastructure/artifact-storage/index.js";
 
 const router = Router();
 
@@ -58,11 +64,6 @@ router.get("/ml/models/:id/artifact", async (req: AuthenticatedRequest, res: Res
     // artifacts (arus-artifact://replit-object-storage/...) work as
     // well as legacy bare paths. parseArtifactUri maps bare paths to
     // the local backend for backward compat.
-    const path = await import("node:path");
-    const fs = await import("node:fs/promises");
-    const { getReadAdapterForUri, parseArtifactUri } = await import(
-      "../domains/pdm-platform/infrastructure/artifact-storage/index.js"
-    );
     const ref = parseArtifactUri(artifactPath);
     if (!ref.key.endsWith(".onnx")) {
       return sendNotFound(res, "Model artifact");
@@ -85,7 +86,7 @@ router.get("/ml/models/:id/artifact", async (req: AuthenticatedRequest, res: Res
         return sendBadRequest(res, "Artifact path outside models directory");
       }
     }
-    const bytes = await fs.readFile(local);
+    const bytes = await readFile(local);
     res.setHeader("Content-Type", "application/octet-stream");
     res.setHeader("Cache-Control", "private, max-age=3600");
     res.send(bytes);

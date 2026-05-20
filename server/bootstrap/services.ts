@@ -1,4 +1,5 @@
 import { createLogger } from "../lib/structured-logger";
+import { runBootMigrations } from "../scripts/migrate";
 const logger = createLogger("Bootstrap:Services");
 /**
  * Service Initialization
@@ -41,7 +42,6 @@ export async function runMigrationsOnBoot(): Promise<void> {
     return;
   }
   logger.info("→ MIGRATE_ON_BOOT: applying pending migrations before service init...");
-  const { runBootMigrations } = await import("../scripts/migrate");
   await runBootMigrations();
   logger.info("✓ MIGRATE_ON_BOOT: migrations up to date");
 }

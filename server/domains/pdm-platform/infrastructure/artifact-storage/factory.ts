@@ -1,4 +1,3 @@
-import { dbSystemAdminStorage } from "../../../../db/system-admin/index";
 import { createLogger } from "../../../../lib/structured-logger";
 import { LocalDiskArtifactStorage } from "./local-disk-adapter";
 
@@ -9,7 +8,10 @@ import { ArtifactBackend, ArtifactStoragePort, parseArtifactUri } from "./types"
 /**
  * Admin-controlled artifact-storage selection.
  *
- *  - Persisted in `admin_system_settings` under
+ *  - Persisted by the system-admin domain (the factory is decoupled
+ *    via the injected `ArtifactBackendSettingPort` — see
+ *    `configureArtifactBackendSettingPort`). Concretely, today, the
+ *    port reads/writes `admin_system_settings`
  *    (orgId=`system`, category=`ml-artifact-storage`, key=`backend`).
  *  - Default is `replit-object-storage` whenever the env vars
  *    indicate App Storage is provisioned; otherwise `local`.
@@ -19,9 +21,33 @@ import { ArtifactBackend, ArtifactStoragePort, parseArtifactUri } from "./types"
  *    were originally stored.
  */
 
-const SETTING_ORG = "system";
-const SETTING_CATEGORY = "ml-artifact-storage";
-const SETTING_KEY = "backend";
+/**
+ * Port for persisting the admin-selected write backend. The factory
+ * lives in pdm-platform but the setting is owned by system-admin —
+ * the port inverts the dependency so this module does not import
+ * any system-admin internals (enforced by `check:domain-leaks`).
+ */
+export interface ArtifactBackendSettingPort {
+  read(): Promise<ArtifactBackend | null>;
+  write(backend: ArtifactBackend): Promise<void>;
+}
+
+let settingPort: ArtifactBackendSettingPort | null = null;
+
+/**
+ * Wire the persistence port. Called once at boot by system-admin's
+ * composition layer (`server/domains/system-admin/routes/settings-routes.ts`).
+ * Until configured, the factory falls back to env-derived defaults
+ * and `setArtifactBackendSetting` throws.
+ */
+export function configureArtifactBackendSettingPort(port: ArtifactBackendSettingPort): void {
+  settingPort = port;
+  // Drop the cached default so a late port configuration is not
+  // shadowed by an earlier `getWriteAdapter()` call that warmed the
+  // cache with the env-derived default.
+  cachedWriteBackend = null;
+}
+
 const VALID: readonly ArtifactBackend[] = ["local", "replit-object-storage"] as const;
 
 function defaultBackend(): ArtifactBackend {
@@ -48,18 +74,13 @@ function buildAdapter(backend: ArtifactBackend): ArtifactStoragePort {
 /** Adapter selected for NEW artifact writes (admin setting). */
 export async function getWriteAdapter(): Promise<ArtifactStoragePort> {
   if (cachedWriteBackend) return buildAdapter(cachedWriteBackend);
+  if (!settingPort) {
+    cachedWriteBackend = defaultBackend();
+    return buildAdapter(cachedWriteBackend);
+  }
   try {
-    const row = await dbSystemAdminStorage.getAdminSystemSetting(
-      SETTING_ORG,
-      SETTING_CATEGORY,
-      SETTING_KEY,
-    );
-    const value = (row?.value as { backend?: string } | undefined)?.backend;
-    if (value && (VALID as readonly string[]).includes(value)) {
-      cachedWriteBackend = value as ArtifactBackend;
-    } else {
-      cachedWriteBackend = defaultBackend();
-    }
+    const value = await settingPort.read();
+    cachedWriteBackend = value ?? defaultBackend();
   } catch (err) {
     logger.warn("ml-artifact-storage setting lookup failed — using default", {
       err: err instanceof Error ? err.message : String(err),
@@ -80,24 +101,12 @@ export async function setArtifactBackendSetting(backend: ArtifactBackend): Promi
   if (!(VALID as readonly string[]).includes(backend)) {
     throw new Error(`Invalid backend: ${backend}`);
   }
-  const existing = await dbSystemAdminStorage.getAdminSystemSetting(
-    SETTING_ORG,
-    SETTING_CATEGORY,
-    SETTING_KEY,
-  );
-  if (existing) {
-    await dbSystemAdminStorage.updateAdminSystemSetting(existing.id, {
-      value: { backend },
-    });
-  } else {
-    await dbSystemAdminStorage.createAdminSystemSetting({
-      orgId: SETTING_ORG,
-      category: SETTING_CATEGORY,
-      key: SETTING_KEY,
-      value: { backend },
-      description: "Backend used for storing trained ML model artifacts",
-    });
+  if (!settingPort) {
+    throw new Error(
+      "ArtifactBackendSettingPort not configured — call configureArtifactBackendSettingPort at boot",
+    );
   }
+  await settingPort.write(backend);
   cachedWriteBackend = backend;
 }
 
@@ -106,24 +115,22 @@ export async function getArtifactBackendSetting(): Promise<{
   source: "admin-setting" | "default";
   available: ArtifactBackend[];
 }> {
-  try {
-    const row = await dbSystemAdminStorage.getAdminSystemSetting(
-      SETTING_ORG,
-      SETTING_CATEGORY,
-      SETTING_KEY,
-    );
-    const value = (row?.value as { backend?: string } | undefined)?.backend;
-    if (value && (VALID as readonly string[]).includes(value)) {
-      return {
-        backend: value as ArtifactBackend,
-        source: "admin-setting",
-        available: [...VALID],
-      };
+  if (settingPort) {
+    try {
+      const value = await settingPort.read();
+      if (value) {
+        return { backend: value, source: "admin-setting", available: [...VALID] };
+      }
+    } catch {
+      // fall through to default
     }
-  } catch {
-    // fall through to default
   }
   return { backend: defaultBackend(), source: "default", available: [...VALID] };
+}
+
+/** Test-only — drop the port so the next configure call wins fresh. */
+export function _resetArtifactBackendSettingPortForTest(): void {
+  settingPort = null;
 }
 
 /** Test-only — drops the in-process write cache so tests can flip setting. */

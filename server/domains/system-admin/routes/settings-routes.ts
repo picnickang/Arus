@@ -15,8 +15,56 @@ import { dbSystemAdminStorage } from "../../../db/system-admin/index.js";
 import {
   getArtifactBackendSetting,
   setArtifactBackendSetting,
+  configureArtifactBackendSettingPort,
   type ArtifactBackend,
+  type ArtifactBackendSettingPort,
 } from "../../pdm-platform/infrastructure/artifact-storage/index.js";
+
+// Inverted dependency (see ArtifactBackendSettingPort docstring): the
+// pdm-platform factory used to import `dbSystemAdminStorage` directly,
+// which the domain-leak check flags as a cross-domain coupling. We
+// instead inject a port from this (system-admin) module so the setting
+// row stays owned by system-admin while the factory stays domain-pure.
+const SETTING_ORG = "system";
+const SETTING_CATEGORY = "ml-artifact-storage";
+const SETTING_KEY = "backend";
+const VALID_BACKENDS = ["local", "replit-object-storage"] as const;
+
+const artifactBackendSettingPort: ArtifactBackendSettingPort = {
+  async read() {
+    const row = await dbSystemAdminStorage.getAdminSystemSetting(
+      SETTING_ORG,
+      SETTING_CATEGORY,
+      SETTING_KEY,
+    );
+    const value = (row?.value as { backend?: string } | undefined)?.backend;
+    if (value && (VALID_BACKENDS as readonly string[]).includes(value)) {
+      return value as ArtifactBackend;
+    }
+    return null;
+  },
+  async write(backend) {
+    const existing = await dbSystemAdminStorage.getAdminSystemSetting(
+      SETTING_ORG,
+      SETTING_CATEGORY,
+      SETTING_KEY,
+    );
+    if (existing) {
+      await dbSystemAdminStorage.updateAdminSystemSetting(existing.id, {
+        value: { backend },
+      });
+    } else {
+      await dbSystemAdminStorage.createAdminSystemSetting({
+        orgId: SETTING_ORG,
+        category: SETTING_CATEGORY,
+        key: SETTING_KEY,
+        value: { backend },
+        description: "Backend used for storing trained ML model artifacts",
+      });
+    }
+  },
+};
+configureArtifactBackendSettingPort(artifactBackendSettingPort);
 
 export function registerSettingsRoutes(app: Express, deps: SystemAdminDependencies): void {
   const {
