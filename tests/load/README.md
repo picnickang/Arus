@@ -32,6 +32,7 @@ BASE_URL=https://staging.example.app k6 run tests/load/steady.js
 | `smoke.js`   | One virtual user, public endpoints only          | 1      | 30s      |
 | `steady.js`  | Realistic steady-state load (read-mostly)        | 20→50  | 5m       |
 | `spike.js`   | Sudden traffic spike — autoscaling / circuit BR  | 100    | 2m       |
+| `ws_fanout.js` | Multi-server WebSocket fan-out delivery proof (see `WS_FANOUT.md`) | 20 | ~2m |
 
 ## SLOs
 
