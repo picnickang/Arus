@@ -22,6 +22,7 @@ const TransportSettings = lazy(() => import("@/pages/transport-settings"));
 const AdminTenants = lazy(() => import("@/pages/admin/tenants"));
 const Admin3DModels = lazy(() => import("@/pages/admin/3d-models"));
 const AdminEquipmentDependencies = lazy(() => import("@/pages/admin/equipment-dependencies"));
+const AdminTelemetryWarehouse = lazy(() => import("@/pages/admin/telemetry-warehouse"));
 
 export const systemRoutes = [
   { path: "/system", component: SystemHub },
@@ -46,4 +47,5 @@ export const systemRoutes = [
   { path: "/admin/tenants", component: AdminTenants },
   { path: "/admin/3d-models", component: Admin3DModels },
   { path: "/admin/equipment-dependencies", component: AdminEquipmentDependencies },
+  { path: "/admin/telemetry-warehouse", component: AdminTelemetryWarehouse },
 ];

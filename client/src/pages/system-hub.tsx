@@ -1,6 +1,6 @@
 import { Suspense, lazy } from "react";
 import { IconGridLayout, PageLoader, type GridItem } from "@/components/layouts";
-import { Settings, Activity, Shield, Building, Bell, CloudSun, Bot, Boxes, Share2 } from "lucide-react";
+import { Settings, Activity, Shield, Building, Bell, CloudSun, Bot, Boxes, Share2, Database } from "lucide-react";
 
 const ConfigurationHub = lazy(() => import("./configuration-hub"));
 
@@ -84,6 +84,15 @@ const systemItems: GridItem[] = [
     load: () => import("./admin/equipment-dependencies"),
     loaderVariant: "cards",
     legacyRoutes: ["/admin/equipment-dependencies"],
+  },
+  {
+    id: "telemetry-warehouse",
+    label: "Warehouse Exports",
+    icon: Database,
+    description: "Daily Parquet export status",
+    load: () => import("./admin/telemetry-warehouse"),
+    loaderVariant: "table",
+    legacyRoutes: ["/admin/telemetry-warehouse"],
   },
   {
     id: "copilot",
