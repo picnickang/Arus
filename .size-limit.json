@@ -1,0 +1,36 @@
+[
+  {
+    "name": "Initial app bundle (entry + critical chunks, gzip)",
+    "path": [
+      "dist/public/assets/index-*.js",
+      "dist/public/assets/vendor-react-*.js",
+      "dist/public/assets/vendor-radix-*.js"
+    ],
+    "limit": "120 KB",
+    "gzip": true
+  },
+  {
+    "name": "Heaviest lazy chunk: vendor-export (xlsx/exceljs)",
+    "path": "dist/public/assets/vendor-export-*.js",
+    "limit": "220 KB",
+    "gzip": true
+  },
+  {
+    "name": "Heaviest lazy chunk: vendor-charts (recharts/d3)",
+    "path": "dist/public/assets/vendor-charts-*.js",
+    "limit": "150 KB",
+    "gzip": true
+  },
+  {
+    "name": "Heaviest lazy chunk: exceljs vendor",
+    "path": "dist/public/assets/exceljs.min-*.js",
+    "limit": "300 KB",
+    "gzip": true
+  },
+  {
+    "name": "Total client JS (all chunks combined, gzip)",
+    "path": "dist/public/assets/*.js",
+    "limit": "1.7 MB",
+    "gzip": true
+  }
+]
