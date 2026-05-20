@@ -15,6 +15,7 @@ export {
   findSimilarFailures,
   whatPartsForFailureMode,
   failurePropagation,
+  crossClassPatterns,
   upsertNode,
   upsertEdge,
 } from "./adapter";

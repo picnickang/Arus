@@ -900,6 +900,14 @@ export const domainRouters: DomainRouterConfig[] = [
     middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
     getDeps: () => ({ requireOrgId, generalApiRateLimit }),
   },
+  {
+    name: "EquipmentCrossClass",
+    importPath: "../routes/equipment-cross-class-routes.js",
+    functionName: "equipmentCrossClassRouter",
+    mountPath: "/api/v1",
+    middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }),
+  },
 
   // ===== Other direct mounts =====
 

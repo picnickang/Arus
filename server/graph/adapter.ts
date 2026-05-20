@@ -35,7 +35,22 @@ import type { EdgeType, NodeLabel } from "./types";
 
 const logger = createLogger("GraphAdapter");
 
+// Dollar-quote tag used by `execCypher` to wrap the Cypher body
+// inside the surrounding SQL. Any user-derived string interpolated
+// into the Cypher must NOT contain this tag, or it would terminate
+// the outer PostgreSQL dollar-quote and become SQL/AGE injection.
+// The tag is intentionally arusy-specific (not the default `$$`) so
+// natural inputs are extremely unlikely to collide, and any input
+// that does is rejected up-front by `escapeCypherString` below.
+const CYPHER_DOLLAR_TAG = "$arusCy$";
+
 function escapeCypherString(value: string): string {
+  // Hard-fail on the dollar-quote tag — see CYPHER_DOLLAR_TAG above.
+  // Cypher's own quoting (`\'`, `\\`) is fine inside the SQL string,
+  // but the outer SQL dollar-quote is opaque to it.
+  if (value.includes(CYPHER_DOLLAR_TAG) || value.includes("$$")) {
+    throw new Error("escapeCypherString: value contains dollar-quote tag");
+  }
   return `'${value.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`;
 }
 
@@ -71,7 +86,13 @@ async function execCypher(
   const graph = tenantGraphName(orgId);
   // `returnColumns` is a static template fragment provided by the caller —
   // never derived from user input — declaring the AGE (col agtype) tuple.
-  const sql = `SELECT * FROM cypher('${graph}', $$ ${cypher} $$) AS (${returnColumns})`;
+  // Wrap the Cypher body in our project-specific dollar tag rather
+  // than the default `$$` — see CYPHER_DOLLAR_TAG. `escapeCypherString`
+  // rejects any value that contains the tag, so the outer SQL
+  // dollar-quote cannot be terminated by interpolated user data.
+  const sql =
+    `SELECT * FROM cypher('${graph}', ${CYPHER_DOLLAR_TAG} ${cypher} ${CYPHER_DOLLAR_TAG}) ` +
+    `AS (${returnColumns})`;
   // CRITICAL: `LOAD 'age'` and `SET search_path` are SESSION-scoped.
   // `pool.query` can return a different physical connection on each
   // call, so we MUST check out a single client and run the prelude +
@@ -259,6 +280,54 @@ export async function whatPartsForFailureMode(
   return res.rows.map((r) => ({
     partId: agString(r.partId),
     occurrences: agNumber(r.occurrences),
+  }));
+}
+
+/**
+ * Task #80 — Top failure modes seen on equipment of the same `type`
+ * across a caller-supplied set of peer vessels (typically all vessels
+ * of the same class as the focal equipment's vessel). The peer-vessel
+ * list is computed by the route from RLS-protected SQL — the graph
+ * is org-scoped, so this only counts within the tenant, and the
+ * vessel-class filter happens via the supplied id list rather than a
+ * graph property (vessel nodes carry no class today).
+ *
+ * Counting uses `count(DISTINCT r.sourceId)` to match the
+ * idempotency contract — backfill replay doesn't inflate counts.
+ *
+ * Returns peer-vessel-aggregated rows: `vesselCount` is how many
+ * distinct peer vessels saw that failure mode, `occurrences` is the
+ * total source rows.
+ */
+export async function crossClassPatterns(
+  orgId: string,
+  peerVesselIds: string[],
+  equipmentType: string,
+  limit: number = 10
+): Promise<Array<{ failureMode: string; occurrences: number; vesselCount: number }>> {
+  if (peerVesselIds.length === 0) return [];
+  const safeLimit = Math.max(1, Math.min(50, Math.trunc(limit)));
+  const vesselList = peerVesselIds
+    .map((v) => escapeCypherString(v))
+    .join(", ");
+  const cypher =
+    `MATCH (v:Vessel) WHERE v.id IN [${vesselList}] ` +
+    `MATCH (peer:Equipment {type: ${escapeCypherString(equipmentType)}})` +
+    `-[:INSTALLED_ON]->(v) ` +
+    `MATCH (peer)-[r:HAS_FAILURE_MODE]->(fm:FailureMode) ` +
+    `RETURN fm.id AS failureMode, ` +
+    `count(DISTINCT r.sourceId) AS occurrences, ` +
+    `count(DISTINCT v.id) AS vesselCount ` +
+    `ORDER BY occurrences DESC LIMIT ${safeLimit}`;
+  const res = await execCypher(
+    orgId,
+    cypher,
+    "failureMode agtype, occurrences agtype, vesselCount agtype"
+  );
+  return res.rows.map((r) => ({
+    failureMode: agString(r.failureMode),
+    occurrences: agNumber(r.occurrences),
+    vesselCount: agNumber(r.vesselCount),
   }));
 }
 

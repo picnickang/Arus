@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { SensorSetupWizard } from "@/components/sensors/SensorSetupWizard";
+import { CrossClassPatternsCard } from "@/components/equipment/CrossClassPatternsCard";
 import { SensorHealthDashboard } from "@/components/sensors/SensorHealthDashboard";
 import { MultiSensorChart } from "@/components/charts/MultiSensorChart";
 import { LoadingState } from "@/components/patterns/LoadingState";
@@ -286,6 +287,7 @@ function OverviewTab({
           />
         </div>
       </div>
+      <CrossClassPatternsCard equipmentId={equipmentId} />
       <Card>
         <CardHeader>
           <CardTitle>Risk Factors</CardTitle>
