@@ -24,7 +24,7 @@
  */
 
 import { isGraphAvailable } from "../graph-bootstrap";
-import { upsertEdge, upsertNode, STATIC_EDGE_SOURCE } from "./adapter";
+import { upsertEdge, upsertNode, deleteEdge, STATIC_EDGE_SOURCE } from "./adapter";
 import { EdgeType, NodeLabel } from "./types";
 import { createLogger } from "../lib/structured-logger";
 
@@ -186,4 +186,37 @@ export async function projectDependency(
       STATIC_EDGE_SOURCE
     );
   }, `projectDependency(${upstreamEquipmentId}→${downstreamEquipmentId})`);
+}
+
+/**
+ * Inverse of `projectDependency` — used when the admin removes the
+ * relational row so the graph no longer reports a stale blast-radius
+ * edge. Best-effort, never throws (matches projectDependency contract).
+ */
+export async function retractDependency(
+  orgId: string,
+  upstreamEquipmentId: string,
+  downstreamEquipmentId: string
+): Promise<void> {
+  if (!isGraphAvailable()) return;
+  await safe(async () => {
+    const ok = await deleteEdge(
+      orgId,
+      NodeLabel.Equipment,
+      upstreamEquipmentId,
+      EdgeType.DependsOn,
+      NodeLabel.Equipment,
+      downstreamEquipmentId
+    );
+    if (!ok) {
+      // Surface stale-edge risk explicitly — the relational row was
+      // already deleted by the caller; if the graph delete didn't
+      // commit, blast-radius queries may still report this edge.
+      logger.warn("[GraphProjector] DEPENDS_ON delete returned not-ok", {
+        upstreamEquipmentId,
+        downstreamEquipmentId,
+        orgId,
+      });
+    }
+  }, `retractDependency(${upstreamEquipmentId}→${downstreamEquipmentId})`);
 }

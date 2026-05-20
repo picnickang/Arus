@@ -892,6 +892,14 @@ export const domainRouters: DomainRouterConfig[] = [
     middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
     getDeps: () => ({ requireOrgId, generalApiRateLimit }),
   },
+  {
+    name: "EquipmentDependencies",
+    importPath: "../routes/equipment-dependencies-routes.js",
+    functionName: "equipmentDependenciesRouter",
+    mountPath: "/api/v1",
+    middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }),
+  },
 
   // ===== Other direct mounts =====
 

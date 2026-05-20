@@ -33,6 +33,7 @@ export * from "./purchasing";
 export * from "./stormgeo";
 export * from "./pdm-feature-store";
 export * from "./digital-twin";
+export * from "./equipment-dependencies";
 export * from "./agent";
 export * from "./external-data-cache";
 export * from "./certificates";

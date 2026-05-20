@@ -154,6 +154,39 @@ export async function upsertEdge(
 }
 
 /**
+ * Idempotent edge deletion. Removes every edge matching
+ * (from, type, to) — the deletion contract is "this relational fact
+ * is gone, drop the projected edge entirely". For DEPENDS_ON
+ * (admin-curated, sourceId=STATIC_EDGE_SOURCE) this is a 1:1
+ * correspondence with the relational row; counted edges that share
+ * (from, to, type) across many sourceIds should not use this helper.
+ */
+export async function deleteEdge(
+  orgId: string,
+  fromLabel: NodeLabel,
+  fromId: string,
+  edge: EdgeType,
+  toLabel: NodeLabel,
+  toId: string
+): Promise<boolean> {
+  if (!isGraphAvailable()) return false;
+  const ok = await ensureTenantGraph(orgId);
+  if (!ok) return false;
+  // `execCypher` always wraps with `AS (${returnColumns})`, so the
+  // Cypher MUST end in a RETURN with at least one column or the
+  // generated SQL is invalid (`AS ()`). A constant `1` keeps the
+  // delete tally cheap and matches the agtype contract.
+  const cypher =
+    `MATCH (a:${fromLabel} {id: ${escapeCypherString(fromId)}})` +
+    `-[r:${edge}]->` +
+    `(b:${toLabel} {id: ${escapeCypherString(toId)}}) ` +
+    `DELETE r ` +
+    `RETURN 1 AS deleted`;
+  const res = await execCypher(orgId, cypher, "deleted agtype");
+  return res.ok;
+}
+
+/**
  * Failure modes observed on equipment of the same `type` as the given
  * equipment, ranked by occurrence count. Counts are derived from
  * distinct edge `sourceId`s so re-running the backfill never inflates

@@ -1,6 +1,6 @@
 import { Suspense, lazy } from "react";
 import { IconGridLayout, PageLoader, type GridItem } from "@/components/layouts";
-import { Settings, Activity, Shield, Building, Bell, CloudSun, Bot, Boxes } from "lucide-react";
+import { Settings, Activity, Shield, Building, Bell, CloudSun, Bot, Boxes, Share2 } from "lucide-react";
 
 const ConfigurationHub = lazy(() => import("./configuration-hub"));
 
@@ -75,6 +75,15 @@ const systemItems: GridItem[] = [
     load: () => import("./admin/3d-models"),
     loaderVariant: "cards",
     legacyRoutes: ["/admin/3d-models"],
+  },
+  {
+    id: "equipment-dependencies",
+    label: "Dependency Map",
+    icon: Share2,
+    description: "Blast-radius dependency edges",
+    load: () => import("./admin/equipment-dependencies"),
+    loaderVariant: "cards",
+    legacyRoutes: ["/admin/equipment-dependencies"],
   },
   {
     id: "copilot",

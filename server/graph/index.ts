@@ -24,6 +24,7 @@ export {
   projectFailureHistory,
   projectInventoryMovement,
   projectDependency,
+  retractDependency,
 } from "./projector";
 
 export {
