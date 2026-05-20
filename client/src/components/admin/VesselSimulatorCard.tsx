@@ -52,7 +52,12 @@ export function VesselSimulatorCard() {
   // #100 — admins pick from a dropdown rather than typing free-form
   // IDs that may not exist; the simulator otherwise silently writes
   // telemetry for unknown equipment.
-  const { data: equipmentList = [], isLoading: equipmentLoading } = useQuery<Equipment[]>({
+  const {
+    data: equipmentList = [],
+    isLoading: equipmentLoading,
+    isError: equipmentError,
+    error: equipmentErrorObj,
+  } = useQuery<Equipment[]>({
     queryKey: ["/api/equipment"],
     select: (data) => data ?? [],
   });
@@ -215,16 +220,22 @@ export function VesselSimulatorCard() {
             <Select
               value={equipmentId}
               onValueChange={setEquipmentId}
-              disabled={equipmentLoading || equipmentList.length === 0}
+              disabled={equipmentLoading || equipmentError || equipmentList.length === 0}
             >
-              <SelectTrigger id="equipment-id" data-testid="select-equipment-id">
+              <SelectTrigger
+                id="equipment-id"
+                data-testid="select-equipment-id"
+                className={equipmentError ? "border-destructive text-destructive" : undefined}
+              >
                 <SelectValue
                   placeholder={
                     equipmentLoading
                       ? "Loading equipment…"
-                      : equipmentList.length === 0
-                        ? "No equipment registered"
-                        : "Select equipment"
+                      : equipmentError
+                        ? "Could not load equipment"
+                        : equipmentList.length === 0
+                          ? "No equipment registered"
+                          : "Select equipment"
                   }
                 />
               </SelectTrigger>
@@ -240,6 +251,18 @@ export function VesselSimulatorCard() {
                 ))}
               </SelectContent>
             </Select>
+            {equipmentError && (
+              <p
+                className="text-xs text-destructive"
+                data-testid="text-equipment-error"
+              >
+                Equipment list failed to load
+                {equipmentErrorObj instanceof Error
+                  ? `: ${equipmentErrorObj.message}`
+                  : ""}
+                . Refresh the page or check API connectivity before running a simulation.
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">

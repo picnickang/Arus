@@ -43,6 +43,23 @@ function extractOrgId(data: unknown): string | undefined {
   return undefined;
 }
 
+/**
+ * pg-boss v10 requires queues to be created explicitly before
+ * `schedule()` or `send()` will accept them. `createQueue` is
+ * idempotent in normal cases but throws on a true race; we treat
+ * any "already exists" surface as success so a restart never
+ * surfaces a spurious warning.
+ */
+async function ensureQueue(boss: PgBoss, queueName: string): Promise<void> {
+  try {
+    await boss.createQueue(queueName);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+    if (msg.includes("already exists") || msg.includes("duplicate")) return;
+    throw err;
+  }
+}
+
 export const JOB_TYPES = {
   PROCESS_TELEMETRY: "process-telemetry",
   GENERATE_REPORT: "generate-report",
@@ -190,7 +207,12 @@ class BackgroundJobQueue {
       // Push A1 — register the weekly model-retrain cron once boss is
       // up. Sundays 03:00 UTC. pg-boss persists the schedule so a
       // restart does not double-enqueue.
+      // pg-boss v10 no longer auto-creates queues — `schedule()` now
+      // requires the queue to exist first, otherwise it throws
+      // `Queue … not found`. createQueue is idempotent on the v10 API
+      // but we tolerate any "already exists" errors defensively.
       try {
+        await ensureQueue(boss, JOB_TYPES.MODEL_RETRAIN);
         await boss.schedule(JOB_TYPES.MODEL_RETRAIN, "0 3 * * 0", {}, { retryLimit: 1 });
         logger.info(`Scheduled weekly cron: ${JOB_TYPES.MODEL_RETRAIN} @ 0 3 * * 0 UTC`);
       } catch (schedErr) {
@@ -201,6 +223,7 @@ class BackgroundJobQueue {
       // #110 — daily stale-model SLO sweep. Catches missed weekly
       // retrains within 24h instead of waiting until the next Sunday.
       try {
+        await ensureQueue(boss, JOB_TYPES.ML_STALE_MODEL_CHECK);
         await boss.schedule(JOB_TYPES.ML_STALE_MODEL_CHECK, "0 4 * * *", {}, { retryLimit: 1 });
         logger.info(`Scheduled daily cron: ${JOB_TYPES.ML_STALE_MODEL_CHECK} @ 0 4 * * * UTC`);
       } catch (schedErr) {
