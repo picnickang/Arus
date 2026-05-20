@@ -18,7 +18,6 @@
  */
 
 import { sql } from "drizzle-orm";
-import { db } from "../db-config";
 import { createLogger } from "../lib/structured-logger";
 
 const logger = createLogger("Tenancy:QuotaService");
@@ -74,11 +73,34 @@ function todayWindowDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+export interface SqlExecutor {
+  execute(query: unknown): Promise<unknown>;
+}
+
 export class QuotaService {
+  // The executor is injectable so unit tests can capture the SQL handed
+  // to the database without depending on a live Postgres. Production
+  // callers go through the `quotaService` singleton below, which lazily
+  // binds to the real `db` on first use — keeping db-config off the
+  // module-graph hot path for tests that exercise this class directly.
+  private resolved: SqlExecutor | null;
+
+  constructor(executor?: SqlExecutor) {
+    this.resolved = executor ?? null;
+  }
+
+  private async executor(): Promise<SqlExecutor> {
+    if (!this.resolved) {
+      const mod = await import("../db-config");
+      this.resolved = mod.db as unknown as SqlExecutor;
+    }
+    return this.resolved;
+  }
+
   async getLimit(orgId: string, metric: QuotaMetric): Promise<number> {
     try {
       const col = COL_FOR[metric];
-      const result: any = await db.execute(
+      const result: any = await (await this.executor()).execute(
         sql.raw(
           `SELECT ${col} AS limit_value FROM tenant_quotas WHERE org_id = '${orgId.replace(/'/g, "''")}'`
         )
@@ -104,7 +126,7 @@ export class QuotaService {
     const windowDate =
       metric === "telemetry_rows_today" ? todayWindowDate() : "1970-01-01";
     try {
-      const result: any = await db.execute(
+      const result: any = await (await this.executor()).execute(
         sql.raw(
           `SELECT value FROM tenant_usage
              WHERE org_id = '${safeOrg}'
@@ -136,12 +158,27 @@ export class QuotaService {
     const windowDate =
       metric === "telemetry_rows_today" ? todayWindowDate() : "1970-01-01";
     try {
-      await db.execute(
+      // Clamp the stored value at 0. Negative deltas (e.g. KB document
+      // deletes from task #89) must still shrink the counter when there
+      // is headroom — they just must never let it drift below zero, so
+      // a racing / double-fired / replayed decrement cannot silently
+      // widen the tenant's effective quota.
+      //
+      // Two clamps, both required:
+      //   - VALUES (...) : a first-ever insert with a negative delta
+      //     lands at 0 rather than a negative starting value.
+      //   - DO UPDATE    : applies the raw signed delta against the
+      //     existing row and clamps the result, so a -5 against a
+      //     value of 10 lands at 5 (not at 10, which is what using
+      //     EXCLUDED.value here would produce — EXCLUDED.value is
+      //     the already-clamped 0 from the VALUES branch).
+      const truncated = Math.trunc(delta);
+      await (await this.executor()).execute(
         sql.raw(
           `INSERT INTO tenant_usage (org_id, metric, window_start, value)
-             VALUES ('${safeOrg}', '${metric}', '${windowDate}', ${Math.trunc(delta)})
+             VALUES ('${safeOrg}', '${metric}', '${windowDate}', GREATEST(0, ${truncated}))
            ON CONFLICT (org_id, metric, window_start)
-             DO UPDATE SET value = tenant_usage.value + EXCLUDED.value,
+             DO UPDATE SET value = GREATEST(0, tenant_usage.value + (${truncated})),
                            recorded_at = now()`
         )
       );
