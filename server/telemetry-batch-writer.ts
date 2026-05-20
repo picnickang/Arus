@@ -103,6 +103,15 @@ const batchWriterRetryQueueSize = new client.Gauge({
   help: "Current number of readings queued for retry",
 });
 
+// Task #89: dropped-because-tenant-already-at-or-over-quota. Separate
+// from `arus_telemetry_batch_dropped_total` (which is retry exhaustion)
+// so ops can tell "we're rate-limiting you" apart from "the DB broke".
+const batchWriterQuotaBlockedTotal = new client.Counter({
+  name: "arus_telemetry_batch_quota_blocked_total",
+  help: "Telemetry readings dropped at the bridge because the tenant is at or over `telemetry_rows_today`",
+  labelNames: ["org_id"],
+});
+
 export class TelemetryBatchWriter extends EventEmitter {
   private vesselBuffers: Map<string, TelemetryReading[]> = new Map();
   private flushTimer: NodeJS.Timeout | null = null;
@@ -451,6 +460,74 @@ export class TelemetryBatchWriter extends EventEmitter {
   }
 
   /**
+   * Task #89: per-org pre-write quota check for `telemetry_rows_today`.
+   * Groups readings by orgId, checks each org's current usage against
+   * its daily limit, and returns only the readings whose org still has
+   * headroom. Orgs already at/over the limit have ALL of their readings
+   * in this batch dropped, the per-org counter is bumped, and a
+   * `quotaBlocked` event is emitted so listeners can alert.
+   *
+   * Fails OPEN: if the quota service itself errors (e.g. PG hiccup),
+   * we let the batch through. The Postgres-side enforcement and the
+   * audit log catch the over-limit case if it persists; we never
+   * want a quota-subsystem outage to silently halt ingestion.
+   */
+  private async filterOverQuotaReadings(
+    readings: TelemetryReading[],
+  ): Promise<TelemetryReading[]> {
+    if (readings.length === 0) return readings;
+
+    const perOrgCounts = new Map<string, number>();
+    for (const r of readings) {
+      const org = r.orgId || "default-org-id";
+      perOrgCounts.set(org, (perOrgCounts.get(org) ?? 0) + 1);
+    }
+
+    const overQuotaOrgs = new Set<string>();
+    await Promise.all(
+      Array.from(perOrgCounts.keys()).map(async (orgId) => {
+        try {
+          const check = await quotaService.check(orgId, "telemetry_rows_today");
+          if (check.exceeded) overQuotaOrgs.add(orgId);
+        } catch {
+          // Fail-open per the doc comment above.
+        }
+      }),
+    );
+
+    if (overQuotaOrgs.size === 0) return readings;
+
+    const allowed: TelemetryReading[] = [];
+    let totalDropped = 0;
+    const droppedPerOrg = new Map<string, number>();
+    for (const r of readings) {
+      const org = r.orgId || "default-org-id";
+      if (overQuotaOrgs.has(org)) {
+        totalDropped++;
+        droppedPerOrg.set(org, (droppedPerOrg.get(org) ?? 0) + 1);
+      } else {
+        allowed.push(r);
+      }
+    }
+
+    for (const [org, count] of droppedPerOrg) {
+      batchWriterQuotaBlockedTotal.inc({ org_id: org }, count);
+    }
+    this.stats.totalDropped += totalDropped;
+    logger.warn(
+      "TelemetryBatchWriter",
+      `Quota: dropped ${totalDropped} readings across ${droppedPerOrg.size} over-limit org(s)`,
+      { perOrg: Object.fromEntries(droppedPerOrg) },
+    );
+    this.emit("quotaBlocked", {
+      total: totalDropped,
+      perOrg: Object.fromEntries(droppedPerOrg),
+    });
+
+    return allowed;
+  }
+
+  /**
    * Write a batch of readings synchronously (for sqlite-bridge)
    *
    * Critical: This method enforces single-path ingestion - only 'sqlite-bridge' source is allowed
@@ -482,14 +559,39 @@ export class TelemetryBatchWriter extends EventEmitter {
 
     const startTime = Date.now();
 
+    // Task #89: ACTIVE-PATH telemetry quota enforcement. The
+    // 503-gated HTTP routes already carry `enforceQuota` middleware,
+    // but the live ingest path is here (sqlite-bridge worker →
+    // writeBatch → PostgreSQL). We check `telemetry_rows_today` per
+    // org BEFORE the write, and silently drop readings for any org
+    // already at/over its daily limit. We do not throw — telemetry
+    // is high-volume and the bridge cursor must keep advancing for
+    // the orgs that aren't over quota. The drop is observable via
+    // the `batchWriterQuotaBlockedTotal` counter and the
+    // `quotaBlocked` event so operators / dashboards can react.
+    const allowedReadings = await this.filterOverQuotaReadings(readings);
+
+    if (allowedReadings.length === 0) {
+      // Everything was dropped; nothing to write, nothing to commit.
+      this.emit("batchWritten", {
+        count: 0,
+        durationMs: Date.now() - startTime,
+        source: options.source,
+        droppedForQuota: readings.length,
+      });
+      return;
+    }
+
     try {
-      await this.writeToDatabase(readings);
+      await this.writeToDatabase(allowedReadings);
 
       const duration = Date.now() - startTime;
-      this.stats.totalFlushed += readings.length;
+      this.stats.totalFlushed += allowedReadings.length;
       this.stats.lastFlushTime = new Date();
       this.stats.lastFlushDurationMs = duration;
-      this.stats.lastFlushCount = readings.length;
+      // Reflect what actually hit the DB, not the pre-filter batch size,
+      // so BatchWriterStats stays internally consistent (Task #89 review).
+      this.stats.lastFlushCount = allowedReadings.length;
 
       this.stats.flushDurations.push(duration);
       if (this.stats.flushDurations.length > 100) {
@@ -497,7 +599,7 @@ export class TelemetryBatchWriter extends EventEmitter {
       }
 
       batchWriterFlushDuration.observe({ status: "success" }, duration);
-      batchWriterFlushSize.observe(readings.length);
+      batchWriterFlushSize.observe(allowedReadings.length);
 
       // Task #89: this is the only active telemetry ingest path
       // (sqlite-bridge worker → writeBatch → PostgreSQL). Increment
@@ -508,7 +610,7 @@ export class TelemetryBatchWriter extends EventEmitter {
       // silently lost.
       try {
         const perOrg = new Map<string, number>();
-        for (const r of readings) {
+        for (const r of allowedReadings) {
           const org = r.orgId || "default-org-id";
           perOrg.set(org, (perOrg.get(org) ?? 0) + 1);
         }
@@ -520,9 +622,10 @@ export class TelemetryBatchWriter extends EventEmitter {
       }
 
       this.emit("batchWritten", {
-        count: readings.length,
+        count: allowedReadings.length,
         durationMs: duration,
         source: options.source,
+        droppedForQuota: readings.length - allowedReadings.length,
       });
     } catch (err) {
       this.stats.totalErrors++;
