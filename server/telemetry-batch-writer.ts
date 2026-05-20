@@ -33,6 +33,7 @@ import { dbTelemetryStorage } from "./repositories";
 import { telemetryBufferDepth, telemetryBufferEvictions } from "./observability/telemetry-metrics";
 import client from "prom-client";
 import { logger } from "./utils/logger";
+import { quotaService } from "./tenancy/quota-service";
 
 export interface TelemetryReading {
   equipmentId: string;
@@ -497,6 +498,26 @@ export class TelemetryBatchWriter extends EventEmitter {
 
       batchWriterFlushDuration.observe({ status: "success" }, duration);
       batchWriterFlushSize.observe(readings.length);
+
+      // Task #89: this is the only active telemetry ingest path
+      // (sqlite-bridge worker → writeBatch → PostgreSQL). Increment
+      // `telemetry_rows_today` per orgId AFTER the rows commit, so a
+      // failed write doesn't burn quota. Fire-and-forget — quota is
+      // commercial, not on the critical correctness path. Readings
+      // without an orgId fall back to the bridge default so usage isn't
+      // silently lost.
+      try {
+        const perOrg = new Map<string, number>();
+        for (const r of readings) {
+          const org = r.orgId || "default-org-id";
+          perOrg.set(org, (perOrg.get(org) ?? 0) + 1);
+        }
+        for (const [orgId, count] of perOrg) {
+          void quotaService.incrementUsage(orgId, "telemetry_rows_today", count);
+        }
+      } catch {
+        // Quota accounting must never break ingest.
+      }
 
       this.emit("batchWritten", {
         count: readings.length,

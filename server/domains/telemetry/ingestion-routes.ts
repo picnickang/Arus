@@ -1,6 +1,7 @@
 import type { Express, Response } from "express";
 import { logger } from "../../utils/logger.js";
 import { withErrorHandling } from "../../lib/route-utils";
+import { enforceQuota } from "../../middleware/tenant-quota";
 
 // Phase A: HTTP ingestion is completely disabled to enforce single-path architecture
 // (Hardware → C# Agent → SQLite → Node.js Bridge → PostgreSQL)
@@ -39,8 +40,22 @@ export function registerTelemetryIngestionRoutes(
     }
   );
 
-  app.post("/api/telemetry/readings", phaseADisabledHandler);
-  app.post("/api/telemetry/bulk", phaseADisabledHandler);
+  // Task #89: even though these handlers are 503-gated in Phase A,
+  // wire enforceQuota("telemetry_rows_today") in front of them now so
+  // when Phase C re-enables synchronous HTTP ingestion the quota
+  // protection lands automatically with the route. The middleware is a
+  // no-op for the disabled handler (the 503 ships before any rows are
+  // written), but the contract is documented at the route definition.
+  app.post(
+    "/api/telemetry/readings",
+    enforceQuota("telemetry_rows_today"),
+    phaseADisabledHandler,
+  );
+  app.post(
+    "/api/telemetry/bulk",
+    enforceQuota("telemetry_rows_today"),
+    phaseADisabledHandler,
+  );
 
   logger.info(
     "TelemetryIngestion",

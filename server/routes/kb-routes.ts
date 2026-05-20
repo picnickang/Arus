@@ -12,6 +12,8 @@ import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { requireOrgId } from "../middleware/auth";
+import { enforceQuota } from "../middleware/tenant-quota";
+import { quotaService } from "../tenancy/quota-service";
 import { additionalSecurityHeaders, sanitizeRequestData } from "../security";
 import { ingestDocument, deleteDocument } from "../document-ingestion-service";
 import { searchKnowledgeBase } from "../vector-search-service";
@@ -108,10 +110,14 @@ export async function registerKnowledgeBaseRoutes(
   router.use(additionalSecurityHeaders);
   router.use(sanitizeRequestData);
 
-  // Async upload endpoint (recommended for larger files)
+  // Async upload endpoint (recommended for larger files).
+  // Task #89: enforceQuota("storage_bytes") soft-warns at 80% and hard-
+  // 429s at 100%. The increment lands after the kbDocs row is persisted
+  // so a failed insert doesn't pollute the usage counter.
   router.post(
     "/upload/async",
     writeOperationRateLimit,
+    enforceQuota("storage_bytes"),
     asyncUpload.single("file"),
     async (req, res) => {
       try {
@@ -150,6 +156,8 @@ export async function registerKnowledgeBaseRoutes(
           status: "processing",
         });
 
+        void quotaService.incrementUsage(orgId, "storage_bytes", req.file.size);
+
         // Enqueue job
         const jobId = await jobQueueService.enqueueDocumentIngestion({
           documentId,
@@ -175,7 +183,7 @@ export async function registerKnowledgeBaseRoutes(
   );
 
   // Synchronous upload endpoint (for small files or immediate processing)
-  router.post("/upload", writeOperationRateLimit, syncUpload.single("file"), async (req, res) => {
+  router.post("/upload", writeOperationRateLimit, enforceQuota("storage_bytes"), syncUpload.single("file"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
@@ -217,6 +225,8 @@ export async function registerKnowledgeBaseRoutes(
         equipmentId,
         openAiKey: process.env.OPENAI_API_KEY,
       });
+
+      void quotaService.incrementUsage(orgId, "storage_bytes", req.file.size);
 
       res.status(201).json({
         success: true,
@@ -334,13 +344,27 @@ export async function registerKnowledgeBaseRoutes(
     }
   });
 
-  // Delete document endpoint
+  // Delete document endpoint.
+  // Task #89: look up sizeBytes BEFORE the delete so we can decrement
+  // storage_bytes by exactly the freed amount. Negative delta on
+  // incrementUsage shrinks the counter (clamped at 0 by the SQL path).
   router.delete("/documents/:id", writeOperationRateLimit, async (req, res) => {
     try {
       const orgId = req.orgId;
       const { id } = req.params;
 
+      const [docRow] = await db
+        .select({ sizeBytes: kbDocs.sizeBytes })
+        .from(kbDocs)
+        .where(and(eq(kbDocs.id, id), eq(kbDocs.orgId, orgId)))
+        .limit(1);
+
       await deleteDocument(id, orgId);
+
+      const freed = Number(docRow?.sizeBytes ?? 0);
+      if (Number.isFinite(freed) && freed > 0) {
+        void quotaService.incrementUsage(orgId, "storage_bytes", -freed);
+      }
 
       res.status(204).send();
     } catch (error) {

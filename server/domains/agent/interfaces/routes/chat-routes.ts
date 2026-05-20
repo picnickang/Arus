@@ -12,6 +12,8 @@ import {
   buildIngestionSystemMessage,
 } from "../../infrastructure/kb-ingestion-helper";
 import { auditAction } from "../../../../utils/audit-helpers";
+import { enforceQuota } from "../../../../middleware/tenant-quota";
+import { quotaService } from "../../../../tenancy/quota-service";
 import type { RateLimitMiddleware } from "./_shared";
 
 export interface ChatRouteDeps {
@@ -68,6 +70,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
   app.post(
     "/api/agent/chat-multimodal",
     rateLimit.writeOperationRateLimit,
+    enforceQuota("storage_bytes"),
     upload.array("files", 5),
     async (req: Request, res: Response) => {
       const files = (req.files as Express.Multer.File[]) || [];
@@ -97,6 +100,15 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
           userRole
         );
 
+        // Task #89: attached files land on disk under the org upload
+        // dir and count toward storage_bytes. Sum once after the
+        // orchestrator commits to avoid double-counting if any single
+        // file fails downstream.
+        const attachmentBytes = files.reduce((sum, f) => sum + (f.size || 0), 0);
+        if (attachmentBytes > 0) {
+          void quotaService.incrementUsage(orgId, "storage_bytes", attachmentBytes);
+        }
+
         const convFiles = await listConversationFiles(result.conversationId, orgId);
         const fileRefs = convFiles.map((f) => ({
           fileId: f.id,
@@ -123,6 +135,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
   app.post(
     "/api/agent/conversations/:id/files",
     rateLimit.writeOperationRateLimit,
+    enforceQuota("storage_bytes"),
     upload.array("files", 5),
     async (req: Request, res: Response) => {
       const files = (req.files as Express.Multer.File[]) || [];
@@ -170,6 +183,14 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
           } catch (err) {
             logger.warn("[Agent] Failed to create KB ingestion system message:", { details: err instanceof Error ? err.message : "unknown" });
           }
+        }
+
+        // Task #89: registered conversation files persist on disk and
+        // count toward storage_bytes. Increment after registerFile
+        // succeeds so we don't bill the tenant for failed uploads.
+        const totalBytes = fileRefs.reduce((sum, f) => sum + (f.size || 0), 0);
+        if (totalBytes > 0) {
+          void quotaService.incrementUsage(orgId, "storage_bytes", totalBytes);
         }
 
         res.json({

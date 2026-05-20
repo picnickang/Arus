@@ -24,6 +24,8 @@ import { z } from "zod";
 import { createLogger } from "../lib/structured-logger";
 import { failurePropagation } from "../graph/adapter";
 import { requireRole } from "../middleware/role-auth";
+import { enforceQuota } from "../middleware/tenant-quota";
+import { quotaService } from "../tenancy/quota-service";
 
 const logger = createLogger("Routes:Vessel3D");
 
@@ -123,6 +125,7 @@ function uploadSingleModel(req: Request, res: Response, next: (err?: any) => voi
 router.post(
   "/vessels/:vesselId/3d-model",
   requireRole("admin", "chief_engineer"),
+  enforceQuota("storage_bytes"),
   uploadSingleModel,
   async (req: Request, res: Response) => {
     try {
@@ -204,6 +207,11 @@ router.post(
         });
         return res.status(500).json({ error: "Failed to persist model metadata" });
       }
+
+      // Task #89: 3D models are stored on disk and contribute to the
+      // tenant's storage_bytes quota. Increment AFTER the metadata row
+      // commits so failed inserts don't pollute the counter.
+      void quotaService.incrementUsage(orgId, "storage_bytes", file.size);
 
       res.status(201).json(row);
     } catch (error: any) {

@@ -107,6 +107,7 @@ Implemented with Express.js and TypeScript, providing RESTful APIs with Zod vali
 -   **Convergence Guardrails**: Scripts prevent schema drift, enforce storage/domain import boundaries, ensure proper route registration.
 -   **Dynamic-Loader Map**: Mechanism for dynamic loading of domain routers, barrel re-exports, repository modular loaders.
 -   **Route Registration**: `domain-router-registry.ts` is the centralized system for all route registration.
+-   **Tenant Quotas**: `enforceQuota(metric)` middleware (`server/middleware/tenant-quota.ts`) soft-warns at ≥80% with `X-Tenant-Quota-Warning`/`X-Tenant-Quota-Ratio` headers and hard-throttles at ≥100% with HTTP 429 + `Retry-After` + `TENANT_QUOTA_EXCEEDED`. Wired metrics and the routes that enforce/increment them: (a) `equipment_count` — `POST /api/equipment` (`server/domains/equipment/routes.ts`); (b) `storage_bytes` — `POST /api/kb/upload`, `POST /api/kb/upload/async` (decremented on `DELETE /api/kb/documents/:id`), `POST /api/v1/vessels/:vesselId/3d-model`, `POST /api/agent/chat-multimodal`, `POST /api/agent/conversations/:id/files`; (c) `telemetry_rows_today` — incremented per-orgId inside `telemetryBatchWriter.writeBatch()` after the rows commit (sole active ingest path; the 503-gated `POST /api/telemetry/readings` and `POST /api/telemetry/bulk` carry the middleware pre-wired for Phase C). Increment is fire-and-forget after the write succeeds; quota lookups failing-open never block the request path.
 
 # External Dependencies
 
