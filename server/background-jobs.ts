@@ -76,6 +76,7 @@ export const JOB_TYPES = {
   INSIGHTS_SNAPSHOT_GENERATION: "insights-snapshot-generation",
   MODEL_RETRAIN: "model-retrain-weekly",
   ML_STALE_MODEL_CHECK: "ml-stale-model-check-daily",
+  TELEMETRY_WAREHOUSE_EXPORT: "telemetry-warehouse-export-daily",
 } as const;
 
 export type JobType = (typeof JOB_TYPES)[keyof typeof JOB_TYPES];
@@ -271,6 +272,26 @@ class BackgroundJobQueue {
       } catch (schedErr) {
         const msg = schedErr instanceof Error ? schedErr.message : String(schedErr);
         logger.warn(`Failed to register stale-model SLO schedule: ${msg}`);
+      }
+
+      // Task #95 — daily warehouse export of telemetry rollups. Runs at
+      // 02:00 UTC, after the hourly aggregator has had time to finish the
+      // last bucket of the previous day. Idempotent: re-running the same
+      // day produces the same partition key with the same logical content.
+      try {
+        await ensureQueue(boss, JOB_TYPES.TELEMETRY_WAREHOUSE_EXPORT);
+        await boss.schedule(
+          JOB_TYPES.TELEMETRY_WAREHOUSE_EXPORT,
+          "0 2 * * *",
+          {},
+          { retryLimit: 1 },
+        );
+        logger.info(
+          `Scheduled daily cron: ${JOB_TYPES.TELEMETRY_WAREHOUSE_EXPORT} @ 0 2 * * * UTC`,
+        );
+      } catch (schedErr) {
+        const msg = schedErr instanceof Error ? schedErr.message : String(schedErr);
+        logger.warn(`Failed to register telemetry warehouse export schedule: ${msg}`);
       }
     } catch (err: unknown) {
       this.fallback = true;

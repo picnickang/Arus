@@ -8,11 +8,17 @@ import { Express, Request, Response } from "express";
 import { withErrorHandling } from "../lib/route-utils";
 import { logger } from "../utils/logger";
 import type { AuthenticatedRequest } from "../middleware/auth";
+import { requireAdminAuth } from "../security/authorization";
 import { workOrderService, dbAlertStorage, dbMlAnalyticsStorage } from "../repositories";
 import { PredictionCalibrator } from "../services/ml/prediction-calibration";
 import { PredictionOutcomeTracker } from "../services/ml/prediction-outcome-tracker";
 import { AnomalyCorrelator } from "../services/anomaly-correlation/anomaly-correlator";
 import { TelemetryAggregator } from "../services/telemetry-aggregation/telemetry-aggregator";
+import {
+  getRecentRuns as getWarehouseRecentRuns,
+  loadManifest as loadWarehouseManifest,
+  runTelemetryWarehouseExport,
+} from "../services/telemetry-warehouse-export";
 import { ModelEvaluationGate } from "../services/ml/model-evaluation-gate";
 import { MlTrainingJobQueue } from "../services/ml/ml-training-job-queue";
 import { jobQueueService } from "../job-queue-service";
@@ -306,6 +312,52 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
         res.json({ jobs: [], count: 0, note: "Job queue not available" });
       }
     })
+  );
+
+  // Task #95 — admin status for the daily telemetry warehouse export.
+  // Read-only: surfaces the in-process ring buffer of recent runs and (when
+  // an orgId is supplied) the durable per-org manifest from object storage.
+  app.get(
+    "/api/admin/telemetry-warehouse/status",
+    ...requireAdminAuth,
+    generalApiRateLimit,
+    withErrorHandling("get telemetry warehouse status", async (req: Request, res: Response) => {
+      const limit = Math.max(1, Math.min(50, Number(req.query.limit) || 14));
+      const orgIdParam = typeof req.query.orgId === "string" ? req.query.orgId : undefined;
+      const recentRuns = getWarehouseRecentRuns(limit);
+
+      let manifest: Awaited<ReturnType<typeof loadWarehouseManifest>> | null = null;
+      if (orgIdParam) {
+        try {
+          manifest = await loadWarehouseManifest(orgIdParam);
+        } catch (err) {
+          logger.warn(LOG_CTX, "Failed to load warehouse manifest", err);
+        }
+      }
+
+      res.json({
+        recentRuns,
+        manifest,
+        retentionDays: Number(process.env.TELEMETRY_WAREHOUSE_RETENTION_DAYS ?? 0) || 0,
+      });
+    }),
+  );
+
+  // Task #95 — admin trigger for an ad-hoc back-fill or re-export of a given
+  // UTC date. Re-runs are safe (overwrite-idempotent at the partition key).
+  app.post(
+    "/api/admin/telemetry-warehouse/run",
+    ...requireAdminAuth,
+    writeOperationRateLimit,
+    withErrorHandling("trigger telemetry warehouse export", async (req: Request, res: Response) => {
+      const body = (req.body ?? {}) as { date?: unknown; orgIds?: unknown };
+      const date = typeof body.date === "string" ? body.date : undefined;
+      const orgIds = Array.isArray(body.orgIds)
+        ? body.orgIds.filter((v): v is string => typeof v === "string")
+        : undefined;
+      const summary = await runTelemetryWarehouseExport({ date, orgIds });
+      res.json(summary);
+    }),
   );
 
   (async () => {

@@ -16,6 +16,7 @@ import { processInsightsSnapshotGeneration } from "./insights-processor";
 import { processTelemetryProcessing } from "./telemetry-processor";
 import { processModelRetrain } from "./ml-retraining-processor";
 import { processStaleModelCheck } from "./ml-stale-model-processor";
+import { processTelemetryWarehouseExport } from "./telemetry-warehouse-processor";
 
 export function registerJobProcessors(): void {
   jobQueue.registerProcessor(JOB_TYPES.AI_EQUIPMENT_ANALYSIS, processEquipmentAnalysis);
@@ -48,6 +49,14 @@ export function registerJobProcessors(): void {
   jobQueue.registerProcessor(JOB_TYPES.ML_STALE_MODEL_CHECK, processStaleModelCheck, {
     tenantScope: "fleet-wide",
   });
+  // Task #95: daily telemetry warehouse export — fleet-wide sweep that
+  // enumerates orgs from telemetry_aggregated and exports one Parquet
+  // file per (orgId, date). Scheduled with empty payload, no orgId.
+  jobQueue.registerProcessor(
+    JOB_TYPES.TELEMETRY_WAREHOUSE_EXPORT,
+    processTelemetryWarehouseExport,
+    { tenantScope: "fleet-wide" },
+  );
 
   logger.info("[Background Jobs] All processors registered successfully");
 }

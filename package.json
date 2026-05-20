@@ -85,6 +85,7 @@
     "@capacitor/ios": "^7.4.4",
     "@capacitor/network": "^7.0.2",
     "@capacitor/status-bar": "^7.0.3",
+    "@dsnp/parquetjs": "^1.8.7",
     "@eslint/js": "^9.36.0",
     "@google-cloud/storage": "^7.19.0",
     "@grpc/grpc-js": "^1.14.3",
