@@ -6,6 +6,7 @@ import crypto from "crypto";
 import { dbUserStorage } from "../../../db/users/index.js";
 import { dbSystemAdminStorage } from "../../../db/system-admin/index.js";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
+import { loginRateLimit } from "../../../middleware/rate-limiters.js";
 
 const BCRYPT_COST = 12;
 const MAX_PASSWORD_LENGTH = 128;
@@ -218,6 +219,10 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
 
   app.post(
     "/api/admin/auth/verify",
+    // Prod-hardening: credential-stuffing limiter (5 attempts / 15 min
+    // per IP) layered BEFORE the generic API limiter so brute-force
+    // attempts can't dilute against the per-org+UA bucket.
+    loginRateLimit,
     generalApiRateLimit,
     withErrorHandling("verify admin authentication", async (req: Request, res: Response) => {
       const { password } = adminPasswordVerifySchema.parse(req.body);

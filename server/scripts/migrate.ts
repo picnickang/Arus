@@ -8,6 +8,29 @@ const logger = createLogger("Scripts:Migrate");
 
 const { Pool } = pg;
 
+/**
+ * Prod-hardening: exported entry point for boot-time migration.
+ *
+ * `server/bootstrap/services.ts` calls this when `MIGRATE_ON_BOOT=true`
+ * so a fresh deploy that ships ahead of the manual `npm run db:migrate:deploy`
+ * step still ends up with the schema the application expects. Runs the
+ * Drizzle migrator + supplemental SQL migrator against a short-lived
+ * pg.Pool that we close before returning (the runtime app pool is
+ * owned by db-config.ts and stays untouched).
+ */
+export async function runBootMigrations(): Promise<void> {
+  if (!process.env.DATABASE_URL) {
+    throw new Error("runBootMigrations: DATABASE_URL is required");
+  }
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const db = drizzle(pool);
+  try {
+    await runMigrations(db, pool);
+  } finally {
+    await pool.end();
+  }
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const isStatus = args.includes("--status");
@@ -164,7 +187,22 @@ async function showStatus(pool: pg.Pool) {
   logger.info("");
 }
 
-main().catch((error) => {
-  logger.error("Migration error:", undefined, error);
-  process.exit(1);
-});
+// Prod-hardening: guard CLI execution so importing this module from
+// `server/bootstrap/services.ts` (for MIGRATE_ON_BOOT) does NOT
+// trigger main() at import time. `process.argv[1]` is the script
+// path tsx/node invoked; we only run main when this file is it.
+const invokedDirectly = (() => {
+  try {
+    const entry = process.argv[1] ?? "";
+    return entry.endsWith("migrate.ts") || entry.endsWith("migrate.js");
+  } catch {
+    return false;
+  }
+})();
+
+if (invokedDirectly) {
+  main().catch((error) => {
+    logger.error("Migration error:", undefined, error);
+    process.exit(1);
+  });
+}

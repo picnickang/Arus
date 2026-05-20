@@ -26,6 +26,7 @@ import {
   configureAuthMiddleware,
   initializeLocalDatabase,
   initializeDatabase,
+  runMigrationsOnBoot,
   seedDevelopmentUser,
   initializeJobQueue,
   initializeMLServices,
@@ -160,6 +161,11 @@ if (!isInitDbMode && !isHealthCheckMode) {
       // Database and services initialization (can take time with cold starts)
       // Run in background so frontend remains available even during DB issues
       try {
+        // Prod-hardening: opt-in pre-boot migration (MIGRATE_ON_BOOT=true).
+        // No-op when the flag isn't set, so existing manual-migrate deploys
+        // are unaffected. Runs BEFORE initializeDatabase so the schema-
+        // dependent setup (views, indexes, seed) sees the fresh schema.
+        await runMigrationsOnBoot();
         await initializeDatabase();
         await seedDevelopmentUser();
         isDatabaseReady = true;

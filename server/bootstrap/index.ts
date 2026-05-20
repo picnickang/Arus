@@ -9,6 +9,7 @@ export { configureMiddleware, configureAuthMiddleware } from "./middleware";
 export {
   initializeLocalDatabase,
   initializeDatabase,
+  runMigrationsOnBoot,
   seedDevelopmentUser,
   initializeJobQueue,
   initializeMLServices,

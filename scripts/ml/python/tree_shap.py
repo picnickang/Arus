@@ -99,16 +99,48 @@ def handle_one(payload: dict) -> dict:
     org_id = payload.get("orgId")
     features = payload.get("features") or {}
     if not model_id or not org_id:
-        return {"stage": "error", "message": "modelId and orgId required"}
-    require_database_url()
-    with connect() as conn:
-        booster = load_booster(conn, model_id, org_id)
-        if booster is None:
-            return {"stage": "error", "message": "deployed model artifact unavailable"}
-        try:
-            base_value, shap_values = shap_for(booster, features)
-        except Exception as exc:
-            return {"stage": "error", "message": f"shap failed: {exc}"}
+        return {
+            "stage": "error",
+            "errorCode": "BAD_REQUEST",
+            "message": "modelId and orgId required",
+        }
+    try:
+        # Prod-hardening: keep require_database_url inside the try so a
+        # missing DATABASE_URL surfaces as a structured DB_UNAVAILABLE
+        # errorCode rather than the default sys.exit(3) in _db.py
+        # (which Node's spawn wrapper would see as a generic non-zero).
+        require_database_url()
+        with connect() as conn:
+            booster = load_booster(conn, model_id, org_id)
+            if booster is None:
+                # Either the (modelId, orgId) tuple doesn't exist, the
+                # row is not xgboost, or the .ubj is missing from disk.
+                # All three are operationally "re-train this model".
+                return {
+                    "stage": "error",
+                    "errorCode": "ARTIFACT_UNAVAILABLE",
+                    "message": "deployed model artifact unavailable",
+                }
+            try:
+                base_value, shap_values = shap_for(booster, features)
+            except Exception as exc:
+                # XGBoost booster crashed during prediction — model file
+                # may be corrupt or feature shape mismatch. Operator
+                # should investigate the model, not the infra.
+                return {
+                    "stage": "error",
+                    "errorCode": "BOOSTER_PREDICT_FAILED",
+                    "message": f"shap failed: {exc}",
+                }
+    except Exception as exc:
+        # Connection refused, auth failure, query timeout, etc.
+        # Different remediation path: check DATABASE_URL and pool
+        # health, not model contents.
+        return {
+            "stage": "error",
+            "errorCode": "DB_UNAVAILABLE",
+            "message": f"db error: {exc}",
+        }
     return {
         "stage": "shap",
         "modelId": model_id,

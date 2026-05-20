@@ -14,3 +14,5 @@ export const writeOperationRateLimit = RateLimiters.write();
 export const criticalOperationRateLimit = RateLimiters.critical();
 export const crewOperationRateLimit = RateLimiters.crew();
 export const reportGenerationRateLimit = RateLimiters.report();
+// Prod-hardening: per-IP credential-stuffing limiter for login endpoints.
+export const loginRateLimit = RateLimiters.login();

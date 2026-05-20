@@ -27,6 +27,10 @@ export const RATE_LIMIT_DEFAULTS = {
   BULK_IMPORT: 10,
   REPORT_GENERATION: 10,
   CREW_OPERATIONS: 30,
+  // Prod-hardening: credential-stuffing protection on the login path.
+  // 5 attempts per 15-min window per IP. NOT multiplied in development
+  // — login lockout behaviour should match prod so devs catch the UX.
+  LOGIN_ATTEMPTS: 5,
   DEVELOPMENT_MULTIPLIER: 10,
 } as const;
 
@@ -39,6 +43,7 @@ export const RATE_LIMIT_ERROR_CODES = {
   BULK_IMPORT: "RATE_LIMIT_BULK_IMPORT",
   REPORT: "RATE_LIMIT_REPORT_GENERATION",
   CREW: "RATE_LIMIT_CREW_OPERATIONS",
+  LOGIN: "RATE_LIMIT_LOGIN_ATTEMPTS",
 } as const;
 
 /**
@@ -183,5 +188,28 @@ export const RateLimiters = {
       max: RATE_LIMIT_DEFAULTS.CREW_OPERATIONS,
       message: "Too many crew operations. Please slow down crew management activities.",
       code: RATE_LIMIT_ERROR_CODES.CREW,
+    }),
+
+  /**
+   * Login-specific limiter — credential-stuffing / brute-force defense.
+   *
+   * Keyed on orgId (when known) + IP and NO User-Agent (trivially
+   * spoofed; including it lets attackers rotate the bucket per
+   * request). Pre-auth /verify traffic has no orgId so this
+   * collapses to per-IP — the intended behaviour for brute-force.
+   *
+   * NOTE: createRateLimiter still applies the DEVELOPMENT_MULTIPLIER
+   * in dev/embedded, so the effective cap is 50 / 15 min locally
+   * (5 × 10). That's tight enough to surface lockout UX bugs while
+   * not blocking iterative testing.
+   */
+  login: () =>
+    createRateLimiter({
+      windowMs: RATE_LIMIT_WINDOWS.FIFTEEN_MINUTES,
+      max: RATE_LIMIT_DEFAULTS.LOGIN_ATTEMPTS,
+      message:
+        "Too many login attempts. Please wait 15 minutes before trying again.",
+      code: RATE_LIMIT_ERROR_CODES.LOGIN,
+      skipUserAgent: true,
     }),
 } as const;

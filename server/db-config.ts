@@ -114,6 +114,11 @@ if (!isLocalMode) {
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
+      // Prod-hardening: cap any single query at 30s and any open
+      // transaction at 10s of idle time. Prevents a stuck query
+      // from tying up a pool slot until idleTimeoutMillis expires.
+      options:
+        "-c statement_timeout=30000 -c idle_in_transaction_session_timeout=10000",
     });
 
     // Handle pool errors gracefully
@@ -149,6 +154,11 @@ if (!isLocalMode) {
       max: 20,
       idleTimeoutMillis: 60000,
       connectionTimeoutMillis: 15000,
+      // Prod-hardening: cap any single query at 30s and any open
+      // transaction at 10s of idle time. Neon's pool exposes the
+      // same `options` knob as node-postgres for libpq settings.
+      options:
+        "-c statement_timeout=30000 -c idle_in_transaction_session_timeout=10000",
     });
 
     (pgPool as any).on("error", (err: any) => {

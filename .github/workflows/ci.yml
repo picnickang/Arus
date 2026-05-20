@@ -116,6 +116,61 @@ jobs:
       - name: Run integration tests
         run: npm run test:integration
 
+  python-sidecar:
+    name: Python ML Sidecar
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: arus_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - run: npm ci
+
+      # Install only the sidecar's runtime deps from pyproject.toml.
+      # Keeps the job under the 20-min budget; the full stack is only
+      # needed for end-to-end model training, not the smoke harness.
+      - name: Install Python sidecar deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install "xgboost>=3.2.0,<4" "numpy>=2.4.6,<3" "psycopg[binary]>=3.3.4,<4" \
+                      "onnx>=1.21.0,<2" "onnxmltools>=1.16.0,<2" "skl2onnx>=1.20.0,<2" \
+                      "scikit-learn>=1.8.0,<2" "onnxconverter-common>=1.16.0,<2"
+
+      - name: Apply migrations
+        run: npm run db:push
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
+
+      - name: Run Python sidecar CRUD + trainer harness
+        run: node scripts/ml/test-sidecar-crud.mjs
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
+
   build:
     name: Build
     runs-on: ubuntu-latest

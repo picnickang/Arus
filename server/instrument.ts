@@ -26,7 +26,18 @@ if (dsn) {
   Sentry.init({
     dsn,
     environment: process.env.NODE_ENV ?? "development",
-    release: process.env.SENTRY_RELEASE ?? process.env.npm_package_version,
+    // Prod-hardening: release identity for sourcemap symbolication and
+    // cross-deploy error-rate diffs. Resolution order:
+    //   1. SENTRY_RELEASE        — explicit operator override
+    //   2. GIT_SHA / GIT_COMMIT  — CI-injected build SHA
+    //   3. REPLIT_DEPLOYMENT_ID  — Replit deploy identifier
+    //   4. npm_package_version   — last-resort fallback (coarse)
+    release:
+      process.env.SENTRY_RELEASE ??
+      process.env.GIT_SHA ??
+      process.env.GIT_COMMIT ??
+      process.env.REPLIT_DEPLOYMENT_ID ??
+      process.env.npm_package_version,
     tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0.1),
     // Profiles are off by default — opt in via env var. The CPU
     // profiler integration is shipped separately (@sentry/profiling-node)

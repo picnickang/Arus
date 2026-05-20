@@ -17,6 +17,35 @@ export async function initializeLocalDatabase(): Promise<void> {
   }
 }
 
+/**
+ * Prod-hardening: opt-in pre-boot migration.
+ *
+ * Gated on `MIGRATE_ON_BOOT=true` because (a) most deploys still use
+ * the explicit `npm run db:migrate:deploy` step in CI/CD and (b) we
+ * never want a misconfigured local-mode or test boot to silently
+ * mutate a shared dev database. When the flag is set we run the
+ * Drizzle migrator + supplemental SQL migrator BEFORE the schema-
+ * dependent setup in `initializeDatabase()` so a fresh schema diff
+ * doesn't surface as a runtime "column does not exist" much later.
+ */
+export async function runMigrationsOnBoot(): Promise<void> {
+  if (process.env.MIGRATE_ON_BOOT !== "true") {
+    return;
+  }
+  if (process.env.LOCAL_MODE === "true" || process.env.EMBEDDED_MODE === "true") {
+    logger.info("ℹ MIGRATE_ON_BOOT skipped (local/embedded mode uses SQLite)");
+    return;
+  }
+  if (!process.env.DATABASE_URL) {
+    logger.warn("⚠ MIGRATE_ON_BOOT requested but DATABASE_URL missing — skipping");
+    return;
+  }
+  logger.info("→ MIGRATE_ON_BOOT: applying pending migrations before service init...");
+  const { runBootMigrations } = await import("../scripts/migrate");
+  await runBootMigrations();
+  logger.info("✓ MIGRATE_ON_BOOT: migrations up to date");
+}
+
 export async function initializeDatabase(): Promise<void> {
   logger.info("→ Initializing database...");
   const { db, isLocalMode } = await import("../db-config");

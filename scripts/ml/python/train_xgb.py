@@ -176,6 +176,22 @@ def main() -> int:
     started = time.time()
 
     with connect() as conn:
+        # Prod-hardening: prevent two concurrent retrains for the same
+        # (orgId, equipmentType) from racing on the ml_models write.
+        # pg_try_advisory_lock returns immediately — if a peer worker
+        # already holds it we exit cleanly rather than queueing.
+        # Lock is session-scoped and released when `conn` closes.
+        lock_key = f"train:{args.org}:{args.type}"
+        with conn.cursor() as cur:
+            cur.execute("SELECT pg_try_advisory_lock(hashtext(%s))", (lock_key,))
+            got_lock = bool(cur.fetchone()[0])
+        if not got_lock:
+            emit({
+                "stage": "skipped",
+                "reason": f"another retrain holds the advisory lock for {lock_key}",
+            })
+            return 3
+
         X, y, prod_probs = fetch_labelled(conn, args.org, args.type)
         if X is None or len(X) < MIN_LABELS:
             emit({
