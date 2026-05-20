@@ -36,6 +36,7 @@ import { createLogger } from "../../../lib/structured-logger";
 import { OnnxInferenceAdapter } from "../../../ml-prediction/onnx-adapter";
 import { serveWithShadowOrCanary } from "../../../ml-prediction/shadow-canary";
 import { HeuristicInferenceRunner } from "./heuristic-inference-runner";
+import { getReadAdapterForUri } from "../infrastructure/artifact-storage";
 import type { InferenceContext, InferenceRunnerPort, PredictionScore } from "./ports";
 
 const logger = createLogger("ModelBackedInferenceRunner");
@@ -105,16 +106,23 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
         if (!row) return null;
         const metrics = (row.metrics ?? {}) as { artifactPath?: string };
         if (!metrics.artifactPath) return null;
+        // metrics.artifactPath may be a legacy local path or a new
+        // `arus-artifact://<backend>/<key>` URI. The read adapter is
+        // chosen from the URI itself so flipping the admin write
+        // backend never breaks resolution of already-deployed models.
+        let localPath: string;
         try {
-          await fs.access(metrics.artifactPath);
-        } catch {
-          logger.warn("Deployed model artifact missing on disk", {
+          const adapter = getReadAdapterForUri(metrics.artifactPath);
+          localPath = await adapter.materializeToLocal(metrics.artifactPath);
+        } catch (err) {
+          logger.warn("Deployed model artifact unresolvable", {
             modelVersionId,
             artifactPath: metrics.artifactPath,
+            err: err instanceof Error ? err.message : String(err),
           });
           return null;
         }
-        return { modelId: row.id, artifactPath: metrics.artifactPath };
+        return { modelId: row.id, artifactPath: localPath };
       } catch (err) {
         logger.warn("Registry lookup failed — falling back to heuristic", {
           modelVersionId,

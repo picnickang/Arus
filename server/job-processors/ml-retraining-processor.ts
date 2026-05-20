@@ -23,11 +23,16 @@
  */
 
 import { spawn } from "node:child_process";
+import { promises as fs } from "node:fs";
 import path from "node:path";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { db } from "../db";
-import { predictionOutcomes, equipment } from "@shared/schema";
+import { predictionOutcomes, equipment, mlModels } from "@shared/schema";
 import { createLogger } from "../lib/structured-logger";
+import {
+  getWriteAdapter,
+  ARTIFACT_URI_SCHEME,
+} from "../domains/pdm-platform/infrastructure/artifact-storage";
 
 const logger = createLogger("MlRetrainingProcessor");
 
@@ -211,6 +216,92 @@ function runTrainer(orgId: string, equipmentType: string): Promise<{ stdout: str
   });
 }
 
+/**
+ * #108 — After Python writes ONNX (+ optional UBJ) to local disk and
+ * INSERTs the ml_models row, upload both artifacts to the admin-
+ * selected backend and mutate the row so `training_metrics.artifactPath`
+ * + `.nativeArtifactPath` hold `arus-artifact://` URIs the runtime
+ * read path knows how to resolve from anywhere. Best-effort: if upload
+ * fails (transient network etc.), the local-path stays and the row
+ * keeps resolving via the local-disk adapter — no regression vs. the
+ * pre-#108 path.
+ */
+async function uploadCandidateArtifacts(
+  orgId: string,
+  modelId: string,
+): Promise<void> {
+  try {
+    const [row] = await db
+      .select({
+        id: mlModels.id,
+        metrics: mlModels.trainingMetrics,
+      })
+      .from(mlModels)
+      .where(and(eq(mlModels.id, modelId), eq(mlModels.orgId, orgId)))
+      .limit(1);
+    if (!row) return;
+    const metrics = { ...((row.metrics ?? {}) as Record<string, unknown>) };
+    const artifactPath = metrics.artifactPath as string | undefined;
+    const nativeArtifactPath = metrics.nativeArtifactPath as string | undefined;
+    // Already migrated (idempotent — covers re-runs).
+    if (artifactPath?.startsWith(ARTIFACT_URI_SCHEME)) return;
+    if (!artifactPath) return;
+
+    const adapter = await getWriteAdapter();
+    if (adapter.backend === "local") {
+      // Nothing to do — the local-disk adapter resolves bare paths as
+      // legacy local artifacts. Leave the row untouched.
+      return;
+    }
+
+    const uploads: Array<[string, "artifactPath" | "nativeArtifactPath"]> = [];
+    uploads.push([artifactPath, "artifactPath"]);
+    if (nativeArtifactPath) uploads.push([nativeArtifactPath, "nativeArtifactPath"]);
+
+    for (const [localPath, field] of uploads) {
+      try {
+        await fs.access(localPath);
+      } catch {
+        logger.warn("Trainer artifact missing — skipping upload", {
+          orgId,
+          modelId,
+          field,
+          localPath,
+        });
+        continue;
+      }
+      const key = path.posix.join("models", path.basename(localPath));
+      const ref = await adapter.put(localPath, key);
+      metrics[field] = ref.uri;
+      // Remove the staging copy ONLY after upload+row-update succeeds;
+      // delete here is best-effort to keep ephemeral disk clean.
+      fs.unlink(localPath).catch(() => undefined);
+    }
+
+    await db
+      .update(mlModels)
+      .set({ trainingMetrics: metrics as Record<string, unknown> })
+      .where(and(eq(mlModels.id, modelId), eq(mlModels.orgId, orgId)));
+
+    logger.info("Candidate artifacts uploaded to backend", {
+      orgId,
+      modelId,
+      backend: adapter.backend,
+      artifactPath: metrics.artifactPath,
+    });
+  } catch (err) {
+    // Hard-failing here would block a promotion that the gate already
+    // approved on metrics. Leave the local-path row in place and emit
+    // a structured alert so operators can re-run.
+    logger.warn("ml.artifact.upload_failed", {
+      event: "ml.artifact.upload_failed",
+      orgId,
+      modelId,
+      err: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
 async function attemptPromote(
   orgId: string,
   modelId: string,
@@ -305,9 +396,33 @@ export async function processModelRetrain(
       if (code !== 0) {
         skipped = `trainer exit code ${code}`;
       } else if (gate.promote && metrics.modelId) {
+        // #108: Lift the locally-staged artifact into the admin-
+        // configured backend BEFORE promotion so the ml_models row the
+        // runtime reads carries the canonical URI from the moment it
+        // flips to 'deployed'. No-op when the backend is 'local'.
+        await uploadCandidateArtifacts(orgId, metrics.modelId);
         promoted = await attemptPromote(orgId, metrics.modelId, metrics, !!data.dryRun);
         if (promoted) candidatesPromoted += 1;
         else if (data.dryRun) skipped = "dryRun";
+      } else if (!gate.promote && metrics.modelId) {
+        // #110: Surface failed-gate decisions as structured alerts so
+        // operators see WHICH gate blocked promotion (MAE regression
+        // or PSI drift) rather than only the silent log warn that
+        // existed before. Keyed `event=ml.promotion.gate_failed` for
+        // Loki/observability pipelines.
+        logger.warn("ml.promotion.gate_failed", {
+          event: "ml.promotion.gate_failed",
+          orgId,
+          equipmentType,
+          modelId: metrics.modelId,
+          reason: gate.skipped,
+          candidateMae: metrics.mae,
+          productionMae: metrics.productionMae,
+          improvementPct: gate.improvementPct,
+          psi: metrics.psi,
+          maeThresholdPct: MIN_MAE_IMPROVEMENT_PCT,
+          psiThreshold: MAX_PSI_FOR_PROMOTION,
+        });
       }
       attempts.push({
         orgId,

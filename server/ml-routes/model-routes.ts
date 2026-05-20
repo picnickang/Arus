@@ -51,17 +51,41 @@ router.get("/ml/models/:id/artifact", async (req: AuthenticatedRequest, res: Res
     }
     const metrics = (model.trainingMetrics ?? {}) as { artifactPath?: string };
     const artifactPath = metrics.artifactPath;
-    if (!artifactPath || !artifactPath.endsWith(".onnx")) {
+    if (!artifactPath) {
       return sendNotFound(res, "Model artifact");
     }
+    // #108 — Resolve via the artifact-storage abstraction so URI-backed
+    // artifacts (arus-artifact://replit-object-storage/...) work as
+    // well as legacy bare paths. parseArtifactUri maps bare paths to
+    // the local backend for backward compat.
     const path = await import("node:path");
     const fs = await import("node:fs/promises");
-    const repoRoot = process.cwd();
-    const abs = path.resolve(repoRoot, artifactPath);
-    if (!abs.startsWith(path.resolve(repoRoot, "models") + path.sep)) {
-      return sendBadRequest(res, "Artifact path outside models directory");
+    const { getReadAdapterForUri, parseArtifactUri } = await import(
+      "../domains/pdm-platform/infrastructure/artifact-storage/index.js"
+    );
+    const ref = parseArtifactUri(artifactPath);
+    if (!ref.key.endsWith(".onnx")) {
+      return sendNotFound(res, "Model artifact");
     }
-    const bytes = await fs.readFile(abs);
+    // Defense-in-depth: the registry-stored key must live under
+    // `models/` regardless of backend — this cannot be abused as an
+    // arbitrary-file read since the value is set by the trainer, not
+    // by user input.
+    if (!ref.key.startsWith("models/") || ref.key.includes("..")) {
+      return sendBadRequest(res, "Artifact key outside models namespace");
+    }
+    const local = await getReadAdapterForUri(ref.uri).materializeToLocal(ref.uri);
+    // For the local backend, also double-check the resolved path is
+    // under MODELS_DIR — defence against a stale row pointing
+    // elsewhere on disk.
+    if (ref.backend === "local") {
+      const repoRoot = process.cwd();
+      const abs = path.resolve(local);
+      if (!abs.startsWith(path.resolve(repoRoot, "models") + path.sep)) {
+        return sendBadRequest(res, "Artifact path outside models directory");
+      }
+    }
+    const bytes = await fs.readFile(local);
     res.setHeader("Content-Type", "application/octet-stream");
     res.setHeader("Cache-Control", "private, max-age=3600");
     res.send(bytes);

@@ -1,8 +1,27 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Database, HardDrive, Cloud, RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Database,
+  HardDrive,
+  Cloud,
+  RefreshCw,
+  CheckCircle,
+  AlertCircle,
+  Brain,
+} from "lucide-react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface StorageConfig {
   mode: "cloud" | "local" | "hybrid";
@@ -14,11 +33,56 @@ interface StorageConfig {
   usedSize?: string;
 }
 
+type ArtifactBackend = "local" | "replit-object-storage";
+interface MlArtifactStorageConfig {
+  backend: ArtifactBackend;
+  source: "admin-setting" | "default";
+  available: ArtifactBackend[];
+}
+
+const BACKEND_LABELS: Record<ArtifactBackend, string> = {
+  local: "Local Disk (single-instance only)",
+  "replit-object-storage": "Replit App Storage (recommended)",
+};
+
 export default function StorageSettings() {
-  const { data: storageConfig, isLoading } = useQuery<StorageConfig>({
+  const { toast } = useToast();
+  const { data: storageConfig } = useQuery<StorageConfig>({
     queryKey: ["/api/admin/storage/config"],
     retry: 1,
     staleTime: 60000,
+  });
+
+  const mlStorageQuery = useQuery<MlArtifactStorageConfig>({
+    queryKey: ["/api/admin/ml-artifact-storage"],
+    retry: 1,
+    staleTime: 60000,
+  });
+
+  const [pendingBackend, setPendingBackend] = useState<ArtifactBackend | "">("");
+  useEffect(() => {
+    if (mlStorageQuery.data?.backend) setPendingBackend(mlStorageQuery.data.backend);
+  }, [mlStorageQuery.data?.backend]);
+
+  const updateMlBackend = useMutation({
+    mutationFn: async (backend: ArtifactBackend) => {
+      return apiRequest("PUT", "/api/admin/ml-artifact-storage", { backend });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ml-artifact-storage"] });
+      toast({
+        title: "ML artifact storage updated",
+        description:
+          "Next trained model will be written to the new backend. Already-deployed models keep resolving from their original location.",
+      });
+    },
+    onError: (err: Error) => {
+      toast({
+        title: "Failed to update storage backend",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const config: StorageConfig = storageConfig || {
@@ -140,6 +204,84 @@ export default function StorageSettings() {
               Connected
             </Badge>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card data-testid="card-ml-artifact-storage">
+        <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+          <div>
+            <CardTitle className="text-base">ML Model Artifact Storage</CardTitle>
+            <CardDescription>
+              Where the weekly retrainer persists trained ONNX + UBJ
+              artifacts. Switching backends only affects newly trained
+              models — already-deployed models keep resolving from
+              their original backend.
+            </CardDescription>
+          </div>
+          <Brain className="h-5 w-5 text-muted-foreground" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {mlStorageQuery.isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : mlStorageQuery.isError ? (
+            <p className="text-sm text-destructive" data-testid="text-ml-storage-error">
+              Unable to load ML artifact storage configuration.
+            </p>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Active backend</span>
+                <Badge variant="outline" data-testid="badge-ml-backend-active">
+                  {BACKEND_LABELS[mlStorageQuery.data!.backend]}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Source</span>
+                <span className="text-sm" data-testid="text-ml-backend-source">
+                  {mlStorageQuery.data!.source === "admin-setting"
+                    ? "Saved admin setting"
+                    : "Auto-detected default"}
+                </span>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ml-backend-select">Backend</Label>
+                <Select
+                  value={pendingBackend || mlStorageQuery.data!.backend}
+                  onValueChange={(v) => setPendingBackend(v as ArtifactBackend)}
+                >
+                  <SelectTrigger id="ml-backend-select" data-testid="select-ml-backend">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {mlStorageQuery.data!.available.map((b) => (
+                      <SelectItem
+                        key={b}
+                        value={b}
+                        data-testid={`option-ml-backend-${b}`}
+                      >
+                        {BACKEND_LABELS[b]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  data-testid="button-save-ml-backend"
+                  disabled={
+                    !pendingBackend ||
+                    pendingBackend === mlStorageQuery.data!.backend ||
+                    updateMlBackend.isPending
+                  }
+                  onClick={() =>
+                    pendingBackend && updateMlBackend.mutate(pendingBackend as ArtifactBackend)
+                  }
+                >
+                  {updateMlBackend.isPending ? "Saving…" : "Save backend"}
+                </Button>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -58,6 +58,7 @@ export const JOB_TYPES = {
   INVENTORY_OPTIMIZATION: "inventory-optimization",
   INSIGHTS_SNAPSHOT_GENERATION: "insights-snapshot-generation",
   MODEL_RETRAIN: "model-retrain-weekly",
+  ML_STALE_MODEL_CHECK: "ml-stale-model-check-daily",
 } as const;
 
 export type JobType = (typeof JOB_TYPES)[keyof typeof JOB_TYPES];
@@ -195,6 +196,16 @@ class BackgroundJobQueue {
       } catch (schedErr) {
         const msg = schedErr instanceof Error ? schedErr.message : String(schedErr);
         logger.warn(`Failed to register weekly retrain schedule: ${msg}`);
+      }
+
+      // #110 — daily stale-model SLO sweep. Catches missed weekly
+      // retrains within 24h instead of waiting until the next Sunday.
+      try {
+        await boss.schedule(JOB_TYPES.ML_STALE_MODEL_CHECK, "0 4 * * *", {}, { retryLimit: 1 });
+        logger.info(`Scheduled daily cron: ${JOB_TYPES.ML_STALE_MODEL_CHECK} @ 0 4 * * * UTC`);
+      } catch (schedErr) {
+        const msg = schedErr instanceof Error ? schedErr.message : String(schedErr);
+        logger.warn(`Failed to register stale-model SLO schedule: ${msg}`);
       }
     } catch (err: unknown) {
       this.fallback = true;

@@ -12,6 +12,11 @@ import {
 } from "../../../lib/route-utils.js";
 import { logger } from "../../../utils/logger.js";
 import { dbSystemAdminStorage } from "../../../db/system-admin/index.js";
+import {
+  getArtifactBackendSetting,
+  setArtifactBackendSetting,
+  type ArtifactBackend,
+} from "../../pdm-platform/infrastructure/artifact-storage/index.js";
 
 export function registerSettingsRoutes(app: Express, deps: SystemAdminDependencies): void {
   const {
@@ -144,6 +149,38 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
         calibratedAt: result.calibratedAt,
         method: result.method,
       });
+    })
+  );
+
+  // #108 — ML artifact storage backend selection.
+  // Backend is persisted in admin_system_settings (orgId=system,
+  // category=ml-artifact-storage, key=backend). Only affects NEW
+  // writes; already-deployed model rows keep their URIs and resolve
+  // through whichever backend originally wrote them.
+  app.get(
+    "/api/admin/ml-artifact-storage",
+    requireAdminAuth,
+    generalApiRateLimit,
+    auditAdminAction("VIEW_ML_ARTIFACT_STORAGE"),
+    withErrorHandling("fetch ML artifact storage backend", async (_req: Request, res: Response) => {
+      const config = await getArtifactBackendSetting();
+      res.json(config);
+    })
+  );
+
+  app.put(
+    "/api/admin/ml-artifact-storage",
+    requireAdminAuth,
+    criticalOperationRateLimit,
+    auditAdminAction("UPDATE_ML_ARTIFACT_STORAGE"),
+    withErrorHandling("update ML artifact storage backend", async (req: Request, res: Response) => {
+      const schema = z.object({
+        backend: z.enum(["local", "replit-object-storage"]),
+      });
+      const parsed = schema.parse(req.body);
+      await setArtifactBackendSetting(parsed.backend as ArtifactBackend);
+      const config = await getArtifactBackendSetting();
+      res.json(config);
     })
   );
 }
