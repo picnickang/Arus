@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +53,12 @@ interface DependenciesResponse {
   dependencies: EquipmentDependency[];
 }
 
+type NodePositions = Record<string, { x: number; y: number }>;
+
+interface LayoutResponse {
+  positions: NodePositions;
+}
+
 interface CsvRow {
   upstreamEquipmentId: string;
   downstreamEquipmentId: string;
@@ -101,10 +107,11 @@ function parseCsv(text: string): { rows: CsvRow[]; errors: string[] } {
 }
 
 /**
- * Deterministic circular layout — `equipmentDependencies` has no
- * position columns, so we lay nodes out around a ring on first load
- * and let the admin drag them around locally (positions are not
- * persisted; refreshing returns to the ring).
+ * Deterministic circular layout — used as the fallback only when the
+ * server has no saved layout for this (user, vessel) pair. Once the
+ * admin drags nodes around, positions are debounced-saved through
+ * `PUT /api/v1/vessels/:vesselId/equipment-dependency-layout` (Task #129)
+ * and rehydrated on next mount.
  */
 function circularLayout(ids: string[]): Record<string, { x: number; y: number }> {
   const out: Record<string, { x: number; y: number }> = {};
@@ -315,20 +322,123 @@ export default function EquipmentDependenciesPage() {
   // ----- ReactFlow local state (positions only; nodes/edges are
   // derived from server data so the canvas stays in lockstep with
   // the dependencies query as it refetches).
-  const [nodePositions, setNodePositions] = useState<
-    Record<string, { x: number; y: number }>
-  >({});
+  const [nodePositions, setNodePositions] = useState<NodePositions>({});
 
-  // When the equipment list changes (vessel switch / load), reset to
-  // a fresh circular layout so the canvas isn't empty and previous
-  // positions for a different vessel don't leak.
+  // Task #129 — Load this admin's saved layout for the selected vessel.
+  // Fall back to the circular layout only when the server has nothing
+  // stored for this (user, vessel). Includes vesselId in the key so
+  // refetches on vessel switch are isolated.
+  const layoutQueryKey = useMemo(
+    () =>
+      [
+        "/api/v1/vessels",
+        selectedVesselId,
+        "equipment-dependency-layout",
+      ] as const,
+    [selectedVesselId]
+  );
+
+  const layoutQuery = useQuery<LayoutResponse>({
+    queryKey: layoutQueryKey,
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/v1/vessels/${encodeURIComponent(selectedVesselId)}/equipment-dependency-layout`,
+        { credentials: "include" }
+      );
+      if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+      return res.json();
+    },
+    enabled: !!selectedVesselId,
+  });
+
+  // When the layout or equipment list changes, merge: prefer the
+  // server-saved position, fall back to the circular slot. Equipment
+  // ids that no longer exist on the vessel are dropped so we don't
+  // keep stale keys around.
   useEffect(() => {
-    if (equipmentList.length === 0) {
+    if (!selectedVesselId || equipmentList.length === 0) {
       setNodePositions({});
       return;
     }
-    setNodePositions(circularLayout(equipmentList.map((e) => e.id)));
-  }, [selectedVesselId, equipmentList]);
+    if (layoutQuery.isLoading) return;
+    const saved = layoutQuery.data?.positions ?? {};
+    const ids = equipmentList.map((e) => e.id);
+    const fallback = circularLayout(ids);
+    const merged: NodePositions = {};
+    for (const id of ids) {
+      const s = saved[id];
+      merged[id] =
+        s && Number.isFinite(s.x) && Number.isFinite(s.y) ? s : fallback[id];
+    }
+    setNodePositions(merged);
+    // Reset the save baseline so the merge itself doesn't trigger a write.
+    lastSavedRef.current = JSON.stringify(merged);
+  }, [selectedVesselId, equipmentList, layoutQuery.data, layoutQuery.isLoading]);
+
+  // ----- Debounced server save for node positions.
+  const saveLayoutMutation = useMutation({
+    mutationFn: async (input: {
+      vesselId: string;
+      positions: NodePositions;
+    }) =>
+      apiRequest<{ ok: true; positions: NodePositions }>(
+        "PUT",
+        `/api/v1/vessels/${encodeURIComponent(input.vesselId)}/equipment-dependency-layout`,
+        { positions: input.positions }
+      ),
+    onError: (err: Error, _input, _ctx) => {
+      // Roll back to the last server-confirmed snapshot and surface the error.
+      const last = lastSavedRef.current;
+      if (last) {
+        try {
+          const parsed = JSON.parse(last) as NodePositions;
+          setNodePositions(parsed);
+        } catch {
+          /* ignore parse failure — keep current state */
+        }
+      }
+      toast({
+        title: "Couldn't save layout",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+    onSuccess: (_res, input) => {
+      lastSavedRef.current = JSON.stringify(input.positions);
+      // Keep the layout query cache in sync so other consumers/devices
+      // see the new positions without an extra fetch.
+      queryClient.setQueryData<LayoutResponse>(layoutQueryKey, {
+        positions: input.positions,
+      });
+    },
+  });
+
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedRef = useRef<string | null>(null);
+
+  const scheduleLayoutSave = useCallback(
+    (positions: NodePositions) => {
+      if (!selectedVesselId) return;
+      const serialized = JSON.stringify(positions);
+      if (serialized === lastSavedRef.current) return;
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => {
+        saveLayoutMutation.mutate({ vesselId: selectedVesselId, positions });
+      }, 500);
+    },
+    [selectedVesselId, saveLayoutMutation]
+  );
+
+  // Make sure a pending save fires (or is dropped) when the page
+  // unmounts or the admin switches vessels.
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+    };
+  }, [selectedVesselId]);
 
   const nodes: Node[] = useMemo(
     () =>
@@ -360,21 +470,30 @@ export default function EquipmentDependenciesPage() {
     [dependencies]
   );
 
-  const onNodesChange = useCallback((changes: NodeChange[]) => {
-    setNodePositions((prev) => {
-      const next = { ...prev };
-      const updated = applyNodeChanges(
-        changes,
-        Object.entries(prev).map(([id, pos]) => ({
-          id,
-          position: pos,
-          data: {},
-        })) as Node[]
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      // We only care about position changes for persistence — selection
+      // and dimension changes shouldn't trigger a server save.
+      const positional = changes.some(
+        (c) => c.type === "position" || c.type === "remove" || c.type === "add"
       );
-      for (const n of updated) next[n.id] = n.position;
-      return next;
-    });
-  }, []);
+      setNodePositions((prev) => {
+        const next = { ...prev };
+        const updated = applyNodeChanges(
+          changes,
+          Object.entries(prev).map(([id, pos]) => ({
+            id,
+            position: pos,
+            data: {},
+          })) as Node[]
+        );
+        for (const n of updated) next[n.id] = n.position;
+        if (positional) scheduleLayoutSave(next);
+        return next;
+      });
+    },
+    [scheduleLayoutSave]
+  );
 
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
@@ -552,9 +671,15 @@ export default function EquipmentDependenciesPage() {
                     </ReactFlow>
                   </div>
                 )}
-                <p className="text-xs text-muted-foreground mt-2">
-                  Node positions are local to this session and aren't saved
-                  to the server.
+                <p
+                  className="text-xs text-muted-foreground mt-2"
+                  data-testid="text-layout-save-status"
+                >
+                  {saveLayoutMutation.isPending
+                    ? "Saving layout…"
+                    : layoutQuery.isLoading
+                      ? "Loading saved layout…"
+                      : "Your layout is saved per vessel."}
                 </p>
               </CardContent>
             </Card>

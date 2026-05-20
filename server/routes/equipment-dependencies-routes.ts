@@ -26,9 +26,12 @@ import { z } from "zod";
 import { db } from "../db";
 import {
   equipmentDependencies,
+  equipmentDependencyLayouts,
+  equipmentDependencyLayoutPositionsSchema,
   equipment,
   insertEquipmentDependencySchema,
   type EquipmentDependency,
+  type EquipmentDependencyLayoutPositions,
 } from "@shared/schema";
 import { requireRole } from "../middleware/role-auth";
 import type { AuthenticatedRequest } from "../middleware/auth";
@@ -300,6 +303,104 @@ router.post(
         details: err instanceof Error ? err.message : String(err),
       });
       res.status(500).json({ error: "Failed to import dependencies" });
+    }
+  }
+);
+
+// ---------- GET layout (per-user) ----------
+router.get(
+  "/vessels/:vesselId/equipment-dependency-layout",
+  async (req, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: "Authentication required" });
+      return;
+    }
+    const { vesselId } = req.params;
+    try {
+      const [row] = await db
+        .select()
+        .from(equipmentDependencyLayouts)
+        .where(
+          and(
+            eq(equipmentDependencyLayouts.orgId, authReq.orgId),
+            eq(equipmentDependencyLayouts.userId, userId),
+            eq(equipmentDependencyLayouts.vesselId, vesselId)
+          )
+        );
+      const positions: EquipmentDependencyLayoutPositions =
+        row?.positions ?? {};
+      res.json({ positions });
+    } catch (err) {
+      logger.error("layout load failed", {
+        details: err instanceof Error ? err.message : String(err),
+      });
+      res.status(500).json({ error: "Failed to load layout" });
+    }
+  }
+);
+
+// ---------- PUT layout (per-user upsert) ----------
+const layoutBodySchema = z.object({
+  positions: equipmentDependencyLayoutPositionsSchema,
+});
+
+router.put(
+  "/vessels/:vesselId/equipment-dependency-layout",
+  requireRole("admin", "chief_engineer"),
+  async (req, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: "Authentication required" });
+      return;
+    }
+    const { vesselId } = req.params;
+
+    const parsed = layoutBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res
+        .status(400)
+        .json({ error: "Invalid body", details: parsed.error.flatten() });
+      return;
+    }
+    const { positions } = parsed.data;
+
+    // Cap the payload defensively — one row per equipment, and this
+    // table is per-user-per-vessel so the realistic ceiling is the
+    // vessel's equipment count. 5k keys is generous and stops a
+    // pathological client from ballooning the JSONB row.
+    if (Object.keys(positions).length > 5000) {
+      res.status(400).json({ error: "Too many positions (max 5000)" });
+      return;
+    }
+
+    try {
+      const [row] = await db
+        .insert(equipmentDependencyLayouts)
+        .values({
+          orgId: authReq.orgId,
+          userId,
+          vesselId,
+          positions,
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: [
+            equipmentDependencyLayouts.orgId,
+            equipmentDependencyLayouts.userId,
+            equipmentDependencyLayouts.vesselId,
+          ],
+          set: { positions, updatedAt: new Date() },
+        })
+        .returning();
+      res.json({ ok: true, positions: row?.positions ?? positions });
+    } catch (err) {
+      logger.error("layout save failed", {
+        details: err instanceof Error ? err.message : String(err),
+      });
+      res.status(500).json({ error: "Failed to save layout" });
     }
   }
 );

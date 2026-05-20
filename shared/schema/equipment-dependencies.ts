@@ -18,13 +18,14 @@ import {
   varchar,
   text,
   timestamp,
+  jsonb,
   index,
   unique,
   sql,
 } from "./base";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { organizations } from "./core";
+import { organizations, users } from "./core";
 import { equipment } from "./equipment";
 import { vessels } from "./vessels";
 
@@ -76,4 +77,58 @@ export const insertEquipmentDependencySchema = createInsertSchema(
 export type EquipmentDependency = typeof equipmentDependencies.$inferSelect;
 export type InsertEquipmentDependency = z.infer<
   typeof insertEquipmentDependencySchema
+>;
+
+/**
+ * Task #129 — Per-admin remembered layout for the dependency graph editor.
+ *
+ * One row per (orgId, userId, vesselId). `positions` is a JSONB map of
+ * `equipmentId -> { x, y }`. We deliberately keep the whole layout in
+ * one row so the debounced save is a single upsert and equipment that
+ * has since been deleted simply becomes stale keys we ignore on load.
+ *
+ * Per-user rather than per-org so two admins arranging the same vessel
+ * don't fight each other's layouts.
+ */
+export const equipmentDependencyLayouts = pgTable(
+  "equipment_dependency_layouts",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .references(() => organizations.id)
+      .notNull(),
+    userId: varchar("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    vesselId: varchar("vessel_id")
+      .references(() => vessels.id, { onDelete: "cascade" })
+      .notNull(),
+    positions: jsonb("positions").$type<Record<string, { x: number; y: number }>>().notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
+  },
+  (table) => ({
+    orgUserVesselUniq: unique("uniq_equipment_dep_layout_user_vessel").on(
+      table.orgId,
+      table.userId,
+      table.vesselId
+    ),
+    orgIdx: index("idx_equipment_dep_layout_org").on(table.orgId),
+  })
+);
+
+export const equipmentDependencyLayoutPositionSchema = z.object({
+  x: z.number().finite(),
+  y: z.number().finite(),
+});
+
+export const equipmentDependencyLayoutPositionsSchema = z.record(
+  z.string().min(1),
+  equipmentDependencyLayoutPositionSchema
+);
+
+export type EquipmentDependencyLayout = typeof equipmentDependencyLayouts.$inferSelect;
+export type EquipmentDependencyLayoutPositions = z.infer<
+  typeof equipmentDependencyLayoutPositionsSchema
 >;
