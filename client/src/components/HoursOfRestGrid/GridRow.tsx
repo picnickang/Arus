@@ -32,6 +32,27 @@ export const GridRow = React.memo(function GridRow({
   const restTotal = c.restTotal;
   const minRest24 = c.minRest24;
 
+  const violationReasons = (): string[] => {
+    const reasons: string[] = [];
+    if (c.restTotal < 10) reasons.push(`Rest ${c.restTotal}h < 10h minimum`);
+    if (c.minRest24 < 10) reasons.push(`24h window: ${c.minRest24.toFixed(1)}h < 10h`);
+    if (!c.splitOK) reasons.push("Rest blocks: split rule violated");
+    return reasons;
+  };
+  const barTitle = dayOK ? "Compliant" : (violationReasons().join(" · ") || "Violation");
+  const dateTitle =
+    !dayOK && liveCheck
+      ? `⚠ ${
+          (() => {
+            const reasons: string[] = [];
+            if (c.restTotal < 10) reasons.push(`Only ${c.restTotal}h rest`);
+            if (c.minRest24 < 10) reasons.push(`24h window: ${c.minRest24.toFixed(1)}h`);
+            if (!c.splitOK) reasons.push("Block split violated");
+            return reasons.join(" · ") || "Violation";
+          })()
+        }`
+      : undefined;
+
   return (
     <div
       role="button"
@@ -52,6 +73,7 @@ export const GridRow = React.memo(function GridRow({
           className={`bg-slate-50 dark:bg-slate-800 border-r border-slate-300 dark:border-slate-600 px-3 py-2 flex items-center justify-center font-mono font-medium ${
             !dayOK && liveCheck ? "border-l-4 border-l-rose-500" : ""
           }`}
+          title={dateTitle}
         >
           <span className="text-xs">{r.date.slice(8, 10)}</span>
         </div>
@@ -97,6 +119,7 @@ export const GridRow = React.memo(function GridRow({
             : "bg-gradient-to-r from-rose-400 to-rose-600"
         }`}
         style={{ marginBottom: 2 }}
+        title={barTitle}
       />
     </div>
   );

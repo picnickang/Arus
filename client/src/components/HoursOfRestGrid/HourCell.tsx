@@ -25,7 +25,17 @@ export const HourCell = React.memo(function HourCell({
         startDrag(actualIndex, h);
       }}
       onMouseEnter={() => onDrag(actualIndex, h)}
-      className={`border-r border-b border-slate-200 dark:border-slate-700 cursor-crosshair transition-all duration-150 hover:scale-105 hover:z-10 hover:shadow-md ${
+      onKeyDown={(e) => {
+        if (e.key === " " || e.key === "Enter") {
+          e.preventDefault();
+          startDrag(actualIndex, h);
+        }
+      }}
+      tabIndex={0}
+      role="checkbox"
+      aria-checked={isRest}
+      aria-label={`${isRest ? "Rest" : "Work"} at ${String(h).padStart(2, "0")}:00${isNightHour ? " (Night)" : ""}`}
+      className={`border-r border-b border-slate-200 dark:border-slate-700 cursor-crosshair transition-all duration-150 hover:scale-105 hover:z-10 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:z-10 ${
         isRest
           ? "bg-emerald-100 dark:bg-emerald-900 hover:bg-emerald-200 dark:hover:bg-emerald-800"
           : "bg-rose-100 dark:bg-rose-900 hover:bg-rose-200 dark:hover:bg-rose-800"

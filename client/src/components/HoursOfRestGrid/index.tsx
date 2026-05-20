@@ -11,6 +11,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Upload,
   Download,
@@ -30,10 +48,12 @@ import {
   ChevronDown,
   ChevronUp,
   Smartphone,
+  CheckCircle2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { FatigueRiskBadge } from "@/components/crew/FatigueRiskBadge";
+import { useToast } from "@/hooks/use-toast";
 import { type Crew, type Vessel, MONTHS, useHoursOfRestData } from "@/features/crew";
 import { GRID_COLS, HDR_H_LINE, HDR_H_TOTAL, HOURS } from "./constants";
 import { GridRow } from "./GridRow";
@@ -94,15 +114,40 @@ export function HoursOfRestGrid() {
     loadFromProposedPlan,
   } = useHoursOfRestData();
 
-  const selectedCrewName = React.useMemo(
-    () => crew.find((c) => c.id === meta.crew_id)?.name,
+  const { toast } = useToast();
+
+  const selectedCrewMember = React.useMemo(
+    () => crew.find((c) => c.id === meta.crew_id),
     [crew, meta.crew_id]
   );
+  const selectedCrewName = selectedCrewMember?.name;
 
   const weekCount = Math.ceil(rows.length / 7);
   const maxWeekOffset = Math.max(0, weekCount - 1);
 
   const complianceOffset = viewMode === "week" ? weekOffset * 7 : 0;
+
+  React.useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (saveStatus === "unsaved") {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [saveStatus]);
+
+  const prevSaveStatus = React.useRef(saveStatus);
+  React.useEffect(() => {
+    if (prevSaveStatus.current === "saving" && saveStatus === "saved") {
+      toast({
+        title: "Rest hours saved",
+        description: `Saved for ${selectedCrewName ?? "crew member"} — ${meta.month} ${meta.year}`,
+      });
+    }
+    prevSaveStatus.current = saveStatus;
+  }, [saveStatus, selectedCrewName, meta.month, meta.year, toast]);
 
   return (
     <div className="space-y-6">
@@ -261,7 +306,7 @@ export function HoursOfRestGrid() {
               <div className="p-3 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded-lg">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
-                    <span className="text-lg">✓</span>
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                     <span>
                       Ready to edit hours of rest for{" "}
                       <strong>{selectedCrewName ?? "Selected Crew Member"}</strong> ({meta.month}{" "}
@@ -382,26 +427,48 @@ export function HoursOfRestGrid() {
                 </Button>
               </div>
               <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={undo}
-                  disabled={historyIndex <= 0}
-                  title="Undo — Ctrl+Z"
-                  data-testid="button-undo"
-                >
-                  <Undo className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={redo}
-                  disabled={historyIndex >= history.length - 1}
-                  title="Redo — Ctrl+Y"
-                  data-testid="button-redo"
-                >
-                  <Redo className="w-4 h-4" />
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={undo}
+                        disabled={historyIndex <= 0}
+                        title="Undo (Ctrl+Z)"
+                        data-testid="button-undo"
+                      >
+                        <Undo className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {historyIndex <= 0
+                        ? "Nothing to undo"
+                        : `Undo (${historyIndex} step${historyIndex !== 1 ? "s" : ""} available)`}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={redo}
+                        disabled={historyIndex >= history.length - 1}
+                        title="Redo (Ctrl+Y)"
+                        data-testid="button-redo"
+                      >
+                        <Redo className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {historyIndex >= history.length - 1
+                        ? "Nothing to redo"
+                        : `Redo (${history.length - 1 - historyIndex} step${history.length - 1 - historyIndex !== 1 ? "s" : ""} available)`}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
           </div>
@@ -739,16 +806,43 @@ export function HoursOfRestGrid() {
                   >
                     Import CSV
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={clearAll}
-                    className="transition-all duration-200"
-                    data-testid="button-clear-all"
-                    title="Clear all hours in the grid"
-                  >
-                    Clear All
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="transition-all duration-200"
+                        data-testid="button-clear-all"
+                        title="Clear all hours in the grid"
+                      >
+                        Clear All
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Clear all rest hours?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will clear all rest hours for{" "}
+                          <strong>{selectedCrewMember?.name ?? "this crew member"}</strong> in{" "}
+                          <strong>
+                            {meta.month} {meta.year}
+                          </strong>
+                          .
+                          <br />
+                          You can immediately undo this with the Undo button.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={clearAll}
+                          className="bg-destructive hover:bg-destructive/90"
+                        >
+                          Clear All Hours
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </div>
@@ -760,27 +854,32 @@ export function HoursOfRestGrid() {
                 <FileCheck className="w-3 h-3 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h4 className="font-medium text-sm mb-1">STCW Maritime Compliance Rules</h4>
-                <ul className="text-xs text-muted-foreground space-y-1">
+                <h4 className="font-medium text-sm mb-1">
+                  Minimum hours of rest (STCW A-VIII/1 · MLC A2.3)
+                </h4>
+                <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
                   <li>
-                    • <span className="font-medium">Minimum 10 hours</span> rest in any 24-hour
-                    period
+                    A minimum of{" "}
+                    <span className="font-medium">10 hours of rest in any 24-hour period</span>.
                   </li>
                   <li>
-                    • <span className="font-medium">Minimum 77 hours</span> rest in any 7-day period
+                    A minimum of{" "}
+                    <span className="font-medium">77 hours of rest in any 7-day period</span>.
                   </li>
                   <li>
-                    • <span className="font-medium">Maximum 2 rest blocks</span> per day with one ≥6
-                    hours
+                    Hours of rest may be divided into{" "}
+                    <span className="font-medium">no more than two periods</span>, one of which
+                    shall be <span className="font-medium">at least 6 hours</span> in length, and
+                    the intervals between consecutive periods of rest shall{" "}
+                    <span className="font-medium">not exceed 14 hours</span>.
                   </li>
                   <li>
-                    •{" "}
                     <span className="text-indigo-600 dark:text-indigo-400">
-                      Night hours (20:00-06:00)
+                      Night hours (20:00–06:00)
                     </span>{" "}
-                    have visual indicators
+                    are visually indicated on the grid.
                   </li>
-                </ul>
+                </ol>
               </div>
             </div>
           </div>
@@ -833,6 +932,26 @@ export function HoursOfRestGrid() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-3 px-1 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5 font-medium text-foreground">Key:</span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-4 h-4 rounded bg-emerald-100 dark:bg-emerald-900 border border-emerald-300 dark:border-emerald-700" />
+                REST
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-4 h-4 rounded bg-rose-100 dark:bg-rose-900 border border-rose-300 dark:border-rose-700" />
+                WORK
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-4 h-4 rounded border-2 border-indigo-300 dark:border-indigo-600" />
+                Night (20:00–06:00)
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-4 h-1 rounded bg-rose-500" />
+                Violation row
+              </span>
+              <span className="ml-auto italic">Click or drag to toggle cells</span>
+            </div>
             <div
               className="overflow-x-auto bg-background rounded-lg border shadow-inner"
               data-testid="rest-hours-grid"
@@ -861,7 +980,7 @@ export function HoursOfRestGrid() {
                 </div>
               </div>
 
-              {displayRows.map((r, ri) => {
+              {displayRows.filter(Boolean).map((r, ri) => {
                 const actualIndex = complianceOffset + ri;
                 return (
                   <GridRow
@@ -878,6 +997,53 @@ export function HoursOfRestGrid() {
                 );
               })}
             </div>
+            {selectedDay !== null && compliance[selectedDay] && (
+              <div
+                className="mt-3 p-3 rounded-lg border bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm"
+                data-testid="selected-day-stats"
+              >
+                <span className="font-semibold text-blue-800 dark:text-blue-200">
+                  {displayRows[selectedDay - complianceOffset]?.date ?? rows[selectedDay]?.date}
+                </span>
+                <span
+                  className={
+                    compliance[selectedDay].restTotal >= 10
+                      ? "text-emerald-700 dark:text-emerald-400"
+                      : "text-rose-700 dark:text-rose-400"
+                  }
+                >
+                  Rest: <strong>{compliance[selectedDay].restTotal}h</strong>
+                  {compliance[selectedDay].restTotal < 10 && " ⚠ (min 10h)"}
+                </span>
+                <span
+                  className={
+                    compliance[selectedDay].minRest24 >= 10
+                      ? "text-emerald-700 dark:text-emerald-400"
+                      : "text-rose-700 dark:text-rose-400"
+                  }
+                >
+                  24h window: <strong>{compliance[selectedDay].minRest24.toFixed(1)}h</strong>
+                </span>
+                <span
+                  className={
+                    compliance[selectedDay].splitOK
+                      ? "text-emerald-700 dark:text-emerald-400"
+                      : "text-rose-700 dark:text-rose-400"
+                  }
+                >
+                  Block split:{" "}
+                  <strong>{compliance[selectedDay].splitOK ? "OK" : "Violated"}</strong>
+                </span>
+                <button
+                  onClick={() => setSelectedDay(null)}
+                  className="ml-auto text-xs text-muted-foreground hover:text-foreground"
+                  aria-label="Dismiss day detail"
+                  data-testid="button-dismiss-day-stats"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -889,8 +1055,8 @@ export function HoursOfRestGrid() {
             <CardDescription>Edit raw CSV data (date,h0..h23)</CardDescription>
           </CardHeader>
           <CardContent>
-            <textarea
-              className="w-full h-40 p-2 border rounded-md font-mono text-sm"
+            <Textarea
+              className="h-40 font-mono text-sm"
               value={csv}
               onChange={(e) => setCsv(e.target.value)}
               data-testid="textarea-csv"
