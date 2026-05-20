@@ -81,6 +81,33 @@ export const JOB_TYPES = {
 export type JobType = (typeof JOB_TYPES)[keyof typeof JOB_TYPES];
 export type JobHandler<T = unknown> = (data: T) => Promise<unknown> | unknown;
 
+/**
+ * Task #105: every registered processor must declare its tenant scope.
+ *   - "required"   → payload MUST carry an orgId; otherwise the job is
+ *                    rejected (and eventually dead-lettered by pg-boss)
+ *                    rather than silently running outside any RLS context.
+ *   - "fleet-wide" → genuinely cross-tenant work (cron sweepers,
+ *                    multi-org orchestrators that fan out per-org
+ *                    internally). Runs without a pinned context and
+ *                    without warning.
+ */
+export type JobTenantScope = "required" | "fleet-wide";
+
+export interface RegisterProcessorOptions {
+  tenantScope?: JobTenantScope;
+}
+
+/**
+ * Sentinel error class so the runOne path can recognise tenant-scope
+ * violations and avoid double-logging the underlying message.
+ */
+class TenantScopeViolationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TenantScopeViolationError";
+  }
+}
+
 interface RecentJob {
   id: string;
   name: string;
@@ -118,6 +145,11 @@ class BackgroundJobQueue {
   // Handlers registered before start() get queued here and wired on start.
   private pendingHandlers = new Map<string, JobHandler<unknown>>();
 
+  // Task #105: tenant-scope declaration per registered job type. Defaults
+  // to "required" so a forgotten registration call hard-fails on a
+  // missing orgId rather than silently bypassing RLS.
+  private tenantScopes = new Map<string, JobTenantScope>();
+
   // Authoritative record of which processors actually got wired via
   // boss.work() — separate from `pendingHandlers` (which is only the
   // registration list) so the health endpoint can surface wire failures
@@ -132,7 +164,11 @@ class BackgroundJobQueue {
   // health endpoint to pg-boss internal tables.
   private recent: RecentJob[] = [];
 
-  registerProcessor<T = unknown>(type: string, handler: JobHandler<T>): void {
+  registerProcessor<T = unknown>(
+    type: string,
+    handler: JobHandler<T>,
+    options?: RegisterProcessorOptions,
+  ): void {
     if (!type) {
       logger.warn("registerProcessor called with empty type — ignored");
       return;
@@ -141,6 +177,8 @@ class BackgroundJobQueue {
       logger.warn(`Processor for "${type}" re-registered; overwriting`);
     }
     this.pendingHandlers.set(type, handler as JobHandler<unknown>);
+    // Default to "required" — see JobTenantScope docstring.
+    this.tenantScopes.set(type, options?.tenantScope ?? "required");
 
     // If start() already ran, wire this handler now too.
     if (this.started && this.boss && !this.fallback) {
@@ -152,8 +190,12 @@ class BackgroundJobQueue {
    * Back-compat alias for the previous stub's `process()` method. Behaves
    * the same as `registerProcessor`.
    */
-  process<T = unknown>(type: string, handler: JobHandler<T>): void {
-    this.registerProcessor(type, handler);
+  process<T = unknown>(
+    type: string,
+    handler: JobHandler<T>,
+    options?: RegisterProcessorOptions,
+  ): void {
+    this.registerProcessor(type, handler, options);
   }
 
   async start(): Promise<void> {
@@ -292,16 +334,30 @@ class BackgroundJobQueue {
       // the handler unwrapped — workers that don't touch tenant tables
       // (e.g. fleet-wide cron) are unaffected.
       const jobOrgId = extractOrgId(data);
+      // Task #105: scope defaults to "required" for any processor that
+      // was registered without an explicit option (the safe default —
+      // unknown jobs should not silently run outside an RLS context).
+      const scope = this.tenantScopes.get(type) ?? "required";
+
       if (jobOrgId && supportsPinnedConnection) {
         await withTenantContext(jobOrgId, async () => {
           await handler(data);
         });
+      } else if (!jobOrgId && scope === "required" && requireTenantAuth()) {
+        // Hard-fail tenant-scoped jobs missing orgId. Throwing routes
+        // the job through pg-boss's retry/dead-letter path rather than
+        // silently bypassing RLS. A misconfigured enqueue call should
+        // surface loudly (in failed-job stats + recent-jobs ring +
+        // structured logs), not produce silent cross-tenant reads.
+        const msg = `[${type}] job ${jobId} rejected: tenant-scoped processor requires orgId in payload (REQUIRE_TENANT_AUTH=true)`;
+        logger.error(msg);
+        throw new TenantScopeViolationError(msg);
       } else {
-        if (!jobOrgId && requireTenantAuth()) {
-          logger.warn(
-            `[${type}] job ${jobId} has no orgId in payload — running without pinned RLS context (REQUIRE_TENANT_AUTH=true)`,
-          );
-        }
+        // Either:
+        //   - scope === "fleet-wide" (cron sweepers, multi-org
+        //     orchestrators that fan out per-org internally) → run
+        //     unwrapped, no warning; or
+        //   - REQUIRE_TENANT_AUTH is off → preserve legacy behaviour.
         await handler(data);
       }
       this.counters.processing = Math.max(0, this.counters.processing - 1);

@@ -35,8 +35,19 @@ export function registerJobProcessors(): void {
     processInsightsSnapshotGeneration
   );
 
-  jobQueue.registerProcessor(JOB_TYPES.MODEL_RETRAIN, processModelRetrain);
-  jobQueue.registerProcessor(JOB_TYPES.ML_STALE_MODEL_CHECK, processStaleModelCheck);
+  // Task #105: these two are genuinely fleet-wide cron jobs. The weekly
+  // retrain orchestrator fans out per-org internally (see
+  // ml-retraining-processor.ts) and the stale-model sweeper scans across
+  // every (orgId, equipmentType) pair. Both are scheduled with an empty
+  // payload by background-jobs.ts and therefore intentionally carry no
+  // orgId — mark them so the worker doesn't reject them under
+  // REQUIRE_TENANT_AUTH=true.
+  jobQueue.registerProcessor(JOB_TYPES.MODEL_RETRAIN, processModelRetrain, {
+    tenantScope: "fleet-wide",
+  });
+  jobQueue.registerProcessor(JOB_TYPES.ML_STALE_MODEL_CHECK, processStaleModelCheck, {
+    tenantScope: "fleet-wide",
+  });
 
   logger.info("[Background Jobs] All processors registered successfully");
 }
