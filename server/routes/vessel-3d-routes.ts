@@ -26,6 +26,7 @@ import { failurePropagation } from "../graph/adapter";
 import { requireRole } from "../middleware/role-auth";
 import { enforceQuota } from "../middleware/tenant-quota";
 import { quotaService } from "../tenancy/quota-service";
+import type { AuthenticatedRequest } from "../middleware/auth";
 
 const logger = createLogger("Routes:Vessel3D");
 
@@ -299,6 +300,119 @@ router.patch("/vessels/3d-model/:modelId/pins", requireRole("admin", "chief_engi
     res.status(500).json({ error: error.message });
   }
 });
+
+// ---------- Version history (Task #99) ----------
+// List every uploaded GLB for a vessel ordered newest-first so admins
+// can roll back a bad upload. storedPath is stripped before returning.
+router.get(
+  "/vessels/:vesselId/3d-model/history",
+  async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+      const { vesselId } = req.params;
+      const rows = await db
+        .select()
+        .from(vessel3dModels)
+        .where(
+          and(eq(vessel3dModels.orgId, orgId), eq(vessel3dModels.vesselId, vesselId))
+        )
+        .orderBy(desc(vessel3dModels.createdAt));
+      const safe = rows.map(({ storedPath: _omit, ...rest }) => rest);
+      res.json(safe);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ error: message });
+    }
+  }
+);
+
+// Promote an older row to "current" by stamping its createdAt to now.
+// The latest-metadata GET already orders by createdAt desc, so a fresh
+// stamp is the canonical signal across the rest of the system without
+// requiring a separate `is_current` column.
+router.post(
+  "/vessels/3d-model/:modelId/promote",
+  requireRole("admin", "chief_engineer"),
+  async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+      const { modelId } = req.params;
+      const now = new Date();
+      const [row] = await db
+        .update(vessel3dModels)
+        .set({ createdAt: now, updatedAt: now })
+        .where(
+          and(eq(vessel3dModels.id, modelId), eq(vessel3dModels.orgId, orgId))
+        )
+        .returning();
+      if (!row) return res.status(404).json({ error: "Model not found" });
+      const { storedPath: _omit, ...safe } = row;
+      res.json(safe);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ error: message });
+    }
+  }
+);
+
+// Delete a single model row + its on-disk file and credit the freed
+// bytes back to the tenant's storage_bytes quota. The deletion is
+// row-scoped: deleting "current" simply makes the next-newest row
+// the current one via the latest-metadata GET's ORDER BY.
+router.delete(
+  "/vessels/3d-model/:modelId",
+  requireRole("admin", "chief_engineer"),
+  async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+      const { modelId } = req.params;
+      const [row] = await db
+        .select()
+        .from(vessel3dModels)
+        .where(
+          and(eq(vessel3dModels.id, modelId), eq(vessel3dModels.orgId, orgId))
+        );
+      if (!row) return res.status(404).json({ error: "Model not found" });
+
+      // Path-traversal guard (same as binary serve): only unlink files
+      // that resolve inside the org's storage directory.
+      const expectedDir = orgDir(orgId);
+      const resolved = path.resolve(row.storedPath);
+      if (resolved.startsWith(path.resolve(expectedDir) + path.sep)) {
+        try {
+          fs.unlinkSync(resolved);
+        } catch (err) {
+          // Missing file is fine — we still want to clear the DB row so
+          // the history stops showing a phantom version.
+          if ((err as NodeJS.ErrnoException)?.code !== "ENOENT") {
+            logger.warn("Failed to unlink stored 3D model", {
+              modelId,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }
+      } else {
+        logger.warn("Refusing to unlink out-of-bounds file", { modelId, orgId });
+      }
+
+      await db
+        .delete(vessel3dModels)
+        .where(
+          and(eq(vessel3dModels.id, modelId), eq(vessel3dModels.orgId, orgId))
+        );
+
+      const freed = Number(row.sizeBytes ?? 0);
+      if (Number.isFinite(freed) && freed > 0) {
+        void quotaService.incrementUsage(orgId, "storage_bytes", -freed);
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ error: message });
+    }
+  }
+);
 
 // ---------- Dependency graph for 3D overlay ----------
 // Thin proxy over `failurePropagation` so the 3D viewer can highlight
