@@ -17,6 +17,7 @@ import {
   calibrationCurves,
   modelPerformanceValidations,
   engineerOverrides,
+  failureHistory,
 } from "@shared/schema-runtime";
 import type {
   MlModel,
@@ -33,7 +34,10 @@ import type {
   InsertCalibrationCurve,
   EngineerOverride,
   InsertEngineerOverride,
+  FailureHistory,
+  InsertFailureHistory,
 } from "@shared/schema";
+import { projectFailureHistory } from "../../graph/projector";
 import { rulModels } from "@shared/schema-runtime";
 import type { RulModel, InsertRulModel } from "@shared/schema";
 
@@ -228,6 +232,41 @@ export class DatabaseMlAnalyticsStorage {
       }
     }
     return n;
+  }
+
+  /**
+   * Task #81 — Canonical write path for failure_history.
+   *
+   * Inserts the relational row, then best-effort projects it into the
+   * knowledge graph after commit. A graph failure MUST NEVER fail the
+   * underlying relational write (matches the equipment/inventory
+   * pattern in db-equipment / db/inventory). Idempotency is preserved
+   * by the projector keying every counting edge on `fh:<id>`.
+   */
+  async createFailureHistory(
+    data: InsertFailureHistory,
+    orgId: string
+  ): Promise<FailureHistory> {
+    const [row] = await db
+      .insert(failureHistory)
+      .values({ ...data, orgId, createdAt: new Date() } as any)
+      .returning();
+    try {
+      await projectFailureHistory(orgId, {
+        failureHistoryId: row.id,
+        equipmentId: row.equipmentId,
+        failureMode: row.failureMode,
+        technicianId: row.verifiedBy ?? null,
+        workOrderId: row.workOrderId ?? null,
+      });
+    } catch (err) {
+      logger.warn(`[Graph] projectFailureHistory(${row.id}) failed`, {
+        orgId,
+        equipmentId: row.equipmentId,
+        details: err instanceof Error ? err.message : String(err),
+      });
+    }
+    return row;
   }
 
   async getThresholdOptimizations(

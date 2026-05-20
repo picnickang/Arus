@@ -1,7 +1,7 @@
 import { db } from "../../../db";
 import { workOrders, costSavings, failurePredictions } from "@shared/schema-runtime";
 import { IS_POSTGRES } from "@shared/schema-runtime";
-import { failureHistory as failureHistoryPg, type InsertFailureHistory } from "@shared/schema/ml-analytics-core";
+import type { InsertFailureHistory } from "@shared/schema/ml-analytics-core";
 import { eq, and, sql, ne } from "drizzle-orm";
 import { processWorkOrderCompletion } from "../../../cost-savings-engine/persistence";
 import type {
@@ -20,7 +20,7 @@ import type {
   QuickWorkOrderResult,
   CompletionPredictionFeedback,
 } from "../domain/workflow-types";
-import { projectFailureHistory } from "../../../graph/projector";
+import { dbMlAnalyticsStorage } from "../../../db/ml-analytics";
 import { createLogger } from "../../../lib/structured-logger";
 
 const failureHistoryLogger = createLogger("Domains:WorkOrders:Infrastructure:FailureHistoryAdapter");
@@ -357,21 +357,15 @@ export class FailureHistoryAdapter implements IFailureHistoryPort {
         resolvedAt: input.recordedAt ?? new Date(),
         lessonsLearned: input.notes,
       };
-      const [row] = await db
-        .insert(failureHistoryPg)
-        .values(insertValues)
-        .returning({ id: failureHistoryPg.id });
-
-      if (row?.id !== undefined && row?.id !== null) {
-        // Post-commit graph projection — best-effort by contract.
-        await projectFailureHistory(input.orgId, {
-          failureHistoryId: row.id,
-          equipmentId: input.equipmentId,
-          failureMode,
-          technicianId: input.recordedBy ?? null,
-          workOrderId: input.workOrderId,
-        });
-      }
+      // Task #81 — route through the canonical writer, which owns
+      // both the relational INSERT and the best-effort graph
+      // projection (`projectFailureHistory`). Single source of truth
+      // for failure_history writes; the projector is fired from
+      // exactly one place.
+      await dbMlAnalyticsStorage.createFailureHistory(
+        insertValues,
+        input.orgId
+      );
     } catch (err) {
       failureHistoryLogger.warn(
         `[FailureHistoryAdapter] recordFailure failed for WO ${input.workOrderId} (non-fatal)`,
