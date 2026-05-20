@@ -195,14 +195,14 @@ export class EnhancedTrendsAnalyzer {
     hours: number
   ): Promise<TelemetryDataPoint[]> {
     try {
-      const { storage } = await import("../repositories");
+      const { dbTelemetryStorage } = await import("../repositories");
 
       const endTime = new Date();
       const startTime = new Date(endTime.getTime() - hours * 60 * 60 * 1000);
 
       (logger as any).info(`[Enhanced Trends] Fetching ${orgId}:${equipmentId}:${sensorType} from ${startTime.toISOString()} to ${endTime.toISOString()}`);
 
-      const readings = await (storage as any).getTelemetryHistory(
+      const readings = await (dbTelemetryStorage as any).getTelemetryHistory(
         orgId,
         equipmentId,
         sensorType,
@@ -223,9 +223,9 @@ export class EnhancedTrendsAnalyzer {
 
   private async getEquipmentSensorTypes(orgId: string, equipmentId: string): Promise<string[]> {
     try {
-      const { storage } = await import("../repositories");
+      const { dbEquipmentStorage } = await import("../repositories");
 
-      const sensorTypes = await (storage as any).getEquipmentSensorTypes(orgId, equipmentId);
+      const sensorTypes = await dbEquipmentStorage.getEquipmentSensorTypes(orgId, equipmentId);
 
       (logger as any).info(`[Enhanced Trends] Found ${sensorTypes.length} sensor types for ${orgId}:${equipmentId}:`, { details: sensorTypes });
       return sensorTypes;

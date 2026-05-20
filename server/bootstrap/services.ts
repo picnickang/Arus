@@ -234,11 +234,13 @@ export async function initializeJobQueue(): Promise<void> {
 }
 
 export async function initializeMLServices(): Promise<void> {
-  const { storage } = await import("../repositories");
+  const { dbTelemetryStorage } = await import("../repositories");
 
   logger.info("→ Initializing vessel telemetry simulator...");
   const { initVesselSimulator } = await import("../vessel-simulator");
-  initVesselSimulator(storage as unknown as Parameters<typeof initVesselSimulator>[0]);
+  initVesselSimulator(
+    dbTelemetryStorage as unknown as Parameters<typeof initVesselSimulator>[0]
+  );
   logger.info("✓ Vessel telemetry simulator initialized");
 }
 
