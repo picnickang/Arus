@@ -35,6 +35,7 @@ import { db } from "../../db";
 import { eq, and } from "drizzle-orm";
 import { equipment, workOrders, parts, stock } from "@shared/schema";
 import { createLogger } from "../../lib/structured-logger";
+import { projectEquipment, retractInstalledOn } from "../../graph/projector";
 
 const logger = createLogger("amos-import");
 
@@ -360,24 +361,82 @@ class AmosImportService {
 
     // Check if exists
     const [existing] = await db
-      .select({ id: equipment.id })
+      .select({ id: equipment.id, vesselId: equipment.vesselId })
       .from(equipment)
       .where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, orgId)))
       .limit(1);
 
+    // Task #81 — keep the knowledge graph in lockstep on AMOS bulk
+    // imports for BOTH insert AND update branches. Best-effort
+    // (no-op when GRAPH_ENABLED=false). The AMOS adapter uses
+    // top-level `db.insert/update(...)` (not tx.*), so the row is
+    // committed by the time this runs — safe to project here.
+    // projectEquipment is internally wrapped in `safe()` and never
+    // throws.
+    //
+    // Effective values come from `.returning(...)` (the persisted
+    // row), not `cleanData`. A partial import update may omit
+    // `vesselId`/`name`/`type`/`systemType`; treating omitted as
+    // `null` would cause spurious retractions of edges whose
+    // relational backing is still intact.
+    const projectAfterCommit = async (
+      persisted: {
+        id: string;
+        name: string | null;
+        type: string | null;
+        vesselId: string | null;
+        systemType: string | null;
+      },
+      priorVesselId: string | null
+    ) => {
+      if (!orgId) return;
+      if (priorVesselId && priorVesselId !== persisted.vesselId) {
+        await retractInstalledOn(orgId, persisted.id, priorVesselId);
+      }
+      await projectEquipment(orgId, {
+        id: persisted.id,
+        name: persisted.name,
+        type: persisted.type,
+        vesselId: persisted.vesselId,
+        systemType: persisted.systemType,
+      });
+    };
+
     if (existing) {
-      await db
+      const [updatedRow] = await db
         .update(equipment)
         .set({ ...cleanData, updatedAt: new Date() })
-        .where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, orgId)));
+        .where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, orgId)))
+        .returning({
+          id: equipment.id,
+          name: equipment.name,
+          type: equipment.type,
+          vesselId: equipment.vesselId,
+          systemType: equipment.systemType,
+        });
+      if (updatedRow) {
+        await projectAfterCommit(updatedRow, existing.vesselId ?? null);
+      }
       return "updated";
     }
 
-    await db.insert(equipment).values({
-      ...cleanData,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as any);
+    const [insertedRow] = await db
+      .insert(equipment)
+      .values({
+        ...cleanData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any)
+      .returning({
+        id: equipment.id,
+        name: equipment.name,
+        type: equipment.type,
+        vesselId: equipment.vesselId,
+        systemType: equipment.systemType,
+      });
+    if (insertedRow) {
+      await projectAfterCommit(insertedRow, null);
+    }
     return "inserted";
   }
 

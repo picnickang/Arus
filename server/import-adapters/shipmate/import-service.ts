@@ -64,6 +64,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { equipment, workOrders, parts, stock, vessels } from "@shared/schema";
 import { importManifest } from "@shared/schema";
 import { createLogger } from "../../lib/structured-logger";
+import { projectEquipment, retractInstalledOn } from "../../graph/projector";
 
 const logger = createLogger("shipmate-import");
 
@@ -209,6 +210,20 @@ async function resolveVesselId(
 // SHIPMATE Import Service
 // ============================================================================
 
+interface PendingEquipmentProjection {
+  orgId: string;
+  id: string;
+  name: string | null;
+  type: string | null;
+  vesselId: string | null;
+  systemType: string | null;
+  // Task #81 — prior vesselId for INSTALLED_ON retraction on update
+  // paths. `null` (insert) or `same as vesselId` (no change) means
+  // no retraction; otherwise the drainer retracts the stale edge
+  // before re-projecting.
+  priorVesselId: string | null;
+}
+
 class ShipmateImportService {
   async importFile(
     orgId: string,
@@ -216,6 +231,12 @@ class ShipmateImportService {
     options: ShipmateImportOptions
   ): Promise<ShipmateImportResult> {
     const startTime = Date.now();
+    // Task #81 — Equipment snapshots captured INSIDE the import
+    // transaction and drained ONLY after the tx commits, so a
+    // rollback never leaks projector writes into the graph.
+    // Request-scoped (local `const`) so overlapping `importFile()`
+    // calls on the singleton service cannot bleed/race each other.
+    const pendingEquipmentProjections: PendingEquipmentProjection[] = [];
 
     logger.info("Starting SHIPMATE import", {
       orgId,
@@ -355,7 +376,13 @@ class ShipmateImportService {
         // Upsert each valid row within the same transaction.
         for (const row of validRows) {
           try {
-            const result = await this.upsertRow(tx as any, orgId, options.module, row.data);
+            const result = await this.upsertRow(
+              tx as any,
+              orgId,
+              options.module,
+              row.data,
+              pendingEquipmentProjections
+            );
             if (result === "inserted") {
               imported++;
             } else if (result === "updated") {
@@ -395,7 +422,34 @@ class ShipmateImportService {
           })
           .where(eq(importManifest.id, manifestId));
       });
+      // Task #81 — tx committed cleanly; drain equipment projections.
+      // Best-effort per item; projectEquipment is internally wrapped
+      // in `safe()` and never throws. Running here (after the await
+      // resolves) guarantees the graph only sees committed rows.
+      // `pendingEquipmentProjections` is request-scoped (local), so
+      // a rollback in another concurrent import does not affect this
+      // drain (and vice versa).
+      if (pendingEquipmentProjections.length > 0) {
+        await Promise.all(
+          pendingEquipmentProjections.map(async (p) => {
+            // Retract stale INSTALLED_ON when vessel changed on update.
+            if (p.priorVesselId && p.priorVesselId !== p.vesselId) {
+              await retractInstalledOn(p.orgId, p.id, p.priorVesselId);
+            }
+            await projectEquipment(p.orgId, {
+              id: p.id,
+              name: p.name,
+              type: p.type,
+              vesselId: p.vesselId,
+              systemType: p.systemType,
+            });
+          })
+        );
+      }
     } catch (txError) {
+      // tx rolled back: nothing in `pendingEquipmentProjections` is
+      // committed — discard by letting the local list fall out of
+      // scope (no projection runs).
       // Transaction rolled back. Record a terminal manifest row OUTSIDE
       // the rolled-back transaction so the operator can see the attempt.
       // Use a separate insert (not update), since the running row was
@@ -535,11 +589,12 @@ class ShipmateImportService {
     tx: typeof db,
     orgId: string,
     module: ShipmateModuleType,
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
+    pendingEquipmentProjections: PendingEquipmentProjection[]
   ): Promise<"inserted" | "updated" | "skipped"> {
     switch (module) {
       case "pms_equipment":
-        return this.upsertEquipment(tx, orgId, data);
+        return this.upsertEquipment(tx, orgId, data, pendingEquipmentProjections);
       case "pms_jobs":
         return this.upsertJob(tx, orgId, data);
       case "sps_stores":
@@ -559,7 +614,8 @@ class ShipmateImportService {
   private async upsertEquipment(
     tx: typeof db,
     orgId: string,
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
+    pendingEquipmentProjections: PendingEquipmentProjection[]
   ): Promise<"inserted" | "updated" | "skipped"> {
     const specifications: Record<string, unknown> = {};
     const cleanData: Record<string, unknown> = {};
@@ -587,24 +643,82 @@ class ShipmateImportService {
     }
 
     const [existing] = await tx
-      .select({ id: equipment.id })
+      .select({ id: equipment.id, vesselId: equipment.vesselId })
       .from(equipment)
       .where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, orgId)))
       .limit(1);
 
+    // Task #81 — Capture an equipment snapshot for post-commit graph
+    // projection (both insert and update branches). We MUST NOT call
+    // projectEquipment here: this method runs inside
+    // `db.transaction(...)`, and firing pre-commit (even via
+    // queueMicrotask) risks the graph leading relational truth when
+    // the surrounding tx rolls back. `pendingEquipmentProjections`
+    // is drained by `importFile` after the tx commits successfully.
+    //
+    // Effective field values are taken from the row that was actually
+    // persisted (`.returning(...)`), NOT from `cleanData`. A partial
+    // import update may omit `vesselId`/`name`/`type`/`systemType`,
+    // and treating an omitted field as `null` would cause spurious
+    // retractions (e.g. `INSTALLED_ON` would be torn down even though
+    // the relational vessel assignment was unchanged).
+    const enqueueProjection = (
+      persisted: {
+        id: string;
+        name: string | null;
+        type: string | null;
+        vesselId: string | null;
+        systemType: string | null;
+      },
+      priorVesselId: string | null
+    ) => {
+      if (!orgId) return;
+      pendingEquipmentProjections.push({
+        orgId,
+        id: persisted.id,
+        name: persisted.name,
+        type: persisted.type,
+        vesselId: persisted.vesselId,
+        systemType: persisted.systemType,
+        priorVesselId,
+      });
+    };
+
     if (existing) {
-      await tx
+      const [updatedRow] = await tx
         .update(equipment)
         .set({ ...cleanData, updatedAt: new Date() })
-        .where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, orgId)));
+        .where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, orgId)))
+        .returning({
+          id: equipment.id,
+          name: equipment.name,
+          type: equipment.type,
+          vesselId: equipment.vesselId,
+          systemType: equipment.systemType,
+        });
+      if (updatedRow) {
+        enqueueProjection(updatedRow, existing.vesselId ?? null);
+      }
       return "updated";
     }
 
-    await tx.insert(equipment).values({
-      ...cleanData,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as any);
+    const [insertedRow] = await tx
+      .insert(equipment)
+      .values({
+        ...cleanData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any)
+      .returning({
+        id: equipment.id,
+        name: equipment.name,
+        type: equipment.type,
+        vesselId: equipment.vesselId,
+        systemType: equipment.systemType,
+      });
+    if (insertedRow) {
+      enqueueProjection(insertedRow, null);
+    }
     return "inserted";
   }
 

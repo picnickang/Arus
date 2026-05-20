@@ -72,7 +72,7 @@ import { DbStockStorage } from "./db-stock.js";
  * edge is populated on live writes — backfill is no longer the only
  * path that produces supplier linkage.
  */
-interface PendingMovementProjection {
+export interface PendingMovementProjection {
   movementId: string;
   partId: string;
   workOrderId: string | null | undefined;
@@ -85,6 +85,13 @@ interface PendingMovementProjection {
    * pass).
    */
   movementType: string;
+}
+
+export async function fireInventoryMovementProjections(
+  orgId: string,
+  pending: PendingMovementProjection[]
+): Promise<void> {
+  return fireProjectionsAfterCommit(orgId, pending);
 }
 
 async function fireProjectionsAfterCommit(

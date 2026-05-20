@@ -37,6 +37,7 @@ import type {
 } from "@shared/schema";
 import type { EquipmentHealthFilters, EquipmentHealth } from "./types.js";
 import { getWebSocketServer } from "./websocket.js";
+import { projectEquipment, retractInstalledOn } from "../../graph/projector";
 
 export class DatabaseEquipmentStorage {
   private validateOrgId(orgId: string | undefined, method: string): void {
@@ -97,7 +98,6 @@ export class DatabaseEquipmentStorage {
     // Failures are logged at warn level (with orgId/equipmentId) so
     // graph drift is observable, not silent.
     try {
-      const { projectEquipment } = await import("../../graph/projector.js");
       if (!newEquipment.orgId) throw new Error("missing orgId");
       await projectEquipment(newEquipment.orgId, {
         id: newEquipment.id,
@@ -133,6 +133,22 @@ export class DatabaseEquipmentStorage {
     if (orgId) {
       conditions.push(eq(equipment.orgId, orgId));
     }
+    // Task #81 — Capture the prior vesselId so we can retract the
+    // stale INSTALLED_ON edge if vessel assignment changes. Read
+    // before the UPDATE so the comparison is against the row that
+    // was actually in the graph at projection-time. Best-effort —
+    // if this fails, we still attempt the (additive) re-projection.
+    let priorVesselId: string | null = null;
+    try {
+      const [prior] = await db
+        .select({ vesselId: equipment.vesselId })
+        .from(equipment)
+        .where(and(...conditions))
+        .limit(1);
+      priorVesselId = prior?.vesselId ?? null;
+    } catch {
+      priorVesselId = null;
+    }
     const updateData = { ...equipmentData };
     if (equipmentData.vesselId !== undefined) {
       if (equipmentData.vesselId && equipmentData.vesselId !== "unassigned") {
@@ -159,6 +175,39 @@ export class DatabaseEquipmentStorage {
       .returning();
     if (!updated) {
       throw new Error(`Equipment ${id} not found`);
+    }
+    // Task #81 — re-project on update so the graph stays in lockstep
+    // with the live row. vesselId/type/name may have changed, which
+    // would otherwise leave a stale INSTALLED_ON edge or label.
+    // MERGE-keyed on id, so re-projection is idempotent. Best-effort
+    // by contract; never blocks the relational write.
+    //
+    // If vesselId moved (reassigned or cleared), retract the stale
+    // INSTALLED_ON edge first — projectEquipment only ADDS the new
+    // edge, so without retraction the equipment would appear
+    // simultaneously installed on both vessels (graph diverges from
+    // relational truth, which only stores one vesselId).
+    try {
+      if (updated.orgId) {
+        if (
+          priorVesselId &&
+          priorVesselId !== updated.vesselId
+        ) {
+          await retractInstalledOn(updated.orgId, updated.id, priorVesselId);
+        }
+        await projectEquipment(updated.orgId, {
+          id: updated.id,
+          name: updated.name,
+          type: updated.type,
+          vesselId: updated.vesselId,
+          systemType: updated.systemType,
+        });
+      }
+    } catch (err) {
+      logger.warn(`[Graph] projectEquipment(${updated.id}) on update failed`, {
+        orgId: updated.orgId,
+        details: err instanceof Error ? err.message : String(err),
+      });
     }
     const ws = getWebSocketServer();
     ws?.broadcastEquipmentChange("update", updated);
@@ -252,15 +301,50 @@ export class DatabaseEquipmentStorage {
     if (!vessel) {
       throw new Error(`Vessel ${vesselId} not found`);
     }
+    const priorVesselId = existing.vesselId;
     const [updated] = await db
       .update(equipment)
       .set({ vesselId, vesselName: vessel.name, updatedAt: new Date() })
       .where(eq(equipment.id, equipmentId))
       .returning();
+    // Task #81 — keep graph INSTALLED_ON edge in lockstep. Retract
+    // the old edge first (projectEquipment only ADDs), then re-project.
+    // Best-effort; never blocks the relational write.
+    try {
+      if (priorVesselId && priorVesselId !== vesselId) {
+        await retractInstalledOn(orgId, equipmentId, priorVesselId);
+      }
+      await projectEquipment(orgId, {
+        id: updated.id,
+        name: updated.name,
+        type: updated.type,
+        vesselId: updated.vesselId,
+        systemType: updated.systemType,
+      });
+    } catch (err) {
+      logger.warn(
+        `[Graph] projectEquipment(${equipmentId}) on associate failed`,
+        { orgId, details: err instanceof Error ? err.message : String(err) }
+      );
+    }
     return updated;
   }
   async disassociateEquipmentFromVessel(equipmentId: string, orgId: string): Promise<void> {
     this.validateOrgId(orgId, "disassociateEquipmentFromVessel");
+    // Read prior vesselId before clearing so we can retract the
+    // INSTALLED_ON edge (the post-update row has vesselId=null and
+    // would give the projector nothing to act on).
+    let priorVesselId: string | null = null;
+    try {
+      const [prior] = await db
+        .select({ vesselId: equipment.vesselId })
+        .from(equipment)
+        .where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, orgId)))
+        .limit(1);
+      priorVesselId = prior?.vesselId ?? null;
+    } catch {
+      priorVesselId = null;
+    }
     const [result] = await db
       .update(equipment)
       .set({ vesselId: null, vesselName: null, updatedAt: new Date() })
@@ -268,6 +352,17 @@ export class DatabaseEquipmentStorage {
       .returning();
     if (!result) {
       throw new Error(`Equipment ${equipmentId} not found`);
+    }
+    // Task #81 — retract stale INSTALLED_ON edge. Best-effort.
+    if (priorVesselId) {
+      try {
+        await retractInstalledOn(orgId, equipmentId, priorVesselId);
+      } catch (err) {
+        logger.warn(
+          `[Graph] retractInstalledOn(${equipmentId}) on disassociate failed`,
+          { orgId, details: err instanceof Error ? err.message : String(err) }
+        );
+      }
     }
   }
 

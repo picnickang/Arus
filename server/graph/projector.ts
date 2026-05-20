@@ -189,6 +189,37 @@ export async function projectDependency(
 }
 
 /**
+ * Inverse half of `projectEquipment`'s INSTALLED_ON edge — used when
+ * an equipment row's `vesselId` changes (or is cleared) so the graph
+ * does not retain a stale installation edge alongside the new one.
+ * Best-effort, never throws.
+ */
+export async function retractInstalledOn(
+  orgId: string,
+  equipmentId: string,
+  vesselId: string
+): Promise<void> {
+  if (!isGraphAvailable()) return;
+  await safe(async () => {
+    const ok = await deleteEdge(
+      orgId,
+      NodeLabel.Equipment,
+      equipmentId,
+      EdgeType.InstalledOn,
+      NodeLabel.Vessel,
+      vesselId
+    );
+    if (!ok) {
+      logger.warn("[GraphProjector] INSTALLED_ON delete returned not-ok", {
+        equipmentId,
+        vesselId,
+        orgId,
+      });
+    }
+  }, `retractInstalledOn(${equipmentId}→${vesselId})`);
+}
+
+/**
  * Inverse of `projectDependency` — used when the admin removes the
  * relational row so the graph no longer reports a stale blast-radius
  * edge. Best-effort, never throws (matches projectDependency contract).

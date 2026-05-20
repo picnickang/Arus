@@ -30,6 +30,11 @@ import type {
 import { publishEvent } from "../../sync-events.js";
 import { dbWorkOrderStorage } from "../../db/workorders/index.js";
 import { dbInventoryStorage } from "../../db/inventory/index.js";
+import {
+  fireInventoryMovementProjections,
+  type PendingMovementProjection,
+} from "../../db/inventory/index.js";
+import { randomUUID } from "node:crypto";
 import { getWebSocketServer } from "../../websocket-server";
 import { ilike } from "../../utils/sql-compat";
 export interface WorkOrderFilters {
@@ -675,7 +680,12 @@ class WorkOrderService {
   ): Promise<WorkOrderCompletion> {
     const { workOrderCompletions } = await import("@shared/schema-runtime");
     const now = new Date();
-    return db.transaction(async (tx) => {
+    // Task #81 — Capture inventoryMovement ids inside the transaction
+    // so we can project them into the knowledge graph AFTER commit.
+    // Same post-commit pattern used by dbInventoryStorage (avoids the
+    // graph leading relational truth on rollback).
+    const pendingProjections: PendingMovementProjection[] = [];
+    const completion = await db.transaction(async (tx) => {
       const completionDataExt = completionData as InsertWorkOrderCompletion & {
         downtimeCostPerHour?: number | null;
         totalCost?: number | null;
@@ -732,9 +742,11 @@ class WorkOrderService {
               .update(stock)
               .set({ quantityOnHand: newOnHand, quantityReserved: newReserved, updatedAt: now })
               .where(eq(stock.id, row.id));
+            const movementId = randomUUID();
             await tx
               .insert(inventoryMovements)
               .values({
+                id: movementId,
                 orgId: completionData.orgId,
                 partId,
                 workOrderId,
@@ -747,12 +759,26 @@ class WorkOrderService {
                 performedBy: completionData.completedBy || "system",
                 notes: `Consumed during work order completion: ${updatedWorkOrder.woNumber || workOrderId} (stock ${row.id})`,
               });
+            pendingProjections.push({
+              movementId,
+              partId,
+              workOrderId,
+              movementType: "consume",
+            });
             remaining -= toConsume;
           }
         }
       }
       return completion;
     });
+    // Task #81 — fire graph projections post-commit. Best-effort by
+    // contract; logged at warn level inside the helper if the graph
+    // is unreachable. Awaiting here is fine — the helper is
+    // short-circuit on empty input and on GRAPH_ENABLED=false.
+    if (pendingProjections.length > 0 && completionData.orgId) {
+      await fireInventoryMovementProjections(completionData.orgId, pendingProjections);
+    }
+    return completion;
   }
 
   async getWorkOrderCompletionAnalytics(filters?: {
