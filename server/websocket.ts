@@ -16,6 +16,7 @@ import {
   SYSTEM_ORG_ID,
   compareEventIds,
   getFanoutBus,
+  isTenantStrictModeEnabled,
 } from "./websocket-fanout";
 
 // Simple logger utility (replaces vite.ts log to avoid bundling vite in production)
@@ -327,8 +328,15 @@ class TelemetryWebSocketServer {
         } else if (typeof message.lastEventId === "string" && message.lastEventId.length > 0) {
           cursors[client.orgId] = message.lastEventId;
         }
+        // Task 91: in strict mode we never wire the SYSTEM_ORG_ID
+        // bypass for tenant clients — replay cursors follow suit.
+        const strict = isTenantStrictModeEnabled();
         const namespaces =
-          client.orgId === SYSTEM_ORG_ID ? [SYSTEM_ORG_ID] : [client.orgId, SYSTEM_ORG_ID];
+          client.orgId === SYSTEM_ORG_ID
+            ? [SYSTEM_ORG_ID]
+            : strict
+              ? [client.orgId]
+              : [client.orgId, SYSTEM_ORG_ID];
 
         const isFreshSubscription = !client.subscriptions.has(channel);
         if (isFreshSubscription) {
@@ -370,10 +378,10 @@ class TelemetryWebSocketServer {
       unsubscribe: () => {
         if (!message.channel) return;
         if (client.subscriptions.delete(message.channel)) {
-          for (const orgId of [client.orgId, SYSTEM_ORG_ID]) {
-            client.delivery.delete(deliveryKey(orgId, message.channel));
-          }
-          this.releaseClientFanoutSubs(client, message.channel);
+          const channel = message.channel;
+          client.delivery.delete(deliveryKey(client.orgId, channel));
+          client.delivery.delete(deliveryKey(SYSTEM_ORG_ID, channel));
+          this.releaseClientFanoutSubs(client, channel);
         }
         log(`Client ${client.id} unsubscribed from ${message.channel}`);
       },
@@ -420,14 +428,18 @@ class TelemetryWebSocketServer {
    *  here will enforce strict tenant isolation at the WS substrate. */
   private acquireClientFanoutSubs(client: WebSocketClient, channel: string): void {
     this.acquireFanoutSub(client.orgId, channel);
-    if (client.orgId !== SYSTEM_ORG_ID) {
+    // Task 91: in strict mode the legacy SYSTEM_ORG_ID bypass is
+    // disabled — clients only ever subscribe to their own tenant
+    // namespace, so cross-tenant leakage is impossible at the
+    // substrate layer regardless of what callers try to publish.
+    if (client.orgId !== SYSTEM_ORG_ID && !isTenantStrictModeEnabled()) {
       this.acquireFanoutSub(SYSTEM_ORG_ID, channel);
     }
   }
 
   private releaseClientFanoutSubs(client: WebSocketClient, channel: string): void {
     this.releaseFanoutSub(client.orgId, channel);
-    if (client.orgId !== SYSTEM_ORG_ID) {
+    if (client.orgId !== SYSTEM_ORG_ID && !isTenantStrictModeEnabled()) {
       this.releaseFanoutSub(SYSTEM_ORG_ID, channel);
     }
   }
@@ -451,6 +463,14 @@ class TelemetryWebSocketServer {
    *  contract — without it, a live event published during replay would
    *  arrive twice (once live, once via replay). */
   private onFanoutEvent(event: FanoutEvent): void {
+    // Task 91: defence-in-depth — in strict mode no client socket
+    // ever receives a SYSTEM_ORG_ID event, even if a stray publisher
+    // or a peer node managed to put one onto the bus. The subscribe
+    // path already avoids wiring the legacy namespace; this is the
+    // belt-and-braces drop at delivery time.
+    if (event.orgId === SYSTEM_ORG_ID && isTenantStrictModeEnabled()) {
+      return;
+    }
     this.clients.forEach((client) => {
       // A client receives events for its own tenant AND for the global
       // SYSTEM_ORG_ID namespace (where legacy broadcasts still land).
@@ -552,12 +572,28 @@ class TelemetryWebSocketServer {
     }
   }
 
-  public broadcast(channel: string, data: BroadcastPayload) {
+  public broadcast(channel: string, data: BroadcastPayload, orgId?: string) {
     // Publish via fan-out — for in-process this is sub-ms and dispatches
     // straight back into `onFanoutEvent` for local delivery; for Redis
     // it also reaches sibling Node instances. Either way the client-
     // visible frame is the same, only with an added `eventId`.
-    void this.fanout.publish(channel, data, SYSTEM_ORG_ID).catch((err) => {
+    //
+    // Task 91: legacy `broadcast(channel, data)` call sites default to
+    // SYSTEM_ORG_ID. In strict mode that bypass is disabled: we log a
+    // warning with a stack reference so the offending site can be
+    // re-targeted to a real tenant org, and drop the event rather than
+    // leak it across tenants. Pass an explicit `orgId` to address a
+    // specific tenant — those publishes are unaffected by strict mode.
+    const resolvedOrgId = orgId ?? SYSTEM_ORG_ID;
+    if (resolvedOrgId === SYSTEM_ORG_ID && isTenantStrictModeEnabled()) {
+      const stack = new Error("broadcast dropped").stack ?? "(no stack)";
+      logger.warn("WS_TENANT_STRICT_MODE dropped SYSTEM_ORG_ID broadcast", {
+        channel,
+        stack,
+      });
+      return;
+    }
+    void this.fanout.publish(channel, data, resolvedOrgId).catch((err) => {
       log(`fanout publish failed: ${err}`);
     });
   }

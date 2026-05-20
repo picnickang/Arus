@@ -42,6 +42,24 @@ export const SYSTEM_ORG_ID = "__system__";
 /** 5-minute replay window — explicit per ADR 002. */
 export const REPLAY_WINDOW_MS = 5 * 60 * 1000;
 
+/** Task 91 — multi-tenant WebSocket isolation across multiple servers.
+ *
+ *  When strict mode is on, the WS substrate refuses to deliver any
+ *  event with `orgId === SYSTEM_ORG_ID` to client sockets. Callers
+ *  that try to publish on the SYSTEM namespace get a warning + stack
+ *  reference instead of a silent cross-tenant broadcast.
+ *
+ *  Default off (so legacy single-tenant + dev deploys keep working);
+ *  set `WS_TENANT_STRICT_MODE=true` in production multi-server deploys
+ *  to enforce per-tenant addressing. The env var is read at call time
+ *  rather than module load so tests can toggle it. */
+export function isTenantStrictModeEnabled(): boolean {
+  const raw = process.env.WS_TENANT_STRICT_MODE;
+  if (!raw) return false;
+  const normalised = raw.trim().toLowerCase();
+  return normalised === "1" || normalised === "true" || normalised === "yes" || normalised === "on";
+}
+
 export interface FanoutEvent {
   /** Monotonic across (orgId, channel). Format mirrors Redis Streams
    *  IDs: `<unix-ms>-<seq>` so they sort lexicographically and round-
