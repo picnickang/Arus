@@ -15,6 +15,35 @@ import {
   setLastSyncTime,
   type PendingOperation,
 } from "@/lib/offline-sync";
+import {
+  formatQuotaExceededMessage,
+  inspectQuotaWarning,
+  notifyQuotaExceeded,
+  parseQuotaExceeded,
+} from "@/lib/tenant-quota-notifications";
+
+export class TenantQuotaExceededError extends Error {
+  readonly status = 429;
+  readonly code = "TENANT_QUOTA_EXCEEDED";
+  readonly metric: string;
+  readonly retryAfterSeconds: number;
+  readonly limit?: number;
+  readonly used?: number;
+
+  constructor(info: {
+    metric: string;
+    retryAfterSeconds: number;
+    limit?: number;
+    used?: number;
+  }) {
+    super(formatQuotaExceededMessage(info));
+    this.name = "TenantQuotaExceededError";
+    this.metric = info.metric;
+    this.retryAfterSeconds = info.retryAfterSeconds;
+    this.limit = info.limit;
+    this.used = info.used;
+  }
+}
 
 export function resolveUrl(url: string): string {
   if (url.startsWith("http://") || url.startsWith("https://")) {
@@ -33,24 +62,45 @@ async function throwIfResNotOk(res: Response) {
     const text = (await res.text()) || res.statusText;
     const statusPrefix = `${res.status}`;
 
-    let errorData;
+    let errorData: unknown;
     try {
       errorData = JSON.parse(text);
     } catch {
+      if (res.status === 429) {
+        const exceeded = parseQuotaExceeded(res, undefined);
+        if (exceeded) {
+          notifyQuotaExceeded(exceeded);
+          throw new TenantQuotaExceededError(exceeded);
+        }
+      }
       throw new Error(`${statusPrefix}: ${text || res.statusText}`);
     }
 
-    if (errorData.errors && Array.isArray(errorData.errors)) {
-      const fieldErrors = errorData.errors
+    if (res.status === 429) {
+      const exceeded = parseQuotaExceeded(res, errorData);
+      if (exceeded) {
+        notifyQuotaExceeded(exceeded);
+        throw new TenantQuotaExceededError(exceeded);
+      }
+    }
+
+    const errorObj = (errorData ?? {}) as {
+      errors?: { path?: string[]; message: string }[];
+      message?: string;
+      error?: string;
+    };
+
+    if (errorObj.errors && Array.isArray(errorObj.errors)) {
+      const fieldErrors = errorObj.errors
         .map(
-          (err: { path?: string[]; message: string }) =>
+          (err) =>
             `${err.path?.join(".") || "Field"}: ${err.message}`
         )
         .join(", ");
-      throw new Error(`${statusPrefix}: ${fieldErrors || errorData.message || text}`);
+      throw new Error(`${statusPrefix}: ${fieldErrors || errorObj.message || text}`);
     }
 
-    const message = errorData.message || errorData.error || text || res.statusText;
+    const message = errorObj.message || errorObj.error || text || res.statusText;
     throw new Error(`${statusPrefix}: ${message}`);
   }
 }
@@ -172,6 +222,7 @@ export async function apiRequest<T = unknown>(
     throw error;
   }
 
+  inspectQuotaWarning(res);
   await throwIfResNotOk(res);
 
   if (res.status === 204) {
@@ -227,6 +278,7 @@ export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryF
       return null;
     }
 
+    inspectQuotaWarning(res);
     await throwIfResNotOk(res);
     const result = await res.json();
 
@@ -324,6 +376,24 @@ export async function replayQueuedApiRequests(): Promise<{
         body: op.request.method === "DELETE" ? undefined : JSON.stringify(payload),
         credentials: "include",
       });
+
+      inspectQuotaWarning(response);
+
+      if (response.status === 429) {
+        let body: unknown;
+        try {
+          body = await response.clone().json();
+        } catch {
+          body = undefined;
+        }
+        const exceeded = parseQuotaExceeded(response, body);
+        if (exceeded) {
+          notifyQuotaExceeded(exceeded);
+          await markOperationFailed(op.id, formatQuotaExceededMessage(exceeded));
+          failed++;
+          continue;
+        }
+      }
 
       if (response.status === 409 || response.status === 412) {
         let serverVersion: Record<string, unknown> = {};
