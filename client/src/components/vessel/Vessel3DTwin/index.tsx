@@ -33,13 +33,12 @@ export interface Vessel3DTwinProps {
   highlightedEquipmentIds?: string[]; // dependency-overlay tint
   onSelectEquipment?: (equipmentId: string) => void;
   /**
-   * #112 — admin placement mode. When true, a left-click raycasts
-   * against the loaded GLB mesh (NOT the pin sprites) and fires
-   * `onPlaceAt` with the world-space hit point. Pin-select fires are
-   * suppressed in this mode so the admin can place an existing pin
-   * over an existing pin without selecting it. The mode itself is
-   * controlled by the parent so the admin UI can arm a specific pin
-   * before clicking and disarm after.
+   * Admin placement mode. When true, a left-click raycasts against
+   * the loaded GLB mesh (NOT the pin sprites) and fires `onPlaceAt`
+   * with the world-space hit point. Pin-select fires are suppressed
+   * in this mode so the admin can place a pin on top of an existing
+   * one. The mode itself is controlled by the parent so the admin UI
+   * can arm a specific pin before clicking and disarm after.
    */
   placementMode?: boolean;
   onPlaceAt?: (point: { x: number; y: number; z: number }) => void;
@@ -302,7 +301,11 @@ export default function Vessel3DTwin({
 
   return (
     <div className="relative w-full h-full min-h-[500px]" data-testid="vessel-3d-viewer">
-      <div ref={mountRef} className="w-full h-full" />
+      <div
+        ref={mountRef}
+        className="w-full h-full"
+        style={placementMode ? { cursor: "crosshair" } : undefined}
+      />
       {status === "loading" && (
         <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
           Loading 3D model…

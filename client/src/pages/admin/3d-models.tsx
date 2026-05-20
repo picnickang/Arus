@@ -638,10 +638,15 @@ function PinEditor({
   const removePin = (i: number) => {
     setPins((prev) => prev.filter((_, idx) => idx !== i));
     setDirty(true);
-    // If the removed row was the placement target, disarm.
-    setPlacement((arm) =>
-      arm?.mode === "move" && arm.targetIdx === i ? null : arm
-    );
+    // If the removed row was the placement target, disarm; if a later
+    // row was the target, shift its index down so we still point at the
+    // right pin after the splice.
+    setPlacement((arm) => {
+      if (arm?.mode !== "move") return arm;
+      if (arm.targetIdx === i) return null;
+      if (arm.targetIdx > i) return { mode: "move", targetIdx: arm.targetIdx - 1 };
+      return arm;
+    });
   };
 
   /** Arm "Add via 3D click" mode; the next model click creates a pin. */
@@ -667,8 +672,6 @@ function PinEditor({
     if (placement.mode === "add") {
       setPins((prev) => [...prev, { equipmentId: "", ...next }]);
       setDirty(true);
-      // After adding, arm "move" on the new row so the admin can
-      // immediately re-place it if the first hit was off.
       setPlacement(null);
     } else {
       setPins((prev) =>
