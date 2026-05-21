@@ -1,0 +1,23 @@
+{
+  "$note": "Allowlist for scripts/check-zod-escape-hatches.mjs. Each entry: { file: <repo-rel path>, pattern: <one of: passthrough|catchall-any|catchall-unknown|z.any|z.unknown>, reason: <why this instance is justified, including the burndown task that will eliminate it> }. Net direction is monotonic-shrink: tasks #164–#167 remove entries as the underlying schemas are tightened. New hits outside this allowlist fail CI immediately.",
+  "entries": [
+    { "file": "shared/analytics-types/export.ts",                                            "pattern": "z.unknown",    "reason": "pre-existing — generic analytics export envelope; tighten in #164 (shared/)" },
+    { "file": "shared/analytics-types/generic.ts",                                            "pattern": "z.unknown",    "reason": "pre-existing — generic analytics envelope; tighten in #164 (shared/)" },
+    { "file": "shared/analytics-types/ml-models.ts",                                          "pattern": "z.unknown",    "reason": "pre-existing — generic ml-model metadata field; tighten in #164 (shared/)" },
+    { "file": "shared/schema/sensors.ts",                                                     "pattern": "z.any",        "reason": "pre-existing — sensor metadata blob; tighten in #164 (shared/)" },
+    { "file": "shared/validation/ml.ts",                                                      "pattern": "z.unknown",    "reason": "pre-existing — 3 instances in ML validation envelopes; tighten in #164 (shared/)" },
+    { "file": "shared/validation/sensors.ts",                                                 "pattern": "z.unknown",    "reason": "pre-existing — sensor validation envelope; tighten in #164 (shared/)" },
+    { "file": "server/beast/config-routes.ts",                                                "pattern": "z.any",        "reason": "pre-existing — beast config schema; tighten in #166 (server services/routes)" },
+    { "file": "server/compliance/routes/audit-routes.ts",                                     "pattern": "z.unknown",    "reason": "pre-existing — 3 instances in audit query schemas; tighten in #166 (server services/routes)" },
+    { "file": "server/compliance/routes/ml-governance-routes.ts",                             "pattern": "z.unknown",    "reason": "pre-existing — ml-governance route schema; tighten in #166 (server services/routes)" },
+    { "file": "server/domains/agent/interfaces/routes/finding-records-routes.ts",             "pattern": "z.unknown",    "reason": "pre-existing — agent finding-records route; tighten in #165 (server/domains)" },
+    { "file": "server/domains/logbook/correction-routes.ts",                                  "pattern": "z.unknown",    "reason": "pre-existing — logbook correction payload; tighten in #165 (server/domains)" },
+    { "file": "server/domains/pdm-platform/training-pipeline/routes.ts",                      "pattern": "z.unknown",    "reason": "pre-existing — 4 instances in ML training-pipeline routes; tighten in #165 (server/domains)" },
+    { "file": "server/domains/permissions/response-schemas.ts",                               "pattern": "passthrough",  "reason": "pre-existing — 9 instances in permissions response envelopes; tighten in #165 (server/domains)" },
+    { "file": "server/domains/permissions/response-schemas.ts",                               "pattern": "z.unknown",    "reason": "pre-existing — 5 instances in permissions response envelopes; tighten in #165 (server/domains)" },
+    { "file": "server/domains/rms/routes.ts",                                                 "pattern": "z.any",        "reason": "pre-existing — rms route payload; tighten in #165 (server/domains)" },
+    { "file": "server/domains/workflow/operator-experience/interfaces/routes.ts",             "pattern": "z.unknown",    "reason": "pre-existing — operator-experience route; tighten in #165 (server/domains)" },
+    { "file": "server/pdm/domain/response-schemas.ts",                                        "pattern": "passthrough",  "reason": "pre-existing — pdm response envelope; tighten in #165 (server/domains)" },
+    { "file": "server/shared/validators.ts",                                                  "pattern": "z.unknown",    "reason": "pre-existing — 3 instances in shared validator helpers; tighten in #166 (server services/routes)" }
+  ]
+}

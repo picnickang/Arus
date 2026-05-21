@@ -1,0 +1,31 @@
+{
+  "$note": "Inventory of hand-written `.d.ts` shims under client/src/types/, server/types/, shared/types/. Every entry must be `ok: true`. New shims that aren't backed by a published dep OR a paired Zod schema will fail check-dts-shims.mjs.",
+  "generatedAt": "2026-05-21T06:54:51.582Z",
+  "shims": [
+    {
+      "file": "client/src/types/speech.d.ts",
+      "ok": true,
+      "reason": "ambient declarations for browser/standard Web APIs"
+    },
+    {
+      "file": "server/types/express.d.ts",
+      "ok": true,
+      "reason": "augments published package namespace(s): Express"
+    },
+    {
+      "file": "server/types/fft-js.d.ts",
+      "ok": true,
+      "reason": "declares published package(s)"
+    },
+    {
+      "file": "server/types/google-cloud-storage.d.ts",
+      "ok": true,
+      "reason": "declares published package(s)"
+    },
+    {
+      "file": "server/types/javascript-lp-solver.d.ts",
+      "ok": true,
+      "reason": "declares published package(s)"
+    }
+  ]
+}
