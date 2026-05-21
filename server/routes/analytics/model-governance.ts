@@ -39,7 +39,7 @@ export function mountModelGovernanceRoutes(router: Router) {
             filters.push(eq(mlModels.type, modelType as string));
           }
           if (status) {
-            filters.push(eq(mlModels.status, status as any));
+            filters.push(eq(mlModels.status, String(status)));
           }
           const models = await db
             .select()
@@ -157,12 +157,28 @@ export function mountModelGovernanceRoutes(router: Router) {
       const response = await cachedAnalytics<any>(
         cacheKey,
         async () => {
-          const validations = await db
-            .select()
+          // Aggregate per-validation accuracy (real column on
+          // model_performance_validations) joined with the model row to
+          // expose precision/recall/f1 from ml_models. The legacy
+          // implementation referenced accuracy/precision/recall/f1Score
+          // on modelPerformanceValidations which do not exist on that
+          // table — those numerics live on ml_models.
+          const summary = await db
+            .select({
+              modelId: modelPerformanceValidations.modelId,
+              modelType: mlModels.type,
+              avgAccuracy: sql<number>`COALESCE(AVG(${modelPerformanceValidations.accuracyScore}), 0)`,
+              avgPrecision: sql<number>`COALESCE(MAX(${mlModels.precision}), 0)`,
+              avgRecall: sql<number>`COALESCE(MAX(${mlModels.recall}), 0)`,
+              avgF1Score: sql<number>`COALESCE(MAX(${mlModels.f1Score}), 0)`,
+              totalValidations: sql<number>`COUNT(*)`,
+              lastValidation: sql<Date>`MAX(${modelPerformanceValidations.validatedAt})`,
+            })
             .from(modelPerformanceValidations)
+            .innerJoin(mlModels, eq(modelPerformanceValidations.modelId, mlModels.id))
             .where(eq(modelPerformanceValidations.orgId, orgId))
-            .limit(1);
-          if (validations.length === 0) {
+            .groupBy(modelPerformanceValidations.modelId, mlModels.type);
+          if (summary.length === 0) {
             return {
               result: {
                 summaryByModel: [],
@@ -171,21 +187,6 @@ export function mountModelGovernanceRoutes(router: Router) {
               metadata: { orgId, timestamp: new Date(), version: "1.0" },
             };
           }
-          const summary = await db
-            .select({
-              modelId: modelPerformanceValidations.modelId,
-              modelType: mlModels.type,
-              avgAccuracy: sql<number>`AVG(${(modelPerformanceValidations as any).accuracy})`,
-              avgPrecision: sql<number>`AVG(${(modelPerformanceValidations as any).precision})`,
-              avgRecall: sql<number>`AVG(${(modelPerformanceValidations as any).recall})`,
-              avgF1Score: sql<number>`AVG(${(modelPerformanceValidations as any).f1Score})`,
-              totalValidations: sql<number>`COUNT(*)`,
-              lastValidation: sql<Date>`MAX(${modelPerformanceValidations.validatedAt})`,
-            })
-            .from(modelPerformanceValidations)
-            .innerJoin(mlModels, eq(modelPerformanceValidations.modelId, mlModels.id))
-            .where(eq(modelPerformanceValidations.orgId, orgId))
-            .groupBy(modelPerformanceValidations.modelId, mlModels.type);
           return {
             result: {
               summaryByModel: summary,
@@ -250,9 +251,20 @@ export function mountModelGovernanceRoutes(router: Router) {
             if (recent.length === 0 || historical.length === 0) {
               continue;
             }
-            const recentAccuracy = recent.filter((v) => (v as any).wasCorrect).length / recent.length;
-            const historicalAccuracy =
-              historical.filter((v) => (v as any).wasCorrect).length / historical.length;
+            // Real drift signal: average accuracy_score (range 0..1) over
+            // the recent vs. historical window. Replaces a legacy
+            // `wasCorrect` boolean that does not exist on this table.
+            const avgAccuracy = (rows: typeof validations): number => {
+              const scored = rows
+                .map((r) => r.accuracyScore)
+                .filter((s): s is number => typeof s === "number" && Number.isFinite(s));
+              if (scored.length === 0) {
+                return 0;
+              }
+              return scored.reduce((sum, s) => sum + s, 0) / scored.length;
+            };
+            const recentAccuracy = avgAccuracy(recent);
+            const historicalAccuracy = avgAccuracy(historical);
             const performanceDrop = historicalAccuracy - recentAccuracy;
             const driftScore = Math.min(1, Math.max(0, performanceDrop * 2));
             let severity: "low" | "medium" | "high" | "critical" = "low";
@@ -271,7 +283,7 @@ export function mountModelGovernanceRoutes(router: Router) {
               results.push({
                 id: model.id,
                 modelId: model.id,
-                modelType: (model as any).type || "unknown",
+                modelType: model.type || "unknown",
                 detectedAt: new Date(),
                 driftScore,
                 driftType: "performance" as const,

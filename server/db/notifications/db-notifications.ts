@@ -9,7 +9,14 @@ import type {
   OrgNotificationSettings as NotificationSettings,
   InsertOrgNotificationSettings as InsertNotificationSettings,
 } from "@shared/schema";
-import { emailQueue, type EmailQueue, type InsertEmailQueue } from "@shared/schema";
+import {
+  emailQueue,
+  notificationQueue,
+  type EmailQueue,
+  type InsertEmailQueue,
+  type NotificationQueue,
+  type InsertNotificationQueue,
+} from "@shared/schema";
 
 export class DatabaseNotificationsStorage {
   async getNotificationSettings(orgId?: string, userId?: string): Promise<NotificationSettings[]> {
@@ -150,5 +157,61 @@ export class DatabaseNotificationsStorage {
         })
         .where(eq(emailQueue.id, id));
     }
+  }
+
+  // ===== notification_queue (digest/multi-recipient) =====
+  // Distinct from email_queue: rows here carry recipients[]/bodyHtml/
+  // attemptCount/lastError/scheduledFor (richer digest model).
+  async getNotificationQueue(
+    status?: string,
+    limit?: number,
+    orgId?: string
+  ): Promise<NotificationQueue[]> {
+    const conditions = [];
+    if (orgId) {
+      conditions.push(eq(notificationQueue.orgId, orgId));
+    }
+    if (status) {
+      conditions.push(eq(notificationQueue.status, status));
+    }
+    let q = db.select().from(notificationQueue).$dynamic();
+    if (conditions.length > 0) {
+      q = q.where(and(...conditions));
+    }
+    q = q.orderBy(notificationQueue.createdAt);
+    if (limit) {
+      q = q.limit(limit);
+    }
+    return q;
+  }
+  async createNotificationQueueItem(
+    item: InsertNotificationQueue
+  ): Promise<NotificationQueue> {
+    const [n] = await db.insert(notificationQueue).values(item).returning();
+    return n;
+  }
+  async updateNotificationQueueItem(
+    id: string,
+    updates: Partial<InsertNotificationQueue>,
+    orgId?: string
+  ): Promise<NotificationQueue> {
+    const conditions = orgId
+      ? and(eq(notificationQueue.id, id), eq(notificationQueue.orgId, orgId))
+      : eq(notificationQueue.id, id);
+    const [u] = await db
+      .update(notificationQueue)
+      .set(updates)
+      .where(conditions)
+      .returning();
+    if (!u) {
+      throw new Error(`Notification queue item ${id} not found`);
+    }
+    return u;
+  }
+  async deleteNotificationQueueItem(id: string, orgId?: string): Promise<void> {
+    const conditions = orgId
+      ? and(eq(notificationQueue.id, id), eq(notificationQueue.orgId, orgId))
+      : eq(notificationQueue.id, id);
+    await db.delete(notificationQueue).where(conditions);
   }
 }

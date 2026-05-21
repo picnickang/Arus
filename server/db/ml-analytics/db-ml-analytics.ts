@@ -229,7 +229,7 @@ export class DatabaseMlAnalyticsStorage {
             equipmentId: prediction.equipmentId,
             predictionId: n.id,
             predictionType: "failure_prediction",
-            predictionTimestamp: n.predictionTimestamp,
+            predictionTimestamp: n.predictionTimestamp ?? new Date(),
             predictedOutcome: {
               failureProbability: prediction.failureProbability,
               predictedDate: p.predictedDate,
@@ -238,7 +238,7 @@ export class DatabaseMlAnalyticsStorage {
               remainingDays: p.remainingDays,
             },
             modelVersion: prediction.modelVersionId,
-          } as never);
+          });
       } catch (e) {
         logger.error(`[ML] Failed to create performance validation:`, undefined, e);
       }

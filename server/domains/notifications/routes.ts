@@ -107,7 +107,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
           : undefined,
       };
 
-      const queue = await dbNotificationsStorage.getEmailQueue(
+      const queue = await dbNotificationsStorage.getNotificationQueue(
         filters?.status as string | undefined,
         undefined,
         orgId
@@ -121,7 +121,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
     writeOperationRateLimit,
     withErrorHandling("create notification queue item", async (req, res) => {
       const orgId = req.orgId;
-      const item = await dbNotificationsStorage.createEmailQueueItem({
+      const item = await dbNotificationsStorage.createNotificationQueueItem({
         ...req.body,
         orgId,
       });
@@ -134,7 +134,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
     writeOperationRateLimit,
     withErrorHandling("delete notification queue item", async (req, res) => {
       const orgId = req.orgId;
-      await dbNotificationsStorage.deleteEmailQueueItem(req.params.id, orgId);
+      await dbNotificationsStorage.deleteNotificationQueueItem(req.params.id, orgId);
       sendDeleted(res);
     })
   );
@@ -186,19 +186,15 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       }
 
       const orgId = req.orgId;
-      const extras = {
-        notificationType: "test",
-        body: message || "This is a test notification from ARUS Marine.",
-        recipients: [email],
-      };
-      const item = await dbNotificationsStorage.createEmailQueueItem({
+      const item = await dbNotificationsStorage.createNotificationQueueItem({
         orgId,
+        notificationType: "test",
         subject: subject || "ARUS Marine Test Notification",
-        htmlContent: `<div style="font-family: Arial, sans-serif;"><h2>Test Notification</h2><p>${message || "This is a test notification from ARUS Marine."}</p></div>`,
-        recipientEmail: email,
+        body: message || "This is a test notification from ARUS Marine.",
+        bodyHtml: `<div style="font-family: Arial, sans-serif;"><h2>Test Notification</h2><p>${message || "This is a test notification from ARUS Marine."}</p></div>`,
+        recipients: [email],
         status: "pending",
-        ...extras,
-      } as unknown as Parameters<typeof dbNotificationsStorage.createEmailQueueItem>[0]);
+      });
 
       const { emailNotificationService } = await import(
         "../../services/email-notification-service"
