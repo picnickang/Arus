@@ -25,7 +25,7 @@ export interface PdmHealthData {
   lastUpdated: string;
   confidence: "high" | "medium" | "low";
 }
-export interface TelemetryReading {
+export interface PdmEquipmentTelemetryReading {
   id: string;
   timestamp: string;
   sensorType: string;
@@ -115,7 +115,7 @@ export function useOverviewTabData(equipmentId: string, healthData?: PdmHealthDa
   const [timeRange, setTimeRange] = useState<"1h" | "6h" | "24h" | "7d">("24h");
   const hoursMap = { "1h": 1, "6h": 6, "24h": 24, "7d": 168 };
 
-  const { data: telemetryHistory, isLoading: isLoadingTelemetry } = useQuery<TelemetryReading[]>({
+  const { data: telemetryHistory, isLoading: isLoadingTelemetry } = useQuery<PdmEquipmentTelemetryReading[]>({
     queryKey: ["/api/telemetry/history-multi", equipmentId, timeRange, currentOrgId],
     queryFn: async () => {
       const sensorTypes = ["temperature", "pressure", "vibration", "flow_rate", "oil_quality"];

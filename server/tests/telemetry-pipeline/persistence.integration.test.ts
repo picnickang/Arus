@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeAll, beforeEach } from "@jest/globals";
-import type { TelemetryReading } from "../../telemetry-batch-writer";
+import type { TelemetryBatchReading } from "../../telemetry-batch-writer";
 import {
   TEST_ORG_ID,
   TEST_EQUIPMENT_ID,
@@ -85,7 +85,7 @@ describe("Telemetry Persistence", () => {
     });
 
     it("should handle sequential batch processing without state corruption", () => {
-      const results: TelemetryReading[][] = [];
+      const results: TelemetryBatchReading[][] = [];
 
       for (let i = 0; i < 10; i++) {
         const frames = createBatchOfFrames(2000 + i * 50, 50);
@@ -320,7 +320,7 @@ describe("Data Integrity Through Pipeline", () => {
   });
 
   describe("Simulated Write-Read Round Trip", () => {
-    function simulateDbRoundTrip(reading: TelemetryReading): TelemetryReading {
+    function simulateDbRoundTrip(reading: TelemetryBatchReading): TelemetryBatchReading {
       const dbRow = {
         equipment_id: reading.equipmentId,
         sensor_type: reading.sensorType,
@@ -362,7 +362,7 @@ describe("Data Integrity Through Pipeline", () => {
       const frames = createBatchOfFrames(20000, 100);
       const readings = processor.process(frames);
 
-      const storedKeys = new Map<string, TelemetryReading>();
+      const storedKeys = new Map<string, TelemetryBatchReading>();
       let collisions = 0;
 
       for (const reading of readings) {

@@ -423,6 +423,10 @@ export const insertCrewRestDaySchema = createInsertSchema(crewRestDay);
 // Types
 export type Crew = typeof crew.$inferSelect;
 export type SelectCrew = Crew;
+// Canonical CrewMember alias. Single source of truth — every other
+// module that needs a "crew member" shape should rename its local
+// type or import this one. Counted by check-duplicate-domain-types.
+export type CrewMember = Crew;
 export type InsertCrew = z.infer<typeof insertCrewSchema>;
 export type CrewEmploymentHistory = typeof crewEmploymentHistory.$inferSelect;
 export type SelectCrewEmploymentHistory = CrewEmploymentHistory;

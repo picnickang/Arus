@@ -39,10 +39,12 @@ const SCAN_DIRS = ["shared", "server", "client/src"];
 // numeric/boolean literal coercions (`as 'foo'`, `as 0`, `as true`).
 // Excludes `as unknown as X` chains (counted by check-cast-burndown).
 //
-// Two-pass strategy keeps the regex tractable:
-//   - Pass 1: find `\bas\s+([A-Za-z_$][\w$]*)` candidate positions.
-//   - Pass 2: filter out blacklisted keywords.
-const CANDIDATE_RE = /\bas\s+([A-Za-z_$][\w$]*)/g;
+// Per spec regex `\bas ([A-Z][A-Za-z0-9_]+|[a-z][A-Za-z0-9_]*<)`: PascalCase
+// targets count unconditionally; lowercase targets only count when
+// immediately followed by `<` (i.e. a typed generic factory like
+// `as createCtor<Foo>`). The two-pass scan finds candidates and then
+// filters.
+const CANDIDATE_RE = /\bas\s+([A-Za-z_$][\w$]*)(\s*<)?/g;
 const EXCLUDED_TARGETS = new Set(["any", "unknown", "const", "never"]);
 
 function* walk(dir) {
@@ -132,14 +134,16 @@ function countFile(file) {
   let m;
   while ((m = CANDIDATE_RE.exec(stripped)) !== null) {
     const target = m[1];
+    const hasGeneric = Boolean(m[2]);
     if (EXCLUDED_TARGETS.has(target)) continue;
     // Skip if the preceding token is also `as` — handles `as unknown as X`
     // (counted by check-cast-burndown).
     const before = stripped.slice(Math.max(0, m.index - 16), m.index);
     if (/\bas\s+unknown\s*$/.test(before)) continue;
-    // Skip target names that start lowercase (likely identifier like
-    // `… as foo` which is rare but possible in tagged template names).
-    if (!/^[A-Z]/.test(target)) continue;
+    // Per spec: PascalCase target counts unconditionally; lowercase
+    // target only counts when followed by `<` (typed generic call).
+    const isPascal = /^[A-Z]/.test(target);
+    if (!isPascal && !hasGeneric) continue;
     matches.push({ file, index: m.index, target });
   }
   return matches;

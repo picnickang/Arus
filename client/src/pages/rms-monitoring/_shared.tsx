@@ -1,7 +1,7 @@
 import { AlertTriangle, Bell } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-export interface Vessel {
+export interface RmsVessel {
   id: string;
   name: string;
   vessel_type?: string;

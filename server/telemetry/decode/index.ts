@@ -1,9 +1,9 @@
-import type { TelemetryReading } from "../../telemetry-batch-writer";
+import type { TelemetryBatchReading } from "../../telemetry-batch-writer";
 import type { RawFrame, DecodeContext } from "./types";
 import { decodeJ1939 } from "./j1939";
 import { decodeJ1587 } from "./j1587";
 
-export function decodeFrame(frame: RawFrame, ctx: DecodeContext = {}): TelemetryReading[] {
+export function decodeFrame(frame: RawFrame, ctx: DecodeContext = {}): TelemetryBatchReading[] {
   const protocol = (frame.protocol || "").toUpperCase();
 
   if (protocol === "J1939") {

@@ -1,4 +1,4 @@
-export interface TelemetryReading {
+export interface FeatureStoreTelemetryReading {
   sensorType: string;
   value: number;
   ts: Date;
@@ -10,6 +10,6 @@ export interface TelemetryPort {
     orgId: string,
     equipmentId: string,
     windowMinutes: number
-  ): Promise<TelemetryReading[]>;
+  ): Promise<FeatureStoreTelemetryReading[]>;
   getAvailableSensorTypes(orgId: string, equipmentId: string): Promise<string[]>;
 }

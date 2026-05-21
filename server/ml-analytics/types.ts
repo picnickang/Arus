@@ -43,7 +43,7 @@ export interface DegradationMetrics {
   criticalSensors: string[];
 }
 
-export interface TelemetryReading {
+export interface MlAnalyticsTelemetryReading {
   sensorType: string;
   avgValue: number | null;
   anomalyScore?: number;

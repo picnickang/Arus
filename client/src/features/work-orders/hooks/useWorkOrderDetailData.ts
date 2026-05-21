@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { WorkOrder } from "@shared/schema";
 
-export interface WorkOrderPart {
+export interface DetailWorkOrderPart {
   id: string;
   workOrderId: string;
   partId: string;
@@ -44,7 +44,7 @@ export interface UseWorkOrderDetailDataReturn {
   setActiveTab: (tab: string) => void;
   linkTemplateDialogOpen: boolean;
   setLinkTemplateDialogOpen: (open: boolean) => void;
-  workOrderParts: WorkOrderPart[];
+  workOrderParts: DetailWorkOrderPart[];
   workOrderCosts: WorkOrderCost[];
   procurementCosts: ProcurementCosts | null;
   isLoadingParts: boolean;
@@ -66,7 +66,7 @@ export function useWorkOrderDetailData({
   const [activeTab, setActiveTab] = useState("details");
   const [linkTemplateDialogOpen, setLinkTemplateDialogOpen] = useState(false);
 
-  const { data: workOrderParts = [], isLoading: isLoadingParts } = useQuery<WorkOrderPart[]>({
+  const { data: workOrderParts = [], isLoading: isLoadingParts } = useQuery<DetailWorkOrderPart[]>({
     queryKey: ["/api/work-orders", workOrder?.id, "parts"],
     enabled: !!workOrder?.id,
   });

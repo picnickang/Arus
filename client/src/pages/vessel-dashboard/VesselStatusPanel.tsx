@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { HealthBar, Pulse, statusFill, healthColor, type SlotAssignment } from "@/components/vessel/VesselSchematic";
-import type { Equipment } from "@/features/vessels/types";
+import type { VesselEquipment } from "@/features/vessels/types";
 import type { Part } from "@/features/inventory/types";
 import { statusColor } from "./utils";
 
@@ -24,7 +24,7 @@ export function VesselStatusPanel({
   riskLevel: string;
   activeWorkOrders: any[];
   vesselCrew: any[];
-  equipment: Equipment[];
+  equipment: VesselEquipment[];
   selectedAssignment: SlotAssignment | null;
   compatibleParts: Part[];
   onUninstall: (equipmentId: string, slotLabel: string) => void;
@@ -156,7 +156,7 @@ export function VesselStatusPanel({
                 className="w-full h-8 text-[11px] border-red-500/20 text-red-400 hover:bg-red-500/10"
                 onClick={() => onUninstall(eq.id, slot?.label || "")}
               >
-                <Trash2 className="h-3 w-3 mr-1.5" /> Uninstall Equipment
+                <Trash2 className="h-3 w-3 mr-1.5" /> Uninstall VesselEquipment
               </Button>
             </>
           ) : (

@@ -129,12 +129,14 @@ function main() {
     trackedNow[name] = files.length;
   }
 
-  // Hard-gate "still > 1" notice (informational unless --strict-hard-gate).
-  const hardGatePending = [];
+  // Hard-gate enforcement: each canonical name MUST resolve to exactly
+  // one definition. This is non-negotiable and not subject to the
+  // ratchet — single-source is the entire point.
+  const hardGateViolations = [];
   for (const name of HARD_GATE_TARGETS) {
     const count = map.get(name)?.size ?? 0;
-    if (count > 1) {
-      hardGatePending.push({
+    if (count !== 1) {
+      hardGateViolations.push({
         name,
         count,
         files: Array.from(map.get(name) ?? []).sort(),
@@ -171,8 +173,13 @@ function main() {
     };
     fs.writeFileSync(BASELINE_PATH, JSON.stringify(next, null, 2) + "\n");
     console.log(
-      `[check-dup-types] baseline updated: ${Object.keys(next.counts).length} tracked entries (${hardGatePending.length} hard-gate targets still > 1)`,
+      `[check-dup-types] baseline updated: ${Object.keys(next.counts).length} tracked entries (${hardGateViolations.length} hard-gate violations)`,
     );
+    if (hardGateViolations.length) {
+      console.error(
+        `[check-dup-types] WARNING: --update wrote a baseline while ${hardGateViolations.length} hard-gate canonical(s) still have count != 1. The next non-update run will fail.`,
+      );
+    }
     return;
   }
 
@@ -181,7 +188,7 @@ function main() {
       JSON.stringify(
         {
           ratchetRegressions,
-          hardGatePending,
+          hardGateViolations,
           duplicateCount: Object.keys(duplicates).length,
         },
         null,
@@ -190,7 +197,26 @@ function main() {
     );
   }
 
+  let failed = false;
+
+  if (hardGateViolations.length) {
+    failed = true;
+    console.error("");
+    console.error(
+      "HARD-GATE FAILURE: each canonical domain entity MUST resolve to exactly one definition.",
+    );
+    for (const v of hardGateViolations) {
+      console.error(`  ${v.name} (${v.count} definitions):`);
+      for (const f of v.files) console.error(`    - ${f}`);
+    }
+    console.error("");
+    console.error(
+      'Designate a single canonical (drizzle $inferSelect in shared/schema/* preferred) and convert every other declaration to a rename (`export interface XListItem { … }`) or a re-export (`export { type SelectX as X } from "@shared/schema"`). The re-export form is not matched by the duplicate-types regex.',
+    );
+  }
+
   if (ratchetRegressions.length) {
+    failed = true;
     console.error("");
     console.error(
       "RATCHET REGRESSION: duplicate-type count exceeds baseline for the following names.",
@@ -203,20 +229,16 @@ function main() {
     console.error(
       "Either consolidate (preferred) or, if you legitimately removed duplicates elsewhere, run with --update to refresh the baseline downward.",
     );
-    process.exit(1);
   }
+
+  if (failed) process.exit(1);
 
   if (!wantJson) {
     const tracked = Object.keys(trackedNow).length;
-    const pending = hardGatePending.length;
     const targets = HARD_GATE_TARGETS.size;
     console.log(
-      `[check-dup-types] OK — ${tracked} tracked duplicates within baseline; ${targets - pending}/${targets} hard-gate canonicals at 1 definition.`,
+      `[check-dup-types] OK — ${targets}/${targets} hard-gate canonicals at exactly 1 definition; ${tracked} tracked duplicates within baseline.`,
     );
-    if (pending) {
-      console.log("  Hard-gate targets still > 1 (burndown work):");
-      for (const v of hardGatePending) console.log(`    ${v.name}: ${v.count} defs`);
-    }
   }
 }
 

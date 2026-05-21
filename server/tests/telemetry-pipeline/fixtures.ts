@@ -6,7 +6,7 @@
  */
 
 import type { RawFrame } from "../../telemetry/decode/types";
-import type { TelemetryReading } from "../../telemetry-batch-writer";
+import type { TelemetryBatchReading } from "../../telemetry-batch-writer";
 
 export const TEST_ORG_ID = "test-org-integration";
 export const TEST_EQUIPMENT_ID = "test-engine-001";
@@ -640,7 +640,7 @@ export function computeFrameChecksum(frame: RawFrame): string {
 }
 
 export function verifyReadingIntegrity(
-  reading: TelemetryReading,
+  reading: TelemetryBatchReading,
   expectedEquipmentId: string
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];

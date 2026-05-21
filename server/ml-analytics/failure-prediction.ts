@@ -8,7 +8,7 @@
 import { db } from "../db";
 import { telemetryAggregates } from "@shared/schema-runtime";
 import { eq, and, gte, asc } from "drizzle-orm";
-import type { FailurePredictionResult, DegradationMetrics, TelemetryReading } from "./types";
+import type { FailurePredictionResult, DegradationMetrics, MlAnalyticsTelemetryReading } from "./types";
 import {
   calculateTrend,
   calculateVariability,
@@ -19,7 +19,7 @@ import {
 export async function getMultiSensorData(
   equipmentId: string,
   days: number
-): Promise<TelemetryReading[]> {
+): Promise<MlAnalyticsTelemetryReading[]> {
   const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
   const data = await db
@@ -34,10 +34,10 @@ export async function getMultiSensorData(
     )
     .orderBy(asc(telemetryAggregates.windowStart));
 
-  return data as TelemetryReading[];
+  return data as MlAnalyticsTelemetryReading[];
 }
 
-export function calculateDegradationMetrics(data: TelemetryReading[]): DegradationMetrics {
+export function calculateDegradationMetrics(data: MlAnalyticsTelemetryReading[]): DegradationMetrics {
   const sensorGroups = data.reduce(
     (groups, reading) => {
       if (!groups[reading.sensorType]) {
@@ -46,7 +46,7 @@ export function calculateDegradationMetrics(data: TelemetryReading[]): Degradati
       groups[reading.sensorType].push(reading);
       return groups;
     },
-    {} as Record<string, TelemetryReading[]>
+    {} as Record<string, MlAnalyticsTelemetryReading[]>
   );
 
   const metrics: DegradationMetrics = {

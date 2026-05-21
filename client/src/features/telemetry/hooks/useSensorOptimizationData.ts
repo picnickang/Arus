@@ -4,7 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useCustomMutation } from "@/hooks/useCrudMutations";
 import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 
-export interface Equipment {
+export interface SensorOptEquipment {
   id: string;
   name: string;
   type: string;
@@ -13,7 +13,7 @@ export interface Equipment {
   vesselId?: string;
   vesselName?: string;
 }
-export interface Vessel {
+export interface SensorOptVessel {
   id: string;
   name: string;
 }
@@ -67,11 +67,11 @@ export function useSensorOptimizationData() {
   const [sortField, setSortField] = useState<string>("equipment");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
-  const { data: equipment = [], isLoading: equipmentLoading } = useQuery<Equipment[]>({
+  const { data: equipment = [], isLoading: equipmentLoading } = useQuery<SensorOptEquipment[]>({
     queryKey: ["/api/equipment"],
     staleTime: 30000,
   });
-  const { data: vessels = [] } = useQuery<Vessel[]>({
+  const { data: vessels = [] } = useQuery<SensorOptVessel[]>({
     queryKey: ["/api/vessels"],
     staleTime: 30000,
   });

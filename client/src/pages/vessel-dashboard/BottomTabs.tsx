@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Activity, AlertCircle, Users, Wrench } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ActiveDtcsPanel } from "@/components/ActiveDtcsPanel";
-import type { Equipment } from "@/features/vessels/types";
+import type { VesselEquipment } from "@/features/vessels/types";
 
 export function BottomTabs({
   bottomTab,
@@ -27,7 +27,7 @@ export function BottomTabs({
   workOrdersLoading: boolean;
   crewLoading: boolean;
   schedulesLoading: boolean;
-  selectedEquipment: Equipment | null;
+  selectedEquipment: VesselEquipment | null;
 }) {
   return (
     <div className="border-t border-slate-700/15 bg-slate-900/30 shrink-0">

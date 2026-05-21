@@ -1,4 +1,4 @@
-export interface CrewMember {
+export interface CrewMemberRecord {
   id: string;
   orgId: string;
   name: string;

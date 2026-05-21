@@ -40,7 +40,7 @@ export interface ScheduleAssignment {
   generatedByRunId?: string | null;
 }
 
-export interface CrewMember {
+export interface PlannerCrewMember {
   id: string;
   name: string;
   rank: string;
@@ -54,7 +54,7 @@ export interface CrewMember {
   availability?: "available" | "on_duty" | "leave" | "pending";
 }
 
-export interface Vessel {
+export interface PlannerVessel {
   id: string;
   name: string;
   type?: string;
@@ -311,7 +311,7 @@ export function useSchedulePlannerData() {
     return eachDayOfInterval({ start: dateRangeStart, end: addDays(dateRangeEnd, -1) });
   }, [dateRangeStart, dateRangeEnd]);
 
-  const { data: vessels = [], isLoading: isLoadingVessels } = useQuery<Vessel[]>({
+  const { data: vessels = [], isLoading: isLoadingVessels } = useQuery<PlannerVessel[]>({
     queryKey: ["/api/vessels"],
   });
 
@@ -328,7 +328,7 @@ export function useSchedulePlannerData() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: crew = [], isLoading: isLoadingCrew } = useQuery<CrewMember[]>({
+  const { data: crew = [], isLoading: isLoadingCrew } = useQuery<PlannerCrewMember[]>({
     queryKey: ["/api/crew"],
   });
 

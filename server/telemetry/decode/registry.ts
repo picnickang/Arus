@@ -1,7 +1,7 @@
-import type { TelemetryReading } from "../../telemetry-batch-writer";
+import type { TelemetryBatchReading } from "../../telemetry-batch-writer";
 import type { PgnDecodeInput } from "./types";
 
-export type PgnDecoder = (input: PgnDecodeInput) => TelemetryReading[];
+export type PgnDecoder = (input: PgnDecodeInput) => TelemetryBatchReading[];
 
 const pgnRegistry = new Map<number, PgnDecoder>();
 
@@ -9,7 +9,7 @@ export function registerPgn(pgn: number, decoder: PgnDecoder): void {
   pgnRegistry.set(pgn, decoder);
 }
 
-export function decodePgn(input: PgnDecodeInput): TelemetryReading[] {
+export function decodePgn(input: PgnDecodeInput): TelemetryBatchReading[] {
   const decoder = pgnRegistry.get(input.pgn);
   if (!decoder) {
     return [];

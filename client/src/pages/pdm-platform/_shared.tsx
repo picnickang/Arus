@@ -3,20 +3,20 @@ import { useLocation } from "wouter";
 import { Clock, ExternalLink } from "lucide-react";
 import { useEquipmentName } from "@/hooks/use-equipment-lookup";
 
-export interface Equipment {
+export interface PdmPageEquipment {
   id: string;
   name?: string;
   type?: string;
   vesselId?: string;
 }
 
-export interface Vessel {
+export interface PdmPageVessel {
   id: string;
   name: string;
 }
 
 export function useEquipmentTypes() {
-  const { data: equipment = [] } = useQuery<Equipment[]>({ queryKey: ["/api/equipment"] });
+  const { data: equipment = [] } = useQuery<PdmPageEquipment[]>({ queryKey: ["/api/equipment"] });
   const types = Array.from(new Set(equipment.map((e) => e.type).filter(Boolean))) as string[];
   return types.length > 0
     ? types

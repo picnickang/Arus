@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { TelemetryReading } from "@/features/pdm";
+import type { PdmTelemetryReading as TelemetryReading } from "@/features/pdm";
 
 export function EvidenceTimeSeriesChart({
   readings,

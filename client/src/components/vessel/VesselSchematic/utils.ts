@@ -1,4 +1,4 @@
-import type { Equipment } from "@/features/vessels/types";
+import type { VesselEquipment } from "@/features/vessels/types";
 import type { SchematicLayout, SchematicSlot } from "@/hooks/useSchematicLayout";
 import { HULL_LEFT, HULL_W, hullBottomAt, hullTopAt } from "./constants";
 import type { PositionedSlot, SlotAssignment, ZoneRect } from "./types";
@@ -87,7 +87,7 @@ export function computeLayout(layout: SchematicLayout): {
 
 export function assignEquipmentToSlots(
   positionedSlots: PositionedSlot[],
-  equipment: Equipment[]
+  equipment: VesselEquipment[]
 ): SlotAssignment[] {
   const assignments: SlotAssignment[] = positionedSlots.map((slot) => ({ slot, equipment: null }));
   const assigned = new Set<string>();

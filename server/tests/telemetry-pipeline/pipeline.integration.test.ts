@@ -15,7 +15,7 @@ import { describe, it, expect, beforeAll } from "@jest/globals";
 import { BridgeProcessor } from "../../services/sqlite-bridge/bridgeProcessor";
 import { decodeFrame } from "../../telemetry/decode";
 import { validateReading, filterValidReadings } from "../../telemetry/decode/validation";
-import type { TelemetryReading } from "../../telemetry-batch-writer";
+import type { TelemetryBatchReading } from "../../telemetry-batch-writer";
 import type { RawFrame } from "../../telemetry/decode/types";
 import {
   TEST_ORG_ID,
@@ -94,7 +94,7 @@ describe("Telemetry Pipeline Integration", () => {
 
     it("should process mixed protocol batch correctly", () => {
       const frames = createMixedProtocolBatch(100);
-      const allReadings: TelemetryReading[] = [];
+      const allReadings: TelemetryBatchReading[] = [];
 
       for (const frame of frames) {
         const readings = decodeFrame(frame, { defaultEquipmentId: TEST_EQUIPMENT_ID });
@@ -112,7 +112,7 @@ describe("Telemetry Pipeline Integration", () => {
 
   describe("Reading Validation", () => {
     it("should validate correct reading", () => {
-      const reading: TelemetryReading = {
+      const reading: TelemetryBatchReading = {
         equipmentId: TEST_EQUIPMENT_ID,
         sensorType: "ENGINE_SPEED_RPM",
         value: 1500,
@@ -123,7 +123,7 @@ describe("Telemetry Pipeline Integration", () => {
     });
 
     it("should reject reading with missing equipmentId", () => {
-      const reading: TelemetryReading = {
+      const reading: TelemetryBatchReading = {
         equipmentId: "",
         sensorType: "ENGINE_SPEED_RPM",
         value: 1500,
@@ -134,7 +134,7 @@ describe("Telemetry Pipeline Integration", () => {
     });
 
     it("should reject reading with NaN value", () => {
-      const reading: TelemetryReading = {
+      const reading: TelemetryBatchReading = {
         equipmentId: TEST_EQUIPMENT_ID,
         sensorType: "ENGINE_SPEED_RPM",
         value: NaN,
@@ -145,7 +145,7 @@ describe("Telemetry Pipeline Integration", () => {
     });
 
     it("should reject reading with Infinity value", () => {
-      const reading: TelemetryReading = {
+      const reading: TelemetryBatchReading = {
         equipmentId: TEST_EQUIPMENT_ID,
         sensorType: "ENGINE_SPEED_RPM",
         value: Infinity,
@@ -156,7 +156,7 @@ describe("Telemetry Pipeline Integration", () => {
     });
 
     it("should reject reading with future timestamp beyond threshold", () => {
-      const reading: TelemetryReading = {
+      const reading: TelemetryBatchReading = {
         equipmentId: TEST_EQUIPMENT_ID,
         sensorType: "ENGINE_SPEED_RPM",
         value: 1500,
@@ -167,7 +167,7 @@ describe("Telemetry Pipeline Integration", () => {
     });
 
     it("should reject reading with ancient timestamp", () => {
-      const reading: TelemetryReading = {
+      const reading: TelemetryBatchReading = {
         equipmentId: TEST_EQUIPMENT_ID,
         sensorType: "ENGINE_SPEED_RPM",
         value: 1500,
@@ -178,7 +178,7 @@ describe("Telemetry Pipeline Integration", () => {
     });
 
     it("should filter valid readings from mixed batch", () => {
-      const readings: TelemetryReading[] = [
+      const readings: TelemetryBatchReading[] = [
         { equipmentId: TEST_EQUIPMENT_ID, sensorType: "RPM", value: 1500, timestamp: new Date() },
         { equipmentId: "", sensorType: "RPM", value: 1500, timestamp: new Date() },
         { equipmentId: TEST_EQUIPMENT_ID, sensorType: "TEMP", value: NaN, timestamp: new Date() },
@@ -343,7 +343,7 @@ describe("Telemetry Pipeline Integration", () => {
     });
 
     it("should handle rapid sequential batches", () => {
-      const allReadings: TelemetryReading[] = [];
+      const allReadings: TelemetryBatchReading[] = [];
 
       for (let batch = 0; batch < 10; batch++) {
         const frames = createBatchOfFrames(4000 + batch * 100, 50);
@@ -371,7 +371,7 @@ describe("Protocol-Specific Decoding", () => {
         createJ1939EngineSpeedFrame(2, 1600, Date.now(), "CAN1"),
       ];
 
-      const readings: TelemetryReading[] = [];
+      const readings: TelemetryBatchReading[] = [];
       for (const frame of frames) {
         readings.push(...decodeFrame(frame, { defaultEquipmentId: TEST_EQUIPMENT_ID }));
       }
@@ -435,7 +435,7 @@ describe("Protocol-Specific Decoding", () => {
         createJ1587CoolantTempFrame(203, 85),
       ];
 
-      const allReadings: TelemetryReading[] = [];
+      const allReadings: TelemetryBatchReading[] = [];
       for (const frame of frames) {
         const readings = decodeFrame(frame, { defaultEquipmentId: TEST_EQUIPMENT_ID });
         allReadings.push(...readings);

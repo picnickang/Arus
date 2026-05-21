@@ -49,7 +49,7 @@ export interface CrewCert {
   issuedBy?: string;
 }
 
-export interface Crew {
+export interface SchedulerCrew {
   id: string;
   name: string;
   rank: string;
@@ -98,7 +98,7 @@ export function QualificationBridge({
   certifications,
 }: {
   certRequired: string;
-  crew: Crew[];
+  crew: SchedulerCrew[];
   certifications: CrewCert[];
 }) {
   const now = new Date();
@@ -191,7 +191,7 @@ export function SchedulingConfigCard({
         <Tabs defaultValue="shifts" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="shifts">Shift Templates</TabsTrigger>
-            <TabsTrigger value="crew">Crew Status</TabsTrigger>
+            <TabsTrigger value="crew">SchedulerCrew Status</TabsTrigger>
           </TabsList>
           <TabsContent value="shifts" className="space-y-4 mt-4">
             <div className="flex justify-between items-center">
@@ -502,7 +502,7 @@ export function SchedulingConfigCard({
             </div>
           </TabsContent>
           <TabsContent value="crew" className="space-y-3 mt-4">
-            {p.crew.slice(0, showAllCrew ? p.crew.length : 6).map((member: Crew) => (
+            {p.crew.slice(0, showAllCrew ? p.crew.length : 6).map((member: SchedulerCrew) => (
               <div
                 key={member.id}
                 role="button"

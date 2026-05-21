@@ -6,7 +6,7 @@ import type {
   AssetDetail,
   CostSavingsSummary,
   EquipmentFinancials,
-  TelemetryReading,
+  PdmTelemetryReading as TelemetryReading,
   TelemetryTrend,
   PdmScheduleData,
 } from "../types";

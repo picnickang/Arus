@@ -18,7 +18,7 @@ export interface LaborRate {
   effectiveDate: Date;
   isActive: boolean;
 }
-export interface CrewMember {
+export interface LaborRateCrewMember {
   id: string;
   name: string;
   skillLevel: string;
@@ -51,7 +51,7 @@ export function useLaborRateData() {
   const { data: laborRates = [], isLoading: ratesLoading } = useQuery<LaborRate[]>({
     queryKey: ["/api/labor-rates"],
   });
-  const { data: crewMembers = [], isLoading: crewLoading } = useQuery<CrewMember[]>({
+  const { data: crewMembers = [], isLoading: crewLoading } = useQuery<LaborRateCrewMember[]>({
     queryKey: ["/api/crew"],
   });
 
@@ -83,7 +83,7 @@ export function useLaborRateData() {
   });
   const updateCrewRateMutation = useCustomMutation<
     { crewId: string; rateData: CrewRateFormData },
-    CrewMember
+    LaborRateCrewMember
   >({
     mutationFn: async ({ crewId, rateData }) =>
       apiRequest("PATCH", `/api/crew/${crewId}/rate`, rateData),
@@ -108,7 +108,7 @@ export function useLaborRateData() {
     [updateRateForm]
   );
   const handleEditCrew = useCallback(
-    (crew: CrewMember) => {
+    (crew: LaborRateCrewMember) => {
       setEditingCrew(crew.id);
       crewRateForm.reset({
         standardRate: crew.currentRate,

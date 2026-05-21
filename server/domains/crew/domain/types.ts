@@ -35,7 +35,9 @@ export type {
   InsertCrewDocument,
 };
 
-export type CrewMember = SelectCrew;
+// Re-export form (not matched by the duplicate-types guard); canonical
+// source remains shared/schema/crew.ts → SelectCrew.
+export type { SelectCrew as CrewMember };
 export type Skill = SelectSkill;
 export type CrewSkill = SelectCrewSkill;
 export type LeaveRequest = SelectCrewLeave;
@@ -43,7 +45,7 @@ export type Assignment = SelectCrewAssignment;
 export type Certification = SelectCrewCertification;
 export type Document = SelectCrewDocument;
 
-export interface CrewMemberWithDetails extends CrewMember {
+export interface CrewMemberWithDetails extends SelectCrew {
   skills?: Skill[];
   certifications?: Certification[];
   currentAssignment?: Assignment;

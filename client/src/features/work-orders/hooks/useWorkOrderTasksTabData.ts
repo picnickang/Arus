@@ -19,7 +19,7 @@ export interface ChecklistItem {
   sortOrder?: number;
 }
 /** Alias kept for clarity at consumer sites. */
-export type WorkOrderTask = ChecklistItem;
+export type WorkOrderTaskItem = ChecklistItem;
 interface ChecklistProgress {
   totalItems: number;
   completedItems: number;

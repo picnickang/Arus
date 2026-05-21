@@ -1,7 +1,7 @@
 import { eq, and, gte, desc } from "drizzle-orm";
 import { db } from "../../../db";
 import { equipmentTelemetry } from "@shared/schema";
-import type { TelemetryPort, TelemetryReading } from "./telemetry-port";
+import type { TelemetryPort, FeatureStoreTelemetryReading } from "./telemetry-port";
 import { logger } from "../../../utils/logger";
 
 export class TelemetryAdapter implements TelemetryPort {
@@ -9,7 +9,7 @@ export class TelemetryAdapter implements TelemetryPort {
     orgId: string,
     equipmentId: string,
     windowMinutes: number
-  ): Promise<TelemetryReading[]> {
+  ): Promise<FeatureStoreTelemetryReading[]> {
     const cutoff = new Date(Date.now() - windowMinutes * 60 * 1000);
 
     try {

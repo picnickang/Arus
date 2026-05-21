@@ -22,9 +22,9 @@ import { Label } from "@/components/ui/label";
 import { Plus, RefreshCw } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Vessel } from "./_shared";
+import type { RmsVessel } from "./_shared";
 
-export function CreateAlertConfigDialog({ vessels }: { vessels: Vessel[] }) {
+export function CreateAlertConfigDialog({ vessels }: { vessels: RmsVessel[] }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [vesselId, setVesselId] = useState("");
@@ -104,7 +104,7 @@ export function CreateAlertConfigDialog({ vessels }: { vessels: Vessel[] }) {
             />
           </div>
           <div>
-            <Label>Vessel</Label>
+            <Label>RmsVessel</Label>
             <Select value={vesselId} onValueChange={setVesselId}>
               <SelectTrigger data-testid="select-alert-vessel">
                 <SelectValue placeholder="Select vessel" />

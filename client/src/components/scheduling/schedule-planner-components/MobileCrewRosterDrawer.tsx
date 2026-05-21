@@ -17,8 +17,8 @@ import {
   ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 import {
-  type CrewMember,
-  type Vessel,
+  type PlannerCrewMember as CrewMember,
+  type PlannerVessel as Vessel,
 } from "@/features/crew/hooks/useSchedulePlannerData";
 import { cn } from "@/lib/utils";
 import {
@@ -183,7 +183,7 @@ export function MobileCrewRosterDrawer({
                     <AvatarFallback className={cn("text-white text-xs", getRoleColor(member.rank))}>
                       {member.name
                         .split(" ")
-                        .map((n) => n[0])
+                        .map((n: string) => n[0])
                         .join("")
                         .slice(0, 2)}
                     </AvatarFallback>

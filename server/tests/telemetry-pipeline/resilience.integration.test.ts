@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { CircuitBreaker } from "../../services/circuit-breaker/circuitBreaker";
 import { DeadLetterQueue } from "../../services/dead-letter-queue";
-import type { TelemetryReading } from "../../telemetry-batch-writer";
+import type { TelemetryBatchReading } from "../../telemetry-batch-writer";
 import {
   TEST_ORG_ID,
   TEST_EQUIPMENT_ID,
@@ -183,10 +183,10 @@ describe("Circuit Breaker Resilience", () => {
 });
 
 describe("Dead Letter Queue", () => {
-  let dlq: DeadLetterQueue<TelemetryReading>;
+  let dlq: DeadLetterQueue<TelemetryBatchReading>;
 
   beforeEach(() => {
-    dlq = new DeadLetterQueue<TelemetryReading>({
+    dlq = new DeadLetterQueue<TelemetryBatchReading>({
       maxEntries: 100,
       retentionDays: 7,
       name: "test-telemetry-dlq",
@@ -200,7 +200,7 @@ describe("Dead Letter Queue", () => {
 
   describe("Add Operations", () => {
     it("should add failed readings", () => {
-      const reading: TelemetryReading = {
+      const reading: TelemetryBatchReading = {
         equipmentId: TEST_EQUIPMENT_ID,
         sensorType: "ENGINE_SPEED_RPM",
         value: 1500,
@@ -214,7 +214,7 @@ describe("Dead Letter Queue", () => {
     });
 
     it("should preserve reading data in DLQ", () => {
-      const reading: TelemetryReading = {
+      const reading: TelemetryBatchReading = {
         equipmentId: TEST_EQUIPMENT_ID,
         sensorType: "ENGINE_SPEED_RPM",
         value: 1500,
@@ -233,7 +233,7 @@ describe("Dead Letter Queue", () => {
     });
 
     it("should track error message", () => {
-      const reading: TelemetryReading = {
+      const reading: TelemetryBatchReading = {
         equipmentId: TEST_EQUIPMENT_ID,
         sensorType: "ENGINE_SPEED_RPM",
         value: 1500,
@@ -247,7 +247,7 @@ describe("Dead Letter Queue", () => {
     });
 
     it("should track source of failure", () => {
-      const reading: TelemetryReading = {
+      const reading: TelemetryBatchReading = {
         equipmentId: TEST_EQUIPMENT_ID,
         sensorType: "ENGINE_SPEED_RPM",
         value: 1500,
@@ -267,7 +267,7 @@ describe("Dead Letter Queue", () => {
     });
 
     it("should retrieve entry by ID", () => {
-      const reading: TelemetryReading = {
+      const reading: TelemetryBatchReading = {
         equipmentId: TEST_EQUIPMENT_ID,
         sensorType: "ENGINE_SPEED_RPM",
         value: 1500,
@@ -320,7 +320,7 @@ describe("Dead Letter Queue", () => {
 
   describe("Capacity Management", () => {
     it("should respect max entries limit", () => {
-      const smallDlq = new DeadLetterQueue<TelemetryReading>({
+      const smallDlq = new DeadLetterQueue<TelemetryBatchReading>({
         maxEntries: 5,
         retentionDays: 7,
         name: "test-small-dlq",

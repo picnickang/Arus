@@ -32,16 +32,17 @@ const SCAN_DIRS = ["shared", "server", "client/src"];
 
 // Matches `eslint-disable`, `eslint-disable-line`, `eslint-disable-next-line`
 // followed by anything that mentions one of the banned rule names.
-const BANNED_RULES = [
+// Rule names match by exact-name OR `no-unsafe-*` wildcard so every
+// current and future no-unsafe-* rule is covered without enumeration.
+const BANNED_RULES_EXACT = [
   "@typescript-eslint/no-explicit-any",
   "no-explicit-any",
   "@typescript-eslint/no-non-null-assertion",
   "no-non-null-assertion",
-  "@typescript-eslint/no-unsafe-assignment",
-  "@typescript-eslint/no-unsafe-member-access",
-  "@typescript-eslint/no-unsafe-call",
-  "@typescript-eslint/no-unsafe-argument",
-  "@typescript-eslint/no-unsafe-return",
+];
+const BANNED_RULE_REGEXES = [
+  /\bno-unsafe-[a-z-]+/, // matches no-unsafe-assignment, -member-access, -call, -argument, -return, …
+  /\b@typescript-eslint\/no-unsafe-[a-z-]+/,
 ];
 
 const DISABLE_RE = /eslint-disable(?:-line|-next-line)?\b([^\n]*)/g;
@@ -91,8 +92,9 @@ function main() {
         const tail = m[1];
         // Bare `eslint-disable` (no rule list) disables everything → banned.
         const bare = !/\S/.test(tail.replace(/\*\/\s*$/, ""));
-        const mentionsBanned = BANNED_RULES.some((rule) => tail.includes(rule));
-        if (bare || mentionsBanned) {
+        const mentionsExact = BANNED_RULES_EXACT.some((rule) => tail.includes(rule));
+        const mentionsWildcard = BANNED_RULE_REGEXES.some((re) => re.test(tail));
+        if (bare || mentionsExact || mentionsWildcard) {
           hits.push({
             file: rel,
             line: lineOf(body, m.index),

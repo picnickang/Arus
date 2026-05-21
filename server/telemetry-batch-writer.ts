@@ -35,7 +35,7 @@ import client from "prom-client";
 import { logger } from "./utils/logger";
 import { quotaService } from "./tenancy/quota-service";
 
-export interface TelemetryReading {
+export interface TelemetryBatchReading {
   equipmentId: string;
   sensorType: string;
   value: number;
@@ -113,7 +113,7 @@ const batchWriterQuotaBlockedTotal = new client.Counter({
 });
 
 export class TelemetryBatchWriter extends EventEmitter {
-  private vesselBuffers: Map<string, TelemetryReading[]> = new Map();
+  private vesselBuffers: Map<string, TelemetryBatchReading[]> = new Map();
   private flushTimer: NodeJS.Timeout | null = null;
   private isRunning = false;
   private isFlushing = false;
@@ -242,7 +242,7 @@ export class TelemetryBatchWriter extends EventEmitter {
    * Queue a telemetry reading for batched write
    * Non-blocking - returns immediately
    */
-  queue(reading: TelemetryReading): void {
+  queue(reading: TelemetryBatchReading): void {
     const vesselId = this.getVesselId(reading.equipmentId);
 
     if (!this.vesselBuffers.has(vesselId)) {
@@ -267,7 +267,7 @@ export class TelemetryBatchWriter extends EventEmitter {
   /**
    * Queue multiple telemetry readings at once
    */
-  queueBatch(readings: TelemetryReading[]): void {
+  queueBatch(readings: TelemetryBatchReading[]): void {
     for (const reading of readings) {
       this.queue(reading);
     }
@@ -324,7 +324,7 @@ export class TelemetryBatchWriter extends EventEmitter {
     this.isFlushing = true;
     const startTime = Date.now();
 
-    const toFlush: TelemetryReading[] = [];
+    const toFlush: TelemetryBatchReading[] = [];
     for (const [vesselId, buffer] of this.vesselBuffers.entries()) {
       toFlush.push(...buffer);
       this.vesselBuffers.set(vesselId, []);
@@ -359,8 +359,8 @@ export class TelemetryBatchWriter extends EventEmitter {
       this.stats.totalErrors++;
       batchWriterFlushDuration.observe({ status: "error" }, Date.now() - startTime);
 
-      const readingsToRetry: TelemetryReading[] = [];
-      const readingsToDrop: TelemetryReading[] = [];
+      const readingsToRetry: TelemetryBatchReading[] = [];
+      const readingsToDrop: TelemetryBatchReading[] = [];
 
       for (const reading of toFlush) {
         const retryCount = (reading._retryCount ?? 0) + 1;
@@ -431,7 +431,7 @@ export class TelemetryBatchWriter extends EventEmitter {
   /**
    * Write readings to database in a single batch operation
    */
-  private async writeToDatabase(readings: TelemetryReading[]): Promise<void> {
+  private async writeToDatabase(readings: TelemetryBatchReading[]): Promise<void> {
     if (readings.length === 0) {
       return;
     }
@@ -473,8 +473,8 @@ export class TelemetryBatchWriter extends EventEmitter {
    * want a quota-subsystem outage to silently halt ingestion.
    */
   private async filterOverQuotaReadings(
-    readings: TelemetryReading[],
-  ): Promise<TelemetryReading[]> {
+    readings: TelemetryBatchReading[],
+  ): Promise<TelemetryBatchReading[]> {
     if (readings.length === 0) return readings;
 
     const perOrgCounts = new Map<string, number>();
@@ -497,7 +497,7 @@ export class TelemetryBatchWriter extends EventEmitter {
 
     if (overQuotaOrgs.size === 0) return readings;
 
-    const allowed: TelemetryReading[] = [];
+    const allowed: TelemetryBatchReading[] = [];
     let totalDropped = 0;
     const droppedPerOrg = new Map<string, number>();
     for (const r of readings) {
@@ -538,7 +538,7 @@ export class TelemetryBatchWriter extends EventEmitter {
    * @param options.source - Must be 'sqlite-bridge' in production
    * @throws Error if source is not 'sqlite-bridge' in production
    */
-  async writeBatch(readings: TelemetryReading[], options: { source: string }): Promise<void> {
+  async writeBatch(readings: TelemetryBatchReading[], options: { source: string }): Promise<void> {
     const isProduction = process.env.NODE_ENV === "production";
 
     if (isProduction && options.source !== "sqlite-bridge") {

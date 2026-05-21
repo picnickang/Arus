@@ -14,7 +14,7 @@ import {
 import { Settings, Trash2 } from "lucide-react";
 import type { UseMutationResult } from "@tanstack/react-query";
 import { CreateAlertConfigDialog } from "./CreateAlertConfigDialog";
-import type { AlertConfig, Vessel } from "./_shared";
+import type { AlertConfig, RmsVessel as Vessel } from "./_shared";
 
 export function ConfigsTab({
   vessels,

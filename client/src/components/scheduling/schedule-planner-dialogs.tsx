@@ -29,8 +29,8 @@ import type {
   ScheduleAssignment,
   ConstraintResult,
   AiSuggestion,
-  CrewMember,
-  Vessel,
+  PlannerCrewMember as CrewMember,
+  PlannerVessel as Vessel,
   FatigueResult,
 } from "@/features/crew/hooks/useSchedulePlannerData";
 import { cn } from "@/lib/utils";

@@ -7,8 +7,8 @@
 
 export {
   type DayRow,
-  type Crew,
-  type Vessel,
+  type RestGridCrew as Crew,
+  type RestGridVessel as Vessel,
   type ShiftPattern,
   type GridMeta,
   type ViewMode,

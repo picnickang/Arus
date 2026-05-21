@@ -31,7 +31,7 @@ import {
   CREW_CERTIFICATION_TYPES,
   getCertLabel,
 } from "./scheduling/crew-scheduler-cards";
-import type { Crew } from "./scheduling/crew-scheduler-cards";
+import type { SchedulerCrew } from "./scheduling/crew-scheduler-cards";
 import { EnhancedScheduleResultsCard } from "./scheduling/enhanced-schedule-results-card";
 
 export { CREW_CERTIFICATION_TYPES, getCertLabel };
@@ -116,11 +116,11 @@ export function CrewScheduler() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                 <div className="border rounded p-3">
                   <div className="text-2xl font-bold text-blue-600">{p.crew.length}</div>
-                  <div className="text-sm text-muted-foreground">Total Crew</div>
+                  <div className="text-sm text-muted-foreground">Total SchedulerCrew</div>
                 </div>
                 <div className="border rounded p-3">
                   <div className="text-2xl font-bold text-green-600">
-                    {p.crew.filter((c: Crew) => c.skills?.includes("watchkeeping")).length}
+                    {p.crew.filter((c: SchedulerCrew) => c.skills?.includes("watchkeeping")).length}
                   </div>
                   <div className="text-sm text-muted-foreground">Watch Qualified</div>
                 </div>
@@ -241,7 +241,7 @@ export function CrewScheduler() {
                     </div>
                     <div>
                       <div className="flex justify-between items-center mb-2">
-                        <Label className="text-sm">Crew Preferences</Label>
+                        <Label className="text-sm">SchedulerCrew Preferences</Label>
                         <Input
                           type="number"
                           value={p.preferences.weights.pref_off}
@@ -475,7 +475,7 @@ export function CrewScheduler() {
                               {port.vesselId} • {new Date(port.start).toLocaleDateString()} -{" "}
                               {new Date(port.end).toLocaleDateString()}
                             </div>
-                            <div className="text-sm">Crew: {port.crewRequired}</div>
+                            <div className="text-sm">SchedulerCrew: {port.crewRequired}</div>
                           </div>
                         ))}
                       </div>
@@ -593,7 +593,7 @@ export function CrewScheduler() {
                               {dd.vesselId} • {new Date(dd.start).toLocaleDateString()} -{" "}
                               {new Date(dd.end).toLocaleDateString()}
                             </div>
-                            <div className="text-sm">Crew: {dd.crewRequired}</div>
+                            <div className="text-sm">SchedulerCrew: {dd.crewRequired}</div>
                           </div>
                         ))}
                       </div>

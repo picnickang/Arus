@@ -7,14 +7,14 @@
 
 export type DayRow = { date: string } & Record<`h${number}`, number>;
 
-export interface Crew {
+export interface RestGridCrew {
   id: string;
   name: string;
   rank: string;
   vesselId?: string;
 }
 
-export interface Vessel {
+export interface RestGridVessel {
   id: string;
   name: string;
   type: string;
@@ -239,7 +239,7 @@ export function calculateWeekCount(rows: DayRow[]): number {
   return Math.ceil(rows.length / 7);
 }
 
-export function filterCrewByVessel(crew: Crew[], vesselId: string): Crew[] {
+export function filterCrewByVessel(crew: RestGridCrew[], vesselId: string): RestGridCrew[] {
   if (!vesselId || vesselId === "all") {
     return crew;
   }

@@ -1,5 +1,5 @@
 import type { RawFrame, DecodeContext } from "../../telemetry/decode/types";
-import type { TelemetryReading } from "../../telemetry-batch-writer";
+import type { TelemetryBatchReading } from "../../telemetry-batch-writer";
 import { decodeFrame } from "../../telemetry/decode";
 import { validateReading } from "../../telemetry/decode/validation";
 import { logger } from "../../utils/logger";
@@ -28,8 +28,8 @@ export class BridgeProcessor {
     this.defaultOrgId = defaultOrgId || "default-org-id";
   }
 
-  process(frames: RawFrame[]): TelemetryReading[] {
-    const readings: TelemetryReading[] = [];
+  process(frames: RawFrame[]): TelemetryBatchReading[] {
+    const readings: TelemetryBatchReading[] = [];
     let decodedCount = 0;
 
     bridgeFramesRead.inc({ stage: "bridge_frames_read" }, frames.length);

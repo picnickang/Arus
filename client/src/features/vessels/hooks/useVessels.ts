@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import type { Vessel, Equipment, Device } from "../types";
+import type { VesselDetail as Vessel, VesselEquipment as Equipment, Device } from "../types";
 
 export const vesselKeys = {
   all: ["/api/vessels"] as const,

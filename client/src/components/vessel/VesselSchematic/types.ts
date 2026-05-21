@@ -1,4 +1,4 @@
-import type { Equipment } from "@/features/vessels/types";
+import type { VesselEquipment } from "@/features/vessels/types";
 import type { SchematicSlot, SchematicZone } from "@/hooks/useSchematicLayout";
 
 export interface PositionedSlot extends SchematicSlot {
@@ -10,7 +10,7 @@ export interface PositionedSlot extends SchematicSlot {
 
 export interface SlotAssignment {
   slot: PositionedSlot;
-  equipment: Equipment | null;
+  equipment: VesselEquipment | null;
 }
 
 export interface ZoneRect {

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowDownUp, CheckCircle2, Info, Package, ShoppingCart } from "lucide-react";
 import { StockBadge } from "@/components/vessel/VesselSchematic";
-import type { Equipment } from "@/features/vessels/types";
+import type { VesselEquipment } from "@/features/vessels/types";
 import type { Part } from "@/features/inventory/types";
 
 export function InventoryPanel({
@@ -19,7 +19,7 @@ export function InventoryPanel({
   parts: Part[];
   allParts: Part[];
   selectedSlotId: string | null;
-  selectedEquipment: Equipment | null;
+  selectedEquipment: VesselEquipment | null;
   onEquip: (part: Part) => void;
   onSwap: (part: Part) => void;
 }) {

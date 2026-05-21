@@ -7,13 +7,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { Equipment } from "@/features/vessels/types";
+import type { VesselEquipment } from "@/features/vessels/types";
 import type { Part } from "@/features/inventory/types";
 
 export interface ConfirmAction {
   type: "equip" | "swap" | "uninstall";
   part?: Part;
-  equipment?: Equipment;
+  equipment?: VesselEquipment;
   slotLabel: string;
 }
 

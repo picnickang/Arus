@@ -38,7 +38,7 @@ import type {
   RobEstimate,
   TankReading,
   TrackPoint,
-  Vessel,
+  RmsVessel as Vessel,
 } from "./rms-monitoring/_shared";
 import { OverviewTab } from "./rms-monitoring/OverviewTab";
 import { AlertsTab } from "./rms-monitoring/AlertsTab";

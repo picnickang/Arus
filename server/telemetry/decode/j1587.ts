@@ -1,4 +1,4 @@
-import type { TelemetryReading } from "../../telemetry-batch-writer";
+import type { TelemetryBatchReading } from "../../telemetry-batch-writer";
 import type { RawFrame, DecodeContext } from "./types";
 
 const CURRENT_PAYLOAD_VERSION = 1;
@@ -8,7 +8,7 @@ type J1587Decoder = (
   ts: number,
   equipmentId: string,
   source: string
-) => TelemetryReading[];
+) => TelemetryBatchReading[];
 
 const j1587Registry = new Map<number, J1587Decoder>();
 
@@ -279,7 +279,7 @@ registerJ1587Pid(105, (data, ts, equipmentId, source) => {
   ];
 });
 
-export function decodeJ1587(frame: RawFrame, ctx: DecodeContext = {}): TelemetryReading[] {
+export function decodeJ1587(frame: RawFrame, ctx: DecodeContext = {}): TelemetryBatchReading[] {
   if (frame.payloadFormatVersion !== CURRENT_PAYLOAD_VERSION) {
     return [];
   }

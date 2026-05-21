@@ -7,7 +7,7 @@ import { insertSkillSchema } from "@shared/schema";
 import { useCreateMutation, useUpdateMutation, useDeleteMutation } from "@/hooks/useCrudMutations";
 import { MARITIME_RANKS, COMMON_SKILLS } from "../lib/crewManagementUtils";
 
-export interface Crew {
+export interface CrewManagementCrew {
   id: string;
   name: string;
   rank: string;
@@ -73,7 +73,7 @@ export function useCrewManagementData() {
   const [crewSkillForm, setCrewSkillForm] = useState({ crewId: "", skill: "", level: 1 });
   const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
 
-  const { data: crew = [], isLoading } = useQuery<Crew[]>({
+  const { data: crew = [], isLoading } = useQuery<CrewManagementCrew[]>({
     queryKey: ["/api/crew"],
     refetchInterval: 60000,
   });

@@ -6,7 +6,7 @@ import {
   type InsertEquipmentFeature,
 } from "@shared/schema";
 import type { FeatureStorePort } from "./ports";
-import type { TelemetryPort, TelemetryReading } from "./telemetry-port";
+import type { TelemetryPort, FeatureStoreTelemetryReading } from "./telemetry-port";
 import { TelemetryAdapter } from "./telemetry-adapter";
 import { createLogger } from "../../../lib/structured-logger";
 const logger = createLogger("PdmPlatform:FeatureStore");
@@ -124,7 +124,7 @@ export class FeatureStoreAdapter implements FeatureStorePort {
     orgId: string,
     equipmentId: string,
     windowMinutes: number,
-    readings: TelemetryReading[]
+    readings: FeatureStoreTelemetryReading[]
   ): InsertEquipmentFeature {
     const bySensor: Record<string, number[]> = {};
     for (const r of readings) {

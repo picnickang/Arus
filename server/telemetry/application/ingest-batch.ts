@@ -1,5 +1,5 @@
 import type { RawFrame } from "../decode/types";
-import type { TelemetryReading } from "../../telemetry-batch-writer";
+import type { TelemetryBatchReading } from "../../telemetry-batch-writer";
 import type { ITelemetryPersistence, IDeadLetterQueue, IMetricsEmitter } from "../ports/outbound";
 import type { IngestBatchResult, IBatchProcessor } from "../ports/inbound";
 import { logger } from "../../utils/logger";
@@ -9,7 +9,7 @@ import type { TelemetryBatchAckAdapter } from "../adapters/batch-ack";
 
 export interface IngestTelemetryBatchConfig {
   persistence: ITelemetryPersistence;
-  deadLetterQueue: IDeadLetterQueue<{ readings: TelemetryReading[]; frameIds: number[] }>;
+  deadLetterQueue: IDeadLetterQueue<{ readings: TelemetryBatchReading[]; frameIds: number[] }>;
   metrics: IMetricsEmitter;
   processor: IBatchProcessor;
   circuitBreaker?: {
@@ -114,7 +114,7 @@ export class IngestTelemetryBatch {
       return result;
     }
 
-    const uniqueReadings: TelemetryReading[] = [];
+    const uniqueReadings: TelemetryBatchReading[] = [];
     for (const reading of readings) {
       const idempotencyKey = reading.metadata?.idempotencyKey as string | undefined;
       if (idempotencyKey) {

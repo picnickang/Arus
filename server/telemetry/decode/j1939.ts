@@ -1,11 +1,11 @@
-import type { TelemetryReading } from "../../telemetry-batch-writer";
+import type { TelemetryBatchReading } from "../../telemetry-batch-writer";
 import type { RawFrame, DecodeContext } from "./types";
 import { readU32LE, clamp, extractPgn, extractSa } from "./util";
 import { decodePgn } from "./registry";
 
 const CURRENT_PAYLOAD_VERSION = 1;
 
-export function decodeJ1939(frame: RawFrame, ctx: DecodeContext = {}): TelemetryReading[] {
+export function decodeJ1939(frame: RawFrame, ctx: DecodeContext = {}): TelemetryBatchReading[] {
   if (frame.payloadFormatVersion !== CURRENT_PAYLOAD_VERSION) {
     return [];
   }

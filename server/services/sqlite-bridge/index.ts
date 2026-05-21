@@ -3,7 +3,7 @@ import { CursorStore } from "./cursorStore";
 import { SqliteRawFrameSource } from "./sqliteRawFrameSource";
 import { BridgeProcessor } from "./bridgeProcessor";
 import { type BridgeConfig } from "./config";
-import { telemetryBatchWriter, type TelemetryReading } from "../../telemetry-batch-writer";
+import { telemetryBatchWriter, type TelemetryBatchReading } from "../../telemetry-batch-writer";
 import { logger } from "../../utils/logger";
 import client from "prom-client";
 import { CircuitBreaker } from "../circuit-breaker/circuitBreaker";
@@ -92,7 +92,7 @@ const bridgeCircuitBreaker = new CircuitBreaker({
 circuitBreakerHealthCollector.registerCircuitBreaker("sqlite-bridge-pg", bridgeCircuitBreaker);
 
 interface BridgeDLQPayload {
-  readings: TelemetryReading[];
+  readings: TelemetryBatchReading[];
   frameIds: number[];
   source: string;
 }

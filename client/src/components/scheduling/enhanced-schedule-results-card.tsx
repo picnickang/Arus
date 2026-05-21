@@ -15,7 +15,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown, AlertTriangle, CheckCircle, Filter } from "lucide-react";
 import { format } from "date-fns";
 import FairnessViz from "../FairnessViz";
-import type { Crew, ShiftPlanning } from "./crew-scheduler-cards";
+import type { SchedulerCrew, ShiftPlanning } from "./crew-scheduler-cards";
 
 export function EnhancedScheduleResultsCard({ p }: { p: ShiftPlanning }) {
   if (!p.enhancedScheduleResult) {
@@ -100,7 +100,7 @@ export function EnhancedScheduleResultsCard({ p }: { p: ShiftPlanning }) {
                 <thead>
                   <tr className="bg-muted">
                     <th scope="col" className="border border-border px-2 py-1 text-left">
-                      Crew
+                      SchedulerCrew
                     </th>
                     <th scope="col" className="border border-border px-2 py-1 text-center">
                       Status
@@ -184,8 +184,8 @@ export function EnhancedScheduleResultsCard({ p }: { p: ShiftPlanning }) {
               <SelectValue placeholder="All Crew" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Crew</SelectItem>
-              {p.crew.map((m: Crew) => (
+              <SelectItem value="all">All SchedulerCrew</SelectItem>
+              {p.crew.map((m: SchedulerCrew) => (
                 <SelectItem key={m.id} value={m.id}>
                   {m.name}
                 </SelectItem>

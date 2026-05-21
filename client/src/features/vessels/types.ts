@@ -1,4 +1,4 @@
-export interface Vessel {
+export interface VesselDetail {
   id: string;
   orgId: string;
   name: string;
@@ -27,7 +27,7 @@ export interface Vessel {
   updatedAt?: Date;
 }
 
-export interface Equipment {
+export interface VesselEquipment {
   id: string;
   orgId: string;
   vesselId: string;

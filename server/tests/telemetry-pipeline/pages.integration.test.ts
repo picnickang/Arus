@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeAll } from "@jest/globals";
 import { BridgeProcessor } from "../../services/sqlite-bridge/bridgeProcessor";
-import type { TelemetryReading } from "../../telemetry-batch-writer";
+import type { TelemetryBatchReading } from "../../telemetry-batch-writer";
 import {
   TEST_ORG_ID,
   TEST_EQUIPMENT_ID,
@@ -20,8 +20,8 @@ import {
 
 interface TelemetryPageContract {
   pageName: string;
-  requiredFields: (keyof TelemetryReading)[];
-  optionalFields: (keyof TelemetryReading)[];
+  requiredFields: (keyof TelemetryBatchReading)[];
+  optionalFields: (keyof TelemetryBatchReading)[];
   sensorTypes?: string[];
 }
 
@@ -92,7 +92,7 @@ const PAGE_CONTRACTS: TelemetryPageContract[] = [
 
 describe("Page-Level Telemetry Integration", () => {
   let processor: BridgeProcessor;
-  let sampleReadings: TelemetryReading[];
+  let sampleReadings: TelemetryBatchReading[];
 
   beforeAll(() => {
     processor = new BridgeProcessor({

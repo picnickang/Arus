@@ -8,7 +8,7 @@ export {
   MAINTENANCE_TYPES,
 } from "./hooks/useWorkOrderFormDialogData";
 export { useWorkOrderTasksTabData } from "./hooks/useWorkOrderTasksTabData";
-export type { WorkOrderTask } from "./hooks/useWorkOrderTasksTabData";
+export type { WorkOrderTaskItem as WorkOrderTask } from "./hooks/useWorkOrderTasksTabData";
 export * from "./hooks/useMultiPartSelectorData";
 export {
   useWorkOrderFilterData,

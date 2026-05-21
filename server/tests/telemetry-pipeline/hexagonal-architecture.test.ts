@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
-import type { TelemetryReading } from "../../telemetry-batch-writer";
+import type { TelemetryBatchReading } from "../../telemetry-batch-writer";
 import type { RawFrame } from "../../telemetry/decode/types";
 import type {
   ITelemetryPersistence,
@@ -12,11 +12,11 @@ import { BridgeProcessor } from "../../services/sqlite-bridge/bridgeProcessor";
 
 describe("Telemetry Hexagonal Architecture", () => {
   let mockPersistence: ITelemetryPersistence;
-  let mockDLQ: IDeadLetterQueue<{ readings: TelemetryReading[]; frameIds: number[] }>;
+  let mockDLQ: IDeadLetterQueue<{ readings: TelemetryBatchReading[]; frameIds: number[] }>;
   let mockMetrics: IMetricsEmitter;
   let processor: BridgeProcessor;
   let idempotencyStore: Set<string>;
-  let dlqEntries: DeadLetterEntry<{ readings: TelemetryReading[]; frameIds: number[] }>[];
+  let dlqEntries: DeadLetterEntry<{ readings: TelemetryBatchReading[]; frameIds: number[] }>[];
 
   beforeEach(() => {
     idempotencyStore = new Set();
@@ -24,7 +24,7 @@ describe("Telemetry Hexagonal Architecture", () => {
 
     mockPersistence = {
       writeBatch: jest
-        .fn<(readings: TelemetryReading[]) => Promise<void>>()
+        .fn<(readings: TelemetryBatchReading[]) => Promise<void>>()
         .mockResolvedValue(undefined),
       checkIdempotency: jest
         .fn<(key: string) => Promise<boolean>>()

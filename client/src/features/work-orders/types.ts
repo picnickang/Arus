@@ -1,4 +1,4 @@
-export interface WorkOrder {
+export interface WorkOrderListItem {
   id: string;
   orgId: string;
   vesselId: string;
@@ -36,7 +36,7 @@ export interface WorkOrder {
   scheduleId?: string | null;
 }
 
-export interface WorkOrderPart {
+export interface WorkOrderPartRecord {
   id: string;
   workOrderId: string;
   partId: string;

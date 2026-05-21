@@ -134,7 +134,7 @@ export interface EquipmentFinancials {
   totalMaintenanceSavings: number;
 }
 
-export interface TelemetryReading {
+export interface PdmTelemetryReading {
   ts: string | Date;
   sensorType: string;
   value: number;

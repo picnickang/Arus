@@ -1,4 +1,4 @@
-import type { TelemetryReading } from "../../telemetry-batch-writer";
+import type { TelemetryBatchReading } from "../../telemetry-batch-writer";
 
 export interface DeadLetterEntry<T = unknown> {
   id: string;
@@ -11,7 +11,7 @@ export interface DeadLetterEntry<T = unknown> {
 }
 
 export interface ITelemetryPersistence {
-  writeBatch(readings: TelemetryReading[]): Promise<void>;
+  writeBatch(readings: TelemetryBatchReading[]): Promise<void>;
   checkIdempotency(key: string): Promise<boolean>;
   markIdempotent(key: string): Promise<void>;
 }

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import type { WorkOrder, WorkOrderPart, WorkOrderChecklist, WorkOrderWorklog } from "../types";
+import type { WorkOrderListItem as WorkOrder, WorkOrderPartRecord as WorkOrderPart, WorkOrderChecklist, WorkOrderWorklog } from "../types";
 
 export const workOrderKeys = {
   all: ["/api/work-orders"] as const,
