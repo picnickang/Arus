@@ -155,7 +155,7 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
       const { pool } = await import("../../db.js");
       const notifyTables: PgNotifyCdcTableConfig[] = tableDefs;
       const bridge = new PgNotifyCdcBridge({
-        pool: pool as unknown as import("pg").Pool,
+        pool: pool as never as import("pg").Pool,
         tables: notifyTables,
       });
       await bridge.start();

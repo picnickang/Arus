@@ -33,13 +33,14 @@ describe("WorkOrder publisher: post-commit emit semantics", () => {
 
   test("publish(event, tx) defers in-process emit — caller must invoke thunk after commit", async () => {
     const { workOrderEventPublisher } = await loadAdapter();
-    const bus = (await import("../../domain-event-bus/index")).domainEventBus as unknown as {
+    const busRaw: unknown = (await import("../../domain-event-bus/index")).domainEventBus;
+    const bus = busRaw as {
       emit: jest.Mock;
       on: (n: string, cb: (e: unknown) => void) => void;
     };
     bus.emit = jest.fn() as never;
 
-    const fakeTx = {} as unknown as object;
+    const fakeTx: object = {};
     const post = await workOrderEventPublisher.publish(
       {
         type: "WORK_ORDER_CREATED",
@@ -61,9 +62,8 @@ describe("WorkOrder publisher: post-commit emit semantics", () => {
 
   test("publish(event) without tx emits inline (legacy fast path)", async () => {
     const { workOrderEventPublisher } = await loadAdapter();
-    const bus = (await import("../../domain-event-bus/index")).domainEventBus as unknown as {
-      emit: jest.Mock;
-    };
+    const busRaw: unknown = (await import("../../domain-event-bus/index")).domainEventBus;
+    const bus = busRaw as { emit: jest.Mock };
     bus.emit = jest.fn() as never;
 
     const post = await workOrderEventPublisher.publish({
@@ -78,11 +78,10 @@ describe("WorkOrder publisher: post-commit emit semantics", () => {
 
   test("rollback (thunk never invoked) → no in-process emit", async () => {
     const { workOrderEventPublisher } = await loadAdapter();
-    const bus = (await import("../../domain-event-bus/index")).domainEventBus as unknown as {
-      emit: jest.Mock;
-    };
+    const busRaw: unknown = (await import("../../domain-event-bus/index")).domainEventBus;
+    const bus = busRaw as { emit: jest.Mock };
     bus.emit = jest.fn() as never;
-    const fakeTx = {} as unknown as object;
+    const fakeTx: object = {};
     const post = await workOrderEventPublisher.publish(
       {
         type: "WORK_ORDER_CREATED",
@@ -132,7 +131,7 @@ describe("PgWalCdcBridge.handle (committed change → outbox event)", () => {
         },
       ],
       enqueue,
-    }) as unknown as AnyBridge;
+    }) as never as AnyBridge;
     bridge.service = { acknowledge: jest.fn(async () => true) } as never;
     return bridge;
   }

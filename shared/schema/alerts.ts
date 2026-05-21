@@ -5,7 +5,7 @@
  *
  * NOTE: Reconciled 2026-05-17 to match the real PostgreSQL DB. The previous
  * declarations for alertSettings / alertSettingsVessel / alertNotifications /
- * alertSuppressions were fictional and forced consumers to use `as any`
+ * alertSuppressions were fictional and forced consumers to use escape-hatch casts
  * casts. The shapes here now reflect what `psql \d` actually reports.
  */
 

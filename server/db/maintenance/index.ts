@@ -21,6 +21,7 @@ import { createLogger } from "../../lib/structured-logger";
 const logger = createLogger("Db:Maintenance:Index");
 import { DbMaintenanceSchedules } from "./db-schedules.js";
 import { DbMaintenanceTemplates } from "./db-templates.js";
+import type { InsertMaintenanceTemplate } from "@shared/schema";
 
 export * from "./types.js";
 export { DbMaintenanceSchedules } from "./db-schedules.js";
@@ -34,10 +35,14 @@ export class DatabaseMaintenanceStorage extends DbMaintenanceSchedules {
   async getMaintenanceTemplate(id: string, orgId?: string) {
     return this.templates.getMaintenanceTemplate(id, orgId);
   }
-  async createMaintenanceTemplate(template: any) {
+  async createMaintenanceTemplate(template: InsertMaintenanceTemplate) {
     return this.templates.createMaintenanceTemplate(template);
   }
-  async updateMaintenanceTemplate(id: string, updates: any, orgId?: string) {
+  async updateMaintenanceTemplate(
+    id: string,
+    updates: Partial<InsertMaintenanceTemplate>,
+    orgId?: string
+  ) {
     return this.templates.updateMaintenanceTemplate(id, updates, orgId);
   }
   async deleteMaintenanceTemplate(id: string, orgId?: string) {

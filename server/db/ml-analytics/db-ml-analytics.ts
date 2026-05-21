@@ -5,7 +5,9 @@
 import { createLogger } from "../../lib/structured-logger";
 const logger = createLogger("Db:MlAnalytics:DbMlAnalytics");
 import { randomUUID } from "node:crypto";
-import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
+import { eq, and, desc, sql, gte, lte, type SQL } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import { tableColumns } from "../_helpers/table-columns";
 import { db } from "../../db-config";
 import { getCloudTableOrUndefined } from "../../utils/cloud-guards";
 import {
@@ -41,7 +43,7 @@ import { projectFailureHistory } from "../../graph/projector";
 import { rulModels } from "@shared/schema-runtime";
 import type { RulModel, InsertRulModel } from "@shared/schema";
 
-function jsonSet(column: any, path: string, value: string) {
+function jsonSet(column: AnyPgColumn | SQL, path: string, value: string) {
   return sql`jsonb_set(COALESCE(${column}, '{}'::jsonb), '${sql.raw(path)}', ${JSON.stringify(value)}::jsonb)`;
 }
 
@@ -133,6 +135,11 @@ export class DatabaseMlAnalyticsStorage {
       .values({ ...detection, orgId, detectionTimestamp: new Date() })
       .returning();
     if (detection.modelId && detection.equipmentId) {
+      const d = detection as InsertAnomalyDetection & {
+        value?: unknown;
+        expectedRange?: unknown;
+        modelVersionId?: string;
+      };
       try {
         await db
           .insert(modelPerformanceValidations)
@@ -147,11 +154,11 @@ export class DatabaseMlAnalyticsStorage {
               anomalyScore: detection.anomalyScore,
               severity: detection.severity,
               sensorType: detection.sensorType,
-              value: (detection as any).value,
-              expectedRange: (detection as any).expectedRange,
+              value: d.value,
+              expectedRange: d.expectedRange,
             },
-            modelVersion: (detection as any).modelVersionId,
-          } as any);
+            modelVersion: d.modelVersionId,
+          } as never);
       } catch (e) {
         logger.error(`[ML] Failed to create performance validation:`, undefined, e);
       }
@@ -208,6 +215,11 @@ export class DatabaseMlAnalyticsStorage {
       .values({ ...prediction, orgId, predictionTimestamp: new Date() })
       .returning();
     if (prediction.modelId && prediction.equipmentId) {
+      const p = prediction as InsertFailurePrediction & {
+        predictedDate?: Date | string;
+        severity?: string;
+        remainingDays?: number;
+      };
       try {
         await db
           .insert(modelPerformanceValidations)
@@ -220,13 +232,13 @@ export class DatabaseMlAnalyticsStorage {
             predictionTimestamp: n.predictionTimestamp,
             predictedOutcome: {
               failureProbability: prediction.failureProbability,
-              predictedDate: (prediction as any).predictedDate,
-              severity: (prediction as any).severity,
+              predictedDate: p.predictedDate,
+              severity: p.severity,
               riskLevel: prediction.riskLevel,
-              remainingDays: (prediction as any).remainingDays,
+              remainingDays: p.remainingDays,
             },
             modelVersion: prediction.modelVersionId,
-          } as any);
+          } as never);
       } catch (e) {
         logger.error(`[ML] Failed to create performance validation:`, undefined, e);
       }
@@ -249,7 +261,7 @@ export class DatabaseMlAnalyticsStorage {
   ): Promise<FailureHistory> {
     const [row] = await db
       .insert(failureHistory)
-      .values({ ...data, orgId, createdAt: new Date() } as any)
+      .values({ ...data, orgId, createdAt: new Date() } as never)
       .returning();
     try {
       await projectFailureHistory(orgId, {
@@ -412,13 +424,15 @@ export class DatabaseMlAnalyticsStorage {
     if (!table) {
       return [];
     }
-    const tAny = table as any;
+    const tCols = tableColumns(table);
     const c = [eq(table.orgId, orgId)];
     if (modelId) {
-      c.push(eq(tAny.modelId ?? tAny.modelType, modelId));
+      const col = tCols.modelId ?? tCols.modelType;
+      if (col) c.push(eq(col, modelId));
     }
     if (equipmentId) {
-      c.push(eq(tAny.equipmentId ?? tAny.equipmentType, equipmentId));
+      const col = tCols.equipmentId ?? tCols.equipmentType;
+      if (col) c.push(eq(col, equipmentId));
     }
     if (status) {
       c.push(eq(table.status, status));
@@ -534,7 +548,7 @@ export class DatabaseMlAnalyticsStorage {
   ): Promise<EngineerOverride> {
     const [u] = await db
       .update(engineerOverrides)
-      .set({ ...updates } as any)
+      .set({ ...updates } as never)
       .where(and(eq(engineerOverrides.id, id), eq(engineerOverrides.orgId, orgId)))
       .returning();
     if (!u) {
@@ -554,7 +568,7 @@ export class DatabaseMlAnalyticsStorage {
   ): Promise<EngineerOverride> {
     return this.updateEngineerOverride(
       id,
-      { status: "expired", expiredBy, expiredAt: new Date() } as any,
+      { status: "expired", expiredBy, expiredAt: new Date() } as Partial<InsertEngineerOverride>,
       orgId
     );
   }

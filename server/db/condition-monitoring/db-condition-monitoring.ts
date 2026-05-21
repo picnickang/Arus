@@ -2,7 +2,7 @@
  * Condition Monitoring - Database Storage (BaseRepository Pattern)
  */
 
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, type SQL } from "drizzle-orm";
 import { db } from "../../db";
 import { BaseRepository } from "../../shared/base-repository";
 import {
@@ -125,9 +125,10 @@ export class DbConditionMonitoringStorage {
       ...analysis,
       analysisDate: analysis.analysisDate ? new Date(analysis.analysisDate) : new Date(),
     };
-    Object.keys(data).forEach((k) => {
-      if ((data as any)[k] === undefined) {
-        delete (data as any)[k];
+    const mutable = data as Record<string, unknown>;
+    Object.keys(mutable).forEach((k) => {
+      if (mutable[k] === undefined) {
+        delete mutable[k];
       }
     });
     return wearParticleRepo.create(data);
@@ -216,7 +217,7 @@ export class DbConditionMonitoringStorage {
   }
 
   async getOilChangeRecords(orgId?: string, equipmentId?: string): Promise<OilChangeRecord[]> {
-    const c: any[] = [];
+    const c: SQL[] = [];
     if (orgId) {
       c.push(eq(oilChangeRecords.orgId, orgId));
     }

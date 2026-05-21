@@ -42,7 +42,7 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
   async getSettings() {
     return this.s.getSettings();
   }
-  async updateSettings(updates: Record<string, any>) {
+  async updateSettings(updates: Record<string, unknown>) {
     return this.s.updateSettings(updates);
   }
   async getAdminSystemSettings(orgId?: string, category?: string) {
@@ -52,7 +52,7 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
     return this.s.getAdminSystemSetting(orgId, category, key);
   }
   async createAdminSystemSetting(setting: PartialSetting) {
-    return this.s.createAdminSystemSetting(setting as any);
+    return this.s.createAdminSystemSetting(setting as InsertAdminSystemSetting);
   }
   async updateAdminSystemSetting(id: string, setting: PartialSetting) {
     return this.s.updateAdminSystemSetting(id, setting);
@@ -70,7 +70,7 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
     return this.s.getIntegrationConfig(id, orgId);
   }
   async createIntegrationConfig(config: PartialConfig) {
-    return this.s.createIntegrationConfig(config as any);
+    return this.s.createIntegrationConfig(config as InsertIntegrationConfig);
   }
   async updateIntegrationConfig(id: string, config: PartialConfig) {
     return this.s.updateIntegrationConfig(id, config);
@@ -88,7 +88,7 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
     return this.s.getMaintenanceWindow(id, orgId);
   }
   async createMaintenanceWindow(window: PartialWindow) {
-    return this.s.createMaintenanceWindow(window as any);
+    return this.s.createMaintenanceWindow(window as InsertMaintenanceWindow);
   }
   async updateMaintenanceWindow(id: string, window: PartialWindow) {
     return this.s.updateMaintenanceWindow(id, window);
@@ -106,7 +106,7 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
     return this.s.getSystemHealthCheck(id, orgId);
   }
   async createSystemHealthCheck(check: PartialCheck) {
-    return this.s.createSystemHealthCheck(check as any);
+    return this.s.createSystemHealthCheck(check as InsertSystemHealthCheck);
   }
   async updateSystemHealthCheck(id: string, check: PartialCheck, orgId: string) {
     return this.s.updateSystemHealthCheck(id, check, orgId);
@@ -140,11 +140,13 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
     dateFrom?: Date;
     dateTo?: Date;
     limit?: number;
-  }): Promise<any[]> {
+  }): Promise<Array<Record<string, unknown>>> {
     const { errorLogs } = await import("@shared/schema-runtime");
     const { eq, and, sql: sqlFn } = await import("drizzle-orm");
+    const drizzleTypes = await import("drizzle-orm");
+    type SQL = ReturnType<typeof drizzleTypes.sql>;
     const { db: database } = await import("../../db-config");
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (filters?.orgId) {
       conditions.push(eq(errorLogs.orgId, filters.orgId));
     }
@@ -165,7 +167,7 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
     return query;
   }
 
-  async createErrorLog(log: any): Promise<any> {
+  async createErrorLog(log: Record<string, unknown> & { orgId?: string }): Promise<Record<string, unknown>> {
     if (!log.orgId) {
       throw new Error("orgId is required for createErrorLog");
     }
@@ -173,7 +175,7 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
     const { db: database } = await import("../../db-config");
     const [newLog] = await database
       .insert(errorLogs)
-      .values({ ...log, timestamp: new Date() })
+      .values({ ...log, timestamp: new Date() } as never)
       .returning();
     return newLog;
   }
@@ -191,8 +193,10 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
   async clearErrorLogs(olderThan?: Date, orgId?: string): Promise<void> {
     const { errorLogs } = await import("@shared/schema-runtime");
     const { sql: sqlFn, eq, and } = await import("drizzle-orm");
+    const drizzleTypes = await import("drizzle-orm");
+    type SQL = ReturnType<typeof drizzleTypes.sql>;
     const { db: database } = await import("../../db-config");
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (orgId) {
       conditions.push(eq(errorLogs.orgId, orgId));
     }

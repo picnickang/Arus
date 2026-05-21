@@ -3,9 +3,10 @@
  * Replaces Math.random() to address S2245 security hotspots
  */
 
-let cryptoModule: typeof import("crypto") | null = null;
+type CryptoShim = Pick<typeof import("crypto"), "randomUUID" | "getRandomValues">;
+let cryptoModule: CryptoShim | null = null;
 
-function getCrypto(): typeof import("crypto") {
+function getCrypto(): CryptoShim {
   if (cryptoModule) {
     return cryptoModule;
   }
@@ -13,15 +14,15 @@ function getCrypto(): typeof import("crypto") {
   if (typeof globalThis.crypto !== "undefined" && globalThis.crypto.getRandomValues) {
     return {
       randomUUID: () => globalThis.crypto.randomUUID(),
-      getRandomValues: <T extends ArrayBufferView>(array: T): T => {
-        globalThis.crypto.getRandomValues(array);
+      getRandomValues: ((array: ArrayBufferView): ArrayBufferView => {
+        globalThis.crypto.getRandomValues(array as Uint8Array);
         return array;
-      },
-    } as unknown as typeof import("crypto");
+      }) as CryptoShim["getRandomValues"],
+    };
   }
 
-  cryptoModule = require("crypto");
-  return cryptoModule!;
+  cryptoModule = require("crypto") as CryptoShim;
+  return cryptoModule;
 }
 
 export function cryptoRandom(): number {

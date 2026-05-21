@@ -2,7 +2,9 @@
  * GDPR - Database Storage
  */
 
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, type SQL } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import { tableColumns } from "../_helpers/table-columns";
 import { db } from "../../db-config";
 import { dataSubjectRequests, engineerOverrides } from "@shared/schema-runtime";
 import type {
@@ -64,7 +66,7 @@ export class DatabaseGdprStorage {
   async processDataSubjectRequest(
     id: string,
     processedBy: string,
-    result: Record<string, any>
+    result: Record<string, unknown>
   ): Promise<DataSubjectRequest> {
     const [u] = await db
       .update(dataSubjectRequests)
@@ -74,7 +76,7 @@ export class DatabaseGdprStorage {
         processedAt: new Date(),
         result,
         updatedAt: new Date(),
-      } as any)
+      } as never)
       .where(eq(dataSubjectRequests.id, id))
       .returning();
     if (!u) {
@@ -83,10 +85,13 @@ export class DatabaseGdprStorage {
     return u;
   }
   async getDataSubjectRequestsByEmail(email: string): Promise<DataSubjectRequest[]> {
+    const col = tableColumns(dataSubjectRequests)
+      .subjectEmail;
+    if (!col) return [];
     return db
       .select()
       .from(dataSubjectRequests)
-      .where(eq((dataSubjectRequests as any).subjectEmail, email))
+      .where(eq(col, email))
       .orderBy(sql`${dataSubjectRequests.createdAt} DESC`);
   }
   async getPendingDataSubjectRequests(orgId?: string): Promise<DataSubjectRequest[]> {
@@ -122,7 +127,7 @@ export class DatabaseGdprStorage {
       toDate?: Date;
     }
   ): Promise<DataSubjectRequest[]> {
-    const conditions: any[] = [eq(dataSubjectRequests.orgId, orgId)];
+    const conditions: SQL[] = [eq(dataSubjectRequests.orgId, orgId)];
     if (filters.status) {
       conditions.push(eq(dataSubjectRequests.status, filters.status));
     }
@@ -208,8 +213,8 @@ export class DatabaseGdprStorage {
     orgId: string,
     identifier: string,
     identifierType: "email" | "userId" | "crewId"
-  ): Promise<Record<string, any>> {
-    const result: Record<string, any[]> = {
+  ): Promise<Record<string, unknown>> {
+    const result: Record<string, unknown[]> = {
       users: [],
       crewMembers: [],
       restRecords: [],
@@ -250,7 +255,7 @@ export class DatabaseGdprStorage {
     orgId: string,
     erasedBy: string,
     reason?: string
-  ): Promise<Record<string, any>> {
+  ): Promise<Record<string, unknown>> {
     const request = await this.getDataSubjectRequestWithOrg(dsarId, orgId);
     if (!request) {
       throw new Error(`DSAR ${dsarId} not found`);
@@ -258,7 +263,7 @@ export class DatabaseGdprStorage {
     await this.updateDataSubjectRequest(dsarId, {
       status: "completed",
       processingNotes: `Erasure executed by ${erasedBy}. Reason: ${reason || "DSAR erasure request"}`,
-    } as any);
+    } as Partial<InsertDataSubjectRequest>);
     return {
       dsarId,
       status: "erasure_recorded",
@@ -280,7 +285,9 @@ export class DatabaseGdprStorage {
       conditions.push(eq(engineerOverrides.overrideType, overrideType));
     }
     if (isActive !== undefined) {
-      conditions.push(eq((engineerOverrides as any).isActive, isActive));
+      const col = tableColumns(engineerOverrides)
+        .isActive;
+      if (col) conditions.push(eq(col, isActive));
     }
     const query = conditions.length > 0
       ? db.select().from(engineerOverrides).where(and(...conditions))
@@ -301,7 +308,7 @@ export class DatabaseGdprStorage {
   ): Promise<EngineerOverride> {
     const [u] = await db
       .update(engineerOverrides)
-      .set({ ...updates, updatedAt: new Date() } as any)
+      .set({ ...updates, updatedAt: new Date() } as never)
       .where(eq(engineerOverrides.id, id))
       .returning();
     if (!u) {
@@ -313,18 +320,20 @@ export class DatabaseGdprStorage {
     await db.delete(engineerOverrides).where(eq(engineerOverrides.id, id));
   }
   async getActiveOverridesForEquipment(equipmentId: string): Promise<EngineerOverride[]> {
+    const isActiveCol = tableColumns(engineerOverrides)
+      .isActive;
+    const c: SQL[] = [eq(engineerOverrides.equipmentId, equipmentId)];
+    if (isActiveCol) c.push(eq(isActiveCol, true));
     return db
       .select()
       .from(engineerOverrides)
-      .where(
-        and(eq(engineerOverrides.equipmentId, equipmentId), eq((engineerOverrides as any).isActive, true))
-      )
+      .where(and(...c))
       .orderBy(sql`${engineerOverrides.createdAt} DESC`);
   }
   async deactivateOverride(id: string, deactivatedBy: string): Promise<EngineerOverride> {
     const [u] = await db
       .update(engineerOverrides)
-      .set({ isActive: false, deactivatedBy, deactivatedAt: new Date(), updatedAt: new Date() } as any)
+      .set({ isActive: false, deactivatedBy, deactivatedAt: new Date(), updatedAt: new Date() } as never)
       .where(eq(engineerOverrides.id, id))
       .returning();
     if (!u) {

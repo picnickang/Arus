@@ -56,7 +56,12 @@ export class DatabaseSchedulerStorage {
     if (!u) {
       throw new Error(`Scheduler run ${id} not found`);
     }
-    await recordAndPublish("scheduler_run" as any, id, "update", u);
+    await recordAndPublish(
+      "scheduler_run" as Parameters<typeof recordAndPublish>[0],
+      id,
+      "update",
+      u
+    );
     return u;
   }
 
@@ -70,10 +75,10 @@ export class DatabaseSchedulerStorage {
     return result;
   }
 
-  async completeSchedulerRun(id: string, result: Record<string, any>): Promise<SchedulerRun> {
+  async completeSchedulerRun(id: string, result: Record<string, unknown>): Promise<SchedulerRun> {
     const [u] = await db
       .update(schedulerRuns)
-      .set({ status: "completed", finishedAt: new Date(), stats: result, updatedAt: new Date() } as any)
+      .set({ status: "completed", finishedAt: new Date(), stats: result, updatedAt: new Date() } as never)
       .where(eq(schedulerRuns.id, id))
       .returning();
     if (!u) {
@@ -85,7 +90,7 @@ export class DatabaseSchedulerStorage {
   async failSchedulerRun(id: string, error: string): Promise<SchedulerRun> {
     const [u] = await db
       .update(schedulerRuns)
-      .set({ status: "failed", errorMessage: error, finishedAt: new Date(), updatedAt: new Date() } as any)
+      .set({ status: "failed", errorMessage: error, finishedAt: new Date(), updatedAt: new Date() } as never)
       .where(eq(schedulerRuns.id, id))
       .returning();
     if (!u) {
@@ -94,7 +99,7 @@ export class DatabaseSchedulerStorage {
     return u;
   }
 
-  async getScheduleAssignmentsByRun(runId: string): Promise<any[]> {
+  async getScheduleAssignmentsByRun(runId: string) {
     return db
       .select()
       .from(scheduleAssignments)
@@ -246,7 +251,7 @@ export class DatabaseSchedulerStorage {
         publishedAt: new Date(),
         publishedBy: userId,
         updatedAt: new Date(),
-      } as any)
+      } as never)
       .where(eq(schedulerRuns.id, id))
       .returning();
     if (!u) {
@@ -284,13 +289,13 @@ export class DatabaseSchedulerStorage {
     return u;
   }
 
-  async getScheduleAssignments(orgId: string, fromDate: Date, toDate: Date): Promise<any[]> {
+  async getScheduleAssignments(orgId: string, fromDate: Date, toDate: Date) {
     const runs = await this.getSchedulerRuns(orgId);
     const runIds = runs.map((r) => r.id);
     if (runIds.length === 0) {
       return [];
     }
-    const allAssignments: any[] = [];
+    const allAssignments: Awaited<ReturnType<typeof this.getScheduleAssignmentsByRun>> = [];
     for (const runId of runIds) {
       const assignments = await db
         .select()
@@ -327,14 +332,18 @@ export class DatabaseSchedulerStorage {
     return result ?? null;
   }
 
-  async createBulkScheduleAssignments(assignments: any[]): Promise<any[]> {
+  async createBulkScheduleAssignments(
+    assignments: Parameters<typeof db.insert<typeof scheduleAssignments>>[0] extends never
+      ? never
+      : Array<typeof scheduleAssignments.$inferInsert>
+  ) {
     if (assignments.length === 0) {
       return [];
     }
     return db.insert(scheduleAssignments).values(assignments).returning();
   }
 
-  async createBulkScheduleUnfilled(unfilled: any[]): Promise<any[]> {
+  async createBulkScheduleUnfilled(unfilled: Array<typeof scheduleUnfilled.$inferInsert>) {
     if (unfilled.length === 0) {
       return [];
     }

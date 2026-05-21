@@ -343,6 +343,15 @@ export default [
       }],
     }
   },
+  // Task #164 — ZERO-tolerance `any` for the type-debt-burned-down globs.
+  // shared/, server/db/, server/lib/ are now `any`-free; pin it with `error`
+  // so regressions fail lint instead of merging quietly.
+  {
+    files: ['shared/**/*.ts', 'server/db/**/*.ts', 'server/lib/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'error',
+    }
+  },
   // Phase 2: Type-aware linting for client code only (to avoid perf issues)
   // Enables rules that require TypeScript type information
   {

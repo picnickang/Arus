@@ -3,7 +3,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { eq, and, lte, gte, or, sql, inArray } from "drizzle-orm";
+import { eq, and, lte, gte, or, sql, inArray, type SQL } from "drizzle-orm";
 import { db } from "../../db-config";
 import {
   crew,
@@ -33,7 +33,7 @@ export class DbCrewExtended {
     orgId?: string,
     filters?: CrewAssignmentFilters
   ): Promise<CrewAssignment[]> {
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (orgId) {
       conditions.push(eq(crewAssignmentTable.orgId, orgId));
     }
@@ -119,7 +119,7 @@ export class DbCrewExtended {
   ): Promise<CrewAssignment[]> {
     const fromStr = from.toISOString().slice(0, 10);
     const toStr = to.toISOString().slice(0, 10);
-    const conditions: any[] = [
+    const conditions: SQL[] = [
       gte(crewAssignmentTable.date, fromStr),
       lte(crewAssignmentTable.date, toStr),
     ];
@@ -146,7 +146,7 @@ export class DbCrewExtended {
   }
 
   async getCrewCertifications(crewId?: string, orgId?: string): Promise<CrewCertification[]> {
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (orgId) {
       conditions.push(eq(crewCertificationTable.orgId, orgId));
     }
@@ -197,7 +197,7 @@ export class DbCrewExtended {
   async getExpiringCertifications(days: number = 90, orgId?: string): Promise<CrewCertification[]> {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + days);
-    const conditions: any[] = [lte(crewCertificationTable.expiresAt, futureDate)];
+    const conditions: SQL[] = [lte(crewCertificationTable.expiresAt, futureDate)];
     if (orgId) {
       conditions.push(eq(crewCertificationTable.orgId, orgId));
     }
@@ -209,7 +209,7 @@ export class DbCrewExtended {
   }
 
   async getCrewLeave(crewId?: string, orgId?: string): Promise<CrewLeave[]> {
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (orgId) {
       conditions.push(eq(crewLeaveTable.orgId, orgId));
     }

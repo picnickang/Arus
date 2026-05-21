@@ -228,7 +228,8 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
   app.post(
     "/api/crew/schedule/plan",
     crewOperationRateLimit,
-    withErrorHandling("plan crew schedule", async (req: Request, res: Response) => {
+    withErrorHandling("plan crew schedule", async (req: AuthenticatedRequest, res: Response) => {
+      const orgId = req.orgId!;
       const { days, shifts, crew, leaves, existing = [] } = req.body;
 
       if (!Array.isArray(days) || !Array.isArray(shifts) || !Array.isArray(crew)) {
@@ -239,6 +240,7 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
 
       if (scheduled.length > 0) {
         const assignments = scheduled.map((assignment) => ({
+          orgId,
           date: assignment.date,
           shiftId: assignment.shiftId,
           crewId: assignment.crewId,

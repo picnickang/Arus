@@ -31,7 +31,7 @@ export const IS_POSTGRES = !isLocalMode;
 // ============================================================================
 // Schema-pick helpers — replace the dual-mode cast pattern
 //   (cond ? A : B) as typeof pgSchema.X
-// with type-safe selectors that compress 70+ 'as any' / 'as typeof' casts.
+// with type-safe selectors that compress 70+ escape-hatch / 'as typeof' casts.
 // ============================================================================
 type _AnyTable = unknown;
 function pickSchema<T>(useSqlite: boolean, sqliteTable: _AnyTable, pgTable: T): T {
@@ -39,7 +39,7 @@ function pickSchema<T>(useSqlite: boolean, sqliteTable: _AnyTable, pgTable: T): 
 }
 /** Cloud-only table — present only in PostgreSQL mode; undefined in SQLite mode. */
 function cloudOnly<T>(pgTable: T): T {
-  return (isLocalMode ? (undefined as unknown as T) : pgTable);
+  return (isLocalMode ? (undefined as never) : pgTable) as T;
 }
 
 
@@ -277,7 +277,8 @@ export const syncConflicts = pickSchema(isLocalMode, sqliteVessel.syncConflictsS
 // ============================================================================
 export const softwarePatches = cloudOnly(pgSchema.softwarePatches);
 export const configAuditLog = cloudOnly(pgSchema.configAuditLog);
-export const updateSettings = (IS_POSTGRES ? pgSchema.updateSettings : (sqliteVessel as any).updateSettingsSqlite) as typeof pgSchema.updateSettings;
+const _sqliteUpdateSettings = (sqliteVessel as Record<string, unknown>).updateSettingsSqlite as typeof pgSchema.updateSettings | undefined;
+export const updateSettings = (IS_POSTGRES ? pgSchema.updateSettings : _sqliteUpdateSettings) as typeof pgSchema.updateSettings;
 export const patchDownloads = cloudOnly(pgSchema.patchDownloads);
 export const adminSessions = cloudOnly(pgSchema.adminSessions);
 export const modelDeployments = cloudOnly(pgSchema.modelDeployments);

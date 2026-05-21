@@ -4,6 +4,8 @@
 
 import { randomUUID } from "node:crypto";
 import { eq, and, sql, lte, or } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import { tableColumns } from "../_helpers/table-columns";
 import { db } from "../../db-config";
 import { createLogger } from "../../lib/structured-logger";
 const logger = createLogger("Db:Equipment:DbEquipment");
@@ -88,10 +90,10 @@ export class DatabaseEquipmentStorage {
       .values({
         ...equipmentData,
         vesselName,
-        id: (equipmentData as any).id || randomUUID(),
+        id: (equipmentData as { id?: string }).id || randomUUID(),
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as any)
+      } as never)
       .returning();
     // Push A2 — project new equipment into the knowledge graph. No-op
     // when GRAPH_ENABLED=false; never throws (best-effort wrapper).
@@ -113,8 +115,13 @@ export class DatabaseEquipmentStorage {
       });
     }
     try {
-      const { equipmentAnalyticsService } = await import("../../equipment-analytics-service.js");
-      await (equipmentAnalyticsService as any).setupEquipmentAnalytics(newEquipment);
+      const mod = await import("../../equipment-analytics-service.js");
+      const svc = mod.equipmentAnalyticsService as {
+        setupEquipmentAnalytics?: (e: Equipment) => Promise<void>;
+      };
+      if (typeof svc.setupEquipmentAnalytics === "function") {
+        await svc.setupEquipmentAnalytics(newEquipment);
+      }
     } catch (error) {
       logger.error(`Failed to setup analytics for new equipment ${newEquipment.id}:`, undefined, error);
     }
@@ -234,26 +241,48 @@ export class DatabaseEquipmentStorage {
       await tx.delete(sensorStates).where(eq(sensorStates.equipmentId, id));
       await tx.delete(equipmentTelemetryTable).where(eq(equipmentTelemetryTable.equipmentId, id));
       // SCHEMA GAP: rawTelemetry has no equipmentId column (only vessel/src/sig).
-      // Cast retained to preserve previous behavior; cascade-delete path needs a
-      // real fix — track separately rather than silently breaking the type system.
-      await tx.delete(rawTelemetry).where(eq((rawTelemetry as any).equipmentId, id));
+      // The cascade-delete path needs a real fix; until then, only run the
+      // delete if a column with that name exists at runtime.
+      {
+        const col = tableColumns(rawTelemetry)
+          .equipmentId;
+        if (col) {
+          await tx.delete(rawTelemetry).where(eq(col, id));
+        }
+      }
       await tx.delete(pdmScoreLogsTable).where(eq(pdmScoreLogsTable.equipmentId, id));
       await tx.delete(anomalyDetections).where(eq(anomalyDetections.equipmentId, id));
       await tx.delete(failurePredictions).where(eq(failurePredictions.equipmentId, id));
       await tx.delete(vibrationFeatures).where(eq(vibrationFeatures.equipmentId, id));
       await tx.delete(vibrationAnalysis).where(eq(vibrationAnalysis.equipmentId, id));
       // SCHEMA GAP: twinSimulations has no equipmentId column (only digitalTwinId).
-      // Cast retained; cascade-delete path needs a real fix.
-      await tx.delete(twinSimulations).where(eq((twinSimulations as any).equipmentId, id));
+      // Cascade-delete path needs a real fix.
+      {
+        const col = tableColumns(twinSimulations)
+          .equipmentId;
+        if (col) {
+          await tx.delete(twinSimulations).where(eq(col, id));
+        }
+      }
       await tx.delete(conditionMonitoring).where(eq(conditionMonitoring.equipmentId, id));
       await tx.delete(oilAnalysis).where(eq(oilAnalysis.equipmentId, id));
       await tx.delete(wearParticleAnalysis).where(eq(wearParticleAnalysis.equipmentId, id));
       await tx.delete(dtcFaults).where(eq(dtcFaults.equipmentId, id));
       // SCHEMA GAP: insightReports/insightSnapshots have no equipmentId column
-      // (org-scoped, not equipment-scoped). Cast retained; cascade behavior
-      // needs a real fix — probably this delete shouldn't exist at all.
-      await tx.delete(insightReports).where(eq((insightReports as any).equipmentId, id));
-      await tx.delete(insightSnapshots).where(eq((insightSnapshots as any).equipmentId, id));
+      // (org-scoped, not equipment-scoped). Cascade behavior needs a real fix —
+      // probably this delete shouldn't exist at all. Guard at runtime.
+      {
+        const r = tableColumns(insightReports)
+          .equipmentId;
+        if (r) {
+          await tx.delete(insightReports).where(eq(r, id));
+        }
+        const s = tableColumns(insightSnapshots)
+          .equipmentId;
+        if (s) {
+          await tx.delete(insightSnapshots).where(eq(s, id));
+        }
+      }
       const [deleted] = await tx
         .delete(equipment)
         .where(and(...conditions))
@@ -416,17 +445,17 @@ export class DatabaseEquipmentStorage {
         ...data,
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as any)
+      } as never)
       .returning();
     return n;
   }
   async getReplacementRecommendations(): Promise<EquipmentLifecycle[]> {
     const sixMonthsFromNow = new Date();
     sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
-    return db
-      .select()
-      .from(equipmentLifecycle)
-      .where(lte((equipmentLifecycle as any).estimatedEndOfLife, sixMonthsFromNow));
+    const col = tableColumns(equipmentLifecycle)
+      .estimatedEndOfLife;
+    if (!col) return [];
+    return db.select().from(equipmentLifecycle).where(lte(col, sixMonthsFromNow));
   }
 
   async getEquipmentSensorTypes(orgId: string, equipmentId: string): Promise<string[]> {
@@ -459,25 +488,33 @@ export class DatabaseEquipmentStorage {
       .from(equipment)
       .where(and(...conditions))
       .orderBy(equipment.name);
-    return results.map((e) => ({
-      id: e.id,
-      name: e.name,
-      type: e.type,
-      category: e.systemType || e.componentType || undefined,
-      status: e.isActive ? "healthy" : "inactive",
-      healthIndex: 100,
-      vesselId: e.vesselId || undefined,
-      vesselName: e.vesselName || undefined,
-    })) as unknown as (EquipmentHealth & { healthIndex: number })[];
+    return results.map(
+      (e): EquipmentHealth & { healthIndex: number } => ({
+        id: e.id,
+        name: e.name,
+        type: e.type,
+        category: e.systemType || e.componentType || undefined,
+        status: e.isActive ? "healthy" : "inactive",
+        healthIndex: 100,
+        vesselId: e.vesselId || undefined,
+        vesselName: e.vesselName || undefined,
+      }) as EquipmentHealth & { healthIndex: number }
+    );
   }
   async getEquipmentForPart(partId: string, orgId: string): Promise<Equipment[]> {
     this.validateOrgId(orgId, "getEquipmentForPart");
+    const compatibleParts = tableColumns(equipment)
+      .compatibleParts;
+    if (!compatibleParts) return [];
     return db
       .select()
       .from(equipment)
-      .where(and(eq(equipment.orgId, orgId), sql`${partId} = ANY(${(equipment as any).compatibleParts})`));
+      .where(and(eq(equipment.orgId, orgId), sql`${partId} = ANY(${compatibleParts})`));
   }
-  async getEquipmentWithSensorIssues(__orgId: string, _options?: any): Promise<any[]> {
+  async getEquipmentWithSensorIssues(
+    __orgId: string,
+    _options?: unknown
+  ): Promise<Equipment[]> {
     return [];
   }
 }

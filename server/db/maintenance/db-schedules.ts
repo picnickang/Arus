@@ -3,7 +3,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { eq, and, sql, gte, lte } from "drizzle-orm";
+import { eq, and, sql, gte, lte, type SQL } from "drizzle-orm";
 import { db } from "../../db-config";
 import { maintenanceSchedules, maintenanceRecords, maintenanceCosts } from "@shared/schema-runtime";
 import type {
@@ -28,7 +28,7 @@ export class DbMaintenanceSchedules {
     orgId?: string,
     filters?: MaintenanceFilters
   ): Promise<MaintenanceSchedule[]> {
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (orgId) {
       conditions.push(eq(maintenanceSchedules.orgId, orgId));
     }
@@ -111,7 +111,7 @@ export class DbMaintenanceSchedules {
     const now = new Date();
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + days);
-    const conditions: any[] = [
+    const conditions: SQL[] = [
       gte(maintenanceSchedules.scheduledDate, now),
       lte(maintenanceSchedules.scheduledDate, futureDate),
       sql`${maintenanceSchedules.status} != 'completed'`,
@@ -131,7 +131,7 @@ export class DbMaintenanceSchedules {
     orgId?: string,
     filters?: MaintenanceFilters
   ): Promise<MaintenanceRecord[]> {
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (orgId) {
       conditions.push(eq(maintenanceRecords.orgId, orgId));
     }
@@ -160,7 +160,7 @@ export class DbMaintenanceSchedules {
   async createMaintenanceRecord(record: InsertMaintenanceRecord): Promise<MaintenanceRecord> {
     const [n] = await db
       .insert(maintenanceRecords)
-      .values({ id: randomUUID(), ...record, createdAt: new Date(), updatedAt: new Date() } as any)
+      .values({ id: randomUUID(), ...record, createdAt: new Date(), updatedAt: new Date() } as never)
       .returning();
     return n;
   }
@@ -175,7 +175,7 @@ export class DbMaintenanceSchedules {
       : eq(maintenanceRecords.id, id);
     const [updated] = await db
       .update(maintenanceRecords)
-      .set({ ...updates, updatedAt: new Date() } as any)
+      .set({ ...updates, updatedAt: new Date() } as never)
       .where(conditions)
       .returning();
     if (!updated) {
@@ -196,7 +196,7 @@ export class DbMaintenanceSchedules {
     orgId?: string,
     filters?: { startDate?: Date; endDate?: Date }
   ): Promise<MaintenanceCost[]> {
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (orgId) {
       conditions.push(eq(maintenanceCosts.orgId, orgId));
     }
@@ -217,7 +217,7 @@ export class DbMaintenanceSchedules {
   async createMaintenanceCost(cost: InsertMaintenanceCost): Promise<MaintenanceCost> {
     const [n] = await db
       .insert(maintenanceCosts)
-      .values({ id: randomUUID(), ...cost, createdAt: new Date(), updatedAt: new Date() } as any)
+      .values({ id: randomUUID(), ...cost, createdAt: new Date(), updatedAt: new Date() } as never)
       .returning();
     return n;
   }

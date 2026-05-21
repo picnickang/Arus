@@ -146,7 +146,7 @@ export class DatabaseNotificationsStorage {
         .set({
           status: "failed",
           errorMessage: error,
-          attempts: ((item as any).attempts || 0) + 1,
+          attempts: ((item as { attempts?: number }).attempts || 0) + 1,
         })
         .where(eq(emailQueue.id, id));
     }

@@ -2,7 +2,7 @@
  * DTC - Database Storage
  */
 
-import { eq, and, gte, lte, sql } from "drizzle-orm";
+import { eq, and, gte, lte, sql, type SQL } from "drizzle-orm";
 import { db } from "../../db-config";
 import { dtcDefinitions, dtcFaults } from "@shared/schema-runtime";
 import type { DtcDefinition, InsertDtcDefinition, DtcFault, InsertDtcFault } from "@shared/schema";
@@ -98,7 +98,7 @@ export class DatabaseDtcStorage {
     if (equipmentIds.length === 0) {
       return [];
     }
-    const conditions: any[] = [
+    const conditions: SQL[] = [
       sql`${dtcFaults.equipmentId} IN (${sql.join(
         equipmentIds.map((id) => sql`${id}`),
         sql`, `

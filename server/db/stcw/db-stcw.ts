@@ -16,7 +16,10 @@ export class DatabaseStcwStorage {
     const [n] = await db.insert(crewRestSheet).values(data).returning();
     return n;
   }
-  async upsertCrewRestDay(sheetId: string, dayData: any): Promise<CrewRestDay> {
+  async upsertCrewRestDay(
+    sheetId: string,
+    dayData: Omit<InsertCrewRestDay, "sheetId"> & { date: Date | string }
+  ): Promise<CrewRestDay> {
     const e = await db
       .select()
       .from(crewRestDay)

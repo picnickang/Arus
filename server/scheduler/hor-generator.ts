@@ -281,7 +281,6 @@ export async function generateHoRFromSchedule(
           try {
             await dbStcwStorage.upsertCrewRestDay(sheet.id, {
               orgId: run.orgId,
-              sheetId: sheet.id,
               date,
               ...hours,
             });

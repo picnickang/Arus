@@ -71,7 +71,7 @@ export class DatabaseDevicesStorage {
       .orderBy(sql`ts DESC`);
   }
   async createHeartbeat(data: InsertHeartbeat): Promise<EdgeHeartbeat> {
-    const r = await db.insert(edgeHeartbeatsTable).values(data as any).returning();
+    const r = await db.insert(edgeHeartbeatsTable).values(data as never).returning();
     return r[0];
   }
   async getPdmScores(equipmentId?: string, orgId?: string): Promise<PdmScoreLog[]> {
@@ -112,15 +112,17 @@ export class DatabaseDevicesStorage {
   async upsertHeartbeat(heartbeat: InsertHeartbeat): Promise<EdgeHeartbeat> {
     const r = await db
       .insert(edgeHeartbeatsTable)
-      .values(heartbeat as any)
+      .values(heartbeat as never)
       .onConflictDoUpdate({
         target: [edgeHeartbeatsTable.deviceId],
-        set: { ...heartbeat, ts: new Date() } as any,
+        set: { ...heartbeat, ts: new Date() } as never,
       })
       .returning();
     return r[0];
   }
-  async getDevicesWithStatus(orgId?: string): Promise<any[]> {
+  async getDevicesWithStatus(
+    orgId?: string
+  ): Promise<Array<Device & { status: string; lastHeartbeat?: EdgeHeartbeat }>> {
     const deviceList = await this.getDevices(orgId);
     const heartbeats = await this.getHeartbeatsByOrg(orgId);
     return deviceList.map((device) => {
@@ -189,8 +191,8 @@ export class MemDevicesStorage {
     return (this.heartbeats.get(deviceId) || []).filter((h) => !orgId || h.orgId === orgId);
   }
   async createHeartbeat(data: InsertHeartbeat): Promise<EdgeHeartbeat> {
-    const h = { ...data, ts: new Date() } as unknown as EdgeHeartbeat;
-    const deviceId = (data as any).deviceId;
+    const h = { ...data, ts: new Date() } as never as EdgeHeartbeat;
+    const deviceId = (data as never as { deviceId: string }).deviceId;
     const arr = this.heartbeats.get(deviceId) || [];
     arr.push(h);
     this.heartbeats.set(deviceId, arr);

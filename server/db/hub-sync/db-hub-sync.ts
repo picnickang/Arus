@@ -66,23 +66,23 @@ export class DatabaseHubSyncStorage {
     if (syncType) {
       c.push(eq(syncJournal.syncType, syncType));
     }
-    let q = db.select().from(syncJournal);
+    let q = db.select().from(syncJournal).$dynamic();
     if (c.length > 0) {
-      q = q.where(and(...c)) as typeof q;
+      q = q.where(and(...c));
     }
-    q = q.orderBy(desc(syncJournal.createdAt)) as typeof q;
+    q = q.orderBy(desc(syncJournal.createdAt));
     if (limit) {
-      q = q.limit(limit) as typeof q;
+      q = q.limit(limit);
     }
-    return q as unknown as Promise<SyncJournal[]>;
+    return q as never as Promise<SyncJournal[]>;
   }
 
   async createSyncJournalEntry(entry: InsertSyncJournal): Promise<SyncJournal> {
     const [n] = await db
       .insert(syncJournal)
-      .values(entry as any)
+      .values(entry as never)
       .returning();
-    return n as unknown as SyncJournal;
+    return n as never as SyncJournal;
   }
 
   async updateSyncJournalEntry(
@@ -91,13 +91,13 @@ export class DatabaseHubSyncStorage {
   ): Promise<SyncJournal> {
     const [u] = await db
       .update(syncJournal)
-      .set({ ...(updates as any), updatedAt: new Date() })
+      .set({ ...(updates as Record<string, unknown>), updatedAt: new Date() } as never)
       .where(eq(syncJournal.id, id))
       .returning();
     if (!u) {
       throw new Error(`Sync journal entry ${id} not found`);
     }
-    return u as unknown as SyncJournal;
+    return u as never as SyncJournal;
   }
 
   async getSyncJournalStats(vesselId: string): Promise<{
@@ -136,31 +136,31 @@ export class DatabaseHubSyncStorage {
     if (status) {
       c.push(eq(syncOutbox.status, status));
     }
-    let q = db.select().from(syncOutbox);
+    let q = db.select().from(syncOutbox).$dynamic();
     if (c.length > 0) {
-      q = q.where(and(...c)) as typeof q;
+      q = q.where(and(...c));
     }
-    return q.orderBy(syncOutbox.priority, syncOutbox.createdAt) as unknown as Promise<SyncOutbox[]>;
+    return q.orderBy(syncOutbox.priority, syncOutbox.createdAt) as never as Promise<SyncOutbox[]>;
   }
 
   async createSyncOutboxItem(item: InsertSyncOutbox): Promise<SyncOutbox> {
     const [n] = await db
       .insert(syncOutbox)
-      .values(item as any)
+      .values(item as never)
       .returning();
-    return n as unknown as SyncOutbox;
+    return n as never as SyncOutbox;
   }
 
   async updateSyncOutboxItem(id: string, updates: Partial<InsertSyncOutbox>): Promise<SyncOutbox> {
     const [u] = await db
       .update(syncOutbox)
-      .set({ ...(updates as any), updatedAt: new Date() })
+      .set({ ...(updates as Record<string, unknown>), updatedAt: new Date() } as never)
       .where(eq(syncOutbox.id, id))
       .returning();
     if (!u) {
       throw new Error(`Sync outbox item ${id} not found`);
     }
-    return u as unknown as SyncOutbox;
+    return u as never as SyncOutbox;
   }
 
   async deleteSyncOutboxItem(id: string): Promise<void> {
@@ -172,11 +172,12 @@ export class DatabaseHubSyncStorage {
       .select()
       .from(syncOutbox)
       .where(and(eq(syncOutbox.vesselId, vesselId), eq(syncOutbox.status, "pending")))
-      .orderBy(syncOutbox.priority, syncOutbox.createdAt);
+      .orderBy(syncOutbox.priority, syncOutbox.createdAt)
+      .$dynamic();
     if (limit) {
-      q = q.limit(limit) as typeof q;
+      q = q.limit(limit);
     }
-    return q as unknown as Promise<SyncOutbox[]>;
+    return q as never as Promise<SyncOutbox[]>;
   }
 
   async markOutboxItemsSynced(ids: string[]): Promise<void> {
@@ -193,7 +194,7 @@ export class DatabaseHubSyncStorage {
         status: "synced",
         syncedAt: new Date(),
         updatedAt: new Date(),
-      } as any)
+      } as never)
       .where(sql`${syncOutbox.id} = ANY(${idsArray})`);
   }
 
@@ -300,7 +301,12 @@ export class DatabaseHubSyncStorage {
   }
 
   async incrementSheetVersion(data: InsertSheetVersion): Promise<SheetVersion> {
-    const d = data as any;
+    const d = data as {
+      sheetType?: string;
+      sheetId?: string;
+      sheetKey?: string;
+      lastModifiedBy?: string;
+    };
     const sheetType: string = d.sheetType ?? "";
     const sheetId: string = d.sheetId ?? "";
     const key: string = d.sheetKey ?? `${sheetType}:${sheetId}`;
@@ -315,14 +321,14 @@ export class DatabaseHubSyncStorage {
         .set({
           version: (existing[0].version ?? 0) + 1,
           lastModifiedBy: d.lastModifiedBy,
-        } as any)
+        } as never)
         .where(eq(sheetVersion.sheetKey, key))
         .returning();
       return r;
     }
     const [r] = await db
       .insert(sheetVersion)
-      .values({ ...data, sheetKey: key, version: 1 } as any)
+      .values({ ...data, sheetKey: key, version: 1 } as never)
       .returning();
     return r;
   }
@@ -338,9 +344,9 @@ export class DatabaseHubSyncStorage {
     }
     if (vesselId) {
       // The devices table stores its vessel association in the `vessel`
-      // column (text). The previous `(devices as any).vesselId` referenced
-      // a non-existent column, so this filter silently produced an invalid
-      // query whenever a vesselId was supplied.
+      // column (text). A previous untyped accessor referenced a non-
+      // existent `vesselId` column, so this filter silently produced an
+      // invalid query whenever a vesselId was supplied.
       c.push(eq(devices.vessel, vesselId));
     }
     const q = c.length > 0

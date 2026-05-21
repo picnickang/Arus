@@ -3,7 +3,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { eq, and } from "drizzle-orm";
+import { eq, and, type SQL } from "drizzle-orm";
 import { db } from "../../db-config";
 import { workOrderCompletions } from "@shared/schema-runtime";
 import type { WorkOrderCompletion, InsertWorkOrderCompletion } from "@shared/schema";
@@ -14,7 +14,7 @@ export class DbWorkOrderCompletions {
   ): Promise<WorkOrderCompletion> {
     const [newCompletion] = await db
       .insert(workOrderCompletions)
-      .values({ id: randomUUID(), ...completion, createdAt: new Date(), updatedAt: new Date() } as any)
+      .values({ id: randomUUID(), ...completion, createdAt: new Date(), updatedAt: new Date() } as never)
       .returning();
     return newCompletion;
   }
@@ -24,7 +24,7 @@ export class DbWorkOrderCompletions {
     equipmentId?: string;
     orgId?: string;
   }): Promise<WorkOrderCompletion[]> {
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (filters?.workOrderId) {
       conditions.push(eq(workOrderCompletions.workOrderId, filters.workOrderId));
     }

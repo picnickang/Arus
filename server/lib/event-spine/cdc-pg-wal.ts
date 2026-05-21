@@ -131,7 +131,7 @@ export class PgWalCdcBridge {
     const service = new LogicalReplicationService(
       { connectionString: this.opts.connectionString },
       { acknowledge: { auto: false, timeoutSeconds: 10 } }
-    ) as unknown as LogicalReplicationServiceLike;
+    ) as never as LogicalReplicationServiceLike;
     this.service = service;
 
     service.on("data", (lsn, log) => {
@@ -174,7 +174,8 @@ export class PgWalCdcBridge {
   private async ensurePublication(): Promise<void> {
     // Use a short-lived client through the standard pg pool to install
     // the publication and the replication slot if they do not exist.
-    const { pool } = (await import("../../db.js")) as unknown as {
+    const dbModule: unknown = await import("../../db.js");
+    const { pool } = dbModule as {
       pool: { query: (sql: string) => Promise<{ rows: unknown[] }> };
     };
     const tables = [...this.tableMap.keys()];

@@ -36,7 +36,7 @@ export class DbWorkOrderNested {
   async addWorkOrderPart(part: InsertWorkOrderPart): Promise<WorkOrderPart> {
     const [newPart] = await db
       .insert(workOrderParts)
-      .values({ id: randomUUID(), ...part, createdAt: new Date(), updatedAt: new Date() } as any)
+      .values({ id: randomUUID(), ...part, createdAt: new Date(), updatedAt: new Date() } as never)
       .returning();
     return newPart;
   }
@@ -46,7 +46,7 @@ export class DbWorkOrderNested {
   ): Promise<WorkOrderPart> {
     const [updated] = await db
       .update(workOrderParts)
-      .set({ ...updates, updatedAt: new Date() } as any)
+      .set({ ...updates, updatedAt: new Date() } as never)
       .where(eq(workOrderParts.id, id))
       .returning();
     if (!updated) {
@@ -68,7 +68,7 @@ export class DbWorkOrderNested {
   async addWorkOrderTask(task: InsertWorkOrderTask): Promise<WorkOrderTask> {
     const [newTask] = await db
       .insert(workOrderTasks)
-      .values({ id: randomUUID(), ...task, createdAt: new Date(), updatedAt: new Date() } as any)
+      .values({ id: randomUUID(), ...task, createdAt: new Date(), updatedAt: new Date() } as never)
       .returning();
     return newTask;
   }
@@ -78,7 +78,7 @@ export class DbWorkOrderNested {
   ): Promise<WorkOrderTask> {
     const [updated] = await db
       .update(workOrderTasks)
-      .set({ ...updates, updatedAt: new Date() } as any)
+      .set({ ...updates, updatedAt: new Date() } as never)
       .where(eq(workOrderTasks.id, id))
       .returning();
     if (!updated) {
@@ -100,7 +100,7 @@ export class DbWorkOrderNested {
   async addWorkOrderChecklist(checklist: InsertWorkOrderChecklist): Promise<WorkOrderChecklist> {
     const [newChecklist] = await db
       .insert(workOrderChecklists)
-      .values({ id: randomUUID(), ...checklist, createdAt: new Date() } as any)
+      .values({ id: randomUUID(), ...checklist, createdAt: new Date() } as never)
       .returning();
     return newChecklist;
   }
@@ -110,7 +110,7 @@ export class DbWorkOrderNested {
   ): Promise<WorkOrderChecklist> {
     const [updated] = await db
       .update(workOrderChecklists)
-      .set({ ...updates } as any)
+      .set({ ...updates } as never)
       .where(eq(workOrderChecklists.id, id))
       .returning();
     if (!updated) {
@@ -132,7 +132,7 @@ export class DbWorkOrderNested {
   async addWorkOrderWorklog(worklog: InsertWorkOrderWorklog): Promise<WorkOrderWorklog> {
     const [newWorklog] = await db
       .insert(workOrderWorklogs)
-      .values({ id: randomUUID(), ...worklog, createdAt: new Date(), updatedAt: new Date() } as any)
+      .values({ id: randomUUID(), ...worklog, createdAt: new Date(), updatedAt: new Date() } as never)
       .returning();
     return newWorklog;
   }
@@ -142,7 +142,7 @@ export class DbWorkOrderNested {
   ): Promise<WorkOrderWorklog> {
     const [updated] = await db
       .update(workOrderWorklogs)
-      .set({ ...updates, updatedAt: new Date() } as any)
+      .set({ ...updates, updatedAt: new Date() } as never)
       .where(eq(workOrderWorklogs.id, id))
       .returning();
     if (!updated) {

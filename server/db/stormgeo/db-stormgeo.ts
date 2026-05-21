@@ -132,7 +132,7 @@ export class DatabaseStormGeoStorage {
     }
     const base = db.select().from(stormgeoImportHistory);
     const q = c.length > 0 ? base.where(and(...c)) : base;
-    return q.orderBy(sql`${(stormgeoImportHistory as any).importedAt} DESC`);
+    return q.orderBy(sql`${stormgeoImportHistory.createdAt} DESC`);
   }
   async createStormgeoImportHistory(
     entry: InsertStormgeoImportHistory

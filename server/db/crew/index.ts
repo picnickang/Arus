@@ -21,6 +21,12 @@ import { createLogger } from "../../lib/structured-logger";
 const logger = createLogger("Db:Crew:Index");
 import { DbCrewMembers } from "./db-members.js";
 import { DbCrewExtended } from "./db-extended.js";
+import type {
+  InsertCrewAssignment,
+  InsertCrewCertification,
+  InsertCrewLeave,
+} from "@shared/schema";
+import type { CrewAssignmentFilters } from "./types.js";
 
 export * from "./types.js";
 export { DbCrewMembers } from "./db-members.js";
@@ -28,22 +34,26 @@ export { DbCrewExtended } from "./db-extended.js";
 
 export class DatabaseCrewStorage extends DbCrewMembers {
   private extended = new DbCrewExtended();
-  async getCrewAssignments(orgId?: string, filters?: any) {
+  async getCrewAssignments(orgId?: string, filters?: CrewAssignmentFilters) {
     return this.extended.getCrewAssignments(orgId, filters);
   }
   async getCrewAssignment(id: string, orgId?: string) {
     return this.extended.getCrewAssignment(id, orgId);
   }
-  async createCrewAssignment(assignment: any) {
+  async createCrewAssignment(assignment: InsertCrewAssignment) {
     return this.extended.createCrewAssignment(assignment);
   }
-  async updateCrewAssignment(id: string, updates: any, orgId?: string) {
+  async updateCrewAssignment(
+    id: string,
+    updates: Partial<InsertCrewAssignment>,
+    orgId?: string
+  ) {
     return this.extended.updateCrewAssignment(id, updates, orgId);
   }
   async deleteCrewAssignment(id: string, orgId?: string) {
     return this.extended.deleteCrewAssignment(id, orgId);
   }
-  async createBulkCrewAssignments(assignments: any[]) {
+  async createBulkCrewAssignments(assignments: InsertCrewAssignment[]) {
     return this.extended.createBulkCrewAssignments(assignments);
   }
   async getCrewAssignmentsByDateRange(from: Date, to: Date, orgId?: string) {
@@ -55,10 +65,14 @@ export class DatabaseCrewStorage extends DbCrewMembers {
   async getCrewCertifications(crewId?: string, orgId?: string) {
     return this.extended.getCrewCertifications(crewId, orgId);
   }
-  async createCrewCertification(cert: any) {
+  async createCrewCertification(cert: InsertCrewCertification) {
     return this.extended.createCrewCertification(cert);
   }
-  async updateCrewCertification(id: string, updates: any, orgId?: string) {
+  async updateCrewCertification(
+    id: string,
+    updates: Partial<InsertCrewCertification>,
+    orgId?: string
+  ) {
     return this.extended.updateCrewCertification(id, updates, orgId);
   }
   async deleteCrewCertification(id: string, orgId?: string) {
@@ -70,10 +84,14 @@ export class DatabaseCrewStorage extends DbCrewMembers {
   async getCrewLeave(crewId?: string, orgId?: string) {
     return this.extended.getCrewLeave(crewId, orgId);
   }
-  async createCrewLeave(leave: any) {
+  async createCrewLeave(leave: InsertCrewLeave) {
     return this.extended.createCrewLeave(leave);
   }
-  async updateCrewLeave(id: string, updates: any, orgId?: string) {
+  async updateCrewLeave(
+    id: string,
+    updates: Partial<InsertCrewLeave>,
+    orgId?: string
+  ) {
     return this.extended.updateCrewLeave(id, updates, orgId);
   }
   async deleteCrewLeave(id: string, orgId?: string) {

@@ -150,7 +150,9 @@ export async function claimPendingBatch(
               ${eventOutbox.publishedAt} AS "publishedAt",
               ${eventOutbox.createdAt} AS "createdAt"
   `);
-  return (rows as unknown as { rows?: OutboxRow[] }).rows ?? (rows as unknown as OutboxRow[]);
+  const rowsUnknown: unknown = rows;
+  const wrapped = rowsUnknown as { rows?: OutboxRow[] };
+  return wrapped.rows ?? (rowsUnknown as OutboxRow[]);
 }
 
 // Terminal transitions are guarded by `status='dispatching'` so a late
@@ -200,7 +202,8 @@ export async function reapStaleDispatching(staleMs: number, now: Date = new Date
         lte(eventOutbox.dispatchedAt, cutoff)
       )
     );
-  return (result as unknown as { rowCount?: number }).rowCount ?? 0;
+  const resultUnknown: unknown = result;
+  return (resultUnknown as { rowCount?: number }).rowCount ?? 0;
 }
 
 export async function countByStatus(): Promise<Record<string, number>> {

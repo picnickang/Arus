@@ -30,7 +30,7 @@ export class DbOptimizerStorage {
       ...x,
       createdAt: x.createdAt?.toISOString() || new Date().toISOString(),
       updatedAt: x.updatedAt?.toISOString() || new Date().toISOString(),
-    })) as any;
+    })) as never as OptimizerConfiguration[];
   }
   async createOptimizerConfiguration(
     config: InsertOptimizerConfiguration
@@ -40,7 +40,7 @@ export class DbOptimizerStorage {
       ...n,
       createdAt: n.createdAt?.toISOString() || new Date().toISOString(),
       updatedAt: n.updatedAt?.toISOString() || new Date().toISOString(),
-    } as any;
+    } as never as OptimizerConfiguration;
   }
   async updateOptimizerConfiguration(
     id: string,
@@ -58,7 +58,7 @@ export class DbOptimizerStorage {
       ...u,
       createdAt: u.createdAt?.toISOString() || new Date().toISOString(),
       updatedAt: u.updatedAt?.toISOString() || new Date().toISOString(),
-    } as any;
+    } as never as OptimizerConfiguration;
   }
   async deleteOptimizerConfiguration(id: string): Promise<void> {
     await db.delete(optimizerConfigurations).where(eq(optimizerConfigurations.id, id));

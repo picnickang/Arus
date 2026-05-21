@@ -23,6 +23,7 @@ import {
   tenantColumn,
   versionTracking,
 } from "./base";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { organizations } from "./core";
 import { vessels } from "./vessels";
 import { suppliers, parts } from "./inventory";
@@ -71,7 +72,7 @@ export const equipment = pgTable(
     decommissionEventId: varchar("decommission_event_id"),
     reinstatedAt: timestamp("reinstated_at", { mode: "date" }),
     reinstatedBy: varchar("reinstated_by"),
-    parentEquipmentId: varchar("parent_equipment_id").references((): any => equipment.id, {
+    parentEquipmentId: varchar("parent_equipment_id").references((): AnyPgColumn => equipment.id, {
       onDelete: "set null",
     }),
     hierarchyLevel: integer("hierarchy_level").default(0),

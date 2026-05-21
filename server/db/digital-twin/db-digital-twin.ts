@@ -2,7 +2,7 @@
  * Digital Twin - Database Storage
  */
 
-import { eq, and, gte, lte, sql } from "drizzle-orm";
+import { eq, and, gte, lte, sql, type SQL } from "drizzle-orm";
 import { db } from "../../db-config";
 import {
   digitalTwins,
@@ -150,7 +150,7 @@ export class DatabaseDigitalTwinStorage {
     category?: string,
     hours?: number
   ): Promise<SystemPerformanceMetric[]> {
-    const c: any[] = [];
+    const c: SQL[] = [];
     if (orgId) {
       c.push(eq(systemPerformanceMetrics.orgId, orgId));
     }

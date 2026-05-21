@@ -105,7 +105,7 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
           const { getWebSocketServer } = await import("../../../../db/equipment/websocket");
           const ws = getWebSocketServer();
           if (ws && newSuggestions.length > 0) {
-            ws.broadcast("suggestions", {
+            ws.broadcast?.("suggestions", {
               type: "suggestions_new",
               data: newSuggestions,
               count: newSuggestions.length,

@@ -3,7 +3,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { eq, and, sql, gte } from "drizzle-orm";
+import { eq, and, sql, gte, type SQL } from "drizzle-orm";
 import { db } from "../../db-config";
 import {
   alertConfigurations,
@@ -33,7 +33,7 @@ export class DatabaseAlertStorage {
     equipmentId?: string,
     orgId?: string
   ): Promise<AlertConfiguration[]> {
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (orgId) {
       conditions.push(eq(alertConfigurations.orgId, orgId));
     }
@@ -93,7 +93,7 @@ export class DatabaseAlertStorage {
     acknowledged?: boolean,
     orgId?: string
   ): Promise<AlertNotification[]> {
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (orgId) {
       conditions.push(eq(alertNotifications.orgId, orgId));
     }
@@ -118,7 +118,7 @@ export class DatabaseAlertStorage {
     limit: number,
     offset: number
   ): Promise<{ items: AlertNotification[]; total: number }> {
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (acknowledged !== undefined) {
       conditions.push(eq(alertNotifications.acknowledged, acknowledged));
     }
@@ -252,7 +252,9 @@ export class DatabaseAlertStorage {
     const suppressions = await this.getActiveSuppressions(orgId);
     return suppressions.some(
       (s) =>
-        s.equipmentId === equipmentId && s.sensorType === sensorType && (s as any).alertType === alertType
+        s.equipmentId === equipmentId &&
+        s.sensorType === sensorType &&
+        (s as { alertType?: string }).alertType === alertType
     );
   }
 }

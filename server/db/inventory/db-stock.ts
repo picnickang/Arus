@@ -3,7 +3,9 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { eq, and, or, inArray, sql } from "drizzle-orm";
+import { eq, and, or, inArray, sql, type SQL } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import { tableColumns } from "../_helpers/table-columns";
 import { db } from "../../db-config";
 import {
   suppliers,
@@ -191,7 +193,7 @@ export class DbStockStorage {
   }
 
   async getStock(orgId?: string, filters?: StockFilters): Promise<Stock[]> {
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (orgId) {
       conditions.push(eq(stock.orgId, orgId));
     }
@@ -199,7 +201,8 @@ export class DbStockStorage {
       conditions.push(eq(stock.partId, filters.partId));
     }
     if (filters?.vesselId) {
-      conditions.push(eq((stock as any).vesselId, filters.vesselId));
+      const col = tableColumns(stock).vesselId;
+      if (col) conditions.push(eq(col, filters.vesselId));
     }
     if (filters?.location) {
       conditions.push(eq(stock.location, filters.location));
@@ -243,24 +246,23 @@ export class DbStockStorage {
 
   async getPartSubstitutions(partId: string, orgId: string): Promise<PartSubstitution[]> {
     this.validateOrgId(orgId, "getPartSubstitutions");
+    const cols = tableColumns(partSubstitutions);
+    const origCol = cols.originalPartId;
+    const subCol = cols.substitutePartId;
+    const subFilters: SQL[] = [];
+    if (origCol) subFilters.push(eq(origCol, partId));
+    if (subCol) subFilters.push(eq(subCol, partId));
+    if (subFilters.length === 0) return [];
     return db
       .select()
       .from(partSubstitutions)
-      .where(
-        and(
-          eq(partSubstitutions.orgId, orgId),
-          or(
-            eq((partSubstitutions as any).originalPartId, partId),
-            eq((partSubstitutions as any).substitutePartId, partId)
-          )
-        )
-      );
+      .where(and(eq(partSubstitutions.orgId, orgId), or(...subFilters)));
   }
 
   async createPartSubstitution(sub: InsertPartSubstitution): Promise<PartSubstitution> {
     const [n] = await db
       .insert(partSubstitutions)
-      .values({ id: randomUUID(), ...sub, createdAt: new Date(), updatedAt: new Date() } as any)
+      .values({ id: randomUUID(), ...sub, createdAt: new Date(), updatedAt: new Date() } as never)
       .returning();
     return n;
   }
@@ -270,9 +272,13 @@ export class DbStockStorage {
     if (subs.length === 0) {
       return [];
     }
-    const ids = subs.map((s: any) =>
-      s.originalPartId === partId ? s.substitutePartId : s.originalPartId
-    );
+    const ids = subs.map((s) => {
+      const r = s as PartSubstitution & {
+        originalPartId?: string;
+        substitutePartId?: string;
+      };
+      return r.originalPartId === partId ? r.substitutePartId : r.originalPartId;
+    }).filter((x): x is string => typeof x === "string");
     return db
       .select()
       .from(parts)
@@ -372,17 +378,23 @@ export class DbStockStorage {
     `);
     let created = 0;
     let skipped = 0;
-    for (const part of result.rows) {
+    for (const partRow of result.rows) {
+      const part = partRow as {
+        org_id: string;
+        id: string;
+        part_no: string;
+        standard_cost?: number;
+      };
       try {
         await db.insert(stock).values({
-          orgId: (part as any).org_id,
-          partId: (part as any).id,
-          partNo: (part as any).part_no,
+          orgId: part.org_id,
+          partId: part.id,
+          partNo: part.part_no,
           location: "MAIN",
           quantityOnHand: 0,
           quantityReserved: 0,
           quantityOnOrder: 0,
-          unitCost: (part as any).standard_cost || 0,
+          unitCost: part.standard_cost || 0,
         });
         created++;
       } catch {

@@ -240,7 +240,18 @@ export class DatabaseChecklistsStorage {
   // Maintenance Checklist Completions
   // ──────────────────────────────────────────────────────────────────────
 
-  async getChecklistCompletions(workOrderId: string, orgId: string): Promise<any[]> {
+  async getChecklistCompletions(
+    workOrderId: string,
+    orgId: string
+  ): Promise<
+    Array<
+      MaintenanceChecklistCompletion & {
+        title: string | null;
+        category: string | null;
+        stepNumber: number | null;
+      }
+    >
+  > {
     return db
       .select({
         id: maintenanceChecklistCompletions.id,
@@ -328,7 +339,7 @@ export class DatabaseChecklistsStorage {
                 photoUrls: null,
                 completedAt: new Date(),
                 status: c.passed === false ? "failed" : "completed",
-              }) as any
+              }) as never
           )
         )
         .returning();
@@ -381,15 +392,15 @@ export class DatabaseChecklistsStorage {
       .from(maintenanceChecklistCompletions)
       .where(eq(maintenanceChecklistCompletions.workOrderId, workOrderId));
     const completedItems = completions.filter(
-      (c: any) => c.status === "completed" || (c.passed === true && c.completedAt !== null)
+      (c) => c.status === "completed" || (c.passed === true && c.completedAt !== null)
     ).length;
     const failedItems = completions.filter(
-      (c: any) => c.status === "failed" || (c.passed === false && c.completedAt !== null)
+      (c) => c.status === "failed" || (c.passed === false && c.completedAt !== null)
     ).length;
-    const skippedItems = completions.filter((c: any) => c.status === "skipped").length;
+    const skippedItems = completions.filter((c) => c.status === "skipped").length;
     const pendingItems =
       completions.filter(
-        (c: any) => c.status === "pending" || (c.passed === null && c.completedAt === null)
+        (c) => c.status === "pending" || (c.passed === null && c.completedAt === null)
       ).length +
       (totalItems - completions.length);
     const reviewedItems = completedItems + failedItems;
@@ -468,7 +479,7 @@ export class DatabaseChecklistsStorage {
                 photoUrls: null,
                 completedAt: null,
                 status: "pending",
-              }) as any
+              }) as never
           )
         )
         .returning();
@@ -565,7 +576,7 @@ export class DatabaseChecklistsStorage {
     }
     const [n] = await db
       .insert(workOrderChecklists)
-      .values({ id: randomUUID(), ...checklist, createdAt: new Date() } as any)
+      .values({ id: randomUUID(), ...checklist, createdAt: new Date() } as never)
       .returning();
     return n;
   }
@@ -580,7 +591,7 @@ export class DatabaseChecklistsStorage {
     }
     const [u] = await db
       .update(workOrderChecklists)
-      .set({ ...updates } as any)
+      .set({ ...updates } as never)
       .where(and(eq(workOrderChecklists.id, id), eq(workOrderChecklists.orgId, orgId)))
       .returning();
     if (!u) {

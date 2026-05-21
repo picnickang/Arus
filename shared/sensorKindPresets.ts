@@ -28,7 +28,7 @@ export type SensorKind =
 export interface SensorKindPreset {
   label: string;
   defaultUnit: string;
-  defaultFields: Record<string, any>;
+  defaultFields: Record<string, unknown>;
   description?: string;
 }
 
@@ -234,6 +234,6 @@ export function getDefaultUnit(kind: SensorKind): string {
 /**
  * Get default fields for a sensor kind
  */
-export function getDefaultFields(kind: SensorKind): Record<string, any> {
+export function getDefaultFields(kind: SensorKind): Record<string, unknown> {
   return { ...SENSOR_KIND_PRESETS[kind].defaultFields }; // Return copy to prevent mutation
 }

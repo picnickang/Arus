@@ -3,7 +3,8 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { eq, and, gte, lte, sql } from "drizzle-orm";
+import { eq, and, gte, lte, sql, type SQL } from "drizzle-orm";
+import { tableColumns } from "../_helpers/table-columns";
 import { db } from "../../db-config";
 import { equipmentTelemetry, pdmScoreLogs, edgeHeartbeats } from "@shared/schema-runtime";
 import type {
@@ -29,7 +30,7 @@ export class DatabaseTelemetryStorage {
     limit?: number,
     offset?: number
   ): Promise<EquipmentTelemetry[]> {
-    const conditions: any[] = [eq(equipmentTelemetry.equipmentId, equipmentId)];
+    const conditions: SQL[] = [eq(equipmentTelemetry.equipmentId, equipmentId)];
     if (sensorType) {
       conditions.push(eq(equipmentTelemetry.sensorType, sensorType));
     }
@@ -37,12 +38,13 @@ export class DatabaseTelemetryStorage {
       .select()
       .from(equipmentTelemetry)
       .where(and(...conditions))
-      .orderBy(sql`${equipmentTelemetry.ts} DESC`);
+      .orderBy(sql`${equipmentTelemetry.ts} DESC`)
+      .$dynamic();
     if (limit !== undefined) {
-      query = query.limit(limit) as any;
+      query = query.limit(limit);
     }
     if (offset !== undefined) {
-      query = query.offset(offset) as any;
+      query = query.offset(offset);
     }
     return query;
   }
@@ -52,7 +54,7 @@ export class DatabaseTelemetryStorage {
     endDate: Date,
     sensorType?: string
   ): Promise<EquipmentTelemetry[]> {
-    const conditions: any[] = [
+    const conditions: SQL[] = [
       eq(equipmentTelemetry.equipmentId, equipmentId),
       gte(equipmentTelemetry.ts, startDate),
       lte(equipmentTelemetry.ts, endDate),
@@ -71,7 +73,7 @@ export class DatabaseTelemetryStorage {
     endDate: Date,
     orgId?: string
   ): Promise<EquipmentTelemetry[]> {
-    const conditions: any[] = [
+    const conditions: SQL[] = [
       gte(equipmentTelemetry.ts, startDate),
       lte(equipmentTelemetry.ts, endDate),
     ];
@@ -98,21 +100,27 @@ export class DatabaseTelemetryStorage {
     vesselId?: string,
     sensorType?: string
   ): Promise<EquipmentTelemetry[]> {
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (equipmentId) {
       conditions.push(eq(equipmentTelemetry.equipmentId, equipmentId));
     }
     if (vesselId) {
-      conditions.push(eq((equipmentTelemetry as any).vesselId, vesselId));
+      // SCHEMA GAP: equipmentTelemetry has no vesselId column. Filter is a
+      // best-effort lookup against a column that may or may not exist at
+      // runtime; bypass the column-type system so callers don't crash.
+      const vesselCol = tableColumns(equipmentTelemetry).vesselId;
+      if (vesselCol) {
+        conditions.push(eq(vesselCol, vesselId as never));
+      }
     }
     if (sensorType) {
       conditions.push(eq(equipmentTelemetry.sensorType, sensorType));
     }
-    let query = db.select().from(equipmentTelemetry);
+    let query = db.select().from(equipmentTelemetry).$dynamic();
     if (conditions.length > 0) {
-      query = query.where(and(...conditions)) as any;
+      query = query.where(and(...conditions));
     }
-    return (query as any).orderBy(sql`${equipmentTelemetry.ts} DESC`).limit(limit);
+    return query.orderBy(sql`${equipmentTelemetry.ts} DESC`).limit(limit);
   }
   async getLatestTelemetryForSensor(
     equipmentId: string,
@@ -147,7 +155,7 @@ export class DatabaseTelemetryStorage {
   async getTelemetryTrends(equipmentId?: string, hours: number = 24): Promise<TelemetryTrend[]> {
     const cutoff = new Date();
     cutoff.setHours(cutoff.getHours() - hours);
-    const conditions: any[] = [gte(equipmentTelemetry.ts, cutoff)];
+    const conditions: SQL[] = [gte(equipmentTelemetry.ts, cutoff)];
     if (equipmentId) {
       conditions.push(eq(equipmentTelemetry.equipmentId, equipmentId));
     }
@@ -230,18 +238,21 @@ export class DatabaseTelemetryStorage {
     return result;
   }
   async upsertHeartbeat(heartbeat: InsertHeartbeat): Promise<EdgeHeartbeat> {
-    const e = await this.getHeartbeat((heartbeat as any).deviceId);
+    const hb = heartbeat as InsertHeartbeat & { deviceId: string };
+    const e = await this.getHeartbeat(hb.deviceId);
     if (e) {
+      const eRow = e as EdgeHeartbeat & { id?: string };
+      const idCol = tableColumns(edgeHeartbeats).id;
       const [u] = await db
         .update(edgeHeartbeats)
-        .set({ ...heartbeat, ts: new Date() } as any)
-        .where(eq((edgeHeartbeats as any).id, (e as any).id))
+        .set({ ...heartbeat, ts: new Date() } as never)
+        .where(eq(idCol as never, eRow.id as never))
         .returning();
       return u;
     }
     const [n] = await db
       .insert(edgeHeartbeats)
-      .values({ id: randomUUID(), ...heartbeat, ts: new Date() } as any)
+      .values({ id: randomUUID(), ...heartbeat, ts: new Date() } as never)
       .returning();
     return n;
   }

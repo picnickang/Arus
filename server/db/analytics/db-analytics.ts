@@ -16,7 +16,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { eq, and, desc, gte, inArray, sql } from "drizzle-orm";
+import { eq, and, desc, gte, lte, inArray, sql } from "drizzle-orm";
 import { db } from "../../db-config";
 import {
   maintenanceCosts,
@@ -73,11 +73,11 @@ export class DatabaseAnalyticsStorage {
       conditions.push(gte(maintenanceCosts.createdAt, dateFrom));
     }
     if (dateTo) {
-      conditions.push(gte(maintenanceCosts.createdAt, dateTo) as any);
+      conditions.push(lte(maintenanceCosts.createdAt, dateTo));
     }
-    let query: any = db.select().from(maintenanceCosts);
+    let query = db.select().from(maintenanceCosts).$dynamic();
     if (conditions.length > 0) {
-      query = query.where(and(...conditions)) as typeof query;
+      query = query.where(and(...conditions));
     }
     return query.orderBy(desc(maintenanceCosts.createdAt));
   }
@@ -334,11 +334,11 @@ export class DatabaseAnalyticsStorage {
       c.push(gte(expenses.expenseDate, dateFrom));
     }
     if (dateTo) {
-      c.push(gte(expenses.expenseDate, dateTo) as any);
+      c.push(lte(expenses.expenseDate, dateTo));
     }
-    let query: any = db.select().from(expenses);
+    let query = db.select().from(expenses).$dynamic();
     if (c.length > 0) {
-      query = query.where(and(...c)) as typeof query;
+      query = query.where(and(...c));
     }
     return query.orderBy(desc(expenses.expenseDate));
   }
@@ -440,11 +440,11 @@ export class DatabaseAnalyticsStorage {
       conditions.push(gte(performanceMetrics.metricDate, dateFrom));
     }
     if (dateTo) {
-      conditions.push(gte(performanceMetrics.metricDate, dateTo) as any);
+      conditions.push(lte(performanceMetrics.metricDate, dateTo));
     }
-    let query: any = db.select().from(performanceMetrics);
+    let query = db.select().from(performanceMetrics).$dynamic();
     if (conditions.length > 0) {
-      query = query.where(and(...conditions)) as typeof query;
+      query = query.where(and(...conditions));
     }
     return query.orderBy(desc(performanceMetrics.metricDate));
   }
@@ -605,7 +605,10 @@ export class DatabaseAnalyticsStorage {
   // Metrics History
   // ──────────────────────────────────────────────────────────────────────
 
-  async getMetricsHistory(orgId: string, days: number = 7): Promise<any[]> {
+  async getMetricsHistory(
+    orgId: string,
+    days: number = 7
+  ): Promise<(typeof metricsHistory.$inferSelect)[]> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
     return db
@@ -625,7 +628,7 @@ export class DatabaseAnalyticsStorage {
     healthyEquipment: number;
     warningEquipment: number;
     criticalEquipment: number;
-  }): Promise<any> {
+  }): Promise<typeof metricsHistory.$inferSelect> {
     const [n] = await db
       .insert(metricsHistory)
       .values({

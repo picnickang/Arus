@@ -38,7 +38,7 @@ export class DbSettingsStorage {
     return created;
   }
 
-  async updateSettings(updates: Record<string, any>) {
+  async updateSettings(updates: Record<string, unknown>) {
     const { systemSettings } = await import("@shared/schema/core");
     await this.getSettings();
     const [updated] = await db
@@ -172,13 +172,17 @@ export class DbSettingsStorage {
     healthStatus: string,
     errorMessage?: string
   ): Promise<IntegrationConfig> {
-    const updates: any = { healthStatus, lastHealthCheck: new Date(), updatedAt: new Date() };
+    const updates: Record<string, unknown> = {
+      healthStatus,
+      lastHealthCheck: new Date(),
+      updatedAt: new Date(),
+    };
     if (errorMessage !== undefined) {
       updates.errorMessage = errorMessage;
     }
     const [updated] = await db
       .update(integrationConfigs)
-      .set(updates)
+      .set(updates as never)
       .where(eq(integrationConfigs.id, id))
       .returning();
     if (!updated) {
@@ -266,7 +270,7 @@ export class DbSettingsStorage {
     }
     const base = db.select().from(systemHealthChecks);
     const query = conditions.length > 0 ? base.where(and(...conditions)) : base;
-    return query.orderBy(sql`${(systemHealthChecks as any).lastCheckAt} DESC`);
+    return query.orderBy(sql`${systemHealthChecks.updatedAt} DESC`);
   }
   async getSystemHealthCheck(id: string, orgId?: string): Promise<SystemHealthCheck | undefined> {
     const conditions = [eq(systemHealthChecks.id, id)];
@@ -317,7 +321,11 @@ export class DbSettingsStorage {
     message?: string,
     responseTime?: number
   ): Promise<SystemHealthCheck> {
-    const updates: any = { status, lastCheckAt: new Date(), updatedAt: new Date() };
+    const updates: Record<string, unknown> = {
+      status,
+      lastCheckAt: new Date(),
+      updatedAt: new Date(),
+    };
     if (message !== undefined) {
       updates.message = message;
     }
@@ -326,7 +334,7 @@ export class DbSettingsStorage {
     }
     const [updated] = await db
       .update(systemHealthChecks)
-      .set(updates)
+      .set(updates as never)
       .where(and(eq(systemHealthChecks.id, id), eq(systemHealthChecks.orgId, orgId)))
       .returning();
     if (!updated) {
@@ -343,7 +351,7 @@ export class DbSettingsStorage {
       .select()
       .from(systemHealthChecks)
       .where(and(...conditions, eq(systemHealthChecks.status, "critical")))
-      .orderBy(sql`${(systemHealthChecks as any).lastCheckAt} DESC`);
+      .orderBy(sql`${systemHealthChecks.updatedAt} DESC`);
   }
   async getMetricTrends(
     orgId: string,

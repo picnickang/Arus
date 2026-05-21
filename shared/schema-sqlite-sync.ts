@@ -65,10 +65,10 @@ export const usersSqlite = sqliteTable("users", {
 // Helper functions for JSON handling in SQLite
 export const sqliteJsonHelpers = {
   // Convert object to JSON string for storage
-  stringify: (obj: any) => (obj ? JSON.stringify(obj) : null),
+  stringify: (obj: unknown) => (obj ? JSON.stringify(obj) : null),
 
   // Parse JSON string from storage
-  parse: <T = any>(str: string | null): T | null => {
+  parse: <T = unknown>(str: string | null): T | null => {
     if (!str) {
       return null;
     }

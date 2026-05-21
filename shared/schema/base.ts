@@ -22,6 +22,7 @@ import {
   numeric,
   vector,
 } from "drizzle-orm/pg-core";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -101,7 +102,7 @@ export function createdAtOnly() {
  * @param orgTable - Reference to the organizations table for foreign key
  * @param options.required - Whether the column is required (default: true)
  */
-export function tenantColumn<T extends { id: any }>(orgTable: T, options?: { required?: boolean }) {
+export function tenantColumn<T extends { id: AnyPgColumn }>(orgTable: T, options?: { required?: boolean }) {
   const col = varchar("org_id").references(() => orgTable.id);
   return {
     orgId: options?.required !== false ? col.notNull() : col,

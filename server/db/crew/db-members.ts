@@ -3,7 +3,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { eq, and } from "drizzle-orm";
+import { eq, and, type SQL } from "drizzle-orm";
 import { db } from "../../db-config";
 import { crew, shiftTemplate, crewSkill } from "@shared/schema-runtime";
 import type {
@@ -23,7 +23,7 @@ export class DbCrewMembers {
   }
 
   async getCrewMembers(orgId?: string, filters?: CrewFilters): Promise<Crew[]> {
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (orgId) {
       conditions.push(eq(crew.orgId, orgId));
     }
@@ -58,7 +58,7 @@ export class DbCrewMembers {
         ...crewData,
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as any)
+      } as never)
       .returning();
     return newCrew;
   }

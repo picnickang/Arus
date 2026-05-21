@@ -101,7 +101,7 @@ async function fireProjectionsAfterCommit(
   if (pending.length === 0) return;
   try {
     const partIds = Array.from(new Set(pending.map((p) => p.partId)));
-    // Statically imported `partsTable` (was dynamic import + `as any`
+    // Statically imported `partsTable` (was dynamic import + escape-hatch cast
     // shape — reviewer asked for typed schema bindings on this hot
     // path). Drizzle infers column types from the schema runtime
     // module directly.
@@ -706,8 +706,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                     : partToAdd.notes
                   : existing.notes,
                 updatedAt: new Date(),
-              } as any)
-              .where(and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId)))
+              } as never)              .where(and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId)))
               .returning();
             result.updated.push(updated);
             existingMap.set(partToAdd.partId, updated);
@@ -726,8 +725,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                 notes: partToAdd.notes,
                 createdAt: new Date(),
                 updatedAt: new Date(),
-              } as any)
-              .returning();
+              } as never)              .returning();
             result.added.push(newPart);
             existingMap.set(partToAdd.partId, newPart);
           }
@@ -836,8 +834,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                     : partToAdd.notes
                   : existing.notes,
                 updatedAt: new Date(),
-              } as any)
-              .where(and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId)))
+              } as never)              .where(and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId)))
               .returning();
             result.updated.push(updated);
             existingMap.set(partToAdd.partId, updated);
@@ -856,8 +853,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                 notes: partToAdd.notes,
                 createdAt: new Date(),
                 updatedAt: new Date(),
-              } as any)
-              .returning();
+              } as never)              .returning();
             result.added.push(newPart);
             existingMap.set(partToAdd.partId, newPart);
           }

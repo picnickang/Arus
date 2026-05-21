@@ -1106,7 +1106,7 @@ export const storageConfig = pgTable("storage_config", {
   provider: varchar("provider", { length: 50 }).notNull(),
   isDefault: boolean("is_default").default(false),
   mirror: boolean("mirror").default(false),
-  cfg: jsonb("cfg").notNull().$type<Record<string, any>>(),
+  cfg: jsonb("cfg").notNull().$type<Record<string, unknown>>(),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
 });

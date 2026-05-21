@@ -3,7 +3,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { eq, and } from "drizzle-orm";
+import { eq, and, type SQL } from "drizzle-orm";
 import { db } from "../../db-config";
 import { maintenanceTemplates } from "@shared/schema-runtime";
 import type { MaintenanceTemplate, InsertMaintenanceTemplate } from "@shared/schema";
@@ -19,7 +19,7 @@ export class DbMaintenanceTemplates {
     orgId?: string,
     equipmentType?: string
   ): Promise<MaintenanceTemplate[]> {
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (orgId) {
       conditions.push(eq(maintenanceTemplates.orgId, orgId));
     }

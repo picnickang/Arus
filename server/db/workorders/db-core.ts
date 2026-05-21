@@ -3,7 +3,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, type SQL } from "drizzle-orm";
 import { db } from "../../db-config";
 import { workOrders } from "@shared/schema-runtime";
 import type { WorkOrder, InsertWorkOrder } from "@shared/schema";
@@ -21,7 +21,7 @@ export class DbWorkOrderCore {
     orgId?: string,
     filters?: WorkOrderFilters
   ): Promise<WorkOrder[]> {
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (orgId) {
       conditions.push(eq(workOrders.orgId, orgId));
     }

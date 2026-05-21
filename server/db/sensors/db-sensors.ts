@@ -2,7 +2,7 @@
  * Sensors - Database Storage
  */
 
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, type SQL } from "drizzle-orm";
 import { db } from "../../db";
 import {
   sensorConfigurations,
@@ -56,20 +56,22 @@ export class DbSensorsStorage {
       .limit(1);
     return r;
   }
-  async createSensorConfiguration(config: InsertSensorConfiguration): Promise<SensorConfiguration> {
+  async createSensorConfiguration(
+    config: InsertSensorConfiguration & { orgId?: string }
+  ): Promise<SensorConfiguration> {
     const [r] = await db
       .insert(sensorConfigurations)
       .values({
         ...config,
-        orgId: (config as any).orgId || "default-org-id",
+        orgId: config.orgId || "default-org-id",
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as any)
+      } as never)
       .returning();
     return r;
   }
   async bulkCreateSensorConfigurations(
-    configs: InsertSensorConfiguration[],
+    configs: Array<InsertSensorConfiguration & { orgId?: string }>,
     overwriteExisting: boolean = false
   ): Promise<SensorConfiguration[]> {
     if (configs.length === 0) {
@@ -78,7 +80,7 @@ export class DbSensorsStorage {
     return db.transaction(async (tx) => {
       const created: SensorConfiguration[] = [];
       for (const config of configs) {
-        const orgId = (config as any).orgId || "default-org-id";
+        const orgId = config.orgId || "default-org-id";
         const equipmentId = config.equipmentId;
         const sensorType = config.sensorType;
         const existing = await tx
@@ -107,7 +109,10 @@ export class DbSensorsStorage {
               .returning();
             if (updated.length > 0) {
               created.push(updated[0]);
-              await publishEvent("sensor_configuration" as any, "update", updated[0] as any);
+              await publishEvent(
+                "sensor_configuration.updated" as Parameters<typeof publishEvent>[0],
+                { id: updated[0].id, data: updated[0] }
+              );
             }
           }
         } else {
@@ -117,7 +122,10 @@ export class DbSensorsStorage {
             .returning();
           if (result.length > 0) {
             created.push(result[0]);
-            await publishEvent("sensor_configuration" as any, "create", result[0] as any);
+            await publishEvent(
+              "sensor_configuration.created" as Parameters<typeof publishEvent>[0],
+              { id: result[0].id, data: result[0] }
+            );
           }
         }
       }
@@ -203,10 +211,10 @@ export class DbSensorsStorage {
       .limit(1);
     return r;
   }
-  async upsertSensorState(state: InsertSensorState): Promise<SensorState> {
+  async upsertSensorState(state: InsertSensorState & { orgId?: string }): Promise<SensorState> {
     const [r] = await db
       .insert(sensorStates)
-      .values({ ...state, orgId: (state as any).orgId || "default-org-id", updatedAt: new Date() } as any)
+      .values({ ...state, orgId: state.orgId || "default-org-id", updatedAt: new Date() } as never)
       .onConflictDoUpdate({
         target: [sensorStates.equipmentId, sensorStates.sensorType, sensorStates.orgId],
         set: {
@@ -221,7 +229,7 @@ export class DbSensorsStorage {
   }
 
   async getJ1939Configurations(orgId: string, deviceId?: string): Promise<J1939Configuration[]> {
-    const c: any[] = [eq(j1939Configurations.orgId, orgId)];
+    const c: SQL[] = [eq(j1939Configurations.orgId, orgId)];
     if (deviceId) {
       c.push(eq(j1939Configurations.deviceId, deviceId));
     }
