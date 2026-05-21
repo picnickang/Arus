@@ -49,13 +49,23 @@ const retractDependency = jest.fn(async (..._args: unknown[]) => undefined);
 // TS-only transform can't parse. We only need the equipment-deps
 // + equipment slices, so re-export them directly from their
 // per-table modules and skip the barrel.
-jest.mock("@shared/schema", () => {
-  const eqDeps = jest.requireActual("@shared/schema/equipment-dependencies");
-  const eq = jest.requireActual("@shared/schema/equipment");
-  return { __esModule: true, ...eqDeps, ...eq };
+//
+// Uses `jest.unstable_mockModule` + dynamic imports because the
+// integration suite runs under `--experimental-vm-modules` (ESM),
+// where the legacy hoisted `jest.mock` factory is not invoked.
+jest.unstable_mockModule("@shared/schema", async () => {
+  const eqDeps = await import("@shared/schema/equipment-dependencies");
+  const eq = await import("@shared/schema/equipment");
+  const core = await import("@shared/schema/core");
+  return {
+    __esModule: true,
+    ...eqDeps,
+    ...eq,
+    users: (core as { users: unknown }).users,
+  };
 });
 
-jest.mock("../../server/graph", () => ({
+jest.unstable_mockModule("../../server/graph", () => ({
   __esModule: true,
   projectDependency: (...args: unknown[]) => projectDependency(...args),
   retractDependency: (...args: unknown[]) => retractDependency(...args),
@@ -71,7 +81,7 @@ let equipmentLookupRows: Row[] = [];
 let nextInsertReturn: Row[] = [];
 let nextDeleteReturn: Row[] = [];
 
-jest.mock("../../server/db", () => ({
+jest.unstable_mockModule("../../server/db", () => ({
   __esModule: true,
   db: {
     select: () => ({
