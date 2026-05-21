@@ -57,8 +57,12 @@ import type {
   EquipmentDependency,
 } from "@shared/schema";
 
+type DependencyWithEditor = EquipmentDependency & {
+  notesUpdatedByName?: string | null;
+};
+
 interface DependenciesResponse {
-  dependencies: EquipmentDependency[];
+  dependencies: DependencyWithEditor[];
 }
 
 type NodePositions = Record<string, { x: number; y: number }>;
@@ -255,15 +259,18 @@ export default function EquipmentDependenciesPage() {
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: depsQueryKey });
       const prev = queryClient.getQueryData<DependenciesResponse>(depsQueryKey);
-      const optimistic: EquipmentDependency = {
+      const optimistic: DependencyWithEditor = {
         id: `optimistic-${input.upstreamEquipmentId}-${input.downstreamEquipmentId}`,
         orgId: "",
         vesselId: selectedVesselId,
         upstreamEquipmentId: input.upstreamEquipmentId,
         downstreamEquipmentId: input.downstreamEquipmentId,
         notes: null,
+        notesUpdatedBy: null,
+        notesUpdatedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        notesUpdatedByName: null,
       };
       queryClient.setQueryData<DependenciesResponse>(depsQueryKey, {
         dependencies: [...(prev?.dependencies ?? []), optimistic],
@@ -1027,6 +1034,23 @@ export default function EquipmentDependenciesPage() {
               }
               data-testid="textarea-edge-notes"
             />
+            {(() => {
+              if (notesDialog?.mode !== "edit") return null;
+              const dep = dependencies.find(
+                (d) => d.id === notesDialog.dependencyId
+              );
+              if (!dep?.notesUpdatedAt) return null;
+              const editor = dep.notesUpdatedByName ?? "unknown user";
+              const when = new Date(dep.notesUpdatedAt).toLocaleString();
+              return (
+                <p
+                  className="text-xs text-muted-foreground"
+                  data-testid="text-edge-notes-last-edited"
+                >
+                  Last edited by {editor} at {when}
+                </p>
+              );
+            })()}
           </div>
           <DialogFooter>
             <Button

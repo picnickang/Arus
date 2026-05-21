@@ -30,6 +30,7 @@ import {
   equipmentDependencyLayoutPositionsSchema,
   equipment,
   insertEquipmentDependencySchema,
+  users,
   type EquipmentDependency,
   type EquipmentDependencyLayoutPositions,
 } from "@shared/schema";
@@ -96,16 +97,25 @@ router.get(
     const authReq = req as AuthenticatedRequest;
     const { vesselId } = req.params;
     try {
-      const rows: EquipmentDependency[] = await db
-        .select()
+      const rows = await db
+        .select({
+          dep: equipmentDependencies,
+          editorName: users.name,
+          editorEmail: users.email,
+        })
         .from(equipmentDependencies)
+        .leftJoin(users, eq(users.id, equipmentDependencies.notesUpdatedBy))
         .where(
           and(
             eq(equipmentDependencies.orgId, authReq.orgId),
             eq(equipmentDependencies.vesselId, vesselId)
           )
         );
-      res.json({ dependencies: rows });
+      const dependencies = rows.map((r) => ({
+        ...r.dep,
+        notesUpdatedByName: r.editorName ?? r.editorEmail ?? null,
+      }));
+      res.json({ dependencies });
     } catch (err) {
       logger.error("list failed", {
         details: err instanceof Error ? err.message : String(err),
@@ -204,10 +214,17 @@ router.patch(
           ? null
           : parsed.data.notes
         : null;
+    const editorId = authReq.user?.id ?? null;
     try {
+      const now = new Date();
       const [updated] = await db
         .update(equipmentDependencies)
-        .set({ notes: trimmed, updatedAt: new Date() })
+        .set({
+          notes: trimmed,
+          notesUpdatedBy: editorId,
+          notesUpdatedAt: now,
+          updatedAt: now,
+        })
         .where(
           and(
             eq(equipmentDependencies.orgId, authReq.orgId),
@@ -220,7 +237,15 @@ router.patch(
         res.status(404).json({ error: "Dependency not found" });
         return;
       }
-      res.json({ dependency: updated });
+      let notesUpdatedByName: string | null = null;
+      if (updated.notesUpdatedBy) {
+        const [editor] = await db
+          .select({ name: users.name, email: users.email })
+          .from(users)
+          .where(eq(users.id, updated.notesUpdatedBy));
+        notesUpdatedByName = editor?.name ?? editor?.email ?? null;
+      }
+      res.json({ dependency: { ...updated, notesUpdatedByName } });
     } catch (err) {
       logger.error("patch failed", {
         details: err instanceof Error ? err.message : String(err),

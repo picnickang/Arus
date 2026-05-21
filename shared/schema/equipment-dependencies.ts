@@ -48,6 +48,10 @@ export const equipmentDependencies = pgTable(
       .references(() => equipment.id)
       .notNull(),
     notes: text("notes"),
+    notesUpdatedBy: varchar("notes_updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    notesUpdatedAt: timestamp("notes_updated_at", { mode: "date" }),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },
@@ -72,6 +76,8 @@ export const insertEquipmentDependencySchema = createInsertSchema(
   id: true,
   createdAt: true,
   updatedAt: true,
+  notesUpdatedBy: true,
+  notesUpdatedAt: true,
 });
 
 export type EquipmentDependency = typeof equipmentDependencies.$inferSelect;
