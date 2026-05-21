@@ -1,3 +1,4 @@
+import type { Equipment } from "@shared/schema-runtime";
 import type {
   Vessel,
   InsertVessel,
@@ -7,7 +8,6 @@ import type {
   DrydockWindow,
   InsertDrydockWindow,
   FleetOverview,
-  VesselExportData,
   VesselImportResult,
   WipeDataResult,
 } from "./types";
@@ -37,14 +37,14 @@ export interface DrydockWindowRepositoryPort {
 }
 
 export interface VesselOperationsPort {
-  exportVessel(id: string, orgId: string): Promise<VesselExportData>;
+  exportVessel(id: string, orgId: string): Promise<Record<string, unknown>>;
   importVessel(data: Record<string, unknown>, orgId: string): Promise<VesselImportResult>;
   resetDowntime(vesselId: string, orgId: string): Promise<SelectVessel>;
   resetOperation(vesselId: string, orgId: string): Promise<SelectVessel>;
   wipeData(vesselId: string, orgId: string): Promise<WipeDataResult>;
-  getVesselEquipment(vesselId: string, orgId: string): Promise<SelectVessel[]>;
-  assignEquipment(vesselId: string, equipmentId: string, orgId: string): Promise<SelectVessel>;
-  unassignEquipment(vesselId: string, equipmentId: string, orgId: string): Promise<SelectVessel>;
+  getVesselEquipment(vesselId: string, orgId: string): Promise<Equipment[]>;
+  assignEquipment(vesselId: string, equipmentId: string, orgId: string): Promise<Equipment>;
+  unassignEquipment(vesselId: string, equipmentId: string, orgId: string): Promise<void>;
 }
 
 export interface EventPublisherPort {

@@ -56,7 +56,7 @@ export function auditAdminAction(action: string) {
     const originalEnd = res.end;
     let outcomeUpdated = false;
 
-    res.end = function (this: Response, ...args: any[]): any {
+    res.end = function (this: Response, ...args: unknown[]): Response {
       res.end = originalEnd;
 
       (async () => {

@@ -146,5 +146,5 @@ export function createMockRepository(): jest.Mocked<PdmRepositoryPort> {
     getEquipmentTypes: jest
       .fn<(orgId: string) => Promise<string[]>>()
       .mockResolvedValue(["Engine", "Pump", "Generator"]),
-  } as unknown as jest.Mocked<PdmRepositoryPort>;
+  } as jest.Mocked<PdmRepositoryPort>;
 }

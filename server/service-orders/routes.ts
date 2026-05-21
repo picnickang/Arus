@@ -122,11 +122,11 @@ router.post("/", async (req: Request, res: Response) => {
   const order = await db.transaction(async (tx) => {
     const soNumber = await repo.generateSoNumber(
       orgId,
-      tx as unknown as { execute: typeof db.execute }
+      tx as { execute: typeof db.execute }
     );
     return repo.createServiceOrder(
       { ...parsed.data, soNumber },
-      tx as unknown as { insert: typeof db.insert }
+      tx as { insert: typeof db.insert }
     );
   });
   res.status(201).json(order);

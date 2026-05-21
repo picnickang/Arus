@@ -106,7 +106,7 @@ export function performanceMiddleware(req: Request, res: Response, next: NextFun
   // Capture original end function
   const originalEnd = res.end;
 
-  res.end = function (this: Response, ...args: any[]): Response {
+  res.end = function (this: Response, ...args: unknown[]): Response {
     const durationNs = process.hrtime.bigint() - startTime;
     const durationMs = Number(durationNs) / 1_000_000;
     const routeKey = getRouteKey(req);
@@ -145,7 +145,7 @@ export function performanceMiddleware(req: Request, res: Response, next: NextFun
     // Update route statistics
     updateRouteStats(routeKey, durationMs);
 
-    return originalEnd.apply(this, args as any);
+    return (originalEnd as (...a: unknown[]) => Response).apply(this, args);
   } as typeof res.end;
 
   next();

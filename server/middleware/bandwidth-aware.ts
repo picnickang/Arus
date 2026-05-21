@@ -77,11 +77,11 @@ export function bandwidthAwareMiddleware(req: Request, res: Response, next: Next
   }
 
   if (!req.query.pageSize) {
-    (req.query as any).pageSize = "10";
+    (req.query as Record<string, unknown>).pageSize = "10";
   }
 
   const originalJson = res.json.bind(res);
-  res.json = function (body: any) {
+  res.json = function (body: unknown) {
     const compacted = compactResponse(body);
     res.setHeader("X-Response-Mode", "compact");
     return originalJson(compacted);

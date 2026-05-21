@@ -21,7 +21,7 @@ export interface EquipmentContext {
   } | null;
 
   telemetry: {
-    latest: any[];
+    latest: unknown[];
     summary: {
       readingsCount: number;
       timeRange: { start: Date; end: Date } | null;
@@ -30,8 +30,8 @@ export interface EquipmentContext {
   };
 
   alerts: {
-    active: any[];
-    recentResolved: any[];
+    active: unknown[];
+    recentResolved: unknown[];
     summary: {
       criticalCount: number;
       warningCount: number;
@@ -55,9 +55,9 @@ export interface EquipmentContext {
   };
 
   maintenance: {
-    openWorkOrders: any[];
-    upcomingSchedules: any[];
-    recentCompletedWorkOrders: any[];
+    openWorkOrders: unknown[];
+    upcomingSchedules: unknown[];
+    recentCompletedWorkOrders: unknown[];
     summary: {
       openCount: number;
       scheduledCount: number;
@@ -66,7 +66,7 @@ export interface EquipmentContext {
   };
 
   sensors: {
-    configurations: any[];
+    configurations: unknown[];
     summary: {
       totalSensors: number;
       activeSensors: number;
@@ -75,12 +75,12 @@ export interface EquipmentContext {
   };
 
   knowledge: {
-    relatedDocuments: any[];
-    semanticMatches: any[];
+    relatedDocuments: unknown[];
+    semanticMatches: unknown[];
   };
 
   insights: {
-    active: any[];
+    active: unknown[];
     summary: {
       criticalCount: number;
       highCount: number;

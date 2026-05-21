@@ -1,3 +1,4 @@
+import type { Equipment } from "@shared/schema-runtime";
 import type {
   InsertVessel,
   InsertPortCall,
@@ -7,7 +8,6 @@ import type {
   PortCall,
   DrydockWindow,
   FleetOverview,
-  VesselExportData,
   VesselImportResult,
   WipeDataResult,
 } from "../domain/types";
@@ -52,7 +52,7 @@ export class FleetRegistryService {
       "vessel",
       vessel.id,
       "create",
-      { ...vessel } as unknown as Record<string, unknown>,
+      { ...vessel } as Record<string, unknown>,
       userId
     );
     this.eventPublisher.publishVesselMqtt("create", vessel);
@@ -65,7 +65,7 @@ export class FleetRegistryService {
       "vessel",
       vessel.id,
       "update",
-      { ...vessel } as unknown as Record<string, unknown>,
+      { ...vessel } as Record<string, unknown>,
       userId
     );
     this.eventPublisher.publishVesselMqtt("update", vessel);
@@ -83,7 +83,7 @@ export class FleetRegistryService {
     this.eventPublisher.publishVesselMqtt("delete", { id });
   }
 
-  async exportVessel(id: string, orgId: string): Promise<VesselExportData> {
+  async exportVessel(id: string, orgId: string): Promise<Record<string, unknown>> {
     return this.vesselOps.exportVessel(id, orgId);
   }
 
@@ -123,7 +123,7 @@ export class FleetRegistryService {
     return result;
   }
 
-  async getVesselEquipment(vesselId: string, orgId: string): Promise<SelectVessel[]> {
+  async getVesselEquipment(vesselId: string, orgId: string): Promise<Equipment[]> {
     return this.vesselOps.getVesselEquipment(vesselId, orgId);
   }
 
@@ -132,7 +132,7 @@ export class FleetRegistryService {
     equipmentId: string,
     orgId: string,
     userId?: string
-  ): Promise<SelectVessel> {
+  ): Promise<Equipment> {
     const result = await this.vesselOps.assignEquipment(vesselId, equipmentId, orgId);
     await this.eventPublisher.publish(
       "equipment",
@@ -149,8 +149,8 @@ export class FleetRegistryService {
     equipmentId: string,
     orgId: string,
     userId?: string
-  ): Promise<SelectVessel> {
-    const result = await this.vesselOps.unassignEquipment(vesselId, equipmentId, orgId);
+  ): Promise<void> {
+    await this.vesselOps.unassignEquipment(vesselId, equipmentId, orgId);
     await this.eventPublisher.publish(
       "equipment",
       equipmentId,
@@ -158,7 +158,6 @@ export class FleetRegistryService {
       { id: equipmentId, vesselId: null },
       userId
     );
-    return result;
   }
 
   async getPortCalls(vesselId: string, orgId: string): Promise<PortCall[]> {

@@ -58,7 +58,7 @@ export function cacheMiddleware(options: CacheOptions = {}) {
     const originalJson = res.json.bind(res);
 
     // Override json to cache the response
-    res.json = function (body: any) {
+    res.json = function (body: unknown) {
       res.setHeader("X-Cache", "MISS");
 
       // Cache the response asynchronously (don't await)

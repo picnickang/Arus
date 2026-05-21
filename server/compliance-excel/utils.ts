@@ -10,11 +10,14 @@ import { formatDate, countByStatus } from "../compliance-shared/utils";
 
 export { formatDate, countByStatus };
 
+type CellValue = string | number | boolean | Date | null | undefined;
+type SheetRows = CellValue[][];
+
 export function createWorkbook(): XLSX.WorkBook {
   return XLSX.utils.book_new();
 }
 
-export function addSheet(workbook: XLSX.WorkBook, data: any[][], name: string): void {
+export function addSheet(workbook: XLSX.WorkBook, data: SheetRows, name: string): void {
   const sheet = XLSX.utils.aoa_to_sheet(data);
   XLSX.utils.book_append_sheet(workbook, sheet, name);
 }
@@ -36,16 +39,16 @@ export function getComplianceStatus(status: string | undefined): string {
 export function buildEquipmentSheet(
   equipment: EquipmentHealth[],
   includeCompliance = false
-): any[][] {
+): SheetRows {
   const header = ["ID", "Name", "Type", "Vessel", "Status", "Health Index"];
   if (includeCompliance) {
     header.push("Compliance Status");
   }
 
-  const data: any[][] = [["EQUIPMENT STATUS"], [], header];
+  const data: SheetRows = [["EQUIPMENT STATUS"], [], header];
 
   for (const eq of equipment) {
-    const row: any[] = [
+    const row: CellValue[] = [
       eq.id,
       eq.name ?? "",
       eq.type ?? "",
@@ -65,16 +68,17 @@ export function buildEquipmentSheet(
 export function buildWorkOrderSheet(
   workOrders: WorkOrder[],
   title: string = "MAINTENANCE RECORDS"
-): any[][] {
-  const data: any[][] = [
+): SheetRows {
+  const data: SheetRows = [
     [title],
     [],
     ["WO Number", "Equipment ID", "Type", "Priority", "Status", "Created", "Completed"],
   ];
 
   for (const wo of workOrders) {
+    const woNumber = (wo as { workOrderNumber?: string }).workOrderNumber;
     data.push([
-      (wo as any).workOrderNumber ?? wo.id,
+      woNumber ?? wo.id,
       wo.equipmentId ?? "",
       wo.maintenanceType ?? "",
       wo.priority ?? "",
@@ -87,8 +91,8 @@ export function buildWorkOrderSheet(
   return data;
 }
 
-export function buildStandardsSheet(standardCodes?: string[]): any[][] {
-  const data: any[][] = [["APPLICABLE STANDARDS"], [], ["Code", "Name", "Authority", "Category"]];
+export function buildStandardsSheet(standardCodes?: string[]): SheetRows {
+  const data: SheetRows = [["APPLICABLE STANDARDS"], [], ["Code", "Name", "Authority", "Category"]];
 
   const standards = standardCodes
     ? MARITIME_STANDARDS.filter((s) => standardCodes.includes(s.code))

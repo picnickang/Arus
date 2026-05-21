@@ -65,7 +65,7 @@ const crewStoragePort: CrewStoragePort = {
       );
     return { success: true };
   },
-} as unknown as CrewStoragePort;
+} as CrewStoragePort;
 
 export const crewAppService = new CrewApplicationService({
   crewMemberRepository,

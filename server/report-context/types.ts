@@ -17,13 +17,13 @@ export interface ReportContext {
   };
   data: {
     vessels?: SelectVessel[];
-    equipment?: any[];
+    equipment?: unknown[];
     workOrders?: WorkOrder[];
     telemetry?: EquipmentTelemetry[];
-    maintenanceSchedules?: any[];
-    alerts?: any[];
-    crew?: any[];
-    compliance?: any[];
+    maintenanceSchedules?: unknown[];
+    alerts?: unknown[];
+    crew?: unknown[];
+    compliance?: unknown[];
   };
   metadata: {
     generatedAt: Date;
@@ -32,10 +32,10 @@ export interface ReportContext {
     priority: "low" | "medium" | "high" | "critical";
   };
   intelligence?: {
-    vesselLearnings?: any;
-    historicalContext?: any;
-    historicalContexts?: any[];
-    patterns?: any[];
+    vesselLearnings?: unknown;
+    historicalContext?: unknown;
+    historicalContexts?: unknown[];
+    patterns?: unknown[];
     predictions?: Array<{
       equipmentId: string;
       equipmentName: string;

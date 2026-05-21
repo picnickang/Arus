@@ -57,12 +57,12 @@ export function enforceQuota(metric: QuotaMetric) {
         );
       }
       next();
-    } catch (err: any) {
+    } catch (err) {
       // Never block a request because the quota subsystem itself broke.
       // The fail-closed boundary is RLS; quotas are commercial.
       logger.warn("Quota check failed; allowing request", {
         metric,
-        error: err?.message,
+        error: err instanceof Error ? err.message : String(err),
       });
       next();
     }

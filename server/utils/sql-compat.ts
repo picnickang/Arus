@@ -3,8 +3,10 @@
  * Provides database-agnostic query helpers for PostgreSQL and SQLite
  */
 
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 import { isLocalMode } from "../db-config";
+
+type SqlValue = unknown;
 
 /**
  * Check if running in SQLite mode (vessel deployment)
@@ -17,7 +19,7 @@ export function isSQLiteMode(): boolean {
  * Get JSON extract expression for database type
  * PostgreSQL uses -> or ->> operators, SQLite uses json_extract()
  */
-export function jsonExtract(column: string, path: string): any {
+export function jsonExtract(column: string, path: string): SQL {
   if (isSQLiteMode()) {
     // SQLite: json_extract(column, '$.path')
     return sql`json_extract(${sql.raw(column)}, ${path})`;
@@ -31,7 +33,7 @@ export function jsonExtract(column: string, path: string): any {
  * Get JSON array aggregate for database type
  * PostgreSQL uses jsonb_agg(), SQLite uses json_group_array()
  */
-export function jsonArrayAgg(column: string): any {
+export function jsonArrayAgg(column: string): SQL {
   if (isSQLiteMode()) {
     return sql`json_group_array(${sql.raw(column)})`;
   }
@@ -42,15 +44,23 @@ export function jsonArrayAgg(column: string): any {
  * Get JSON object aggregate for database type
  * PostgreSQL uses jsonb_build_object(), SQLite uses json_object()
  */
-export function jsonBuildObject(pairs: Record<string, any>): any {
+function quoteStringLiteral(value: string): SQL {
+  // Single-quote-escape for safe embedding as a SQL string literal in
+  // contexts (json_object / jsonb_build_object key slots) where the
+  // database parser rejects bound parameters. Doubling embedded single
+  // quotes is the standard SQL escape for both PostgreSQL and SQLite.
+  return sql.raw(`'${value.replace(/'/g, "''")}'`);
+}
+
+export function jsonBuildObject(pairs: Record<string, SqlValue>): SQL {
   const entries = Object.entries(pairs);
 
   if (isSQLiteMode()) {
-    const args = entries.flatMap(([k, v]) => [(sql as any).literal(k), v]);
+    const args = entries.flatMap(([k, v]) => [quoteStringLiteral(k), v as SQL]);
     return sql`json_object(${sql.join(args, sql`, `)})`;
   }
   // PostgreSQL: keys must be SQL string literals
-  const args = entries.flatMap(([k, v]) => [(sql as any).literal(k), v]);
+  const args = entries.flatMap(([k, v]) => [quoteStringLiteral(k), v as SQL]);
   return sql`jsonb_build_object(${sql.join(args, sql`, `)})`;
 }
 
@@ -107,7 +117,7 @@ export function parseTimestamp(value: number | Date | string): Date {
  * Case-insensitive LIKE operator
  * PostgreSQL uses ILIKE, SQLite uses LIKE with COLLATE NOCASE
  */
-export function ilike(column: any, pattern: string): any {
+export function ilike(column: SqlValue, pattern: string): SQL {
   if (isSQLiteMode()) {
     // SQLite: column LIKE pattern COLLATE NOCASE
     return sql`${column} LIKE ${pattern} COLLATE NOCASE`;
@@ -122,7 +132,7 @@ export function ilike(column: any, pattern: string): any {
  *
  * Important: This assumes arrays are stored as JSON strings in SQLite
  */
-export function arrayContains(column: any, value: string): any {
+export function arrayContains(column: SqlValue, value: string): SQL {
   if (isSQLiteMode()) {
     // SQLite: Use JSON functions for accurate array containment
     // Check if value exists in JSON array using json_each
@@ -145,7 +155,7 @@ export function arrayContains(column: any, value: string): any {
  *
  * Note: Pass raw values (strings, numbers) - the function handles serialization
  */
-export function jsonSet(column: any, path: string, value: any): any {
+export function jsonSet(column: SqlValue, path: string, value: SqlValue): SQL {
   if (isSQLiteMode()) {
     // SQLite: Convert PostgreSQL path {key,subkey} to $.key.subkey
     const sqlitePath = path

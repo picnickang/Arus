@@ -39,31 +39,38 @@ export function sanitizeForHTML(input: string): string {
     .replace(/\//g, "&#x2F;");
 }
 
-export function sanitizeMongoQuery(query: any): any {
+export function sanitizeMongoQuery(query: unknown): unknown {
   if (typeof query !== "object" || query === null) {
     return query;
   }
 
-  const sanitized = Array.isArray(query) ? [] : {};
+  const sanitized: Record<string, unknown> | unknown[] = Array.isArray(query) ? [] : {};
 
-  for (const [key, value] of Object.entries(query)) {
+  for (const [key, value] of Object.entries(query as Record<string, unknown>)) {
     if (key.startsWith("$")) {
       continue;
     }
 
+    let nextValue: unknown;
     if (typeof value === "object" && value !== null) {
-      (sanitized as any)[key] = sanitizeMongoQuery(value);
+      nextValue = sanitizeMongoQuery(value);
     } else if (typeof value === "string") {
-      (sanitized as any)[key] = sanitizeInput(value);
+      nextValue = sanitizeInput(value);
     } else {
-      (sanitized as any)[key] = value;
+      nextValue = value;
+    }
+
+    if (Array.isArray(sanitized)) {
+      sanitized.push(nextValue);
+    } else {
+      sanitized[key] = nextValue;
     }
   }
 
   return sanitized;
 }
 
-export function sanitizeRequestBody(obj: any, skipLengthLimit = false): any {
+export function sanitizeRequestBody(obj: unknown, skipLengthLimit = false): unknown {
   if (obj === null || obj === undefined) {
     return obj;
   }
@@ -73,8 +80,8 @@ export function sanitizeRequestBody(obj: any, skipLengthLimit = false): any {
   }
 
   if (typeof obj === "object") {
-    const sanitized: any = {};
-    for (const [key, value] of Object.entries(obj)) {
+    const sanitized: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
       if (typeof value === "string") {
         sanitized[key] = sanitizeInput(value, skipLengthLimit);
       } else if (typeof value === "object") {

@@ -199,8 +199,8 @@ export function registerFleetRegistryVesselRoutes(
     withErrorHandling("unassign equipment from vessel", async (req, res) => {
       const orgId = getOrgIdFromRequest(req);
       const { vesselId, equipmentId } = req.params;
-      const result = await service.unassignEquipment(vesselId, equipmentId, orgId);
-      res.json(result);
+      await service.unassignEquipment(vesselId, equipmentId, orgId);
+      res.json({ success: true });
     })
   );
 }

@@ -29,7 +29,9 @@ export function enrichContextWithRAG(context: ReportContext): ReportContext {
   }
 
   if (context.data.alerts && context.data.alerts.length > 0) {
-    const criticalAlerts = context.data.alerts.filter((a) => a.severity === "critical").slice(0, 3);
+    const criticalAlerts = (context.data.alerts as Array<Record<string, unknown>>)
+      .filter((a) => a.severity === "critical")
+      .slice(0, 3);
 
     criticalAlerts.forEach((alert) => {
       knowledgeSnippets.push(
@@ -39,8 +41,10 @@ export function enrichContextWithRAG(context: ReportContext): ReportContext {
   }
 
   if (context.intelligence.vesselLearnings) {
-    const learnings = context.intelligence.vesselLearnings;
-    learnings.failurePatterns?.slice(0, 2).forEach((pattern: any) => {
+    const learnings = context.intelligence.vesselLearnings as {
+      failurePatterns?: Array<{ description: string; confidence: number }>;
+    };
+    learnings.failurePatterns?.slice(0, 2).forEach((pattern) => {
       knowledgeSnippets.push(
         `Historical Pattern: ${pattern.description} (confidence: ${(pattern.confidence * 100).toFixed(0)}%)`
       );

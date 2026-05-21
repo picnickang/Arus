@@ -27,7 +27,7 @@ export function applyApiVersioning(app: Express): void {
     r[VERSION_REWRITTEN] = true;
     res.setHeader("X-API-Version", "v1");
     req.url = `/api${req.url}`;
-    (app as unknown as { handle: (req: unknown, res: unknown, next: unknown) => void }).handle(req, res, next);
+    (app as Express & { handle: (req: unknown, res: unknown, next: unknown) => void }).handle(req, res, next);
   });
 
   app.use("/api", (req, res, next) => {

@@ -73,6 +73,24 @@ function todayWindowDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function extractRows<T>(result: unknown): T[] {
+  if (Array.isArray(result)) return result as T[];
+  if (result && typeof result === "object" && "rows" in result) {
+    const rows = (result as { rows?: unknown }).rows;
+    if (Array.isArray(rows)) return rows as T[];
+  }
+  return [];
+}
+
+function errorMessage(err: unknown): string | undefined {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === "object" && "message" in err) {
+    const m = (err as { message?: unknown }).message;
+    if (typeof m === "string") return m;
+  }
+  return undefined;
+}
+
 export interface SqlExecutor {
   execute(query: unknown): Promise<unknown>;
 }
@@ -92,7 +110,7 @@ export class QuotaService {
   private async executor(): Promise<SqlExecutor> {
     if (!this.resolved) {
       const mod = await import("../db-config");
-      this.resolved = mod.db as unknown as SqlExecutor;
+      this.resolved = mod.db as SqlExecutor;
     }
     return this.resolved;
   }
@@ -100,22 +118,22 @@ export class QuotaService {
   async getLimit(orgId: string, metric: QuotaMetric): Promise<number> {
     try {
       const col = COL_FOR[metric];
-      const result: any = await (await this.executor()).execute(
+      const result: unknown = await (await this.executor()).execute(
         sql.raw(
           `SELECT ${col} AS limit_value FROM tenant_quotas WHERE org_id = '${orgId.replace(/'/g, "''")}'`
         )
       );
-      const rows: any[] = Array.isArray(result) ? result : result?.rows ?? [];
+      const rows = extractRows<{ limit_value?: string | number | null }>(result);
       const v = rows[0]?.limit_value;
       if (typeof v === "string") return Number(v);
       if (typeof v === "number") return v;
-    } catch (err: any) {
+    } catch (err: unknown) {
       // If the table doesn't exist yet (migration not applied), use the
       // built-in defaults rather than crashing the request path.
       logger.warn("tenant_quotas lookup failed; using defaults", {
         orgId,
         metric,
-        error: err?.message,
+        error: errorMessage(err),
       });
     }
     return DEFAULTS[metric];
@@ -126,7 +144,7 @@ export class QuotaService {
     const windowDate =
       metric === "telemetry_rows_today" ? todayWindowDate() : "1970-01-01";
     try {
-      const result: any = await (await this.executor()).execute(
+      const result: unknown = await (await this.executor()).execute(
         sql.raw(
           `SELECT value FROM tenant_usage
              WHERE org_id = '${safeOrg}'
@@ -134,15 +152,15 @@ export class QuotaService {
                AND window_start = '${windowDate}'`
         )
       );
-      const rows: any[] = Array.isArray(result) ? result : result?.rows ?? [];
+      const rows = extractRows<{ value?: string | number | null }>(result);
       const v = rows[0]?.value;
       if (typeof v === "string") return Number(v);
       if (typeof v === "number") return v;
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.warn("tenant_usage lookup failed; assuming 0", {
         orgId,
         metric,
-        error: err?.message,
+        error: errorMessage(err),
       });
     }
     return 0;
@@ -182,11 +200,11 @@ export class QuotaService {
                            recorded_at = now()`
         )
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.warn("tenant_usage increment failed", {
         orgId,
         metric,
-        error: err?.message,
+        error: errorMessage(err),
       });
     }
   }
