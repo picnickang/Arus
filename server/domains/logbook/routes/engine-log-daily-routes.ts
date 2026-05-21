@@ -5,8 +5,9 @@
  */
 
 import type { Express } from "express";
+import { z } from "zod";
 import { engineLogStorage } from "../../../repositories";
-import type { RateLimiters, EngineLogFilters, SignatureDetails, LockDetails } from "./types";
+import type { RateLimiters, EngineLogFilters } from "./types";
 import { validateUUID } from "../../../utils/validation";
 import {
   withErrorHandling,
@@ -15,6 +16,46 @@ import {
   sendDeleted,
 } from "../../../lib/route-utils";
 
+const idParamSchema = z.object({ id: z.string().min(1) });
+const vesselDateParamSchema = z.object({
+  vesselId: z.string().min(1),
+  logDate: z.string().min(1),
+});
+const listQuerySchema = z.object({
+  vesselId: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  status: z.string().optional(),
+});
+const daysQuerySchema = z.object({
+  vesselId: z.string().optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
+});
+const createBodySchema = z
+  .object({
+    vesselId: z.string().min(1),
+    logDate: z.string().min(1),
+  })
+  .and(z.record(z.unknown()));
+const updateBodySchema = z.record(z.unknown());
+const signBodySchema = z.object({
+  signedByCrewId: z.string().min(1),
+  signedByName: z.string().min(1),
+  signedByRank: z.string().min(1),
+});
+const lockBodySchema = z.object({
+  lockedByUserId: z.string().min(1),
+  lockedByUserName: z.string().min(1),
+});
+const ensureBodySchema = z.object({
+  vesselId: z.string().min(1),
+  date: z.string().min(1),
+});
+
+type CreateEngineLogInput = Parameters<typeof engineLogStorage.createEngineLogDaily>[0];
+type UpdateEngineLogInput = Parameters<typeof engineLogStorage.updateEngineLogDaily>[1];
+
 export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimiters): number {
   const { writeOperationRateLimit, criticalOperationRateLimit } = rateLimit;
 
@@ -22,12 +63,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
     "/api/logbook/engine/daily",
     withErrorHandling("get engine log daily entries", async (req, res) => {
       const orgId = req.orgId;
-      const filters: EngineLogFilters = {
-        vesselId: req.query.vesselId as string | undefined,
-        startDate: req.query.startDate as string | undefined,
-        endDate: req.query.endDate as string | undefined,
-        status: req.query.status as string | undefined,
-      };
+      const filters: EngineLogFilters = listQuerySchema.parse(req.query);
 
       const entries = await engineLogStorage.getEngineLogDaily(orgId, filters);
       res.json(entries);
@@ -38,7 +74,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
     "/api/logbook/engine/daily/:id",
     withErrorHandling("get engine log daily entry", async (req, res) => {
       const orgId = req.orgId;
-      const id = req.params.id;
+      const { id } = idParamSchema.parse(req.params);
       if (!validateUUID(id, res)) {
         return;
       }
@@ -56,7 +92,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
     "/api/logbook/engine/daily/:id/complete",
     withErrorHandling("get complete engine log", async (req, res) => {
       const orgId = req.orgId;
-      const id = req.params.id;
+      const { id } = idParamSchema.parse(req.params);
       if (!validateUUID(id, res)) {
         return;
       }
@@ -74,7 +110,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
     "/api/logbook/engine/vessel/:vesselId/date/:logDate",
     withErrorHandling("get engine log by date", async (req, res) => {
       const orgId = req.orgId;
-      const { vesselId, logDate } = req.params;
+      const { vesselId, logDate } = vesselDateParamSchema.parse(req.params);
 
       let entry = await engineLogStorage.getEngineLogDailyByDate(vesselId, logDate, orgId);
 
@@ -84,7 +120,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
           vesselId,
           logDate,
           status: "open",
-        });
+        } as CreateEngineLogInput);
       }
 
       const complete = await engineLogStorage.getEngineLogComplete(entry.id, orgId);
@@ -97,10 +133,14 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
     writeOperationRateLimit,
     withErrorHandling("create engine log daily", async (req, res) => {
       const orgId = req.orgId;
+      const body = createBodySchema.parse(req.body) as {
+        vesselId: string;
+        logDate: string;
+      } & Record<string, unknown>;
 
       const existing = await engineLogStorage.getEngineLogDailyByDate(
-        req.body.vesselId,
-        req.body.logDate,
+        body.vesselId,
+        body.logDate,
         orgId
       );
 
@@ -112,9 +152,9 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
       }
 
       const entry = await engineLogStorage.createEngineLogDaily({
-        ...req.body,
+        ...body,
         orgId,
-      });
+      } as CreateEngineLogInput);
 
       sendCreated(res, entry);
     })
@@ -125,12 +165,17 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
     writeOperationRateLimit,
     withErrorHandling("update engine log daily", async (req, res) => {
       const orgId = req.orgId;
-      const id = req.params.id;
+      const { id } = idParamSchema.parse(req.params);
       if (!validateUUID(id, res)) {
         return;
       }
+      const body = updateBodySchema.parse(req.body);
 
-      const entry = await engineLogStorage.updateEngineLogDaily(id, req.body, orgId);
+      const entry = await engineLogStorage.updateEngineLogDaily(
+        id,
+        body as UpdateEngineLogInput,
+        orgId
+      );
       res.json(entry);
     })
   );
@@ -140,21 +185,17 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
     writeOperationRateLimit,
     withErrorHandling("sign engine log", async (req, res) => {
       const orgId = req.orgId;
-      const id = req.params.id;
+      const { id } = idParamSchema.parse(req.params);
       if (!validateUUID(id, res)) {
         return;
       }
 
-      const { signedByCrewId, signedByName, signedByRank }: SignatureDetails = req.body;
-      if (!signedByCrewId || !signedByName || !signedByRank) {
+      const parsed = signBodySchema.safeParse(req.body);
+      if (!parsed.success) {
         return res.status(400).json({ error: "Signature details required" });
       }
 
-      const entry = await engineLogStorage.signEngineLogDaily(
-        id,
-        { signedByCrewId, signedByName, signedByRank },
-        orgId
-      );
+      const entry = await engineLogStorage.signEngineLogDaily(id, parsed.data, orgId);
       res.json(entry);
     })
   );
@@ -164,7 +205,8 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
     criticalOperationRateLimit,
     withErrorHandling("delete engine log daily", async (req, res) => {
       const orgId = req.orgId;
-      await engineLogStorage.deleteEngineLogDaily(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      await engineLogStorage.deleteEngineLogDaily(id, orgId);
       sendDeleted(res);
     })
   );
@@ -174,22 +216,18 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
     writeOperationRateLimit,
     withErrorHandling("lock engine log", async (req, res) => {
       const orgId = req.orgId;
-      const id = req.params.id;
+      const { id } = idParamSchema.parse(req.params);
       if (!validateUUID(id, res)) {
         return;
       }
 
-      const { lockedByUserId, lockedByUserName }: LockDetails = req.body;
-      if (!lockedByUserId || !lockedByUserName) {
+      const parsed = lockBodySchema.safeParse(req.body);
+      if (!parsed.success) {
         return res.status(400).json({ error: "lockedByUserId and lockedByUserName required" });
       }
 
       try {
-        const locked = await engineLogStorage.lockEngineLogDaily(
-          id,
-          { lockedByUserId, lockedByUserName },
-          orgId
-        );
+        const locked = await engineLogStorage.lockEngineLogDaily(id, parsed.data, orgId);
         res.json(locked);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
@@ -206,7 +244,8 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
     writeOperationRateLimit,
     withErrorHandling("unlock engine log", async (req, res) => {
       const orgId = req.orgId;
-      const unlocked = await engineLogStorage.unlockEngineLogDaily(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      const unlocked = await engineLogStorage.unlockEngineLogDaily(id, orgId);
       res.json(unlocked);
     })
   );
@@ -215,12 +254,12 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
     "/api/logbook/engine/days",
     withErrorHandling("get engine log days", async (req, res) => {
       const orgId = req.orgId;
-      const { vesselId, from, to } = req.query;
+      const { vesselId, from, to } = daysQuerySchema.parse(req.query);
 
       const entries = await engineLogStorage.getEngineLogDaily(orgId, {
-        vesselId: vesselId as string | undefined,
-        startDate: from as string | undefined,
-        endDate: to as string | undefined,
+        vesselId,
+        startDate: from,
+        endDate: to,
       });
       res.json(entries);
     })
@@ -231,11 +270,11 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
     writeOperationRateLimit,
     withErrorHandling("ensure engine log day", async (req, res) => {
       const orgId = req.orgId;
-      const { vesselId, date } = req.body;
-
-      if (!vesselId || !date) {
+      const parsed = ensureBodySchema.safeParse(req.body);
+      if (!parsed.success) {
         return res.status(400).json({ error: "vesselId and date required" });
       }
+      const { vesselId, date } = parsed.data;
 
       let entry = await engineLogStorage.getEngineLogDailyByDate(vesselId, date, orgId);
 
@@ -245,7 +284,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
           vesselId,
           logDate: date,
           status: "open",
-        });
+        } as CreateEngineLogInput);
       }
 
       res.json(entry);

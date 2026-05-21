@@ -5,6 +5,7 @@
  */
 
 import type { Express, Request, Response } from "express";
+import { z } from "zod";
 import { insertWorkOrderSchema, updateWorkOrderSchema } from "@shared/schema-runtime";
 import { workOrderAppService as workOrderService } from "../application";
 import { safeDbOperation } from "../../../error-handling";
@@ -28,6 +29,22 @@ import {
 } from "../../../lib/api-helpers";
 import type { RateLimitMiddleware } from "./types";
 
+const idParamSchema = z.object({ id: z.string().min(1) });
+const listQuerySchema = z.object({
+  equipmentId: z.string().optional(),
+  vesselId: z.string().optional(),
+  engineerId: z.string().optional(),
+  status: z.string().optional(),
+  priority: z.string().optional(),
+  equipmentCategory: z.string().optional(),
+  search: z.string().optional(),
+  workOrderType: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  limit: z.coerce.number().int().optional(),
+  offset: z.coerce.number().int().optional(),
+});
+
 export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware) {
   const { writeOperationRateLimit, criticalOperationRateLimit } = rateLimit;
 
@@ -36,25 +53,26 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     requireOrgId,
     withErrorHandling("fetch work orders", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const equipmentId = req.query.equipmentId as string;
-      const { startDate, endDate } = parseDateRange(req.query as Record<string, unknown>);
+      const query = listQuerySchema.parse(req.query);
+      const equipmentId = query.equipmentId ?? "";
+      const { startDate, endDate } = parseDateRange(query);
 
       const filters = {
-        vesselId: (req.query.vesselId as string) || undefined,
-        assignedCrewId: (req.query.engineerId as string) || undefined,
-        status: (req.query.status as string) || undefined,
-        priority: (req.query.priority as string) || undefined,
+        vesselId: query.vesselId,
+        assignedCrewId: query.engineerId,
+        status: query.status,
+        priority: query.priority,
         dueDateFrom: startDate ? new Date(startDate) : undefined,
         dueDateTo: endDate ? new Date(endDate) : undefined,
-        equipmentCategory: (req.query.equipmentCategory as string) || undefined,
-        search: (req.query.search as string) || undefined,
-        workOrderType: (req.query.workOrderType as string) || undefined,
+        equipmentCategory: query.equipmentCategory,
+        search: query.search,
+        workOrderType: query.workOrderType,
       };
 
-      const isPaginated = req.query.limit !== undefined || req.query.offset !== undefined;
+      const isPaginated = query.limit !== undefined || query.offset !== undefined;
 
       if (isPaginated) {
-        const paginationResult = parsePagination(req.query as Record<string, unknown>);
+        const paginationResult = parsePagination(query);
 
         if (!paginationResult.success) {
           return sendValidationError(res, paginationResult.error, "Invalid pagination parameters");
@@ -127,7 +145,8 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     requireOrgId,
     withErrorHandling("fetch work order", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const workOrder = await workOrderService.getWorkOrderById(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      const workOrder = await workOrderService.getWorkOrderById(id, orgId);
 
       if (!workOrder) {
         return sendNotFound(res, "Work order");
@@ -142,16 +161,15 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
     withErrorHandling("create work order", async (req: Request, res: Response) => {
+      const rawBody = z.record(z.unknown()).parse(req.body);
+      const toDate = (v: unknown) =>
+        v == null ? undefined : new Date(v as string | number | Date);
       const processedBody = {
-        ...req.body,
-        scheduledDate: req.body.scheduledDate
-          ? new Date(req.body.scheduledDate)
-          : undefined,
-        completedDate: req.body.completedDate ? new Date(req.body.completedDate) : undefined,
-        plannedStartDate: req.body.plannedStartDate
-          ? new Date(req.body.plannedStartDate)
-          : undefined,
-        plannedEndDate: req.body.plannedEndDate ? new Date(req.body.plannedEndDate) : undefined,
+        ...rawBody,
+        scheduledDate: toDate(rawBody.scheduledDate),
+        completedDate: toDate(rawBody.completedDate),
+        plannedStartDate: toDate(rawBody.plannedStartDate),
+        plannedEndDate: toDate(rawBody.plannedEndDate),
       };
 
       const orderData = insertWorkOrderSchema.parse(processedBody);
@@ -207,8 +225,9 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
         }
       }
       const orgId = (req as AuthenticatedRequest).orgId;
+      const { id } = idParamSchema.parse(req.params);
       const workOrder = await workOrderService.updateWorkOrder(
-        req.params.id,
+        id,
         orderData,
         orgId,
         (req as AuthenticatedRequest).user?.id
@@ -224,8 +243,9 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     criticalOperationRateLimit,
     withErrorHandling("delete work order", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
+      const { id } = idParamSchema.parse(req.params);
       await workOrderService.deleteWorkOrder(
-        req.params.id,
+        id,
         orgId,
         (req as AuthenticatedRequest).user?.id
       );

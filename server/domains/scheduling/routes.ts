@@ -1,4 +1,5 @@
 import { Express, Request, Response, RequestHandler } from "express";
+import { z } from "zod";
 import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../lib/route-utils";
 import { schedulingSettingsService } from "../../services/scheduling-settings/service";
 import { logger } from "../../utils/logger";
@@ -13,6 +14,64 @@ interface SchedulingConfig {
   writeOperationRateLimit: RequestHandler;
 }
 
+const scheduleListQuerySchema = z.object({
+  vesselId: z.string().optional(),
+  equipmentId: z.string().optional(),
+  status: z.string().optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+});
+
+const scheduleConflictsQuerySchema = z.object({
+  vesselId: z.string().optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+});
+
+const calendarQuerySchema = z.object({
+  vesselId: z.string().optional(),
+  month: z.coerce.number().int().min(0).max(11).optional(),
+  year: z.coerce.number().int().min(1970).max(9999).optional(),
+});
+
+const statsQuerySchema = z.object({
+  vesselId: z.string().optional(),
+  months: z.coerce.number().int().min(1).max(36).optional(),
+});
+
+const upcomingQuerySchema = z.object({
+  vesselId: z.string().optional(),
+  days: z.coerce.number().int().min(1).max(365).optional(),
+  limit: z.coerce.number().int().min(1).max(500).optional(),
+});
+
+const idParamSchema = z.object({ id: z.string().min(1) });
+
+const scheduleBodySchema = z.record(z.unknown());
+const bulkSchedulesBodySchema = z.object({
+  schedules: z.array(z.record(z.unknown())).min(1),
+});
+
+const runOptimizationBodySchema = z.object({
+  configId: z.string().min(1),
+  targetDate: z.string().optional(),
+});
+
+const optimizationResultsQuerySchema = z.object({
+  configId: z.string().optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+});
+
+const vesselIdOnlyQuerySchema = z.object({
+  vesselId: z.string().optional(),
+});
+
+const rulesUpdateBodySchema = z.object({
+  thresholds: z.unknown(),
+  enforcement: z.unknown(),
+});
+
 export function registerSchedulingRoutes(app: Express, config: SchedulingConfig) {
   const { requireOrgId, writeOperationRateLimit } = config;
 
@@ -21,15 +80,16 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     requireOrgId,
     withErrorHandling("fetch maintenance schedules", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const { vesselId, equipmentId, status, dateFrom, dateTo } = req.query;
+      const { vesselId, equipmentId, status, dateFrom, dateTo } =
+        scheduleListQuerySchema.parse(req.query);
       const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(
-        equipmentId as string | undefined,
+        equipmentId,
         orgId,
         {
-          vesselId: vesselId as string | undefined,
-          status: status as string | undefined,
-          startDate: dateFrom ? new Date(dateFrom as string) : undefined,
-          endDate: dateTo ? new Date(dateTo as string) : undefined,
+          vesselId,
+          status,
+          startDate: dateFrom ? new Date(dateFrom) : undefined,
+          endDate: dateTo ? new Date(dateTo) : undefined,
         }
       );
       res.json(schedules);
@@ -41,11 +101,11 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     requireOrgId,
     withErrorHandling("detect conflicts", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const { dateFrom, dateTo, vesselId } = req.query;
+      const { dateFrom, dateTo, vesselId } = scheduleConflictsQuerySchema.parse(req.query);
       const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId, {
-        vesselId: vesselId as string | undefined,
-        startDate: dateFrom ? new Date(dateFrom as string) : undefined,
-        endDate: dateTo ? new Date(dateTo as string) : undefined,
+        vesselId,
+        startDate: dateFrom ? new Date(dateFrom) : undefined,
+        endDate: dateTo ? new Date(dateTo) : undefined,
       });
 
       const conflicts: Array<{
@@ -81,15 +141,15 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     requireOrgId,
     withErrorHandling("fetch calendar data", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const { month, year, vesselId } = req.query;
-      const targetMonth = month ? Number.parseInt(month as string) : new Date().getMonth();
-      const targetYear = year ? Number.parseInt(year as string) : new Date().getFullYear();
+      const { month, year, vesselId } = calendarQuerySchema.parse(req.query);
+      const targetMonth = month ?? new Date().getMonth();
+      const targetYear = year ?? new Date().getFullYear();
 
       const startDate = new Date(targetYear, targetMonth, 1);
       const endDate = new Date(targetYear, targetMonth + 1, 0);
 
       const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId, {
-        vesselId: vesselId as string | undefined,
+        vesselId,
         startDate,
         endDate,
       });
@@ -118,13 +178,13 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     requireOrgId,
     withErrorHandling("fetch schedule statistics", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const { vesselId, months } = req.query;
-      const monthsNum = months ? Number.parseInt(months as string) : 3;
+      const { vesselId, months } = statsQuerySchema.parse(req.query);
+      const monthsNum = months ?? 3;
       const cutoffDate = new Date();
       cutoffDate.setMonth(cutoffDate.getMonth() - monthsNum);
 
       const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId, {
-        vesselId: vesselId as string | undefined,
+        vesselId,
         startDate: cutoffDate,
       });
 
@@ -162,15 +222,15 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     requireOrgId,
     withErrorHandling("fetch upcoming maintenance", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const { days, vesselId, limit } = req.query;
-      const daysNum = days ? Number.parseInt(days as string) : 30;
-      const limitNum = limit ? Number.parseInt(limit as string) : 50;
+      const { days, vesselId, limit } = upcomingQuerySchema.parse(req.query);
+      const daysNum = days ?? 30;
+      const limitNum = limit ?? 50;
 
       const endDate = new Date();
       endDate.setDate(endDate.getDate() + daysNum);
 
       const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId, {
-        vesselId: vesselId as string | undefined,
+        vesselId,
         status: "pending",
         startDate: new Date(),
         endDate,
@@ -191,7 +251,8 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     requireOrgId,
     withErrorHandling("fetch schedule", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const schedule = await dbMaintenanceStorage.getMaintenanceSchedule(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      const schedule = await dbMaintenanceStorage.getMaintenanceSchedule(id, orgId);
       if (!schedule) {
         return sendNotFound(res, "Schedule");
       }
@@ -205,7 +266,10 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     writeOperationRateLimit,
     withErrorHandling("create schedule", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const scheduleData = { ...req.body, orgId };
+      const body = scheduleBodySchema.parse(req.body);
+      const scheduleData = { ...body, orgId } as Parameters<
+        typeof dbMaintenanceStorage.createMaintenanceSchedule
+      >[0];
       const schedule = await dbMaintenanceStorage.createMaintenanceSchedule(scheduleData);
       sendCreated(res, schedule);
     })
@@ -217,9 +281,11 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     writeOperationRateLimit,
     withErrorHandling("update schedule", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
+      const { id } = idParamSchema.parse(req.params);
+      const body = scheduleBodySchema.parse(req.body);
       const schedule = await dbMaintenanceStorage.updateMaintenanceSchedule(
-        req.params.id,
-        req.body,
+        id,
+        body as Parameters<typeof dbMaintenanceStorage.updateMaintenanceSchedule>[1],
         orgId
       );
       res.json(schedule);
@@ -232,7 +298,8 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     writeOperationRateLimit,
     withErrorHandling("delete schedule", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      await dbMaintenanceStorage.deleteMaintenanceSchedule(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      await dbMaintenanceStorage.deleteMaintenanceSchedule(id, orgId);
       sendDeleted(res);
     })
   );
@@ -243,13 +310,9 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     writeOperationRateLimit,
     withErrorHandling("create bulk schedules", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const { schedules } = req.body;
-      if (!Array.isArray(schedules)) {
-        res.status(400).json({ message: "schedules must be an array" });
-        return;
-      }
+      const { schedules } = bulkSchedulesBodySchema.parse(req.body);
       const results = await Promise.all(
-        (schedules as Array<Record<string, unknown>>).map((s) =>
+        schedules.map((s) =>
           dbMaintenanceStorage.createMaintenanceSchedule(
             { ...s, orgId } as Parameters<
               typeof dbMaintenanceStorage.createMaintenanceSchedule
@@ -277,7 +340,11 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     writeOperationRateLimit,
     withErrorHandling("create optimization configuration", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const config = await dbOptimizerStorage.createOptimizerConfiguration({ ...req.body, orgId });
+      const body = scheduleBodySchema.parse(req.body);
+      const config = await dbOptimizerStorage.createOptimizerConfiguration({
+        ...body,
+        orgId,
+      } as Parameters<typeof dbOptimizerStorage.createOptimizerConfiguration>[0]);
       sendCreated(res, config);
     })
   );
@@ -287,11 +354,11 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     requireOrgId,
     withErrorHandling("fetch optimization results", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const { configId, dateFrom, dateTo } = req.query;
+      const { dateFrom, dateTo } = optimizationResultsQuerySchema.parse(req.query);
       const results = await dbOptimizerStorage.getOptimizationResults(
         orgId,
-        dateFrom ? new Date(dateFrom as string) : undefined,
-        dateTo ? new Date(dateTo as string) : undefined
+        dateFrom ? new Date(dateFrom) : undefined,
+        dateTo ? new Date(dateTo) : undefined
       );
       res.json(results);
     })
@@ -303,7 +370,11 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     writeOperationRateLimit,
     withErrorHandling("create optimization result", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const result = await dbOptimizerStorage.createOptimizationResult({ ...req.body, orgId });
+      const body = scheduleBodySchema.parse(req.body);
+      const result = await dbOptimizerStorage.createOptimizationResult({
+        ...body,
+        orgId,
+      } as Parameters<typeof dbOptimizerStorage.createOptimizationResult>[0]);
       sendCreated(res, result);
     })
   );
@@ -313,7 +384,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("run optimization", async (req: Request, res: Response) => {
-      const { configId, targetDate } = req.body;
+      const { configId, targetDate } = runOptimizationBodySchema.parse(req.body);
       const orgId = DEFAULT_ORG_ID;
 
       const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId, {
@@ -350,7 +421,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     requireOrgId,
     withErrorHandling("fetch scheduling settings", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const vesselId = req.query.vesselId as string | undefined;
+      const { vesselId } = vesselIdOnlyQuerySchema.parse(req.query);
 
       const effective = await schedulingSettingsService.resolveEffectiveSettings(orgId, vesselId);
       const settings = await schedulingSettingsService.getSettings(orgId, vesselId);
@@ -376,11 +447,12 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     writeOperationRateLimit,
     withErrorHandling("update notification settings", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const vesselId = req.query.vesselId as string | undefined;
+      const { vesselId } = vesselIdOnlyQuerySchema.parse(req.query);
+      const body = scheduleBodySchema.parse(req.body);
 
       const updated = await schedulingSettingsService.updateNotificationSettings(
         orgId,
-        req.body,
+        body as Parameters<typeof schedulingSettingsService.updateNotificationSettings>[1],
         vesselId,
       );
 
@@ -395,13 +467,13 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     writeOperationRateLimit,
     withErrorHandling("update rule settings", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const vesselId = req.query.vesselId as string | undefined;
-      const { thresholds, enforcement } = req.body;
+      const { vesselId } = vesselIdOnlyQuerySchema.parse(req.query);
+      const { thresholds, enforcement } = rulesUpdateBodySchema.parse(req.body);
 
       const updated = await schedulingSettingsService.updateRuleThresholds(
         orgId,
-        thresholds,
-        enforcement,
+        thresholds as Parameters<typeof schedulingSettingsService.updateRuleThresholds>[1],
+        enforcement as Parameters<typeof schedulingSettingsService.updateRuleThresholds>[2],
         vesselId,
       );
 
@@ -416,9 +488,14 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     writeOperationRateLimit,
     withErrorHandling("update AI weights", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const vesselId = req.query.vesselId as string | undefined;
+      const { vesselId } = vesselIdOnlyQuerySchema.parse(req.query);
+      const body = scheduleBodySchema.parse(req.body);
 
-      const updated = await schedulingSettingsService.updateAiWeights(orgId, req.body, vesselId);
+      const updated = await schedulingSettingsService.updateAiWeights(
+        orgId,
+        body as Parameters<typeof schedulingSettingsService.updateAiWeights>[1],
+        vesselId
+      );
 
       logger.info("SchedulingSettings", "AI weights updated", { orgId, vesselId });
       res.json(updated);
@@ -431,11 +508,12 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     writeOperationRateLimit,
     withErrorHandling("update publish behavior", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const vesselId = req.query.vesselId as string | undefined;
+      const { vesselId } = vesselIdOnlyQuerySchema.parse(req.query);
+      const body = scheduleBodySchema.parse(req.body);
 
       const updated = await schedulingSettingsService.updatePublishBehavior(
         orgId,
-        req.body,
+        body as Parameters<typeof schedulingSettingsService.updatePublishBehavior>[1],
         vesselId,
       );
 
@@ -450,11 +528,12 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     writeOperationRateLimit,
     withErrorHandling("update rotation templates", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const vesselId = req.query.vesselId as string | undefined;
+      const { vesselId } = vesselIdOnlyQuerySchema.parse(req.query);
+      const body = z.array(z.record(z.unknown())).parse(req.body);
 
       const updated = await schedulingSettingsService.updateRotationTemplates(
         orgId,
-        req.body,
+        body as unknown as Parameters<typeof schedulingSettingsService.updateRotationTemplates>[1],
         vesselId,
       );
 
@@ -469,7 +548,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     writeOperationRateLimit,
     withErrorHandling("reset scheduling settings", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const vesselId = req.query.vesselId as string | undefined;
+      const { vesselId } = vesselIdOnlyQuerySchema.parse(req.query);
 
       const reset = await schedulingSettingsService.resetToDefaults(orgId, vesselId);
 

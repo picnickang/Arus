@@ -38,6 +38,10 @@ const removeSlotBodySchema = z.object({
   force: z.boolean().optional(),
 });
 
+const vesselIdParamSchema = z.object({ id: z.string().min(1) });
+const vesselZoneParamSchema = z.object({ id: z.string().min(1), zoneId: z.string().min(1) });
+const vesselSlotParamSchema = z.object({ id: z.string().min(1), slotId: z.string().min(1) });
+
 const saveLayoutSchema = z.object({
   zones: z.array(
     z.object({
@@ -80,7 +84,8 @@ export function registerSchematicLayoutRoutes(
     withErrorHandling(
       "fetch schematic layout",
       async (req: AuthenticatedRequest, res: Response) => {
-        const layout = await schematicLayoutService.getVesselLayout(req.params.id, req.orgId);
+        const { id } = vesselIdParamSchema.parse(req.params);
+        const layout = await schematicLayoutService.getVesselLayout(id, req.orgId);
         res.json(layout);
       }
     )
@@ -91,15 +96,12 @@ export function registerSchematicLayoutRoutes(
     requireOrgId,
     writeLimit,
     withErrorHandling("save schematic layout", async (req: AuthenticatedRequest, res: Response) => {
+      const { id } = vesselIdParamSchema.parse(req.params);
       const parsed = saveLayoutSchema.safeParse(req.body);
       if (!parsed.success) {
         throw domainError(`Invalid layout: ${parsed.error.flatten().fieldErrors}`, 400);
       }
-      const layout = await schematicLayoutService.saveVesselLayout(
-        req.params.id,
-        req.orgId,
-        parsed.data
-      );
+      const layout = await schematicLayoutService.saveVesselLayout(id, req.orgId, parsed.data);
       res.json(layout);
     })
   );
@@ -109,11 +111,12 @@ export function registerSchematicLayoutRoutes(
     requireOrgId,
     writeLimit,
     withErrorHandling("add schematic zone", async (req: AuthenticatedRequest, res: Response) => {
+      const { id } = vesselIdParamSchema.parse(req.params);
       const parsed = createZoneSchema.safeParse(req.body);
       if (!parsed.success) {
         throw domainError(`Invalid zone data: ${parsed.error.flatten().fieldErrors}`, 400);
       }
-      const layout = await schematicLayoutService.addZone(req.params.id, req.orgId, parsed.data);
+      const layout = await schematicLayoutService.addZone(id, req.orgId, parsed.data);
       res.status(201).json(layout);
     })
   );
@@ -123,16 +126,12 @@ export function registerSchematicLayoutRoutes(
     requireOrgId,
     writeLimit,
     withErrorHandling("update schematic zone", async (req: AuthenticatedRequest, res: Response) => {
+      const { id, zoneId } = vesselZoneParamSchema.parse(req.params);
       const parsed = updateZoneSchema.safeParse(req.body);
       if (!parsed.success) {
         throw domainError(`Invalid zone data: ${parsed.error.flatten().fieldErrors}`, 400);
       }
-      const layout = await schematicLayoutService.updateZone(
-        req.params.id,
-        req.orgId,
-        req.params.zoneId,
-        parsed.data
-      );
+      const layout = await schematicLayoutService.updateZone(id, req.orgId, zoneId, parsed.data);
       res.json(layout);
     })
   );
@@ -142,11 +141,8 @@ export function registerSchematicLayoutRoutes(
     requireOrgId,
     writeLimit,
     withErrorHandling("remove schematic zone", async (req: AuthenticatedRequest, res: Response) => {
-      const layout = await schematicLayoutService.removeZone(
-        req.params.id,
-        req.orgId,
-        req.params.zoneId
-      );
+      const { id, zoneId } = vesselZoneParamSchema.parse(req.params);
+      const layout = await schematicLayoutService.removeZone(id, req.orgId, zoneId);
       res.json(layout);
     })
   );
@@ -156,11 +152,12 @@ export function registerSchematicLayoutRoutes(
     requireOrgId,
     writeLimit,
     withErrorHandling("add schematic slot", async (req: AuthenticatedRequest, res: Response) => {
+      const { id } = vesselIdParamSchema.parse(req.params);
       const parsed = createSlotSchema.safeParse(req.body);
       if (!parsed.success) {
         throw domainError(`Invalid slot data: ${parsed.error.flatten().fieldErrors}`, 400);
       }
-      const layout = await schematicLayoutService.addSlot(req.params.id, req.orgId, parsed.data);
+      const layout = await schematicLayoutService.addSlot(id, req.orgId, parsed.data);
       res.status(201).json(layout);
     })
   );
@@ -170,16 +167,12 @@ export function registerSchematicLayoutRoutes(
     requireOrgId,
     writeLimit,
     withErrorHandling("update schematic slot", async (req: AuthenticatedRequest, res: Response) => {
+      const { id, slotId } = vesselSlotParamSchema.parse(req.params);
       const parsed = updateSlotSchema.safeParse(req.body);
       if (!parsed.success) {
         throw domainError(`Invalid slot data: ${parsed.error.flatten().fieldErrors}`, 400);
       }
-      const layout = await schematicLayoutService.updateSlot(
-        req.params.id,
-        req.orgId,
-        req.params.slotId,
-        parsed.data
-      );
+      const layout = await schematicLayoutService.updateSlot(id, req.orgId, slotId, parsed.data);
       res.json(layout);
     })
   );
@@ -189,17 +182,15 @@ export function registerSchematicLayoutRoutes(
     requireOrgId,
     writeLimit,
     withErrorHandling("remove schematic slot", async (req: AuthenticatedRequest, res: Response) => {
+      const { id, slotId } = vesselSlotParamSchema.parse(req.params);
       const parsed = removeSlotBodySchema.safeParse(req.body);
       const force = parsed.success ? parsed.data.force === true : false;
 
-      const currentLayout = await schematicLayoutService.getVesselLayout(req.params.id, req.orgId);
-      const slot = currentLayout.slots.find((s) => s.slotId === req.params.slotId);
+      const currentLayout = await schematicLayoutService.getVesselLayout(id, req.orgId);
+      const slot = currentLayout.slots.find((s) => s.slotId === slotId);
       let hasEquipment = false;
       if (slot) {
-        const vesselEquipment = await dbEquipmentStorage.getEquipmentByVessel(
-          req.params.id,
-          req.orgId
-        );
+        const vesselEquipment = await dbEquipmentStorage.getEquipmentByVessel(id, req.orgId);
         hasEquipment = vesselEquipment.some((eq) => {
           const typeLower = (eq.type || "").toLowerCase();
           const nameLower = (eq.name || "").toLowerCase();
@@ -207,12 +198,10 @@ export function registerSchematicLayoutRoutes(
         });
       }
 
-      const layout = await schematicLayoutService.removeSlot(
-        req.params.id,
-        req.orgId,
-        req.params.slotId,
-        { force, hasEquipment }
-      );
+      const layout = await schematicLayoutService.removeSlot(id, req.orgId, slotId, {
+        force,
+        hasEquipment,
+      });
       res.json(layout);
     })
   );
@@ -222,16 +211,12 @@ export function registerSchematicLayoutRoutes(
     requireOrgId,
     writeLimit,
     withErrorHandling("move schematic slot", async (req: AuthenticatedRequest, res: Response) => {
+      const { id, slotId } = vesselSlotParamSchema.parse(req.params);
       const parsed = moveSlotSchema.safeParse(req.body);
       if (!parsed.success) {
         throw domainError(`Invalid move data: ${parsed.error.flatten().fieldErrors}`, 400);
       }
-      const layout = await schematicLayoutService.moveSlot(
-        req.params.id,
-        req.orgId,
-        req.params.slotId,
-        parsed.data
-      );
+      const layout = await schematicLayoutService.moveSlot(id, req.orgId, slotId, parsed.data);
       res.json(layout);
     })
   );
@@ -243,7 +228,8 @@ export function registerSchematicLayoutRoutes(
     withErrorHandling(
       "reset schematic layout",
       async (req: AuthenticatedRequest, res: Response) => {
-        const layout = await schematicLayoutService.resetToDefault(req.params.id, req.orgId);
+        const { id } = vesselIdParamSchema.parse(req.params);
+        const layout = await schematicLayoutService.resetToDefault(id, req.orgId);
         res.json(layout);
       }
     )

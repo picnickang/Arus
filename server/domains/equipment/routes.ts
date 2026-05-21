@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import { z } from "zod";
 import { LRUCache } from "lru-cache";
 import { equipmentService } from "./service";
 import { insertEquipmentSchema } from "@shared/schema-runtime";
@@ -18,7 +19,7 @@ import { requirePermission } from "../permissions/middleware";
 import { enforceQuota } from "../../middleware/tenant-quota";
 import { quotaService } from "../../tenancy/quota-service";
 
-const equipmentCache = new LRUCache<string, any>({ max: 200, ttl: 30_000 });
+const equipmentCache = new LRUCache<string, object>({ max: 200, ttl: 30_000 });
 
 function getCached<T>(key: string): T | null {
   const val = equipmentCache.get(key);
@@ -26,7 +27,7 @@ function getCached<T>(key: string): T | null {
 }
 
 function setCache(key: string, data: unknown): void {
-  equipmentCache.set(key, data);
+  equipmentCache.set(key, data as object);
 }
 
 function invalidateCache(pattern: string): void {
@@ -37,15 +38,58 @@ function invalidateCache(pattern: string): void {
   }
 }
 
+const listEquipmentQuerySchema = z.object({
+  paginated: z.string().optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  pageSize: z.coerce.number().int().min(1).max(1000).optional(),
+  q: z.string().optional(),
+  search: z.string().optional(),
+  type: z.string().optional(),
+  status: z.enum(["active", "inactive"]).optional(),
+  vesselId: z.string().optional(),
+  manufacturer: z.string().optional(),
+});
+
+const equipmentHealthQuerySchema = z.object({
+  vesselId: z.string().optional(),
+  equipmentId: z.string().optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  pageSize: z.coerce.number().int().min(1).max(1000).optional(),
+});
+
+const idParamSchema = z.object({ id: z.string().min(1) });
+const equipmentIdParamSchema = z.object({ equipmentId: z.string().min(1) });
+
+const batchRulBodySchema = z.object({
+  equipmentIds: z.array(z.string().min(1)).min(1),
+});
+
+const degradationBodySchema = z.object({
+  componentType: z.string().min(1),
+  degradationMetric: z.number(),
+  vibrationLevel: z.number().optional(),
+  temperature: z.number().optional(),
+  oilCondition: z.string().optional(),
+  acousticSignature: z.string().optional(),
+  wearParticleCount: z.number().optional(),
+  operatingHours: z.number().optional(),
+  cycleCount: z.number().optional(),
+  loadFactor: z.number().optional(),
+});
+
+const decommissionedListQuerySchema = z.object({
+  withHistory: z.string().optional(),
+});
+
 /**
  * Register Equipment routes
  */
 export function registerEquipmentRoutes(
   app: Express,
   rateLimiters: {
-    writeOperationRateLimit: any;
-    criticalOperationRateLimit: any;
-    generalApiRateLimit: any;
+    writeOperationRateLimit: import("express").RequestHandler;
+    criticalOperationRateLimit: import("express").RequestHandler;
+    generalApiRateLimit: import("express").RequestHandler;
   }
 ) {
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimiters;
@@ -57,17 +101,18 @@ export function registerEquipmentRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch equipment registry", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
+      const query = listEquipmentQuerySchema.parse(req.query);
 
-      const paginatedParam = req.query.paginated === "true";
-      const pageParam = req.query.page;
-      const pageSizeParam = req.query.pageSize;
-      const page = pageParam ? Number.parseInt(pageParam as string, 10) : 1;
-      const pageSize = pageSizeParam ? Number.parseInt(pageSizeParam as string, 10) : 20;
-      const search = req.query.q || req.query.search;
-      const type = req.query.type;
-      const status = req.query.status;
-      const vesselId = req.query.vesselId;
-      const manufacturer = req.query.manufacturer;
+      const paginatedParam = query.paginated === "true";
+      const pageParam = query.page;
+      const pageSizeParam = query.pageSize;
+      const page = pageParam ?? 1;
+      const pageSize = pageSizeParam ?? 20;
+      const search = query.q ?? query.search;
+      const type = query.type;
+      const status = query.status;
+      const vesselId = query.vesselId;
+      const manufacturer = query.manufacturer;
 
       const hasFilters =
         search !== undefined ||
@@ -80,28 +125,17 @@ export function registerEquipmentRoutes(
         paginatedParam || pageParam !== undefined || pageSizeParam !== undefined || hasFilters;
 
       if (usePagination) {
-        if (Number.isNaN(page) || page < 1) {
-          res.status(400).json({ message: "Invalid page number" });
-          return;
-        }
-
-        if (Number.isNaN(pageSize) || pageSize < 1 || pageSize > 1000) {
-          res.status(400).json({ message: "Invalid page size (must be 1-1000)" });
-          return;
-        }
-
         const result = await equipmentService.listEquipmentPaginated(orgId, {
           page,
           pageSize,
-          search: search as string,
-          type: type as string,
-          status: status as "active" | "inactive",
-          vesselId: vesselId as string,
-          manufacturer: manufacturer as string,
+          search,
+          type,
+          status,
+          vesselId,
+          manufacturer,
         });
         res.json(result);
       } else {
-        // Use cache for non-paginated full list
         const cacheKey = `equipment:list:${orgId}`;
         const cached = getCached(cacheKey);
         if (cached) {
@@ -121,8 +155,9 @@ export function registerEquipmentRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch equipment health", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      let vesselId = req.query.vesselId as string | undefined;
-      let equipmentId = req.query.equipmentId as string | undefined;
+      const query = equipmentHealthQuerySchema.parse(req.query);
+      let vesselId = query.vesselId;
+      let equipmentId = query.equipmentId;
 
       if (vesselId && (vesselId === "[object Object]" || vesselId.startsWith("[object"))) {
         vesselId = undefined;
@@ -132,10 +167,8 @@ export function registerEquipmentRoutes(
         equipmentId = undefined;
       }
 
-      const page = req.query.page ? Number.parseInt(req.query.page as string, 10) : undefined;
-      const pageSize = req.query.pageSize
-        ? Number.parseInt(req.query.pageSize as string, 10)
-        : undefined;
+      const page = query.page;
+      const pageSize = query.pageSize;
 
       const cacheKey = `equipment:health:${orgId}:${vesselId || "all"}:${equipmentId || "all"}:p${page ?? "all"}:s${pageSize ?? "all"}`;
       const cached = getCached(cacheKey);
@@ -186,7 +219,7 @@ export function registerEquipmentRoutes(
     generalApiRateLimit,
     withErrorHandling("calculate RUL prediction", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const equipmentId = req.params.id;
+      const { id: equipmentId } = idParamSchema.parse(req.params);
 
       const { RulEngine } = await import("../../rul-engine.js");
       const rulEngine = new RulEngine(db);
@@ -212,12 +245,7 @@ export function registerEquipmentRoutes(
     generalApiRateLimit,
     withErrorHandling("calculate batch RUL predictions", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const { equipmentIds } = req.body;
-
-      if (!Array.isArray(equipmentIds) || equipmentIds.length === 0) {
-        res.status(400).json({ message: "equipmentIds array is required" });
-        return;
-      }
+      const { equipmentIds } = batchRulBodySchema.parse(req.body);
 
       const { RulEngine } = await import("../../rul-engine.js");
       const rulEngine = new RulEngine(db);
@@ -236,47 +264,28 @@ export function registerEquipmentRoutes(
     writeOperationRateLimit,
     withErrorHandling("record degradation", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const equipmentId = req.params.id;
-
-      const {
-        componentType,
-        degradationMetric,
-        vibrationLevel,
-        temperature,
-        oilCondition,
-        acousticSignature,
-        wearParticleCount,
-        operatingHours,
-        cycleCount,
-        loadFactor,
-      } = req.body;
-
-      if (!componentType || degradationMetric === undefined) {
-        res.status(400).json({
-          message: "componentType and degradationMetric are required",
-        });
-        return;
-      }
+      const { id: equipmentId } = idParamSchema.parse(req.params);
+      const body = degradationBodySchema.parse(req.body);
 
       const { RulEngine } = await import("../../rul-engine.js");
       const rulEngine = new RulEngine(db);
 
-      await rulEngine.recordDegradation(orgId, equipmentId, componentType, {
-        degradationMetric,
-        vibrationLevel,
-        temperature,
-        oilCondition,
-        acousticSignature,
-        wearParticleCount,
-        operatingHours,
-        cycleCount,
-        loadFactor,
+      await rulEngine.recordDegradation(orgId, equipmentId, body.componentType, {
+        degradationMetric: body.degradationMetric,
+        vibrationLevel: body.vibrationLevel,
+        temperature: body.temperature,
+        oilCondition: body.oilCondition,
+        acousticSignature: body.acousticSignature,
+        wearParticleCount: body.wearParticleCount,
+        operatingHours: body.operatingHours,
+        cycleCount: body.cycleCount,
+        loadFactor: body.loadFactor,
       });
 
       res.status(201).json({
         message: "Degradation recorded successfully",
         equipmentId,
-        componentType,
+        componentType: body.componentType,
       });
     })
   );
@@ -288,8 +297,9 @@ export function registerEquipmentRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch equipment", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
+      const { id } = idParamSchema.parse(req.params);
 
-      const equipment = await equipmentService.getEquipmentById(req.params.id, orgId);
+      const equipment = await equipmentService.getEquipmentById(id, orgId);
       if (!equipment) {
         sendNotFound(res, "Equipment");
         return;
@@ -300,11 +310,6 @@ export function registerEquipmentRoutes(
   );
 
   // POST create equipment
-  // Push B1 step 6: equipment count is a per-tenant quota. `enforceQuota`
-  // returns 429 + Retry-After when usage hits the hard ceiling and
-  // sets `X-Tenant-Quota-Warning` at 80%. On success we increment the
-  // usage counter so subsequent calls see fresh state without waiting
-  // for the nightly aggregator.
   app.post(
     "/api/equipment",
     requireOrgIdAndValidateBody,
@@ -314,8 +319,9 @@ export function registerEquipmentRoutes(
     withErrorHandling("create equipment", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
 
+      const rawBody = z.record(z.unknown()).parse(req.body);
       const validationResult = insertEquipmentSchema.safeParse({
-        ...req.body,
+        ...rawBody,
         orgId,
       });
 
@@ -339,8 +345,16 @@ export function registerEquipmentRoutes(
     writeOperationRateLimit,
     withErrorHandling("update equipment", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
+      const { id } = idParamSchema.parse(req.params);
 
-      const { orgId: _, id: __, createdAt: ___, updatedAt: ____, ...safeUpdateData } = req.body;
+      const rawBody = z.record(z.unknown()).parse(req.body);
+      const {
+        orgId: _,
+        id: __,
+        createdAt: ___,
+        updatedAt: ____,
+        ...safeUpdateData
+      } = rawBody;
 
       const validationResult = insertEquipmentSchema.partial().safeParse(safeUpdateData);
       if (!validationResult.success) {
@@ -350,7 +364,7 @@ export function registerEquipmentRoutes(
 
       try {
         const equipment = await equipmentService.updateEquipment(
-          req.params.id,
+          id,
           validationResult.data,
           orgId
         );
@@ -374,9 +388,10 @@ export function registerEquipmentRoutes(
     writeOperationRateLimit,
     withErrorHandling("disassociate equipment from vessel", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
+      const { id } = idParamSchema.parse(req.params);
 
       try {
-        await equipmentService.disassociateVessel(req.params.id, orgId);
+        await equipmentService.disassociateVessel(id, orgId);
         res.json({ message: "Equipment successfully disassociated from vessel" });
       } catch (error) {
         if (error instanceof Error && error.message.includes("not found")) {
@@ -396,9 +411,10 @@ export function registerEquipmentRoutes(
     criticalOperationRateLimit,
     withErrorHandling("delete equipment", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
+      const { id } = idParamSchema.parse(req.params);
 
       try {
-        await equipmentService.deleteEquipment(req.params.id, orgId);
+        await equipmentService.deleteEquipment(id, orgId);
         invalidateCache(`equipment:`);
         res.status(204).send();
       } catch (error) {
@@ -419,7 +435,7 @@ export function registerEquipmentRoutes(
     criticalOperationRateLimit,
     withErrorHandling("decommission equipment", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const equipmentId = req.params.id;
+      const { id: equipmentId } = idParamSchema.parse(req.params);
       const userId = (req as AuthenticatedRequest).userId;
 
       const validationResult = decommissionEquipmentSchema.safeParse(req.body);
@@ -460,7 +476,7 @@ export function registerEquipmentRoutes(
     criticalOperationRateLimit,
     withErrorHandling("reinstate equipment", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const equipmentId = req.params.id;
+      const { id: equipmentId } = idParamSchema.parse(req.params);
       const userId = (req as AuthenticatedRequest).userId;
 
       const validationResult = reinstateEquipmentSchema.safeParse(req.body);
@@ -500,7 +516,7 @@ export function registerEquipmentRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch equipment history", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const equipmentId = req.params.id;
+      const { id: equipmentId } = idParamSchema.parse(req.params);
 
       try {
         const history = await equipmentLifecycleService.getEquipmentHistory(equipmentId, orgId);
@@ -522,7 +538,8 @@ export function registerEquipmentRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch decommissioned equipment", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const withHistory = req.query.withHistory === "true";
+      const { withHistory: withHistoryParam } = decommissionedListQuerySchema.parse(req.query);
+      const withHistory = withHistoryParam === "true";
 
       if (withHistory) {
         const decommissioned =
@@ -541,7 +558,7 @@ export function registerEquipmentRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("analyze equipment sensor coverage", async (req: Request, res: Response) => {
-      const equipmentId = req.params.id;
+      const { id: equipmentId } = idParamSchema.parse(req.params);
       const orgId = (req as AuthenticatedRequest).orgId;
 
       const coverage = await equipmentService.getSensorCoverage(equipmentId, orgId);
@@ -557,7 +574,7 @@ export function registerEquipmentRoutes(
     withErrorHandling(
       "setup missing sensor configurations",
       async (req: Request, res: Response) => {
-        const equipmentId = req.params.id;
+        const { id: equipmentId } = idParamSchema.parse(req.params);
         const orgId = (req as AuthenticatedRequest).orgId;
 
         const result = await equipmentService.setupSensors(equipmentId, orgId);
@@ -572,7 +589,7 @@ export function registerEquipmentRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch compatible parts", async (req: Request, res: Response) => {
-      const equipmentId = req.params.equipmentId;
+      const { equipmentId } = equipmentIdParamSchema.parse(req.params);
       const orgId = (req as AuthenticatedRequest).orgId;
 
       const parts = await equipmentService.getCompatibleParts(equipmentId, orgId);
@@ -586,7 +603,7 @@ export function registerEquipmentRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch suggested parts", async (req: Request, res: Response) => {
-      const equipmentId = req.params.equipmentId;
+      const { equipmentId } = equipmentIdParamSchema.parse(req.params);
       const orgId = (req as AuthenticatedRequest).orgId;
 
       const parts = await equipmentService.getSuggestedParts(equipmentId, orgId);

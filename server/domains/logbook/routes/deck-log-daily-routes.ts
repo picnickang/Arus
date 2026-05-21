@@ -5,6 +5,7 @@
  */
 
 import type { Express } from "express";
+import { z } from "zod";
 import { deckLogStorage } from "../../../repositories";
 import {
   withErrorHandling,
@@ -12,7 +13,47 @@ import {
   sendCreated,
   sendDeleted,
 } from "../../../lib/route-utils";
-import type { RateLimiters, DeckLogFilters, SignatureDetails, LockDetails } from "./types";
+import type { RateLimiters, DeckLogFilters } from "./types";
+
+const idParamSchema = z.object({ id: z.string().min(1) });
+const vesselDateParamSchema = z.object({
+  vesselId: z.string().min(1),
+  logDate: z.string().min(1),
+});
+const listQuerySchema = z.object({
+  vesselId: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  status: z.string().optional(),
+});
+const daysQuerySchema = z.object({
+  vesselId: z.string().optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
+});
+const createBodySchema = z
+  .object({
+    vesselId: z.string().min(1),
+    logDate: z.string().min(1),
+  })
+  .and(z.record(z.unknown()));
+const updateBodySchema = z.record(z.unknown());
+const signBodySchema = z.object({
+  signedByCrewId: z.string().min(1),
+  signedByName: z.string().min(1),
+  signedByRank: z.string().min(1),
+});
+const lockBodySchema = z.object({
+  lockedByUserId: z.string().min(1),
+  lockedByUserName: z.string().min(1),
+});
+const ensureBodySchema = z.object({
+  vesselId: z.string().min(1),
+  date: z.string().min(1),
+});
+
+type CreateDeckLogInput = Parameters<typeof deckLogStorage.createDeckLogDaily>[0];
+type UpdateDeckLogInput = Parameters<typeof deckLogStorage.updateDeckLogDaily>[1];
 
 export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters): number {
   const { writeOperationRateLimit, criticalOperationRateLimit } = rateLimit;
@@ -21,12 +62,7 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
     "/api/logbook/deck/daily",
     withErrorHandling("get deck log daily entries", async (req, res) => {
       const orgId = req.orgId;
-      const filters: DeckLogFilters = {
-        vesselId: req.query.vesselId as string | undefined,
-        startDate: req.query.startDate as string | undefined,
-        endDate: req.query.endDate as string | undefined,
-        status: req.query.status as string | undefined,
-      };
+      const filters: DeckLogFilters = listQuerySchema.parse(req.query);
 
       const entries = await deckLogStorage.getDeckLogDaily(orgId, filters);
       res.json(entries);
@@ -37,7 +73,8 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
     "/api/logbook/deck/daily/:id",
     withErrorHandling("get deck log daily entry", async (req, res) => {
       const orgId = req.orgId;
-      const entry = await deckLogStorage.getDeckLogDailyById(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      const entry = await deckLogStorage.getDeckLogDailyById(id, orgId);
 
       if (!entry) {
         return sendNotFound(res, "Deck log entry");
@@ -51,7 +88,8 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
     "/api/logbook/deck/daily/:id/complete",
     withErrorHandling("get complete deck log", async (req, res) => {
       const orgId = req.orgId;
-      const complete = await deckLogStorage.getDeckLogComplete(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      const complete = await deckLogStorage.getDeckLogComplete(id, orgId);
 
       if (!complete) {
         return sendNotFound(res, "Deck log entry");
@@ -65,7 +103,7 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
     "/api/logbook/deck/vessel/:vesselId/date/:logDate",
     withErrorHandling("get deck log by date", async (req, res) => {
       const orgId = req.orgId;
-      const { vesselId, logDate } = req.params;
+      const { vesselId, logDate } = vesselDateParamSchema.parse(req.params);
 
       let entry = await deckLogStorage.getDeckLogDailyByDate(vesselId, logDate, orgId);
 
@@ -75,7 +113,7 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
           vesselId,
           logDate,
           status: "draft",
-        });
+        } as CreateDeckLogInput);
       }
 
       const complete = await deckLogStorage.getDeckLogComplete(entry.id, orgId);
@@ -88,12 +126,12 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
     writeOperationRateLimit,
     withErrorHandling("create deck log daily", async (req, res) => {
       const orgId = req.orgId;
+      const body = createBodySchema.parse(req.body) as {
+        vesselId: string;
+        logDate: string;
+      } & Record<string, unknown>;
 
-      const existing = await deckLogStorage.getDeckLogDailyByDate(
-        req.body.vesselId,
-        req.body.logDate,
-        orgId
-      );
+      const existing = await deckLogStorage.getDeckLogDailyByDate(body.vesselId, body.logDate, orgId);
 
       if (existing) {
         return res.status(409).json({
@@ -103,9 +141,9 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
       }
 
       const entry = await deckLogStorage.createDeckLogDaily({
-        ...req.body,
+        ...body,
         orgId,
-      });
+      } as CreateDeckLogInput);
 
       sendCreated(res, entry);
     })
@@ -116,7 +154,9 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
     writeOperationRateLimit,
     withErrorHandling("update deck log daily", async (req, res) => {
       const orgId = req.orgId;
-      const entry = await deckLogStorage.updateDeckLogDaily(req.params.id, req.body, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      const body = updateBodySchema.parse(req.body);
+      const entry = await deckLogStorage.updateDeckLogDaily(id, body as UpdateDeckLogInput, orgId);
       res.json(entry);
     })
   );
@@ -126,17 +166,13 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
     writeOperationRateLimit,
     withErrorHandling("sign deck log", async (req, res) => {
       const orgId = req.orgId;
-      const { signedByCrewId, signedByName, signedByRank }: SignatureDetails = req.body;
-
-      if (!signedByCrewId || !signedByName || !signedByRank) {
+      const { id } = idParamSchema.parse(req.params);
+      const parsed = signBodySchema.safeParse(req.body);
+      if (!parsed.success) {
         return res.status(400).json({ error: "Signature details required" });
       }
 
-      const entry = await deckLogStorage.signDeckLogDaily(
-        req.params.id,
-        { signedByCrewId, signedByName, signedByRank },
-        orgId
-      );
+      const entry = await deckLogStorage.signDeckLogDaily(id, parsed.data, orgId);
 
       res.json(entry);
     })
@@ -147,7 +183,8 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
     criticalOperationRateLimit,
     withErrorHandling("delete deck log daily", async (req, res) => {
       const orgId = req.orgId;
-      await deckLogStorage.deleteDeckLogDaily(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      await deckLogStorage.deleteDeckLogDaily(id, orgId);
       sendDeleted(res);
     })
   );
@@ -157,20 +194,13 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
     writeOperationRateLimit,
     withErrorHandling("lock deck log daily", async (req, res) => {
       const orgId = req.orgId;
-      const { lockedByUserId, lockedByUserName }: LockDetails = req.body;
-
-      if (!lockedByUserId || !lockedByUserName) {
+      const { id } = idParamSchema.parse(req.params);
+      const parsed = lockBodySchema.safeParse(req.body);
+      if (!parsed.success) {
         return res.status(400).json({ error: "lockedByUserId and lockedByUserName required" });
       }
 
-      const locked = await deckLogStorage.lockDeckLogDaily(
-        req.params.id,
-        {
-          lockedByUserId,
-          lockedByUserName,
-        },
-        orgId
-      );
+      const locked = await deckLogStorage.lockDeckLogDaily(id, parsed.data, orgId);
       res.json(locked);
     })
   );
@@ -180,7 +210,8 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
     writeOperationRateLimit,
     withErrorHandling("unlock deck log daily", async (req, res) => {
       const orgId = req.orgId;
-      const unlocked = await deckLogStorage.unlockDeckLogDaily(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      const unlocked = await deckLogStorage.unlockDeckLogDaily(id, orgId);
       res.json(unlocked);
     })
   );
@@ -189,12 +220,12 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
     "/api/logbook/deck/days",
     withErrorHandling("get deck log days", async (req, res) => {
       const orgId = req.orgId;
-      const { vesselId, from, to } = req.query;
+      const { vesselId, from, to } = daysQuerySchema.parse(req.query);
 
       const entries = await deckLogStorage.getDeckLogDaily(orgId, {
-        vesselId: vesselId as string | undefined,
-        startDate: from as string | undefined,
-        endDate: to as string | undefined,
+        vesselId,
+        startDate: from,
+        endDate: to,
       });
       res.json(entries);
     })
@@ -205,11 +236,11 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
     writeOperationRateLimit,
     withErrorHandling("ensure deck log day", async (req, res) => {
       const orgId = req.orgId;
-      const { vesselId, date } = req.body;
-
-      if (!vesselId || !date) {
+      const parsed = ensureBodySchema.safeParse(req.body);
+      if (!parsed.success) {
         return res.status(400).json({ error: "vesselId and date required" });
       }
+      const { vesselId, date } = parsed.data;
 
       let entry = await deckLogStorage.getDeckLogDailyByDate(vesselId, date, orgId);
 
@@ -219,7 +250,7 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
           vesselId,
           logDate: date,
           status: "open",
-        });
+        } as CreateDeckLogInput);
       }
 
       res.json(entry);

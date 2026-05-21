@@ -5,6 +5,7 @@
  */
 
 import type { Express } from "express";
+import { z } from "zod";
 import { deckLogStorage } from "../../../repositories";
 import {
   withErrorHandling,
@@ -14,6 +15,27 @@ import {
 } from "../../../lib/route-utils";
 import type { RateLimiters, EventFilters } from "./types";
 
+const idParamSchema = z.object({ id: z.string().min(1) });
+const dailyLogIdParamSchema = z.object({ dailyLogId: z.string().min(1) });
+const dayIdParamSchema = z.object({ dayId: z.string().min(1) });
+const bodyRecordSchema = z.record(z.unknown());
+const bulkEntriesBodySchema = z.object({ entries: z.array(z.record(z.unknown())) });
+const eventsQuerySchema = z.object({
+  eventType: z.string().optional(),
+  source: z.string().optional(),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
+});
+const eventCreateBodySchema = z
+  .object({ dayId: z.string().min(1) })
+  .and(z.record(z.unknown()));
+
+type DeckLogHourlyInput = Parameters<typeof deckLogStorage.upsertDeckLogHourly>[0];
+type DeckLogHourlyBulkInput = Parameters<typeof deckLogStorage.bulkUpsertDeckLogHourly>[0];
+type DeckLogWatchInput = Parameters<typeof deckLogStorage.upsertDeckLogWatch>[0];
+type DeckLogEventInput = Parameters<typeof deckLogStorage.createDeckLogEvent>[0];
+type DeckLogEventUpdate = Parameters<typeof deckLogStorage.updateDeckLogEvent>[1];
+
 export function registerDeckLogEntriesRoutes(app: Express, rateLimit: RateLimiters): number {
   const { writeOperationRateLimit } = rateLimit;
 
@@ -21,7 +43,8 @@ export function registerDeckLogEntriesRoutes(app: Express, rateLimit: RateLimite
     "/api/logbook/deck/daily/:dailyLogId/hourly",
     withErrorHandling("get deck log hourly entries", async (req, res) => {
       const orgId = req.orgId;
-      const entries = await deckLogStorage.getDeckLogHourly(req.params.dailyLogId, orgId);
+      const { dailyLogId } = dailyLogIdParamSchema.parse(req.params);
+      const entries = await deckLogStorage.getDeckLogHourly(dailyLogId, orgId);
       res.json(entries);
     })
   );
@@ -31,10 +54,11 @@ export function registerDeckLogEntriesRoutes(app: Express, rateLimit: RateLimite
     writeOperationRateLimit,
     withErrorHandling("save deck log hourly entry", async (req, res) => {
       const orgId = req.orgId;
+      const body = bodyRecordSchema.parse(req.body);
       const entry = await deckLogStorage.upsertDeckLogHourly({
-        ...req.body,
+        ...body,
         orgId,
-      });
+      } as DeckLogHourlyInput);
       res.json(entry);
     })
   );
@@ -44,15 +68,15 @@ export function registerDeckLogEntriesRoutes(app: Express, rateLimit: RateLimite
     writeOperationRateLimit,
     withErrorHandling("bulk save deck log hourly entries", async (req, res) => {
       const orgId = req.orgId;
-      const entries = req.body.entries as Array<any>;
-
-      if (!Array.isArray(entries) || entries.length === 0) {
+      const parsed = bulkEntriesBodySchema.safeParse(req.body);
+      if (!parsed.success || parsed.data.entries.length === 0) {
         res.status(400).json({ error: "entries array required" });
         return;
       }
-
-      const withOrgId = entries.map((e) => ({ ...e, orgId }));
-      const results = await deckLogStorage.bulkUpsertDeckLogHourly(withOrgId);
+      const withOrgId = parsed.data.entries.map((e) => ({ ...e, orgId }));
+      const results = await deckLogStorage.bulkUpsertDeckLogHourly(
+        withOrgId as DeckLogHourlyBulkInput
+      );
       res.json(results);
     })
   );
@@ -62,7 +86,8 @@ export function registerDeckLogEntriesRoutes(app: Express, rateLimit: RateLimite
     writeOperationRateLimit,
     withErrorHandling("delete deck log hourly entry", async (req, res) => {
       const orgId = req.orgId;
-      await deckLogStorage.deleteDeckLogHourly(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      await deckLogStorage.deleteDeckLogHourly(id, orgId);
       sendDeleted(res);
     })
   );
@@ -71,7 +96,8 @@ export function registerDeckLogEntriesRoutes(app: Express, rateLimit: RateLimite
     "/api/logbook/deck/daily/:dailyLogId/watches",
     withErrorHandling("get deck log watch assignments", async (req, res) => {
       const orgId = req.orgId;
-      const watches = await deckLogStorage.getDeckLogWatch(req.params.dailyLogId, orgId);
+      const { dailyLogId } = dailyLogIdParamSchema.parse(req.params);
+      const watches = await deckLogStorage.getDeckLogWatch(dailyLogId, orgId);
       res.json(watches);
     })
   );
@@ -81,10 +107,11 @@ export function registerDeckLogEntriesRoutes(app: Express, rateLimit: RateLimite
     writeOperationRateLimit,
     withErrorHandling("save deck log watch assignment", async (req, res) => {
       const orgId = req.orgId;
+      const body = bodyRecordSchema.parse(req.body);
       const watch = await deckLogStorage.upsertDeckLogWatch({
-        ...req.body,
+        ...body,
         orgId,
-      });
+      } as DeckLogWatchInput);
       res.json(watch);
     })
   );
@@ -94,7 +121,8 @@ export function registerDeckLogEntriesRoutes(app: Express, rateLimit: RateLimite
     writeOperationRateLimit,
     withErrorHandling("delete deck log watch assignment", async (req, res) => {
       const orgId = req.orgId;
-      await deckLogStorage.deleteDeckLogWatch(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      await deckLogStorage.deleteDeckLogWatch(id, orgId);
       sendDeleted(res);
     })
   );
@@ -103,12 +131,13 @@ export function registerDeckLogEntriesRoutes(app: Express, rateLimit: RateLimite
     "/api/logbook/deck/daily/:dayId/events",
     withErrorHandling("get deck log events", async (req, res) => {
       const orgId = req.orgId;
-      const { dayId } = req.params;
+      const { dayId } = dayIdParamSchema.parse(req.params);
+      const query = eventsQuerySchema.parse(req.query);
       const filters: EventFilters = {
-        eventType: req.query.eventType as string | undefined,
-        source: req.query.source as string | undefined,
-        startTime: req.query.startTime ? new Date(req.query.startTime as string) : undefined,
-        endTime: req.query.endTime ? new Date(req.query.endTime as string) : undefined,
+        eventType: query.eventType,
+        source: query.source,
+        startTime: query.startTime ? new Date(query.startTime) : undefined,
+        endTime: query.endTime ? new Date(query.endTime) : undefined,
       };
 
       const events = await deckLogStorage.getDeckLogEvents(dayId, orgId, filters);
@@ -120,7 +149,8 @@ export function registerDeckLogEntriesRoutes(app: Express, rateLimit: RateLimite
     "/api/logbook/deck/events/:id",
     withErrorHandling("get deck log event", async (req, res) => {
       const orgId = req.orgId;
-      const event = await deckLogStorage.getDeckLogEventById(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      const event = await deckLogStorage.getDeckLogEventById(id, orgId);
 
       if (!event) {
         sendNotFound(res, "Event");
@@ -136,8 +166,12 @@ export function registerDeckLogEntriesRoutes(app: Express, rateLimit: RateLimite
     writeOperationRateLimit,
     withErrorHandling("create deck log event", async (req, res) => {
       const orgId = req.orgId;
+      const body = eventCreateBodySchema.parse(req.body) as { dayId: string } & Record<
+        string,
+        unknown
+      >;
 
-      const day = await deckLogStorage.getDeckLogDailyById(req.body.dayId, orgId);
+      const day = await deckLogStorage.getDeckLogDailyById(body.dayId, orgId);
       if (!day) {
         sendNotFound(res, "Deck log day");
         return;
@@ -149,9 +183,9 @@ export function registerDeckLogEntriesRoutes(app: Express, rateLimit: RateLimite
       }
 
       const event = await deckLogStorage.createDeckLogEvent({
-        ...req.body,
+        ...body,
         orgId,
-      });
+      } as DeckLogEventInput);
       sendCreated(res, event);
     })
   );
@@ -161,8 +195,10 @@ export function registerDeckLogEntriesRoutes(app: Express, rateLimit: RateLimite
     writeOperationRateLimit,
     withErrorHandling("update deck log event", async (req, res) => {
       const orgId = req.orgId;
+      const { id } = idParamSchema.parse(req.params);
+      const body = bodyRecordSchema.parse(req.body);
 
-      const existingEvent = await deckLogStorage.getDeckLogEventById(req.params.id, orgId);
+      const existingEvent = await deckLogStorage.getDeckLogEventById(id, orgId);
       if (!existingEvent) {
         sendNotFound(res, "Event");
         return;
@@ -174,7 +210,7 @@ export function registerDeckLogEntriesRoutes(app: Express, rateLimit: RateLimite
         return;
       }
 
-      const event = await deckLogStorage.updateDeckLogEvent(req.params.id, req.body, orgId);
+      const event = await deckLogStorage.updateDeckLogEvent(id, body as DeckLogEventUpdate, orgId);
       res.json(event);
     })
   );
@@ -184,8 +220,9 @@ export function registerDeckLogEntriesRoutes(app: Express, rateLimit: RateLimite
     writeOperationRateLimit,
     withErrorHandling("delete deck log event", async (req, res) => {
       const orgId = req.orgId;
+      const { id } = idParamSchema.parse(req.params);
 
-      const existingEvent = await deckLogStorage.getDeckLogEventById(req.params.id, orgId);
+      const existingEvent = await deckLogStorage.getDeckLogEventById(id, orgId);
       if (!existingEvent) {
         sendNotFound(res, "Event");
         return;
@@ -197,7 +234,7 @@ export function registerDeckLogEntriesRoutes(app: Express, rateLimit: RateLimite
         return;
       }
 
-      await deckLogStorage.deleteDeckLogEvent(req.params.id, orgId);
+      await deckLogStorage.deleteDeckLogEvent(id, orgId);
       sendDeleted(res);
     })
   );

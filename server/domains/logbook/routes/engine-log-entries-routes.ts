@@ -5,6 +5,7 @@
  */
 
 import type { Express } from "express";
+import { z } from "zod";
 import { engineLogStorage } from "../../../repositories";
 import type { RateLimiters, EventFilters } from "./types";
 import { validateUUID } from "../../../utils/validation";
@@ -15,6 +16,31 @@ import {
   sendCreated,
 } from "../../../lib/route-utils";
 
+const idParamSchema = z.object({ id: z.string().min(1) });
+const dailyLogIdParamSchema = z.object({ dailyLogId: z.string().min(1) });
+const dayIdParamSchema = z.object({ dayId: z.string().min(1) });
+const bodyRecordSchema = z.record(z.unknown());
+const bulkEntriesBodySchema = z.object({ entries: z.array(z.record(z.unknown())) });
+const eventsQuerySchema = z.object({
+  eventType: z.string().optional(),
+  source: z.string().optional(),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
+});
+const eventCreateBodySchema = z
+  .object({ dayId: z.string().min(1) })
+  .and(z.record(z.unknown()));
+
+type EngineLogHourlyInput = Parameters<typeof engineLogStorage.upsertEngineLogHourly>[0];
+type EngineLogHourlyBulkInput = Parameters<typeof engineLogStorage.bulkUpsertEngineLogHourly>[0];
+type EngineLogGeneratorInput = Parameters<typeof engineLogStorage.upsertEngineLogGenerator>[0];
+type EngineLogGeneratorBulkInput = Parameters<
+  typeof engineLogStorage.bulkUpsertEngineLogGenerator
+>[0];
+type EngineLogWatchInput = Parameters<typeof engineLogStorage.upsertEngineLogWatch>[0];
+type EngineLogEventInput = Parameters<typeof engineLogStorage.createEngineLogEvent>[0];
+type EngineLogEventUpdate = Parameters<typeof engineLogStorage.updateEngineLogEvent>[1];
+
 export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimiters): number {
   const { writeOperationRateLimit } = rateLimit;
 
@@ -22,7 +48,8 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
     "/api/logbook/engine/daily/:dailyLogId/hourly",
     withErrorHandling("get engine log hourly entries", async (req, res) => {
       const orgId = req.orgId;
-      const entries = await engineLogStorage.getEngineLogHourly(req.params.dailyLogId, orgId);
+      const { dailyLogId } = dailyLogIdParamSchema.parse(req.params);
+      const entries = await engineLogStorage.getEngineLogHourly(dailyLogId, orgId);
       res.json(entries);
     })
   );
@@ -32,10 +59,11 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
     writeOperationRateLimit,
     withErrorHandling("save engine log hourly entry", async (req, res) => {
       const orgId = req.orgId;
+      const body = bodyRecordSchema.parse(req.body);
       const entry = await engineLogStorage.upsertEngineLogHourly({
-        ...req.body,
+        ...body,
         orgId,
-      });
+      } as EngineLogHourlyInput);
       res.json(entry);
     })
   );
@@ -45,15 +73,15 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
     writeOperationRateLimit,
     withErrorHandling("save engine log hourly entries", async (req, res) => {
       const orgId = req.orgId;
-      const entries = req.body.entries as Array<any>;
-
-      if (!Array.isArray(entries) || entries.length === 0) {
+      const parsed = bulkEntriesBodySchema.safeParse(req.body);
+      if (!parsed.success || parsed.data.entries.length === 0) {
         res.status(400).json({ error: "entries array required" });
         return;
       }
-
-      const withOrgId = entries.map((e) => ({ ...e, orgId }));
-      const results = await engineLogStorage.bulkUpsertEngineLogHourly(withOrgId);
+      const withOrgId = parsed.data.entries.map((e) => ({ ...e, orgId }));
+      const results = await engineLogStorage.bulkUpsertEngineLogHourly(
+        withOrgId as EngineLogHourlyBulkInput
+      );
       res.json(results);
     })
   );
@@ -63,7 +91,8 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
     writeOperationRateLimit,
     withErrorHandling("delete engine log hourly entry", async (req, res) => {
       const orgId = req.orgId;
-      await engineLogStorage.deleteEngineLogHourly(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      await engineLogStorage.deleteEngineLogHourly(id, orgId);
       sendDeleted(res);
     })
   );
@@ -72,7 +101,8 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
     "/api/logbook/engine/daily/:dailyLogId/generators",
     withErrorHandling("get engine log generator entries", async (req, res) => {
       const orgId = req.orgId;
-      const entries = await engineLogStorage.getEngineLogGenerator(req.params.dailyLogId, orgId);
+      const { dailyLogId } = dailyLogIdParamSchema.parse(req.params);
+      const entries = await engineLogStorage.getEngineLogGenerator(dailyLogId, orgId);
       res.json(entries);
     })
   );
@@ -82,10 +112,11 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
     writeOperationRateLimit,
     withErrorHandling("save engine log generator entry", async (req, res) => {
       const orgId = req.orgId;
+      const body = bodyRecordSchema.parse(req.body);
       const entry = await engineLogStorage.upsertEngineLogGenerator({
-        ...req.body,
+        ...body,
         orgId,
-      });
+      } as EngineLogGeneratorInput);
       res.json(entry);
     })
   );
@@ -95,15 +126,15 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
     writeOperationRateLimit,
     withErrorHandling("save engine log generator entries", async (req, res) => {
       const orgId = req.orgId;
-      const entries = req.body.entries as Array<any>;
-
-      if (!Array.isArray(entries) || entries.length === 0) {
+      const parsed = bulkEntriesBodySchema.safeParse(req.body);
+      if (!parsed.success || parsed.data.entries.length === 0) {
         res.status(400).json({ error: "entries array required" });
         return;
       }
-
-      const withOrgId = entries.map((e) => ({ ...e, orgId }));
-      const results = await engineLogStorage.bulkUpsertEngineLogGenerator(withOrgId);
+      const withOrgId = parsed.data.entries.map((e) => ({ ...e, orgId }));
+      const results = await engineLogStorage.bulkUpsertEngineLogGenerator(
+        withOrgId as EngineLogGeneratorBulkInput
+      );
       res.json(results);
     })
   );
@@ -113,7 +144,8 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
     writeOperationRateLimit,
     withErrorHandling("delete engine log generator entry", async (req, res) => {
       const orgId = req.orgId;
-      await engineLogStorage.deleteEngineLogGenerator(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      await engineLogStorage.deleteEngineLogGenerator(id, orgId);
       sendDeleted(res);
     })
   );
@@ -122,7 +154,8 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
     "/api/logbook/engine/daily/:dailyLogId/watches",
     withErrorHandling("get engine log watches", async (req, res) => {
       const orgId = req.orgId;
-      const watches = await engineLogStorage.getEngineLogWatch(req.params.dailyLogId, orgId);
+      const { dailyLogId } = dailyLogIdParamSchema.parse(req.params);
+      const watches = await engineLogStorage.getEngineLogWatch(dailyLogId, orgId);
       res.json(watches);
     })
   );
@@ -132,10 +165,11 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
     writeOperationRateLimit,
     withErrorHandling("save engine log watch assignment", async (req, res) => {
       const orgId = req.orgId;
+      const body = bodyRecordSchema.parse(req.body);
       const watch = await engineLogStorage.upsertEngineLogWatch({
-        ...req.body,
+        ...body,
         orgId,
-      });
+      } as EngineLogWatchInput);
       res.json(watch);
     })
   );
@@ -145,7 +179,8 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
     writeOperationRateLimit,
     withErrorHandling("delete engine log watch assignment", async (req, res) => {
       const orgId = req.orgId;
-      await engineLogStorage.deleteEngineLogWatch(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      await engineLogStorage.deleteEngineLogWatch(id, orgId);
       sendDeleted(res);
     })
   );
@@ -154,12 +189,13 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
     "/api/logbook/engine/daily/:dayId/events",
     withErrorHandling("get engine log events", async (req, res) => {
       const orgId = req.orgId;
-      const { dayId } = req.params;
+      const { dayId } = dayIdParamSchema.parse(req.params);
+      const query = eventsQuerySchema.parse(req.query);
       const filters: EventFilters = {
-        eventType: req.query.eventType as string | undefined,
-        source: req.query.source as string | undefined,
-        startTime: req.query.startTime ? new Date(req.query.startTime as string) : undefined,
-        endTime: req.query.endTime ? new Date(req.query.endTime as string) : undefined,
+        eventType: query.eventType,
+        source: query.source,
+        startTime: query.startTime ? new Date(query.startTime) : undefined,
+        endTime: query.endTime ? new Date(query.endTime) : undefined,
       };
 
       const events = await engineLogStorage.getEngineLogEvents(dayId, orgId, filters);
@@ -171,7 +207,8 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
     "/api/logbook/engine/events/:id",
     withErrorHandling("get engine log event", async (req, res) => {
       const orgId = req.orgId;
-      const event = await engineLogStorage.getEngineLogEventById(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      const event = await engineLogStorage.getEngineLogEventById(id, orgId);
 
       if (!event) {
         sendNotFound(res, "Event");
@@ -187,8 +224,12 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
     writeOperationRateLimit,
     withErrorHandling("create engine log event", async (req, res) => {
       const orgId = req.orgId;
+      const body = eventCreateBodySchema.parse(req.body) as { dayId: string } & Record<
+        string,
+        unknown
+      >;
 
-      const day = await engineLogStorage.getEngineLogDailyById(req.body.dayId, orgId);
+      const day = await engineLogStorage.getEngineLogDailyById(body.dayId, orgId);
       if (!day) {
         sendNotFound(res, "Engine log day");
         return;
@@ -200,9 +241,9 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
       }
 
       const event = await engineLogStorage.createEngineLogEvent({
-        ...req.body,
+        ...body,
         orgId,
-      });
+      } as EngineLogEventInput);
       sendCreated(res, event);
     })
   );
@@ -212,10 +253,11 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
     writeOperationRateLimit,
     withErrorHandling("update engine log event", async (req, res) => {
       const orgId = req.orgId;
-      const id = req.params.id;
+      const { id } = idParamSchema.parse(req.params);
       if (!validateUUID(id, res)) {
         return;
       }
+      const body = bodyRecordSchema.parse(req.body);
 
       const existingEvent = await engineLogStorage.getEngineLogEventById(id, orgId);
       if (!existingEvent) {
@@ -229,7 +271,11 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
         return;
       }
 
-      const event = await engineLogStorage.updateEngineLogEvent(id, req.body, orgId);
+      const event = await engineLogStorage.updateEngineLogEvent(
+        id,
+        body as EngineLogEventUpdate,
+        orgId
+      );
       res.json(event);
     })
   );
@@ -239,8 +285,9 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
     writeOperationRateLimit,
     withErrorHandling("delete engine log event", async (req, res) => {
       const orgId = req.orgId;
+      const { id } = idParamSchema.parse(req.params);
 
-      const existingEvent = await engineLogStorage.getEngineLogEventById(req.params.id, orgId);
+      const existingEvent = await engineLogStorage.getEngineLogEventById(id, orgId);
       if (!existingEvent) {
         sendNotFound(res, "Event");
         return;
@@ -252,7 +299,7 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
         return;
       }
 
-      await engineLogStorage.deleteEngineLogEvent(req.params.id, orgId);
+      await engineLogStorage.deleteEngineLogEvent(id, orgId);
       sendDeleted(res);
     })
   );

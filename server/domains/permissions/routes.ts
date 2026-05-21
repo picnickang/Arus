@@ -36,6 +36,20 @@ const DEV_MODE = process.env.NODE_ENV === "development";
 const DEV_ORG_ID = "default-org-id";
 const DEV_USER_ID = "dev-user-id";
 
+const idParamSchema = z.object({ id: z.string().min(1) });
+const userIdParamSchema = z.object({ userId: z.string().min(1) });
+const userIdRoleIdParamSchema = z.object({
+  userId: z.string().min(1),
+  roleId: z.string().min(1),
+});
+const auditQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(500).default(100),
+});
+const fromTemplateBodySchema = z.object({
+  templateId: z.string().min(1),
+  overrides: z.record(z.unknown()).optional(),
+});
+
 export function registerPermissionRoutes(app: Express) {
   app.get(
     "/api/permissions/me",
@@ -147,7 +161,8 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     withErrorHandling("get role", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const role = await permissionRepository.getRoleById(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      const role = await permissionRepository.getRoleById(id, orgId);
       if (!role) {
         return res.status(404).json({ message: "Role not found" });
       }
@@ -162,7 +177,8 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     withErrorHandling("create role", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const data = insertRoleSchema.parse({ ...req.body, orgId });
+      const rawBody = z.record(z.unknown()).parse(req.body);
+      const data = insertRoleSchema.parse({ ...rawBody, orgId });
       const role = await permissionRepository.createRole(data);
 
       const authReq = req as AuthenticatedRequest;
@@ -185,15 +201,17 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     withErrorHandling("update role", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const existing = await permissionRepository.getRoleById(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      const existing = await permissionRepository.getRoleById(id, orgId);
       if (!existing) {
         return res.status(404).json({ message: "Role not found" });
       }
 
       // Security: Strip orgId from body to prevent cross-tenant mutation
-      const { orgId: _, ...bodyWithoutOrgId } = req.body;
+      const rawBody = z.record(z.unknown()).parse(req.body);
+      const { orgId: _, ...bodyWithoutOrgId } = rawBody;
       const data = insertRoleSchema.partial().parse(bodyWithoutOrgId);
-      const updated = await permissionRepository.updateRole(req.params.id, orgId, data);
+      const updated = await permissionRepository.updateRole(id, orgId, data);
 
       const authReq = req as AuthenticatedRequest;
       await permissionRepository.logPermissionChange(
@@ -201,7 +219,7 @@ export function registerPermissionRoutes(app: Express) {
         authReq.user?.id || "system",
         "update_role",
         "role",
-        req.params.id,
+        id,
         JSON.stringify(existing),
         JSON.stringify(updated)
       );
@@ -217,7 +235,8 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     withErrorHandling("partial update role", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const existing = await permissionRepository.getRoleById(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      const existing = await permissionRepository.getRoleById(id, orgId);
       if (!existing) {
         return res.status(404).json({ message: "Role not found" });
       }
@@ -227,9 +246,10 @@ export function registerPermissionRoutes(app: Express) {
       }
 
       // Security: Strip orgId from body to prevent cross-tenant mutation
-      const { orgId: _, ...bodyWithoutOrgId } = req.body;
+      const rawBody = z.record(z.unknown()).parse(req.body);
+      const { orgId: _, ...bodyWithoutOrgId } = rawBody;
       const data = insertRoleSchema.partial().parse(bodyWithoutOrgId);
-      const updated = await permissionRepository.updateRole(req.params.id, orgId, data);
+      const updated = await permissionRepository.updateRole(id, orgId, data);
 
       const authReq = req as AuthenticatedRequest;
       await permissionRepository.logPermissionChange(
@@ -237,7 +257,7 @@ export function registerPermissionRoutes(app: Express) {
         authReq.user?.id || "system",
         "update_role",
         "role",
-        req.params.id,
+        id,
         JSON.stringify(existing),
         JSON.stringify(updated)
       );
@@ -253,7 +273,8 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     withErrorHandling("delete role", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const existing = await permissionRepository.getRoleById(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      const existing = await permissionRepository.getRoleById(id, orgId);
       if (!existing) {
         return res.status(404).json({ message: "Role not found" });
       }
@@ -262,8 +283,7 @@ export function registerPermissionRoutes(app: Express) {
         return res.status(400).json({ message: "Cannot delete system roles" });
       }
 
-      // Check if any crew members are assigned to this role
-      const crewWithRole = await permissionRepository.getCrewCountByRoleId(req.params.id, orgId);
+      const crewWithRole = await permissionRepository.getCrewCountByRoleId(id, orgId);
       if (crewWithRole > 0) {
         return res.status(400).json({
           message: `Cannot delete role: ${crewWithRole} crew member(s) are currently assigned to this role. Please reassign them first.`,
@@ -271,7 +291,7 @@ export function registerPermissionRoutes(app: Express) {
         });
       }
 
-      await permissionRepository.deleteRole(req.params.id, orgId);
+      await permissionRepository.deleteRole(id, orgId);
 
       const authReq = req as AuthenticatedRequest;
       await permissionRepository.logPermissionChange(
@@ -279,7 +299,7 @@ export function registerPermissionRoutes(app: Express) {
         authReq.user?.id || "system",
         "delete_role",
         "role",
-        req.params.id,
+        id,
         JSON.stringify(existing),
         null
       );
@@ -294,7 +314,8 @@ export function registerPermissionRoutes(app: Express) {
     "/api/permissions/roles/:id/grants",
     requireOrgId,
     withErrorHandling("get role permission grants", async (req: Request, res: Response) => {
-      const grants = await permissionRepository.getPermissionGrantsForRole(req.params.id);
+      const { id } = idParamSchema.parse(req.params);
+      const grants = await permissionRepository.getPermissionGrantsForRole(id);
       res.json(
         validateResponse(
           roleGrantsResponseSchema,
@@ -316,14 +337,21 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     withErrorHandling("update role permission grants", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const role = await permissionRepository.getRoleById(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      const role = await permissionRepository.getRoleById(id, orgId);
       if (!role) {
         return res.status(404).json({ message: "Role not found" });
       }
 
-      const grantsArray = z.array(grantSchema).parse(req.body.grants || req.body);
+      const bodyShape = z
+        .union([
+          z.object({ grants: z.array(grantSchema) }),
+          z.array(grantSchema),
+        ])
+        .parse(req.body);
+      const grantsArray = Array.isArray(bodyShape) ? bodyShape : bodyShape.grants;
 
-      await permissionRepository.bulkSetPermissionGrants(req.params.id, grantsArray);
+      await permissionRepository.bulkSetPermissionGrants(id, grantsArray);
 
       const authReq = req as AuthenticatedRequest;
       await permissionRepository.logPermissionChange(
@@ -331,7 +359,7 @@ export function registerPermissionRoutes(app: Express) {
         authReq.user?.id || "system",
         "update_grants",
         "role",
-        req.params.id,
+        id,
         null,
         JSON.stringify({ grants: grantsArray.length })
       );
@@ -362,11 +390,7 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     withErrorHandling("create role from template", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const { templateId, overrides } = req.body;
-
-      if (!templateId) {
-        return res.status(400).json({ message: "templateId is required" });
-      }
+      const { templateId, overrides } = fromTemplateBodySchema.parse(req.body);
 
       const role = await permissionRepository.createRoleFromTemplate(templateId, orgId, overrides);
 
@@ -390,8 +414,9 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     withErrorHandling("list user role assignments", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
+      const { userId } = userIdParamSchema.parse(req.params);
       const assignments = await permissionRepository.listUserRoleAssignments(
-        req.params.userId,
+        userId,
         orgId
       );
       res.json(
@@ -410,11 +435,13 @@ export function registerPermissionRoutes(app: Express) {
     withErrorHandling("assign role to user", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const authReq = req as AuthenticatedRequest;
+      const { userId } = userIdParamSchema.parse(req.params);
+      const rawBody = z.record(z.unknown()).parse(req.body);
 
       const data = insertUserRoleAssignmentSchema.parse({
-        ...req.body,
+        ...rawBody,
         orgId,
-        userId: req.params.userId,
+        userId,
         assignedBy: authReq.user?.id,
       });
 
@@ -427,10 +454,10 @@ export function registerPermissionRoutes(app: Express) {
         "user_role_assignment",
         assignment.id,
         null,
-        JSON.stringify({ userId: req.params.userId, roleId: data.roleId })
+        JSON.stringify({ userId, roleId: data.roleId })
       );
 
-      permissionService.invalidateUserPermissionCache(req.params.userId, orgId);
+      permissionService.invalidateUserPermissionCache(userId, orgId);
 
       sendCreated(res, assignment);
     })
@@ -442,8 +469,9 @@ export function registerPermissionRoutes(app: Express) {
     withErrorHandling("remove role from user", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const authReq = req as AuthenticatedRequest;
+      const { userId, roleId } = userIdRoleIdParamSchema.parse(req.params);
 
-      await permissionRepository.removeRoleFromUser(req.params.userId, req.params.roleId, orgId);
+      await permissionRepository.removeRoleFromUser(userId, roleId, orgId);
 
       await permissionRepository.logPermissionChange(
         orgId,
@@ -451,11 +479,11 @@ export function registerPermissionRoutes(app: Express) {
         "remove_role",
         "user_role_assignment",
         null,
-        JSON.stringify({ userId: req.params.userId, roleId: req.params.roleId }),
+        JSON.stringify({ userId, roleId }),
         null
       );
 
-      permissionService.invalidateUserPermissionCache(req.params.userId, orgId);
+      permissionService.invalidateUserPermissionCache(userId, orgId);
 
       sendDeleted(res);
     })
@@ -482,7 +510,7 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     withErrorHandling("get permission audit log", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
+      const { limit } = auditQuerySchema.parse(req.query);
       const auditLog = await permissionRepository.getPermissionAuditLog(orgId, limit);
       res.json(
         validateResponse(

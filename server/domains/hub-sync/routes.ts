@@ -20,6 +20,23 @@ export function registerHubSyncRoutes(
 ) {
   const { writeOperationRateLimit, generalApiRateLimit } = rateLimiters;
 
+  const sheetLockBodySchema = z.object({
+    sheetKey: z.string().min(1),
+    holder: z.string().min(1),
+    token: z.string().min(1),
+    expiresAt: z.union([z.string(), z.number()]),
+  });
+  const sheetUnlockBodySchema = z.object({
+    sheetKey: z.string().min(1),
+    token: z.string().min(1),
+  });
+  const sheetKeyParamSchema = z.object({ sheetKey: z.string().min(1) });
+  const incrementVersionBodySchema = z.object({ modifiedBy: z.string().min(1) });
+  const idParamSchema = z.object({ id: z.string().min(1) });
+  const optimizerConfigBodySchema = z.record(z.unknown());
+  const orgIdQuerySchema = z.object({ orgId: z.string().optional() });
+  const shiftTemplateBodySchema = z.record(z.unknown());
+
   // ===== REPLAY HELPER ENDPOINTS =====
   app.post(
     "/api/replay",
@@ -52,13 +69,7 @@ export function registerHubSyncRoutes(
   // ===== SHEET LOCKING ENDPOINTS =====
   app.post("/api/sheets/lock", generalApiRateLimit, async (req: Request, res: Response) => {
     try {
-      const { sheetKey, holder, token, expiresAt } = req.body;
-
-      if (!sheetKey || !holder || !token || !expiresAt) {
-        return res.status(400).json({
-          error: "Missing required fields: sheetKey, holder, token, expiresAt",
-        });
-      }
+      const { sheetKey, holder, token, expiresAt } = sheetLockBodySchema.parse(req.body);
 
       const lock = await hubSyncService.acquireSheetLock(
         sheetKey,
@@ -79,15 +90,7 @@ export function registerHubSyncRoutes(
     "/api/sheets/lock",
     generalApiRateLimit,
     withErrorHandling("release sheet lock", async (req: Request, res: Response) => {
-      const { sheetKey, token } = req.body;
-
-      if (!sheetKey || !token) {
-        res.status(400).json({
-          error: "Missing required fields: sheetKey, token",
-        });
-        return;
-      }
-
+      const { sheetKey, token } = sheetUnlockBodySchema.parse(req.body);
       await hubSyncService.releaseSheetLock(sheetKey, token);
       res.json({ ok: true, message: "Sheet lock released successfully" });
     })
@@ -97,7 +100,8 @@ export function registerHubSyncRoutes(
     "/api/sheets/lock/:sheetKey",
     generalApiRateLimit,
     withErrorHandling("get sheet lock", async (req: Request, res: Response) => {
-      const lock = await hubSyncService.getSheetLock(req.params.sheetKey);
+      const { sheetKey } = sheetKeyParamSchema.parse(req.params);
+      const lock = await hubSyncService.getSheetLock(sheetKey);
       if (!lock) {
         return sendNotFound(res, "Sheet lock");
       }
@@ -109,8 +113,9 @@ export function registerHubSyncRoutes(
     "/api/sheets/lock/:sheetKey/status",
     generalApiRateLimit,
     withErrorHandling("check sheet lock status", async (req: Request, res: Response) => {
-      const isLocked = await hubSyncService.isSheetLocked(req.params.sheetKey);
-      res.json({ sheetKey: req.params.sheetKey, isLocked });
+      const { sheetKey } = sheetKeyParamSchema.parse(req.params);
+      const isLocked = await hubSyncService.isSheetLocked(sheetKey);
+      res.json({ sheetKey, isLocked });
     })
   );
 
@@ -119,7 +124,8 @@ export function registerHubSyncRoutes(
     "/api/sheets/version/:sheetKey",
     generalApiRateLimit,
     withErrorHandling("get sheet version", async (req: Request, res: Response) => {
-      const version = await hubSyncService.getSheetVersion(req.params.sheetKey);
+      const { sheetKey } = sheetKeyParamSchema.parse(req.params);
+      const version = await hubSyncService.getSheetVersion(sheetKey);
       if (!version) {
         return sendNotFound(res, "Sheet version");
       }
@@ -131,16 +137,9 @@ export function registerHubSyncRoutes(
     "/api/sheets/version/:sheetKey/increment",
     generalApiRateLimit,
     withErrorHandling("increment sheet version", async (req: Request, res: Response) => {
-      const { modifiedBy } = req.body;
-
-      if (!modifiedBy) {
-        res.status(400).json({
-          error: "Missing required field: modifiedBy",
-        });
-        return;
-      }
-
-      const version = await hubSyncService.incrementSheetVersion(req.params.sheetKey, modifiedBy);
+      const { sheetKey } = sheetKeyParamSchema.parse(req.params);
+      const { modifiedBy } = incrementVersionBodySchema.parse(req.body);
+      const version = await hubSyncService.incrementSheetVersion(sheetKey, modifiedBy);
       res.json(version);
     })
   );
@@ -172,11 +171,12 @@ export function registerHubSyncRoutes(
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("create optimizer configuration", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId || req.body.orgId;
+      const rawBody = optimizerConfigBodySchema.parse(req.body);
+      const orgId = (req as AuthenticatedRequest).orgId || (rawBody.orgId as string | undefined);
       const configData = {
-        ...req.body,
+        ...rawBody,
         orgId,
-        config: JSON.stringify(req.body.config ?? {}),
+        config: JSON.stringify(rawBody.config ?? {}),
       };
 
       const validatedConfig = insertOptimizerConfigurationSchema.parse(configData);
@@ -194,7 +194,7 @@ export function registerHubSyncRoutes(
     writeOperationRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const { id } = req.params;
+        const { id } = idParamSchema.parse(req.params);
         await hubSyncService.deleteOptimizerConfiguration(id);
         res.status(204).send();
       } catch (error) {
@@ -246,7 +246,7 @@ export function registerHubSyncRoutes(
     writeOperationRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const { id } = req.params;
+        const { id } = idParamSchema.parse(req.params);
         const result = await hubSyncService.cancelOptimization(id);
         res.json({ message: "Optimization cancelled successfully", result });
       } catch (error: unknown) {
@@ -267,7 +267,7 @@ export function registerHubSyncRoutes(
     writeOperationRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const { id } = req.params;
+        const { id } = idParamSchema.parse(req.params);
         const result = await hubSyncService.applyOptimizationToProduction(id);
         res.json({ message: "Optimization applied to production successfully", result });
       } catch (error: unknown) {
@@ -287,7 +287,7 @@ export function registerHubSyncRoutes(
     "/api/optimization/:id/download",
     generalApiRateLimit,
     withErrorHandling("download optimization result", async (req: Request, res: Response) => {
-      const { id } = req.params;
+      const { id } = idParamSchema.parse(req.params);
       const result = await hubSyncService.getOptimizationResult(id);
       if (!result) {
         return sendNotFound(res, "Optimization result");
@@ -305,7 +305,7 @@ export function registerHubSyncRoutes(
     "/api/optimization/results/:id",
     writeOperationRateLimit,
     withErrorHandling("delete optimization result", async (req: Request, res: Response) => {
-      const { id } = req.params;
+      const { id } = idParamSchema.parse(req.params);
       await hubSyncService.deleteOptimizationResult(id);
       res.status(204).send();
     })
@@ -330,7 +330,7 @@ export function registerHubSyncRoutes(
     "/api/shift-templates",
     generalApiRateLimit,
     withErrorHandling("get shift templates", async (req: Request, res: Response) => {
-      const { orgId } = req.query;
+      const { orgId } = orgIdQuerySchema.parse(req.query);
       const templates = await hubSyncService.getShiftTemplates(orgId as string);
       res.json(templates);
     })
@@ -340,7 +340,10 @@ export function registerHubSyncRoutes(
     "/api/shift-templates",
     writeOperationRateLimit,
     withErrorHandling("create shift template", async (req: Request, res: Response) => {
-      const template = await hubSyncService.createShiftTemplate(req.body);
+      const body = shiftTemplateBodySchema.parse(req.body);
+      const template = await hubSyncService.createShiftTemplate(
+        body as Parameters<typeof hubSyncService.createShiftTemplate>[0]
+      );
       res.json(template);
     })
   );
@@ -349,7 +352,8 @@ export function registerHubSyncRoutes(
     "/api/shift-templates/:id",
     writeOperationRateLimit,
     withErrorHandling("delete shift template", async (req: Request, res: Response) => {
-      await hubSyncService.deleteShiftTemplate(req.params.id);
+      const { id } = idParamSchema.parse(req.params);
+      await hubSyncService.deleteShiftTemplate(id);
       res.json({
         ok: true,
         message: "Shift template deleted successfully",

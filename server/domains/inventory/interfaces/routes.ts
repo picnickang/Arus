@@ -1,19 +1,9 @@
 /**
  * Inventory Domain Routes — Interfaces Layer
- *
- * Improvements applied:
- * #1  — GET /api/parts-inventory now uses getPartsInventoryPaginated (server-side
- *        filtering + pagination) instead of fetching the full catalog and returning
- *        it all. The existing getPartsInventoryPaginated method was already defined
- *        in IInventoryStorage but was never called from this route.
- * #6  — GET /api/parts-inventory/low-stock-suggestions returns parts below min stock
- *        with a "Create PR" action hint, closing the loop between low-stock detection
- *        and the purchasing workflow.
- * #7  — GET /api/parts-inventory/low-stock-suggestions is the entry point for the
- *        "Low Stock → Create PR" shortcut.
  */
 
 import type { Express, Request, Response, RequestHandler } from "express";
+import { z } from "zod";
 import { inventoryService } from "../service";
 import { inventorySupplierRouter } from "./supplier-routes";
 import { supplierPerformanceRouter } from "./supplier-performance-routes";
@@ -32,6 +22,87 @@ import {
 } from "../../../lib/route-utils";
 import { requirePermission } from "../../permissions/middleware";
 
+const idParamSchema = z.object({ id: z.string().min(1) });
+const partIdParamSchema = z.object({ partId: z.string().min(1) });
+
+const availabilityBodySchema = z.object({
+  partId: z.string().min(1),
+  quantity: z.number().positive(),
+});
+
+const compatibilityBodySchema = z.object({
+  equipmentIds: z.array(z.string().min(1)),
+});
+
+const partsInventoryQuerySchema = z.object({
+  search: z.string().optional(),
+  category: z.string().optional(),
+  criticality: z.string().optional(),
+  stockStatus: z.string().optional(),
+  supplier: z.string().optional(),
+  sortBy: z.string().optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  page: z.coerce.number().int().min(1).default(1),
+});
+
+const createPartsInventoryBodySchema = z.object({
+  orgId: z.string().optional(),
+  partNumber: z.string().min(1),
+  partName: z.string().min(1),
+  description: z.string().optional(),
+  category: z.string().optional(),
+  manufacturer: z.string().optional(),
+  unitCost: z.number().optional(),
+  quantityOnHand: z.number().optional(),
+  minStockLevel: z.number().optional(),
+  maxStockLevel: z.number().optional(),
+  location: z.string().optional(),
+  supplierName: z.string().optional(),
+  supplierPartNumber: z.string().optional(),
+  leadTimeDays: z.number().optional(),
+});
+
+const updatePartsInventoryBodySchema = z
+  .object({
+    partNumber: z.string().optional(),
+    partName: z.string().optional(),
+    description: z.string().nullable().optional(),
+    category: z.string().nullable().optional(),
+    manufacturer: z.string().nullable().optional(),
+    unitCost: z.number().nullable().optional(),
+    quantityOnHand: z.number().optional(),
+    minStockLevel: z.number().nullable().optional(),
+    maxStockLevel: z.number().nullable().optional(),
+    location: z.string().nullable().optional(),
+    supplierName: z.string().nullable().optional(),
+    supplierPartNumber: z.string().nullable().optional(),
+    leadTimeDays: z.number().nullable().optional(),
+    isActive: z.boolean().optional(),
+  })
+  .passthrough();
+
+const updateCostBodySchema = z.object({
+  unitCost: z.number().nonnegative(),
+  supplier: z.string().min(1),
+});
+
+const updateStockBodySchema = z
+  .object({
+    quantityOnHand: z.number().nonnegative().optional(),
+    quantityReserved: z.number().nonnegative().optional(),
+    minStockLevel: z.number().nonnegative().optional(),
+    maxStockLevel: z.number().nonnegative().optional(),
+  })
+  .refine(
+    (data) =>
+      data.quantityOnHand !== undefined ||
+      data.quantityReserved !== undefined ||
+      data.minStockLevel !== undefined ||
+      data.maxStockLevel !== undefined,
+    { message: "At least one stock field must be provided" }
+  );
+
 export function registerInventoryRoutes(
   app: Express,
   rateLimit: {
@@ -41,8 +112,6 @@ export function registerInventoryRoutes(
   }
 ) {
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimit;
-
-  // ── Parts catalog endpoints ────────────────────────────────────────────────
 
   app.get(
     "/api/parts",
@@ -62,7 +131,8 @@ export function registerInventoryRoutes(
     criticalOperationRateLimit,
     withErrorHandling("delete part", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      await inventoryService.deletePart(req.params.id, orgId, req.user?.id);
+      const { id } = idParamSchema.parse(req.params);
+      await inventoryService.deletePart(id, orgId, req.user?.id);
       sendDeleted(res);
     })
   );
@@ -72,11 +142,8 @@ export function registerInventoryRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("check part availability", async (req: Request, res: Response) => {
-      const { partId, quantity } = req.body;
       const orgId = (req as AuthenticatedRequest).orgId;
-      if (!partId || !quantity) {
-        return res.status(400).json({ message: "partId and quantity are required" });
-      }
+      const { partId, quantity } = availabilityBodySchema.parse(req.body);
       const availability = await inventoryService.checkAvailability(partId, quantity, orgId);
       res.json(availability);
     })
@@ -88,8 +155,9 @@ export function registerInventoryRoutes(
     requirePermission("inventory", "edit"),
     writeOperationRateLimit,
     withErrorHandling("sync part costs", async (req: Request, res: Response) => {
-      await inventoryService.syncPartCosts(req.params.id, req.user?.id);
-      res.json({ message: "Part costs synchronized successfully", partId: req.params.id });
+      const { id } = idParamSchema.parse(req.params);
+      await inventoryService.syncPartCosts(id, req.user?.id);
+      res.json({ message: "Part costs synchronized successfully", partId: id });
     })
   );
 
@@ -99,7 +167,8 @@ export function registerInventoryRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch compatible equipment", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const equipment = await inventoryService.getCompatibleEquipment(req.params.partId, orgId);
+      const { partId } = partIdParamSchema.parse(req.params);
+      const equipment = await inventoryService.getCompatibleEquipment(partId, orgId);
       res.json(equipment);
     })
   );
@@ -111,12 +180,10 @@ export function registerInventoryRoutes(
     writeOperationRateLimit,
     withErrorHandling("update part compatibility", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const { equipmentIds } = req.body;
-      if (!Array.isArray(equipmentIds)) {
-        return res.status(400).json({ message: "equipmentIds must be an array" });
-      }
+      const { partId } = partIdParamSchema.parse(req.params);
+      const { equipmentIds } = compatibilityBodySchema.parse(req.body);
       const part = await inventoryService.updateCompatibility(
-        req.params.partId,
+        partId,
         equipmentIds,
         orgId,
         req.user?.id
@@ -125,43 +192,28 @@ export function registerInventoryRoutes(
     })
   );
 
-  // ── Parts Inventory endpoints ──────────────────────────────────────────────
-
-  /**
-   * Improvement #1: Server-side pagination and filtering.
-   * Previously fetched all parts into memory and returned the full list.
-   * Now delegates filtering and pagination to getPartsInventoryPaginated
-   * which runs WHERE/LIMIT/OFFSET in the database.
-   *
-   * Query params accepted:
-   *   page, limit, search, category, criticality, stockStatus, supplier, sortBy, sortOrder
-   */
   app.get(
     "/api/parts-inventory",
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch parts inventory", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const { search, category, criticality, stockStatus, supplier, sortBy, sortOrder } = req.query;
-
-      const limit = Math.min(Number.parseInt((req.query.limit as string) || "50", 10), 200);
-      const page = Math.max(Number.parseInt((req.query.page as string) || "1", 10), 1);
+      const query = partsInventoryQuerySchema.parse(req.query);
+      const { limit, page } = query;
       const offset = (page - 1) * limit;
 
-      // Improvement #1: use the paginated method that was already defined but never called
       const { items, total } = await inventoryService.listPartsInventoryPaginated(orgId, {
         limit,
         offset,
-        search: search as string | undefined,
-        category: category as string | undefined,
-        criticality: criticality as string | undefined,
-        stockStatus: typeof stockStatus === "string" ? stockStatus : undefined,
-        supplier: supplier as string | undefined,
-        sortBy: sortBy as string | undefined,
-        sortOrder: sortOrder as "asc" | "desc" | undefined,
+        search: query.search,
+        category: query.category,
+        criticality: query.criticality,
+        stockStatus: query.stockStatus,
+        supplier: query.supplier,
+        sortBy: query.sortBy,
+        sortOrder: query.sortOrder,
       });
 
-      // Transform to match frontend expectations
       const transformedParts = items.map((part) => {
         const quantityOnHand = part.quantityOnHand || 0;
         const quantityReserved = part.quantityReserved || 0;
@@ -208,19 +260,12 @@ export function registerInventoryRoutes(
     })
   );
 
-  /**
-   * Improvement #7: Low-stock replenishment suggestions.
-   * Returns parts at or below minStockLevel with estimated reorder quantities.
-   * Frontend uses this to populate the "Create Purchase Request" shortcut
-   * that appears when the Critical/Out or Low Stock stat card is clicked.
-   */
   app.get(
     "/api/parts-inventory/low-stock-suggestions",
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch low stock suggestions", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-
       const lowStockParts = await inventoryService.getLowStockParts(orgId);
 
       const suggestions = lowStockParts.map((part) => {
@@ -246,7 +291,6 @@ export function registerInventoryRoutes(
         };
       });
 
-      // Sort by criticality then by how far below min stock
       const criticalityOrder: Record<string, number> = {
         critical: 0,
         high: 1,
@@ -277,23 +321,24 @@ export function registerInventoryRoutes(
     writeOperationRateLimit,
     withErrorHandling("create parts inventory item", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
+      const body = createPartsInventoryBodySchema.parse(req.body);
 
       const dbData = {
-        orgId: req.body.orgId || orgId,
-        partNumber: req.body.partNumber,
-        partName: req.body.partName,
-        description: req.body.description,
-        category: req.body.category,
-        manufacturer: req.body.manufacturer,
-        unitCost: req.body.unitCost,
-        quantityOnHand: req.body.quantityOnHand || 0,
+        orgId: body.orgId || orgId,
+        partNumber: body.partNumber,
+        partName: body.partName,
+        description: body.description,
+        category: body.category,
+        manufacturer: body.manufacturer,
+        unitCost: body.unitCost,
+        quantityOnHand: body.quantityOnHand || 0,
         quantityReserved: 0,
-        minStockLevel: req.body.minStockLevel,
-        maxStockLevel: req.body.maxStockLevel,
-        location: req.body.location,
-        supplierName: req.body.supplierName,
-        supplierPartNumber: req.body.supplierPartNumber,
-        leadTimeDays: req.body.leadTimeDays || 7,
+        minStockLevel: body.minStockLevel,
+        maxStockLevel: body.maxStockLevel,
+        location: body.location,
+        supplierName: body.supplierName,
+        supplierPartNumber: body.supplierPartNumber,
+        leadTimeDays: body.leadTimeDays || 7,
         isActive: true,
       };
 
@@ -313,7 +358,9 @@ export function registerInventoryRoutes(
     requirePermission("inventory", "edit"),
     writeOperationRateLimit,
     withErrorHandling("update parts inventory item", async (req: Request, res: Response) => {
-      const dbData: Record<string, unknown> = {};
+      const { id } = idParamSchema.parse(req.params);
+      const body = updatePartsInventoryBodySchema.parse(req.body);
+
       const fields = [
         "partNumber",
         "partName",
@@ -329,10 +376,12 @@ export function registerInventoryRoutes(
         "supplierPartNumber",
         "leadTimeDays",
         "isActive",
-      ];
+      ] as const;
+      const dbData: Record<string, unknown> = {};
       for (const f of fields) {
-        if (req.body[f] !== undefined) {
-          dbData[f] = req.body[f];
+        const v = (body as Record<string, unknown>)[f];
+        if (v !== undefined) {
+          dbData[f] = v;
         }
       }
 
@@ -343,7 +392,7 @@ export function registerInventoryRoutes(
 
       const orgId = (req as AuthenticatedRequest).orgId;
       const item = await inventoryService.updateInventoryItem(
-        req.params.id,
+        id,
         validationResult.data,
         req.user?.id,
         orgId
@@ -360,15 +409,10 @@ export function registerInventoryRoutes(
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
     withErrorHandling("update part cost", async (req: Request, res: Response) => {
-      const { unitCost, supplier } = req.body;
-      if (unitCost === undefined || !supplier) {
-        return res.status(400).json({ message: "unitCost and supplier are required" });
-      }
-      if (typeof unitCost !== "number" || unitCost < 0) {
-        return res.status(400).json({ message: "unitCost must be a non-negative number" });
-      }
+      const { id } = idParamSchema.parse(req.params);
+      const { unitCost, supplier } = updateCostBodySchema.parse(req.body);
       const item = await inventoryService.updatePartCost(
-        req.params.id,
+        id,
         { unitCost, supplier },
         req.user?.id
       );
@@ -384,31 +428,23 @@ export function registerInventoryRoutes(
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
     withErrorHandling("update part stock", async (req: Request, res: Response) => {
-      const { quantityOnHand, quantityReserved, minStockLevel, maxStockLevel } = req.body;
+      const { id } = idParamSchema.parse(req.params);
+      const body = updateStockBodySchema.parse(req.body);
       const updateData: Record<string, number> = {};
-      if (quantityOnHand !== undefined) {
-        updateData.quantityOnHand = quantityOnHand;
+      if (body.quantityOnHand !== undefined) {
+        updateData.quantityOnHand = body.quantityOnHand;
       }
-      if (quantityReserved !== undefined) {
-        updateData.quantityReserved = quantityReserved;
+      if (body.quantityReserved !== undefined) {
+        updateData.quantityReserved = body.quantityReserved;
       }
-      if (minStockLevel !== undefined) {
-        updateData.minStockLevel = minStockLevel;
+      if (body.minStockLevel !== undefined) {
+        updateData.minStockLevel = body.minStockLevel;
       }
-      if (maxStockLevel !== undefined) {
-        updateData.maxStockLevel = maxStockLevel;
-      }
-
-      if (Object.keys(updateData).length === 0) {
-        return res.status(400).json({ message: "At least one stock field must be provided" });
-      }
-      for (const [key, value] of Object.entries(updateData)) {
-        if (typeof value !== "number" || value < 0) {
-          return res.status(400).json({ message: `${key} must be a non-negative number` });
-        }
+      if (body.maxStockLevel !== undefined) {
+        updateData.maxStockLevel = body.maxStockLevel;
       }
 
-      const item = await inventoryService.updatePartStock(req.params.id, updateData, req.user?.id);
+      const item = await inventoryService.updatePartStock(id, updateData, req.user?.id);
       if (!item) {
         return sendNotFound(res, "Part");
       }

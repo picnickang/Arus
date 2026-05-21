@@ -8,6 +8,30 @@ import { logger } from "../../utils/logger";
 const MODULE = "rms";
 const router = Router();
 
+const hoursQuerySchema = z.object({ hours: z.coerce.number().int().min(1).max(168).default(24) });
+const daysQuerySchema = z.object({ days: z.coerce.number().int().min(1).max(365).default(7) });
+const vesselIdParamSchema = z.object({ vesselId: z.string().min(1) });
+const idParamSchema = z.object({ id: z.string().min(1) });
+const bunkeringQuerySchema = z.object({
+  vesselId: z.string().optional(),
+  days: z.coerce.number().int().min(1).max(365).default(30),
+});
+const vesselIdOptQuerySchema = z.object({ vesselId: z.string().optional() });
+const alertsQuerySchema = z.object({
+  vesselId: z.string().optional(),
+  acknowledged: z.enum(["true", "false"]).optional(),
+  days: z.coerce.number().int().min(1).max(90).default(7),
+});
+const acknowledgeBodySchema = z.object({ acknowledgedBy: z.string().optional() });
+const alertConfigPatchBodySchema = z.object({
+  name: z.string().optional(),
+  config: z.record(z.unknown()).optional(),
+  enabled: z.boolean().optional(),
+  notifyEmail: z.boolean().optional(),
+  notifyInApp: z.boolean().optional(),
+  cooldownMinutes: z.number().int().optional(),
+});
+
 function getOrgId(req: Request): string {
   return (req as AuthenticatedRequest).orgId as string;
 }
@@ -28,8 +52,7 @@ function getFirstRow(result: unknown): Row | undefined {
 // ===== Fleet Vessel Positions =====
 router.get("/fleet-positions", requireOrgId, async (req: Request, res: Response) => {
   try {
-    const { hours = "24" } = req.query;
-    const hoursBack = Math.min(parseInt(hours as string, 10) || 24, 168);
+    const { hours: hoursBack } = hoursQuerySchema.parse(req.query);
     const since = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
 
     const result = await db.execute(sql`
@@ -56,15 +79,15 @@ router.get("/fleet-positions", requireOrgId, async (req: Request, res: Response)
 // ===== Vessel Track History =====
 router.get("/vessel-track/:vesselId", requireOrgId, async (req: Request, res: Response) => {
   try {
-    const { hours = "24" } = req.query;
-    const hoursBack = Math.min(parseInt(hours as string, 10) || 24, 168);
+    const { hours: hoursBack } = hoursQuerySchema.parse(req.query);
+    const { vesselId } = vesselIdParamSchema.parse(req.params);
     const since = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
 
     const result = await db.execute(sql`
       SELECT latitude, longitude, sog,
         cog, heading, timestamp, source
       FROM vessel_track_log
-      WHERE vessel_id = ${req.params.vesselId}
+      WHERE vessel_id = ${vesselId}
         AND org_id = ${getOrgId(req)}
         AND timestamp >= ${since}
       ORDER BY timestamp ASC
@@ -79,11 +102,10 @@ router.get("/vessel-track/:vesselId", requireOrgId, async (req: Request, res: Re
 // ===== Hourly Consumption Aggregates =====
 router.get("/consumption/hourly/:vesselId", requireOrgId, async (req: Request, res: Response) => {
   try {
-    const { hours = "24" } = req.query;
-    const hoursBack = Math.min(parseInt(hours as string, 10) || 24, 168);
+    const { hours: hoursBack } = hoursQuerySchema.parse(req.query);
+    const { vesselId } = vesselIdParamSchema.parse(req.params);
     const since = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
 
-    const vesselId = req.params.vesselId;
     const orgId = getOrgId(req);
     const fuelEquipmentId = `fmcc-fuel-${vesselId}`;
     const engineEquipmentId = `fmcc-engine-${vesselId}`;
@@ -127,11 +149,10 @@ router.get("/consumption/hourly/:vesselId", requireOrgId, async (req: Request, r
 // ===== Daily Summary =====
 router.get("/consumption/daily/:vesselId", requireOrgId, async (req: Request, res: Response) => {
   try {
-    const { days = "7" } = req.query;
-    const daysBack = Math.min(parseInt(days as string, 10) || 7, 90);
+    const { days: daysBack } = daysQuerySchema.parse(req.query);
+    const { vesselId } = vesselIdParamSchema.parse(req.params);
     const since = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
 
-    const vesselId = req.params.vesselId;
     const orgId = getOrgId(req);
     const fuelEquipmentId = `fmcc-fuel-${vesselId}`;
     const engineEquipmentId = `fmcc-engine-${vesselId}`;
@@ -168,8 +189,8 @@ router.get("/consumption/daily/:vesselId", requireOrgId, async (req: Request, re
           sog,
           sog * EXTRACT(EPOCH FROM (timestamp - LAG(timestamp) OVER (PARTITION BY date_trunc('day', timestamp) ORDER BY timestamp))) / 3600.0 as segment_nm
         FROM vessel_track_log
-        WHERE vessel_id = ${req.params.vesselId}
-          AND org_id = ${getOrgId(req)}
+        WHERE vessel_id = ${vesselId}
+          AND org_id = ${orgId}
           AND timestamp >= ${since}
       ) segments
       GROUP BY day
@@ -196,8 +217,7 @@ router.get("/consumption/daily/:vesselId", requireOrgId, async (req: Request, re
 // ===== Bunkering Events =====
 router.get("/bunkering", requireOrgId, async (req: Request, res: Response) => {
   try {
-    const { vesselId, days = "30" } = req.query;
-    const daysBack = Math.min(parseInt(days as string, 10) || 30, 365);
+    const { vesselId, days: daysBack } = bunkeringQuerySchema.parse(req.query);
     const since = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
 
     let q = sql`
@@ -207,7 +227,7 @@ router.get("/bunkering", requireOrgId, async (req: Request, res: Response) => {
       WHERE be.org_id = ${getOrgId(req)} AND be.started_at >= ${since}
     `;
     if (vesselId) {
-      q = sql`${q} AND be.vessel_id = ${vesselId as string}`;
+      q = sql`${q} AND be.vessel_id = ${vesselId}`;
     }
     q = sql`${q} ORDER BY be.started_at DESC LIMIT 200`;
 
@@ -221,11 +241,12 @@ router.get("/bunkering", requireOrgId, async (req: Request, res: Response) => {
 // ===== Tank Levels (latest readings) =====
 router.get("/tanks/:vesselId", requireOrgId, async (req: Request, res: Response) => {
   try {
+    const { vesselId } = vesselIdParamSchema.parse(req.params);
     const result = await db.execute(sql`
       SELECT DISTINCT ON (sensor_type)
         sensor_type, value, ts as timestamp
       FROM equipment_telemetry
-      WHERE equipment_id LIKE ${`fmcc-fuel-${req.params.vesselId}`}
+      WHERE equipment_id LIKE ${`fmcc-fuel-${vesselId}`}
         AND org_id = ${getOrgId(req)}
         AND sensor_type LIKE 'tank_%'
       ORDER BY sensor_type, ts DESC
@@ -240,12 +261,13 @@ router.get("/tanks/:vesselId", requireOrgId, async (req: Request, res: Response)
 // ===== ROB Estimate =====
 router.get("/rob/:vesselId", requireOrgId, async (req: Request, res: Response) => {
   try {
+    const { vesselId } = vesselIdParamSchema.parse(req.params);
     const orgId = getOrgId(req);
     const tankResult = await db.execute(sql`
       SELECT DISTINCT ON (sensor_type)
         sensor_type, value, ts as timestamp
       FROM equipment_telemetry
-      WHERE equipment_id LIKE ${`fmcc-fuel-${req.params.vesselId}`}
+      WHERE equipment_id LIKE ${`fmcc-fuel-${vesselId}`}
         AND org_id = ${orgId}
         AND sensor_type LIKE 'tank_%'
       ORDER BY sensor_type, ts DESC
@@ -254,7 +276,7 @@ router.get("/rob/:vesselId", requireOrgId, async (req: Request, res: Response) =
     const consumptionResult = await db.execute(sql`
       SELECT AVG(value) as avg_consumption_kg_per_h
       FROM equipment_telemetry
-      WHERE equipment_id = ${`fmcc-fuel-${req.params.vesselId}`}
+      WHERE equipment_id = ${`fmcc-fuel-${vesselId}`}
         AND org_id = ${orgId}
         AND sensor_type = 'fuel_consumption'
         AND ts >= ${new Date(Date.now() - 24 * 60 * 60 * 1000)}
@@ -286,7 +308,7 @@ const createAlertConfigSchema = z.object({
 
 router.get("/alerts/configs", requireOrgId, async (req: Request, res: Response) => {
   try {
-    const { vesselId } = req.query;
+    const { vesselId } = vesselIdOptQuerySchema.parse(req.query);
     let q = sql`
       SELECT ac.*, v.name as vessel_name
       FROM rms_alert_configs ac
@@ -294,7 +316,7 @@ router.get("/alerts/configs", requireOrgId, async (req: Request, res: Response) 
       WHERE ac.org_id = ${getOrgId(req)}
     `;
     if (vesselId) {
-      q = sql`${q} AND ac.vessel_id = ${vesselId as string}`;
+      q = sql`${q} AND ac.vessel_id = ${vesselId}`;
     }
     q = sql`${q} ORDER BY ac.name`;
 
@@ -327,14 +349,16 @@ router.post("/alerts/configs", requireOrgId, async (req: Request, res: Response)
 
 router.patch("/alerts/configs/:id", requireOrgId, async (req: Request, res: Response) => {
   try {
+    const { id } = idParamSchema.parse(req.params);
     const existing = await db.execute(sql`
-      SELECT id FROM rms_alert_configs WHERE id = ${req.params.id} AND org_id = ${getOrgId(req)}
+      SELECT id FROM rms_alert_configs WHERE id = ${id} AND org_id = ${getOrgId(req)}
     `);
     if (!getFirstRow(existing)) {
       return res.status(404).json({ error: "Alert config not found" });
     }
 
-    const { name, config, enabled, notifyEmail, notifyInApp, cooldownMinutes } = req.body;
+    const { name, config, enabled, notifyEmail, notifyInApp, cooldownMinutes } =
+      alertConfigPatchBodySchema.parse(req.body);
 
     const result = await db.execute(sql`
       UPDATE rms_alert_configs SET
@@ -345,7 +369,7 @@ router.patch("/alerts/configs/:id", requireOrgId, async (req: Request, res: Resp
         notify_in_app = COALESCE(${notifyInApp ?? null}, notify_in_app),
         cooldown_minutes = COALESCE(${cooldownMinutes ?? null}, cooldown_minutes),
         updated_at = NOW()
-      WHERE id = ${req.params.id} AND org_id = ${getOrgId(req)}
+      WHERE id = ${id} AND org_id = ${getOrgId(req)}
       RETURNING *
     `);
 
@@ -357,8 +381,9 @@ router.patch("/alerts/configs/:id", requireOrgId, async (req: Request, res: Resp
 
 router.delete("/alerts/configs/:id", requireOrgId, async (req: Request, res: Response) => {
   try {
+    const { id } = idParamSchema.parse(req.params);
     const result = await db.execute(sql`
-      DELETE FROM rms_alert_configs WHERE id = ${req.params.id} AND org_id = ${getOrgId(req)} RETURNING id
+      DELETE FROM rms_alert_configs WHERE id = ${id} AND org_id = ${getOrgId(req)} RETURNING id
     `);
     const deleted = getFirstRow(result);
     if (!deleted) {
@@ -373,8 +398,7 @@ router.delete("/alerts/configs/:id", requireOrgId, async (req: Request, res: Res
 // ===== Active Alerts =====
 router.get("/alerts", requireOrgId, async (req: Request, res: Response) => {
   try {
-    const { vesselId, acknowledged, days = "7" } = req.query;
-    const daysBack = Math.min(parseInt(days as string, 10) || 7, 90);
+    const { vesselId, acknowledged, days: daysBack } = alertsQuerySchema.parse(req.query);
     const since = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
 
     let q = sql`
@@ -384,7 +408,7 @@ router.get("/alerts", requireOrgId, async (req: Request, res: Response) => {
       WHERE al.org_id = ${getOrgId(req)} AND al.created_at >= ${since}
     `;
     if (vesselId) {
-      q = sql`${q} AND al.vessel_id = ${vesselId as string}`;
+      q = sql`${q} AND al.vessel_id = ${vesselId}`;
     }
     if (acknowledged === "false") {
       q = sql`${q} AND al.acknowledged = false`;
@@ -403,13 +427,14 @@ router.get("/alerts", requireOrgId, async (req: Request, res: Response) => {
 
 router.patch("/alerts/:id/acknowledge", requireOrgId, async (req: Request, res: Response) => {
   try {
-    const { acknowledgedBy } = req.body;
+    const { id } = idParamSchema.parse(req.params);
+    const { acknowledgedBy } = acknowledgeBodySchema.parse(req.body);
     const result = await db.execute(sql`
       UPDATE rms_alert_log SET
         acknowledged = true,
         acknowledged_by = ${acknowledgedBy || "system"},
         acknowledged_at = NOW()
-      WHERE id = ${req.params.id} AND org_id = ${getOrgId(req)}
+      WHERE id = ${id} AND org_id = ${getOrgId(req)}
       RETURNING *
     `);
     const row = getFirstRow(result);

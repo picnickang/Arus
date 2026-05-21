@@ -15,6 +15,45 @@ export interface SuggestionsRouteDeps {
   requireMaintenanceRole: RoleMiddleware;
 }
 
+const idParamSchema = z.object({ id: z.string().min(1) });
+const createSuggestionBodySchema = z.object({
+  triggerType: z.string().min(1),
+  title: z.string().min(1),
+  summary: z.string().min(1),
+  severity: z.enum(["info", "warning", "critical"]).optional(),
+  entityType: z.string().nullable().optional(),
+  entityId: z.string().nullable().optional(),
+  context: z.record(z.unknown()).nullable().optional(),
+});
+const listSuggestionsQuerySchema = z.object({
+  status: z.string().optional(),
+  triggerType: z.string().optional(),
+});
+const generateBodySchema = z
+  .object({ preferences: z.record(z.unknown()).optional() })
+  .partial();
+const updateSuggestionBodySchema = z.object({
+  status: z.string().optional(),
+  actedOn: z.unknown().optional(),
+});
+const outcomeBodySchema = z
+  .object({
+    outcome: z.string().optional(),
+    outcomeReason: z.string().optional(),
+  })
+  .partial();
+const effectivenessQuerySchema = z.object({
+  days: z.coerce.number().int().positive().optional(),
+});
+const preferencesBodySchema = z.object({
+  maintenance: z.boolean().optional(),
+  predictions: z.boolean().optional(),
+  crew: z.boolean().optional(),
+  inventory: z.boolean().optional(),
+  alerts: z.boolean().optional(),
+  minSeverity: z.enum(["info", "warning", "critical"]).optional(),
+});
+
 export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDeps) {
   const { suggestionEngine, outcomeService, rateLimit, requireAdminRole, requireMaintenanceRole } =
     deps;
@@ -26,17 +65,13 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
-        const { triggerType, title, summary, severity, entityType, entityId, context } = req.body;
-        if (!triggerType || !title || !summary) {
+        const parsed = createSuggestionBodySchema.safeParse(req.body);
+        if (!parsed.success) {
           return res.status(400).json({ error: "triggerType, title, and summary are required" });
         }
-        const validSeverities = ["info", "warning", "critical"];
+        const { triggerType, title, summary, severity, entityType, entityId, context } =
+          parsed.data;
         const sev = severity || "info";
-        if (!validSeverities.includes(sev)) {
-          return res
-            .status(400)
-            .json({ error: `Invalid severity. Valid: ${validSeverities.join(", ")}` });
-        }
         const suggestion = await agentRepo.suggestions.create({
           orgId,
           triggerType,
@@ -46,7 +81,7 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
           status: "pending",
           entityType: entityType || null,
           entityId: entityId || null,
-          context: context || null,
+          context: (context ?? null) as Parameters<typeof agentRepo.suggestions.create>[0]["context"],
         });
         res.status(201).json(suggestion);
       } catch (error: unknown) {
@@ -61,8 +96,7 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
-        const status = req.query.status as string | undefined;
-        const triggerType = req.query.triggerType as string | undefined;
+        const { status, triggerType } = listSuggestionsQuerySchema.parse(req.query);
         let suggestions = await agentRepo.suggestions.list(orgId, status);
         if (triggerType) {
           suggestions = suggestions.filter((s) => s.triggerType === triggerType);
@@ -95,10 +129,10 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
-        const preferences = req.body.preferences || undefined;
+        const { preferences } = generateBodySchema.parse(req.body ?? {});
         const newSuggestions = await suggestionEngine.generateProactiveSuggestions(
           orgId,
-          preferences
+          preferences as Parameters<typeof suggestionEngine.generateProactiveSuggestions>[1]
         );
 
         try {
@@ -128,21 +162,26 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
+        const { id } = idParamSchema.parse(req.params);
+        const body = updateSuggestionBodySchema.parse(req.body);
         const existing = await agentRepo.suggestions.list(orgId, undefined, 1000);
-        const match = existing.find((s) => s.id === req.params.id);
+        const match = existing.find((s) => s.id === id);
         if (!match) {
           return res
             .status(404)
             .json({ error: "Suggestion not found or does not belong to this organization" });
         }
         const allowedUpdates: Record<string, unknown> = {};
-        if (req.body.status) {
-          allowedUpdates.status = req.body.status;
+        if (body.status) {
+          allowedUpdates.status = body.status;
         }
-        if (req.body.actedOn !== undefined) {
-          allowedUpdates.actedOn = req.body.actedOn;
+        if (body.actedOn !== undefined) {
+          allowedUpdates.actedOn = body.actedOn;
         }
-        const suggestion = await agentRepo.suggestions.update(req.params.id, allowedUpdates);
+        const suggestion = await agentRepo.suggestions.update(
+          id,
+          allowedUpdates as Parameters<typeof agentRepo.suggestions.update>[1]
+        );
         res.json(suggestion);
       } catch (error: unknown) {
         res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
@@ -158,17 +197,18 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
         const userId = (req as AuthenticatedRequest).user?.id || "unknown";
-        const { outcome, outcomeReason } = req.body || {};
-        if (outcome && !OUTCOME_CATEGORIES.includes(outcome)) {
+        const { id } = idParamSchema.parse(req.params);
+        const { outcome, outcomeReason } = outcomeBodySchema.parse(req.body ?? {});
+        if (outcome && !OUTCOME_CATEGORIES.includes(outcome as (typeof OUTCOME_CATEGORIES)[number])) {
           return res
             .status(400)
             .json({ error: `Invalid outcome. Valid: ${OUTCOME_CATEGORIES.join(", ")}` });
         }
         const suggestion = await outcomeService.recordOutcome(
           {
-            suggestionId: req.params.id,
+            suggestionId: id,
             orgId,
-            outcome: outcome || null,
+            outcome: (outcome ?? null) as Parameters<typeof outcomeService.recordOutcome>[0]["outcome"],
             outcomeReason: outcomeReason || null,
             outcomeBy: userId,
           },
@@ -192,17 +232,18 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
         const userId = (req as AuthenticatedRequest).user?.id || "unknown";
-        const { outcome, outcomeReason } = req.body || {};
-        if (outcome && !OUTCOME_CATEGORIES.includes(outcome)) {
+        const { id } = idParamSchema.parse(req.params);
+        const { outcome, outcomeReason } = outcomeBodySchema.parse(req.body ?? {});
+        if (outcome && !OUTCOME_CATEGORIES.includes(outcome as (typeof OUTCOME_CATEGORIES)[number])) {
           return res
             .status(400)
             .json({ error: `Invalid outcome. Valid: ${OUTCOME_CATEGORIES.join(", ")}` });
         }
         const suggestion = await outcomeService.recordOutcome(
           {
-            suggestionId: req.params.id,
+            suggestionId: id,
             orgId,
-            outcome: outcome || null,
+            outcome: (outcome ?? null) as Parameters<typeof outcomeService.recordOutcome>[0]["outcome"],
             outcomeReason: outcomeReason || null,
             outcomeBy: userId,
           },
@@ -226,17 +267,18 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
         const userId = (req as AuthenticatedRequest).user?.id || "unknown";
-        const { outcome, outcomeReason } = req.body || {};
-        if (outcome && !OUTCOME_CATEGORIES.includes(outcome)) {
+        const { id } = idParamSchema.parse(req.params);
+        const { outcome, outcomeReason } = outcomeBodySchema.parse(req.body ?? {});
+        if (outcome && !OUTCOME_CATEGORIES.includes(outcome as (typeof OUTCOME_CATEGORIES)[number])) {
           return res
             .status(400)
             .json({ error: `Invalid outcome. Valid: ${OUTCOME_CATEGORIES.join(", ")}` });
         }
         const suggestion = await outcomeService.recordOutcome(
           {
-            suggestionId: req.params.id,
+            suggestionId: id,
             orgId,
-            outcome: outcome || null,
+            outcome: (outcome ?? null) as Parameters<typeof outcomeService.recordOutcome>[0]["outcome"],
             outcomeReason: outcomeReason || null,
             outcomeBy: userId,
           },
@@ -258,8 +300,8 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
-        const days = parseInt(req.query.days as string) || 30;
-        const summary = await outcomeService.getEffectiveness(orgId, Math.min(days, 365));
+        const { days } = effectivenessQuerySchema.parse(req.query);
+        const summary = await outcomeService.getEffectiveness(orgId, Math.min(days ?? 30, 365));
         res.json(summary);
       } catch (error: unknown) {
         res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
@@ -313,15 +355,7 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
         const userId = (req as AuthenticatedRequest).user?.id;
-        const schema = z.object({
-          maintenance: z.boolean().optional(),
-          predictions: z.boolean().optional(),
-          crew: z.boolean().optional(),
-          inventory: z.boolean().optional(),
-          alerts: z.boolean().optional(),
-          minSeverity: z.enum(["info", "warning", "critical"]).optional(),
-        });
-        const parsed = schema.parse(req.body);
+        const parsed = preferencesBodySchema.parse(req.body);
         const prefs = await agentRepo.suggestions.savePreferences(orgId, parsed, userId);
         res.json(prefs);
       } catch (error: unknown) {
