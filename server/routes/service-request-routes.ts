@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import type { AuthenticatedRequest } from "../middleware/auth";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 import { requireOrgId, requireOrgIdAndValidateBody } from "../middleware/auth";
@@ -10,7 +11,7 @@ import { createServiceOrderFromWorkOrder } from "./wo-so-bridge-routes";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 function getOrgId(req: Request): string {
-  const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+  const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
   if (!orgId) {
     throw new Error("Missing orgId");
   }
@@ -18,7 +19,7 @@ function getOrgId(req: Request): string {
 }
 
 function getUserId(req: Request): string {
-  return (req as any).user?.id || (req.headers["x-user-id"] as string) || "system";
+  return (req as AuthenticatedRequest).user?.id || (req.headers["x-user-id"] as string) || "system";
 }
 
 export function registerServiceRequestRoutes(

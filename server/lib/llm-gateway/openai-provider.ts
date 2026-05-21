@@ -34,14 +34,67 @@ export interface OpenAIProviderOptions {
 
 const ZERO_USAGE: LLMUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
 
+// Narrow shapes of the OpenAI chat.completions wire response we extract from.
+// Kept local (and structural) because the `openai` SDK's request/response types
+// have shifted between major versions; using `unknown` + these guards is more
+// stable than importing the SDK's internal types.
+interface OpenAIChatMessageShape {
+  content?: unknown;
+  tool_calls?: unknown;
+}
+interface OpenAIChatChoiceShape {
+  message?: OpenAIChatMessageShape;
+  delta?: OpenAIStreamDeltaShape;
+  finish_reason?: string | null;
+}
+interface OpenAIChatRawShape {
+  choices?: OpenAIChatChoiceShape[];
+  model?: string;
+  usage?: OpenAIUsageShape;
+}
+interface OpenAIUsageShape {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+}
+interface OpenAIToolCallShape {
+  id?: unknown;
+  type?: unknown;
+  function?: { name?: unknown; arguments?: unknown };
+  index?: unknown;
+}
+interface OpenAIStreamDeltaShape {
+  content?: unknown;
+  tool_calls?: OpenAIToolCallShape[];
+}
+interface OpenAIStreamChunkShape {
+  choices?: OpenAIChatChoiceShape[];
+  usage?: OpenAIUsageShape;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function asChatRaw(value: unknown): OpenAIChatRawShape {
+  return isRecord(value) ? (value as OpenAIChatRawShape) : {};
+}
+function asStreamChunk(value: unknown): OpenAIStreamChunkShape {
+  return isRecord(value) ? (value as OpenAIStreamChunkShape) : {};
+}
+
 function toOpenAIMessages(params: LLMChatParams): unknown[] {
   return params.messages.map((m) => {
     // OpenAI's chat.completions API accepts both `string` and
     // `ContentPart[]` for `content`; our LLMContentPart shape is the
     // OpenAI wire shape, so we can pass arrays straight through.
     const base: Record<string, unknown> = { role: m.role, content: m.content };
-    if (m.name) base.name = m.name;
-    if (m.toolCallId) base.tool_call_id = m.toolCallId;
+    if (m.name) {
+      base.name = m.name;
+    }
+    if (m.toolCallId) {
+      base.tool_call_id = m.toolCallId;
+    }
     if (m.toolCalls && m.toolCalls.length > 0) {
       base.tool_calls = m.toolCalls.map((tc) => ({
         id: tc.id,
@@ -54,8 +107,12 @@ function toOpenAIMessages(params: LLMChatParams): unknown[] {
 }
 
 function toOpenAIToolChoice(choice: LLMChatParams["toolChoice"]): unknown {
-  if (!choice) return undefined;
-  if (choice === "auto" || choice === "none") return choice;
+  if (!choice) {
+    return undefined;
+  }
+  if (choice === "auto" || choice === "none") {
+    return choice;
+  }
   return { type: "function", function: { name: choice.function.name } };
 }
 
@@ -83,34 +140,43 @@ function buildOpenAIParams(params: LLMChatParams): Record<string, unknown> {
   return out;
 }
 
-function extractToolCalls(message: unknown): LLMToolCall[] {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tc = (message as any)?.tool_calls;
-  if (!Array.isArray(tc)) return [];
-  return tc
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .filter((t: any) => t?.type === "function" && t?.function?.name)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map((t: any) => ({
+function extractToolCalls(message: OpenAIChatMessageShape | undefined): LLMToolCall[] {
+  const tc = message?.tool_calls;
+  if (!Array.isArray(tc)) {
+    return [];
+  }
+  return (tc as OpenAIToolCallShape[])
+    .filter((t) => t?.type === "function" && isRecord(t.function) && typeof t.function.name === "string")
+    .map((t) => ({
       id: String(t.id),
       type: "function" as const,
       function: {
-        name: String(t.function.name),
-        arguments: typeof t.function.arguments === "string" ? t.function.arguments : "",
+        name: String(t.function?.name ?? ""),
+        arguments: typeof t.function?.arguments === "string" ? t.function.arguments : "",
       },
     }));
 }
 
 function extractUsage(raw: unknown): LLMUsage {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const u = (raw as any)?.usage;
-  if (!u) return ZERO_USAGE;
+  const u = asChatRaw(raw).usage;
+  if (!u) {
+    return ZERO_USAGE;
+  }
   return {
     promptTokens: Number(u.prompt_tokens ?? 0),
     completionTokens: Number(u.completion_tokens ?? 0),
     totalTokens: Number(u.total_tokens ?? 0),
   };
 }
+
+// The `openai` SDK's typed `create()` overloads are extremely strict about
+// param shape; our `buildOpenAIParams` produces a Record<string, unknown>
+// that the production-tested `callWithModelFallback` accepts unchanged.
+// One narrow boundary cast — documented — bridges the two.
+type OpenAICreateClient = OpenAI & {
+  chat: { completions: { create: (params: Record<string, unknown>) => Promise<unknown> } };
+};
+type OpenAIFallbackParams = Parameters<typeof callWithModelFallback>[1];
 
 export class OpenAIProvider implements LLMProviderPort {
   readonly name = "openai";
@@ -138,12 +204,10 @@ export class OpenAIProvider implements LLMProviderPort {
 
     const oaiParams = buildOpenAIParams(params);
     const started = Date.now();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const raw = await callWithModelFallback(client, oaiParams as any);
+    const raw = await callWithModelFallback(client, oaiParams as OpenAIFallbackParams);
     const latencyMs = Date.now() - started;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const choice0 = (raw as any)?.choices?.[0];
+    const choice0 = asChatRaw(raw).choices?.[0];
     const message = choice0?.message;
     const contentRaw = message?.content;
     const content = typeof contentRaw === "string" ? contentRaw : "";
@@ -152,8 +216,7 @@ export class OpenAIProvider implements LLMProviderPort {
       content,
       toolCalls: extractToolCalls(message),
       finishReason: choice0?.finish_reason ?? null,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      model: String((raw as any)?.model ?? params.model),
+      model: String(asChatRaw(raw).model ?? params.model),
       usage: extractUsage(raw),
       provider: this.name,
       latencyMs,
@@ -176,11 +239,11 @@ export class OpenAIProvider implements LLMProviderPort {
     // cannot be retried mid-stream. Mirror callWithModelFallback so that
     // model_overloaded / rate-limit errors fall back to gpt-4o-mini before
     // the first SSE chunk is emitted.
+    const createClient = client as OpenAICreateClient;
     let stream: unknown;
     try {
       stream = await retryWithBackoff(() =>
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (client as any).chat.completions.create(oaiParams)
+        createClient.chat.completions.create(oaiParams)
       );
     } catch (error: unknown) {
       const analysis = analyzeErrorType(error);
@@ -189,8 +252,7 @@ export class OpenAIProvider implements LLMProviderPort {
           `Streaming: falling back from ${oaiParams.model} to ${analysis.fallbackModel} due to: ${analysis.recommendation}`
         );
         stream = await retryWithBackoff(() =>
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (client as any).chat.completions.create({
+          createClient.chat.completions.create({
             ...oaiParams,
             model: analysis.fallbackModel,
           })
@@ -200,27 +262,26 @@ export class OpenAIProvider implements LLMProviderPort {
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for await (const chunk of stream as AsyncIterable<any>) {
-      const choice = chunk?.choices?.[0];
+    for await (const chunkRaw of stream as AsyncIterable<unknown>) {
+      const chunk = asStreamChunk(chunkRaw);
+      const choice = chunk.choices?.[0];
       const delta = choice?.delta;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const toolDeltas: any[] | undefined = delta?.tool_calls;
+      const toolDeltas: OpenAIToolCallShape[] | undefined = delta?.tool_calls;
       const out: LLMStreamChunk = {
         contentDelta: typeof delta?.content === "string" ? delta.content : "",
         finishReason: choice?.finish_reason ?? null,
-        raw: chunk,
+        raw: chunkRaw,
       };
       if (Array.isArray(toolDeltas)) {
         out.toolCallDeltas = toolDeltas.map((t) => ({
           index: Number(t.index ?? 0),
-          id: t.id,
-          name: t.function?.name,
-          argumentsDelta: t.function?.arguments,
+          id: typeof t.id === "string" ? t.id : undefined,
+          name: typeof t.function?.name === "string" ? t.function.name : undefined,
+          argumentsDelta: typeof t.function?.arguments === "string" ? t.function.arguments : undefined,
         }));
       }
-      if (chunk?.usage) {
-        out.usage = extractUsage(chunk);
+      if (chunk.usage) {
+        out.usage = extractUsage(chunkRaw);
       }
       yield out;
     }

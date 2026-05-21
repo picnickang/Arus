@@ -112,23 +112,21 @@ async function main() {
     return;
   }
 
-  if (total > baseline.total) {
-    const delta = total - baseline.total;
+  // Zero-tolerance: tsc has been driven to 0 and must stay there. The baseline
+  // file is retained for historical/reporting context only — the gate is now
+  // a strict `total === 0` check, not a monotonic-decrease ratchet.
+  if (total > 0) {
     console.error(
-      `\n❌ TypeScript error count INCREASED: ${baseline.total} → ${total} (+${delta})`
+      `\n❌ TypeScript errors found: ${total}. Zero-tolerance policy — fix all errors before merging.`
     );
-    console.error("Fix the regression, or — if intentional — update the baseline:");
-    console.error("  node scripts/check-ts-burndown.mjs --write-baseline");
+    if (baseline?.total !== undefined && baseline.total !== total) {
+      console.error(
+        `(Reference: previous baseline was ${baseline.total}; new errors regressed the zero floor.)`
+      );
+    }
     process.exit(1);
   }
-
-  if (total < baseline.total) {
-    console.log(
-      `\n✓ Reduction: ${baseline.total} → ${total} (-${baseline.total - total}). Consider regenerating the baseline.`
-    );
-  } else {
-    console.log("\n✓ TypeScript error count at baseline.");
-  }
+  console.log("\n✓ TypeScript error count is zero.");
 }
 
 main().catch((err) => {

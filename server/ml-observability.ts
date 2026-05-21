@@ -12,7 +12,8 @@
  * touching callsites.
  */
 
-import { logger } from "./utils/logger.js";
+import { createLogger } from "./lib/structured-logger";
+const logger = createLogger("MlObservability");
 
 interface PredictionLikeResult {
   failureProbability?: number;
@@ -28,7 +29,7 @@ export const mlObservability = {
     result: PredictionLikeResult,
     latencyMs: number
   ): void {
-    (logger as any).info("[ML] Prediction success", {
+    logger.info("[ML] Prediction success", {
       equipmentId,
       orgId,
       method,
@@ -46,7 +47,7 @@ export const mlObservability = {
     error: Error,
     latencyMs: number
   ): void {
-    (logger as any).warn("[ML] Prediction failure", {
+    logger.warn("[ML] Prediction failure", {
       equipmentId,
       orgId,
       method,

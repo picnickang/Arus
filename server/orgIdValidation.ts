@@ -4,6 +4,7 @@
 // still uses org_id columns for traceability and future migration paths, but
 // callers must not be able to select an arbitrary org with x-org-id.
 import type { Request, Response, NextFunction } from "express";
+import type { AuthenticatedRequest } from "./middleware/auth";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 const ORG_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
@@ -16,7 +17,7 @@ function suppliedOrgId(req: Request): string | undefined {
 }
 
 function applyDefaultOrgContext(req: Request): void {
-  (req as any).orgId = DEFAULT_ORG_ID;
+  (req as AuthenticatedRequest).orgId = DEFAULT_ORG_ID;
   req.headers["x-org-id"] = DEFAULT_ORG_ID;
   if (req.query) {
     req.query.orgId = DEFAULT_ORG_ID;

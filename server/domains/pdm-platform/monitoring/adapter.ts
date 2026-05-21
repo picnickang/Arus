@@ -8,7 +8,8 @@ import {
   type ModelDriftMetric,
 } from "@shared/schema";
 import type { ModelMonitoringPort } from "./ports";
-import { logger } from "../../../utils/logger";
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("PdmPlatform:Monitoring");
 
 function round(v: number): number {
   return Math.round(v * 100) / 100;
@@ -44,7 +45,7 @@ export class ModelMonitoringAdapter implements ModelMonitoringPort {
     const liveDistributions = await this.getLiveDistributions(orgId, windowDays);
 
     if (Object.keys(trainingRef).length === 0 && Object.keys(liveDistributions).length === 0) {
-      (logger as any).warn("[ModelMonitoring] No data available for drift computation", {
+      logger.warn("[ModelMonitoring] No data available for drift computation", {
         orgId,
         modelVersionId,
       });
@@ -92,7 +93,7 @@ export class ModelMonitoringAdapter implements ModelMonitoringPort {
     }
 
     const drifted = results.filter((r) => r.driftDetected).length;
-    (logger as any).info("[ModelMonitoring] Drift computed from real data", {
+    logger.info("[ModelMonitoring] Drift computed from real data", {
       orgId,
       modelVersionId,
       total: results.length,
@@ -126,7 +127,7 @@ export class ModelMonitoringAdapter implements ModelMonitoringPort {
         }
       }
     } catch {
-      (logger as any).warn("[ModelMonitoring] Could not load model version training stats");
+      logger.warn("[ModelMonitoring] Could not load model version training stats");
     }
 
     if (Object.keys(ref).length === 0) {
@@ -142,7 +143,7 @@ export class ModelMonitoringAdapter implements ModelMonitoringPort {
       }
 
       if (baselines.length > 0) {
-        (logger as any).info("[ModelMonitoring] Using fleet baselines as training reference", {
+        logger.info("[ModelMonitoring] Using fleet baselines as training reference", {
           count: baselines.length,
         });
       }

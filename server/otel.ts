@@ -15,21 +15,38 @@
  * surprise we still let each init independently — Sentry no-ops the
  * duplicate registration internally.
  */
+import { createRequire } from "node:module";
+
 const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
 const enabled = Boolean(endpoint);
 
 let started = false;
 
+// `createRequire` keeps the lazy-load behaviour (the SDK is not pulled in
+// when the env var is absent) while avoiding `require` in this ESM module.
+const requireFromHere = createRequire(import.meta.url);
+
+interface NodeSDKLike {
+  start(): void;
+  shutdown(): Promise<void>;
+}
+interface NodeSDKModule {
+  NodeSDK: new (config: Record<string, unknown>) => NodeSDKLike;
+}
+interface AutoInstrumentationsModule {
+  getNodeAutoInstrumentations: (config?: Record<string, unknown>) => unknown[];
+}
+interface OTLPExporterModule {
+  OTLPTraceExporter: new (config: Record<string, unknown>) => unknown;
+}
+
 if (enabled && endpoint) {
   try {
-    // Lazy require so the SDK is not pulled in when the env var is
-    // absent. Keeps cold-start cost at zero for the common case.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { NodeSDK } = require("@opentelemetry/sdk-node");
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { getNodeAutoInstrumentations } = require("@opentelemetry/auto-instrumentations-node");
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { OTLPTraceExporter } = require("@opentelemetry/exporter-trace-otlp-http");
+    const { NodeSDK } = requireFromHere("@opentelemetry/sdk-node") as NodeSDKModule;
+    const { getNodeAutoInstrumentations } =
+      requireFromHere("@opentelemetry/auto-instrumentations-node") as AutoInstrumentationsModule;
+    const { OTLPTraceExporter } =
+      requireFromHere("@opentelemetry/exporter-trace-otlp-http") as OTLPExporterModule;
 
     const sdk = new NodeSDK({
       serviceName: process.env.OTEL_SERVICE_NAME || "arus-server",
@@ -58,13 +75,11 @@ if (enabled && endpoint) {
 
     // Defer logging to avoid yanking structured-logger before it's ready.
     queueMicrotask(() => {
-      // eslint-disable-next-line no-console
       console.log(
         `[otel] tracing enabled → ${endpoint} (service=${process.env.OTEL_SERVICE_NAME || "arus-server"})`,
       );
     });
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.warn("[otel] failed to initialise; continuing without tracing:", err);
   }
 }
@@ -74,10 +89,14 @@ function parseHeaderEnv(raw: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const part of raw.split(",")) {
     const eq = part.indexOf("=");
-    if (eq < 0) continue;
+    if (eq < 0) {
+      continue;
+    }
     const k = part.slice(0, eq).trim();
     const v = part.slice(eq + 1).trim();
-    if (k) out[k] = v;
+    if (k) {
+      out[k] = v;
+    }
   }
   return out;
 }

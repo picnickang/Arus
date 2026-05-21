@@ -4,6 +4,7 @@
  */
 
 import { createLogger } from "../../../lib/structured-logger";
+import type { AuthenticatedRequest } from "../../../middleware/auth";
 const logger = createLogger("Services:Rag:RateLimiter:Index");
 import { Request, Response, NextFunction } from "express";
 
@@ -144,7 +145,7 @@ export function createRateLimitMiddleware(
   const limiter = config ? new InMemoryRateLimiter({ ...DEFAULT_CONFIG, ...config }) : rateLimiter;
 
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const userId = (req as any).user?.id || (req as any).session?.userId || req.ip || "anonymous";
+    const userId = (req as AuthenticatedRequest).user?.id || (req as AuthenticatedRequest).session?.userId || req.ip || "anonymous";
 
     try {
       const result = await limiter.checkLimit(userId);

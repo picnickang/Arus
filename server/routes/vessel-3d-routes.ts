@@ -74,7 +74,7 @@ const upload = multer({
   storage: multer.diskStorage({
     destination: (req, _file, cb) => {
       try {
-        const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+        const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
         cb(null, orgDir(orgId));
       } catch (e: any) {
         cb(e, "");
@@ -130,7 +130,7 @@ router.post(
   uploadSingleModel,
   async (req: Request, res: Response) => {
     try {
-      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
       const { vesselId } = req.params;
       const file = req.file;
       if (!file) return res.status(400).json({ error: "No file uploaded" });
@@ -229,7 +229,7 @@ router.post(
 // ---------- Latest model metadata for a vessel ----------
 router.get("/vessels/:vesselId/3d-model", async (req: Request, res: Response) => {
   try {
-    const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+    const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
     const { vesselId } = req.params;
     const [row] = await db
       .select()
@@ -249,7 +249,7 @@ router.get("/vessels/:vesselId/3d-model", async (req: Request, res: Response) =>
 // ---------- Stream binary (auth-checked) ----------
 router.get("/vessels/3d-model/:modelId/binary", async (req: Request, res: Response) => {
   try {
-    const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+    const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
     const { modelId } = req.params;
     const [row] = await db
       .select()
@@ -282,7 +282,7 @@ router.get("/vessels/3d-model/:modelId/binary", async (req: Request, res: Respon
 // ---------- Replace equipment pins (admin only) ----------
 router.patch("/vessels/3d-model/:modelId/pins", requireRole("admin", "chief_engineer"), async (req: Request, res: Response) => {
   try {
-    const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+    const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
     const { modelId } = req.params;
     const parsed = pinsSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -422,7 +422,7 @@ router.get(
   "/vessels/equipment/:equipmentId/dependencies",
   async (req: Request, res: Response) => {
     try {
-      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
       const { equipmentId } = req.params;
       const hopsParsed = z.coerce.number().int().min(1).max(5).default(3)
         .safeParse(req.query.maxHops ?? 3);

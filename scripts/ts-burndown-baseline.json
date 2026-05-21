@@ -1,48 +1,10 @@
 {
   "_comment": "TypeScript error burndown baseline. Total must monotonically decrease. Regenerate with: node scripts/check-ts-burndown.mjs --write-baseline",
-  "generatedAt": "2026-05-17T13:14:25.430Z",
-  "total": 1459,
+  "generatedAt": "2026-05-21T05:51:55.759Z",
+  "total": 0,
   "summary": {
-    "byCode": {
-      "TS2339": 513,
-      "TS2345": 236,
-      "TS2322": 234,
-      "TS2769": 94,
-      "TS2353": 69,
-      "TS2554": 63,
-      "TS18046": 33,
-      "TS18048": 28,
-      "TS2367": 24,
-      "TS2740": 23
-    },
-    "byTopFiles": {
-      "server/services/domains/work-order-service.ts": 20,
-      "client/src/features/analytics/hooks/useFinanceModeData.ts": 16,
-      "client/src/pages/deck-logbook/index.tsx": 16,
-      "client/src/features/analytics/hooks/useMaintenanceModeData.ts": 15,
-      "client/src/features/deck-logbook/hooks/useDeckLogbookData.ts": 15,
-      "client/src/pages/pdm-platform/FeatureStoreTab.tsx": 15,
-      "client/src/pages/vessel-management/index.tsx": 15,
-      "client/src/features/analytics/hooks/useMissionOverviewData.ts": 13,
-      "client/src/features/vessels/hooks/useVesselDetail.ts": 13,
-      "server/services/stormgeo/service.ts": 13,
-      "client/src/features/vessels/hooks/useEquipmentViewData.ts": 12,
-      "client/src/pages/fuel-emissions-log.tsx": 12,
-      "client/src/pages/vessel-dashboard/index.tsx": 12,
-      "server/db/crew/db-extended.ts": 12,
-      "server/inventory-engine/availability.ts": 12
-    },
-    "byTopDirs": {
-      "client/src": 456,
-      "server/domains": 324,
-      "server/services": 146,
-      "server/db": 113,
-      "server/routes": 70,
-      "server/compliance": 35,
-      "server/report-context": 24,
-      "server/beast": 16,
-      "server/enhanced-llm": 16,
-      "server/utils": 13
-    }
+    "byCode": {},
+    "byTopFiles": {},
+    "byTopDirs": {}
   }
 }

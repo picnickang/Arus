@@ -21,6 +21,7 @@
  */
 
 import { Express, Request, Response } from "express";
+import type { AuthenticatedRequest } from "../../../middleware/auth";
 import Papa from "papaparse";
 import { insertCrewRestSheetSchema } from "@shared/schema";
 import { withErrorHandling } from "../../../lib/route-utils";
@@ -129,7 +130,7 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
 
       rows = normalizeRestDays(rows);
 
-      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
       const crewId = req.body.sheet?.crewId || req.body.sheet?.crew_id;
       const crewName = req.body.sheet?.crewName || req.body.sheet?.crew_name || "Unknown";
       const sheetData = insertCrewRestSheetSchema.parse({
@@ -276,7 +277,7 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
       let rows: RestDay[] = typeof data === "string" ? JSON.parse(data) : data;
       rows = normalizeRestDays(rows);
 
-      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
       const crewMember = await dbCrewStorage.getCrewMember(crewId);
       const crewName = crewMember?.name || "Unknown";
       const sheet = await dbStcwStorage.createCrewRestSheet({

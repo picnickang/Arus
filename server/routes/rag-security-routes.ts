@@ -6,6 +6,7 @@
  */
 
 import type { Express, Request, Response, NextFunction } from "express";
+import type { AuthenticatedRequest } from "../middleware/auth";
 import { z } from "zod";
 import { logger } from "../utils/logger.js";
 import { withErrorHandling } from "../lib/route-utils.js";
@@ -73,7 +74,7 @@ const ragSecurityConfigUpdateSchema = z
  * Requires valid session with admin privileges
  */
 function requireAdminAuth(req: Request, res: Response, next: NextFunction): void {
-  const session = (req as any).session;
+  const session = (req as AuthenticatedRequest).session;
 
   // In development, allow with dev user
   if (process.env.NODE_ENV === "development") {
@@ -89,16 +90,16 @@ function requireAdminAuth(req: Request, res: Response, next: NextFunction): void
   }
 
   // Check for admin role (using existing RBAC)
-  const userRoles = session.roles || [];
+  const userRoles = session.roles ?? [];
   const isAdmin = userRoles.some(
-    (role: any) =>
+    (role) =>
       role.name === "admin" || role.name === "system_admin" || role.name === "developer"
   );
 
   if (!isAdmin) {
     logger.warn("RagSecurityRoutes", "Unauthorized access attempt to security config", {
       userId: session.userId,
-      roles: userRoles.map((r: any) => r.name),
+      roles: userRoles.map((r) => r.name),
     });
     res.status(403).json({ error: "Admin privileges required" });
     return;
@@ -170,7 +171,7 @@ export function registerRagSecurityRoutes(app: Express): void {
       const updates = parseResult.data as Partial<RagSecurityConfig>;
       const newConfig = updateRagSecurityConfig(updates);
 
-      const session = (req as any).session;
+      const session = (req as AuthenticatedRequest).session;
       logger.info("RagSecurityRoutes", "security_config_update", {
         userId: session?.userId || "unknown",
         orgId: DEFAULT_ORG_ID,
@@ -204,7 +205,7 @@ export function registerRagSecurityRoutes(app: Express): void {
       const { tokenService, config } = getRagSecurityServices();
 
       // Get org context from session or header
-      const session = (req as any).session;
+      const session = (req as AuthenticatedRequest).session;
       const userId = session?.userId || req.body?.userId || "anonymous";
       const orgId = DEFAULT_ORG_ID;
 
@@ -268,7 +269,7 @@ export function registerRagSecurityRoutes(app: Express): void {
     withErrorHandling("get rate limit status", async (req: Request, res: Response) => {
       const { rateLimiter, config } = getRagSecurityServices();
 
-      const session = (req as any).session;
+      const session = (req as AuthenticatedRequest).session;
       const userId = session?.userId || "anonymous";
       const orgId = DEFAULT_ORG_ID;
 

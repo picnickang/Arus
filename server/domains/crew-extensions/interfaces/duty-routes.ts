@@ -4,6 +4,7 @@
  */
 
 import type { Express, Request, Response } from "express";
+import type { AuthenticatedRequest } from "../../../middleware/auth";
 import { z } from "zod";
 import type { CrewExtensionsRoutesConfig } from "./types.js";
 import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
@@ -18,7 +19,7 @@ export function registerDutyRoutes(app: Express, config: CrewExtensionsRoutesCon
     "/api/crew/:id/toggle-duty",
     withErrorHandling("toggle duty status", async (req: Request, res: Response) => {
       const { id } = crewIdSchema.parse(req.params);
-      const orgId = (req as any).orgId;
+      const orgId = (req as AuthenticatedRequest).orgId;
       const crew = await dbCrewStorage.getCrewMember(id, orgId);
       if (!crew) {
         return sendNotFound(res, "Crew member");
@@ -33,7 +34,7 @@ export function registerDutyRoutes(app: Express, config: CrewExtensionsRoutesCon
     crewOperationRateLimit,
     withErrorHandling("toggle duty status", async (req: Request, res: Response) => {
       const { id } = crewIdSchema.parse(req.params);
-      const orgId = (req as any).orgId;
+      const orgId = (req as AuthenticatedRequest).orgId;
       const crew = await dbCrewStorage.getCrewMember(id, orgId);
       if (!crew) {
         return sendNotFound(res, "Crew member");

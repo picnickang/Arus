@@ -30,7 +30,8 @@ import {
 } from "@shared/schema/scheduling-settings";
 import { eq, and, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { logger } from "../../utils/logger";
+import { createLogger } from "../../lib/structured-logger";
+const logger = createLogger("Services:SchedulingSettings");
 import { z } from "zod";
 
 export interface EffectiveSettings {
@@ -46,7 +47,7 @@ export interface EffectiveSettings {
 class SchedulingSettingsService {
   async getSettings(orgId: string, vesselId?: string): Promise<SelectSchedulingSettings | null> {
     if (!orgId) {
-      (logger as any).warn("[SchedulingSettings] getSettings called without orgId");
+      logger.warn("[SchedulingSettings] getSettings called without orgId");
       return null;
     }
 
@@ -58,7 +59,7 @@ class SchedulingSettingsService {
       const [result] = await db.select().from(schedulingSettings).where(conditions).limit(1);
       return result || null;
     } catch (error) {
-      (logger as any).error("[SchedulingSettings] Error fetching settings", { orgId, vesselId, error });
+      logger.error("[SchedulingSettings] Error fetching settings", { orgId, vesselId, error });
       return null;
     }
   }
@@ -135,7 +136,7 @@ class SchedulingSettingsService {
         .where(eq(schedulingSettings.id, existing.id))
         .returning();
 
-      (logger as any).info("[SchedulingSettings] Updated settings", {
+      logger.info("[SchedulingSettings] Updated settings", {
         id: existing.id,
         orgId: validated.orgId,
       });
@@ -144,7 +145,7 @@ class SchedulingSettingsService {
 
     const [created] = await db.insert(schedulingSettings).values(validated).returning();
 
-    (logger as any).info("[SchedulingSettings] Created settings", {
+    logger.info("[SchedulingSettings] Created settings", {
       id: created.id,
       orgId: validated.orgId,
     });

@@ -700,7 +700,7 @@ router.get("/health", async (_req, res) => {
 
 router.get("/alerts", async (req, res) => {
   try {
-    const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+    const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
     const riskQueue = await getRiskQueueUseCase.execute({ orgId, status: "active" });
     const alerts = riskQueue.map((item) => ({
       id: item.id,

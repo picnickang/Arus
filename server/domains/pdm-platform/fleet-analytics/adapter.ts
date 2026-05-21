@@ -2,7 +2,8 @@ import { eq, and, desc, inArray } from "drizzle-orm";
 import { db } from "../../../db";
 import { fleetBaselines, equipmentFeatures, equipment, type FleetBaseline } from "@shared/schema";
 import type { FleetAnalyticsPort, FleetComparisonResult } from "./ports";
-import { logger } from "../../../utils/logger";
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("PdmPlatform:FleetAnalytics");
 
 type FeatureExtractor = (row: typeof equipmentFeatures.$inferSelect) => number | null;
 
@@ -65,14 +66,14 @@ export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
         .where(eq(equipmentFeatures.orgId, orgId))
         .orderBy(desc(equipmentFeatures.timestamp))
         .limit(2000);
-      (logger as any).warn("[FleetAnalytics] No equipment found for type, using all features as fallback", {
+      logger.warn("[FleetAnalytics] No equipment found for type, using all features as fallback", {
         orgId,
         equipmentType,
       });
     }
 
     if (allFeatures.length === 0) {
-      (logger as any).warn("[FleetAnalytics] No feature records found for baseline computation", {
+      logger.warn("[FleetAnalytics] No feature records found for baseline computation", {
         orgId,
         equipmentType,
       });
@@ -124,7 +125,7 @@ export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
       results.push(result);
     }
 
-    (logger as any).info("[FleetAnalytics] Baselines computed from feature records", {
+    logger.info("[FleetAnalytics] Baselines computed from feature records", {
       orgId,
       equipmentType,
       count: results.length,

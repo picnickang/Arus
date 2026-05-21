@@ -10,7 +10,8 @@ import {
   type ModelDeployment,
 } from "@shared/schema";
 import type { ModelRegistryPort } from "./ports";
-import { logger } from "../../../utils/logger";
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("PdmPlatform:ModelRegistry");
 
 export class ModelRegistryAdapter implements ModelRegistryPort {
   async listModels(orgId: string): Promise<MlModel[]> {
@@ -39,7 +40,7 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
 
   async createVersion(data: InsertModelVersion): Promise<ModelVersion> {
     const [result] = await db.insert(modelVersions).values(data).returning();
-    (logger as any).info("[ModelRegistry] Version created", {
+    logger.info("[ModelRegistry] Version created", {
       modelId: data.modelId,
       version: data.version,
     });
@@ -92,7 +93,7 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
       })
       .returning();
 
-    (logger as any).info("[ModelRegistry] Model deployed", {
+    logger.info("[ModelRegistry] Model deployed", {
       orgId,
       modelId,
       modelVersionId,
@@ -135,7 +136,7 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
         .set({ deploymentStatus: "active", deprecatedAt: null })
         .where(eq(modelDeployments.id, previous.id))
         .returning();
-      (logger as any).info("[ModelRegistry] Rolled back", { deploymentId, restoredId: previous.id });
+      logger.info("[ModelRegistry] Rolled back", { deploymentId, restoredId: previous.id });
       return restored;
     }
 

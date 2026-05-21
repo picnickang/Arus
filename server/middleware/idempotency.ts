@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import type { AuthenticatedRequest } from "./auth";
 import { logger } from "../utils/logger";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
@@ -62,7 +63,7 @@ export function idempotencyMiddleware(options?: { required?: boolean }) {
       return next();
     }
 
-    const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+    const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
     const fullKey = `${orgId}:${req.method}:${req.path}:${idempotencyKey}`;
 
     const existing = processedKeys.get(fullKey);

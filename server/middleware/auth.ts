@@ -34,8 +34,17 @@ export interface AuthenticatedRequest extends Request {
       role?: string;
       name?: string;
     };
+    userId?: string;
+    orgId?: string;
+    roles?: Array<{ name?: string }>;
     [key: string]: unknown;
   };
+  /** Set by observability/http-metrics middleware for distributed tracing. */
+  requestId?: string;
+  /** Captured by bootstrap/middleware when the request body parser is configured to retain raw bytes (HMAC verification, webhooks). */
+  rawBody?: Buffer;
+  /** Populated by admin-session middleware on the admin surface. */
+  adminId?: string;
 }
 
 function resolveOrgId(authReq: AuthenticatedRequest): { orgId?: string; error?: string } {

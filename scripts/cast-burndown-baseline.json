@@ -1,36 +1,36 @@
 {
   "_comment": "Type-cast burndown baseline. Total must monotonically decrease. Regenerate with: node scripts/check-cast-burndown.mjs --write-baseline. Adapter boundaries (telemetry/sync/vessel-simulator/external-integrations) are exempt.",
-  "generatedAt": "2026-04-21T11:01:50.920Z",
-  "total": 451,
+  "generatedAt": "2026-05-21T06:08:05.492Z",
+  "total": 1319,
   "summary": {
     "byTopFiles": {
-      "shared/schema-runtime.ts": 76,
-      "server/shared/base-repository.ts": 26,
-      "server/domains/scheduled-reports/interfaces/routes.ts": 14,
-      "server/db/hub-sync/db-hub-sync.ts": 12,
-      "server/domains/sensors/routes.ts": 12,
+      "server/routes/service-request-routes.ts": 16,
+      "client/src/components/ai-health/ReportsTab.tsx": 15,
+      "server/db/hub-sync/db-hub-sync.ts": 15,
+      "client/src/pages/pdm-equipment-detail.tsx": 13,
+      "server/vessel-intelligence/calculation-helpers.ts": 13,
+      "server/db/ml-analytics/db-ml-analytics.ts": 12,
+      "server/db/equipment/db-equipment.ts": 11,
+      "server/domains/ml-analytics/routes/export-partial.ts": 11,
+      "client/src/pages/MaintenanceTemplatesPage.tsx": 10,
+      "server/db/telemetry/db-telemetry.ts": 10,
       "server/domains/maintenance/service.ts": 10,
-      "server/domains/scheduled-reports/generators/fleet-health-generator.ts": 9,
-      "server/domains/scheduled-reports/generators/inventory-status-generator.ts": 9,
-      "server/domains/agent/application/safety-service.ts": 7,
-      "server/domains/pdm-platform/training-pipeline/training-pipeline.service.ts": 7,
-      "server/domains/scheduled-reports/application/report-generation-service.ts": 7,
-      "server/domains/scheduled-reports/generators/maintenance-due-generator.ts": 7,
-      "server/routes/rag-security-routes.ts": 7,
-      "server/domains/scheduled-reports/generators/cost-summary-generator.ts": 6,
-      "server/logging.ts": 6
+      "server/domains/scheduled-reports/generators/inventory-status-generator.ts": 10,
+      "server/db/sensors/db-sensors.ts": 9,
+      "server/domains/inventory/supplier-service.ts": 9,
+      "server/domains/ml-pipeline/routes.ts": 9
     },
     "byTopDirs": {
-      "server/domains": 149,
-      "shared/schema-runtime.ts": 76,
-      "server/routes": 33,
-      "server/db": 31,
-      "server/shared": 26,
-      "server/services": 17,
-      "client/src": 15,
-      "server/import-adapters": 11,
-      "server/ml-ensemble": 8,
-      "server/digital-twin": 7
+      "server/domains": 336,
+      "client/src": 281,
+      "server/db": 126,
+      "server/services": 112,
+      "server/routes": 84,
+      "server/vessel-intelligence": 32,
+      "server/compliance": 26,
+      "server/report-context": 24,
+      "server/lib": 19,
+      "server/ml-prediction": 19
     }
   }
 }

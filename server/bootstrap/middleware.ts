@@ -4,6 +4,7 @@
  */
 
 import { createLogger } from "../lib/structured-logger";
+import type { AuthenticatedRequest } from "../middleware/auth";
 const logger = createLogger("Bootstrap:Middleware");
 import type { Express } from "express";
 import express from "express";
@@ -156,7 +157,7 @@ export function configureMiddleware(app: Express): void {
     express.json({
       limit: "5mb",
       verify: (req, _res, buf) => {
-        (req as any).rawBody = buf;
+        (req as AuthenticatedRequest).rawBody = buf;
       },
     })
   );

@@ -12,11 +12,13 @@ function getOrgId(req: Request): string {
 }
 
 function getUser(req: Request): { id: string; name?: string; rank?: string } {
-  const user = (req as any).user || {};
+  const user = (req as AuthenticatedRequest).user as
+    | { id?: string; name?: string; displayName?: string; rank?: string; role?: string }
+    | undefined;
   return {
-    id: user.id || "unknown",
-    name: user.name || user.displayName || "Unknown",
-    rank: user.rank || user.role || "Unknown",
+    id: user?.id || "unknown",
+    name: user?.name || user?.displayName || "Unknown",
+    rank: user?.rank || user?.role || "Unknown",
   };
 }
 

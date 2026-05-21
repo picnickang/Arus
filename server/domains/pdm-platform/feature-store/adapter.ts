@@ -8,7 +8,8 @@ import {
 import type { FeatureStorePort } from "./ports";
 import type { TelemetryPort, TelemetryReading } from "./telemetry-port";
 import { TelemetryAdapter } from "./telemetry-adapter";
-import { logger } from "../../../utils/logger";
+import { createLogger } from "../../../lib/structured-logger";
+const logger = createLogger("PdmPlatform:FeatureStore");
 
 interface SensorStats {
   mean: number;
@@ -92,7 +93,7 @@ export class FeatureStoreAdapter implements FeatureStorePort {
 
     if (readings.length > 0) {
       features = this.computeFromTelemetry(orgId, equipmentId, windowMinutes, readings);
-      (logger as any).info("[FeatureStore] Computed features from real telemetry", {
+      logger.info("[FeatureStore] Computed features from real telemetry", {
         orgId,
         equipmentId,
         readingCount: readings.length,
@@ -102,7 +103,7 @@ export class FeatureStoreAdapter implements FeatureStorePort {
         throw new Error("No telemetry data available for feature computation; demo fallback disabled in production.");
       }
       features = this.computeStubFeatures(orgId, equipmentId, windowMinutes);
-      (logger as any).warn("[FeatureStore] No telemetry data found, using demo fallback features", {
+      logger.warn("[FeatureStore] No telemetry data found, using demo fallback features", {
         orgId,
         equipmentId,
         windowMinutes,
@@ -110,7 +111,7 @@ export class FeatureStoreAdapter implements FeatureStorePort {
     }
 
     const [result] = await db.insert(equipmentFeatures).values(features).returning();
-    (logger as any).info("[FeatureStore] Stored features", {
+    logger.info("[FeatureStore] Stored features", {
       orgId,
       equipmentId,
       featureId: result.id,
