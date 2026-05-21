@@ -186,6 +186,36 @@ If the strict counters are zero but `ws_outage_events_lost` is also
 zero, peers caught everything via XRANGE replay on the post-outage
 reconnect — the strongest recovery shape.
 
+### Scheduled CI run (Task 145)
+
+`.github/workflows/ws-fanout-chaos-nightly.yml` runs the chaos harness
+on the same nightly cadence as the healthy proof (04:30 UTC, 30 min
+after `ws-fanout-nightly.yml`) as a two-job matrix — once with
+`CHAOS_MODE=pause` and once with `CHAOS_MODE=kill` — so a regression
+in either the `XADD/PUBLISH` fallback + `XRANGE` replay path (`pause`)
+or the `resubscribe-on-ready` path (`kill`) fails the scheduled run
+independently. The job:
+
+1. Enables `DEBUG SLEEP` on the ephemeral Redis service
+   (`CONFIG SET enable-debug-command yes`) — required by `pause` mode.
+2. Invokes `node tests/load/ws-fanout/run-chaos.mjs` with `CHAOS_MODE`
+   pinned by the matrix axis, capturing combined harness + emitter +
+   k6 output into `artifacts/ws-fanout-chaos/run-<mode>.log`.
+3. Parses the k6 end-of-run counters out of that log into a
+   per-mode `summary-<mode>.json` sidecar and a `$GITHUB_STEP_SUMMARY`
+   table (received / outage-lost / strict-missed / handshake-failed /
+   max-tag), so trends across nightly runs can be reconstructed from
+   the archived artifacts without re-running the proof.
+4. Uploads `artifacts/ws-fanout-chaos/` as a per-mode workflow artifact
+   (`ws-fanout-chaos-<mode>-<run_id>`, 30-day retention) on every run.
+5. On a *scheduled* failure (not `workflow_dispatch`), opens a GitHub
+   issue tagged `area/ws-bus` + `alert/scheduled-proof` so whoever
+   owns `server/websocket-fanout-redis.ts` is paged through normal
+   issue-triage.
+
+`workflow_dispatch` exposes `chaos_mode` (`pause` / `kill` / `both`),
+`chaos_duration_ms`, and `emit_duration_ms` inputs for on-demand reruns.
+
 ## Out of scope
 
 - Production deployment of the two-server config.

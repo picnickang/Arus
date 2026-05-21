@@ -1,0 +1,256 @@
+name: WS Fan-out Chaos Proof
+
+# Task 145 — scheduled execution of the Task 134 chaos variant of the
+# WS fan-out proof. Boots an ephemeral Redis + two app servers + the
+# emitter + the k6 chaos scenario via tests/load/ws-fanout/run-chaos.mjs,
+# knocks Redis out mid-run, and fails the run on any STRICT counter
+# breach (pre/post-outage gaps, dropped events outside the outage band,
+# or handshake failures). Runs the chaos harness in BOTH CHAOS_MODE
+# values (pause + kill) as separate matrix jobs so a regression in
+# either the resubscribe-on-ready path or the XADD/PUBLISH fallback +
+# XRANGE replay path is caught.
+#
+# Sibling of .github/workflows/ws-fanout-nightly.yml (healthy-Redis
+# proof). Same schedule shape so both runs land in the same nightly
+# window and operators only have one daily "WS fan-out" status to read.
+
+on:
+  schedule:
+    # 04:30 UTC nightly — 30 min after the healthy proof, so the two
+    # jobs do not compete for the same shared runner capacity.
+    - cron: "30 4 * * *"
+  workflow_dispatch:
+    inputs:
+      chaos_mode:
+        description: "Limit to a single CHAOS_MODE (pause|kill|both)"
+        required: false
+        default: "both"
+      chaos_duration_ms:
+        description: "How long Redis stays down (ms)"
+        required: false
+        default: "5000"
+      emit_duration_ms:
+        description: "Emitter run duration (ms)"
+        required: false
+        default: "120000"
+
+jobs:
+  plan:
+    name: Plan chaos matrix
+    runs-on: ubuntu-latest
+    outputs:
+      modes: ${{ steps.modes.outputs.modes }}
+    steps:
+      - id: modes
+        run: |
+          INPUT="${{ github.event.inputs.chaos_mode }}"
+          case "${INPUT:-both}" in
+            pause) echo 'modes=["pause"]' >> "$GITHUB_OUTPUT" ;;
+            kill)  echo 'modes=["kill"]'  >> "$GITHUB_OUTPUT" ;;
+            *)     echo 'modes=["pause","kill"]' >> "$GITHUB_OUTPUT" ;;
+          esac
+
+  ws-fanout-chaos:
+    name: WS Fan-out Chaos (${{ matrix.chaos_mode }})
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      # Run both modes even if the first one fails so a regression in
+      # only one of the recovery paths is still surfaced in the same run.
+      fail-fast: false
+      matrix:
+        chaos_mode: ${{ fromJson(needs.plan.outputs.modes) }}
+
+    env:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
+      SESSION_SECRET: ci-test-session-secret-not-for-production
+      ARUS_DEPLOYMENT_MODE: CLOUD
+      REDIS_URL: redis://localhost:6379
+      EMIT_DURATION_MS: ${{ github.event.inputs.emit_duration_ms || '120000' }}
+      EMIT_RATE_HZ: "10"
+      CHAOS_MODE: ${{ matrix.chaos_mode }}
+      CHAOS_AT_MS: "20000"
+      CHAOS_DURATION_MS: ${{ github.event.inputs.chaos_duration_ms || '5000' }}
+      CHAOS_GRACE_MS: "1500"
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: arus_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        # `debug` commands (DEBUG SLEEP) must be enabled for pause-mode
+        # chaos. They are off by default in redis >= 7.
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+        env:
+          REDIS_ARGS: "--enable-debug-command yes"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring \
+            --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+          k6 version
+
+      - name: Enable DEBUG commands on Redis service
+        # The redis:7-alpine entrypoint ignores REDIS_ARGS, so flip the
+        # toggle at runtime. DEBUG SLEEP is required by CHAOS_MODE=pause;
+        # CHAOS_MODE=kill works without it but enabling unconditionally
+        # keeps the two matrix jobs configuration-symmetric.
+        run: |
+          redis-cli -h localhost -p 6379 CONFIG SET enable-debug-command yes
+          redis-cli -h localhost -p 6379 CONFIG GET enable-debug-command
+
+      - name: Apply migrations
+        run: npm run db:push
+
+      - name: Prepare artifacts directory
+        run: mkdir -p artifacts/ws-fanout-chaos
+
+      - name: Run chaos fan-out proof (${{ matrix.chaos_mode }})
+        id: run
+        # `set -o pipefail` ensures the harness's exit code (which is
+        # k6's exit code — 99 on threshold breach, non-zero on any
+        # failure) propagates through `tee` so the job fails on any
+        # strict-counter breach. Outage-window losses are tolerated by
+        # the k6 thresholds in ws_fanout_chaos.js and only logged.
+        run: |
+          set -o pipefail
+          node tests/load/ws-fanout/run-chaos.mjs 2>&1 \
+            | tee "artifacts/ws-fanout-chaos/run-${CHAOS_MODE}.log"
+
+      - name: Summarise run
+        if: always()
+        # Pull the k6 end-of-run counters out of the captured log and
+        # write a per-mode block to the job summary, plus a machine-
+        # readable JSON sidecar in the artifact bundle so historical
+        # trends can be reconstructed from the archived runs.
+        run: |
+          LOG="artifacts/ws-fanout-chaos/run-${CHAOS_MODE}.log"
+          SUM="artifacts/ws-fanout-chaos/summary-${CHAOS_MODE}.json"
+          extract() {
+            # k6 prints "metric_name......: <value>" lines; grab the
+            # first numeric token after the colon. Default to "n/a".
+            grep -E "^[[:space:]]*$1" "$LOG" 2>/dev/null \
+              | head -n1 \
+              | sed -E 's/.*:[[:space:]]*([0-9]+(\.[0-9]+)?).*/\1/' \
+              || echo "n/a"
+          }
+          RECEIVED=$(extract ws_events_received)
+          OUTAGE_LOST=$(extract ws_outage_events_lost)
+          MISSED_STRICT=$(extract ws_events_missed_strict)
+          GAPS_STRICT=$(extract ws_gaps_detected_strict)
+          HANDSHAKE=$(extract ws_handshake_failures)
+          MAX_TAG=$(extract ws_max_seen_tag)
+          OUTCOME="${{ steps.run.outcome }}"
+
+          cat > "$SUM" <<JSON
+          {
+            "chaos_mode": "${CHAOS_MODE}",
+            "chaos_duration_ms": ${CHAOS_DURATION_MS},
+            "emit_duration_ms": ${EMIT_DURATION_MS},
+            "outcome": "${OUTCOME}",
+            "run_id": "${{ github.run_id }}",
+            "run_started_at": "${{ github.event.repository.updated_at }}",
+            "metrics": {
+              "ws_events_received": "${RECEIVED}",
+              "ws_outage_events_lost": "${OUTAGE_LOST}",
+              "ws_events_missed_strict": "${MISSED_STRICT}",
+              "ws_gaps_detected_strict": "${GAPS_STRICT}",
+              "ws_handshake_failures": "${HANDSHAKE}",
+              "ws_max_seen_tag": "${MAX_TAG}"
+            }
+          }
+          JSON
+
+          {
+            echo "## WS fan-out chaos — \`${CHAOS_MODE}\`"
+            echo ""
+            echo "| metric | value |"
+            echo "| --- | --- |"
+            echo "| outcome | \`${OUTCOME}\` |"
+            echo "| ws_events_received | ${RECEIVED} |"
+            echo "| ws_outage_events_lost (tolerated) | ${OUTAGE_LOST} |"
+            echo "| ws_events_missed_strict (must be 0) | ${MISSED_STRICT} |"
+            echo "| ws_gaps_detected_strict (must be 0) | ${GAPS_STRICT} |"
+            echo "| ws_handshake_failures (must be 0) | ${HANDSHAKE} |"
+            echo "| ws_max_seen_tag | ${MAX_TAG} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload run artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ws-fanout-chaos-${{ matrix.chaos_mode }}-${{ github.run_id }}
+          path: artifacts/ws-fanout-chaos/
+          retention-days: 30
+
+  notify:
+    name: Page WS-bus owner on failure
+    needs: ws-fanout-chaos
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open / update tracking issue
+        # On a scheduled run failure, open (or bump) a GitHub issue
+        # tagged `area/ws-bus` so whoever owns server/websocket-fanout-
+        # redis.ts is paged through their normal issue-triage channel.
+        # The healthy nightly relies on the same surface; keeping the
+        # chaos failure here too means a single inbox for both proofs.
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `WS fan-out chaos proof failed (run ${context.runId})`;
+            const body = [
+              `The scheduled chaos WS fan-out proof failed.`,
+              ``,
+              `- Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              `- Workflow: \`.github/workflows/ws-fanout-chaos-nightly.yml\``,
+              `- Likely surface: \`server/websocket-fanout-redis.ts\` (resubscribe-on-ready, XADD/PUBLISH fallback, XRANGE replay)`,
+              ``,
+              `Artifacts (per CHAOS_MODE) include the full run log and a`,
+              `\`summary-<mode>.json\` with the k6 counters for trend tracking.`,
+            ].join("\n");
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ["area/ws-bus", "alert/scheduled-proof"],
+            });
