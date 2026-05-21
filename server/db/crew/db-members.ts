@@ -58,7 +58,7 @@ export class DbCrewMembers {
         ...crewData,
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as never)
+      })
       .returning();
     return newCrew;
   }

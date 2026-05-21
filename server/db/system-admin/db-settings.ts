@@ -182,7 +182,7 @@ export class DbSettingsStorage {
     }
     const [updated] = await db
       .update(integrationConfigs)
-      .set(updates as never)
+      .set(updates)
       .where(eq(integrationConfigs.id, id))
       .returning();
     if (!updated) {
@@ -334,7 +334,7 @@ export class DbSettingsStorage {
     }
     const [updated] = await db
       .update(systemHealthChecks)
-      .set(updates as never)
+      .set(updates)
       .where(and(eq(systemHealthChecks.id, id), eq(systemHealthChecks.orgId, orgId)))
       .returning();
     if (!updated) {

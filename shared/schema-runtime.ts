@@ -32,14 +32,23 @@ export const IS_POSTGRES = !isLocalMode;
 // Schema-pick helpers — replace the dual-mode cast pattern
 //   (cond ? A : B) as typeof pgSchema.X
 // with type-safe selectors that compress 70+ escape-hatch / 'as typeof' casts.
+//
+// Both helpers are constrained to Drizzle's `Table` base class so the cast
+// at the boundary is structurally bounded (sqlite/pg tables both extend
+// `Table`). Consumers see the PG-shaped inferred insert/select types,
+// which is the canonical contract across the codebase.
 // ============================================================================
-type _AnyTable = unknown;
-function pickSchema<T>(useSqlite: boolean, sqliteTable: _AnyTable, pgTable: T): T {
-  return (useSqlite ? (sqliteTable as T) : pgTable);
+import type { Table } from "drizzle-orm";
+
+function pickSchema<P extends Table>(useSqlite: boolean, sqliteTable: Table, pgTable: P): P {
+  return useSqlite ? (sqliteTable as P) : pgTable;
 }
 /** Cloud-only table — present only in PostgreSQL mode; undefined in SQLite mode. */
-function cloudOnly<T>(pgTable: T): T {
-  return (isLocalMode ? (undefined as never) : pgTable) as T;
+function cloudOnly<P extends Table>(pgTable: P): P {
+  if (isLocalMode) {
+    return undefined as never;
+  }
+  return pgTable;
 }
 
 
