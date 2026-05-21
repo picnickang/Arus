@@ -10,10 +10,11 @@ import { DualWriteAdapter } from "../../../infrastructure/DualWriteAdapter";
 import { TenantRepositoryFactory } from "../../../infrastructure/TenantScopedRepository";
 
 function transformHealthMetrics(
-  metrics: Array<{ equipment: Equipment; latestScore: any }>
+  metrics: Array<{ equipment: Equipment; latestScore: { score?: number; failureProbability?: number } | null | undefined }>
 ): EquipmentHealth[] {
   return metrics.map(({ equipment, latestScore }) => {
-    const healthIndex = latestScore?.score ?? (equipment as any).healthIndex ?? 0;
+    const equipmentRow = equipment as Equipment & { healthIndex?: number };
+    const healthIndex = latestScore?.score ?? equipmentRow.healthIndex ?? 0;
     const status = healthIndex >= 75 ? "healthy" : healthIndex >= 50 ? "warning" : "critical";
 
     return {
@@ -40,8 +41,13 @@ export async function getEquipmentHealth(
   const health = await adapter.execute<EquipmentHealth[]>({
     operation: "getHealth",
     repositoryFn: async () => {
-      const repo = TenantRepositoryFactory.equipment(orgId);
-      const metrics = await (repo as any).getHealthMetrics(vesselId, equipmentId);
+      const repo = TenantRepositoryFactory.equipment(orgId) as unknown as {
+        getHealthMetrics: (
+          vesselId?: string,
+          equipmentId?: string
+        ) => Promise<Parameters<typeof transformHealthMetrics>[0]>;
+      };
+      const metrics = await repo.getHealthMetrics(vesselId, equipmentId);
       return transformHealthMetrics(metrics);
     },
     legacyFn: async () => equipmentRepository.getHealth(orgId, vesselId as string, equipmentId),
@@ -90,7 +96,7 @@ export async function getEquipmentWithSensorIssues(
         const sensors = await sensorRepo.getAll({ equipmentId: equipment.id });
         const hasSensors = sensors.length > 0;
         const allDisabled = sensors.every((s) => !s.enabled);
-        const criticalDisabled = sensors.some((s: any) => s.isCritical && !s.enabled);
+        const criticalDisabled = sensors.some((s) => (s as { isCritical?: boolean }).isCritical && !s.enabled);
 
         if (!hasSensors || allDisabled || criticalDisabled) {
           equipmentWithIssues.push(equipment);

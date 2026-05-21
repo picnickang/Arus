@@ -105,8 +105,8 @@ export class MaintenanceApplicationService {
       orgId,
       version: 1,
       payload: {
-        previousState: previousSchedule as unknown as Record<string, unknown>,
-        newState: schedule as unknown as Record<string, unknown>,
+        previousState: { ...previousSchedule } as Record<string, unknown>,
+        newState: { ...schedule } as Record<string, unknown>,
         changedFields,
       },
     };
@@ -243,8 +243,8 @@ export class MaintenanceApplicationService {
       orgId: template.orgId,
       version: 1,
       payload: {
-        previousState: previousTemplate as unknown as Record<string, unknown>,
-        newState: template as unknown as Record<string, unknown>,
+        previousState: { ...previousTemplate } as Record<string, unknown>,
+        newState: { ...template } as Record<string, unknown>,
         changedFields,
       },
     };

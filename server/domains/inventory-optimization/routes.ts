@@ -14,6 +14,9 @@ import { logger } from "../../utils/logger.js";
 import type { AuthenticatedRequest } from "../../middleware/auth";
 import { dbInventoryStorage } from "../../db/inventory/index.js";
 import { workOrderService } from "../../repositories.js";
+import type { InventoryStorage } from "../../inventory/storage";
+
+const inventoryStorage = dbInventoryStorage as unknown as InventoryStorage;
 
 interface InventoryOptimizationDependencies {
   generalApiRateLimit: RateLimitRequestHandler;
@@ -59,7 +62,7 @@ export function registerInventoryOptimizationRoutes(
       const validWorkOrders = allOrders.filter((wo) => workOrderIdSet.has(wo.id));
 
       const { planMaintenanceCosts } = await import("../../inventory");
-      const costPlan = await planMaintenanceCosts(validWorkOrders, dbInventoryStorage as any, orgId);
+      const costPlan = await planMaintenanceCosts(validWorkOrders, inventoryStorage, orgId);
 
       res.json(costPlan);
     })
@@ -81,7 +84,7 @@ export function registerInventoryOptimizationRoutes(
       const orgId = (req as AuthenticatedRequest).orgId;
 
       const { findPartSubstitutions } = await import("../../inventory");
-      const substitutions = await findPartSubstitutions(partNo, dbInventoryStorage as any, orgId);
+      const substitutions = await findPartSubstitutions(partNo, inventoryStorage, orgId);
 
       res.json(substitutions);
     })
@@ -156,7 +159,7 @@ export function registerInventoryOptimizationRoutes(
           : 365;
 
       const { autoOptimizeInventory } = await import("../../inventory/auto-optimization");
-      const results = await autoOptimizeInventory(orgId, partNumbers, days, dbInventoryStorage as any);
+      const results = await autoOptimizeInventory(orgId, partNumbers, days, inventoryStorage);
 
       if (results.length === 0) {
         res.status(400).json({

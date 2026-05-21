@@ -16,9 +16,9 @@ import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../..
 export function registerDeviceRoutes(
   app: Express,
   rateLimit: {
-    writeOperationRateLimit: any;
-    criticalOperationRateLimit: any;
-    generalApiRateLimit: any;
+    writeOperationRateLimit: import("../../lib/rate-limit-factory").RateLimit;
+    criticalOperationRateLimit: import("../../lib/rate-limit-factory").RateLimit;
+    generalApiRateLimit: import("../../lib/rate-limit-factory").RateLimit;
   }
 ) {
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimit;
@@ -31,10 +31,10 @@ export function registerDeviceRoutes(
     withErrorHandling("fetch devices", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
 
-      const devices = await (safeDbOperation as any)(
+      const devices = await safeDbOperation(
         () => deviceService.getDevicesWithStatus(orgId),
         "getDevicesWithStatus",
-        { defaultValue: [] }
+        async () => [] as Awaited<ReturnType<typeof deviceService.getDevicesWithStatus>>
       );
 
       res.json(devices);

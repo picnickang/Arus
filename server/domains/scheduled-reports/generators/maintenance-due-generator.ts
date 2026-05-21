@@ -29,21 +29,22 @@ export class MaintenanceDueGenerator implements IMaintenanceDueGenerator {
       for (const vessel of filteredVessels) {
         const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId, {
           status: "pending",
-        } as any);
+          vesselId: vessel.id,
+        });
 
         for (const task of schedules) {
-          const dueDate = (task as any).dueDate ? new Date((task as any).dueDate) : null;
+          const dueDate = task.scheduledDate ? new Date(task.scheduledDate) : null;
 
           if (dueDate && dueDate <= sixtyDaysFromNow) {
-            const equipment = (task as any).equipmentId
-              ? await dbEquipmentStorage.getEquipment(orgId, (task as any).equipmentId)
+            const equipment = task.equipmentId
+              ? await dbEquipmentStorage.getEquipment(orgId, task.equipmentId)
               : null;
 
             items.push({
               id: task.id,
               equipmentName: equipment?.name || "Unknown Equipment",
               vesselName: vessel.name,
-              taskName: (task as any).title || (task as any).name || "Maintenance Task",
+              taskName: task.description || task.maintenanceType || "Maintenance Task",
               dueDate,
               priority: this.calculatePriority(dueDate, now),
             });

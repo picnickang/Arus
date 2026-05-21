@@ -36,7 +36,7 @@ export class InventoryRepository {
     search?: string,
     sortBy?: string,
     sortOrder?: "asc" | "desc"
-  ): Promise<any[]> {
+  ): Promise<PartsInventory[]> {
     return dbInventoryStorage.getPartsInventory(category, orgId, search, sortBy, sortOrder);
   }
 
@@ -60,7 +60,11 @@ export class InventoryRepository {
     partId: string,
     updateData: { unitCost: number; supplier: string }
   ): Promise<PartsInventory> {
-    return dbAnalyticsStorage.updatePartCost(partId, updateData, "default-org-id") as unknown as PartsInventory;
+    return dbAnalyticsStorage.updatePartCost(
+      partId,
+      updateData,
+      "default-org-id"
+    ) as unknown as Promise<PartsInventory>;
   }
 
   async updatePartStock(
@@ -72,7 +76,11 @@ export class InventoryRepository {
       maxStockLevel?: number;
     }
   ): Promise<PartsInventory> {
-    return dbAnalyticsStorage.updatePartStockQuantities(partId, updateData, "default-org-id") as unknown as PartsInventory;
+    return dbAnalyticsStorage.updatePartStockQuantities(
+      partId,
+      updateData,
+      "default-org-id"
+    ) as unknown as Promise<PartsInventory>;
   }
 
   async checkAvailability(
@@ -88,20 +96,35 @@ export class InventoryRepository {
   }
 
   async findCompatibleEquipment(partId: string, orgId: string): Promise<Equipment[]> {
-    const eqs: any[] = await dbEquipmentStorage.getEquipmentRegistry(orgId);
-    return eqs.filter((e: any) =>
-      "compatibleParts" in e && Array.isArray(e.compatibleParts)
-        ? e.compatibleParts.includes(partId)
-        : false
+    const eqs = await dbEquipmentStorage.getEquipmentRegistry(orgId);
+    return eqs.filter((e) => {
+      const bag = e as Equipment & { compatibleParts?: unknown };
+      return Array.isArray(bag.compatibleParts) && bag.compatibleParts.includes(partId);
+    });
+  }
+
+  async updateCompatibility(
+    partId: string,
+    equipmentIds: string[],
+    _orgId: string
+  ): Promise<Part> {
+    const existing = await dbInventoryStorage.getPart(partId, _orgId);
+    if (!existing) {
+      throw new Error(`Part ${partId} not found`);
+    }
+    return dbInventoryStorage.updatePart(
+      partId,
+      { compatibleEquipment: equipmentIds } as Parameters<typeof dbInventoryStorage.updatePart>[1],
+      _orgId
     );
   }
 
-  async updateCompatibility(partId: string, equipmentIds: string[], orgId: string): Promise<Part> {
-    return (dbInventoryStorage as any).updatePartCatalogue(partId, { compatibleEquipment: equipmentIds });
-  }
-
   async findPartsForEquipment(equipmentId: string, orgId: string): Promise<Part[]> {
-    return (dbInventoryStorage as any).getPartsForEquipment(equipmentId, orgId);
+    const allParts = await dbInventoryStorage.getParts(orgId);
+    return allParts.filter((p) => {
+      const bag = p as Part & { compatibleEquipment?: unknown };
+      return Array.isArray(bag.compatibleEquipment) && bag.compatibleEquipment.includes(equipmentId);
+    });
   }
 
   async findLowStockParts(orgId?: string): Promise<PartsInventory[]> {

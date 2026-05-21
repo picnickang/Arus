@@ -10,23 +10,31 @@ import { checkMonthCompliance, normalizeRestDays } from "../../../stcw-complianc
 import type { CrewAlertResult, EvaluationContext } from "./types.js";
 import { getSeverityFromMinSeverity } from "./helpers.js";
 import { logger } from "../../../utils/logger.js";
+import type { CrewAlertSettings, CrewRestDay, CrewRestSheet } from "@shared/schema";
 
-function hasValidRestData(restData: any): boolean {
-  return restData?.sheet && restData?.days && restData.days.length > 0;
+type CrewRestData = { sheet: CrewRestSheet | null; days: CrewRestDay[] };
+type ComplianceFailedDay = { date: string; day_ok?: boolean };
+type ComplianceFailedRolling = { end_date: string; rest_7d: number; ok?: boolean };
+
+function hasValidRestData(restData: CrewRestData | undefined): restData is CrewRestData & {
+  sheet: CrewRestSheet;
+  days: CrewRestDay[];
+} {
+  return Boolean(restData?.sheet && restData?.days && restData.days.length > 0);
 }
 
 function createDailyViolationAlert(
   crewId: string,
   vesselId: string,
   now: Date,
-  failedDays: any[],
-  settings: any
+  failedDays: ComplianceFailedDay[],
+  settings: CrewAlertSettings
 ): CrewAlertResult {
   return {
     triggered: true,
     alertType: "hor_violation_daily",
     alertKey: `hor_violation_daily_${crewId}_${format(now, "yyyy-MM")}`,
-    severity: getSeverityFromMinSeverity(settings.horViolationMinSeverity),
+    severity: getSeverityFromMinSeverity(settings.horViolationMinSeverity ?? undefined),
     title: "Hours of Rest Violation - Daily",
     message: `Crew member has ${failedDays.length} daily rest violations this month`,
     entityId: crewId,
@@ -46,14 +54,14 @@ function createWeeklyViolationAlert(
   crewId: string,
   vesselId: string,
   now: Date,
-  failed7d: any[],
-  settings: any
+  failed7d: ComplianceFailedRolling[],
+  settings: CrewAlertSettings
 ): CrewAlertResult {
   return {
     triggered: true,
     alertType: "hor_violation_weekly",
     alertKey: `hor_violation_weekly_${crewId}_${format(now, "yyyy-MM")}`,
-    severity: getSeverityFromMinSeverity(settings.horViolationMinSeverity),
+    severity: getSeverityFromMinSeverity(settings.horViolationMinSeverity ?? undefined),
     title: "Hours of Rest Violation - 7-Day Rolling",
     message: `Crew member has ${failed7d.length} rolling 7-day rest violations`,
     entityId: crewId,
@@ -71,10 +79,10 @@ function createWeeklyViolationAlert(
 
 function processCrewRestData(
   crewId: string,
-  restData: any,
+  restData: CrewRestData | undefined,
   vesselId: string,
   now: Date,
-  settings: any,
+  settings: CrewAlertSettings,
   results: CrewAlertResult[]
 ): void {
   if (!hasValidRestData(restData)) {
@@ -88,8 +96,8 @@ function processCrewRestData(
     return;
   }
 
-  const failedDays = compliance.days.filter((d) => !d.day_ok);
-  const failed7d = compliance.rolling7d.filter((r) => !r.ok);
+  const failedDays = compliance.days.filter((d) => !d.day_ok) as ComplianceFailedDay[];
+  const failed7d = compliance.rolling7d.filter((r) => !r.ok) as ComplianceFailedRolling[];
 
   if (failedDays.length > 0) {
     results.push(createDailyViolationAlert(crewId, vesselId, now, failedDays, settings));
@@ -117,7 +125,7 @@ export async function evaluateHoRViolationAlerts(
 
   for (const vessel of vessels) {
     try {
-      const vesselCrewRest = await (dbStcwStorage as any).getVesselCrewRest(
+      const vesselCrewRest = await dbStcwStorage.getVesselCrewRest(
         vessel.id,
         currentYear,
         currentMonth

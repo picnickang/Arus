@@ -45,7 +45,11 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
         workOrderId: req.params.id,
       };
 
-      const part = await (workOrderService as any).addBulkPartsToWorkOrder(partData);
+      const part = await workOrderService.addBulkPartsAndReserveInventory(
+        req.params.id,
+        [partData],
+        orgId
+      );
       sendCreated(res, part);
     })
   );
@@ -178,8 +182,8 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
         newEndDate.setDate(newEndDate.getDate() + additionalDays);
 
         const updated = await workOrderService.updateWorkOrder(req.params.id, {
-          plannedEndDate: newEndDate.toISOString() as any,
-        });
+          plannedEndDate: newEndDate,
+        } as Parameters<typeof workOrderService.updateWorkOrder>[1]);
 
         await dbInventoryStorage.addWorkOrderHistoryEntry({
           orgId,
@@ -190,7 +194,7 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
           performedBy: (req as AuthenticatedRequest).user?.name || "System",
           previousValue: JSON.stringify({ plannedEndDate: workOrder.plannedEndDate }),
           newValue: JSON.stringify({ plannedEndDate: newEndDate.toISOString() }),
-        } as any);
+        } as Parameters<typeof dbInventoryStorage.addWorkOrderHistoryEntry>[0]);
 
         res.json(updated);
       }

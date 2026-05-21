@@ -118,7 +118,11 @@ export async function createEquipment(
   });
 
   try {
-    await (equipmentAnalyticsService as any).setupEquipmentAnalytics?.(equipment);
+    await (
+      equipmentAnalyticsService as unknown as {
+        setupEquipmentAnalytics?: (e: typeof equipment) => Promise<unknown>;
+      }
+    ).setupEquipmentAnalytics?.(equipment);
     logger.info(
       "EquipmentService",
       `Analytics setup completed for equipment ${equipment.id} (type: ${equipment.type})`

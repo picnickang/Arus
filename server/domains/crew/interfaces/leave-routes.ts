@@ -17,10 +17,13 @@ export function registerLeaveRoutes({ app, rateLimit }: CrewRouteDeps): void {
     generalApiRateLimit,
     withErrorHandling("fetch crew leave", async (req, res) => {
       const { crewId, startDate, endDate } = req.query;
+      type ListLeaveDateArg = Parameters<typeof crewService.listLeave>[1];
+      const toDate = (v: unknown): ListLeaveDateArg =>
+        (v ? new Date(v as string).toISOString() : undefined) as ListLeaveDateArg;
       const leave = await crewService.listLeave(
         crewId as string | undefined,
-        (startDate ? new Date(startDate as string).toISOString() : undefined) as any,
-        (endDate ? new Date(endDate as string).toISOString() : undefined) as any
+        toDate(startDate),
+        toDate(endDate)
       );
       res.json(leave);
     })

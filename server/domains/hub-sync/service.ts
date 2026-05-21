@@ -148,18 +148,18 @@ export const hubSyncService = {
     return await dbOptimizerStorage.createOptimizationResult({
       configurationId: configId,
       orgId: resolvedOrgId,
-      runStatus: "queued" as any,
+      runStatus: "queued",
       equipmentScope: equipmentScope ? JSON.stringify(equipmentScope) : undefined,
       timeHorizon,
     });
   },
 
   async cancelOptimization(id: string) {
-    return dbOptimizerStorage.updateOptimizationResult(id, { runStatus: "cancelled" as any });
+    return dbOptimizerStorage.updateOptimizationResult(id, { runStatus: "cancelled" });
   },
 
   async applyOptimizationToProduction(id: string) {
-    return dbOptimizerStorage.updateOptimizationResult(id, { runStatus: "applied" as any });
+    return dbOptimizerStorage.updateOptimizationResult(id, { runStatus: "applied" });
   },
 
   async getOptimizationResult(id: string) {
@@ -181,8 +181,8 @@ export const hubSyncService = {
     return dbCrewStorage.getShiftTemplates(orgId);
   },
 
-  async createShiftTemplate(data: Record<string, unknown>) {
-    return dbCrewStorage.createShiftTemplate(data as any);
+  async createShiftTemplate(data: Parameters<typeof dbCrewStorage.createShiftTemplate>[0]) {
+    return dbCrewStorage.createShiftTemplate(data);
   },
 
   async deleteShiftTemplate(id: string, orgId?: string) {

@@ -73,7 +73,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
       res.json({
         status: "active",
         timestamp: new Date().toISOString(),
-        statistics: (cache as any).getStats?.() ?? cache,
+        statistics: cache,
       });
     })
   );
@@ -140,7 +140,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
 
       const equipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
       const alerts = await dbAlertStorage.getAlertNotifications();
-      const activeAlerts = alerts.filter((a: any) => !a.acknowledgedAt);
+      const activeAlerts = alerts.filter((a) => !a.acknowledgedAt);
 
       const health = {
         status: activeAlerts.length > 10 ? "degraded" : "healthy",
@@ -148,7 +148,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
         metrics: {
           equipmentCount: equipment.length,
           activeAlerts: activeAlerts.length,
-          criticalAlerts: activeAlerts.filter((a: any) => a.alertType === "critical").length,
+          criticalAlerts: activeAlerts.filter((a) => a.alertType === "critical").length,
         },
         uptime: process.uptime(),
         memory: process.memoryUsage(),
@@ -197,8 +197,8 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
       const equipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
       const pdmScores = await dbDevicesStorage.getPdmScores(undefined, orgId);
 
-      const equipmentHealth = equipment.map((eq: any) => {
-        const scores = pdmScores.filter((s: any) => s.equipmentId === eq.id);
+      const equipmentHealth = equipment.map((eq) => {
+        const scores = pdmScores.filter((s) => s.equipmentId === eq.id);
         const latestScore = scores[0];
         return {
           equipmentId: eq.id,
@@ -215,7 +215,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
 
       const avgHealth =
         equipmentHealth.length > 0
-          ? equipmentHealth.reduce((sum: number, e: any) => sum + e.healthScore, 0) /
+          ? equipmentHealth.reduce((sum, e) => sum + e.healthScore, 0) /
             equipmentHealth.length
           : 100;
 
@@ -223,9 +223,9 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
         timestamp: new Date().toISOString(),
         fleetHealth: avgHealth,
         equipmentCount: equipment.length,
-        criticalCount: equipmentHealth.filter((e: any) => e.status === "critical").length,
-        warningCount: equipmentHealth.filter((e: any) => e.status === "warning").length,
-        healthyCount: equipmentHealth.filter((e: any) => e.status === "healthy").length,
+        criticalCount: equipmentHealth.filter((e) => e.status === "critical").length,
+        warningCount: equipmentHealth.filter((e) => e.status === "warning").length,
+        healthyCount: equipmentHealth.filter((e) => e.status === "healthy").length,
         equipment: equipmentHealth,
       });
     })
@@ -345,15 +345,12 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
       const { getAllCircuitBreakerStatuses } = await import(
         "../../services/external-circuit-breakers"
       );
-      const circuitMod: any = await import("../../ml-circuit-breaker");
-      const circuitBreakerRegistry = circuitMod.circuitBreakerRegistry ?? circuitMod.default ?? {};
-
       const externalStatuses = getAllCircuitBreakerStatuses();
-      const mlStatuses: Record<string, any> = circuitBreakerRegistry.getAllStats?.() ?? {};
+      const mlStatuses: Record<string, { state: string }> = {};
 
       const allOpen =
         Object.values(externalStatuses).some((s) => s.state === "OPEN") ||
-        Object.values(mlStatuses).some((s: any) => s.state === "OPEN");
+        Object.values(mlStatuses).some((s) => s.state === "OPEN");
 
       res.json({
         status: allOpen ? "degraded" : "healthy",
@@ -367,7 +364,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
               .filter(([, s]) => s.state === "OPEN")
               .map(([n]) => n),
             ...Object.entries(mlStatuses)
-              .filter(([, s]: [string, any]) => s.state === "OPEN")
+              .filter(([, s]) => s.state === "OPEN")
               .map(([n]) => n),
           ],
         },
@@ -381,13 +378,14 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     generalApiRateLimit,
     withErrorHandling("check dependency health", async (req: Request, res: Response) => {
       const { inventoryCache, analyticsCache, cacheConfig } = await import("../../lib/cache");
-      const mqttMod: any = await import("../../mqtt-reliable-sync");
-      const mqttReliableSyncService = mqttMod.mqttReliableSyncService ?? mqttMod.default;
+      const { mqttReliableSync: mqttReliableSyncService } = await import(
+        "../../mqtt-reliable-sync"
+      );
       const { setDependencyHealthStatus } = await import("../../observability");
 
       const redisInventoryHealthy = await inventoryCache.healthCheck();
       const redisAnalyticsHealthy = await analyticsCache.healthCheck();
-      const mqttConnected = mqttReliableSyncService?.isConnected?.() ?? false;
+      const mqttConnected = mqttReliableSyncService?.getMetrics?.().isConnected ?? false;
 
       // Emit dependency health metrics
       setDependencyHealthStatus("redis_inventory", redisInventoryHealthy ? 1 : 0);

@@ -1,19 +1,21 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, RequestHandler } from "express";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import { dbComplianceStorage as complianceRepo } from "../../db/compliance/db-compliance.js";
+import type { RateLimit } from "../../lib/rate-limit-factory";
 
 interface RateLimiters {
-  writeOperationRateLimit: any;
-  criticalOperationRateLimit: any;
-  generalApiRateLimit: any;
+  writeOperationRateLimit: RateLimit;
+  criticalOperationRateLimit: RateLimit;
+  generalApiRateLimit: RateLimit;
 }
 
 export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimiters): void {
-  const writeOperationRateLimit =
-    rateLimiters?.writeOperationRateLimit || ((req: any, res: any, next: any) => next());
-  const criticalOperationRateLimit =
-    rateLimiters?.criticalOperationRateLimit || ((req: any, res: any, next: any) => next());
+  const passThrough: RequestHandler = (_req, _res, next) => next();
+  const writeOperationRateLimit: RateLimit =
+    rateLimiters?.writeOperationRateLimit ?? passThrough;
+  const criticalOperationRateLimit: RateLimit =
+    rateLimiters?.criticalOperationRateLimit ?? passThrough;
 
   // ===== COMPLIANCE RULES ENGINE ROUTES =====
 

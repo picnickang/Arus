@@ -45,11 +45,11 @@ export const rangeQuerySchema = z.object({
 
 export interface StcwRestDependencies {
   writeOperationRateLimit: RateLimitRequestHandler;
-  checkMonthCompliance: (rows: RestDay[]) => any;
-  normalizeRestDays: (rows: any[]) => RestDay[];
+  checkMonthCompliance: (rows: RestDay[]) => unknown;
+  normalizeRestDays: (rows: unknown[]) => RestDay[];
   generatePdfFilename: (crewId: string, year: number, month: string) => string;
   renderRestPdf: (
-    sheet: any,
+    sheet: unknown,
     days: RestDay[],
     options: { outputPath: string; title: string }
   ) => Promise<void>;

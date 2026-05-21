@@ -70,11 +70,10 @@ export function registerNotificationRoutes({ app, rateLimit }: CrewRouteDeps): v
 
       const settingsData = emailSchema.parse(req.body);
 
-      const settings = await (crewService.upsertCrewNotificationSettings as any)(
+      const settings = await crewService.upsertCrewNotificationSettings(
         crewId,
         orgId,
-        settingsData,
-        req.user?.id
+        settingsData
       );
 
       res.json(settings);

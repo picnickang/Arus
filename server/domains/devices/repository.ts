@@ -7,7 +7,7 @@ export class DeviceRepository {
   }
 
   async findById(id: string, orgId?: string): Promise<Device | undefined> {
-    return dbDevicesStorage.getDevice(id, orgId) as any;
+    return dbDevicesStorage.getDevice(id, orgId) as Promise<Device | undefined>;
   }
 
   async create(device: InsertDevice): Promise<Device> {
@@ -15,7 +15,7 @@ export class DeviceRepository {
   }
 
   async update(id: string, data: Partial<InsertDevice>, orgId: string): Promise<Device> {
-    return dbDevicesStorage.updateDevice(id, data, orgId) as any;
+    return dbDevicesStorage.updateDevice(id, data, orgId) as Promise<Device>;
   }
 
   async delete(id: string, orgId: string): Promise<void> {

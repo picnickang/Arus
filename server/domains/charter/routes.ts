@@ -12,13 +12,41 @@ function getOrgId(req: Request): string {
   return (req as AuthenticatedRequest).orgId as string;
 }
 
-function getRows(result: any): any[] {
-  return Array.isArray(result) ? result : (result as any)?.rows || [];
+type DbRow = Record<string, unknown>;
+type ExecResult = unknown;
+
+function getRows(result: ExecResult): DbRow[] {
+  if (Array.isArray(result)) {
+    return result as DbRow[];
+  }
+  if (result && typeof result === "object" && "rows" in result) {
+    const rows = (result as { rows?: unknown }).rows;
+    return Array.isArray(rows) ? (rows as DbRow[]) : [];
+  }
+  return [];
 }
 
-function getFirstRow(result: any): any | undefined {
+function getFirstRow(result: ExecResult): DbRow | undefined {
   return getRows(result)[0];
 }
+
+type CharterRow = DbRow & {
+  id?: string;
+  vessel_id?: string;
+  target_availability_pct?: number | null;
+  target_fuel_consumption?: number | null;
+  target_dp_uptime_pct?: number | null;
+};
+
+type KpiRow = DbRow & {
+  availability_pct?: number | null;
+  off_hire_hours?: number | null;
+  fuel_consumption_mt?: number | null;
+  dp_uptime_pct?: number | null;
+  availability_compliant?: boolean | null;
+  fuel_compliant?: boolean | null;
+  dp_compliant?: boolean | null;
+};
 
 const createCharterSchema = z.object({
   vesselId: z.string().min(1),
@@ -134,7 +162,7 @@ router.post("/kpi", requireOrgId, async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Charter not found" });
     }
 
-    const c = charter as any;
+    const c = charter as CharterRow;
     const availCompliant =
       data.availabilityPct != null
         ? data.availabilityPct >= (c.target_availability_pct || 0)
@@ -209,8 +237,8 @@ router.get("/:charterId/performance", requireOrgId, async (req: Request, res: Re
         AND period_start >= ${cutoff}
       ORDER BY period_start ASC
     `);
-    const kpis = getRows(kpiResult) as any[];
-    const c = charter as any;
+    const kpis = getRows(kpiResult) as KpiRow[];
+    const c = charter as CharterRow;
 
     const totalDays = kpis.length;
     const avgAvailability =
@@ -221,7 +249,7 @@ router.get("/:charterId/performance", requireOrgId, async (req: Request, res: Re
     const dpEntries = kpis.filter((k) => k.dp_uptime_pct != null);
     const avgDpUptime =
       dpEntries.length > 0
-        ? dpEntries.reduce((s, k) => s + k.dp_uptime_pct, 0) / dpEntries.length
+        ? dpEntries.reduce((s, k) => s + (k.dp_uptime_pct ?? 0), 0) / dpEntries.length
         : null;
 
     res.json({
@@ -283,7 +311,11 @@ router.get("/fleet-overview", requireOrgId, async (req: Request, res: Response) 
       ORDER BY v.name
     `);
 
-    const charters = getRows(result) as any[];
+    type FleetCharterRow = DbRow & {
+      avg_availability_30d?: number | null;
+      target_availability_pct?: number | null;
+    };
+    const charters = getRows(result) as FleetCharterRow[];
 
     res.json({
       activeCharters: charters.length,

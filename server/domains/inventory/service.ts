@@ -240,7 +240,7 @@ export class InventoryService {
       sortBy?: string;
       sortOrder?: "asc" | "desc";
     }
-  ): Promise<{ items: any[]; total: number }> {
+  ): Promise<{ items: PartsInventory[]; total: number }> {
     return dbInventoryStorage.getPartsInventoryPaginated(orgId, options);
   }
 }

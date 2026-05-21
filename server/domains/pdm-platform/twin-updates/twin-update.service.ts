@@ -52,13 +52,14 @@ export class TwinUpdateService implements ITwinUpdateScheduler {
         await this.refreshOneTwin(orgId, twin.id);
         refreshed++;
         results.push({ twinId: twin.id, success: true });
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
         failed++;
-        results.push({ twinId: twin.id, success: false, error: error.message });
+        results.push({ twinId: twin.id, success: false, error: message });
         logger.warn("[TwinUpdateService]", "Failed to refresh twin", {
           orgId,
           twinId: twin.id,
-          error: error.message,
+          error: message,
         });
       }
     }

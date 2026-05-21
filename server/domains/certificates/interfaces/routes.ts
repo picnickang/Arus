@@ -12,12 +12,12 @@ import { CERTIFICATE_TYPES, CERTIFICATE_STATUSES, ISSUING_AUTHORITY_TYPES } from
 
 const createCertificateSchema = z.object({
   vesselId: z.string().min(1),
-  certificateType: z.enum(CERTIFICATE_TYPES as unknown as [string, ...string[]]),
+  certificateType: z.enum(CERTIFICATE_TYPES as readonly [string, ...string[]]),
   certificateName: z.string().min(1),
   certificateNumber: z.string().optional(),
   issuingAuthority: z.string().min(1),
   issuingAuthorityType: z
-    .enum(ISSUING_AUTHORITY_TYPES as unknown as [string, ...string[]])
+    .enum(ISSUING_AUTHORITY_TYPES as readonly [string, ...string[]])
     .optional(),
   issueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   expiryDate: z
@@ -43,7 +43,7 @@ const createCertificateSchema = z.object({
 });
 
 const updateCertificateSchema = z.object({
-  status: z.enum(CERTIFICATE_STATUSES as unknown as [string, ...string[]]).optional(),
+  status: z.enum(CERTIFICATE_STATUSES as readonly [string, ...string[]]).optional(),
   certificateNumber: z.string().optional(),
   expiryDate: z
     .string()
@@ -96,8 +96,8 @@ const endorsementSchema = z.object({
 export function registerCertificateRoutes(
   app: Express,
   rateLimit: {
-    generalApiRateLimit: any;
-    writeOperationRateLimit?: any;
+    generalApiRateLimit: import("../../../lib/rate-limit-factory").RateLimit;
+    writeOperationRateLimit?: import("../../../lib/rate-limit-factory").RateLimit;
   }
 ) {
   const { generalApiRateLimit, writeOperationRateLimit } = rateLimit;

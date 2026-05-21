@@ -26,7 +26,7 @@ export class DeviceService {
     const device = await deviceRepository.create(data);
 
     // Publish events
-    await recordAndPublish("device" as any, device.id, "create", device, userId);
+    await recordAndPublish("device", device.id, "create", device, userId);
 
     mqttReliableSync.publishDataChange("device", "create", device).catch((err) => {
       logger.error("DeviceService", "Failed to publish device create to MQTT", err);
@@ -45,7 +45,7 @@ export class DeviceService {
     const device = await deviceRepository.update(id, data, orgId);
 
     // Publish events
-    await recordAndPublish("device" as any, device.id, "update", device, userId);
+    await recordAndPublish("device", device.id, "update", device, userId);
 
     mqttReliableSync.publishDataChange("device", "update", device).catch((err) => {
       logger.error("DeviceService", "Failed to publish device update to MQTT", err);
@@ -63,7 +63,7 @@ export class DeviceService {
 
     // Publish delete event
     if (device) {
-      await recordAndPublish("device" as any, id, "delete", device, userId);
+      await recordAndPublish("device", id, "delete", device, userId);
 
       mqttReliableSync.publishDataChange("device", "delete", device).catch((err) => {
         logger.error("DeviceService", "Failed to publish device delete to MQTT", err);

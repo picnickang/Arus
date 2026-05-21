@@ -23,19 +23,27 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
       const sensorConfigs = await dbSensorsStorage.getSensorConfigurations(orgId, equipmentId);
       const DEFAULT_THRESHOLD_MS = 5 * 60 * 1000;
       const now = new Date();
-      const sensors = sensorConfigs.map((config: any) => ({
+      const sensors = sensorConfigs.map((config) => ({
         equipmentId: config.equipmentId,
         sensorType: config.sensorType,
       }));
-      const telemetryResults = await (dbSensorsStorage as any).getLatestTelemetryForSensors(sensors, orgId);
-      const telemetryMap = new Map<string, any>(
-        (telemetryResults as any[]).map((result: any) => [
+      const telemetrySource = dbSensorsStorage as unknown as {
+        getLatestTelemetryForSensors?: (
+          s: Array<{ equipmentId: string; sensorType: string }>,
+          orgId: string
+        ) => Promise<Array<{ equipmentId: string; sensorType: string; ts?: string | Date; value?: number }>>;
+      };
+      const telemetryResults = telemetrySource.getLatestTelemetryForSensors
+        ? await telemetrySource.getLatestTelemetryForSensors(sensors, orgId)
+        : [];
+      const telemetryMap = new Map<string, { ts?: string | Date; value?: number }>(
+        telemetryResults.map((result) => [
           `${result.equipmentId}:${result.sensorType}`,
           result,
         ])
       );
 
-      const sensorStatus = sensorConfigs.map((config: any) => {
+      const sensorStatus = sensorConfigs.map((config) => {
         const key = `${config.equipmentId}:${config.sensorType}`;
         const telemetry = telemetryMap.get(key);
         let status: "disabled" | "inactive" | "offline" | "online";
@@ -86,7 +94,7 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
     withErrorHandling("create/update sensor state", async (req, res) => {
       const stateData = insertSensorStateSchema.parse(req.body);
       const orgId = (req as AuthenticatedRequest).orgId;
-      const sensorState = await dbSensorsStorage.upsertSensorState({ ...stateData, orgId } as any);
+      const sensorState = await dbSensorsStorage.upsertSensorState({ ...stateData, orgId });
       sendCreated(res, sensorState);
     })
   );

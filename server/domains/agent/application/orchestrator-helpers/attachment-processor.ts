@@ -47,7 +47,11 @@ export async function processAttachments(
     } else if (att.mimetype === "application/pdf") {
       try {
         const pdfBuffer = fs.readFileSync(att.path);
-        const pdfParse: any = ((await import("pdf-parse")) as any).default ?? (await import("pdf-parse"));
+        type LegacyPdfParse = (buf: Buffer) => Promise<{ text: string; numpages: number }>;
+        const pdfModule = (await import("pdf-parse")) as {
+          default?: LegacyPdfParse;
+        } & Partial<Record<string, unknown>>;
+        const pdfParse = (pdfModule.default ?? (pdfModule as unknown as LegacyPdfParse)) as LegacyPdfParse;
         const pdfData = await pdfParse(pdfBuffer);
         const text = pdfData.text.slice(0, 12000);
         contentParts.push({

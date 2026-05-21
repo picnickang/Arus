@@ -7,24 +7,58 @@ import type { ISchedulerRunRepository } from "../domain/ports.js";
 import type { SchedulerRunEntity, CreateSchedulerRunCommand } from "../domain/types.js";
 import { dbSchedulerStorage } from "../../../repositories";
 
-function mapToEntity(run: any): SchedulerRunEntity {
+type SchedulerRunStatus = SchedulerRunEntity["status"];
+
+type SchedulerRunRow = {
+  id: string;
+  orgId: string;
+  status: string;
+  startDate?: Date | string | null;
+  endDate?: Date | string | null;
+  totalAssignments?: number | null;
+  unfilledCount?: number | null;
+  inputHash?: string | null;
+  generatedByRunId?: string | null;
+  horGenerated?: boolean | null;
+  createdAt?: Date | string | null;
+  completedAt?: Date | string | null;
+  approvedAt?: Date | string | null;
+  approvedBy?: string | null;
+  publishedAt?: Date | string | null;
+  publishedBy?: string | null;
+};
+
+function toStatus(s: string): SchedulerRunStatus {
+  switch (s) {
+    case "pending":
+    case "draft":
+    case "cancelled":
+    case "approved":
+    case "applied":
+      return s;
+    default:
+      return "pending";
+  }
+}
+
+function mapToEntity(run: SchedulerRunRow): SchedulerRunEntity {
   return {
     id: run.id,
     orgId: run.orgId,
-    status: run.status,
+    status: toStatus(run.status),
     startDate: run.startDate ? new Date(run.startDate) : null,
     endDate: run.endDate ? new Date(run.endDate) : null,
-    totalAssignments: run.totalAssignments,
-    unfilledCount: run.unfilledCount,
-    inputHash: run.inputHash,
-    generatedByRunId: run.generatedByRunId,
+    totalAssignments: run.totalAssignments ?? null,
+    unfilledCount: run.unfilledCount ?? null,
+    inputHash: run.inputHash ?? null,
+    generatedByRunId: run.generatedByRunId ?? null,
     horGenerated: run.horGenerated ?? false,
     createdAt: run.createdAt ? new Date(run.createdAt) : new Date(),
     completedAt: run.completedAt ? new Date(run.completedAt) : null,
     approvedAt: run.approvedAt ? new Date(run.approvedAt) : null,
-    approvedBy: run.approvedBy,
+    approvedBy: run.approvedBy ?? null,
     publishedAt: run.publishedAt ? new Date(run.publishedAt) : null,
-    publishedBy: run.publishedBy,
+    publishedBy: run.publishedBy ?? null,
   };
 }
 
@@ -34,10 +68,10 @@ export class SchedulerRunRepositoryAdapter implements ISchedulerRunRepository {
       startedAt: new Date(),
       orgId: command.orgId,
       status: command.status || "pending",
-      startDate: command.startDate as any,
-      endDate: command.endDate as any,
-      inputHash: command.inputHash as any,
-    });
+      startDate: command.startDate,
+      endDate: command.endDate,
+      inputHash: command.inputHash,
+    } as unknown as Parameters<typeof dbSchedulerStorage.createSchedulerRun>[0]);
     return mapToEntity(run);
   }
 

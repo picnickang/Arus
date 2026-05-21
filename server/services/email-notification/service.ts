@@ -7,7 +7,7 @@ const logger = createLogger("Services:EmailNotification:Service");
 import { dbNotificationsStorage } from "../../repositories.js";
 import type {
   ComplianceFinding,
-  CrewNotificationSettings as NotificationSetting,
+  OrgNotificationSettings as NotificationSetting,
   Crew,
   CrewCertification,
   CrewDocument,
@@ -35,9 +35,9 @@ import {
 class EmailNotificationService {
   private getRecipients(setting: NotificationSetting): string[] {
     const recipients: string[] = [];
-    const emails = (setting as any).recipientEmails;
+    const emails = setting.recipientEmails;
     if (emails) {
-      recipients.push(...(emails as string[]));
+      recipients.push(...emails);
     }
     return [...new Set(recipients)];
   }
@@ -73,7 +73,7 @@ class EmailNotificationService {
     }
 
     for (const setting of applicableSettings) {
-      const recipients = this.getRecipients(setting as any);
+      const recipients = this.getRecipients(setting);
       if (recipients.length === 0) {
         continue;
       }
@@ -81,7 +81,7 @@ class EmailNotificationService {
       const subject = buildComplianceSubject(finding, vesselName);
       const { text, html } = buildComplianceBody(finding, vesselName);
 
-      if ((setting as any).digestMode) {
+      if (setting.digestMode) {
         await queueNotification({
           orgId,
           notificationType: "compliance",
@@ -92,7 +92,7 @@ class EmailNotificationService {
           relatedEntityType: "compliance_finding",
           relatedEntityId: finding.id,
           status: "pending",
-          scheduledFor: this.getNextDigestTime((setting as any).digestSchedule),
+          scheduledFor: this.getNextDigestTime(setting.digestSchedule),
         });
       } else {
         const queueItem = await queueNotification({
@@ -128,7 +128,7 @@ class EmailNotificationService {
     }
 
     for (const setting of applicableSettings) {
-      const recipients = this.getRecipients(setting as any);
+      const recipients = this.getRecipients(setting);
       if (recipients.length === 0) {
         continue;
       }
@@ -167,7 +167,7 @@ class EmailNotificationService {
     }
 
     for (const setting of applicableSettings) {
-      const recipients = this.getRecipients(setting as any);
+      const recipients = this.getRecipients(setting);
       if (recipients.length === 0) {
         continue;
       }

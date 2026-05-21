@@ -54,7 +54,8 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
       const { orgId = (req as AuthenticatedRequest).orgId, scope = "fleet" } = req.body;
 
       const { triggerInsightsGeneration } = await import("../../insights-scheduler");
-      const jobId = await (triggerInsightsGeneration as any)(orgId, scope);
+      void scope;
+      const jobId = await triggerInsightsGeneration(orgId);
 
       res.status(202).json({
         message: "Insights generation job scheduled successfully",
@@ -113,11 +114,20 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
     withErrorHandling("generate fleet technician insights", async (req, res) => {
       const startTime = Date.now();
 
-      const { logInfo, logError, createRequestContext } = (await import("../../structured-logging")) as any;
+      type StructuredLogging = {
+        logInfo: (msg: string, ctx?: Record<string, unknown>) => void;
+        logError: (msg: string, ctx?: Record<string, unknown>) => void;
+        createRequestContext: (req: unknown, extra?: Record<string, unknown>) => Record<string, unknown>;
+      };
+      type FleetMetrics = {
+        fleetOverviewRequests: { inc: (labels: Record<string, string>) => void };
+        fleetOverviewResponseTime: { observe: (labels: Record<string, string>, value: number) => void };
+      };
+      const { logInfo, logError, createRequestContext } =
+        (await import("../../structured-logging")) as unknown as StructuredLogging;
       const { generateFleetTechnicianInsights } = await import("../../insights-engine");
-      const { fleetOverviewRequests, fleetOverviewResponseTime } = (await import(
-        "../../ml-prometheus-metrics"
-      )) as any;
+      const { fleetOverviewRequests, fleetOverviewResponseTime } =
+        (await import("../../ml-prometheus-metrics")) as unknown as FleetMetrics;
 
       const { vesselId } = req.query;
       const orgId = (req as AuthenticatedRequest).orgId;

@@ -7,7 +7,7 @@
 import { dbUserStorage, vesselService } from "../../repositories";
 import { alertSettingsService } from "./settings-service";
 import { alertSettingsRepository } from "./settings-repository";
-import { emailProviderService } from "../../services/email-provider-service";
+import type { EmailPayload } from "../../services/email-provider-service";
 import {
   runAllCrewAlertEvaluators,
   type CrewAlertResult,
@@ -95,7 +95,7 @@ async function claimAlertSlot(
       alertType,
       alertKey,
       vesselId,
-      recipients: recipients.join(", ") as any,
+      recipients,
       subject: title,
       severity: "info",
       status: "sending",
@@ -144,24 +144,34 @@ async function getAlertRecipients(
 ): Promise<string[]> {
   const recipients: string[] = [];
 
-  const settings: any = await alertSettingsService.getCrewAlertSettings(orgId, (vesselId || null) as any);
+  const settings = await alertSettingsService.getCrewAlertSettings(orgId, vesselId);
   if (!settings) {
     return recipients;
   }
 
-  const notifyRecipients = settings.notifyRecipients;
-  if (!notifyRecipients || notifyRecipients.length === 0) {
-    return recipients;
+  if (settings.dpaEmail) {
+    recipients.push(settings.dpaEmail);
+  }
+  if (settings.crewingManagerEmail) {
+    recipients.push(settings.crewingManagerEmail);
+  }
+  if (settings.hseEmail) {
+    recipients.push(settings.hseEmail);
   }
 
-  for (const recipientId of notifyRecipients) {
+  const additional = settings.additionalRecipients ?? [];
+  for (const entry of additional) {
+    if (entry.includes("@")) {
+      recipients.push(entry);
+      continue;
+    }
     try {
-      const user = await dbUserStorage.getUser(recipientId);
+      const user = await dbUserStorage.getUser(entry);
       if (user?.email) {
         recipients.push(user.email);
       }
-    } catch (err) {
-      log("warn", "Failed to get user email", { userId: recipientId });
+    } catch {
+      log("warn", "Failed to get user email", { userId: entry });
     }
   }
 
@@ -228,7 +238,7 @@ async function logAlertToDatabase(
       orgId,
       alertType: alert.alertType,
       alertKey: alert.alertKey,
-      recipients: recipients.join(", ") as any,
+      recipients,
       subject: alert.title,
       severity: "info",
       status,
@@ -285,13 +295,13 @@ async function processAlert(
   const vesselName = vesselId ? await getVesselName(vesselId) : undefined;
   const email = buildAlertEmail(alert, vesselName);
 
-  const sendResult = await (emailProviderService.sendEmail as any)(
-    ctx.orgId,
-    recipients,
-    email.subject,
-    email.text,
-    email.html
-  );
+  const emailPayload: EmailPayload = {
+    to: recipients,
+    subject: email.subject,
+    text: email.text,
+    html: email.html,
+  };
+  const sendResult = await alertSettingsService.sendOrgEmail(ctx.orgId, emailPayload);
 
   await handleSendResult(sendResult, alert, claim, result, recipients.length);
 }

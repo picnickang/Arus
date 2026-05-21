@@ -9,6 +9,7 @@ import { RateLimitRequestHandler } from "express-rate-limit";
 import { analyzeFleetHealth } from "../../../openai";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { logger } from "../../../utils/logger.js";
+import type { AuthenticatedRequest } from "../../../middleware/auth";
 import {
   dbEquipmentStorage,
   dbTelemetryStorage,
@@ -30,19 +31,28 @@ export function registerFleetSummaryRoutes(
     withErrorHandling("generate fleet summary", async (req, res) => {
       const { lookbackHours = 168 } = req.body;
 
+      const orgId = (req as AuthenticatedRequest).orgId;
       const [equipmentHealth, telemetryData, workOrders, pdmScores] = await Promise.all([
-        (dbEquipmentStorage as any).getEquipmentHealth(""),
-        dbTelemetryStorage.getTelemetryTrends("", lookbackHours),
+        dbEquipmentStorage.getEquipmentHealth(orgId),
+        dbTelemetryStorage.getTelemetryTrends(orgId, lookbackHours),
         workOrderService.getWorkOrdersWithDetails(),
-        (dbDevicesStorage as any).getPdmScores(""),
+        dbDevicesStorage.getPdmScores(undefined, orgId),
       ]);
 
-      let fleetAnalysis: any;
+      let fleetAnalysis: Awaited<ReturnType<typeof analyzeFleetHealth>> | {
+        totalEquipment: number;
+        healthyEquipment: number;
+        equipmentAtRisk: number;
+        criticalEquipment: number;
+        topRecommendations: string[];
+        costEstimate: number;
+        summary: string;
+      };
       try {
         const analysisPromise = analyzeFleetHealth(equipmentHealth, telemetryData);
         fleetAnalysis = await Promise.race([
           analysisPromise,
-          new Promise((_, reject) =>
+          new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error("AI analysis timeout")), 10000)
           ),
         ]);
@@ -50,11 +60,11 @@ export function registerFleetSummaryRoutes(
         logger.warn("FleetSummary", "Fleet analysis failed, using fallback", error);
         fleetAnalysis = {
           totalEquipment: equipmentHealth.length,
-          healthyEquipment: equipmentHealth.filter((eq: any) => eq.healthIndex > 70).length,
+          healthyEquipment: equipmentHealth.filter((eq) => eq.healthIndex > 70).length,
           equipmentAtRisk: equipmentHealth.filter(
-            (eq: any) => eq.healthIndex >= 30 && eq.healthIndex <= 70
+            (eq) => eq.healthIndex >= 30 && eq.healthIndex <= 70
           ).length,
-          criticalEquipment: equipmentHealth.filter((eq: any) => eq.healthIndex < 30).length,
+          criticalEquipment: equipmentHealth.filter((eq) => eq.healthIndex < 30).length,
           topRecommendations: [
             "Review equipment with declining health scores",
             "Schedule preventive maintenance for at-risk equipment",
@@ -70,7 +80,7 @@ export function registerFleetSummaryRoutes(
       );
       const avgHealthIndex =
         equipmentHealth.length > 0
-          ? equipmentHealth.reduce((sum: any, eq: any) => sum + eq.healthIndex, 0) / equipmentHealth.length
+          ? equipmentHealth.reduce((sum, eq) => sum + eq.healthIndex, 0) / equipmentHealth.length
           : 0;
 
       res.json({

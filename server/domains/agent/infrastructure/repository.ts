@@ -260,10 +260,10 @@ export function createAgentRepository(): AgentRepositoryPort {
         const key = userId || "__org_default";
         const userPrefs = allPrefs[key];
         if (userPrefs && typeof userPrefs === "object") {
-          return userPrefs as unknown as SuggestionPreferences;
+          return userPrefs as SuggestionPreferences;
         }
         if (userId && allPrefs["__org_default"] && typeof allPrefs["__org_default"] === "object") {
-          return allPrefs["__org_default"] as unknown as SuggestionPreferences;
+          return allPrefs["__org_default"] as SuggestionPreferences;
         }
         return null;
       },
@@ -293,18 +293,19 @@ export function createAgentRepository(): AgentRepositoryPort {
             string,
             unknown
           >;
-          const updated = { ...currentAllPrefs, [key]: merged };
+          const updated: Record<string, unknown> = { ...currentAllPrefs, [key]: merged };
           await db
             .update(agentConfig)
             .set({
-              suggestionPreferences: updated as unknown as Record<string, unknown>,
+              suggestionPreferences: updated,
               updatedAt: new Date(),
             })
             .where(eq(agentConfig.id, config[0].id));
         } else {
+          const initial: Record<string, unknown> = { [key]: merged };
           await db.insert(agentConfig).values({
             orgId,
-            suggestionPreferences: { [key]: merged } as unknown as Record<string, unknown>,
+            suggestionPreferences: initial,
           });
         }
         return merged;

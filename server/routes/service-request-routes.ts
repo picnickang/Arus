@@ -22,6 +22,15 @@ function getUserId(req: Request): string {
   return (req as AuthenticatedRequest).user?.id || (req.headers["x-user-id"] as string) || "system";
 }
 
+type Row = Record<string, any>;
+function unwrapRows(r: unknown): Row[] {
+  if (Array.isArray(r)) return r;
+  if (r && typeof r === "object" && "rows" in r) {
+    return ((r as { rows: Row[] }).rows) ?? [];
+  }
+  return [];
+}
+
 export function registerServiceRequestRoutes(
   app: Express,
   rateLimiters: {
@@ -128,7 +137,7 @@ export function registerServiceRequestRoutes(
         WHERE sr.id = ${req.params.id} AND sr.org_id = ${orgId}
       `
         )
-        .then((r: any) => (r.rows || r) as any[]);
+        .then(unwrapRows);
 
       if (!row) {
         return sendNotFound(res, "Service Request");
@@ -153,7 +162,7 @@ export function registerServiceRequestRoutes(
         WHERE id = ${req.params.id} AND org_id = ${orgId}
       `
         )
-        .then((r: any) => (r.rows || r) as any[]);
+        .then(unwrapRows);
 
       if (!sr) {
         return sendNotFound(res, "Service Request");
@@ -207,7 +216,7 @@ export function registerServiceRequestRoutes(
         RETURNING *
       `
         )
-        .then((r: any) => (r.rows || r) as any[]);
+        .then(unwrapRows);
 
       res.json(updated);
     })
@@ -233,7 +242,7 @@ export function registerServiceRequestRoutes(
         WHERE id = ${workOrderId} AND org_id = ${orgId}
       `
           )
-          .then((r: any) => (r.rows || r) as any[]);
+          .then(unwrapRows);
 
         if (!wo) {
           return sendNotFound(res, "Work Order");
@@ -255,7 +264,7 @@ export function registerServiceRequestRoutes(
         LIMIT 1
       `
           )
-          .then((r: any) => (r.rows || r) as any[]);
+          .then(unwrapRows);
 
         if (existingActive) {
           return res.status(409).json({
@@ -286,7 +295,7 @@ export function registerServiceRequestRoutes(
             WHERE org_id = ${orgId}
           `
               )
-              .then((r: any) => (r.rows || r) as any[]);
+              .then(unwrapRows);
             const requestNumber = `SR-${String(seqResult?.next_num || 1).padStart(4, "0")}`;
 
             const [inserted] = await db
@@ -319,7 +328,7 @@ export function registerServiceRequestRoutes(
             RETURNING *
           `
               )
-              .then((r: any) => (r.rows || r) as any[]);
+              .then(unwrapRows);
             newSr = inserted;
             break;
           } catch (err: any) {
@@ -391,7 +400,7 @@ export function registerServiceRequestRoutes(
         WHERE id = ${req.params.id} AND org_id = ${orgId}
       `
         )
-        .then((r: any) => (r.rows || r) as any[]);
+        .then(unwrapRows);
 
       if (!sr) {
         return sendNotFound(res, "Service Request");
@@ -410,7 +419,7 @@ export function registerServiceRequestRoutes(
         RETURNING *
       `
         )
-        .then((r: any) => (r.rows || r) as any[]);
+        .then(unwrapRows);
 
       res.json(updated);
     })
@@ -433,7 +442,7 @@ export function registerServiceRequestRoutes(
         WHERE id = ${req.params.id} AND org_id = ${orgId}
       `
         )
-        .then((r: any) => (r.rows || r) as any[]);
+        .then(unwrapRows);
 
       if (!sr) {
         return sendNotFound(res, "Service Request");
@@ -452,7 +461,7 @@ export function registerServiceRequestRoutes(
         RETURNING *
       `
         )
-        .then((r: any) => (r.rows || r) as any[]);
+        .then(unwrapRows);
 
       domainEventBus.emit(
         "service_request.approved",
@@ -490,7 +499,7 @@ export function registerServiceRequestRoutes(
         WHERE id = ${req.params.id} AND org_id = ${orgId}
       `
         )
-        .then((r: any) => (r.rows || r) as any[]);
+        .then(unwrapRows);
 
       if (!sr) {
         return sendNotFound(res, "Service Request");
@@ -516,7 +525,7 @@ export function registerServiceRequestRoutes(
         RETURNING *
       `
         )
-        .then((r: any) => (r.rows || r) as any[]);
+        .then(unwrapRows);
 
       const [otherActiveSr] = await db
         .execute(
@@ -528,7 +537,7 @@ export function registerServiceRequestRoutes(
         LIMIT 1
       `
         )
-        .then((r: any) => (r.rows || r) as any[]);
+        .then(unwrapRows);
 
       if (!otherActiveSr) {
         const restoreStatus = sr.previous_wo_status || "open";
@@ -591,7 +600,7 @@ export function registerServiceRequestRoutes(
         WHERE sr.id = ${req.params.id} AND sr.org_id = ${orgId}
       `
           )
-          .then((r: any) => (r.rows || r) as any[]);
+          .then(unwrapRows);
 
         if (!sr) {
           return sendNotFound(res, "Service Request");
@@ -610,7 +619,7 @@ export function registerServiceRequestRoutes(
         WHERE id = ${sr.work_order_id} AND org_id = ${orgId}
       `
           )
-          .then((r: any) => (r.rows || r) as any[]);
+          .then(unwrapRows);
 
         if (!wo) {
           return sendNotFound(res, "Work Order");

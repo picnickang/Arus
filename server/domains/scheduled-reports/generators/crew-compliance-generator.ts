@@ -62,16 +62,13 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
       const ninetyDaysFromNow = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
 
       for (const vessel of filteredVessels) {
-        const crew = await (dbCrewStorage.getCrew as any)(orgId, vessel.id);
+        const crew = await dbCrewStorage.getCrew(orgId, vessel.id);
 
         for (const member of crew) {
-          const certifications = await (dbCrewExtensionsStorage.getCrewCertifications as any)(
-            member.id,
-            orgId
-          );
+          const certifications = await dbCrewExtensionsStorage.getCrewCertifications(member.id);
 
           for (const cert of certifications) {
-            const expiryDate = (cert as any).expiryDate ? new Date((cert as any).expiryDate) : null;
+            const expiryDate = cert.expiresAt ? new Date(cert.expiresAt) : null;
 
             if (expiryDate && expiryDate <= ninetyDaysFromNow) {
               const daysUntilExpiry = Math.ceil(
@@ -80,10 +77,9 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
 
               alerts.push({
                 crewId: member.id,
-                crewName: `${(member as any).firstName ?? member.name ?? ""} ${(member as any).lastName ?? ""}`.trim(),
+                crewName: member.name,
                 vesselName: vessel.name,
-                certificationName:
-                  (cert as any).certificateName || (cert as any).type || "Certificate",
+                certificationName: cert.cert,
                 expiryDate,
                 daysUntilExpiry,
               });

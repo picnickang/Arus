@@ -38,35 +38,33 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
         format: "ML Model Export v1.0",
         compatibility: ["TensorFlow", "PyTorch", "scikit-learn", "IBM Maximo", "Azure ML"],
         exportedAt: new Date().toISOString(),
-        models: enrichedModels.map((mRaw) => {
-          const m = mRaw as typeof mRaw & {
-            performanceMetrics?: unknown;
-            deployedAt?: Date | null;
-          };
-          return {
-            id: m.id,
-            name: m.name,
-            type: (m as any).type,
-            equipmentType: m.equipmentType,
-            status: m.status,
-            version: m.version,
-            hyperparameters: m.hyperparameters,
-            performanceMetrics: m.performanceMetrics,
-            featureImportance: m.featureImportance,
-            deployedAt: (m as any).deployedOn ?? m.deployedAt,
-            createdAt: m.createdAt,
-          };
-        }),
+        models: enrichedModels.map((m) => ({
+          id: m.id,
+          name: m.name,
+          type: m.type,
+          equipmentType: m.equipmentType,
+          status: m.status,
+          version: m.version,
+          hyperparameters: m.hyperparameters,
+          performanceMetrics: {
+            accuracy: m.accuracy,
+            precision: m.precision,
+            recall: m.recall,
+            f1Score: m.f1Score,
+          },
+          featureImportance: m.featureImportance,
+          deployedAt: m.deployedOn,
+          createdAt: m.createdAt,
+        })),
       };
 
       if (format === "csv") {
         const csvData = [
           "id,name,type,equipmentType,status,version,accuracy,precision,recall,f1Score,deployedAt,createdAt",
-          ...enrichedModels.map((mRaw) => {
-            const m = mRaw as typeof mRaw & { performanceMetrics?: unknown; deployedAt?: Date | null };
-            const perf = (m.performanceMetrics ?? {}) as Record<string, unknown>;
-            return `${m.id},${m.name},${(m as any).type},${m.equipmentType || ""},${m.status},${m.version},${perf.accuracy || ""},${perf.precision || ""},${perf.recall || ""},${perf.f1Score || ""},${(m as any).deployedOn ?? m.deployedAt ?? ""},${m.createdAt}`;
-          }),
+          ...enrichedModels.map(
+            (m) =>
+              `${m.id},${m.name},${m.type},${m.equipmentType || ""},${m.status},${m.version},${m.accuracy ?? ""},${m.precision ?? ""},${m.recall ?? ""},${m.f1Score ?? ""},${m.deployedOn?.toISOString() ?? ""},${m.createdAt.toISOString()}`
+          ),
         ].join("\n");
 
         res.setHeader("Content-Type", "text/csv");
@@ -114,7 +112,6 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
         telemetry: telemetry.map((t) => ({
           timestamp: t.ts,
           equipmentId: t.equipmentId,
-          vesselId: (t as any).vesselId,
           sensorType: t.sensorType,
           value: t.value,
           unit: t.unit,
@@ -125,10 +122,10 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
 
       if (format === "csv") {
         const csvData = [
-          "timestamp,equipmentId,vesselId,sensorType,value,unit,status,threshold",
+          "timestamp,equipmentId,sensorType,value,unit,status,threshold",
           ...telemetry.map(
             (t) =>
-              `${t.ts},${t.equipmentId},${(t as any).vesselId || ""},${t.sensorType},${t.value},${t.unit},${t.status},${t.threshold || ""}`
+              `${t.ts.toISOString()},${t.equipmentId},${t.sensorType},${t.value},${t.unit ?? ""},${t.status},${t.threshold ?? ""}`
           ),
         ].join("\n");
 
@@ -161,20 +158,19 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
           failureProbability: p.failureProbability,
           predictedFailureDate: p.predictedFailureDate,
           remainingUsefulLife: p.remainingUsefulLife,
-          healthIndex: (p as any).healthIndex,
           riskLevel: p.riskLevel,
           modelId: p.modelId,
-          recommendations: (p as any).recommendations,
-          createdAt: (p as any).createdAt,
+          maintenanceRecommendations: p.maintenanceRecommendations,
+          predictionTimestamp: p.predictionTimestamp,
         })),
       };
 
       if (format === "csv") {
         const csvData = [
-          "id,equipmentId,failureProbability,predictedFailureDate,remainingUsefulLife,healthIndex,riskLevel,modelId,createdAt",
+          "id,equipmentId,failureProbability,predictedFailureDate,remainingUsefulLife,riskLevel,modelId,predictionTimestamp",
           ...predictions.map(
             (p) =>
-              `${p.id},${p.equipmentId},${p.failureProbability},${p.predictedFailureDate || ""},${p.remainingUsefulLife || ""},${(p as any).healthIndex},${p.riskLevel},${p.modelId || ""},${(p as any).createdAt}`
+              `${p.id},${p.equipmentId},${p.failureProbability},${p.predictedFailureDate?.toISOString() ?? ""},${p.remainingUsefulLife ?? ""},${p.riskLevel},${p.modelId ?? ""},${p.predictionTimestamp?.toISOString() ?? ""}`
           ),
         ].join("\n");
 

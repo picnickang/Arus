@@ -30,7 +30,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
       const { storageConfigService } = await import("../../storage-config");
       const { insertStorageConfigSchema } = await import("@shared/schema");
       const validatedData = insertStorageConfigSchema.parse(req.body);
-      await storageConfigService.upsert(validatedData as any);
+      await storageConfigService.upsert(validatedData);
       res.json({ success: true });
     })
   );
@@ -52,7 +52,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
       const { storageConfigService } = await import("../../storage-config");
       const { insertStorageConfigSchema } = await import("@shared/schema");
       const validatedData = insertStorageConfigSchema.parse(req.body);
-      const result = await storageConfigService.test(validatedData as any);
+      const result = await storageConfigService.test(validatedData);
       res.json(result);
     })
   );
@@ -100,7 +100,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
       if (!url) {
         return res.status(400).json({ error: "URL is required" });
       }
-      const result = await (opsDbService as any).test(url);
+      const result = await opsDbService.test(url);
       res.json(result);
     })
   );

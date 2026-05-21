@@ -132,8 +132,7 @@ export default function SensorTemplatesPage() {
             <CardTitle>Loading Templates...</CardTitle>
           </CardHeader>
           <CardContent>
-            {/* @ts-ignore */}
-            <TableSkeleton rows={5} columns={6} />
+            <TableSkeleton rows={5} cols={6} />
           </CardContent>
         </Card>
       </div>

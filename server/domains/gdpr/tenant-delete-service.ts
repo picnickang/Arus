@@ -61,8 +61,10 @@ export interface DeletionResult {
 export interface TenantDeleteOptions {
   /** Drizzle db handle (the same `db` used elsewhere). */
   db: {
-    transaction: <T>(fn: (tx: any) => Promise<T>) => Promise<T>;
-    execute: (q: any) => Promise<any>;
+    transaction: <T>(
+      fn: (tx: { execute: (q: unknown) => Promise<unknown> }) => Promise<T>
+    ) => Promise<T>;
+    execute: (q: unknown) => Promise<unknown>;
   };
   /** Tables to delete from, child-tables-first. */
   tables: readonly TenantTable[];
@@ -105,7 +107,7 @@ export class TenantDeleteService {
     const retained: DeletionCertificate["retained"] = [];
     let totalRowsDeleted = 0;
 
-    await this.opts.db.transaction(async (tx: any) => {
+    await this.opts.db.transaction(async (tx) => {
       // Best-effort: bump the isolation level. If the underlying driver
       // doesn't support it (e.g. neon-http), the SET will throw and we
       // fall back to the default — still safe because every WHERE is
@@ -119,7 +121,7 @@ export class TenantDeleteService {
       for (const t of this.opts.tables) {
         const col = t.tenantColumn ?? "org_id";
         const stmt = sql.raw(`DELETE FROM ${t.table} WHERE ${col} = '${escapeLiteral(tenantId)}'`);
-        const result: any = await tx.execute(stmt);
+        const result = await tx.execute(stmt);
         const rows = extractRowCount(result);
         perTable.push({ table: t.table, rows });
         totalRowsDeleted += rows;
@@ -131,7 +133,7 @@ export class TenantDeleteService {
         const stmt = sql.raw(
           `UPDATE ${r.table} SET ${setClauses} WHERE ${col} = '${escapeLiteral(tenantId)}'`
         );
-        const result: any = await tx.execute(stmt);
+        const result = await tx.execute(stmt);
         const rowsRedacted = extractRowCount(result);
         retained.push({ table: r.table, rowsRedacted, piiColumns: [...r.piiColumns] });
       }
@@ -179,11 +181,12 @@ function escapeLiteral(s: string): string {
   return s.replace(/'/g, "''");
 }
 
-function extractRowCount(result: any): number {
+function extractRowCount(result: unknown): number {
   if (!result) return 0;
-  if (typeof result.rowCount === "number") return result.rowCount;
-  if (typeof result.count === "number") return result.count;
-  if (Array.isArray(result.rows)) return result.rows.length;
   if (Array.isArray(result)) return result.length;
+  const r = result as { rowCount?: unknown; count?: unknown; rows?: unknown };
+  if (typeof r.rowCount === "number") return r.rowCount;
+  if (typeof r.count === "number") return r.count;
+  if (Array.isArray(r.rows)) return r.rows.length;
   return 0;
 }

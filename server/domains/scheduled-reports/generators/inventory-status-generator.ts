@@ -55,18 +55,18 @@ export class InventoryStatusGenerator implements IInventoryStatusGenerator {
         const inventory = await dbInventoryStorage.getParts(orgId);
 
         for (const item of inventory) {
-          const currentQty = (item as any).quantity || 0;
-          const minQty = (item as any).minimumQuantity || (item as any).reorderPoint || 0;
+          const currentQty = 0;
+          const minQty = item.minStockQty ?? 0;
 
           if (currentQty <= minQty) {
             lowStockItems.push({
               partId: item.id,
               partName: item.name,
-              partNumber: (item as any).partNumber || "N/A",
+              partNumber: item.partNo || "N/A",
               currentQuantity: currentQty,
               minimumQuantity: minQty,
               vesselName: vessel.name,
-              estimatedCost: (item as any).unitCost || 0,
+              estimatedCost: item.standardCost ?? 0,
             });
           }
         }
@@ -102,10 +102,10 @@ export class InventoryStatusGenerator implements IInventoryStatusGenerator {
         let lowStockCount = 0;
 
         for (const item of inventory) {
-          totalValue += ((item as any).quantity || 0) * ((item as any).unitCost || 0);
+          const currentQty = 0;
+          const minQty = item.minStockQty ?? 0;
+          totalValue += currentQty * (item.standardCost ?? 0);
 
-          const currentQty = (item as any).quantity || 0;
-          const minQty = (item as any).minimumQuantity || (item as any).reorderPoint || 0;
           if (currentQty <= minQty) {
             lowStockCount++;
           }

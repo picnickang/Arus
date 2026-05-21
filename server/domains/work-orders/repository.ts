@@ -5,6 +5,11 @@ import type {
   InsertWorkOrderCompletion,
   WorkOrderTask,
   InsertWorkOrderTask,
+  WorkOrderHistory,
+  WorkOrderParts,
+  InventoryMovement,
+  MaintenanceCost,
+  InsertMaintenanceCost,
 } from "@shared/schema";
 // Push B4: imports go to the canonical homes (`server/db/<domain>` and
 // `server/services/domains/*`) directly, not through the legacy
@@ -16,7 +21,7 @@ import { dbChecklistsStorage } from "../../db/checklists/index.js";
 import { dbInventoryStorage } from "../../db/inventory/index.js";
 import { dbMaintenanceStorage } from "../../db/maintenance/index.js";
 import { dbEquipmentStorage } from "../../db/equipment/index.js";
-import type { WorkOrderFilters } from "../../db/workorders/types";
+import type { WorkOrderFilters } from "../../services/domains/work-order-service";
 
 export class WorkOrderRepository {
   async findAll(
@@ -24,7 +29,7 @@ export class WorkOrderRepository {
     orgId?: string,
     filters?: WorkOrderFilters
   ): Promise<WorkOrder[]> {
-    return workOrderService.getWorkOrdersWithDetails(equipmentId, orgId, filters as any);
+    return workOrderService.getWorkOrdersWithDetails(equipmentId, orgId, filters);
   }
 
   async findPaginated(
@@ -34,7 +39,7 @@ export class WorkOrderRepository {
     offset: number,
     filters?: WorkOrderFilters
   ): Promise<{ items: WorkOrder[]; total: number }> {
-    return workOrderService.getWorkOrdersPaginated(equipmentId, orgId, limit, offset, filters as any);
+    return workOrderService.getWorkOrdersPaginated(equipmentId, orgId, limit, offset, filters);
   }
 
   async findById(id: string, orgId: string): Promise<WorkOrder | undefined> {
@@ -128,42 +133,52 @@ export class WorkOrderRepository {
     return workOrderService.cloneWorkOrder(workOrderId, orgId, options);
   }
 
-  async getWorkOrderHistory(workOrderId: string, orgId: string): Promise<any[]> {
+  async getWorkOrderHistory(workOrderId: string, orgId: string): Promise<WorkOrderHistory[]> {
     return dbInventoryStorage.getWorkOrderHistory(workOrderId, orgId);
   }
 
-  async getInventoryMovementsByWorkOrder(workOrderId: string, orgId: string): Promise<any[]> {
+  async getInventoryMovementsByWorkOrder(
+    workOrderId: string,
+    orgId: string
+  ): Promise<InventoryMovement[]> {
     return dbInventoryStorage.getInventoryMovementsByWorkOrder(workOrderId, orgId);
   }
 
-  async createMaintenanceCost(data: any): Promise<any> {
+  async createMaintenanceCost(data: InsertMaintenanceCost): Promise<MaintenanceCost> {
     return dbMaintenanceStorage.createMaintenanceCost(data);
   }
 
-  async getMaintenanceCostsByWorkOrder(workOrderId: string): Promise<any[]> {
+  async getMaintenanceCostsByWorkOrder(workOrderId: string): Promise<MaintenanceCost[]> {
     return dbMaintenanceStorage.getMaintenanceCostsByWorkOrder(workOrderId);
   }
 
-  async getWorkOrderParts(workOrderId: string, orgId: string): Promise<any[]> {
+  async getWorkOrderParts(workOrderId: string, orgId: string): Promise<WorkOrderParts[]> {
     return workOrderId
       ? dbWorkOrderStorage.getWorkOrderParts(workOrderId, orgId)
       : Promise.resolve([]);
   }
 
-  async addPartToWorkOrder(data: any): Promise<any> {
-    return (dbInventoryStorage as any).addBulkPartsToWorkOrder(data);
+  async addPartToWorkOrder(
+    workOrderId: string,
+    partsToAdd: Parameters<typeof dbInventoryStorage.addBulkPartsToWorkOrder>[1],
+    orgId: string
+  ): Promise<Awaited<ReturnType<typeof dbInventoryStorage.addBulkPartsToWorkOrder>>> {
+    return dbInventoryStorage.addBulkPartsToWorkOrder(workOrderId, partsToAdd, orgId);
   }
 
   async addBulkPartsAndReserveInventory(
     workOrderId: string,
-    parts: any[],
+    parts: Parameters<typeof dbInventoryStorage.addBulkPartsAndReserveInventory>[1],
     orgId: string
-  ): Promise<{ added: any[]; updated: any[]; errors: any[] }> {
+  ): Promise<Awaited<ReturnType<typeof dbInventoryStorage.addBulkPartsAndReserveInventory>>> {
     return dbInventoryStorage.addBulkPartsAndReserveInventory(workOrderId, parts, orgId);
   }
 
-  async updateWorkOrderPart(partId: string, data: any): Promise<any> {
-    return (dbInventoryStorage as any).updateWorkOrderPart(partId, data);
+  async updateWorkOrderPart(
+    partId: string,
+    data: Parameters<typeof dbWorkOrderStorage.updateWorkOrderPart>[1]
+  ): Promise<Awaited<ReturnType<typeof dbWorkOrderStorage.updateWorkOrderPart>>> {
+    return dbWorkOrderStorage.updateWorkOrderPart(partId, data);
   }
 
   async removePartFromWorkOrder(partId: string, orgId?: string): Promise<void> {
@@ -178,7 +193,9 @@ export class WorkOrderRepository {
     return dbInventoryStorage.removePartAndRestoreInventory(workOrderPartId, orgId, performedBy);
   }
 
-  async getPartsCostForWorkOrder(workOrderId: string): Promise<any> {
+  async getPartsCostForWorkOrder(
+    workOrderId: string
+  ): Promise<Awaited<ReturnType<typeof dbInventoryStorage.getPartsCostForWorkOrder>>> {
     return dbInventoryStorage.getPartsCostForWorkOrder(workOrderId);
   }
 

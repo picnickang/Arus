@@ -138,15 +138,24 @@ export function registerFatigueRoutes(app: Express, deps: StcwRestDependencies):
         })
       );
 
-      const allCrew = vesselSummaries.flatMap((v: any) => v.highestRiskCrew ?? []);
+      type VS = {
+        highestRiskCrew?: Array<{ score: number; [k: string]: unknown }>;
+        totalCrew?: number;
+        criticalCount?: number;
+        highCount?: number;
+        mediumCount?: number;
+        lowCount?: number;
+      };
+      const summaries = vesselSummaries as unknown as VS[];
+      const allCrew = summaries.flatMap((v) => v.highestRiskCrew ?? []);
       const fleetSummary = {
         totalVessels: vessels.length,
-        totalCrew: vesselSummaries.reduce((sum, v: any) => sum + (v.totalCrew ?? 0), 0),
-        criticalCount: vesselSummaries.reduce((sum, v: any) => sum + (v.criticalCount ?? 0), 0),
-        highCount: vesselSummaries.reduce((sum, v: any) => sum + (v.highCount ?? 0), 0),
-        mediumCount: vesselSummaries.reduce((sum, v: any) => sum + (v.mediumCount ?? 0), 0),
-        lowCount: vesselSummaries.reduce((sum, v: any) => sum + (v.lowCount ?? 0), 0),
-        highestRiskCrew: allCrew.sort((a: any, b: any) => b.score - a.score).slice(0, 10),
+        totalCrew: summaries.reduce((sum, v) => sum + (v.totalCrew ?? 0), 0),
+        criticalCount: summaries.reduce((sum, v) => sum + (v.criticalCount ?? 0), 0),
+        highCount: summaries.reduce((sum, v) => sum + (v.highCount ?? 0), 0),
+        mediumCount: summaries.reduce((sum, v) => sum + (v.mediumCount ?? 0), 0),
+        lowCount: summaries.reduce((sum, v) => sum + (v.lowCount ?? 0), 0),
+        highestRiskCrew: allCrew.sort((a, b) => b.score - a.score).slice(0, 10),
       };
 
       res.json({

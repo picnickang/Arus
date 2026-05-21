@@ -203,8 +203,16 @@ export const alertSettings = pgTable(
     lastTestStatus: text("last_test_status"),
     lastTestAt: timestamp("last_test_at", { mode: "date" }),
     lastTestError: text("last_test_error"),
-    purchaseOrderEmailTemplate: jsonb("purchase_order_email_template"),
-    serviceOrderEmailTemplate: jsonb("service_order_email_template"),
+    purchaseOrderEmailTemplate: jsonb("purchase_order_email_template").$type<{
+      subject: string;
+      body: string;
+      enabled: boolean;
+    }>(),
+    serviceOrderEmailTemplate: jsonb("service_order_email_template").$type<{
+      subject: string;
+      body: string;
+      enabled: boolean;
+    }>(),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },

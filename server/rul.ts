@@ -8,8 +8,8 @@ export interface WeibullFitResult {
   shapeK: number;
   scaleLambda: number;
   confidenceInterval: { lower: number; upper: number };
-  trainingData: unknown;
-  validationMetrics: unknown;
+  trainingData: { sampleSize: number };
+  validationMetrics: { mae: number; rmse: number };
 }
 
 export interface RulPredictionResult {

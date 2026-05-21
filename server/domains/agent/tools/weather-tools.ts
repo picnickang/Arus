@@ -492,5 +492,5 @@ registerTool({
       operationalRisk: weatherResult.operationalRisk,
       _meta: weatherResult._meta,
     };
-  }) as any,
+  }) as unknown as Parameters<typeof registerTool>[0]["execute"],
 });

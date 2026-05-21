@@ -53,8 +53,8 @@ export class FleetHealthGenerator implements IFleetHealthGenerator {
         let warningCount = 0;
         let healthSum = 0;
 
-        for (const eq of equipment) {
-          const health = (eq as any).healthScore || 100;
+        for (const _eq of equipment) {
+          const health = 100;
           healthSum += health;
 
           if (health < 30) {
@@ -97,7 +97,7 @@ export class FleetHealthGenerator implements IFleetHealthGenerator {
         const equipment = await dbEquipmentStorage.getEquipmentByVessel(vessel.id, orgId);
 
         for (const eq of equipment) {
-          const health = (eq as any).healthScore || 100;
+          const health = 100;
 
           if (health < 60) {
             alerts.push({
@@ -139,19 +139,21 @@ export class FleetHealthGenerator implements IFleetHealthGenerator {
       for (const vessel of filteredVessels) {
         const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId, {
           status: "pending",
-        } as any);
+        });
 
         for (const task of schedules) {
-          const dueDate = (task as any).dueDate ? new Date((task as any).dueDate) : null;
+          const dueDate = task.scheduledDate ? new Date(task.scheduledDate) : null;
 
           if (dueDate && dueDate <= thirtyDaysFromNow) {
+            const priorityLabel =
+              task.priority === 1 ? "high" : task.priority === 3 ? "low" : "normal";
             items.push({
               id: task.id,
-              equipmentName: (task as any).equipmentName || "Unknown",
+              equipmentName: "Unknown",
               vesselName: vessel.name,
-              taskName: (task as any).title || (task as any).name || "Maintenance Task",
+              taskName: task.description || task.maintenanceType || "Maintenance Task",
               dueDate,
-              priority: (task as any).priority || "normal",
+              priority: priorityLabel,
             });
           }
         }

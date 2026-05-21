@@ -19,11 +19,11 @@ export function registerSensorOptimizationRoutes(app: Express, config: SensorMan
     withErrorHandling("fetch threshold optimizations", async (req, res) => {
       const { equipmentId, sensorType, status } = req.query;
       const orgId = (req as AuthenticatedRequest).orgId;
-      const optimizations = await (dbMlAnalyticsStorage.getThresholdOptimizations as any)(
+      void status;
+      const optimizations = await dbMlAnalyticsStorage.getThresholdOptimizations(
         orgId,
-        equipmentId as string,
-        sensorType as string,
-        status as string
+        equipmentId as string | undefined,
+        sensorType as string | undefined
       );
       res.json(optimizations);
     })
@@ -116,9 +116,10 @@ export function registerSensorOptimizationRoutes(app: Express, config: SensorMan
       const { equipmentId, sensorType } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
       const { llmSensorTuningService } = await import("../../../llm-sensor-tuning.js");
-      const comparison = await (llmSensorTuningService.compareConfiguration as any)(
+      const comparison = await llmSensorTuningService.compareConfiguration(
         equipmentId,
         sensorType,
+        {},
         orgId
       );
       if (!comparison) {

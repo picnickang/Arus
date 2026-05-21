@@ -5,7 +5,7 @@
 export interface StorageConfig {
   id?: string;
   kind: string;
-  name: string;
+  name?: string;
   url?: string;
   active?: boolean;
   [k: string]: unknown;
@@ -46,5 +46,8 @@ export const opsDbService = {
   },
   async stage(_url: string): Promise<void> {
     // no-op
+  },
+  async test(_url: string): Promise<StorageTestResult> {
+    return { ok: false, message: "Ops DB service is not configured." };
   },
 };

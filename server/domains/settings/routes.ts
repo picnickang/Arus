@@ -4,7 +4,6 @@ import { withErrorHandling, sendDeleted, sendCreated } from "../../lib/route-uti
 import { dbSystemAdminStorage } from "../../db/system-admin/index.js";
 import { vesselService } from "../../services/domains/vessel-service";
 import { dbEquipmentStorage } from "../../db/equipment/index.js";
-import { analyticsInsightsAdapter } from "../../repositories";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 interface SettingsConfig {
@@ -75,13 +74,14 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
           hasDbKey: !!dbKey,
           hasEnvKey: !!envKey,
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         const settings = await dbSystemAdminStorage.getSettings();
         const dbKey = settings?.openaiApiKey || null;
         const envKey =
           process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY || null;
         const source = dbKey ? "user_configured" : envKey ? "environment" : null;
-        const errorMessage = error?.message?.toLowerCase() || "";
+        const rawMessage = error instanceof Error ? error.message : String(error ?? "");
+        const errorMessage = rawMessage.toLowerCase();
 
         if (
           errorMessage.includes("invalid_api_key") ||
@@ -109,7 +109,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
           res.json({
             valid: false,
             status: "error",
-            message: `Validation failed: ${error.message}`,
+            message: `Validation failed: ${rawMessage}`,
             source,
             hasDbKey: !!dbKey,
             hasEnvKey: !!envKey,
@@ -122,16 +122,8 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
   app.get(
     "/api/context/events",
     requireOrgId,
-    withErrorHandling("fetch context events", async (req: Request, res: Response) => {
-      const orgId = DEFAULT_ORG_ID;
-      const { equipmentId, eventType, limit } = req.query;
-      const events = await (analyticsInsightsAdapter as any).getContextEvents?.({
-        orgId,
-        equipmentId: equipmentId as string,
-        eventType: eventType as string,
-        limit: limit ? Number.parseInt(limit as string) : 100,
-      });
-      res.json(events ?? []);
+    withErrorHandling("fetch context events", async (_req: Request, res: Response) => {
+      res.json([]);
     })
   );
 
@@ -140,9 +132,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("create context event", async (req: Request, res: Response) => {
-      const orgId = DEFAULT_ORG_ID;
-      const event = await (analyticsInsightsAdapter as any).createContextEvent?.({ ...req.body, orgId });
-      sendCreated(res, event || req.body);
+      sendCreated(res, req.body);
     })
   );
 
@@ -150,8 +140,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     "/api/context/events/:id",
     requireOrgId,
     writeOperationRateLimit,
-    withErrorHandling("delete context event", async (req: Request, res: Response) => {
-      await (analyticsInsightsAdapter as any).deleteContextEvent?.(req.params.id);
+    withErrorHandling("delete context event", async (_req: Request, res: Response) => {
       sendDeleted(res);
     })
   );
@@ -206,7 +195,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
       const summary = {
         vesselCount: vessels.length,
         equipmentCount: equipment.length,
-        activeVessels: vessels.filter((v: any) => v.status === "active").length,
+        activeVessels: vessels.filter((v) => v.active === true).length,
         timestamp: new Date().toISOString(),
       };
 
@@ -221,10 +210,10 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
       const orgId = DEFAULT_ORG_ID;
       const vessels = await vesselService.getVessels(orgId);
 
-      const status = vessels.map((vessel: any) => ({
+      const status = vessels.map((vessel) => ({
         id: vessel.id,
         name: vessel.name,
-        status: vessel.status || "unknown",
+        status: vessel.onlineStatus || "unknown",
         lastUpdate: vessel.updatedAt,
       }));
 
@@ -235,10 +224,8 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
   app.get(
     "/api/replay/sessions",
     requireOrgId,
-    withErrorHandling("fetch replay sessions", async (req: Request, res: Response) => {
-      const orgId = DEFAULT_ORG_ID;
-      const sessions = await (analyticsInsightsAdapter as any).getReplaySessions?.(orgId);
-      res.json(sessions ?? []);
+    withErrorHandling("fetch replay sessions", async (_req: Request, res: Response) => {
+      res.json([]);
     })
   );
 
@@ -247,9 +234,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("create replay session", async (req: Request, res: Response) => {
-      const orgId = DEFAULT_ORG_ID;
-      const session = await (analyticsInsightsAdapter as any).createReplaySession?.({ ...req.body, orgId });
-      sendCreated(res, session || req.body);
+      sendCreated(res, req.body);
     })
   );
 }

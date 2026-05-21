@@ -1,17 +1,19 @@
-import type { Express } from "express";
+import type { Express, RequestHandler } from "express";
 import { dbNotificationsStorage } from "../../repositories";
 import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
+import type { RateLimit } from "../../lib/rate-limit-factory";
 
 interface RateLimiters {
-  writeOperationRateLimit: any;
-  criticalOperationRateLimit: any;
-  generalApiRateLimit: any;
+  writeOperationRateLimit: RateLimit;
+  criticalOperationRateLimit: RateLimit;
+  generalApiRateLimit: RateLimit;
 }
 
 export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimiters): void {
-  const writeOperationRateLimit =
-    rateLimiters?.writeOperationRateLimit || ((req: any, res: any, next: any) => next());
+  const passThrough: RequestHandler = (_req, _res, next) => next();
+  const writeOperationRateLimit: RateLimit =
+    rateLimiters?.writeOperationRateLimit ?? passThrough;
 
   // ===== NOTIFICATION SETTINGS ROUTES =====
 
@@ -184,14 +186,19 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       }
 
       const orgId = req.orgId;
+      const extras = {
+        notificationType: "test",
+        body: message || "This is a test notification from ARUS Marine.",
+        recipients: [email],
+      };
       const item = await dbNotificationsStorage.createEmailQueueItem({
         orgId,
         subject: subject || "ARUS Marine Test Notification",
         htmlContent: `<div style="font-family: Arial, sans-serif;"><h2>Test Notification</h2><p>${message || "This is a test notification from ARUS Marine."}</p></div>`,
         recipientEmail: email,
         status: "pending",
-        ...({ notificationType: "test", body: message || "This is a test notification from ARUS Marine.", recipients: [email] } as any),
-      } as any);
+        ...extras,
+      } as unknown as Parameters<typeof dbNotificationsStorage.createEmailQueueItem>[0]);
 
       const { emailNotificationService } = await import(
         "../../services/email-notification-service"

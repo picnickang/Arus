@@ -23,14 +23,14 @@ export function calculateVesselAge(vessel: SelectVessel): number {
 }
 
 export function calculateAverageResolutionTime(workOrders: WorkOrder[]): number {
-  const completed = workOrders.filter((wo) => wo.status === "completed" && (wo as any).actualEndDate);
+  const completed = workOrders.filter((wo) => wo.status === "completed" && wo.actualEndDate);
   if (completed.length === 0) {
     return 0;
   }
 
   const totalHours = completed.reduce((sum, wo) => {
     const start = new Date(wo.createdAt ?? Date.now()).getTime();
-    const end = new Date((wo as any).actualEndDate!).getTime();
+    const end = new Date(wo.actualEndDate!).getTime();
     return sum + (end - start) / (60 * 60 * 1000);
   }, 0);
 
@@ -53,7 +53,7 @@ export function calculatePerformanceMetrics(
   const availability = analysisPeriodHours > 0 ? (operatingHours / analysisPeriodHours) * 100 : 100;
 
   const failureOrders = recentWorkOrders.filter(
-    (wo) => ((wo as any).workOrderType) === "corrective" || (wo.priority as any) === "critical" || (wo.priority as any) === "urgent"
+    (wo) => (wo.workOrderType) === "corrective" || String(wo.priority) === "critical" || String(wo.priority) === "urgent"
   );
   const mtbf =
     operatingHours > 0 && failureOrders.length > 0
@@ -140,8 +140,8 @@ export function identifyCorrelatedMetrics(
   workOrders.forEach((wo) => {
     const beforeFailure = telemetry.filter(
       (t) =>
-        new Date(t.ts as any) < new Date(wo.createdAt as any) &&
-        new Date(t.ts as any) > new Date(new Date(wo.createdAt as any).getTime() - 48 * 60 * 60 * 1000)
+        new Date(t.ts) < new Date(wo.createdAt ?? 0) &&
+        new Date(t.ts) > new Date(new Date(wo.createdAt ?? 0).getTime() - 48 * 60 * 60 * 1000)
     );
 
     beforeFailure.forEach((t) => metrics.add(t.sensorType));
@@ -254,9 +254,9 @@ export function determineCostTrend(
   const lastQuarter = sorted.slice(-Math.floor(sorted.length / 4));
 
   const avgFirst =
-    firstQuarter.reduce((sum, wo) => sum + ((Number((wo as any).estimatedCostPerHour ?? 0) || 0) * (Number((wo as any).estimatedHours ?? 0) || 0)), 0) / firstQuarter.length;
+    firstQuarter.reduce((sum, wo) => sum + ((Number(wo.estimatedCostPerHour ?? 0) || 0) * (Number(wo.estimatedHours ?? 0) || 0)), 0) / firstQuarter.length;
   const avgLast =
-    lastQuarter.reduce((sum, wo) => sum + ((Number((wo as any).estimatedCostPerHour ?? 0) || 0) * (Number((wo as any).estimatedHours ?? 0) || 0)), 0) / lastQuarter.length;
+    lastQuarter.reduce((sum, wo) => sum + ((Number(wo.estimatedCostPerHour ?? 0) || 0) * (Number(wo.estimatedHours ?? 0) || 0)), 0) / lastQuarter.length;
 
   const change = ((avgLast - avgFirst) / avgFirst) * 100;
 

@@ -71,11 +71,11 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
 
       const { trainLSTMForFailurePrediction } = await import("../../ml-training-pipeline");
 
-      const config = {
+      const config: import("../../ml-training-pipeline").LSTMTrainingConfig = {
+        jobId: crypto.randomUUID(),
         orgId,
         equipmentType,
-        modelType: "lstm" as const,
-        targetMetric: "failure_prediction" as const,
+        modelType: "lstm",
         lstmConfig: lstmConfig || {
           sequenceLength: 7,
           featureCount: 0,
@@ -90,7 +90,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
         },
       };
 
-      const result = await trainLSTMForFailurePrediction(config as any);
+      const result = await trainLSTMForFailurePrediction(config);
       res.json(result);
     })
   );
@@ -105,11 +105,11 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
 
         const { trainRFForHealthClassification } = await import("../../ml-training-pipeline");
 
-        const config = {
+        const config: import("../../ml-training-pipeline").RFTrainingConfig = {
+          jobId: crypto.randomUUID(),
           orgId,
           equipmentType,
-          modelType: "random_forest" as const,
-          targetMetric: "health_classification" as const,
+          modelType: "random_forest",
           rfConfig: rfConfig || {
             numTrees: 50,
             maxDepth: 10,
@@ -119,7 +119,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
           },
         };
 
-        const result = await trainRFForHealthClassification(config as any);
+        const result = await trainRFForHealthClassification(config);
         res.json(result);
       }
     )
@@ -133,11 +133,11 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
 
       const { trainXGBoostForHealthClassification } = await import("../../ml-training-pipeline");
 
-      const config = {
+      const config: import("../../ml-training-pipeline").XGBoostTrainingConfig = {
+        jobId: crypto.randomUUID(),
         orgId,
         equipmentType,
-        modelType: "xgboost" as const,
-        targetMetric: "health_classification" as const,
+        modelType: "xgboost",
         xgboostConfig: xgboostConfig || {
           maxDepth: 6,
           learningRate: 0.1,
@@ -147,7 +147,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
         },
       };
 
-      const result = await trainXGBoostForHealthClassification(config as any);
+      const result = await trainXGBoostForHealthClassification(config);
       res.json(result);
     })
   );
@@ -319,9 +319,9 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
 
       const mlModels = await dbMlAnalyticsStorage.getMlModels(orgId);
       const modelCounts = {
-        lstm: mlModels.filter((m) => (m as any).type === "lstm").length,
-        randomForest: mlModels.filter((m) => (m as any).type === "random_forest").length,
-        xgboost: mlModels.filter((m) => (m as any).type === "xgboost").length,
+        lstm: mlModels.filter((m) => m.type === "lstm").length,
+        randomForest: mlModels.filter((m) => m.type === "random_forest").length,
+        xgboost: mlModels.filter((m) => m.type === "xgboost").length,
       };
 
       const allCircuitsClosed = Object.values(circuitBreakers).every(
@@ -347,13 +347,9 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
   app.get(
     "/api/ml/metrics",
     withErrorHandling("retrieve ML metrics", async (req: Request, res: Response) => {
-      const promMod: any = await import("../../ml-prometheus-metrics");
-      const getMetrics = promMod.getMetrics ?? promMod.default?.getMetrics;
-      const getMetricsContentType =
-        promMod.getMetricsContentType ?? promMod.default?.getMetricsContentType;
-      const metrics = await getMetrics();
-
-      res.set("Content-Type", getMetricsContentType());
+      const { default: client } = await import("prom-client");
+      const metrics = await client.register.metrics();
+      res.set("Content-Type", client.register.contentType);
       res.send(metrics);
     })
   );
@@ -390,10 +386,9 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
         scaleLambda: fitResult.scaleLambda,
         confidenceLo: fitResult.confidenceInterval.lower,
         confidenceHi: fitResult.confidenceInterval.upper,
-        trainingData: fitResult.trainingData as any,
-        validationMetrics: fitResult.validationMetrics as any,
+        trainingData: fitResult.trainingData,
+        validationMetrics: fitResult.validationMetrics,
         isActive: true,
-        ...({ createdAt: new Date() } as any),
       });
 
       res.json({ fitResult, storedModel: model });

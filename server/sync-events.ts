@@ -15,6 +15,7 @@ syncEventBus.setMaxListeners(100);
 // Entity types that can be tracked
 export type EntityType =
   | "vessel"
+  | "device"
   | "crew"
   | "crew_assignment"
   | "sensor"
@@ -37,10 +38,18 @@ export type EntityType =
   | "alert_configuration"
   | "alert_notification"
   | "alert_comment"
-  | "alert_suppression";
+  | "alert_suppression"
+  | "inventory_supplier_link";
 
 // Operation types for journal entries
-export type OperationType = "create" | "update" | "delete" | "reconcile";
+export type OperationType =
+  | "create"
+  | "update"
+  | "delete"
+  | "reconcile"
+  | "bulk_create"
+  | "replace"
+  | "set_preferred";
 
 // Event types for outbox - comprehensive coverage for all entity types
 export type EventType =

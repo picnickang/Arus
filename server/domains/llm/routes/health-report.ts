@@ -9,12 +9,37 @@ import { RateLimitRequestHandler } from "express-rate-limit";
 import { analyzeFleetHealth } from "../../../openai";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { logger } from "../../../utils/logger.js";
+import type { AuthenticatedRequest } from "../../../middleware/auth";
 import {
   dbEquipmentStorage,
   dbTelemetryStorage,
   dbAlertStorage,
   workOrderService,
 } from "../../../repositories";
+
+type FleetAnalysisFallback = {
+  totalEquipment: number;
+  healthyEquipment: number;
+  equipmentAtRisk: number;
+  criticalEquipment: number;
+  topRecommendations: string[];
+  costEstimate: number;
+  summary: string;
+  riskMatrix: unknown[];
+  prioritizedActions: unknown[];
+  systemIntegration: {
+    linkedWorkOrders: number;
+    pendingComplianceItems: number;
+    scheduledMaintenanceOverlap: number;
+  };
+  fleetBenchmarks: {
+    fleetAverage: { healthIndex: number; predictedDueDays: number; maintenanceFrequency: number };
+    performancePercentiles: { top10Percent: number; median: number; bottom10Percent: number };
+    bestPerformers: unknown[];
+    worstPerformers: unknown[];
+  };
+  equipmentComparisons: unknown[];
+};
 
 export function registerHealthReportRoutes(
   app: Express,
@@ -30,23 +55,24 @@ export function registerHealthReportRoutes(
     withErrorHandling("generate health report", async (req, res) => {
       const { vesselId, equipmentId, lookbackHours = 24 } = req.body;
 
-      const equipmentHealth = await (dbEquipmentStorage as any).getEquipmentHealth("");
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const equipmentHealth = await dbEquipmentStorage.getEquipmentHealth(orgId);
       const filteredEquipmentHealth = vesselId
-        ? equipmentHealth.filter((eq: any) => eq.vessel === vesselId)
+        ? equipmentHealth.filter((eq) => eq.vesselId === vesselId)
         : equipmentId
-          ? equipmentHealth.filter((eq: any) => eq.id === equipmentId)
+          ? equipmentHealth.filter((eq) => eq.id === equipmentId)
           : equipmentHealth;
 
       const telemetryData = equipmentId
         ? await dbTelemetryStorage.getTelemetryTrends(equipmentId, lookbackHours)
         : await dbTelemetryStorage.getTelemetryTrends("", lookbackHours);
 
-      let fleetAnalysis: any;
+      let fleetAnalysis: Awaited<ReturnType<typeof analyzeFleetHealth>> | FleetAnalysisFallback;
       try {
         const analysisPromise = analyzeFleetHealth(filteredEquipmentHealth, telemetryData);
         fleetAnalysis = await Promise.race([
           analysisPromise,
-          new Promise((_, reject) =>
+          new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error("AI analysis timeout")), 10000)
           ),
         ]);
@@ -54,11 +80,11 @@ export function registerHealthReportRoutes(
         logger.warn("HealthReport", "Fleet analysis failed, using fallback", error);
         fleetAnalysis = {
           totalEquipment: filteredEquipmentHealth.length,
-          healthyEquipment: filteredEquipmentHealth.filter((eq: any) => eq.healthIndex > 70).length,
+          healthyEquipment: filteredEquipmentHealth.filter((eq) => eq.healthIndex > 70).length,
           equipmentAtRisk: filteredEquipmentHealth.filter(
-            (eq: any) => eq.healthIndex >= 30 && eq.healthIndex <= 70
+            (eq) => eq.healthIndex >= 30 && eq.healthIndex <= 70
           ).length,
-          criticalEquipment: filteredEquipmentHealth.filter((eq: any) => eq.healthIndex < 30).length,
+          criticalEquipment: filteredEquipmentHealth.filter((eq) => eq.healthIndex < 30).length,
           topRecommendations: [
             "Schedule maintenance for equipment with health scores below 70%",
             "Monitor critical equipment closely for deteriorating conditions",

@@ -25,10 +25,10 @@ const telemetryQuerySchema = z.object({
 export function registerTelemetryRoutes(
   app: Express,
   rateLimit: {
-    writeOperationRateLimit: any;
-    criticalOperationRateLimit: any;
-    generalApiRateLimit: any;
-    telemetryRateLimit: any;
+    writeOperationRateLimit: import("../../lib/rate-limit-factory").RateLimit;
+    criticalOperationRateLimit: import("../../lib/rate-limit-factory").RateLimit;
+    generalApiRateLimit: import("../../lib/rate-limit-factory").RateLimit;
+    telemetryRateLimit: import("../../lib/rate-limit-factory").RateLimit;
   }
 ) {
   const { criticalOperationRateLimit, generalApiRateLimit } = rateLimit;

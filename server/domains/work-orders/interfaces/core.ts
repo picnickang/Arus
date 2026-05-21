@@ -90,25 +90,32 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
       const workOrders = await workOrderService.listWorkOrders(undefined, orgId);
       const now = new Date();
 
-      const total = workOrders.length;
-      const open = workOrders.filter(
-        (wo: any) => wo.status === "open" || wo.status === "in_progress" || wo.status === "pending"
+      type WO = {
+        status?: string | null;
+        scheduledDate?: Date | string | null;
+        plannedEndDate?: Date | string | null;
+        priority?: number | string | null;
+      };
+      const wos = workOrders as unknown as WO[];
+      const total = wos.length;
+      const open = wos.filter(
+        (wo) => wo.status === "open" || wo.status === "in_progress" || wo.status === "pending"
       ).length;
-      const completed = workOrders.filter(
-        (wo: any) => wo.status === "completed" || wo.status === "closed"
+      const completed = wos.filter(
+        (wo) => wo.status === "completed" || wo.status === "closed"
       ).length;
-      const overdue = workOrders.filter((wo: any) => {
+      const overdue = wos.filter((wo) => {
         if (wo.status === "completed" || wo.status === "closed" || wo.status === "cancelled") {
           return false;
         }
         if (!wo.scheduledDate && !wo.plannedEndDate) {
           return false;
         }
-        const dueDate = new Date(wo.scheduledDate || wo.plannedEndDate);
+        const dueDate = new Date((wo.scheduledDate || wo.plannedEndDate) as Date | string);
         return dueDate < now;
       }).length;
-      const highPriority = workOrders.filter(
-        (wo: any) => wo.priority === 1 || wo.priority === "high" || wo.priority === "critical"
+      const highPriority = wos.filter(
+        (wo) => wo.priority === 1 || wo.priority === "high" || wo.priority === "critical"
       ).length;
 
       res.json({ total, open, completed, overdue, overdueCount: overdue, highPriority });
@@ -186,7 +193,7 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     writeOperationRateLimit,
     withErrorHandling("update work order", async (req: Request, res: Response) => {
       const parsed = updateWorkOrderSchema.parse(req.body);
-      const orderData: Record<string, any> = { ...parsed };
+      const orderData: Record<string, unknown> = { ...parsed };
       const dateFields = [
         "plannedStartDate",
         "plannedEndDate",
@@ -194,8 +201,9 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
         "actualEndDate",
       ] as const;
       for (const f of dateFields) {
-        if (orderData[f] != null) {
-          orderData[f] = new Date(orderData[f]);
+        const v = orderData[f];
+        if (v != null) {
+          orderData[f] = new Date(v as string | number | Date);
         }
       }
       const orgId = (req as AuthenticatedRequest).orgId;

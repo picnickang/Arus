@@ -33,11 +33,12 @@ router.post("/refresh/:twinId", async (req: Request, res: Response) => {
       residualCount: result.residuals.length,
       timestamp: result.state.timestamp,
     });
-  } catch (error: any) {
-    if (error.message?.includes("not found")) {
-      return res.status(404).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("not found")) {
+      return res.status(404).json({ error: message });
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: message });
   }
 });
 
@@ -46,8 +47,9 @@ router.post("/refresh-all", async (req: Request, res: Response) => {
     const orgId = DEFAULT_ORG_ID;
     const result = await updateService.refreshAllActiveTwins(orgId);
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -56,8 +58,9 @@ router.get("/freshness", async (req: Request, res: Response) => {
     const orgId = DEFAULT_ORG_ID;
     const freshness = await updateService.getFreshnessStatus(orgId);
     res.json(freshness);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -70,8 +73,9 @@ router.get("/freshness/:twinId", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Twin not found or not active" });
     }
     res.json(freshness);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 

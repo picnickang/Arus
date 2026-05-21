@@ -22,8 +22,9 @@ router.get("/predictions", async (req: Request, res: Response) => {
       offset,
     });
     res.json(predictions);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -40,8 +41,9 @@ router.get("/predictions/:id", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Prediction not found" });
     }
     res.json(details);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -63,8 +65,9 @@ router.patch("/predictions/:id/review", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Prediction not found" });
     }
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -82,8 +85,9 @@ router.patch("/predictions/:id/approve", async (req: Request, res: Response) => 
       return res.status(404).json({ error: "Prediction not found" });
     }
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -110,8 +114,9 @@ router.patch("/predictions/:id/suppress", async (req: Request, res: Response) =>
       return res.status(404).json({ error: "Prediction not found" });
     }
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -120,8 +125,9 @@ router.post("/predictions/expire-stale", async (req: Request, res: Response) => 
     const orgId = DEFAULT_ORG_ID;
     const result = await service.expireStale(orgId);
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 

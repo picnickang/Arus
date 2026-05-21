@@ -120,15 +120,25 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
 
     const signals: string[] = [];
     for (const ins of insights) {
-      if (ins.supportingSignals) {
+      const raw = ins.supportingSignals;
+      if (raw == null) {
+        continue;
+      }
+      if (typeof raw === "string") {
         try {
-          const parsed: unknown[] = JSON.parse(ins.supportingSignals as any);
+          const parsed: unknown = JSON.parse(raw);
           if (Array.isArray(parsed)) {
-            signals.push(...parsed.map(parseSignalEntry as any).filter((s: any) => typeof s === "string"));
+            signals.push(...parsed.map(parseSignalEntry).filter((s) => typeof s === "string"));
+          } else {
+            signals.push(raw);
           }
         } catch {
-          signals.push(ins.supportingSignals as any);
+          signals.push(raw);
         }
+      } else if (Array.isArray(raw)) {
+        signals.push(...raw.map(parseSignalEntry).filter((s) => typeof s === "string"));
+      } else {
+        signals.push(parseSignalEntry(raw));
       }
     }
 
@@ -138,7 +148,16 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
       ? `${pred.failureMode} — ${risk === "critical" ? `replace within ${rul} days` : risk === "warning" ? "monitor closely" : "continue normal operations"}`
       : "Operating within normal parameters";
 
-    const lastService = (workOrders.find((wo) => wo.status === "completed") as any)?.actualEndDate || null;
+    const completedWO = workOrders.find((wo) => wo.status === "completed") as
+      | (WorkOrderSummary & { actualEndDate?: string | Date | null })
+      | undefined;
+    const rawLastService = completedWO?.actualEndDate ?? completedWO?.completedAt ?? null;
+    const lastService: string | null =
+      rawLastService == null
+        ? null
+        : rawLastService instanceof Date
+          ? rawLastService.toISOString()
+          : String(rawLastService);
     const nextDue =
       workOrders.find(
         (wo) => wo.status === "scheduled" || wo.status === "pending" || wo.status === "open"
@@ -216,7 +235,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         createdAt: r.createdAt ? new Date(r.createdAt).toISOString().split("T")[0] : "",
       }));
     } catch (error) {
-      logger.warn("[EquipmentHub] Failed to fetch service orders", { error: String(error) } as any);
+      logger.warn("[EquipmentHub]", "Failed to fetch service orders", { error: String(error) });
       return [];
     }
   }
@@ -245,7 +264,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         createdAt: r.createdAt ? new Date(r.createdAt).toISOString().split("T")[0] : "",
       }));
     } catch (error) {
-      logger.warn("[EquipmentHub] Failed to fetch diagnostic runs", { error: String(error) } as any);
+      logger.warn("[EquipmentHub]", "Failed to fetch diagnostic runs", { error: String(error) });
       return [];
     }
   }

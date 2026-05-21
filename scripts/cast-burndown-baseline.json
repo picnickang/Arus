@@ -1,36 +1,36 @@
 {
   "_comment": "Type-cast burndown baseline. Total must monotonically decrease. Regenerate with: node scripts/check-cast-burndown.mjs --write-baseline. Adapter boundaries (telemetry/sync/vessel-simulator/external-integrations) are exempt.",
-  "generatedAt": "2026-05-21T06:08:05.492Z",
-  "total": 1319,
+  "generatedAt": "2026-05-21T11:49:25.965Z",
+  "total": 859,
   "summary": {
     "byTopFiles": {
-      "server/routes/service-request-routes.ts": 16,
       "client/src/components/ai-health/ReportsTab.tsx": 15,
-      "server/db/hub-sync/db-hub-sync.ts": 15,
       "client/src/pages/pdm-equipment-detail.tsx": 13,
-      "server/vessel-intelligence/calculation-helpers.ts": 13,
-      "server/db/ml-analytics/db-ml-analytics.ts": 12,
-      "server/db/equipment/db-equipment.ts": 11,
-      "server/domains/ml-analytics/routes/export-partial.ts": 11,
       "client/src/pages/MaintenanceTemplatesPage.tsx": 10,
-      "server/db/telemetry/db-telemetry.ts": 10,
-      "server/domains/maintenance/service.ts": 10,
-      "server/domains/scheduled-reports/generators/inventory-status-generator.ts": 10,
-      "server/db/sensors/db-sensors.ts": 9,
-      "server/domains/inventory/supplier-service.ts": 9,
-      "server/domains/ml-pipeline/routes.ts": 9
+      "server/ml-prediction/storage.ts": 9,
+      "server/repos/sequenceRepo.ts": 9,
+      "client/src/features/vessels/hooks/useEquipmentViewData.ts": 8,
+      "client/src/pages/system-administration.tsx": 8,
+      "server/compliance/assessment.ts": 8,
+      "server/crew-scheduler-ortools/helpers.ts": 8,
+      "server/ml-prediction/predictors.ts": 8,
+      "server/report-context/knowledge-citations.ts": 8,
+      "server/routes/analytics/model-governance.ts": 8,
+      "server/routes/rag-routes.ts": 8,
+      "server/services/email-notification/queue-processor.ts": 8,
+      "client/src/features/analytics/hooks/useMissionOverviewData.ts": 7
     },
     "byTopDirs": {
-      "server/domains": 336,
       "client/src": 281,
-      "server/db": 126,
-      "server/services": 112,
-      "server/routes": 84,
-      "server/vessel-intelligence": 32,
+      "server/services": 106,
+      "server/domains": 77,
+      "server/routes": 60,
       "server/compliance": 26,
       "server/report-context": 24,
-      "server/lib": 19,
-      "server/ml-prediction": 19
+      "server/ml-prediction": 19,
+      "server/ml-ensemble": 17,
+      "server/infrastructure": 15,
+      "server/beast": 13
     }
   }
 }

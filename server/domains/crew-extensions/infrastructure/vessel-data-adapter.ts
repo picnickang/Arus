@@ -30,8 +30,8 @@ export class VesselDataAdapter implements IVesselDataPort {
       .select({
         id: vessels.id,
         name: vessels.name,
-        type: (vessels as any).type,
-        status: (vessels as any).status,
+        type: vessels.vesselType,
+        status: vessels.condition,
       })
       .from(vessels)
       .where(and(...conditions));

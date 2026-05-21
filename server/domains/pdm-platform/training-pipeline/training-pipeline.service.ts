@@ -111,19 +111,20 @@ export class TrainingPipelineService {
         metrics: result.metrics,
         artifactId: artifact.id,
         finishedAt: new Date(),
-      } as any);
+      });
 
       logger.info("[TrainingPipeline]", "Training run completed", {
         runId,
         artifactId: artifact.id,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       await this.runs.update(orgId, runId, {
         status: "failed",
-        errorMessage: error.message,
+        errorMessage: message,
         finishedAt: new Date(),
-      } as any);
-      logger.error("[TrainingPipeline]", "Training run failed", { runId, error: error.message });
+      });
+      logger.error("[TrainingPipeline]", "Training run failed", { runId, error: message });
     }
   }
 
@@ -153,20 +154,29 @@ export class TrainingPipelineService {
       throw new Error(`Training run ${runId} is not completed (status: ${run.status})`);
     }
 
+    const metrics =
+      run.metrics && typeof run.metrics === "object"
+        ? (run.metrics as Record<string, unknown>)
+        : {};
+    const metricStr = (key: string): string | undefined => {
+      const v = metrics[key];
+      return typeof v === "number" || typeof v === "string" ? String(v) : undefined;
+    };
+
     const modelVersion = await this.registry.createVersion({
       orgId,
       modelId,
       version,
       status: "staging",
-      accuracy: (run.metrics as any)?.accuracy?.toString(),
-      precision: (run.metrics as any)?.precision?.toString(),
-      recall: (run.metrics as any)?.recall?.toString(),
-      f1Score: (run.metrics as any)?.f1Score?.toString(),
+      accuracy: metricStr("accuracy"),
+      precision: metricStr("precision"),
+      recall: metricStr("recall"),
+      f1Score: metricStr("f1Score"),
       hyperparameters: run.hyperparameters as Record<string, unknown>,
       changelog: changelog ?? `Promoted from training run ${runId}`,
     });
 
-    await this.runs.update(orgId, runId, { modelVersionId: modelVersion.id } as any);
+    await this.runs.update(orgId, runId, { modelVersionId: modelVersion.id });
 
     if (run.artifactId) {
       await this.artifacts.linkToModelVersion(orgId, run.artifactId, modelVersion.id);

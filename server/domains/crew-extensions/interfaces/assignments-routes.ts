@@ -58,12 +58,12 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
         ]);
 
         // Create lookup maps
-        const crewMap = new Map(crewMembers.map((c: any) => [c.id, c.name]));
-        const vesselMap = new Map(vessels.map((v: any) => [v.id, v.name]));
+        const crewMap = new Map(crewMembers.map((c) => [c.id, c.name] as const));
+        const vesselMap = new Map(vessels.map((v) => [v.id, v.name] as const));
 
         // Filter by org and date range
         const scheduleAssignments = allAssignments
-          .filter((a: any) => {
+          .filter((a) => {
             // Filter by org for multi-tenant isolation
             if (a.orgId && a.orgId !== orgId) {
               return false;
@@ -79,19 +79,27 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
             // Check if assignment overlaps with the date range
             return assignmentStart <= rangeEnd && assignmentEnd >= rangeStart;
           })
-          .map((a: any) => ({
+          .map((a) => {
+            const bag = a as unknown as {
+              crewMember?: { name?: string };
+              vessel?: { name?: string };
+              shiftPattern?: string;
+              notes?: string;
+            };
+            return {
             id: a.id,
             crewId: a.crewId,
-            crewName: a.crewMember?.name || crewMap.get(a.crewId) || "Unknown",
+            crewName: bag.crewMember?.name || crewMap.get(a.crewId) || "Unknown",
             vesselId: a.vesselId || "",
-            vesselName: a.vessel?.name || vesselMap.get(a.vesselId) || "Unknown",
+            vesselName: bag.vessel?.name || vesselMap.get(a.vesselId ?? "") || "Unknown",
             startDate: a.start instanceof Date ? a.start.toISOString() : a.start || a.date || "",
             endDate: a.end instanceof Date ? a.end.toISOString() : a.end || a.date || "",
             role: a.role || "Crew",
             status: a.status === "scheduled" ? "confirmed" : a.status || "draft",
-            shiftPattern: a.shiftPattern,
-            notes: a.notes,
-          }));
+            shiftPattern: bag.shiftPattern,
+            notes: bag.notes,
+            };
+          });
 
         res.json(scheduleAssignments);
       }
@@ -147,7 +155,7 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
         const validated = updateScheduleAssignmentSchema.parse(req.body);
 
         // Map status back to storage format
-        const storageUpdates: any = {};
+        const storageUpdates: Record<string, unknown> = {};
         if (validated.status) {
           storageUpdates.status =
             validated.status === "confirmed"

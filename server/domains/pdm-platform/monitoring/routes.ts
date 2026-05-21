@@ -11,8 +11,9 @@ router.get("/", async (req: Request, res: Response) => {
     const orgId = DEFAULT_ORG_ID;
     const summary = await monitoring.getDriftSummary(orgId);
     res.json(summary);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -30,8 +31,9 @@ router.post("/:modelVersionId/compute", async (req: Request, res: Response) => {
     const { windowDays } = parsed.data;
     const result = await monitoring.computeDrift(orgId, req.params.modelVersionId, windowDays);
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -40,8 +42,9 @@ router.get("/:modelVersionId", async (req: Request, res: Response) => {
     const orgId = DEFAULT_ORG_ID;
     const result = await monitoring.getDrift(orgId, req.params.modelVersionId);
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 

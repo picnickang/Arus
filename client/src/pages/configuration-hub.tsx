@@ -90,8 +90,7 @@ function EmbeddedConfigurationHub() {
       icon: Shield,
       component: (
         <Suspense fallback={<PageLoader />}>
-          {/* @ts-ignore */}
-          <PermissionsSettings embedded />
+          <PermissionsSettings />
         </Suspense>
       ),
       adminOnly: true,

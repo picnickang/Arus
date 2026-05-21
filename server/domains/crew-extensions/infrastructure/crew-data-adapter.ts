@@ -31,8 +31,9 @@ export class CrewDataAdapter implements ICrewDataPort {
       .select({
         id: crew.id,
         name: crew.name,
-        role: (crew as any).role,
-        status: (crew as any).status,
+        role: crew.rank,
+        active: crew.active,
+        onDuty: crew.onDuty,
       })
       .from(crew)
       .where(and(...conditions));
@@ -41,7 +42,7 @@ export class CrewDataAdapter implements ICrewDataPort {
       id: c.id,
       name: c.name || "Unknown",
       role: c.role || "crew",
-      status: c.status || "active",
+      status: c.active ? (c.onDuty ? "on_duty" : "active") : "inactive",
     }));
   }
 }

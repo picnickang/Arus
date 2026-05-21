@@ -14,11 +14,10 @@ export function registerInsightRoutes(app: Express, _config: MlAnalyticsConfig) 
   app.get(
     "/api/analytics/insight-snapshots",
     withErrorHandling("fetch insight snapshots", async (req, res) => {
-      const { orgId = (req as AuthenticatedRequest).orgId, scope, limit } = req.query;
-      const snapshots = await (analyticsInsightsAdapter.getInsightSnapshots as any)(
+      const { orgId = (req as AuthenticatedRequest).orgId, scope } = req.query;
+      const snapshots = await analyticsInsightsAdapter.getInsightSnapshots(
         orgId as string,
-        scope as string,
-        limit ? Number.parseInt(limit as string) : undefined
+        scope as string
       );
       const { normalizeInsightSnapshots } = await import("../../../analytics-data-normalizer.js");
       res.json(normalizeInsightSnapshots(snapshots));

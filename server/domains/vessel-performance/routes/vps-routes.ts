@@ -37,7 +37,10 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
       }
 
       const vesselEquipment = await dbEquipmentStorage.getEquipmentByVessel(vesselId, orgId);
-      const allTelemetry: any[] = [];
+      type TelemetryReading = Awaited<
+        ReturnType<typeof dbTelemetryStorage.getTelemetryByEquipmentAndDateRange>
+      >[number];
+      const allTelemetry: TelemetryReading[] = [];
       for (const equipment of vesselEquipment) {
         const telemetry = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(
           equipment.id,
@@ -50,7 +53,7 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
 
       const telemetryMap = new Map<number, { rpm?: number; torque?: number; stw?: number }>();
       for (const reading of allTelemetry) {
-        const timestamp = new Date(reading.timestamp).getTime();
+        const timestamp = new Date(reading.ts).getTime();
         if (!telemetryMap.has(timestamp)) {
           telemetryMap.set(timestamp, {});
         }
@@ -82,16 +85,16 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
         stw = completeReadings.map((r) => r.stw).filter((s) => s !== undefined) as number[];
       const actualCurve = calculatePowerSTWCurve(rpm, torque, stw.length > 0 ? stw : undefined);
       const sortedActual = actualCurve
-        .filter((p: any) => p.y > 0 && p.x > 0)
-        .sort((a: any, b: any) => a.x - b.x);
+        .filter((p: { x: number; y: number }) => p.y > 0 && p.x > 0)
+        .sort((a: { x: number }, b: { x: number }) => a.x - b.x);
       const baselineCurve: { x: number; y: number }[] = [];
 
       if (sortedActual.length > 0) {
         const medianIndex = Math.floor(sortedActual.length / 2),
           refSpeed = sortedActual[medianIndex].x,
           refPower = sortedActual[medianIndex].y;
-        const minSpeed = Math.min(...sortedActual.map((p: any) => p.x)),
-          maxSpeed = Math.max(...sortedActual.map((p: any) => p.x)),
+        const minSpeed = Math.min(...sortedActual.map((p: { x: number }) => p.x)),
+          maxSpeed = Math.max(...sortedActual.map((p: { x: number }) => p.x)),
           speedStep = (maxSpeed - minSpeed) / 20;
         for (let speed = minSpeed; speed <= maxSpeed; speed += speedStep) {
           baselineCurve.push({ x: speed, y: refPower * Math.pow(speed / refSpeed, 3) });
@@ -144,7 +147,7 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
 
       const vessels = await vesselService.getVessels(orgId);
       const vesselCount = vesselType
-        ? vessels.filter((v) => (v as any).type === vesselType).length
+        ? vessels.filter((v) => (v as { vesselType?: string | null }).vesselType === vesselType).length
         : vessels.length;
 
       res.setHeader("Cache-Control", "public, max-age=300");

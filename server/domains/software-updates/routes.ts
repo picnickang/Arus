@@ -49,7 +49,7 @@ export function registerSoftwareUpdatesRoutes(
         const patch = await updateChecker.registerPatch(orgId, manifest);
 
         const { wsServer } = await import("../../websocket");
-        (wsServer.broadcast as any)({
+        wsServer.broadcast("update_available", {
           type: "update_available",
           version: manifest.version,
           severity: manifest.severity,

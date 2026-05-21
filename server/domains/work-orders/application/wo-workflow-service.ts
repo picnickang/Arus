@@ -105,8 +105,6 @@ export class WorkOrderWorkflowService {
       await this.legacyCompletion.completeWorkOrder(
         workOrderId,
         {
-          ...({ workOrderId } as any),
-          orgId,
           equipmentId: wo.equipmentId,
           vesselId: wo.vesselId || undefined,
           completedAt: new Date(),

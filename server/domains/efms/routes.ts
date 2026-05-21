@@ -12,11 +12,13 @@ function getOrgId(req: Request): string {
   return (req as AuthenticatedRequest).orgId as string;
 }
 
-function getRows(result: any): any[] {
-  return Array.isArray(result) ? result : (result as any)?.rows || [];
+function getRows(result: unknown): Record<string, unknown>[] {
+  if (Array.isArray(result)) return result as Record<string, unknown>[];
+  const r = result as { rows?: Record<string, unknown>[] } | null | undefined;
+  return r?.rows ?? [];
 }
 
-function getFirstRow(result: any): any | undefined {
+function getFirstRow(result: unknown): Record<string, unknown> | undefined {
   return getRows(result)[0];
 }
 
@@ -198,7 +200,7 @@ router.get("/status", requireOrgId, async (req: Request, res: Response) => {
       ORDER BY ec.status, v.name
     `);
 
-    const connections = getRows(result) as any[];
+    const connections = getRows(result);
 
     res.json({
       totalConnections: connections.length,

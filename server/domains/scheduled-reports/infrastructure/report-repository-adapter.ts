@@ -289,7 +289,7 @@ export class GeneratedReportRepositoryAdapter implements IGeneratedReportReposit
       DELETE FROM generated_reports WHERE expires_at < ${now}
     `);
 
-    return (result as any).rowCount || 0;
+    return (result as { rowCount?: number }).rowCount || 0;
   }
 
   private mapRowToReport(row: any): GeneratedReport {

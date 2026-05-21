@@ -6,7 +6,7 @@ import {
   insertAlertCommentSchema,
   insertAlertSuppressionSchema,
 } from "@shared/schema-runtime";
-import { alertsService } from "./service";
+import { alertsService, type AlertsWsBroadcaster } from "./service";
 import { withErrorHandling, handleApiError, sendNotFound } from "../../lib/route-utils";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
@@ -17,10 +17,10 @@ import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 export function registerAlertsRoutes(
   app: Express,
   deps: {
-    writeOperationRateLimit: any;
-    criticalOperationRateLimit: any;
-    generalApiRateLimit: any;
-    wsServer?: any;
+    writeOperationRateLimit: import("../../lib/rate-limit-factory").RateLimit;
+    criticalOperationRateLimit: import("../../lib/rate-limit-factory").RateLimit;
+    generalApiRateLimit: import("../../lib/rate-limit-factory").RateLimit;
+    wsServer?: AlertsWsBroadcaster & { broadcastWorkOrderCreated?: (wo: unknown) => void };
   }
 ) {
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = deps;
@@ -242,10 +242,11 @@ export function registerAlertsRoutes(
 
         const { workOrderService } = await import("../../repositories");
 
-        const createWorkOrderFn = async (data: any) => {
+        type CreateWOArgs = Parameters<typeof workOrderService.createWorkOrder>[0];
+        const createWorkOrderFn = async (data: CreateWOArgs) => {
           const workOrder = await workOrderService.createWorkOrder(data);
 
-          if (wsServerInstance) {
+          if (wsServerInstance?.broadcastWorkOrderCreated) {
             wsServerInstance.broadcastWorkOrderCreated(workOrder);
           }
 

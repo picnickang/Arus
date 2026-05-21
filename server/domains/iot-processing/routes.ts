@@ -12,9 +12,9 @@ import { logger } from "../../utils/logger.js";
 import type { AuthenticatedRequest } from "../../middleware/auth";
 
 interface MqttIngestionService {
-  registerMqttDevice: (deviceData: any) => Promise<any>;
-  getMqttDevices: () => Promise<any[]>;
-  getHealthStatus: () => any;
+  registerMqttDevice: (deviceData: unknown) => Promise<unknown>;
+  getMqttDevices: () => Promise<unknown[]>;
+  getHealthStatus: () => Record<string, unknown>;
 }
 
 interface MlAnalyticsService {
@@ -24,8 +24,8 @@ interface MlAnalyticsService {
     sensorType: string,
     value: number,
     timestamp: Date
-  ) => Promise<any>;
-  getHealthStatus: () => any;
+  ) => Promise<unknown>;
+  getHealthStatus: () => Record<string, unknown>;
 }
 
 interface DigitalTwinService {
@@ -33,12 +33,12 @@ interface DigitalTwinService {
     vesselId: string,
     twinType: string,
     name: string,
-    specifications: any,
-    physicsModel: any
-  ) => Promise<any>;
-  getDigitalTwins: (vesselId?: string) => Promise<any[]>;
-  runSimulation: (twinId: string, scenarioName: string, scenario: any) => Promise<any>;
-  getHealthStatus: () => any;
+    specifications: unknown,
+    physicsModel: unknown
+  ) => Promise<unknown>;
+  getDigitalTwins: (vesselId?: string) => Promise<unknown[]>;
+  runSimulation: (twinId: string, scenarioName: string, scenario: unknown) => Promise<unknown>;
+  getHealthStatus: () => Record<string, unknown>;
 }
 
 interface IotProcessingDependencies {

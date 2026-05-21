@@ -192,10 +192,8 @@ registerTool({
       REGULATORY_CACHE_TTL_SEC
     );
 
-    if (
-      (result.data as unknown as Record<string, unknown>)?.error ||
-      (result.data as unknown as Record<string, unknown>)?.offline
-    ) {
+    const errOrOffline = result.data as { error?: unknown; offline?: unknown } | undefined;
+    if (errOrOffline?.error || errOrOffline?.offline) {
       const isNotConfigured = result.fetchError?.includes("not configured");
       return {
         imoNumber,
@@ -323,10 +321,8 @@ registerTool({
       REGULATORY_CACHE_TTL_SEC
     );
 
-    if (
-      (result.data as unknown as Record<string, unknown>)?.error ||
-      (result.data as unknown as Record<string, unknown>)?.offline
-    ) {
+    const errOrOffline2 = result.data as { error?: unknown; offline?: unknown } | undefined;
+    if (errOrOffline2?.error || errOrOffline2?.offline) {
       const isNotConfigured = result.fetchError?.includes("not configured");
       return {
         error: isNotConfigured

@@ -10,23 +10,47 @@ import type {
   UpdateInventoryItemCommand,
 } from "../domain/types.js";
 import { inventoryRepository } from "../repository";
+import { dbInventoryStorage } from "../../../db/inventory/index.js";
 
-function mapToEntity(item: any): PartsInventoryEntity {
+type InventoryRow = {
+  id: string;
+  partNo?: string;
+  partNumber?: string;
+  name?: string;
+  partName?: string;
+  category?: string | null;
+  description?: string | null;
+  quantity?: number | null;
+  minQuantity?: number | null;
+  maxQuantity?: number | null;
+  unitCost?: number | null;
+  currency?: string | null;
+  location?: string | null;
+  vesselId?: string | null;
+  equipmentId?: string | null;
+  status?: string | null;
+  orgId: string;
+  createdAt?: Date | string | null;
+  updatedAt?: Date | string | null;
+};
+
+function mapToEntity(raw: unknown): PartsInventoryEntity {
+  const item = raw as InventoryRow;
   return {
     id: item.id,
-    partNo: item.partNo,
-    name: item.name,
-    category: item.category,
-    description: item.description,
+    partNo: item.partNo ?? item.partNumber ?? "",
+    name: item.name ?? item.partName ?? "",
+    category: item.category ?? null,
+    description: item.description ?? null,
     quantity: item.quantity ?? 0,
     minQuantity: item.minQuantity ?? 0,
-    maxQuantity: item.maxQuantity,
-    unitCost: item.unitCost,
+    maxQuantity: item.maxQuantity ?? null,
+    unitCost: item.unitCost ?? null,
     currency: item.currency ?? "USD",
-    location: item.location,
-    vesselId: item.vesselId,
-    equipmentId: item.equipmentId,
-    status: item.status ?? "in_stock",
+    location: item.location ?? null,
+    vesselId: item.vesselId ?? null,
+    equipmentId: item.equipmentId ?? null,
+    status: (item.status as PartsInventoryEntity["status"]) ?? "in_stock",
     orgId: item.orgId,
     createdAt: item.createdAt ? new Date(item.createdAt) : new Date(),
     updatedAt: item.updatedAt ? new Date(item.updatedAt) : new Date(),
@@ -58,7 +82,9 @@ export class PartsInventoryRepositoryAdapter implements IPartsInventoryRepositor
 
   async findByPartNo(partNo: string, orgId?: string): Promise<PartsInventoryEntity[]> {
     const allItems = await inventoryRepository.findPartsInventory(undefined, orgId);
-    return allItems.filter((item: any) => item.partNo === partNo).map(mapToEntity);
+    return allItems
+      .map(mapToEntity)
+      .filter((entity) => entity.partNo === partNo);
   }
 
   async findLowStock(orgId: string): Promise<PartsInventoryEntity[]> {
@@ -67,7 +93,14 @@ export class PartsInventoryRepositoryAdapter implements IPartsInventoryRepositor
   }
 
   async create(command: CreateInventoryItemCommand): Promise<PartsInventoryEntity> {
-    const item = await inventoryRepository.createInventoryItem(command as any);
+    const payload = {
+      ...command,
+      partNumber: command.partNo,
+      partName: command.name,
+    };
+    const item = await inventoryRepository.createInventoryItem(
+      payload as unknown as Parameters<typeof inventoryRepository.createInventoryItem>[0]
+    );
     return mapToEntity(item);
   }
 
@@ -76,12 +109,16 @@ export class PartsInventoryRepositoryAdapter implements IPartsInventoryRepositor
     updates: UpdateInventoryItemCommand,
     orgId?: string
   ): Promise<PartsInventoryEntity> {
-    const item = await inventoryRepository.updateInventoryItem(id, updates as any, orgId);
+    const item = await inventoryRepository.updateInventoryItem(
+      id,
+      updates as unknown as Parameters<typeof inventoryRepository.updateInventoryItem>[1],
+      orgId
+    );
     return mapToEntity(item);
   }
 
   async delete(id: string, orgId: string): Promise<void> {
-    await (inventoryRepository as any).deleteInventoryItem(id, orgId);
+    await dbInventoryStorage.deletePartsInventory(id, orgId);
   }
 
   async updateQuantity(
@@ -91,7 +128,7 @@ export class PartsInventoryRepositoryAdapter implements IPartsInventoryRepositor
   ): Promise<PartsInventoryEntity> {
     const item = await inventoryRepository.updateInventoryItem(
       id,
-      { quantity: newQuantity } as any,
+      { quantity: newQuantity } as unknown as Parameters<typeof inventoryRepository.updateInventoryItem>[1],
       orgId
     );
     return mapToEntity(item);

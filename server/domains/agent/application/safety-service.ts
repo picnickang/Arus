@@ -1,5 +1,5 @@
 import { db } from "../../../db";
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 import type { AgentRepositoryPort } from "../domain/ports";
 import { MAINTENANCE_ROLES, WRITE_TOOLS } from "../domain/types";
 import type { SafetyCheckResult, UsageStats, PermissionTier, RiskLevel } from "../domain/types";
@@ -18,8 +18,10 @@ interface DbQueryRow {
   messages?: string | number;
 }
 
-interface DbQueryResult {
-  rows: DbQueryRow[];
+async function execRows<T = DbQueryRow>(query: SQL): Promise<T[]> {
+  const result = await db.execute(query);
+  const rows = (result as { rows?: unknown[] }).rows;
+  return (Array.isArray(rows) ? rows : []) as T[];
 }
 
 const inputSanitizer = new InputSanitizer(DEFAULT_RAG_SECURITY_CONFIG.promptSecurity);
@@ -50,13 +52,13 @@ export class SafetyService {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const dailyResult = (await db.execute(sql`
+    const dailyRows = await execRows(sql`
       SELECT COALESCE(SUM(m.token_count), 0)::int as total
       FROM agent_messages m
       JOIN agent_conversations c ON m.conversation_id = c.id
       WHERE c.org_id = ${orgId} AND m.created_at >= ${today}
-    `)) as unknown as DbQueryResult;
-    const dailyTokens = Number(dailyResult.rows?.[0]?.total || 0);
+    `);
+    const dailyTokens = Number(dailyRows[0]?.total || 0);
     const dailyLimit = config.dailyTokenLimit || 500000;
 
     if (dailyTokens >= dailyLimit) {
@@ -68,13 +70,13 @@ export class SafetyService {
     }
 
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const monthlyResult = (await db.execute(sql`
+    const monthlyRows = await execRows(sql`
       SELECT COALESCE(SUM(m.token_count), 0)::int as total
       FROM agent_messages m
       JOIN agent_conversations c ON m.conversation_id = c.id
       WHERE c.org_id = ${orgId} AND m.created_at >= ${monthStart}
-    `)) as unknown as DbQueryResult;
-    const monthlyTokens = Number(monthlyResult.rows?.[0]?.total || 0);
+    `);
+    const monthlyTokens = Number(monthlyRows[0]?.total || 0);
     const monthlyLimit = config.monthlyTokenLimit || 5000000;
 
     if (monthlyTokens >= monthlyLimit) {
@@ -90,21 +92,29 @@ export class SafetyService {
   async getUsageStats(orgId: string, days = 30): Promise<UsageStats> {
     const since = new Date(Date.now() - days * 86400000);
 
-    const [convStats, toolStats, dailyStats, approvalStats, costStats] = await Promise.all([
-      db.execute(sql`
+    type ApprovalRow = {
+      total?: string | number;
+      approved?: string | number;
+      rejected?: string | number;
+      pending?: string | number;
+    };
+    type CostRow = { cost?: string | number };
+
+    const [convStatsRows, toolRows, dailyStatRows, approvalRows, costRows] = await Promise.all([
+      execRows(sql`
         SELECT
           (SELECT COUNT(*)::int FROM agent_conversations WHERE org_id = ${orgId} AND created_at >= ${since}) as conv_count,
           (SELECT COUNT(*)::int FROM agent_messages m JOIN agent_conversations c ON m.conversation_id = c.id WHERE c.org_id = ${orgId} AND m.created_at >= ${since}) as msg_count,
           (SELECT COALESCE(SUM(m.token_count), 0)::int FROM agent_messages m JOIN agent_conversations c ON m.conversation_id = c.id WHERE c.org_id = ${orgId} AND m.created_at >= ${since}) as token_total
-      `) as unknown as DbQueryResult,
-      db.execute(sql`
+      `),
+      execRows(sql`
         SELECT tool_name, COUNT(*)::int as call_count
         FROM agent_tool_calls tc
         JOIN agent_conversations c ON tc.conversation_id = c.id
         WHERE c.org_id = ${orgId} AND tc.created_at >= ${since}
         GROUP BY tool_name ORDER BY call_count DESC LIMIT 10
-      `) as unknown as DbQueryResult,
-      db.execute(sql`
+      `),
+      execRows(sql`
         SELECT DATE(m.created_at) as day,
                COALESCE(SUM(m.token_count), 0)::int as tokens,
                COUNT(*)::int as messages
@@ -112,8 +122,8 @@ export class SafetyService {
         JOIN agent_conversations c ON m.conversation_id = c.id
         WHERE c.org_id = ${orgId} AND m.created_at >= ${since}
         GROUP BY DATE(m.created_at) ORDER BY day DESC LIMIT ${days}
-      `) as unknown as DbQueryResult,
-      db.execute(sql`
+      `),
+      execRows<ApprovalRow>(sql`
         SELECT
           COUNT(*)::int as total,
           COUNT(*) FILTER (WHERE status = 'approved')::int as approved,
@@ -121,27 +131,19 @@ export class SafetyService {
           COUNT(*) FILTER (WHERE status = 'pending')::int as pending
         FROM agent_drafts
         WHERE org_id = ${orgId} AND created_at >= ${since}
-      `) as unknown as {
-        rows: Array<{
-          total?: string | number;
-          approved?: string | number;
-          rejected?: string | number;
-          pending?: string | number;
-        }>;
-      },
-      db.execute(sql`
+      `),
+      execRows<CostRow>(sql`
         SELECT COALESCE(SUM(estimated_cost), 0) as cost
         FROM llm_cost_tracking
         WHERE org_id = ${orgId} AND created_at >= ${since}
           AND request_type = 'agent'
-      `) as unknown as { rows: Array<{ cost?: string | number }> },
+      `),
     ]);
 
-    const convRow = convStats.rows?.[0] || {};
-    const toolRows = toolStats.rows || [];
-    const dailyRows = dailyStats.rows || [];
-    const approvalRow = approvalStats.rows?.[0] || {};
-    const costRow = costStats.rows?.[0] || {};
+    const convRow = convStatsRows[0] || {};
+    const dailyRows = dailyStatRows;
+    const approvalRow = approvalRows[0] || {};
+    const costRow = costRows[0] || {};
 
     const convCount = Number(convRow.conv_count || 0);
     const tokenTotal = Number(convRow.token_total || 0);

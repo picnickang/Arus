@@ -321,7 +321,14 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
       trend,
       signals: signals.slice(0, 10),
       telemetry,
-      lastService: (workOrders.find((wo) => wo.status === "completed") as any)?.actualEndDate || null,
+      lastService: ((): string | null => {
+        const last = workOrders.find((wo) => wo.status === "completed") as
+          | { actualEndDate?: Date | string | null }
+          | undefined;
+        const v = last?.actualEndDate;
+        if (!v) return null;
+        return v instanceof Date ? v.toISOString() : v;
+      })(),
       nextDue:
         workOrders.find(
           (wo) => wo.status === "scheduled" || wo.status === "pending" || wo.status === "open"
@@ -502,7 +509,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
       logger.warn(
         "[EquipmentIntelligence] Failed to fetch telemetry summaries — sparklines will be empty",
         undefined,
-        { error: String(error) } as any
+        { error: String(error) }
       );
     }
 

@@ -16,7 +16,12 @@ export async function getSensorCoverage(
     operation: "getSensorCoverage",
     repositoryFn: async () => {
       const repo = TenantRepositoryFactory.sensorConfiguration(orgId);
-      const sensors = (await repo.getAll({ equipmentId })) as any[];
+      type SensorRow = Awaited<ReturnType<typeof repo.getAll>>[number] & {
+        isCritical?: boolean | null;
+        minValue?: number | null;
+        maxValue?: number | null;
+      };
+      const sensors = (await repo.getAll({ equipmentId })) as SensorRow[];
 
       const totalSensors = sensors.length;
       const enabledSensors = sensors.filter((s) => s.enabled).length;
@@ -85,7 +90,7 @@ export async function setupSensors(
         sensorsCreated: created.length,
         sensorsSkipped: sensorsToCreate.length - created.length,
         totalSensors: existing.length + created.length,
-        sensors: created.map((s: any) => ({
+        sensors: created.map((s) => ({
           sensorType: s.sensorType,
           enabled: s.enabled,
           isCritical: s.isCritical,

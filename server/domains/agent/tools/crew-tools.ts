@@ -121,14 +121,17 @@ registerTool({
         onDuty: c.onDuty,
         active: c.active,
       })),
-      recentAssignments: assignments.map((a) => ({
-        id: a.id,
-        crewId: a.crewId,
-        shiftId: a.shiftId,
-        assignmentType: (a as any).assignmentType,
-        date: a.date,
-        score: (a as any).score,
-      })),
+      recentAssignments: assignments.map((a) => {
+        const bag = a as unknown as { assignmentType?: string; score?: number };
+        return {
+          id: a.id,
+          crewId: a.crewId,
+          shiftId: a.shiftId,
+          assignmentType: bag.assignmentType,
+          date: a.date,
+          score: bag.score,
+        };
+      }),
     };
   },
 });

@@ -128,6 +128,9 @@ export function createRateLimiter(config: RateLimitConfig) {
   return rateLimit(options);
 }
 
+/** Express middleware shape for rate limiters (and rate-limit-shaped pass-throughs in tests). */
+export type RateLimit = import("express").RequestHandler;
+
 /** Pre-configured rate limiters for common use cases */
 export const RateLimiters = {
   general: () =>

@@ -49,8 +49,9 @@ router.post("/datasets", async (req: Request, res: Response) => {
     };
     const result = await service.createDataset(data);
     res.status(201).json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -60,8 +61,9 @@ router.get("/datasets", async (req: Request, res: Response) => {
     const status = req.query.status as string | undefined;
     const result = await service.listDatasets(orgId, status);
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -73,8 +75,9 @@ router.get("/datasets/:id", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Dataset not found" });
     }
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -94,11 +97,12 @@ router.post("/runs", async (req: Request, res: Response) => {
       initiatedBy
     );
     res.status(201).json(result);
-  } catch (error: any) {
-    if (error.message.includes("not found")) {
-      return res.status(404).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    if ((message).includes("not found")) {
+      return res.status(404).json({ error: message });
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: message });
   }
 });
 
@@ -109,8 +113,9 @@ router.get("/runs", async (req: Request, res: Response) => {
     const datasetId = req.query.datasetId as string | undefined;
     const result = await service.listRuns(orgId, { status, datasetId });
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -122,8 +127,9 @@ router.get("/runs/:id", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Training run not found" });
     }
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -143,11 +149,12 @@ router.post("/runs/:id/promote", async (req: Request, res: Response) => {
       changelog
     );
     res.status(201).json(result);
-  } catch (error: any) {
-    if (error.message.includes("not found") || error.message.includes("not completed")) {
-      return res.status(400).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    if ((message).includes("not found") || (message).includes("not completed")) {
+      return res.status(400).json({ error: message });
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: message });
   }
 });
 
@@ -160,8 +167,9 @@ router.get("/artifacts", async (req: Request, res: Response) => {
     }
     const result = await service.listArtifacts(orgId, modelVersionId);
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 

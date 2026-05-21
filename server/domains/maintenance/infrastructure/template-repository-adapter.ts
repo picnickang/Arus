@@ -34,7 +34,9 @@ export class MaintenanceTemplateRepositoryAdapter implements IMaintenanceTemplat
   }
 
   async create(command: CreateTemplateCommand): Promise<MaintenanceTemplateEntity> {
-    const template = await dbMaintenanceTemplatesStorage.createMaintenanceTemplate(command as any);
+    const template = await dbMaintenanceTemplatesStorage.createMaintenanceTemplate(
+      command as unknown as Parameters<typeof dbMaintenanceTemplatesStorage.createMaintenanceTemplate>[0]
+    );
     return this.mapToEntity(template);
   }
 
@@ -45,7 +47,7 @@ export class MaintenanceTemplateRepositoryAdapter implements IMaintenanceTemplat
   ): Promise<MaintenanceTemplateEntity> {
     const template = await dbMaintenanceTemplatesStorage.updateMaintenanceTemplate(
       id,
-      updates as any,
+      updates as unknown as Parameters<typeof dbMaintenanceTemplatesStorage.updateMaintenanceTemplate>[1],
       orgId
     );
     return this.mapToEntity(template);
@@ -55,22 +57,31 @@ export class MaintenanceTemplateRepositoryAdapter implements IMaintenanceTemplat
     await dbMaintenanceTemplatesStorage.deleteMaintenanceTemplate(id, orgId);
   }
 
-  private mapToEntity(template: any): MaintenanceTemplateEntity {
+  private mapToEntity(template: Record<string, unknown>): MaintenanceTemplateEntity {
+    const t = template as {
+      id: string; orgId?: string; name: string; equipmentType: string;
+      maintenanceType: string; description?: string | null;
+      estimatedDurationHours?: number | null;
+      requiredParts?: unknown; checklistItems?: unknown;
+      intervalDays?: number | null; intervalHours?: number | null;
+      isActive?: boolean | null;
+      createdAt?: Date | null; updatedAt?: Date | null;
+    };
     return {
-      id: template.id,
-      orgId: template.orgId,
-      name: template.name,
-      equipmentType: template.equipmentType,
-      maintenanceType: template.maintenanceType,
-      description: template.description,
-      estimatedDuration: template.estimatedDurationHours,
-      requiredParts: template.requiredParts,
-      checklistItems: template.checklistItems,
-      intervalDays: template.intervalDays,
-      intervalHours: template.intervalHours,
-      isActive: template.isActive ?? true,
-      createdAt: template.createdAt,
-      updatedAt: template.updatedAt,
+      id: t.id,
+      orgId: t.orgId ?? "",
+      name: t.name,
+      equipmentType: t.equipmentType,
+      maintenanceType: t.maintenanceType,
+      description: t.description ?? undefined,
+      estimatedDuration: t.estimatedDurationHours ?? undefined,
+      requiredParts: t.requiredParts as MaintenanceTemplateEntity["requiredParts"],
+      checklistItems: t.checklistItems as MaintenanceTemplateEntity["checklistItems"],
+      intervalDays: t.intervalDays ?? undefined,
+      intervalHours: t.intervalHours ?? undefined,
+      isActive: t.isActive ?? true,
+      createdAt: t.createdAt ?? undefined,
+      updatedAt: t.updatedAt ?? undefined,
     };
   }
 }

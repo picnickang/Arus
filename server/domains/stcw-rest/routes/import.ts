@@ -78,7 +78,7 @@ function parseRestCsv(csvText: string): RestDay[] {
       continue;
     }
 
-    const restDay: any = { date };
+    const restDay: RestDay = { date };
     for (let h = 0; h < 24; h++) {
       const raw = row[`h${h}`];
       // Number.parseInt tolerates "1", "1.0", " 1 ". Fallback 0.
@@ -154,11 +154,7 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
       if (idempotencyKey) {
         await db
           .insert(idempotencyLog)
-          .values({
-            key: idempotencyKey,
-            endpoint: "/api/crew/rest/import",
-            createdAt: new Date(),
-          } as any)
+          .values({ key: idempotencyKey })
           .onConflictDoNothing();
       }
 
@@ -204,7 +200,7 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
           return;
         }
 
-        rows = restData.days as any;
+        rows = restData.days as RestDay[];
       }
 
       const compliance = checkMonthCompliance(rows);
@@ -236,7 +232,7 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
         return;
       }
 
-      const compliance = checkMonthCompliance(restData.days as any);
+      const compliance = checkMonthCompliance(restData.days as RestDay[]);
       res.json(compliance);
     })
   );
@@ -285,9 +281,9 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
         crewName,
         year: Number.parseInt(year),
         month,
-        status: "draft",
+        sourceType: "manual",
         orgId,
-      } as any);
+      });
 
       let rowCount = 0;
       for (const dayData of rows) {
@@ -301,11 +297,7 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
       if (idempotencyKey) {
         await db
           .insert(idempotencyLog)
-          .values({
-            key: idempotencyKey,
-            endpoint: "/api/stcw/import",
-            createdAt: new Date(),
-          } as any)
+          .values({ key: idempotencyKey })
           .onConflictDoNothing();
       }
 

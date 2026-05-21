@@ -12,11 +12,16 @@ function getOrgId(req: Request): string {
   return (req as AuthenticatedRequest).orgId as string;
 }
 
-function getRows(result: any): any[] {
-  return Array.isArray(result) ? result : (result as any)?.rows || [];
+type Row = Record<string, unknown>;
+function getRows(result: unknown): Row[] {
+  if (Array.isArray(result)) return result as Row[];
+  if (result && typeof result === "object" && Array.isArray((result as { rows?: unknown }).rows)) {
+    return (result as { rows: Row[] }).rows;
+  }
+  return [];
 }
 
-function getFirstRow(result: any): any | undefined {
+function getFirstRow(result: unknown): Row | undefined {
   return getRows(result)[0];
 }
 
@@ -170,15 +175,16 @@ router.get("/consumption/daily/:vesselId", requireOrgId, async (req: Request, re
       GROUP BY day
     `);
 
-    const trackByDay: Record<string, any> = {};
+    const trackByDay: Record<string, Row> = {};
     for (const t of getRows(trackResult)) {
-      trackByDay[new Date(t.day).toISOString()] = t;
+      trackByDay[new Date(t.day as string | number | Date).toISOString()] = t;
     }
 
-    const dailyData = getRows(result).map((d: any) => ({
+    const dailyData = getRows(result).map((d) => ({
       ...d,
-      avg_sog: trackByDay[new Date(d.day).toISOString()]?.avg_sog ?? null,
-      est_distance_nm: trackByDay[new Date(d.day).toISOString()]?.est_distance_nm ?? null,
+      avg_sog: trackByDay[new Date(d.day as string | number | Date).toISOString()]?.avg_sog ?? null,
+      est_distance_nm:
+        trackByDay[new Date(d.day as string | number | Date).toISOString()]?.est_distance_nm ?? null,
     }));
 
     res.json(dailyData);
@@ -259,7 +265,7 @@ router.get("/rob/:vesselId", requireOrgId, async (req: Request, res: Response) =
 
     res.json({
       tanks,
-      avgConsumptionKgPerH: parseFloat(avgConsumption) || 0,
+      avgConsumptionKgPerH: parseFloat(String(avgConsumption)) || 0,
       estimatedAt: new Date().toISOString(),
     });
   } catch (err) {
@@ -450,18 +456,18 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
 
     res.json({
       alerts: {
-        total24h: parseInt(alerts.total) || 0,
-        unacknowledged: parseInt(alerts.unacknowledged) || 0,
-        critical: parseInt(alerts.critical) || 0,
+        total24h: parseInt(String(alerts.total ?? 0)) || 0,
+        unacknowledged: parseInt(String(alerts.unacknowledged ?? 0)) || 0,
+        critical: parseInt(String(alerts.critical ?? 0)) || 0,
       },
       bunkering: {
-        last30Days: parseInt(bunkering.total) || 0,
-        active: parseInt(bunkering.active) || 0,
+        last30Days: parseInt(String(bunkering.total ?? 0)) || 0,
+        active: parseInt(String(bunkering.active ?? 0)) || 0,
       },
       efmsConnections: {
-        total: parseInt(efms.total) || 0,
-        polling: parseInt(efms.polling) || 0,
-        error: parseInt(efms.error) || 0,
+        total: parseInt(String(efms.total ?? 0)) || 0,
+        polling: parseInt(String(efms.polling ?? 0)) || 0,
+        error: parseInt(String(efms.error ?? 0)) || 0,
       },
     });
   } catch (err) {

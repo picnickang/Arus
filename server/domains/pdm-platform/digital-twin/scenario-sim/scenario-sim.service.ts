@@ -43,11 +43,10 @@ export class ScenarioSimService {
       rulHours: latestState?.remainingUsefulLifeHours ?? 5000,
     };
 
-    const projected = this.computeProjectedValues(
-      baseline,
-      parameters,
-      template.operatingEnvelope as any
-    );
+    const envelope = template.operatingEnvelope as
+      | { min?: Record<string, number>; max?: Record<string, number> }
+      | null;
+    const projected = this.computeProjectedValues(baseline, parameters, envelope);
 
     const healthDelta = projected.healthScore - baseline.healthScore;
     const efficiencyDelta = projected.efficiencyScore - baseline.efficiencyScore;
@@ -82,9 +81,9 @@ export class ScenarioSimService {
       orgId,
       twinId,
       name,
-      parameters: parameters as any,
-      results: results as any,
-    });
+      parameters,
+      results,
+    } as Parameters<typeof this.scenarioAdapter.saveScenario>[0]);
 
     logger.info("[ScenarioSim]", "Scenario completed", {
       orgId,

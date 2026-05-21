@@ -126,7 +126,7 @@ export function detectViolations(
 
   if (crewMember.hoursWorkedThisWeek > 72) {
     violations.push({
-      type: "hours" as any,
+      type: "hours",
       severity: "warning",
       message: `Weekly hours (${crewMember.hoursWorkedThisWeek}h) exceeds 72h limit`,
       affectedDates: [],
@@ -136,7 +136,7 @@ export function detectViolations(
 
   if (crewMember.certificationStatus === "expired") {
     violations.push({
-      type: "qualification" as any,
+      type: "qualification",
       severity: "error",
       message: "One or more certifications have expired",
       affectedDates: [],
@@ -144,7 +144,7 @@ export function detectViolations(
     });
   } else if (crewMember.certificationStatus === "expiring") {
     violations.push({
-      type: "qualification" as any,
+      type: "qualification",
       severity: "warning",
       message: "Certification expiring within 30 days",
       affectedDates: [],

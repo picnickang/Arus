@@ -121,7 +121,8 @@ export class ModelMonitoringAdapter implements ModelMonitoringPort {
         if (hp.trainingStats && typeof hp.trainingStats === "object") {
           for (const [key, val] of Object.entries(hp.trainingStats)) {
             if (val && typeof val === "object" && "mean" in val && "std" in val) {
-              ref[key] = { mean: (val as any).mean, std: (val as any).std };
+              const stats = val as { mean: number; std: number };
+              ref[key] = { mean: stats.mean, std: stats.std };
             }
           }
         }

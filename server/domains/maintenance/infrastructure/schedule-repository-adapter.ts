@@ -46,12 +46,17 @@ export class MaintenanceScheduleRepositoryAdapter implements IMaintenanceSchedul
   }
 
   async create(command: CreateScheduleCommand): Promise<MaintenanceScheduleEntity> {
-    const schedule = await dbMaintenanceStorage.createMaintenanceSchedule(command as any);
+    const schedule = await dbMaintenanceStorage.createMaintenanceSchedule(
+      command as unknown as Parameters<typeof dbMaintenanceStorage.createMaintenanceSchedule>[0]
+    );
     return this.mapToEntity(schedule);
   }
 
   async update(id: string, updates: UpdateScheduleCommand): Promise<MaintenanceScheduleEntity> {
-    const schedule = await dbMaintenanceStorage.updateMaintenanceSchedule(id, updates as any);
+    const schedule = await dbMaintenanceStorage.updateMaintenanceSchedule(
+      id,
+      updates as unknown as Parameters<typeof dbMaintenanceStorage.updateMaintenanceSchedule>[1]
+    );
     return this.mapToEntity(schedule);
   }
 
@@ -67,23 +72,33 @@ export class MaintenanceScheduleRepositoryAdapter implements IMaintenanceSchedul
     return this.mapToEntity(schedule);
   }
 
-  private mapToEntity(schedule: any): MaintenanceScheduleEntity {
+  private mapToEntity(schedule: Record<string, unknown> | null | undefined): MaintenanceScheduleEntity {
+    const s = (schedule ?? {}) as {
+      id: string; orgId?: string; equipmentId: string;
+      scheduledDate: Date; status?: string | null; priority?: string | null;
+      maintenanceType: string; description?: string | null;
+      estimatedDurationHours?: number | null;
+      assignedTo?: string | null;
+      completedAt?: Date | null; completedBy?: string | null;
+      notes?: string | null;
+      createdAt?: Date | null; updatedAt?: Date | null;
+    };
     return {
-      id: schedule.id,
-      orgId: schedule.orgId,
-      equipmentId: schedule.equipmentId,
-      scheduledDate: schedule.scheduledDate,
-      status: schedule.status || "scheduled",
-      priority: schedule.priority || "medium",
-      maintenanceType: schedule.maintenanceType,
-      description: schedule.description,
-      estimatedDuration: schedule.estimatedDurationHours,
-      assignedTo: schedule.assignedTo,
-      completedAt: schedule.completedAt,
-      completedBy: schedule.completedBy,
-      notes: schedule.notes,
-      createdAt: schedule.createdAt,
-      updatedAt: schedule.updatedAt,
+      id: s.id,
+      orgId: s.orgId ?? "",
+      equipmentId: s.equipmentId,
+      scheduledDate: s.scheduledDate,
+      status: (s.status as MaintenanceScheduleEntity["status"]) || "scheduled",
+      priority: (s.priority as MaintenanceScheduleEntity["priority"]) || "medium",
+      maintenanceType: s.maintenanceType,
+      description: s.description ?? undefined,
+      estimatedDuration: s.estimatedDurationHours ?? undefined,
+      assignedTo: s.assignedTo ?? undefined,
+      completedAt: s.completedAt ?? undefined,
+      completedBy: s.completedBy ?? undefined,
+      notes: s.notes ?? undefined,
+      createdAt: s.createdAt ?? undefined,
+      updatedAt: s.updatedAt ?? undefined,
     };
   }
 }

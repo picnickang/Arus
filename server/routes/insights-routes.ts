@@ -61,16 +61,16 @@ export function registerInsightsRoutes(app: Express) {
         ...r.insight,
         equipment: r.equipment,
         supportingSignals: r.insight.supportingSignals
-          ? JSON.parse(r.insight.supportingSignals as any)
+          ? JSON.parse(String(r.insight.supportingSignals))
           : null,
         relatedProcedures: r.insight.relatedProcedures
-          ? JSON.parse(r.insight.relatedProcedures as any)
+          ? JSON.parse(String(r.insight.relatedProcedures))
           : null,
       }));
 
       res.json(insights);
     } catch (error) {
-      logger.error("Failed to fetch insights", { error } as any);
+      logger.error("Failed to fetch insights", { error });
       res.status(500).json({ error: "Failed to fetch insights" });
     }
   });
@@ -94,7 +94,7 @@ export function registerInsightsRoutes(app: Express) {
         .limit(100);
       res.json(snapshots);
     } catch (error) {
-      logger.error("Failed to fetch insight snapshots", { error } as any);
+      logger.error("Failed to fetch insight snapshots", { error });
       res.status(500).json({ error: "Failed to fetch insight snapshots" });
     }
   });
@@ -113,7 +113,7 @@ export function registerInsightsRoutes(app: Express) {
       // Return null if no snapshot found - frontend handles empty state
       res.json(snapshot || null);
     } catch (error) {
-      logger.error("Failed to fetch latest insight snapshot", { error } as any);
+      logger.error("Failed to fetch latest insight snapshot", { error });
       res.status(500).json({ error: "Failed to fetch latest insight snapshot" });
     }
   });
@@ -148,16 +148,16 @@ export function registerInsightsRoutes(app: Express) {
         ...result.insight,
         equipment: result.equipment,
         supportingSignals: result.insight.supportingSignals
-          ? JSON.parse(result.insight.supportingSignals as any)
+          ? JSON.parse(String(result.insight.supportingSignals))
           : null,
         relatedProcedures: result.insight.relatedProcedures
-          ? JSON.parse(result.insight.relatedProcedures as any)
+          ? JSON.parse(String(result.insight.relatedProcedures))
           : null,
       };
 
       res.json(insight);
     } catch (error) {
-      logger.error("Failed to fetch insight", { error } as any);
+      logger.error("Failed to fetch insight", { error });
       res.status(500).json({ error: "Failed to fetch insight" });
     }
   });

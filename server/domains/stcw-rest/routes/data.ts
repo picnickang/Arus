@@ -60,10 +60,14 @@ export function registerDataRoutes(app: Express, deps: StcwRestDependencies): vo
 
       const pdfPath = generatePdfFilename(crewId, Number.parseInt(year), month);
 
-      await renderRestPdf(restData.sheet, restData.days as any, {
-        outputPath: pdfPath,
-        title: `STCW Hours of Rest - ${restData.sheet.crewName}`,
-      });
+      await renderRestPdf(
+        restData.sheet as Parameters<typeof renderRestPdf>[0],
+        restData.days as Parameters<typeof renderRestPdf>[1],
+        {
+          outputPath: pdfPath,
+          title: `STCW Hours of Rest - ${restData.sheet.crewName}`,
+        }
+      );
 
       incrementHorPdfExport(crewId, month, Number.parseInt(year));
 
@@ -111,10 +115,14 @@ export function registerDataRoutes(app: Express, deps: StcwRestDependencies): vo
         month as string
       );
 
-      await renderRestPdf(restData.sheet, restData.days as any, {
-        outputPath: pdfPath,
-        title: `STCW Hours of Rest - ${restData.sheet.crewName}`,
-      });
+      await renderRestPdf(
+        restData.sheet as Parameters<typeof renderRestPdf>[0],
+        restData.days as Parameters<typeof renderRestPdf>[1],
+        {
+          outputPath: pdfPath,
+          title: `STCW Hours of Rest - ${restData.sheet.crewName}`,
+        }
+      );
 
       res.json({
         ok: true,

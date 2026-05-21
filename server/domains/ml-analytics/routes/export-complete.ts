@@ -138,12 +138,13 @@ export function registerExportCompleteRoutes(app: Express, config: MlAnalyticsCo
             "CreatedAt",
           ].join(","),
           ...enrichedModels.map((m) => {
-            const perf = ((m as any).performanceMetrics ?? {}) as Record<string, unknown>;
-            const hyper = ((m as any).hyperparameters ?? {}) as Record<string, unknown>;
+            const mr = m as Record<string, unknown>;
+            const perf = (mr.performanceMetrics ?? {}) as Record<string, unknown>;
+            const hyper = (mr.hyperparameters ?? {}) as Record<string, unknown>;
             return [
               escapeCsv(m.id),
               escapeCsv(m.name),
-              escapeCsv((m as any).type),
+              escapeCsv(mr.type as string | undefined),
               escapeCsv(m.equipmentType || "all"),
               escapeCsv(m.status),
               escapeCsv(m.version),

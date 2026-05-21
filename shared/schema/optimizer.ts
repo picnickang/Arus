@@ -189,7 +189,9 @@ export const insertResourceConstraintSchema = createInsertSchema(resourceConstra
 export const insertOptimizationResultSchema = createInsertSchema(optimizationResults)
   .omit({ id: true, createdAt: true, updatedAt: true })
   .extend({
-    runStatus: z.enum(["pending", "running", "completed", "failed"]).default("pending"),
+    runStatus: z
+      .enum(["pending", "queued", "running", "completed", "failed", "cancelled", "applied"])
+      .default("pending"),
   });
 
 export const insertScheduleOptimizationSchema = createInsertSchema(scheduleOptimizations)

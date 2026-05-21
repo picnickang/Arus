@@ -169,42 +169,59 @@ export class WorkOrderApplicationService {
     return workOrderRepository.cloneWorkOrder(workOrderId, orgId, options);
   }
 
-  async getWorkOrderHistory(workOrderId: string, orgId: string): Promise<unknown[]> {
+  async getWorkOrderHistory(
+    workOrderId: string,
+    orgId: string,
+  ): Promise<Awaited<ReturnType<typeof workOrderRepository.getWorkOrderHistory>>> {
     return workOrderRepository.getWorkOrderHistory(workOrderId, orgId);
   }
 
-  async getInventoryMovementsByWorkOrder(workOrderId: string, orgId: string): Promise<unknown[]> {
+  async getInventoryMovementsByWorkOrder(
+    workOrderId: string,
+    orgId: string,
+  ): Promise<Awaited<ReturnType<typeof workOrderRepository.getInventoryMovementsByWorkOrder>>> {
     return workOrderRepository.getInventoryMovementsByWorkOrder(workOrderId, orgId);
   }
 
-  async createMaintenanceCost(data: Record<string, unknown>): Promise<unknown> {
+  async createMaintenanceCost(
+    data: Parameters<typeof workOrderRepository.createMaintenanceCost>[0],
+  ): Promise<Awaited<ReturnType<typeof workOrderRepository.createMaintenanceCost>>> {
     return workOrderRepository.createMaintenanceCost(data);
   }
 
-  async getMaintenanceCostsByWorkOrder(workOrderId: string): Promise<unknown[]> {
+  async getMaintenanceCostsByWorkOrder(
+    workOrderId: string,
+  ): Promise<Awaited<ReturnType<typeof workOrderRepository.getMaintenanceCostsByWorkOrder>>> {
     return workOrderRepository.getMaintenanceCostsByWorkOrder(workOrderId);
   }
 
-  async getWorkOrderParts(workOrderId: string, orgId: string): Promise<unknown[]> {
+  async getWorkOrderParts(
+    workOrderId: string,
+    orgId: string,
+  ): Promise<Awaited<ReturnType<typeof workOrderRepository.getWorkOrderParts>>> {
     return workOrderRepository.getWorkOrderParts(workOrderId, orgId);
   }
 
-  async addPartToWorkOrder(data: Record<string, unknown>): Promise<unknown> {
-    const repo = workOrderRepository as unknown as {
-      addBulkPartsToWorkOrder: (data: Record<string, unknown>) => Promise<unknown>;
-    };
-    return repo.addBulkPartsToWorkOrder(data);
+  async addPartToWorkOrder(
+    workOrderId: string,
+    partsToAdd: Parameters<typeof workOrderRepository.addPartToWorkOrder>[1],
+    orgId: string,
+  ): Promise<Awaited<ReturnType<typeof workOrderRepository.addPartToWorkOrder>>> {
+    return workOrderRepository.addPartToWorkOrder(workOrderId, partsToAdd, orgId);
   }
 
   async addBulkPartsAndReserveInventory(
     workOrderId: string,
-    parts: Array<Record<string, unknown>>,
+    parts: Parameters<typeof workOrderRepository.addBulkPartsAndReserveInventory>[1],
     orgId: string,
-  ): Promise<{ added: unknown[]; updated: unknown[]; errors: unknown[] }> {
+  ): Promise<Awaited<ReturnType<typeof workOrderRepository.addBulkPartsAndReserveInventory>>> {
     return workOrderRepository.addBulkPartsAndReserveInventory(workOrderId, parts, orgId);
   }
 
-  async updateWorkOrderPart(partId: string, data: Record<string, unknown>): Promise<unknown> {
+  async updateWorkOrderPart(
+    partId: string,
+    data: Parameters<typeof workOrderRepository.updateWorkOrderPart>[1],
+  ): Promise<Awaited<ReturnType<typeof workOrderRepository.updateWorkOrderPart>>> {
     return workOrderRepository.updateWorkOrderPart(partId, data);
   }
 

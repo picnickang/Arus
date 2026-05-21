@@ -322,7 +322,10 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
     requireOrgId,
     withErrorHandling("fetch acoustic history", async (req: Request, res: Response) => {
       const { equipmentId, hours } = req.query;
-      const history = await (dbSensorsStorage as any).getAcousticHistory?.(
+      const sensors = dbSensorsStorage as unknown as {
+        getAcousticHistory?: (eq: string, hours: number) => Promise<unknown>;
+      };
+      const history = await sensors.getAcousticHistory?.(
         equipmentId as string,
         hours ? Number.parseInt(hours as string) : 24
       );

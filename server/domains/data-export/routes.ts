@@ -16,9 +16,9 @@ import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 interface DataExportDependencies {
   generalApiRateLimit: RateLimitRequestHandler;
   criticalOperationRateLimit: RateLimitRequestHandler;
-  requireAdminAuth: any;
-  auditAdminAction: (action: string) => any;
-  upload: any;
+  requireAdminAuth: import("express").RequestHandler;
+  auditAdminAction: (action: string) => import("express").RequestHandler;
+  upload: { single: (field: string) => import("express").RequestHandler };
 }
 
 export function registerDataExportRoutes(app: Express, deps: DataExportDependencies): void {
@@ -75,7 +75,7 @@ export function registerDataExportRoutes(app: Express, deps: DataExportDependenc
     withErrorHandling("download export", async (req: Request, res: Response) => {
       const service = getDataExportImportService();
       const exports = await service.listExports();
-      const exportFile = exports.find((e: any) => e.id === req.params.exportId);
+      const exportFile = exports.find((e) => e.id === req.params.exportId);
 
       if (!exportFile) {
         return sendNotFound(res, "Export");
@@ -102,7 +102,7 @@ export function registerDataExportRoutes(app: Express, deps: DataExportDependenc
       const exports = await service.listExports();
 
       res.json(
-        exports.map((e: any) => ({
+        exports.map((e) => ({
           id: e.id,
           createdAt: e.createdAt,
           size: e.size,

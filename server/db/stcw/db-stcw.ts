@@ -161,6 +161,41 @@ export class DatabaseStcwStorage {
       .from(crewRestSheet)
       .where(and(...conditions));
   }
+  async getVesselCrewRest(
+    vesselId: string,
+    year: number,
+    month: string
+  ): Promise<{ [crewId: string]: { sheet: CrewRestSheet | null; days: CrewRestDay[] } }> {
+    const sheets = await db
+      .select()
+      .from(crewRestSheet)
+      .where(
+        and(
+          eq(crewRestSheet.vesselId, vesselId),
+          eq(crewRestSheet.year, year),
+          eq(crewRestSheet.month, month)
+        )
+      );
+    const sheetIds = sheets.map((s) => s.id);
+    const allDays =
+      sheetIds.length > 0
+        ? await db
+            .select()
+            .from(crewRestDay)
+            .where(inArray(crewRestDay.sheetId, sheetIds))
+            .orderBy(crewRestDay.date)
+        : [];
+    const result: { [crewId: string]: { sheet: CrewRestSheet | null; days: CrewRestDay[] } } = {};
+    for (const sheet of sheets) {
+      if (sheet.crewId) {
+        result[sheet.crewId] = {
+          sheet,
+          days: allDays.filter((d) => d.sheetId === sheet.id),
+        };
+      }
+    }
+    return result;
+  }
   async bulkCreateRestDays(
     sheetId: string,
     days: Omit<InsertCrewRestDay, "sheetId">[]

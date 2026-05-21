@@ -12,13 +12,16 @@ function getOrgId(req: Request): string {
   return (req as AuthenticatedRequest).orgId as string;
 }
 
-function getRows(result: any): any[] {
-  return Array.isArray(result) ? result : (result as any)?.rows || [];
+function getRows(result: unknown): Array<Record<string, unknown>> {
+  if (Array.isArray(result)) {
+    return result as Array<Record<string, unknown>>;
+  }
+  const maybe = result as { rows?: Array<Record<string, unknown>> } | null | undefined;
+  return maybe?.rows ?? [];
 }
 
-function getFirstRow(result: any): any | undefined {
-  const rows = getRows(result);
-  return rows[0];
+function getFirstRow(result: unknown): Record<string, unknown> | undefined {
+  return getRows(result)[0];
 }
 
 const createDpSchema = z.object({
@@ -296,13 +299,14 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
     res.json({
       vessels: systems,
       totalVesselsWithDp: systems.length,
-      operational: (systems as any[]).filter((s: any) => s.dp_status === "operational").length,
-      degraded: (systems as any[]).filter((s: any) => s.dp_status === "degraded").length,
-      trialsDueIn90Days: (systems as any[]).filter((s: any) => {
-        if (!s.next_dp_trial_due) {
+      operational: systems.filter((s) => s.dp_status === "operational").length,
+      degraded: systems.filter((s) => s.dp_status === "degraded").length,
+      trialsDueIn90Days: systems.filter((s) => {
+        const nxt = s.next_dp_trial_due;
+        if (!nxt || (typeof nxt !== "string" && !(nxt instanceof Date))) {
           return false;
         }
-        const due = new Date(s.next_dp_trial_due);
+        const due = new Date(nxt as string | Date);
         return due <= new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
       }).length,
       incidents90Days: incidents,

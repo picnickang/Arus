@@ -201,39 +201,28 @@ export function registerLlmAnalysisRoutes(
         });
       }
 
-      const [equipment, alerts, telemetry, pdmScores] = await Promise.all([
-        dbEquipmentStorage
-          .getEquipmentHealth(DEFAULT_ORG_ID)
-          .then((all) => all.filter((e) => (e as unknown as { vessel?: string }).vessel === vesselId)),
+      const vesselEquipmentAll = await dbEquipmentStorage.getEquipmentHealth(DEFAULT_ORG_ID);
+      const vesselEquipment = vesselEquipmentAll.filter((e) => e.vesselId === vesselId);
+      const vesselEquipmentIds = new Set(vesselEquipment.map((e) => e.id));
+
+      const [alerts, telemetry, pdmScoresAll] = await Promise.all([
         // alert_notifications has no vessel_id; scope by equipment owned by the vessel.
         dbAlertStorage
           .getAlertNotifications()
-          .then(async (all) => {
-            const vesselEquipment = await dbEquipmentStorage.getEquipmentHealth(DEFAULT_ORG_ID);
-            const vesselEquipmentIds = new Set(
-              vesselEquipment
-                .filter((e) => (e as unknown as { vessel?: string }).vessel === vesselId)
-                .map((e) => e.id)
-            );
-            return all.filter((a) => vesselEquipmentIds.has(a.equipmentId)).slice(0, 20);
-          }),
+          .then((all) => all.filter((a) => vesselEquipmentIds.has(a.equipmentId)).slice(0, 20)),
         dbTelemetryStorage.getLatestTelemetryReadings(undefined, 500, vesselId).catch(() => []),
-        dbDevicesStorage
-          .getPdmScores()
-          .then((scores) => scores.filter((s) => (s as unknown as { vessel?: string }).vessel === vesselId)),
+        // pdm_score_logs has no vessel column; scope by equipment owned by the vessel.
+        dbDevicesStorage.getPdmScores(),
       ]);
 
-      const vesselExtra = vessel as unknown as { type?: string; operational_status?: string };
-      // alert_notifications canonical shape: alertType is the severity discriminator,
-      // `acknowledged` is the resolution flag. Pre-reconcile this used non-existent
-      // `severity` / `status` columns and silently returned defaults.
-      const alertsExtra = alerts;
-      const pdmExtra = pdmScores as unknown as Array<{ anomalyScore?: number; failureProbability?: number }>;
+      const equipment = vesselEquipment;
+      const pdmScores = pdmScoresAll.filter((s) => vesselEquipmentIds.has(s.equipmentId));
+
       const intelligence = {
         vesselName: vessel.name,
         vesselId: vessel.id,
-        vesselType: vesselExtra.type ?? vessel.vesselType,
-        operationalStatus: vesselExtra.operational_status || "active",
+        vesselType: vessel.vesselType,
+        operationalStatus: "active",
         totalEquipment: equipment.length,
         healthyEquipment: equipment.filter((e) => (e.healthIndex || 0) > 70).length,
         atRiskEquipment: equipment.filter((e) => {
@@ -244,19 +233,19 @@ export function registerLlmAnalysisRoutes(
         totalAlerts: alerts.length,
         // alert_notifications has no `severity` or `status` columns; alertType is
         // the severity discriminator and `acknowledged` is the resolution flag.
-        criticalAlerts: alertsExtra.filter((a) => a.alertType === "critical").length,
-        unresolvedAlerts: alertsExtra.filter((a) => !a.acknowledged).length,
+        criticalAlerts: alerts.filter((a) => a.alertType === "critical").length,
+        unresolvedAlerts: alerts.filter((a) => !a.acknowledged).length,
         averagePdmScore:
           pdmScores.length > 0
-            ? pdmExtra.reduce((sum, s) => sum + (s.anomalyScore || 0), 0) / pdmScores.length
+            ? pdmScores.reduce((sum, s) => sum + (1 - (s.healthIdx ?? 1)), 0) / pdmScores.length
             : null,
-        failurePredictions: pdmExtra.filter((s) => (s.failureProbability || 0) > 0.5).length,
+        failurePredictions: pdmScores.filter((s) => (s.pFail30d ?? 0) > 0.5).length,
         recentTelemetryPoints: telemetry.length,
         dataFreshness:
           telemetry.length > 0 && telemetry[0].ts
             ? new Date(telemetry[0].ts).toISOString()
             : null,
-        topIssues: alertsExtra
+        topIssues: alerts
           .filter((a) => !a.acknowledged)
           .sort((a, b) => {
             // alertType is the severity discriminator; unknown values sort last.

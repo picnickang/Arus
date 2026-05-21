@@ -41,7 +41,7 @@ export class WorkOrderWorkflowRepositoryAdapter implements IWorkOrderWorkflowRep
         status: "open",
         maintenanceType: "corrective",
         woNumber,
-      } as any)
+      } satisfies Partial<typeof workOrders.$inferInsert> as typeof workOrders.$inferInsert)
       .returning({
         id: workOrders.id,
       });
@@ -106,7 +106,7 @@ export class WorkOrderWorkflowRepositoryAdapter implements IWorkOrderWorkflowRep
         status: newStatus,
         updatedAt: new Date(),
         ...(newStatus === "completed" ? { completedAt: new Date() } : {}),
-      } as any)
+      } satisfies Partial<typeof workOrders.$inferInsert> as typeof workOrders.$inferInsert)
       .where(and(eq(workOrders.id, id), eq(workOrders.orgId, orgId)))
       .returning({ id: workOrders.id });
 
@@ -312,7 +312,7 @@ export class PredictionFeedbackWorkflowAdapter implements IPredictionFeedbackPor
           .update(workOrders)
           .set({
             description: sql`COALESCE(description, '') || ${feedbackNote}`,
-          } as any)
+          } as unknown as typeof workOrders.$inferInsert)
           .where(eq(workOrders.id, feedback.workOrderId));
       }
     }

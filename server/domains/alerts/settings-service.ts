@@ -248,6 +248,18 @@ export class AlertSettingsService {
     return result;
   }
 
+  async sendOrgEmail(
+    orgId: string,
+    payload: EmailPayload
+  ): Promise<{ success: boolean; messageId?: string; error?: string }> {
+    const settings = await alertSettingsRepository.getOrgSettings(orgId);
+    if (!settings) {
+      return { success: false, error: "Email settings not configured" };
+    }
+    const config = this.buildEmailConfig(settings);
+    return emailProviderService.sendEmail(config, payload);
+  }
+
   private buildEmailConfig(settings: AlertSettingsRaw): EmailConfig {
     return {
       provider: (settings.provider || "sendgrid") as "sendgrid" | "smtp" | "ses",

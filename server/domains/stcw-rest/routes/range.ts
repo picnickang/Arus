@@ -7,9 +7,16 @@
 import { Express, Request, Response } from "express";
 import { z } from "zod";
 import { withErrorHandling, handleApiError } from "../../../lib/route-utils";
-import { StcwRestDependencies, RestDay, rangeQuerySchema } from "./types";
-import { logger } from "../../../utils/logger.js";
+import { StcwRestDependencies, rangeQuerySchema } from "./types";
 import { dbStcwStorage } from "../../../db/stcw/index.js";
+
+const prepareForPlanSchema = z.object({
+  crew: z.array(z.object({ id: z.string().min(1) })).min(1),
+  range: z.object({
+    start: z.string().min(1),
+    end: z.string().min(1),
+  }),
+});
 
 export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): void {
   const { incrementRangeQuery, recordRangeQueryDuration } = deps;
@@ -17,72 +24,30 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
   app.post(
     "/api/crew/rest/prepare_for_plan",
     withErrorHandling("prepare HoR context for planning", async (req: Request, res: Response) => {
-      const { crew, range } = req.body;
-
-      if (!crew || !range || !range.start || !range.end) {
+      const parsed = prepareForPlanSchema.safeParse(req.body);
+      if (!parsed.success) {
         res.status(400).json({
           ok: false,
           error: "Missing crew or range parameters",
         });
         return;
       }
-
+      const { crew, range } = parsed.data;
       const { prepareCrewHoRContext } = await import("../../../hor-plan-utils");
 
-      const crewIds = crew.map((c: { id: string }) => c.id);
-
-      const getHistoryRows = async (
-        crewId: string,
-        start: string,
-        end: string
-      ): Promise<RestDay[]> => {
-        try {
-          const startDate = new Date(start);
-          const endDate = new Date(end);
-
-          const results: RestDay[] = [];
-
-          const current = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-          const endLimit = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
-
-          while (current <= endLimit) {
-            const year = current.getFullYear();
-            const month = current.getMonth() + 1;
-
-            try {
-              const restData: any = await (dbStcwStorage as any).getCrewRestMonth(crewId, String(year), month);
-              if (restData?.days && restData.days.length > 0) {
-                const filteredDays = restData.days.filter((day: RestDay) => {
-                  const dayDate = new Date(day.date);
-                  return dayDate >= startDate && dayDate <= endDate;
-                });
-                results.push(...filteredDays);
-              }
-            } catch {
-              logger.warn(
-                "STCWRestRange",
-                `No rest data found for crew ${crewId} in ${year}-${month}`
-              );
-            }
-
-            current.setMonth(current.getMonth() + 1);
-          }
-
-          return results;
-        } catch (error) {
-          logger.error("STCWRestRange", `Failed to get history for crew ${crewId}`, error);
-          return [];
-        }
-      };
-
-      const contexts = await (prepareCrewHoRContext as any)(crewIds, range.start, range.end, getHistoryRows);
+      const crewIds = crew.map((c) => c.id);
+      const context = await prepareCrewHoRContext(
+        crewIds,
+        new Date(range.start),
+        new Date(range.end)
+      );
 
       res.json({
         ok: true,
-        contexts: (contexts as any).map((ctx: any) => ({
-          crew_id: ctx.crew_id,
-          context: ctx.context,
-          history_available: ctx.history_rows.length > 0,
+        contexts: crewIds.map((crewId) => ({
+          crew_id: crewId,
+          context,
+          history_available: context.history.length > 0,
         })),
       });
     })
@@ -126,7 +91,11 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
 
       incrementRangeQuery("vessel_crew", vesselId);
 
-      const result = await (dbStcwStorage as any).getVesselCrewRest(vesselId, String(Number.parseInt(year)), month);
+      const result = await dbStcwStorage.getVesselCrewRest(
+        vesselId,
+        Number.parseInt(year),
+        month
+      );
 
       recordRangeQueryDuration("vessel_crew", Date.now() - startTime);
 
@@ -138,16 +107,11 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
     const startTime = Date.now();
     try {
       const queryValidation = rangeQuerySchema.parse(req.query);
-      const { vesselId, startDate, endDate, complianceFilter } = queryValidation;
+      const { vesselId, startDate, endDate } = queryValidation;
 
       incrementRangeQuery("advanced_search", vesselId || "fleet");
 
-      const result = await (dbStcwStorage as any).getCrewRestRange(
-        vesselId || "",
-        startDate,
-        endDate,
-        complianceFilter
-      );
+      const result = await dbStcwStorage.getCrewRestRange(vesselId || "", startDate, endDate);
 
       recordRangeQueryDuration("advanced_search", Date.now() - startTime);
 

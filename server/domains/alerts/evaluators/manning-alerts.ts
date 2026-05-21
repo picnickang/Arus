@@ -14,7 +14,16 @@ export async function evaluateManningComplianceAlerts(
   const results: CrewAlertResult[] = [];
   const now = ctx.now || new Date();
 
-  const settings: any = await alertSettingsService.getCrewAlertSettings(ctx.orgId, (ctx.vesselId || null) as any);
+  const baseSettings = await alertSettingsService.getCrewAlertSettings(
+    ctx.orgId,
+    ctx.vesselId ?? undefined
+  );
+  const settings = baseSettings as
+    | (typeof baseSettings & {
+        manningComplianceEnabled?: boolean;
+        manningMinSeverity?: string | null;
+      })
+    | null;
   if (!settings?.manningComplianceEnabled) {
     return results;
   }
@@ -40,7 +49,7 @@ export async function evaluateManningComplianceAlerts(
     const currentManning = activeCrew.length;
 
     if (currentManning < minSafeManning) {
-      const severity = getSeverityFromMinSeverity(settings.manningMinSeverity);
+      const severity = getSeverityFromMinSeverity(settings?.manningMinSeverity ?? undefined);
       results.push({
         triggered: true,
         alertType: "manning_below_minimum",

@@ -125,7 +125,10 @@ export const insertOptimizationResultSchema = createInsertSchema(optimizationRes
 export const insertScheduleOptimizationSchema = createInsertSchema(scheduleOptimizations);
 export const insertVibrationFeatureSchema = createInsertSchema(vibrationFeatures);
 export const insertIdempotencyLogSchema = createInsertSchema(idempotencyLog);
-export const insertMaintenanceCostSchema = createInsertSchema(maintenanceCosts);
+// insertMaintenanceCostSchema intentionally omitted here — the strict version
+// (with .omit({id,createdAt}) + costType enum extension) is re-exported via
+// `export * from "./schema/index"` from `./schema/maintenance.ts`. Defining a
+// loose duplicate here would shadow the strict one.
 export const insertKbChunkSchema = createInsertSchema(kbChunks);
 export const insertKbDocSchema = createInsertSchema(kbDocs);
 export const insertKbEmbeddingCacheSchema = createInsertSchema(kbEmbeddingCache);

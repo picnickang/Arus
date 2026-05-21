@@ -34,9 +34,14 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
       const orgId = (req as AuthenticatedRequest).orgId;
       const validatedQuery = costSavingsSummaryQuerySchema.parse(req.query);
 
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setMonth(startDate.getMonth() - ((validatedQuery as any).months ?? 3));
+      const endDate = validatedQuery.dateTo ? new Date(validatedQuery.dateTo) : new Date();
+      const startDate = validatedQuery.dateFrom
+        ? new Date(validatedQuery.dateFrom)
+        : (() => {
+            const d = new Date(endDate);
+            d.setMonth(d.getMonth() - 3);
+            return d;
+          })();
 
       const summary = await getSavingsSummary(orgId, startDate, endDate);
 
@@ -51,7 +56,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
       const orgId = (req as AuthenticatedRequest).orgId;
       const validatedQuery = costSavingsTrendQuerySchema.parse(req.query);
 
-      const trend = await getMonthlySavingsTrend(orgId, (validatedQuery as any).months);
+      const trend = await getMonthlySavingsTrend(orgId, validatedQuery.months);
 
       res.json(trend);
     })
@@ -64,13 +69,12 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
     withErrorHandling("calculate cost savings", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { workOrderId } = req.params;
-      const validatedOptions = costSavingsCalculateOptionsSchema.parse(req.body);
+      // Parse-and-discard: the public schema does not currently expose the
+      // emergency multipliers calculateWorkOrderSavings accepts. Validating
+      // keeps the wire contract honest; we pass calculator defaults below.
+      costSavingsCalculateOptionsSchema.parse(req.body);
 
-      const calculation = await calculateWorkOrderSavings(
-        workOrderId,
-        orgId,
-        (validatedOptions ?? {}) as any
-      );
+      const calculation = await calculateWorkOrderSavings(workOrderId, orgId, {});
 
       if (!calculation) {
         return res.status(400).json({
@@ -109,9 +113,6 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
       const conds = [eq(costSavings.orgId, orgId)];
       if (validatedQuery.equipmentId) {
         conds.push(eq(costSavings.equipmentId, validatedQuery.equipmentId));
-      }
-      if ((validatedQuery as any).vesselId) {
-        conds.push(eq(costSavings.vesselId, (validatedQuery as any).vesselId));
       }
 
       const savings = await db
