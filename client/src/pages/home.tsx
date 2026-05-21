@@ -11,11 +11,6 @@ import { PendingApprovalsBanner } from "@/components/shared/PendingApprovalsBann
 import { QuickWorkOrderSheet } from "@/components/work-orders/QuickWorkOrderSheet";
 import { homePageGroups, type HomePageGroup } from "@/config/navigationConfig";
 import { trackPageVisit, getLastVisitTime, recordVisitTime } from "@/lib/pageTracking";
-import {
-  getBriefingRedirect,
-  markRoleJustSelected,
-  clearRoleJustSelected,
-} from "@/lib/briefing-redirect";
 import { ChevronRight, History, Plus } from "lucide-react";
 import { ROLES, ROLE_STORAGE_KEY } from "@/config/roles";
 import { WorkflowCommandCenter } from "@/features/workflow/components/WorkflowCommandCenter";
@@ -236,7 +231,6 @@ function MyTasks() {
 }
 
 export default function HomePage() {
-  const [, navigate] = useLocation();
   const [role, setRole] = useState<string | null>(() => {
     try {
       return localStorage.getItem(STORAGE_KEY);
@@ -248,7 +242,6 @@ export default function HomePage() {
 
   const { attentionItems, sinceLastVisit } = useAttentionItems();
   const roleConfig = role ? ROLES[role] : null;
-  const briefingRedirect = role ? getBriefingRedirect() : null;
 
   const { data: vessels } = useQuery<Array<{ id: string; name: string }>>({
     queryKey: ["/api/vessels"],
@@ -263,25 +256,13 @@ export default function HomePage() {
     }
   }, [role]);
 
-  useEffect(() => {
-    if (briefingRedirect) {
-      clearRoleJustSelected();
-      navigate(briefingRedirect);
-    }
-  }, [briefingRedirect, navigate]);
-
   const handleSelectRole = (roleId: string) => {
     localStorage.setItem(STORAGE_KEY, roleId);
-    markRoleJustSelected();
     setRole(roleId);
   };
 
   if (!role) {
     return <RoleSelector onSelect={handleSelectRole} />;
-  }
-
-  if (briefingRedirect) {
-    return null;
   }
 
   const pinnedGroupIds = roleConfig?.pinnedGroups ?? homePageGroups.map((g) => g.id);
