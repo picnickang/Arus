@@ -121,6 +121,71 @@ scheduled job.
 operators can rerun the proof with a bigger load on demand without
 editing the workflow file.
 
+## Chaos variant — Redis blip mid-run (Task 134)
+
+The default scenario asserts zero loss while Redis stays healthy. The
+chaos variant proves the documented recovery guarantees in
+`server/websocket-fanout-redis.ts` still hold when Redis goes away
+mid-run:
+
+1. **ioredis `ready` → `resubscribeAll()`** — when the subscriber
+   socket reconnects after a blip, every `(orgId, channel)` with a
+   non-zero local refcount gets re-`SUBSCRIBE`d before the next peer
+   publish arrives.
+2. **Graceful XADD / PUBLISH fallback** — if a publish hits Redis
+   mid-blip, the publisher falls through to the in-process bus so
+   local clients still get the event (cross-node peers may miss it
+   until the stream comes back).
+3. **XRANGE replay after recovery** — clients that reconnect after
+   Redis is healthy fill the gap from the per-channel stream.
+
+### Run it
+
+```bash
+REDIS_URL=redis://localhost:6379 \
+  node tests/load/ws-fanout/run-chaos.mjs
+```
+
+The harness picks the outage's absolute wall-clock window (`downAt`
+and `upAt`) BEFORE the emitter and k6 start, passes them through to
+`tests/load/ws_fanout_chaos.js` as `CHAOS_DOWN_AT_MS` /
+`CHAOS_UP_AT_MS`, then knocks Redis offline for `CHAOS_DURATION_MS`
+at `downAt`.
+
+### Chaos-specific knobs
+
+| Env var               | Default   | Meaning                                                                                                  |
+| --------------------- | --------- | -------------------------------------------------------------------------------------------------------- |
+| `CHAOS_AT_MS`         | `20000`   | Offset from emitter start when the outage begins.                                                        |
+| `CHAOS_DURATION_MS`   | `5000`    | How long Redis stays offline.                                                                            |
+| `CHAOS_GRACE_MS`      | `1500`    | Slack added to each side of the outage window when classifying events. Covers in-flight publishes.       |
+| `CHAOS_MODE`          | `pause`   | `pause` → `DEBUG SLEEP <s>` (stalls every command server-side). `kill` → `CLIENT KILL TYPE NORMAL+PUBSUB` (drops connections only — gentler, exercises the resubscribe handler in isolation). |
+| `EMIT_DURATION_MS`    | `60000`   | Must comfortably exceed `CHAOS_AT_MS + CHAOS_DURATION_MS` plus k6 hold time so a healthy post-outage tail exists. |
+
+### Pass criteria
+
+Each VU classifies every received event by its emitter-stamped
+`emittedAtMs`:
+
+- `pre`    — `emittedAtMs < downAt - GRACE` → contiguity required.
+- `outage` — inside `[downAt - GRACE, upAt + GRACE]` → loss permitted.
+- `post`   — `emittedAtMs > upAt + GRACE` → contiguity required.
+
+Thresholds:
+
+- `ws_events_missed_strict` — **MUST be 0**. Any gap inside the pre
+  or post window means recovery failed.
+- `ws_gaps_detected_strict` — **MUST be 0**. Same condition,
+  per-VU.
+- `ws_handshake_failures` — **MUST be 0**.
+- `ws_outage_events_lost` — informational only. Tracks the per-VU
+  loss tolerated inside the outage band; expected to be non-zero in
+  `pause` mode when the publisher path stalls.
+
+If the strict counters are zero but `ws_outage_events_lost` is also
+zero, peers caught everything via XRANGE replay on the post-outage
+reconnect — the strongest recovery shape.
+
 ## Out of scope
 
 - Production deployment of the two-server config.
