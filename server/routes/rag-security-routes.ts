@@ -238,7 +238,7 @@ export function registerRagSecurityRoutes(app: Express): void {
 
       const events = auditLogger.getEvents({
         limit,
-        eventType: eventType as any,
+        eventType: eventType as Parameters<typeof auditLogger.getEvents>[0]["eventType"],
         orgId,
       });
 

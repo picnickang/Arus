@@ -211,7 +211,7 @@ export function scheduleWithConstraints(
   for (const day of days) {
     for (const shift of shifts) {
       const vesselId = shift.vesselId || "";
-      const needed = (shift as any).needed || 1;
+      const needed = (shift as { needed?: number }).needed || 1;
       const shiftDate = new Date(`${day}T${shift.start}`);
       const isNight = isNightShift(shift.start);
 

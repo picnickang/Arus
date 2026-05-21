@@ -212,7 +212,7 @@ export async function applySensorConfiguration(
       maxValue?: number | null;
     };
 
-    const gain = (config as any).gain as number | null | undefined;
+    const gain = (config as { gain?: number | null }).gain;
     if (gain && gain !== 1) {
       processedValue = value * gain;
       flags.push("scaled");
@@ -281,7 +281,7 @@ export async function generateAIInsights(telemetryReading: EquipmentTelemetry): 
       recentTelemetry,
       telemetryReading.equipmentId,
       equipmentDetails.type
-    )) as unknown as { riskLevel?: string; overallHealth?: number } & Record<string, unknown>;
+    )) as object as { riskLevel?: string; overallHealth?: number } & Record<string, unknown>;
 
     if (analysis?.riskLevel !== "low") {
       await analyticsInsightsAdapter.createInsightSnapshot(telemetryReading.orgId, {
@@ -291,7 +291,7 @@ export async function generateAIInsights(telemetryReading: EquipmentTelemetry): 
         snapshotType: "ai_analysis",
         data: analysis,
         generatedAt: new Date(),
-      } as any);
+      } as never);
     }
   } catch (error) {
     logger.error(`AI insights generation failed for ${cacheKey}:`, undefined, error);

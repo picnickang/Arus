@@ -207,7 +207,7 @@ export default function WorkOrders() {
               </div>
             </div>
             <VirtualizedWorkOrderTable
-              workOrders={filteredAndSortedWorkOrders as any}
+              workOrders={filteredAndSortedWorkOrders as object as React.ComponentProps<typeof VirtualizedWorkOrderTable>["workOrders"]}
               equipment={equipment}
               vessels={vessels}
               crew={allCrewMembers}
@@ -231,7 +231,7 @@ export default function WorkOrders() {
         vessels={vessels}
         crew={allCrewMembers}
         onComplete={(id, feedback) => {
-          completeWorkOrderMutation.mutate({ orderId: id, predictionFeedback: feedback as any });
+          completeWorkOrderMutation.mutate({ orderId: id, predictionFeedback: feedback as object as Parameters<typeof completeWorkOrderMutation.mutate>[0]["predictionFeedback"] });
           closeDrawer();
         }}
         onEdit={(_order) => {
@@ -272,7 +272,7 @@ export default function WorkOrders() {
               onComplete={(feedback) =>
                 completeWorkOrderMutation.mutate({
                   orderId: selectedOrder.id,
-                  predictionFeedback: feedback as any,
+                  predictionFeedback: feedback as object as Parameters<typeof completeWorkOrderMutation.mutate>[0]["predictionFeedback"],
                 })
               }
               isCompleting={completeWorkOrderMutation.isPending}
@@ -288,7 +288,7 @@ export default function WorkOrders() {
         onOpenChange={setFormDialogOpen}
         mode={formDialogMode}
         workOrder={selectedOrder}
-        onSubmit={handleFormSubmit as any}
+        onSubmit={handleFormSubmit as object as React.ComponentProps<typeof WorkOrderFormDialog>["onSubmit"]}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
         defaultVesselId={defaultVesselId}
         defaultEquipmentId={defaultEquipmentId}

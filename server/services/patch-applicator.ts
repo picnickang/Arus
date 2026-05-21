@@ -240,7 +240,8 @@ export class PatchApplicator {
       if (migration.type === "sql") {
         // Execute SQL migration
         const sql = fs.readFileSync(migrationPath, "utf-8");
-        await db.execute(sql as unknown as Parameters<typeof db.execute>[0]);
+        const sqlUnknown: unknown = sql;
+        await db.execute(sqlUnknown as Parameters<typeof db.execute>[0]);
         logger.info(`[PatchApplicator] SQL migration executed: ${migration.file}`);
       } else if (migration.type === "script") {
         // Security (S2076): runTrustedExecutable uses constant 'node' from allowlist
@@ -317,7 +318,7 @@ export class PatchApplicator {
         throw new Error("Patch not found in database");
       }
 
-      const manifest = patch.manifest as unknown as PatchManifest;
+      const manifest: PatchManifest = patch.manifest as object as PatchManifest;
 
       // Update patch status
       await db.update(patchesTable).set({ status: "applying" }).where(eq(patchesTable.id, patchId));

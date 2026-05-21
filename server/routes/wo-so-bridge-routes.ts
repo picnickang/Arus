@@ -76,7 +76,7 @@ export async function createServiceOrderFromWorkOrder(
   // WO→SO conversions for the same org and could produce duplicate so_number
   // values. See server/service-orders/repository.ts:generateSoNumber.
   const newSo = await defaultDb.transaction(async (tx) => {
-    const soNumber = await generateSoNumber(orgId, tx as unknown as { execute: typeof db.execute });
+    const soNumber = await generateSoNumber(orgId, tx as object as { execute: typeof db.execute });
 
     const [inserted] = await tx
       .execute(
@@ -522,10 +522,14 @@ export async function syncWorkOrderFromServiceOrders(
     )
     .then((r) => r.rows || r);
 
-  const stat = soStatus as any;
-  const total = Number(stat?.total ?? 0);
-  const completed = Number(stat?.completed ?? 0);
-  const cancelled = Number(stat?.cancelled ?? 0);
+  const stat = (soStatus ?? {}) as {
+    total?: number | string;
+    completed?: number | string;
+    cancelled?: number | string;
+  };
+  const total = Number(stat.total ?? 0);
+  const completed = Number(stat.completed ?? 0);
+  const cancelled = Number(stat.cancelled ?? 0);
   const allDone = total > 0 && completed + cancelled === total;
 
   if (allDone && completed > 0) {

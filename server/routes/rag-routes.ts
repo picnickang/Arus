@@ -92,12 +92,12 @@ export function registerRagRoutes(
   };
 
   // Apply security middleware to all RAG routes
-  app.use("/api/rag", ragAuthMiddleware as any);
+  app.use("/api/rag", (req, res, next) => ragAuthMiddleware(req, res, next));
 
   app.post(
     "/api/rag/ask",
-    ragRateLimitMiddleware as any,
-    ragInputSanitizationMiddleware as any,
+    (req, res, next) => ragRateLimitMiddleware(req, res, next),
+    (req, res, next) => ragInputSanitizationMiddleware(req, res, next),
     withErrorHandling("ask RAG question", async (req, res) => {
       const { orgId, userId, userRoles } = getOrgContext(req);
       const { auditLogger } = getRagSecurityServices();
@@ -328,7 +328,7 @@ export function registerRagRoutes(
   // Uses streaming tokens for SSE authentication (EventSource can't send headers)
   app.get(
     "/api/rag/ask-stream",
-    ragRateLimitMiddleware as any,
+    (req, res, next) => ragRateLimitMiddleware(req, res, next),
     async (req: Request, res: Response) => {
       const { auditLogger, sanitizer, tokenService, config } = getRagSecurityServices();
 
@@ -407,7 +407,7 @@ export function registerRagRoutes(
 
         // Use orchestrator for proper tenant-scoped search
         const orchestrator = getRagOrchestrator();
-        const searchResults = await (searchKnowledgeBase as any)(query, orgId, 5, 0.5);
+        const searchResults = await (searchKnowledgeBase as object as (query: string, orgId: string, limit: number, threshold: number) => Promise<Array<{ content: string; documentId: string; documentTitle: string; score: number }>>)(query, orgId, 5, 0.5);
 
         const relevantChunks = searchResults.map((r: any) => ({
           content: r.content,
@@ -457,12 +457,13 @@ export function registerRagRoutes(
               try {
                 const conversationService = getConversationService();
                 // Add user's query first
-                await (conversationService.addMessage as any)(conversationId, {
+                const addMessage = conversationService.addMessage as object as (id: string, msg: { role: string; content: string }) => Promise<unknown>;
+                await addMessage(conversationId, {
                   role: "user",
                   content: query,
                 });
                 // Add full AI response
-                await (conversationService.addMessage as any)(conversationId, {
+                await addMessage(conversationId, {
                   role: "assistant",
                   content: fullResponse,
                 });
@@ -531,8 +532,8 @@ export function registerRagRoutes(
 
       const messages = await conversationService.getMessages(id, 1000);
 
-      const convAny = conversation as any;
-      const convObj = convAny.conversation ?? convAny;
+      const convAny = conversation as { conversation?: Record<string, unknown> } & Record<string, unknown>;
+      const convObj = (convAny.conversation ?? convAny) as { id: string; title?: string; createdAt: string | number | Date };
       const exportData = {
         id: convObj.id,
         title: convObj.title || "Untitled Conversation",

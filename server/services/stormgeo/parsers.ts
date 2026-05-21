@@ -125,6 +125,6 @@ export function jsonWaypointToSnapshot(
     currentDirection: currents.direction,
     recommendedSpeed: routing.recommended_speed,
     recommendedCourse: routing.recommended_course,
-    rawData: waypoint as unknown as Record<string, unknown>,
+    rawData: waypoint as object as Record<string, unknown>,
   };
 }

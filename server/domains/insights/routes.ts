@@ -124,10 +124,10 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
         fleetOverviewResponseTime: { observe: (labels: Record<string, string>, value: number) => void };
       };
       const { logInfo, logError, createRequestContext } =
-        (await import("../../structured-logging")) as unknown as StructuredLogging;
+        (await import("../../structured-logging")) as object as StructuredLogging;
       const { generateFleetTechnicianInsights } = await import("../../insights-engine");
       const { fleetOverviewRequests, fleetOverviewResponseTime } =
-        (await import("../../ml-prometheus-metrics")) as unknown as FleetMetrics;
+        (await import("../../ml-prometheus-metrics")) as object as FleetMetrics;
 
       const { vesselId } = req.query;
       const orgId = (req as AuthenticatedRequest).orgId;

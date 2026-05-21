@@ -94,7 +94,7 @@ export function registerTenantRoutes(
               FROM organizations o
               LEFT JOIN tenant_quotas q ON q.org_id = o.id
               ORDER BY o.id`
-        )) as unknown as PgExecResult | TenantRow[];
+        )) as object as PgExecResult | TenantRow[];
         const rows: TenantRow[] = Array.isArray(result)
           ? (result as TenantRow[])
           : ((result as PgExecResult).rows as TenantRow[] | undefined) ?? [];
@@ -250,7 +250,7 @@ export function registerTenantRoutes(
           // TenantDeleteService accepts the same drizzle handle the rest of
           // the server uses; the constructor's `db` parameter is intentionally
           // typed loosely so it can also accept a transaction inside tests.
-          db: db as unknown as ConstructorParameters<typeof TenantDeleteService>[0]["db"],
+          db: db as object as ConstructorParameters<typeof TenantDeleteService>[0]["db"],
           tables: TENANT_TABLE_NAMES.map((table) => ({ table })),
           signingSecret:
             signingSecret ?? "dev-only-fallback-secret-do-not-use-in-prod",

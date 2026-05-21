@@ -41,7 +41,7 @@ export async function predictFailureWithLSTM(
     }
     const model = await getModel(modelPath, "lstm");
     const endDate = new Date();
-    const lookbackDays = (equipment as any).lookbackDays ?? DEFAULT_LOOKBACK_DAYS;
+    const lookbackDays = (equipment as { lookbackDays?: number }).lookbackDays ?? DEFAULT_LOOKBACK_DAYS;
     const startDate = new Date(endDate.getTime() - lookbackDays * 24 * 60 * 60 * 1000);
     const rawTelemetry = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(
       equipmentId,
@@ -108,7 +108,7 @@ export async function predictHealthWithRandomForest(
       }
       const model = await getModel(modelPath, "random_forest");
       const endDate = new Date();
-      const lookbackDays = (equipment as any).lookbackDays ?? DEFAULT_LOOKBACK_DAYS;
+      const lookbackDays = (equipment as { lookbackDays?: number }).lookbackDays ?? DEFAULT_LOOKBACK_DAYS;
       const startDate = new Date(endDate.getTime() - lookbackDays * 24 * 60 * 60 * 1000);
       const rawTelemetry = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(
         equipmentId,
@@ -144,9 +144,9 @@ export async function predictHealthWithRandomForest(
           maintenanceAge: 30,
           failureHistory: 0,
         },
-        label: "healthy" as any,
+        label: "healthy",
         failureRisk: 0,
-      } as any);
+      } as object as ClassificationFeatures);
       const prediction = predictWithRandomForest(model, features);
       const failureProbability = prediction.failureRisk;
       let remainingDays = 90;
@@ -208,7 +208,7 @@ export async function predictHealthWithXGBoost(
     const { loadXGBoostModel } = await import("../ml-xgboost-model.js");
     const model = await loadXGBoostModel(modelPath);
     const endDate = new Date();
-    const lookbackDays = (equipment as any).lookbackDays ?? DEFAULT_LOOKBACK_DAYS;
+    const lookbackDays = (equipment as { lookbackDays?: number }).lookbackDays ?? DEFAULT_LOOKBACK_DAYS;
     const startDate = new Date(endDate.getTime() - lookbackDays * 24 * 60 * 60 * 1000);
     const rawTelemetry = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(
       equipmentId,
@@ -371,7 +371,7 @@ export async function predictWithEnsemble(
 ): Promise<MLPredictionResult | null> {
   return withProtection("ml_ensemble", equipmentId, orgId, ensembleCircuitBreaker, async () => {
     const { isFeatureEnabled, ML_FEATURE_FLAGS } = await import("../ml-feature-flags.js");
-    if (!isFeatureEnabled(ML_FEATURE_FLAGS.ENSEMBLE_PREDICTION, { organizationId: orgId } as any)) {
+    if (!isFeatureEnabled(ML_FEATURE_FLAGS.ENSEMBLE_PREDICTION, { orgId })) {
       return predictWithHybridModel(equipmentId, orgId);
     }
     const endDate = new Date();
@@ -408,7 +408,7 @@ export async function predictWithEnsemble(
         features,
         normalizedFeatures: {},
         label: 0,
-      } as any);
+      } as object as TimeSeriesFeatures);
     }
     const { ensemblePredict } = await import("../ml-ensemble-orchestrator.js");
     const ensemblePrediction = await ensemblePredict(orgId, equipmentId, timeSeriesFeatures, {
@@ -421,7 +421,7 @@ export async function predictWithEnsemble(
         ? null
         : new Date(Date.now() + ensemblePrediction.daysToFailure * 24 * 60 * 60 * 1000);
     return {
-      method: ensemblePrediction.method as any,
+      method: ensemblePrediction.method as MLPredictionResult["method"],
       failureProbability: ensemblePrediction.failureProbability,
       confidence: ensemblePrediction.confidence,
       predictedFailureDate,

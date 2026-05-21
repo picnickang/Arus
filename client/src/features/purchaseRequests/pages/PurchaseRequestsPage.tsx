@@ -44,7 +44,7 @@ export function PurchaseRequestsPage() {
           setIsCreateOpen(false);
           setRequestedBy("");
           setLocation(`/purchase-requests/${pr.id}`);
-        }) as any,
+        }) as never,
         onError: (err) =>
           toast({ title: "Error", description: String(err), variant: "destructive" }),
       }

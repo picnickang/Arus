@@ -103,13 +103,14 @@ export async function sendCertificationExpiryNotification(
     : "Unknown";
   const { color: urgencyColor, label: urgencyLabel } = getUrgencyInfo(daysUntilExpiry);
 
-  const subject = `[${urgencyLabel}] Certification Expiring - ${(certification as any).name} for ${crew.name}`;
+  const certName = (certification as { name?: string }).name ?? "Unknown";
+  const subject = `[${urgencyLabel}] Certification Expiring - ${certName} for ${crew.name}`;
   const text = `
 Certification Expiry Notice
 
 Crew Member: ${crew.name}
 Rank: ${crew.rank || "N/A"}
-Certification: ${(certification as any).name}
+Certification: ${certName}
 Certification Number: ${certification.certNumber || "N/A"}
 Expiry Date: ${expiresAt}
 Days Remaining: ${daysUntilExpiry}
@@ -123,7 +124,7 @@ Please ensure this certification is renewed before the expiry date to maintain r
       <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
         <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Crew Member:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${crew.name}</td></tr>
         <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Rank:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${crew.rank || "N/A"}</td></tr>
-        <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Certification:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${(certification as any).name}</td></tr>
+        <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Certification:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${certName}</td></tr>
         <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Certification Number:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${certification.certNumber || "N/A"}</td></tr>
         <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Expiry Date:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><span style="color: ${urgencyColor}; font-weight: bold;">${expiresAt}</span></td></tr>
         <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Days Remaining:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><span style="color: ${urgencyColor}; font-weight: bold;">${daysUntilExpiry} days</span></td></tr>

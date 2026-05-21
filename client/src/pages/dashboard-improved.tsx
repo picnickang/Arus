@@ -501,7 +501,7 @@ export default function BridgeDashboard() {
       {alertBanner && (
         <div
           className={`mx-4 lg:mx-6 mt-4 p-3 rounded-lg border-l-4 ${
-            (alertBanner as any).alertType === "critical"
+            (alertBanner as { alertType?: string }).alertType === "critical"
               ? "bg-destructive/10 border-destructive text-destructive-foreground"
               : "bg-yellow-500/10 border-yellow-500 text-yellow-700 dark:text-yellow-300"
           }`}
@@ -512,8 +512,8 @@ export default function BridgeDashboard() {
               <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" />
               <div>
                 <p className="font-semibold text-sm">
-                  {(alertBanner as any).alertType?.toUpperCase()} —{" "}
-                  {getEquipmentName((alertBanner as any).equipmentId)}
+                  {(alertBanner as { alertType?: string }).alertType?.toUpperCase()} —{" "}
+                  {getEquipmentName((alertBanner as object as { equipmentId: string }).equipmentId)}
                 </p>
                 <p className="text-sm opacity-90">{alertBanner.message}</p>
               </div>

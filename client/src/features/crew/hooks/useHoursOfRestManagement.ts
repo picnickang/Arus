@@ -99,7 +99,7 @@ export function useHoursOfRestManagement() {
     invalidateKeys: [
       stcwRestKeys.crew,
       stcwRestKeys.rest(selectedCrew, selectedYear, selectedMonth),
-    ] as any,
+    ] as never,
     successMessage: (data) => `Imported rest data for ${data.sheets} crew members`,
     onSuccess: () => {
       setImportFile(null);

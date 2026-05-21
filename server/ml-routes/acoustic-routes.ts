@@ -19,7 +19,7 @@ interface FFTUtils {
 // ESM-safe import of the CJS `fft-js` package. With esModuleInterop the
 // default import returns `module.exports`, which is `{ fft, ifft, util, … }`.
 import fftjsDefault from "fft-js";
-const fftjs = fftjsDefault as unknown as {
+const fftjs = fftjsDefault as object as {
   fft: (signal: number[]) => [number, number][];
   util: FFTUtils;
 };
@@ -177,7 +177,7 @@ router.post("/ml/acoustic-analysis", async (req: AuthenticatedRequest, res: Resp
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return sendBadRequest(res, "Invalid acoustic data", error.errors as any);
+      return sendBadRequest(res, "Invalid acoustic data", { errors: error.errors });
     }
     handleError(error, res, "perform acoustic analysis");
   }

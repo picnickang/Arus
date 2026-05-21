@@ -109,7 +109,10 @@ export class AnalyticsAggregator {
           .where(and(baseCondition, gte(ragConversations.createdAt, sevenDaysAgo))),
       ]);
 
-      const latencyData = (ragMetrics as any).getLatencyStats?.() ?? { averageMs: 0 };
+      const latencyData =
+        (ragMetrics as { getLatencyStats?: () => { averageMs: number } }).getLatencyStats?.() ?? {
+          averageMs: 0,
+        };
 
       return {
         total: totalResult[0]?.count || 0,
@@ -125,7 +128,12 @@ export class AnalyticsAggregator {
 
   private async getCacheStats(orgId: string | undefined): Promise<AnalyticsSummary["cache"]> {
     try {
-      const metricsData = (ragMetrics as any).getCacheStats?.() ?? { hits: 0, misses: 0, entriesCount: 0 };
+      const metricsData =
+        (
+          ragMetrics as {
+            getCacheStats?: () => { hits: number; misses: number; entriesCount: number };
+          }
+        ).getCacheStats?.() ?? { hits: 0, misses: 0, entriesCount: 0 };
 
       const totalHits = metricsData.hits;
       const totalMisses = metricsData.misses;
@@ -154,11 +162,11 @@ export class AnalyticsAggregator {
         db
           .select({ count: count() })
           .from(ragFeedback)
-          .where(and(baseCondition, eq((ragFeedback as any).helpful, true))),
+          .where(and(baseCondition, eq(ragFeedback.feedbackType, "helpful"))),
         db
           .select({ count: count() })
           .from(ragFeedback)
-          .where(and(baseCondition, eq((ragFeedback as any).helpful, false))),
+          .where(and(baseCondition, eq(ragFeedback.feedbackType, "not_helpful"))),
         db
           .select({ avg: avg(ragFeedback.rating) })
           .from(ragFeedback)
@@ -201,7 +209,7 @@ export class AnalyticsAggregator {
         db
           .select({ count: count() })
           .from(kbDocs)
-          .where(and(docCondition, gte((kbDocs as any).uploadedAt ?? kbDocs.createdAt, oneWeekAgo))),
+          .where(and(docCondition, gte(kbDocs.createdAt, oneWeekAgo))),
       ]);
 
       const totalDocs = docsResult[0]?.count || 0;
@@ -283,8 +291,8 @@ export class AnalyticsAggregator {
       const result = await db
         .select({
           date: sql<string>`DATE(${ragFeedback.createdAt})`,
-          helpful: sql<number>`SUM(CASE WHEN ${(ragFeedback as any).helpful} = true THEN 1 ELSE 0 END)`,
-          notHelpful: sql<number>`SUM(CASE WHEN ${(ragFeedback as any).helpful} = false THEN 1 ELSE 0 END)`,
+          helpful: sql<number>`SUM(CASE WHEN ${ragFeedback.feedbackType} = 'helpful' THEN 1 ELSE 0 END)`,
+          notHelpful: sql<number>`SUM(CASE WHEN ${ragFeedback.feedbackType} = 'not_helpful' THEN 1 ELSE 0 END)`,
         })
         .from(ragFeedback)
         .where(and(baseCondition, gte(ragFeedback.createdAt, since)))

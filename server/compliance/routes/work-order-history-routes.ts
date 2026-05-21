@@ -17,8 +17,8 @@ router.post(
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
-      const result = await (workOrderHistoryHashService as any).verifyWorkOrderHistory(workOrderId, orgId);
-      res.json({ success: true, data: { workOrderId, ...result } });
+      const result = await workOrderHistoryHashService.verifyChain(orgId, workOrderId);
+      res.json({ success: true, data: { workOrderId, ...(result ?? {}) } });
     } catch (error) {
       logger.error("[Compliance] Work order history verification error:", undefined, error);
       res.status(500).json({ error: "Failed to verify work order history" });
@@ -42,10 +42,10 @@ router.post(
       const results = await Promise.all(
         workOrderIds.map(async (id: string) => ({
           workOrderId: id,
-          ...(await (workOrderHistoryHashService as any).verifyWorkOrderHistory(id, orgId)),
+          ...((await workOrderHistoryHashService.verifyChain(orgId, id)) ?? {}),
         }))
       );
-      const allValid = results.every((r) => r.valid);
+      const allValid = results.every((r) => (r as { valid?: boolean }).valid);
       res.json({ success: true, data: { allValid, count: results.length, results } });
     } catch (error) {
       logger.error("[Compliance] Bulk work order history verification error:", undefined, error);
@@ -64,8 +64,8 @@ router.get(
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
-      const stats = await (workOrderHistoryHashService as any).getWorkOrderHistoryStats(workOrderId, orgId);
-      res.json({ success: true, data: { workOrderId, ...stats } });
+      const stats = await workOrderHistoryHashService.getChainStats(orgId, workOrderId);
+      res.json({ success: true, data: { workOrderId, ...(stats ?? {}) } });
     } catch (error) {
       logger.error("[Compliance] Work order history stats error:", undefined, error);
       res.status(500).json({ error: "Failed to get work order history stats" });

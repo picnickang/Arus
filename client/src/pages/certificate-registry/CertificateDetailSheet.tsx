@@ -92,8 +92,8 @@ export function CertificateDetailSheet({
                 <div>
                   <p className="text-sm text-muted-foreground">Authority Type</p>
                   <p className="font-medium">
-                    {AUTHORITY_TYPE_LABELS[(selectedCert as any).issuingAuthorityType] ||
-                      (selectedCert as any).issuingAuthorityType ||
+                    {AUTHORITY_TYPE_LABELS[(selectedCert as { issuingAuthorityType?: string }).issuingAuthorityType ?? ""] ||
+                      (selectedCert as { issuingAuthorityType?: string }).issuingAuthorityType ||
                       "—"}
                   </p>
                 </div>

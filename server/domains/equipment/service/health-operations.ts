@@ -41,7 +41,7 @@ export async function getEquipmentHealth(
   const health = await adapter.execute<EquipmentHealth[]>({
     operation: "getHealth",
     repositoryFn: async () => {
-      const repo = TenantRepositoryFactory.equipment(orgId) as unknown as {
+      const repo = TenantRepositoryFactory.equipment(orgId) as object as {
         getHealthMetrics: (
           vesselId?: string,
           equipmentId?: string

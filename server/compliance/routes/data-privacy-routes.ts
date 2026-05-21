@@ -185,7 +185,7 @@ router.get(
         createdAt: new Date().toISOString(),
       };
       const anonymizationService = new DataAnonymizationService();
-      const { record: anonymized, result } = (anonymizationService.anonymizeRecord as any)(
+      const { record: anonymized, result } = (anonymizationService.anonymizeRecord as object as (r: Record<string, unknown>, t: string, l: unknown, o: Record<string, unknown>) => { record: unknown; result: unknown })(
         sampleRecord,
         "crew_member",
         level,
@@ -280,7 +280,7 @@ router.post(
         orgId,
         ...data,
         dueDate,
-      } as any);
+      } as never);
       await auditService.logEvent({
         orgId,
         eventCategory: "compliance_event",

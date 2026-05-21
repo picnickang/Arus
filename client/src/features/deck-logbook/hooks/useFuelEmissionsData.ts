@@ -89,7 +89,7 @@ export function useFuelEmissionsData() {
   });
 
   const autoFillMutation = useMutation({
-    mutationFn: (async (vesselId: string) =>
+    mutationFn: async (vesselId: string) =>
       apiRequest("/api/logbook/fuel-emissions/autofill", {
         method: "POST",
         body: JSON.stringify({
@@ -98,7 +98,7 @@ export function useFuelEmissionsData() {
           endDate: dateParams.end.toISOString(),
           periodType: "hourly",
         }),
-      })) as any,
+      }) as Promise<{ recordsCreated?: number; recordsSkipped?: number }>,
     onSuccess: (data: { recordsCreated?: number; recordsSkipped?: number }) => {
       toast({
         title: "Auto-fill Complete",
@@ -116,7 +116,7 @@ export function useFuelEmissionsData() {
   });
 
   const totals = useMemo(() => {
-    const ls = logs as any[];
+    const ls = logs as Array<FuelEmissionsLog & Record<string, number | string | null | undefined>>;
     const totalFuel = ls.reduce((sum, log) => sum + (log.totalFuelMt || 0), 0);
     const totalCo2 = ls.reduce((sum, log) => sum + (log.co2EmissionsMt || 0), 0);
     const totalDistance = ls.reduce((sum, log) => sum + (log.distanceNm || 0), 0);
@@ -141,7 +141,7 @@ export function useFuelEmissionsData() {
 
   const handleAutoFill = useCallback(
     (vesselId: string) => {
-      autoFillMutation.mutate(vesselId as any);
+      autoFillMutation.mutate(vesselId);
     },
     [autoFillMutation]
   );

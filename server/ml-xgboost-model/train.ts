@@ -79,5 +79,5 @@ export async function trainXGBoostModel(
       .slice(0, 5)
       .map(([n, i]) => `${n}: ${(i * 100).toFixed(2)}%`) });
 
-  return { trees, config, featureNames, classLabels: classLabels as any, baseScore, numClasses };
+  return { trees, config, featureNames, classLabels: classLabels as object as string[], baseScore, numClasses };
 }

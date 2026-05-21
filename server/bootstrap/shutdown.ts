@@ -40,8 +40,9 @@ async function shutdown(sig: string): Promise<void> {
   try {
     logger.info("→ Phase 1: Stopping new connections...");
     const serverModule = await import("../routes");
-    if ((serverModule as any).server) {
-      (serverModule as any).server.close();
+    const mod = serverModule as { server?: { close: () => void } };
+    if (mod.server) {
+      mod.server.close();
     }
 
     logger.info("→ Phase 2: Draining active connections...");

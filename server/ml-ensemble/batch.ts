@@ -37,13 +37,12 @@ export async function batchEnsemblePredict(
           return null;
         }
 
-        const timeSeriesData: TimeSeriesFeatures[] = recentData.map((t: any) => ({
+        const timeSeriesData: TimeSeriesFeatures[] = recentData.map((t) => ({
           equipmentId: t.equipmentId,
           timestamp: t.ts,
-          features: t.readings as any,
-          normalizedFeatures: {},
+          signals: { [t.sensorType]: t.value },
           label: 0,
-        })) as any;
+        }));
 
         const prediction = await ensemblePredict(orgId, equipmentId, timeSeriesData);
         return { equipmentId, prediction };

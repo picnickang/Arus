@@ -185,7 +185,7 @@ export function useOptimizationData() {
       apiRequest("POST", `/api/optimization/${optimizationId}/apply`),
     invalidateKeys: ["/api/optimization/results"],
     successMessage: "Optimization applied to production successfully",
-    errorMessage: ((error: unknown) => (error as Error).message) as any,
+    errorMessage: (error: unknown) => (error as Error).message,
   });
 
   const downloadOptimizationMutation = useCustomMutation({
@@ -215,10 +215,11 @@ export function useOptimizationData() {
   });
 
   const clearAllOptimizationsMutation = useCustomMutation({
-    mutationFn: (async () => apiRequest("DELETE", "/api/optimization/results?orgId=default-org-id")) as any,
+    mutationFn: async () =>
+      apiRequest("DELETE", "/api/optimization/results?orgId=default-org-id"),
     invalidateKeys: ["/api/optimization/results"],
-    successMessage: ((data: { deletedCount: number }) =>
-      `Successfully cleared ${data.deletedCount} optimization result(s)`) as any,
+    successMessage: (data: unknown) =>
+      `Successfully cleared ${(data as { deletedCount: number }).deletedCount} optimization result(s)`,
     errorMessage: "Failed to clear optimization results",
   });
 

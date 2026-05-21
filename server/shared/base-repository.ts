@@ -9,11 +9,11 @@ import { db } from "../db.js";
  * unify without help. Centralising the cast here keeps all repository
  * call sites cast-free.
  */
-function insertValues<U>(v: U): any {
-  return v as any;
+function insertValues<U>(v: U): Record<string, unknown> | Record<string, unknown>[] {
+  return v as Record<string, unknown> | Record<string, unknown>[];
 }
-function setValues<U>(v: U): any {
-  return v as any;
+function setValues<U>(v: U): Record<string, unknown> {
+  return v as Record<string, unknown>;
 }
 
 export interface PaginationOptions {
@@ -73,7 +73,7 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
   }
 
   private columns(): Record<string, any> {
-    return this.table as unknown as Record<string, any>;
+    return this.table as Record<string, any>;
   }
 
   private validateColumns(): void {

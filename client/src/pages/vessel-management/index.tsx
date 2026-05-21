@@ -325,7 +325,7 @@ export default function VesselManagement() {
                   ),
               },
             ]}
-            data={v.vessels as unknown as Vessel[]}
+            data={v.vessels as object as Vessel[]}
             keyExtractor={(vessel: Vessel) => vessel.id}
             actions={(vessel: Vessel) => (
               <div className="flex items-center justify-end gap-2">

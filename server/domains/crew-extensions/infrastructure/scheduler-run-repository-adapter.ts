@@ -71,7 +71,7 @@ export class SchedulerRunRepositoryAdapter implements ISchedulerRunRepository {
       startDate: command.startDate,
       endDate: command.endDate,
       inputHash: command.inputHash,
-    } as unknown as Parameters<typeof dbSchedulerStorage.createSchedulerRun>[0]);
+    } as object as Parameters<typeof dbSchedulerStorage.createSchedulerRun>[0]);
     return mapToEntity(run);
   }
 

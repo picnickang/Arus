@@ -44,10 +44,10 @@ export async function getSensorCoverage(
           minValue: s.minValue,
           maxValue: s.maxValue,
         })),
-      } as unknown as SensorCoverageResult;
+      } as object as SensorCoverageResult;
     },
-    legacyFn: () => Promise.resolve(equipmentRepository.getSensorCoverage(equipmentId, orgId) as unknown as SensorCoverageResult),
-  }) as unknown as SensorCoverageResult;
+    legacyFn: () => Promise.resolve(equipmentRepository.getSensorCoverage(equipmentId, orgId) as object as SensorCoverageResult),
+  }) as object as SensorCoverageResult;
 }
 
 export async function setupSensors(

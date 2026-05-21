@@ -75,8 +75,12 @@ if (isHealthCheckMode) {
       logger.info("[ARUS] Health check: @libsql/client OK");
 
       const bcrypt = await import("bcryptjs");
-      const hash = await (bcrypt as any).hash("test", 8);
-      const ok = await (bcrypt as any).compare("test", hash);
+      const bcryptApi = bcrypt as object as {
+        hash: (s: string, n: number) => Promise<string>;
+        compare: (a: string, b: string) => Promise<boolean>;
+      };
+      const hash = await bcryptApi.hash("test", 8);
+      const ok = await bcryptApi.compare("test", hash);
       if (!ok) {
         throw new Error("bcryptjs hash/compare mismatch");
       }

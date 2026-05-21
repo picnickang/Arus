@@ -96,7 +96,7 @@ export function useNotificationSettings() {
           subject: "ARUS Marine Test",
           message: "This is a test notification.",
         }),
-      })) as any),
+      })) as object as (email: string) => Promise<{ message: string }>),
     onSuccess: (data: { message: string }) => {
       toast({ title: data.message || "Test notification sent" });
     },

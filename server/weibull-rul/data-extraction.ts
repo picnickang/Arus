@@ -17,7 +17,7 @@ export async function getEquipmentLifeData(
     const workOrders = await workOrderService.getWorkOrdersWithDetails();
     const equipmentWorkOrders = workOrders
       .filter((wo) => wo.equipmentId === equipmentId)
-      .sort((a, b) => new Date(a.createdAt as any).getTime() - new Date(b.createdAt as any).getTime());
+      .sort((a, b) => (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0));
 
     if (equipmentWorkOrders.length < 2) {
       logger.info(`[Weibull RUL] Insufficient failure history for ${equipmentId} (${equipmentWorkOrders.length} events, need ≥2)`);
@@ -28,7 +28,7 @@ export async function getEquipmentLifeData(
     let lastEventTime: Date | null = null;
 
     for (const workOrder of equipmentWorkOrders) {
-      const eventTime = new Date(workOrder.createdAt as any);
+      const eventTime = workOrder.createdAt ?? new Date(0);
 
       if (lastEventTime) {
         const timeBetweenFailures =
@@ -42,7 +42,7 @@ export async function getEquipmentLifeData(
             maintenanceEvents: [
               {
                 timestamp: eventTime,
-                type: (workOrder.priority as any) === "critical" ? "corrective" : "preventive",
+                type: (workOrder.priority as unknown) === "critical" ? "corrective" : "preventive",
                 description: workOrder.description ?? "",
               },
             ],
@@ -139,8 +139,9 @@ export async function getCurrentEquipmentAge(equipmentId: string, orgId: string)
   try {
     const equipmentInfo = await dbEquipmentStorage.getEquipment(orgId, equipmentId);
 
-    if ((equipmentInfo as any)?.commissioningDate) {
-      const commissioningDate = new Date((equipmentInfo as any).commissioningDate);
+    const commDateRaw = (equipmentInfo as Record<string, unknown> | undefined)?.commissioningDate;
+    if (commDateRaw) {
+      const commissioningDate = new Date(commDateRaw as string | number | Date);
       const now = new Date();
       const ageMs = now.getTime() - commissioningDate.getTime();
       return Math.max(0, ageMs / (1000 * 60 * 60));

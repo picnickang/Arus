@@ -20,7 +20,7 @@ describe("WorkOrder publisher: post-commit emit semantics", () => {
         name,
         orgId,
         payload,
-        ...((meta as object) ?? {}),
+        ...((meta as never) ?? {}),
       }),
     }));
   });

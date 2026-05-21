@@ -93,7 +93,7 @@ export function useVesselTrackData() {
           startDate: dateParams.start.toISOString(),
           endDate: dateParams.end.toISOString(),
         }),
-      })) as any,
+      })) as object as (vesselId: string) => Promise<{ recordsCreated?: number; recordsSkipped?: number }>,
     onSuccess: (data: { recordsCreated?: number; recordsSkipped?: number }) => {
       toast({
         title: "Track Processing Complete",
@@ -114,7 +114,7 @@ export function useVesselTrackData() {
     () =>
       tracks.reduce(
         (acc, t) => {
-          const status = (t as any).navStatus || "unknown";
+          const status = (t as { navStatus?: string }).navStatus || "unknown";
           acc[status] = (acc[status] || 0) + 1;
           return acc;
         },

@@ -102,7 +102,7 @@ router.get("/ml/accuracy-trend", async (req: AuthenticatedRequest, res: Response
       models
         .filter((m) => m.status === "deployed" && m.accuracy)
         .map(async (model) => {
-          const history = await (dbMlAnalyticsStorage as any).getMlModelAccuracyHistory(model.id, req.orgId);
+          const history = await (dbMlAnalyticsStorage as object as { getMlModelAccuracyHistory: (id: string, orgId: string) => Promise<Array<{ recordedAt: Date; accuracy: string | null }>> }).getMlModelAccuracyHistory(model.id, req.orgId);
           return history.map((h: { recordedAt: Date; accuracy: string | null }) => ({
             date: h.recordedAt.toISOString().split("T")[0],
             accuracy: Number.parseFloat(h.accuracy || "0"),
@@ -160,9 +160,9 @@ router.post("/ml/train", async (req: AuthenticatedRequest, res: Response) => {
       trainingMetrics: null,
       errorMessage: null,
     };
-    const newModel = await (dbMlAnalyticsStorage as any).createMlModel(modelData);
+    const newModel = await dbMlAnalyticsStorage.createMlModel(modelData, req.orgId);
     const { mlTrainingQueue } = await import("../ml-training-queue.js");
-    const trainingJob = await (mlTrainingQueue as any).enqueue({
+    const trainingJob = await (mlTrainingQueue as object as { enqueue: (job: Record<string, unknown>) => Promise<{ id: string }> }).enqueue({
       modelId: newModel.id,
       orgId: req.orgId,
       algorithm: config.algorithm,
@@ -187,7 +187,7 @@ router.post("/ml/train", async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return sendBadRequest(res, "Invalid training configuration", error.errors as any);
+      return sendBadRequest(res, "Invalid training configuration", { errors: error.errors });
     }
     handleError(error, res, "start ML training");
   }
@@ -253,7 +253,7 @@ router.post("/ml/models/:id/accuracy", async (req: AuthenticatedRequest, res: Re
       return sendNotFound(res, "ML model");
     }
     const { accuracy, validationAccuracy, testAccuracy, datasetSize } = req.body;
-    const historyEntry = await (dbMlAnalyticsStorage as any).addMlModelAccuracyHistory(
+    const historyEntry = await (dbMlAnalyticsStorage as object as { addMlModelAccuracyHistory: (entry: Record<string, unknown>, orgId: string) => Promise<unknown> }).addMlModelAccuracyHistory(
       {
         modelId: req.params.id,
         accuracy,

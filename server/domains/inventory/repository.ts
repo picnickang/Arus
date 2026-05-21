@@ -64,7 +64,7 @@ export class InventoryRepository {
       partId,
       updateData,
       "default-org-id"
-    ) as unknown as Promise<PartsInventory>;
+    ) as object as Promise<PartsInventory>;
   }
 
   async updatePartStock(
@@ -80,7 +80,7 @@ export class InventoryRepository {
       partId,
       updateData,
       "default-org-id"
-    ) as unknown as Promise<PartsInventory>;
+    ) as object as Promise<PartsInventory>;
   }
 
   async checkAvailability(

@@ -99,7 +99,7 @@ export class PartsInventoryRepositoryAdapter implements IPartsInventoryRepositor
       partName: command.name,
     };
     const item = await inventoryRepository.createInventoryItem(
-      payload as unknown as Parameters<typeof inventoryRepository.createInventoryItem>[0]
+      payload as object as Parameters<typeof inventoryRepository.createInventoryItem>[0]
     );
     return mapToEntity(item);
   }
@@ -111,7 +111,7 @@ export class PartsInventoryRepositoryAdapter implements IPartsInventoryRepositor
   ): Promise<PartsInventoryEntity> {
     const item = await inventoryRepository.updateInventoryItem(
       id,
-      updates as unknown as Parameters<typeof inventoryRepository.updateInventoryItem>[1],
+      updates as object as Parameters<typeof inventoryRepository.updateInventoryItem>[1],
       orgId
     );
     return mapToEntity(item);
@@ -128,7 +128,7 @@ export class PartsInventoryRepositoryAdapter implements IPartsInventoryRepositor
   ): Promise<PartsInventoryEntity> {
     const item = await inventoryRepository.updateInventoryItem(
       id,
-      { quantity: newQuantity } as unknown as Parameters<typeof inventoryRepository.updateInventoryItem>[1],
+      { quantity: newQuantity } as object as Parameters<typeof inventoryRepository.updateInventoryItem>[1],
       orgId
     );
     return mapToEntity(item);

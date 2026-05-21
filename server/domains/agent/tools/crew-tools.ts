@@ -122,7 +122,7 @@ registerTool({
         active: c.active,
       })),
       recentAssignments: assignments.map((a) => {
-        const bag = a as unknown as { assignmentType?: string; score?: number };
+        const bag = a as object as { assignmentType?: string; score?: number };
         return {
           id: a.id,
           crewId: a.crewId,

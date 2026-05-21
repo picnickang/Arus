@@ -28,7 +28,7 @@ export async function logLoginEvent(input: LoginEventInput): Promise<LoginEvent>
     createdAt: new Date(),
   };
 
-  await db.insert(loginEvents).values(eventData as any);
+  await db.insert(loginEvents).values(eventData);
   return eventData as LoginEvent;
 }
 

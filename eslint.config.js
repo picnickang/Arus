@@ -175,7 +175,7 @@ export default [
         caughtErrorsIgnorePattern: '^_|^error$|^err$|^e$',
         ignoreRestSiblings: true
       }],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error',
       'prefer-const': 'warn',
 
       // ============ HYGIENE ADDITIONS (Block A) ============
@@ -286,19 +286,6 @@ export default [
         caughtErrorsIgnorePattern: '^_|^error$|^err$|^e$',
         ignoreRestSiblings: true
       }]
-    }
-  },
-  // Stage 5: True ingestion/adapter boundaries only - allow any for raw external data parsing
-  // Limited to modules that handle unparsed JSON, MQTT messages, or raw telemetry streams
-  {
-    files: [
-      'server/telemetry/**/*.ts',          // Raw sensor data ingestion
-      'server/sync/**/*.ts',               // External sync adapters
-      'server/vessel-simulator/**/*.ts',   // Simulation data generation
-      'server/external-integrations/**/*.ts' // Third-party API adapters
-    ],
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off'
     }
   },
   // Test files - allow common test utilities that are imported for setup

@@ -81,7 +81,7 @@ export async function createConditionLogEntry(
     equipmentId,
     periodStart,
     periodEnd,
-    ...({ periodType } as any),
+    periodType,
     vibrationRmsAvg: vibrationData?.rmsAvg ?? null,
     vibrationRmsMax: vibrationData?.rmsMax ?? null,
     vibrationRmsMin: vibrationData?.rmsMin ?? null,
@@ -107,7 +107,7 @@ export async function createConditionLogEntry(
     dataCompleteness: completeness,
     dataQuality,
     sourceAnalysisIds: vibrationData?.analysisIds ?? [],
-  };
+  } as object as InsertConditionLogSummary;
 
   const result = await db
     .insert(conditionLogSummary)

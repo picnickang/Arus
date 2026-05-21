@@ -14,6 +14,13 @@ import { predictionFeedback, llmCostTracking } from "../../../shared/schema";
 import { eq, and, gte, sql } from "drizzle-orm";
 import { getOrgId, sendValidatedResponse, handleError } from "./helpers.js";
 
+type CachedAnalyticsLoose = <T>(
+  key: string,
+  loader: () => Promise<unknown>,
+  ttlSeconds?: number,
+) => Promise<T>;
+const cachedAnalyticsLoose = cachedAnalytics as object as CachedAnalyticsLoose;
+
 export function mountCostsAndFeedbackRoutes(router: Router) {
   router.get("/prediction-feedback", async (req: Request, res: Response) => {
     try {
@@ -26,7 +33,7 @@ export function mountCostsAndFeedbackRoutes(router: Router) {
         orgId,
         equipmentId as string | undefined
       );
-      const response = await (cachedAnalytics as any)(
+      const response = await cachedAnalyticsLoose<PredictionFeedbackListResponse>(
         cacheKey,
         async () => {
           const filters = [eq(predictionFeedback.orgId, orgId)];
@@ -37,7 +44,7 @@ export function mountCostsAndFeedbackRoutes(router: Router) {
             .select()
             .from(predictionFeedback)
             .where(and(...filters))
-            .orderBy(sql`${(predictionFeedback as any).submittedAt} DESC`)
+            .orderBy(sql`${predictionFeedback.createdAt} DESC`)
             .limit(100);
           return {
             results,
@@ -68,7 +75,7 @@ export function mountCostsAndFeedbackRoutes(router: Router) {
       }
       const { period } = req.query;
       const cacheKey = analyticsCacheKeys.llmCosts(orgId, period as string | undefined);
-      const response = await (cachedAnalytics as any)(
+      const response = await cachedAnalyticsLoose<LlmCostListResponse>(
         cacheKey,
         async () => {
           const filters = [eq(llmCostTracking.orgId, orgId)];
@@ -82,13 +89,13 @@ export function mountCostsAndFeedbackRoutes(router: Router) {
             const startDate = (
               periodOffsets[period as string] ?? (() => new Date(now.setDate(now.getDate() - 30)))
             )();
-            filters.push(gte((llmCostTracking as any).timestamp, startDate));
+            filters.push(gte(llmCostTracking.createdAt, startDate));
           }
           const results = await db
             .select()
             .from(llmCostTracking)
             .where(and(...filters))
-            .orderBy(sql`${(llmCostTracking as any).timestamp} DESC`)
+            .orderBy(sql`${llmCostTracking.createdAt} DESC`)
             .limit(100);
           return {
             results,

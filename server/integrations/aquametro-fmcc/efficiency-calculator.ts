@@ -55,7 +55,7 @@ export function calculateEngineEfficiency(
   return {
     success: true,
     data: efficiency,
-    source: countersSource as any,
+    source: countersSource as "fmcc" | "cache" | "mock",
     responseTimeMs: 0,
   };
 }

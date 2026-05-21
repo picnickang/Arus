@@ -76,7 +76,7 @@ export async function adminApiRequest<T = unknown>(
 /**
  * Admin query function factory for TanStack Query
  */
-export function adminQueryFn(queryKey: string[]) {
+export function adminQueryFn(queryKey: readonly string[]) {
   return async () => {
     // In dev mode, use dev token; otherwise require session
     const sessionToken = DEV_MODE ? DEV_SESSION_TOKEN : getApiSessionToken();

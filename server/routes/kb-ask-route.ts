@@ -28,7 +28,7 @@ export function registerKbAskRoute(
       let kbContext = "";
       try {
         const { searchKnowledgeBase } = await import("../vector-search-service");
-        const results = await (searchKnowledgeBase as any)(query, { limit: 3, threshold: 0.3, orgId });
+        const results = await (searchKnowledgeBase as object as (q: string, opts: { limit: number; threshold: number; orgId: string }) => Promise<Array<{ content?: string; text?: string }>>)(query, { limit: 3, threshold: 0.3, orgId });
         kbResults = results || [];
         kbContext = kbResults
           .map((r: any) => r.content || r.text || "")
@@ -42,7 +42,7 @@ export function registerKbAskRoute(
       try {
         const { analyzeEquipmentHealth } = await import("../openai");
         if (typeof analyzeEquipmentHealth === "function") {
-          const llmResult: any = await (analyzeEquipmentHealth as any)(
+          const llmResult: { analysis?: string; response?: string; text?: string } | string = await (analyzeEquipmentHealth as object as (id: string, q: string, history: unknown[], context: string) => Promise<{ analysis?: string; response?: string; text?: string } | string>)(
             equipmentId || "general",
             query,
             [],

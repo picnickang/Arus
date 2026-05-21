@@ -64,7 +64,7 @@ export async function saveManifest(manifest: WarehouseManifest): Promise<void> {
         entryCount: String(manifest.exports.length),
       },
     },
-  } as unknown as Parameters<typeof file.save>[1]);
+  } as object as Parameters<typeof file.save>[1]);
 }
 
 /**

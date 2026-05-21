@@ -110,7 +110,7 @@ export function registerSchedulingRoutes(
                     String(month),
                   );
                   if (restData?.days && restData.days.length > 0) {
-                    results.push(...(restData.days as unknown as RestDay[]));
+                    results.push(...(restData.days as object as RestDay[]));
                   }
                 } catch {
                   /* month data not found */
@@ -136,22 +136,22 @@ export function registerSchedulingRoutes(
                 shiftId: a.shiftId,
                 vesselId: a.vesselId,
               }));
-            const mergedRows = (
-              mergeHistoryWithPlan as unknown as (
-                history: unknown[],
-                plan: unknown[],
-                startDate: string,
-                endDate: string,
-              ) => RestDay[]
-            )(historyRows, crewAssignments, startDate, endDate);
+            const mergeHistoryWithPlanFn = mergeHistoryWithPlan as object as (
+              history: unknown[],
+              plan: unknown[],
+              startDate: string,
+              endDate: string,
+            ) => RestDay[];
+            const mergedRows = mergeHistoryWithPlanFn(historyRows, crewAssignments, startDate, endDate);
             const crewCompliance = checkMonthCompliance(mergedRows);
-            const context = (
-              summarizeHoRContext as unknown as (history: unknown[]) => {
-                min_rest_24: number;
-                rest_7d: number;
-                nights_this_week: number;
-              }
-            )(historyRows);
+            const summarizeHoRContextFn = summarizeHoRContext as object as (
+              history: unknown[],
+            ) => {
+              min_rest_24: number;
+              rest_7d: number;
+              nights_this_week: number;
+            };
+            const context = summarizeHoRContextFn(historyRows);
             compliance.rows_by_crew[crewId] = mergedRows;
             compliance.per_crew.push({
               crew_id: crewId,

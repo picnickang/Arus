@@ -82,13 +82,14 @@ export function usePdmPackData() {
         throw new Error("At least 10 data points required for analysis");
       }
       return apiRequest("POST", "/api/pdm/analyze/bearing", { ...data, series });
-    }) as any,
+    }),
     invalidateKeys: [
       ["/api/pdm/alerts", currentOrgId],
       ["/api/pdm/baseline", currentOrgId, selectedVessel, selectedAsset],
     ],
     successMessage: "Bearing vibration analysis completed successfully",
-    errorMessage: ((error: Error) => error.message || "Failed to analyze bearing data") as any,
+    errorMessage: (error: unknown) =>
+      (error as { message?: string })?.message || "Failed to analyze bearing data",
     onSuccess: (data: { analysis: AnalysisResult }) => setBearingAnalysisResult(data.analysis),
   });
 
@@ -112,13 +113,14 @@ export function usePdmPackData() {
         }
       });
       return apiRequest("POST", "/api/pdm/analyze/pump", processedData);
-    }) as any,
+    }),
     invalidateKeys: [
       ["/api/pdm/alerts", currentOrgId],
       ["/api/pdm/baseline", currentOrgId, selectedVessel, selectedAsset],
     ],
     successMessage: "Pump process analysis completed successfully",
-    errorMessage: ((error: Error) => error.message || "Failed to analyze pump data") as any,
+    errorMessage: (error: unknown) =>
+      (error as { message?: string })?.message || "Failed to analyze pump data",
     onSuccess: (data: { analysis: AnalysisResult }) => setPumpAnalysisResult(data.analysis),
   });
 

@@ -171,7 +171,7 @@ export function setFlag(key: keyof FeatureFlags, value: boolean): void {
 
 // Expose to window for console access in development
 if (import.meta.env.DEV) {
-  (window as unknown as { featureFlags: object }).featureFlags = {
+  (window as object as { featureFlags: object }).featureFlags = {
     current: featureFlags,
     debug: debugFeatureFlags,
     enableAll: enableAllFlags,

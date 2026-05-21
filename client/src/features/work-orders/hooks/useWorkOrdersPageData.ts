@@ -262,13 +262,13 @@ export function useWorkOrdersPageData() {
         `Are you sure you want to clear ALL work orders? This action cannot be undone and will remove ${workOrders?.length || 0} work orders.`
       )
     ) {
-      clearAllMutation.mutate(undefined as any);
+      clearAllMutation.mutate(undefined);
     }
   };
   const handleFormSubmit = (formData: WorkOrderFormData) => {
     if (formDialogMode === "create") {
       const { templateId, ...restData } = formData;
-      const payload: InsertWorkOrder = { ...restData, orgId: getCurrentOrgId() ?? "" } as any;
+      const payload: InsertWorkOrder = { ...restData, orgId: getCurrentOrgId() ?? "" } as never;
       createMutation.mutate({ payload, templateId });
     } else if (selectedOrder) {
       const { templateId: _templateId, ...restData } = formData;
@@ -463,9 +463,10 @@ export function getWorkOrderDuration(order: WorkOrder & { actualDuration?: numbe
       const minutes = m % 60;
       return `${h}h ${minutes}m`;
     }
-    if (order.actualStartDate && (order as any).actualEndDate) {
+    const actualEndDate = (order as { actualEndDate?: Date | string | null }).actualEndDate;
+    if (order.actualStartDate && actualEndDate) {
       const start = new Date(order.actualStartDate).getTime();
-      const end = new Date((order as any).actualEndDate).getTime();
+      const end = new Date(actualEndDate).getTime();
       const m = Math.max(0, Math.round((end - start) / (1000 * 60)));
       const h = Math.floor(m / 60);
       const minutes = m % 60;

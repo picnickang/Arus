@@ -51,7 +51,7 @@ export async function sendPR(prId: string, orgId: string, userId?: string): Prom
         remarks: purchaseRequestItems.remarks,
         createdAt: purchaseRequestItems.createdAt,
         partName: parts.name,
-        partNumber: (parts as any).partNumber,
+        partNumber: (parts as object as { partNumber: typeof parts.name }).partNumber,
         supplierName: suppliers.name,
       })
       .from(purchaseRequestItems)
@@ -155,7 +155,7 @@ export async function sendPR(prId: string, orgId: string, userId?: string): Prom
         const emailContent = await generatePOEmailHtmlWithTemplate(
           orgId,
           po,
-          group.items as any,
+          group.items as object as Parameters<typeof generatePOEmailHtmlWithTemplate>[2],
           supplier,
           pr
         );

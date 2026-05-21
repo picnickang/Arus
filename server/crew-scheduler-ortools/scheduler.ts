@@ -79,7 +79,7 @@ function scheduleWithGreedy(
     certifications: certifications[crewMember.id] ?? [],
   }));
 
-  return greedyPlan(days, availableShifts, enhancedCrew as any, leaves, []);
+  return greedyPlan(days, availableShifts, enhancedCrew as object as Parameters<typeof greedyPlan>[2], leaves, []);
 }
 
 export function planWithEngine(request: ConstraintScheduleRequest): ScheduleResult {

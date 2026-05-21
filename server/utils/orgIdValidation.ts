@@ -108,7 +108,7 @@ export async function validateMqttClientOrg(
 ): Promise<string> {
   try {
     const devices = await dbDevicesStorage.getDevices(claimedOrgId);
-    const device = (devices as any[]).find((d: any) => d.mqttClientId === mqttClientId);
+    const device = (devices as object as Array<{ mqttClientId?: string; deviceId?: string }>).find((d) => d.mqttClientId === mqttClientId);
 
     if (!device) {
       logger.error(`[SECURITY] Unregistered MQTT client attempted connection: ${mqttClientId}`);

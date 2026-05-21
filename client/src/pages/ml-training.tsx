@@ -524,8 +524,10 @@ export default function MLTrainingPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {t.mlModels.map((model: any) => {
-                        const tier = (model.hyperparameters as any)?.dataQualityTier;
+                      {t.mlModels.map((model) => {
+                        const tier = model.hyperparameters?.dataQualityTier;
+                        const accuracy = model.performance?.accuracy;
+                        const lookbackDays = model.hyperparameters?.lookbackDays;
                         return (
                           <TableRow key={model.id} data-testid={`row-model-${model.id}`}>
                             <TableCell className="font-medium">{model.name}</TableCell>
@@ -538,11 +540,11 @@ export default function MLTrainingPage() {
                                     : model.modelType}
                               </Badge>
                             </TableCell>
-                            <TableCell>{(model.targetEquipmentType as any) || "All"}</TableCell>
+                            <TableCell>{model.targetEquipmentType || "All"}</TableCell>
                             <TableCell>
-                              {(model.performance as any)?.accuracy ? (
+                              {accuracy ? (
                                 <span className="text-sm" data-testid={`text-accuracy-${model.id}`}>
-                                  {(((model.performance as any).accuracy as number) * 100).toFixed(1)}% accuracy
+                                  {(accuracy * 100).toFixed(1)}% accuracy
                                 </span>
                               ) : (
                                 <span className="text-muted-foreground text-sm">N/A</span>
@@ -557,9 +559,9 @@ export default function MLTrainingPage() {
                                   >
                                     {t.getTierBadge(tier).label}
                                   </Badge>
-                                  {(model.hyperparameters as any)?.lookbackDays && (
+                                  {lookbackDays && (
                                     <div className="text-xs text-muted-foreground">
-                                      {(model.hyperparameters as any).lookbackDays} days
+                                      {lookbackDays} days
                                     </div>
                                   )}
                                 </div>
@@ -584,7 +586,9 @@ export default function MLTrainingPage() {
                               )}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
-                              {new Date(model.createdAt as any).toLocaleDateString()}
+                              {model.createdAt
+                                ? new Date(model.createdAt).toLocaleDateString()
+                                : ""}
                             </TableCell>
                           </TableRow>
                         );

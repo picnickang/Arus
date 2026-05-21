@@ -27,7 +27,7 @@ function getCached<T>(key: string): T | null {
 }
 
 function setCache(key: string, data: unknown): void {
-  equipmentCache.set(key, data as object);
+  equipmentCache.set(key, data as never);
 }
 
 function invalidateCache(pattern: string): void {

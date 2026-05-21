@@ -63,8 +63,8 @@ export function calculateFleetBenchmarks(
       maintenanceFrequency: Math.round((365 / fleetAvgDueDays) * 10) / 10,
     },
     performancePercentiles: { top10Percent, median, bottom10Percent },
-    bestPerformers: bestPerformers as any,
-    worstPerformers: worstPerformers as any,
+    bestPerformers: bestPerformers as object as FleetBenchmarks["bestPerformers"],
+    worstPerformers: worstPerformers as object as FleetBenchmarks["worstPerformers"],
   };
 
   const equipmentComparisons = buildEquipmentComparisons(

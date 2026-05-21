@@ -128,8 +128,8 @@ export function parseEnhancedScheduleResponse(
 
   return {
     engine: data.engine || "unknown",
-    scheduled: (Array.isArray(data.scheduled) ? data.scheduled : []) as any,
-    unfilled: (Array.isArray(data.unfilled) ? data.unfilled : []) as any,
+    scheduled: (Array.isArray(data.scheduled) ? data.scheduled : []) as never,
+    unfilled: (Array.isArray(data.unfilled) ? data.unfilled : []) as never,
     compliance: data.compliance,
     summary: {
       totalShifts: Number(data.summary.totalShifts) || 0,

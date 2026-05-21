@@ -146,7 +146,7 @@ export async function planAndMaybeExecute({
 
   try {
     // Execute scheduling algorithm
-    const { scheduled, unfilled } = planShifts(daysArr, shifts, crew as any, leaves, existing as any);
+    const { scheduled, unfilled } = planShifts(daysArr, shifts, crew as object as Parameters<typeof planShifts>[2], leaves, existing as object as Parameters<typeof planShifts>[4]);
     const durationMs = Date.now() - t0;
 
     // Persist results
@@ -299,7 +299,10 @@ async function loadDrydocks(orgId: string, vessels?: string[]) {
 }
 
 async function loadCertifications(orgId: string) {
-  const certsList = await (dbCrewExtensionsStorage.getCrewCertifications as any)(undefined, orgId);
+  const certsList = await (dbCrewExtensionsStorage.getCrewCertifications as (
+    crewId: string | undefined,
+    orgId: string
+  ) => Promise<Array<{ crewId: string; [k: string]: unknown }>>)("", orgId);
   const certsMap: { [crewId: string]: any[] } = {};
   for (const cert of certsList) {
     (certsMap[cert.crewId] ||= []).push(cert);
@@ -636,7 +639,7 @@ function planShiftsWithExplanations(
   explanations: Record<string, string>;
 } {
   // Use the existing planShifts and add explanations
-  const { scheduled, unfilled } = planShifts(daysArr, shifts, crew as any, leaves, existing as any);
+  const { scheduled, unfilled } = planShifts(daysArr, shifts, crew as object as Parameters<typeof planShifts>[2], leaves, existing as object as Parameters<typeof planShifts>[4]);
 
   // Build explanations for each scheduled crew member
   const explanations: Record<string, string> = {};

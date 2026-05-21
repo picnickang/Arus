@@ -66,7 +66,7 @@ export async function getPurchaseRequestWithItems(
 
   if (partIds.length > 0) {
     const partRows = await db
-      .select({ id: parts.id, name: parts.name, partNumber: (parts as any).partNumber })
+      .select({ id: parts.id, name: parts.name, partNumber: (parts as object as Record<string, never>)["partNumber"] })
       .from(parts)
       .where(inArray(parts.id, partIds));
     for (const p of partRows) {
@@ -300,7 +300,7 @@ export async function generateRequestNumber(orgId: string): Promise<string> {
   `);
 
   const result = await db.execute(sql`SELECT nextval(${seqName}) AS next_num`);
-  const nextNum = Number((result.rows[0] as any).next_num);
+  const nextNum = Number((result.rows[0] as { next_num: string | number }).next_num);
   return `PR-${year}-${String(nextNum).padStart(4, "0")}`;
 }
 
@@ -319,6 +319,6 @@ export async function generatePONumber(orgId: string, tx?: any): Promise<string>
   `);
 
   const result = await executor.execute(sql`SELECT nextval(${seqName}) AS next_num`);
-  const nextNum = Number((result.rows[0] as any).next_num);
+  const nextNum = Number((result.rows[0] as { next_num: string | number }).next_num);
   return `PO-${year}-${String(nextNum).padStart(4, "0")}`;
 }

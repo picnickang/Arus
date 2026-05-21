@@ -131,7 +131,7 @@ prRouter.patch("/purchase-requests/:id", async (req: Request, res: Response) => 
       updates.vesselId = vesselId;
     }
 
-    const pr = await service.updatePRDraft(req.params.id, orgId, updates as any, userId);
+    const pr = await service.updatePRDraft(req.params.id, orgId, updates as object as Parameters<typeof service.updatePRDraft>[2], userId);
     res.json(pr);
   } catch (error) {
     logger.error("[Purchasing] Error updating PR:", undefined, error);
@@ -165,7 +165,7 @@ prRouter.post("/purchase-requests/:id/auto-save", async (req: Request, res: Resp
       updates.deliveryLocation = deliveryLocation;
     }
 
-    const pr = await updatePRDraft(req.params.id, orgId, updates as any, userId, {
+    const pr = await updatePRDraft(req.params.id, orgId, updates as object as Parameters<typeof updatePRDraft>[2], userId, {
       isAutoSave: true,
     });
     res.json({ success: true, lastSavedAt: pr?.lastDraftSaveAt });

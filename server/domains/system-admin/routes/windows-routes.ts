@@ -73,7 +73,7 @@ export function registerWindowsRoutes(app: Express, deps: SystemAdminDependencie
     withErrorHandling("update maintenance window", async (req: Request, res: Response) => {
       const { id } = req.params;
       const validatedData = (
-        insertMaintenanceWindowSchema as unknown as import("zod").AnyZodObject
+        insertMaintenanceWindowSchema as object as import("zod").AnyZodObject
       ).partial().parse(req.body);
       const window = await dbSystemAdminStorage.updateMaintenanceWindow(id, validatedData);
       res.json(window);

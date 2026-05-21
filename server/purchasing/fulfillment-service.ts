@@ -245,7 +245,7 @@ export async function updatePRStatus(
     updateData.closedAt = new Date();
   }
 
-  const updatedPR = await repository.updatePurchaseRequest(prId, orgId, updateData as any);
+  const updatedPR = await repository.updatePurchaseRequest(prId, orgId, updateData as object as Parameters<typeof repository.updatePurchaseRequest>[2]);
 
   await repository.createPREvent(orgId, prId, newStatus, userId, {
     previousStatus: currentStatus,

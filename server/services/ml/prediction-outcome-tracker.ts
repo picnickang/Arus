@@ -18,6 +18,7 @@
  */
 
 import { logger } from "../../utils/logger";
+import { cast } from "@shared/lib/type-cast";
 
 const LOG_CTX = "PredictionOutcomeTracker";
 
@@ -238,7 +239,7 @@ export class PredictionOutcomeTracker {
         .from(predictionFeedback)
         .where(
           and(
-            eq(predictionFeedback.predictionId, predictionId.toString() as any),
+            eq(predictionFeedback.predictionId, cast<number>(predictionId.toString())),
             eq(predictionFeedback.orgId, orgId),
             eq(predictionFeedback.feedbackType, "outcome_tracked")
           )

@@ -87,7 +87,7 @@ export default function EquipmentScanPage() {
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error("Camera scanning is not available in this browser.");
       }
-      const BarcodeDetectorCtor = (window as unknown as { BarcodeDetector?: new (options?: unknown) => { detect: (source: CanvasImageSource) => Promise<Array<{ rawValue?: string }>> } }).BarcodeDetector;
+      const BarcodeDetectorCtor = (window as object as { BarcodeDetector?: new (options?: unknown) => { detect: (source: CanvasImageSource) => Promise<Array<{ rawValue?: string }>> } }).BarcodeDetector;
       if (!BarcodeDetectorCtor) {
         throw new Error("This device does not expose BarcodeDetector. Use a scanner wedge or type the asset tag.");
       }

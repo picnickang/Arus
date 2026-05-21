@@ -198,7 +198,7 @@ export function calculateVesselFatigueSummary(crewFatigueResults: FatigueRiskRes
     totalScore += result.score;
     const counterKey = riskCounters[result.riskLevel];
     if (counterKey) {
-      (summary as any)[counterKey]++;
+      (summary as object as Record<string, number>)[counterKey]++;
     }
   }
 

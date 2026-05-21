@@ -173,7 +173,7 @@ export class FeatureFlagManager {
         const result = (await db.execute(sql`
           SELECT flag_key, tenant_id, user_id, enabled
           FROM feature_flag_overrides
-        `)) as unknown as { rows?: FlagOverrideRow[] } | FlagOverrideRow[];
+        `)) as object as { rows?: FlagOverrideRow[] } | FlagOverrideRow[];
         const rows: FlagOverrideRow[] = Array.isArray(result)
           ? (result as FlagOverrideRow[])
           : (result.rows ?? []);

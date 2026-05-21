@@ -42,7 +42,7 @@ const MODULE_LABELS: Record<ShipmateModuleType, string> = {
 
 const importSchema = z.object({
   content: z.string().min(10, "File content is too short"),
-  module: z.enum(MODULES as unknown as [string, ...string[]]),
+  module: z.enum(MODULES as object as [string, ...string[]]),
   vesselName: z.string().optional(),
   vesselId: z.string().optional(),
   filename: z.string().optional(),

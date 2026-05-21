@@ -80,7 +80,7 @@ export function getCloudTable<T>(table: T | undefined, featureName: string): T {
  * }
  */
 export function isCloudFeatureAvailable(featureName: string): boolean {
-  return isCloudMode && canUseCloudFeature(featureName as any);
+  return isCloudMode && canUseCloudFeature(featureName as Parameters<typeof canUseCloudFeature>[0]);
 }
 
 /**

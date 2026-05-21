@@ -348,10 +348,10 @@ export default function VesselTrackLogPage() {
                                 <TableCell>
                                   <Badge
                                     className={
-                                      NavStatusColors[(track as any).navStatus || ""] || "bg-gray-400"
+                                      NavStatusColors[(track as { navStatus?: string }).navStatus || ""] || "bg-gray-400"
                                     }
                                   >
-                                    {NavStatusLabels[(track as any).navStatus || ""] || (track as any).navStatus}
+                                    {NavStatusLabels[(track as { navStatus?: string }).navStatus || ""] || (track as { navStatus?: string }).navStatus}
                                   </Badge>
                                 </TableCell>
                                 <TableCell>

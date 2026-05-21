@@ -89,8 +89,9 @@ export async function generateTechnicianInsight(
       nextReviewDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
     }
 
+    const predRecord = prediction as { daysUntilFailure?: number; remainingDays?: number } | null | undefined;
     const daysUntilFailure =
-      (prediction as any)?.daysUntilFailure ?? (prediction as any)?.remainingDays ?? null;
+      predRecord?.daysUntilFailure ?? predRecord?.remainingDays ?? null;
 
     const technicianView: TechnicianInsightView = {
       equipmentId: equipment.id,

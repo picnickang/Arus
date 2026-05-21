@@ -8,7 +8,7 @@ function requirePool(): Pool {
   if (!pool) {
     throw new Error("TimescaleDB bootstrap requires a PostgreSQL pool (local mode or missing DATABASE_URL)");
   }
-  return pool as unknown as Pool;
+  return pool as object as Pool;
 }
 
 export interface HypertableConfig {

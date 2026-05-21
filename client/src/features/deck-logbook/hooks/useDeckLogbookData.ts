@@ -259,7 +259,8 @@ export function useDeckLogbookData() {
                 : VISIBILITY_CODES.find((v) => v.includes(String(fields.visibility))) ||
                   existingEntry.visibility,
           };
-          newEntries.set(hour, updatedEntry as unknown as Partial<DeckLogHourlyExt>);
+          const updatedEntryUnknown: unknown = updatedEntry;
+          newEntries.set(hour, updatedEntryUnknown as Partial<DeckLogHourlyExt>);
           actualFillCount++;
         }
 
@@ -327,8 +328,8 @@ export function useDeckLogbookData() {
     evts
       ? evts.map((e) => ({
           ...e,
-          positionLat: e.positionLat ?? (e as unknown as { latitude?: number }).latitude,
-          positionLon: e.positionLon ?? (e as unknown as { longitude?: number }).longitude,
+          positionLat: e.positionLat ?? (e as object as { latitude?: number }).latitude,
+          positionLon: e.positionLon ?? (e as object as { longitude?: number }).longitude,
         }))
       : [];
 
@@ -351,7 +352,7 @@ export function useDeckLogbookData() {
         events: normalizeEventsForExport(events),
         daily: deckLogComplete.daily,
         getEventTypeConfig,
-      } as unknown as Parameters<typeof exportDeckToPDF>[0]);
+      } as object as Parameters<typeof exportDeckToPDF>[0]);
       toast({
         title: "PDF exported",
         description: "Complete deck log has been downloaded as PDF.",
@@ -384,7 +385,7 @@ export function useDeckLogbookData() {
         events: normalizeEventsForExport(events),
         daily: deckLogComplete.daily,
         getEventTypeConfig,
-      } as unknown as Parameters<typeof exportDeckToExcel>[0]);
+      } as object as Parameters<typeof exportDeckToExcel>[0]);
       toast({
         title: "Excel exported",
         description: "Complete deck log has been downloaded as Excel workbook.",

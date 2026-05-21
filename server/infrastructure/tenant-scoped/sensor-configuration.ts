@@ -59,16 +59,17 @@ export class SensorConfigurationRepository extends TenantScopedRepository {
    * Create sensor configuration
    * Automatically sets orgId
    */
-  async create(data: Omit<any, "id" | "orgId">) {
+  async create(data: Record<string, unknown>) {
     const { sensorConfigurations } = await import("@shared/schema");
+    type SensorConfigInsert = typeof sensorConfigurations.$inferInsert;
 
     const [created] = (await db
-      .insert(sensorConfigurations as any)
+      .insert(sensorConfigurations)
       .values({
-        ...data,
+        ...(data as SensorConfigInsert),
         orgId: this.orgId,
-      } as any)
-      .returning()) as any[];
+      })
+      .returning()) as Array<Record<string, unknown>>;
 
     return created;
   }

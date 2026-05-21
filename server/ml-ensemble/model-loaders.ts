@@ -73,8 +73,7 @@ export async function loadRfPrediction(
 
     return {
       probability: failureProb,
-      confidence:
-        typeof (rfPred as any).confidence === "number" ? (rfPred as any).confidence : undefined,
+      confidence: typeof rfPred.confidence === "number" ? rfPred.confidence : undefined,
     };
   } catch (error) {
     logger.warn("MlEnsemble", "Random Forest prediction failed", error);
@@ -102,15 +101,14 @@ export async function loadXgbPrediction(
       equipmentId,
       orgId
     );
-    const xgbPred = await predictWithXGBoost(xgbModel, classificationFeatures as any);
+    const xgbPred = await predictWithXGBoost(xgbModel, classificationFeatures as object as Parameters<typeof predictWithXGBoost>[1]);
     const failureProb = xgbPred.failureRisk;
 
     logger.debug("MlEnsemble", `XGBoost prediction: ${(failureProb * 100).toFixed(1)}%`);
 
     return {
       probability: failureProb,
-      confidence:
-        typeof (xgbPred as any).confidence === "number" ? (xgbPred as any).confidence : undefined,
+      confidence: typeof xgbPred.confidence === "number" ? xgbPred.confidence : undefined,
     };
   } catch (error) {
     logger.warn("MlEnsemble", "XGBoost prediction failed", error);

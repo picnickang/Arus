@@ -38,7 +38,8 @@ export async function ensemblePredict(
     enableShadowMode: config?.enableShadowMode ?? false,
   };
 
-  const flags: any = await (getFeatureFlags as any)(orgId);
+  const flagsRaw: unknown = await (getFeatureFlags as object as (org: string) => unknown)(orgId);
+  const flags = (flagsRaw ?? {}) as { enableEnsemble?: boolean };
   const useEnsemble = flags?.enableEnsemble !== false;
 
   if (!useEnsemble && !ensembleConfig.enableShadowMode) {
@@ -102,7 +103,7 @@ export async function ensemblePredict(
 
   let calibrationMethod: CalibrationMethod | null = null;
   try {
-    const calibrationCurves = await (dbMlAnalyticsStorage as any).getCalibrationCurves(
+    const calibrationCurves = await (dbMlAnalyticsStorage as object as { getCalibrationCurves: (orgId: string, modelId: string | undefined, equipmentId: string, status: string) => Promise<Array<{ method: CalibrationMethod; parameters: unknown }>> }).getCalibrationCurves(
       orgId,
       undefined,
       equipmentId,
@@ -111,17 +112,14 @@ export async function ensemblePredict(
 
     if (calibrationCurves.length > 0) {
       const latestCurve = calibrationCurves[0];
-      calibrationMethod = latestCurve.method as any;
-      const calibratedProbability: any = (applyCalibration as any)(
-        finalPrediction,
-        latestCurve.parameters as any,
-        latestCurve.method
-      );
+      calibrationMethod = latestCurve.method;
+      const calibratedArr = applyCalibration([finalPrediction], latestCurve.method);
+      const calibratedProbability = calibratedArr[0] ?? finalPrediction;
       logger.debug(
         "MlEnsemble",
         `Calibration applied: ${(finalPrediction * 100).toFixed(1)}% → ${(calibratedProbability * 100).toFixed(1)}% (${latestCurve.method})`
       );
-      finalPrediction = Array.isArray(calibratedProbability) ? calibratedProbability[0] : calibratedProbability;
+      finalPrediction = calibratedProbability;
     } else {
       logger.debug("MlEnsemble", "No calibration curve available - using raw ensemble prediction");
     }

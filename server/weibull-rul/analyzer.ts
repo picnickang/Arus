@@ -81,7 +81,7 @@ export class WeibullRULAnalyzer {
 
   private async storeRULAnalysis(prediction: RULPrediction, orgId: string): Promise<void> {
     try {
-      await (db.insert(weibullEstimates).values as any)({
+      await (db.insert(weibullEstimates).values as object as (v: Record<string, unknown>) => Promise<unknown>)({
         id: randomUUID(),
         orgId,
         equipmentId: prediction.equipmentId,

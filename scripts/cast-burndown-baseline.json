@@ -1,36 +1,18 @@
 {
   "_comment": "Type-cast burndown baseline. Total must monotonically decrease. Regenerate with: node scripts/check-cast-burndown.mjs --write-baseline. Adapter boundaries (telemetry/sync/vessel-simulator/external-integrations) are exempt.",
-  "generatedAt": "2026-05-21T15:16:35.495Z",
-  "total": 813,
+  "generatedAt": "2026-05-21T17:44:39.570Z",
+  "total": 5,
   "summary": {
     "byTopFiles": {
-      "client/src/components/ai-health/ReportsTab.tsx": 15,
-      "client/src/pages/pdm-equipment-detail.tsx": 13,
-      "client/src/pages/MaintenanceTemplatesPage.tsx": 10,
-      "server/repos/sequenceRepo.ts": 9,
-      "client/src/features/vessels/hooks/useEquipmentViewData.ts": 8,
-      "client/src/pages/system-administration.tsx": 8,
-      "server/compliance/assessment.ts": 8,
-      "server/crew-scheduler-ortools/helpers.ts": 8,
-      "server/ml-prediction/predictors.ts": 8,
-      "server/report-context/knowledge-citations.ts": 8,
-      "server/routes/rag-routes.ts": 8,
-      "client/src/features/analytics/hooks/useMissionOverviewData.ts": 7,
-      "client/src/features/vessels/hooks/useDevicesPage.ts": 7,
-      "client/src/pages/AIStudioPage.tsx": 7,
-      "client/src/pages/ml-training.tsx": 7
+      "server/domains/autofill-logs/routes.ts": 1,
+      "server/domains/crew-extensions/interfaces/scheduler-routes.ts": 1,
+      "server/domains/vibration/routes.ts": 1,
+      "server/domains/work-orders/interfaces/parts.ts": 1,
+      "server/ml-prediction/storage.ts": 1
     },
     "byTopDirs": {
-      "client/src": 281,
-      "server/services": 98,
-      "server/domains": 77,
-      "server/routes": 52,
-      "server/compliance": 26,
-      "server/report-context": 24,
-      "server/ml-ensemble": 17,
-      "server/infrastructure": 15,
-      "server/beast": 13,
-      "server/import-adapters": 12
+      "server/domains": 4,
+      "server/ml-prediction": 1
     }
   }
 }

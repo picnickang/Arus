@@ -161,7 +161,7 @@ export async function autoFillGeneratorsFromTelemetry(
   );
 
   if (generators.length === 0) {
-    log("info", "No generators found for vessel", ctx as any);
+    log("info", "No generators found for vessel", ctx as object as Parameters<typeof log>[2]);
     return { hoursProcessed: 0, generatorsProcessed: 0, anomalies: 0 };
   }
 

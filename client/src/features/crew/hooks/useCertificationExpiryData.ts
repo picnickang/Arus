@@ -118,11 +118,11 @@ export function useCertificationExpiryData({
     (cert: ExpiringCertification) => {
       acknowledgeMutation.mutate({
         certId: cert.id,
-        notes: `Renewed — ${(cert as any).certificationName || "certification"}`,
+        notes: `Renewed — ${(cert as { certificationName?: string }).certificationName || "certification"}`,
       });
       toast({
         title: "Marked as Renewed",
-        description: `${(cert as any).certificationName || "Certification"} has been marked as renewed. Update the expiry date in your records.`,
+        description: `${(cert as { certificationName?: string }).certificationName || "Certification"} has been marked as renewed. Update the expiry date in your records.`,
       });
     },
     [acknowledgeMutation, toast]

@@ -56,7 +56,7 @@ export function analyzeCosts(workOrders: WorkOrder[]): VesselLearnings["costAnal
 
   const costByType = new Map<string, number>();
   ordersWithCost.forEach((wo) => {
-    const type = (wo as any).workOrderType || "other";
+    const type = (wo as { workOrderType?: string }).workOrderType || "other";
     costByType.set(type, (costByType.get(type) || 0) + calcCost(wo));
   });
 
@@ -96,7 +96,7 @@ export function identifyPredictiveIndicators(
   telemetryByEquipment.forEach((readings, equipmentId) => {
     const failures = workOrders.filter(
       (wo) =>
-        wo.equipmentId === equipmentId && ((wo.priority as any) === "critical" || (wo as any).workOrderType === "corrective")
+        wo.equipmentId === equipmentId && (String(wo.priority) === "critical" || (wo as { workOrderType?: string }).workOrderType === "corrective")
     );
 
     if (failures.length > 0 && readings.length > 20) {

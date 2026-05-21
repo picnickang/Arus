@@ -75,11 +75,11 @@ export function EditServiceRequestDialog({
         id: serviceRequest.id,
         data: {
           title: title.trim(),
-          description: (description || null) as any,
+          description: description || null,
           urgency,
-          estimatedCost: estimatedCost ? parseFloat(estimatedCost) : (null as any),
-          serviceDetails: (serviceDetails || null) as any,
-          specialRequirements: (specialRequirements || null) as any,
+          estimatedCost: estimatedCost ? parseFloat(estimatedCost) : null,
+          serviceDetails: serviceDetails || null,
+          specialRequirements: specialRequirements || null,
         },
       },
       {

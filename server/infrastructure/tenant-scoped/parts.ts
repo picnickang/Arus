@@ -137,16 +137,17 @@ export class PartsRepository extends TenantScopedRepository {
    * Create part
    * Automatically sets orgId
    */
-  async create(data: Omit<any, "id" | "orgId">) {
+  async create(data: Record<string, unknown>) {
     const { parts } = await import("@shared/schema");
+    type PartInsert = typeof parts.$inferInsert;
 
-    const [created] = (await db
-      .insert(parts as any)
+    const [created] = await db
+      .insert(parts)
       .values({
-        ...data,
+        ...(data as PartInsert),
         orgId: this.orgId,
-      } as any)
-      .returning()) as any[];
+      })
+      .returning();
 
     return created;
   }

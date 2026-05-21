@@ -148,7 +148,7 @@ export class AlertsRepository {
    * Delete all alerts and notifications
    */
   async deleteAllNotifications(): Promise<void> {
-    const store = dbAlertStorage as unknown as { clearAllAlerts?: () => Promise<void> };
+    const store = dbAlertStorage as object as { clearAllAlerts?: () => Promise<void> };
     if (typeof store.clearAllAlerts === "function") {
       await store.clearAllAlerts();
     }

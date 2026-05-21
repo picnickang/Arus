@@ -96,7 +96,7 @@ export function useEngineLogbookData() {
     if (engineLogComplete) {
       const newHourlyMap = new Map<number, Partial<EngineLogHourly>>();
       engineLogComplete.hourly.forEach((entry) =>
-        newHourlyMap.set(entry.hour, normalizeHourlyEntry(entry as any))
+        newHourlyMap.set(entry.hour, normalizeHourlyEntry(entry as object as Parameters<typeof normalizeHourlyEntry>[0]))
       );
       setHourlyEntries(newHourlyMap);
       setDailySummary({ ...engineLogComplete.daily });

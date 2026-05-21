@@ -15,8 +15,11 @@ import type { OptimizationConstraints, OptimizationResult } from "./types.js";
 // canonical `Solve` and falling back to a lowercase alias if a future
 // version of the package adds one — this keeps the call sites readable
 // (`solver.solve(...)`) while routing to the correct underlying function.
-const solver: { solve: (...args: any[]) => any } = {
-  solve: (solverDefault as any).Solve ?? (solverDefault as any).solve,
+type LPSolution = { feasible: boolean; result: number; bounded?: boolean } & Record<string, unknown>;
+type SolverFn = (problem: unknown) => LPSolution;
+const _solverModule = solverDefault as object as { Solve?: SolverFn; solve?: SolverFn };
+const solver: { solve: SolverFn } = {
+  solve: (_solverModule.Solve ?? _solverModule.solve) as SolverFn,
 };
 import { getPendingMaintenanceJobs, getPartsAvailability } from "./job-loader.js";
 import { formulateLinearProgram, relaxConstraints, processSolution } from "./lp-formulation.js";

@@ -23,8 +23,8 @@ const logger = createLogger("Repos:SequenceRepo");
  */
 export async function nextSeq(vesselId: string, entity: string): Promise<number> {
   try {
-    const result = await safeSql(
-      db as any,
+    const result = await safeSql<{ seq: number | string }>(
+      db,
       sql`
       INSERT INTO entity_offsets (vessel_id, entity, seq)
       VALUES (${vesselId}, ${entity}, 1)
@@ -34,8 +34,7 @@ export async function nextSeq(vesselId: string, entity: string): Promise<number>
     `
     );
 
-    // Extract sequence from result
-    const row = Array.isArray((result as any)?.rows) ? (result as any).rows[0] : (result as any)[0];
+    const row = result.rows?.[0];
 
     if (!row || row.seq === undefined) {
       throw new Error(`Failed to generate sequence for ${vesselId}:${entity}`);
@@ -57,15 +56,15 @@ export async function nextSeq(vesselId: string, entity: string): Promise<number>
  */
 export async function getCurrentSeq(vesselId: string, entity: string): Promise<number> {
   try {
-    const result = await safeSql(
-      db as any,
+    const result = await safeSql<{ seq: number | string }>(
+      db,
       sql`
       SELECT seq FROM entity_offsets
       WHERE vessel_id = ${vesselId} AND entity = ${entity};
     `
     );
 
-    const row = Array.isArray((result as any)?.rows) ? (result as any).rows[0] : (result as any)[0];
+    const row = result.rows?.[0];
 
     return row ? Number(row.seq) : 0;
   } catch (error) {
@@ -84,7 +83,7 @@ export async function getCurrentSeq(vesselId: string, entity: string): Promise<n
 export async function resetSeq(vesselId: string, entity: string, value: number): Promise<void> {
   try {
     await safeSql(
-      db as any,
+      db,
       sql`
       INSERT INTO entity_offsets (vessel_id, entity, seq)
       VALUES (${vesselId}, ${entity}, ${value})

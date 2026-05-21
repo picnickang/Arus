@@ -124,7 +124,7 @@ export function DriftMonitoringTab() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(driftMetrics as any[]).map((d: any) => (
+                    {(driftMetrics as Array<Record<string, unknown> & { id: string; featureName: string; trainingMean?: number; trainingStd?: number; liveMean?: number; liveStd?: number; driftScore?: number; status?: string }>).map((d) => (
                       <tr
                         key={d.id}
                         className="border-b"

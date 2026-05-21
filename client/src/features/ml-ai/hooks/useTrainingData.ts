@@ -83,7 +83,8 @@ export function useTrainingData() {
     invalidateKeys: [["/api/analytics/ml-models"]],
     successMessage: (data: TrainingResult) =>
       `Model trained successfully with ${(data.metrics.accuracy * 100).toFixed(1)}% accuracy`,
-    errorMessage: ((error: any) => error?.message || "Training failed") as any,
+    errorMessage: (error: unknown) =>
+      (error as { message?: string })?.message || "Training failed",
     onSuccess: () => {
       refetchModels();
     },
@@ -100,7 +101,8 @@ export function useTrainingData() {
     invalidateKeys: [["/api/analytics/ml-models"]],
     successMessage: (data: TrainingResult) =>
       `Model trained successfully with ${(data.metrics.accuracy * 100).toFixed(1)}% accuracy`,
-    errorMessage: ((error: any) => error?.message || "Training failed") as any,
+    errorMessage: (error: unknown) =>
+      (error as { message?: string })?.message || "Training failed",
     onSuccess: () => {
       refetchModels();
     },
@@ -121,7 +123,8 @@ export function useTrainingData() {
     },
     successMessage: (data: AcousticAnalysisResult) =>
       `Health score: ${data.healthScore?.toFixed(0)}% - ${data.severity} severity`,
-    errorMessage: ((error: any) => error?.message || "Analysis failed") as any,
+    errorMessage: (error: unknown) =>
+      (error as { message?: string })?.message || "Analysis failed",
     onSuccess: (data) => {
       setAcousticResults(data);
     },
@@ -137,7 +140,8 @@ export function useTrainingData() {
     invalidateKeys: [["/api/analytics/ml-models"], ["/api/equipment"]],
     successMessage: (data: ResetResult) =>
       `Reset complete: ${data.deleted.telemetryRecords} telemetry records, ${data.deleted.predictions} predictions, ${data.deleted.anomalies} anomalies deleted`,
-    errorMessage: ((error: any) => error?.message || "Reset failed") as any,
+    errorMessage: (error: unknown) =>
+      (error as { message?: string })?.message || "Reset failed",
     onSuccess: () => {
       refetchModels();
     },

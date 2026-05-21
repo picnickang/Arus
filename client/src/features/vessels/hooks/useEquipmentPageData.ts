@@ -86,7 +86,7 @@ export function useEquipmentPageData() {
           : item.condition === "fair"
             ? ("warning" as const)
             : ("healthy" as const)),
-    }) as any));
+    }) as never));
   }, [healthResponse]);
   const healthMap = useMemo(() => {
     const map = new Map<string, EquipmentHealth>();
@@ -98,7 +98,7 @@ export function useEquipmentPageData() {
     return map;
   }, [healthData]);
   const equipmentWithHealth: EquipmentWithHealth[] = useMemo(
-    () => allEquipment.map((eq) => ({ ...eq, health: healthMap.get(eq.id) })) as any,
+    () => allEquipment.map((eq) => ({ ...eq, health: healthMap.get(eq.id) })) as object as EquipmentWithHealth[],
     [allEquipment, healthMap]
   );
   const uniqueTypes = useMemo(() => {

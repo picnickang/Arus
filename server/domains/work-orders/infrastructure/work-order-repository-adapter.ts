@@ -17,7 +17,7 @@ export const workOrderRepoAdapter: IWorkOrderRepository = {
   delete: (id) => legacyRepository.delete(id),
   findByEquipment: (equipmentId) =>
     (
-      legacyRepository as unknown as {
+      legacyRepository as object as {
         findByEquipment: (id: string) => ReturnType<IWorkOrderRepository["findAll"]>;
       }
     ).findByEquipment(equipmentId),
@@ -25,7 +25,7 @@ export const workOrderRepoAdapter: IWorkOrderRepository = {
     const all = await legacyRepository.findAll(orgId);
     const now = new Date();
     return all.filter((wo) => {
-      const bag = wo as unknown as { dueDate?: Date | string | null; status?: string };
+      const bag = wo as object as { dueDate?: Date | string | null; status?: string };
       return bag.dueDate && new Date(bag.dueDate) < now && bag.status !== "completed";
     });
   },

@@ -82,7 +82,7 @@ export class AnswerGenerator {
     const searchResults = await searchKnowledgeBase(query, {
       limit: maxSources,
       threshold,
-    } as any);
+    } as never);
 
     if (searchResults.length === 0) {
       return {

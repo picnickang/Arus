@@ -51,11 +51,12 @@ export async function initializeSqliteDatabase(): Promise<void> {
     throw new Error("SQLite client not initialized");
   }
 
+  const runner = db as object as { run: (s: unknown) => Promise<unknown> };
   for (const stmt of getAllTablesSql()) {
-    await (db as any).run(stmt);
+    await runner.run(stmt);
   }
   for (const stmt of getAllIndexesSql()) {
-    await (db as any).run(stmt);
+    await runner.run(stmt);
   }
 
   await runAdminSettingsCompatibilityMigration(libsqlClient);

@@ -309,7 +309,7 @@ export class ConfigManager {
   }
 
   /**
-   * Get all configuration as object
+   * Get all configuration as never
    */
   getAll(): Record<string, string> {
     const config: Record<string, string> = {};

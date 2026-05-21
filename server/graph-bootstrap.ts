@@ -48,7 +48,7 @@ function requirePool(): Pool {
   if (!pool) {
     throw new Error("Graph bootstrap requires a PostgreSQL pool");
   }
-  return pool as unknown as Pool;
+  return pool;
 }
 
 async function extensionInstalled(pg: Pool): Promise<boolean> {
@@ -103,7 +103,7 @@ export async function ensureTenantGraph(orgId: string): Promise<boolean> {
   // different pool connection could execute `create_graph` without
   // having `ag_catalog` loaded into its session and fail with
   // "function does not exist".
-  const pg = requirePool() as unknown as {
+  const pg = requirePool() as object as {
     connect: () => Promise<{
       query: (q: string, params?: unknown[]) => Promise<{ rows: unknown[] }>;
       release: () => void;
@@ -156,7 +156,7 @@ async function logGraphSmoke(): Promise<void> {
     return;
   }
   const graph = tenantGraphName(smokeOrg);
-  const pg = requirePool() as unknown as {
+  const pg = requirePool() as object as {
     connect: () => Promise<{
       query: (q: string) => Promise<{ rows: unknown[] }>;
       release: () => void;

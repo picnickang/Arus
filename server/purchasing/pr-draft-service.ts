@@ -175,7 +175,7 @@ async function findSubstitutionSuggestions(
         and(
           eq(partSubstitutions.orgId, orgId),
           // Either this part is the original or the substitute
-          eq((partSubstitutions as any).originalPartId, partId)
+          eq((partSubstitutions as object as Record<string, never>)["originalPartId"], partId)
         )
       );
 

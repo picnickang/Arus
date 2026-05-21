@@ -218,7 +218,7 @@ export function generateMaintenanceAlerts(workOrders: WorkOrderInput[]): Priorit
         severity,
         title: `Overdue Work Order: ${order.reason || "Maintenance Required"}`,
         description: `Priority ${order.priority} work order overdue - ${order.equipmentId || "Equipment"} needs attention`,
-        timestamp: new Date(order.createdAt as any),
+        timestamp: new Date(order.createdAt as string | number | Date),
         financialImpact: estimatedCost,
         equipmentId: order.equipmentId,
         actionUrl: `/work-orders?orderId=${order.id}`,

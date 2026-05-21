@@ -163,7 +163,7 @@ export async function canAssignCrew(
 
   let storedAssignments: DraftAssignment[] = [];
   try {
-    const allStoredAssignments = await dbCrewStorage.getCrewAssignments("" as any, {});
+    const allStoredAssignments = await dbCrewStorage.getCrewAssignments("", {});
     storedAssignments = allStoredAssignments
       .filter((a) => a.crewId === crewId && a.id !== proposedAssignment.id)
       .filter((a) => {
@@ -171,15 +171,18 @@ export async function canAssignCrew(
         const aEnd = new Date(a.end);
         return aEnd >= lookbackStart && aStart <= lookbackEnd;
       })
-      .map((a) => ({
-        id: a.id,
-        crewId: a.crewId,
-        vesselId: a.vesselId,
-        start: a.start,
-        end: a.end,
-        shiftName: (a as any).shiftName,
-        position: (a as any).position,
-      })) as any;
+      .map((a) => {
+        const ax = a as { shiftName?: string; position?: string };
+        return {
+          id: a.id,
+          crewId: a.crewId,
+          vesselId: a.vesselId,
+          start: a.start,
+          end: a.end,
+          shiftName: ax.shiftName,
+          position: ax.position,
+        };
+      }) as object as DraftAssignment[];
   } catch (error) {
     logger.error("Failed to fetch stored assignments:", undefined, error);
   }
@@ -266,7 +269,7 @@ export async function checkAssignmentOverlap(
   excludeAssignmentId?: string
 ): Promise<{ hasOverlap: boolean; overlappingAssignments: string[] }> {
   try {
-    const allAssignments = await dbCrewStorage.getCrewAssignments("" as any, {});
+    const allAssignments = await dbCrewStorage.getCrewAssignments("", {});
     const crewAssignments = allAssignments.filter(
       (a) => a.crewId === crewId && a.id !== excludeAssignmentId
     );

@@ -170,7 +170,7 @@ export default function AIStudioPage() {
               icon: Brain,
               trend: deployedModels > 0 ? { direction: "up", value: 12 } : undefined,
               "data-testid": "kpi-active-models",
-            } as any)}
+            } as object as React.ComponentProps<typeof KpiCard>)}
           />
           <KpiCard
             {...({
@@ -179,7 +179,7 @@ export default function AIStudioPage() {
               icon: TrendingUp,
               trend: avgAccuracy >= 80 ? { direction: "up", value: 5 } : undefined,
               "data-testid": "kpi-avg-accuracy",
-            } as any)}
+            } as object as React.ComponentProps<typeof KpiCard>)}
           />
           <KpiCard
             {...({
@@ -187,7 +187,7 @@ export default function AIStudioPage() {
               value: trainingModels,
               icon: Activity,
               "data-testid": "kpi-in-training",
-            } as any)}
+            } as object as React.ComponentProps<typeof KpiCard>)}
           />
           <KpiCard
             {...({
@@ -196,7 +196,7 @@ export default function AIStudioPage() {
               icon: AlertTriangle,
               variant: modelsNeedingAttention > 0 ? "warning" : "default",
               "data-testid": "kpi-need-attention",
-            } as any)}
+            } as object as React.ComponentProps<typeof KpiCard>)}
           />
         </div>
 
@@ -212,7 +212,7 @@ export default function AIStudioPage() {
                     ? "Good performance, but some models need attention"
                     : "Several models require retraining",
               type: avgAccuracy >= 85 ? "success" : avgAccuracy >= 70 ? "info" : "warning",
-            } as any)}
+            } as object as React.ComponentProps<typeof InsightCard>)}
           />
           <InsightCard
             {...({
@@ -222,13 +222,13 @@ export default function AIStudioPage() {
                   ? `${trainingModels} model(s) currently training`
                   : "No active training jobs",
               type: "info",
-            } as any)}
+            } as object as React.ComponentProps<typeof InsightCard>)}
           />
         </div>
 
         {/* Accuracy Trend */}
         <AccuracyTrendChart
-          data={accuracyData as any}
+          data={accuracyData as object as React.ComponentProps<typeof AccuracyTrendChart>["data"]}
           timeRange={accuracyTimeRange}
           onTimeRangeChange={setAccuracyTimeRange}
           data-testid="accuracy-trend-chart"

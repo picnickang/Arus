@@ -38,7 +38,7 @@ export function useSoftwareUpdatesData() {
     error: patchesErrorData,
   } = useQuery({
     queryKey: adminKeys.patches,
-    queryFn: adminQueryFn(adminKeys.patches as any),
+    queryFn: adminQueryFn(adminKeys.patches),
     enabled: !isDesktopEnv,
   });
   const {
@@ -58,7 +58,7 @@ export function useSoftwareUpdatesData() {
     error: settingsErrorData,
   } = useQuery<UpdateSettings>({
     queryKey: adminKeys.updateSettings,
-    queryFn: adminQueryFn(adminKeys.updateSettings as any),
+    queryFn: adminQueryFn(adminKeys.updateSettings),
     enabled: !isDesktopEnv,
   });
 
@@ -83,7 +83,15 @@ export function useSoftwareUpdatesData() {
     invalidateKeys: [adminKeys.patches, adminKeys.patchHistory],
     successMessage: "Rolled back successfully",
   });
-  const previewMutation = useCustomMutation<{ fromVersion: string; toVersion: string }, void>({
+  const previewMutation = useCustomMutation<
+    { fromVersion: string; toVersion: string },
+    {
+      filesChanged?: number;
+      additions?: number;
+      deletions?: number;
+      commits?: Array<{ sha: string; message: string }>;
+    }
+  >({
     mutationFn: (data) => adminApiRequest("POST", "/api/admin/patches/preview", data),
     successMessage: "Preview generated successfully",
   });
@@ -149,7 +157,7 @@ export function useSoftwareUpdatesData() {
     hasError,
     errors,
     patches: patches as SoftwarePatch[] | undefined,
-    patchHistory: patchHistory as SoftwarePatch[] | undefined,
+    patchHistory: patchHistory as Array<SoftwarePatch & { backupId?: string }> | undefined,
     updateSettings,
     selectedPatch,
     setSelectedPatch,
@@ -174,18 +182,18 @@ export function useGitHubSettingsData() {
     message?: string;
   }>({
     queryKey: adminKeys.githubStatus,
-    queryFn: adminQueryFn(adminKeys.githubStatus as any),
+    queryFn: adminQueryFn(adminKeys.githubStatus),
   });
   const { data: reposData, isLoading: reposLoading } = useQuery<{
     repos: Array<{ id: number; name: string; full_name: string; owner: string; html_url: string }>;
   }>({
     queryKey: adminKeys.githubRepos,
-    queryFn: adminQueryFn(adminKeys.githubRepos as any),
+    queryFn: adminQueryFn(adminKeys.githubRepos),
     enabled: githubStatus?.connected === true,
   });
   const { data: settings } = useQuery<UpdateSettings>({
     queryKey: adminKeys.updateSettings,
-    queryFn: adminQueryFn(adminKeys.updateSettings as any),
+    queryFn: adminQueryFn(adminKeys.updateSettings),
   });
 
   const selectRepoMutation = useCustomMutation({

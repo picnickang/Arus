@@ -43,51 +43,49 @@ export function useMissionOverviewData() {
     data: equipmentHealthResponse,
     isLoading: equipmentHealthLoading,
     error: equipmentHealthError,
-  } = useQuery<EquipmentHealthResponseShape | undefined>({
+  } = useQuery({
     queryKey: ["/api/equipment/health"],
-    queryFn: () =>
-      fetchEquipmentHealthTyped() as unknown as Promise<EquipmentHealthResponseShape | undefined>,
+    queryFn: () => fetchEquipmentHealthTyped(),
     refetchInterval: 120000,
     staleTime: 60000,
   });
-  const { data: anomaliesResponse } = useQuery<AnomalyResponseShape | undefined>({
+  const { data: anomaliesResponse } = useQuery({
     queryKey: ["/api/analytics/anomalies"],
-    queryFn: () =>
-      fetchAnomalyDetections({ page: 1, limit: 100 }) as unknown as Promise<AnomalyResponseShape | undefined>,
+    queryFn: () => fetchAnomalyDetections({ page: 1, limit: 100 }),
     refetchInterval: 120000,
     staleTime: 60000,
   });
-  const { data: costTrends = [] } = useQuery<CostTrendRecord[]>({
+  const { data: costTrends = [] } = useQuery({
     queryKey: ["/api/analytics/cost-trends"],
-    queryFn: () => fetchCostTrends() as unknown as Promise<CostTrendRecord[]>,
+    queryFn: () => fetchCostTrends(),
     refetchInterval: 300000,
     staleTime: 120000,
   });
-  const { data: workOrders = [] } = useQuery<unknown[]>({
+  const { data: workOrders = [] } = useQuery({
     queryKey: ["/api/work-orders"],
-    queryFn: () => fetchWorkOrders() as unknown as Promise<unknown[]>,
+    queryFn: () => fetchWorkOrders(),
     refetchInterval: 120000,
     staleTime: 60000,
   });
-  const { data: modelPerformanceResponse } = useQuery<ModelPerformanceResponseShape | undefined>({
+  const { data: modelPerformanceResponse } = useQuery({
     queryKey: ["/api/analytics/model-performance/summary"],
-    queryFn: () =>
-      fetchModelPerformanceSummary() as unknown as Promise<ModelPerformanceResponseShape | undefined>,
+    queryFn: () => fetchModelPerformanceSummary(),
     refetchInterval: 300000,
     staleTime: 120000,
   });
-  const { data: failurePredictionsResponse } = useQuery<FailurePredictionResponseShape | undefined>({
+  const { data: failurePredictionsResponse } = useQuery({
     queryKey: ["/api/analytics/predictions"],
-    queryFn: () =>
-      fetchFailurePredictions({ page: 1, limit: 100 }) as unknown as Promise<FailurePredictionResponseShape | undefined>,
+    queryFn: () => fetchFailurePredictions({ page: 1, limit: 100 }),
     refetchInterval: 120000,
     staleTime: 60000,
   });
 
-  const equipmentHealth: EquipmentRecord[] = equipmentHealthResponse?.results ?? [];
-  const anomalies: AnomalyRecord[] = anomaliesResponse?.results ?? [];
+  const equipmentHealth: EquipmentRecord[] = (equipmentHealthResponse?.results ??
+    []) as EquipmentRecord[];
+  const anomalies: AnomalyRecord[] = (anomaliesResponse?.results ?? []) as AnomalyRecord[];
   const modelPerformance = modelPerformanceResponse?.result;
-  const failurePredictions: PredictionRecord[] = failurePredictionsResponse?.results ?? [];
+  const failurePredictions: PredictionRecord[] = (failurePredictionsResponse?.results ??
+    []) as PredictionRecord[];
 
   const alerts = useMemo(
     () =>
@@ -96,7 +94,7 @@ export function useMissionOverviewData() {
         anomalies,
         costTrends,
         workOrders,
-      } as unknown as Parameters<typeof getMissionOverviewAlerts>[0]),
+      } as object as Parameters<typeof getMissionOverviewAlerts>[0]),
     [equipmentHealth, anomalies, costTrends, workOrders]
   );
   const topAlerts = useMemo(() => alerts.slice(0, 8), [alerts]);
@@ -127,7 +125,7 @@ export function useMissionOverviewData() {
         ? costTrends
             .slice(0, -2)
             .reduce(
-              (sum: number, t: (typeof costTrends)[number]) => sum + (t.totalCost || 0),
+              (sum: number, t: (typeof costTrends)[number]) => sum + (t.maintenanceCost || 0),
               0
             ) /
           (costTrends.length - 2)
@@ -135,7 +133,7 @@ export function useMissionOverviewData() {
     const recentAvg =
       recentCosts.length > 0
         ? recentCosts.reduce(
-            (sum: number, t: (typeof recentCosts)[number]) => sum + (t.totalCost || 0),
+            (sum: number, t: (typeof recentCosts)[number]) => sum + (t.maintenanceCost || 0),
             0
           ) / recentCosts.length
         : 0;

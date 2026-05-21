@@ -440,7 +440,7 @@ registerTool({
     const weatherResult = (await weatherTool.execute(
       { vesselId: input.vesselId, lat: input.lat, lng: input.lng },
       ctx
-    )) as unknown as MarineWeatherData & { error?: string; _meta?: Record<string, unknown> };
+    )) as object as MarineWeatherData & { error?: string; _meta?: Record<string, unknown> };
 
     if (weatherResult.error) {
       return weatherResult;
@@ -492,5 +492,5 @@ registerTool({
       operationalRisk: weatherResult.operationalRisk,
       _meta: weatherResult._meta,
     };
-  }) as unknown as Parameters<typeof registerTool>[0]["execute"],
+  }) as object as Parameters<typeof registerTool>[0]["execute"],
 });

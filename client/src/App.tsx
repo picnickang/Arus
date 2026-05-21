@@ -204,7 +204,7 @@ function Router() {
                 <Route key={path} path={path}>
                   {(params) => (
                     <ErrorBoundary key={path}>
-                      <Component {...(params as any)} />
+                      <Component {...(params as object as Record<string, string>)} />
                     </ErrorBoundary>
                   )}
                 </Route>

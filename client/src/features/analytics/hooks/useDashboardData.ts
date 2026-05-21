@@ -130,7 +130,7 @@ export function useDashboardData() {
 
   useEffect(() => {
     if (latestAlert && !latestAlert.acknowledged) {
-      setAlertBanner(latestAlert as unknown as { type: string; message: string });
+      setAlertBanner(latestAlert as object as { type: string; message: string });
       const alertType = latestAlert.alertType || "info";
       toast({
         title: `${alertType.toUpperCase()} Alert`,

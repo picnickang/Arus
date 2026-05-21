@@ -23,7 +23,7 @@ export async function convertToClassificationFeatures(
 
   const telemetryData: any[] = [];
   for (const dataPoint of timeSeriesData) {
-    for (const [sensorType, value] of Object.entries((dataPoint as any).features ?? {})) {
+    for (const [sensorType, value] of Object.entries((dataPoint as { features?: Record<string, number> }).features ?? {})) {
       telemetryData.push({
         id: `${equipmentId}-${dataPoint.timestamp.getTime()}-${sensorType}`,
         equipmentId,
@@ -45,7 +45,7 @@ export async function convertToClassificationFeatures(
       features: {},
       label: "healthy",
       failureRisk: 0,
-    } as any;
+    } as object as ClassificationFeatures;
   }
 
   const allSensorValues: Map<string, number[]> = new Map();
@@ -113,5 +113,5 @@ export async function convertToClassificationFeatures(
     features,
     label: "healthy",
     failureRisk: 0,
-  } as any;
+  } as object as ClassificationFeatures;
 }

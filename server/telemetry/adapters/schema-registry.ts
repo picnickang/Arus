@@ -49,9 +49,9 @@ export class TelemetrySchemaRegistryAdapter {
         version: input.version,
         schemaName: input.schemaName,
         description: input.description,
-        schemaDefinition: input.schemaDefinition as any,
-        validationRules: input.validationRules as any,
-        decoderConfig: input.decoderConfig as any,
+        schemaDefinition: input.schemaDefinition as object as never,
+        validationRules: input.validationRules as object as never,
+        decoderConfig: input.decoderConfig as object as never,
         createdBy: input.createdBy,
       })
       .returning();

@@ -132,7 +132,8 @@ export async function evaluateDeckMissingPosition(
     return { triggered: false, skipped: true, skipReason: "No deck log record for this date" };
   }
 
-  if ((deckLogComplete.daily as any).noonLatitude === null || (deckLogComplete.daily as any).noonLongitude === null) {
+  const daily = deckLogComplete.daily as { noonLatitude?: number | null; noonLongitude?: number | null };
+  if (daily.noonLatitude === null || daily.noonLongitude === null) {
     return {
       triggered: true,
       finding: {

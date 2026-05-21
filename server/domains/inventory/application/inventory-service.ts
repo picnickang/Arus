@@ -101,8 +101,8 @@ export class InventoryApplicationService {
       version: 1,
       payload: {
         changedFields,
-        previousState: previousItem as unknown as Record<string, unknown>,
-        newState: item as unknown as Record<string, unknown>,
+        previousState: previousItem as object as Record<string, unknown>,
+        newState: item as object as Record<string, unknown>,
       },
     };
 

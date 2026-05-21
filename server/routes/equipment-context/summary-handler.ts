@@ -53,10 +53,10 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
         );
       alertCount = alertResult.length;
     } catch (e) {
-      logger.warn("Summary alert query failed", {
+      logger.warn("Summary alert query failed", undefined, {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),
-      } as any);
+      });
     }
 
     try {
@@ -72,10 +72,10 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
         );
       insightCount = insightResult.length;
     } catch (e) {
-      logger.warn("Summary insight query failed", {
+      logger.warn("Summary insight query failed", undefined, {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),
-      } as any);
+      });
     }
 
     try {
@@ -87,10 +87,10 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
         .limit(1);
       pdmScore = pdmResult[0]?.healthIdx ?? null;
     } catch (e) {
-      logger.warn("Summary PDM score query failed", {
+      logger.warn("Summary PDM score query failed", undefined, {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),
-      } as any);
+      });
     }
 
     try {
@@ -105,10 +105,10 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
         .limit(1);
       latestPrediction = predResult[0] ?? null;
     } catch (e) {
-      logger.warn("Summary prediction query failed", {
+      logger.warn("Summary prediction query failed", undefined, {
         equipmentId,
         error: e instanceof Error ? e.message : String(e),
-      } as any);
+      });
     }
 
     res.json({

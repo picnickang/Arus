@@ -68,7 +68,7 @@ export function useStorageSettings() {
           (result.ok ? "Provider configuration is valid" : "Check configuration details"),
         variant: result.ok ? "default" : "destructive",
       });
-    }) as any,
+    }) as never,
   });
   const stageOpsDbMutation = useCustomMutation<string, { staged: boolean }>({
     mutationFn: async (url) => apiRequest("POST", "/api/storage/ops-db/stage", { url }),

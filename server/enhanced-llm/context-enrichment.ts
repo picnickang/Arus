@@ -17,7 +17,7 @@ export function enrichContextWithRAG(context: ReportContext): ReportContext {
   const knowledgeSnippets: string[] = [];
 
   if (context.data.workOrders && context.data.workOrders.length > 0) {
-    const criticalOrders = (context.data.workOrders as unknown as Array<Record<string, unknown>>)
+    const criticalOrders = (context.data.workOrders as object as Array<Record<string, unknown>>)
       .filter((wo) => wo.priority === "critical" || wo.priority === "urgent")
       .slice(0, 3);
 
@@ -114,7 +114,7 @@ export function serializeContext(context: ReportContext): string {
   }
 
   if (context.data.workOrders) {
-    const wos = context.data.workOrders as unknown as Array<Record<string, unknown>>;
+    const wos = context.data.workOrders as object as Array<Record<string, unknown>>;
     parts.push(`Work Orders: ${wos.length} total`);
     const byPriority = {
       critical: wos.filter((wo) => wo.priority === "critical").length,

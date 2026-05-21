@@ -153,7 +153,7 @@ export async function fetchWithCacheFallback<T = Record<string, unknown>>(
 
     // No cached data at all
     return {
-      data: { error: `External data unavailable — ${errorMsg}`, offline: true } as unknown as T,
+      data: { error: `External data unavailable — ${errorMsg}`, offline: true } as object as T,
       fetchedAt: new Date(0),
       stale: true,
       ageSec: Infinity,

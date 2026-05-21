@@ -35,7 +35,7 @@ export class PdfExtractor implements TextExtractor {
         pageCount = result.pages?.length || 0;
         await parser.destroy();
       } else {
-        const pdfParse = (pdfParseModule as any).default;
+        const pdfParse = (pdfParseModule as object as { default?: (buf: Buffer) => Promise<{ text?: string; numpages?: number }> }).default;
         if (typeof pdfParse === "function") {
           const data = await pdfParse(buffer);
           rawText = data.text || "";

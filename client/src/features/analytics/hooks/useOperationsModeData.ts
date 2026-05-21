@@ -116,10 +116,10 @@ export function useOperationsModeData() {
     refetchInterval: 120000,
     staleTime: 60000,
   });
-  const pdmScores: PdmScoreData[] = (pdmScoresRaw ?? []) as unknown as PdmScoreData[];
+  const pdmScores: PdmScoreData[] = (pdmScoresRaw ?? []) as object as PdmScoreData[];
 
-  const equipmentHealth: EquipmentHealthData[] = (equipmentHealthResponse?.results ?? []) as unknown as EquipmentHealthData[];
-  const anomalies: AnomalyData[] = (anomaliesResponse?.results ?? []) as unknown as AnomalyData[];
+  const equipmentHealth: EquipmentHealthData[] = (equipmentHealthResponse?.results ?? []) as object as EquipmentHealthData[];
+  const anomalies: AnomalyData[] = (anomaliesResponse?.results ?? []) as object as AnomalyData[];
   const failurePredictions: FailurePredictionData[] = failurePredictionsResponse?.results ?? [];
 
   const equipmentCategories = useMemo(

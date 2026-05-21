@@ -106,7 +106,6 @@ router.post("/audit", requireComplianceAccess, async (req: Request, res: Respons
     }
     const eventData = logEventSchema.parse(req.body);
     const event = await auditService.logEvent({
-      ...{} as any,
       orgId,
       ...eventData,
       performedBy: req.user?.id ?? "system",
@@ -126,12 +125,16 @@ router.post("/audit", requireComplianceAccess, async (req: Request, res: Respons
             }
           : undefined,
       },
-    });
+    } as object as Parameters<typeof auditService.logEvent>[0]);
     res
       .status(201)
       .json({
         success: true,
-        data: { id: event.id, hash: event.hash, timestamp: (event as any).timestamp },
+        data: {
+          id: event.id,
+          hash: event.hash,
+          timestamp: (event as { timestamp?: Date }).timestamp,
+        },
       });
   } catch (error) {
     logger.error("[Compliance] Log event error:", undefined, error);

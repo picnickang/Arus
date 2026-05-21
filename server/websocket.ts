@@ -264,12 +264,12 @@ class TelemetryWebSocketServer {
           const message = JSON.parse(data.toString());
 
           // Track message metrics (enhanced observability)
-          (incrementWebSocketMessage as any)(message.type || "unknown");
+          incrementWebSocketMessage(message.type || "unknown", "client");
 
           this.handleMessage(client, message);
         } catch (parseError) {
           log(`WebSocket parse error: ${parseError}`);
-          (incrementWebSocketMessage as any)("parse_error");
+          incrementWebSocketMessage("parse_error", "client");
         }
       });
 
@@ -869,7 +869,7 @@ export const wsServer: TelemetryWebSocketServer = new Proxy(
         // Return a no-op function for any method access to keep runtime safe.
         return () => undefined;
       }
-      const value = (instance as unknown as Record<string | symbol, unknown>)[prop];
+      const value = (instance as object as Record<string | symbol, unknown>)[prop];
       return typeof value === "function" ? value.bind(instance) : value;
     },
   },

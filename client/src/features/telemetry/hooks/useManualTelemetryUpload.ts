@@ -51,7 +51,7 @@ export function useManualTelemetryUpload() {
     mutationFn: (async (csvData: string) => {
       setUploadProgress(50);
       return apiRequest("POST", "/api/import/telemetry/csv", { csvData });
-    }) as any,
+    }) as object as (csvData: string) => Promise<ImportResult>,
     invalidateKeys: [["/api/raw-telemetry"]],
     successMessage: (result: ImportResult) => result.message,
     errorMessage: (error: unknown) => (error as Error)?.message || "Failed to import CSV data",
@@ -76,7 +76,7 @@ export function useManualTelemetryUpload() {
       setUploadProgress(50);
       const parsed = JSON.parse(jsonData);
       return apiRequest("POST", "/api/import/telemetry/json", parsed);
-    }) as any,
+    }) as object as (jsonData: string) => Promise<ImportResult>,
     invalidateKeys: [["/api/raw-telemetry"]],
     successMessage: (result: ImportResult) => result.message,
     errorMessage: (error: unknown) => (error as Error)?.message || "Failed to import JSON data",

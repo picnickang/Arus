@@ -328,7 +328,7 @@ export default function DeckLogbookPage() {
                             <HourlyLogRow
                               key={i}
                               hour={i}
-                              entry={(d.hourlyEntries.get(i) ?? {}) as unknown as HourlyEntry}
+                              entry={(d.hourlyEntries.get(i) ?? {}) as object as HourlyEntry}
                               isLocked={d.isLocked}
                               updateHourlyEntry={d.updateHourlyEntry}
                             />
@@ -352,7 +352,7 @@ export default function DeckLogbookPage() {
                         Automated and manual operational events for the day
                       </CardDescription>
                     </div>
-                    {!(d.isLocked as any)?.deckLogComplete?.daily?.id && (
+                    {!((d.isLocked as unknown) as { deckLogComplete?: { daily?: { id?: string } } })?.deckLogComplete?.daily?.id && (
                       <Dialog
                         open={d.newEventDialogOpen}
                         onOpenChange={(open) => {
@@ -529,7 +529,7 @@ export default function DeckLogbookPage() {
                           {d.sortedEvents.map((event, index) => (
                             <EventTimelineItem
                               key={event.id}
-                              event={event as unknown as DeckEvent}
+                              event={event as object as DeckEvent}
                               index={index}
                               isLast={index === d.sortedEvents.length - 1}
                             />
@@ -715,7 +715,7 @@ export default function DeckLogbookPage() {
                           <WatchPeriodCard
                             key={period}
                             period={period}
-                            watch={(d.watchAssignments.get(period) ?? {}) as unknown as WatchData}
+                            watch={(d.watchAssignments.get(period) ?? {}) as object as WatchData}
                             isLocked={d.isLocked}
                             updateWatchAssignment={d.updateWatchAssignment}
                           />

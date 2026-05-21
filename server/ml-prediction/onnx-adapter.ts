@@ -49,7 +49,7 @@ let ortModulePromise: Promise<OrtModuleLike> | null = null;
 function loadOrt(): Promise<OrtModuleLike> {
   if (!ortModulePromise) {
     ortModulePromise = import("onnxruntime-node")
-      .then((m) => (m as unknown as { default?: OrtModuleLike }).default ?? (m as unknown as OrtModuleLike))
+      .then((m) => (m as object as { default?: OrtModuleLike }).default ?? (m as object as OrtModuleLike))
       .catch((err) => {
         ortModulePromise = null;
         throw err;

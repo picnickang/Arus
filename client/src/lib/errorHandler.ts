@@ -100,7 +100,7 @@ export function initializeGlobalErrorHandlers() {
       const response = await originalFetch(...args);
 
       if (!response.ok && response.status >= 500) {
-        const url = typeof args[0] === "string" ? args[0] : (args[0] as any).url;
+        const url = typeof args[0] === "string" ? args[0] : (args[0] as { url: string }).url;
         logErrorToBackend(
           "error",
           "api",
@@ -122,7 +122,7 @@ export function initializeGlobalErrorHandlers() {
       if (errMsg === "Load failed" || errMsg === "Failed to fetch") {
         throw error;
       }
-      const url = typeof args[0] === "string" ? args[0] : (args[0] as any).url;
+      const url = typeof args[0] === "string" ? args[0] : (args[0] as { url: string }).url;
       logErrorToBackend(
         "error",
         "api",

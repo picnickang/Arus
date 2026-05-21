@@ -452,7 +452,7 @@ export class TelemetryBatchWriter extends EventEmitter {
             batchWriter: true,
             unit: reading.unit,
           },
-        } as any)
+        } as never)
       );
 
       await Promise.all(insertPromises);

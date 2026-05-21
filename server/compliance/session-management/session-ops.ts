@@ -75,7 +75,7 @@ export async function createSession(
     createdAt: now,
   };
 
-  await db.insert(userSessions).values(sessionData as any);
+  await db.insert(userSessions).values(sessionData);
 
   const session = {
     ...sessionData,

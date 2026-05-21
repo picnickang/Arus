@@ -7,6 +7,7 @@ import { Octokit } from "@octokit/rest";
 import https from "node:https";
 import * as fs from "node:fs";
 import { createLogger } from "../lib/structured-logger";
+import { cast } from "@shared/lib/type-cast";
 const logger = createLogger("Services:GithubReleaseService");
 import type {
   IUpdateDistributionProvider,
@@ -189,7 +190,7 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
         repo: this.repo,
         release_id: release.id,
         name: patchFileName,
-        data: patchArchive as any,
+        data: cast<string>(patchArchive),
       });
 
       // Upload manifest.json
@@ -199,7 +200,7 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
         repo: this.repo,
         release_id: release.id,
         name: "manifest.json",
-        data: JSON.stringify(manifest, null, 2) as any,
+        data: JSON.stringify(manifest, null, 2),
       });
 
       // Upload checksums.txt
@@ -211,7 +212,7 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
         repo: this.repo,
         release_id: release.id,
         name: "checksums.txt",
-        data: checksums as any,
+        data: checksums,
       });
 
       logger.info(`[GitHub] ✅ Release published successfully: ${release.html_url}`);
@@ -266,7 +267,7 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
 
       return response.data as GitHubRelease;
     } catch (error) {
-      if ((error as any).status === 404) {
+      if ((error as { status?: number }).status === 404) {
         return null;
       }
       logger.error("[GitHub] Error fetching release:", undefined, error);

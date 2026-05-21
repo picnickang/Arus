@@ -218,7 +218,7 @@ function convertToProjectedRestDays(
       restHours,
       isProjected: 1,
       ...flags,
-    } as any);
+    } as never);
   }
 
   return days;

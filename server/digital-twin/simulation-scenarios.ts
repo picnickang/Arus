@@ -19,9 +19,10 @@ export function simulateMaintenanceScenario(
   const maintenanceParams = scenario.parameters.maintenance ?? {};
   const degradationRate = maintenanceParams.degradationRate ?? 0.01;
   for (const engine of Object.values(state.machinery.engines)) {
-    (engine as any).efficiency = Math.max(
+    const e = engine as { efficiency?: number };
+    e.efficiency = Math.max(
       0.3,
-      ((engine as any).efficiency ?? 0.85) * (1 - (degradationRate * timeElapsed) / 60)
+      (e.efficiency ?? 0.85) * (1 - (degradationRate * timeElapsed) / 60)
     );
     engine.temperature += degradationRate * timeElapsed * 2;
   }
@@ -29,9 +30,10 @@ export function simulateMaintenanceScenario(
   if (maintenanceParams.maintenanceAction === "overhaul") {
     const completionRatio = Math.min(1, timeElapsed / (maintenanceParams.duration ?? 480));
     for (const engine of Object.values(state.machinery.engines)) {
-      (engine as any).efficiency = Math.min(
+      const e = engine as { efficiency?: number };
+      e.efficiency = Math.min(
         0.95,
-        ((engine as any).efficiency ?? 0.85) + 0.4 * completionRatio
+        (e.efficiency ?? 0.85) + 0.4 * completionRatio
       );
       engine.temperature = Math.max(80, engine.temperature - 20 * completionRatio);
     }

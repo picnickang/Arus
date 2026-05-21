@@ -209,28 +209,29 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
           setLastMessage(message);
 
           if (message.type === "telemetry" && message.data) {
-            setLatestTelemetry(message.data as unknown as TelemetryData);
+            setLatestTelemetry(message.data as object as TelemetryData);
           } else if (message.type === "alert_new" && message.data) {
-            setLatestAlert(message.data as unknown as AlertData);
+            setLatestAlert(message.data as object as AlertData);
           } else if (message.type === "alerts_initial" && message.data) {
             // Handle initial alerts backlog from server
             setInitialAlerts(Array.isArray(message.data) ? (message.data as AlertData[]) : []);
           } else if (message.type === "alert_acknowledged" && message.data) {
             // Update the latest alert if it's the same one being acknowledged
+            const ack = message.data as { alertId?: string; acknowledgedBy?: string };
             setLatestAlert((prevAlert) => {
-              if (prevAlert?.id === (message.data as any).alertId) {
+              if (prevAlert && prevAlert.id === ack.alertId) {
                 return {
                   ...prevAlert,
                   acknowledged: true,
-                  acknowledgedBy: (message.data as any).acknowledgedBy,
+                  acknowledgedBy: ack.acknowledgedBy,
                   acknowledgedAt: message.timestamp,
-                } as any;
+                };
               }
               return prevAlert;
             });
           } else if (message.type === "update_notification" && message.data) {
             // Handle software update notifications
-            setLatestUpdate(message.data as unknown as UpdateNotificationData);
+            setLatestUpdate(message.data as object as UpdateNotificationData);
           }
         } catch (error) {
           console.error("Failed to parse WebSocket message:", error);

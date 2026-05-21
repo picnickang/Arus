@@ -68,7 +68,7 @@ export class CostSummaryGenerator implements ICostSummaryGenerator {
         let actualCost = 0;
 
         for (const wo of workOrders) {
-          const w = wo as unknown as Record<string, unknown>;
+          const w = wo as object as Record<string, unknown>;
           const completedDate = w.actualEndDate ? new Date(w.actualEndDate as string | Date) : null;
           if (completedDate && completedDate >= startDate && completedDate <= endDate) {
             const plannedRate = Number(w.estimatedCostPerHour ?? 0) || 0;
@@ -116,7 +116,7 @@ export class CostSummaryGenerator implements ICostSummaryGenerator {
         });
 
         for (const wo of workOrders) {
-          const w = wo as unknown as Record<string, unknown>;
+          const w = wo as object as Record<string, unknown>;
           const completedDate = w.actualEndDate ? new Date(w.actualEndDate as string | Date) : null;
           if (completedDate && completedDate >= startDate && completedDate <= endDate) {
             const category = (w.workOrderType as string) || "Other";

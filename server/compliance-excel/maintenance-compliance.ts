@@ -97,7 +97,7 @@ function renderMaintenanceComplianceExcel(
 
     for (const wo of workOrders) {
       woData.push([
-        (wo as any).workOrderNumber ?? wo.id,
+        (wo as { workOrderNumber?: string }).workOrderNumber ?? wo.id,
         wo.equipmentId ?? "",
         wo.maintenanceType ?? "",
         wo.priority ?? "",
@@ -126,8 +126,8 @@ function renderMaintenanceComplianceExcel(
         eq.name ?? "",
         eq.status ?? "",
         eq.healthIndex ?? "",
-        formatDate((eq as any).lastMaintenance),
-        (eq as any).criticalAlerts ?? 0,
+        formatDate((eq as { lastMaintenance?: Date | null }).lastMaintenance),
+        (eq as { criticalAlerts?: number }).criticalAlerts ?? 0,
       ]);
     }
 

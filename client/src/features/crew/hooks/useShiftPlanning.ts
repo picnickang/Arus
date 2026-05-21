@@ -191,11 +191,11 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
   });
 
   const { data: crewRaw = [], isLoading: isLoadingCrew } = useCrewList();
-  const crew = crewRaw as unknown as Crew[];
+  const crew = crewRaw as object as Crew[];
   const { data: shiftTemplatesRaw = [], isLoading: isLoadingShifts } = useShiftTemplates();
-  const shiftTemplates = shiftTemplatesRaw as unknown as SelectShiftTemplate[];
+  const shiftTemplates = shiftTemplatesRaw as object as SelectShiftTemplate[];
   const { data: vesselsRaw = [] } = useVessels();
-  const vessels = vesselsRaw as unknown as VesselData[];
+  const vessels = vesselsRaw as object as VesselData[];
 
   const { data: allPortCalls = [] } = useQuery<PortCall[]>({
     queryKey: ["/api/port-calls"],
@@ -513,8 +513,8 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
     createShiftMutation,
     updateShiftMutation,
     deleteShiftMutation,
-    planScheduleMutation: planScheduleMutation as any,
-    enhancedScheduleMutation: enhancedScheduleMutation as any,
+    planScheduleMutation: planScheduleMutation as object as ReturnType<typeof useCustomMutation>,
+    enhancedScheduleMutation: enhancedScheduleMutation as object as ReturnType<typeof useCustomMutation>,
     addPortCallMutation,
     addDrydockMutation,
     onSubmitShift,

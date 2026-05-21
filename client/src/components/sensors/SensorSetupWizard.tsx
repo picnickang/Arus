@@ -40,7 +40,7 @@ import {
 
 export function SensorSetupWizard({ equipment, open, onClose, onSuccess }: SensorSetupWizardProps) {
   const { wizardState, setWizardState, progress, handleNext, handleBack, handleClose } =
-    useSensorWizardData({ equipment: equipment as any, onSuccess, onClose });
+    useSensorWizardData({ equipment: equipment as object as Parameters<typeof useSensorWizardData>[0]["equipment"], onSuccess, onClose });
 
   if (!equipment) {
     return null;
@@ -72,7 +72,7 @@ export function SensorSetupWizard({ equipment, open, onClose, onSuccess }: Senso
           </div>
           <Separator />
           {wizardState.currentStep === 1 && (
-            <EquipmentStep equipment={equipment as unknown as Pick<Equipment, "id" | "name" | "type" | "location"> & { status?: string | null }} onNext={handleNext} data-testid="wizard-step-1" />
+            <EquipmentStep equipment={equipment as object as Pick<Equipment, "id" | "name" | "type" | "location"> & { status?: string | null }} onNext={handleNext} data-testid="wizard-step-1" />
           )}
           {wizardState.currentStep === 2 && (
             <BundleStep
@@ -86,7 +86,7 @@ export function SensorSetupWizard({ equipment, open, onClose, onSuccess }: Senso
           )}
           {wizardState.currentStep === 3 && (
             <ThresholdStep
-              equipment={equipment as unknown as Equipment}
+              equipment={equipment as object as Equipment}
               wizardState={wizardState}
               onBack={handleBack}
               onSuccess={onSuccess}

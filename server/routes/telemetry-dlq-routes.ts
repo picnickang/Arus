@@ -17,7 +17,9 @@ telemetryDlqRouter.get(
     const bridgeState = getBridgeState();
 
     const dlqMetrics =
-      "getMetricsAsync" in dlq ? await (dlq as any).getMetricsAsync() : dlq.getMetrics();
+      "getMetricsAsync" in dlq
+        ? await (dlq as { getMetricsAsync: () => Promise<unknown> }).getMetricsAsync()
+        : dlq.getMetrics();
 
     res.json({
       dlq: dlqMetrics,
@@ -48,7 +50,15 @@ telemetryDlqRouter.get(
 
     const entries =
       "listAsync" in dlq
-        ? await (dlq as any).listAsync({ limit, offset, source })
+        ? await (
+            dlq as {
+              listAsync: (o: {
+                limit: number;
+                offset: number;
+                source?: string;
+              }) => Promise<unknown[]>;
+            }
+          ).listAsync({ limit, offset, source })
         : dlq.list({ limit, offset, source });
     res.json({ entries, count: entries.length });
   })
@@ -59,7 +69,9 @@ telemetryDlqRouter.get(
   withErrorHandling("get DLQ entry", async (req, res) => {
     const dlq = getBridgeDeadLetterQueue();
     const entry =
-      "getAsync" in dlq ? await (dlq as any).getAsync(req.params.id) : dlq.get(req.params.id);
+      "getAsync" in dlq
+        ? await (dlq as { getAsync: (id: string) => Promise<unknown> }).getAsync(req.params.id)
+        : dlq.get(req.params.id);
 
     if (!entry) {
       return res.status(404).json({ message: "Entry not found" });
@@ -136,14 +148,16 @@ telemetryDlqRouter.delete(
   withErrorHandling("delete DLQ entry", async (req, res) => {
     const dlq = getBridgeDeadLetterQueue();
     const entry =
-      "getAsync" in dlq ? await (dlq as any).getAsync(req.params.id) : dlq.get(req.params.id);
+      "getAsync" in dlq
+        ? await (dlq as { getAsync: (id: string) => Promise<unknown> }).getAsync(req.params.id)
+        : dlq.get(req.params.id);
 
     if (!entry) {
       return res.status(404).json({ message: "Entry not found" });
     }
 
     if ("deleteAsync" in dlq) {
-      await (dlq as any).deleteAsync(req.params.id);
+      await (dlq as { deleteAsync: (id: string) => Promise<unknown> }).deleteAsync(req.params.id);
     }
 
     res.json({ success: true, entryId: req.params.id, message: "Entry removed" });
@@ -154,7 +168,10 @@ telemetryDlqRouter.post(
   "/prune",
   withErrorHandling("prune DLQ", async (_req, res) => {
     const dlq = getBridgeDeadLetterQueue();
-    const removed = "pruneAsync" in dlq ? await (dlq as any).pruneAsync() : dlq.prune();
+    const removed =
+      "pruneAsync" in dlq
+        ? await (dlq as { pruneAsync: () => Promise<unknown> }).pruneAsync()
+        : dlq.prune();
 
     logger.info("TelemetryDLQRoutes", "DLQ pruned", { removedCount: removed });
     res.json({ success: true, removed });

@@ -27,7 +27,7 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
         equipmentId: config.equipmentId,
         sensorType: config.sensorType,
       }));
-      const telemetrySource = dbSensorsStorage as unknown as {
+      const telemetrySource = dbSensorsStorage as object as {
         getLatestTelemetryForSensors?: (
           s: Array<{ equipmentId: string; sensorType: string }>,
           orgId: string

@@ -57,7 +57,7 @@ export function detectAnomalies(fftResult: FFTResult): AnomalyDetection {
     (h) => h.freq >= dominantFreq * 1.8 && h.freq <= dominantFreq * 2.2
   );
   if ((secondHarmonic?.magnitude ?? 0) > dominantMagnitude * 0.5) {
-    const misalignmentScore = (secondHarmonic as any).magnitude / 75;
+    const misalignmentScore = (secondHarmonic as { magnitude: number }).magnitude / 75;
     if (misalignmentScore > anomalyScore) {
       anomalyScore = Math.min(1, misalignmentScore);
       anomalyType = "misalignment";

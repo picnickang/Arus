@@ -146,7 +146,7 @@ export function registerFatigueRoutes(app: Express, deps: StcwRestDependencies):
         mediumCount?: number;
         lowCount?: number;
       };
-      const summaries = vesselSummaries as unknown as VS[];
+      const summaries = vesselSummaries as object as VS[];
       const allCrew = summaries.flatMap((v) => v.highestRiskCrew ?? []);
       const fleetSummary = {
         totalVessels: vessels.length,

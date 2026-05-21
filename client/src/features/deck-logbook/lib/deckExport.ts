@@ -193,7 +193,7 @@ export function exportDeckToPDF(data: ExportDeckPDFData): void {
       styles: { fontSize: 9, cellPadding: 3 },
     });
 
-    yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    yPos = (doc as object as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
   } else {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
@@ -227,7 +227,7 @@ export function exportDeckToPDF(data: ExportDeckPDFData): void {
     styles: { fontSize: 9, cellPadding: 3 },
   });
 
-  yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+  yPos = (doc as object as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");

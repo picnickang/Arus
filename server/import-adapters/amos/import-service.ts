@@ -426,7 +426,7 @@ class AmosImportService {
         ...cleanData,
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as any)
+      } as object as never)
       .returning({
         id: equipment.id,
         name: equipment.name,
@@ -481,7 +481,7 @@ class AmosImportService {
       ...cleanData,
       createdAt: cleanData.createdAt ?? new Date(),
       updatedAt: new Date(),
-    } as any);
+    } as object as never);
     return "inserted";
   }
 
@@ -530,7 +530,7 @@ class AmosImportService {
           ...cleanData,
           createdAt: new Date(),
           updatedAt: new Date(),
-        } as any)
+        } as object as never)
         .returning({ id: parts.id });
       partId = inserted.id;
     }
@@ -566,7 +566,7 @@ class AmosImportService {
           binLocation: (stockData.binLocation as string) ?? null,
           createdAt: new Date(),
           updatedAt: new Date(),
-        } as any);
+        } as object as never);
       }
     }
 
@@ -651,7 +651,7 @@ class AmosImportService {
 
       for (const doc of ragDocuments) {
         try {
-          await (ingestDocuments as any)({
+          await (ingestDocuments as object as (input: Record<string, unknown>) => Promise<unknown>)({
             orgId,
             documents: [
               {

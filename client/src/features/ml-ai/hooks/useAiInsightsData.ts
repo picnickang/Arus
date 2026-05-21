@@ -9,6 +9,7 @@ import type {
   AIModel,
   Audience,
   GeneratedReport,
+  ReportContent,
   VesselIntelligence,
 } from "../types";
 
@@ -113,7 +114,7 @@ export function useAiInsightsData() {
       const response = await apiRequest<{
         success: boolean;
         error?: string;
-        report: { analysis?: string; [key: string]: unknown };
+        report: ReportContent;
       }>("POST", endpointMap[reportType], requestBody);
       if (!response.success) {
         throw new Error(response.error || "Failed to generate report");

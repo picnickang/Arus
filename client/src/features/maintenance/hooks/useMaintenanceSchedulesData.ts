@@ -14,7 +14,7 @@ export function useMaintenanceSchedulesData() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editForm, setEditForm] = useState<Partial<MaintenanceSchedule>>({});
-  const [createForm, setCreateForm] = useState<any>({
+  const [createForm, setCreateForm] = useState<{ equipmentId: string; scheduledDate: string; maintenanceType: string; priority: number; description: string; assignedTo?: string }>({
     equipmentId: "",
     scheduledDate: "",
     maintenanceType: "preventive",
@@ -74,10 +74,9 @@ export function useMaintenanceSchedulesData() {
     setSelectedSchedule(schedule);
     setEditForm({
       equipmentId: schedule.equipmentId,
-      scheduledDate:
-        (typeof schedule.scheduledDate === "string"
-          ? schedule.scheduledDate
-          : new Date(schedule.scheduledDate).toISOString().slice(0, 16)) as any,
+      scheduledDate: ((typeof schedule.scheduledDate === "string"
+        ? schedule.scheduledDate
+        : new Date(schedule.scheduledDate).toISOString().slice(0, 16)) as unknown) as Date,
       maintenanceType: schedule.maintenanceType,
       priority: schedule.priority,
       status: schedule.status,
@@ -98,13 +97,19 @@ export function useMaintenanceSchedulesData() {
       toast({ title: "Please fill in all required fields", variant: "destructive" });
       return;
     }
+    const orgIdValue = getCurrentOrgId();
+    if (!orgIdValue) {
+      toast({ title: "Organization required", variant: "destructive" });
+      return;
+    }
     const payload: InsertMaintenanceSchedule = {
       ...createForm,
-      orgId: getCurrentOrgId(),
-      scheduledDate: new Date(createForm.scheduledDate) as any,
+      orgId: orgIdValue,
+      scheduledDate: new Date(createForm.scheduledDate),
       equipmentId: createForm.equipmentId,
-      maintenanceType: createForm.maintenanceType,
+      maintenanceType: createForm.maintenanceType as InsertMaintenanceSchedule["maintenanceType"],
       priority: createForm.priority || 2,
+      status: "scheduled",
     };
     createMutation.mutate(payload);
   };
@@ -126,11 +131,11 @@ export function useMaintenanceSchedulesData() {
     updateMutation.mutate({
       id: selectedSchedule.id,
       updates: updates as Partial<InsertMaintenanceSchedule>,
-    } as any);
+    } as object as Parameters<typeof updateMutation.mutate>[0]);
   };
 
   const filteredSchedules = useMemo(() => {
-    let filtered = Array.isArray(schedules) ? (schedules as unknown as MaintenanceSchedule[]) : [];
+    let filtered = Array.isArray(schedules) ? (schedules as object as MaintenanceSchedule[]) : [];
     if (searchText) {
       filtered = filtered.filter(
         (schedule) =>

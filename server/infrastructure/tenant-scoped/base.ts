@@ -61,14 +61,14 @@ export abstract class TenantScopedRepository {
     additionalWhere?: any,
     orgIdColumn: string = "orgId"
   ) {
-    if (!(table as any)[orgIdColumn]) {
+    if (!(table as object as Record<string, unknown>)[orgIdColumn]) {
       throw new Error(
         `TenantScopedRepository: Table does not have column '${orgIdColumn}'. ` +
           `Available columns: ${Object.keys(table).join(", ")}`
       );
     }
 
-    const orgFilter = eq((table as any)[orgIdColumn], this.orgId);
+    const orgFilter = eq((table as object as Record<string, never>)[orgIdColumn], this.orgId);
     return additionalWhere ? and(orgFilter, additionalWhere) : orgFilter;
   }
 

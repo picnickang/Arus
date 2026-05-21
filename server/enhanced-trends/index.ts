@@ -94,6 +94,28 @@ export class EnhancedTrendsAnalyzer {
   /**
    * Cross-sensor correlation analysis
    */
+  async analyzeSensorCorrelations(
+    orgId: string,
+    equipmentId: string,
+    hours: number,
+    minCorrelation: number = 0
+  ): Promise<CorrelationAnalysis[]> {
+    const sensors = await this.getEquipmentSensorTypes(orgId, equipmentId);
+    const seen = new Set<string>();
+    const all: CorrelationAnalysis[] = [];
+    for (const target of sensors) {
+      const partial = await this.analyzeCorrelations(orgId, equipmentId, target, hours);
+      for (const c of partial) {
+        const key = [c.targetSensor, c.correlatedSensor].sort().join("|");
+        if (!seen.has(key)) {
+          seen.add(key);
+          all.push(c);
+        }
+      }
+    }
+    return all.filter((c) => Math.abs(c.correlation) >= minCorrelation);
+  }
+
   private async analyzeCorrelations(
     orgId: string,
     equipmentId: string,
@@ -202,7 +224,7 @@ export class EnhancedTrendsAnalyzer {
 
       logger.info(`[Enhanced Trends] Fetching ${orgId}:${equipmentId}:${sensorType} from ${startTime.toISOString()} to ${endTime.toISOString()}`);
 
-      const readings = await (dbTelemetryStorage as any).getTelemetryHistory(
+      const readings = await (dbTelemetryStorage as object as { getTelemetryHistory: (orgId: string, equipmentId: string, sensorType: string, startTime: Date, endTime: Date) => Promise<Array<{ ts: string | Date; value: number; unit?: string }>> }).getTelemetryHistory(
         orgId,
         equipmentId,
         sensorType,
@@ -211,7 +233,7 @@ export class EnhancedTrendsAnalyzer {
       );
 
       return readings.map((reading: { ts: string | Date; value: number; unit?: string }) => ({
-        timestamp: reading.ts,
+        timestamp: typeof reading.ts === "string" ? new Date(reading.ts) : reading.ts,
         value: reading.value,
         unit: reading.unit || "unknown",
       }));

@@ -181,37 +181,39 @@ export class MlTrainingJobQueue {
     });
 
     try {
-      let result: any;
+      let result: { metrics?: Record<string, number> } | undefined;
+      const equipmentType = data.equipmentType ?? "unknown";
 
       if (data.modelType === "all") {
         const { retrainAllModels } = await import("../../ml-training-pipeline");
-        result = await (retrainAllModels as any)(this.storage, data.orgId);
+        const all = await retrainAllModels(data.orgId, data.equipmentType);
+        result = all[0];
       } else if (data.modelType === "lstm") {
         const { trainLSTMForFailurePrediction } = await import("../../ml-training-pipeline");
-        result = await (trainLSTMForFailurePrediction as any)(this.storage, {
+        result = await trainLSTMForFailurePrediction({
+          jobId: job.id,
           orgId: data.orgId,
-          equipmentType: data.equipmentType,
+          equipmentType,
           modelType: "lstm",
-          targetMetric: "failure_prediction",
-          lstmConfig: data.config.lstmConfig || {},
+          ...((data.config.lstmConfig as Record<string, unknown> | undefined) || {}),
         });
       } else if (data.modelType === "random_forest") {
         const { trainRFForHealthClassification } = await import("../../ml-training-pipeline");
-        result = await (trainRFForHealthClassification as any)(this.storage, {
+        result = await trainRFForHealthClassification({
+          jobId: job.id,
           orgId: data.orgId,
-          equipmentType: data.equipmentType,
+          equipmentType,
           modelType: "random_forest",
-          targetMetric: "health_classification",
-          rfConfig: data.config.rfConfig || {},
+          ...((data.config.rfConfig as Record<string, unknown> | undefined) || {}),
         });
       } else if (data.modelType === "xgboost") {
         const { trainXGBoostForHealthClassification } = await import("../../ml-training-pipeline");
-        result = await (trainXGBoostForHealthClassification as any)(this.storage, {
+        result = await trainXGBoostForHealthClassification({
+          jobId: job.id,
           orgId: data.orgId,
-          equipmentType: data.equipmentType,
+          equipmentType,
           modelType: "xgboost",
-          targetMetric: "health_classification",
-          xgboostConfig: data.config.xgboostConfig || {},
+          ...((data.config.xgboostConfig as Record<string, unknown> | undefined) || {}),
         });
       }
 
@@ -237,7 +239,7 @@ export class MlTrainingJobQueue {
       return {
         modelType: data.modelType,
         success: true,
-        metrics: result?.metrics || result?.performanceMetrics,
+        metrics: result?.metrics,
         durationMs,
         evaluationPassed,
       };

@@ -16,7 +16,7 @@ import { dbInventoryStorage } from "../../db/inventory/index.js";
 import { workOrderService } from "../../repositories.js";
 import type { InventoryStorage } from "../../inventory/storage";
 
-const inventoryStorage = dbInventoryStorage as unknown as InventoryStorage;
+const inventoryStorage = dbInventoryStorage as object as InventoryStorage;
 
 interface InventoryOptimizationDependencies {
   generalApiRateLimit: RateLimitRequestHandler;

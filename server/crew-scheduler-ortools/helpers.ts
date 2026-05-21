@@ -59,9 +59,9 @@ export function isWindowAllowed(
   const { start: shiftStart, end: shiftEnd } = shiftWindow(day, startTime, endTime);
 
   for (const drydock of drydocks) {
-    if (drydock.vesselId === vesselId) {
-      const drydockStart = new Date((drydock as any).start ?? (drydock as any).startDate);
-      const drydockEnd = new Date((drydock as any).end ?? (drydock as any).endDate);
+    if (drydock.vesselId === vesselId && drydock.start && drydock.end) {
+      const drydockStart = new Date(drydock.start);
+      const drydockEnd = new Date(drydock.end);
       if (overlaps(shiftStart, shiftEnd, drydockStart, drydockEnd)) {
         return false;
       }
@@ -69,9 +69,9 @@ export function isWindowAllowed(
   }
 
   for (const portCall of portCalls) {
-    if (portCall.vesselId === vesselId) {
-      const portStart = new Date((portCall as any).start ?? (portCall as any).arrivalDate);
-      const portEnd = new Date((portCall as any).end ?? (portCall as any).departureDate);
+    if (portCall.vesselId === vesselId && portCall.start && portCall.end) {
+      const portStart = new Date(portCall.start);
+      const portEnd = new Date(portCall.end);
       if (overlaps(shiftStart, shiftEnd, portStart, portEnd)) {
         return true;
       }

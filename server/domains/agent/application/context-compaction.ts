@@ -183,7 +183,7 @@ export function buildCompactedMessages(
 
   for (const m of history) {
     if (m.role === "tool") {
-      const ref = m.toolCalls as unknown as StoredToolCallRef | null;
+      const ref = m.toolCalls as object as StoredToolCallRef | null;
       let content = typeof m.content === "string" ? m.content : JSON.stringify(m.content);
 
       if (compactionConfig.enabled) {
@@ -199,7 +199,7 @@ export function buildCompactedMessages(
       // Persisted toolCalls already use the OpenAI / LLMToolCall wire
       // shape ({id, type, function:{name, arguments}}), so a cast is
       // sufficient — no field-name translation needed.
-      const calls = m.toolCalls as unknown as LLMToolCall[];
+      const calls = m.toolCalls as object as LLMToolCall[];
       mappedMessages.push({
         role: "assistant" as const,
         content: m.content || null,

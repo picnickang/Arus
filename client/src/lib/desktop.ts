@@ -25,7 +25,7 @@ export function isDesktop(): boolean {
   return (
     typeof window !== "undefined" &&
     typeof window.__TAURI_INTERNALS__ !== "undefined" &&
-    typeof (window.__TAURI_INTERNALS__ as any)?.invoke === "function"
+    typeof (window.__TAURI_INTERNALS__ as { invoke?: unknown } | undefined)?.invoke === "function"
   );
 }
 
@@ -42,7 +42,7 @@ async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Prom
   if (!core) {
     throw new Error("Tauri core not available");
   }
-  return ((core.invoke as any)(cmd, args)) as Promise<T>;
+  return ((core.invoke as (c: string, a?: Record<string, unknown>) => unknown)(cmd, args)) as Promise<T>;
 }
 
 interface CachedUpdate {

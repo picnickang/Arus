@@ -20,8 +20,8 @@ export function setupErrorHandlers(): void {
     const isMqttConnectionError =
       error.message?.includes("ECONNREFUSED") ||
       error.message?.includes("ENOTFOUND") ||
-      (error as any).code === "ECONNREFUSED" ||
-      (error as any).code === "ENOTFOUND";
+      (error as { code?: string }).code === "ECONNREFUSED" ||
+      (error as { code?: string }).code === "ENOTFOUND";
 
     const isNeonWebSocketError =
       error.message?.includes("Cannot set property message of") ||

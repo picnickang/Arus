@@ -239,7 +239,7 @@ export async function initializeMLServices(): Promise<void> {
   logger.info("→ Initializing vessel telemetry simulator...");
   const { initVesselSimulator } = await import("../vessel-simulator");
   initVesselSimulator(
-    dbTelemetryStorage as unknown as Parameters<typeof initVesselSimulator>[0]
+    dbTelemetryStorage as object as Parameters<typeof initVesselSimulator>[0]
   );
   logger.info("✓ Vessel telemetry simulator initialized");
 }

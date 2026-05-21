@@ -46,7 +46,7 @@ export function useLatestFeatures(equipmentId: string) {
       apiRequest(
         "GET",
         `/api/pdm/features/latest?equipmentId=${encodeURIComponent(equipmentId)}`
-      ) as unknown as Promise<LatestFeatures | undefined>,
+      ) as object as Promise<LatestFeatures | undefined>,
     enabled: !!equipmentId && !!currentOrgId,
   });
 }

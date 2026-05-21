@@ -150,7 +150,7 @@ export function setCorrelationId(id: string): void {
   const store = asyncLocalStorage.getStore();
   if (store) {
     // If we're already in a context, update it
-    (store as any).correlationId = id;
+    (store as { correlationId?: string }).correlationId = id;
   } else {
     // Fallback for background workers: store in module-level variable
     // This provides best-effort correlation for single-threaded background jobs
@@ -205,7 +205,7 @@ export function redactSensitiveFields<T>(obj: T, depth: number = 0): T {
   }
 
   if (Array.isArray(obj)) {
-    return obj.map((item) => redactSensitiveFields(item, depth + 1)) as unknown as T;
+    return obj.map((item) => redactSensitiveFields(item, depth + 1)) as T;
   }
 
   const redacted: Record<string, any> = {};
@@ -296,7 +296,11 @@ export function createScopedLogger(scope: {
       structuredLog("error", message, {
         ...scope,
         error: error
-          ? { message: error.message, stack: error.stack, code: (error as any).code }
+          ? {
+              message: error.message,
+              stack: error.stack,
+              code: (error as Error & { code?: string }).code,
+            }
           : undefined,
         metadata,
       }),
@@ -317,7 +321,7 @@ export function trackError(error: Error, context: Partial<LogContext> = {}) {
     error: {
       message: error.message,
       stack: error.stack,
-      code: (error as any).code || "UNKNOWN",
+      code: (error as Error & { code?: string }).code || "UNKNOWN",
     },
     ...context,
   });

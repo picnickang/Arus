@@ -149,7 +149,7 @@ export function RagAnalyticsDashboard() {
     <div className="p-6 space-y-6" data-testid="rag-analytics-dashboard">
       <PageHeader
         title="RAG Analytics"
-        {...({ description: "Knowledge Base performance metrics and insights" } as any)}
+        {...({ description: "Knowledge Base performance metrics and insights" } as object)}
       />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

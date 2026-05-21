@@ -397,7 +397,7 @@ export async function verifyChain(
       // Verify hash
       const copy = { ...event };
       const expectedHash = copy.hash;
-      delete (copy as any).hash;
+      delete (copy as { hash?: string }).hash;
       const computedHash = sha256(JSON.stringify(copy));
 
       if (computedHash !== expectedHash) {

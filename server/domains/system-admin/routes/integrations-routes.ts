@@ -85,7 +85,7 @@ export function registerIntegrationsRoutes(app: Express, deps: SystemAdminDepend
     withErrorHandling("update integration config", async (req: Request, res: Response) => {
       const { id } = integrationIdParamSchema.parse(req.params);
       const validatedData = (
-        insertIntegrationConfigSchema as unknown as import("zod").AnyZodObject
+        insertIntegrationConfigSchema as object as import("zod").AnyZodObject
       ).partial().parse(req.body);
       const integration = await dbSystemAdminStorage.updateIntegrationConfig(id, validatedData);
       res.json(integration);

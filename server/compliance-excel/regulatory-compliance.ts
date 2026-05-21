@@ -103,7 +103,7 @@ function renderRegulatoryExcel(
 
   for (const wo of workOrders) {
     woData.push([
-      (wo as any).workOrderNumber ?? wo.id,
+      (wo as { workOrderNumber?: string }).workOrderNumber ?? wo.id,
       wo.equipmentId ?? "",
       wo.maintenanceType ?? "",
       wo.priority ?? "",

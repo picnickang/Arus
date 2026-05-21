@@ -8,13 +8,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import type { ReactNode } from "react";
 
 interface ConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
   title: string;
-  description: string;
+  description: ReactNode;
   confirmText?: string;
   cancelText?: string;
   variant?: "default" | "destructive";

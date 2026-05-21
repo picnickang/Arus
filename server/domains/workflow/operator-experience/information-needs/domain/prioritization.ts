@@ -35,7 +35,7 @@ function statusFromRank(rank: number): InformationNeedStatus {
 }
 
 function metric(signals: OperatorExperienceSignalSnapshot, key: string): number {
-  const value = (signals as unknown as Record<string, unknown>)[key];
+  const value = (signals as object as Record<string, unknown>)[key];
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 

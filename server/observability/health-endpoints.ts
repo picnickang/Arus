@@ -21,8 +21,13 @@ export function healthzEndpoint(req: Request, res: Response) {
 
 type HealthStatus = "ready" | "degraded" | "not ready";
 
+type CheckResult = {
+  status: string;
+  [key: string]: unknown;
+};
+
 interface HealthContext {
-  checks: Record<string, any>;
+  checks: Record<string, CheckResult>;
   overallStatus: HealthStatus;
   databaseType: string;
 }
@@ -39,7 +44,7 @@ async function checkDatabase(ctx: HealthContext): Promise<void> {
     const { db } = await import("../db");
     const { safeSql } = await import("../utils/safeSql");
     const { sql } = await import("drizzle-orm");
-    await safeSql(db as any, sql`SELECT 1 as health_check`);
+    await safeSql(db, sql`SELECT 1 as health_check`);
     ctx.checks.database = {
       status: "ok",
       type: ctx.databaseType,

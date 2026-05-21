@@ -119,7 +119,7 @@ export async function createEquipment(
 
   try {
     await (
-      equipmentAnalyticsService as unknown as {
+      equipmentAnalyticsService as object as {
         setupEquipmentAnalytics?: (e: typeof equipment) => Promise<unknown>;
       }
     ).setupEquipmentAnalytics?.(equipment);

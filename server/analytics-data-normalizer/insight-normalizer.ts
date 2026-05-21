@@ -24,7 +24,7 @@ export function normalizeInsightSnapshot(snapshot: InsightSnapshot): InsightSnap
       tStart: anomaly.tStart || new Date().toISOString(),
       tEnd: anomaly.tEnd || new Date().toISOString(),
       detectionTimestamp: anomaly.tStart || new Date().toISOString(),
-      anomalyScore: clampToRange((anomaly as any).anomalyScore ?? 0.5, 0, 1),
+      anomalyScore: clampToRange((anomaly as { anomalyScore?: number }).anomalyScore ?? 0.5, 0, 1),
       fullAnomalyType: expandAnomalyType(anomaly.kind),
     })),
     compliance: snapshot.compliance || { horViolations7d: 0, notes: [] },

@@ -206,7 +206,7 @@ export class UpdateChecker {
       fromVersion: manifest.fromVersion,
       severity: manifest.severity,
       patchType: manifest.patchType,
-      manifest: manifest as any,
+      manifest: manifest as object as Record<string, unknown>,
       signature: manifest.signature,
       downloadUrl: manifest.downloadUrl,
       fileSize: manifest.fileSize,

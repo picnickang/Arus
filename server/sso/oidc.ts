@@ -33,12 +33,13 @@ async function loadConfig(cfg: SsoOidcConfig, secretResolver: SecretResolver) {
   const oidc = await import("openid-client");
   const clientSecret = await secretResolver(cfg.clientSecretRef);
   // v6 discovery: openid-client `discovery(url, clientId, clientSecret?)`
-  const config = await (oidc as any).discovery(
+  const oidcMod = oidc as object as typeof oidc & { discovery: (url: URL, clientId: string, clientSecret?: string) => Promise<import("openid-client").Configuration> };
+  const config = await oidcMod.discovery(
     new URL(cfg.discoveryUrl),
     cfg.clientId,
     clientSecret,
   );
-  return { oidc: oidc as any, config };
+  return { oidc: oidcMod, config };
 }
 
 export async function beginOidcAuthorization(
@@ -73,8 +74,8 @@ export async function completeOidcAuthorization(
     expectedState: args.expectedState,
     expectedNonce: args.expectedNonce,
   });
-  const claims: Record<string, unknown> =
-    typeof tokens.claims === "function" ? tokens.claims() : tokens.claims || {};
+  const rawClaims = typeof tokens.claims === "function" ? tokens.claims() : tokens.claims;
+  const claims: Record<string, unknown> = (rawClaims || {}) as object as Record<string, unknown>;
   const sub = String(claims.sub || "");
   if (!sub) throw new Error("OIDC ID token missing sub");
   return {

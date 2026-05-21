@@ -15,7 +15,7 @@ export function registerAdminRoutes(app: Express, deps: StcwRestDependencies): v
     "/api/work-orders/clear",
     withErrorHandling("clear work orders", async (_req: Request, res: Response) => {
       await (
-        dbWorkOrderStorage as unknown as { clearAllWorkOrders: () => Promise<void> }
+        dbWorkOrderStorage as object as { clearAllWorkOrders: () => Promise<void> }
       ).clearAllWorkOrders();
       res.json({
         ok: true,

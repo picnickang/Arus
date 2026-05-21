@@ -24,15 +24,15 @@ export async function initializeServiceMetrics(): Promise<void> {
     await import("../services/circuit-breaker/circuitBreaker");
   } catch (err) {
     structuredLog("warn", "Failed to load circuit-breaker metrics", {
-      error: (err instanceof Error ? err.message : String(err)) as any,
+      error: { message: err instanceof Error ? err.message : String(err) },
     });
   }
 
   try {
-    await import("../services/dead-letter-queue");
+    await import("../services/dead-letter-queue"); /* metrics module side-effect */
   } catch (err) {
     structuredLog("warn", "Failed to load dead-letter-queue metrics", {
-      error: (err instanceof Error ? err.message : String(err)) as any,
+      error: { message: err instanceof Error ? err.message : String(err) },
     });
   }
 

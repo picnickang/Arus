@@ -51,7 +51,7 @@ export async function processAttachments(
         const pdfModule = (await import("pdf-parse")) as {
           default?: LegacyPdfParse;
         } & Partial<Record<string, unknown>>;
-        const pdfParse = (pdfModule.default ?? (pdfModule as unknown as LegacyPdfParse)) as LegacyPdfParse;
+        const pdfParse = (pdfModule.default ?? (pdfModule as object as LegacyPdfParse)) as LegacyPdfParse;
         const pdfData = await pdfParse(pdfBuffer);
         const text = pdfData.text.slice(0, 12000);
         contentParts.push({

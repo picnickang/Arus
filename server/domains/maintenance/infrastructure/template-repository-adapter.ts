@@ -35,7 +35,7 @@ export class MaintenanceTemplateRepositoryAdapter implements IMaintenanceTemplat
 
   async create(command: CreateTemplateCommand): Promise<MaintenanceTemplateEntity> {
     const template = await dbMaintenanceTemplatesStorage.createMaintenanceTemplate(
-      command as unknown as Parameters<typeof dbMaintenanceTemplatesStorage.createMaintenanceTemplate>[0]
+      command as object as Parameters<typeof dbMaintenanceTemplatesStorage.createMaintenanceTemplate>[0]
     );
     return this.mapToEntity(template);
   }
@@ -47,7 +47,7 @@ export class MaintenanceTemplateRepositoryAdapter implements IMaintenanceTemplat
   ): Promise<MaintenanceTemplateEntity> {
     const template = await dbMaintenanceTemplatesStorage.updateMaintenanceTemplate(
       id,
-      updates as unknown as Parameters<typeof dbMaintenanceTemplatesStorage.updateMaintenanceTemplate>[1],
+      updates as object as Parameters<typeof dbMaintenanceTemplatesStorage.updateMaintenanceTemplate>[1],
       orgId
     );
     return this.mapToEntity(template);

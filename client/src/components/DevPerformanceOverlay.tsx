@@ -69,7 +69,7 @@ export function installFetchInterceptor(): boolean {
   }
 
   const currentFetch = window.fetch;
-  if ((currentFetch as unknown as Record<symbol, boolean>)[FETCH_WRAPPER_SYMBOL]) {
+  if ((currentFetch as object as Record<symbol, boolean>)[FETCH_WRAPPER_SYMBOL]) {
     return false;
   }
 
@@ -147,7 +147,7 @@ export function installFetchInterceptor(): boolean {
     }
   };
 
-  (wrappedFetch as unknown as Record<symbol, boolean>)[FETCH_WRAPPER_SYMBOL] = true;
+  (wrappedFetch as object as Record<symbol, boolean>)[FETCH_WRAPPER_SYMBOL] = true;
   window.fetch = wrappedFetch;
   return true;
 }

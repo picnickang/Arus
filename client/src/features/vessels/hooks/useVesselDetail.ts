@@ -50,9 +50,9 @@ export function useVesselDetail(): UseVesselDetailReturn {
   const { data: crewRaw = [], isLoading: crewLoading } = useCrewList();
   const { data: maintenanceSchedulesRaw = [], isLoading: schedulesLoading } =
     useMaintenanceSchedules();
-  const workOrders = workOrdersRaw as unknown as WorkOrder[];
-  const crew = crewRaw as unknown as Crew[];
-  const maintenanceSchedules = maintenanceSchedulesRaw as unknown as MaintenanceSchedule[];
+  const workOrders = workOrdersRaw as object as WorkOrder[];
+  const crew = crewRaw as object as Crew[];
+  const maintenanceSchedules = maintenanceSchedulesRaw as object as MaintenanceSchedule[];
 
   const vesselWorkOrders = useMemo(
     () =>

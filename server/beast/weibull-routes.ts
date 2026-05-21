@@ -62,21 +62,21 @@ router.get("/weibull/history/:equipmentId", async (req, res) => {
         });
     }
     const analyzer = new WeibullRULAnalyzer();
-    const history = await (analyzer as any).getAnalysisHistory(equipmentId, orgId, limit);
+    const history = await analyzer.getRULHistory(equipmentId, orgId, limit);
     res.json({
       success: true,
       equipmentId,
       orgId,
       count: history.length,
-      history: history.map((pred: Record<string, unknown> & { id: string; timestamp: string | Date }) => ({
+      history: history.map((pred) => ({
         id: pred.id,
-        timestamp: pred.timestamp,
+        timestamp: pred.createdAt,
         currentAge: pred.currentAge,
         predictedRUL: pred.predictedRUL,
         reliability: pred.reliability,
-        recommendation: pred.maintenanceRecommendation,
-        failureProb30d: (pred.failureProbability as any)?.next30days,
-        failureProb90d: (pred.failureProbability as any)?.next90days,
+        recommendation: pred.recommendation,
+        failureProb30d: pred.failureProb30d,
+        failureProb90d: pred.failureProb90d,
       })),
     });
   } catch (error) {

@@ -76,11 +76,11 @@ export function useUpdateServiceRequest() {
       id: string;
       data: {
         title?: string;
-        description?: string;
+        description?: string | null;
         urgency?: string;
-        estimatedCost?: number;
-        serviceDetails?: string;
-        specialRequirements?: string;
+        estimatedCost?: number | null;
+        serviceDetails?: string | null;
+        specialRequirements?: string | null;
       };
     }) => apiRequest("PATCH", `/api/service-requests/${id}`, data),
     onSuccess: () => {

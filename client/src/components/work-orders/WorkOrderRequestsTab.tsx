@@ -297,7 +297,7 @@ export function WorkOrderRequestsTab({
       <EnhancedServiceRequestDialog
         open={soDialogOpen}
         onOpenChange={handleSoDialogClose}
-        onSubmit={handleCreateServiceOrder as unknown as Parameters<typeof EnhancedServiceRequestDialog>[0]["onSubmit"]}
+        onSubmit={handleCreateServiceOrder as object as Parameters<typeof EnhancedServiceRequestDialog>[0]["onSubmit"]}
         isPending={editingSO ? isUpdatingServiceOrder : isCreatingServiceOrder}
         initialData={
           editingSO

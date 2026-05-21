@@ -64,15 +64,18 @@ export async function queryAuditEvents(options: AuditQueryOptions): Promise<Audi
 
   const results = await query;
 
-  return ((results as any[]).map((r: any) => ({
-    ...r,
-    eventCategory: r.eventCategory as AuditEventCategory,
-    eventType: r.eventType as AuditEventType,
-    performedByType: (r.performedByType ?? "user") as PerformerType,
-    previousState: parseJsonField(r.previousState),
-    newState: parseJsonField(r.newState),
-    changedFields: parseChangedFields(r.changedFields),
-    metadata: parseJsonField(r.metadata),
-    retentionRequired: r.retentionRequired ?? true,
-  }))) as any;
+  return ((results as unknown[]).map((raw) => {
+    const r = raw as Record<string, unknown>;
+    return {
+      ...r,
+      eventCategory: r.eventCategory as AuditEventCategory,
+      eventType: r.eventType as AuditEventType,
+      performedByType: (r.performedByType ?? "user") as PerformerType,
+      previousState: parseJsonField(r.previousState),
+      newState: parseJsonField(r.newState),
+      changedFields: parseChangedFields(r.changedFields),
+      metadata: parseJsonField(r.metadata),
+      retentionRequired: r.retentionRequired ?? true,
+    };
+  })) as object as AuditRecord[];
 }

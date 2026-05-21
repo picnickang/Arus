@@ -13,7 +13,7 @@ export function useReportsData() {
 
   const { data: equipmentHealth, isLoading: healthLoading } = useQuery<any[]>({
     queryKey: ["/api/equipment/health"],
-    queryFn: fetchEquipmentHealth as any,
+    queryFn: fetchEquipmentHealth as object as () => Promise<unknown[]>,
   });
   const { data: workOrders, isLoading: ordersLoading } = useQuery({
     queryKey: ["/api/work-orders"],

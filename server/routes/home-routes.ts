@@ -15,8 +15,8 @@ function safeCall<T>(fn: (() => Promise<T>) | undefined): Promise<T | null> {
   }
   try {
     const result = fn();
-    if (result && typeof (result as any).catch === "function") {
-      return (result as any).catch(() => null);
+    if (result && typeof (result as PromiseLike<T>).then === "function") {
+      return Promise.resolve(result).catch(() => null);
     }
     return Promise.resolve(result);
   } catch {

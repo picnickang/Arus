@@ -239,10 +239,10 @@ export function useEquipmentViewData(
       offset: sensor.offset ?? undefined,
       enabled: sensor.enabled ?? undefined,
       notes: sensor.notes || "",
-      critHi: sensor.critHi as unknown as null,
-      critLo: sensor.critLo as unknown as null,
-      warnHi: sensor.warnHi as unknown as null,
-      warnLo: sensor.warnLo as unknown as null,
+      critHi: sensor.critHi,
+      critLo: sensor.critLo,
+      warnHi: sensor.warnHi,
+      warnLo: sensor.warnLo,
     });
     setIsSensorDialogOpen(true);
   };
@@ -263,10 +263,10 @@ export function useEquipmentViewData(
       sensorForm.setValue("targetUnit", template.targetUnit || "");
       sensorForm.setValue("gain", template.gain);
       sensorForm.setValue("offset", template.offset);
-      sensorForm.setValue("critHi", template.critHi as unknown as null);
-      sensorForm.setValue("critLo", template.critLo as unknown as null);
-      sensorForm.setValue("warnHi", template.warnHi as unknown as null);
-      sensorForm.setValue("warnLo", template.warnLo as unknown as null);
+      sensorForm.setValue("critHi", template.critHi);
+      sensorForm.setValue("critLo", template.critLo);
+      sensorForm.setValue("warnHi", template.warnHi);
+      sensorForm.setValue("warnLo", template.warnLo);
     }
   };
   const handleAssignExistingSensor = () => {

@@ -25,7 +25,7 @@ export class SensorStateRepository extends TenantScopedRepository {
       whereClause = and(whereClause, eq(sensorStates.sensorType, filters.sensorType));
     }
 
-    return db.select().from(sensorStates).where(whereClause).orderBy((sensorStates as any).lastUpdated);
+    return db.select().from(sensorStates).where(whereClause).orderBy(sensorStates.updatedAt);
   }
 
   /**
@@ -52,7 +52,13 @@ export class SensorStateRepository extends TenantScopedRepository {
    * Create or update sensor state (upsert)
    * Automatically sets orgId
    */
-  async upsert(data: Omit<any, "id" | "orgId">) {
+  async upsert(data: {
+    equipmentId: string;
+    sensorType: string;
+    lastValue?: number | null;
+    ema?: number | null;
+    lastTs?: Date | null;
+  }) {
     const { sensorStates } = await import("@shared/schema");
 
     const existing = await this.getByEquipmentAndType(data.equipmentId, data.sensorType);
@@ -62,8 +68,8 @@ export class SensorStateRepository extends TenantScopedRepository {
         .update(sensorStates)
         .set({
           ...data,
-          lastUpdated: new Date(),
-        } as any)
+          updatedAt: new Date(),
+        })
         .where(
           this.orgWhere(
             sensorStates,
@@ -82,8 +88,8 @@ export class SensorStateRepository extends TenantScopedRepository {
       .values({
         ...data,
         orgId: this.orgId,
-        lastUpdated: new Date(),
-      } as any)
+        updatedAt: new Date(),
+      })
       .returning();
 
     return created;

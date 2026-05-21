@@ -141,10 +141,10 @@ registerTool({
     );
 
     const data = result.data;
-    if (!data || (data as unknown as Record<string, unknown>).error) {
+    if (!data || (data as object as Record<string, unknown>).error) {
       return {
         partNumber,
-        error: (data as unknown as Record<string, unknown>)?.error || "Part availability data unavailable",
+        error: (data as object as Record<string, unknown>)?.error || "Part availability data unavailable",
         _meta: {
           fromCache: result.fromCache,
           stale: result.stale,
@@ -258,7 +258,7 @@ registerTool({
           PARTS_CACHE_TTL_SEC
         ).catch(() => null);
 
-        if (!cached || (cached.data as unknown as Record<string, unknown>)?.error) {
+        if (!cached || (cached.data as object as Record<string, unknown>)?.error) {
           return { ...base, supplierData: null, supplierError: "External data unavailable" };
         }
 

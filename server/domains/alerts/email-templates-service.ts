@@ -279,8 +279,8 @@ export class EmailTemplatesService {
           };
 
     return {
-      subject: this.renderTemplate(template.subject, sampleData as unknown as Record<string, string>),
-      body: this.renderTemplate(template.body, sampleData as unknown as Record<string, string>),
+      subject: this.renderTemplate(template.subject, sampleData as object as Record<string, string>),
+      body: this.renderTemplate(template.body, sampleData as object as Record<string, string>),
     };
   }
 }

@@ -303,7 +303,7 @@ export default function ConditionMonitoringLogPage() {
                         <div>
                           <p className="font-medium">{getEquipmentName(log.equipmentId ?? "")}</p>
                           <p className="text-sm text-muted-foreground">
-                            {format(new Date(log.periodStart as any), "MMM dd, HH:mm")}
+                            {format(new Date(log.periodStart as string | number | Date), "MMM dd, HH:mm")}
                           </p>
                         </div>
                       </div>
@@ -366,7 +366,7 @@ export default function ConditionMonitoringLogPage() {
                         return (
                         <TableRow key={log.id} data-testid={`row-condition-log-${log.id}`}>
                           <TableCell className="font-medium">
-                            {format(new Date(log.periodStart as any), "MMM dd HH:mm")}
+                            {format(new Date(log.periodStart as string | number | Date), "MMM dd HH:mm")}
                           </TableCell>
                           <TableCell>{getEquipmentName(log.equipmentId ?? "")}</TableCell>
                           <TableCell className="text-center">

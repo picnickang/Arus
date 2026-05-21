@@ -38,15 +38,15 @@ export class ScheduleAssignmentRepositoryAdapter implements IScheduleAssignmentR
     assignments: Omit<ScheduleAssignmentEntity, "id" | "createdAt">[]
   ): Promise<void> {
     await dbSchedulerStorage.createBulkScheduleAssignments(
-      assignments as unknown as Parameters<
+      assignments as object as Parameters<
         typeof dbSchedulerStorage.createBulkScheduleAssignments
       >[0]
     );
   }
 
   async findByRunId(runId: string): Promise<ScheduleAssignmentEntity[]> {
-    const assignments = await dbSchedulerStorage.getScheduleAssignmentsByRun(runId);
-    return (assignments as unknown as AssignmentRow[]).map(mapToEntity);
+    const assignments: unknown = await dbSchedulerStorage.getScheduleAssignmentsByRun(runId);
+    return (assignments as AssignmentRow[]).map(mapToEntity);
   }
 
   async findByDateRange(
@@ -54,8 +54,8 @@ export class ScheduleAssignmentRepositoryAdapter implements IScheduleAssignmentR
     fromDate: Date,
     toDate: Date
   ): Promise<ScheduleAssignmentEntity[]> {
-    const assignments = await dbSchedulerStorage.getScheduleAssignments(orgId, fromDate, toDate);
-    return (assignments as unknown as AssignmentRow[]).map(mapToEntity);
+    const assignments: unknown = await dbSchedulerStorage.getScheduleAssignments(orgId, fromDate, toDate);
+    return (assignments as AssignmentRow[]).map(mapToEntity);
   }
 
   async deleteByDateRange(orgId: string, start: Date, end: Date, _mode?: string): Promise<void> {

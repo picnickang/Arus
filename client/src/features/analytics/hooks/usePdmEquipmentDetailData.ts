@@ -187,7 +187,7 @@ export function useSensorsTabData(equipmentId: string) {
     isLoading,
     isFetching,
   } = useQuery<SensorConfig[]>({ queryKey: ["/api/sensor-config", { equipmentId }] });
-  const { data: equipment } = useQuery({ queryKey: [`/api/equipment/${equipmentId}`] });
+  const { data: equipment } = useQuery<EquipmentDetail>({ queryKey: [`/api/equipment/${equipmentId}`] });
 
   useEffect(() => {
     if (!sensorConfigs || selectedSensorIds.length === 0) {
@@ -402,15 +402,30 @@ export function useSensorsTabData(equipmentId: string) {
   };
 }
 
+export interface AnomalyDetectionItem {
+  id: string;
+  sensorKind?: string;
+  severity?: string;
+  description?: string;
+}
+
+export interface MaintenanceHistoryWorkOrder {
+  id: string;
+  reason?: string;
+  description?: string;
+  status?: string;
+  maintenanceType?: string;
+}
+
 export function useAnomaliesTabData(equipmentId: string) {
-  const { data: anomalies, isLoading } = useQuery({
+  const { data: anomalies, isLoading } = useQuery<AnomalyDetectionItem[]>({
     queryKey: ["/api/analytics/anomaly-detections", { equipmentId }],
   });
   return { anomalies, isLoading };
 }
 
 export function useMaintenanceHistoryTabData(equipmentId: string) {
-  const { data: workOrders, isLoading } = useQuery({
+  const { data: workOrders, isLoading } = useQuery<MaintenanceHistoryWorkOrder[]>({
     queryKey: ["/api/work-orders", { equipmentId }],
   });
   return { workOrders, isLoading };

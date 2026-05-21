@@ -69,12 +69,12 @@ class JobQueueService {
     return jobId!;
   }
 
-  async getJobStatus(jobId: string): Promise<any> {
+  async getJobStatus(jobId: string): Promise<PgBoss.JobWithMetadata<DocumentIngestionJob> | null> {
     if (!this.boss) {
       throw new Error("Job queue not initialized");
     }
 
-    return (this.boss as any).getJobById(jobId);
+    return this.boss.getJobById<DocumentIngestionJob>("document-ingestion", jobId);
   }
 
   async startWorker(
@@ -107,7 +107,11 @@ class JobQueueService {
       });
     };
 
-    await (this.boss as any).work(
+    const bossUnknown: unknown = this.boss;
+    const bossLoose = bossUnknown as {
+      work: (name: string, options: object, handler: typeof instrumentedHandler) => Promise<string>;
+    };
+    await bossLoose.work(
       "document-ingestion",
       { teamSize: concurrency, teamConcurrency: 1 },
       instrumentedHandler
@@ -116,12 +120,16 @@ class JobQueueService {
     log("JobQueue", `Worker started with concurrency: ${concurrency}`);
   }
 
-  async completeJob(jobId: string, result?: any, durationMs?: number): Promise<void> {
+  async completeJob(jobId: string, result?: object, durationMs?: number): Promise<void> {
     if (!this.boss) {
       throw new Error("Job queue not initialized");
     }
 
-    await (this.boss as any).complete(jobId, result);
+    if (result) {
+      await this.boss.complete("document-ingestion", jobId, result);
+    } else {
+      await this.boss.complete("document-ingestion", jobId);
+    }
 
     // Emit Prometheus metrics for job completion
     incrementJobCompleted("document-ingestion");
@@ -135,10 +143,12 @@ class JobQueueService {
       throw new Error("Job queue not initialized");
     }
 
-    await (this.boss as any).fail(jobId, error);
+    await this.boss.fail("document-ingestion", jobId, { message: error.message });
 
     // Emit Prometheus metrics for job failure
-    const errorType = (error as any).code || "unknown";
+    const errUnknown: unknown = error;
+    const errWithCode = errUnknown as { code?: unknown };
+    const errorType = typeof errWithCode.code === "string" ? errWithCode.code : "unknown";
     incrementJobFailed("document-ingestion", errorType);
     if (durationMs !== undefined) {
       recordJobDuration("document-ingestion", durationMs / 1000);

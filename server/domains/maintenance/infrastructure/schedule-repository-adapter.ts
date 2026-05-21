@@ -47,7 +47,7 @@ export class MaintenanceScheduleRepositoryAdapter implements IMaintenanceSchedul
 
   async create(command: CreateScheduleCommand): Promise<MaintenanceScheduleEntity> {
     const schedule = await dbMaintenanceStorage.createMaintenanceSchedule(
-      command as unknown as Parameters<typeof dbMaintenanceStorage.createMaintenanceSchedule>[0]
+      command as object as Parameters<typeof dbMaintenanceStorage.createMaintenanceSchedule>[0]
     );
     return this.mapToEntity(schedule);
   }
@@ -55,7 +55,7 @@ export class MaintenanceScheduleRepositoryAdapter implements IMaintenanceSchedul
   async update(id: string, updates: UpdateScheduleCommand): Promise<MaintenanceScheduleEntity> {
     const schedule = await dbMaintenanceStorage.updateMaintenanceSchedule(
       id,
-      updates as unknown as Parameters<typeof dbMaintenanceStorage.updateMaintenanceSchedule>[1]
+      updates as object as Parameters<typeof dbMaintenanceStorage.updateMaintenanceSchedule>[1]
     );
     return this.mapToEntity(schedule);
   }

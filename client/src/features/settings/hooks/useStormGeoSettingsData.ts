@@ -39,7 +39,7 @@ export interface ImportHistory {
 }
 
 export function useStormGeoSettingsData(vesselId?: string) {
-  const { orgId } = useOrganization() as any;
+  const { orgId } = useOrganization() as object as { orgId: string };
   const { toast } = useToast();
   const _queryClient = useQueryClient();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -134,7 +134,7 @@ export function useStormGeoSettingsData(vesselId?: string) {
         fileContent,
         fileName,
         fileType: fileName.endsWith(".json") ? "json" : "csv",
-      })) as any,
+      })) as object as never,
     onSuccess: (data: { status: string; recordsCreated: number; recordsFailed: number }) => {
       toast({
         title: data.status === "success" ? "Import successful" : "Import completed with issues",

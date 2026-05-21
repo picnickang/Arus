@@ -181,7 +181,7 @@ export function registerHubSyncRoutes(
 
       const validatedConfig = insertOptimizerConfigurationSchema.parse(configData);
       const config = await hubSyncService.createOptimizerConfiguration(
-        validatedConfig as unknown as Parameters<
+        validatedConfig as object as Parameters<
           typeof hubSyncService.createOptimizerConfiguration
         >[0]
       );

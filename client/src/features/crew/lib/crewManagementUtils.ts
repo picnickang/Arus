@@ -64,7 +64,7 @@ export function formatRank(rank: string): string {
   if (mapped) {
     return mapped;
   }
-  if (MARITIME_RANKS.includes(rank as any)) {
+  if ((MARITIME_RANKS as readonly string[]).includes(rank)) {
     return rank;
   }
   return rank.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -260,8 +260,8 @@ export function sortCrew(
         compareB = b.name.toLowerCase();
         break;
       case "rank":
-        compareA = MARITIME_RANKS.indexOf(a.rank as any);
-        compareB = MARITIME_RANKS.indexOf(b.rank as any);
+        compareA = (MARITIME_RANKS as readonly string[]).indexOf(a.rank);
+        compareB = (MARITIME_RANKS as readonly string[]).indexOf(b.rank);
         break;
       case "vessel":
         compareA = getVesselName(a.vesselId ?? "").toLowerCase();

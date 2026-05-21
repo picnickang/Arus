@@ -192,7 +192,7 @@ export class ModeDetector {
    * Convert EquipmentTelemetry to TelemetryWindow format
    */
   toTelemetryWindow(telemetry: EquipmentTelemetry): TelemetryWindow {
-    const t = telemetry as unknown as Record<string, number | undefined>;
+    const t = telemetry as object as Record<string, number | undefined>;
     return {
       rpm: t.rpm || undefined,
       stw: t.stw || undefined,

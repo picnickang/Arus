@@ -28,10 +28,10 @@ export async function persistSnapshot(
       recommendations: bundle.recommendations,
       anomalies: bundle.anomalies,
       compliance: bundle.compliance,
-    } as any;
+    } as object as InsertInsightSnapshot;
 
     const snapshot = await analyticsInsightsAdapter.createInsightSnapshot(orgId, insertData);
-    return { id: snapshot.id, createdAt: snapshot.createdAt as any };
+    return { id: snapshot.id, createdAt: snapshot.createdAt as object as Date };
   } catch (error) {
     logger.error("Failed to persist insight snapshot:", undefined, error);
     logger.error("Bundle data that failed:", undefined, JSON.stringify(

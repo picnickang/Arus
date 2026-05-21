@@ -86,7 +86,7 @@ export class ComparisonService {
     const documents = await db
       .select({
         id: kbDocs.id,
-        title: (kbDocs as any).title,
+        title: kbDocs.name,
       })
       .from(kbDocs)
       .where(inArray(kbDocs.id, documentIds));
@@ -96,10 +96,10 @@ export class ComparisonService {
     for (const doc of documents) {
       const chunks = await db
         .select({
-          content: (kbChunks as any).content,
+          content: kbChunks.text,
         })
         .from(kbChunks)
-        .where(eq((kbChunks as any).documentId, doc.id))
+        .where(eq(kbChunks.docId, doc.id))
         .limit(maxChunksPerDoc);
 
       documentContents.push({
@@ -217,11 +217,11 @@ Focus on factual, specific differences. Be concise but thorough.`;
     return await db
       .select({
         id: kbDocs.id,
-        title: (kbDocs as any).title,
+        title: kbDocs.name,
       })
       .from(kbDocs)
       .where(eq(kbDocs.orgId, orgId))
-      .orderBy(sql`${(kbDocs as any).uploadedAt} DESC`)
+      .orderBy(sql`${kbDocs.createdAt} DESC`)
       .limit(100);
   }
 }

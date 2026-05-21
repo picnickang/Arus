@@ -105,7 +105,7 @@ export class TrackLogService {
       sog: lastPos[0].sog ?? undefined,
       cog: lastPos[0].cog ?? undefined,
       heading: lastPos[0].heading ?? undefined,
-      source: lastPos[0].source as any,
+      source: lastPos[0].source as string,
       equipmentId: lastPos[0].equipmentId ?? undefined,
     };
   }
@@ -152,7 +152,11 @@ export class TrackLogService {
       return null;
     }
 
-    const logEntry: InsertVesselTrackLog = {
+    const logEntry: InsertVesselTrackLog & {
+      navStatus?: string;
+      distanceFromPrevNm?: number | null;
+      timeFromPrevMinutes?: number | null;
+    } = {
       orgId,
       vesselId,
       timestamp: position.timestamp,
@@ -166,7 +170,7 @@ export class TrackLogService {
       equipmentId: position.equipmentId,
       distanceFromPrevNm: distanceFromPrev,
       timeFromPrevMinutes,
-    } as any;
+    };
 
     const result = await db
       .insert(vesselTrackLog)
@@ -248,8 +252,10 @@ export class TrackLogService {
         ORDER BY ${equipmentTelemetry.ts}
       `);
 
-      const rows = (positionRows as unknown as { rows?: Array<Record<string, unknown>> }).rows
-        ?? (positionRows as unknown as Array<Record<string, unknown>>);
+      const positionRowsUnknown: unknown = positionRows;
+      const positionRowsWrapped = positionRowsUnknown as { rows?: Array<Record<string, unknown>> };
+      const rows: Array<Record<string, unknown>> | undefined = positionRowsWrapped.rows
+        ?? (positionRowsUnknown as Array<Record<string, unknown>>);
 
       for (const row of rows ?? []) {
         const lat = Number(row.latitude);
@@ -320,7 +326,7 @@ export class TrackLogService {
         sog: vesselTrackLog.sog,
         cog: vesselTrackLog.cog,
         heading: vesselTrackLog.heading,
-        navStatus: (vesselTrackLog as any).navStatus,
+        navStatus: (vesselTrackLog as object as { navStatus: typeof vesselTrackLog.source }).navStatus,
         source: vesselTrackLog.source,
       })
       .from(vesselTrackLog)
@@ -338,7 +344,8 @@ export class TrackLogService {
       query = query.limit(limit) as typeof query;
     }
 
-    return query as any;
+    const rows = await query;
+    return rows.map((r) => ({ ...r, source: r.source ?? "ais" }));
   }
 
   /**
@@ -397,7 +404,7 @@ export class TrackLogService {
   }> {
     const stats = await db
       .select({
-        totalDistance: sql<number>`sum(${(vesselTrackLog as any).distanceFromPrevNm})`,
+        totalDistance: sql<number>`sum(${(vesselTrackLog as object as Record<string, never>).distanceFromPrevNm})`,
         avgSpeed: sql<number>`avg(${vesselTrackLog.sog})`,
         maxSpeed: sql<number>`max(${vesselTrackLog.sog})`,
         trackPoints: sql<number>`count(*)`,

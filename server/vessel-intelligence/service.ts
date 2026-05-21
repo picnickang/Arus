@@ -81,14 +81,14 @@ export class VesselIntelligenceService {
     const completedOrders = workOrders.filter((wo) => wo.status === "completed");
     const avgResolutionTime = calculateAverageResolutionTime(completedOrders);
     const criticalIncidents = workOrders.filter(
-      (wo) => (wo.priority as any) === "critical" || (wo.priority as any) === "urgent"
+      (wo) => (wo.priority as unknown) === "critical" || (wo.priority as unknown) === "urgent"
     ).length;
 
     const maintenanceHistory = {
-      scheduled: workOrders.filter((wo) => (wo as any).workOrderType === "scheduled").length,
-      unscheduled: workOrders.filter((wo) => (wo as any).workOrderType === "unscheduled").length,
-      emergency: workOrders.filter((wo) => (wo.priority as any) === "critical").length,
-      preventive: workOrders.filter((wo) => (wo as any).workOrderType === "preventive").length,
+      scheduled: workOrders.filter((wo) => (wo as Record<string, unknown>).workOrderType === "scheduled").length,
+      unscheduled: workOrders.filter((wo) => (wo as Record<string, unknown>).workOrderType === "unscheduled").length,
+      emergency: workOrders.filter((wo) => (wo.priority as unknown) === "critical").length,
+      preventive: workOrders.filter((wo) => (wo as Record<string, unknown>).workOrderType === "preventive").length,
     };
 
     const performanceMetrics = calculatePerformanceMetrics(workOrders, vesselAge);

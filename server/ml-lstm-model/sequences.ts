@@ -29,12 +29,12 @@ export function prepareSequences(
       for (let j = i - sequenceLength; j < i; j++) {
         const features: number[] = [];
         for (const featureName of featureNames) {
-          features.push((points[j] as any).features[featureName] ?? 0);
+          features.push((points[j] as object as { features: Record<string, number> }).features[featureName] ?? 0);
         }
         sequence.push(features);
       }
       sequences.push(sequence);
-      labels.push((points[i] as any).label ?? 0);
+      labels.push((points[i] as { label?: number }).label ?? 0);
     }
   }
 

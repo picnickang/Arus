@@ -28,7 +28,7 @@ export async function generateSoNumber(
         FROM service_orders WHERE org_id = ${orgId} AND so_number ~ '^SO-[0-9]+$'`
   );
   const nextNum = Number(
-    (result as unknown as { rows?: Array<{ next_val: string }> }).rows?.[0]?.next_val ?? 1
+    (result as object as { rows?: Array<{ next_val: string }> }).rows?.[0]?.next_val ?? 1
   );
   return `SO-${String(nextNum).padStart(4, "0")}`;
 }

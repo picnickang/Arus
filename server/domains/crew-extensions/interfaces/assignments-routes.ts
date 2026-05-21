@@ -80,7 +80,7 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
             return assignmentStart <= rangeEnd && assignmentEnd >= rangeStart;
           })
           .map((a) => {
-            const bag = a as unknown as {
+            const bag = a as object as {
               crewMember?: { name?: string };
               vessel?: { name?: string };
               shiftPattern?: string;

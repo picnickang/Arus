@@ -48,7 +48,7 @@ export async function calculateWorkOrderSavings(
   }
 
   let maintenanceType: SavingsCalculation["maintenanceType"] =
-    (workOrder.maintenanceType as any) || "corrective";
+    (workOrder.maintenanceType as SavingsCalculation["maintenanceType"]) || "corrective";
   let triggeredBy: SavingsCalculation["triggeredBy"] = "manual";
   let predictionId: number | null = null;
   let confidenceScore: number | null = null;

@@ -45,6 +45,8 @@ import {
   FREQUENCY_OPTIONS,
   PRIORITY_OPTIONS_TEMPLATE,
 } from "@/features/maintenance";
+import type { ChecklistItemFormData } from "@/features/maintenance/lib/templateUtils";
+import type { UseFormReturn } from "react-hook-form";
 
 export default function MaintenanceTemplatesPage() {
   const {
@@ -128,8 +130,8 @@ export default function MaintenanceTemplatesPage() {
                     <TemplateCard
                       key={template.id}
                       template={template}
-                      onView={handleView as any}
-                      onEdit={handleEdit as any}
+                      onView={handleView}
+                      onEdit={handleEdit}
                       onClone={handleClone}
                       onDelete={handleDelete}
                       cloneIsPending={cloneTemplateMutation.isPending}
@@ -307,8 +309,8 @@ export default function MaintenanceTemplatesPage() {
                   <ChecklistSection
                     checklistItems={checklistItems}
                     editingItemIndex={editingItemIndex}
-                    itemForm={itemForm as any}
-                    onAdd={addChecklistItem as any}
+                    itemForm={itemForm}
+                    onAdd={addChecklistItem}
                     onEdit={editChecklistItem}
                     onRemove={removeChecklistItem}
                   />
@@ -350,7 +352,7 @@ export default function MaintenanceTemplatesPage() {
             {selectedTemplate && (
               <ViewTemplateContent
                 template={selectedTemplate}
-                items={templateItems as any}
+                items={templateItems as TemplateItem[]}
                 onClose={() => setIsViewDialogOpen(false)}
               />
             )}
@@ -389,18 +391,13 @@ export default function MaintenanceTemplatesPage() {
 interface MaintenanceTemplate {
   id: string;
   name: string;
-  description?: string | null;
+  description?: string;
   priority: string;
   frequency: string;
   estimatedDuration: number;
   equipmentType: string;
 }
-interface ChecklistItemData {
-  stepNumber: number;
-  description: string;
-  required?: boolean;
-  estimatedMinutes?: number;
-}
+type ChecklistItemData = ChecklistItemFormData;
 function TemplateCard({
   template,
   onView,
@@ -504,7 +501,7 @@ function ChecklistSection({
 }: {
   checklistItems: ChecklistItemData[];
   editingItemIndex: number | null;
-  itemForm: ReturnType<typeof import("react-hook-form").useForm>;
+  itemForm: UseFormReturn<ChecklistItemFormData>;
   onAdd: (data: ChecklistItemData) => void;
   onEdit: (index: number) => void;
   onRemove: (index: number) => void;
@@ -576,7 +573,7 @@ function ChecklistSection({
         <h4 className="font-medium">Add Checklist Item</h4>
         <div className="grid grid-cols-2 gap-4">
           <FormField
-            control={itemForm.control as any}
+            control={itemForm.control}
             name="stepNumber"
             render={({ field }) => (
               <FormItem>
@@ -589,7 +586,7 @@ function ChecklistSection({
             )}
           />
           <FormField
-            control={itemForm.control as any}
+            control={itemForm.control}
             name="estimatedMinutes"
             render={({ field }) => (
               <FormItem>
@@ -603,7 +600,7 @@ function ChecklistSection({
           />
         </div>
         <FormField
-          control={itemForm.control as any}
+          control={itemForm.control}
           name="description"
           render={({ field }) => (
             <FormItem>
@@ -620,7 +617,7 @@ function ChecklistSection({
           )}
         />
         <FormField
-          control={itemForm.control as any}
+          control={itemForm.control}
           name="required"
           render={({ field }) => (
             <FormItem className="flex items-center gap-2">
@@ -640,7 +637,7 @@ function ChecklistSection({
         <Button
           type="button"
           variant="secondary"
-          onClick={itemForm.handleSubmit(onAdd as any)}
+          onClick={itemForm.handleSubmit(onAdd)}
           data-testid="button-add-item"
         >
           <Plus className="h-4 w-4 mr-2" />

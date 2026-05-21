@@ -72,7 +72,7 @@ export function useSettingsData() {
   });
 
   const updateSettingsMutation = useCustomMutation<Partial<SystemSettings>, void>({
-    mutationFn: ((data: Partial<SystemSettings>) => updateSettings(data)) as any,
+    mutationFn: ((data: Partial<SystemSettings>) => updateSettings(data)) as object as (data: Partial<SystemSettings>) => Promise<void>,
     invalidateKeys: ["/api/settings"],
     successMessage: "System settings have been successfully updated.",
   });

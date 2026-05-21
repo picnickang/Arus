@@ -37,7 +37,7 @@ export function ModelRegistryTab({
       for (const m of modelsList) {
         try {
           const res = await fetch(`/api/pdm/models/${m.id}/versions`, {
-            headers: { "x-org-id": currentOrgId as any },
+            headers: { "x-org-id": String(currentOrgId ?? "") },
           });
           if (!res.ok) {
             continue;
@@ -139,7 +139,7 @@ export function ModelRegistryTab({
         </Card>
       )}
 
-      {selectedModelId && deployment != null && !(deployment as any).message && (
+      {selectedModelId && deployment != null && !(deployment as Record<string, unknown>).message && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Active Deployment</CardTitle>
@@ -147,19 +147,22 @@ export function ModelRegistryTab({
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
               <div>
-                <span className="text-muted-foreground">Target:</span> {(deployment as any).deploymentTarget}
+                <span className="text-muted-foreground">Target:</span>{" "}
+                {String((deployment as Record<string, unknown>).deploymentTarget ?? "")}
               </div>
               <div>
                 <span className="text-muted-foreground">Status:</span>{" "}
-                <Badge>{(deployment as any).deploymentStatus}</Badge>
+                <Badge>{String((deployment as Record<string, unknown>).deploymentStatus ?? "")}</Badge>
               </div>
               <div>
                 <span className="text-muted-foreground">Traffic:</span>{" "}
-                {(deployment as any).trafficPercentage}%
+                {String((deployment as Record<string, unknown>).trafficPercentage ?? 0)}%
               </div>
               <div>
                 <span className="text-muted-foreground">Deployed:</span>{" "}
-                {new Date((deployment as any).deployedOn).toLocaleDateString()}
+                {new Date(
+                  (deployment as Record<string, unknown>).deployedOn as string | number | Date
+                ).toLocaleDateString()}
               </div>
             </div>
           </CardContent>

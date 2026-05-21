@@ -82,7 +82,7 @@ export function useOfflineSync(): UseOfflineSyncResult {
         assignment: "/api/scheduler/assignments",
         leave: "/api/crew/leave",
         certification: "/api/crew/certifications",
-      } as any;
+      } as never;
 
       const baseUrl = endpoints[op.entityType];
       if (!baseUrl) {

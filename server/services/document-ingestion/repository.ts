@@ -93,7 +93,7 @@ export async function insertChunks(docId: string, chunks: ChunkWithEmbedding[]):
   const records: Array<Omit<InsertKbChunk, "id" | "createdAt">> = chunks.map((chunk) => ({
     docId,
     text: chunk.text,
-    embedding: chunk.embedding as any,
+    embedding: chunk.embedding as object as InsertKbChunk["embedding"],
     ord: chunk.ord,
   }));
 

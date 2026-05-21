@@ -67,7 +67,7 @@ async function trainWithEarlyStoppingWrapper(
     minDelta: 0.001,
     monitor: "val_loss",
     mode: "min",
-  } as any;
+  };
 
   const result = await trainWithEarlyStopping(model as tf.Sequential, xTrain, yTrain, xVal, yVal, {
     epochs: config.epochs,
@@ -84,7 +84,7 @@ async function trainWithEarlyStoppingWrapper(
   return {
     history: result.history,
     bestEpoch: result.bestEpoch,
-    finalF1: (result as any).finalMetrics?.valF1 ?? 0,
+    finalF1: (result as { finalMetrics?: { valF1?: number } }).finalMetrics?.valF1 ?? 0,
     stoppedEarly: result.stoppedEarly,
   };
 }
@@ -152,7 +152,7 @@ export async function trainLSTMModel(
   validationData: TimeSeriesFeatures[],
   config: LSTMConfig
 ): Promise<TrainedLSTMModel> {
-  const featureNames = Object.keys((trainingData[0] as any).features ?? {});
+  const featureNames = Object.keys((trainingData[0] as { features?: Record<string, number> }).features ?? {});
   const updatedConfig = { ...config, featureCount: featureNames.length };
 
   const { sequences: trainSeqs, labels: trainLabels } = prepareSequences(

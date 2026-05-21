@@ -428,7 +428,7 @@ class BackgroundJobQueue {
       });
       return null;
     }
-    const jobId = await this.boss.send(type, data as object, {
+    const jobId = await this.boss.send(type, data as never, {
       retryLimit: options?.retryLimit ?? DEFAULT_RETRY_LIMIT,
       retryBackoff: options?.retryBackoff ?? DEFAULT_RETRY_BACKOFF,
       expireInHours: options?.expireInHours ?? 24,

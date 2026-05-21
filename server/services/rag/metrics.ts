@@ -214,7 +214,7 @@ export function registerRagMetrics(): void {
 
   for (const metric of metrics) {
     try {
-      register.registerMetric(metric as any);
+      register.registerMetric(metric as object as Parameters<typeof register.registerMetric>[0]);
     } catch (e) {}
   }
 }

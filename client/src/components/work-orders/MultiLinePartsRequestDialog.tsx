@@ -124,7 +124,7 @@ export function MultiLinePartsRequestDialog({
   const [globalNotes, setGlobalNotes] = useState("");
   const [suggestionsLoaded, setSuggestionsLoaded] = useState(false);
   const { data: rawParts = [], isLoading: partsLoading } = useParts();
-  const inventoryParts = (rawParts as unknown as InventoryPartFromAPI[]).map(mapPartFields);
+  const inventoryParts = (rawParts as object as InventoryPartFromAPI[]).map(mapPartFields);
 
   const generateId = () => `item-${Date.now()}-${crypto.randomUUID().slice(0, 7)}`;
 

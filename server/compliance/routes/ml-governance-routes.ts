@@ -70,7 +70,7 @@ router.get(
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
-      const override = await (dbMlAnalyticsStorage as any).getEngineerOverrides(id, orgId);
+      const override = await (dbMlAnalyticsStorage as object as { getEngineerOverrides: (id: string, orgId: string) => Promise<unknown> }).getEngineerOverrides(id, orgId);
       if (!override) {
         return res.status(404).json({ error: "Engineer override not found" });
       }
@@ -157,7 +157,7 @@ router.patch(
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
-      const existingOverrideRaw = await (dbMlAnalyticsStorage as any).getEngineerOverrides(id, orgId);
+      const existingOverrideRaw = await (dbMlAnalyticsStorage as object as { getEngineerOverrides: (id: string, orgId: string) => Promise<unknown> }).getEngineerOverrides(id, orgId);
       if (!existingOverrideRaw) {
         return res.status(404).json({ error: "Engineer override not found" });
       }
@@ -242,8 +242,13 @@ router.get(
         from: fromDate ? new Date(fromDate as string) : undefined,
         to: toDate ? new Date(toDate as string) : undefined,
         limit: limit ? Number.parseInt(limit as string) : 100,
-      } as any);
-      const overridesArr = Array.isArray(overrides) ? overrides : (overrides as any).events ?? [];
+      } as object as Parameters<typeof getProvenanceOverrides>[0]);
+      const overridesArr: unknown[] = Array.isArray(overrides)
+        ? overrides
+        : (() => {
+            const maybe = overrides as { events?: unknown };
+            return Array.isArray(maybe?.events) ? maybe.events : [];
+          })();
       res.json({ success: true, data: overridesArr, count: overridesArr.length });
     } catch (error) {
       logger.error("[Compliance] Get provenance overrides error:", undefined, error);

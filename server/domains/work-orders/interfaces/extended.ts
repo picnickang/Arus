@@ -156,7 +156,7 @@ export function registerExtendedRoutes(app: Express, rateLimit: RateLimitMiddlew
         requiredByDate: requestedDeliveryDate ? new Date(requestedDeliveryDate) : undefined,
         status: "draft",
         supplierId: supplierId || undefined,
-      } as unknown as Parameters<typeof purchaseRepo.createPurchaseRequest>[0]);
+      } as object as Parameters<typeof purchaseRepo.createPurchaseRequest>[0]);
 
       const createdItems = [];
       const skippedItems: Array<{ description?: string; reason: string }> = [];

@@ -169,7 +169,21 @@ export function countSensorStatus(sensorStatus: SensorStatusInfo[]): {
   };
 }
 
-export function createDefaultSensorFormValues(equipmentId: string) {
+export interface SensorFormValues {
+  equipmentId: string;
+  sensorType: string;
+  targetUnit: string;
+  gain: number | undefined;
+  offset: number | undefined;
+  enabled: boolean | undefined;
+  notes: string;
+  critHi: number | null;
+  critLo: number | null;
+  warnHi: number | null;
+  warnLo: number | null;
+}
+
+export function createDefaultSensorFormValues(equipmentId: string): SensorFormValues {
   return {
     equipmentId,
     sensorType: "",

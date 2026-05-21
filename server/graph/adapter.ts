@@ -99,7 +99,7 @@ async function execCypher(
   // cypher on it (the reviewer caught this as a non-deterministic
   // production failure on the fourth pass). Always released in
   // `finally`.
-  const pg = pool as unknown as {
+  const pg = pool as object as {
     connect: () => Promise<{
       query: (q: string) => Promise<{ rows: Array<Record<string, unknown>> }>;
       release: () => void;

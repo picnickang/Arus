@@ -8,12 +8,12 @@ import { dbSystemAdminStorage } from "../repositories";
 import { generateAIInsights } from "../services/telemetry-processing";
 
 export async function processTelemetryProcessing(data: {
-  telemetryReading: any;
-}): Promise<{ alerts: any[]; schedules: any[]; insights: any }> {
-  const results = {
-    alerts: [] as any[],
-    schedules: [] as any[],
-    insights: null as any,
+  telemetryReading: Parameters<typeof generateAIInsights>[0];
+}): Promise<{ alerts: unknown[]; schedules: unknown[]; insights: unknown }> {
+  const results: { alerts: unknown[]; schedules: unknown[]; insights: unknown } = {
+    alerts: [],
+    schedules: [],
+    insights: null,
   };
 
   try {

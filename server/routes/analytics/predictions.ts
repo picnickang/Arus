@@ -3,6 +3,12 @@
  */
 import type { Router, Request, Response } from "express";
 import { cachedAnalytics, analyticsCacheKeys } from "../../lib/cache";
+type CachedAnalyticsLoose = <T>(
+  key: string,
+  loader: () => Promise<unknown>,
+  ttlSeconds?: number,
+) => Promise<T>;
+const cachedAnalyticsLoose = cachedAnalytics as object as CachedAnalyticsLoose;
 import {
   failurePredictionListResponseSchema,
   anomalyDetectionListResponseSchema,
@@ -97,7 +103,7 @@ export function mountPredictionsRoutes(router: Router) {
         equipmentId as string | undefined,
         severity as string | undefined
       );
-      const response = await cachedAnalytics<AnomalyDetectionListResponse>(
+      const response = await cachedAnalyticsLoose<AnomalyDetectionListResponse>(
         cacheKey,
         (async () => {
           const filters = [eq(anomalyDetections.orgId, orgId)];
@@ -105,7 +111,7 @@ export function mountPredictionsRoutes(router: Router) {
             filters.push(eq(anomalyDetections.equipmentId, equipmentId as string));
           }
           if (severity) {
-            filters.push(eq(anomalyDetections.severity, severity as any));
+            filters.push(eq(anomalyDetections.severity, severity as string));
           }
           const results = await db
             .select()
@@ -129,7 +135,7 @@ export function mountPredictionsRoutes(router: Router) {
               criticalCount: critical,
             },
           };
-        }) as any,
+        }),
         120
       );
       sendValidatedResponse(res, response, anomalyDetectionListResponseSchema);
@@ -150,7 +156,7 @@ export function mountPredictionsRoutes(router: Router) {
         equipmentId as string | undefined,
         riskLevel as string | undefined
       );
-      const response = await cachedAnalytics<FailurePredictionListResponse>(
+      const response = await cachedAnalyticsLoose<FailurePredictionListResponse>(
         cacheKey,
         async () => {
           const filters = [eq(failurePredictions.orgId, orgId)];
@@ -158,7 +164,7 @@ export function mountPredictionsRoutes(router: Router) {
             filters.push(eq(failurePredictions.equipmentId, equipmentId as string));
           }
           if (riskLevel) {
-            filters.push(eq(failurePredictions.riskLevel, riskLevel as any));
+            filters.push(eq(failurePredictions.riskLevel, riskLevel as string));
           }
           const predictions = await db
             .select()
@@ -170,7 +176,7 @@ export function mountPredictionsRoutes(router: Router) {
           const equipmentData =
             equipmentIds.length > 0 ? await dbEquipmentStorage.getEquipmentRegistry(orgId) : [];
           const equipmentMap = new Map(equipmentData.map((e) => [e.id, e]));
-          const results = predictions.map((p) => mapPredictionToResult(p, equipmentMap as any));
+          const results = predictions.map((p) => mapPredictionToResult(p, equipmentMap as object as Parameters<typeof mapPredictionToResult>[1]));
           const highRisk = results.filter((r) => r.riskLevel === "high").length;
           const criticalRisk = results.filter((r) => r.riskLevel === "critical").length;
           return {

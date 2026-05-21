@@ -114,7 +114,7 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
         plannedEndDate?: Date | string | null;
         priority?: number | string | null;
       };
-      const wos = workOrders as unknown as WO[];
+      const wos = workOrders as object as WO[];
       const total = wos.length;
       const open = wos.filter(
         (wo) => wo.status === "open" || wo.status === "in_progress" || wo.status === "pending"

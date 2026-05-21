@@ -55,7 +55,8 @@ function record(name: VitalEntry["name"], value: number): void {
 
 function safeObserve(type: string, cb: (entries: PerformanceEntryList) => void): void {
   try {
-    const supported = (PerformanceObserver as any).supportedEntryTypes as string[] | undefined;
+    const supported = (PerformanceObserver as object as { supportedEntryTypes?: string[] })
+      .supportedEntryTypes;
     if (supported && !supported.includes(type)) return;
     const obs = new PerformanceObserver((list) => cb(list.getEntries()));
     obs.observe({ type, buffered: true } as PerformanceObserverInit);
@@ -101,14 +102,17 @@ export function initWebVitals(): void {
   // LCP: latest entry wins per the spec.
   let lastLcp = 0;
   safeObserve("largest-contentful-paint", (entries) => {
-    for (const e of entries) lastLcp = (e as any).renderTime || (e as any).startTime || lastLcp;
+    for (const e of entries) {
+      const lcp = e as PerformanceEntry & { renderTime?: number };
+      lastLcp = lcp.renderTime || lcp.startTime || lastLcp;
+    }
   });
 
   // INP proxy: largest event-timing duration observed.
   let largestEventDuration = 0;
   safeObserve("event", (entries) => {
     for (const e of entries) {
-      const d = (e as any).duration as number;
+      const d = (e as PerformanceEntry & { duration: number }).duration;
       if (typeof d === "number" && d > largestEventDuration) largestEventDuration = d;
     }
   });
@@ -117,7 +121,7 @@ export function initWebVitals(): void {
   let clsValue = 0;
   safeObserve("layout-shift", (entries) => {
     for (const e of entries) {
-      const ls = e as any;
+      const ls = e as PerformanceEntry & { hadRecentInput?: boolean; value?: number };
       if (!ls.hadRecentInput) clsValue += ls.value || 0;
     }
   });

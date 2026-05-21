@@ -35,7 +35,7 @@ export function useSystemSettingsTabData() {
     error,
   } = useQuery({
     queryKey: systemSettingsKeys.all,
-    queryFn: adminQueryFn(systemSettingsKeys.all as any),
+    queryFn: adminQueryFn(systemSettingsKeys.all as object as Parameters<typeof adminQueryFn>[0]),
   });
 
   const form = useForm<SystemSettingForm>({

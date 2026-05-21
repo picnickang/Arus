@@ -124,7 +124,8 @@ class WorkOrderService {
         conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
       const results = await filtered.orderBy(sql`${workOrders.createdAt} DESC`);
 
-      return (results as unknown as WorkOrderWithDetails[]).map((wo) => {
+      const detailedResults: WorkOrderWithDetails[] = results as never;
+      return detailedResults.map((wo) => {
         if (!wo.woNumber) {
           const year = wo.createdAt
             ? new Date(wo.createdAt).getFullYear()
@@ -216,7 +217,8 @@ class WorkOrderService {
         .limit(limit)
         .offset(offset);
 
-      const items = (results as unknown as WorkOrderWithDetails[]).map((wo) => {
+      const detailedItems: WorkOrderWithDetails[] = results as never;
+      const items = detailedItems.map((wo) => {
         if (!wo.woNumber) {
           const year = wo.createdAt
             ? new Date(wo.createdAt).getFullYear()
@@ -542,7 +544,7 @@ class WorkOrderService {
             laborCost: 0,
             notes: closeData.notes || "Work order completed",
             performedAt: new Date(),
-          } as any);
+          } as never);
       }
       const [updated] = await tx
         .update(workOrders)
@@ -669,7 +671,7 @@ class WorkOrderService {
             );
         }
       }
-      await publishEvent("work_order.created", clonedOrder as unknown as Record<string, unknown>);
+      await publishEvent("work_order.created", { ...clonedOrder } as Record<string, unknown>);
       return clonedOrder;
     });
   }
@@ -706,7 +708,7 @@ class WorkOrderService {
           totalCost,
           actualDowntimeHours: downtimeHours,
           downtimeCostPerHour,
-        } as unknown as Partial<InsertWorkOrder>)
+        } satisfies Partial<InsertWorkOrder>)
         .where(eq(workOrders.id, workOrderId))
         .returning();
       if (!updatedWorkOrder) {
@@ -809,7 +811,7 @@ class WorkOrderService {
       costVariancePercent?: number | null;
       onTimeCompletion?: boolean | null;
     };
-    const cExt = c as unknown as CompletionExt[];
+    const cExt: CompletionExt[] = c as never;
     const dv = cExt
         .filter((x) => x.durationVariancePercent != null)
         .map((x) => x.durationVariancePercent as number),

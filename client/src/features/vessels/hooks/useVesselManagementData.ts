@@ -82,7 +82,7 @@ export function useVesselManagementData() {
           variant: "destructive",
         });
       }
-    }) as unknown as (data: VesselExportData) => void,
+    }) as (data: VesselExportData) => void,
     successMessage: "Vessel exported successfully",
   });
 
@@ -131,7 +131,7 @@ export function useVesselManagementData() {
       specifications: null,
       operatingParameters: null,
     },
-  }) as unknown as UseFormReturn<InsertVessel>;
+  }) as object as UseFormReturn<InsertVessel>;
   const editForm = useForm({
     resolver: zodResolver(insertVesselSchema),
     defaultValues: {
@@ -143,7 +143,7 @@ export function useVesselManagementData() {
       specifications: null,
       operatingParameters: null,
     },
-  }) as unknown as UseFormReturn<InsertVessel>;
+  }) as object as UseFormReturn<InsertVessel>;
 
   const handleCreate = (data: InsertVessel) => createVesselMutation.mutate(data);
   const handleEdit = (vessel: Vessel) => {
@@ -155,7 +155,7 @@ export function useVesselManagementData() {
       vesselClass: vessel.vesselClass || "",
       condition: (vessel.condition || "good") as "excellent" | "good" | "fair" | "poor" | "critical",
       onlineStatus: vessel.onlineStatus || "offline",
-      ...({ specifications: v.specifications, operatingParameters: v.operatingParameters } as any),
+      ...({ specifications: v.specifications, operatingParameters: v.operatingParameters } as object),
       dayRateSgd: vessel.dayRateSgd || "",
     });
     setIsEditDialogOpen(true);

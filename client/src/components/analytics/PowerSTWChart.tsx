@@ -254,7 +254,7 @@ export function PowerSTWChart({ vesselId, startDate, endDate }: PowerSTWChartPro
             />
             <Legend wrapperStyle={{ paddingTop: "10px" }} iconType="circle" />
             <BenchmarkLayer
-              data={enrichedData as unknown as import("./chart-overlays/BenchmarkLayer").BenchmarkData[]}
+              data={enrichedData as object as import("./chart-overlays/BenchmarkLayer").BenchmarkData[]}
               showBaseline={toggles.showBaseline}
               showFleetAverage={toggles.showFleetAverage}
               showPercentiles={toggles.showPercentiles}

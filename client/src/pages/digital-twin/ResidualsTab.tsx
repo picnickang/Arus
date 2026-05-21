@@ -96,7 +96,7 @@ export function ResidualsTab() {
                       <td className="py-2 text-right font-mono">{r.zScore?.toFixed(2)}</td>
                       <td className="py-2">
                         <Badge
-                          variant={severityColor(r.severity) as any}
+                          variant={severityColor(r.severity) as "default" | "secondary" | "destructive" | "outline"}
                           data-testid={`badge-severity-${i}`}
                         >
                           {r.severity}
@@ -129,7 +129,7 @@ export function ResidualsTab() {
                     </div>
                     <div className="text-right">
                       <p className="font-mono text-sm">Avg Z: {r.avgZScore?.toFixed(2)}</p>
-                      <Badge variant={severityColor(r.severity) as any}>{r.severity}</Badge>
+                      <Badge variant={severityColor(r.severity) as "default" | "secondary" | "destructive" | "outline"}>{r.severity}</Badge>
                     </div>
                   </div>
                 </CardContent>

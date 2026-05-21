@@ -134,7 +134,7 @@ class SessionManagementService {
       eventType: "suspicious_flag",
       success: false,
       metadata: { sessionId, flagType, ...(metadata ?? {}) },
-    } as unknown as LoginEventInput);
+    } as object as LoginEventInput);
   }
 
   async detectSuspiciousActivity(

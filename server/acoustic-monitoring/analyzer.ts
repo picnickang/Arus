@@ -59,7 +59,7 @@ export function analyzeAcoustic(
   const zeroCrossingRate = calculateZeroCrossingRate(acValues);
 
   const fftInput = acValues.map((x) => [x, 0] as [number, number]);
-  const fftResult = fft(fftInput as unknown as number[]);
+  const fftResult = fft(fftInput as object as number[]);
   const magnitudes = fftResult.slice(0, Math.floor(n / 2) + 1).map((complex: [number, number]) => {
     const [real, imag] = complex;
     return Math.sqrt(real * real + imag * imag) / n;

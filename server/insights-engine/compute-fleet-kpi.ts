@@ -33,7 +33,7 @@ export async function computeInsights(
         dbEquipmentStorage.getEquipmentRegistry(orgId),
         dbAlertStorage.getAlertNotifications(undefined, orgId),
         dbTelemetryStorage.getLatestTelemetryReadings(undefined, 1000, undefined, undefined),
-        [] as any[],
+        [] as Array<{ id: string }>,
         vesselService.getVessels(orgId),
       ]);
 
@@ -42,8 +42,9 @@ export async function computeInsights(
     const signalsMapped = sensorMappings.length
       ? sensorMappings.length
       : devices.reduce((sum, d) => {
+          const sensorsRaw = typeof d.sensors === "string" ? d.sensors : "";
           const set = new Set(
-            ((d.sensors as any) ?? "")
+            sensorsRaw
               .split(",")
               .map((s: string) => s.trim())
               .filter(Boolean)
@@ -56,7 +57,7 @@ export async function computeInsights(
         ? new Set(telemetryReadings.map((t) => `${t.equipmentId}-${t.sensorType}`)).size
         : 0;
 
-    const recentAlerts = alerts.filter((a) => new Date(a.createdAt as any) > since7d);
+    const recentAlerts = alerts.filter((a) => (a.createdAt?.getTime() ?? 0) > since7d.getTime());
     const dq7d = recentAlerts.length;
 
     const perVessel: FleetKPI["perVessel"] = {};
@@ -78,7 +79,7 @@ export async function computeInsights(
         vesselName: "Unassigned",
       };
       if (!vesselTelemetry.has(meta.vesselId)) {
-        vesselTelemetry.set(meta.vesselId, { name: meta.vesselName, points: [] as any });
+        vesselTelemetry.set(meta.vesselId, { name: meta.vesselName, points: [] });
       }
       vesselTelemetry.get(meta.vesselId)!.points.push(t);
     }
@@ -173,8 +174,8 @@ export async function computeInsights(
     }
 
     const anomalies = criticalAlerts.slice(0, 20).map((alert) => {
-      const created = new Date(alert.createdAt as any);
-      const ack = alert.acknowledgedAt ? new Date(alert.acknowledgedAt as any) : now;
+      const created = alert.createdAt ?? now;
+      const ack = alert.acknowledgedAt ?? now;
       const alertEquipment = equipment.find((e) => e.id === alert.equipmentId);
       return {
         vesselId: alertEquipment?.vesselId || "unassigned",

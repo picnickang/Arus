@@ -109,14 +109,16 @@ async function fetchRollups(db: unknown, orgId: string, dayStart: Date, dayEnd: 
 async function writeParquetFile(rows: RollupRow[], localPath: string): Promise<void> {
   // SNAPPY is the parquetjs default; pass via the loose options surface
   // since `compression` isn't included in the narrow WriterOptions typing.
+  const writerOpts: unknown = { compression: "SNAPPY" };
   const writer = await ParquetWriter.openFile(
     PARQUET_SCHEMA,
     localPath,
-    { compression: "SNAPPY" } as unknown as Parameters<typeof ParquetWriter.openFile>[2],
+    writerOpts as Parameters<typeof ParquetWriter.openFile>[2],
   );
   try {
     for (const row of rows) {
-      await writer.appendRow(row as unknown as Record<string, unknown>);
+      const rowRecord: unknown = row;
+      await writer.appendRow(rowRecord as Record<string, unknown>);
     }
   } finally {
     await writer.close();
@@ -199,7 +201,7 @@ export async function exportOrgDayToParquet(
       const bucket = objectStorageClient.bucket(target.bucketName);
       // upload() options include `metadata` at runtime but the narrow v7
       // typings expose only `destination`; widen via Parameters<>.
-      await bucket.upload(tmpFile, {
+      const uploadOpts: unknown = {
         destination: objectKey,
         metadata: {
           contentType: "application/vnd.apache.parquet",
@@ -212,7 +214,8 @@ export async function exportOrgDayToParquet(
             exportedAt: startedAt.toISOString(),
           },
         },
-      } as unknown as Parameters<typeof bucket.upload>[1]);
+      };
+      await bucket.upload(tmpFile, uploadOpts as Parameters<typeof bucket.upload>[1]);
 
       const finishedAt = new Date();
       logger.info("Exported telemetry rollups to warehouse", {

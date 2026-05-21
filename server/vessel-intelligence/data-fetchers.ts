@@ -21,7 +21,7 @@ export async function getWorkOrdersForVessel(
 
   if (days) {
     const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    vesselOrders = vesselOrders.filter((wo) => new Date(wo.createdAt as any) > cutoff);
+    vesselOrders = vesselOrders.filter((wo) => new Date(wo.createdAt as string | Date) > cutoff);
   }
 
   return vesselOrders;

@@ -68,37 +68,37 @@ interface SchedulingSuggestion {
 export function useMaintenanceModeData() {
   const { data: pdmScores = [], isLoading: pdmLoading } = useQuery<PdmScoreData[]>({
     queryKey: ["/api/pdm/scores"],
-    queryFn: () => fetchPdmScores() as unknown as Promise<PdmScoreData[]>,
+    queryFn: () => fetchPdmScores() as object as Promise<PdmScoreData[]>,
     refetchInterval: 120000,
     staleTime: 60000,
   });
   const { data: workOrders = [], isLoading: workOrdersLoading } = useQuery<WorkOrderData[]>({
     queryKey: ["/api/work-orders"],
-    queryFn: () => fetchWorkOrders() as unknown as Promise<WorkOrderData[]>,
+    queryFn: () => fetchWorkOrders() as object as Promise<WorkOrderData[]>,
     refetchInterval: 120000,
     staleTime: 60000,
   });
   const { data: maintenanceRecords = [] } = useQuery<MaintenanceRecord[]>({
     queryKey: ["/api/analytics/maintenance-records"],
-    queryFn: () => fetchMaintenanceRecords() as unknown as Promise<MaintenanceRecord[]>,
+    queryFn: () => fetchMaintenanceRecords(),
     refetchInterval: 300000,
     staleTime: 120000,
   });
   const { data: failurePatternsData = [] } = useQuery<FailurePatternData[]>({
     queryKey: ["/api/analytics/failure-patterns"],
-    queryFn: () => fetchFailurePatterns(6) as unknown as Promise<FailurePatternData[]>,
+    queryFn: () => fetchFailurePatterns(6) as object as Promise<FailurePatternData[]>,
     refetchInterval: 300000,
     staleTime: 120000,
   });
   const { data: costSavings } = useQuery<CostSavingsShape | undefined>({
     queryKey: ["/api/cost-savings/summary"],
-    queryFn: () => fetchCostSavingsSummary() as unknown as Promise<CostSavingsShape | undefined>,
+    queryFn: () => fetchCostSavingsSummary() as Promise<CostSavingsShape>,
     refetchInterval: 300000,
     staleTime: 120000,
   });
   const { data: equipmentHealthResponse } = useQuery<EquipmentHealthResponseShape | undefined>({
     queryKey: ["/api/equipment/health"],
-    queryFn: () => fetchEquipmentHealthTyped() as unknown as Promise<EquipmentHealthResponseShape | undefined>,
+    queryFn: () => fetchEquipmentHealthTyped() as object as Promise<EquipmentHealthResponseShape>,
     refetchInterval: 120000,
     staleTime: 60000,
   });

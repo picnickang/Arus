@@ -55,7 +55,7 @@ function healthToColor(h: number | undefined, highlighted: boolean): string {
 function disposeMaterial(mat: THREE.Material): void {
   // Dispose any texture maps attached to the material before the material
   // itself — leaking textures is the most common Three.js GPU-memory bug.
-  const anyMat = mat as unknown as Record<string, THREE.Texture | undefined>;
+  const anyMat = mat as object as Record<string, THREE.Texture | undefined>;
   for (const key of [
     "map",
     "normalMap",

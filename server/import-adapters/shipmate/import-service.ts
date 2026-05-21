@@ -377,7 +377,7 @@ class ShipmateImportService {
         for (const row of validRows) {
           try {
             const result = await this.upsertRow(
-              tx as any,
+              tx as object as Parameters<typeof this.upsertRow>[0],
               orgId,
               options.module,
               row.data,
@@ -708,7 +708,7 @@ class ShipmateImportService {
         ...cleanData,
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as any)
+      } as object as never)
       .returning({
         id: equipment.id,
         name: equipment.name,
@@ -769,7 +769,7 @@ class ShipmateImportService {
       ...cleanData,
       createdAt: cleanData.createdAt ?? new Date(),
       updatedAt: new Date(),
-    } as any);
+    } as object as never);
     return "inserted";
   }
 
@@ -818,7 +818,7 @@ class ShipmateImportService {
           ...cleanData,
           createdAt: new Date(),
           updatedAt: new Date(),
-        } as any)
+        } as object as never)
         .returning({ id: parts.id });
       partId = inserted.id;
     }
@@ -852,7 +852,7 @@ class ShipmateImportService {
           unitCost: (stockData.unitCost as number) ?? 0,
           createdAt: new Date(),
           updatedAt: new Date(),
-        } as any);
+        } as object as never);
       }
     }
 
@@ -875,7 +875,7 @@ class ShipmateImportService {
       try {
         await db
           .update(equipment)
-          .set({ runningHours: hours, updatedAt: new Date() } as any)
+          .set({ runningHours: hours, updatedAt: new Date() } as object as never)
           .where(and(eq(equipment.id, id), eq(equipment.orgId, orgId)));
         synced++;
       } catch {

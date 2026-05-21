@@ -184,7 +184,7 @@ export function generateConditionAssessment(
     costEstimate: undefined,
     lastOilAnalysisId: oilAnalysis.id,
     lastWearAnalysisId: wearAnalysis?.id,
-    ...({ lastVibrationAnalysisId: undefined } as any),
+    ...({ lastVibrationAnalysisId: undefined } as object),
     assessmentMethod,
     analysisSummary: buildAnalysisSummary(
       oilAssessment.condition,

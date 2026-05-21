@@ -312,7 +312,7 @@ export class PredictionFeedbackWorkflowAdapter implements IPredictionFeedbackPor
           .update(workOrders)
           .set({
             description: sql`COALESCE(description, '') || ${feedbackNote}`,
-          } as unknown as typeof workOrders.$inferInsert)
+          } as object as typeof workOrders.$inferInsert)
           .where(eq(workOrders.id, feedback.workOrderId));
       }
     }

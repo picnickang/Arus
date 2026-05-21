@@ -16,10 +16,12 @@ export async function generateScenarios(
 ): Promise<EnhancedAnalysisOutput["scenarios"]> {
   const scenarios: EnhancedAnalysisOutput["scenarios"] = [];
 
-  const criticalItems = (context.data.workOrders?.filter((wo) => (wo as any).priority === "critical") ?? [])
-    .length;
-  const urgentItems = (context.data.workOrders?.filter((wo) => (wo as any).priority === "urgent") ?? [])
-    .length;
+  const criticalItems = (
+    context.data.workOrders?.filter((wo) => (wo as Record<string, unknown>).priority === "critical") ?? []
+  ).length;
+  const urgentItems = (
+    context.data.workOrders?.filter((wo) => (wo as Record<string, unknown>).priority === "urgent") ?? []
+  ).length;
 
   if (criticalItems > 0) {
     scenarios.push({
@@ -70,10 +72,16 @@ export async function calculateROI(
 ): Promise<EnhancedAnalysisOutput["roi"]> {
   const workOrders = context.data.workOrders ?? [];
   const avgCost =
-    workOrders.reduce((sum, wo) => sum + ((Number((wo as any).estimatedCostPerHour ?? 0) || 0) * (Number((wo as any).estimatedHours ?? 0) || 0)), 0) /
-    Math.max(workOrders.length, 1);
+    workOrders.reduce((sum, wo) => {
+      const woRec = wo as Record<string, unknown>;
+      const cost = Number(woRec.estimatedCostPerHour ?? 0) || 0;
+      const hours = Number(woRec.estimatedHours ?? 0) || 0;
+      return sum + cost * hours;
+    }, 0) / Math.max(workOrders.length, 1);
 
-  const criticalCount = workOrders.filter((wo) => (wo as any).priority === "critical").length;
+  const criticalCount = workOrders.filter(
+    (wo) => (wo as Record<string, unknown>).priority === "critical"
+  ).length;
   const preventiveCost = avgCost * 0.3;
   const failureCost = avgCost * 3;
 
@@ -119,8 +127,12 @@ export function generateFallbackAnalysis(context: ReportContext): string {
   const parts: string[] = ["# System Analysis (Fallback Mode)\n"];
 
   if (context.data.workOrders) {
-    const critical = context.data.workOrders.filter((wo) => (wo as any).priority === "critical").length;
-    const urgent = context.data.workOrders.filter((wo) => (wo as any).priority === "urgent").length;
+    const critical = context.data.workOrders.filter(
+      (wo) => (wo as Record<string, unknown>).priority === "critical"
+    ).length;
+    const urgent = context.data.workOrders.filter(
+      (wo) => (wo as Record<string, unknown>).priority === "urgent"
+    ).length;
 
     parts.push(
       `## Work Orders Summary`,

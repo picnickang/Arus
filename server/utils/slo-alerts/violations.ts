@@ -36,7 +36,7 @@ function createViolation(
   severity: ViolationSeverity,
   burnRate?: number
 ): SLOViolation {
-  return { sloName, metric: metric as any, threshold, actual, route, timestamp: new Date(), severity, burnRate };
+  return { sloName, metric: metric as SLOViolation["metric"], threshold, actual, route, timestamp: new Date(), severity, burnRate };
 }
 
 function checkLatencyViolations(

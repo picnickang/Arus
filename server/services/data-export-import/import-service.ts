@@ -40,7 +40,7 @@ async function ensureTargetOrg(targetOrgId: string, sourceOrgId: string): Promis
     maxUsers: 100,
     maxEquipment: 1000,
     subscriptionTier: "basic",
-  } as any);
+  } as never);
 }
 
 async function importEntityFile(

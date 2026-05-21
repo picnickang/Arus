@@ -212,7 +212,7 @@ export function useOrganizationData() {
   const openOrganizationDialog = (organization?: Organization) => {
     if (organization) {
       setEditingOrganization(organization);
-      organizationForm.reset(organization as any);
+      organizationForm.reset(organization as object as Parameters<typeof organizationForm.reset>[0]);
     } else {
       setEditingOrganization(null);
       organizationForm.reset({
@@ -229,7 +229,7 @@ export function useOrganizationData() {
   const openUserDialog = (user?: User) => {
     if (user) {
       setEditingUser(user);
-      userForm.reset(user as any);
+      userForm.reset(user as object as Parameters<typeof userForm.reset>[0]);
     } else {
       setEditingUser(null);
       userForm.reset({ name: "", email: "", role: "viewer", isActive: true, orgId: selectedOrgId });

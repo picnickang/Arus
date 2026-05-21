@@ -59,7 +59,7 @@ export function CertificateFormDialog({
         certificateName: data.certificateName || "",
         certificateNumber: data.certificateNumber || "",
         issuingAuthority: data.issuingAuthority || "",
-        issuingAuthorityType: (data as any).issuingAuthorityType || "",
+        issuingAuthorityType: (data as { issuingAuthorityType?: string }).issuingAuthorityType || "",
         issueDate: data.issueDate
           ? format(
               typeof data.issueDate === "string" ? parseISO(data.issueDate) : data.issueDate,

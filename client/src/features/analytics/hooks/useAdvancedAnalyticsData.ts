@@ -149,7 +149,7 @@ export function useAdvancedAnalyticsData(): UseAdvancedAnalyticsDataReturn {
     queryFn: () => fetchAnalyticsData("insight-snapshots", orgId),
   });
 
-  const createMlModelMutation = (useCreateMutation as unknown as (cfg: unknown) => ReturnType<typeof useCreateMutation>)({
+  const createMlModelMutation = (useCreateMutation as object as (cfg: object) => ReturnType<typeof useCreateMutation>)({
     endpoint: "/api/analytics/ml-models",
     invalidateKeys: [["/api/analytics/ml-models", orgId]],
     successMessage: "ML model created successfully",
@@ -160,7 +160,7 @@ export function useAdvancedAnalyticsData(): UseAdvancedAnalyticsDataReturn {
     transformData: (data: MlModelFormData) => ({ ...data, orgId }),
   });
 
-  const updateMlModelMutation = (useUpdateMutation as unknown as (cfg: unknown) => ReturnType<typeof useUpdateMutation>)({
+  const updateMlModelMutation = (useUpdateMutation as object as (cfg: object) => ReturnType<typeof useUpdateMutation>)({
     endpoint: "/api/analytics/ml-models",
     invalidateKeys: [["/api/analytics/ml-models", orgId]],
     successMessage: "ML model updated successfully",
@@ -172,7 +172,7 @@ export function useAdvancedAnalyticsData(): UseAdvancedAnalyticsDataReturn {
     transformData: (data: MlModelFormData) => ({ ...data, orgId }),
   });
 
-  const deleteMlModelMutation = (useDeleteMutation as unknown as (cfg: unknown) => ReturnType<typeof useDeleteMutation>)({
+  const deleteMlModelMutation = (useDeleteMutation as object as (cfg: object) => ReturnType<typeof useDeleteMutation>)({
     endpoint: "/api/analytics/ml-models",
     invalidateKeys: [["/api/analytics/ml-models", orgId]],
     successMessage: "ML model deleted successfully",
@@ -271,9 +271,9 @@ export function useAdvancedAnalyticsData(): UseAdvancedAnalyticsDataReturn {
     createMlModelMutation,
     updateMlModelMutation,
     deleteMlModelMutation,
-    acknowledgeAnomalyMutation: acknowledgeAnomalyMutation as unknown as UseAdvancedAnalyticsDataReturn["acknowledgeAnomalyMutation"],
-    applyOptimizationMutation: applyOptimizationMutation as unknown as UseAdvancedAnalyticsDataReturn["applyOptimizationMutation"],
-    mlModelForm: mlModelForm as unknown as UseAdvancedAnalyticsDataReturn["mlModelForm"],
+    acknowledgeAnomalyMutation: acknowledgeAnomalyMutation as object as UseAdvancedAnalyticsDataReturn["acknowledgeAnomalyMutation"],
+    applyOptimizationMutation: applyOptimizationMutation as object as UseAdvancedAnalyticsDataReturn["applyOptimizationMutation"],
+    mlModelForm: mlModelForm as object as UseAdvancedAnalyticsDataReturn["mlModelForm"],
     onSubmitMlModel,
     handleEdit,
     handleDelete,

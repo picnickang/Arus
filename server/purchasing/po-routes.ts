@@ -155,7 +155,7 @@ router.get("/:id", requireOrgId, generalLimit, async (req, res) => {
         rejectionReason: purchaseOrderItems.rejectionReason,
         notes: purchaseOrderItems.notes,
         partName: parts.name,
-        partNumber: (parts as any).partNumber,
+        partNumber: (parts as object as { partNumber: typeof parts.name }).partNumber,
       })
       .from(purchaseOrderItems)
       .leftJoin(parts, eq(purchaseOrderItems.partId, parts.id))
@@ -456,7 +456,7 @@ router.post("/:id/fulfill-pr", requireOrgId, writeLimit, async (req, res) => {
       .orderBy(sql`${purchaseOrderEvents.createdAt} ASC`)
       .limit(1);
 
-    const prId = (creationEvent?.details as any)?.prId as string | undefined;
+    const prId = (creationEvent?.details as { prId?: string } | undefined)?.prId;
     if (!prId) {
       return res.status(400).json({ error: "No originating PR found for this PO" });
     }

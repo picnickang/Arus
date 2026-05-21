@@ -40,7 +40,7 @@ export function expandRiskLevel(
   };
 
   const normalized = level.toLowerCase();
-  return abbreviationMap[normalized] || (level as any);
+  return abbreviationMap[normalized] || (level as "low" | "medium" | "high" | "critical");
 }
 
 export function expandFailureMode(mode: string | null | undefined): string {

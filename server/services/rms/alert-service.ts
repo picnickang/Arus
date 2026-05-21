@@ -21,7 +21,7 @@ interface AlertConfig {
 }
 
 function getRows(result: any): any[] {
-  return Array.isArray(result) ? result : (result as any)?.rows || [];
+  return Array.isArray(result) ? result : (result as { rows?: unknown[] })?.rows || [];
 }
 
 function getFirstRow(result: any): any | undefined {

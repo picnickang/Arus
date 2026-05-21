@@ -26,7 +26,7 @@ export async function validateSamlAssertion(
 ): Promise<SamlProfileSummary> {
   // Lazy import — keeps cold start free for tenants that don't use SAML.
   const mod = await import("@node-saml/passport-saml");
-  const SAML = (mod as unknown as { SAML: new (opts: Record<string, unknown>) => unknown }).SAML;
+  const SAML = (mod as object as { SAML: new (opts: Record<string, unknown>) => unknown }).SAML;
 
   const saml = new SAML({
     entryPoint: cfg.entryPoint,

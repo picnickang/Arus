@@ -8,6 +8,7 @@ import { dbTelemetryStorage } from "../repositories.js";
 import { db } from "../db.js";
 import { digitalTwins, twinSimulations, visualizationAssets } from "@shared/schema-runtime";
 import type { DigitalTwin, TwinSimulation, VisualizationAsset } from "@shared/schema";
+import { cast } from "@shared/lib/type-cast";
 import { eq, sql } from "drizzle-orm";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("DigitalTwin:Index");
@@ -88,13 +89,13 @@ export class DigitalTwinService extends EventEmitter {
         currentState: initialState,
         simulationConfig: { updateInterval: 60, realTimeSync: true, dataAssimilation: true },
         validationStatus: "active",
-        accuracy: 0.85 as any,
+        accuracy: cast<never>(0.85),
         metadata: {
           createdBy: "system",
           modelVersion: "2.0",
           lastCalibration: new Date().toISOString(),
         },
-      } as any)
+      } as never)
       .returning();
     const twin = digitalTwin[0];
     this.activeTwins.set(twin.id, twin);
@@ -391,7 +392,7 @@ export class DigitalTwinService extends EventEmitter {
         return;
       }
       const { predictFuelConsumption } = await import("../digital-twin-fuel-calc.js");
-      const specs = (twin.specifications as any) ?? {};
+      const specs = (twin.specifications as Record<string, number | undefined>) ?? {};
       const characteristics = {
         displacement: specs.displacement ?? 1000,
         length: specs.length ?? 50,
@@ -419,11 +420,11 @@ export class DigitalTwinService extends EventEmitter {
       const daysInService = twin.lastUpdate
         ? Math.floor((Date.now() - new Date(twin.lastUpdate).getTime()) / 86400000)
         : 30;
-      const prediction: any = (predictFuelConsumption as any)(state, characteristics, conditions, daysInService);
+      const prediction = (predictFuelConsumption as object as (s: typeof state, c: typeof characteristics, cond: typeof conditions, days: number) => { predictedFuelRate: number; efficiency: number; confidence: number })(state, characteristics, conditions, daysInService);
       const updatedState = {
-        ...((twin.currentState as any) ?? {}),
+        ...((twin.currentState as Record<string, unknown>) ?? {}),
         fuel: {
-          ...((twin.currentState as any)?.fuel ?? {}),
+          ...(((twin.currentState as Record<string, unknown>)?.fuel as Record<string, unknown>) ?? {}),
           predictedRate: prediction.predictedFuelRate,
           efficiency: prediction.efficiency,
           confidence: prediction.confidence,
@@ -434,7 +435,7 @@ export class DigitalTwinService extends EventEmitter {
         .update(digitalTwins)
         .set({
           currentState: updatedState,
-          fuelEfficiency: prediction.efficiency.toString(),
+          fuelEfficiency: prediction.efficiency,
           lastUpdate: new Date(),
         })
         .where(eq(digitalTwins.id, twinId));

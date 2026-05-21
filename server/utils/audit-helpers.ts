@@ -29,7 +29,7 @@ export async function auditAction(
   data: Record<string, unknown>,
   context?: AuditContext
 ): Promise<void> {
-  await recordAndPublish(entityType as any, entityId, action, data, context?.userId);
+  await recordAndPublish(entityType as Parameters<typeof recordAndPublish>[0], entityId, action, data, context?.userId);
 }
 
 /**

@@ -20,12 +20,17 @@ export async function processInsightsSnapshotGeneration(data: {
 
     logger.info(`[Insights] Snapshot generated successfully: ${snapshot.id}`);
 
+    const ins = insights as {
+      kpi?: unknown;
+      riskFactors?: unknown;
+      summary?: unknown;
+    };
     return {
       snapshotId: snapshot.id,
       scope,
-      kpis: (insights as any).kpi,
-      riskFactors: (insights as any).riskFactors,
-      summary: (insights as any).summary,
+      kpis: ins.kpi,
+      riskFactors: ins.riskFactors,
+      summary: ins.summary,
     };
   } catch (error) {
     logger.error("[Insights] Snapshot generation failed:", undefined, error);

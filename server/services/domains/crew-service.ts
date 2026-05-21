@@ -84,16 +84,22 @@ class CrewService {
     });
   }
   async setCrewSkill(crewId: string, skill: string, level: number): Promise<SelectCrewSkill> {
-    return (dbCrewStorage as any).setCrewSkill(crewId, skill, level);
+    return (dbCrewStorage as object as {
+      setCrewSkill: (crewId: string, skill: string, level: number) => Promise<SelectCrewSkill>;
+    }).setCrewSkill(crewId, skill, level);
   }
   async getCrewSkills(crewId: string): Promise<SelectCrewSkill[]> {
     return dbCrewStorage.getCrewSkills(crewId);
   }
   async deleteCrewSkill(crewId: string, skill: string): Promise<void> {
-    return (dbCrewStorage as any).deleteCrewSkill(crewId, skill);
+    return (dbCrewStorage as object as {
+      deleteCrewSkill: (crewId: string, skill: string) => Promise<void>;
+    }).deleteCrewSkill(crewId, skill);
   }
   async getCrewLeave(crewId?: string, dateFrom?: Date, dateTo?: Date): Promise<SelectCrewLeave[]> {
-    return (dbCrewStorage as any).getCrewLeave(crewId, dateFrom, dateTo);
+    return (dbCrewStorage as object as {
+      getCrewLeave: (crewId?: string, dateFrom?: Date, dateTo?: Date) => Promise<SelectCrewLeave[]>;
+    }).getCrewLeave(crewId, dateFrom, dateTo);
   }
   async createCrewLeave(leaveData: InsertCrewLeave): Promise<SelectCrewLeave> {
     return dbCrewStorage.createCrewLeave(leaveData);
@@ -109,7 +115,13 @@ class CrewService {
     vesselId?: string,
     dateFrom?: Date
   ): Promise<SelectCrewAssignment[]> {
-    return (dbCrewStorage as any).getCrewAssignments(crewId, vesselId, dateFrom);
+    return (dbCrewStorage as object as {
+      getCrewAssignments: (
+        crewId?: string,
+        vesselId?: string,
+        dateFrom?: Date
+      ) => Promise<SelectCrewAssignment[]>;
+    }).getCrewAssignments(crewId, vesselId, dateFrom);
   }
   async createCrewAssignment(assignmentData: InsertCrewAssignment): Promise<SelectCrewAssignment> {
     return dbCrewStorage.createCrewAssignment(assignmentData);

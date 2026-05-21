@@ -306,7 +306,7 @@ export class ObjectStorageService {
       userId,
       file: objectFile,
       requestedPermission: requestedPermission ?? ObjectPermission.READ,
-    } as any);
+    } as never);
   }
 
   // Check if object storage is properly configured

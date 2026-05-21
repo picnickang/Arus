@@ -467,7 +467,7 @@ export class SchedulePlannerReadModelAdapter implements ISchedulePlannerReadMode
         .orderBy(scheduleAssignments.date);
 
       return result.map((row) => ({
-        date: formatDate(row.date as unknown as Date | null),
+        date: formatDate(row.date ? new Date(row.date) : null),
         shift: mapShift(row.shift),
         crewId: row.crewId,
         crewName: row.crewName || "Unknown",

@@ -385,7 +385,7 @@ export default function FuelEmissionsLogPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(logs as unknown as FuelLogExt[]).slice(0, 50).map((log) => (
+                      {(logs as object as FuelLogExt[]).slice(0, 50).map((log) => (
                         <TableRow key={log.id} data-testid={`row-fuel-log-${log.id}`}>
                           <TableCell className="font-medium">
                             {format(new Date(log.periodStart), "MMM dd HH:mm")}

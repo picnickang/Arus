@@ -152,7 +152,7 @@ export async function getSTCWComplianceTrends(
   const intervalDays = Math.max(1, Math.floor(lookbackDays / dataPointCount));
 
   const vessels = vesselId
-    ? ([await vesselService.getVessel(orgId, vesselId)].filter(Boolean) as any[])
+    ? ([await vesselService.getVessel(orgId, vesselId)].filter(Boolean) as object as Awaited<ReturnType<typeof vesselService.getVessels>>)
     : await vesselService.getVessels(orgId);
 
   const fullRangeStart = new Date(endDate);

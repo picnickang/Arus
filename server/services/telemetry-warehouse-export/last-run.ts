@@ -69,7 +69,7 @@ async function savePersisted(runs: WarehouseExportJobSummary[]): Promise<void> {
         entryCount: String(body.runs.length),
       },
     },
-  } as unknown as Parameters<typeof file.save>[1]);
+  } as object as Parameters<typeof file.save>[1]);
 }
 
 async function ensureHydrated(): Promise<void> {

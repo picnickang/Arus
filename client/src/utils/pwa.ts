@@ -78,7 +78,7 @@ class PWAManager {
           console.info("📨 Message from SW:", event.data);
         });
 
-        return registration as any;
+        return;
       } catch (error) {
         console.error("❌ Service Worker registration failed:", error);
         throw error;

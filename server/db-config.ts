@@ -161,7 +161,7 @@ if (!isLocalMode) {
         "-c statement_timeout=30000 -c idle_in_transaction_session_timeout=10000",
     });
 
-    (pgPool as any).on("error", (err: any) => {
+    (pgPool as { on: (event: string, cb: (err: Error & { message?: string }) => void) => void }).on("error", (err) => {
       if (err.message?.includes("WebSocket")) {
         logger.warn("⚠️ Neon WebSocket connection error (transient, retrying...)");
       } else {
@@ -169,7 +169,7 @@ if (!isLocalMode) {
       }
     });
 
-    cloudDatabase = drizzlePgWs(pgPool as any, { schema });
+    cloudDatabase = drizzlePgWs(pgPool as object as import("@neondatabase/serverless").Pool, { schema });
     connectionMode = "websocket";
 
     logger.info("✓ Cloud PostgreSQL: Connected (WebSocket mode)");
@@ -339,7 +339,7 @@ function resolveActiveDb(): unknown {
 
 // Export the appropriate database instance based on mode
 // This will be null initially in local mode, then set after initializeLocalDatabase()
-export const db = new Proxy({} as any, {
+export const db = new Proxy({} as object as DbType, {
   get(_target, prop) {
     const active = resolveActiveDb();
     if (!active) {
@@ -347,7 +347,7 @@ export const db = new Proxy({} as any, {
         `Database not initialized. In ${isLocalMode ? "local" : "cloud"} mode, ensure initializeLocalDatabase() is called before accessing db.`
       );
     }
-    const value = (active as any)[prop];
+    const value = (active as Record<string | symbol, unknown>)[prop];
     // If it's a function, bind it to the active handle to preserve 'this' context
     if (typeof value === "function") {
       return value.bind(active);
@@ -360,7 +360,7 @@ export const db = new Proxy({} as any, {
     if (!active) {
       return false;
     }
-    return prop in (active as object);
+    return prop in (active as never);
   },
   // Handle Object.keys, Object.getOwnPropertyNames, etc.
   ownKeys(_target) {
@@ -368,14 +368,14 @@ export const db = new Proxy({} as any, {
     if (!active) {
       return [];
     }
-    return Reflect.ownKeys(active as object);
+    return Reflect.ownKeys(active as never);
   },
   getOwnPropertyDescriptor(_target, prop) {
     const active = resolveActiveDb();
     if (!active) {
       return undefined;
     }
-    return Reflect.getOwnPropertyDescriptor(active as object, prop);
+    return Reflect.getOwnPropertyDescriptor(active as never, prop);
   },
 }) as DbType;
 

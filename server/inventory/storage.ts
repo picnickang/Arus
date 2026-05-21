@@ -162,7 +162,7 @@ export class InventoryStorageAdapter implements InventoryStorage {
     if (!part) {
       return [];
     }
-    return (this.storage as any).getPartSubstitutions(part.id, orgId);
+    return (this.storage as object as { getPartSubstitutions: (id: string, orgId: string) => Promise<PartSubstitution[]> }).getPartSubstitutions(part.id, orgId);
   }
 
   /**

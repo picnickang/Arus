@@ -98,7 +98,7 @@ export function OverviewTab({
               <div className="space-y-3">
                 {tanks.map((tank, idx) => {
                   const sensorType =
-                    (tank as unknown as { sensorType?: string }).sensorType ?? tank.sensor_type;
+                    (tank as object as { sensorType?: string }).sensorType ?? tank.sensor_type;
                   return (
                     <div
                       key={idx}

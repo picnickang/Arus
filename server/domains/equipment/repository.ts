@@ -44,7 +44,7 @@ export class EquipmentRepository {
     if (!equipment) {
       throw new Error("Equipment not found");
     }
-    await this.update(equipmentId, { vesselId: null } as unknown as Partial<InsertEquipment>, orgId);
+    await this.update(equipmentId, { vesselId: null } as object as Partial<InsertEquipment>, orgId);
   }
 
   async getSensorCoverage(equipmentId: string, orgId: string) {
@@ -75,7 +75,7 @@ export class EquipmentRepository {
           isCritical: sensor.critical,
           minValue: sensor.min,
           maxValue: sensor.max,
-        } as unknown as Parameters<typeof dbSensorsStorage.createSensorConfiguration>[0]);
+        } as object as Parameters<typeof dbSensorsStorage.createSensorConfiguration>[0]);
         created.push(newSensor);
       }
     }

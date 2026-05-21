@@ -21,7 +21,7 @@ interface ActiveBunkering {
 }
 
 function getFirstRow(result: any): any | undefined {
-  const rows = Array.isArray(result) ? result : (result as any)?.rows || [];
+  const rows = Array.isArray(result) ? result : (result as { rows?: unknown[] })?.rows || [];
   return rows[0];
 }
 

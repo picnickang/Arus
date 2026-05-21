@@ -30,7 +30,7 @@ export async function getVesselWorkOrders(
   const allOrders = await workOrderService.getWorkOrdersWithDetails();
   return allOrders.filter(
     (wo: any) =>
-      wo.vesselId === vesselId && new Date(wo.createdAt as any) >= start && new Date(wo.createdAt as any) <= end
+      wo.vesselId === vesselId && wo.createdAt != null && wo.createdAt >= start && wo.createdAt <= end
   );
 }
 
@@ -61,8 +61,9 @@ export async function getVesselAlerts(vesselId: string, start: Date, end: Date):
   return allAlerts.filter(
     (a: any) =>
       equipmentIds.includes(a.equipmentId) &&
-      new Date(a.createdAt as any) >= start &&
-      new Date(a.createdAt as any) <= end
+      a.createdAt != null &&
+      a.createdAt >= start &&
+      a.createdAt <= end
   );
 }
 
@@ -77,12 +78,12 @@ export async function getCrewRestSheets(vesselId: string, start: Date, end: Date
     start.toISOString().split("T")[0],
     end.toISOString().split("T")[0]
   );
-  return (restData as any).map?.((r: any) => r.sheet) ?? [];
+  return (restData as object as { map?: (fn: (r: { sheet: unknown }) => unknown) => unknown[] }).map?.((r) => r.sheet) ?? [];
 }
 
 export async function getComplianceLogs(start: Date, end: Date): Promise<any[]> {
   const result = await db.execute(
     sql`SELECT * FROM compliance_audit_log WHERE created_at >= ${start.toISOString()}::timestamp AND created_at <= ${end.toISOString()}::timestamp ORDER BY created_at DESC`
   );
-  return result.rows as any[];
+  return result.rows as object as unknown[];
 }

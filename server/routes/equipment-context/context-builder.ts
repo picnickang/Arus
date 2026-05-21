@@ -16,7 +16,7 @@ export async function buildEquipmentContext(
 ): Promise<EquipmentContext> {
   const queryResults = await runParallelQueries(equipmentId, orgId, timeframeStart, options);
 
-  let knowledgeResults = { relatedDocuments: [] as any[], semanticMatches: [] as any[] };
+  let knowledgeResults = { relatedDocuments: [] as object[], semanticMatches: [] as object[] };
   if (options.includeKnowledge === "true") {
     knowledgeResults = await fetchKnowledgeData(
       equipmentId,

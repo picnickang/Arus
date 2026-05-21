@@ -453,7 +453,7 @@ function SoftwareUpdatesTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(s.patchHistory ?? []).slice(0, 10).map((patch: SoftwarePatch) => (
+                  {(s.patchHistory ?? []).slice(0, 10).map((patch) => (
                     <TableRow key={patch.id} data-testid={`row-history-${patch.id}`}>
                       <TableCell
                         className="font-medium"
@@ -482,11 +482,11 @@ function SoftwareUpdatesTab() {
                         {patch.appliedBy || "System"}
                       </TableCell>
                       <TableCell>
-                        {patch.status === "applied" && (patch as any).backupId && (
+                        {patch.status === "applied" && patch.backupId && (
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => s.rollbackMutation.mutate((patch as any).backupId)}
+                            onClick={() => patch.backupId && s.rollbackMutation.mutate(patch.backupId)}
                             disabled={s.rollbackMutation.isPending}
                             data-testid={`button-rollback-${patch.id}`}
                           >
@@ -705,7 +705,7 @@ function SoftwareUpdatesTab() {
                   </div>
                 </form>
               </Form>
-              {(s.previewMutation.data as any) && (
+              {s.previewMutation.data && (
                 <div
                   className="mt-6 p-4 border rounded-lg bg-muted/50"
                   data-testid="preview-results"
@@ -715,28 +715,28 @@ function SoftwareUpdatesTab() {
                     <div>
                       <span className="text-muted-foreground">Files Changed:</span>
                       <p className="font-medium">
-                        {(s.previewMutation.data as unknown as { filesChanged?: number })?.filesChanged ?? 0}
+                        {s.previewMutation.data?.filesChanged ?? 0}
                       </p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Additions:</span>
                       <p className="font-medium text-green-600">
-                        +{(s.previewMutation.data as unknown as { additions?: number })?.additions ?? 0}
+                        +{s.previewMutation.data?.additions ?? 0}
                       </p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Deletions:</span>
                       <p className="font-medium text-red-600">
-                        -{(s.previewMutation.data as unknown as { deletions?: number })?.deletions ?? 0}
+                        -{s.previewMutation.data?.deletions ?? 0}
                       </p>
                     </div>
                   </div>
-                  {(s.previewMutation.data as unknown as { commits?: Array<{ sha: string; message: string }> })
+                  {(s.previewMutation.data as object as { commits?: Array<{ sha: string; message: string }> })
                     ?.commits && (
                     <div className="space-y-2">
                       <span className="text-sm text-muted-foreground">Commits:</span>
                       {(
-                        s.previewMutation.data as unknown as {
+                        s.previewMutation.data as object as {
                           commits: Array<{ sha: string; message: string }>;
                         }
                       ).commits

@@ -76,7 +76,7 @@ export default function ServiceOrdersPage() {
     data: orders,
     isLoading,
     refetch,
-  } = useServiceOrders((statusFilter !== "all" ? { status: statusFilter } : {}) as any);
+  } = useServiceOrders((statusFilter !== "all" ? { status: statusFilter } : {}) as never);
   const { data: suppliers } = useQuery<
     { id: string; name: string; qualityRating?: number; responseSlaHours?: number }[]
   >({ queryKey: ["/api/suppliers"] });

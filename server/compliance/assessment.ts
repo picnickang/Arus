@@ -90,7 +90,7 @@ function checkRecentCriticalAlerts(relevantAlerts: AlertNotification[]): number 
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
   return relevantAlerts.filter(
     // alert_notifications has no severity column; alertType acts as the severity discriminator.
-    (alert) => alert.alertType === "critical" && new Date((alert as any).timestamp ?? (alert as any).createdAt).getTime() > cutoff
+    (alert) => alert.alertType === "critical" && (alert.createdAt?.getTime() ?? 0) > cutoff
   ).length;
 }
 
@@ -217,24 +217,23 @@ export function generateTelemetryAnalysis(
   period: { startDate: Date; endDate: Date }
 ): ComplianceReport["telemetryAnalysis"] {
   const periodData = telemetryData.filter((reading) => {
-    const timestamp = reading.ts instanceof Date ? reading.ts : new Date(reading.ts as unknown as string);
     return (
-      timestamp >= period.startDate &&
-      timestamp <= period.endDate &&
+      reading.ts >= period.startDate &&
+      reading.ts <= period.endDate &&
       equipmentIds.includes(reading.equipmentId)
     );
   });
 
   const periodAlerts = alerts.filter((alert) => {
-    const timestamp = new Date((alert as any).timestamp ?? (alert as any).createdAt);
+    if (!alert.createdAt) return false;
     return (
-      timestamp >= period.startDate &&
-      timestamp <= period.endDate &&
+      alert.createdAt >= period.startDate &&
+      alert.createdAt <= period.endDate &&
       equipmentIds.includes(alert.equipmentId)
     );
   });
 
-  const uniqueTimestamps = new Set(periodData.map((r) => (r.ts instanceof Date ? r.ts.getTime() : r.ts)));
+  const uniqueTimestamps = new Set(periodData.map((r) => r.ts.getTime()));
   const monitoringHours = (uniqueTimestamps.size * 5) / 60;
 
   const periodHours = (period.endDate.getTime() - period.startDate.getTime()) / (1000 * 60 * 60);
@@ -244,8 +243,8 @@ export function generateTelemetryAnalysis(
   const anomalousReadings = periodData.filter((reading) => {
     return periodAlerts.some(
       (alert) =>
-        Math.abs(new Date((alert as any).timestamp ?? (alert as any).createdAt).getTime() - (reading.ts instanceof Date ? reading.ts.getTime() : new Date(reading.ts as unknown as string).getTime())) <
-        5 * 60 * 1000
+        alert.createdAt !== null &&
+        Math.abs(alert.createdAt.getTime() - reading.ts.getTime()) < 5 * 60 * 1000
     );
   });
 

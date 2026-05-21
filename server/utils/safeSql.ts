@@ -21,7 +21,7 @@ export interface SafeSqlOptions {
 }
 
 interface DrizzleDbLike {
-  execute(query: SQL): Promise<{ rows?: unknown[]; rowCount?: number }>;
+  execute(query: SQL): Promise<{ rows?: unknown[]; rowCount?: number | null }>;
   all?(query: SQL): Promise<unknown[]>;
   get?(query: SQL): Promise<unknown>;
 }
@@ -70,13 +70,18 @@ export async function safeSql<T = unknown>(
 
   // VESSEL mode: use SQLite-compatible methods
   try {
-    // Attempt to use db.all() for SELECT queries (SQLite)
-    const result = await (db as any).all(sqlQuery);
-    return { rows: result as T[], rowCount: result?.length || 0 };
+    if (typeof db.all !== "function") {
+      throw new Error("db.all() not available");
+    }
+    const result = (await db.all(sqlQuery)) as T[];
+    return { rows: result, rowCount: result?.length || 0 };
   } catch {
     // If db.all() fails, try db.get() for single-row queries
     try {
-      const result = await (db as any).get(sqlQuery);
+      if (typeof db.get !== "function") {
+        throw new Error("db.get() not available");
+      }
+      const result = (await db.get(sqlQuery)) as T | undefined;
       return { rows: (result ? [result] : []) as T[], rowCount: result ? 1 : 0 };
     } catch (innerError) {
       logger.error("[SafeSQL] Error executing SQLite query:", undefined, innerError);

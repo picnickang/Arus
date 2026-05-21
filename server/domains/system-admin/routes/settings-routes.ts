@@ -127,7 +127,7 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
     withErrorHandling("update admin system setting", async (req: Request, res: Response) => {
       const { id } = req.params;
       const validatedData = (
-        insertAdminSystemSettingSchema as unknown as import("zod").AnyZodObject
+        insertAdminSystemSettingSchema as object as import("zod").AnyZodObject
       ).partial().parse(req.body);
       const setting = await dbSystemAdminStorage.updateAdminSystemSetting(id, validatedData);
       res.json(setting);

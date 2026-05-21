@@ -56,7 +56,7 @@ export class EquipmentRepository extends TenantScopedRepository {
     const result = await db
       .select()
       .from(equipment)
-      .where(this.orgWhere(equipment, eq((equipment as any).deviceId, deviceId)))
+      .where(this.orgWhere(equipment, eq((equipment as object as Record<string, never>)["deviceId"], deviceId)))
       .limit(1);
 
     return result[0];
@@ -66,13 +66,14 @@ export class EquipmentRepository extends TenantScopedRepository {
    * Create new equipment
    * Automatically sets correct orgId
    */
-  async create(data: Omit<any, "id" | "orgId">) {
+  async create(data: Record<string, unknown>) {
     const { equipment } = await import("@shared/schema");
+    type EquipmentInsert = typeof equipment.$inferInsert;
 
-    const [created] = await (db as any)
-      .insert(equipment as any)
+    const [created] = await db
+      .insert(equipment)
       .values({
-        ...data,
+        ...(data as EquipmentInsert),
         orgId: this.orgId,
       })
       .returning();

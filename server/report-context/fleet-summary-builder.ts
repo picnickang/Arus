@@ -34,11 +34,11 @@ export async function buildFleetSummaryContext(
   ]);
 
   const filteredWorkOrders = workOrders.filter(
-    (wo: any) => new Date(wo.createdAt as any) >= start && new Date(wo.createdAt as any) <= end
+    (wo) => wo.createdAt != null && wo.createdAt >= start && wo.createdAt <= end
   );
 
   const filteredAlerts = alerts.filter(
-    (alert: any) => new Date(alert.createdAt as any) >= start && new Date(alert.createdAt as any) <= end
+    (alert) => alert.createdAt != null && alert.createdAt >= start && alert.createdAt <= end
   );
 
   let intelligence: ReportContext["intelligence"];
@@ -75,7 +75,7 @@ export async function buildFleetSummaryContext(
 
       const predictions = (await Promise.all(predictionPromises)).filter((p) => p !== null);
       if (predictions.length > 0) {
-        intelligence.predictions = predictions as any;
+        intelligence.predictions = predictions as object as typeof intelligence.predictions;
       }
     }
   }

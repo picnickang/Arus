@@ -1,12 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle2, TrendingUp, AlertTriangle, BarChart3 } from "lucide-react";
-
-interface ReportContent {
-  summary?: string;
-  analysis?: string;
-  recommendations?: string[];
-  [key: string]: any;
-}
+import type { ReportContent } from "@/features/ml-ai/types";
 
 interface ReportSummaryCardsProps {
   content: ReportContent;

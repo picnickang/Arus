@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { StatusBadge } from "@/components/shared/StatusBadge";
+import { StatusBadge, type StatusType } from "@/components/shared/StatusBadge";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { SensorSetupWizard } from "@/components/sensors/SensorSetupWizard";
 import { CrossClassPatternsCard } from "@/components/equipment/CrossClassPatternsCard";
@@ -423,11 +423,11 @@ function SensorsTab({ equipmentId }: { equipmentId: string }) {
           open={isWizardOpen}
           onClose={() => setIsWizardOpen(false)}
           equipment={{
-            id: (equipment as any).id,
-            name: (equipment as any).name,
-            type: (equipment as any).type,
-            status: (equipment as any).status || ((equipment as any).isActive ? "active" : "inactive"),
-            location: (equipment as any).location || "Unknown",
+            id: equipment.id,
+            name: equipment.name,
+            type: equipment.type,
+            status: equipment.status || (equipment.isActive ? "active" : "inactive"),
+            location: equipment.location || "Unknown",
           }}
           onSuccess={handleWizardSuccess}
         />
@@ -448,7 +448,7 @@ function SensorsTab({ equipmentId }: { equipmentId: string }) {
         onOpenChange={setDeleteDialogOpen}
         onConfirm={confirmDelete}
         title="Delete sensors"
-        description={(
+        description={
           <div className="space-y-2">
             <p>
               Are you sure you want to delete {selectedSensors.length}{" "}
@@ -468,7 +468,7 @@ function SensorsTab({ equipmentId }: { equipmentId: string }) {
               </ul>
             </div>
           </div>
-        ) as any}
+        }
         confirmText="Delete"
         cancelText="Cancel"
       />
@@ -487,13 +487,13 @@ function AnomaliesTab({ equipmentId }: { equipmentId: string }) {
         <CardTitle>Anomaly Detections</CardTitle>
       </CardHeader>
       <CardContent>
-        {(anomalies as any)?.length > 0 ? (
+        {anomalies && anomalies.length > 0 ? (
           <div className="space-y-3">
-            {(anomalies as any[]).map((anomaly: { id: string; sensorKind?: string; severity?: string; description?: string }) => (
+            {anomalies.map((anomaly) => (
               <div key={anomaly.id} className="p-4 border rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="font-medium">{anomaly.sensorKind}</p>
-                  <StatusBadge status={(anomaly.severity || "info") as any} />
+                  <StatusBadge status={(anomaly.severity || "info") as StatusType} />
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {anomaly.description || "Anomaly detected"}
@@ -520,13 +520,13 @@ function MaintenanceHistoryTab({ equipmentId }: { equipmentId: string }) {
         <CardTitle>Work Order History</CardTitle>
       </CardHeader>
       <CardContent>
-        {(workOrders as any)?.length > 0 ? (
+        {workOrders && workOrders.length > 0 ? (
           <div className="space-y-3">
-            {(workOrders as any[]).map((wo: { id: string; reason?: string; description?: string; status?: string; maintenanceType?: string }) => (
+            {workOrders.map((wo) => (
               <div key={wo.id} className="p-4 border rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="font-medium">{wo.reason || wo.description}</p>
-                  <StatusBadge status={(wo.status || "pending") as any} />
+                  <StatusBadge status={(wo.status || "pending") as StatusType} />
                 </div>
                 <p className="text-sm text-muted-foreground">Type: {wo.maintenanceType}</p>
               </div>

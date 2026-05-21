@@ -92,17 +92,23 @@ export function useDevicesPage() {
         });
         return;
       }
+      const toTrimmed = (v: unknown): string | null => {
+        if (v === undefined || v === null) return null;
+        const s = typeof v === "string" ? v : JSON.stringify(v);
+        const trimmed = s.trim();
+        return trimmed.length > 0 ? trimmed : null;
+      };
       const deviceData: InsertDevice = {
         id: formData.id.trim(),
-        orgId: (selectedDevice?.orgId as string) || "",
-        vessel: (formData.vessel as any)?.toString().trim() || null,
-        buses: (formData.buses as any)?.toString().trim() || null,
-        sensors: (formData.sensors as any)?.toString().trim() || null,
-        config: (formData.config as any)?.toString().trim() || null,
-        hmacKey: (formData.hmacKey as any)?.toString().trim() || null,
-      } as any;
+        orgId: selectedDevice?.orgId ?? "",
+        vessel: toTrimmed(formData.vessel),
+        buses: toTrimmed(formData.buses),
+        sensors: toTrimmed(formData.sensors),
+        config: toTrimmed(formData.config),
+        hmacKey: toTrimmed(formData.hmacKey),
+      };
       if (selectedDevice) {
-        updateDeviceMutation.mutate({ id: selectedDevice.id, data: deviceData } as any);
+        updateDeviceMutation.mutate({ id: selectedDevice.id, data: deviceData });
       } else {
         createDeviceMutation.mutate(deviceData);
       }

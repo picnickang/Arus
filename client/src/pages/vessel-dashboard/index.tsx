@@ -54,7 +54,7 @@ export default function VesselDashboard() {
     crewLoading,
     schedulesLoading,
   } = useVesselDetail();
-  const equipment = equipmentRaw as unknown as VesselEquipment[];
+  const equipment = equipmentRaw as object as VesselEquipment[];
 
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [inventoryTab, setInventoryTab] = useState("compatible");

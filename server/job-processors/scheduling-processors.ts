@@ -38,5 +38,5 @@ export async function processMaintenanceScheduling(data: {
   equipmentId: string;
   pdmScore: number;
 }): Promise<unknown> {
-  return (dbMaintenanceStorage as any).autoScheduleMaintenance(data.equipmentId, data.pdmScore);
+  return (dbMaintenanceStorage as object as { autoScheduleMaintenance: (equipmentId: string, pdmScore: number) => Promise<unknown> }).autoScheduleMaintenance(data.equipmentId, data.pdmScore);
 }

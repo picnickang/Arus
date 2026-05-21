@@ -117,8 +117,8 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         for (let j = i + 1; j < schedules.length; j++) {
           const s1 = schedules[i];
           const s2 = schedules[j];
-          const s1Bag = s1 as unknown as Record<string, unknown>;
-          const s2Bag = s2 as unknown as Record<string, unknown>;
+          const s1Bag: Record<string, unknown> = s1 as object as Record<string, unknown>;
+          const s2Bag: Record<string, unknown> = s2 as object as Record<string, unknown>;
           if (
             s1.scheduledDate === s2.scheduledDate &&
             s1Bag.assignedCrewId === s2Bag.assignedCrewId
@@ -189,7 +189,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       });
 
       const bag = (s: MaintenanceSchedule) =>
-        s as unknown as { status?: string; priority?: string | number; scheduledDate: Date };
+        s as object as { status?: string; priority?: string | number; scheduledDate: Date };
       const isPriority = (s: MaintenanceSchedule, name: string) =>
         String(bag(s).priority ?? "") === name;
       const stats = {
@@ -393,7 +393,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       });
 
       const optimizedSchedules = schedules.map((s, index: number) => {
-        const bag = s as unknown as Record<string, unknown>;
+        const bag = s as object as Record<string, unknown>;
         return {
           ...s,
           optimizedScore: (index % 10) * 10 + 5,
@@ -533,7 +533,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
 
       const updated = await schedulingSettingsService.updateRotationTemplates(
         orgId,
-        body as unknown as Parameters<typeof schedulingSettingsService.updateRotationTemplates>[1],
+        body as Parameters<typeof schedulingSettingsService.updateRotationTemplates>[1],
         vesselId,
       );
 

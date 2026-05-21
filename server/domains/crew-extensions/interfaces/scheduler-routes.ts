@@ -99,7 +99,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         limit ? Number.parseInt(limit) : 50
       );
       const transformed = runs.map((run) => {
-        const bag = run as unknown as Record<string, unknown>;
+        const bag = run as Record<string, unknown>;
         const completedAt = bag.completedAt as string | Date | null | undefined;
         return {
           id: run.id,
@@ -302,14 +302,11 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           })),
           leaveRecords: leaves
             .filter((l) => l.crewId === assignment.crewId)
-            .map((l) => {
-              const lb = l as unknown as { startDate?: string | Date; endDate?: string | Date; start?: string | Date; end?: string | Date };
-              return {
-                crewId: l.crewId,
-                start: new Date(lb.startDate || lb.start || 0),
-                end: new Date(lb.endDate || lb.end || 0),
-              };
-            }),
+            .map((l) => ({
+              crewId: l.crewId,
+              start: l.start ?? new Date(0),
+              end: l.end ?? new Date(0),
+            })),
           certifications: [],
           preferences: DEFAULT_SCHEDULING_PREFERENCES,
         };
@@ -393,9 +390,8 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           const constraints: ConstraintViolation[] = [];
 
           for (const leave of crewLeaves) {
-            const leaveBag = leave as unknown as { startDate?: string | Date; endDate?: string | Date; start?: string | Date; end?: string | Date };
-            const leaveStart = new Date(leaveBag.startDate || leaveBag.start || 0);
-            const leaveEnd = new Date(leaveBag.endDate || leaveBag.end || 0);
+            const leaveStart = leave.start ?? new Date(0);
+            const leaveEnd = leave.end ?? new Date(0);
             if (shiftStart < leaveEnd && shiftEnd > leaveStart) {
               constraints.push({
                 constraint: { type: "leave", enforcement: "hard", description: "On leave" },
@@ -416,12 +412,11 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
             fatigueRisk = "medium";
           }
 
-          const crewBag = crew as unknown as { avatarUrl?: string | null };
           const ctx: ScoringContext = {
             crewId: crew.id,
             crewName: crew.name,
             rank: crew.rank ?? undefined,
-            avatarUrl: crewBag.avatarUrl ?? undefined,
+            avatarUrl: undefined,
             vesselId: crew.vesselId ?? undefined,
             targetVesselId: assignment.vesselId ?? undefined,
             currentAssignmentCount: crewAssignments.length,
@@ -563,24 +558,25 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           const crewMembers = await dbCrewStorage.getCrew(orgId);
           const vessels = await vesselService.getVessels();
 
-          const assignmentInfos = assignmentsToPublish.map((a) => {
+          type AssignmentInfoArg = Parameters<typeof sendSchedulePublishedNotification>[1][number];
+          const assignmentInfos: AssignmentInfoArg[] = assignmentsToPublish.map((a) => {
             const crew = crewMembers.find((c) => c.id === a.crewId);
             const vessel = vessels.find((v) => v.id === a.vesselId);
             return {
               id: a.id,
               crewId: a.crewId,
               crewName: crew?.name || "Unknown Crew",
-              vesselId: a.vesselId,
+              vesselId: a.vesselId ?? "",
               vesselName: vessel?.name,
-              startDate: a.start || a.date,
-              endDate: a.end || a.date,
-              role: a.role,
+              startDate: String(a.start || a.date || ""),
+              endDate: String(a.end || a.date || ""),
+              role: a.role ?? undefined,
             };
           });
 
           sendSchedulePublishedNotification(
             { orgId, vesselId },
-            assignmentInfos as unknown as Parameters<typeof sendSchedulePublishedNotification>[1],
+            assignmentInfos,
             { from, to },
           ).catch((err) =>
             logger.error("Failed to send publish notifications:", undefined, err),

@@ -196,7 +196,7 @@ export async function fetchKnowledgeData(
   searchKnowledgeBase: any,
   logger: any
 ): Promise<{ relatedDocuments: any[]; semanticMatches: any[] }> {
-  const results = { relatedDocuments: [] as any[], semanticMatches: [] as any[] };
+  const results = { relatedDocuments: [] as object[], semanticMatches: [] as object[] };
 
   try {
     const equipmentType = equipmentRecord.type ?? "";

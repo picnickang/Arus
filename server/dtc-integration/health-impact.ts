@@ -80,7 +80,8 @@ export async function calculateDtcFinancialImpact(
   }
 
   const vessel = await vesselService.getVessel(vesselId, orgId);
-  const dayRate = (vessel as any)?.dayRate ? Number((vessel as any).dayRate) : 50000;
+  const vesselWithRate = vessel as { dayRate?: number | string } | null | undefined;
+  const dayRate = vesselWithRate?.dayRate ? Number(vesselWithRate.dayRate) : 50000;
   const hourlyRate = dayRate / 24;
 
   return { totalDowntimeHours, estimatedCost: totalDowntimeHours * hourlyRate, criticalDtcCount };
