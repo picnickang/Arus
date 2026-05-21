@@ -10,6 +10,27 @@ const telemetryQuerySchema = z.object({
   hours: z.coerce.number().int().positive().default(24),
 });
 
+const latestTelemetryQuerySchema = z.object({
+  vesselId: z.string().optional(),
+  equipmentId: z.string().optional(),
+  sensorType: z.string().optional(),
+  limit: z.coerce.number().int().positive().optional(),
+});
+
+const telemetryHistoryParamSchema = z.object({
+  equipmentId: z.string().min(1),
+  sensorType: z.string().min(1),
+});
+
+const telemetryHistoryQuerySchema = z.object({
+  hours: z.coerce.number().int().positive().optional(),
+});
+
+const sensorConfigQuerySchema = z.object({
+  equipmentId: z.string().optional(),
+  sensorType: z.string().optional(),
+});
+
 /**
  * Telemetry Domain Routes
  *
@@ -40,10 +61,8 @@ export function registerTelemetryRoutes(
     "/api/telemetry/latest",
     generalApiRateLimit,
     withErrorHandling("fetch latest telemetry readings", async (req, res) => {
-      const vesselId = req.query.vesselId as string | undefined;
-      const equipmentId = req.query.equipmentId as string | undefined;
-      const sensorType = req.query.sensorType as string | undefined;
-      const limit = req.query.limit ? Number.parseInt(req.query.limit as string, 10) : 500;
+      const { equipmentId, limit: l } = latestTelemetryQuerySchema.parse(req.query);
+      const limit = l ?? 500;
 
       const readings = equipmentId
         ? await dbTelemetryStorage.getLatestTelemetryReadings(equipmentId, limit)
@@ -71,8 +90,9 @@ export function registerTelemetryRoutes(
     "/api/telemetry/history/:equipmentId/:sensorType",
     generalApiRateLimit,
     withErrorHandling("fetch telemetry history", async (req, res) => {
-      const { equipmentId, sensorType } = req.params;
-      const hours = req.query.hours ? Number.parseInt(req.query.hours as string) : 24;
+      const { equipmentId, sensorType } = telemetryHistoryParamSchema.parse(req.params);
+      const { hours: h } = telemetryHistoryQuerySchema.parse(req.query);
+      const hours = h ?? 24;
       const history = await dbTelemetryStorage.getTelemetryHistory(equipmentId, sensorType, hours);
       res.json(history);
     })
@@ -110,7 +130,7 @@ export function registerTelemetryRoutes(
     "/api/sensor-configs",
     generalApiRateLimit,
     withErrorHandling("fetch sensor configurations", async (req, res) => {
-      const { equipmentId, sensorType } = req.query;
+      const { equipmentId, sensorType } = sensorConfigQuerySchema.parse(req.query);
       const orgId = req.orgId!;
 
       const configs = await dbSensorsStorage.getSensorConfigurations(
@@ -127,7 +147,7 @@ export function registerTelemetryRoutes(
     "/api/sensor-config",
     generalApiRateLimit,
     withErrorHandling("fetch sensor configuration", async (req, res) => {
-      const { equipmentId, sensorType } = req.query;
+      const { equipmentId, sensorType } = sensorConfigQuerySchema.parse(req.query);
       const orgId = req.orgId!;
 
       const configs = await dbSensorsStorage.getSensorConfigurations(

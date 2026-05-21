@@ -66,6 +66,9 @@ const GenerateOnDemandSchema = z.object({
   vesselIds: z.array(z.string().uuid()).nullable().optional(),
 });
 
+const idParamSchema = z.object({ id: z.string().min(1) });
+const limitQuerySchema = z.object({ limit: z.coerce.number().int().optional() });
+
 export function createScheduledReportsRouter(
   schedulerService: ReportSchedulerService,
   generationService: ReportGenerationService
@@ -96,7 +99,7 @@ export function createScheduledReportsRouter(
   router.get("/schedules/:id", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const orgId = req.orgId || DEFAULT_ORG_ID;
-      const schedule = await schedulerService.getSchedule(req.params.id, orgId);
+      const schedule = await schedulerService.getSchedule(idParamSchema.parse(req.params).id, orgId);
 
       if (!schedule) {
         return res.status(404).json({ error: "Schedule not found" });
@@ -144,7 +147,7 @@ export function createScheduledReportsRouter(
       }
 
       const schedule = await schedulerService.updateSchedule(
-        req.params.id,
+        idParamSchema.parse(req.params).id,
         orgId,
         validation.data,
         userId
@@ -165,7 +168,7 @@ export function createScheduledReportsRouter(
       const orgId = req.orgId || DEFAULT_ORG_ID;
       const userId = req.user?.id || "system";
 
-      await schedulerService.deleteSchedule(req.params.id, orgId, userId);
+      await schedulerService.deleteSchedule(idParamSchema.parse(req.params).id, orgId, userId);
       res.status(204).send();
     } catch (error) {
       logger.error(LOG_CTX, "Failed to delete schedule", String(error));
@@ -176,7 +179,7 @@ export function createScheduledReportsRouter(
   router.post("/schedules/:id/run", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const orgId = req.orgId || DEFAULT_ORG_ID;
-      await schedulerService.runScheduleNow(req.params.id, orgId);
+      await schedulerService.runScheduleNow(idParamSchema.parse(req.params).id, orgId);
       res.json({ message: "Report generation started" });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -191,8 +194,8 @@ export function createScheduledReportsRouter(
   router.get("/schedules/:id/history", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const orgId = req.orgId || DEFAULT_ORG_ID;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const reports = await schedulerService.getReportHistory(req.params.id, orgId, limit);
+      const limit = limitQuerySchema.parse(req.query).limit ?? 10;
+      const reports = await schedulerService.getReportHistory(idParamSchema.parse(req.params).id, orgId, limit);
       res.json({ data: reports });
     } catch (error) {
       logger.error(LOG_CTX, "Failed to get report history", String(error));
@@ -203,7 +206,7 @@ export function createScheduledReportsRouter(
   router.get("/reports", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const orgId = req.orgId || DEFAULT_ORG_ID;
-      const limit = parseInt(req.query.limit as string) || 50;
+      const limit = limitQuerySchema.parse(req.query).limit ?? 50;
       const reports = await schedulerService.getAllReports(orgId, limit);
       res.json({ data: reports });
     } catch (error) {

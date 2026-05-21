@@ -11,14 +11,51 @@ interface StormGeoConfig {
   writeOperationRateLimit: RequestHandler;
 }
 
+const vesselIdQuerySchema = z.object({
+  vesselId: z.string().optional(),
+});
+
+const importBodySchema = z.object({
+  vesselId: z.string().min(1),
+  fileName: z.string().optional(),
+  fileContent: z.string().min(1),
+  fileType: z.string().optional(),
+});
+
+const importHistoryQuerySchema = z.object({
+  vesselId: z.string().optional(),
+  limit: z.coerce.number().int().positive().optional(),
+});
+
+const snapshotsQuerySchema = z.object({
+  vesselId: z.string().min(1),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
+});
+
+const weatherForTimeQuerySchema = z.object({
+  vesselId: z.string().min(1),
+  timestamp: z.string().min(1),
+});
+
+const autoFillHourlySchema = z.object({
+  vesselId: z.string().min(1),
+  logDate: z.string().min(1),
+  hour: z.number().int().min(0).max(23),
+});
+
+const idParamSchema = z.object({ id: z.string().min(1) });
+const routeIdParamSchema = z.object({ routeId: z.string().min(1) });
+const settingsBodySchema = z.record(z.unknown());
+
 export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
-  const { requireOrgId, generalApiRateLimit, writeOperationRateLimit } = config;
+  const { writeOperationRateLimit } = config;
 
   app.get(
     "/api/stormgeo/settings",
     withErrorHandling("get StormGeo settings", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const vesselId = req.query.vesselId as string | undefined;
+      const { vesselId } = vesselIdQuerySchema.parse(req.query);
       const settings = await dbStormGeoStorage.getStormgeoSettings(orgId, vesselId);
       res.json(settings || null);
     })
@@ -29,10 +66,11 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
     writeOperationRateLimit,
     withErrorHandling("save StormGeo settings", async (req: Request, res: Response) => {
       const orgId = req.orgId;
+      const body = settingsBodySchema.parse(req.body);
       const settings = await stormgeoIntegrationService.upsertSettings({
-        ...req.body,
+        ...body,
         orgId,
-      });
+      } as Parameters<typeof stormgeoIntegrationService.upsertSettings>[0]);
       res.json(settings);
     })
   );
@@ -43,7 +81,8 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
     withErrorHandling("delete StormGeo settings", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       void orgId;
-      await dbStormGeoStorage.deleteStormgeoSetting(req.params.id);
+      const { id } = idParamSchema.parse(req.params);
+      await dbStormGeoStorage.deleteStormgeoSetting(id);
       res.json({ success: true });
     })
   );
@@ -53,12 +92,12 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
     writeOperationRateLimit,
     withErrorHandling("import StormGeo data", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const { vesselId, fileName, fileContent, fileType } = req.body;
-
-      if (!vesselId || !fileContent) {
+      const parsed = importBodySchema.safeParse(req.body);
+      if (!parsed.success) {
         res.status(400).json({ error: "vesselId and fileContent are required" });
         return;
       }
+      const { vesselId, fileName, fileContent, fileType } = parsed.data;
 
       let result;
       if (fileType === "json" || fileName?.endsWith(".json")) {
@@ -85,8 +124,7 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
     "/api/stormgeo/import-history",
     withErrorHandling("get StormGeo import history", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const vesselId = req.query.vesselId as string | undefined;
-      const limit = req.query.limit ? Number(req.query.limit) : undefined;
+      const { vesselId, limit } = importHistoryQuerySchema.parse(req.query);
       const rows = await dbStormGeoStorage.getStormgeoImportHistory(orgId, vesselId);
       const history = typeof limit === "number" ? rows.slice(0, limit) : rows;
       res.json(history);
@@ -97,20 +135,20 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
     "/api/stormgeo/snapshots",
     withErrorHandling("get StormGeo snapshots", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const vesselId = req.query.vesselId as string;
-      const startTime = req.query.startTime ? new Date(req.query.startTime as string) : undefined;
-      const endTime = req.query.endTime ? new Date(req.query.endTime as string) : undefined;
-
-      if (!vesselId) {
+      const parsed = snapshotsQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
         res.status(400).json({ error: "vesselId is required" });
         return;
       }
+      const { vesselId, startTime, endTime } = parsed.data;
+      const startDate = startTime ? new Date(startTime) : undefined;
+      const endDate = endTime ? new Date(endTime) : undefined;
 
       const snapshots = await stormgeoIntegrationService.getSnapshots(
         orgId,
         vesselId,
-        startTime,
-        endTime
+        startDate,
+        endDate
       );
       res.json(snapshots);
     })
@@ -120,13 +158,12 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
     "/api/stormgeo/weather-for-time",
     withErrorHandling("get weather for time", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const vesselId = req.query.vesselId as string;
-      const timestamp = req.query.timestamp as string;
-
-      if (!vesselId || !timestamp) {
+      const parsed = weatherForTimeQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
         res.status(400).json({ error: "vesselId and timestamp are required" });
         return;
       }
+      const { vesselId, timestamp } = parsed.data;
 
       const snapshot = await stormgeoIntegrationService.getWeatherForTime(
         vesselId,
@@ -142,12 +179,12 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
     writeOperationRateLimit,
     withErrorHandling("auto-fill hourly entry", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const { vesselId, logDate, hour } = req.body;
-
-      if (!vesselId || !logDate || hour === undefined) {
+      const parsed = autoFillHourlySchema.safeParse(req.body);
+      if (!parsed.success) {
         res.status(400).json({ error: "vesselId, logDate, and hour are required" });
         return;
       }
+      const { vesselId, logDate, hour } = parsed.data;
 
       const result = await stormgeoIntegrationService.autoFillHourlyEntry(
         vesselId,
@@ -238,7 +275,8 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
     withErrorHandling("delete StormGeo snapshots", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       void orgId;
-      void req.params.routeId;
+      const { routeId } = routeIdParamSchema.parse(req.params);
+      void routeId;
       await dbStormGeoStorage.deleteStormgeoSnapshotsBefore(new Date());
       res.json({ success: true });
     })

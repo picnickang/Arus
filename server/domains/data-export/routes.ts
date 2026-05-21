@@ -7,6 +7,20 @@
 
 import { Express, Request, Response } from "express";
 import { RateLimitRequestHandler } from "express-rate-limit";
+import { z } from "zod";
+
+const exportBodySchema = z.object({
+  includeTelemetry: z.boolean().optional(),
+  telemetryDays: z.number().optional(),
+  includeKnowledgeBase: z.boolean().optional(),
+  includeAuditLogs: z.boolean().optional(),
+}).partial();
+const importBodySchema = z.object({
+  dryRun: z.string().optional(),
+  skipTelemetry: z.string().optional(),
+  conflictResolution: z.enum(["replace", "skip", "upsert"]).optional(),
+}).partial();
+const exportIdParamSchema = z.object({ exportId: z.string().min(1) });
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import type { AuthenticatedRequest } from "../../middleware/auth";
@@ -41,13 +55,14 @@ export function registerDataExportRoutes(app: Express, deps: DataExportDependenc
       const orgId = DEFAULT_ORG_ID;
       const exportedBy = (req as AuthenticatedRequest).user?.id || "admin";
 
+      const body = exportBodySchema.parse(req.body ?? {});
       const result = await service.exportOrg(
         orgId,
         {
-          includeTelemetry: req.body.includeTelemetry ?? false,
-          telemetryDays: req.body.telemetryDays ?? 30,
-          includeKnowledgeBase: req.body.includeKnowledgeBase ?? true,
-          includeAuditLogs: req.body.includeAuditLogs ?? false,
+          includeTelemetry: body.includeTelemetry ?? false,
+          telemetryDays: body.telemetryDays ?? 30,
+          includeKnowledgeBase: body.includeKnowledgeBase ?? true,
+          includeAuditLogs: body.includeAuditLogs ?? false,
         },
         exportedBy
       );
@@ -73,9 +88,10 @@ export function registerDataExportRoutes(app: Express, deps: DataExportDependenc
     generalApiRateLimit,
     auditAdminAction("DOWNLOAD_EXPORT"),
     withErrorHandling("download export", async (req: Request, res: Response) => {
+      const { exportId } = exportIdParamSchema.parse(req.params);
       const service = getDataExportImportService();
       const exports = await service.listExports();
-      const exportFile = exports.find((e) => e.id === req.params.exportId);
+      const exportFile = exports.find((e) => e.id === exportId);
 
       if (!exportFile) {
         return sendNotFound(res, "Export");
@@ -84,7 +100,7 @@ export function registerDataExportRoutes(app: Express, deps: DataExportDependenc
       const fs = await import("fs");
 
       res.setHeader("Content-Type", "application/gzip");
-      res.setHeader("Content-Disposition", `attachment; filename="${req.params.exportId}.tar.gz"`);
+      res.setHeader("Content-Disposition", `attachment; filename="${exportId}.tar.gz"`);
 
       const fileStream = fs.createReadStream(exportFile.path);
       fileStream.pipe(res);
@@ -119,8 +135,9 @@ export function registerDataExportRoutes(app: Express, deps: DataExportDependenc
     criticalOperationRateLimit,
     auditAdminAction("DELETE_EXPORT"),
     withErrorHandling("delete export", async (req: Request, res: Response) => {
+      const { exportId } = exportIdParamSchema.parse(req.params);
       const service = getDataExportImportService();
-      const deleted = await service.deleteExport(req.params.exportId);
+      const deleted = await service.deleteExport(exportId);
 
       if (deleted) {
         res.json({ success: true });
@@ -146,12 +163,13 @@ export function registerDataExportRoutes(app: Express, deps: DataExportDependenc
 
       const fs = await import("node:fs/promises");
 
+      const body = importBodySchema.parse(req.body ?? {});
       try {
         const result = await service.importData(req.file.path, {
           targetOrgId: DEFAULT_ORG_ID,
-          dryRun: req.body.dryRun === "true",
-          skipTelemetry: req.body.skipTelemetry === "true",
-          conflictResolution: req.body.conflictResolution || "upsert",
+          dryRun: body.dryRun === "true",
+          skipTelemetry: body.skipTelemetry === "true",
+          conflictResolution: body.conflictResolution || "upsert",
         });
 
         res.json(result);

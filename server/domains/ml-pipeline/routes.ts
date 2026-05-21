@@ -1,8 +1,57 @@
 import type { Express, Request, Response } from "express";
 import type { RateLimitRequestHandler } from "express-rate-limit";
+import { z } from "zod";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import { dbMlAnalyticsStorage } from "../../db/ml-analytics/index.js";
+
+const acousticAnalyzeSchema = z.object({
+  acousticData: z.array(z.number()),
+  sampleRate: z.number(),
+  equipmentType: z.string().optional(),
+  rpm: z.number().optional(),
+});
+
+const acousticFeaturesSchema = z.object({
+  acousticData: z.array(z.number()),
+  sampleRate: z.number(),
+  rpm: z.number().optional(),
+});
+
+const trainBodySchema = z.object({
+  orgId: z.string().optional(),
+  equipmentType: z.string(),
+  lstmConfig: z.record(z.unknown()).optional(),
+  rfConfig: z.record(z.unknown()).optional(),
+  xgboostConfig: z.record(z.unknown()).optional(),
+}).passthrough();
+
+const orgOnlyBodySchema = z.object({ orgId: z.string().optional() }).passthrough();
+
+const predictFailureBodySchema = z.object({
+  equipmentId: z.string().optional(),
+  orgId: z.string().optional(),
+  method: z.string().optional(),
+});
+
+const trainingWindowParamSchema = z.object({ equipmentType: z.string().optional() });
+
+const rulModelsQuerySchema = z.object({
+  componentClass: z.string().optional(),
+  orgId: z.string().optional(),
+});
+
+const rulFitBodySchema = z.object({
+  modelId: z.string(),
+  componentClass: z.string(),
+  failureTimes: z.array(z.number()),
+});
+
+const rulPredictBodySchema = z.object({
+  modelId: z.string(),
+  currentAge: z.number(),
+  quantile: z.number().optional(),
+});
 
 type AuthenticatedRequest = Request & {
   orgId?: string;
@@ -25,13 +74,13 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
     "/api/acoustic/analyze",
     generalApiRateLimit,
     withErrorHandling("analyze acoustic data", async (req: Request, res: Response) => {
-      const { acousticData, sampleRate, equipmentType, rpm } = req.body;
-
-      if (!Array.isArray(acousticData) || typeof sampleRate !== "number") {
+      const parsed = acousticAnalyzeSchema.safeParse(req.body);
+      if (!parsed.success) {
         return res.status(400).json({
           error: "Invalid input. Requires acousticData (array) and sampleRate (number)",
         });
       }
+      const { acousticData, sampleRate, equipmentType, rpm } = parsed.data;
 
       const { performAcousticAnalysis } = await import("../../acoustic-monitoring");
       const analysis = performAcousticAnalysis(acousticData, sampleRate, equipmentType, rpm);
@@ -44,13 +93,13 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
     "/api/acoustic/features",
     generalApiRateLimit,
     withErrorHandling("extract acoustic features", async (req: Request, res: Response) => {
-      const { acousticData, sampleRate, rpm } = req.body;
-
-      if (!Array.isArray(acousticData) || typeof sampleRate !== "number") {
+      const parsed = acousticFeaturesSchema.safeParse(req.body);
+      if (!parsed.success) {
         return res.status(400).json({
           error: "Invalid input. Requires acousticData (array) and sampleRate (number)",
         });
       }
+      const { acousticData, sampleRate, rpm } = parsed.data;
 
       const { analyzeAcoustic } = await import("../../acoustic-monitoring");
       const features = analyzeAcoustic(acousticData, sampleRate, rpm);
@@ -67,7 +116,9 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
     "/api/ml/train/lstm",
     generalApiRateLimit,
     withErrorHandling("train LSTM model", async (req: AuthenticatedRequest, res: Response) => {
-      const { orgId = req.orgId!, equipmentType, lstmConfig } = req.body;
+      const body = trainBodySchema.parse(req.body);
+      const orgId = body.orgId ?? req.orgId!;
+      const { equipmentType, lstmConfig } = body;
 
       const { trainLSTMForFailurePrediction } = await import("../../ml-training-pipeline");
 
@@ -101,7 +152,9 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
     withErrorHandling(
       "train Random Forest model",
       async (req: AuthenticatedRequest, res: Response) => {
-        const { orgId = req.orgId!, equipmentType, rfConfig } = req.body;
+        const body = trainBodySchema.parse(req.body);
+        const orgId = body.orgId ?? req.orgId!;
+        const { equipmentType, rfConfig } = body;
 
         const { trainRFForHealthClassification } = await import("../../ml-training-pipeline");
 
@@ -129,7 +182,9 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
     "/api/ml/train/xgboost",
     generalApiRateLimit,
     withErrorHandling("train XGBoost model", async (req: AuthenticatedRequest, res: Response) => {
-      const { orgId = req.orgId!, equipmentType, xgboostConfig } = req.body;
+      const body = trainBodySchema.parse(req.body);
+      const orgId = body.orgId ?? req.orgId!;
+      const { equipmentType, xgboostConfig } = body;
 
       const { trainXGBoostForHealthClassification } = await import("../../ml-training-pipeline");
 
@@ -158,7 +213,8 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
     withErrorHandling(
       "batch train all models",
       async (req: AuthenticatedRequest, res: Response) => {
-        const { orgId = req.orgId! } = req.body;
+        const body = orgOnlyBodySchema.parse(req.body);
+        const orgId = body.orgId ?? req.orgId!;
 
         const { retrainAllModels } = await import("../../ml-training-pipeline");
         const results = await retrainAllModels(orgId);
@@ -196,7 +252,10 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
     withErrorHandling(
       "predict equipment failure",
       async (req: AuthenticatedRequest, res: Response) => {
-        const { equipmentId, orgId = req.orgId!, method = "hybrid" } = req.body;
+        const body = predictFailureBodySchema.parse(req.body);
+        const orgId = body.orgId ?? req.orgId!;
+        const method = body.method ?? "hybrid";
+        const { equipmentId } = body;
 
         if (!equipmentId) {
           return res.status(400).json({ error: "equipmentId is required" });
@@ -262,7 +321,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
       "determine training window",
       async (req: AuthenticatedRequest, res: Response) => {
         const orgId = req.orgId!;
-        const equipmentType = req.params.equipmentType;
+        const { equipmentType } = trainingWindowParamSchema.parse(req.params);
 
         const { determineOptimalTrainingWindow } = await import("../../adaptive-training-window");
         const windowConfig = await determineOptimalTrainingWindow(orgId, equipmentType);
@@ -362,8 +421,9 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
     "/api/rul/models",
     generalApiRateLimit,
     withErrorHandling("get RUL models", async (req: AuthenticatedRequest, res: Response) => {
-      const { componentClass, orgId = req.orgId! } = req.query;
-      const models = await dbMlAnalyticsStorage.getRulModels(orgId as string);
+      const query = rulModelsQuerySchema.parse(req.query);
+      const orgId = query.orgId ?? req.orgId!;
+      const models = await dbMlAnalyticsStorage.getRulModels(orgId);
       res.json(models);
     })
   );
@@ -372,7 +432,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
     "/api/rul/fit",
     generalApiRateLimit,
     withErrorHandling("fit RUL model", async (req: AuthenticatedRequest, res: Response) => {
-      const { modelId, componentClass, failureTimes } = req.body;
+      const { modelId, componentClass, failureTimes } = rulFitBodySchema.parse(req.body);
       const orgId = req.orgId!;
 
       const { fitWeibullComprehensive } = await import("../../rul");
@@ -399,7 +459,9 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
     "/api/rul/predict",
     generalApiRateLimit,
     withErrorHandling("predict RUL", async (req: AuthenticatedRequest, res: Response) => {
-      const { modelId, currentAge, quantile = 0.5 } = req.body;
+      const parsedBody = rulPredictBodySchema.parse(req.body);
+      const { modelId, currentAge } = parsedBody;
+      const quantile = parsedBody.quantile ?? 0.5;
       const orgId = req.orgId!;
 
       const model = await dbMlAnalyticsStorage.getRulModel(modelId, orgId);

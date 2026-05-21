@@ -56,6 +56,18 @@ const dtcHistoryQuerySchema = z.object({
   limit: z.string().regex(/^\d+$/).transform(Number).optional(),
 });
 
+const idParamSchema = z.object({ id: z.string().min(1) });
+const equipmentIdParamSchema = z.object({ equipmentId: z.string().min(1) });
+const vesselIdParamSchema = z.object({ vesselId: z.string().min(1) });
+const equipSpnFmiParamSchema = z.object({
+  equipmentId: z.string().min(1),
+  spn: z.string().min(1),
+  fmi: z.string().min(1),
+});
+const telemetryCorrelationQuerySchema = z.object({
+  timeWindow: z.coerce.number().int().positive().optional(),
+});
+
 const dtcActiveQuerySchema = z.object({
   vesselId: z.string().optional(),
   severity: z
@@ -89,7 +101,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
   app.get(
     "/api/equipment/:id/dtc/active",
     withErrorHandling("fetch active DTCs", async (req: Request, res: Response) => {
-      const { id } = req.params;
+      const { id } = idParamSchema.parse(req.params);
       const orgId = DEFAULT_ORG_ID;
 
       const activeDtcs = await dbDtcStorage.getActiveDtcs(id, orgId);
@@ -100,7 +112,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
   app.get(
     "/api/equipment/:id/dtc/history",
     withErrorHandling("fetch DTC history", async (req: Request, res: Response) => {
-      const { id } = req.params;
+      const { id } = idParamSchema.parse(req.params);
       const orgId = DEFAULT_ORG_ID;
 
       const validation = dtcHistoryQuerySchema.safeParse(req.query);
@@ -213,7 +225,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
   app.post(
     "/api/dtc/:equipmentId/:spn/:fmi/create-work-order",
     withErrorHandling("create work order from DTC", async (req: Request, res: Response) => {
-      const { equipmentId, spn, fmi } = req.params;
+      const { equipmentId, spn, fmi } = equipSpnFmiParamSchema.parse(req.params);
       const orgId = DEFAULT_ORG_ID;
 
       const activeDtcs = await dbDtcStorage.getActiveDtcs(equipmentId, orgId);
@@ -241,7 +253,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
   app.post(
     "/api/dtc/:equipmentId/:spn/:fmi/create-alert",
     withErrorHandling("create alert from DTC", async (req: Request, res: Response) => {
-      const { equipmentId, spn, fmi } = req.params;
+      const { equipmentId, spn, fmi } = equipSpnFmiParamSchema.parse(req.params);
       const orgId = DEFAULT_ORG_ID;
 
       const activeDtcs2 = await dbDtcStorage.getActiveDtcs(equipmentId, orgId);
@@ -278,7 +290,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
   app.get(
     "/api/equipment/:id/dtc/health-impact",
     withErrorHandling("calculate DTC health impact", async (req: Request, res: Response) => {
-      const { id } = req.params;
+      const { id } = idParamSchema.parse(req.params);
       const orgId = DEFAULT_ORG_ID;
 
       const activeDtcsHealth = await dbDtcStorage.getActiveDtcs(id, orgId);
@@ -297,7 +309,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
   app.get(
     "/api/vessel/:vesselId/dtc/financial-impact",
     withErrorHandling("calculate vessel financial impact", async (req: Request, res: Response) => {
-      const { vesselId } = req.params;
+      const { vesselId } = vesselIdParamSchema.parse(req.params);
       const orgId = DEFAULT_ORG_ID;
 
       const dtcService = await getDtcService();
@@ -310,7 +322,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
   app.get(
     "/api/equipment/:id/dtc/report-summary",
     withErrorHandling("get DTC report summary", async (req: Request, res: Response) => {
-      const { id } = req.params;
+      const { id } = idParamSchema.parse(req.params);
       const orgId = DEFAULT_ORG_ID;
 
       const dtcService = await getDtcService();
@@ -323,11 +335,10 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
   app.get(
     "/api/dtc/:equipmentId/:spn/:fmi/telemetry-correlation",
     withErrorHandling("correlate DTC with telemetry", async (req: Request, res: Response) => {
-      const { equipmentId, spn, fmi } = req.params;
+      const { equipmentId, spn, fmi } = equipSpnFmiParamSchema.parse(req.params);
       const orgId = DEFAULT_ORG_ID;
-      const timeWindow = req.query.timeWindow
-        ? Number.parseInt(req.query.timeWindow as string)
-        : 60;
+      const { timeWindow: tw } = telemetryCorrelationQuerySchema.parse(req.query);
+      const timeWindow = tw ?? 60;
 
       const activeDtcsCorr = await dbDtcStorage.getActiveDtcs(equipmentId, orgId);
       const dtc = activeDtcsCorr.find(

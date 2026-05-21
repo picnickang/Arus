@@ -6,6 +6,7 @@
  */
 
 import type { Express, Request, Response } from "express";
+import { z } from "zod";
 import { workOrderAppService as workOrderService } from "../application";
 import { requireOrgId, AuthenticatedRequest } from "../../../middleware/auth";
 import { requirePartsManagementRole } from "../../../middleware/role-auth";
@@ -15,39 +16,65 @@ import { sendBadRequest, sendConflict } from "../../../lib/api-helpers";
 import type { RateLimitMiddleware } from "./types";
 import { dbInventoryStorage } from "../../../db/inventory/index.js";
 
+const idParamSchema = z.object({ id: z.string().min(1) });
+const woPartParamSchema = z.object({
+  workOrderId: z.string().min(1),
+  partId: z.string().min(1),
+});
+const partOnlyParamSchema = z.object({ partId: z.string().min(1) });
+
+const partBodySchema = z.record(z.unknown());
+
+const bulkPartsBodySchema = z.object({
+  parts: z
+    .array(
+      z.object({
+        partId: z.string().min(1),
+        quantity: z.number().positive(),
+        usedBy: z.string().min(1),
+      }).passthrough()
+    )
+    .min(1),
+});
+
+const extendCompletionBodySchema = z.object({
+  additionalDays: z.number().positive(),
+  reason: z.string().optional(),
+});
+
 export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware) {
   const { writeOperationRateLimit } = rateLimit;
 
-  // Read operation - requires read permission on work_orders resource
   app.get(
     "/api/work-orders/:id/parts",
     requireOrgId,
     withErrorHandling("fetch work order parts", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const parts = await workOrderService.getWorkOrderParts(req.params.id, orgId);
+      const { id } = idParamSchema.parse(req.params);
+      const parts = await workOrderService.getWorkOrderParts(id, orgId);
       res.json(parts);
     })
   );
 
-  // Write operation - requires create permission on work_orders resource
-  // Uses both legacy role check (for backward compatibility) and new RBAC permission system
   app.post(
     "/api/work-orders/:id/parts",
     requireOrgId,
-    requirePartsManagementRole(), // Legacy fallback: Chief Engineer, Second Engineer
-    requirePermission("work_orders", "create"), // New RBAC permission check
+    requirePartsManagementRole(),
+    requirePermission("work_orders", "create"),
     writeOperationRateLimit,
     withErrorHandling("add part to work order", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
+      const { id } = idParamSchema.parse(req.params);
+      const body = partBodySchema.parse(req.body);
       const partData = {
-        ...req.body,
+        ...body,
         orgId,
-        workOrderId: req.params.id,
+        workOrderId: id,
       };
 
       const part = await workOrderService.addBulkPartsAndReserveInventory(
-        req.params.id,
-        [partData],
+        id,
+        [partData] as unknown as Parameters<typeof workOrderService.addBulkPartsAndReserveInventory>[1],
         orgId
       );
       sendCreated(res, part);
@@ -61,25 +88,16 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
     writeOperationRateLimit,
     withErrorHandling("add bulk parts to work order", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const { parts } = req.body;
-
-      if (!Array.isArray(parts) || parts.length === 0) {
-        return sendBadRequest(res, "Parts array is required and cannot be empty");
+      const { id } = idParamSchema.parse(req.params);
+      const parsed = bulkPartsBodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return sendBadRequest(res, "Parts array is required and each part must have partId, quantity, usedBy");
       }
-
-      for (const part of parts) {
-        if (!part.partId || !part.quantity || !part.usedBy) {
-          return sendBadRequest(res, "Each part must have partId, quantity, and usedBy fields");
-        }
-
-        if (typeof part.quantity !== "number" || part.quantity <= 0) {
-          return sendBadRequest(res, "Quantity must be a positive number");
-        }
-      }
+      const { parts } = parsed.data;
 
       const result = await workOrderService.addBulkPartsAndReserveInventory(
-        req.params.id,
-        parts,
+        id,
+        parts as Parameters<typeof workOrderService.addBulkPartsAndReserveInventory>[1],
         orgId
       );
 
@@ -107,7 +125,12 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
     requirePartsManagementRole(),
     writeOperationRateLimit,
     withErrorHandling("update work order part", async (req: Request, res: Response) => {
-      const updatedPart = await workOrderService.updateWorkOrderPart(req.params.partId, req.body);
+      const { partId } = woPartParamSchema.parse(req.params);
+      const body = partBodySchema.parse(req.body);
+      const updatedPart = await workOrderService.updateWorkOrderPart(
+        partId,
+        body as Parameters<typeof workOrderService.updateWorkOrderPart>[1]
+      );
       res.json(updatedPart);
     })
   );
@@ -121,8 +144,9 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
       const authReq = req as AuthenticatedRequest;
       const orgId = authReq.orgId;
       const performedBy = authReq.user?.name || authReq.user?.email || "System";
+      const { partId } = woPartParamSchema.parse(req.params);
 
-      await workOrderService.removePartAndRestoreInventory(req.params.partId, orgId, performedBy);
+      await workOrderService.removePartAndRestoreInventory(partId, orgId, performedBy);
       sendDeleted(res);
     })
   );
@@ -131,7 +155,8 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
     "/api/work-orders/:id/parts/costs",
     requireOrgId,
     withErrorHandling("fetch work order parts costs", async (req: Request, res: Response) => {
-      const costs = await workOrderService.getPartsCostForWorkOrder(req.params.id);
+      const { id } = idParamSchema.parse(req.params);
+      const costs = await workOrderService.getPartsCostForWorkOrder(id);
       res.json(costs);
     })
   );
@@ -143,8 +168,9 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
       "fetch part stock status with lead time",
       async (req: Request, res: Response) => {
         const orgId = (req as AuthenticatedRequest).orgId;
+        const { partId } = partOnlyParamSchema.parse(req.params);
         const stockStatus = await dbInventoryStorage.getPartStockWithSupplierLeadTime(
-          req.params.partId,
+          partId,
           orgId
         );
         if (!stockStatus) {
@@ -164,13 +190,14 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
       "extend work order completion date for pending parts",
       async (req: Request, res: Response) => {
         const orgId = (req as AuthenticatedRequest).orgId;
-        const { additionalDays, reason } = req.body;
-
-        if (typeof additionalDays !== "number" || additionalDays <= 0) {
+        const { id } = idParamSchema.parse(req.params);
+        const parsed = extendCompletionBodySchema.safeParse(req.body);
+        if (!parsed.success) {
           return sendBadRequest(res, "additionalDays must be a positive number");
         }
+        const { additionalDays, reason } = parsed.data;
 
-        const workOrder = await workOrderService.getWorkOrderById(req.params.id, orgId);
+        const workOrder = await workOrderService.getWorkOrderById(id, orgId);
         if (!workOrder) {
           return res.status(404).json({ error: "Work order not found" });
         }
@@ -181,13 +208,13 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
         const newEndDate = new Date(currentEndDate);
         newEndDate.setDate(newEndDate.getDate() + additionalDays);
 
-        const updated = await workOrderService.updateWorkOrder(req.params.id, {
+        const updated = await workOrderService.updateWorkOrder(id, {
           plannedEndDate: newEndDate,
         } as Parameters<typeof workOrderService.updateWorkOrder>[1]);
 
         await dbInventoryStorage.addWorkOrderHistoryEntry({
           orgId,
-          workOrderId: req.params.id,
+          workOrderId: id,
           eventType: "completion_date_extended",
           description:
             reason || `Completion date extended by ${additionalDays} days for pending parts`,

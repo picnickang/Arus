@@ -77,6 +77,15 @@ const createSensorSchema = z.object({
   notes: z.string().optional(),
 });
 
+const summaryQuerySchema = z.object({ vesselId: z.string().optional() });
+const listQuerySchema = z.object({
+  vesselId: z.string().optional(),
+  equipmentId: z.string().optional(),
+  sensorType: z.string().optional(),
+  status: z.string().optional(),
+});
+const sensorIdParamSchema = z.object({ id: z.string().min(1) });
+
 const calibrationEventSchema = z.object({
   calibrationDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   performedBy: z.string().min(1),
@@ -96,7 +105,7 @@ const calibrationEventSchema = z.object({
 router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
   try {
     const orgId = getOrgId(req);
-    const vesselId = req.query.vesselId as string | undefined;
+    const { vesselId } = summaryQuerySchema.parse(req.query);
 
     const whereClause = vesselId
       ? sql`org_id = ${orgId} AND vessel_id = ${vesselId}`
@@ -185,7 +194,7 @@ router.get("/overdue", requireOrgId, async (req: Request, res: Response) => {
 router.get("/", requireOrgId, async (req: Request, res: Response) => {
   try {
     const orgId = getOrgId(req);
-    const { vesselId, equipmentId, sensorType, status } = req.query;
+    const { vesselId, equipmentId, sensorType, status } = listQuerySchema.parse(req.query);
 
     let query = sql`
       SELECT sc.*, v.name as vessel_name, e.name as equipment_name
@@ -223,13 +232,14 @@ router.get("/", requireOrgId, async (req: Request, res: Response) => {
 router.get("/:id", requireOrgId, async (req: Request, res: Response) => {
   try {
     const orgId = getOrgId(req);
+    const { id: sensorId } = sensorIdParamSchema.parse(req.params);
 
     const sensorResult = await db.execute(sql`
       SELECT sc.*, v.name as vessel_name, e.name as equipment_name
       FROM sensor_calibrations sc
       LEFT JOIN vessels v ON sc.vessel_id = v.id
       LEFT JOIN equipment e ON sc.equipment_id = e.id
-      WHERE sc.id = ${req.params.id} AND sc.org_id = ${orgId}
+      WHERE sc.id = ${sensorId} AND sc.org_id = ${orgId}
     `);
 
     const sensor = rowsOf<SensorRow>(sensorResult)[0];
@@ -240,7 +250,7 @@ router.get("/:id", requireOrgId, async (req: Request, res: Response) => {
 
     const historyResult = await db.execute(sql`
       SELECT * FROM sensor_calibration_events
-      WHERE calibration_id = ${req.params.id}
+      WHERE calibration_id = ${sensorId}
       ORDER BY calibration_date DESC
     `);
 
@@ -309,11 +319,12 @@ router.post("/", requireOrgId, async (req: Request, res: Response) => {
 router.post("/:id/calibrate", requireOrgId, async (req: Request, res: Response) => {
   try {
     const orgId = getOrgId(req);
+    const { id: sensorId } = sensorIdParamSchema.parse(req.params);
     const data = calibrationEventSchema.parse(req.body);
 
     const sensorResult = await db.execute(sql`
       SELECT * FROM sensor_calibrations
-      WHERE id = ${req.params.id} AND org_id = ${orgId}
+      WHERE id = ${sensorId} AND org_id = ${orgId}
     `);
     const sensor = rowsOf<SensorRow>(sensorResult)[0];
 
@@ -328,7 +339,7 @@ router.post("/:id/calibrate", requireOrgId, async (req: Request, res: Response) 
         reference_value, measured_value, adjusted_to,
         certificate_number, certificate_url, notes, method
       ) VALUES (
-        ${orgId}, ${req.params.id}, ${new Date(data.calibrationDate)},
+        ${orgId}, ${sensorId}, ${new Date(data.calibrationDate)},
         ${data.performedBy}, ${data.performedByRank || null},
         ${data.status}, ${data.driftBefore ?? null}, ${data.driftAfter ?? null},
         ${data.referenceValue ?? null}, ${data.measuredValue ?? null},
@@ -354,11 +365,11 @@ router.post("/:id/calibrate", requireOrgId, async (req: Request, res: Response) 
           drift_percentage = ${data.driftAfter ?? data.driftBefore ?? null},
           certificate_url = ${data.certificateUrl || sensor.certificate_url},
           updated_at = NOW()
-      WHERE id = ${req.params.id} AND org_id = ${orgId}
+      WHERE id = ${sensorId} AND org_id = ${orgId}
     `);
 
     logger.info("SensorCalibration", "Calibration recorded", {
-      sensorId: req.params.id,
+      sensorId: sensorId,
       sensorTag: sensor.sensor_tag,
       status: data.status,
       nextDue: nextDue.toISOString(),
@@ -382,13 +393,14 @@ router.post("/:id/calibrate", requireOrgId, async (req: Request, res: Response) 
 router.delete("/:id", requireOrgId, async (req: Request, res: Response) => {
   try {
     const orgId = getOrgId(req);
+    const { id: sensorId } = sensorIdParamSchema.parse(req.params);
 
     await db.execute(sql`
       UPDATE sensor_calibrations
       SET calibration_status = 'decommissioned',
           decommissioned_date = CURRENT_DATE,
           updated_at = NOW()
-      WHERE id = ${req.params.id} AND org_id = ${orgId}
+      WHERE id = ${sensorId} AND org_id = ${orgId}
     `);
 
     res.json({ success: true });

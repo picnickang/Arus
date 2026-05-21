@@ -7,7 +7,17 @@
  */
 
 import { Express, RequestHandler } from "express";
+import { z } from "zod";
 import { LRUCache } from "lru-cache";
+
+const fmccDiagnosticQuerySchema = z.object({ vesselId: z.string().optional() });
+const vesselIdParamSchema = z.object({ vesselId: z.string().min(1) });
+const crewIdParamSchema = z.object({ crewId: z.string().min(1) });
+const fmccFuelQuerySchema = z.object({
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+});
+const stcwDaysQuerySchema = z.object({ days: z.string().optional() });
 import { withErrorHandling } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import {
@@ -193,7 +203,7 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
         });
       }
 
-      const vesselId = req.query.vesselId as string;
+      const { vesselId } = fmccDiagnosticQuerySchema.parse(req.query);
       if (!vesselId) {
         return res.status(400).json({
           ok: false,
@@ -224,8 +234,8 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
     "/api/integrations/fmcc/fuel/:vesselId",
     generalApiRateLimit,
     withErrorHandling("retrieve FMCC fuel data", async (req, res) => {
-      const { vesselId } = req.params;
-      const { startDate, endDate } = req.query;
+      const { vesselId } = vesselIdParamSchema.parse(req.params);
+      const { startDate, endDate } = fmccFuelQuerySchema.parse(req.query);
 
       if (!startDate || !endDate) {
         return res.status(400).json({
@@ -285,8 +295,8 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
     "/api/dashboard/stcw-summary",
     withErrorHandling("fetch fleet STCW summary", async (req, res) => {
       const orgId = req.orgId!;
-      const { days = "30" } = req.query;
-      const lookbackDays = Number.parseInt(days as string, 10) || 30;
+      const { days = "30" } = stcwDaysQuerySchema.parse(req.query);
+      const lookbackDays = Number.parseInt(days, 10) || 30;
 
       const { getFleetSTCWSummary } = await import("../../scheduler/stcw-dashboard");
       const summary = await getFleetSTCWSummary(orgId, lookbackDays);
@@ -300,9 +310,9 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
     "/api/dashboard/stcw-summary/vessel/:vesselId",
     withErrorHandling("fetch vessel STCW summary", async (req, res) => {
       const orgId = req.orgId!;
-      const { vesselId } = req.params;
-      const { days = "30" } = req.query;
-      const lookbackDays = Number.parseInt(days as string, 10) || 30;
+      const { vesselId } = vesselIdParamSchema.parse(req.params);
+      const { days = "30" } = stcwDaysQuerySchema.parse(req.query);
+      const lookbackDays = Number.parseInt(days, 10) || 30;
 
       const { getVesselSTCWSummary } = await import("../../scheduler/stcw-dashboard");
       const summary = await getVesselSTCWSummary(orgId, vesselId, lookbackDays);
@@ -316,9 +326,9 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
     "/api/dashboard/stcw-summary/crew/:crewId",
     withErrorHandling("fetch crew STCW summary", async (req, res) => {
       const orgId = req.orgId!;
-      const { crewId } = req.params;
-      const { days = "30" } = req.query;
-      const lookbackDays = Number.parseInt(days as string, 10) || 30;
+      const { crewId } = crewIdParamSchema.parse(req.params);
+      const { days = "30" } = stcwDaysQuerySchema.parse(req.query);
+      const lookbackDays = Number.parseInt(days, 10) || 30;
 
       const stcwMod: any = await import("../../scheduler/stcw-dashboard");
       const summary = await stcwMod.getCrewSTCWSummary(orgId, crewId, lookbackDays);

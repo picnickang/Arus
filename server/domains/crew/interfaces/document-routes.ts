@@ -12,6 +12,14 @@ import type { CrewRouteDeps } from "./types.js";
 import { getExpiryUrgencyLevel } from "./types.js";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
+const crewIdParamSchema = z.object({ crewId: z.string().min(1) });
+const idParamSchema = z.object({ id: z.string().min(1) });
+const expiringDocsQuerySchema = z.object({
+  daysAhead: z.coerce.number().int().optional(),
+  includeAcknowledged: z.enum(["true", "false"]).optional(),
+});
+const rawBodySchema = z.record(z.unknown());
+
 export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void {
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimit;
 
@@ -20,7 +28,8 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch crew documents", async (req, res) => {
-      const documents = await crewService.getCrewDocuments(req.params.crewId, req.orgId);
+      const { crewId } = crewIdParamSchema.parse(req.params);
+      const documents = await crewService.getCrewDocuments(crewId, req.orgId);
       res.json(documents);
     })
   );
@@ -31,7 +40,8 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
     writeOperationRateLimit,
     withErrorHandling("create crew document", async (req, res) => {
       const orgId = DEFAULT_ORG_ID;
-      const body = { ...req.body };
+      const { crewId } = crewIdParamSchema.parse(req.params);
+      const body: Record<string, unknown> = { ...rawBodySchema.parse(req.body ?? {}) };
 
       if (body.issuedAt && typeof body.issuedAt === "string") {
         body.issuedAt = new Date(body.issuedAt);
@@ -44,7 +54,7 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
       const docData = insertCrewDocumentSchema.parse({
         ...body,
         orgId,
-        crewId: req.params.crewId,
+        crewId,
       });
       const document = await crewService.createCrewDocument(docData, req.user?.id);
       sendCreated(res, document);
@@ -56,7 +66,8 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
     withErrorHandling("update crew document", async (req, res) => {
-      const body = { ...req.body };
+      const { id } = idParamSchema.parse(req.params);
+      const body: Record<string, unknown> = { ...rawBodySchema.parse(req.body ?? {}) };
 
       if (body.issuedAt && typeof body.issuedAt === "string") {
         body.issuedAt = new Date(body.issuedAt);
@@ -68,7 +79,7 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
 
       const docData = insertCrewDocumentSchema.partial().parse(body);
       const document = await crewService.updateCrewDocument(
-        req.params.id,
+        id,
         docData,
         req.user?.id,
         req.orgId
@@ -82,7 +93,8 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
     requireOrgId,
     criticalOperationRateLimit,
     withErrorHandling("delete crew document", async (req, res) => {
-      await crewService.deleteCrewDocument(req.params.id, req.user?.id, req.orgId);
+      const { id } = idParamSchema.parse(req.params);
+      await crewService.deleteCrewDocument(id, req.user?.id, req.orgId);
       sendDeleted(res);
     })
   );
@@ -93,8 +105,9 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
     generalApiRateLimit,
     withErrorHandling("fetch expiring documents", async (req, res) => {
       const orgId = DEFAULT_ORG_ID;
-      const daysAhead = Number.parseInt(req.query.daysAhead as string) || 90;
-      const includeAcknowledged = req.query.includeAcknowledged === "true";
+      const q = expiringDocsQuerySchema.parse(req.query);
+      const daysAhead = q.daysAhead ?? 90;
+      const includeAcknowledged = q.includeAcknowledged === "true";
 
       const expiringDocs = await crewService.getDocumentsExpiring(
         orgId,
@@ -140,7 +153,7 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
     withErrorHandling("acknowledge document alert", async (req, res) => {
-      const docId = req.params.id;
+      const { id: docId } = idParamSchema.parse(req.params);
       const userId = req.user?.id;
       const { notes } = acknowledgeDocAlertSchema.parse(req.body);
 

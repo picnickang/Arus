@@ -1,7 +1,12 @@
 import { createLogger } from "../../../../lib/structured-logger";
 const logger = createLogger("Domains:Agent:Interfaces:Routes:DraftsRoutes");
 import type { Express, Request, Response } from "express";
+import { z } from "zod";
 import type { AuthenticatedRequest } from "../../../../middleware/auth";
+
+const draftListQuerySchema = z.object({ status: z.string().optional() });
+const draftIdParamSchema = z.object({ id: z.string().min(1) });
+const draftReviewBodySchema = z.object({ note: z.string().optional() });
 import { agentRepo } from "../../infrastructure/repository";
 import { executeDraftAction } from "../../../../composition/agent-draft-executor.js";
 import { auditAction } from "../../../../utils/audit-helpers";
@@ -21,7 +26,7 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
-        const status = req.query.status as string | undefined;
+        const { status } = draftListQuerySchema.parse(req.query);
         const drafts = await agentRepo.drafts.list(orgId, status);
         res.json(drafts);
       } catch (error: unknown) {
@@ -38,7 +43,9 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
         const userId = (req as AuthenticatedRequest).user?.id;
-        const draft = await agentRepo.drafts.get(req.params.id, orgId);
+        const { id: draftIdParam } = draftIdParamSchema.parse(req.params);
+        const { note: reviewNote } = draftReviewBodySchema.parse(req.body ?? {});
+        const draft = await agentRepo.drafts.get(draftIdParam, orgId);
         if (!draft) {
           return res.status(404).json({ error: "Draft not found" });
         }
@@ -73,7 +80,7 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
         const updated = await agentRepo.drafts.update(draft.id, {
           status: "approved",
           reviewedById: userId,
-          reviewNote: req.body.note,
+          reviewNote: reviewNote,
           resultId,
         });
 
@@ -83,7 +90,7 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
           conversationId: draft.conversationId,
           action: "approved",
           reviewedById: userId,
-          reviewNote: req.body.note,
+          reviewNote: reviewNote,
           resultId,
         });
 
@@ -115,7 +122,9 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
         const userId = (req as AuthenticatedRequest).user?.id;
-        const draft = await agentRepo.drafts.get(req.params.id, orgId);
+        const { id: draftIdParam } = draftIdParamSchema.parse(req.params);
+        const { note: reviewNote } = draftReviewBodySchema.parse(req.body ?? {});
+        const draft = await agentRepo.drafts.get(draftIdParam, orgId);
         if (!draft) {
           return res.status(404).json({ error: "Draft not found" });
         }
@@ -126,7 +135,7 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
         const updated = await agentRepo.drafts.update(draft.id, {
           status: "rejected",
           reviewedById: userId,
-          reviewNote: req.body.note,
+          reviewNote: reviewNote,
         });
 
         await agentRepo.approvals.create({
@@ -135,7 +144,7 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
           conversationId: draft.conversationId,
           action: "rejected",
           reviewedById: userId,
-          reviewNote: req.body.note,
+          reviewNote: reviewNote,
         });
 
         await auditAction(

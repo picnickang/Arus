@@ -4,7 +4,17 @@
  */
 
 import type { Express, Request, Response } from "express";
+import { z } from "zod";
 import type { VesselPerformanceRoutesConfig } from "./types.js";
+
+const idParamSchema = z.object({ id: z.string().min(1) });
+const dateRangeQuerySchema = z.object({
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+});
+const fleetQuerySchema = dateRangeQuerySchema.extend({
+  vesselType: z.string().optional(),
+});
 import { withErrorHandling } from "../../../lib/route-utils.js";
 import { vesselService } from "../../../services/domains/vessel-service.js";
 import { dbEquipmentStorage } from "../../../db/equipment/index.js";
@@ -15,7 +25,7 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
   app.get(
     "/api/vessels/:id/power-stw-analysis",
     withErrorHandling("compute power-STW analysis", async (req: Request, res: Response) => {
-      const vesselId = req.params.id,
+      const vesselId = idParamSchema.parse(req.params).id,
         orgId = DEFAULT_ORG_ID;
 
       const vessel = await vesselService.getVessel(vesselId, orgId);
@@ -23,12 +33,11 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
         return res.status(404).json({ message: "Vessel not found" });
       }
 
+      const q = dateRangeQuerySchema.parse(req.query);
       const now = new Date(),
         defaultStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      const startDate = req.query.startDate
-        ? new Date(req.query.startDate as string)
-        : defaultStart;
-      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : now;
+      const startDate = q.startDate ? new Date(q.startDate) : defaultStart;
+      const endDate = q.endDate ? new Date(q.endDate) : now;
       if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
         return res.status(400).json({ message: "Invalid date format. Use ISO 8601 strings." });
       }
@@ -123,12 +132,11 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
     withErrorHandling("compute fleet benchmarks", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
 
+      const q = fleetQuerySchema.parse(req.query);
       const now = new Date(),
         defaultStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      const startDate = req.query.startDate
-        ? new Date(req.query.startDate as string)
-        : defaultStart;
-      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : now;
+      const startDate = q.startDate ? new Date(q.startDate) : defaultStart;
+      const endDate = q.endDate ? new Date(q.endDate) : now;
       if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
         return res.status(400).json({ message: "Invalid date format. Use ISO 8601 strings." });
       }
@@ -136,7 +144,7 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
         return res.status(400).json({ message: "Start date must be before end date" });
       }
 
-      const vesselType = req.query.vesselType as string | undefined;
+      const vesselType = q.vesselType;
       const { computeFleetLoadBenchmarks, computeFleetPowerSTWBenchmarks } = await import(
         "../../../vps-kpi-service.js"
       );

@@ -11,6 +11,18 @@ import {
   sendDeleted,
 } from "../../../lib/route-utils.js";
 import { dbSystemAdminStorage } from "../../../db/system-admin/index.js";
+import { z } from "zod";
+
+const listIntegrationsQuerySchema = z.object({
+  orgId: z.string().optional(),
+  type: z.string().optional(),
+});
+const integrationIdParamSchema = z.object({ id: z.string().min(1) });
+const integrationGetQuerySchema = z.object({ orgId: z.string().optional() });
+const integrationHealthBodySchema = z.object({
+  healthStatus: z.string(),
+  errorMessage: z.string().optional(),
+});
 
 export function registerIntegrationsRoutes(app: Express, deps: SystemAdminDependencies): void {
   const {
@@ -28,7 +40,7 @@ export function registerIntegrationsRoutes(app: Express, deps: SystemAdminDepend
     generalApiRateLimit,
     auditAdminAction("VIEW_INTEGRATION_CONFIGS"),
     withErrorHandling("fetch integration configs", async (req: Request, res: Response) => {
-      const { orgId, type } = req.query;
+      const { orgId, type } = listIntegrationsQuerySchema.parse(req.query);
       const integrations = await dbSystemAdminStorage.getIntegrationConfigs(
         orgId as string,
         type as string
@@ -43,8 +55,8 @@ export function registerIntegrationsRoutes(app: Express, deps: SystemAdminDepend
     generalApiRateLimit,
     auditAdminAction("VIEW_INTEGRATION_CONFIG"),
     withErrorHandling("fetch integration config", async (req: Request, res: Response) => {
-      const { id } = req.params;
-      const { orgId } = req.query;
+      const { id } = integrationIdParamSchema.parse(req.params);
+      const { orgId } = integrationGetQuerySchema.parse(req.query);
       const integration = await dbSystemAdminStorage.getIntegrationConfig(id, orgId as string);
       if (!integration) {
         return sendNotFound(res, "Integration config");
@@ -71,7 +83,7 @@ export function registerIntegrationsRoutes(app: Express, deps: SystemAdminDepend
     writeOperationRateLimit,
     auditAdminAction("UPDATE_INTEGRATION_CONFIG"),
     withErrorHandling("update integration config", async (req: Request, res: Response) => {
-      const { id } = req.params;
+      const { id } = integrationIdParamSchema.parse(req.params);
       const validatedData = (
         insertIntegrationConfigSchema as unknown as import("zod").AnyZodObject
       ).partial().parse(req.body);
@@ -86,7 +98,7 @@ export function registerIntegrationsRoutes(app: Express, deps: SystemAdminDepend
     criticalOperationRateLimit,
     auditAdminAction("DELETE_INTEGRATION_CONFIG"),
     withErrorHandling("delete integration config", async (req: Request, res: Response) => {
-      const { id } = req.params;
+      const { id } = integrationIdParamSchema.parse(req.params);
       await dbSystemAdminStorage.deleteIntegrationConfig(id);
       sendDeleted(res);
     })
@@ -98,8 +110,8 @@ export function registerIntegrationsRoutes(app: Express, deps: SystemAdminDepend
     writeOperationRateLimit,
     auditAdminAction("UPDATE_INTEGRATION_HEALTH"),
     withErrorHandling("update integration health", async (req: Request, res: Response) => {
-      const { id } = req.params;
-      const { healthStatus, errorMessage } = req.body;
+      const { id } = integrationIdParamSchema.parse(req.params);
+      const { healthStatus, errorMessage } = integrationHealthBodySchema.parse(req.body);
       const integration = await dbSystemAdminStorage.updateIntegrationHealth(
         id,
         healthStatus,

@@ -8,12 +8,20 @@ const router = Router();
 const adapter = new PredictionGovernanceAdapter();
 const service = new PredictionGovernanceService(adapter);
 
+const listQuerySchema = z.object({
+  status: z.string().optional(),
+  limit: z.coerce.number().int().optional(),
+  offset: z.coerce.number().int().optional(),
+});
+const idParamSchema = z.object({ id: z.string() });
+
 router.get("/predictions", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const reviewStatus = req.query.status as string | undefined;
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
-    const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+    const q = listQuerySchema.parse(req.query);
+    const reviewStatus = q.status;
+    const limit = q.limit ?? 50;
+    const offset = q.offset ?? 0;
 
     const predictions = await service.listByGovernanceStatus({
       orgId,
@@ -31,7 +39,7 @@ router.get("/predictions", async (req: Request, res: Response) => {
 router.get("/predictions/:id", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const id = parseInt(req.params.id);
+    const id = parseInt(idParamSchema.parse(req.params).id);
     if (isNaN(id)) {
       return res.status(400).json({ error: "Invalid prediction ID" });
     }
@@ -54,7 +62,7 @@ function getReviewerIdentity(req: Request): string {
 router.patch("/predictions/:id/review", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const id = parseInt(req.params.id);
+    const id = parseInt(idParamSchema.parse(req.params).id);
     if (isNaN(id)) {
       return res.status(400).json({ error: "Invalid prediction ID" });
     }
@@ -74,7 +82,7 @@ router.patch("/predictions/:id/review", async (req: Request, res: Response) => {
 router.patch("/predictions/:id/approve", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const id = parseInt(req.params.id);
+    const id = parseInt(idParamSchema.parse(req.params).id);
     if (isNaN(id)) {
       return res.status(400).json({ error: "Invalid prediction ID" });
     }
@@ -98,7 +106,7 @@ const suppressSchema = z.object({
 router.patch("/predictions/:id/suppress", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const id = parseInt(req.params.id);
+    const id = parseInt(idParamSchema.parse(req.params).id);
     if (isNaN(id)) {
       return res.status(400).json({ error: "Invalid prediction ID" });
     }

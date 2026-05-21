@@ -24,6 +24,26 @@ const taskCreateSchema = z.object({
   conversationId: z.string().optional().nullable(),
 });
 
+const tasksListQuerySchema = z.object({
+  status: z.string().optional(),
+  priority: z.string().optional(),
+  source: z.string().optional(),
+  equipmentId: z.string().optional(),
+  vesselId: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+
+const taskIdParamSchema = z.object({ id: z.string().min(1) });
+
+const taskUpdateSchema = z.object({
+  status: z.string().optional(),
+  outcome: z.unknown().optional(),
+  title: z.string().optional(),
+  description: z.string().nullable().optional(),
+  priority: z.string().optional(),
+});
+
 export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
   const { taskService, rateLimit, requireMaintenanceRole } = deps;
 
@@ -34,27 +54,21 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
+        const q = tasksListQuerySchema.parse(req.query);
         const filter: AgentTaskFilter = {};
-        const qStatus = req.query.status as string | undefined;
-        if (qStatus && (TASK_STATUSES as readonly string[]).includes(qStatus)) {
-          filter.status = qStatus as AgentTaskFilter["status"];
+        if (q.status && (TASK_STATUSES as readonly string[]).includes(q.status)) {
+          filter.status = q.status as AgentTaskFilter["status"];
         }
-        const qPriority = req.query.priority as string | undefined;
-        if (qPriority && (TASK_PRIORITIES as readonly string[]).includes(qPriority)) {
-          filter.priority = qPriority as AgentTaskFilter["priority"];
+        if (q.priority && (TASK_PRIORITIES as readonly string[]).includes(q.priority)) {
+          filter.priority = q.priority as AgentTaskFilter["priority"];
         }
-        const qSource = req.query.source as string | undefined;
-        if (qSource && (TASK_SOURCES as readonly string[]).includes(qSource)) {
-          filter.source = qSource as AgentTaskFilter["source"];
+        if (q.source && (TASK_SOURCES as readonly string[]).includes(q.source)) {
+          filter.source = q.source as AgentTaskFilter["source"];
         }
-        if (req.query.equipmentId) {
-          filter.equipmentId = req.query.equipmentId as string;
-        }
-        if (req.query.vesselId) {
-          filter.vesselId = req.query.vesselId as string;
-        }
-        filter.limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
-        filter.offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+        if (q.equipmentId) filter.equipmentId = q.equipmentId;
+        if (q.vesselId) filter.vesselId = q.vesselId;
+        filter.limit = Math.min(q.limit ?? 50, 200);
+        filter.offset = Math.max(q.offset ?? 0, 0);
         const tasks = await taskService.list(orgId, filter);
         res.json(tasks);
       } catch (error: unknown) {
@@ -106,7 +120,8 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
-        const task = await taskService.getById(req.params.id, orgId);
+        const { id } = taskIdParamSchema.parse(req.params);
+        const task = await taskService.getById(id, orgId);
         if (!task) {
           return res.status(404).json({ error: "Task not found" });
         }
@@ -124,25 +139,25 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
-        const { status, outcome, title, description, priority } = req.body;
-        if (status && TASK_STATUSES.includes(status)) {
-          const task = await taskService.updateStatus(req.params.id, orgId, status, outcome);
+        const { id } = taskIdParamSchema.parse(req.params);
+        const { status, outcome, title, description, priority } = taskUpdateSchema.parse(req.body);
+        if (status && (TASK_STATUSES as readonly string[]).includes(status)) {
+          const task = await taskService.updateStatus(
+            id,
+            orgId,
+            status as AgentTaskFilter["status"] & string,
+            outcome as Parameters<typeof taskService.updateStatus>[3]
+          );
           return res.json(task);
         }
         const updateData: Record<string, unknown> = {};
-        if (title) {
-          updateData.title = title;
-        }
-        if (description !== undefined) {
-          updateData.description = description;
-        }
-        if (priority && TASK_PRIORITIES.includes(priority)) {
+        if (title) updateData.title = title;
+        if (description !== undefined) updateData.description = description;
+        if (priority && (TASK_PRIORITIES as readonly string[]).includes(priority)) {
           updateData.priority = priority;
         }
-        if (outcome) {
-          updateData.outcome = outcome;
-        }
-        const task = await taskService.update(req.params.id, orgId, updateData);
+        if (outcome !== undefined) updateData.outcome = outcome;
+        const task = await taskService.update(id, orgId, updateData);
         res.json(task);
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : "Unknown error";

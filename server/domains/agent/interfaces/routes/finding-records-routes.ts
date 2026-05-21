@@ -31,6 +31,24 @@ const findingCreateSchema = z.object({
   metadata: z.record(z.unknown()).optional().nullable(),
 });
 
+const listQuerySchema = z.object({
+  findingType: z.string().optional(),
+  severity: z.string().optional(),
+  status: z.string().optional(),
+  taskId: z.string().optional(),
+  equipmentId: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+
+const idParamSchema = z.object({ id: z.string().min(1) });
+
+const updateSchema = z.object({
+  status: z.string().optional(),
+  severity: z.string().optional(),
+  recommendedAction: z.string().nullable().optional(),
+});
+
 export function registerFindingRecordsRoutes(app: Express, deps: FindingRecordsRouteDeps) {
   const { findingService, rateLimit, requireMaintenanceRole } = deps;
 
@@ -41,27 +59,21 @@ export function registerFindingRecordsRoutes(app: Express, deps: FindingRecordsR
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
+        const q = listQuerySchema.parse(req.query);
         const filter: AgentFindingFilter = {};
-        const qFindingType = req.query.findingType as string | undefined;
-        if (qFindingType && (FINDING_TYPES as readonly string[]).includes(qFindingType)) {
-          filter.findingType = qFindingType as AgentFindingFilter["findingType"];
+        if (q.findingType && (FINDING_TYPES as readonly string[]).includes(q.findingType)) {
+          filter.findingType = q.findingType as AgentFindingFilter["findingType"];
         }
-        const qSeverity = req.query.severity as string | undefined;
-        if (qSeverity && (FINDING_SEVERITIES as readonly string[]).includes(qSeverity)) {
-          filter.severity = qSeverity as AgentFindingFilter["severity"];
+        if (q.severity && (FINDING_SEVERITIES as readonly string[]).includes(q.severity)) {
+          filter.severity = q.severity as AgentFindingFilter["severity"];
         }
-        const qFindingStatus = req.query.status as string | undefined;
-        if (qFindingStatus && (FINDING_STATUSES as readonly string[]).includes(qFindingStatus)) {
-          filter.status = qFindingStatus as AgentFindingFilter["status"];
+        if (q.status && (FINDING_STATUSES as readonly string[]).includes(q.status)) {
+          filter.status = q.status as AgentFindingFilter["status"];
         }
-        if (req.query.taskId) {
-          filter.taskId = req.query.taskId as string;
-        }
-        if (req.query.equipmentId) {
-          filter.equipmentId = req.query.equipmentId as string;
-        }
-        filter.limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
-        filter.offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+        if (q.taskId) filter.taskId = q.taskId;
+        if (q.equipmentId) filter.equipmentId = q.equipmentId;
+        filter.limit = Math.min(q.limit ?? 50, 200);
+        filter.offset = Math.max(q.offset ?? 0, 0);
         const findings = await findingService.list(orgId, filter);
         res.json(findings);
       } catch (error: unknown) {
@@ -98,7 +110,8 @@ export function registerFindingRecordsRoutes(app: Express, deps: FindingRecordsR
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
-        const finding = await findingService.getById(req.params.id, orgId);
+        const { id } = idParamSchema.parse(req.params);
+        const finding = await findingService.getById(id, orgId);
         if (!finding) {
           return res.status(404).json({ error: "Finding not found" });
         }
@@ -116,18 +129,19 @@ export function registerFindingRecordsRoutes(app: Express, deps: FindingRecordsR
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
-        const { status, severity, recommendedAction } = req.body;
+        const { id } = idParamSchema.parse(req.params);
+        const { status, severity, recommendedAction } = updateSchema.parse(req.body);
         const updateData: Record<string, unknown> = {};
-        if (status && FINDING_STATUSES.includes(status)) {
+        if (status && (FINDING_STATUSES as readonly string[]).includes(status)) {
           updateData.status = status;
         }
-        if (severity && FINDING_SEVERITIES.includes(severity)) {
+        if (severity && (FINDING_SEVERITIES as readonly string[]).includes(severity)) {
           updateData.severity = severity;
         }
         if (recommendedAction !== undefined) {
           updateData.recommendedAction = recommendedAction;
         }
-        const finding = await findingService.update(req.params.id, orgId, updateData);
+        const finding = await findingService.update(id, orgId, updateData);
         res.json(finding);
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : "Unknown error";

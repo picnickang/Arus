@@ -28,13 +28,24 @@ export function registerAlertsRoutes(
 
   // ========== Main Alerts Endpoints (Aliases for Notifications) ==========
 
+  const ackQuerySchema = z.object({
+    acknowledged: z.enum(["true", "false"]).optional(),
+    equipmentId: z.string().optional(),
+  });
+  const idParamSchema = z.object({ id: z.string().min(1) });
+  const ackBodySchema = z.object({ acknowledgedBy: z.string().min(1) });
+  const commentBodySchema = z.object({
+    comment: z.string().min(1),
+    commentedBy: z.string().min(1),
+  });
+
   // GET /api/alerts - List all alerts (alias for /api/alerts/notifications)
   app.get(
     "/api/alerts",
     generalApiRateLimit,
     withErrorHandling("fetch alerts", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const { acknowledged } = req.query;
+      const { acknowledged } = ackQuerySchema.parse(req.query);
       const ackParam =
         acknowledged === "true" ? true : acknowledged === "false" ? false : undefined;
       const notifications = await alertsService.listNotifications(ackParam, orgId);
@@ -64,7 +75,7 @@ export function registerAlertsRoutes(
     "/api/alerts/configurations",
     generalApiRateLimit,
     withErrorHandling("fetch alert configurations", async (req: Request, res: Response) => {
-      const { equipmentId } = req.query;
+      const { equipmentId } = ackQuerySchema.parse(req.query);
       const configurations = await alertsService.listConfigurations(equipmentId as string);
       res.json(configurations);
     })
@@ -86,9 +97,10 @@ export function registerAlertsRoutes(
     "/api/alerts/configurations/:id",
     writeOperationRateLimit,
     withErrorHandling("update alert configuration", async (req: Request, res: Response) => {
+      const { id } = idParamSchema.parse(req.params);
       const configData = insertAlertConfigSchema.partial().parse(req.body);
       const configuration = await alertsService.updateConfiguration(
-        req.params.id,
+        id,
         configData,
         req.user?.id
       );
@@ -101,7 +113,8 @@ export function registerAlertsRoutes(
     "/api/alerts/configurations/:id",
     criticalOperationRateLimit,
     withErrorHandling("delete alert configuration", async (req: Request, res: Response) => {
-      await alertsService.deleteConfiguration(req.params.id, req.user?.id);
+      const { id } = idParamSchema.parse(req.params);
+      await alertsService.deleteConfiguration(id, req.user?.id);
       res.status(204).send();
     })
   );
@@ -114,7 +127,7 @@ export function registerAlertsRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch alert notifications", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      const { acknowledged } = req.query;
+      const { acknowledged } = ackQuerySchema.parse(req.query);
       const ackParam =
         acknowledged === "true" ? true : acknowledged === "false" ? false : undefined;
       const notifications = await alertsService.listNotifications(ackParam, orgId);
@@ -142,14 +155,15 @@ export function registerAlertsRoutes(
     "/api/alerts/notifications/:id/acknowledge",
     writeOperationRateLimit,
     withErrorHandling("acknowledge alert", async (req: Request, res: Response) => {
-      const { acknowledgedBy } = req.body;
-      if (!acknowledgedBy) {
+      const { id } = idParamSchema.parse(req.params);
+      const parsed = ackBodySchema.safeParse(req.body);
+      if (!parsed.success) {
         return res.status(400).json({ message: "acknowledgedBy is required" });
       }
 
       const notification = await alertsService.acknowledgeNotification(
-        req.params.id,
-        acknowledgedBy,
+        id,
+        parsed.data.acknowledgedBy,
         req.user?.id,
         wsServerInstance
       );
@@ -165,10 +179,12 @@ export function registerAlertsRoutes(
     "/api/alerts/notifications/:id/comment",
     writeOperationRateLimit,
     withErrorHandling("add comment", async (req: Request, res: Response) => {
+      const { id } = idParamSchema.parse(req.params);
+      const body = commentBodySchema.parse(req.body);
       const commentData = insertAlertCommentSchema.parse({
-        alertId: req.params.id,
-        comment: req.body.comment,
-        commentedBy: req.body.commentedBy,
+        alertId: id,
+        comment: body.comment,
+        commentedBy: body.commentedBy,
       });
 
       const result = await alertsService.addComment(commentData, req.user?.id);
@@ -181,7 +197,8 @@ export function registerAlertsRoutes(
     "/api/alerts/notifications/:id/comments",
     generalApiRateLimit,
     withErrorHandling("get comments", async (req: Request, res: Response) => {
-      const comments = await alertsService.getComments(req.params.id);
+      const { id } = idParamSchema.parse(req.params);
+      const comments = await alertsService.getComments(id);
       res.json(comments);
     })
   );
@@ -219,7 +236,8 @@ export function registerAlertsRoutes(
     "/api/alerts/suppressions/:id",
     criticalOperationRateLimit,
     withErrorHandling("remove suppression", async (req: Request, res: Response) => {
-      await alertsService.deleteSuppression(req.params.id, req.user?.id);
+      const { id } = idParamSchema.parse(req.params);
+      await alertsService.deleteSuppression(id, req.user?.id);
       res.json({ message: "Suppression removed" });
     })
   );
@@ -253,8 +271,9 @@ export function registerAlertsRoutes(
           return workOrder;
         };
 
+        const { id } = idParamSchema.parse(req.params);
         const workOrder = await alertsService.escalateNotification(
-          req.params.id,
+          id,
           escalationData,
           createWorkOrderFn,
           req.user?.id

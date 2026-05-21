@@ -1,6 +1,55 @@
 import { Express, Request, Response, RequestHandler } from "express";
+import { z } from "zod";
 import { withErrorHandling } from "../../lib/route-utils";
 import { dbSensorsStorage } from "../../db/sensors/index.js";
+
+const analyzeBodySchema = z.object({
+  equipmentId: z.string().optional(),
+  sensorId: z.string().optional(),
+  data: z.array(z.number()),
+  sampleRate: z.number().optional(),
+});
+const enhancedBodySchema = z.object({
+  equipmentId: z.string().optional(),
+  data: z.array(z.number()),
+  sampleRate: z.number().optional(),
+  equipmentType: z.string().default("default"),
+});
+const isoBodySchema = z.object({
+  equipmentId: z.string().optional(),
+  rmsVelocity: z.number(),
+  machineClass: z.string().default("class2"),
+});
+const bearingFaultBodySchema = z.object({
+  equipmentId: z.string().optional(),
+  frequencies: z.array(z.number()).optional(),
+  amplitudes: z.array(z.number()).optional(),
+  bearingSpec: z
+    .object({
+      bpfo: z.number().optional(),
+      bpfi: z.number().optional(),
+      bsf: z.number().optional(),
+      ftf: z.number().optional(),
+    })
+    .optional(),
+});
+const bearingFreqBodySchema = z.object({
+  ballCount: z.number().optional(),
+  ballDiameter: z.number().optional(),
+  pitchDiameter: z.number().optional(),
+  contactAngle: z.number().optional(),
+  shaftRpm: z.number().optional(),
+});
+const featuresBodySchema = z.object({ data: z.array(z.number()) });
+const acousticBodySchema = z.object({
+  equipmentId: z.string().optional(),
+  audioData: z.unknown().optional(),
+  sampleRate: z.number().optional(),
+});
+const acousticHistoryQuerySchema = z.object({
+  equipmentId: z.string().optional(),
+  hours: z.coerce.number().int().optional(),
+});
 
 interface VibrationConfig {
   requireOrgId: RequestHandler;
@@ -14,7 +63,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
     "/api/vibration/analyze",
     requireOrgId,
     withErrorHandling("analyze vibration data", async (req: Request, res: Response) => {
-      const { equipmentId, sensorId, data, sampleRate } = req.body;
+      const { equipmentId, sensorId, data, sampleRate } = analyzeBodySchema.parse(req.body ?? {});
 
       if (!data || !Array.isArray(data) || data.length === 0) {
         return res.status(400).json({ message: "Vibration data array is required" });
@@ -75,7 +124,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
     "/api/vibration/enhanced-analysis",
     requireOrgId,
     withErrorHandling("perform enhanced analysis", async (req: Request, res: Response) => {
-      const { equipmentId, data, sampleRate, equipmentType } = req.body;
+      const { equipmentId, data, sampleRate, equipmentType } = enhancedBodySchema.parse(req.body ?? {});
 
       if (!data || !Array.isArray(data)) {
         return res.status(400).json({ message: "Vibration data array is required" });
@@ -134,7 +183,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
     "/api/vibration/iso-assessment",
     requireOrgId,
     withErrorHandling("perform ISO assessment", async (req: Request, res: Response) => {
-      const { equipmentId, rmsVelocity, machineClass } = req.body;
+      const { equipmentId, rmsVelocity, machineClass } = isoBodySchema.parse(req.body ?? {});
 
       const isoLimits: Record<string, any> = {
         class1: { A: 0.71, B: 1.8, C: 4.5, D: 11.2 },
@@ -176,7 +225,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
     "/api/vibration/bearing-fault-detection",
     requireOrgId,
     withErrorHandling("detect bearing faults", async (req: Request, res: Response) => {
-      const { equipmentId, frequencies, amplitudes, bearingSpec } = req.body;
+      const { equipmentId, frequencies, amplitudes, bearingSpec } = bearingFaultBodySchema.parse(req.body ?? {});
 
       const faultFrequencies = {
         BPFO: bearingSpec?.bpfo || 0,
@@ -229,7 +278,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
     "/api/vibration/bearing-frequencies",
     requireOrgId,
     withErrorHandling("calculate bearing frequencies", async (req: Request, res: Response) => {
-      const { ballCount, ballDiameter, pitchDiameter, contactAngle, shaftRpm } = req.body;
+      const { ballCount, ballDiameter, pitchDiameter, contactAngle, shaftRpm } = bearingFreqBodySchema.parse(req.body ?? {});
 
       const n = ballCount || 8;
       const Bd = ballDiameter || 10;
@@ -260,7 +309,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
     "/api/vibration/features",
     requireOrgId,
     withErrorHandling("extract features", async (req: Request, res: Response) => {
-      const { data } = req.body;
+      const { data } = featuresBodySchema.parse(req.body ?? {});
 
       if (!data || !Array.isArray(data) || data.length === 0) {
         return res.status(400).json({ message: "Data array is required" });
@@ -299,7 +348,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
     "/api/acoustic/analyze",
     requireOrgId,
     withErrorHandling("analyze acoustic data", async (req: Request, res: Response) => {
-      const { equipmentId, audioData, sampleRate } = req.body;
+      const { equipmentId, audioData, sampleRate } = acousticBodySchema.parse(req.body ?? {});
 
       const analysis = {
         equipmentId,
@@ -321,13 +370,13 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
     "/api/acoustic/history",
     requireOrgId,
     withErrorHandling("fetch acoustic history", async (req: Request, res: Response) => {
-      const { equipmentId, hours } = req.query;
+      const { equipmentId, hours } = acousticHistoryQuerySchema.parse(req.query);
       const sensors = dbSensorsStorage as unknown as {
         getAcousticHistory?: (eq: string, hours: number) => Promise<unknown>;
       };
       const history = await sensors.getAcousticHistory?.(
         equipmentId as string,
-        hours ? Number.parseInt(hours as string) : 24
+        hours ?? 24
       );
       res.json(history ?? []);
     })

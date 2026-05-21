@@ -15,6 +15,66 @@ interface AutofillLogsDependencies {
   writeOperationRateLimit: RequestHandler;
 }
 
+const fuelListQuerySchema = z.object({
+  vesselId: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  periodType: z.string().optional(),
+});
+
+const fuelSummaryQuerySchema = z.object({
+  vesselId: z.string().min(1),
+  startDate: z.string().min(1),
+  endDate: z.string().min(1),
+});
+
+const trackQuerySchema = z.object({
+  vesselId: z.string().min(1),
+  startDate: z.string().min(1),
+  endDate: z.string().min(1),
+  limit: z.coerce.number().int().positive().optional(),
+});
+
+const trackStatsQuerySchema = z.object({
+  vesselId: z.string().min(1),
+  startDate: z.string().min(1),
+  endDate: z.string().min(1),
+});
+
+const lastPositionQuerySchema = z.object({
+  vesselId: z.string().min(1),
+});
+
+const trackExportQuerySchema = z.object({
+  vesselId: z.string().min(1),
+  vesselName: z.string().optional(),
+  startDate: z.string().min(1),
+  endDate: z.string().min(1),
+});
+
+const conditionListQuerySchema = z.object({
+  vesselId: z.string().optional(),
+  equipmentId: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  periodType: z.string().optional(),
+  limit: z.coerce.number().int().positive().optional(),
+});
+
+const equipmentParamSchema = z.object({ equipmentId: z.string().min(1) });
+const vesselParamSchema = z.object({ vesselId: z.string().min(1) });
+
+const conditionHistoryQuerySchema = z.object({
+  startDate: z.string().min(1),
+  endDate: z.string().min(1),
+  limit: z.coerce.number().int().positive().optional(),
+});
+
+const vesselConditionSummaryQuerySchema = z.object({
+  startDate: z.string().min(1),
+  endDate: z.string().min(1),
+});
+
 export function registerAutofillLogsRoutes(app: Express, deps: AutofillLogsDependencies): void {
   const { writeOperationRateLimit } = deps;
 
@@ -26,7 +86,7 @@ export function registerAutofillLogsRoutes(app: Express, deps: AutofillLogsDepen
     "/api/logbook/fuel-emissions",
     withErrorHandling("get fuel emissions logs", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const { vesselId, startDate, endDate, periodType } = req.query;
+      const { vesselId, startDate, endDate, periodType } = fuelListQuerySchema.parse(req.query);
 
       const { fuelEmissionsLog } = await import("@shared/schema");
       const { eq, and, gte, lte, sql } = await import("drizzle-orm");
@@ -34,19 +94,19 @@ export function registerAutofillLogsRoutes(app: Express, deps: AutofillLogsDepen
 
       const conditions = [eq(fuelEmissionsLog.orgId, orgId)];
       if (vesselId) {
-        conditions.push(eq(fuelEmissionsLog.vesselId, vesselId as string));
+        conditions.push(eq(fuelEmissionsLog.vesselId, vesselId));
       }
 
       if (startDate) {
-        conditions.push(gte(fuelEmissionsLog.periodStart, new Date(startDate as string)));
+        conditions.push(gte(fuelEmissionsLog.periodStart, new Date(startDate)));
       }
 
       if (endDate) {
-        conditions.push(lte(fuelEmissionsLog.periodEnd, new Date(endDate as string)));
+        conditions.push(lte(fuelEmissionsLog.periodEnd, new Date(endDate)));
       }
 
       if (periodType) {
-        conditions.push(eq(fuelEmissionsLog.periodType, periodType as string));
+        conditions.push(eq(fuelEmissionsLog.periodType, periodType));
       }
 
       const logs = await db
@@ -64,21 +124,21 @@ export function registerAutofillLogsRoutes(app: Express, deps: AutofillLogsDepen
     "/api/logbook/fuel-emissions/summary",
     withErrorHandling("get fuel emissions summary", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const { vesselId, startDate, endDate } = req.query;
-
-      if (!vesselId || !startDate || !endDate) {
+      const parsed = fuelSummaryQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
         res.status(400).json({ error: "vesselId, startDate, and endDate are required" });
         return;
       }
+      const { vesselId, startDate, endDate } = parsed.data;
 
       const { fuelEmissionsAutoFillService } = await import(
         "../../services/fuel-emissions-autofill-service"
       );
       const summary = await fuelEmissionsAutoFillService.getFuelEmissionsSummary(
         orgId,
-        vesselId as string,
-        new Date(startDate as string),
-        new Date(endDate as string)
+        vesselId,
+        new Date(startDate),
+        new Date(endDate)
       );
 
       res.json(summary);
@@ -128,20 +188,20 @@ export function registerAutofillLogsRoutes(app: Express, deps: AutofillLogsDepen
     "/api/logbook/track",
     withErrorHandling("get vessel track", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const { vesselId, startDate, endDate, limit } = req.query;
-
-      if (!vesselId || !startDate || !endDate) {
+      const parsed = trackQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
         res.status(400).json({ error: "vesselId, startDate, and endDate are required" });
         return;
       }
+      const { vesselId, startDate, endDate, limit } = parsed.data;
 
       const { trackLogService } = await import("../../services/track-log-service");
       const tracks = await trackLogService.getTrackHistory(
         orgId,
-        vesselId as string,
-        new Date(startDate as string),
-        new Date(endDate as string),
-        limit ? Number.parseInt(limit as string) : undefined
+        vesselId,
+        new Date(startDate),
+        new Date(endDate),
+        limit
       );
 
       res.json(tracks);
@@ -152,19 +212,19 @@ export function registerAutofillLogsRoutes(app: Express, deps: AutofillLogsDepen
     "/api/logbook/track/stats",
     withErrorHandling("get track stats", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const { vesselId, startDate, endDate } = req.query;
-
-      if (!vesselId || !startDate || !endDate) {
+      const parsed = trackStatsQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
         res.status(400).json({ error: "vesselId, startDate, and endDate are required" });
         return;
       }
+      const { vesselId, startDate, endDate } = parsed.data;
 
       const { trackLogService } = await import("../../services/track-log-service");
       const stats = await trackLogService.getTrackStats(
         orgId,
-        vesselId as string,
-        new Date(startDate as string),
-        new Date(endDate as string)
+        vesselId,
+        new Date(startDate),
+        new Date(endDate)
       );
 
       res.json(stats);
@@ -175,15 +235,15 @@ export function registerAutofillLogsRoutes(app: Express, deps: AutofillLogsDepen
     "/api/logbook/track/last-position",
     withErrorHandling("get last position", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const { vesselId } = req.query;
-
-      if (!vesselId) {
+      const parsed = lastPositionQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
         res.status(400).json({ error: "vesselId is required" });
         return;
       }
+      const { vesselId } = parsed.data;
 
       const { trackLogService } = await import("../../services/track-log-service");
-      const position = await trackLogService.getLastPosition(orgId, vesselId as string);
+      const position = await trackLogService.getLastPosition(orgId, vesselId);
 
       if (!position) {
         sendNotFound(res, "Position");
@@ -198,20 +258,20 @@ export function registerAutofillLogsRoutes(app: Express, deps: AutofillLogsDepen
     "/api/logbook/track/export/gpx",
     withErrorHandling("export track as GPX", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const { vesselId, vesselName, startDate, endDate } = req.query;
-
-      if (!vesselId || !startDate || !endDate) {
+      const parsed = trackExportQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
         res.status(400).json({ error: "vesselId, startDate, and endDate are required" });
         return;
       }
+      const { vesselId, vesselName, startDate, endDate } = parsed.data;
 
       const { trackLogService } = await import("../../services/track-log-service");
       const gpx = await trackLogService.exportToGPX(
         orgId,
-        vesselId as string,
-        (vesselName as string) || "Vessel",
-        new Date(startDate as string),
-        new Date(endDate as string)
+        vesselId,
+        vesselName || "Vessel",
+        new Date(startDate),
+        new Date(endDate)
       );
 
       res.setHeader("Content-Type", "application/gpx+xml");
@@ -262,7 +322,8 @@ export function registerAutofillLogsRoutes(app: Express, deps: AutofillLogsDepen
     "/api/logbook/condition",
     withErrorHandling("get condition logs", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const { vesselId, equipmentId, startDate, endDate, periodType, limit } = req.query;
+      const { vesselId, equipmentId, startDate, endDate, periodType, limit } =
+        conditionListQuerySchema.parse(req.query);
 
       const { conditionLogSummary } = await import("@shared/schema");
       const { eq, and, gte, lte, sql } = await import("drizzle-orm");
@@ -270,26 +331,26 @@ export function registerAutofillLogsRoutes(app: Express, deps: AutofillLogsDepen
 
       const conditions = [eq(conditionLogSummary.orgId, orgId)];
       if (vesselId) {
-        conditions.push(eq(conditionLogSummary.vesselId, vesselId as string));
+        conditions.push(eq(conditionLogSummary.vesselId, vesselId));
       }
 
       if (equipmentId) {
-        conditions.push(eq(conditionLogSummary.equipmentId, equipmentId as string));
+        conditions.push(eq(conditionLogSummary.equipmentId, equipmentId));
       }
 
       if (startDate) {
-        conditions.push(gte(conditionLogSummary.periodStart, new Date(startDate as string)));
+        conditions.push(gte(conditionLogSummary.periodStart, new Date(startDate)));
       }
 
       if (endDate) {
-        conditions.push(lte(conditionLogSummary.periodEnd, new Date(endDate as string)));
+        conditions.push(lte(conditionLogSummary.periodEnd, new Date(endDate)));
       }
 
       if (periodType) {
         conditions.push(
           eq(
             (conditionLogSummary as unknown as Record<string, import("drizzle-orm/pg-core").PgColumn>).periodType,
-            periodType as string
+            periodType
           )
         );
       }
@@ -301,7 +362,7 @@ export function registerAutofillLogsRoutes(app: Express, deps: AutofillLogsDepen
         .orderBy(sql`${conditionLogSummary.periodStart} DESC`);
 
       if (limit) {
-        query = query.limit(Number.parseInt(limit as string)) as typeof query;
+        query = query.limit(limit) as typeof query;
       }
 
       const logs = await query;
@@ -313,21 +374,16 @@ export function registerAutofillLogsRoutes(app: Express, deps: AutofillLogsDepen
     "/api/logbook/condition/equipment/:equipmentId",
     withErrorHandling("get condition log history", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const { equipmentId } = req.params;
-      const { startDate, endDate, limit } = req.query;
-
-      if (!startDate || !endDate) {
-        res.status(400).json({ error: "startDate and endDate are required" });
-        return;
-      }
+      const { equipmentId } = equipmentParamSchema.parse(req.params);
+      const { startDate, endDate, limit } = conditionHistoryQuerySchema.parse(req.query);
 
       const { conditionLogService } = await import("../../services/condition-log-service");
       const history = await conditionLogService.getConditionLogHistory(
         orgId,
         equipmentId,
-        new Date(startDate as string),
-        new Date(endDate as string),
-        limit ? Number.parseInt(limit as string) : undefined
+        new Date(startDate),
+        new Date(endDate),
+        limit
       );
 
       res.json(history);
@@ -338,20 +394,15 @@ export function registerAutofillLogsRoutes(app: Express, deps: AutofillLogsDepen
     "/api/logbook/condition/vessel/:vesselId/summary",
     withErrorHandling("get vessel condition summary", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const { vesselId } = req.params;
-      const { startDate, endDate } = req.query;
-
-      if (!startDate || !endDate) {
-        res.status(400).json({ error: "startDate and endDate are required" });
-        return;
-      }
+      const { vesselId } = vesselParamSchema.parse(req.params);
+      const { startDate, endDate } = vesselConditionSummaryQuerySchema.parse(req.query);
 
       const { conditionLogService } = await import("../../services/condition-log-service");
       const summary = await conditionLogService.getVesselConditionSummary(
         orgId,
         vesselId,
-        new Date(startDate as string),
-        new Date(endDate as string)
+        new Date(startDate),
+        new Date(endDate)
       );
 
       res.json(summary);

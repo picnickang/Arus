@@ -12,6 +12,14 @@ import type { CrewRouteDeps } from "./types.js";
 import { getExpiryUrgencyLevel } from "./types.js";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
+const certListQuerySchema = z.object({ crewId: z.string().optional() });
+const certIdParamSchema = z.object({ id: z.string().min(1) });
+const expiringCertsQuerySchema = z.object({
+  daysAhead: z.coerce.number().int().optional(),
+  includeAcknowledged: z.enum(["true", "false"]).optional(),
+});
+const rawCertBodySchema = z.record(z.unknown());
+
 function coerceDates(body: Record<string, unknown>): Record<string, unknown> {
   const result = { ...body };
   for (const key of ["expiresAt", "issuedAt"] as const) {
@@ -30,12 +38,9 @@ export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): 
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch crew certifications", async (req, res) => {
-      const { crewId } = req.query;
+      const { crewId } = certListQuerySchema.parse(req.query);
       const orgId = req.orgId;
-      const certifications = await crewService.listCertifications(
-        crewId as string | undefined,
-        orgId
-      );
+      const certifications = await crewService.listCertifications(crewId, orgId);
       res.json(certifications);
     })
   );
@@ -45,8 +50,9 @@ export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): 
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
     withErrorHandling("create certification", async (req, res) => {
+      const body = rawCertBodySchema.parse(req.body ?? {});
       const certData = insertCrewCertificationSchema.parse(
-        coerceDates({ ...req.body, orgId: req.orgId })
+        coerceDates({ ...body, orgId: req.orgId })
       );
       const cert = await crewService.createCertification(certData, req.user?.id);
       sendCreated(res, cert);
@@ -58,13 +64,10 @@ export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): 
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
     withErrorHandling("update certification", async (req, res) => {
-      const certData = insertCrewCertificationSchema.partial().parse(coerceDates(req.body));
-      const cert = await crewService.updateCertification(
-        req.params.id,
-        certData,
-        req.user?.id,
-        req.orgId
-      );
+      const { id } = certIdParamSchema.parse(req.params);
+      const body = rawCertBodySchema.parse(req.body ?? {});
+      const certData = insertCrewCertificationSchema.partial().parse(coerceDates(body));
+      const cert = await crewService.updateCertification(id, certData, req.user?.id, req.orgId);
       res.json(cert);
     })
   );
@@ -74,7 +77,8 @@ export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): 
     requireOrgId,
     criticalOperationRateLimit,
     withErrorHandling("delete certification", async (req, res) => {
-      await crewService.deleteCertification(req.params.id, req.user?.id, req.orgId);
+      const { id } = certIdParamSchema.parse(req.params);
+      await crewService.deleteCertification(id, req.user?.id, req.orgId);
       sendDeleted(res);
     })
   );
@@ -85,8 +89,9 @@ export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): 
     generalApiRateLimit,
     withErrorHandling("fetch expiring certifications", async (req, res) => {
       const orgId = DEFAULT_ORG_ID;
-      const daysAhead = Number.parseInt(req.query.daysAhead as string) || 90;
-      const includeAcknowledged = req.query.includeAcknowledged === "true";
+      const q = expiringCertsQuerySchema.parse(req.query);
+      const daysAhead = q.daysAhead ?? 90;
+      const includeAcknowledged = q.includeAcknowledged === "true";
 
       const expiringCerts = await crewService.getCertificationsExpiring(
         orgId,
@@ -131,7 +136,7 @@ export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): 
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
     withErrorHandling("acknowledge certification alert", async (req, res) => {
-      const certId = req.params.id;
+      const { id: certId } = certIdParamSchema.parse(req.params);
       const userId = req.user?.id;
       const { notes } = acknowledgeAlertSchema.parse(req.body);
 

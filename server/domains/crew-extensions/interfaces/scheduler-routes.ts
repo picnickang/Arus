@@ -42,6 +42,32 @@ import { canAssignCrew } from "../../../services/hor-projector/constraint-checke
 import { projectComplianceFromAssignments } from "../../../services/hor-projector/projector.js";
 import { crewExtensionsAppService, scheduleSimulationService } from "../application/index.js";
 
+const idParamSchema = z.object({ id: z.string().min(1) });
+const assignmentIdParamSchema = z.object({ assignmentId: z.string().min(1) });
+const runIdParamSchema = z.object({ runId: z.string().min(1) });
+const planBodySchema = z.object({
+  from: z.string(),
+  days: z.number().optional(),
+  vessels: z.array(z.string()).optional(),
+  mode: z.enum(["dry_run", "auto", "execute", "simulate"]).optional(),
+});
+const runsQuerySchema = z.object({ limit: z.string().optional() });
+const previewComplianceBodySchema = z.object({
+  scheduleRunId: z.string().optional(),
+  assignments: z.array(z.unknown()).optional(),
+});
+const simulateBodySchema = z.object({
+  from: z.string(),
+  days: z.number().optional(),
+  vessels: z.array(z.string()).optional(),
+  fillUnassignedOnly: z.boolean().optional(),
+});
+const applyDraftBodySchema = z.object({
+  simulationResult: z.object({ proposed: z.unknown() }).passthrough().optional(),
+  skipCollisions: z.boolean().optional(),
+  vesselIds: z.array(z.string()).optional(),
+});
+
 export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRoutesConfig) {
   const { crewOperationRateLimit } = config;
 
@@ -50,7 +76,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
     crewOperationRateLimit,
     withErrorHandling("plan schedule", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
-      const { from, days, vessels, mode } = req.body;
+      const { from, days, vessels, mode } = planBodySchema.parse(req.body ?? {});
       const result = await planAndMaybeExecute({
         orgId,
         from,
@@ -66,11 +92,11 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
     "/api/schedule/runs",
     withErrorHandling("fetch scheduler runs", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
-      const { limit } = req.query;
+      const { limit } = runsQuerySchema.parse(req.query);
       const runs = await dbSchedulerStorage.getSchedulerRuns(
         orgId,
         undefined,
-        limit ? Number.parseInt(limit as string) : 50
+        limit ? Number.parseInt(limit) : 50
       );
       const transformed = runs.map((run) => {
         const bag = run as unknown as Record<string, unknown>;
@@ -99,7 +125,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
     "/api/schedule/runs/:id",
     withErrorHandling("fetch scheduler run", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
-      const { id } = req.params;
+      const { id } = idParamSchema.parse(req.params);
       const run = await dbSchedulerStorage.getSchedulerRun(id);
       if (!run || run.orgId !== orgId) {
         return sendNotFound(res, "Scheduler run");
@@ -114,7 +140,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
     crewOperationRateLimit,
     withErrorHandling("apply scheduler run", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
-      const { id } = req.params;
+      const { id } = idParamSchema.parse(req.params);
       const result = await applySchedule(id, orgId);
       res.json(result);
     })
@@ -125,7 +151,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
     crewOperationRateLimit,
     withErrorHandling("cancel scheduler run", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
-      const { id } = req.params;
+      const { id } = idParamSchema.parse(req.params);
       const result = await cancelScheduleRun(id, orgId);
       res.json(result);
     })
@@ -149,7 +175,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
     crewOperationRateLimit,
     withErrorHandling("preview compliance", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
-      const { scheduleRunId, assignments: draftAssignments } = req.body;
+      const { scheduleRunId, assignments: draftAssignments } = previewComplianceBodySchema.parse(req.body ?? {});
       let assignments: Awaited<ReturnType<typeof dbSchedulerStorage.getScheduleAssignmentsByRun>> = [];
 
       if (scheduleRunId) {
@@ -159,7 +185,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         }
         assignments = await dbSchedulerStorage.getScheduleAssignmentsByRun(scheduleRunId);
       } else if (draftAssignments && Array.isArray(draftAssignments)) {
-        assignments = draftAssignments;
+        assignments = draftAssignments as typeof assignments;
       } else {
         return sendBadRequest(res, "Either scheduleRunId or assignments array is required");
       }
@@ -183,7 +209,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       "generate Hours of Rest",
       async (req: AuthenticatedRequest, res: Response) => {
         const orgId = req.orgId!;
-        const { id } = req.params;
+        const { id } = idParamSchema.parse(req.params);
         const existing = await dbSchedulerStorage.getSchedulerRun(id);
 
         if (!existing || existing.orgId !== orgId) {
@@ -211,7 +237,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       "get assignment constraints",
       async (req: AuthenticatedRequest, res: Response) => {
         const orgId = req.orgId!;
-        const { assignmentId } = req.params;
+        const { assignmentId } = assignmentIdParamSchema.parse(req.params);
 
         // Get assignments with org scoping
         const allAssignments = await dbCrewStorage.getCrewAssignments();
@@ -315,7 +341,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
     "/api/crew-extensions/scheduler/suggestions/:assignmentId",
     withErrorHandling("get crew suggestions", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
-      const { assignmentId } = req.params;
+      const { assignmentId } = assignmentIdParamSchema.parse(req.params);
 
       // Get assignments with org scoping
       const allAssignments = await dbCrewStorage.getCrewAssignments();
@@ -578,7 +604,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
     crewOperationRateLimit,
     withErrorHandling("simulate schedule", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
-      const { from, days, vessels, fillUnassignedOnly } = req.body;
+      const { from, days, vessels, fillUnassignedOnly } = simulateBodySchema.parse(req.body ?? {});
       const result = await simulateSchedule({
         orgId,
         from,
@@ -598,7 +624,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       "apply simulated schedule",
       async (req: AuthenticatedRequest, res: Response) => {
         const orgId = req.orgId!;
-        const { simulationResult, skipCollisions, vesselIds } = req.body;
+        const { simulationResult, skipCollisions, vesselIds } = applyDraftBodySchema.parse(req.body ?? {});
 
         if (!simulationResult || !simulationResult.proposed) {
           return res
@@ -608,7 +634,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
 
         const result = await applySimulatedSchedule({
           orgId,
-          simulationResult,
+          simulationResult: simulationResult as unknown as Parameters<typeof applySimulatedSchedule>[0]["simulationResult"],
           skipCollisions: skipCollisions !== false,
           vesselIds: vesselIds && Array.isArray(vesselIds) ? vesselIds : undefined,
         });
@@ -625,7 +651,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       "revert generated schedule",
       async (req: AuthenticatedRequest, res: Response) => {
         const orgId = req.orgId!;
-        const { runId } = req.params;
+        const { runId } = runIdParamSchema.parse(req.params);
 
         if (!runId) {
           return res.status(400).json({ error: "runId is required" });
@@ -916,7 +942,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       "get simulation preview",
       async (req: AuthenticatedRequest, res: Response) => {
         const orgId = req.orgId!;
-        const { previewId } = req.query;
+        const { previewId } = z.object({ previewId: z.string().optional() }).parse(req.query);
         let preview;
         if (previewId && typeof previewId === "string") {
           preview = await scheduleSimulationService.getPreview(previewId, orgId);
@@ -1000,7 +1026,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       async (req: AuthenticatedRequest, res: Response) => {
         const orgId = req.orgId!;
         const userId = req.session?.user?.id;
-        const { previewId } = req.body;
+        const { previewId } = z.object({ previewId: z.string().optional() }).parse(req.body ?? {});
 
         if (!previewId || typeof previewId !== "string") {
           return res.status(400).json({ error: "previewId is required" });

@@ -10,6 +10,10 @@ import {
 import { asyncHandler } from "../../../lib/async-handler";
 import { logger } from "../../../utils/logger.js";
 import { requireOrgId, type AuthenticatedRequest } from "../../../middleware/auth";
+import { z } from "zod";
+
+const idParamSchema = z.object({ id: z.string().min(1) });
+const historyIdParamSchema = z.object({ historyId: z.string().min(1) });
 
 const router = Router();
 
@@ -17,7 +21,7 @@ router.post(
   "/:id/retire",
   requireOrgId,
   asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const { id } = idParamSchema.parse(req.params);
     const authReq = req as AuthenticatedRequest;
     const orgId = authReq.orgId;
     const userId = authReq.user?.id;
@@ -34,7 +38,7 @@ router.post(
   "/:id/cancel",
   requireOrgId,
   asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const { id } = idParamSchema.parse(req.params);
     const authReq = req as AuthenticatedRequest;
     const orgId = authReq.orgId;
     const userId = authReq.user?.id;
@@ -51,7 +55,7 @@ router.post(
   "/:id/reinstate",
   requireOrgId,
   asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const { id } = idParamSchema.parse(req.params);
     const authReq = req as AuthenticatedRequest;
     const orgId = authReq.orgId;
     const userId = authReq.user?.id;
@@ -79,7 +83,7 @@ router.get(
   "/:id/history",
   requireOrgId,
   asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const { id } = idParamSchema.parse(req.params);
     const authReq = req as AuthenticatedRequest;
     const orgId = authReq.orgId;
     const history = await crewLifecycleService.getEmploymentHistory(id, orgId);
@@ -91,7 +95,7 @@ router.put(
   "/history/:historyId",
   requireOrgId,
   asyncHandler(async (req: Request, res: Response) => {
-    const { historyId } = req.params;
+    const { historyId } = historyIdParamSchema.parse(req.params);
     const authReq = req as AuthenticatedRequest;
     const orgId = authReq.orgId;
 
@@ -107,7 +111,7 @@ router.delete(
   "/history/:historyId",
   requireOrgId,
   asyncHandler(async (req: Request, res: Response) => {
-    const { historyId } = req.params;
+    const { historyId } = historyIdParamSchema.parse(req.params);
     const authReq = req as AuthenticatedRequest;
     const orgId = authReq.orgId;
 
@@ -122,7 +126,7 @@ router.delete(
   "/:id/former",
   requireOrgId,
   asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const { id } = idParamSchema.parse(req.params);
     const authReq = req as AuthenticatedRequest;
     const orgId = authReq.orgId;
     const userId = authReq.user?.id;

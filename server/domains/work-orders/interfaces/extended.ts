@@ -5,7 +5,24 @@
  */
 
 import type { Express, Request, Response } from "express";
+import { z } from "zod";
 import { insertMaintenanceCostSchema } from "@shared/schema-runtime";
+
+const idParamSchema = z.object({ id: z.string().min(1) });
+const prBodySchema = z.object({
+  supplierId: z.string().optional(),
+  items: z.array(z.object({
+    partId: z.string().optional(),
+    supplierId: z.string().optional(),
+    quantity: z.number().optional(),
+    uom: z.string().optional(),
+    notes: z.string().optional(),
+    description: z.string().optional(),
+  })).optional(),
+  notes: z.string().optional(),
+  priority: z.string().optional(),
+  requestedDeliveryDate: z.string().optional(),
+});
 import { workOrderAppService as workOrderService } from "../application";
 import { requireOrgId, AuthenticatedRequest } from "../../../middleware/auth";
 import { recordAndPublish } from "../../../sync-events";
@@ -23,7 +40,7 @@ export function registerExtendedRoutes(app: Express, rateLimit: RateLimitMiddlew
     writeOperationRateLimit,
     withErrorHandling("clone work order", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const workOrderId = req.params.id;
+      const workOrderId = idParamSchema.parse(req.params).id;
 
       const validation = validateBody(req, cloneWorkOrderSchema);
       if (!validation.success) {
@@ -67,7 +84,7 @@ export function registerExtendedRoutes(app: Express, rateLimit: RateLimitMiddlew
     requireOrgId,
     withErrorHandling("fetch work order history", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const workOrderId = req.params.id;
+      const workOrderId = idParamSchema.parse(req.params).id;
 
       const historyEntries = await workOrderService.getWorkOrderHistory(workOrderId, orgId);
       const inventoryMovements = await workOrderService.getInventoryMovementsByWorkOrder(
@@ -87,9 +104,10 @@ export function registerExtendedRoutes(app: Express, rateLimit: RateLimitMiddlew
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("create maintenance cost", async (req: Request, res: Response) => {
+      const { id: woId } = idParamSchema.parse(req.params);
       const costData = insertMaintenanceCostSchema.parse({
-        ...req.body,
-        workOrderId: req.params.id,
+        ...(req.body ?? {}),
+        workOrderId: woId,
       });
       const cost = await workOrderService.createMaintenanceCost(costData);
       sendCreated(res, cost);
@@ -100,7 +118,9 @@ export function registerExtendedRoutes(app: Express, rateLimit: RateLimitMiddlew
     "/api/work-orders/:id/costs",
     requireOrgId,
     withErrorHandling("fetch maintenance costs", async (req: Request, res: Response) => {
-      const costs = await workOrderService.getMaintenanceCostsByWorkOrder(req.params.id);
+      const costs = await workOrderService.getMaintenanceCostsByWorkOrder(
+        idParamSchema.parse(req.params).id
+      );
       res.json(costs);
     })
   );
@@ -111,13 +131,13 @@ export function registerExtendedRoutes(app: Express, rateLimit: RateLimitMiddlew
     writeOperationRateLimit,
     withErrorHandling("create purchase request", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const workOrderId = req.params.id;
+      const workOrderId = idParamSchema.parse(req.params).id;
       const workOrder = await workOrderService.getWorkOrderById(workOrderId, orgId);
       if (!workOrder) {
         return sendNotFound(res, "Work order");
       }
 
-      const { supplierId, items, notes, priority, requestedDeliveryDate } = req.body;
+      const { supplierId, items, notes, requestedDeliveryDate } = prBodySchema.parse(req.body ?? {});
       if (!items || !Array.isArray(items) || items.length === 0) {
         return sendBadRequest(res, "At least one item is required");
       }
@@ -173,8 +193,9 @@ export function registerExtendedRoutes(app: Express, rateLimit: RateLimitMiddlew
     requireOrgId,
     withErrorHandling("fetch purchase requests", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
+      const { id: woId } = idParamSchema.parse(req.params);
       const purchaseRepo = await import("../../../purchasing/repository");
-      const prs = await purchaseRepo.listPurchaseRequests({ orgId, workOrderId: req.params.id });
+      const prs = await purchaseRepo.listPurchaseRequests({ orgId, workOrderId: woId });
       res.json(prs);
     })
   );
@@ -184,7 +205,7 @@ export function registerExtendedRoutes(app: Express, rateLimit: RateLimitMiddlew
     requireOrgId,
     withErrorHandling("fetch procurement costs", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const workOrderId = req.params.id;
+      const workOrderId = idParamSchema.parse(req.params).id;
 
       const { getWorkOrderProcurementCosts } = await import("../../../cost-savings-engine");
       const costs = await getWorkOrderProcurementCosts(workOrderId, orgId);
@@ -198,7 +219,7 @@ export function registerExtendedRoutes(app: Express, rateLimit: RateLimitMiddlew
     writeOperationRateLimit,
     withErrorHandling("aggregate procurement costs", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const workOrderId = req.params.id;
+      const workOrderId = idParamSchema.parse(req.params).id;
 
       const { aggregateProcurementCostsToWorkOrder } = await import("../../../cost-savings-engine");
       const result = await aggregateProcurementCostsToWorkOrder(workOrderId, orgId);

@@ -26,6 +26,16 @@ const testEmailSchema = z.object({
   email: z.string().email(),
 });
 
+const vesselIdParamSchema = z.object({ vesselId: z.string().min(1) });
+const keyParamSchema = z.object({ key: z.string().min(1) });
+const typeParamSchema = z.object({ type: z.enum(["purchaseOrder", "serviceOrder"]) });
+const categoryQuerySchema = z.object({ category: z.string().optional() });
+const vesselIdQuerySchema = z.object({ vesselId: z.string().optional() });
+const previewBodySchema = z.object({
+  template: z.unknown(),
+  type: z.string(),
+});
+
 const emailLogsQuerySchema = z.object({
   vesselId: z.string().optional(),
   alertType: z.string().optional(),
@@ -107,7 +117,8 @@ export function registerAlertSettingsRoutes(
     generalApiRateLimit,
     withErrorHandling("get vessel settings", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
-      const settings = await alertSettingsService.getVesselSettings(orgId, req.params.vesselId);
+      const { vesselId } = vesselIdParamSchema.parse(req.params);
+      const settings = await alertSettingsService.getVesselSettings(orgId, vesselId);
       if (!settings) {
         return sendNotFound(res, "Vessel settings");
       }
@@ -120,10 +131,11 @@ export function registerAlertSettingsRoutes(
     writeOperationRateLimit,
     withErrorHandling("update vessel settings", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
+      const { vesselId } = vesselIdParamSchema.parse(req.params);
       const data = insertAlertSettingsVesselSchema.partial().parse(req.body);
       const settings = await alertSettingsService.updateVesselSettings(
         orgId,
-        req.params.vesselId,
+        vesselId,
         data
       );
       res.json(settings);
@@ -135,7 +147,8 @@ export function registerAlertSettingsRoutes(
     criticalOperationRateLimit,
     withErrorHandling("delete vessel settings", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
-      await alertSettingsService.deleteVesselSettings(orgId, req.params.vesselId);
+      const { vesselId } = vesselIdParamSchema.parse(req.params);
+      await alertSettingsService.deleteVesselSettings(orgId, vesselId);
       res.status(204).send();
     })
   );
@@ -145,7 +158,7 @@ export function registerAlertSettingsRoutes(
     generalApiRateLimit,
     withErrorHandling("get alert thresholds", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
-      const category = req.query.category as string | undefined;
+      const { category } = categoryQuerySchema.parse(req.query);
       const thresholds = await alertSettingsService.getThresholds(orgId, category);
       res.json(thresholds);
     })
@@ -173,7 +186,8 @@ export function registerAlertSettingsRoutes(
     withErrorHandling("update alert threshold", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
       const data = insertAlertThresholdSchema.partial().parse(req.body);
-      const threshold = await alertSettingsService.updateThreshold(orgId, req.params.key, data);
+      const { key } = keyParamSchema.parse(req.params);
+      const threshold = await alertSettingsService.updateThreshold(orgId, key, data);
       res.json(threshold);
     })
   );
@@ -183,7 +197,8 @@ export function registerAlertSettingsRoutes(
     criticalOperationRateLimit,
     withErrorHandling("delete alert threshold", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
-      await alertSettingsService.deleteThreshold(orgId, req.params.key);
+      const { key } = keyParamSchema.parse(req.params);
+      await alertSettingsService.deleteThreshold(orgId, key);
       res.status(204).send();
     })
   );
@@ -208,7 +223,7 @@ export function registerAlertSettingsRoutes(
     generalApiRateLimit,
     withErrorHandling("get crew alert settings", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
-      const vesselId = req.query.vesselId as string | undefined;
+      const { vesselId } = vesselIdQuerySchema.parse(req.query);
       const settings = await alertSettingsService.getCrewAlertSettings(orgId, vesselId);
       res.json(settings ?? {});
     })
@@ -229,7 +244,7 @@ export function registerAlertSettingsRoutes(
     writeOperationRateLimit,
     withErrorHandling("update crew alert settings", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
-      const vesselId = (req.query.vesselId as string | null) || null;
+      const vesselId = vesselIdQuerySchema.parse(req.query).vesselId ?? null;
       const data = insertCrewAlertSettingsSchema.partial().parse(req.body);
       const settings = await alertSettingsService.updateCrewAlertSettings(orgId, vesselId, data);
       res.json(settings);
@@ -241,7 +256,7 @@ export function registerAlertSettingsRoutes(
     criticalOperationRateLimit,
     withErrorHandling("run crew alerts", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
-      const vesselId = req.query.vesselId as string | undefined;
+      const { vesselId } = vesselIdQuerySchema.parse(req.query);
       const { alertRunnerService } = await import("./alert-runner");
       const result = await alertRunnerService.runCrewAlerts({
         orgId,
@@ -257,7 +272,7 @@ export function registerAlertSettingsRoutes(
     generalApiRateLimit,
     withErrorHandling("preview alerts", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
-      const vesselId = req.query.vesselId as string | undefined;
+      const { vesselId } = vesselIdQuerySchema.parse(req.query);
       const { runAllCrewAlertEvaluators } = await import("./crew-alert-evaluators");
       const alerts = await runAllCrewAlertEvaluators({
         orgId,
@@ -308,7 +323,11 @@ export function registerAlertSettingsRoutes(
     writeOperationRateLimit,
     withErrorHandling("update email templates", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
-      const templates = await emailTemplatesService.updateTemplates(orgId, req.body);
+      const body = z.record(z.unknown()).parse(req.body);
+      const templates = await emailTemplatesService.updateTemplates(
+        orgId,
+        body as Parameters<typeof emailTemplatesService.updateTemplates>[1]
+      );
       res.json(templates);
     })
   );
@@ -318,11 +337,11 @@ export function registerAlertSettingsRoutes(
     writeOperationRateLimit,
     withErrorHandling("reset email template", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
-      const type = req.params.type as "purchaseOrder" | "serviceOrder";
-      if (type !== "purchaseOrder" && type !== "serviceOrder") {
+      const parsedParams = typeParamSchema.safeParse(req.params);
+      if (!parsedParams.success) {
         return res.status(400).json({ message: "Invalid template type" });
       }
-      const templates = await emailTemplatesService.resetTemplate(orgId, type);
+      const templates = await emailTemplatesService.resetTemplate(orgId, parsedParams.data.type);
       res.json(templates);
     })
   );
@@ -331,11 +350,15 @@ export function registerAlertSettingsRoutes(
     "/api/email-templates/preview",
     generalApiRateLimit,
     withErrorHandling("preview email template", async (req: Request, res: Response) => {
-      const { template, type } = req.body;
-      if (!template || !type) {
+      const parsed = previewBodySchema.safeParse(req.body);
+      if (!parsed.success) {
         return res.status(400).json({ message: "Template and type are required" });
       }
-      const preview = emailTemplatesService.generatePreview(template, type);
+      const { template, type } = parsed.data;
+      const preview = emailTemplatesService.generatePreview(
+        template as Parameters<typeof emailTemplatesService.generatePreview>[0],
+        type as Parameters<typeof emailTemplatesService.generatePreview>[1]
+      );
       res.json(preview);
     })
   );

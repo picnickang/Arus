@@ -109,7 +109,7 @@ export function registerCertificateRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch certificate summary", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const vesselId = req.query.vesselId as string | undefined;
+      const { vesselId } = z.object({ vesselId: z.string().optional() }).parse(req.query);
       const summary = await certificateService.getSummary(orgId, vesselId);
       res.json(summary);
     })
@@ -121,7 +121,8 @@ export function registerCertificateRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch expiring certificates", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const days = Math.min(Math.max(Number(req.query.days) || 90, 1), 365);
+      const { days: daysRaw } = z.object({ days: z.coerce.number().optional() }).parse(req.query);
+      const days = Math.min(Math.max(daysRaw || 90, 1), 365);
       const certs = await certificateService.getExpiring(orgId, days);
       res.json(certs);
     })
@@ -133,11 +134,17 @@ export function registerCertificateRoutes(
     generalApiRateLimit,
     withErrorHandling("list certificates", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const { vesselId, type, status } = req.query;
+      const { vesselId, type, status } = z
+        .object({
+          vesselId: z.string().optional(),
+          type: z.string().optional(),
+          status: z.string().optional(),
+        })
+        .parse(req.query);
       const certs = await certificateService.listCertificates(orgId, {
-        vesselId: vesselId as string | undefined,
-        type: type as string | undefined,
-        status: status as string | undefined,
+        vesselId,
+        type,
+        status,
       });
       res.json(certs);
     })
@@ -149,7 +156,8 @@ export function registerCertificateRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch certificate", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const cert = await certificateService.getCertificateById(req.params.id, orgId);
+      const { id } = z.object({ id: z.string().min(1) }).parse(req.params);
+      const cert = await certificateService.getCertificateById(id, orgId);
       if (!cert) {
         return res.status(404).json({ error: "Certificate not found" });
       }
@@ -179,8 +187,9 @@ export function registerCertificateRoutes(
     withErrorHandling("update certificate", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const data = updateCertificateSchema.parse(req.body);
+      const { id } = z.object({ id: z.string().min(1) }).parse(req.params);
       const updated = await certificateService.updateCertificate(
-        req.params.id,
+        id,
         orgId,
         data,
         (req as AuthenticatedRequest).user?.id
@@ -199,8 +208,9 @@ export function registerCertificateRoutes(
     withErrorHandling("add condition of class", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const data = conditionSchema.parse(req.body);
+      const { id } = z.object({ id: z.string().min(1) }).parse(req.params);
       const result = await certificateService.addCondition(
-        req.params.id,
+        id,
         orgId,
         data,
         (req as AuthenticatedRequest).user?.id
@@ -218,10 +228,12 @@ export function registerCertificateRoutes(
     writeLimit,
     withErrorHandling("update condition status", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const { conditionId } = req.params;
+      const { id, conditionId } = z
+        .object({ id: z.string().min(1), conditionId: z.string().min(1) })
+        .parse(req.params);
       const { status } = z.object({ status: z.enum(["open", "closed"]) }).parse(req.body);
       const updated = await certificateService.updateConditionStatus(
-        req.params.id,
+        id,
         orgId,
         conditionId,
         status,

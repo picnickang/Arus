@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import { z } from "zod";
 import type { AuthenticatedRequest } from "../../../../middleware/auth";
 import type { AgentActivityService } from "../../application/activity-service";
 import type { ActivityFilter } from "../../domain/activity-types";
@@ -9,6 +10,15 @@ export interface ActivityRouteDeps {
   rateLimit: RateLimitMiddleware;
   requireMaintenanceRole: RoleMiddleware;
 }
+
+const activityQuerySchema = z.object({
+  triggerType: z.enum(["scheduled", "user"]).optional(),
+  status: z.enum(["completed", "failed", "running"]).optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
 
 export function registerActivityRoutes(app: Express, deps: ActivityRouteDeps) {
   const { activityService, rateLimit, requireMaintenanceRole } = deps;
@@ -35,33 +45,20 @@ export function registerActivityRoutes(app: Express, deps: ActivityRouteDeps) {
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
+        const q = activityQuerySchema.parse(req.query);
         const filter: ActivityFilter = {};
-        if (
-          req.query.triggerType &&
-          ["scheduled", "user"].includes(req.query.triggerType as string)
-        ) {
-          filter.triggerType = req.query.triggerType as "scheduled" | "user";
+        if (q.triggerType) filter.triggerType = q.triggerType;
+        if (q.status) filter.status = q.status;
+        if (q.startDate) {
+          const d = new Date(q.startDate);
+          if (!isNaN(d.getTime())) filter.startDate = d;
         }
-        if (
-          req.query.status &&
-          ["completed", "failed", "running"].includes(req.query.status as string)
-        ) {
-          filter.status = req.query.status as "completed" | "failed" | "running";
+        if (q.endDate) {
+          const d = new Date(q.endDate);
+          if (!isNaN(d.getTime())) filter.endDate = d;
         }
-        if (req.query.startDate) {
-          const d = new Date(req.query.startDate as string);
-          if (!isNaN(d.getTime())) {
-            filter.startDate = d;
-          }
-        }
-        if (req.query.endDate) {
-          const d = new Date(req.query.endDate as string);
-          if (!isNaN(d.getTime())) {
-            filter.endDate = d;
-          }
-        }
-        filter.limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
-        filter.offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+        filter.limit = Math.min(q.limit ?? 50, 200);
+        filter.offset = Math.max(q.offset ?? 0, 0);
 
         const items = await activityService.list(orgId, filter);
         res.json(items);

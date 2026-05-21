@@ -34,6 +34,14 @@ const promoteSchema = z.object({
   changelog: z.string().optional(),
 });
 
+const statusQuerySchema = z.object({ status: z.string().optional() });
+const runsListQuerySchema = z.object({
+  status: z.string().optional(),
+  datasetId: z.string().optional(),
+});
+const idParamSchema = z.object({ id: z.string().min(1) });
+const artifactsQuerySchema = z.object({ modelVersionId: z.string().optional() });
+
 router.post("/datasets", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
@@ -58,7 +66,7 @@ router.post("/datasets", async (req: Request, res: Response) => {
 router.get("/datasets", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const status = req.query.status as string | undefined;
+    const { status } = statusQuerySchema.parse(req.query);
     const result = await service.listDatasets(orgId, status);
     res.json(result);
   } catch (error: unknown) {
@@ -70,7 +78,8 @@ router.get("/datasets", async (req: Request, res: Response) => {
 router.get("/datasets/:id", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const result = await service.getDataset(orgId, req.params.id);
+    const { id } = idParamSchema.parse(req.params);
+    const result = await service.getDataset(orgId, id);
     if (!result) {
       return res.status(404).json({ error: "Dataset not found" });
     }
@@ -109,8 +118,7 @@ router.post("/runs", async (req: Request, res: Response) => {
 router.get("/runs", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const status = req.query.status as string | undefined;
-    const datasetId = req.query.datasetId as string | undefined;
+    const { status, datasetId } = runsListQuerySchema.parse(req.query);
     const result = await service.listRuns(orgId, { status, datasetId });
     res.json(result);
   } catch (error: unknown) {
@@ -122,7 +130,8 @@ router.get("/runs", async (req: Request, res: Response) => {
 router.get("/runs/:id", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const result = await service.getRunStatus(orgId, req.params.id);
+    const { id } = idParamSchema.parse(req.params);
+    const result = await service.getRunStatus(orgId, id);
     if (!result) {
       return res.status(404).json({ error: "Training run not found" });
     }
@@ -141,9 +150,10 @@ router.post("/runs/:id/promote", async (req: Request, res: Response) => {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
     }
     const { modelId, version, changelog } = parsed.data;
+    const { id } = idParamSchema.parse(req.params);
     const result = await service.promoteModelVersion(
       orgId,
-      req.params.id,
+      id,
       modelId,
       version,
       changelog
@@ -161,7 +171,7 @@ router.post("/runs/:id/promote", async (req: Request, res: Response) => {
 router.get("/artifacts", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const modelVersionId = req.query.modelVersionId as string;
+    const { modelVersionId } = artifactsQuerySchema.parse(req.query);
     if (!modelVersionId) {
       return res.status(400).json({ error: "modelVersionId query param required" });
     }
