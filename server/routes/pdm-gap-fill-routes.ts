@@ -324,7 +324,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     withErrorHandling("get telemetry warehouse status", async (req: Request, res: Response) => {
       const limit = Math.max(1, Math.min(50, Number(req.query.limit) || 14));
       const orgIdParam = typeof req.query.orgId === "string" ? req.query.orgId : undefined;
-      const recentRuns = getWarehouseRecentRuns(limit);
+      const recentRuns = await getWarehouseRecentRuns(limit);
 
       let manifest: Awaited<ReturnType<typeof loadWarehouseManifest>> | null = null;
       if (orgIdParam) {

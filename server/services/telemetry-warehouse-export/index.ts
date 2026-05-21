@@ -77,7 +77,7 @@ export async function runTelemetryWarehouseExport(
       durationMs: Date.now() - start,
       perOrg: [],
     };
-    recordRun(summary);
+    await recordRun(summary);
     return summary;
   }
 
@@ -173,7 +173,7 @@ export async function runTelemetryWarehouseExport(
     });
   }
 
-  recordRun(summary);
+  await recordRun(summary);
   return summary;
 }
 

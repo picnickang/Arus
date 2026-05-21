@@ -113,6 +113,52 @@ Properties:
 - `parquetKey` is relative to the storage bucket, including the
   `PRIVATE_OBJECT_DIR` prefix.
 
+## Recent-runs log (admin status)
+
+Alongside the per-org manifests, the export writes a single global
+operator-glance log at:
+
+```
+<bucketName>/<privatePrefix>/telemetry-warehouse/_recent-runs.json
+```
+
+Shape:
+
+```json
+{
+  "updatedAt": "2026-05-20T03:15:42.000Z",
+  "runs": [
+    {
+      "date": "2026-05-19",
+      "orgsTotal": 3,
+      "orgsExported": 3,
+      "orgsSkipped": 0,
+      "orgsFailed": 0,
+      "rowsExported": 54231,
+      "bytesExported": 1572864,
+      "retentionDeleted": 0,
+      "durationMs": 18342,
+      "perOrg": [ /* WarehouseExportRunSummary[] */ ]
+    }
+  ]
+}
+```
+
+Properties:
+- Capped at the last 14 run summaries (overwritten in place after every
+  run, including the no-op summary written when org enumeration fails).
+- Powers the "Recent runs" table on `/admin/telemetry-warehouse` and
+  survives process restarts so admins can still investigate yesterday's
+  run after a deploy. The per-org `_manifest.json` files remain the
+  authoritative durable record of which Parquet partitions exist; this
+  file is purely an admin run log.
+- Backfill on rollout: there is no automatic backfill of historical
+  runs into this file. The first run after the feature deploys creates
+  it; the "Recent runs" table will populate one row per subsequent run
+  (nightly cron or admin re-runs from the same page) until it reaches
+  the 14-row cap. Historical day coverage is still observable through
+  each org's manifest.
+
 ## Retention
 
 Controlled by the `TELEMETRY_WAREHOUSE_RETENTION_DAYS` env var:
