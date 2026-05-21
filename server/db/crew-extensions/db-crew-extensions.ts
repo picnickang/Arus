@@ -301,7 +301,7 @@ export class DbCrewExtensionsStorage {
     const q: any = vesselId
       ? db.select().from(portCall).where(eq(portCall.vesselId, vesselId))
       : db.select().from(portCall);
-    return q.orderBy((portCall as any).start);
+    return q.orderBy(portCall.start);
   }
   async createPortCall(portCallData: InsertPortCall): Promise<SelectPortCall> {
     const [n] = await db.insert(portCall).values(portCallData).returning();
@@ -325,7 +325,7 @@ export class DbCrewExtensionsStorage {
     const q: any = vesselId
       ? db.select().from(drydockWindow).where(eq(drydockWindow.vesselId, vesselId))
       : db.select().from(drydockWindow);
-    return q.orderBy((drydockWindow as any).start);
+    return q.orderBy(drydockWindow.start);
   }
   async createDrydockWindow(drydockData: InsertDrydockWindow): Promise<SelectDrydockWindow> {
     const [n] = await db.insert(drydockWindow).values(drydockData).returning();

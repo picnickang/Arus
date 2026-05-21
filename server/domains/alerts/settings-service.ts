@@ -149,14 +149,14 @@ export class AlertSettingsService {
     }
   ): Promise<AlertSettingsPublic> {
     const { apiKey, smtpPassword, ...rest } = data;
-    const updateData: Partial<InsertAlertSettings> & Record<string, unknown> = { ...rest };
+    const updateData: Partial<InsertAlertSettings> = { ...rest };
 
     if (apiKey) {
-      (updateData as any).apiKeyEncrypted = encryptSecret(apiKey);
+      updateData.apiKeyEncrypted = encryptSecret(apiKey);
     }
 
     if (smtpPassword) {
-      (updateData as any).smtpEncryptedPassword = encryptSecret(smtpPassword);
+      updateData.smtpEncryptedPassword = encryptSecret(smtpPassword);
     }
 
     const settings = await alertSettingsRepository.upsertOrgSettings(orgId, updateData);
@@ -179,7 +179,7 @@ export class AlertSettingsService {
       lastTestStatus: result.success ? "success" : "failed",
       lastTestAt: new Date(),
       lastTestError: result.error || null,
-    } as any);
+    });
 
     log(result.success ? "info" : "warn", "Email connection test", {
       orgId,
@@ -237,7 +237,7 @@ export class AlertSettingsService {
       lastTestStatus: result.success ? "success" : "failed",
       lastTestAt: new Date(),
       lastTestError: result.error || null,
-    } as any);
+    });
 
     log(result.success ? "info" : "warn", "Test email sent", {
       orgId,
@@ -349,12 +349,16 @@ export class AlertSettingsService {
     const settings = await alertSettingsRepository.getOrgSettings(orgId);
     const cooldownMinutes = settings?.alertCooldownMinutes ?? 30;
 
-    const existing: any = await (alertSettingsRepository as any).checkCooldown(
+    // NOTE: this method is currently unwired (no callers as of this commit).
+    // The previous implementation called a non-existent `checkCooldown`
+    // through an `as any` cast, which silently returned undefined and made
+    // this always report shouldSend=true. Now wired to the real getCooldown
+    // so it behaves correctly whenever an alert pipeline starts calling it.
+    const existing = await alertSettingsRepository.getCooldown(
       orgId,
       alertType,
       alertKey,
-      vesselId,
-      entityId
+      vesselId
     );
 
     if (!existing) {
@@ -384,12 +388,11 @@ export class AlertSettingsService {
     entityId?: string,
     emailSent: boolean = false
   ): Promise<void> {
-    const cooldown: any = await (alertSettingsRepository as any).getCooldown(
+    const cooldown = await alertSettingsRepository.getCooldown(
       orgId,
       alertType,
       alertKey,
-      vesselId,
-      entityId
+      vesselId
     );
 
     if (emailSent && cooldown) {

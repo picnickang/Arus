@@ -233,17 +233,25 @@ export class DatabaseEquipmentStorage {
       await tx.delete(sensorConfigurations).where(eq(sensorConfigurations.equipmentId, id));
       await tx.delete(sensorStates).where(eq(sensorStates.equipmentId, id));
       await tx.delete(equipmentTelemetryTable).where(eq(equipmentTelemetryTable.equipmentId, id));
+      // SCHEMA GAP: rawTelemetry has no equipmentId column (only vessel/src/sig).
+      // Cast retained to preserve previous behavior; cascade-delete path needs a
+      // real fix — track separately rather than silently breaking the type system.
       await tx.delete(rawTelemetry).where(eq((rawTelemetry as any).equipmentId, id));
       await tx.delete(pdmScoreLogsTable).where(eq(pdmScoreLogsTable.equipmentId, id));
       await tx.delete(anomalyDetections).where(eq(anomalyDetections.equipmentId, id));
       await tx.delete(failurePredictions).where(eq(failurePredictions.equipmentId, id));
       await tx.delete(vibrationFeatures).where(eq(vibrationFeatures.equipmentId, id));
       await tx.delete(vibrationAnalysis).where(eq(vibrationAnalysis.equipmentId, id));
+      // SCHEMA GAP: twinSimulations has no equipmentId column (only digitalTwinId).
+      // Cast retained; cascade-delete path needs a real fix.
       await tx.delete(twinSimulations).where(eq((twinSimulations as any).equipmentId, id));
       await tx.delete(conditionMonitoring).where(eq(conditionMonitoring.equipmentId, id));
       await tx.delete(oilAnalysis).where(eq(oilAnalysis.equipmentId, id));
       await tx.delete(wearParticleAnalysis).where(eq(wearParticleAnalysis.equipmentId, id));
       await tx.delete(dtcFaults).where(eq(dtcFaults.equipmentId, id));
+      // SCHEMA GAP: insightReports/insightSnapshots have no equipmentId column
+      // (org-scoped, not equipment-scoped). Cast retained; cascade behavior
+      // needs a real fix — probably this delete shouldn't exist at all.
       await tx.delete(insightReports).where(eq((insightReports as any).equipmentId, id));
       await tx.delete(insightSnapshots).where(eq((insightSnapshots as any).equipmentId, id));
       const [deleted] = await tx

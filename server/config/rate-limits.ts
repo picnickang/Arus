@@ -11,15 +11,32 @@ import rateLimit from "express-rate-limit";
 // RATE LIMIT CONFIGURATIONS
 // ============================================================================
 
+/**
+ * Resolve a rate-limit ceiling from an optional environment override,
+ * falling back to the production default.
+ *
+ * This exists so load/accuracy testing can raise a specific ceiling via
+ * env (e.g. `RATE_LIMIT_TELEMETRY_MAX=10000`) WITHOUT editing committed
+ * code — which previously led to testing values shipping to production.
+ * The default is always the safe production value.
+ */
+function maxFromEnv(envVar: string, productionDefault: number): number {
+  const raw = process.env[envVar];
+  if (!raw) return productionDefault;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return productionDefault;
+  return parsed;
+}
+
 export const RateLimitConfig = {
   /**
-   * Telemetry ingestion - 10000 requests/min (TESTING MODE)
-   * For edge devices sending sensor data
-   * NOTE: Temporarily increased for ML accuracy testing
+   * Telemetry ingestion - 120 requests/min (2 readings/second per client).
+   * For edge devices sending sensor data.
+   * Override for load testing via RATE_LIMIT_TELEMETRY_MAX.
    */
   TELEMETRY: {
     windowMs: 1 * 60 * 1000, // 1 minute
-    max: 10000, // Increased from 120 for testing
+    max: maxFromEnv("RATE_LIMIT_TELEMETRY_MAX", 120),
     message: {
       error:
         "Too many telemetry requests. Marine equipment should limit data transmission to 2 readings/second maximum.",
@@ -55,13 +72,13 @@ export const RateLimitConfig = {
   },
 
   /**
-   * Write operations - 5000 requests/min (TESTING MODE)
-   * For POST/PUT/PATCH/DELETE operations
-   * NOTE: Temporarily increased for ML accuracy testing
+   * Write operations - 60 requests/min.
+   * For POST/PUT/PATCH/DELETE operations.
+   * Override for load testing via RATE_LIMIT_WRITE_MAX.
    */
   WRITE_OPERATIONS: {
     windowMs: 1 * 60 * 1000,
-    max: 5000, // Increased from 60 for testing
+    max: maxFromEnv("RATE_LIMIT_WRITE_MAX", 60),
     message: {
       error: "Too many write operations. Please slow down data modifications.",
       code: "RATE_LIMIT_WRITE_OPERATIONS",
@@ -83,13 +100,13 @@ export const RateLimitConfig = {
   },
 
   /**
-   * ML Training - 100 requests/hour (TESTING MODE)
-   * For expensive ML model training operations
-   * NOTE: Temporarily increased for ML accuracy testing
+   * ML Training - 5 requests/hour.
+   * For expensive ML model training operations.
+   * Override for accuracy testing via RATE_LIMIT_ML_TRAINING_MAX.
    */
   ML_TRAINING: {
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 100, // Increased from 5 for testing
+    max: maxFromEnv("RATE_LIMIT_ML_TRAINING_MAX", 5),
     message: {
       error: "Too many ML training requests. Model training is computationally expensive.",
       code: "RATE_LIMIT_ML_TRAINING",

@@ -337,12 +337,17 @@ export class DatabaseHubSyncStorage {
       c.push(eq(devices.orgId, orgId));
     }
     if (vesselId) {
-      c.push(eq((devices as any).vesselId, vesselId));
+      // The devices table stores its vessel association in the `vessel`
+      // column (text). The previous `(devices as any).vesselId` referenced
+      // a non-existent column, so this filter silently produced an invalid
+      // query whenever a vesselId was supplied.
+      c.push(eq(devices.vessel, vesselId));
     }
     const q = c.length > 0
       ? db.select().from(devices).where(and(...c))
       : db.select().from(devices);
-    return q.orderBy((devices as any).name);
+    // Order by `label` — the human-readable device name column.
+    return q.orderBy(devices.label);
   }
 
   async getDevice(id: string): Promise<Device | undefined> {
@@ -351,8 +356,16 @@ export class DatabaseHubSyncStorage {
   }
 
   async getDeviceByDeviceId(deviceId: string): Promise<Device | undefined> {
-    const [r] = await db.select().from(devices).where(eq((devices as any).deviceId, deviceId));
-    return r;
+    // SCHEMA GAP: the `devices` table has no `deviceId` column (its primary
+    // key is `id`). The previous implementation cast to `any` and queried a
+    // non-existent column, which silently returned undefined. This method is
+    // currently uncalled. Before wiring it, decide whether:
+    //   (a) callers should use getDevice(id) instead, or
+    //   (b) a distinct external `device_id` column needs adding via migration.
+    // Until then, fail loud rather than silently return undefined.
+    throw new Error(
+      "getDeviceByDeviceId is not implemented: the devices table has no deviceId column. Use getDevice(id) or add a device_id column."
+    );
   }
 
   async createDevice(device: InsertDevice): Promise<Device> {
@@ -377,9 +390,13 @@ export class DatabaseHubSyncStorage {
   }
 
   async updateDeviceLastSeen(deviceId: string): Promise<void> {
-    await db
-      .update(devices)
-      .set({ lastSeenAt: new Date(), updatedAt: new Date() } as any)
-      .where(eq((devices as any).deviceId, deviceId));
+    // SCHEMA GAP: the `devices` table has neither a `deviceId` column nor a
+    // `lastSeenAt` column. The previous implementation cast both to `any`,
+    // so this method silently no-op'd / mis-queried. It is currently
+    // uncalled. To implement, add a `last_seen_at` column (and decide the
+    // device lookup key) via migration, then replace this body.
+    throw new Error(
+      "updateDeviceLastSeen is not implemented: the devices table has no lastSeenAt/deviceId columns. Add them via migration before wiring."
+    );
   }
 }
