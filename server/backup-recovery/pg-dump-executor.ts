@@ -20,7 +20,13 @@ export async function executePgDump(
     const pgDumpPath = resolveExecutable("pg_dump");
 
     const pgDump = spawn(pgDumpPath, args, { env, shell: false });
-    let outputStream = pgDump.stdout;
+    const pgDumpStdout = pgDump.stdout;
+    const pgDumpStderr = pgDump.stderr;
+    if (!pgDumpStdout || !pgDumpStderr) {
+      reject(new Error("pg_dump did not provide stdout/stderr streams"));
+      return;
+    }
+    let outputStream: NodeJS.ReadableStream = pgDumpStdout;
     let gzipProcess: ReturnType<typeof spawn> | null = null;
 
     if (BACKUP_CONFIG.compression.enabled) {
@@ -32,8 +38,14 @@ export async function executePgDump(
         reject(new Error(`gzip compression failed: ${error.message}`));
       });
 
-      pgDump.stdout!.pipe(gzipProcess.stdin!);
-      outputStream = gzipProcess.stdout!;
+      const gzipStdin = gzipProcess.stdin;
+      const gzipStdout = gzipProcess.stdout;
+      if (!gzipStdin || !gzipStdout) {
+        reject(new Error("gzip did not provide stdin/stdout streams"));
+        return;
+      }
+      pgDumpStdout.pipe(gzipStdin);
+      outputStream = gzipStdout;
     }
 
     const writeStream = require("node:fs").createWriteStream(outputPath);
@@ -47,7 +59,7 @@ export async function executePgDump(
       totalBytes += chunk.length;
     });
 
-    pgDump.stderr!.on("data", (data: Buffer) => {
+    pgDumpStderr.on("data", (data: Buffer) => {
       stderr += data.toString();
     });
 
@@ -56,9 +68,12 @@ export async function executePgDump(
     });
 
     if (gzipProcess) {
-      gzipProcess.stderr!.on("data", (data: Buffer) => {
-        stderr += `[gzip] ${data.toString()}`;
-      });
+      const gzipStderr = gzipProcess.stderr;
+      if (gzipStderr) {
+        gzipStderr.on("data", (data: Buffer) => {
+          stderr += `[gzip] ${data.toString()}`;
+        });
+      }
     }
 
     writeStream.on("error", (error: Error) => {

@@ -148,10 +148,9 @@ export class ScheduleSimulationService {
 
     let assignmentsToCommit = preview.proposedAssignments.filter((a) => a.changeType === "add");
 
-    if (command.selectedAssignmentIds && command.selectedAssignmentIds.length > 0) {
-      assignmentsToCommit = assignmentsToCommit.filter((a) =>
-        command.selectedAssignmentIds!.includes(a.tempId)
-      );
+    const selectedIds = command.selectedAssignmentIds;
+    if (selectedIds && selectedIds.length > 0) {
+      assignmentsToCommit = assignmentsToCommit.filter((a) => selectedIds.includes(a.tempId));
     }
 
     const run = await this.deps.runRepository.create({

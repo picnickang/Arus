@@ -9,7 +9,8 @@ type SqlResultLike<T> = T[] | { rows: T[] };
 function rowsOf<T>(result: unknown): T[] {
   if (Array.isArray(result)) return result as T[];
   const maybe = result as { rows?: T[] } | null | undefined;
-  return Array.isArray(maybe?.rows) ? (maybe!.rows as T[]) : [];
+  const rows = maybe?.rows;
+  return Array.isArray(rows) ? (rows as T[]) : [];
 }
 
 interface CalibrationSummaryRow {

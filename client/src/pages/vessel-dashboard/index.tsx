@@ -102,10 +102,11 @@ export default function VesselDashboard() {
 
   const selectedEquipment = selectedAssignment?.equipment || null;
 
+  const selectedEquipmentId = selectedEquipment?.id;
   const { data: compatibleParts = [] } = useQuery<Part[]>({
-    queryKey: ["/api/equipment", selectedEquipment?.id, "compatible-parts"],
-    queryFn: () => apiRequest<Part[]>("GET", `/api/equipment/${selectedEquipment!.id}/compatible-parts`),
-    enabled: !!selectedEquipment?.id,
+    queryKey: ["/api/equipment", selectedEquipmentId, "compatible-parts"],
+    queryFn: () => apiRequest<Part[]>("GET", `/api/equipment/${selectedEquipmentId}/compatible-parts`),
+    enabled: !!selectedEquipmentId,
   });
 
   const { data: allParts = [] } = useQuery<Part[]>({

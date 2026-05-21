@@ -279,7 +279,9 @@ describe("Data Integrity Through Pipeline", () => {
         expect(checksums.has(frame.id)).toBe(true);
         const checksum = checksums.get(frame.id);
         expect(typeof checksum).toBe("string");
-        expect(checksum!.length).toBeGreaterThan(0);
+        if (typeof checksum === "string") {
+          expect(checksum.length).toBeGreaterThan(0);
+        }
       }
     });
   });

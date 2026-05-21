@@ -125,8 +125,9 @@ export default function Vessel3DTwin({
 
   // Boot scene exactly once per modelUrl change.
   useEffect(() => {
-    const mount = mountRef.current;
+    const mount: HTMLDivElement | null = mountRef.current;
     if (!mount) return;
+    const mountEl: HTMLDivElement = mount;
     // Reset to loading so a stale "ready" from the previous model is not
     // shown while the new GLTF is fetched.
     setStatus("loading");
@@ -231,8 +232,8 @@ export default function Vessel3DTwin({
     tick();
 
     function handleResize() {
-      const w = mount!.clientWidth || 800;
-      const h = mount!.clientHeight || 500;
+      const w = mountEl.clientWidth || 800;
+      const h = mountEl.clientHeight || 500;
       renderer.setSize(w, h);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();

@@ -227,61 +227,66 @@ export default function StorageSettings() {
             <p className="text-sm text-destructive" data-testid="text-ml-storage-error">
               Unable to load ML artifact storage configuration.
             </p>
-          ) : (
-            <>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Active backend</span>
-                <Badge variant="outline" data-testid="badge-ml-backend-active">
-                  {BACKEND_LABELS[mlStorageQuery.data!.backend]}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Source</span>
-                <span className="text-sm" data-testid="text-ml-backend-source">
-                  {mlStorageQuery.data!.source === "admin-setting"
-                    ? "Saved admin setting"
-                    : "Auto-detected default"}
-                </span>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="ml-backend-select">Backend</Label>
-                <Select
-                  value={pendingBackend || mlStorageQuery.data!.backend}
-                  onValueChange={(v) => setPendingBackend(v as ArtifactBackend)}
-                >
-                  <SelectTrigger id="ml-backend-select" data-testid="select-ml-backend">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mlStorageQuery.data!.available.map((b) => (
-                      <SelectItem
-                        key={b}
-                        value={b}
-                        data-testid={`option-ml-backend-${b}`}
-                      >
-                        {BACKEND_LABELS[b]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex justify-end">
-                <Button
-                  data-testid="button-save-ml-backend"
-                  disabled={
-                    !pendingBackend ||
-                    pendingBackend === mlStorageQuery.data!.backend ||
-                    updateMlBackend.isPending
-                  }
-                  onClick={() =>
-                    pendingBackend && updateMlBackend.mutate(pendingBackend as ArtifactBackend)
-                  }
-                >
-                  {updateMlBackend.isPending ? "Saving…" : "Save backend"}
-                </Button>
-              </div>
-            </>
-          )}
+          ) : mlStorageQuery.data ? (
+            (() => {
+              const mlData = mlStorageQuery.data;
+              return (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Active backend</span>
+                    <Badge variant="outline" data-testid="badge-ml-backend-active">
+                      {BACKEND_LABELS[mlData.backend]}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Source</span>
+                    <span className="text-sm" data-testid="text-ml-backend-source">
+                      {mlData.source === "admin-setting"
+                        ? "Saved admin setting"
+                        : "Auto-detected default"}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="ml-backend-select">Backend</Label>
+                    <Select
+                      value={pendingBackend || mlData.backend}
+                      onValueChange={(v) => setPendingBackend(v as ArtifactBackend)}
+                    >
+                      <SelectTrigger id="ml-backend-select" data-testid="select-ml-backend">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mlData.available.map((b) => (
+                          <SelectItem
+                            key={b}
+                            value={b}
+                            data-testid={`option-ml-backend-${b}`}
+                          >
+                            {BACKEND_LABELS[b]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button
+                      data-testid="button-save-ml-backend"
+                      disabled={
+                        !pendingBackend ||
+                        pendingBackend === mlData.backend ||
+                        updateMlBackend.isPending
+                      }
+                      onClick={() =>
+                        pendingBackend && updateMlBackend.mutate(pendingBackend as ArtifactBackend)
+                      }
+                    >
+                      {updateMlBackend.isPending ? "Saving…" : "Save backend"}
+                    </Button>
+                  </div>
+                </>
+              );
+            })()
+          ) : null}
         </CardContent>
       </Card>
     </div>

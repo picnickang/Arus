@@ -135,8 +135,9 @@ function OpenAIKeyCard() {
     },
   });
 
-  const hasKey = !!settingsQuery.data?.openaiApiKey;
-  const maskedKey = hasKey ? `sk-...${settingsQuery.data!.openaiApiKey!.slice(-4)}` : null;
+  const openaiApiKey = settingsQuery.data?.openaiApiKey;
+  const hasKey = !!openaiApiKey;
+  const maskedKey = openaiApiKey ? `sk-...${openaiApiKey.slice(-4)}` : null;
 
   const statusBadge = () => {
     if (saveMutation.isPending || removeMutation.isPending) {
@@ -201,7 +202,7 @@ function OpenAIKeyCard() {
         {hasKey && (
           <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
             <span className="text-sm font-mono flex-1" data-testid="text-current-key">
-              {showKey ? settingsQuery.data!.openaiApiKey : maskedKey}
+              {showKey ? openaiApiKey : maskedKey}
             </span>
             <Button
               variant="ghost"

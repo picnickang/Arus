@@ -77,12 +77,13 @@ export function useReportsData() {
     yPosition += 10;
     pdf.text(`Critical Equipment: ${summary.criticalEquipment}`, 20, yPosition);
     yPosition += 20;
-    if ((reportData.sections.equipmentHealth?.length ?? 0) > 0) {
+    const equipmentHealth = reportData.sections.equipmentHealth;
+    if (equipmentHealth && equipmentHealth.length > 0) {
       pdf.setFontSize(16);
       pdf.text("Equipment Health Status", 20, yPosition);
       yPosition += 15;
       pdf.setFontSize(10);
-      reportData.sections.equipmentHealth!.slice(0, 15).forEach((eq) => {
+      equipmentHealth.slice(0, 15).forEach((eq) => {
         if (yPosition > 270) {
           pdf.addPage();
           yPosition = 20;
@@ -126,12 +127,13 @@ export function useReportsData() {
       yPosition += 10;
       pdf.text(`Compliance Rate: ${summary.complianceRate}%`, 20, yPosition);
       yPosition += 20;
-      if ((reportData.maintenanceRecords?.length ?? 0) > 0) {
+      const maintenanceRecords = reportData.maintenanceRecords;
+      if (maintenanceRecords && maintenanceRecords.length > 0) {
         pdf.setFontSize(16);
         pdf.text("Recent Maintenance Records", 20, yPosition);
         yPosition += 15;
         pdf.setFontSize(10);
-        reportData.maintenanceRecords!.slice(0, 10).forEach((record) => {
+        maintenanceRecords.slice(0, 10).forEach((record) => {
           if (yPosition > 270) {
             pdf.addPage();
             yPosition = 20;
@@ -153,12 +155,13 @@ export function useReportsData() {
       yPosition += 10;
       pdf.text(`Response Rate: ${summary.responseRate}%`, 20, yPosition);
       yPosition += 20;
-      if ((reportData.alerts?.length ?? 0) > 0) {
+      const alerts = reportData.alerts;
+      if (alerts && alerts.length > 0) {
         pdf.setFontSize(16);
         pdf.text("Recent Alerts", 20, yPosition);
         yPosition += 15;
         pdf.setFontSize(10);
-        reportData.alerts!.slice(0, 10).forEach((alert) => {
+        alerts.slice(0, 10).forEach((alert) => {
           if (yPosition > 270) {
             pdf.addPage();
             yPosition = 20;

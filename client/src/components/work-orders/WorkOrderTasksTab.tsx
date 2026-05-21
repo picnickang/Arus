@@ -71,23 +71,23 @@ export function WorkOrderTasksTab({ workOrderId, isReadOnly = false }: WorkOrder
           </div>
           <Progress value={overallProgress} className="h-2" data-testid="tasks-progress-bar" />
           <div className="flex gap-2 mt-2">
-            {(progress?.pendingItems ?? 0) > 0 && (
+            {progress && progress.pendingItems > 0 && (
               <Badge variant="secondary" className="text-xs" data-testid="badge-pending-items">
-                {progress!.pendingItems} pending
+                {progress.pendingItems} pending
               </Badge>
             )}
-            {(progress?.failedItems ?? 0) > 0 && (
+            {progress && progress.failedItems > 0 && (
               <Badge variant="destructive" className="text-xs" data-testid="badge-failed-items">
-                {progress!.failedItems} failed
+                {progress.failedItems} failed
               </Badge>
             )}
-            {(progress?.completedItems ?? 0) > 0 && (
+            {progress && progress.completedItems > 0 && (
               <Badge
                 variant="default"
                 className="text-xs bg-green-600"
                 data-testid="badge-passed-items"
               >
-                {progress!.completedItems} passed
+                {progress.completedItems} passed
               </Badge>
             )}
           </div>

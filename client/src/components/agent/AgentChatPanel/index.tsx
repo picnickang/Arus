@@ -169,8 +169,9 @@ export function AgentChatPanel({
       const key = `${file.name}-${file.size}`;
       const reader = new FileReader();
       reader.onload = (e) => {
-        if (e.target?.result) {
-          setFilePreviews((prev) => new Map(prev).set(key, e.target!.result as string));
+        const result = e.target?.result;
+        if (typeof result === "string") {
+          setFilePreviews((prev) => new Map(prev).set(key, result));
         }
       };
       reader.readAsDataURL(file);

@@ -70,21 +70,28 @@ export class IngestTelemetryBatch {
       }
     }
 
+    const batchAck = this.config.batchAck;
+    const orgId = this.config.orgId;
     const shouldTrackBatch =
-      this.config.batchAck && this.config.orgId && batchId && batchId.length > 0;
-    if (shouldTrackBatch) {
+      batchAck !== undefined && orgId !== undefined && batchId !== undefined && batchId.length > 0;
+    if (shouldTrackBatch && batchAck && orgId) {
       try {
         const timestamps = frames
           .map((f) => new Date(f.ts))
           .sort((a, b) => a.getTime() - b.getTime());
-        await this.config.batchAck!.receiveBatch({
-          batchId,
-          orgId: this.config.orgId!,
-          source: frames[0]!.source ?? "unknown",
-          frameCount: frames.length,
-          firstFrameTs: timestamps[0]!,
-          lastFrameTs: timestamps[timestamps.length - 1]!,
-        });
+        const firstFrame = frames[0];
+        const firstTs = timestamps[0];
+        const lastTs = timestamps[timestamps.length - 1];
+        if (firstFrame && firstTs && lastTs) {
+          await batchAck.receiveBatch({
+            batchId,
+            orgId,
+            source: firstFrame.source ?? "unknown",
+            frameCount: frames.length,
+            firstFrameTs: firstTs,
+            lastFrameTs: lastTs,
+          });
+        }
       } catch (err) {
         logger.error("IngestTelemetryBatch", "Failed to register batch", { error: err });
       }
@@ -186,10 +193,10 @@ export class IngestTelemetryBatch {
         }
       }
 
-      if (shouldTrackBatch && batchId) {
+      if (shouldTrackBatch && batchAck && batchId) {
         try {
           const processingTimeMs = Date.now() - startTime;
-          await this.config.batchAck!.acknowledgeBatch({
+          await batchAck.acknowledgeBatch({
             batchId,
             readingsDecoded: result.readingsDecoded,
             readingsPersisted: result.readingsPersisted,
@@ -219,9 +226,9 @@ export class IngestTelemetryBatch {
       this.config.metrics.incDLQAdded("persist-error");
       result.failedToDeadLetter = uniqueReadings.length;
 
-      if (shouldTrackBatch && batchId) {
-        await this.config
-          .batchAck!.markFailed(batchId, err instanceof Error ? err.message : String(err))
+      if (shouldTrackBatch && batchAck && batchId) {
+        await batchAck
+          .markFailed(batchId, err instanceof Error ? err.message : String(err))
           .catch(() => {});
       }
 

@@ -37,6 +37,8 @@ export function normalizeFeatures(
     std = std.map((s) => (s === 0 ? 1 : s));
   }
 
-  const normalized = data.map((row) => row.map((val, i) => (val - mean![i]) / std![i]));
-  return { normalized, mean, std };
+  const finalMean = mean;
+  const finalStd = std;
+  const normalized = data.map((row) => row.map((val, i) => (val - finalMean[i]) / finalStd[i]));
+  return { normalized, mean: finalMean, std: finalStd };
 }

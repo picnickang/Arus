@@ -92,11 +92,12 @@ export function startSpan(
 } {
   const requestId = getCorrelationId();
 
-  let context = requestSpans.get(requestId);
-  if (!context) {
-    context = { requestId, spans: [] };
-    requestSpans.set(requestId, context);
+  let existing = requestSpans.get(requestId);
+  if (!existing) {
+    existing = { requestId, spans: [] };
+    requestSpans.set(requestId, existing);
   }
+  const context = existing;
 
   const span: Span = {
     id: generateSpanId(),
@@ -129,7 +130,7 @@ export function startSpan(
       if (result?.metadata) {
         span.metadata = { ...span.metadata, ...result.metadata };
       }
-      context!.currentSpanId = previousSpanId;
+      context.currentSpanId = previousSpanId;
 
       const status = span.error ? "error" : "success";
       spanDurationHistogram.observe({ category, operation: name, status }, span.durationMs / 1000);

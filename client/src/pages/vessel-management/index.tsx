@@ -492,8 +492,8 @@ export default function VesselManagement() {
                   )}
                 />
               </div>
-              {v.selectedVessel && (
-                <div className="pt-4 border-t">
+              {v.selectedVessel && ((selectedVesselId: string) => (
+                <div className="pt-4 border-t" data-vessel-id={selectedVesselId}>
                   <h3 className="text-lg font-medium mb-3 text-destructive">Danger Zone</h3>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-3 rounded-lg border border-destructive/50">
@@ -507,7 +507,7 @@ export default function VesselManagement() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => v.resetDowntimeMutation.mutate(v.selectedVessel!.id)}
+                        onClick={() => v.resetDowntimeMutation.mutate(selectedVesselId)}
                         disabled={v.resetDowntimeMutation.isPending}
                         data-testid="button-reset-downtime"
                       >
@@ -525,7 +525,7 @@ export default function VesselManagement() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => v.resetOperationMutation.mutate(v.selectedVessel!.id)}
+                        onClick={() => v.resetOperationMutation.mutate(selectedVesselId)}
                         disabled={v.resetOperationMutation.isPending}
                         data-testid="button-reset-operation"
                       >
@@ -552,7 +552,7 @@ export default function VesselManagement() {
                     </div>
                   </div>
                 </div>
-              )}
+              ))(v.selectedVessel.id)}
               <div className="flex justify-end gap-2">
                 <Button
                   type="button"
