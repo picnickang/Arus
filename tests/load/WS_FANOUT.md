@@ -96,6 +96,31 @@ WS_URL_1=ws://localhost:5001/ws WS_URL_2=ws://localhost:5002/ws \
 The k6 `thresholds` block fails the run if any of these breach
 `count==0`.
 
+## Scheduled CI run (Task 133)
+
+`.github/workflows/ws-fanout-nightly.yml` runs this same harness at
+04:00 UTC every night (and on `workflow_dispatch`) against an ephemeral
+Redis 7 + Postgres 16 service pair. The job:
+
+1. Installs `k6` from the official APT repo.
+2. Boots Postgres + Redis as GitHub Actions services and applies
+   migrations.
+3. Invokes `node tests/load/ws-fanout/run-multi-server.mjs`, capturing
+   combined harness + emitter + k6 output into
+   `artifacts/ws-fanout/run.log` via `tee` under `set -o pipefail`.
+4. Uploads `artifacts/ws-fanout/` as a workflow artifact
+   (`ws-fanout-nightly-<run_id>`, 14-day retention) on every run —
+   pass or fail — for triage.
+
+The k6 `thresholds` block already fails the run on any
+`ws_events_missed`, `ws_gaps_detected`, or `ws_handshake_failures`, and
+the harness propagates k6's exit code, so any dropped event fails the
+scheduled job.
+
+`workflow_dispatch` exposes `ws_vus` and `ws_reconnects` inputs so
+operators can rerun the proof with a bigger load on demand without
+editing the workflow file.
+
 ## Out of scope
 
 - Production deployment of the two-server config.

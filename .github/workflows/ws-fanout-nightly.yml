@@ -1,0 +1,112 @@
+name: WS Fan-out Nightly Proof
+
+# Task 133 — scheduled execution of the Task 92 multi-server WebSocket
+# fan-out proof. Boots an ephemeral Redis + two app servers + the
+# emitter + the k6 scenario via tests/load/ws-fanout/run-multi-server.mjs
+# and fails the run on any dropped event, gap, or handshake failure
+# (the k6 thresholds in tests/load/ws_fanout.js enforce count==0 on
+# ws_events_missed / ws_gaps_detected / ws_handshake_failures, and the
+# harness propagates k6's exit code).
+
+on:
+  schedule:
+    # 04:00 UTC nightly — outside business hours for both EU and Americas.
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+    inputs:
+      ws_vus:
+        description: "k6 virtual users (split across the two servers)"
+        required: false
+        default: "20"
+      ws_reconnects:
+        description: "Reconnect cycles per VU iteration"
+        required: false
+        default: "3"
+
+jobs:
+  ws-fanout:
+    name: Multi-server WS Fan-out Proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    env:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
+      SESSION_SECRET: ci-test-session-secret-not-for-production
+      ARUS_DEPLOYMENT_MODE: CLOUD
+      REDIS_URL: redis://localhost:6379
+      EMIT_DURATION_MS: "120000"
+      EMIT_RATE_HZ: "10"
+      WS_VUS: ${{ github.event.inputs.ws_vus || '20' }}
+      WS_RECONNECTS: ${{ github.event.inputs.ws_reconnects || '3' }}
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: arus_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring \
+            --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+          k6 version
+
+      - name: Apply migrations
+        run: npm run db:push
+
+      - name: Prepare artifacts directory
+        run: mkdir -p artifacts/ws-fanout
+
+      - name: Run multi-server fan-out proof
+        # `set -o pipefail` ensures the harness's exit code (which is k6's
+        # exit code — 99 on threshold breach, non-zero on any failure)
+        # propagates through `tee` so the job fails on dropped events.
+        run: |
+          set -o pipefail
+          node tests/load/ws-fanout/run-multi-server.mjs 2>&1 \
+            | tee artifacts/ws-fanout/run.log
+
+      - name: Upload run artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ws-fanout-nightly-${{ github.run_id }}
+          path: artifacts/ws-fanout/
+          retention-days: 14
