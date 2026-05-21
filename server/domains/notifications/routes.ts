@@ -99,16 +99,9 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
     "/api/notifications/queue",
     withErrorHandling("get notification queue", async (req, res) => {
       const orgId = req.orgId;
-      const filters = {
-        status: req.query.status as string | undefined,
-        notificationType: req.query.notificationType as string | undefined,
-        scheduledBefore: req.query.scheduledBefore
-          ? new Date(req.query.scheduledBefore as string)
-          : undefined,
-      };
-
+      const status = req.query.status as string | undefined;
       const queue = await dbNotificationsStorage.getNotificationQueue(
-        filters?.status as string | undefined,
+        status,
         undefined,
         orgId
       );
@@ -186,7 +179,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       }
 
       const orgId = req.orgId;
-      const item = await dbNotificationsStorage.createNotificationQueueItem({
+      await dbNotificationsStorage.createNotificationQueueItem({
         orgId,
         notificationType: "test",
         subject: subject || "ARUS Marine Test Notification",

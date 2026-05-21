@@ -11,11 +11,6 @@ import {
   mlModelResponseSchema,
   modelPerformanceListResponseSchema,
   modelDriftListResponseSchema,
-  type MlModelListResponse,
-  type MlModelResponse,
-  type ModelPerformanceListResponse,
-  type ModelPerformanceSummaryResponse,
-  type ModelDriftListResponse,
 } from "../../../shared/analytics-types";
 import { db } from "../../db";
 import { mlModels, modelPerformanceValidations } from "../../../shared/schema";

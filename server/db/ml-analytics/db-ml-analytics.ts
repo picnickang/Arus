@@ -428,11 +428,15 @@ export class DatabaseMlAnalyticsStorage {
     const c = [eq(table.orgId, orgId)];
     if (modelId) {
       const col = tCols.modelId ?? tCols.modelType;
-      if (col) c.push(eq(col, modelId));
+      if (col) {
+        c.push(eq(col, modelId));
+      }
     }
     if (equipmentId) {
       const col = tCols.equipmentId ?? tCols.equipmentType;
-      if (col) c.push(eq(col, equipmentId));
+      if (col) {
+        c.push(eq(col, equipmentId));
+      }
     }
     if (status) {
       c.push(eq(table.status, status));
