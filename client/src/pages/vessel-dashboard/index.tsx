@@ -467,7 +467,7 @@ export default function VesselDashboard() {
           <div className="px-3 sm:px-5 py-3 flex justify-between items-center border-b border-slate-700/10 shrink-0">
             <div>
               <h2 className="text-[13px] font-bold text-slate-200 uppercase tracking-wide">
-                VesselEquipment Schematic
+                Equipment Schematic
               </h2>
               <div className="text-[11px] text-slate-500 mt-0.5 hidden sm:block">
                 Select slot → choose part from inventory → install

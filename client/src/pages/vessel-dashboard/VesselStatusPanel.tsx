@@ -156,7 +156,7 @@ export function VesselStatusPanel({
                 className="w-full h-8 text-[11px] border-red-500/20 text-red-400 hover:bg-red-500/10"
                 onClick={() => onUninstall(eq.id, slot?.label || "")}
               >
-                <Trash2 className="h-3 w-3 mr-1.5" /> Uninstall VesselEquipment
+                <Trash2 className="h-3 w-3 mr-1.5" /> Uninstall Equipment
               </Button>
             </>
           ) : (

@@ -104,7 +104,7 @@ export function CreateAlertConfigDialog({ vessels }: { vessels: RmsVessel[] }) {
             />
           </div>
           <div>
-            <Label>RmsVessel</Label>
+            <Label>Vessel</Label>
             <Select value={vesselId} onValueChange={setVesselId}>
               <SelectTrigger data-testid="select-alert-vessel">
                 <SelectValue placeholder="Select vessel" />

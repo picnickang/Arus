@@ -191,7 +191,7 @@ export function SchedulingConfigCard({
         <Tabs defaultValue="shifts" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="shifts">Shift Templates</TabsTrigger>
-            <TabsTrigger value="crew">SchedulerCrew Status</TabsTrigger>
+            <TabsTrigger value="crew">Crew Status</TabsTrigger>
           </TabsList>
           <TabsContent value="shifts" className="space-y-4 mt-4">
             <div className="flex justify-between items-center">

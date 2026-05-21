@@ -100,7 +100,7 @@ export function EnhancedScheduleResultsCard({ p }: { p: ShiftPlanning }) {
                 <thead>
                   <tr className="bg-muted">
                     <th scope="col" className="border border-border px-2 py-1 text-left">
-                      SchedulerCrew
+                      Crew
                     </th>
                     <th scope="col" className="border border-border px-2 py-1 text-center">
                       Status
