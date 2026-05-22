@@ -14,11 +14,21 @@ async function fetchJson(url: string, orgId: string) {
   return res.json();
 }
 
+export interface TwinTemplateSummary {
+  id: string;
+  name: string;
+  equipmentType?: string;
+  description?: string;
+}
+
 export function useTemplates() {
   const { currentOrgId } = useOrganization();
-  return useQuery({
+  return useQuery<TwinTemplateSummary[]>({
     queryKey: ["/api/pdm/twin/def/templates", currentOrgId],
-    queryFn: () => fetchJson("/api/pdm/twin/def/templates", currentOrgId ?? ""),
+    queryFn: () =>
+      fetchJson("/api/pdm/twin/def/templates", currentOrgId ?? "") as Promise<
+        TwinTemplateSummary[]
+      >,
     enabled: !!currentOrgId,
   });
 }
@@ -34,11 +44,19 @@ export function useCreateTemplate() {
   });
 }
 
+export interface TwinSummary {
+  id: string;
+  name: string;
+  equipmentId?: string;
+  status?: string;
+}
+
 export function useTwins() {
   const { currentOrgId } = useOrganization();
-  return useQuery({
+  return useQuery<TwinSummary[]>({
     queryKey: ["/api/pdm/twin/def/twins", currentOrgId],
-    queryFn: () => fetchJson("/api/pdm/twin/def/twins", currentOrgId ?? ""),
+    queryFn: () =>
+      fetchJson("/api/pdm/twin/def/twins", currentOrgId ?? "") as Promise<TwinSummary[]>,
     enabled: !!currentOrgId,
   });
 }

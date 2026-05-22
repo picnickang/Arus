@@ -24,17 +24,17 @@ export async function getCertificationsNearExpiry(
 ) {
   const cutoffDate = addDays(now, maxDays);
   const crew = await dbCrewStorage.getCrew(orgId, vesselId);
-  const crewIds = crew.map((c: any) => c.id);
+  const crewIds = crew.map((c) => c.id);
 
   if (crewIds.length === 0) {
     return [];
   }
 
   const allCerts = await Promise.all(
-    crewIds.map((id: string) => dbCrewStorage.getCrewCertifications(id, orgId))
+    crewIds.map((id) => dbCrewStorage.getCrewCertifications(id, orgId))
   );
   const certs = allCerts.flat();
-  return certs.filter((cert: any) => {
+  return certs.filter((cert) => {
     if (!cert.expiresAt) {
       return false;
     }
@@ -53,12 +53,12 @@ export async function getUnsignedLogbooks(
   const deckLogs = await deckLogStorage.getDeckLogDaily(orgId, { vesselId, status: "draft" });
   const engineLogs = await engineLogStorage.getEngineLogDaily(orgId, { vesselId, status: "draft" });
 
-  const unsignedDeck = deckLogs.filter((log: any) => {
+  const unsignedDeck = deckLogs.filter((log) => {
     const logDate = new Date(log.logDate);
     return logDate < graceDate && !log.signedAt;
   });
 
-  const unsignedEngine = engineLogs.filter((log: any) => {
+  const unsignedEngine = engineLogs.filter((log) => {
     const logDate = new Date(log.logDate);
     return logDate < graceDate && !log.signedAt;
   });

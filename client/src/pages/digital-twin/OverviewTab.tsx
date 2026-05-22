@@ -174,9 +174,9 @@ export function OverviewTab() {
         <div className="flex justify-center py-4">
           <Loader2 className="w-6 h-6 animate-spin" />
         </div>
-      ) : templates?.length > 0 ? (
+      ) : (templates?.length ?? 0) > 0 && templates ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {templates.map((t: any) => (
+          {templates.map((t) => (
             <Card key={t.id} data-testid={`card-template-${t.id}`}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">{t.name}</CardTitle>
@@ -256,7 +256,7 @@ export function OverviewTab() {
                 className="flex h-10 w-48 rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
                 <option value="">Select template...</option>
-                {templates?.map((t: any) => (
+                {templates?.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name}
                   </option>
@@ -279,9 +279,9 @@ export function OverviewTab() {
         <div className="flex justify-center py-4">
           <Loader2 className="w-6 h-6 animate-spin" />
         </div>
-      ) : twins?.length > 0 ? (
+      ) : (twins?.length ?? 0) > 0 && twins ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {twins.map((tw: any) => (
+          {twins.map((tw) => (
             <TwinOverviewCard
               key={tw.id}
               twin={tw}

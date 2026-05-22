@@ -27,7 +27,7 @@ export function DriftMonitoringTab() {
   const versionsList = Array.isArray(versions) ? versions : [];
 
   const driftedCount = Array.isArray(driftMetrics)
-    ? driftMetrics.filter((d: any) => d.driftDetected).length
+    ? driftMetrics.filter((d: { driftDetected?: boolean }) => d.driftDetected).length
     : 0;
   const totalCount = Array.isArray(driftMetrics) ? driftMetrics.length : 0;
 
@@ -46,7 +46,7 @@ export function DriftMonitoringTab() {
               <SelectValue placeholder="Select model" />
             </SelectTrigger>
             <SelectContent>
-              {modelsList.map((m: any) => (
+              {modelsList.map((m) => (
                 <SelectItem key={m.id} value={m.id}>
                   {m.name} ({m.type})
                 </SelectItem>
@@ -61,7 +61,7 @@ export function DriftMonitoringTab() {
                 <SelectValue placeholder="Select version" />
               </SelectTrigger>
               <SelectContent>
-                {versionsList.map((v: any) => (
+                {versionsList.map((v) => (
                   <SelectItem key={v.id} value={v.id}>
                     v{v.version} — {v.status}
                   </SelectItem>

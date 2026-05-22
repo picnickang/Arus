@@ -28,7 +28,7 @@ export function TwinOverviewCard({
   onRefresh,
   isRefreshing,
 }: {
-  twin: any;
+  twin: { id: string; name: string; equipmentId?: string; status?: string };
   freshness?: TwinFreshnessInfo;
   onRefresh: (twinId: string) => void;
   isRefreshing: boolean;

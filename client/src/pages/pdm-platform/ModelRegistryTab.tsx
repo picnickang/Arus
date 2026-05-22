@@ -45,7 +45,7 @@ export function ModelRegistryTab({
           const versionsList = await res.json();
           if (
             Array.isArray(versionsList) &&
-            versionsList.some((v: any) => v.id === highlightedVersionId)
+            versionsList.some((v: { id: string }) => v.id === highlightedVersionId)
           ) {
             setSelectedModelId(m.id);
             return;
@@ -71,7 +71,7 @@ export function ModelRegistryTab({
 
       {Array.isArray(models) && models.length > 0 ? (
         <div className="grid gap-3">
-          {models.map((m: any) => (
+          {models.map((m) => (
             <Card
               key={m.id}
               className={`cursor-pointer transition-colors ${selectedModelId === m.id ? "ring-2 ring-primary" : ""}`}
@@ -112,7 +112,7 @@ export function ModelRegistryTab({
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {versions.map((v: any) => (
+              {versions.map((v) => (
                 <div
                   key={v.id}
                   className={`flex items-center justify-between p-3 rounded-lg border ${highlightedVersionId === v.id ? "ring-2 ring-primary bg-primary/5" : ""}`}

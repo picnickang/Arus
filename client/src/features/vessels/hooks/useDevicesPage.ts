@@ -23,12 +23,12 @@ export function useDevicesPage() {
   const { data: devices, isLoading, error } = useDevices();
 
   const stats = useMemo(() => {
-    const d = devices ?? [];
+    const d = (devices ?? []) as unknown as Array<Device & { status?: string }>;
     return {
       total: d.length,
-      online: d.filter((x: any) => x.status === "Online").length,
-      warning: d.filter((x: any) => x.status === "Warning").length,
-      critical: d.filter((x: any) => x.status === "Critical").length,
+      online: d.filter((x) => x.status === "Online").length,
+      warning: d.filter((x) => x.status === "Warning").length,
+      critical: d.filter((x) => x.status === "Critical").length,
     };
   }, [devices]);
 

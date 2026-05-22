@@ -42,7 +42,10 @@ function buildSystemPrompt(): string {
 /**
  * Build fleet analysis user prompt
  */
-function buildUserPrompt(equipmentDossiers: EquipmentDossier[], telemetrySummary: any): string {
+function buildUserPrompt(
+  equipmentDossiers: EquipmentDossier[],
+  telemetrySummary: TelemetrySummary
+): string {
   return `FLEET ANALYSIS REQUEST:
     
     Equipment: ${equipmentDossiers
@@ -53,7 +56,7 @@ function buildUserPrompt(equipmentDossiers: EquipmentDossier[], telemetrySummary
       )
       .join(", ")}
     
-    Active Issues: ${telemetrySummary.recentIssues.map((i: any) => `${i.equipment}-${i.sensor}:${i.status}`).join(", ")}
+    Active Issues: ${telemetrySummary.recentIssues.map((i) => `${i.equipment}-${i.sensor}:${i.status}`).join(", ")}
     
     Maintenance Context: ${equipmentDossiers
       .slice(0, 3)
@@ -77,22 +80,50 @@ function buildUserPrompt(equipmentDossiers: EquipmentDossier[], telemetrySummary
 /**
  * Build telemetry summary for token efficiency
  */
-function buildTelemetrySummary(telemetryData: EquipmentTelemetry[] | TelemetryTrend[]): any {
+interface TelemetryIssue {
+  equipment: string;
+  sensor: string;
+  status: string;
+  value: string | number;
+}
+
+interface TelemetrySummary {
+  totalReadings: number;
+  equipmentTypes: string[];
+  recentIssues: TelemetryIssue[];
+}
+
+type TelemetryRow = (EquipmentTelemetry | TelemetryTrend) & {
+  status?: string;
+  currentValue?: number;
+  value?: number;
+};
+
+function buildTelemetrySummary(
+  telemetryData: EquipmentTelemetry[] | TelemetryTrend[]
+): TelemetrySummary {
   if (!Array.isArray(telemetryData) || telemetryData.length === 0) {
     return { totalReadings: 0, equipmentTypes: [], recentIssues: [] };
   }
 
+  const rows = telemetryData as TelemetryRow[];
+
   return {
-    totalReadings: telemetryData.length,
-    equipmentTypes: [...new Set(telemetryData.map((t: any) => t.equipmentId))],
-    recentIssues: telemetryData
-      .filter((t: any) => t.status === "critical" || t.status === "warning")
+    totalReadings: rows.length,
+    equipmentTypes: [...new Set(rows.map((t) => t.equipmentId))],
+    recentIssues: rows
+      .filter((t) => t.status === "critical" || t.status === "warning")
       .slice(-5)
-      .map((t: any) => ({
+      .map<TelemetryIssue>((t) => ({
         equipment: t.equipmentId,
         sensor: t.sensorType,
-        status: t.status,
-        value: "currentValue" in t ? t.currentValue : "value" in t ? t.value : "N/A",
+        status: t.status ?? "unknown",
+        value:
+          typeof t.currentValue === "number"
+            ? t.currentValue
+            : typeof t.value === "number"
+              ? t.value
+              : "N/A",
       })),
   };
 }

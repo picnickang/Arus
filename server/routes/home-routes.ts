@@ -52,14 +52,15 @@ export function registerHomeRoutes(
 
       const now = new Date();
       const overdueWorkOrders = Array.isArray(woData)
-        ? woData.filter(
-            (wo: any) => wo.status === "open" && wo.dueDate && new Date(wo.dueDate) < now
+        ? (woData as Array<{ status?: string; dueDate?: string | Date }>).filter(
+            (wo) => wo.status === "open" && !!wo.dueDate && new Date(wo.dueDate) < now,
           ).length
         : 0;
       const unacknowledgedAlerts = Array.isArray(alertData) ? alertData.length : 0;
       const highRiskEquipment = Array.isArray(equipData)
-        ? equipData.filter((eq: any) => eq.riskLevel === "high" || eq.riskLevel === "critical")
-            .length
+        ? (equipData as Array<{ riskLevel?: string }>).filter(
+            (eq) => eq.riskLevel === "high" || eq.riskLevel === "critical",
+          ).length
         : 0;
 
       let newSinceLastVisit = undefined;
@@ -67,19 +68,21 @@ export function registerHomeRoutes(
       if (lastVisitTime && !isNaN(lastVisitTime.getTime())) {
         try {
           const recentAlerts = Array.isArray(alertData)
-            ? alertData.filter((a: any) => a.createdAt && new Date(a.createdAt) > lastVisitTime)
-                .length
+            ? alertData.filter(
+                (a) => a.createdAt && new Date(a.createdAt) > lastVisitTime,
+              ).length
             : 0;
           const recentWOs = Array.isArray(woData)
-            ? woData.filter((wo: any) => wo.createdAt && new Date(wo.createdAt) > lastVisitTime)
-                .length
+            ? woData.filter(
+                (wo) => wo.createdAt && new Date(wo.createdAt) > lastVisitTime,
+              ).length
             : 0;
           const completedWOs = Array.isArray(woData)
-            ? woData.filter(
-                (wo: any) =>
+            ? (woData as Array<{ status?: string; updatedAt?: string | Date }>).filter(
+                (wo) =>
                   wo.status === "completed" &&
-                  wo.updatedAt &&
-                  new Date(wo.updatedAt) > lastVisitTime
+                  !!wo.updatedAt &&
+                  new Date(wo.updatedAt) > lastVisitTime,
               ).length
             : 0;
 

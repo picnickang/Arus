@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-22T04:59:14.349Z",
+  "generatedAt": "2026-05-22T08:46:39.934Z",
   "rule": "@typescript-eslint/no-explicit-any",
-  "total": 919,
-  "totalFiles": 308,
+  "total": 891,
+  "totalFiles": 302,
   "buckets": {
     "external_lib_gaps": {
       "label": "External library typing gaps",
@@ -48,7 +48,7 @@
       "label": "Legacy DTOs (route handlers, request/response shapes)",
       "definition": "`any` on route-handler request bodies/queries, untyped DTO interfaces, and helper signatures that pass request-shaped data around without ever describing it. Most of these survived the wire-parses sweep because they live below the route registration layer.",
       "remediation": "Define the DTO once with Zod, derive the TS type via `z.infer`, and import the type at every helper. For handlers, use `AuthenticatedRequest` from `server/middleware/auth.ts` and parse `req.body`/`req.query`/`req.params` with the schema — same contract the wire-parses sweep enforced.",
-      "count": 166,
+      "count": 161,
       "files": 50,
       "percent": 18.1,
       "topFiles": [
@@ -63,10 +63,6 @@
         {
           "file": "server/routes/vessel-3d-routes.ts",
           "count": 9
-        },
-        {
-          "file": "server/routes/home-routes.ts",
-          "count": 7
         },
         {
           "file": "server/routes/analytics/model-governance.ts",
@@ -90,6 +86,10 @@
         },
         {
           "file": "server/routes/kb-ask-route.ts",
+          "count": 4
+        },
+        {
+          "file": "server/routes/pdm-gap-fill-routes.ts",
           "count": 4
         }
       ],
@@ -117,7 +117,7 @@
       "remediation": "Stop trusting the payload. Parse once with `z.unknown().pipe(targetSchema)` or `JSON.parse` followed by a Zod parse. Inside the system, replace `any` with `unknown` so callers are forced to narrow. For drizzle `jsonb` columns, declare the column type as `jsonb().$type<MyShape>()` and store the Zod schema alongside.",
       "count": 95,
       "files": 45,
-      "percent": 10.3,
+      "percent": 10.7,
       "topFiles": [
         {
           "file": "server/compliance/data-anonymization/service.ts",
@@ -173,7 +173,7 @@
         },
         {
           "file": "client/src/features/digital-twin/hooks/useTwinApi.ts",
-          "line": 29,
+          "line": 39,
           "snippet": "mutationFn: (data: Record<string, any>) =>"
         }
       ]
@@ -182,9 +182,9 @@
       "label": "Generic inference failures",
       "definition": "Functions whose signature uses `any` because the author couldn't get a generic to flow (callback params typed `(x: any)`, `Array<any>`, `Promise<any>`, return-type `any` on a helper that should have inferred).",
       "remediation": "Reach for `Parameters<typeof fn>[n]` / `Awaited<ReturnType<typeof fn>>` / `infer` rather than `any`. For callbacks, type the higher-order function generically (`<T>(items: T[], cb: (x: T) => void)`) instead of widening the parameter. For Promise chains, type the resolution value, not the wrapper.",
-      "count": 434,
-      "files": 173,
-      "percent": 47.2,
+      "count": 413,
+      "files": 167,
+      "percent": 46.4,
       "topFiles": [
         {
           "file": "client/src/pages/maintenance-schedules.tsx",
@@ -249,9 +249,9 @@
       "label": "Truly unsafe / untyped logic",
       "definition": "Residual `any` that isn't explained by any of the above — typically deep cross-domain glue, dynamic property access on heterogeneous registries, or code that genuinely needs a domain redesign before it can be typed.",
       "remediation": "Don't paper over with a cast. These are the call sites that should drive Phase 3 work (Result/Either, branded IDs, discriminated unions, shared API envelopes, typed domain errors). Capture the call site in the follow-up task list and resolve it as part of the domain redesign — not as a one-line edit.",
-      "count": 222,
-      "files": 120,
-      "percent": 24.2,
+      "count": 220,
+      "files": 119,
+      "percent": 24.7,
       "topFiles": [
         {
           "file": "server/services/data-export-import/entity-upserters.ts",

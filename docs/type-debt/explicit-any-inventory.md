@@ -1,19 +1,19 @@
 # Explicit `any` Inventory
 
-_Generated: 2026-05-22T04:59:14.349Z_
+_Generated: 2026-05-22T08:46:39.934Z_
 
 Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit-any`. Regenerate with `node scripts/type-debt/classify-explicit-any.mjs`.
 
 ## Headline
 
-- **Total occurrences:** 919
-- **Distinct files:** 308
+- **Total occurrences:** 891
+- **Distinct files:** 302
 
 **Rough split (based on bucket heuristics — see per-bucket sections for caveats):**
 
-- ~47.4% mechanical (test mocks + external library gaps + generic inference fixes)
-- ~28.4% schema / generic redesign (dynamic JSON parses + legacy DTOs)
-- ~24.2% truly unsafe / residual (drives Phase 3 domain work)
+- ~46.6% mechanical (test mocks + external library gaps + generic inference fixes)
+- ~28.7% schema / generic redesign (dynamic JSON parses + legacy DTOs)
+- ~24.7% truly unsafe / residual (drives Phase 3 domain work)
 
 **Bucket totals:**
 
@@ -21,10 +21,10 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 |---|---:|---:|---:|
 | External library typing gaps | 2 | 0.2% | 2 |
 | Test mocks / stubs | 0 | 0.0% | 0 |
-| Legacy DTOs (route handlers, request/response shapes) | 166 | 18.1% | 50 |
-| Dynamic JSON payloads | 95 | 10.3% | 45 |
-| Generic inference failures | 434 | 47.2% | 173 |
-| Truly unsafe / untyped logic | 222 | 24.2% | 120 |
+| Legacy DTOs (route handlers, request/response shapes) | 161 | 18.1% | 50 |
+| Dynamic JSON payloads | 95 | 10.7% | 45 |
+| Generic inference failures | 413 | 46.4% | 167 |
+| Truly unsafe / untyped logic | 220 | 24.7% | 119 |
 
 ## External library typing gaps
 
@@ -58,7 +58,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** `any` on route-handler request bodies/queries, untyped DTO interfaces, and helper signatures that pass request-shaped data around without ever describing it. Most of these survived the wire-parses sweep because they live below the route registration layer.
 
-**Count.** 166 occurrences across 50 files (18.1% of all explicit `any`).
+**Count.** 161 occurrences across 50 files (18.1% of all explicit `any`).
 
 **Top files:**
 
@@ -67,13 +67,13 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 | `server/routes/equipment-context/data-queries.ts` | 16 |
 | `server/routes/equipment-context/context-builder.ts` | 15 |
 | `server/routes/vessel-3d-routes.ts` | 9 |
-| `server/routes/home-routes.ts` | 7 |
 | `server/routes/analytics/model-governance.ts` | 5 |
 | `server/routes/wo-so-bridge-routes.ts` | 5 |
 | `server/domains/config-management/routes.ts` | 4 |
 | `server/domains/integrations/routes.ts` | 4 |
 | `server/domains/work-orders/interfaces/workflow-routes.ts` | 4 |
 | `server/routes/kb-ask-route.ts` | 4 |
+| `server/routes/pdm-gap-fill-routes.ts` | 4 |
 
 **Examples:**
 
@@ -87,7 +87,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** `JSON.parse(...) as any`, `Record<string, any>`, drizzle `jsonb()` columns, OpenAI function-call arguments, Sentry/observability event payloads, telemetry attribute bags, anything that's genuinely heterogeneous at the boundary.
 
-**Count.** 95 occurrences across 45 files (10.3% of all explicit `any`).
+**Count.** 95 occurrences across 45 files (10.7% of all explicit `any`).
 
 **Top files:**
 
@@ -108,7 +108,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 - `client/src/components/ai-health/TrainingTab.tsx:493` — `const model = modelRow as Record<string, any>;`
 - `client/src/features/crew/hooks/useSchedulePlannerData.ts:21` — `payload: any;`
-- `client/src/features/digital-twin/hooks/useTwinApi.ts:29` — `mutationFn: (data: Record<string, any>) =>`
+- `client/src/features/digital-twin/hooks/useTwinApi.ts:39` — `mutationFn: (data: Record<string, any>) =>`
 
 **Recommended remediation.** Stop trusting the payload. Parse once with `z.unknown().pipe(targetSchema)` or `JSON.parse` followed by a Zod parse. Inside the system, replace `any` with `unknown` so callers are forced to narrow. For drizzle `jsonb` columns, declare the column type as `jsonb().$type<MyShape>()` and store the Zod schema alongside.
 
@@ -116,7 +116,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** Functions whose signature uses `any` because the author couldn't get a generic to flow (callback params typed `(x: any)`, `Array<any>`, `Promise<any>`, return-type `any` on a helper that should have inferred).
 
-**Count.** 434 occurrences across 173 files (47.2% of all explicit `any`).
+**Count.** 413 occurrences across 167 files (46.4% of all explicit `any`).
 
 **Top files:**
 
@@ -145,7 +145,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** Residual `any` that isn't explained by any of the above — typically deep cross-domain glue, dynamic property access on heterogeneous registries, or code that genuinely needs a domain redesign before it can be typed.
 
-**Count.** 222 occurrences across 120 files (24.2% of all explicit `any`).
+**Count.** 220 occurrences across 119 files (24.7% of all explicit `any`).
 
 **Top files:**
 
