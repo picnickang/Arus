@@ -17,10 +17,24 @@ import { useRunInference, usePredictionExplanations } from "@/features/pdm/hooks
 import { EquipmentSelector } from "@/components/shared/EquipmentSelector";
 import { EquipmentLink, TimestampBadge } from "./_shared";
 
+interface InferenceResult {
+  inferenceRun?: {
+    status?: string;
+    latencyMs?: number;
+    predictionId?: number;
+  };
+  prediction: {
+    failureProbability: number;
+    riskLevel: string;
+    remainingUsefulLife: number;
+    recommendations?: string[];
+  };
+}
+
 export function InferenceTab() {
   const [equipmentId, setEquipmentId] = useState("");
   const [lastPredictionId, setLastPredictionId] = useState<number | null>(null);
-  const [lastResult, setLastResult] = useState<any>(null);
+  const [lastResult, setLastResult] = useState<InferenceResult | null>(null);
   const [lastInferredEquipmentId, setLastInferredEquipmentId] = useState("");
   const [inferenceTime, setInferenceTime] = useState<Date | null>(null);
   const inferenceMutation = useRunInference();
@@ -33,7 +47,7 @@ export function InferenceTab() {
       return;
     }
     try {
-      const result: any = await inferenceMutation.mutateAsync({ equipmentId });
+      const result = (await inferenceMutation.mutateAsync({ equipmentId })) as InferenceResult;
       setLastResult(result);
       setLastInferredEquipmentId(equipmentId);
       setInferenceTime(new Date());
@@ -139,11 +153,11 @@ export function InferenceTab() {
               </Button>
             </div>
 
-            {lastResult.prediction.recommendations?.length > 0 && (
+            {lastResult.prediction.recommendations && lastResult.prediction.recommendations.length > 0 && (
               <div className="mt-4">
                 <div className="text-sm font-medium mb-2">Recommendations:</div>
                 <ul className="list-disc list-inside text-sm text-muted-foreground">
-                  {lastResult.prediction.recommendations.map((r: string, i: number) => (
+                  {lastResult.prediction.recommendations.map((r, i: number) => (
                     <li key={i}>{r}</li>
                   ))}
                 </ul>

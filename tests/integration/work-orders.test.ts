@@ -46,9 +46,11 @@ describe("Work Orders API", () => {
         .set("x-org-id", TEST_ORG_ID)
         .expect(200);
 
-      const workOrders = Array.isArray(response.body) ? response.body : response.body.data;
-      if (workOrders?.length > 0) {
-        expect(workOrders.every((wo: any) => wo.vesselId === TEST_VESSEL_ID)).toBe(true);
+      const workOrders = (Array.isArray(response.body) ? response.body : response.body.data) as
+        | Array<{ vesselId?: string; status?: string }>
+        | undefined;
+      if (workOrders && workOrders.length > 0) {
+        expect(workOrders.every((wo) => wo.vesselId === TEST_VESSEL_ID)).toBe(true);
       }
     });
 
@@ -58,9 +60,11 @@ describe("Work Orders API", () => {
         .set("x-org-id", TEST_ORG_ID)
         .expect(200);
 
-      const workOrders = Array.isArray(response.body) ? response.body : response.body.data;
-      if (workOrders?.length > 0) {
-        expect(workOrders.every((wo: any) => wo.status === "open")).toBe(true);
+      const workOrders = (Array.isArray(response.body) ? response.body : response.body.data) as
+        | Array<{ vesselId?: string; status?: string }>
+        | undefined;
+      if (workOrders && workOrders.length > 0) {
+        expect(workOrders.every((wo) => wo.status === "open")).toBe(true);
       }
     });
   });

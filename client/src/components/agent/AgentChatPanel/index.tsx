@@ -29,6 +29,21 @@ import type {
   ToolCallTrace,
 } from "./types";
 
+interface MinimalSpeechRecognitionEvent {
+  results: ArrayLike<ArrayLike<{ transcript: string }>>;
+}
+
+interface MinimalSpeechRecognition {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: MinimalSpeechRecognitionEvent) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+}
+
 export function AgentChatPanel({
   open,
   onClose,
@@ -56,7 +71,7 @@ export function AgentChatPanel({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatFormRef = useRef<HTMLFormElement>(null);
   const convIdRef = useRef<string | null>(null);
-  const recognitionRef = useRef<any | null>(null);
+  const recognitionRef = useRef<MinimalSpeechRecognition | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -245,7 +260,7 @@ export function AgentChatPanel({
   );
 
   const toggleVoiceInput = useCallback(() => {
-    type SpeechRecognitionConstructor = new () => any;
+    type SpeechRecognitionConstructor = new () => MinimalSpeechRecognition;
     const W = window as Window & {
       SpeechRecognition?: SpeechRecognitionConstructor;
       webkitSpeechRecognition?: SpeechRecognitionConstructor;
@@ -271,7 +286,7 @@ export function AgentChatPanel({
     recognition.interimResults = false;
     recognition.lang = "en-US";
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: MinimalSpeechRecognitionEvent) => {
       const transcript = event.results[0]?.[0]?.transcript;
       if (transcript) {
         setMessage((prev) => (prev ? `${prev} ${transcript}` : transcript));

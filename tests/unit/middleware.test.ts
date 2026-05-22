@@ -10,11 +10,17 @@ import type { Request, Response } from "express";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function mockReq(overrides: Record<string, any> = {}): Request {
+type MockResExtras = {
+  _headers: Record<string, string>;
+  _status: number;
+  _body: unknown;
+};
+
+function mockReq(overrides: Record<string, unknown> = {}): Request {
   return {
     headers: {},
     header(name: string) {
-      return this.headers[name.toLowerCase()];
+      return (this as { headers: Record<string, string> }).headers[name.toLowerCase()];
     },
     method: "GET",
     path: "/api/test",
@@ -25,8 +31,15 @@ function mockReq(overrides: Record<string, any> = {}): Request {
   } as unknown as Request;
 }
 
-function mockRes(): Response & { _headers: Record<string, string>; _status: number; _body: any } {
-  const res: any = {
+function mockRes(): Response & MockResExtras {
+  const res: MockResExtras & {
+    setHeader: (name: string, value: string) => unknown;
+    set: (name: string, value: string) => unknown;
+    status: (code: number) => unknown;
+    json: (body: unknown) => unknown;
+    send: (body: unknown) => unknown;
+    end: () => unknown;
+  } = {
     _headers: {},
     _status: 200,
     _body: null,
@@ -42,11 +55,11 @@ function mockRes(): Response & { _headers: Record<string, string>; _status: numb
       this._status = code;
       return this;
     },
-    json(body: any) {
+    json(body: unknown) {
       this._body = body;
       return this;
     },
-    send(body: any) {
+    send(body: unknown) {
       this._body = body;
       return this;
     },
@@ -54,7 +67,7 @@ function mockRes(): Response & { _headers: Record<string, string>; _status: numb
       return this;
     },
   };
-  return res;
+  return res as unknown as Response & MockResExtras;
 }
 
 // ── Correlation ID Tests ─────────────────────────────────────────────────────
@@ -65,9 +78,9 @@ describe("Correlation ID Middleware", () => {
     try {
       const mod = await import("../../server/middleware/correlation-id");
       expect(mod).toBeDefined();
-    } catch (e: any) {
+    } catch (e: unknown) {
       // If it fails to import due to missing deps, that's still informative
-      expect(e.message).toBeDefined();
+      expect((e as Error).message).toBeDefined();
     }
   });
 });
@@ -79,8 +92,8 @@ describe("API Versioning Middleware", () => {
     try {
       const mod = await import("../../server/middleware/api-versioning");
       expect(mod).toBeDefined();
-    } catch (e: any) {
-      expect(e.message).toBeDefined();
+    } catch (e: unknown) {
+      expect((e as Error).message).toBeDefined();
     }
   });
 });
@@ -92,8 +105,8 @@ describe("Idempotency Middleware", () => {
     try {
       const mod = await import("../../server/middleware/idempotency");
       expect(mod).toBeDefined();
-    } catch (e: any) {
-      expect(e.message).toBeDefined();
+    } catch (e: unknown) {
+      expect((e as Error).message).toBeDefined();
     }
   });
 });
@@ -105,8 +118,8 @@ describe("HMAC Validation Middleware", () => {
     try {
       const mod = await import("../../server/middleware/hmac-validation");
       expect(mod).toBeDefined();
-    } catch (e: any) {
-      expect(e.message).toBeDefined();
+    } catch (e: unknown) {
+      expect((e as Error).message).toBeDefined();
     }
   });
 });
@@ -118,8 +131,8 @@ describe("Rate Limiters", () => {
     try {
       const mod = await import("../../server/middleware/rate-limiters");
       expect(mod).toBeDefined();
-    } catch (e: any) {
-      expect(e.message).toBeDefined();
+    } catch (e: unknown) {
+      expect((e as Error).message).toBeDefined();
     }
   });
 });
@@ -131,8 +144,8 @@ describe("Bandwidth-Aware Middleware", () => {
     try {
       const mod = await import("../../server/middleware/bandwidth-aware");
       expect(mod).toBeDefined();
-    } catch (e: any) {
-      expect(e.message).toBeDefined();
+    } catch (e: unknown) {
+      expect((e as Error).message).toBeDefined();
     }
   });
 });

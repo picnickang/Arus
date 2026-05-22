@@ -31,10 +31,12 @@ import { vessels as pgVessels, equipment as pgEquipment } from "../../shared/sch
 // SQLite schema barrel
 import { vesselsSqlite, equipmentSqlite } from "../../shared/sqlite-schema/core";
 
+type DrizzleTableLike = Parameters<typeof getTableColumns>[0] & { id: unknown };
+
 interface TablePair {
   name: string;
-  pg: any;
-  sqlite: any;
+  pg: DrizzleTableLike;
+  sqlite: DrizzleTableLike;
   // Optional explicit field-name allowlist — if omitted, parity test
   // compares the full intersection of column JS keys across both drivers.
   expectedFields: string[];
@@ -91,7 +93,7 @@ describe("Dual-driver query parity — Drizzle expression compilation", () => {
     ({ pg, sqlite }) => {
       // We don't connect to real DBs here — drizzle's `.toSQL()` is a pure
       // serializer that runs without a live connection.
-      const pgDb = drizzlePg({} as any);
+      const pgDb = drizzlePg({} as unknown as Parameters<typeof drizzlePg>[0]);
       const sqliteClient = createLibsqlClient({ url: ":memory:" });
       const sqliteDb = drizzleLibsql(sqliteClient);
 
@@ -120,7 +122,7 @@ describe("Dual-driver query parity — Drizzle expression compilation", () => {
   test.each(PAIRS)(
     "$name: an identical INSERT expression compiles successfully against both drivers",
     ({ pg, sqlite, expectedFields }) => {
-      const pgDb = drizzlePg({} as any);
+      const pgDb = drizzlePg({} as unknown as Parameters<typeof drizzlePg>[0]);
       const sqliteClient = createLibsqlClient({ url: ":memory:" });
       const sqliteDb = drizzleLibsql(sqliteClient);
 
@@ -128,8 +130,14 @@ describe("Dual-driver query parity — Drizzle expression compilation", () => {
       const values: Record<string, string> = {};
       for (const f of expectedFields) {values[f] = `parity-${f}`;}
 
-      const pgInsert = pgDb.insert(pg).values(values as any);
-      const sqliteInsert = sqliteDb.insert(sqlite).values(values as any);
+      const pgInsertBuilder = pgDb.insert(pg) as unknown as {
+        values: (v: Record<string, string>) => { toSQL: () => { sql: string; params: unknown[] } };
+      };
+      const sqliteInsertBuilder = sqliteDb.insert(sqlite) as unknown as {
+        values: (v: Record<string, string>) => { toSQL: () => { sql: string; params: unknown[] } };
+      };
+      const pgInsert = pgInsertBuilder.values(values);
+      const sqliteInsert = sqliteInsertBuilder.values(values);
 
       const pgSql = pgInsert.toSQL();
       const sqliteSql = sqliteInsert.toSQL();

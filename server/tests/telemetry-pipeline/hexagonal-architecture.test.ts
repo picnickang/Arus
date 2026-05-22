@@ -41,9 +41,9 @@ describe("Telemetry Hexagonal Architecture", () => {
 
     mockDLQ = {
       add: jest
-        .fn<(payload: any, error: string, source: string) => DeadLetterEntry<any>>()
+        .fn<(payload: unknown, error: string, source: string) => DeadLetterEntry<unknown>>()
         .mockImplementation((payload, error, source) => {
-          const entry: DeadLetterEntry<any> = {
+          const entry: DeadLetterEntry<unknown> = {
             id: `dlq-${Date.now()}`,
             payload,
             error,
@@ -55,11 +55,11 @@ describe("Telemetry Hexagonal Architecture", () => {
           return entry;
         }),
       get: jest
-        .fn<(id: string) => DeadLetterEntry<any> | undefined>()
+        .fn<(id: string) => DeadLetterEntry<unknown> | undefined>()
         .mockImplementation((id: string) => {
           return dlqEntries.find((e) => e.id === id);
         }),
-      list: jest.fn<() => DeadLetterEntry<any>[]>().mockImplementation(() => dlqEntries),
+      list: jest.fn<() => DeadLetterEntry<unknown>[]>().mockImplementation(() => dlqEntries),
       replay: jest
         .fn<(id: string) => Promise<{ success: boolean; entryId: string; error?: string }>>()
         .mockResolvedValue({ success: true, entryId: "test" }),

@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-22T00:03:26.326Z",
+  "generatedAt": "2026-05-22T01:40:55.461Z",
   "rule": "@typescript-eslint/no-explicit-any",
-  "total": 1032,
-  "totalFiles": 330,
+  "total": 959,
+  "totalFiles": 315,
   "buckets": {
     "external_lib_gaps": {
       "label": "External library typing gaps",
@@ -38,68 +38,11 @@
       "label": "Test mocks / stubs",
       "definition": "Occurrences inside `tests/`, `*.test.ts(x)`, jest setup, fixture factories. Mocks often need to bypass constructor visibility or stub partial shapes.",
       "remediation": "Prefer `jest.mocked()` + typed factory functions (`makeFakeVessel(overrides?: Partial<Vessel>): Vessel`). For partial stubs, use `Partial<T>` + `satisfies` instead of `any`. Where a mock genuinely needs to lie about a type, isolate it in a `__mocks__/` helper rather than littering test bodies with `any`.",
-      "count": 64,
-      "files": 12,
-      "percent": 6.2,
-      "topFiles": [
-        {
-          "file": "tests/unit/middleware.test.ts",
-          "count": 11
-        },
-        {
-          "file": "tests/unit/shared-validation.test.ts",
-          "count": 11
-        },
-        {
-          "file": "tests/integration/workflow-gap-closure.test.ts",
-          "count": 7
-        },
-        {
-          "file": "tests/unit/graph-projector-live-writers.test.ts",
-          "count": 7
-        },
-        {
-          "file": "tests/unit/dual-driver-query-parity.test.ts",
-          "count": 6
-        },
-        {
-          "file": "server/tests/telemetry-pipeline/hexagonal-architecture.test.ts",
-          "count": 5
-        },
-        {
-          "file": "tests/unit/websocket-fanout.test.ts",
-          "count": 5
-        },
-        {
-          "file": "tests/unit/prediction-lineage.test.ts",
-          "count": 4
-        },
-        {
-          "file": "tests/unit/permissions-mapper.test.ts",
-          "count": 3
-        },
-        {
-          "file": "tests/integration/feature-flag-tenant-isolation.test.ts",
-          "count": 2
-        }
-      ],
-      "examples": [
-        {
-          "file": "server/tests/telemetry-pipeline/hexagonal-architecture.test.ts",
-          "line": 44,
-          "snippet": ".fn<(payload: any, error: string, source: string) => DeadLetterEntry<any>>()"
-        },
-        {
-          "file": "server/tests/telemetry-pipeline/hexagonal-architecture.test.ts",
-          "line": 44,
-          "snippet": ".fn<(payload: any, error: string, source: string) => DeadLetterEntry<any>>()"
-        },
-        {
-          "file": "server/tests/telemetry-pipeline/hexagonal-architecture.test.ts",
-          "line": 46,
-          "snippet": "const entry: DeadLetterEntry<any> = {"
-        }
-      ]
+      "count": 0,
+      "files": 0,
+      "percent": 0,
+      "topFiles": [],
+      "examples": []
     },
     "legacy_dto": {
       "label": "Legacy DTOs (route handlers, request/response shapes)",
@@ -107,7 +50,7 @@
       "remediation": "Define the DTO once with Zod, derive the TS type via `z.infer`, and import the type at every helper. For handlers, use `AuthenticatedRequest` from `server/middleware/auth.ts` and parse `req.body`/`req.query`/`req.params` with the schema — same contract the wire-parses sweep enforced.",
       "count": 166,
       "files": 50,
-      "percent": 16.1,
+      "percent": 17.3,
       "topFiles": [
         {
           "file": "server/routes/equipment-context/data-queries.ts",
@@ -174,7 +117,7 @@
       "remediation": "Stop trusting the payload. Parse once with `z.unknown().pipe(targetSchema)` or `JSON.parse` followed by a Zod parse. Inside the system, replace `any` with `unknown` so callers are forced to narrow. For drizzle `jsonb` columns, declare the column type as `jsonb().$type<MyShape>()` and store the Zod schema alongside.",
       "count": 98,
       "files": 47,
-      "percent": 9.5,
+      "percent": 10.2,
       "topFiles": [
         {
           "file": "server/compliance/data-anonymization/service.ts",
@@ -239,9 +182,9 @@
       "label": "Generic inference failures",
       "definition": "Functions whose signature uses `any` because the author couldn't get a generic to flow (callback params typed `(x: any)`, `Array<any>`, `Promise<any>`, return-type `any` on a helper that should have inferred).",
       "remediation": "Reach for `Parameters<typeof fn>[n]` / `Awaited<ReturnType<typeof fn>>` / `infer` rather than `any`. For callbacks, type the higher-order function generically (`<T>(items: T[], cb: (x: T) => void)`) instead of widening the parameter. For Promise chains, type the resolution value, not the wrapper.",
-      "count": 466,
-      "files": 181,
-      "percent": 45.2,
+      "count": 458,
+      "files": 178,
+      "percent": 47.8,
       "topFiles": [
         {
           "file": "client/src/pages/maintenance-schedules.tsx",
@@ -291,14 +234,14 @@
           "snippet": "const Button = ({ children, variant = 'default', size = 'default', className = '', ...props }: any) => {"
         },
         {
-          "file": "client/src/components/agent/AgentChatPanel/index.tsx",
-          "line": 59,
-          "snippet": "const recognitionRef = useRef<any | null>(null);"
+          "file": "client/src/components/ai-health/ReportsTab.tsx",
+          "line": 125,
+          "snippet": "{audiences.map((aud: any) => ("
         },
         {
-          "file": "client/src/components/agent/AgentChatPanel/index.tsx",
-          "line": 248,
-          "snippet": "type SpeechRecognitionConstructor = new () => any;"
+          "file": "client/src/components/ai-health/ReportsTab.tsx",
+          "line": 144,
+          "snippet": "{models.map((model: any) => ("
         }
       ]
     },
@@ -306,9 +249,9 @@
       "label": "Truly unsafe / untyped logic",
       "definition": "Residual `any` that isn't explained by any of the above — typically deep cross-domain glue, dynamic property access on heterogeneous registries, or code that genuinely needs a domain redesign before it can be typed.",
       "remediation": "Don't paper over with a cast. These are the call sites that should drive Phase 3 work (Result/Either, branded IDs, discriminated unions, shared API envelopes, typed domain errors). Capture the call site in the follow-up task list and resolve it as part of the domain redesign — not as a one-line edit.",
-      "count": 236,
-      "files": 124,
-      "percent": 22.9,
+      "count": 235,
+      "files": 123,
+      "percent": 24.5,
       "topFiles": [
         {
           "file": "server/services/data-export-import/entity-upserters.ts",

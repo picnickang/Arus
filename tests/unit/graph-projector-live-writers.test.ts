@@ -57,8 +57,16 @@ jest.unstable_mockModule("../../server/graph/projector", () => projectorMock);
 const insertQueue: unknown[][] = [];
 const selectQueue: unknown[][] = [];
 
-function chain(returningRows: unknown[]) {
-  const node: any = {};
+type ChainNode = Record<string, unknown> & {
+  returning: () => Promise<unknown[]>;
+  then: (onF: (rows: unknown[]) => unknown) => Promise<unknown>;
+};
+
+function chain(returningRows: unknown[]): ChainNode {
+  const node: ChainNode = {
+    returning: async () => returningRows,
+    then: (onF) => Promise.resolve(returningRows).then(onF),
+  };
   for (const key of [
     "values",
     "set",
@@ -74,9 +82,6 @@ function chain(returningRows: unknown[]) {
   ]) {
     node[key] = () => node;
   }
-  node.returning = async () => returningRows;
-  // make the chain awaitable as a no-op for raw SELECTs
-  node.then = (onF: any) => Promise.resolve(returningRows).then(onF);
   return node;
 }
 
@@ -91,7 +96,7 @@ const dbMock = {
   },
   update: () => chain(insertQueue.shift() ?? []),
   delete: () => chain([]),
-  transaction: async (cb: (tx: any) => Promise<any>) => cb(dbMock),
+  transaction: async (cb: (tx: unknown) => Promise<unknown>) => cb(dbMock),
   execute: async () => ({ rows: [] }),
 };
 
@@ -141,7 +146,9 @@ describe("Task #81 — live graph projector wiring", () => {
     insertQueue.push([newRow]); // .insert(equipment).returning()
 
     const storage = new DatabaseEquipmentStorage();
-    const result = await storage.createEquipment(newRow as any);
+    const result = await storage.createEquipment(
+      newRow as Parameters<typeof storage.createEquipment>[0]
+    );
 
     expect(result).toEqual(newRow);
     expect(projectorMock.projectEquipment).toHaveBeenCalledTimes(1);
@@ -179,7 +186,7 @@ describe("Task #81 — live graph projector wiring", () => {
         workOrderId: "wo-9",
         failureTimestamp: new Date(),
         failureSeverity: "high",
-      } as any,
+      } as Parameters<typeof storage.createFailureHistory>[0],
       "org-1"
     );
 
@@ -315,7 +322,7 @@ describe("Task #81 — live graph projector wiring", () => {
         orgId: "org-1",
         name: "Aux",
         type: "pump",
-      } as any)
+      } as Parameters<typeof storage.createEquipment>[0])
     ).resolves.toMatchObject({ id: "eq-B" });
   });
 });

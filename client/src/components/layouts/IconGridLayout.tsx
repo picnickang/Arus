@@ -21,7 +21,7 @@ export interface GridItem {
   description?: string;
   legacyRoutes?: string[];
   component?: ReactNode;
-  load?: () => Promise<{ default: ComponentType<any> }>;
+  load?: () => Promise<{ default: ComponentType<Record<string, never>> }>;
   loaderVariant?: "default" | "table" | "cards" | "form";
 }
 

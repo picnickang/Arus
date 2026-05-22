@@ -27,7 +27,7 @@ import { STCW_MIN_REST_24, STCW_MIN_REST_7D } from "../../server/stcw-compliance
 function makeDay(date: string, hours: number[]): RestDay {
   const day: RestDay = { date };
   for (let i = 0; i < 24; i++) {
-    (day as any)[`h${i}`] = hours[i] ?? 0;
+    day[`h${i}`] = hours[i] ?? 0;
   }
   return day;
 }

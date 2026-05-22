@@ -1,30 +1,30 @@
 # Explicit `any` Inventory
 
-_Generated: 2026-05-22T00:03:26.326Z_
+_Generated: 2026-05-22T01:40:55.461Z_
 
 Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit-any`. Regenerate with `node scripts/type-debt/classify-explicit-any.mjs`.
 
 ## Headline
 
-- **Total occurrences:** 1032
-- **Distinct files:** 330
+- **Total occurrences:** 959
+- **Distinct files:** 315
 
 **Rough split (based on bucket heuristics — see per-bucket sections for caveats):**
 
-- ~51.6% mechanical (test mocks + external library gaps + generic inference fixes)
-- ~25.6% schema / generic redesign (dynamic JSON parses + legacy DTOs)
-- ~22.9% truly unsafe / residual (drives Phase 3 domain work)
+- ~48.0% mechanical (test mocks + external library gaps + generic inference fixes)
+- ~27.5% schema / generic redesign (dynamic JSON parses + legacy DTOs)
+- ~24.5% truly unsafe / residual (drives Phase 3 domain work)
 
 **Bucket totals:**
 
 | Bucket | Occurrences | % | Files |
 |---|---:|---:|---:|
 | External library typing gaps | 2 | 0.2% | 2 |
-| Test mocks / stubs | 64 | 6.2% | 12 |
-| Legacy DTOs (route handlers, request/response shapes) | 166 | 16.1% | 50 |
-| Dynamic JSON payloads | 98 | 9.5% | 47 |
-| Generic inference failures | 466 | 45.2% | 181 |
-| Truly unsafe / untyped logic | 236 | 22.9% | 124 |
+| Test mocks / stubs | 0 | 0.0% | 0 |
+| Legacy DTOs (route handlers, request/response shapes) | 166 | 17.3% | 50 |
+| Dynamic JSON payloads | 98 | 10.2% | 47 |
+| Generic inference failures | 458 | 47.8% | 178 |
+| Truly unsafe / untyped logic | 235 | 24.5% | 123 |
 
 ## External library typing gaps
 
@@ -50,28 +50,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** Occurrences inside `tests/`, `*.test.ts(x)`, jest setup, fixture factories. Mocks often need to bypass constructor visibility or stub partial shapes.
 
-**Count.** 64 occurrences across 12 files (6.2% of all explicit `any`).
-
-**Top files:**
-
-| File | Count |
-|---|---:|
-| `tests/unit/middleware.test.ts` | 11 |
-| `tests/unit/shared-validation.test.ts` | 11 |
-| `tests/integration/workflow-gap-closure.test.ts` | 7 |
-| `tests/unit/graph-projector-live-writers.test.ts` | 7 |
-| `tests/unit/dual-driver-query-parity.test.ts` | 6 |
-| `server/tests/telemetry-pipeline/hexagonal-architecture.test.ts` | 5 |
-| `tests/unit/websocket-fanout.test.ts` | 5 |
-| `tests/unit/prediction-lineage.test.ts` | 4 |
-| `tests/unit/permissions-mapper.test.ts` | 3 |
-| `tests/integration/feature-flag-tenant-isolation.test.ts` | 2 |
-
-**Examples:**
-
-- `server/tests/telemetry-pipeline/hexagonal-architecture.test.ts:44` — `.fn<(payload: any, error: string, source: string) => DeadLetterEntry<any>>()`
-- `server/tests/telemetry-pipeline/hexagonal-architecture.test.ts:44` — `.fn<(payload: any, error: string, source: string) => DeadLetterEntry<any>>()`
-- `server/tests/telemetry-pipeline/hexagonal-architecture.test.ts:46` — `const entry: DeadLetterEntry<any> = {`
+**Count.** 0 occurrences across 0 files (0.0% of all explicit `any`).
 
 **Recommended remediation.** Prefer `jest.mocked()` + typed factory functions (`makeFakeVessel(overrides?: Partial<Vessel>): Vessel`). For partial stubs, use `Partial<T>` + `satisfies` instead of `any`. Where a mock genuinely needs to lie about a type, isolate it in a `__mocks__/` helper rather than littering test bodies with `any`.
 
@@ -79,7 +58,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** `any` on route-handler request bodies/queries, untyped DTO interfaces, and helper signatures that pass request-shaped data around without ever describing it. Most of these survived the wire-parses sweep because they live below the route registration layer.
 
-**Count.** 166 occurrences across 50 files (16.1% of all explicit `any`).
+**Count.** 166 occurrences across 50 files (17.3% of all explicit `any`).
 
 **Top files:**
 
@@ -108,7 +87,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** `JSON.parse(...) as any`, `Record<string, any>`, drizzle `jsonb()` columns, OpenAI function-call arguments, Sentry/observability event payloads, telemetry attribute bags, anything that's genuinely heterogeneous at the boundary.
 
-**Count.** 98 occurrences across 47 files (9.5% of all explicit `any`).
+**Count.** 98 occurrences across 47 files (10.2% of all explicit `any`).
 
 **Top files:**
 
@@ -137,7 +116,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** Functions whose signature uses `any` because the author couldn't get a generic to flow (callback params typed `(x: any)`, `Array<any>`, `Promise<any>`, return-type `any` on a helper that should have inferred).
 
-**Count.** 466 occurrences across 181 files (45.2% of all explicit `any`).
+**Count.** 458 occurrences across 178 files (47.8% of all explicit `any`).
 
 **Top files:**
 
@@ -157,8 +136,8 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 **Examples:**
 
 - `artifacts/mockup-sandbox/src/components/mockups/home-layouts/SidebarSplit.tsx:48` — `const Button = ({ children, variant = 'default', size = 'default', className = '', ...props }: any) => {`
-- `client/src/components/agent/AgentChatPanel/index.tsx:59` — `const recognitionRef = useRef<any | null>(null);`
-- `client/src/components/agent/AgentChatPanel/index.tsx:248` — `type SpeechRecognitionConstructor = new () => any;`
+- `client/src/components/ai-health/ReportsTab.tsx:125` — `{audiences.map((aud: any) => (`
+- `client/src/components/ai-health/ReportsTab.tsx:144` — `{models.map((model: any) => (`
 
 **Recommended remediation.** Reach for `Parameters<typeof fn>[n]` / `Awaited<ReturnType<typeof fn>>` / `infer` rather than `any`. For callbacks, type the higher-order function generically (`<T>(items: T[], cb: (x: T) => void)`) instead of widening the parameter. For Promise chains, type the resolution value, not the wrapper.
 
@@ -166,7 +145,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** Residual `any` that isn't explained by any of the above — typically deep cross-domain glue, dynamic property access on heterogeneous registries, or code that genuinely needs a domain redesign before it can be typed.
 
-**Count.** 236 occurrences across 124 files (22.9% of all explicit `any`).
+**Count.** 235 occurrences across 123 files (24.5% of all explicit `any`).
 
 **Top files:**
 

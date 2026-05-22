@@ -7,12 +7,12 @@ const RUN_ID = `gap-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
-interface ApiResult<T = any> {
+interface ApiResult<T = unknown> {
   status: number;
   data: T;
 }
 
-async function api<T = any>(method: string, path: string, body?: unknown): Promise<ApiResult<T>> {
+async function api<T = unknown>(method: string, path: string, body?: unknown): Promise<ApiResult<T>> {
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers: {
@@ -28,7 +28,7 @@ async function api<T = any>(method: string, path: string, body?: unknown): Promi
 }
 
 async function pickOpenWorkOrder(excludeId?: string): Promise<string | null> {
-  const { data } = await api<any[]>("GET", "/api/work-orders");
+  const { data } = await api<Array<{ id: string }>>("GET", "/api/work-orders");
   const open = (data || []).find(
     (w) =>
       w.id !== excludeId &&
@@ -107,8 +107,9 @@ describe("Workflow Gap-Closure Integration", () => {
       expect(data?.sources?.workOrders).toBe("ok");
       expect(data?.sources?.inventory).toBe("ok");
       // If our item ever appeared, after 'unblocked' it must NOT appear now.
-      const stillThere = (data?.items || []).some(
-        (i: any) => i.id === itemId && i.lastResolution?.status !== "unblocked"
+      type InboxItem = { id: string; lastResolution?: { status?: string } };
+      const stillThere = ((data?.items as InboxItem[] | undefined) || []).some(
+        (i) => i.id === itemId && i.lastResolution?.status !== "unblocked"
       );
       expect(stillThere).toBe(false);
     });
@@ -163,15 +164,16 @@ describe("Workflow Gap-Closure Integration", () => {
       expect(status).toBe(201);
       expect(data?.status).toBe("shared");
 
-      const list = await api<any[]>("GET", "/api/attention/handovers");
+      type HandoverRecord = { id: string; note?: string; summary?: string };
+      const list = await api<HandoverRecord[]>("GET", "/api/attention/handovers");
       expect(list.status).toBe(200);
       expect(Array.isArray(list.data)).toBe(true);
-      const ours = list.data.filter((h: any) =>
+      const ours = list.data.filter((h) =>
         String(h.note || h.summary || "").includes(RUN_ID)
       );
       // Both our handovers (draft + shared) should be in the listing
       expect(ours.length).toBeGreaterThanOrEqual(2);
-      const ids = ours.map((h: any) => h.id);
+      const ids = ours.map((h) => h.id);
       expect(ids).toContain(draftId);
     });
 

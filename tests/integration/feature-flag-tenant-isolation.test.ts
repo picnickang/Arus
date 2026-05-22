@@ -11,13 +11,18 @@
 import { describe, it, expect, beforeEach } from "@jest/globals";
 import { FeatureFlagManager } from "../../server/infrastructure/feature-flags";
 
+type FeatureFlagManagerInternals = FeatureFlagManager & {
+  overrideCache: Map<string, unknown[]>;
+  isEnabledFor: (key: string, ctx: { tenantId?: string; userId?: string }) => boolean;
+};
+
 describe("Feature flag tenant isolation (Push B1)", () => {
-  let manager: any;
+  let manager: FeatureFlagManagerInternals;
 
   beforeEach(() => {
     // The exported singleton is shared across the test suite; we
     // construct a fresh instance for predictable cache state.
-    manager = new (FeatureFlagManager as any)();
+    manager = new FeatureFlagManager() as FeatureFlagManagerInternals;
   });
 
   it("does not leak a tenant-A override into tenant B", () => {

@@ -143,9 +143,30 @@ export default function InsightsTab() {
   );
 }
 
+interface VesselIntelligenceInsight {
+  severity: string;
+  title: string;
+  description: string;
+}
+
+interface VesselIntelligencePattern {
+  description: string;
+}
+
+interface VesselIntelligenceData {
+  healthScore?: number;
+  activeAlerts?: number;
+  totalPredictions?: number;
+  riskLevel?: string;
+  insights?: VesselIntelligenceInsight[];
+  patterns?: VesselIntelligencePattern[];
+}
+
 function VesselIntelligenceSection() {
   const [selectedVessel, setSelectedVessel] = useState<string>("");
-  const [vesselIntelligence, setVesselIntelligence] = useState<any>(null);
+  const [vesselIntelligence, setVesselIntelligence] = useState<VesselIntelligenceData | null>(
+    null
+  );
   const [isLoadingIntelligence, setIsLoadingIntelligence] = useState(false);
 
   const { data: vessels = [] } = useQuery<Array<{ id: string; name: string }>>({
@@ -263,7 +284,7 @@ function VesselIntelligenceSection() {
                   <CardTitle className="text-sm">AI Insights</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {vesselIntelligence.insights.map((insight: any, idx: number) => (
+                  {vesselIntelligence.insights.map((insight, idx: number) => (
                     <div key={idx} className="p-3 border rounded-lg">
                       <div className="flex items-start gap-2">
                         <Badge variant="outline" className={getSeverityColor(insight.severity)}>
@@ -288,7 +309,7 @@ function VesselIntelligenceSection() {
                   <CardTitle className="text-sm">Detected Patterns</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {vesselIntelligence.patterns.map((pattern: any, idx: number) => (
+                  {vesselIntelligence.patterns.map((pattern, idx: number) => (
                     <div key={idx} className="flex items-center gap-2 text-sm">
                       <TrendingUp className="h-4 w-4 text-blue-500" />
                       <span>{pattern.description}</span>

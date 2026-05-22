@@ -72,9 +72,9 @@ describe("Permissions Mapper", () => {
           grants: {
             equipment: {
               view: { allowed: true },
-              edit: undefined as any,
+              edit: undefined,
               delete: { allowed: false },
-              export: {} as any,
+              export: {} as { allowed: boolean },
             },
           },
         }),
@@ -97,7 +97,7 @@ describe("Permissions Mapper", () => {
       );
       expect(result.roles.map((r) => r.id)).toEqual(["role-admin"]);
       expect(warn).toHaveBeenCalledTimes(1);
-      const [message, context] = warn.mock.calls[0] as [string, any];
+      const [message, context] = warn.mock.calls[0] as [string, Record<string, unknown>];
       expect(message).toMatch(/possible data drift/i);
       expect(context.metadata.missingRoleIds).toEqual(["role-ghost", "role-missing"]);
       expect(context.metadata.userId).toBe("user-1");

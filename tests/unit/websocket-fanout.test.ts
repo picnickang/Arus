@@ -142,8 +142,8 @@ describe("websocket-fanout / cross-instance loopback", () => {
     try {
       const onA: string[] = [];
       const onB: string[] = [];
-      a.subscribe("alerts", SYSTEM_ORG_ID, (e) => onA.push(`a:${(e.payload as any).id}`));
-      b.subscribe("alerts", SYSTEM_ORG_ID, (e) => onB.push(`b:${(e.payload as any).id}`));
+      a.subscribe("alerts", SYSTEM_ORG_ID, (e) => onA.push(`a:${(e.payload as { id: string }).id}`));
+      b.subscribe("alerts", SYSTEM_ORG_ID, (e) => onB.push(`b:${(e.payload as { id: string }).id}`));
 
       await a.publish("alerts", { id: "from-a" });
       await b.publish("alerts", { id: "from-b" });
@@ -182,11 +182,11 @@ describe("websocket-fanout / cross-instance loopback", () => {
       // own per-namespace cursor — no false dedupe, no missed events.
       const sysReplay = await b.replaySince("alerts", SYSTEM_ORG_ID, sysCursor);
       const tenReplay = await b.replaySince("alerts", "tenant-x", tenCursor);
-      expect(sysReplay.map((e) => (e.payload as any).id)).toEqual([
+      expect(sysReplay.map((e) => (e.payload as { id: string }).id)).toEqual([
         "sys-missed-1",
         "sys-missed-2",
       ]);
-      expect(tenReplay.map((e) => (e.payload as any).id)).toEqual([
+      expect(tenReplay.map((e) => (e.payload as { id: string }).id)).toEqual([
         "ten-missed-1",
         "ten-missed-2",
       ]);
@@ -228,7 +228,7 @@ describe("websocket-fanout / cross-instance loopback", () => {
       await a.publish("alerts", { id: "missed-3" });
       // Client reconnects to B and asks for everything since `cursor`.
       const replay = await b.replaySince("alerts", SYSTEM_ORG_ID, cursor);
-      expect(replay.map((e) => (e.payload as any).id)).toEqual([
+      expect(replay.map((e) => (e.payload as { id: string }).id)).toEqual([
         "missed-1",
         "missed-2",
         "missed-3",
