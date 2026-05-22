@@ -351,7 +351,7 @@ function ActivityFeed({
     }
   }
 
-  for (const eq of (equipmentHealth || []).filter((e: any) => e.healthIndex < 40).slice(0, 3)) {
+  for (const eq of (equipmentHealth || []).filter((e) => e.healthIndex < 40).slice(0, 3)) {
     items.push({
       id: `eq-${eq.id}`,
       time: eq.updatedAt || new Date().toISOString(),
@@ -539,7 +539,7 @@ export default function BridgeDashboard() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Vessels</SelectItem>
-              {allVessels?.map((vessel: any) => (
+              {allVessels?.map((vessel) => (
                 <SelectItem key={vessel.id} value={vessel.id}>
                   {vessel.name}
                 </SelectItem>

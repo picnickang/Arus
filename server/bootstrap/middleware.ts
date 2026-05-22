@@ -228,12 +228,14 @@ export async function configureAuthMiddleware(app: Express): Promise<void> {
   // Deprecation / Sunset / Link headers on legacy unversioned /api/* calls.
   applyApiVersioning(app);
 
-  const skipPublicPaths = (middleware: any) => (req: any, res: any, next: any) => {
-    if (isPublicApiPath(req)) {
-      return next();
-    }
-    return middleware(req, res, next);
-  };
+  const skipPublicPaths =
+    (middleware: import("express").RequestHandler): import("express").RequestHandler =>
+    (req, res, next) => {
+      if (isPublicApiPath(req)) {
+        return next();
+      }
+      return middleware(req, res, next);
+    };
 
   app.use("/api", apiReadyGate);
   app.use("/api", skipPublicPaths(requireAuthentication));

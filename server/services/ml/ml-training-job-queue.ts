@@ -154,7 +154,15 @@ export class MlTrainingJobQueue {
         LIMIT ${safeLimit}`
       );
 
-      return (result?.rows ?? []).map((row: any) => ({
+      return (result?.rows ?? []).map((row: {
+        id: string;
+        state: string;
+        data: MlTrainingJobData;
+        output: MlTrainingJobResult | null;
+        createdon: string | Date;
+        startedon: string | Date | null;
+        completedon: string | Date | null;
+      }) => ({
         jobId: row.id,
         state: row.state,
         data: row.data,

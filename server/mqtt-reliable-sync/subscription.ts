@@ -11,12 +11,14 @@ import { logger } from "../utils/logger.js";
 /**
  * Subscribe to entity changes with dual-topic architecture
  */
+export type MqttPayloadCallback = (payload: unknown) => void;
+
 export async function subscribeToEntity(
   client: mqtt.MqttClient | null,
   isConnected: boolean,
-  subscriptions: Map<string, Set<(payload: any) => void>>,
+  subscriptions: Map<string, Set<MqttPayloadCallback>>,
   entityType: string,
-  callback: (payload: any) => void,
+  callback: MqttPayloadCallback,
   enableCatchup: boolean = true
 ): Promise<void> {
   const baseTopic = getTopicForEntity(entityType);
@@ -105,9 +107,9 @@ export async function subscribeToEntity(
 export async function unsubscribeFromEntity(
   client: mqtt.MqttClient | null,
   isConnected: boolean,
-  subscriptions: Map<string, Set<(payload: any) => void>>,
+  subscriptions: Map<string, Set<MqttPayloadCallback>>,
   entityType: string,
-  callback: (payload: any) => void
+  callback: MqttPayloadCallback
 ): Promise<void> {
   const baseTopic = getTopicForEntity(entityType);
   const stateTopic = `${baseTopic}/state`;
@@ -155,7 +157,7 @@ export async function unsubscribeFromEntity(
 export function resubscribeAll(
   client: mqtt.MqttClient | null,
   isConnected: boolean,
-  subscriptions: Map<string, Set<(payload: any) => void>>
+  subscriptions: Map<string, Set<MqttPayloadCallback>>
 ): void {
   if (!client || !isConnected) {
     return;

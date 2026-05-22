@@ -523,7 +523,7 @@ export default function MaintenanceSchedules() {
               <Select
                 value={m.createForm.equipmentId || ""}
                 onValueChange={(value) =>
-                  m.setCreateForm((prev: any) => ({ ...prev, equipmentId: value }))
+                  m.setCreateForm((prev) => ({ ...prev, equipmentId: value }))
                 }
               >
                 <SelectTrigger data-testid="select-create-equipment">
@@ -552,7 +552,7 @@ export default function MaintenanceSchedules() {
                       : ""
                   }
                   onChange={(e) =>
-                    m.setCreateForm((prev: any) => ({ ...prev, scheduledDate: e.target.value }))
+                    m.setCreateForm((prev) => ({ ...prev, scheduledDate: e.target.value }))
                   }
                   data-testid="input-create-schedule-date"
                 />
@@ -562,7 +562,7 @@ export default function MaintenanceSchedules() {
                 <Select
                   value={m.createForm.maintenanceType || "preventive"}
                   onValueChange={(value) =>
-                    m.setCreateForm((prev: any) => ({ ...prev, maintenanceType: value }))
+                    m.setCreateForm((prev) => ({ ...prev, maintenanceType: value }))
                   }
                 >
                   <SelectTrigger data-testid="select-create-type">
@@ -582,7 +582,7 @@ export default function MaintenanceSchedules() {
                 <Select
                   value={m.createForm.priority?.toString() || "2"}
                   onValueChange={(value) =>
-                    m.setCreateForm((prev: any) => ({ ...prev, priority: Number.parseInt(value) }))
+                    m.setCreateForm((prev) => ({ ...prev, priority: Number.parseInt(value) }))
                   }
                 >
                   <SelectTrigger data-testid="select-create-priority">
@@ -602,7 +602,7 @@ export default function MaintenanceSchedules() {
                   placeholder="Technician name..."
                   value={m.createForm.assignedTo || ""}
                   onChange={(e) =>
-                    m.setCreateForm((prev: any) => ({ ...prev, assignedTo: e.target.value }))
+                    m.setCreateForm((prev) => ({ ...prev, assignedTo: e.target.value }))
                   }
                   data-testid="input-create-assigned"
                 />
@@ -615,7 +615,7 @@ export default function MaintenanceSchedules() {
                 placeholder="Details about this maintenance..."
                 value={m.createForm.description || ""}
                 onChange={(e) =>
-                  m.setCreateForm((prev: any) => ({ ...prev, description: e.target.value }))
+                  m.setCreateForm((prev) => ({ ...prev, description: e.target.value }))
                 }
                 rows={3}
                 data-testid="textarea-create-description"
@@ -652,7 +652,7 @@ export default function MaintenanceSchedules() {
               <Select
                 value={m.editForm.equipmentId || ""}
                 onValueChange={(value) =>
-                  m.setEditForm((prev: any) => ({ ...prev, equipmentId: value }))
+                  m.setEditForm((prev) => ({ ...prev, equipmentId: value }))
                 }
               >
                 <SelectTrigger data-testid="select-edit-equipment">
@@ -681,7 +681,7 @@ export default function MaintenanceSchedules() {
                       : ""
                   }
                   onChange={(e) =>
-                    m.setEditForm((prev: any) => ({ ...prev, scheduledDate: e.target.value }))
+                    m.setEditForm((prev) => ({ ...prev, scheduledDate: new Date(e.target.value) }))
                   }
                   data-testid="input-edit-schedule-date"
                 />
@@ -691,7 +691,7 @@ export default function MaintenanceSchedules() {
                 <Select
                   value={m.editForm.maintenanceType || "preventive"}
                   onValueChange={(value) =>
-                    m.setEditForm((prev: any) => ({ ...prev, maintenanceType: value }))
+                    m.setEditForm((prev) => ({ ...prev, maintenanceType: value }))
                   }
                 >
                   <SelectTrigger data-testid="select-edit-type">
@@ -711,7 +711,7 @@ export default function MaintenanceSchedules() {
                 <Select
                   value={m.editForm.priority?.toString() || "2"}
                   onValueChange={(value) =>
-                    m.setEditForm((prev: any) => ({ ...prev, priority: Number.parseInt(value) }))
+                    m.setEditForm((prev) => ({ ...prev, priority: Number.parseInt(value) }))
                   }
                 >
                   <SelectTrigger data-testid="select-edit-priority">
@@ -728,7 +728,7 @@ export default function MaintenanceSchedules() {
                 <Label htmlFor="edit-status">Status *</Label>
                 <Select
                   value={m.editForm.status || "scheduled"}
-                  onValueChange={(value) => m.setEditForm((prev: any) => ({ ...prev, status: value }))}
+                  onValueChange={(value) => m.setEditForm((prev) => ({ ...prev, status: value }))}
                 >
                   <SelectTrigger data-testid="select-edit-status">
                     <SelectValue />
@@ -748,7 +748,7 @@ export default function MaintenanceSchedules() {
                 id="edit-assigned"
                 placeholder="Technician name..."
                 value={m.editForm.assignedTo || ""}
-                onChange={(e) => m.setEditForm((prev: any) => ({ ...prev, assignedTo: e.target.value }))}
+                onChange={(e) => m.setEditForm((prev) => ({ ...prev, assignedTo: e.target.value }))}
                 data-testid="input-edit-assigned"
               />
             </div>
@@ -759,7 +759,7 @@ export default function MaintenanceSchedules() {
                 placeholder="Details about this maintenance..."
                 value={m.editForm.description || ""}
                 onChange={(e) =>
-                  m.setEditForm((prev: any) => ({ ...prev, description: e.target.value }))
+                  m.setEditForm((prev) => ({ ...prev, description: e.target.value }))
                 }
                 rows={3}
                 data-testid="textarea-edit-description"

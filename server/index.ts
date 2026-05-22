@@ -53,7 +53,7 @@ const isHealthCheckMode = process.argv.includes("--health-check");
 
 if (isInitDbMode) {
   import("./init-db-entry.js")
-    .then((m: any) => m.initDb())
+    .then((m: { initDb: () => unknown }) => m.initDb())
     .then(() => {
       logger.info("[ARUS] --init-db complete");
       process.exit(0);
@@ -174,10 +174,10 @@ if (!isInitDbMode && !isHealthCheckMode) {
         await seedDevelopmentUser();
         isDatabaseReady = true;
         databaseStatus = "ready";
-      } catch (dbError: any) {
+      } catch (dbError: unknown) {
         isDatabaseReady = false;
         databaseStatus = "failed";
-        logger.error("⚠️ Database initialization failed:", undefined, dbError.message);
+        logger.error("⚠️ Database initialization failed:", undefined, dbError instanceof Error ? dbError.message : String(dbError));
         logger.info("   Frontend available, API will return 503 until database reconnects");
 
         if (process.env.EMBEDDED_MODE !== "true" && process.env.LOCAL_MODE !== "true") {
@@ -187,8 +187,8 @@ if (!isInitDbMode && !isHealthCheckMode) {
 
       try {
         await initializeJobQueue();
-      } catch (jobError: any) {
-        logger.warn("⚠️ Job queue initialization failed (non-fatal):", { details: jobError.message });
+      } catch (jobError: unknown) {
+        logger.warn("⚠️ Job queue initialization failed (non-fatal):", { details: jobError instanceof Error ? jobError.message : String(jobError) });
       }
 
       await initializeMLServices();
@@ -198,8 +198,8 @@ if (!isInitDbMode && !isHealthCheckMode) {
       // These services depend on database - wrap in try/catch for resilience
       try {
         await applyTimescaleOptimizations(localModeFlag);
-      } catch (e: any) {
-        logger.warn("⚠️ TimescaleDB optimizations skipped:", { details: e.message });
+      } catch (e: unknown) {
+        logger.warn("⚠️ TimescaleDB optimizations skipped:", { details: e instanceof Error ? e.message : String(e) });
       }
 
       // Push A2 — Knowledge graph bootstrap runs independently of
@@ -207,14 +207,14 @@ if (!isInitDbMode && !isHealthCheckMode) {
       // PG + AGE testing works without Timescale being enabled.
       try {
         await applyGraphBootstrap();
-      } catch (e: any) {
-        logger.warn("⚠️ Knowledge graph bootstrap skipped:", { details: e.message });
+      } catch (e: unknown) {
+        logger.warn("⚠️ Knowledge graph bootstrap skipped:", { details: e instanceof Error ? e.message : String(e) });
       }
 
       try {
         await startSyncServices(localModeFlag);
-      } catch (e: any) {
-        logger.warn("⚠️ Sync services initialization skipped:", { details: e.message });
+      } catch (e: unknown) {
+        logger.warn("⚠️ Sync services initialization skipped:", { details: e instanceof Error ? e.message : String(e) });
       }
 
       logger.info("→ Initializing domain event bus...");
@@ -247,15 +247,15 @@ if (!isInitDbMode && !isHealthCheckMode) {
         await initializeAutoReplanPolicy();
         await initializeFmccPolling();
         await initializePatchingSystem(isEmbedded);
-      } catch (e: any) {
-        logger.warn("⚠️ Background services partially initialized:", { details: e.message });
+      } catch (e: unknown) {
+        logger.warn("⚠️ Background services partially initialized:", { details: e instanceof Error ? e.message : String(e) });
       }
 
       try {
         const { startEmailWorker } = await import("./purchasing/email-worker");
         startEmailWorker();
-      } catch (e: any) {
-        logger.warn("⚠️ Email worker initialization skipped:", { details: e.message });
+      } catch (e: unknown) {
+        logger.warn("⚠️ Email worker initialization skipped:", { details: e instanceof Error ? e.message : String(e) });
       }
 
       await configureFinalErrorHandlers(app);

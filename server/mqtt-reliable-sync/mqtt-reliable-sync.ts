@@ -31,6 +31,7 @@ import {
   unsubscribeFromEntity,
   resubscribeAll,
   topicMatches,
+  type MqttPayloadCallback,
 } from "./subscription.js";
 import { publishCatchupMessages } from "./catchup.js";
 import { setMqttConnectionStatus, incrementMqttReconnectionAttempts } from "../observability";
@@ -41,7 +42,7 @@ export class MqttReliableSyncService extends EventEmitter {
   private config: ReliableSyncConfig;
   private isConnected: boolean = false;
   private messageQueue: MqttMessage[] = [];
-  private subscriptions: Map<string, Set<(payload: any) => void>> = new Map();
+  private subscriptions: Map<string, Set<MqttPayloadCallback>> = new Map();
   private reconnectAttempts: number = 0;
   private metrics: MqttMetrics = {
     messagesPublished: 0,
@@ -217,7 +218,7 @@ export class MqttReliableSyncService extends EventEmitter {
     });
   }
 
-  private handleIncomingMessage(topic: string, message: any): void {
+  private handleIncomingMessage(topic: string, message: unknown): void {
     const callbacks = this.subscriptions.get(topic);
     if (callbacks) {
       callbacks.forEach((callback) => {
@@ -292,7 +293,7 @@ export class MqttReliableSyncService extends EventEmitter {
 
   async subscribe(
     entityType: string,
-    callback: (payload: any) => void,
+    callback: MqttPayloadCallback,
     enableCatchup: boolean = true
   ): Promise<void> {
     return subscribeToEntity(
@@ -305,7 +306,7 @@ export class MqttReliableSyncService extends EventEmitter {
     );
   }
 
-  async unsubscribe(entityType: string, callback: (payload: any) => void): Promise<void> {
+  async unsubscribe(entityType: string, callback: MqttPayloadCallback): Promise<void> {
     return unsubscribeFromEntity(
       this.client,
       this.isConnected,

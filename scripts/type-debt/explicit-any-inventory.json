@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-22T08:46:39.934Z",
+  "generatedAt": "2026-05-22T09:18:35.761Z",
   "rule": "@typescript-eslint/no-explicit-any",
-  "total": 891,
-  "totalFiles": 302,
+  "total": 846,
+  "totalFiles": 300,
   "buckets": {
     "external_lib_gaps": {
       "label": "External library typing gaps",
@@ -50,7 +50,7 @@
       "remediation": "Define the DTO once with Zod, derive the TS type via `z.infer`, and import the type at every helper. For handlers, use `AuthenticatedRequest` from `server/middleware/auth.ts` and parse `req.body`/`req.query`/`req.params` with the schema — same contract the wire-parses sweep enforced.",
       "count": 161,
       "files": 50,
-      "percent": 18.1,
+      "percent": 19,
       "topFiles": [
         {
           "file": "server/routes/equipment-context/data-queries.ts",
@@ -115,9 +115,9 @@
       "label": "Dynamic JSON payloads",
       "definition": "`JSON.parse(...) as any`, `Record<string, any>`, drizzle `jsonb()` columns, OpenAI function-call arguments, Sentry/observability event payloads, telemetry attribute bags, anything that's genuinely heterogeneous at the boundary.",
       "remediation": "Stop trusting the payload. Parse once with `z.unknown().pipe(targetSchema)` or `JSON.parse` followed by a Zod parse. Inside the system, replace `any` with `unknown` so callers are forced to narrow. For drizzle `jsonb` columns, declare the column type as `jsonb().$type<MyShape>()` and store the Zod schema alongside.",
-      "count": 95,
-      "files": 45,
-      "percent": 10.7,
+      "count": 87,
+      "files": 43,
+      "percent": 10.3,
       "topFiles": [
         {
           "file": "server/compliance/data-anonymization/service.ts",
@@ -140,10 +140,6 @@
           "count": 5
         },
         {
-          "file": "server/mqtt-reliable-sync/subscription.ts",
-          "count": 5
-        },
-        {
           "file": "client/src/features/digital-twin/hooks/useTwinApi.ts",
           "count": 4
         },
@@ -157,6 +153,10 @@
         },
         {
           "file": "client/src/features/work-orders/hooks/useWorkOrderRequests.ts",
+          "count": 3
+        },
+        {
+          "file": "server/governance/lineage.ts",
           "count": 3
         }
       ],
@@ -182,14 +182,10 @@
       "label": "Generic inference failures",
       "definition": "Functions whose signature uses `any` because the author couldn't get a generic to flow (callback params typed `(x: any)`, `Array<any>`, `Promise<any>`, return-type `any` on a helper that should have inferred).",
       "remediation": "Reach for `Parameters<typeof fn>[n]` / `Awaited<ReturnType<typeof fn>>` / `infer` rather than `any`. For callbacks, type the higher-order function generically (`<T>(items: T[], cb: (x: T) => void)`) instead of widening the parameter. For Promise chains, type the resolution value, not the wrapper.",
-      "count": 413,
-      "files": 167,
-      "percent": 46.4,
+      "count": 376,
+      "files": 165,
+      "percent": 44.4,
       "topFiles": [
-        {
-          "file": "client/src/pages/maintenance-schedules.tsx",
-          "count": 15
-        },
         {
           "file": "server/ml-prediction-service.ts",
           "count": 13
@@ -199,32 +195,36 @@
           "count": 11
         },
         {
-          "file": "client/src/pages/dashboard-improved.tsx",
-          "count": 9
-        },
-        {
           "file": "server/services/compliance-rules-engine/engine-core.ts",
           "count": 9
         },
         {
-          "file": "server/index.ts",
-          "count": 8
+          "file": "client/src/pages/dashboard-improved.tsx",
+          "count": 7
         },
         {
-          "file": "server/job-processors/report-processors.ts",
-          "count": 8
+          "file": "server/inventory-risk/analyzer.ts",
+          "count": 6
+        },
+        {
+          "file": "server/ml-model-registry.ts",
+          "count": 6
         },
         {
           "file": "server/mqtt-reliable-sync/mqtt-reliable-sync.ts",
-          "count": 7
+          "count": 6
+        },
+        {
+          "file": "server/services/data-export-import/data-transforms.ts",
+          "count": 6
         },
         {
           "file": "server/services/ml/ml-training-job-queue.ts",
-          "count": 7
+          "count": 6
         },
         {
-          "file": "server/bootstrap/middleware.ts",
-          "count": 6
+          "file": "server/db-utils/timescale.ts",
+          "count": 5
         }
       ],
       "examples": [
@@ -251,7 +251,7 @@
       "remediation": "Don't paper over with a cast. These are the call sites that should drive Phase 3 work (Result/Either, branded IDs, discriminated unions, shared API envelopes, typed domain errors). Capture the call site in the follow-up task list and resolve it as part of the domain redesign — not as a one-line edit.",
       "count": 220,
       "files": 119,
-      "percent": 24.7,
+      "percent": 26,
       "topFiles": [
         {
           "file": "server/services/data-export-import/entity-upserters.ts",
