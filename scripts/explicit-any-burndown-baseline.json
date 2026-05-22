@@ -1,0 +1,5 @@
+{
+  "_comment": "Explicit-`any` burndown baseline. Total must monotonically decrease. Regenerate the inventory (`node scripts/type-debt/classify-explicit-any.mjs`) then run `node scripts/check-explicit-any-burndown.mjs --write-baseline`.",
+  "generatedAt": "2026-05-22T00:03:26.326Z",
+  "total": 1032
+}
