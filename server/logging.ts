@@ -29,7 +29,7 @@ export interface LogContext {
     stack?: string;
     code?: string;
   };
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // Request-scoped context using AsyncLocalStorage (concurrency-safe)
@@ -208,7 +208,7 @@ export function redactSensitiveFields<T>(obj: T, depth: number = 0): T {
     return obj.map((item) => redactSensitiveFields(item, depth + 1)) as T;
   }
 
-  const redacted: Record<string, any> = {};
+  const redacted: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     const lowerKey = key.toLowerCase();
 
@@ -288,11 +288,11 @@ export function createScopedLogger(scope: {
   requestId?: string;
 }) {
   return {
-    info: (message: string, metadata?: Record<string, any>) =>
+    info: (message: string, metadata?: Record<string, unknown>) =>
       structuredLog("info", message, { ...scope, metadata }),
-    warn: (message: string, metadata?: Record<string, any>) =>
+    warn: (message: string, metadata?: Record<string, unknown>) =>
       structuredLog("warn", message, { ...scope, metadata }),
-    error: (message: string, error?: Error, metadata?: Record<string, any>) =>
+    error: (message: string, error?: Error, metadata?: Record<string, unknown>) =>
       structuredLog("error", message, {
         ...scope,
         error: error
@@ -304,7 +304,7 @@ export function createScopedLogger(scope: {
           : undefined,
         metadata,
       }),
-    debug: (message: string, metadata?: Record<string, any>) =>
+    debug: (message: string, metadata?: Record<string, unknown>) =>
       structuredLog("debug", message, { ...scope, metadata }),
   };
 }

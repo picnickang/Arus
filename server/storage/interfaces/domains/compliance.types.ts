@@ -120,7 +120,7 @@ export interface IComplianceStorage {
       responseType: string;
       responseNotes?: string;
       exportPath?: string;
-      deletionConfirmation?: Record<string, any>;
+      deletionConfirmation?: Record<string, unknown>;
     },
     orgId: string
   ): Promise<DataSubjectRequest>;
@@ -134,11 +134,11 @@ export interface IComplianceStorage {
     identifier: string,
     identifierType: "email" | "userId" | "crewId"
   ): Promise<{
-    personalInfo: Record<string, any>;
-    workHistory: Record<string, any>[];
-    certifications: Record<string, any>[];
-    assignments: Record<string, any>[];
-    auditTrail: Record<string, any>[];
+    personalInfo: Record<string, unknown>;
+    workHistory: Record<string, unknown>[];
+    certifications: Record<string, unknown>[];
+    assignments: Record<string, unknown>[];
+    auditTrail: Record<string, unknown>[];
   }>;
   executeDataErasure(
     orgId: string,

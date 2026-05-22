@@ -15,7 +15,7 @@ export const ERROR_HANDLING_CONFIG = {
   TIMEOUT: { DATABASE_MS: 10000, EXTERNAL_API_MS: 15000, FILE_OPERATION_MS: 5000 },
 };
 
-function getDeploymentContext(): Record<string, any> {
+function getDeploymentContext(): Record<string, unknown> {
   const isLocalMode = process.env.LOCAL_MODE === "true" || process.env.EMBEDDED_MODE === "true";
   return {
     deploymentMode: isLocalMode ? "VESSEL" : "CLOUD",
@@ -29,7 +29,7 @@ export class AppError extends Error {
     message: string,
     public statusCode: number = 500,
     public code: string = "INTERNAL_ERROR",
-    public context?: Record<string, any>,
+    public context?: Record<string, unknown>,
     public isOperational: boolean = true
   ) {
     super(message);
@@ -40,19 +40,19 @@ export class AppError extends Error {
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(message, 400, "VALIDATION_ERROR", context);
   }
 }
 
 export class DatabaseError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(message, 500, "DATABASE_ERROR", context);
   }
 }
 
 export class ExternalServiceError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(message, 503, "EXTERNAL_SERVICE_ERROR", context);
   }
 }

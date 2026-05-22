@@ -1,36 +1,36 @@
 # Explicit `any` Inventory
 
-_Generated: 2026-05-22T09:18:35.761Z_
+_Generated: 2026-05-22T12:35:17.212Z_
 
 Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit-any`. Regenerate with `node scripts/type-debt/classify-explicit-any.mjs`.
 
 ## Headline
 
-- **Total occurrences:** 846
-- **Distinct files:** 300
+- **Total occurrences:** 796
+- **Distinct files:** 292
 
 **Rough split (based on bucket heuristics — see per-bucket sections for caveats):**
 
-- ~44.7% mechanical (test mocks + external library gaps + generic inference fixes)
-- ~29.3% schema / generic redesign (dynamic JSON parses + legacy DTOs)
-- ~26.0% truly unsafe / residual (drives Phase 3 domain work)
+- ~47.5% mechanical (test mocks + external library gaps + generic inference fixes)
+- ~25.1% schema / generic redesign (dynamic JSON parses + legacy DTOs)
+- ~27.4% truly unsafe / residual (drives Phase 3 domain work)
 
 **Bucket totals:**
 
 | Bucket | Occurrences | % | Files |
 |---|---:|---:|---:|
-| External library typing gaps | 2 | 0.2% | 2 |
+| External library typing gaps | 2 | 0.3% | 2 |
 | Test mocks / stubs | 0 | 0.0% | 0 |
-| Legacy DTOs (route handlers, request/response shapes) | 161 | 19.0% | 50 |
-| Dynamic JSON payloads | 87 | 10.3% | 43 |
-| Generic inference failures | 376 | 44.4% | 165 |
-| Truly unsafe / untyped logic | 220 | 26.0% | 119 |
+| Legacy DTOs (route handlers, request/response shapes) | 161 | 20.2% | 50 |
+| Dynamic JSON payloads | 39 | 4.9% | 32 |
+| Generic inference failures | 376 | 47.2% | 165 |
+| Truly unsafe / untyped logic | 218 | 27.4% | 118 |
 
 ## External library typing gaps
 
 **Definition.** Casts and `any` parameters that exist because a third-party library has poor or missing TypeScript types (SDK responses, untyped npm packages, raw driver rows, multer/express middleware extensions, etc.).
 
-**Count.** 2 occurrences across 2 files (0.2% of all explicit `any`).
+**Count.** 2 occurrences across 2 files (0.3% of all explicit `any`).
 
 **Top files:**
 
@@ -58,7 +58,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** `any` on route-handler request bodies/queries, untyped DTO interfaces, and helper signatures that pass request-shaped data around without ever describing it. Most of these survived the wire-parses sweep because they live below the route registration layer.
 
-**Count.** 161 occurrences across 50 files (19.0% of all explicit `any`).
+**Count.** 161 occurrences across 50 files (20.2% of all explicit `any`).
 
 **Top files:**
 
@@ -87,28 +87,28 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** `JSON.parse(...) as any`, `Record<string, any>`, drizzle `jsonb()` columns, OpenAI function-call arguments, Sentry/observability event payloads, telemetry attribute bags, anything that's genuinely heterogeneous at the boundary.
 
-**Count.** 87 occurrences across 43 files (10.3% of all explicit `any`).
+**Count.** 39 occurrences across 32 files (4.9% of all explicit `any`).
 
 **Top files:**
 
 | File | Count |
 |---|---:|
-| `server/compliance/data-anonymization/service.ts` | 7 |
-| `server/logging.ts` | 6 |
-| `server/storage/interfaces/domains/compliance.types.ts` | 6 |
-| `server/utils/request-spans.ts` | 6 |
-| `server/error-handling/types.ts` | 5 |
-| `client/src/features/digital-twin/hooks/useTwinApi.ts` | 4 |
-| `server/digital-twin/index.ts` | 4 |
 | `client/src/features/settings/hooks/useDiagnosticsData.ts` | 3 |
-| `client/src/features/work-orders/hooks/useWorkOrderRequests.ts` | 3 |
-| `server/governance/lineage.ts` | 3 |
+| `server/shared/base-repository.ts` | 3 |
+| `server/digital-twin/physics-calculations.ts` | 2 |
+| `server/domains/vibration/routes.ts` | 2 |
+| `server/routes/diagnostics/types.ts` | 2 |
+| `client/src/components/ai-health/TrainingTab.tsx` | 1 |
+| `client/src/features/crew/hooks/useSchedulePlannerData.ts` | 1 |
+| `client/src/pages/digital-twin/ScenariosTab.tsx` | 1 |
+| `server/bootstrap/middleware.ts` | 1 |
+| `server/compliance/audit-middleware.ts` | 1 |
 
 **Examples:**
 
 - `client/src/components/ai-health/TrainingTab.tsx:493` — `const model = modelRow as Record<string, any>;`
 - `client/src/features/crew/hooks/useSchedulePlannerData.ts:21` — `payload: any;`
-- `client/src/features/digital-twin/hooks/useTwinApi.ts:39` — `mutationFn: (data: Record<string, any>) =>`
+- `client/src/features/settings/hooks/useDiagnosticsData.ts:24` — `details?: Record<string, any>;`
 
 **Recommended remediation.** Stop trusting the payload. Parse once with `z.unknown().pipe(targetSchema)` or `JSON.parse` followed by a Zod parse. Inside the system, replace `any` with `unknown` so callers are forced to narrow. For drizzle `jsonb` columns, declare the column type as `jsonb().$type<MyShape>()` and store the Zod schema alongside.
 
@@ -116,7 +116,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** Functions whose signature uses `any` because the author couldn't get a generic to flow (callback params typed `(x: any)`, `Array<any>`, `Promise<any>`, return-type `any` on a helper that should have inferred).
 
-**Count.** 376 occurrences across 165 files (44.4% of all explicit `any`).
+**Count.** 376 occurrences across 165 files (47.2% of all explicit `any`).
 
 **Top files:**
 
@@ -145,7 +145,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** Residual `any` that isn't explained by any of the above — typically deep cross-domain glue, dynamic property access on heterogeneous registries, or code that genuinely needs a domain redesign before it can be typed.
 
-**Count.** 220 occurrences across 119 files (26.0% of all explicit `any`).
+**Count.** 218 occurrences across 118 files (27.4% of all explicit `any`).
 
 **Top files:**
 

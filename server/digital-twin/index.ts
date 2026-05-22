@@ -104,7 +104,7 @@ export class DigitalTwinService extends EventEmitter {
     return twin;
   }
 
-  async updateTwinState(twinId: string, telemetryData: Record<string, any>): Promise<void> {
+  async updateTwinState(twinId: string, telemetryData: Record<string, unknown>): Promise<void> {
     const twin = this.activeTwins.get(twinId);
     if (!twin || !twin.currentState) {
       return;
@@ -335,10 +335,10 @@ export class DigitalTwinService extends EventEmitter {
     }
   }
 
-  private async getLatestTelemetryForVessel(_vesselId: string): Promise<Record<string, any>> {
+  private async getLatestTelemetryForVessel(_vesselId: string): Promise<Record<string, unknown>> {
     try {
       const latestTelemetry = await dbTelemetryStorage.getLatestTelemetryReadings(undefined, 50);
-      const vesselTelemetry: Record<string, any> = {};
+      const vesselTelemetry: Record<string, unknown> = {};
       for (const reading of latestTelemetry) {
         if (reading.equipmentId && reading.sensorType) {
           vesselTelemetry[reading.sensorType] = reading.value;
@@ -379,7 +379,7 @@ export class DigitalTwinService extends EventEmitter {
   async updateFuelEfficiency(
     twinId: string,
     orgId: string,
-    telemetryData: Record<string, any>
+    telemetryData: Record<string, unknown>
   ): Promise<void> {
     try {
       const [twin] = await db

@@ -30,7 +30,7 @@ export async function sha256File(filePath: string): Promise<string> {
 /**
  * Compute SHA-256 hash of a string or object
  */
-export function sha256(data: string | Record<string, any>): string {
+export function sha256(data: string | Record<string, unknown>): string {
   const h = createHash("sha256");
   const content =
     typeof data === "string"
@@ -266,7 +266,7 @@ export async function compareModels(
           }
           return acc;
         },
-        {} as Record<string, any>
+        {} as Record<string, unknown>
       ),
     },
     metricsDiff: {
@@ -283,7 +283,7 @@ export async function compareModels(
           }
           return acc;
         },
-        {} as Record<string, any>
+        {} as Record<string, unknown>
       ),
     },
   };

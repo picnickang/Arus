@@ -131,7 +131,7 @@ export function useWorkOrderRequests(workOrderId: string) {
       prId: string;
       itemId: string;
       quantity: number;
-    }) => apiRequest<Record<string, any>>("POST", `/api/purchase-requests/${prId}/items/${itemId}/fulfill`, { quantityToFulfill: quantity }),
+    }) => apiRequest<Record<string, unknown>>("POST", `/api/purchase-requests/${prId}/items/${itemId}/fulfill`, { quantityToFulfill: quantity }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ["/api/work-orders", workOrderId, "purchase-requests"],
@@ -248,7 +248,7 @@ export function useWorkOrderRequests(workOrderId: string) {
   });
 
   const bulkDeleteServiceOrdersMutation = useMutation({
-    mutationFn: async () => apiRequest<Record<string, any>>("DELETE", `/api/service-orders/bulk/by-work-order/${workOrderId}`),
+    mutationFn: async () => apiRequest<{ deletedCount: number; skippedCount: number }>("DELETE", `/api/service-orders/bulk/by-work-order/${workOrderId}`),
     onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ["/api/work-orders", workOrderId, "service-orders"],
@@ -268,7 +268,7 @@ export function useWorkOrderRequests(workOrderId: string) {
   });
 
   const bulkDeletePurchaseRequestsMutation = useMutation({
-    mutationFn: async () => apiRequest<Record<string, any>>("DELETE", `/api/purchase-requests/bulk/by-work-order/${workOrderId}`),
+    mutationFn: async () => apiRequest<{ deletedCount: number; skippedCount: number }>("DELETE", `/api/purchase-requests/bulk/by-work-order/${workOrderId}`),
     onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ["/api/work-orders", workOrderId, "purchase-requests"],

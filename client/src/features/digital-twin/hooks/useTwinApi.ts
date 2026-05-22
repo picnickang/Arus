@@ -36,7 +36,7 @@ export function useTemplates() {
 export function useCreateTemplate() {
   const { currentOrgId } = useOrganization();
   return useMutation({
-    mutationFn: (data: Record<string, any>) =>
+    mutationFn: (data: Record<string, unknown>) =>
       apiRequest("POST", "/api/pdm/twin/def/templates", { ...data, orgId: currentOrgId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/pdm/twin/def/templates"] });
@@ -73,7 +73,7 @@ export function useTwin(twinId: string) {
 export function useCreateTwin() {
   const { currentOrgId } = useOrganization();
   return useMutation({
-    mutationFn: (data: Record<string, any>) =>
+    mutationFn: (data: Record<string, unknown>) =>
       apiRequest("POST", "/api/pdm/twin/def/twins", { ...data, orgId: currentOrgId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/pdm/twin/def/twins"] });
@@ -156,7 +156,7 @@ export function useTwinScenarios(twinId: string) {
 export function useRunScenario() {
   const { currentOrgId } = useOrganization();
   return useMutation({
-    mutationFn: (data: { twinId: string; name: string; parameters: Record<string, any> }) =>
+    mutationFn: (data: { twinId: string; name: string; parameters: Record<string, unknown> }) =>
       apiRequest("POST", "/api/pdm/twin/scenarios/run", data),
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({
@@ -188,7 +188,7 @@ export function useLogTwinEvent() {
     mutationFn: (data: {
       twinId: string;
       eventType: string;
-      payload?: Record<string, any>;
+      payload?: Record<string, unknown>;
       source?: string;
     }) => apiRequest("POST", "/api/pdm/twin/replay/events", { ...data, orgId: currentOrgId }),
     onSuccess: () => {

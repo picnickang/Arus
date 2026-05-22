@@ -122,7 +122,7 @@ export async function recordJournalEntry(
   entityType: EntityType,
   entityId: string,
   operation: OperationType,
-  payload: any,
+  payload: unknown,
   userId?: string
 ): Promise<void> {
   try {
@@ -146,7 +146,7 @@ export async function recordJournalEntry(
  */
 export async function publishEvent(
   eventType: EventType,
-  payload: any,
+  payload: unknown,
   emitRealtime: boolean = true
 ): Promise<void> {
   try {
@@ -176,7 +176,7 @@ export async function recordAndPublish(
   entityType: EntityType,
   entityId: string,
   operation: OperationType,
-  data: any,
+  data: unknown,
   userId?: string
 ): Promise<void> {
   // Record in journal
@@ -209,7 +209,7 @@ export async function getEntityHistory(
   entityType: EntityType,
   entityId: string,
   limit: number = 50
-): Promise<any[]> {
+): Promise<Array<typeof syncJournal.$inferSelect>> {
   try {
     return await db
       .select()

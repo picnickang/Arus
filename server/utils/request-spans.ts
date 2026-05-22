@@ -50,7 +50,7 @@ export interface Span {
   endTime?: number;
   durationMs?: number;
   error?: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   parentSpanId?: string;
 }
 
@@ -85,10 +85,10 @@ function safeDecActiveSpans(category: string): void {
 export function startSpan(
   category: string,
   name: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): {
   span: Span;
-  end: (result?: { error?: boolean; metadata?: Record<string, any> }) => void;
+  end: (result?: { error?: boolean; metadata?: Record<string, unknown> }) => void;
 } {
   const requestId = getCorrelationId();
 
@@ -118,7 +118,7 @@ export function startSpan(
 
   return {
     span,
-    end: (result?: { error?: boolean; metadata?: Record<string, any> }) => {
+    end: (result?: { error?: boolean; metadata?: Record<string, unknown> }) => {
       if (ended) {
         return;
       }
@@ -144,7 +144,7 @@ export async function withSpan<T>(
   category: string,
   name: string,
   fn: () => Promise<T>,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): Promise<T> {
   const { end } = startSpan(category, name, metadata);
   try {
@@ -164,7 +164,7 @@ export function syncSpan<T>(
   category: string,
   name: string,
   fn: () => T,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): T {
   const { end } = startSpan(category, name, metadata);
   try {

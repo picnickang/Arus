@@ -30,7 +30,7 @@ export class DataAnonymizationService {
     };
   }
 
-  anonymizeRecord<T extends Record<string, any>>(
+  anonymizeRecord<T extends Record<string, unknown>>(
     record: T,
     entityName: string,
     config: AnonymizationConfig
@@ -78,7 +78,7 @@ export class DataAnonymizationService {
     };
   }
 
-  private processDefinedFields<T extends Record<string, any>>(
+  private processDefinedFields<T extends Record<string, unknown>>(
     anonymized: T,
     fields: string[],
     entityName: string,
@@ -106,7 +106,7 @@ export class DataAnonymizationService {
     return { anonymizedCount, skippedCount };
   }
 
-  private processRemainingFields<T extends Record<string, any>>(
+  private processRemainingFields<T extends Record<string, unknown>>(
     anonymized: T,
     entityName: string,
     config: AnonymizationConfig,
@@ -135,7 +135,7 @@ export class DataAnonymizationService {
     return { anonymizedCount, skippedCount };
   }
 
-  anonymizeDataset<T extends Record<string, any>>(
+  anonymizeDataset<T extends Record<string, unknown>>(
     records: T[],
     entityName: string,
     config: AnonymizationConfig
@@ -294,11 +294,11 @@ export class DataAnonymizationService {
   }
 
   private anonymizeNestedObject(
-    obj: Record<string, any>,
+    obj: Record<string, unknown>,
     entityName: string,
     deepScan: boolean = false
-  ): Record<string, any> {
-    const anonymizedObj: Record<string, any> = {};
+  ): Record<string, unknown> {
+    const anonymizedObj: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(obj)) {
       if (val === null || val === undefined) {
         anonymizedObj[key] = val;

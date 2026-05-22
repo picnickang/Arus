@@ -32,7 +32,7 @@ export class ConversationService {
     orgId: string;
     userId?: string;
     title?: string;
-    context?: Record<string, any>;
+    context?: Record<string, unknown>;
   }): Promise<RagConversation> {
     const [conversation] = await db
       .insert(ragConversations)
@@ -179,7 +179,7 @@ export class ConversationService {
 
     return {
       messages: contextMessages,
-      metadata: (conversation?.context as Record<string, any>) || {},
+      metadata: (conversation?.context as Record<string, unknown>) || {},
     };
   }
 
