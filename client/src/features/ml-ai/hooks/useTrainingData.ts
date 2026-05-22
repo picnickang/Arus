@@ -16,7 +16,13 @@ import type { MlModelDisplay } from "../types";
 interface AcousticAnalysisResult {
   healthScore?: number;
   severity: string;
-  features?: Record<string, any>;
+  features?: {
+    rms?: number;
+    peakAmplitude?: number;
+    dominantFrequency?: number;
+    snr?: number;
+    [key: string]: number | undefined;
+  };
   primaryIssues: string[];
   recommendations: string[];
 }
@@ -68,12 +74,11 @@ export function useTrainingData() {
   const { data: equipment = [] } = useQuery<Equipment[]>({ queryKey: trainingKeys.equipment });
   const uniqueEquipmentTypes = getUniqueEquipmentTypes(equipment);
 
-  const trainLSTM = useCustomMutation<any, any>({
-    mutationFn: async (params: {
-      equipmentType?: string;
-      epochs?: number;
-      sequenceLength?: number;
-    }) => {
+  const trainLSTM = useCustomMutation<
+    { equipmentType?: string; epochs?: number; sequenceLength?: number },
+    TrainingResult
+  >({
+    mutationFn: async (params) => {
       return apiRequest("POST", "/api/ml/train/lstm", {
         orgId,
         equipmentType: params.equipmentType || undefined,
@@ -90,8 +95,11 @@ export function useTrainingData() {
     },
   });
 
-  const trainRandomForest = useCustomMutation<any, any>({
-    mutationFn: async (params: { equipmentType?: string; numTrees?: number }) => {
+  const trainRandomForest = useCustomMutation<
+    { equipmentType?: string; numTrees?: number },
+    TrainingResult
+  >({
+    mutationFn: async (params) => {
       return apiRequest("POST", "/api/ml/train/random-forest", {
         orgId,
         equipmentType: params.equipmentType || undefined,
@@ -130,8 +138,8 @@ export function useTrainingData() {
     },
   });
 
-  const resetMLData = useCustomMutation<any, any>({
-    mutationFn: async (params: { deleteModels?: boolean }) => {
+  const resetMLData = useCustomMutation<{ deleteModels?: boolean }, ResetResult>({
+    mutationFn: async (params) => {
       return apiRequest("POST", "/api/admin/ml/reset-training-data", {
         confirmationCode: "RESET_ML_DATA_CONFIRMED",
         deleteModels: params.deleteModels || false,

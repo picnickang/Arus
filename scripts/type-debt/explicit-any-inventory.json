@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-22T01:40:55.461Z",
+  "generatedAt": "2026-05-22T04:59:14.349Z",
   "rule": "@typescript-eslint/no-explicit-any",
-  "total": 959,
-  "totalFiles": 315,
+  "total": 919,
+  "totalFiles": 308,
   "buckets": {
     "external_lib_gaps": {
       "label": "External library typing gaps",
@@ -50,7 +50,7 @@
       "remediation": "Define the DTO once with Zod, derive the TS type via `z.infer`, and import the type at every helper. For handlers, use `AuthenticatedRequest` from `server/middleware/auth.ts` and parse `req.body`/`req.query`/`req.params` with the schema — same contract the wire-parses sweep enforced.",
       "count": 166,
       "files": 50,
-      "percent": 17.3,
+      "percent": 18.1,
       "topFiles": [
         {
           "file": "server/routes/equipment-context/data-queries.ts",
@@ -115,9 +115,9 @@
       "label": "Dynamic JSON payloads",
       "definition": "`JSON.parse(...) as any`, `Record<string, any>`, drizzle `jsonb()` columns, OpenAI function-call arguments, Sentry/observability event payloads, telemetry attribute bags, anything that's genuinely heterogeneous at the boundary.",
       "remediation": "Stop trusting the payload. Parse once with `z.unknown().pipe(targetSchema)` or `JSON.parse` followed by a Zod parse. Inside the system, replace `any` with `unknown` so callers are forced to narrow. For drizzle `jsonb` columns, declare the column type as `jsonb().$type<MyShape>()` and store the Zod schema alongside.",
-      "count": 98,
-      "files": 47,
-      "percent": 10.2,
+      "count": 95,
+      "files": 45,
+      "percent": 10.3,
       "topFiles": [
         {
           "file": "server/compliance/data-anonymization/service.ts",
@@ -182,9 +182,9 @@
       "label": "Generic inference failures",
       "definition": "Functions whose signature uses `any` because the author couldn't get a generic to flow (callback params typed `(x: any)`, `Array<any>`, `Promise<any>`, return-type `any` on a helper that should have inferred).",
       "remediation": "Reach for `Parameters<typeof fn>[n]` / `Awaited<ReturnType<typeof fn>>` / `infer` rather than `any`. For callbacks, type the higher-order function generically (`<T>(items: T[], cb: (x: T) => void)`) instead of widening the parameter. For Promise chains, type the resolution value, not the wrapper.",
-      "count": 458,
-      "files": 178,
-      "percent": 47.8,
+      "count": 434,
+      "files": 173,
+      "percent": 47.2,
       "topFiles": [
         {
           "file": "client/src/pages/maintenance-schedules.tsx",
@@ -207,10 +207,6 @@
           "count": 9
         },
         {
-          "file": "client/src/pages/ai-health-dashboard.tsx",
-          "count": 8
-        },
-        {
           "file": "server/index.ts",
           "count": 8
         },
@@ -225,6 +221,10 @@
         {
           "file": "server/services/ml/ml-training-job-queue.ts",
           "count": 7
+        },
+        {
+          "file": "server/bootstrap/middleware.ts",
+          "count": 6
         }
       ],
       "examples": [
@@ -249,9 +249,9 @@
       "label": "Truly unsafe / untyped logic",
       "definition": "Residual `any` that isn't explained by any of the above — typically deep cross-domain glue, dynamic property access on heterogeneous registries, or code that genuinely needs a domain redesign before it can be typed.",
       "remediation": "Don't paper over with a cast. These are the call sites that should drive Phase 3 work (Result/Either, branded IDs, discriminated unions, shared API envelopes, typed domain errors). Capture the call site in the follow-up task list and resolve it as part of the domain redesign — not as a one-line edit.",
-      "count": 235,
-      "files": 123,
-      "percent": 24.5,
+      "count": 222,
+      "files": 120,
+      "percent": 24.2,
       "topFiles": [
         {
           "file": "server/services/data-export-import/entity-upserters.ts",
@@ -260,10 +260,6 @@
         {
           "file": "server/lp-optimizer/lp-formulation.ts",
           "count": 8
-        },
-        {
-          "file": "client/src/features/ml-ai/hooks/useTrainingData.ts",
-          "count": 6
         },
         {
           "file": "server/job-processors/report-processors.ts",
@@ -292,6 +288,10 @@
         {
           "file": "server/services/ml/prediction-outcome-tracker.ts",
           "count": 5
+        },
+        {
+          "file": "client/src/features/maintenance/hooks/usePdmPackData.ts",
+          "count": 4
         }
       ],
       "examples": [

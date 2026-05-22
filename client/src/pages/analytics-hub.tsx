@@ -83,13 +83,38 @@ function DomainStrip({
   );
 }
 
+interface EquipmentHealthItem {
+  healthIndex?: number;
+  healthScore?: number;
+}
+
+interface WorkOrderSummary {
+  openCount?: number;
+  open?: number;
+  overdueCount?: number;
+  overdue?: number;
+  completionRate?: number;
+}
+
+interface CostSummary {
+  latestMonthCost?: number;
+  monthlyChange?: number;
+  totalSavings?: number;
+}
+
+interface IntegrityStatus {
+  healthPercentage?: number;
+  healthScore?: number;
+  issueCount?: number;
+}
+
 function KeyFindings({
   equipmentHealth,
   workOrderStats,
   costData,
   dataIntegrity,
 }: {
-  equipmentHealth: any[];
+  equipmentHealth: EquipmentHealthItem[];
   workOrderStats: { open: number; overdue: number; completionRate: number };
   costData: { monthlySpend: number; monthlyChange: number; totalSavings: number };
   dataIntegrity: { healthScore: number; issueCount: number };
@@ -175,22 +200,22 @@ export default function AnalyticsHub() {
     data: equipmentHealth = [],
     isLoading: healthLoading,
     error: healthError,
-  } = useQuery<any[]>({
+  } = useQuery<EquipmentHealthItem[]>({
     queryKey: ["/api/equipment/health"],
     staleTime: 60000,
   });
 
-  const { data: workOrderSummary, error: woError } = useQuery<any>({
+  const { data: workOrderSummary, error: woError } = useQuery<WorkOrderSummary>({
     queryKey: ["/api/work-orders/summary"],
     staleTime: 60000,
   });
 
-  const { data: costSummary, error: costError } = useQuery<any>({
+  const { data: costSummary, error: costError } = useQuery<CostSummary>({
     queryKey: ["/api/pdm/cost-savings/summary"],
     staleTime: 120000,
   });
 
-  const { data: integrityStatus, error: integrityError } = useQuery<any>({
+  const { data: integrityStatus, error: integrityError } = useQuery<IntegrityStatus>({
     queryKey: ["/api/reconciliation/status"],
     staleTime: 120000,
   });
@@ -202,14 +227,14 @@ export default function AnalyticsHub() {
       return 0;
     }
     const sum = equipmentHealth.reduce(
-      (s: number, e: any) => s + (e.healthIndex ?? e.healthScore ?? 100),
+      (s, e) => s + (e.healthIndex ?? e.healthScore ?? 100),
       0
     );
     return Math.round(sum / equipmentHealth.length);
   }, [equipmentHealth]);
 
   const criticalCount = equipmentHealth.filter(
-    (e: any) => (e.healthIndex ?? e.healthScore ?? 100) < 40
+    (e) => (e.healthIndex ?? e.healthScore ?? 100) < 40
   ).length;
 
   const openWOs = workOrderSummary?.openCount ?? workOrderSummary?.open ?? 0;

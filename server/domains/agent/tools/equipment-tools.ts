@@ -3,6 +3,7 @@ import { eq, and } from "drizzle-orm";
 import { equipment, vessels } from "@shared/schema";
 import { z } from "zod";
 import { registerTool } from "./registry";
+import type { ToolContext } from "../domain/types";
 
 registerTool({
   name: "getEquipmentSummary",
@@ -19,11 +20,12 @@ registerTool({
   },
   inputSchema: z.object({ equipmentId: z.string().min(1) }),
   requiresApproval: false,
-  async execute(input: any, ctx: any) {
+  async execute(input: Record<string, unknown>, ctx: ToolContext) {
+    const { equipmentId } = input as { equipmentId: string };
     const [item] = await db
       .select()
       .from(equipment)
-      .where(and(eq(equipment.id, input.equipmentId), eq(equipment.orgId, ctx.orgId)));
+      .where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, ctx.orgId)));
     if (!item) {
       return { error: "Equipment not found" };
     }
@@ -63,19 +65,20 @@ registerTool({
   },
   inputSchema: z.object({ vesselId: z.string().optional() }),
   requiresApproval: false,
-  async execute(input: any, ctx: any) {
-    if (input.vesselId) {
+  async execute(input: Record<string, unknown>, ctx: ToolContext) {
+    const { vesselId } = input as { vesselId?: string };
+    if (vesselId) {
       const [vessel] = await db
         .select()
         .from(vessels)
-        .where(and(eq(vessels.id, input.vesselId), eq(vessels.orgId, ctx.orgId)));
+        .where(and(eq(vessels.id, vesselId), eq(vessels.orgId, ctx.orgId)));
       if (!vessel) {
         return { error: "Vessel not found" };
       }
       const equip = await db
         .select({ id: equipment.id })
         .from(equipment)
-        .where(and(eq(equipment.vesselId, input.vesselId), eq(equipment.orgId, ctx.orgId)));
+        .where(and(eq(equipment.vesselId, vesselId), eq(equipment.orgId, ctx.orgId)));
       return {
         id: vessel.id,
         name: vessel.name,
@@ -118,10 +121,11 @@ registerTool({
   },
   inputSchema: z.object({ limit: z.number().optional(), vesselId: z.string().optional() }),
   requiresApproval: false,
-  async execute(input: any, ctx: any) {
+  async execute(input: Record<string, unknown>, ctx: ToolContext) {
+    const { limit, vesselId } = input as { limit?: number; vesselId?: string };
     const conditions = [eq(equipment.orgId, ctx.orgId)];
-    if (input.vesselId) {
-      conditions.push(eq(equipment.vesselId, input.vesselId));
+    if (vesselId) {
+      conditions.push(eq(equipment.vesselId, vesselId));
     }
 
     const equip = await db
@@ -149,6 +153,6 @@ registerTool({
     }));
 
     scored.sort((a, b) => b.riskScore - a.riskScore);
-    return { equipment: scored.slice(0, input.limit || 5) };
+    return { equipment: scored.slice(0, limit || 5) };
   },
 });

@@ -75,34 +75,50 @@ export default function AIHealthDashboard() {
 
   const isLoading = healthLoading || predictionsLoading || anomaliesLoading;
 
-  const equipmentList = healthData?.results ?? [];
-  const predictions = predictionsData?.results ?? [];
-  const anomalies = anomaliesData?.results ?? [];
+  type EquipmentHealthItem = Awaited<
+    ReturnType<typeof fetchEquipmentHealthTyped>
+  >["results"][number];
+  type PredictionItem = Awaited<
+    ReturnType<typeof fetchFailurePredictions>
+  >["results"][number] & {
+    confidence?: number;
+    daysUntilFailure?: number;
+    recommendedAction?: string;
+  };
+  type AnomalyItem = Awaited<
+    ReturnType<typeof fetchAnomalyDetections>
+  >["results"][number] & {
+    acknowledged?: boolean;
+  };
 
-  const healthyCount = equipmentList.filter((e: any) => e.healthScore >= 75).length;
+  const equipmentList: EquipmentHealthItem[] = healthData?.results ?? [];
+  const predictions: PredictionItem[] = predictionsData?.results ?? [];
+  const anomalies: AnomalyItem[] = anomaliesData?.results ?? [];
+
+  const healthyCount = equipmentList.filter((e) => (e.healthScore ?? 0) >= 75).length;
   const totalCount = equipmentList.length;
   const fleetHealthPercent = totalCount > 0 ? Math.round((healthyCount / totalCount) * 100) : 0;
 
-  const activeAlerts = anomalies.filter((a: any) => !a.acknowledged).length;
-  const predictedFailures = predictions.filter((p: any) => p.confidence >= 0.7).length;
-  const maintenanceDue = predictions.filter((p: any) => {
+  const activeAlerts = anomalies.filter((a) => !a.acknowledged).length;
+  const predictedFailures = predictions.filter((p) => (p.confidence ?? 0) >= 0.7).length;
+  const maintenanceDue = predictions.filter((p) => {
     const daysUntil = p.daysUntilFailure ?? 30;
     return daysUntil <= 14;
   }).length;
 
   const topRecommendations = predictions
-    .filter((p: any) => p.confidence >= 0.5)
+    .filter((p) => (p.confidence ?? 0) >= 0.5)
     .slice(0, 5)
-    .map((p: any) => ({
+    .map((p) => ({
       equipment: p.equipmentName || p.equipmentId,
       action: p.recommendedAction || `Schedule maintenance within ${p.daysUntilFailure ?? 30} days`,
-      urgency: p.confidence >= 0.8 ? "high" : p.confidence >= 0.6 ? "medium" : "low",
+      urgency:
+        (p.confidence ?? 0) >= 0.8 ? "high" : (p.confidence ?? 0) >= 0.6 ? "medium" : "low",
     }));
 
   const avgConfidence =
     predictions.length > 0
-      ? predictions.reduce((sum: number, p: any) => sum + (p.confidence || 0), 0) /
-        predictions.length
+      ? predictions.reduce((sum, p) => sum + (p.confidence || 0), 0) / predictions.length
       : 0;
 
   return (
@@ -317,7 +333,7 @@ function OverviewTab({
   predictions,
 }: {
   avgConfidence: number;
-  predictions: any[];
+  predictions: { length: number };
 }) {
   return (
     <Card>

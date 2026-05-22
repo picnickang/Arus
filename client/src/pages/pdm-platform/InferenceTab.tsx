@@ -17,19 +17,7 @@ import { useRunInference, usePredictionExplanations } from "@/features/pdm/hooks
 import { EquipmentSelector } from "@/components/shared/EquipmentSelector";
 import { EquipmentLink, TimestampBadge } from "./_shared";
 
-interface InferenceResult {
-  inferenceRun?: {
-    status?: string;
-    latencyMs?: number;
-    predictionId?: number;
-  };
-  prediction: {
-    failureProbability: number;
-    riskLevel: string;
-    remainingUsefulLife: number;
-    recommendations?: string[];
-  };
-}
+type InferenceResult = Awaited<ReturnType<ReturnType<typeof useRunInference>["mutateAsync"]>>;
 
 export function InferenceTab() {
   const [equipmentId, setEquipmentId] = useState("");
@@ -47,7 +35,7 @@ export function InferenceTab() {
       return;
     }
     try {
-      const result = (await inferenceMutation.mutateAsync({ equipmentId })) as InferenceResult;
+      const result = await inferenceMutation.mutateAsync({ equipmentId });
       setLastResult(result);
       setLastInferredEquipmentId(equipmentId);
       setInferenceTime(new Date());
@@ -177,7 +165,7 @@ export function InferenceTab() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {explanations.map((e: any) => (
+              {explanations.map((e) => (
                 <div
                   key={e.id}
                   className="flex items-center gap-3 p-2 rounded border"

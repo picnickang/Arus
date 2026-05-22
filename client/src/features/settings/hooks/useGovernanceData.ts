@@ -63,12 +63,10 @@ export function useGovernanceData() {
       if (lineageFilters.toDate) {
         params.set("to", lineageFilters.toDate);
       }
-      const res: any = await apiRequest("GET", `/api/governance/model/lineage?${params.toString()}`);
-      if (!res.ok) {
-        const errorData: any = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to fetch lineage records");
-      }
-      return res.json();
+      return apiRequest<{ success: boolean; count: number; records: LineageRecord[] }>(
+        "GET",
+        `/api/governance/model/lineage?${params.toString()}`,
+      );
     },
   });
 
@@ -93,21 +91,21 @@ export function useGovernanceData() {
         params.set("to", provenanceFilters.toDate);
       }
       params.set("limit", String(provenanceFilters.limit));
-      const res: any = await apiRequest("GET", `/api/governance/provenance/events?${params.toString()}`);
-      if (!res.ok) {
-        const errorData: any = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to fetch provenance events");
-      }
-      return res.json();
+      return apiRequest<{ success: boolean; events: ProvenanceEvent[]; total: number }>(
+        "GET",
+        `/api/governance/provenance/events?${params.toString()}`,
+      );
     },
     enabled: activeTab === "provenance",
   });
 
   const verifyChainMutation = useMutation({
-    mutationFn: async () => {
-      const res: any = await apiRequest("POST", "/api/governance/provenance/verify", {});
-      return res.json();
-    },
+    mutationFn: async () =>
+      apiRequest<{ success: boolean; verification: VerificationResult }>(
+        "POST",
+        "/api/governance/provenance/verify",
+        {},
+      ),
     onSuccess: (data: { success: boolean; verification: VerificationResult }) => {
       if (data.verification.ok) {
         toast({

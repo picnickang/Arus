@@ -23,6 +23,7 @@ import { equipment } from "@shared/schema";
 import { failureHistory } from "../../../../shared/schema/ml-analytics-core";
 import { inventoryMovements, parts } from "../../../../shared/schema/inventory";
 import { registerTool } from "./registry";
+import type { ToolContext } from "../domain/types";
 import {
   failurePropagation as graphFailurePropagation,
   findSimilarFailures as graphFindSimilarFailures,
@@ -45,21 +46,22 @@ registerTool({
   },
   inputSchema: z.object({ equipmentId: z.string().min(1) }),
   requiresApproval: false,
-  async execute(input: any, ctx: any) {
+  async execute(input: Record<string, unknown>, ctx: ToolContext) {
+    const { equipmentId } = input as { equipmentId: string };
     if (isGraphAvailable()) {
       // Fall back to relational ONLY when the graph is unavailable
       // (env-gated off / extension missing). An EMPTY graph result
       // is the correct authoritative answer when the graph is up —
       // falling through to relational here would mask graph drift
       // (reviewer's sixth-pass non-blocking comment).
-      const rows = await graphFindSimilarFailures(ctx.orgId, input.equipmentId);
+      const rows = await graphFindSimilarFailures(ctx.orgId, equipmentId);
       return { source: "graph", results: rows };
     }
     // Relational fallback — same business question via JOIN.
     const [src] = await db
       .select({ type: equipment.type })
       .from(equipment)
-      .where(and(eq(equipment.id, input.equipmentId), eq(equipment.orgId, ctx.orgId)))
+      .where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, ctx.orgId)))
       .limit(1);
     if (!src?.type) return { source: "relational", results: [] };
     const peerIds = (
@@ -118,8 +120,12 @@ registerTool({
       message: "failureMode (or failureModeId alias) is required",
     }),
   requiresApproval: false,
-  async execute(input: any, ctx: any) {
-    const failureMode: string = input.failureMode ?? input.failureModeId;
+  async execute(input: Record<string, unknown>, ctx: ToolContext) {
+    const { failureMode: fm, failureModeId } = input as {
+      failureMode?: string;
+      failureModeId?: string;
+    };
+    const failureMode: string = (fm ?? failureModeId) as string;
     if (isGraphAvailable()) {
       // Same fallback policy as findSimilarFailures: empty graph
       // result is authoritative when the graph is up.
@@ -186,7 +192,8 @@ registerTool({
     maxHops: z.number().int().min(1).max(5).optional(),
   }),
   requiresApproval: false,
-  async execute(input: any, ctx: any) {
+  async execute(input: Record<string, unknown>, ctx: ToolContext) {
+    const { equipmentId, maxHops } = input as { equipmentId: string; maxHops?: number };
     if (!isGraphAvailable()) {
       return {
         source: "relational",
@@ -194,11 +201,7 @@ registerTool({
         note: "Dependency propagation requires the knowledge graph (GRAPH_ENABLED). No relational equivalent.",
       };
     }
-    const rows = await graphFailurePropagation(
-      ctx.orgId,
-      input.equipmentId,
-      input.maxHops ?? 3
-    );
+    const rows = await graphFailurePropagation(ctx.orgId, equipmentId, maxHops ?? 3);
     return { source: "graph", results: rows };
   },
 });
