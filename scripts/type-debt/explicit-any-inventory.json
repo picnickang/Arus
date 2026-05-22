@@ -1,0 +1,373 @@
+{
+  "generatedAt": "2026-05-22T00:03:26.326Z",
+  "rule": "@typescript-eslint/no-explicit-any",
+  "total": 1032,
+  "totalFiles": 330,
+  "buckets": {
+    "external_lib_gaps": {
+      "label": "External library typing gaps",
+      "definition": "Casts and `any` parameters that exist because a third-party library has poor or missing TypeScript types (SDK responses, untyped npm packages, raw driver rows, multer/express middleware extensions, etc.).",
+      "remediation": "Wrap each library at a single adapter boundary. Define an internal interface that matches what we actually consume, parse the library response with Zod (or a hand-rolled type guard) once, and let the rest of the codebase depend on the internal type. If the library ships @types, upgrade. If it doesn't and the surface is stable, hand-write a `.d.ts` in `types/`.",
+      "count": 2,
+      "files": 2,
+      "percent": 0.2,
+      "topFiles": [
+        {
+          "file": "server/telemetry/adapters/batch-ack.ts",
+          "count": 1
+        },
+        {
+          "file": "server/telemetry/adapters/raw-archive.ts",
+          "count": 1
+        }
+      ],
+      "examples": [
+        {
+          "file": "server/telemetry/adapters/batch-ack.ts",
+          "line": 81,
+          "snippet": "metadata: input.metadata as any,"
+        },
+        {
+          "file": "server/telemetry/adapters/raw-archive.ts",
+          "line": 89,
+          "snippet": "metadata: payload.metadata as any,"
+        }
+      ]
+    },
+    "test_mocks": {
+      "label": "Test mocks / stubs",
+      "definition": "Occurrences inside `tests/`, `*.test.ts(x)`, jest setup, fixture factories. Mocks often need to bypass constructor visibility or stub partial shapes.",
+      "remediation": "Prefer `jest.mocked()` + typed factory functions (`makeFakeVessel(overrides?: Partial<Vessel>): Vessel`). For partial stubs, use `Partial<T>` + `satisfies` instead of `any`. Where a mock genuinely needs to lie about a type, isolate it in a `__mocks__/` helper rather than littering test bodies with `any`.",
+      "count": 64,
+      "files": 12,
+      "percent": 6.2,
+      "topFiles": [
+        {
+          "file": "tests/unit/middleware.test.ts",
+          "count": 11
+        },
+        {
+          "file": "tests/unit/shared-validation.test.ts",
+          "count": 11
+        },
+        {
+          "file": "tests/integration/workflow-gap-closure.test.ts",
+          "count": 7
+        },
+        {
+          "file": "tests/unit/graph-projector-live-writers.test.ts",
+          "count": 7
+        },
+        {
+          "file": "tests/unit/dual-driver-query-parity.test.ts",
+          "count": 6
+        },
+        {
+          "file": "server/tests/telemetry-pipeline/hexagonal-architecture.test.ts",
+          "count": 5
+        },
+        {
+          "file": "tests/unit/websocket-fanout.test.ts",
+          "count": 5
+        },
+        {
+          "file": "tests/unit/prediction-lineage.test.ts",
+          "count": 4
+        },
+        {
+          "file": "tests/unit/permissions-mapper.test.ts",
+          "count": 3
+        },
+        {
+          "file": "tests/integration/feature-flag-tenant-isolation.test.ts",
+          "count": 2
+        }
+      ],
+      "examples": [
+        {
+          "file": "server/tests/telemetry-pipeline/hexagonal-architecture.test.ts",
+          "line": 44,
+          "snippet": ".fn<(payload: any, error: string, source: string) => DeadLetterEntry<any>>()"
+        },
+        {
+          "file": "server/tests/telemetry-pipeline/hexagonal-architecture.test.ts",
+          "line": 44,
+          "snippet": ".fn<(payload: any, error: string, source: string) => DeadLetterEntry<any>>()"
+        },
+        {
+          "file": "server/tests/telemetry-pipeline/hexagonal-architecture.test.ts",
+          "line": 46,
+          "snippet": "const entry: DeadLetterEntry<any> = {"
+        }
+      ]
+    },
+    "legacy_dto": {
+      "label": "Legacy DTOs (route handlers, request/response shapes)",
+      "definition": "`any` on route-handler request bodies/queries, untyped DTO interfaces, and helper signatures that pass request-shaped data around without ever describing it. Most of these survived the wire-parses sweep because they live below the route registration layer.",
+      "remediation": "Define the DTO once with Zod, derive the TS type via `z.infer`, and import the type at every helper. For handlers, use `AuthenticatedRequest` from `server/middleware/auth.ts` and parse `req.body`/`req.query`/`req.params` with the schema — same contract the wire-parses sweep enforced.",
+      "count": 166,
+      "files": 50,
+      "percent": 16.1,
+      "topFiles": [
+        {
+          "file": "server/routes/equipment-context/data-queries.ts",
+          "count": 16
+        },
+        {
+          "file": "server/routes/equipment-context/context-builder.ts",
+          "count": 15
+        },
+        {
+          "file": "server/routes/vessel-3d-routes.ts",
+          "count": 9
+        },
+        {
+          "file": "server/routes/home-routes.ts",
+          "count": 7
+        },
+        {
+          "file": "server/routes/analytics/model-governance.ts",
+          "count": 5
+        },
+        {
+          "file": "server/routes/wo-so-bridge-routes.ts",
+          "count": 5
+        },
+        {
+          "file": "server/domains/config-management/routes.ts",
+          "count": 4
+        },
+        {
+          "file": "server/domains/integrations/routes.ts",
+          "count": 4
+        },
+        {
+          "file": "server/domains/work-orders/interfaces/workflow-routes.ts",
+          "count": 4
+        },
+        {
+          "file": "server/routes/kb-ask-route.ts",
+          "count": 4
+        }
+      ],
+      "examples": [
+        {
+          "file": "server/compliance/routes/ml-governance-routes.ts",
+          "line": 164,
+          "snippet": "const existingOverride: any = Array.isArray(existingOverrideRaw)"
+        },
+        {
+          "file": "server/domains/config-management/routes.ts",
+          "line": 17,
+          "snippet": "db: any;"
+        },
+        {
+          "file": "server/domains/config-management/routes.ts",
+          "line": 18,
+          "snippet": "configAuditLog: any;"
+        }
+      ]
+    },
+    "dynamic_json": {
+      "label": "Dynamic JSON payloads",
+      "definition": "`JSON.parse(...) as any`, `Record<string, any>`, drizzle `jsonb()` columns, OpenAI function-call arguments, Sentry/observability event payloads, telemetry attribute bags, anything that's genuinely heterogeneous at the boundary.",
+      "remediation": "Stop trusting the payload. Parse once with `z.unknown().pipe(targetSchema)` or `JSON.parse` followed by a Zod parse. Inside the system, replace `any` with `unknown` so callers are forced to narrow. For drizzle `jsonb` columns, declare the column type as `jsonb().$type<MyShape>()` and store the Zod schema alongside.",
+      "count": 98,
+      "files": 47,
+      "percent": 9.5,
+      "topFiles": [
+        {
+          "file": "server/compliance/data-anonymization/service.ts",
+          "count": 7
+        },
+        {
+          "file": "server/logging.ts",
+          "count": 6
+        },
+        {
+          "file": "server/storage/interfaces/domains/compliance.types.ts",
+          "count": 6
+        },
+        {
+          "file": "server/utils/request-spans.ts",
+          "count": 6
+        },
+        {
+          "file": "server/error-handling/types.ts",
+          "count": 5
+        },
+        {
+          "file": "server/mqtt-reliable-sync/subscription.ts",
+          "count": 5
+        },
+        {
+          "file": "client/src/features/digital-twin/hooks/useTwinApi.ts",
+          "count": 4
+        },
+        {
+          "file": "server/digital-twin/index.ts",
+          "count": 4
+        },
+        {
+          "file": "client/src/features/settings/hooks/useDiagnosticsData.ts",
+          "count": 3
+        },
+        {
+          "file": "client/src/features/work-orders/hooks/useWorkOrderRequests.ts",
+          "count": 3
+        }
+      ],
+      "examples": [
+        {
+          "file": "client/src/components/ai-health/TrainingTab.tsx",
+          "line": 493,
+          "snippet": "const model = modelRow as Record<string, any>;"
+        },
+        {
+          "file": "client/src/features/crew/hooks/useSchedulePlannerData.ts",
+          "line": 21,
+          "snippet": "payload: any;"
+        },
+        {
+          "file": "client/src/features/digital-twin/hooks/useTwinApi.ts",
+          "line": 29,
+          "snippet": "mutationFn: (data: Record<string, any>) =>"
+        }
+      ]
+    },
+    "generic_inference": {
+      "label": "Generic inference failures",
+      "definition": "Functions whose signature uses `any` because the author couldn't get a generic to flow (callback params typed `(x: any)`, `Array<any>`, `Promise<any>`, return-type `any` on a helper that should have inferred).",
+      "remediation": "Reach for `Parameters<typeof fn>[n]` / `Awaited<ReturnType<typeof fn>>` / `infer` rather than `any`. For callbacks, type the higher-order function generically (`<T>(items: T[], cb: (x: T) => void)`) instead of widening the parameter. For Promise chains, type the resolution value, not the wrapper.",
+      "count": 466,
+      "files": 181,
+      "percent": 45.2,
+      "topFiles": [
+        {
+          "file": "client/src/pages/maintenance-schedules.tsx",
+          "count": 15
+        },
+        {
+          "file": "server/ml-prediction-service.ts",
+          "count": 13
+        },
+        {
+          "file": "server/openai/dossier-builder.ts",
+          "count": 11
+        },
+        {
+          "file": "client/src/pages/dashboard-improved.tsx",
+          "count": 9
+        },
+        {
+          "file": "server/services/compliance-rules-engine/engine-core.ts",
+          "count": 9
+        },
+        {
+          "file": "client/src/pages/ai-health-dashboard.tsx",
+          "count": 8
+        },
+        {
+          "file": "server/index.ts",
+          "count": 8
+        },
+        {
+          "file": "server/job-processors/report-processors.ts",
+          "count": 8
+        },
+        {
+          "file": "server/mqtt-reliable-sync/mqtt-reliable-sync.ts",
+          "count": 7
+        },
+        {
+          "file": "server/services/ml/ml-training-job-queue.ts",
+          "count": 7
+        }
+      ],
+      "examples": [
+        {
+          "file": "artifacts/mockup-sandbox/src/components/mockups/home-layouts/SidebarSplit.tsx",
+          "line": 48,
+          "snippet": "const Button = ({ children, variant = 'default', size = 'default', className = '', ...props }: any) => {"
+        },
+        {
+          "file": "client/src/components/agent/AgentChatPanel/index.tsx",
+          "line": 59,
+          "snippet": "const recognitionRef = useRef<any | null>(null);"
+        },
+        {
+          "file": "client/src/components/agent/AgentChatPanel/index.tsx",
+          "line": 248,
+          "snippet": "type SpeechRecognitionConstructor = new () => any;"
+        }
+      ]
+    },
+    "truly_unsafe": {
+      "label": "Truly unsafe / untyped logic",
+      "definition": "Residual `any` that isn't explained by any of the above — typically deep cross-domain glue, dynamic property access on heterogeneous registries, or code that genuinely needs a domain redesign before it can be typed.",
+      "remediation": "Don't paper over with a cast. These are the call sites that should drive Phase 3 work (Result/Either, branded IDs, discriminated unions, shared API envelopes, typed domain errors). Capture the call site in the follow-up task list and resolve it as part of the domain redesign — not as a one-line edit.",
+      "count": 236,
+      "files": 124,
+      "percent": 22.9,
+      "topFiles": [
+        {
+          "file": "server/services/data-export-import/entity-upserters.ts",
+          "count": 10
+        },
+        {
+          "file": "server/lp-optimizer/lp-formulation.ts",
+          "count": 8
+        },
+        {
+          "file": "client/src/features/ml-ai/hooks/useTrainingData.ts",
+          "count": 6
+        },
+        {
+          "file": "server/job-processors/report-processors.ts",
+          "count": 6
+        },
+        {
+          "file": "server/report-context/data-fetchers.ts",
+          "count": 6
+        },
+        {
+          "file": "server/integrations/aquametro-fmcc/rest-client.ts",
+          "count": 5
+        },
+        {
+          "file": "server/ml-model-registry.ts",
+          "count": 5
+        },
+        {
+          "file": "server/services/compliance-rules-engine/engine-core.ts",
+          "count": 5
+        },
+        {
+          "file": "server/services/data-export-import/entity-fetchers.ts",
+          "count": 5
+        },
+        {
+          "file": "server/services/ml/prediction-outcome-tracker.ts",
+          "count": 5
+        }
+      ],
+      "examples": [
+        {
+          "file": "client/src/components/UnifiedCrewManagement/CrewFormDialog.tsx",
+          "line": 32,
+          "snippet": "d: any;"
+        },
+        {
+          "file": "client/src/components/UnifiedCrewManagement/RosterFilters.tsx",
+          "line": 15,
+          "snippet": "export function RosterFilters({ d }: { d: any }) {"
+        },
+        {
+          "file": "client/src/components/UnifiedCrewManagement/RosterTable.tsx",
+          "line": 48,
+          "snippet": "d: any;"
+        }
+      ]
+    }
+  }
+}
