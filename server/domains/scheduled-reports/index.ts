@@ -84,7 +84,10 @@ export function createScheduledReportsDomain(): ScheduledReportsDomain {
 
 export function registerScheduledReportsRoutes(
   app: import("express").Express,
-  deps: { requireOrgId: any; generalApiRateLimit: any }
+  deps: {
+    requireOrgId: import("express").RequestHandler;
+    generalApiRateLimit: import("express").RequestHandler;
+  }
 ) {
   const domain = createScheduledReportsDomain();
   app.use("/api/scheduled-reports", deps.requireOrgId, deps.generalApiRateLimit, domain.router);

@@ -3,14 +3,18 @@
  * Orchestrates report scheduling, execution, and delivery
  */
 
-import cron from "node-cron";
+import cron, { type ScheduledTask } from "node-cron";
 import { isCloudMode, canUseCloudFeature } from "../../../config/runtimeEnv.js";
 import type {
   IReportScheduleRepository,
   IGeneratedReportRepository,
   IEventPublisher,
 } from "../domain/ports.js";
-import type { ReportScheduleConfig, ReportScheduleInput } from "../domain/types.js";
+import type {
+  ReportScheduleConfig,
+  ReportScheduleInput,
+  GeneratedReport,
+} from "../domain/types.js";
 import {
   createEvent,
   type ReportScheduleCreatedEvent,
@@ -23,7 +27,7 @@ import { logger } from "../../../utils/logger.js";
 const LOG_CTX = "ReportSchedulerService";
 
 export class ReportSchedulerService {
-  private cronJobs: Map<string, any> = new Map();
+  private cronJobs: Map<string, ScheduledTask> = new Map();
   private isInitialized = false;
 
   constructor(
@@ -161,11 +165,15 @@ export class ReportSchedulerService {
     await this.executeSchedule(schedule);
   }
 
-  async getReportHistory(scheduleId: string, orgId: string, limit = 10): Promise<any[]> {
+  async getReportHistory(
+    scheduleId: string,
+    orgId: string,
+    limit = 10
+  ): Promise<GeneratedReport[]> {
     return this.reportRepository.findBySchedule(scheduleId, orgId, limit);
   }
 
-  async getAllReports(orgId: string, limit = 50): Promise<any[]> {
+  async getAllReports(orgId: string, limit = 50): Promise<GeneratedReport[]> {
     return this.reportRepository.findByOrg(orgId, limit);
   }
 

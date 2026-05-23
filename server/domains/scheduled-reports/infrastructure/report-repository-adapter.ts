@@ -155,28 +155,34 @@ export class ReportScheduleRepositoryAdapter implements IReportScheduleRepositor
     `);
   }
 
-  private mapRowToConfig(row: any): ReportScheduleConfig {
+  private mapRowToConfig(row: unknown): ReportScheduleConfig {
+    const r = row as Record<string, unknown>;
+    const parseJsonArray = (val: unknown): string[] | null => {
+      if (val == null) {
+        return null;
+      }
+      if (typeof val === "string") {
+        return JSON.parse(val) as string[];
+      }
+      return val as string[];
+    };
     return {
-      id: row.id,
-      orgId: row.org_id,
-      name: row.name,
-      reportType: row.report_type as ReportType,
-      frequency: row.frequency as ReportFrequency,
-      cronExpression: row.cron_expression,
-      timezone: row.timezone,
-      format: row.format as ReportFormat,
-      recipients: typeof row.recipients === "string" ? JSON.parse(row.recipients) : row.recipients,
-      vesselIds: row.vessel_ids
-        ? typeof row.vessel_ids === "string"
-          ? JSON.parse(row.vessel_ids)
-          : row.vessel_ids
-        : null,
-      enabled: Boolean(row.enabled),
-      lastRunAt: row.last_run_at ? new Date(row.last_run_at) : null,
-      nextRunAt: row.next_run_at ? new Date(row.next_run_at) : null,
-      createdBy: row.created_by,
-      createdAt: new Date(row.created_at),
-      updatedAt: new Date(row.updated_at),
+      id: String(r.id),
+      orgId: String(r.org_id),
+      name: String(r.name),
+      reportType: r.report_type as ReportType,
+      frequency: r.frequency as ReportFrequency,
+      cronExpression: String(r.cron_expression),
+      timezone: String(r.timezone),
+      format: r.format as ReportFormat,
+      recipients: (parseJsonArray(r.recipients) ?? []) as string[],
+      vesselIds: parseJsonArray(r.vessel_ids),
+      enabled: Boolean(r.enabled),
+      lastRunAt: r.last_run_at ? new Date(r.last_run_at as string | number | Date) : null,
+      nextRunAt: r.next_run_at ? new Date(r.next_run_at as string | number | Date) : null,
+      createdBy: String(r.created_by),
+      createdAt: new Date(r.created_at as string | number | Date),
+      updatedAt: new Date(r.updated_at as string | number | Date),
     };
   }
 
@@ -211,7 +217,7 @@ export class GeneratedReportRepositoryAdapter implements IGeneratedReportReposit
 
   async update(id: string, updates: Partial<GeneratedReport>): Promise<GeneratedReport> {
     const setClauses: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
 
     if (updates.status !== undefined) {
       setClauses.push(`status = $${values.length + 1}`);
@@ -292,22 +298,26 @@ export class GeneratedReportRepositoryAdapter implements IGeneratedReportReposit
     return (result as { rowCount?: number }).rowCount || 0;
   }
 
-  private mapRowToReport(row: any): GeneratedReport {
+  private mapRowToReport(row: unknown): GeneratedReport {
+    const r = row as Record<string, unknown>;
     return {
-      id: row.id,
-      scheduleId: row.schedule_id,
-      orgId: row.org_id,
-      reportType: row.report_type as ReportType,
-      format: row.format as ReportFormat,
-      filename: row.filename,
-      filePath: row.file_path,
-      fileSize: row.file_size,
-      status: row.status as ReportStatus,
-      generatedAt: new Date(row.generated_at),
-      deliveredAt: row.delivered_at ? new Date(row.delivered_at) : null,
-      expiresAt: new Date(row.expires_at),
-      metadata: typeof row.metadata === "string" ? JSON.parse(row.metadata) : row.metadata,
-      errorMessage: row.error_message,
+      id: String(r.id),
+      scheduleId: String(r.schedule_id),
+      orgId: String(r.org_id),
+      reportType: r.report_type as ReportType,
+      format: r.format as ReportFormat,
+      filename: String(r.filename),
+      filePath: String(r.file_path),
+      fileSize: Number(r.file_size),
+      status: r.status as ReportStatus,
+      generatedAt: new Date(r.generated_at as string | number | Date),
+      deliveredAt: r.delivered_at ? new Date(r.delivered_at as string | number | Date) : null,
+      expiresAt: new Date(r.expires_at as string | number | Date),
+      metadata:
+        typeof r.metadata === "string"
+          ? (JSON.parse(r.metadata) as Record<string, unknown>)
+          : ((r.metadata ?? {}) as Record<string, unknown>),
+      errorMessage: (r.error_message as string | null) ?? null,
     };
   }
 }
