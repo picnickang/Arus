@@ -74,7 +74,7 @@ export function registerTasksRoutes(app: Express, rateLimit: RateLimitMiddleware
       }
 
       const validatedData = validation.data;
-      const updateData: Record<string, any> = {};
+      const updateData: Parameters<typeof workOrderService.updateWorkOrderTask>[1] = {};
 
       if (validatedData.description !== undefined) {
         updateData.description = validatedData.description;

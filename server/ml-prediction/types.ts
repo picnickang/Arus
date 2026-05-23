@@ -36,7 +36,7 @@ export function structuredLog(data: {
   orgId?: string;
   latencyMs?: number;
   status: "success" | "error" | "warning" | "info";
-  details?: any;
+  details?: Record<string, unknown>;
 }) {
   const metadata = {
     equipmentId: data.equipmentId,

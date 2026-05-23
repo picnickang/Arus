@@ -84,7 +84,7 @@ export class TwinStateService {
     const efficiencyScore = this.computeEfficiencyScore(observedValues, expectedValues);
     const remainingUsefulLifeHours = this.computeRUL(orgId, twinId, healthScore);
 
-    const operatingContext: Record<string, any> = {
+    const operatingContext: Record<string, unknown> = {
       readingCount: readings.length,
       sensorCount: Object.keys(observedValues).length,
       computedAt: new Date().toISOString(),

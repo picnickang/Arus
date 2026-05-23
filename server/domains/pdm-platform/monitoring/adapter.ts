@@ -117,9 +117,9 @@ export class ModelMonitoringAdapter implements ModelMonitoringPort {
         .limit(1);
 
       if (version?.hyperparameters && typeof version.hyperparameters === "object") {
-        const hp = version.hyperparameters as Record<string, any>;
+        const hp = version.hyperparameters as Record<string, unknown>;
         if (hp.trainingStats && typeof hp.trainingStats === "object") {
-          for (const [key, val] of Object.entries(hp.trainingStats)) {
+          for (const [key, val] of Object.entries(hp.trainingStats as Record<string, unknown>)) {
             if (val && typeof val === "object" && "mean" in val && "std" in val) {
               const stats = val as { mean: number; std: number };
               ref[key] = { mean: stats.mean, std: stats.std };

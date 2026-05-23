@@ -33,7 +33,7 @@ interface PlanParams {
   vessels?: string[];
   mode?: "dry_run" | "execute" | "auto" | "simulate";
   trigger?: string;
-  triggerContext?: any;
+  triggerContext?: unknown;
   fillUnassignedOnly?: boolean;
 }
 

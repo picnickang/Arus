@@ -42,7 +42,7 @@ export interface SchedulerRunStartedEvent {
   orgId: string;
   runId: string;
   trigger: string;
-  triggerContext?: any;
+  triggerContext?: unknown;
 }
 
 export interface SchedulerRunCompletedEvent {

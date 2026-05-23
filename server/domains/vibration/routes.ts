@@ -134,7 +134,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
       const rmsValue = Math.sqrt(data.reduce((sum: number, v: number) => sum + v * v, 0) / n);
       const peakValue = Math.max(...data.map(Math.abs));
 
-      const thresholds: Record<string, any> = {
+      const thresholds: Record<string, { warning: number; critical: number }> = {
         pump: { warning: 4.5, critical: 7.1 },
         motor: { warning: 2.8, critical: 4.5 },
         compressor: { warning: 4.5, critical: 7.1 },
@@ -185,7 +185,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
     withErrorHandling("perform ISO assessment", async (req: Request, res: Response) => {
       const { equipmentId, rmsVelocity, machineClass } = isoBodySchema.parse(req.body ?? {});
 
-      const isoLimits: Record<string, any> = {
+      const isoLimits: Record<string, { A: number; B: number; C: number; D: number }> = {
         class1: { A: 0.71, B: 1.8, C: 4.5, D: 11.2 },
         class2: { A: 1.12, B: 2.8, C: 7.1, D: 18 },
         class3: { A: 1.8, B: 4.5, C: 11.2, D: 28 },
