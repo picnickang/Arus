@@ -95,7 +95,7 @@ export interface FMCCAlarm {
 export interface FMCCRawSample {
   timestamp: Date;
   registers: Record<string, number>;
-  rawJson?: any;
+  rawJson?: unknown;
 }
 
 export interface FMCCServiceResult<T> {
@@ -105,4 +105,72 @@ export interface FMCCServiceResult<T> {
   errorCode?: string;
   source: "fmcc" | "cache" | "mock";
   responseTimeMs: number;
+}
+
+/**
+ * Raw (untyped) shapes returned by the FMCC REST API.
+ * The API ships snake_case fields; some installations also use camelCase.
+ * All fields are optional — mappers default-coalesce missing keys.
+ */
+export interface FMCCRawInstantFlow {
+  timestamp?: string | number;
+  fo_flow_rate?: number;
+  foFlowKgPerH?: number;
+  do_flow_rate?: number;
+  doFlowKgPerH?: number;
+  fo_return_flow?: number;
+  foReturnFlowKgPerH?: number;
+  do_return_flow?: number;
+  doReturnFlowKgPerH?: number;
+  fo_density?: number;
+  foDensity?: number;
+  do_density?: number;
+  doDensity?: number;
+  fo_temperature?: number;
+  foTemperature?: number;
+  do_temperature?: number;
+  doTemperature?: number;
+  status?: string;
+  error_code?: string;
+}
+
+export interface FMCCRawCumulative {
+  fo_consumed_kg?: number;
+  foConsumedKg?: number;
+  do_consumed_kg?: number;
+  doConsumedKg?: number;
+  avg_fo_density?: number;
+  avgFoDensity?: number;
+  avg_do_density?: number;
+  avgDoDensity?: number;
+  avg_fo_temperature?: number;
+  avgFoTemperature?: number;
+  avg_do_temperature?: number;
+  avgDoTemperature?: number;
+  data_points?: number;
+  dataPoints?: number;
+  data_completeness?: number;
+  dataCompleteness?: number;
+}
+
+export interface FMCCRawAlarm {
+  code: string;
+  severity?: FMCCAlarm["severity"];
+  message: string;
+  timestamp: string | number;
+  acknowledged?: boolean;
+}
+
+export interface FMCCRawMeterStatus {
+  timestamp?: string | number;
+  fo_meter_online?: boolean;
+  foMeterOnline?: boolean;
+  do_meter_online?: boolean;
+  doMeterOnline?: boolean;
+  fo_last_reading?: string | number;
+  do_last_reading?: string | number;
+  alarms?: FMCCRawAlarm[];
+  firmware_version?: string;
+  firmwareVersion?: string;
+  calibration_due?: string | number;
 }

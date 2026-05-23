@@ -2,7 +2,12 @@ import { EventEmitter } from "node:events";
 import { trackLogService, Position } from "../services/track-log-service";
 import { dbTelemetryStorage } from "../repositories";
 import { getFMCCService } from "./index";
-import type { FmccSnapshot, FmccPollingConfig, FmccHealthStatus } from "./fmcc-types";
+import type {
+  FmccSnapshot,
+  FmccPollingConfig,
+  FmccHealthStatus,
+  FmccRawPollData,
+} from "./fmcc-types";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Integrations:FmccPollingService");
 
@@ -109,7 +114,7 @@ export class FmccPollingService extends EventEmitter {
     }
   }
 
-  private buildSnapshot(data: any): FmccSnapshot {
+  private buildSnapshot(data: FmccRawPollData): FmccSnapshot {
     const snapshot: FmccSnapshot = {
       vesselId: this.config.vesselId,
       orgId: this.config.orgId,

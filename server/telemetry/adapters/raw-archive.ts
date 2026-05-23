@@ -86,7 +86,7 @@ export class RawTelemetryArchiveAdapter {
       payloadHash,
       frameCount: payload.frames.length,
       decodeStatus: "pending",
-      metadata: payload.metadata as any,
+      metadata: payload.metadata,
     });
 
     archiveWritesTotal.inc({ protocol: payload.protocol, status: "success" });

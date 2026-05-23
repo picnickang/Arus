@@ -464,3 +464,76 @@ export interface FmccHealthStatus {
   totalPollsFailed: number;
   averageResponseTimeMs: number;
 }
+
+/**
+ * Raw poll payload accepted by FmccPollingService.buildSnapshot.
+ * Supports both nested (fuel/navigation/engine/...) and flat field
+ * layouts that different FMCC deployments emit. All fields are optional;
+ * nested groups recursively share the same shape so `data.fuel ?? data`
+ * style fallback patterns stay typed.
+ */
+export interface FmccRawPollData {
+  fuel?: FmccRawPollData;
+  engine?: FmccRawPollData;
+  shaft?: FmccRawPollData;
+  tanks?: FmccRawPollData;
+  navigation?: FmccRawPollData;
+
+  // Fuel flow / density / temperature
+  totalFlowKgPerH?: number;
+  foFlowKgPerH?: number;
+  foNetFlowKgPerH?: number;
+  foReturnFlowKgPerH?: number;
+  foDensity?: number;
+  foTemperature?: number;
+  foCumulativeKg?: number;
+  doFlowKgPerH?: number;
+  doDensity?: number;
+  doTemperature?: number;
+  doCumulativeKg?: number;
+  mainEngineFlowKgPerH?: number;
+  generatorFlowKgPerH?: number;
+  portEngineFlowKgPerH?: number;
+  stbdEngineFlowKgPerH?: number;
+  boilerFlowKgPerH?: number;
+  auxEngine1FlowKgPerH?: number;
+  auxEngine2FlowKgPerH?: number;
+  bunkerFlowKgPerH?: number;
+  bunkerCumulativeKg?: number;
+
+  // Navigation
+  latDeg?: number;
+  lonDeg?: number;
+  speedOverGround?: number;
+  courseOverGround?: number;
+  heading?: number;
+  latitude?: number;
+  longitude?: number;
+  sog?: number;
+  cog?: number;
+
+  // Engine
+  rpm?: number;
+  loadPercent?: number;
+  load?: number;
+  runningHours?: number;
+  powerKw?: number;
+
+  // Shaft
+  torqueNm?: number;
+  rpmShaft?: number;
+  shaftGeneratorKw?: number;
+  shaftPowerKw?: number;
+  shaftTorqueNm?: number;
+  shaftRpm?: number;
+
+  // Tanks
+  foServiceLevelPct?: number;
+  foSettlingLevelPct?: number;
+  doServiceLevelPct?: number;
+  doSettlingLevelPct?: number;
+  foServiceVolumeM3?: number;
+  foSettlingVolumeM3?: number;
+  doServiceVolumeM3?: number;
+  doSettlingVolumeM3?: number;
+}

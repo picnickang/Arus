@@ -78,7 +78,7 @@ export class TelemetryBatchAckAdapter {
       firstFrameTs: input.firstFrameTs,
       lastFrameTs: input.lastFrameTs,
       status: "received",
-      metadata: input.metadata as any,
+      metadata: input.metadata,
     });
 
     batchReceivedTotal.inc({ source: input.source });

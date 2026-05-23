@@ -7,6 +7,9 @@ import type {
   FMCCInstantFlow,
   FMCCCumulativeCounters,
   FMCCMeterStatus,
+  FMCCRawInstantFlow,
+  FMCCRawCumulative,
+  FMCCRawMeterStatus,
 } from "./types.js";
 
 export class FMCCRestClient {
@@ -20,7 +23,7 @@ export class FMCCRestClient {
   private async request<T>(
     endpoint: string,
     method: "GET" | "POST" = "GET",
-    body?: any
+    body?: unknown
   ): Promise<T> {
     if (!this.config?.baseUrl) {
       throw new Error("FMCC REST base URL not configured");
@@ -67,7 +70,9 @@ export class FMCCRestClient {
   }
 
   async getInstantFlow(vesselId: string): Promise<FMCCInstantFlow> {
-    const data = await this.request<any>(`/api/v1/vessels/${vesselId}/flow/instant`);
+    const data = await this.request<FMCCRawInstantFlow>(
+      `/api/v1/vessels/${vesselId}/flow/instant`
+    );
     return this.mapInstantFlowResponse(vesselId, data);
   }
 
@@ -76,18 +81,18 @@ export class FMCCRestClient {
     from: Date,
     to: Date
   ): Promise<FMCCCumulativeCounters> {
-    const data = await this.request<any>(
+    const data = await this.request<FMCCRawCumulative>(
       `/api/v1/vessels/${vesselId}/flow/cumulative?from=${from.toISOString()}&to=${to.toISOString()}`
     );
     return this.mapCumulativeResponse(vesselId, from, to, data);
   }
 
   async getMeterStatus(vesselId: string): Promise<FMCCMeterStatus> {
-    const data = await this.request<any>(`/api/v1/vessels/${vesselId}/status`);
+    const data = await this.request<FMCCRawMeterStatus>(`/api/v1/vessels/${vesselId}/status`);
     return this.mapMeterStatusResponse(vesselId, data);
   }
 
-  private mapInstantFlowResponse(vesselId: string, data: any): FMCCInstantFlow {
+  private mapInstantFlowResponse(vesselId: string, data: FMCCRawInstantFlow): FMCCInstantFlow {
     return {
       timestamp: new Date(data.timestamp || Date.now()),
       vesselId,
@@ -101,7 +106,7 @@ export class FMCCRestClient {
       doDensity: data.do_density ?? data.doDensity ?? 0,
       foTemperature: data.fo_temperature ?? data.foTemperature ?? 0,
       doTemperature: data.do_temperature ?? data.doTemperature ?? 0,
-      meterStatus: this.mapMeterStatus(data.status),
+      meterStatus: this.mapMeterStatus(data.status ?? ""),
       errorCode: data.error_code,
     };
   }
@@ -110,7 +115,7 @@ export class FMCCRestClient {
     vesselId: string,
     from: Date,
     to: Date,
-    data: any
+    data: FMCCRawCumulative
   ): FMCCCumulativeCounters {
     const foConsumedKg = data.fo_consumed_kg ?? data.foConsumedKg ?? 0;
     const doConsumedKg = data.do_consumed_kg ?? data.doConsumedKg ?? 0;
@@ -134,7 +139,7 @@ export class FMCCRestClient {
     };
   }
 
-  private mapMeterStatusResponse(vesselId: string, data: any): FMCCMeterStatus {
+  private mapMeterStatusResponse(vesselId: string, data: FMCCRawMeterStatus): FMCCMeterStatus {
     return {
       vesselId,
       timestamp: new Date(data.timestamp || Date.now()),
@@ -142,7 +147,7 @@ export class FMCCRestClient {
       doMeterOnline: data.do_meter_online ?? data.doMeterOnline ?? false,
       foMeterLastReading: data.fo_last_reading ? new Date(data.fo_last_reading) : null,
       doMeterLastReading: data.do_last_reading ? new Date(data.do_last_reading) : null,
-      alarms: (data.alarms ?? []).map((a: any) => ({
+      alarms: (data.alarms ?? []).map((a) => ({
         code: a.code,
         severity: a.severity || "warning",
         message: a.message,

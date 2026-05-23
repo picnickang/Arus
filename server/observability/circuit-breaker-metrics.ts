@@ -70,9 +70,20 @@ export async function syncExternalCircuitBreakerMetrics() {
       setExternalCircuitBreakerState(service, state as 0 | 1 | 2);
     }
 
-    const cbModule: any = await import("../ml-circuit-breaker");
-    const circuitBreakerRegistry: any = cbModule.circuitBreakerRegistry ?? cbModule.default ?? {};
-    const mlStatuses = (circuitBreakerRegistry.getAllStats?.() ?? {}) as Record<string, any>;
+    interface MlCircuitBreakerStats {
+      state?: "OPEN" | "HALF_OPEN" | "CLOSED" | string;
+    }
+    interface MlCircuitBreakerRegistry {
+      getAllStats?: () => Record<string, MlCircuitBreakerStats>;
+    }
+    interface MlCircuitBreakerModule {
+      circuitBreakerRegistry?: MlCircuitBreakerRegistry;
+      default?: MlCircuitBreakerRegistry;
+    }
+    const cbModule = (await import("../ml-circuit-breaker")) as MlCircuitBreakerModule;
+    const circuitBreakerRegistry: MlCircuitBreakerRegistry =
+      cbModule.circuitBreakerRegistry ?? cbModule.default ?? {};
+    const mlStatuses = circuitBreakerRegistry.getAllStats?.() ?? {};
     for (const [modelName, stats] of Object.entries(mlStatuses)) {
       const { setMlCircuitBreakerState } = await import("./ml-metrics");
       const modelType = modelName.replace("ml_", "") as
