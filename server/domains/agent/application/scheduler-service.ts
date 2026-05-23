@@ -1,10 +1,11 @@
 import type { AgentRepositoryPort } from "../domain/ports";
+import type { AgentRunResult } from "../domain/types";
 import type { AgentSchedule } from "@shared/schema";
 import { db } from "../../../db";
 import { notificationQueue } from "@shared/schema";
 import { getRegisteredToolNames } from "../tools";
 import { eq, and, inArray } from "drizzle-orm";
-import cron from "node-cron";
+import cron, { type ScheduledTask } from "node-cron";
 import { createLogger } from "../../../lib/structured-logger";
 const logger = createLogger("Domains:Agent:Application:SchedulerService");
 
@@ -36,7 +37,7 @@ export type BriefingHandler = (
 ) => Promise<{ briefingId: string }>;
 
 export class SchedulerService {
-  private cronJobs: Map<string, any> = new Map();
+  private cronJobs: Map<string, ScheduledTask> = new Map();
   private briefingHandler: BriefingHandler | null = null;
 
   constructor(
@@ -48,7 +49,7 @@ export class SchedulerService {
       message: string,
       userRole?: string,
       options?: { toolAllowlist?: string[] | null; maxTokenBudget?: number }
-    ) => Promise<any>
+    ) => Promise<AgentRunResult>
   ) {}
 
   registerBriefingHandler(handler: BriefingHandler): void {
@@ -309,7 +310,7 @@ export class SchedulerService {
   private async deliverOutput(
     schedule: AgentSchedule,
     response: string,
-    result: any
+    result: AgentRunResult
   ): Promise<void> {
     const dest = schedule.outputDestination || "notification";
     const adminEmails = await resolveAdminEmails(schedule.orgId);

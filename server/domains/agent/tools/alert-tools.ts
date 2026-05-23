@@ -3,6 +3,13 @@ import { eq, desc, and } from "drizzle-orm";
 import { alertNotifications, failurePredictions, equipment } from "@shared/schema";
 import { z } from "zod";
 import { registerTool } from "./registry";
+import type { ToolContext } from "../domain/types";
+
+const getOpenAlertsSchema = z.object({
+  equipmentId: z.string().optional(),
+  limit: z.number().optional(),
+});
+const explainPdmAlertSchema = z.object({ alertId: z.string().min(1) });
 
 registerTool({
   name: "getOpenAlerts",
@@ -18,9 +25,10 @@ registerTool({
     },
     required: [],
   },
-  inputSchema: z.object({ equipmentId: z.string().optional(), limit: z.number().optional() }),
+  inputSchema: getOpenAlertsSchema,
   requiresApproval: false,
-  async execute(input: any, ctx: any) {
+  async execute(rawInput: Record<string, unknown>, ctx: ToolContext) {
+    const input = getOpenAlertsSchema.parse(rawInput);
     const conditions = [eq(alertNotifications.orgId, ctx.orgId)];
     if (input.equipmentId) {
       conditions.push(eq(alertNotifications.equipmentId, input.equipmentId));
@@ -63,9 +71,10 @@ registerTool({
     },
     required: ["alertId"],
   },
-  inputSchema: z.object({ alertId: z.string().min(1) }),
+  inputSchema: explainPdmAlertSchema,
   requiresApproval: false,
-  async execute(input: any, ctx: any) {
+  async execute(rawInput: Record<string, unknown>, ctx: ToolContext) {
+    const input = explainPdmAlertSchema.parse(rawInput);
     const [alert] = await db
       .select()
       .from(alertNotifications)

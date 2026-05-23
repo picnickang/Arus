@@ -3,6 +3,12 @@ import { eq, desc, and } from "drizzle-orm";
 import { failurePredictions } from "@shared/schema";
 import { z } from "zod";
 import { registerTool } from "./registry";
+import type { ToolContext } from "../domain/types";
+
+const getFailurePredictionsSchema = z.object({
+  equipmentId: z.string().min(1),
+  limit: z.number().optional(),
+});
 
 function classifyConfidence(probability: number | null | undefined): {
   level: string;
@@ -38,9 +44,10 @@ registerTool({
     },
     required: ["equipmentId"],
   },
-  inputSchema: z.object({ equipmentId: z.string().min(1), limit: z.number().optional() }),
+  inputSchema: getFailurePredictionsSchema,
   requiresApproval: false,
-  async execute(input: any, ctx: any) {
+  async execute(rawInput: Record<string, unknown>, ctx: ToolContext) {
+    const input = getFailurePredictionsSchema.parse(rawInput);
     const predictions = await db
       .select()
       .from(failurePredictions)

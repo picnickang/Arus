@@ -4,6 +4,21 @@ import { eq, and, sql } from "drizzle-orm";
 import { vessels } from "@shared/schema";
 import { registerTool, getTool } from "./registry";
 import { fetchWithCacheFallback } from "../infrastructure/external-data-cache";
+import type { ToolContext } from "../domain/types";
+
+const weatherRiskSchema = z.object({
+  vesselId: z.string().optional(),
+  activityType: z.enum([
+    "deck_work",
+    "crane_lifting",
+    "hull_inspection",
+    "enclosed_space",
+    "engine_room",
+    "general",
+  ]),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
+});
 
 // ---------------------------------------------------------------------------
 // Config — swap the provider URL and key for your chosen marine weather API
@@ -430,17 +445,20 @@ registerTool({
     lng: z.number().optional(),
   }),
   requiresApproval: false,
-  execute: (async (input: any, ctx: any) => {
+  async execute(rawInput: Record<string, unknown>, ctx: ToolContext) {
+    const input = weatherRiskSchema.parse(rawInput);
     // Reuse getMarineWeather for the data fetch
     const weatherTool = getTool("getMarineWeather");
     if (!weatherTool) {
       return { error: "Weather tool not available" };
     }
 
-    const weatherResult = (await weatherTool.execute(
+    const rawWeather = await weatherTool.execute(
       { vesselId: input.vesselId, lat: input.lat, lng: input.lng },
       ctx
-    )) as object as MarineWeatherData & { error?: string; _meta?: Record<string, unknown> };
+    );
+    const weatherResult = rawWeather as Record<string, unknown> &
+      Partial<MarineWeatherData> & { error?: string; _meta?: Record<string, unknown> };
 
     if (weatherResult.error) {
       return weatherResult;
@@ -492,5 +510,5 @@ registerTool({
       operationalRisk: weatherResult.operationalRisk,
       _meta: weatherResult._meta,
     };
-  }) as object as Parameters<typeof registerTool>[0]["execute"],
+  },
 });
