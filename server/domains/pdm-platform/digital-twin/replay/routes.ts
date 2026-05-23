@@ -16,8 +16,9 @@ router.post("/events", async (req: Request, res: Response) => {
     }
     const result = await adapter.logEvent(parsed.data);
     res.status(201).json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -44,8 +45,9 @@ router.get("/timeline", async (req: Request, res: Response) => {
       limit,
     });
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -70,8 +72,9 @@ router.get("/timeline/anomaly", async (req: Request, res: Response) => {
       windowMinutes,
     });
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 

@@ -19,11 +19,12 @@ router.post("/compute", async (req: Request, res: Response) => {
     }
     const result = await service.computeResiduals(orgId, parsed.data.twinId);
     res.json(result);
-  } catch (error: any) {
-    if (error.message?.includes("not found")) {
-      return res.status(404).json({ error: error.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("not found")) {
+      return res.status(404).json({ error: message });
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: message });
   }
 });
 
@@ -38,8 +39,9 @@ router.get("/twin/:twinId", async (req: Request, res: Response) => {
     const limit = parsed.success ? parsed.data.limit : undefined;
     const result = await service.getResidualsByTwin(orgId, req.params.twinId, limit);
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -48,8 +50,9 @@ router.get("/rankings", async (req: Request, res: Response) => {
     const orgId = DEFAULT_ORG_ID;
     const result = await service.getResidualRankings(orgId);
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 

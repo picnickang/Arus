@@ -22,12 +22,15 @@ function getUser(req: Request): { id: string; name?: string; rank?: string } {
   };
 }
 
-function getRows(result: any): any[] {
+function getRows(result: unknown): Record<string, unknown>[] {
   if (Array.isArray(result)) {
-    return result;
+    return result as Record<string, unknown>[];
   }
-  if (result?.rows && Array.isArray(result.rows)) {
-    return result.rows;
+  if (result && typeof result === "object" && "rows" in result) {
+    const rows = (result as { rows?: unknown }).rows;
+    if (Array.isArray(rows)) {
+      return rows as Record<string, unknown>[];
+    }
   }
   return [];
 }
@@ -216,8 +219,8 @@ router.get("/psc-view", requireOrgId, async (req: Request, res: Response) => {
       vessel_id: vesselId,
       period: { from: fromDate, to: toDate },
       totalEntries: entries.length,
-      correctedEntries: entries.filter((e: any) => e.is_corrected).length,
-      corrections: entries.filter((e: any) => e.correction_of).length,
+      correctedEntries: entries.filter((e) => Boolean((e as { is_corrected?: unknown }).is_corrected)).length,
+      corrections: entries.filter((e) => Boolean((e as { correction_of?: unknown }).correction_of)).length,
       auditSummary,
       entries,
     });

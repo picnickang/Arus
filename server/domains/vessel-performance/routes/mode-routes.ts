@@ -19,7 +19,7 @@ export function registerModeRoutes(app: Express, config: VesselPerformanceRoutes
       const now = new Date(),
         oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
       const equipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
-      const vesselEquipment = equipment.filter((e: any) => e.vesselId === vesselId);
+      const vesselEquipment = equipment.filter((e) => e.vesselId === vesselId);
 
       if (vesselEquipment.length === 0) {
         return res.status(404).json({ message: "No equipment found for vessel" });
@@ -27,7 +27,7 @@ export function registerModeRoutes(app: Express, config: VesselPerformanceRoutes
 
       const { ModeDetector } = await import("../../../context/mode-detector.js");
       const detector = new ModeDetector();
-      let latestMode: any = null;
+      let latestMode: ReturnType<typeof detector.detectModeFromWindow> | null = null;
 
       for (const eq of vesselEquipment) {
         const telemetry = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(

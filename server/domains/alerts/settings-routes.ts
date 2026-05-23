@@ -53,9 +53,9 @@ function getOrgId(req: Request): string {
 export function registerAlertSettingsRoutes(
   app: Express,
   rateLimit: {
-    writeOperationRateLimit: any;
-    criticalOperationRateLimit: any;
-    generalApiRateLimit: any;
+    writeOperationRateLimit: import("express").RequestHandler;
+    criticalOperationRateLimit: import("express").RequestHandler;
+    generalApiRateLimit: import("express").RequestHandler;
   }
 ) {
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimit;

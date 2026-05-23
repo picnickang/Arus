@@ -215,7 +215,7 @@ export class WorkOrderRepository {
     startDate?: Date;
     endDate?: Date;
     orgId: string;
-  }): Promise<any> {
+  }): Promise<Awaited<ReturnType<typeof workOrderService.getWorkOrderCompletionAnalytics>>> {
     return workOrderService.getWorkOrderCompletionAnalytics(filters);
   }
 

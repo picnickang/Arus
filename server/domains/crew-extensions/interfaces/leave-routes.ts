@@ -19,11 +19,17 @@ export function registerLeaveRoutes(app: Express, config: CrewExtensionsRoutesCo
       let leaves = await dbCrewStorage.getCrewLeave(crew_id as string | undefined, orgId);
       if (start_date) {
         const startMs = new Date(start_date as string).getTime();
-        leaves = leaves.filter((l: any) => new Date(l.startDate).getTime() >= startMs);
+        leaves = leaves.filter((l) => {
+          const sd = "startDate" in l ? (l as { startDate?: string | Date }).startDate : undefined;
+          return sd != null && new Date(sd).getTime() >= startMs;
+        });
       }
       if (end_date) {
         const endMs = new Date(end_date as string).getTime();
-        leaves = leaves.filter((l: any) => new Date(l.endDate).getTime() <= endMs);
+        leaves = leaves.filter((l) => {
+          const ed = "endDate" in l ? (l as { endDate?: string | Date }).endDate : undefined;
+          return ed != null && new Date(ed).getTime() <= endMs;
+        });
       }
       res.json(leaves);
     })

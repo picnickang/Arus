@@ -23,8 +23,9 @@ router.post("/", async (req: Request, res: Response) => {
     const { equipmentId, modelVersionId } = parsed.data;
     const result = await predictionEngine.predict(orgId, equipmentId, modelVersionId);
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -37,8 +38,9 @@ router.get("/predictions/:predictionId/explanations", async (req: Request, res: 
     }
     const result = await predictionEngine.getExplanations(orgId, predictionId);
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -54,8 +56,9 @@ router.get("/predictions/:predictionId/lineage", async (req: Request, res: Respo
       return res.status(404).json({ error: "Prediction not found" });
     }
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 

@@ -1,0 +1,148 @@
+You are now operating in CONTINUOUS AUTONOMOUS TYPE-DEBT BURNDOWN MODE.
+
+Primary Objective:
+Reduce the repository-wide @typescript-eslint/no-explicit-any baseline to 0 with minimal architectural risk.
+
+Current baseline:
+739
+
+Source of truth:
+node scripts/check-explicit-any-burndown.mjs
+
+Inventory:
+scripts/type-debt/explicit-any-inventory.json
+
+Execution Mode:
+AUTONOMOUS LOOPING EXECUTION
+
+Do NOT stop after a single lane.
+Do NOT ask for permission between lanes.
+Do NOT pause after small reductions.
+Continue iterating automatically until one of these occurs:
+
+STOP CONDITIONS:
+1. Global explicit-any count reaches 0
+2. A hard architectural blocker is encountered
+3. TypeScript compilation cannot be restored
+4. A shared-contract refactor exceeds safe autonomous scope
+5. A lane repeatedly fails after 3 repair attempts
+
+When a stop condition occurs:
+- stop execution
+- summarize blockers precisely
+- propose the next manual intervention
+
+--------------------------------------------------
+LANE SELECTION STRATEGY
+--------------------------------------------------
+
+For each iteration:
+
+1. Read:
+scripts/type-debt/explicit-any-inventory.json
+
+2. Select the next target using this priority order:
+
+HIGH PRIORITY:
+- self-contained server/domains/**
+- clustered violations
+- low blast radius
+- local DTO/repository/service typing
+- adapter boundaries
+- scheduler/report/tool domains
+
+MEDIUM PRIORITY:
+- infrastructure modules
+- shared utilities with limited consumers
+
+LOW PRIORITY / DEFER:
+- tests
+- mocks
+- generated code
+- cross-cutting shared contracts
+- websocket core
+- runtime framework internals
+
+3. Work ONE TARGET DIRECTORY at a time.
+
+4. Fully eliminate explicit-any violations in that target before moving on.
+
+--------------------------------------------------
+REQUIRED ENGINEERING RULES
+--------------------------------------------------
+
+NEVER:
+- use "as any"
+- introduce new explicit any
+- suppress lint rules
+- disable TypeScript safety
+- weaken contracts globally
+- bypass failing validation
+
+PREFER:
+- unknown
+- Record<string, unknown>
+- discriminated unions
+- typed DTOs
+- Zod schema parsing
+- local narrowing helpers
+- generic constraints
+- typed adapters
+- exhaustiveness checking
+
+PRESERVE:
+- runtime behavior
+- DDD boundaries
+- hexagonal architecture
+- streaming behavior
+- API contracts
+- orchestrator flows
+- repository semantics
+
+--------------------------------------------------
+VALIDATION PIPELINE (MANDATORY EVERY LANE)
+--------------------------------------------------
+
+After every lane:
+
+1. Run:
+npx tsc --noEmit
+
+2. Run scoped eslint on the target directory.
+
+3. Run:
+node scripts/check-explicit-any-burndown.mjs
+
+4. If validation fails:
+- repair automatically
+- retry validation
+- maximum 3 repair attempts
+
+5. If validation passes:
+- commit the lane
+- continue immediately to the next lane
+
+--------------------------------------------------
+OUTPUT FORMAT
+--------------------------------------------------
+
+After each completed lane, append a compact progress log:
+
+- target
+- count before → after
+- global baseline before → after
+- files changed
+- notable type improvements
+- whether architectural seams changed
+- validation result
+
+DO NOT ASK FOR CONFIRMATION.
+
+Continue autonomously until a stop condition is reached.
+
+Final output must include:
+- total reductions
+- remaining blockers
+- remaining directories
+- architectural risk assessment
+- recommendations for the final difficult lanes

@@ -42,8 +42,9 @@ export function registerSkillsRoutes({ app, rateLimit }: CrewRouteDeps): void {
     "/api/skills/:id",
     requireOrgId,
     criticalOperationRateLimit,
-    withErrorHandling("delete skill", async (req: any, res) => {
-      await crewService.deleteSkill(req.params.id, req.orgId);
+    withErrorHandling("delete skill", async (req, res) => {
+      const authReq = req as AuthenticatedRequest;
+      await crewService.deleteSkill(authReq.params.id, authReq.orgId);
       sendDeleted(res);
     })
   );

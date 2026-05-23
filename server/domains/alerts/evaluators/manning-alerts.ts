@@ -45,7 +45,10 @@ export async function evaluateManningComplianceAlerts(
     }
 
     const vesselCrew = await dbCrewStorage.getCrew(ctx.orgId, vessel.id);
-    const activeCrew = vesselCrew.filter((c: any) => c.status === "active" || c.status === "onboard");
+    const activeCrew = vesselCrew.filter((c) => {
+      const status = "status" in c ? (c as { status?: string }).status : undefined;
+      return status === "active" || status === "onboard";
+    });
     const currentManning = activeCrew.length;
 
     if (currentManning < minSafeManning) {

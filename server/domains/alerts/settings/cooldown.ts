@@ -171,11 +171,12 @@ export async function atomicClaimAlertSlot(
           snapshot: { lastAlertAt: now, lastEmailAt: null, alertCount: 0, claimUpdatedAt: now },
         };
       });
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as { code?: string; message?: string };
       if (
-        (err.code === "23505" ||
-          err.message?.includes("unique") ||
-          err.message?.includes("duplicate")) &&
+        (e.code === "23505" ||
+          e.message?.includes("unique") ||
+          e.message?.includes("duplicate")) &&
         attempt < 2
       ) {
         await new Promise((r) => setTimeout(r, 50 * (attempt + 1)));

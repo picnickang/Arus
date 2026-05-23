@@ -4,10 +4,12 @@
  * Common types and interfaces for logbook route handlers.
  */
 
+import type { RequestHandler } from "express";
+
 export interface RateLimiters {
-  writeOperationRateLimit: any;
-  criticalOperationRateLimit: any;
-  generalApiRateLimit: any;
+  writeOperationRateLimit: RequestHandler;
+  criticalOperationRateLimit: RequestHandler;
+  generalApiRateLimit: RequestHandler;
 }
 
 export interface DeckLogFilters {

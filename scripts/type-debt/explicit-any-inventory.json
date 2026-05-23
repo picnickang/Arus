@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-23T15:29:17.412Z",
+  "generatedAt": "2026-05-23T20:38:25.230Z",
   "rule": "@typescript-eslint/no-explicit-any",
-  "total": 739,
-  "totalFiles": 268,
+  "total": 646,
+  "totalFiles": 228,
   "buckets": {
     "external_lib_gaps": {
       "label": "External library typing gaps",
@@ -28,9 +28,9 @@
       "label": "Legacy DTOs (route handlers, request/response shapes)",
       "definition": "`any` on route-handler request bodies/queries, untyped DTO interfaces, and helper signatures that pass request-shaped data around without ever describing it. Most of these survived the wire-parses sweep because they live below the route registration layer.",
       "remediation": "Define the DTO once with Zod, derive the TS type via `z.infer`, and import the type at every helper. For handlers, use `AuthenticatedRequest` from `server/middleware/auth.ts` and parse `req.body`/`req.query`/`req.params` with the schema — same contract the wire-parses sweep enforced.",
-      "count": 161,
-      "files": 50,
-      "percent": 21.8,
+      "count": 95,
+      "files": 25,
+      "percent": 14.7,
       "topFiles": [
         {
           "file": "server/routes/equipment-context/data-queries.ts",
@@ -53,23 +53,23 @@
           "count": 5
         },
         {
-          "file": "server/domains/config-management/routes.ts",
-          "count": 4
-        },
-        {
-          "file": "server/domains/integrations/routes.ts",
-          "count": 4
-        },
-        {
-          "file": "server/domains/work-orders/interfaces/workflow-routes.ts",
-          "count": 4
-        },
-        {
           "file": "server/routes/kb-ask-route.ts",
           "count": 4
         },
         {
           "file": "server/routes/pdm-gap-fill-routes.ts",
+          "count": 4
+        },
+        {
+          "file": "server/routes/rag-routes.ts",
+          "count": 4
+        },
+        {
+          "file": "server/routes/service-request-routes.ts",
+          "count": 4
+        },
+        {
+          "file": "server/storage/interfaces/domains/vessel.types.ts",
           "count": 4
         }
       ],
@@ -80,14 +80,14 @@
           "snippet": "const existingOverride: any = Array.isArray(existingOverrideRaw)"
         },
         {
-          "file": "server/domains/config-management/routes.ts",
-          "line": 17,
-          "snippet": "db: any;"
+          "file": "server/domains/software-updates/routes.ts",
+          "line": 20,
+          "snippet": "auditAdminAction: (action: string) => any;"
         },
         {
-          "file": "server/domains/config-management/routes.ts",
-          "line": 18,
-          "snippet": "configAuditLog: any;"
+          "file": "server/governance/routes.ts",
+          "line": 16,
+          "snippet": "user?: any;"
         }
       ]
     },
@@ -97,7 +97,7 @@
       "remediation": "Stop trusting the payload. Parse once with `z.unknown().pipe(targetSchema)` or `JSON.parse` followed by a Zod parse. Inside the system, replace `any` with `unknown` so callers are forced to narrow. For drizzle `jsonb` columns, declare the column type as `jsonb().$type<MyShape>()` and store the Zod schema alongside.",
       "count": 19,
       "files": 13,
-      "percent": 2.6,
+      "percent": 2.9,
       "topFiles": [
         {
           "file": "client/src/features/settings/hooks/useDiagnosticsData.ts",
@@ -162,9 +162,9 @@
       "label": "Generic inference failures",
       "definition": "Functions whose signature uses `any` because the author couldn't get a generic to flow (callback params typed `(x: any)`, `Array<any>`, `Promise<any>`, return-type `any` on a helper that should have inferred).",
       "remediation": "Reach for `Parameters<typeof fn>[n]` / `Awaited<ReturnType<typeof fn>>` / `infer` rather than `any`. For callbacks, type the higher-order function generically (`<T>(items: T[], cb: (x: T) => void)`) instead of widening the parameter. For Promise chains, type the resolution value, not the wrapper.",
-      "count": 357,
-      "files": 157,
-      "percent": 48.3,
+      "count": 343,
+      "files": 147,
+      "percent": 53.1,
       "topFiles": [
         {
           "file": "server/ml-prediction-service.ts",
@@ -229,9 +229,9 @@
       "label": "Truly unsafe / untyped logic",
       "definition": "Residual `any` that isn't explained by any of the above — typically deep cross-domain glue, dynamic property access on heterogeneous registries, or code that genuinely needs a domain redesign before it can be typed.",
       "remediation": "Don't paper over with a cast. These are the call sites that should drive Phase 3 work (Result/Either, branded IDs, discriminated unions, shared API envelopes, typed domain errors). Capture the call site in the follow-up task list and resolve it as part of the domain redesign — not as a one-line edit.",
-      "count": 202,
-      "files": 110,
-      "percent": 27.3,
+      "count": 189,
+      "files": 103,
+      "percent": 29.3,
       "topFiles": [
         {
           "file": "server/services/data-export-import/entity-upserters.ts",

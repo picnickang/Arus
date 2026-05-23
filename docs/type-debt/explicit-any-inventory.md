@@ -1,19 +1,19 @@
 # Explicit `any` Inventory
 
-_Generated: 2026-05-23T15:29:17.412Z_
+_Generated: 2026-05-23T20:38:25.230Z_
 
 Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit-any`. Regenerate with `node scripts/type-debt/classify-explicit-any.mjs`.
 
 ## Headline
 
-- **Total occurrences:** 739
-- **Distinct files:** 268
+- **Total occurrences:** 646
+- **Distinct files:** 228
 
 **Rough split (based on bucket heuristics — see per-bucket sections for caveats):**
 
-- ~48.3% mechanical (test mocks + external library gaps + generic inference fixes)
-- ~24.4% schema / generic redesign (dynamic JSON parses + legacy DTOs)
-- ~27.3% truly unsafe / residual (drives Phase 3 domain work)
+- ~53.1% mechanical (test mocks + external library gaps + generic inference fixes)
+- ~17.6% schema / generic redesign (dynamic JSON parses + legacy DTOs)
+- ~29.3% truly unsafe / residual (drives Phase 3 domain work)
 
 **Bucket totals:**
 
@@ -21,10 +21,10 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 |---|---:|---:|---:|
 | External library typing gaps | 0 | 0.0% | 0 |
 | Test mocks / stubs | 0 | 0.0% | 0 |
-| Legacy DTOs (route handlers, request/response shapes) | 161 | 21.8% | 50 |
-| Dynamic JSON payloads | 19 | 2.6% | 13 |
-| Generic inference failures | 357 | 48.3% | 157 |
-| Truly unsafe / untyped logic | 202 | 27.3% | 110 |
+| Legacy DTOs (route handlers, request/response shapes) | 95 | 14.7% | 25 |
+| Dynamic JSON payloads | 19 | 2.9% | 13 |
+| Generic inference failures | 343 | 53.1% | 147 |
+| Truly unsafe / untyped logic | 189 | 29.3% | 103 |
 
 ## External library typing gaps
 
@@ -46,7 +46,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** `any` on route-handler request bodies/queries, untyped DTO interfaces, and helper signatures that pass request-shaped data around without ever describing it. Most of these survived the wire-parses sweep because they live below the route registration layer.
 
-**Count.** 161 occurrences across 50 files (21.8% of all explicit `any`).
+**Count.** 95 occurrences across 25 files (14.7% of all explicit `any`).
 
 **Top files:**
 
@@ -57,17 +57,17 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 | `server/routes/vessel-3d-routes.ts` | 9 |
 | `server/routes/analytics/model-governance.ts` | 5 |
 | `server/routes/wo-so-bridge-routes.ts` | 5 |
-| `server/domains/config-management/routes.ts` | 4 |
-| `server/domains/integrations/routes.ts` | 4 |
-| `server/domains/work-orders/interfaces/workflow-routes.ts` | 4 |
 | `server/routes/kb-ask-route.ts` | 4 |
 | `server/routes/pdm-gap-fill-routes.ts` | 4 |
+| `server/routes/rag-routes.ts` | 4 |
+| `server/routes/service-request-routes.ts` | 4 |
+| `server/storage/interfaces/domains/vessel.types.ts` | 4 |
 
 **Examples:**
 
 - `server/compliance/routes/ml-governance-routes.ts:164` — `const existingOverride: any = Array.isArray(existingOverrideRaw)`
-- `server/domains/config-management/routes.ts:17` — `db: any;`
-- `server/domains/config-management/routes.ts:18` — `configAuditLog: any;`
+- `server/domains/software-updates/routes.ts:20` — `auditAdminAction: (action: string) => any;`
+- `server/governance/routes.ts:16` — `user?: any;`
 
 **Recommended remediation.** Define the DTO once with Zod, derive the TS type via `z.infer`, and import the type at every helper. For handlers, use `AuthenticatedRequest` from `server/middleware/auth.ts` and parse `req.body`/`req.query`/`req.params` with the schema — same contract the wire-parses sweep enforced.
 
@@ -75,7 +75,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** `JSON.parse(...) as any`, `Record<string, any>`, drizzle `jsonb()` columns, OpenAI function-call arguments, Sentry/observability event payloads, telemetry attribute bags, anything that's genuinely heterogeneous at the boundary.
 
-**Count.** 19 occurrences across 13 files (2.6% of all explicit `any`).
+**Count.** 19 occurrences across 13 files (2.9% of all explicit `any`).
 
 **Top files:**
 
@@ -104,7 +104,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** Functions whose signature uses `any` because the author couldn't get a generic to flow (callback params typed `(x: any)`, `Array<any>`, `Promise<any>`, return-type `any` on a helper that should have inferred).
 
-**Count.** 357 occurrences across 157 files (48.3% of all explicit `any`).
+**Count.** 343 occurrences across 147 files (53.1% of all explicit `any`).
 
 **Top files:**
 
@@ -133,7 +133,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** Residual `any` that isn't explained by any of the above — typically deep cross-domain glue, dynamic property access on heterogeneous registries, or code that genuinely needs a domain redesign before it can be typed.
 
-**Count.** 202 occurrences across 110 files (27.3% of all explicit `any`).
+**Count.** 189 occurrences across 103 files (29.3% of all explicit `any`).
 
 **Top files:**
 

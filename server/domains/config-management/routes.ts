@@ -14,13 +14,13 @@ import type { AuthenticatedRequest } from "../../middleware/auth";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 interface ConfigManagementDependencies {
-  db: any;
-  configAuditLog: any;
+  db: typeof import("../../db").db;
+  configAuditLog: typeof import("@shared/schema/admin").configAuditLog;
   generalApiRateLimit: RateLimitRequestHandler;
   writeOperationRateLimit: RateLimitRequestHandler;
   criticalOperationRateLimit: RateLimitRequestHandler;
-  requireAdminAuth: any;
-  auditAdminAction: (action: string) => any;
+  requireAdminAuth: import("express").RequestHandler[];
+  auditAdminAction: (action: string) => import("express").RequestHandler;
 }
 
 export function registerConfigManagementRoutes(

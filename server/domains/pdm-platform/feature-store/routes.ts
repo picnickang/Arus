@@ -21,8 +21,9 @@ router.post("/compute", async (req: Request, res: Response) => {
     const { equipmentId, windowMinutes } = parsed.data;
     const result = await featureStore.computeAndStore(orgId, equipmentId, windowMinutes);
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -35,8 +36,9 @@ router.get("/latest", async (req: Request, res: Response) => {
     }
     const result = await featureStore.getLatest(orgId, equipmentId);
     res.json(result ?? { message: "No features found" });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -53,8 +55,9 @@ router.get("/", async (req: Request, res: Response) => {
     }
     const result = await featureStore.getHistory(orgId, equipmentId, from, to);
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 

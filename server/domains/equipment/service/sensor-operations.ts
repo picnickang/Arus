@@ -37,13 +37,22 @@ export async function getSensorCoverage(
         coveragePercentage: totalSensors > 0 ? (enabledSensors / totalSensors) * 100 : 0,
         criticalCoveragePercentage:
           criticalSensors > 0 ? (criticalEnabled / criticalSensors) * 100 : 0,
-        sensors: sensors.map((s) => ({
-          sensorType: s.sensorType,
-          enabled: s.enabled,
-          isCritical: s.isCritical,
-          minValue: s.minValue,
-          maxValue: s.maxValue,
-        })),
+        sensors: sensors.map((s) => {
+          const ss = s as unknown as {
+            sensorType: string;
+            enabled?: boolean | null;
+            isCritical?: boolean | null;
+            minValue?: number | null;
+            maxValue?: number | null;
+          };
+          return {
+            sensorType: ss.sensorType,
+            enabled: ss.enabled ?? false,
+            isCritical: ss.isCritical ?? null,
+            minValue: ss.minValue,
+            maxValue: ss.maxValue,
+          };
+        }),
       } as object as SensorCoverageResult;
     },
     legacyFn: () => Promise.resolve(equipmentRepository.getSensorCoverage(equipmentId, orgId) as object as SensorCoverageResult),
@@ -69,7 +78,11 @@ export async function setupSensors(
       const existing = await sensorRepo.getAll({ equipmentId });
       const existingTypes = new Set(existing.map((s) => s.sensorType));
 
-      const created = [];
+      const created: Array<{
+        sensorType: string;
+        enabled?: boolean | null;
+        isCritical?: boolean | null;
+      }> = [];
       for (const sensor of sensorsToCreate) {
         if (!existingTypes.has(sensor.type)) {
           const newSensor = await sensorRepo.create({
@@ -80,7 +93,7 @@ export async function setupSensors(
             minValue: sensor.min,
             maxValue: sensor.max,
           });
-          created.push(newSensor);
+          created.push(newSensor as unknown as { sensorType: string; enabled?: boolean | null; isCritical?: boolean | null });
         }
       }
 
@@ -92,8 +105,8 @@ export async function setupSensors(
         totalSensors: existing.length + created.length,
         sensors: created.map((s) => ({
           sensorType: s.sensorType,
-          enabled: s.enabled,
-          isCritical: s.isCritical,
+          enabled: s.enabled ?? false,
+          isCritical: s.isCritical ?? null,
         })),
       };
     },

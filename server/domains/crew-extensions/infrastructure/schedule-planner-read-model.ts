@@ -171,12 +171,15 @@ export class SchedulePlannerReadModelAdapter implements ISchedulePlannerReadMode
         .where(and(...conditions))
         .orderBy(vessels.name);
 
-      return result.map((row): any => ({
+      return result.map((row) => ({
         id: row.id,
         name: row.name || "Unknown Vessel",
         requiredCrew: 0,
         currentCrew: 0,
-        operationalStatus: row.active ? "active" : "inactive",
+        operationalStatus: (row.active ? "active" : "inactive") as
+          | "active"
+          | "maintenance"
+          | "docked",
       }));
     } catch (error) {
       logger.warn("Failed to fetch vessels, returning empty list", { error });

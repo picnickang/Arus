@@ -217,9 +217,9 @@ export function createRoleInformationNeedsService(attentionService: AttentionWor
 export function registerOperatorExperienceRoutes(
   app: Express,
   deps: {
-    generalApiRateLimit: any;
-    writeOperationRateLimit?: any;
-    requireOrgId: any;
+    generalApiRateLimit: import("express").RequestHandler;
+    writeOperationRateLimit?: import("express").RequestHandler;
+    requireOrgId: import("express").RequestHandler;
     sources: AttentionWorkflowSources;
   }
 ) {

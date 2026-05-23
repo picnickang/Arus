@@ -16,7 +16,7 @@ interface SoftwareUpdatesDependencies {
   generalApiRateLimit: RateLimitRequestHandler;
   writeOperationRateLimit: RateLimitRequestHandler;
   criticalOperationRateLimit: RateLimitRequestHandler;
-  requireAdminAuth: any;
+  requireAdminAuth: import("express").RequestHandler[];
   auditAdminAction: (action: string) => any;
 }
 

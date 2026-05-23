@@ -33,7 +33,7 @@ export class ResidualAnalysisAdapter implements ResidualAnalysisPort {
       .orderBy(sql`avg(abs(${twinResiduals.zScore})) desc`)
       .limit(50);
 
-    return rows.map((r: any) => ({
+    return rows.map((r) => ({
       twinId: r.twinId,
       sensorType: r.sensorType,
       avgResidual: round(r.avgResidual),

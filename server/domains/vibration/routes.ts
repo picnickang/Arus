@@ -234,7 +234,14 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
         FTF: bearingSpec?.ftf || 0,
       };
 
-      const detectedFaults: any[] = [];
+      interface DetectedFault {
+        faultType: string;
+        harmonic: number;
+        frequency: number;
+        amplitude: number;
+        expectedFrequency: number;
+      }
+      const detectedFaults: DetectedFault[] = [];
 
       if (frequencies && amplitudes) {
         Object.entries(faultFrequencies).forEach(([faultType, targetFreq]) => {

@@ -69,11 +69,20 @@ function buildAlertThresholds(customDays?: number | null): AlertThreshold[] {
   return thresholds;
 }
 
+type CertificateAlertSettings = Record<string, unknown>;
+type CertificateRow = Record<string, unknown> & {
+  id: string;
+  cert: string;
+  crewId: string;
+  certNumber?: string | null;
+  expiresAt: Date | string;
+};
+
 function findMatchingThreshold(
   daysUntilExpiry: number,
   thresholds: AlertThreshold[],
-  settings: any,
-  cert: any
+  settings: CertificateAlertSettings,
+  cert: CertificateRow
 ): AlertThreshold | null {
   for (const threshold of thresholds) {
     if (daysUntilExpiry > threshold.days) {
@@ -94,7 +103,7 @@ function findMatchingThreshold(
 }
 
 function buildAlertResult(
-  cert: any,
+  cert: CertificateRow,
   daysUntilExpiry: number,
   threshold: AlertThreshold,
   customDays?: number | null
@@ -140,9 +149,16 @@ export async function evaluateCertificateExpiryAlerts(
   const certifications = await getCertificationsNearExpiry(ctx.orgId, ctx.vesselId, now, maxDays);
 
   const results: CrewAlertResult[] = [];
-  for (const cert of certifications) {
+  const settingsRecord = settings as unknown as CertificateAlertSettings;
+  for (const certRaw of certifications) {
+    const cert = certRaw as unknown as CertificateRow;
     const daysUntilExpiry = differenceInDays(new Date(cert.expiresAt), now);
-    const matchedThreshold = findMatchingThreshold(daysUntilExpiry, thresholds, settings, cert);
+    const matchedThreshold = findMatchingThreshold(
+      daysUntilExpiry,
+      thresholds,
+      settingsRecord,
+      cert
+    );
     if (matchedThreshold) {
       results.push(
         buildAlertResult(cert, daysUntilExpiry, matchedThreshold, settings.certExpiryCustomDays)

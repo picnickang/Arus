@@ -63,7 +63,7 @@ export class InventoryService {
     search?: string,
     sortBy?: string,
     sortOrder?: "asc" | "desc"
-  ): Promise<any[]> {
+  ): ReturnType<typeof inventoryRepository.findPartsInventory> {
     return inventoryRepository.findPartsInventory(category, orgId, search, sortBy, sortOrder);
   }
 

@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
-import { sql } from "drizzle-orm";
+import { sql, type AnyColumn, type SQLWrapper } from "drizzle-orm";
+import type { PgTable } from "drizzle-orm/pg-core";
 import { db } from "../../../db";
 import {
   workOrders,
@@ -13,8 +14,8 @@ import { withErrorHandling, sendNotFound } from "../../../lib/route-utils";
 
 type CountRow = { count: number };
 async function countWhere(
-  table: any,
-  workOrderIdCol: any,
+  table: PgTable,
+  workOrderIdCol: AnyColumn | SQLWrapper,
   workOrderId: string,
 ): Promise<number> {
   const [row] = (await db

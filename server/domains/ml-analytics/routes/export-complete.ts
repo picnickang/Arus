@@ -55,8 +55,9 @@ export function registerExportCompleteRoutes(app: Express, config: MlAnalyticsCo
           return model;
         }
         if (hyperparams.lookbackDays) {
-          const { tier, confidenceMultiplier } =
-            adaptiveTrainingWindow.calculateTierFromLookbackDays(hyperparams.lookbackDays);
+          const { tier, confidenceMultiplier } = adaptiveTrainingWindow.calculateTierFromLookbackDays(
+            Number(hyperparams.lookbackDays),
+          );
           return {
             ...model,
             hyperparameters: {

@@ -38,7 +38,7 @@ function recordToFeatureVector(record: Record<string, number>): FeatureVector {
 }
 
 export interface PredictionExplanationQuery {
-  getExplanations(orgId: string, predictionId: number): Promise<any[]>;
+  getExplanations(orgId: string, predictionId: number): Promise<unknown[]>;
 }
 
 export class PredictionEngineService implements PredictionExplanationQuery {
@@ -146,21 +146,22 @@ export class PredictionEngineService implements PredictionExplanationQuery {
         },
         explanations: explanationRows,
       };
-    } catch (error: any) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       await db
         .update(inferenceRuns)
         .set({
           status: "failed",
           finishedAt: new Date(),
           latencyMs: Date.now() - startTime,
-          errorMessage: error.message,
+          errorMessage: message,
         })
         .where(eq(inferenceRuns.id, run.id));
       throw error;
     }
   }
 
-  async getExplanations(orgId: string, predictionId: number): Promise<any[]> {
+  async getExplanations(orgId: string, predictionId: number): Promise<unknown[]> {
     const [prediction] = await db
       .select({ orgId: failurePredictions.orgId })
       .from(failurePredictions)

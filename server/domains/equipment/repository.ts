@@ -64,7 +64,7 @@ export class EquipmentRepository {
     const existing = await dbSensorsStorage.getSensorConfigurations(orgId, equipmentId);
     const existingTypes = new Set(existing.map((s) => s.sensorType));
     const sensorsToCreate = DEFAULT_SENSORS[equipment.type] || DEFAULT_SENSORS.default;
-    const created: any[] = [];
+    const created: import("@shared/schema/sensors").SensorConfiguration[] = [];
     for (const sensor of sensorsToCreate) {
       if (!existingTypes.has(sensor.type)) {
         const newSensor = await dbSensorsStorage.createSensorConfiguration({
@@ -85,11 +85,15 @@ export class EquipmentRepository {
       sensorsCreated: created.length,
       sensorsSkipped: sensorsToCreate.length - created.length,
       totalSensors: existing.length + created.length,
-      sensors: created.map((s) => ({
-        sensorType: s.sensorType,
-        enabled: s.enabled,
-        isCritical: s.isCritical,
-      })),
+      sensors: created.map((s) => {
+        const isCritical =
+          "isCritical" in s ? (s as { isCritical?: boolean | null }).isCritical ?? null : null;
+        return {
+          sensorType: s.sensorType,
+          enabled: s.enabled ?? false,
+          isCritical,
+        };
+      }),
     };
   }
 
@@ -99,9 +103,12 @@ export class EquipmentRepository {
       return [];
     }
     const parts = await dbInventoryStorage.getParts(orgId);
-    return parts.filter(
-      (p: any) => p.equipmentType === equipment.type || p.equipmentId === equipmentId
-    );
+    return parts.filter((p) => {
+      const eqType =
+        "equipmentType" in p ? (p as { equipmentType?: string }).equipmentType : undefined;
+      const eqId = "equipmentId" in p ? (p as { equipmentId?: string }).equipmentId : undefined;
+      return eqType === equipment.type || eqId === equipmentId;
+    });
   }
 
   async getSuggestedParts(equipmentId: string, orgId: string) {

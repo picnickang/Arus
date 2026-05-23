@@ -16,7 +16,9 @@ export function registerShiftsRoutes(app: Express, config: CrewExtensionsRoutesC
       const { vessel_id } = req.query;
       const shifts = await dbCrewStorage.getShiftTemplates(vessel_id as string | undefined);
       const orgId = req.orgId;
-      const filtered = orgId ? shifts.filter((s: any) => !s.orgId || s.orgId === orgId) : shifts;
+      const filtered = orgId
+        ? shifts.filter((s) => !(s as { orgId?: string }).orgId || (s as { orgId?: string }).orgId === orgId)
+        : shifts;
       res.json(filtered);
     })
   );

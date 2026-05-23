@@ -59,13 +59,13 @@ export class CrewExtensionsApplicationService {
   async planSchedule(command: PlanScheduleCommand, userId?: string): Promise<SchedulerRunEntity> {
     const { planAndMaybeExecute } = await import("../../../scheduler/scheduler-controller.js");
 
-    const result: any = await planAndMaybeExecute({
+    const result = (await planAndMaybeExecute({
       orgId: command.orgId,
       from: command.from,
       days: command.days,
       vessels: command.vessels,
       mode: command.mode,
-    });
+    })) as { runId?: string };
 
     if (!result.runId) {
       throw new Error("Failed to create scheduler run");
@@ -214,9 +214,9 @@ export class CrewExtensionsApplicationService {
 
   async previewCompliance(
     orgId: string,
-    runIdOrAssignments: string | any[]
+    runIdOrAssignments: string | unknown[]
   ): Promise<CompliancePreviewResult> {
-    let assignments: any[] = [];
+    let assignments: unknown[] = [];
 
     if (typeof runIdOrAssignments === "string") {
       const run = await this.deps.schedulerRunRepository.findById(runIdOrAssignments, orgId);
@@ -237,7 +237,10 @@ export class CrewExtensionsApplicationService {
     }
 
     const { previewScheduleCompliance } = await import("../../../scheduler/compliance-preview.js");
-    return previewScheduleCompliance(orgId, assignments) as object as CompliancePreviewResult;
+    return previewScheduleCompliance(
+      orgId,
+      assignments as Parameters<typeof previewScheduleCompliance>[1],
+    ) as object as CompliancePreviewResult;
   }
 
   async getAssignmentsByDateRange(

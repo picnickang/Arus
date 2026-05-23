@@ -31,7 +31,7 @@ import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 interface IntegrationsRoutesConfig {
   generalApiRateLimit: RequestHandler;
-  getFMCCService: () => any;
+  getFMCCService: typeof import("../../integrations/aquametro-fmcc").getFMCCService;
   updateFleetHealthScore: (score: number) => void;
 }
 
@@ -39,7 +39,7 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
   const { generalApiRateLimit, getFMCCService, updateFleetHealthScore } = config;
 
   const DASHBOARD_TTL_MS = Number.parseInt(process.env.DASHBOARD_TTL_MS || "30000", 10);
-  const dashboardCache = new LRUCache<string, { data: any; etag: string }>({
+  const dashboardCache = new LRUCache<string, { data: unknown; etag: string }>({
     max: 200,
     ttl: DASHBOARD_TTL_MS,
   });
@@ -79,7 +79,7 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
   );
 
   const SUMMARY_TTL_MS = 30_000;
-  const summaryCache = new LRUCache<string, any>({ max: 200, ttl: SUMMARY_TTL_MS });
+  const summaryCache = new LRUCache<string, object>({ max: 200, ttl: SUMMARY_TTL_MS });
 
   app.get(
     "/api/dashboard/summary",
@@ -211,7 +211,21 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
         });
       }
 
-      const realtimeData = await fmccService.getRealTimeFuelData(vesselId);
+      const realtimeData = await (
+        fmccService as unknown as {
+          getRealTimeFuelData: (vesselId: string) => Promise<{
+            success: boolean;
+            source?: string;
+            error?: string;
+            data?: {
+              foFlowRate?: unknown;
+              doFlowRate?: unknown;
+              foDensity?: unknown;
+              timestamp?: unknown;
+            };
+          }>;
+        }
+      ).getRealTimeFuelData(vesselId);
 
       res.json({
         ok: realtimeData.success,
@@ -330,7 +344,13 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
       const { days = "30" } = stcwDaysQuerySchema.parse(req.query);
       const lookbackDays = Number.parseInt(days, 10) || 30;
 
-      const stcwMod: any = await import("../../scheduler/stcw-dashboard");
+      const stcwMod = (await import("../../scheduler/stcw-dashboard")) as unknown as {
+        getCrewSTCWSummary: (
+          orgId: string,
+          crewId: string,
+          lookbackDays: number,
+        ) => Promise<unknown>;
+      };
       const summary = await stcwMod.getCrewSTCWSummary(orgId, crewId, lookbackDays);
 
       res.setHeader("Cache-Control", "private, max-age=300");

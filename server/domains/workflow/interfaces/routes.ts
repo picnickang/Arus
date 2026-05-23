@@ -173,9 +173,9 @@ function getUserId(req: Request): string | undefined {
 export function registerWorkflowRoutes(
   app: Express,
   deps: {
-    generalApiRateLimit: any;
-    writeOperationRateLimit?: any;
-    requireOrgId: any;
+    generalApiRateLimit: import("express").RequestHandler;
+    writeOperationRateLimit?: import("express").RequestHandler;
+    requireOrgId: import("express").RequestHandler;
     sources: AttentionWorkflowSources;
   }
 ) {

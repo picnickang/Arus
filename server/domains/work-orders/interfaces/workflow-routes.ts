@@ -4,18 +4,33 @@ import { withErrorHandling, sendCreated, sendNotFound } from "../../../lib/route
 import type { WorkOrderWorkflowService } from "../application/wo-workflow-service";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
-function getOrgId(req: any): string {
-  return req.orgId || DEFAULT_ORG_ID;
+import type { AuthenticatedRequest } from "../../../middleware/auth";
+
+function getOrgId(req: Request): string {
+  return (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
 }
 
-function getUserId(req: any): string {
-  return req.userId || req.user?.id || req.headers["x-user-id"] || "unknown";
+function getUserId(req: Request): string {
+  const r = req as AuthenticatedRequest & {
+    userId?: string;
+    user?: { id?: string };
+  };
+  const header = req.headers["x-user-id"];
+  return (
+    r.userId ||
+    r.user?.id ||
+    (Array.isArray(header) ? header[0] : header) ||
+    "unknown"
+  );
 }
 
 export function registerWorkOrderWorkflowRoutes(
   app: Express,
   service: WorkOrderWorkflowService,
-  rateLimiters: { writeOperationRateLimit: any; generalApiRateLimit: any }
+  rateLimiters: {
+    writeOperationRateLimit: import("express").RequestHandler;
+    generalApiRateLimit: import("express").RequestHandler;
+  }
 ) {
   const { writeOperationRateLimit, generalApiRateLimit } = rateLimiters;
 

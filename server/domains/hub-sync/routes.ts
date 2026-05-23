@@ -14,8 +14,8 @@ import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 export function registerHubSyncRoutes(
   app: Express,
   rateLimiters: {
-    writeOperationRateLimit: any;
-    generalApiRateLimit: any;
+    writeOperationRateLimit: import("express").RequestHandler;
+    generalApiRateLimit: import("express").RequestHandler;
   }
 ) {
   const { writeOperationRateLimit, generalApiRateLimit } = rateLimiters;

@@ -137,7 +137,7 @@ export function registerLlmAnalysisRoutes(
 
       const analysis = await analyzeEquipmentHealth(telemetryTrends, equipmentId, device?.deviceType ?? undefined);
 
-      let alertRecommendations: any[] = [];
+      let alertRecommendations: Awaited<ReturnType<typeof generateMaintenanceRecommendations>>[] = [];
       if (includeRecommendations === "true" && recentAlerts.length > 0) {
         try {
           const combinedAlertContext = recentAlerts.slice(0, 3).map((alert) => ({

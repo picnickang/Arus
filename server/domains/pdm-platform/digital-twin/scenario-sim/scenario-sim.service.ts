@@ -16,7 +16,10 @@ export class ScenarioSimService {
     twinId: string,
     name: string,
     parameters: ScenarioParameters
-  ): Promise<{ scenario: any; results: ScenarioResult }> {
+  ): Promise<{
+    scenario: Awaited<ReturnType<ScenarioSimService["scenarioAdapter"]["saveScenario"]>>;
+    results: ScenarioResult;
+  }> {
     const [twin] = await db
       .select()
       .from(assetTwins)

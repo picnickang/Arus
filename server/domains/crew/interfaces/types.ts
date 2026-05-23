@@ -2,12 +2,12 @@
  * Crew Routes - Shared Types
  */
 
-import type { Express } from "express";
+import type { Express, RequestHandler } from "express";
 
 export interface RateLimitMiddleware {
-  writeOperationRateLimit: any;
-  criticalOperationRateLimit: any;
-  generalApiRateLimit: any;
+  writeOperationRateLimit: RequestHandler;
+  criticalOperationRateLimit: RequestHandler;
+  generalApiRateLimit: RequestHandler;
 }
 
 export interface CrewRouteDeps {
