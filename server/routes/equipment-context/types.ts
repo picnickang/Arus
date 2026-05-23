@@ -4,6 +4,12 @@
 
 import { z } from "zod";
 
+export type EquipmentRecordInput = {
+  id?: unknown;
+  name?: unknown;
+  type?: unknown;
+} & Record<string, unknown>;
+
 export interface EquipmentContext {
   equipment: {
     id: string;

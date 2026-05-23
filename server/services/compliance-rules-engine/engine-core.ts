@@ -7,7 +7,7 @@
 import { db } from "../../db-config";
 import { sql } from "drizzle-orm";
 import { vesselService } from "../../repositories";
-import type { ComplianceFinding } from "@shared/schema";
+import type { ComplianceFinding, InsertComplianceFinding } from "@shared/schema";
 import { emailNotificationService } from "../email-notification-service";
 import type { RuleContext, RuleEvaluator } from "./types.js";
 import { DEFAULT_DECK_RULES, DEFAULT_ENGINE_RULES } from "./default-rules.js";
@@ -29,57 +29,126 @@ import {
   evaluateBilgeHigh,
 } from "./engine-evaluators.js";
 
-async function getComplianceRules(orgId: string, filters?: any): Promise<any[]> {
+interface RulesFilter {
+  sourceType?: string;
+  category?: string;
+  enabled?: boolean;
+}
+
+interface FindingsFilter {
+  vesselId?: string;
+  sourceType?: string;
+  severity?: string;
+  status?: string;
+  ruleCode?: string;
+  startDate?: string | Date;
+  endDate?: string | Date;
+}
+
+type ComplianceRuleRow = Record<string, unknown> & {
+  ruleCode: string;
+  ruleConfig?: unknown;
+  notifyOnTrigger?: boolean;
+};
+
+type ComplianceFindingRow = ComplianceFinding;
+
+type NewFindingInput = InsertComplianceFinding & Record<string, unknown>;
+
+type NewRuleInput = {
+  orgId: string;
+  sourceType: string;
+  category: string;
+  ruleName: string;
+  ruleCode: string;
+  description?: string | null;
+  severity?: string;
+  enabled?: boolean | null;
+} & Record<string, unknown>;
+
+async function getComplianceRules(
+  orgId: string,
+  filters?: RulesFilter
+): Promise<ComplianceRuleRow[]> {
   const result = await db.execute(
     sql`SELECT * FROM compliance_rules WHERE org_id = ${orgId} ${filters?.sourceType ? sql`AND source_type = ${filters.sourceType}` : sql``} ${filters?.category ? sql`AND category = ${filters.category}` : sql``} ${filters?.enabled !== undefined ? sql`AND enabled = ${filters.enabled}` : sql``} ORDER BY rule_name ASC`
   );
-  return result.rows;
+  return result.rows as unknown as ComplianceRuleRow[];
 }
 
-async function getComplianceFindings(orgId: string, filters?: any): Promise<any[]> {
+async function getComplianceFindings(
+  orgId: string,
+  filters?: FindingsFilter
+): Promise<ComplianceFindingRow[]> {
   const result = await db.execute(
     sql`SELECT * FROM compliance_findings WHERE org_id = ${orgId} ${filters?.vesselId ? sql`AND vessel_id = ${filters.vesselId}` : sql``} ${filters?.sourceType ? sql`AND source_type = ${filters.sourceType}` : sql``} ${filters?.severity ? sql`AND severity = ${filters.severity}` : sql``} ${filters?.status ? sql`AND status = ${filters.status}` : sql``} ${filters?.ruleCode ? sql`AND rule_code = ${filters.ruleCode}` : sql``} ${filters?.startDate ? sql`AND found_at >= ${filters.startDate}::timestamp` : sql``} ${filters?.endDate ? sql`AND found_at <= ${filters.endDate}::timestamp` : sql``} ORDER BY found_at DESC`
   );
-  return result.rows;
+  return result.rows as unknown as ComplianceFindingRow[];
 }
 
-async function createComplianceFinding(data: any): Promise<any> {
+async function createComplianceFinding(data: NewFindingInput): Promise<ComplianceFinding> {
+  const title = (data as { title?: unknown }).title ?? data.message ?? null;
+  const description = (data as { description?: unknown }).description ?? data.message ?? null;
   const result = await db.execute(
-    sql`INSERT INTO compliance_findings (org_id, vessel_id, source_type, severity, status, rule_code, title, description, found_at) VALUES (${data.orgId}, ${data.vesselId}, ${data.sourceType}, ${data.severity}, ${data.status || "open"}, ${data.ruleCode}, ${data.title}, ${data.description}, NOW()) RETURNING *`
+    sql`INSERT INTO compliance_findings (org_id, vessel_id, source_type, severity, status, rule_code, title, description, found_at) VALUES (${data.orgId}, ${data.vesselId}, ${data.sourceType}, ${data.severity}, ${data.status || "open"}, ${data.ruleCode}, ${title}, ${description}, NOW()) RETURNING *`
   );
-  return result.rows[0];
+  return result.rows[0] as unknown as ComplianceFinding;
 }
 
-async function createComplianceRule(data: any): Promise<any> {
+async function createComplianceRule(data: NewRuleInput): Promise<ComplianceRuleRow> {
   const result = await db.execute(
     sql`INSERT INTO compliance_rules (org_id, source_type, category, rule_name, rule_code, description, severity, enabled) VALUES (${data.orgId}, ${data.sourceType}, ${data.category}, ${data.ruleName}, ${data.ruleCode}, ${data.description}, ${data.severity}, ${data.enabled ?? true}) RETURNING *`
   );
-  return result.rows[0];
+  return result.rows[0] as unknown as ComplianceRuleRow;
 }
 
-async function resolveComplianceFindingInDb(id: string, _data: any, orgId: string): Promise<any> {
+interface ResolutionPayload {
+  resolvedByUserId: string;
+  resolvedByUserName: string;
+  resolutionNotes?: string;
+}
+
+interface AcknowledgePayload {
+  acknowledgedByUserId: string;
+  acknowledgedByUserName: string;
+}
+
+interface SuppressPayload {
+  suppressedUntil: Date;
+  suppressedReason: string;
+}
+
+async function resolveComplianceFindingInDb(
+  id: string,
+  _data: ResolutionPayload,
+  orgId: string
+): Promise<ComplianceFinding | undefined> {
   const result = await db.execute(
     sql`UPDATE compliance_findings SET status = 'resolved', resolved_at = NOW() WHERE id = ${id} AND org_id = ${orgId} RETURNING *`
   );
-  return result.rows[0];
+  return result.rows[0] as unknown as ComplianceFinding | undefined;
 }
 
 async function acknowledgeComplianceFindingInDb(
   id: string,
-  _data: any,
+  _data: AcknowledgePayload,
   orgId: string
-): Promise<any> {
+): Promise<ComplianceFinding | undefined> {
   const result = await db.execute(
     sql`UPDATE compliance_findings SET status = 'acknowledged' WHERE id = ${id} AND org_id = ${orgId} RETURNING *`
   );
-  return result.rows[0];
+  return result.rows[0] as unknown as ComplianceFinding | undefined;
 }
 
-async function suppressComplianceFindingInDb(id: string, _data: any, orgId: string): Promise<any> {
+async function suppressComplianceFindingInDb(
+  id: string,
+  _data: SuppressPayload,
+  orgId: string
+): Promise<ComplianceFinding | undefined> {
   const result = await db.execute(
     sql`UPDATE compliance_findings SET status = 'suppressed' WHERE id = ${id} AND org_id = ${orgId} RETURNING *`
   );
-  return result.rows[0];
+  return result.rows[0] as unknown as ComplianceFinding | undefined;
 }
 
 export class ComplianceRulesEngine {

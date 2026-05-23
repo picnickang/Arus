@@ -2,21 +2,54 @@
  * Equipment Context Builder - Assembles equipment context from query results
  */
 
-import type { EquipmentContext, ContextQueryOptions } from "./types";
-import { runParallelQueries, fetchKnowledgeData } from "./data-queries";
-import { searchKnowledgeBase } from "../../vector-search-service";
+import type { EquipmentContext, ContextQueryOptions, EquipmentRecordInput } from "./types";
+import {
+  runParallelQueries,
+  fetchKnowledgeData,
+  type KnowledgeData,
+  type SearchKnowledgeBaseFn,
+} from "./data-queries";
+import { searchKnowledgeBase as defaultSearchKnowledgeBase } from "../../vector-search-service";
 import { logger } from "../../utils/logger.js";
+
+const searchKnowledgeBase = defaultSearchKnowledgeBase as unknown as SearchKnowledgeBaseFn;
+
+const pickStr = (obj: object, key: string): string | null => {
+  if (key in obj) {
+    const v = (obj as Record<string, unknown>)[key];
+    return typeof v === "string" ? v : v == null ? null : String(v);
+  }
+  return null;
+};
+const pickNum = (obj: object, key: string): number | null => {
+  if (key in obj) {
+    const v = (obj as Record<string, unknown>)[key];
+    return typeof v === "number" ? v : null;
+  }
+  return null;
+};
+const pickDate = (obj: object, key: string): Date | null => {
+  if (key in obj) {
+    const v = (obj as Record<string, unknown>)[key];
+    if (v instanceof Date) return v;
+    if (typeof v === "string" || typeof v === "number") {
+      const d = new Date(v);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+  }
+  return null;
+};
 
 export async function buildEquipmentContext(
   equipmentId: string,
   orgId: string,
-  equipmentRecord: any,
+  equipmentRecord: EquipmentRecordInput,
   timeframeStart: Date,
   options: ContextQueryOptions
 ): Promise<EquipmentContext> {
   const queryResults = await runParallelQueries(equipmentId, orgId, timeframeStart, options);
 
-  let knowledgeResults = { relatedDocuments: [] as object[], semanticMatches: [] as object[] };
+  let knowledgeResults: KnowledgeData = { relatedDocuments: [], semanticMatches: [] };
   if (options.includeKnowledge === "true") {
     knowledgeResults = await fetchKnowledgeData(
       equipmentId,
@@ -39,22 +72,32 @@ export async function buildEquipmentContext(
     insights,
   } = queryResults;
 
-  const openWorkOrders = allWorkOrders.filter(
-    (wo: any) => wo.status === "open" || wo.status === "in_progress" || wo.status === "pending"
-  );
-  const completedWorkOrders = allWorkOrders
-    .filter((wo: any) => wo.status === "completed")
-    .slice(0, 5);
+  const woStatus = (wo: object): string | undefined =>
+    "status" in wo ? ((wo as { status?: string }).status ?? undefined) : undefined;
+  const openWorkOrders = allWorkOrders.filter((wo) => {
+    const st = woStatus(wo);
+    return st === "open" || st === "in_progress" || st === "pending";
+  });
+  const completedWorkOrders = allWorkOrders.filter((wo) => woStatus(wo) === "completed").slice(0, 5);
 
   const now = new Date();
-  const upcomingSchedules = schedules.filter(
-    (s: any) =>
-      s.scheduledDate && new Date(s.scheduledDate) >= now && s.status !== "completed"
-  );
-  const overdueSchedules = schedules.filter(
-    (s: any) =>
-      s.scheduledDate && new Date(s.scheduledDate) < now && s.status !== "completed"
-  );
+  const scheduleDate = (s: object): Date | null => {
+    if (!("scheduledDate" in s)) return null;
+    const v = (s as { scheduledDate?: unknown }).scheduledDate;
+    if (v instanceof Date) return v;
+    if (typeof v === "string" || typeof v === "number") return new Date(v);
+    return null;
+  };
+  const scheduleStatus = (s: object): string | undefined =>
+    "status" in s ? ((s as { status?: string }).status ?? undefined) : undefined;
+  const upcomingSchedules = schedules.filter((s) => {
+    const d = scheduleDate(s);
+    return d != null && d >= now && scheduleStatus(s) !== "completed";
+  });
+  const overdueSchedules = schedules.filter((s) => {
+    const d = scheduleDate(s);
+    return d != null && d < now && scheduleStatus(s) !== "completed";
+  });
 
   let pdmTrend: "improving" | "stable" | "declining" | null = null;
   if (pdmScores.length >= 2) {
@@ -70,39 +113,47 @@ export async function buildEquipmentContext(
     }
   }
 
-  const activeSensors = sensors.filter((s: any) => s.isActive !== false);
-  const sensorTypes = [...new Set(sensors.map((s: any) => s.sensorType).filter(Boolean))];
+  const activeSensors = sensors.filter((s) => {
+    const isActive = "isActive" in s ? (s as { isActive?: boolean | null }).isActive : true;
+    return isActive !== false;
+  });
+  const sensorTypes = [...new Set(sensors.map((s) => s.sensorType).filter(Boolean))];
   const telemetrySensorTypes = [
-    ...new Set(telemetryData.map((t: any) => t.sensorType).filter(Boolean)),
+    ...new Set(telemetryData.map((t) => t.sensorType).filter(Boolean)),
   ];
 
-  const criticalAlerts = activeAlerts.filter((a: any) => a.severity === "critical").length;
-  const warningAlerts = activeAlerts.filter(
-    (a: any) => a.severity === "warning" || a.severity === "high"
-  ).length;
-  const infoAlerts = activeAlerts.filter(
-    (a: any) => a.severity === "info" || a.severity === "low"
-  ).length;
+  const severityOf = (x: object): string | undefined =>
+    "severity" in x ? ((x as { severity?: string }).severity ?? undefined) : undefined;
 
-  const criticalInsights = insights.filter((i: any) => i.severity === "critical").length;
-  const highInsights = insights.filter((i: any) => i.severity === "high").length;
-  const mediumInsights = insights.filter((i: any) => i.severity === "medium").length;
-  const lowInsights = insights.filter((i: any) => i.severity === "low").length;
+  const criticalAlerts = activeAlerts.filter((a) => severityOf(a) === "critical").length;
+  const warningAlerts = activeAlerts.filter((a) => {
+    const s = severityOf(a);
+    return s === "warning" || s === "high";
+  }).length;
+  const infoAlerts = activeAlerts.filter((a) => {
+    const s = severityOf(a);
+    return s === "info" || s === "low";
+  }).length;
+
+  const criticalInsights = insights.filter((i) => severityOf(i) === "critical").length;
+  const highInsights = insights.filter((i) => severityOf(i) === "high").length;
+  const mediumInsights = insights.filter((i) => severityOf(i) === "medium").length;
+  const lowInsights = insights.filter((i) => severityOf(i) === "low").length;
 
   return {
     equipment: {
-      id: equipmentRecord.id,
-      name: equipmentRecord.name,
-      type: equipmentRecord.type,
-      vesselId: equipmentRecord.vesselId,
-      status: equipmentRecord.status,
-      lastMaintenanceDate: equipmentRecord.lastMaintenanceDate,
-      nextMaintenanceDate: equipmentRecord.nextMaintenanceDate,
-      runningHours: equipmentRecord.runningHours,
-      manufacturer: equipmentRecord.manufacturer,
-      model: equipmentRecord.model,
-      serialNumber: equipmentRecord.serialNumber,
-      installationDate: equipmentRecord.installationDate,
+      id: String(equipmentRecord.id ?? ""),
+      name: String(equipmentRecord.name ?? ""),
+      type: String(equipmentRecord.type ?? ""),
+      vesselId: pickStr(equipmentRecord, "vesselId"),
+      status: pickStr(equipmentRecord, "status") ?? "",
+      lastMaintenanceDate: pickDate(equipmentRecord, "lastMaintenanceDate"),
+      nextMaintenanceDate: pickDate(equipmentRecord, "nextMaintenanceDate"),
+      runningHours: pickNum(equipmentRecord, "runningHours"),
+      manufacturer: pickStr(equipmentRecord, "manufacturer"),
+      model: pickStr(equipmentRecord, "model"),
+      serialNumber: pickStr(equipmentRecord, "serialNumber"),
+      installationDate: pickDate(equipmentRecord, "installationDate"),
     },
     telemetry: {
       latest: telemetryData.slice(0, 20),
@@ -111,8 +162,8 @@ export async function buildEquipmentContext(
         timeRange:
           telemetryData.length > 0
             ? {
-                start: telemetryData[telemetryData.length - 1]?.ts,
-                end: telemetryData[0]?.ts,
+                start: telemetryData[telemetryData.length - 1]?.ts as Date,
+                end: telemetryData[0]?.ts as Date,
               }
             : null,
         sensorTypes: telemetrySensorTypes as string[],
@@ -133,16 +184,19 @@ export async function buildEquipmentContext(
             remainingUsefulLife: failurePrediction.remainingUsefulLife,
             failureProbability: failurePrediction.failureProbability,
             predictedFailureDate: failurePrediction.predictedFailureDate,
-            confidence: failurePrediction.confidenceInterval,
+            confidence:
+              typeof failurePrediction.confidenceInterval === "number"
+                ? failurePrediction.confidenceInterval
+                : null,
             modelType: failurePrediction.modelId,
           }
         : null,
       pdmScore:
         pdmScores.length > 0
           ? {
-              score: pdmScores[0]?.healthIdx,
+              score: pdmScores[0]?.healthIdx ?? null,
               trend: pdmTrend,
-              lastUpdated: pdmScores[0]?.ts,
+              lastUpdated: pdmScores[0]?.ts ?? null,
             }
           : null,
     },

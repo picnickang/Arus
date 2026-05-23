@@ -15,25 +15,56 @@ import {
   kbDocs,
   actionableInsights,
 } from "@shared/schema-runtime";
+import type {
+  EquipmentTelemetry,
+  FailurePrediction,
+  PdmScoreLog,
+  WorkOrder,
+  MaintenanceSchedule,
+  SensorConfiguration,
+  AlertNotification,
+  ActionableInsight,
+} from "@shared/schema";
 import type { ContextQueryOptions } from "./types";
+
+export interface ParallelQueryResults {
+  telemetryData: EquipmentTelemetry[];
+  activeAlerts: AlertNotification[];
+  resolvedAlerts: AlertNotification[];
+  failurePrediction: FailurePrediction | null;
+  pdmScores: PdmScoreLog[];
+  allWorkOrders: WorkOrder[];
+  schedules: MaintenanceSchedule[];
+  sensors: SensorConfiguration[];
+  insights: ActionableInsight[];
+}
+
+export interface KbSearchHit {
+  docId?: string;
+  text?: string;
+  score?: number;
+}
+
+export type SearchKnowledgeBaseFn = (
+  args: { query: string; orgId: string; limit?: number },
+) => Promise<KbSearchHit[]>;
+
+export interface KnowledgeQueryLogger {
+  warn: (
+    moduleOrMessage: string,
+    message?: string,
+    data?: unknown,
+    suppressInEmbedded?: boolean
+  ) => void;
+}
 
 export async function runParallelQueries(
   equipmentId: string,
   orgId: string,
   timeframeStart: Date,
   options: ContextQueryOptions
-): Promise<{
-  telemetryData: any[];
-  activeAlerts: any[];
-  resolvedAlerts: any[];
-  failurePrediction: any;
-  pdmScores: any[];
-  allWorkOrders: any[];
-  schedules: any[];
-  sensors: any[];
-  insights: any[];
-}> {
-  const parallelQueries: Promise<any>[] = [];
+): Promise<ParallelQueryResults> {
+  const parallelQueries: Promise<unknown>[] = [];
   const queryMap: Record<string, number> = {};
   let queryIndex = 0;
 
@@ -171,36 +202,46 @@ export async function runParallelQueries(
 
   const results = await Promise.all(parallelQueries);
 
-  return {
-    telemetryData: queryMap["telemetry"] !== undefined ? results[queryMap["telemetry"]] : [],
-    activeAlerts: queryMap["activeAlerts"] !== undefined ? results[queryMap["activeAlerts"]] : [],
-    resolvedAlerts:
-      queryMap["resolvedAlerts"] !== undefined ? results[queryMap["resolvedAlerts"]] : [],
-    failurePrediction:
-      queryMap["failurePrediction"] !== undefined
-        ? results[queryMap["failurePrediction"]][0]
-        : null,
-    pdmScores: queryMap["pdmScores"] !== undefined ? results[queryMap["pdmScores"]] : [],
-    allWorkOrders:
-      queryMap["openWorkOrders"] !== undefined ? results[queryMap["openWorkOrders"]] : [],
-    schedules: queryMap["schedules"] !== undefined ? results[queryMap["schedules"]] : [],
-    sensors: queryMap["sensors"] !== undefined ? results[queryMap["sensors"]] : [],
-    insights: queryMap["insights"] !== undefined ? results[queryMap["insights"]] : [],
+  const pick = <T>(key: string, fallback: T): T => {
+    const idx = queryMap[key];
+    if (idx === undefined) return fallback;
+    return (results[idx] as T) ?? fallback;
   };
+
+  const failurePredictionRows = pick<FailurePrediction[]>("failurePrediction", []);
+
+  return {
+    telemetryData: pick<EquipmentTelemetry[]>("telemetry", []),
+    activeAlerts: pick<AlertNotification[]>("activeAlerts", []),
+    resolvedAlerts: pick<AlertNotification[]>("resolvedAlerts", []),
+    failurePrediction: failurePredictionRows[0] ?? null,
+    pdmScores: pick<PdmScoreLog[]>("pdmScores", []),
+    allWorkOrders: pick<WorkOrder[]>("openWorkOrders", []),
+    schedules: pick<MaintenanceSchedule[]>("schedules", []),
+    sensors: pick<SensorConfiguration[]>("sensors", []),
+    insights: pick<ActionableInsight[]>("insights", []),
+  };
+}
+
+export interface KnowledgeData {
+  relatedDocuments: Array<typeof kbDocs.$inferSelect>;
+  semanticMatches: Array<{ docId?: string; text?: string; score?: number }>;
 }
 
 export async function fetchKnowledgeData(
   equipmentId: string,
   orgId: string,
-  equipmentRecord: any,
-  searchKnowledgeBase: any,
-  logger: any
-): Promise<{ relatedDocuments: any[]; semanticMatches: any[] }> {
-  const results = { relatedDocuments: [] as object[], semanticMatches: [] as object[] };
+  equipmentRecord: { type?: unknown; name?: unknown },
+  searchKnowledgeBase: SearchKnowledgeBaseFn,
+  logger: KnowledgeQueryLogger
+): Promise<KnowledgeData> {
+  const results: KnowledgeData = { relatedDocuments: [], semanticMatches: [] };
 
   try {
-    const equipmentType = equipmentRecord.type ?? "";
-    const equipmentName = equipmentRecord.name ?? "";
+    const equipmentType =
+      typeof equipmentRecord.type === "string" ? equipmentRecord.type : "";
+    const equipmentName =
+      typeof equipmentRecord.name === "string" ? equipmentRecord.name : "";
     const searchQuery = `${equipmentType} ${equipmentName} maintenance procedures troubleshooting`;
 
     const semanticResults = await searchKnowledgeBase({
@@ -208,7 +249,7 @@ export async function fetchKnowledgeData(
       orgId,
       limit: 5,
     });
-    results.semanticMatches = semanticResults.map((r: any) => ({
+    results.semanticMatches = semanticResults.map((r) => ({
       docId: r.docId,
       text: r.text,
       score: r.score,
@@ -221,7 +262,7 @@ export async function fetchKnowledgeData(
 
     results.relatedDocuments = linkedDocs;
   } catch (error) {
-    logger.warn("Knowledge search failed", { error, equipmentId });
+    logger.warn("equipment-context", "Knowledge search failed", { error, equipmentId });
   }
 
   return results;

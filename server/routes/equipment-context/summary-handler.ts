@@ -38,7 +38,10 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
     let alertCount = 0;
     let insightCount = 0;
     let pdmScore: number | null = null;
-    let latestPrediction: any = null;
+    let latestPrediction: {
+      remainingUsefulLife: number | null;
+      failureProbability: number | null;
+    } | null = null;
 
     try {
       const alertResult = await db

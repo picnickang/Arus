@@ -76,8 +76,8 @@ const upload = multer({
       try {
         const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
         cb(null, orgDir(orgId));
-      } catch (e: any) {
-        cb(e, "");
+      } catch (e) {
+        cb(e instanceof Error ? e : new Error(String(e)), "");
       }
     },
     filename: (_req, file, cb) => {
@@ -109,15 +109,19 @@ const router = Router();
 // ---------- Upload (admin only) ----------
 // Wrap multer so its errors (size, type, etc.) map to explicit 400/413
 // responses instead of falling through to the global 500 handler.
-function uploadSingleModel(req: Request, res: Response, next: (err?: any) => void) {
-  upload.single("model")(req, res, (err: any) => {
+function uploadSingleModel(req: Request, res: Response, next: (err?: unknown) => void) {
+  upload.single("model")(req, res, (err: unknown) => {
     if (!err) return next();
     if (err instanceof multer.MulterError) {
       const status = err.code === "LIMIT_FILE_SIZE" ? 413 : 400;
       return res.status(status).json({ error: err.message, code: err.code });
     }
-    if (typeof err?.message === "string") {
-      return res.status(400).json({ error: err.message });
+    const message =
+      err && typeof err === "object" && "message" in err && typeof (err as { message: unknown }).message === "string"
+        ? (err as { message: string }).message
+        : null;
+    if (message) {
+      return res.status(400).json({ error: message });
     }
     return next(err);
   });
@@ -199,11 +203,11 @@ router.post(
             equipmentPins: pins,
           })
           .returning();
-      } catch (dbErr: any) {
+      } catch (dbErr) {
         // Avoid orphaning the on-disk GLB if the metadata insert fails.
         try { fs.unlinkSync(file.path); } catch { /* noop */ }
         logger.error("Vessel 3D model DB insert failed; uploaded file removed", {
-          error: dbErr?.message,
+          error: dbErr instanceof Error ? dbErr.message : String(dbErr),
           vesselId,
         });
         return res.status(500).json({ error: "Failed to persist model metadata" });
@@ -215,13 +219,14 @@ router.post(
       void quotaService.incrementUsage(orgId, "storage_bytes", file.size);
 
       res.status(201).json(row);
-    } catch (error: any) {
+    } catch (error) {
       // Last-resort cleanup if anything above the DB insert threw unexpectedly.
       if (req.file?.path) {
         try { fs.unlinkSync(req.file.path); } catch { /* noop */ }
       }
-      logger.error("Upload failed", { error: error.message });
-      res.status(500).json({ error: error.message });
+      const message = error instanceof Error ? error.message : "Unknown error";
+      logger.error("Upload failed", { error: message });
+      res.status(500).json({ error: message });
     }
   }
 );
@@ -239,10 +244,11 @@ router.get("/vessels/:vesselId/3d-model", async (req: Request, res: Response) =>
       .limit(1);
     if (!row) return res.status(404).json({ error: "No 3D model attached" });
     // Do not leak storedPath.
-    const { storedPath, ...safe } = row;
+    const { storedPath: _omit, ...safe } = row;
     res.json(safe);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    res.status(500).json({ error: message });
   }
 });
 
@@ -274,8 +280,9 @@ router.get("/vessels/3d-model/:modelId/binary", async (req: Request, res: Respon
     res.setHeader("Content-Length", String(row.sizeBytes));
     res.setHeader("Cache-Control", "private, max-age=300");
     fs.createReadStream(resolved).pipe(res);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    res.status(500).json({ error: message });
   }
 });
 
@@ -294,10 +301,11 @@ router.patch("/vessels/3d-model/:modelId/pins", requireRole("admin", "chief_engi
       .where(and(eq(vessel3dModels.id, modelId), eq(vessel3dModels.orgId, orgId)))
       .returning();
     if (!row) return res.status(404).json({ error: "Model not found" });
-    const { storedPath, ...safe } = row;
+    const { storedPath: _omit, ...safe } = row;
     res.json(safe);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    res.status(500).json({ error: message });
   }
 });
 
@@ -432,8 +440,9 @@ router.get(
       const maxHops = hopsParsed.data;
       const downstream = await failurePropagation(orgId, equipmentId, maxHops);
       res.json({ equipmentId, downstream });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ error: message });
     }
   }
 );

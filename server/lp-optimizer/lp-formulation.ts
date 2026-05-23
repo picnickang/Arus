@@ -60,10 +60,32 @@ function initializeConstraintMap(
   return constraintMap;
 }
 
-function buildPartsStock(jobs: MaintenanceJob[], partsData: any[]): Map<string, number> {
+export interface LpPartRow {
+  id: string;
+  quantity?: number | null;
+}
+export type LpCoeffs = Record<string, number>;
+export type LpVariables = Record<string, LpCoeffs>;
+export type LpConstraints = Record<string, { min?: number; max?: number }>;
+export interface LpProblem {
+  optimize: string;
+  opType: "min" | "max";
+  constraints: LpConstraints;
+  variables: LpVariables;
+  binaries: Record<string, number>;
+}
+export type LpSolution = {
+  feasible?: boolean;
+  bounded?: boolean;
+  isIntegral?: boolean;
+  result?: unknown;
+  objective?: number;
+} & Record<string, unknown>;
+
+function buildPartsStock(jobs: MaintenanceJob[], partsData: LpPartRow[]): Map<string, number> {
   const partsStock = new Map<string, number>();
   partsData.forEach((part) => {
-    if (part.quantity) {
+    if (typeof part.quantity === "number" && part.quantity > 0) {
       partsStock.set(part.id, part.quantity);
     }
   });
@@ -85,7 +107,7 @@ function createJobVariable(
   day: number,
   hour: number,
   constraints: OptimizationConstraints
-): { varName: string; coeffs: any } | null {
+): { varName: string; coeffs: LpCoeffs } | null {
   const dayName = new Date(Date.now() + day * 24 * 60 * 60 * 1000).toLocaleDateString("en-US", {
     weekday: "long",
   });
@@ -113,7 +135,7 @@ function createJobVariable(
     latenessPenalty = daysLate * 100;
   }
 
-  const coeffs: any = { objective: laborCost + partsCost + priorityCost + latenessPenalty };
+  const coeffs: LpCoeffs = { objective: laborCost + partsCost + priorityCost + latenessPenalty };
   coeffs[`job_assignment_${jobIdx}`] = 1;
   coeffs[`crew_capacity_c${crewIdx}_d${day}`] = jobDurationHours;
 
@@ -132,8 +154,8 @@ function createJobVariable(
   return { varName, coeffs };
 }
 
-function buildVariables(jobs: MaintenanceJob[], constraints: OptimizationConstraints): any {
-  const variables: any = {};
+function buildVariables(jobs: MaintenanceJob[], constraints: OptimizationConstraints): LpVariables {
+  const variables: LpVariables = {};
 
   for (let jobIdx = 0; jobIdx < jobs.length; jobIdx++) {
     const job = jobs[jobIdx];
@@ -166,11 +188,11 @@ function buildVariables(jobs: MaintenanceJob[], constraints: OptimizationConstra
 export function formulateLinearProgram(
   jobs: MaintenanceJob[],
   constraints: OptimizationConstraints,
-  partsData: any[]
-): any {
+  partsData: LpPartRow[]
+): LpProblem {
   const partsStock = buildPartsStock(jobs, partsData);
   const constraintMap = initializeConstraintMap(jobs, constraints, partsStock);
-  const constraintDefs: any = {};
+  const constraintDefs: LpConstraints = {};
   for (const [name, bounds] of constraintMap) {
     constraintDefs[name] = bounds;
   }
@@ -184,18 +206,25 @@ export function formulateLinearProgram(
     opType: "min",
     constraints: constraintDefs,
     variables,
-    binaries: Object.keys(variables).reduce((acc: any, key) => ({ ...acc, [key]: 1 }), {}),
+    binaries: Object.keys(variables).reduce<Record<string, number>>(
+      (acc, key) => ({ ...acc, [key]: 1 }),
+      {}
+    ),
   };
 }
 
-export function relaxConstraints(lpProblem: any): any {
-  if (lpProblem.constraints.parts_budget) {
-    lpProblem.constraints.parts_budget.max *= 1.2;
+export function relaxConstraints(lpProblem: LpProblem): LpProblem {
+  const partsBudget = lpProblem.constraints.parts_budget;
+  if (partsBudget && typeof partsBudget.max === "number") {
+    partsBudget.max *= 1.2;
   }
 
   for (const constraintName in lpProblem.constraints) {
     if (constraintName.includes("crew_capacity_")) {
-      lpProblem.constraints[constraintName].max *= 1.1;
+      const c = lpProblem.constraints[constraintName];
+      if (c && typeof c.max === "number") {
+        c.max *= 1.1;
+      }
     }
   }
 
@@ -205,7 +234,7 @@ export function relaxConstraints(lpProblem: any): any {
 const META_KEYS = new Set(["feasible", "result", "bounded", "isIntegral"]);
 
 function extractScheduleFromSolution(
-  solution: any,
+  solution: LpSolution,
   jobs: MaintenanceJob[],
   constraints: OptimizationConstraints
 ): {
@@ -282,7 +311,7 @@ function extractScheduleFromSolution(
 }
 
 export function processSolution(
-  solution: any,
+  solution: LpSolution,
   jobs: MaintenanceJob[],
   constraints: OptimizationConstraints,
   optimizationTime: number,
@@ -327,7 +356,7 @@ export function processSolution(
     schedule,
     resourceUtilization,
     constraints: {
-      feasible: solution.feasible && !wasRelaxed,
+      feasible: (solution.feasible ?? false) && !wasRelaxed,
       violations,
     },
     optimizationTime,

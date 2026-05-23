@@ -1,32 +1,32 @@
 {
   "_comment": "Explicit-`any` burndown baseline. Total must monotonically decrease. Regenerate the inventory (`node scripts/type-debt/classify-explicit-any.mjs`) then run `node scripts/check-explicit-any-burndown.mjs --write-baseline`.",
-  "generatedAt": "2026-05-23T20:38:25.423Z",
-  "total": 646,
+  "generatedAt": "2026-05-23T21:21:24.007Z",
+  "total": 538,
   "summary": {
     "byBucket": {
       "External library typing gaps": 0,
       "Test mocks / stubs": 0,
-      "Legacy DTOs (route handlers, request/response shapes)": 95,
+      "Legacy DTOs (route handlers, request/response shapes)": 54,
       "Dynamic JSON payloads": 19,
-      "Generic inference failures": 343,
-      "Truly unsafe / untyped logic": 189
+      "Generic inference failures": 303,
+      "Truly unsafe / untyped logic": 162
     },
     "byTopFiles": {
-      "server/routes/equipment-context/data-queries.ts": 16,
-      "server/routes/equipment-context/context-builder.ts": 15,
-      "server/services/compliance-rules-engine/engine-core.ts": 14,
-      "server/ml-prediction-service.ts": 13,
-      "server/openai/dossier-builder.ts": 11,
       "server/ml-model-registry.ts": 11,
-      "server/services/data-export-import/entity-upserters.ts": 10,
-      "server/routes/vessel-3d-routes.ts": 9,
-      "server/lp-optimizer/lp-formulation.ts": 8,
+      "server/services/ml/ml-training-job-queue.ts": 10,
       "client/src/pages/dashboard-improved.tsx": 7,
       "server/inventory-risk/analyzer.ts": 6,
       "server/mqtt-reliable-sync/mqtt-reliable-sync.ts": 6,
       "server/services/data-export-import/data-transforms.ts": 6,
-      "server/services/ml/ml-training-job-queue.ts": 6,
-      "server/job-processors/report-processors.ts": 6
+      "server/job-processors/report-processors.ts": 6,
+      "server/report-context/data-fetchers.ts": 6,
+      "server/routes/analytics/model-governance.ts": 5,
+      "server/routes/wo-so-bridge-routes.ts": 5,
+      "server/db-utils/timescale.ts": 5,
+      "server/job-processors/ai-processors.ts": 5,
+      "server/openai/client.ts": 5,
+      "server/scheduler/scheduler-controller.ts": 5,
+      "server/services/data-export-import/entity-fetchers.ts": 5
     }
   }
 }

@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-23T20:38:25.230Z",
+  "generatedAt": "2026-05-23T21:21:23.838Z",
   "rule": "@typescript-eslint/no-explicit-any",
-  "total": 646,
-  "totalFiles": 228,
+  "total": 538,
+  "totalFiles": 219,
   "buckets": {
     "external_lib_gaps": {
       "label": "External library typing gaps",
@@ -28,22 +28,10 @@
       "label": "Legacy DTOs (route handlers, request/response shapes)",
       "definition": "`any` on route-handler request bodies/queries, untyped DTO interfaces, and helper signatures that pass request-shaped data around without ever describing it. Most of these survived the wire-parses sweep because they live below the route registration layer.",
       "remediation": "Define the DTO once with Zod, derive the TS type via `z.infer`, and import the type at every helper. For handlers, use `AuthenticatedRequest` from `server/middleware/auth.ts` and parse `req.body`/`req.query`/`req.params` with the schema — same contract the wire-parses sweep enforced.",
-      "count": 95,
-      "files": 25,
-      "percent": 14.7,
+      "count": 54,
+      "files": 21,
+      "percent": 10,
       "topFiles": [
-        {
-          "file": "server/routes/equipment-context/data-queries.ts",
-          "count": 16
-        },
-        {
-          "file": "server/routes/equipment-context/context-builder.ts",
-          "count": 15
-        },
-        {
-          "file": "server/routes/vessel-3d-routes.ts",
-          "count": 9
-        },
         {
           "file": "server/routes/analytics/model-governance.ts",
           "count": 5
@@ -71,6 +59,18 @@
         {
           "file": "server/storage/interfaces/domains/vessel.types.ts",
           "count": 4
+        },
+        {
+          "file": "server/routes/observability-routes.ts",
+          "count": 3
+        },
+        {
+          "file": "server/storage/interfaces/domains/equipment.types.ts",
+          "count": 3
+        },
+        {
+          "file": "server/routes/diagnostics/tests-routes.ts",
+          "count": 2
         }
       ],
       "examples": [
@@ -97,7 +97,7 @@
       "remediation": "Stop trusting the payload. Parse once with `z.unknown().pipe(targetSchema)` or `JSON.parse` followed by a Zod parse. Inside the system, replace `any` with `unknown` so callers are forced to narrow. For drizzle `jsonb` columns, declare the column type as `jsonb().$type<MyShape>()` and store the Zod schema alongside.",
       "count": 19,
       "files": 13,
-      "percent": 2.9,
+      "percent": 3.5,
       "topFiles": [
         {
           "file": "client/src/features/settings/hooks/useDiagnosticsData.ts",
@@ -162,22 +162,10 @@
       "label": "Generic inference failures",
       "definition": "Functions whose signature uses `any` because the author couldn't get a generic to flow (callback params typed `(x: any)`, `Array<any>`, `Promise<any>`, return-type `any` on a helper that should have inferred).",
       "remediation": "Reach for `Parameters<typeof fn>[n]` / `Awaited<ReturnType<typeof fn>>` / `infer` rather than `any`. For callbacks, type the higher-order function generically (`<T>(items: T[], cb: (x: T) => void)`) instead of widening the parameter. For Promise chains, type the resolution value, not the wrapper.",
-      "count": 343,
-      "files": 147,
-      "percent": 53.1,
+      "count": 303,
+      "files": 142,
+      "percent": 56.3,
       "topFiles": [
-        {
-          "file": "server/ml-prediction-service.ts",
-          "count": 13
-        },
-        {
-          "file": "server/openai/dossier-builder.ts",
-          "count": 11
-        },
-        {
-          "file": "server/services/compliance-rules-engine/engine-core.ts",
-          "count": 9
-        },
         {
           "file": "client/src/pages/dashboard-improved.tsx",
           "count": 7
@@ -205,6 +193,18 @@
         {
           "file": "server/db-utils/timescale.ts",
           "count": 5
+        },
+        {
+          "file": "server/job-processors/ai-processors.ts",
+          "count": 5
+        },
+        {
+          "file": "server/openai/client.ts",
+          "count": 5
+        },
+        {
+          "file": "server/scheduler/scheduler-controller.ts",
+          "count": 5
         }
       ],
       "examples": [
@@ -229,18 +229,10 @@
       "label": "Truly unsafe / untyped logic",
       "definition": "Residual `any` that isn't explained by any of the above — typically deep cross-domain glue, dynamic property access on heterogeneous registries, or code that genuinely needs a domain redesign before it can be typed.",
       "remediation": "Don't paper over with a cast. These are the call sites that should drive Phase 3 work (Result/Either, branded IDs, discriminated unions, shared API envelopes, typed domain errors). Capture the call site in the follow-up task list and resolve it as part of the domain redesign — not as a one-line edit.",
-      "count": 189,
-      "files": 103,
-      "percent": 29.3,
+      "count": 162,
+      "files": 98,
+      "percent": 30.1,
       "topFiles": [
-        {
-          "file": "server/services/data-export-import/entity-upserters.ts",
-          "count": 10
-        },
-        {
-          "file": "server/lp-optimizer/lp-formulation.ts",
-          "count": 8
-        },
         {
           "file": "server/job-processors/report-processors.ts",
           "count": 6
@@ -251,10 +243,6 @@
         },
         {
           "file": "server/ml-model-registry.ts",
-          "count": 5
-        },
-        {
-          "file": "server/services/compliance-rules-engine/engine-core.ts",
           "count": 5
         },
         {
@@ -271,6 +259,18 @@
         },
         {
           "file": "server/ml-random-forest.ts",
+          "count": 4
+        },
+        {
+          "file": "server/scheduler/stcw-dashboard/fleet-summary.ts",
+          "count": 4
+        },
+        {
+          "file": "server/services/ml/ml-training-job-queue.ts",
+          "count": 4
+        },
+        {
+          "file": "server/vessel-simulator/stress-test.ts",
           "count": 4
         }
       ],
