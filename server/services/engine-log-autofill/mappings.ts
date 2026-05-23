@@ -62,7 +62,7 @@ export const DEFAULT_TELEMETRY_MAPPING: Record<string, keyof InsertEngineLogHour
   main_engine_hours: "meRunningHours",
 };
 
-export const GENERATOR_TELEMETRY_MAPPING: Record<string, any> = {
+export const GENERATOR_TELEMETRY_MAPPING: Record<string, string> = {
   dg_load_kw: "loadKw",
   generator_load_kw: "loadKw",
   dg_load_percent: "loadPercent",

@@ -38,7 +38,7 @@ export interface GeneratedInsight {
   severity: InsightSeverity;
   title: string;
   message: string;
-  supportingSignals?: Record<string, any>;
+  supportingSignals?: Record<string, unknown>;
   recommendedAction?: string;
   relatedProcedures?: string[];
 }

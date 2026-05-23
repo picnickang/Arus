@@ -6,7 +6,7 @@
 
 export interface MqttMessage {
   topic: string;
-  payload: any;
+  payload: unknown;
   qos: 0 | 1 | 2; // Quality of Service level
   retain: boolean; // Whether to retain message for late joiners
 }

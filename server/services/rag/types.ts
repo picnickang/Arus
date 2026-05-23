@@ -48,7 +48,7 @@ export interface ConversationMessage {
 
 export interface ConversationContext {
   messages: ConversationMessage[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface QueryRewriteResult {

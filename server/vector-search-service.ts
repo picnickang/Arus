@@ -3,7 +3,7 @@ export interface SearchResult {
   id: string;
   content: string;
   score: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   docName?: string;
   docId?: string;
   chunkId?: string;

@@ -66,7 +66,7 @@ export interface IAnalyticsStorage {
     sourceType: string,
     sourceId: string,
     content: string,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
     orgId?: string
   ): Promise<KnowledgeBaseItem>;
   refreshContentIndex(

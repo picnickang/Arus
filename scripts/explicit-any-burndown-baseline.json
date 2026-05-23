@@ -1,13 +1,13 @@
 {
   "_comment": "Explicit-`any` burndown baseline. Total must monotonically decrease. Regenerate the inventory (`node scripts/type-debt/classify-explicit-any.mjs`) then run `node scripts/check-explicit-any-burndown.mjs --write-baseline`.",
-  "generatedAt": "2026-05-22T12:35:17.355Z",
-  "total": 796,
+  "generatedAt": "2026-05-23T11:55:59.239Z",
+  "total": 783,
   "summary": {
     "byBucket": {
       "External library typing gaps": 2,
       "Test mocks / stubs": 0,
       "Legacy DTOs (route handlers, request/response shapes)": 161,
-      "Dynamic JSON payloads": 39,
+      "Dynamic JSON payloads": 26,
       "Generic inference failures": 376,
       "Truly unsafe / untyped logic": 218
     },

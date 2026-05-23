@@ -161,7 +161,7 @@ function redactSensitiveData(obj: any, sensitiveFields: string[]): any {
     return obj.map((item) => redactSensitiveData(item, sensitiveFields));
   }
 
-  const redacted: Record<string, any> = {};
+  const redacted: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     const lowerKey = key.toLowerCase();
     if (sensitiveFields.some((field) => lowerKey.includes(field.toLowerCase()))) {

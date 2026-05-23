@@ -15,7 +15,7 @@ import { fetchKBKnowledge } from "./knowledge-citations.js";
 
 export async function buildCustomContext(
   reportType: string,
-  params: Record<string, any>,
+  params: Record<string, unknown>,
   orgId: string = "default-org",
   options: ContextBuilderOptions = {}
 ): Promise<ReportContext> {

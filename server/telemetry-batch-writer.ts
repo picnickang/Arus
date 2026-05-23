@@ -43,7 +43,7 @@ export interface TelemetryBatchReading {
   deviceId?: string;
   orgId?: string;
   unit?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   _retryCount?: number; // Internal: tracks flush retry attempts
 }
 

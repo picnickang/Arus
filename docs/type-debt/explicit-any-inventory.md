@@ -1,19 +1,19 @@
 # Explicit `any` Inventory
 
-_Generated: 2026-05-22T12:35:17.212Z_
+_Generated: 2026-05-23T11:55:50.683Z_
 
 Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit-any`. Regenerate with `node scripts/type-debt/classify-explicit-any.mjs`.
 
 ## Headline
 
-- **Total occurrences:** 796
-- **Distinct files:** 292
+- **Total occurrences:** 783
+- **Distinct files:** 286
 
 **Rough split (based on bucket heuristics — see per-bucket sections for caveats):**
 
-- ~47.5% mechanical (test mocks + external library gaps + generic inference fixes)
-- ~25.1% schema / generic redesign (dynamic JSON parses + legacy DTOs)
-- ~27.4% truly unsafe / residual (drives Phase 3 domain work)
+- ~48.3% mechanical (test mocks + external library gaps + generic inference fixes)
+- ~23.9% schema / generic redesign (dynamic JSON parses + legacy DTOs)
+- ~27.8% truly unsafe / residual (drives Phase 3 domain work)
 
 **Bucket totals:**
 
@@ -21,10 +21,10 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 |---|---:|---:|---:|
 | External library typing gaps | 2 | 0.3% | 2 |
 | Test mocks / stubs | 0 | 0.0% | 0 |
-| Legacy DTOs (route handlers, request/response shapes) | 161 | 20.2% | 50 |
-| Dynamic JSON payloads | 39 | 4.9% | 32 |
-| Generic inference failures | 376 | 47.2% | 165 |
-| Truly unsafe / untyped logic | 218 | 27.4% | 118 |
+| Legacy DTOs (route handlers, request/response shapes) | 161 | 20.6% | 50 |
+| Dynamic JSON payloads | 26 | 3.3% | 19 |
+| Generic inference failures | 376 | 48.0% | 165 |
+| Truly unsafe / untyped logic | 218 | 27.8% | 118 |
 
 ## External library typing gaps
 
@@ -58,7 +58,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** `any` on route-handler request bodies/queries, untyped DTO interfaces, and helper signatures that pass request-shaped data around without ever describing it. Most of these survived the wire-parses sweep because they live below the route registration layer.
 
-**Count.** 161 occurrences across 50 files (20.2% of all explicit `any`).
+**Count.** 161 occurrences across 50 files (20.6% of all explicit `any`).
 
 **Top files:**
 
@@ -87,7 +87,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** `JSON.parse(...) as any`, `Record<string, any>`, drizzle `jsonb()` columns, OpenAI function-call arguments, Sentry/observability event payloads, telemetry attribute bags, anything that's genuinely heterogeneous at the boundary.
 
-**Count.** 39 occurrences across 32 files (4.9% of all explicit `any`).
+**Count.** 26 occurrences across 19 files (3.3% of all explicit `any`).
 
 **Top files:**
 
@@ -101,8 +101,8 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 | `client/src/components/ai-health/TrainingTab.tsx` | 1 |
 | `client/src/features/crew/hooks/useSchedulePlannerData.ts` | 1 |
 | `client/src/pages/digital-twin/ScenariosTab.tsx` | 1 |
-| `server/bootstrap/middleware.ts` | 1 |
-| `server/compliance/audit-middleware.ts` | 1 |
+| `server/cost-savings-engine/reporting.ts` | 1 |
+| `server/digital-twin/types.ts` | 1 |
 
 **Examples:**
 
@@ -116,7 +116,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** Functions whose signature uses `any` because the author couldn't get a generic to flow (callback params typed `(x: any)`, `Array<any>`, `Promise<any>`, return-type `any` on a helper that should have inferred).
 
-**Count.** 376 occurrences across 165 files (47.2% of all explicit `any`).
+**Count.** 376 occurrences across 165 files (48.0% of all explicit `any`).
 
 **Top files:**
 
@@ -145,7 +145,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** Residual `any` that isn't explained by any of the above — typically deep cross-domain glue, dynamic property access on heterogeneous registries, or code that genuinely needs a domain redesign before it can be typed.
 
-**Count.** 218 occurrences across 118 files (27.4% of all explicit `any`).
+**Count.** 218 occurrences across 118 files (27.8% of all explicit `any`).
 
 **Top files:**
 

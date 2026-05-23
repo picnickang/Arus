@@ -45,7 +45,7 @@ export class ReportContextBuilder {
 
   async buildCustomContext(
     reportType: string,
-    params: Record<string, any>,
+    params: Record<string, unknown>,
     orgId: string = "default-org",
     options: ContextBuilderOptions = {}
   ): Promise<ReportContext> {

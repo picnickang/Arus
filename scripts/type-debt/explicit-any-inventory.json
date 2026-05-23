@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-22T12:35:17.212Z",
+  "generatedAt": "2026-05-23T11:55:50.683Z",
   "rule": "@typescript-eslint/no-explicit-any",
-  "total": 796,
-  "totalFiles": 292,
+  "total": 783,
+  "totalFiles": 286,
   "buckets": {
     "external_lib_gaps": {
       "label": "External library typing gaps",
@@ -50,7 +50,7 @@
       "remediation": "Define the DTO once with Zod, derive the TS type via `z.infer`, and import the type at every helper. For handlers, use `AuthenticatedRequest` from `server/middleware/auth.ts` and parse `req.body`/`req.query`/`req.params` with the schema — same contract the wire-parses sweep enforced.",
       "count": 161,
       "files": 50,
-      "percent": 20.2,
+      "percent": 20.6,
       "topFiles": [
         {
           "file": "server/routes/equipment-context/data-queries.ts",
@@ -115,9 +115,9 @@
       "label": "Dynamic JSON payloads",
       "definition": "`JSON.parse(...) as any`, `Record<string, any>`, drizzle `jsonb()` columns, OpenAI function-call arguments, Sentry/observability event payloads, telemetry attribute bags, anything that's genuinely heterogeneous at the boundary.",
       "remediation": "Stop trusting the payload. Parse once with `z.unknown().pipe(targetSchema)` or `JSON.parse` followed by a Zod parse. Inside the system, replace `any` with `unknown` so callers are forced to narrow. For drizzle `jsonb` columns, declare the column type as `jsonb().$type<MyShape>()` and store the Zod schema alongside.",
-      "count": 39,
-      "files": 32,
-      "percent": 4.9,
+      "count": 26,
+      "files": 19,
+      "percent": 3.3,
       "topFiles": [
         {
           "file": "client/src/features/settings/hooks/useDiagnosticsData.ts",
@@ -152,11 +152,11 @@
           "count": 1
         },
         {
-          "file": "server/bootstrap/middleware.ts",
+          "file": "server/cost-savings-engine/reporting.ts",
           "count": 1
         },
         {
-          "file": "server/compliance/audit-middleware.ts",
+          "file": "server/digital-twin/types.ts",
           "count": 1
         }
       ],
@@ -184,7 +184,7 @@
       "remediation": "Reach for `Parameters<typeof fn>[n]` / `Awaited<ReturnType<typeof fn>>` / `infer` rather than `any`. For callbacks, type the higher-order function generically (`<T>(items: T[], cb: (x: T) => void)`) instead of widening the parameter. For Promise chains, type the resolution value, not the wrapper.",
       "count": 376,
       "files": 165,
-      "percent": 47.2,
+      "percent": 48,
       "topFiles": [
         {
           "file": "server/ml-prediction-service.ts",
@@ -251,7 +251,7 @@
       "remediation": "Don't paper over with a cast. These are the call sites that should drive Phase 3 work (Result/Either, branded IDs, discriminated unions, shared API envelopes, typed domain errors). Capture the call site in the follow-up task list and resolve it as part of the domain redesign — not as a one-line edit.",
       "count": 218,
       "files": 118,
-      "percent": 27.4,
+      "percent": 27.8,
       "topFiles": [
         {
           "file": "server/services/data-export-import/entity-upserters.ts",

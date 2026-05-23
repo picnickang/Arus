@@ -355,7 +355,7 @@ class RmsAlertService {
     severity: string,
     title: string,
     message: string,
-    data: Record<string, any>
+    data: Record<string, unknown>
   ): Promise<void> {
     try {
       const result = await db.execute(sql`
