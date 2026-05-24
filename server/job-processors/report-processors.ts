@@ -2,9 +2,36 @@
  * Report Generation Job Processors
  */
 
+interface ReportEquipment {
+  id: string;
+  vessel: string;
+  healthIndex: number;
+  status: string;
+  predictedDueDays?: number;
+}
+
+interface ReportWorkOrder {
+  id: string;
+  title: string;
+  equipmentId: string;
+  priority: string;
+  status: string;
+  dueDate?: string | Date;
+}
+
+export interface ReportData {
+  equipmentHealth?: ReportEquipment[];
+  workOrders?: ReportWorkOrder[];
+}
+
+export interface ReportOptions {
+  type?: string;
+  title?: string;
+}
+
 export async function processPDFGeneration(data: {
-  reportData: any;
-  options: any;
+  reportData: ReportData;
+  options: ReportOptions;
 }): Promise<{ buffer: Buffer; filename: string }> {
   const PDFDocument = await import("pdfkit");
   const { reportData, options } = data;
@@ -57,8 +84,8 @@ export async function processPDFGeneration(data: {
 }
 
 export async function processCSVGeneration(data: {
-  reportData: any;
-  options: any;
+  reportData: ReportData;
+  options: ReportOptions;
 }): Promise<{ csv: string; filename: string }> {
   const { reportData, options } = data;
 
@@ -112,8 +139,8 @@ export async function processCSVGeneration(data: {
 }
 
 export async function processHTMLGeneration(data: {
-  reportData: any;
-  options: any;
+  reportData: ReportData;
+  options: ReportOptions;
 }): Promise<{ html: string; filename: string }> {
   const { reportData, options } = data;
 

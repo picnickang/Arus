@@ -16,22 +16,22 @@
  *        → Links an existing SO to a WO (retroactive linking)
  */
 
-import type { Express, Request, Response } from "express";
+import type { Express, Request, RequestHandler, Response } from "express";
 import { db as defaultDb } from "../db";
 import { sql } from "drizzle-orm";
-import { requireOrgId, requireOrgIdAndValidateBody } from "../middleware/auth";
+import { requireOrgId, requireOrgIdAndValidateBody, type AuthenticatedRequest } from "../middleware/auth";
 import { withErrorHandling, sendCreated, sendNotFound } from "../lib/route-utils";
 import { logger } from "../utils/logger";
 import { checkPermissionInDev } from "../domains/permissions/middleware";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 import { generateSoNumber } from "../service-orders/repository";
 
-function getOrgId(req: any): string {
-  const orgId = req.orgId || DEFAULT_ORG_ID;
+function getOrgId(req: Request): string {
+  const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
   if (!orgId) {
     throw new Error("Missing orgId");
   }
-  return orgId as string;
+  return orgId;
 }
 
 export interface CreateSOParams {
@@ -50,10 +50,19 @@ export interface CreateSOParams {
   updateWorkOrderStatus?: boolean;
 }
 
+export interface CreatedServiceOrderRow {
+  id: string;
+  so_number: string;
+  status: string;
+  work_order_id: string | null;
+  org_id: string;
+  [key: string]: unknown;
+}
+
 export async function createServiceOrderFromWorkOrder(
   db: typeof defaultDb,
   params: CreateSOParams
-): Promise<any> {
+): Promise<CreatedServiceOrderRow> {
   const {
     orgId,
     workOrderId,
@@ -128,7 +137,10 @@ export async function createServiceOrderFromWorkOrder(
     }
 
     logger.info(`Created service order ${soNumber} from work order ${workOrderId}`);
-    return inserted;
+    if (!inserted) {
+      throw new Error("Service order insert returned no row");
+    }
+    return inserted as unknown as CreatedServiceOrderRow;
   });
 
   return newSo;
@@ -137,8 +149,8 @@ export async function createServiceOrderFromWorkOrder(
 export function registerWoSoBridgeRoutes(
   app: Express,
   rateLimiters: {
-    writeOperationRateLimit: any;
-    generalApiRateLimit: any;
+    writeOperationRateLimit: RequestHandler;
+    generalApiRateLimit: RequestHandler;
   }
 ) {
   const { writeOperationRateLimit, generalApiRateLimit } = rateLimiters;
@@ -487,7 +499,7 @@ export function registerWoSoBridgeRoutes(
               WHERE id = ${sr.id} AND org_id = ${orgId}
             `
           )
-          .then((r: any) => r.rows || r);
+          .then((r) => r.rows || r);
         return row;
       });
 

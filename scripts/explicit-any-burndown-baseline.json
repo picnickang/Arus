@@ -1,32 +1,32 @@
 {
   "_comment": "Explicit-`any` burndown baseline. Total must monotonically decrease. Regenerate the inventory (`node scripts/type-debt/classify-explicit-any.mjs`) then run `node scripts/check-explicit-any-burndown.mjs --write-baseline`.",
-  "generatedAt": "2026-05-23T21:21:24.007Z",
-  "total": 538,
+  "generatedAt": "2026-05-24T00:51:14.720Z",
+  "total": 363,
   "summary": {
     "byBucket": {
       "External library typing gaps": 0,
       "Test mocks / stubs": 0,
-      "Legacy DTOs (route handlers, request/response shapes)": 54,
-      "Dynamic JSON payloads": 19,
-      "Generic inference failures": 303,
-      "Truly unsafe / untyped logic": 162
+      "Legacy DTOs (route handlers, request/response shapes)": 14,
+      "Dynamic JSON payloads": 15,
+      "Generic inference failures": 224,
+      "Truly unsafe / untyped logic": 110
     },
     "byTopFiles": {
-      "server/ml-model-registry.ts": 11,
       "server/services/ml/ml-training-job-queue.ts": 10,
-      "client/src/pages/dashboard-improved.tsx": 7,
-      "server/inventory-risk/analyzer.ts": 6,
-      "server/mqtt-reliable-sync/mqtt-reliable-sync.ts": 6,
-      "server/services/data-export-import/data-transforms.ts": 6,
-      "server/job-processors/report-processors.ts": 6,
-      "server/report-context/data-fetchers.ts": 6,
-      "server/routes/analytics/model-governance.ts": 5,
-      "server/routes/wo-so-bridge-routes.ts": 5,
-      "server/db-utils/timescale.ts": 5,
-      "server/job-processors/ai-processors.ts": 5,
-      "server/openai/client.ts": 5,
       "server/scheduler/scheduler-controller.ts": 5,
-      "server/services/data-export-import/entity-fetchers.ts": 5
+      "server/bootstrap/services.ts": 4,
+      "server/bootstrap/shutdown.ts": 4,
+      "server/report-context/compliance-builder.ts": 4,
+      "server/report-context/knowledge-citations.ts": 4,
+      "server/weibull-rul/data-extraction.ts": 4,
+      "server/shared/base-repository.ts": 3,
+      "client/src/components/work-orders/QuickWorkOrderSheet.tsx": 3,
+      "client/src/pages/admin/tenants.tsx": 3,
+      "client/src/pages/copilot-admin.tsx": 3,
+      "docs/examples/telemetry-service-with-logging.ts": 3,
+      "server/analytics-data-normalizer/twin-normalizer.ts": 3,
+      "server/crew-scheduler-ortools/constraint-scheduler.ts": 3,
+      "server/dtc-integration/service.ts": 3
     }
   }
 }

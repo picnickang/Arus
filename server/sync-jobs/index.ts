@@ -34,11 +34,11 @@ export async function reconcileAll(orgId: string): Promise<ReconciliationResult>
       const partsStockIssues = await checkPartsStockAlignment(orgId);
       issues.push(...partsStockIssues.issues);
       checkedEntities += partsStockIssues.entitiesChecked;
-    } catch (error: any) {
-      logger.warn("[Reconciliation] Parts-stock alignment check failed:", { details: error.message });
+    } catch (error: unknown) {
+      logger.warn("[Reconciliation] Parts-stock alignment check failed:", { details: (error instanceof Error ? error.message : String(error)) });
       issues.push({
         code: "PARTS_STOCK_CHECK_UNAVAILABLE",
-        message: `Parts-stock alignment check temporarily unavailable: ${error.message}`,
+        message: `Parts-stock alignment check temporarily unavailable: ${(error instanceof Error ? error.message : String(error))}`,
         severity: "low",
       });
     }
@@ -47,11 +47,11 @@ export async function reconcileAll(orgId: string): Promise<ReconciliationResult>
       const reservationIssues = await checkReservationOverflow(orgId);
       issues.push(...reservationIssues.issues);
       checkedEntities += reservationIssues.entitiesChecked;
-    } catch (error: any) {
-      logger.warn("[Reconciliation] Reservation overflow check failed:", { details: error.message });
+    } catch (error: unknown) {
+      logger.warn("[Reconciliation] Reservation overflow check failed:", { details: (error instanceof Error ? error.message : String(error)) });
       issues.push({
         code: "RESERVATION_CHECK_UNAVAILABLE",
-        message: `Reservation overflow check temporarily unavailable: ${error.message}`,
+        message: `Reservation overflow check temporarily unavailable: ${(error instanceof Error ? error.message : String(error))}`,
         severity: "low",
       });
     }
@@ -60,11 +60,11 @@ export async function reconcileAll(orgId: string): Promise<ReconciliationResult>
       const purchaseOrderIssues = await checkWorkOrdersPendingOnPO(orgId);
       issues.push(...purchaseOrderIssues.issues);
       checkedEntities += purchaseOrderIssues.entitiesChecked;
-    } catch (error: any) {
-      logger.warn("[Reconciliation] Purchase order dependency check failed:", { details: error.message });
+    } catch (error: unknown) {
+      logger.warn("[Reconciliation] Purchase order dependency check failed:", { details: (error instanceof Error ? error.message : String(error)) });
       issues.push({
         code: "PO_DEPENDENCY_CHECK_UNAVAILABLE",
-        message: `Purchase order dependency check temporarily unavailable: ${error.message}`,
+        message: `Purchase order dependency check temporarily unavailable: ${(error instanceof Error ? error.message : String(error))}`,
         severity: "low",
       });
     }
@@ -73,11 +73,11 @@ export async function reconcileAll(orgId: string): Promise<ReconciliationResult>
       const certificationIssues = await checkCrewCertificationExpiry(orgId);
       issues.push(...certificationIssues.issues);
       checkedEntities += certificationIssues.entitiesChecked;
-    } catch (error: any) {
-      logger.warn("[Reconciliation] Crew certification check failed:", { details: error.message });
+    } catch (error: unknown) {
+      logger.warn("[Reconciliation] Crew certification check failed:", { details: (error instanceof Error ? error.message : String(error)) });
       issues.push({
         code: "CERTIFICATION_CHECK_UNAVAILABLE",
-        message: `Crew certification expiry check temporarily unavailable: ${error.message}`,
+        message: `Crew certification expiry check temporarily unavailable: ${(error instanceof Error ? error.message : String(error))}`,
         severity: "low",
       });
     }
@@ -86,11 +86,11 @@ export async function reconcileAll(orgId: string): Promise<ReconciliationResult>
       const thresholdIssues = await checkSensorThresholdConflicts(orgId);
       issues.push(...thresholdIssues.issues);
       checkedEntities += thresholdIssues.entitiesChecked;
-    } catch (error: any) {
-      logger.warn("[Reconciliation] Sensor threshold conflict check failed:", { details: error.message });
+    } catch (error: unknown) {
+      logger.warn("[Reconciliation] Sensor threshold conflict check failed:", { details: (error instanceof Error ? error.message : String(error)) });
       issues.push({
         code: "THRESHOLD_CHECK_UNAVAILABLE",
-        message: `Sensor threshold conflict check temporarily unavailable: ${error.message}`,
+        message: `Sensor threshold conflict check temporarily unavailable: ${(error instanceof Error ? error.message : String(error))}`,
         severity: "low",
       });
     }
@@ -115,7 +115,7 @@ export async function reconcileAll(orgId: string): Promise<ReconciliationResult>
       issues: [
         {
           code: "RECONCILIATION_ERROR",
-          message: `Reconciliation process failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+          message: `Reconciliation process failed: ${error instanceof Error ? (error instanceof Error ? error.message : String(error)) : "Unknown error"}`,
           severity: "critical",
         },
       ],

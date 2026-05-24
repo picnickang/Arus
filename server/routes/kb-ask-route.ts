@@ -1,13 +1,24 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, RequestHandler, Response } from "express";
 import type { AuthenticatedRequest } from "../middleware/auth";
 import { withErrorHandling } from "../lib/route-utils";
 import { logger } from "../utils/logger";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
+interface KbSearchHit {
+  content?: string;
+  text?: string;
+  title?: string;
+  documentTitle?: string;
+  relevance?: number;
+  score?: number;
+  documentId?: string;
+  id?: string;
+}
+
 export function registerKbAskRoute(
   app: Express,
   deps: {
-    generalApiRateLimit: any;
+    generalApiRateLimit: RequestHandler;
   }
 ) {
   const { generalApiRateLimit } = deps;
@@ -24,14 +35,14 @@ export function registerKbAskRoute(
         return res.status(400).json({ message: "query is required" });
       }
 
-      let kbResults: any[] = [];
+      let kbResults: KbSearchHit[] = [];
       let kbContext = "";
       try {
         const { searchKnowledgeBase } = await import("../vector-search-service");
-        const results = await (searchKnowledgeBase as object as (q: string, opts: { limit: number; threshold: number; orgId: string }) => Promise<Array<{ content?: string; text?: string }>>)(query, { limit: 3, threshold: 0.3, orgId });
+        const results = await (searchKnowledgeBase as object as (q: string, opts: { limit: number; threshold: number; orgId: string }) => Promise<KbSearchHit[]>)(query, { limit: 3, threshold: 0.3, orgId });
         kbResults = results || [];
         kbContext = kbResults
-          .map((r: any) => r.content || r.text || "")
+          .map((r) => r.content || r.text || "")
           .filter(Boolean)
           .join("\n\n");
       } catch (err) {
@@ -64,7 +75,7 @@ export function registerKbAskRoute(
           "I couldn't find relevant information for your query. Please try rephrasing or check the Knowledge Base for uploaded documentation.";
       }
 
-      const sources = kbResults.map((r: any) => ({
+      const sources = kbResults.map((r) => ({
         title: r.title || r.documentTitle || "Document",
         relevance: r.relevance || r.score || 0,
         documentId: r.documentId || r.id,

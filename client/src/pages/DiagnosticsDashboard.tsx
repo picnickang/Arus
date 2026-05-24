@@ -569,7 +569,7 @@ export default function DiagnosticsDashboard({ embedded = false }: DiagnosticsDa
                       </div>
                       <div className="flex justify-between">
                         <span>Eviction Percent</span>
-                        <span>{config.telemetry?.evictionPercent * 100}%</span>
+                        <span>{(config.telemetry?.evictionPercent ?? 0) * 100}%</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Max Retries</span>

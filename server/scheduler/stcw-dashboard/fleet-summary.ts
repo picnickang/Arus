@@ -8,6 +8,12 @@ import type { FleetSTCWSummary, VesselComplianceSummary } from "./types";
 import { getCacheKey, getFromCache, setCache } from "./cache";
 import { getDateRange, getCrewRestDataForVessel } from "./data-fetcher";
 
+type FatigueResult = ReturnType<typeof calculateFatigueRisk>;
+type ComplianceResult = ReturnType<typeof checkMonthCompliance>;
+type RestDay = ComplianceResult["days"][number];
+type VesselSummaryInput = Awaited<ReturnType<typeof vesselService.getVessels>>[number];
+type CrewRestData = Awaited<ReturnType<typeof getCrewRestDataForVessel>>;
+
 interface VesselMetrics {
   compliantCrew: number;
   violations: number;
@@ -35,7 +41,7 @@ function processCrewFatigueIssues(
   crewId: string,
   crewName: string,
   vesselId: string,
-  fatigue: any,
+  fatigue: FatigueResult,
   vesselMetrics: VesselMetrics,
   topIssues: FleetSTCWSummary["topIssues"]
 ): void {
@@ -66,10 +72,10 @@ function processCrewViolations(
   crewId: string,
   crewName: string,
   vesselId: string,
-  compliance: any,
+  compliance: ComplianceResult,
   topIssues: FleetSTCWSummary["topIssues"]
 ): void {
-  const violationDays = compliance.days.filter((d: any) => !d.day_ok);
+  const violationDays = compliance.days.filter((d) => !d.day_ok);
   for (const v of violationDays.slice(0, 2)) {
     topIssues.push({
       crewId,
@@ -83,8 +89,8 @@ function processCrewViolations(
 }
 
 function processVesselCrew(
-  vessel: any,
-  crewData: Map<string, { crewName: string; days: any[] }>,
+  vessel: VesselSummaryInput,
+  crewData: CrewRestData,
   vesselMetrics: VesselMetrics,
   topIssues: FleetSTCWSummary["topIssues"]
 ): void {
@@ -121,8 +127,8 @@ function processVesselCrew(
 }
 
 function buildVesselSummary(
-  vessel: any,
-  crewData: Map<string, any>,
+  vessel: VesselSummaryInput,
+  crewData: CrewRestData,
   vesselMetrics: VesselMetrics
 ): VesselComplianceSummary {
   const vesselCrewCount = crewData.size;

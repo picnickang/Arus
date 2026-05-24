@@ -21,14 +21,38 @@ export interface CheckResult {
   status: "pass" | "warn" | "fail";
   responseTimeMs?: number;
   message?: string;
-  details?: Record<string, any>;
+  details?: {
+    bufferUtilization?: number;
+    utilizationPercent?: number;
+    heapUsedMB?: number;
+    [key: string]: unknown;
+  };
 }
 
 export interface ServiceStatus {
   name: string;
   status: "running" | "stopped" | "error";
   lastHealthCheck?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
+}
+
+export interface DiagnosticsConfig {
+  telemetry?: {
+    batchIntervalMs?: number;
+    bufferSize?: number;
+    evictionPercent?: number;
+    maxRetries?: number;
+  };
+  environment?: {
+    nodeEnv?: string;
+    deploymentMode?: string;
+  };
+  features?: {
+    dualDatabase?: boolean;
+    mlPredictions?: boolean;
+    fmccIntegration?: boolean;
+  };
+  [key: string]: unknown;
 }
 
 export interface SystemMetrics {
@@ -104,7 +128,7 @@ export function useDiagnosticsData() {
     staleTime: 5000,
     refetchInterval: 10000,
   });
-  const { data: config } = useQuery<Record<string, any>>({
+  const { data: config } = useQuery<DiagnosticsConfig>({
     queryKey: ["/api/diagnostics/config"],
   });
 

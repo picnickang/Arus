@@ -30,9 +30,9 @@ export interface IVesselStorage {
   resetVesselDowntime(id: string): Promise<SelectVessel>;
   resetVesselOperation(id: string): Promise<SelectVessel>;
   wipeVesselData(vesselId: string, orgId?: string): Promise<{ deletedRecords: number }>;
-  exportVessel(vesselId: string, orgId: string): Promise<any>;
+  exportVessel(vesselId: string, orgId: string): Promise<Record<string, unknown>>;
   importVessel(
-    data: any,
+    data: Record<string, unknown>,
     orgId: string
   ): Promise<{ vesselId: string; equipmentCount: number; crewCount: number }>;
 
@@ -48,8 +48,11 @@ export interface IVesselStorage {
   }>;
 
   // Weather Data
-  cacheWeatherData(data: any, orgId: string): Promise<void>;
-  getLatestWeatherForVessel(vesselId: string, orgId: string): Promise<any | null>;
+  cacheWeatherData(data: Record<string, unknown>, orgId: string): Promise<void>;
+  getLatestWeatherForVessel(
+    vesselId: string,
+    orgId: string
+  ): Promise<Record<string, unknown> | null>;
 
   // Port Calls
   getPortCalls(vesselId?: string): Promise<SelectPortCall[]>;

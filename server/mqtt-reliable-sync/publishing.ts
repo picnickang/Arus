@@ -32,7 +32,7 @@ export async function publishDataChange(
   ctx: PublishContext,
   entityType: string,
   operation: DataChangeOperation,
-  data: any,
+  data: unknown,
   options: PublishOptions = {}
 ): Promise<void> {
   const baseTopic = getTopicForEntity(entityType);

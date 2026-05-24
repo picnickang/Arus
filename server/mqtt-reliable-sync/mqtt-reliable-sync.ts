@@ -269,7 +269,7 @@ export class MqttReliableSyncService extends EventEmitter {
   async publishDataChange(
     entityType: string,
     operation: DataChangeOperation,
-    data: any,
+    data: unknown,
     options: PublishOptions = {}
   ): Promise<void> {
     return publishDataChange(
@@ -370,30 +370,30 @@ export class MqttReliableSyncService extends EventEmitter {
     };
   }
 
-  async publishWorkOrderChange(operation: DataChangeOperation, workOrder: any): Promise<void> {
+  async publishWorkOrderChange(operation: DataChangeOperation, workOrder: unknown): Promise<void> {
     return this.publishDataChange("work_orders", operation, workOrder, { qos: 1, retain: true });
   }
 
-  async publishAlertChange(operation: "create" | "update", alert: any): Promise<void> {
+  async publishAlertChange(operation: "create" | "update", alert: unknown): Promise<void> {
     return this.publishDataChange("alerts", operation, alert, { qos: 2, retain: true });
   }
 
-  async publishEquipmentChange(operation: DataChangeOperation, equipment: any): Promise<void> {
+  async publishEquipmentChange(operation: DataChangeOperation, equipment: unknown): Promise<void> {
     return this.publishDataChange("equipment", operation, equipment, { qos: 1, retain: true });
   }
 
-  async publishCrewChange(operation: DataChangeOperation, crew: any): Promise<void> {
+  async publishCrewChange(operation: DataChangeOperation, crew: unknown): Promise<void> {
     return this.publishDataChange("crew", operation, crew, { qos: 1, retain: true });
   }
 
-  async publishMaintenanceChange(operation: DataChangeOperation, schedule: any): Promise<void> {
+  async publishMaintenanceChange(operation: DataChangeOperation, schedule: unknown): Promise<void> {
     return this.publishDataChange("maintenance_schedules", operation, schedule, {
       qos: 1,
       retain: true,
     });
   }
 
-  async publishVesselChange(operation: DataChangeOperation, vessel: any): Promise<void> {
+  async publishVesselChange(operation: DataChangeOperation, vessel: unknown): Promise<void> {
     return this.publishDataChange("vessels", operation, vessel, { qos: 1, retain: true });
   }
 }

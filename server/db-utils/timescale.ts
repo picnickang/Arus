@@ -29,16 +29,16 @@ export async function enableTimescaleDB(): Promise<{ success: boolean; message: 
       await client.query("CREATE EXTENSION IF NOT EXISTS timescaledb");
       await client.query("COMMIT");
       return { success: true, message: "TimescaleDB extension enabled successfully" };
-    } catch (error: any) {
+    } catch (error: unknown) {
       await client.query("ROLLBACK");
       throw error;
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      message: `Failed to enable TimescaleDB: ${error?.message || String(error)}`,
+      message: `Failed to enable TimescaleDB: ${error instanceof Error ? error.message : String(error)}`,
     };
   } finally {
     if (pool) {
@@ -75,10 +75,10 @@ export async function createHypertable(): Promise<{ success: boolean; message: s
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      message: `Failed to create hypertable: ${error?.message || String(error)}`,
+      message: `Failed to create hypertable: ${error instanceof Error ? error.message : String(error)}`,
     };
   } finally {
     if (pool) {
@@ -116,10 +116,10 @@ export async function createContinuousAggregate(): Promise<{ success: boolean; m
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      message: `Failed to create continuous aggregate: ${error?.message || String(error)}`,
+      message: `Failed to create continuous aggregate: ${error instanceof Error ? error.message : String(error)}`,
     };
   } finally {
     if (pool) {
@@ -154,10 +154,10 @@ export async function enableCompression(): Promise<{ success: boolean; message: 
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      message: `Failed to enable compression: ${error?.message || String(error)}`,
+      message: `Failed to enable compression: ${error instanceof Error ? error.message : String(error)}`,
     };
   } finally {
     if (pool) {

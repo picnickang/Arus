@@ -6,6 +6,29 @@ import { formatDistanceToNow } from "date-fns";
 import { ActiveDtcsPanel } from "@/components/ActiveDtcsPanel";
 import type { VesselEquipment } from "@/features/vessels/types";
 
+interface BottomTabWorkOrder {
+  id: string;
+  description?: string | null;
+  status?: string | null;
+  createdAt: string | Date | null;
+}
+
+interface BottomTabCrewMember {
+  id: string;
+  name: string;
+  status?: string | null;
+  role?: string | null;
+  rank?: string | null;
+}
+
+interface BottomTabSchedule {
+  id: string;
+  equipmentId: string;
+  status?: string | null;
+  isPredictive?: boolean | null;
+  scheduledDate: string | Date | null;
+}
+
 export function BottomTabs({
   bottomTab,
   setBottomTab,
@@ -20,10 +43,10 @@ export function BottomTabs({
 }: {
   bottomTab: string;
   setBottomTab: (t: string) => void;
-  vesselWorkOrders: any[];
-  vesselCrew: any[];
-  vesselMaintenanceSchedules: any[];
-  activeWorkOrders: any[];
+  vesselWorkOrders: BottomTabWorkOrder[];
+  vesselCrew: BottomTabCrewMember[];
+  vesselMaintenanceSchedules: BottomTabSchedule[];
+  activeWorkOrders: BottomTabWorkOrder[];
   workOrdersLoading: boolean;
   crewLoading: boolean;
   schedulesLoading: boolean;
@@ -96,7 +119,7 @@ export function BottomTabs({
                       </Badge>
                     </div>
                     <div className="text-[10px] text-slate-500">
-                      {formatDistanceToNow(new Date(wo.createdAt), { addSuffix: true })}
+                      {wo.createdAt ? formatDistanceToNow(new Date(wo.createdAt), { addSuffix: true }) : ""}
                     </div>
                   </div>
                 ))}
@@ -160,7 +183,7 @@ export function BottomTabs({
                       <Badge variant="outline" className="text-[9px] mr-1.5">
                         {s.isPredictive ? "Predictive" : "Scheduled"}
                       </Badge>
-                      {new Date(s.scheduledDate).toLocaleDateString()}
+                      {s.scheduledDate ? new Date(s.scheduledDate).toLocaleDateString() : ""}
                     </div>
                   </div>
                 ))}

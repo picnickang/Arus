@@ -26,7 +26,7 @@ export function mountModelGovernanceRoutes(router: Router) {
       }
       const { modelType, status } = req.query;
       const cacheKey = analyticsCacheKeys.mlModels(orgId, modelType as string | undefined);
-      const response = await cachedAnalytics<any>(
+      const response = await cachedAnalytics(
         cacheKey,
         async () => {
           const filters = [eq(mlModels.orgId, orgId)];
@@ -70,7 +70,7 @@ export function mountModelGovernanceRoutes(router: Router) {
     try {
       const { id } = req.params;
       const cacheKey = `${orgId}:ml-model:${id}`;
-      const response = await cachedAnalytics<any>(
+      const response = await cachedAnalytics(
         cacheKey,
         async () => {
           const [model] = await db
@@ -108,7 +108,7 @@ export function mountModelGovernanceRoutes(router: Router) {
       }
       const { modelId } = req.query;
       const cacheKey = analyticsCacheKeys.modelPerformance(orgId, modelId as string | undefined);
-      const response = await cachedAnalytics<any>(
+      const response = await cachedAnalytics(
         cacheKey,
         async () => {
           const filters = [eq(modelPerformanceValidations.orgId, orgId)];
@@ -149,7 +149,7 @@ export function mountModelGovernanceRoutes(router: Router) {
         return;
       }
       const cacheKey = `${orgId}:model-performance:summary`;
-      const response = await cachedAnalytics<any>(
+      const response = await cachedAnalytics(
         cacheKey,
         async () => {
           // Aggregate per-validation accuracy (real column on
@@ -211,7 +211,7 @@ export function mountModelGovernanceRoutes(router: Router) {
       }
       const { modelId } = req.query;
       const cacheKey = analyticsCacheKeys.modelDrift(orgId, modelId as string | undefined);
-      const response = await cachedAnalytics<any>(
+      const response = await cachedAnalytics(
         cacheKey,
         async () => {
           const modelFilters = [eq(mlModels.orgId, orgId)];

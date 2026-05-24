@@ -118,7 +118,7 @@ const testResults: Map<
     output: string;
     startedAt: string;
     completedAt?: string;
-    tests?: any[];
+    tests?: unknown[];
   }
 > = new Map();
 
@@ -128,7 +128,7 @@ function formatSmokeTestOutput(result: {
   failed: number;
   total: number;
   duration: number;
-  tests: any[];
+  tests: Array<{ name: string; passed: boolean; duration: number; error?: string }>;
   timestamp: string;
 }): string {
   let output = `\n🧪 Smoke Test Suite: ${result.suite}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
@@ -190,7 +190,7 @@ export function registerTestsRoutes(router: Router) {
     });
     try {
       const { smokeTestSuites } = await import("../../diagnostics-smoke-tests.js");
-      const runner = (smokeTestSuites as object as Record<string, () => Promise<{ suite: string; passed: number; failed: number; total: number; duration: number; tests: unknown[]; timestamp: string }>>)[name];
+      const runner = (smokeTestSuites as object as Record<string, () => Promise<{ suite: string; passed: number; failed: number; total: number; duration: number; tests: Array<{ name: string; passed: boolean; duration: number; error?: string }>; timestamp: string }>>)[name];
       if (runner) {
         const result = await runner();
         const output = formatSmokeTestOutput(result);

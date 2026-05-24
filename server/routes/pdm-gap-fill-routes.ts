@@ -4,7 +4,7 @@
  * Calibration, outcome evaluation, anomaly correlation,
  * telemetry aggregation, model evaluation, and training job queue.
  */
-import { Express, Request, Response } from "express";
+import { Express, Request, RequestHandler, Response } from "express";
 import { withErrorHandling } from "../lib/route-utils";
 import { logger } from "../utils/logger";
 import type { AuthenticatedRequest } from "../middleware/auth";
@@ -22,14 +22,19 @@ import {
 import { ModelEvaluationGate } from "../services/ml/model-evaluation-gate";
 import { MlTrainingJobQueue } from "../services/ml/ml-training-job-queue";
 import { jobQueueService } from "../job-queue-service";
+import { db as dbInstance } from "../db";
 
 const LOG_CTX = "PdmGapFillRoutes";
 
+interface WsBroadcaster {
+  broadcast?: (...args: unknown[]) => void;
+}
+
 interface PdmGapFillDeps {
-  db: any;
-  generalApiRateLimit: any;
-  writeOperationRateLimit: any;
-  wsServer?: any;
+  db: typeof dbInstance;
+  generalApiRateLimit: RequestHandler;
+  writeOperationRateLimit: RequestHandler;
+  wsServer?: WsBroadcaster;
 }
 
 export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): void {

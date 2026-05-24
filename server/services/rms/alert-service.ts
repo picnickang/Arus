@@ -20,11 +20,13 @@ interface AlertConfig {
   notifyInApp: boolean;
 }
 
-function getRows(result: any): any[] {
-  return Array.isArray(result) ? result : (result as { rows?: unknown[] })?.rows || [];
+function getRows(result: unknown): Record<string, unknown>[] {
+  if (Array.isArray(result)) return result as Record<string, unknown>[];
+  const rows = (result as { rows?: unknown[] } | null)?.rows;
+  return (Array.isArray(rows) ? rows : []) as Record<string, unknown>[];
 }
 
-function getFirstRow(result: any): any | undefined {
+function getFirstRow(result: unknown): Record<string, unknown> | undefined {
   return getRows(result)[0];
 }
 
@@ -372,7 +374,7 @@ class RmsAlertService {
       config.lastTriggeredAt = new Date();
 
       const row = getFirstRow(result);
-      const alertLogId = row?.id || "unknown";
+      const alertLogId = (row?.id as string | undefined) || "unknown";
 
       domainEventBus.emit(
         "rms.alert_triggered",
@@ -477,17 +479,17 @@ class RmsAlertService {
         WHERE org_id = ${orgId} AND vessel_id = ${vesselId} AND enabled = true
       `);
 
-      const configs: AlertConfig[] = getRows(result).map((r: any) => ({
-        id: r.id,
-        vesselId: r.vessel_id,
-        orgId: r.org_id,
-        alertType: r.alert_type,
-        name: r.name,
-        config: r.config,
-        cooldownMinutes: r.cooldown_minutes,
-        lastTriggeredAt: r.last_triggered_at,
-        notifyEmail: r.notify_email,
-        notifyInApp: r.notify_in_app,
+      const configs: AlertConfig[] = getRows(result).map((r) => ({
+        id: r.id as string,
+        vesselId: r.vessel_id as string,
+        orgId: r.org_id as string,
+        alertType: r.alert_type as string,
+        name: r.name as string,
+        config: (r.config ?? {}) as Record<string, unknown>,
+        cooldownMinutes: r.cooldown_minutes as number,
+        lastTriggeredAt: r.last_triggered_at as Date | null,
+        notifyEmail: r.notify_email as boolean,
+        notifyInApp: r.notify_in_app as boolean,
       }));
 
       this.configCache.set(cacheKey, { configs, loadedAt: Date.now() });

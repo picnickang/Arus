@@ -409,7 +409,7 @@ export function registerRagRoutes(
         const orchestrator = getRagOrchestrator();
         const searchResults = await (searchKnowledgeBase as object as (query: string, orgId: string, limit: number, threshold: number) => Promise<Array<{ content: string; documentId: string; documentTitle: string; score: number }>>)(query, orgId, 5, 0.5);
 
-        const relevantChunks = searchResults.map((r: any) => ({
+        const relevantChunks = searchResults.map((r) => ({
           content: r.content,
           documentId: r.documentId,
           documentTitle: r.documentTitle,
@@ -421,7 +421,7 @@ export function registerRagRoutes(
         if (conversationId) {
           const conversationService = getConversationService();
           const messages = await conversationService.getMessages(conversationId, 10);
-          conversationHistory = messages.map((m: any) => ({
+          conversationHistory = messages.map((m) => ({
             role: m.role,
             content: m.content,
           }));
@@ -476,13 +476,14 @@ export function registerRagRoutes(
             }
           }
         );
-      } catch (error: any) {
+      } catch (error) {
         logger.error("[RAG Stream] Error:", error);
+        const message = error instanceof Error ? error.message : "Streaming failed";
         if (!res.headersSent) {
-          res.status(500).json({ error: error.message || "Streaming failed" });
+          res.status(500).json({ error: message });
         } else {
           // Send error event through SSE
-          res.write(`data: ${JSON.stringify({ type: "error", error: error.message })}\n\n`);
+          res.write(`data: ${JSON.stringify({ type: "error", error: message })}\n\n`);
           res.end();
         }
       }
@@ -538,11 +539,11 @@ export function registerRagRoutes(
         id: convObj.id,
         title: convObj.title || "Untitled Conversation",
         createdAt: new Date(convObj.createdAt),
-        messages: messages.map((m: any) => ({
+        messages: messages.map((m) => ({
           role: m.role as "user" | "assistant",
           content: m.content,
           timestamp: new Date(m.createdAt),
-          citations: m.citations,
+          citations: (m as { citations?: Array<{ documentId: string; documentTitle: string; excerpt: string }> }).citations,
         })),
       };
 

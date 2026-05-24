@@ -80,16 +80,66 @@ interface AttentionItem {
   href: string;
 }
 
+interface DashboardEquipment {
+  id: string;
+  name?: string;
+  vessel?: string;
+  healthIndex: number;
+  updatedAt?: string;
+}
+
+interface DashboardWorkOrder {
+  id: string;
+  title?: string;
+  workOrderNumber?: string;
+  description?: string;
+  status?: string;
+  priority?: number | string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface DashboardOperatingAlert {
+  id: string;
+  message?: string;
+  equipmentName?: string;
+  equipmentId?: string;
+  severity?: string;
+  createdAt?: string;
+}
+
+interface DashboardStcwSummary {
+  violationCount?: number;
+  totalViolations?: number;
+  criticalFatigueCount?: number;
+  highFatigueCount?: number;
+  [key: string]: unknown;
+}
+
+interface DashboardInsightsSnapshot {
+  summary?: string;
+  criticalCount?: number;
+  [key: string]: unknown;
+}
+
+interface DashboardReading {
+  id?: string;
+  sensorType?: string;
+  value?: number;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
 function NeedsAttentionStrip({
   criticalEquipment,
   criticalWorkOrders,
   operatingAlerts,
   stcwSummary,
 }: {
-  criticalEquipment: any[];
-  criticalWorkOrders: any[];
-  operatingAlerts: any[];
-  stcwSummary: any;
+  criticalEquipment: DashboardEquipment[];
+  criticalWorkOrders: DashboardWorkOrder[];
+  operatingAlerts: DashboardOperatingAlert[];
+  stcwSummary: DashboardStcwSummary | undefined;
 }) {
   const items: AttentionItem[] = [];
 
@@ -127,12 +177,13 @@ function NeedsAttentionStrip({
     });
   }
 
-  if (stcwSummary?.violationCount > 0) {
+  const stcwViolationCount = stcwSummary?.violationCount ?? 0;
+  if (stcwViolationCount > 0) {
     items.push({
       id: "stcw",
       type: "compliance",
       severity: "warning",
-      title: `${stcwSummary.violationCount} STCW violation${stcwSummary.violationCount > 1 ? "s" : ""}`,
+      title: `${stcwViolationCount} STCW violation${stcwViolationCount > 1 ? "s" : ""}`,
       subtitle: "Crew rest hour compliance",
       href: "/hours-of-rest",
     });
@@ -248,7 +299,7 @@ function AISummary({
   openWorkOrderCount,
   fleetHealth,
 }: {
-  insightsSnapshot: any;
+  insightsSnapshot: DashboardInsightsSnapshot | undefined;
   criticalEquipmentCount: number;
   openWorkOrderCount: number;
   fleetHealth: number;
@@ -273,11 +324,12 @@ function AISummary({
     parts.push(`${openWorkOrderCount} work order${openWorkOrderCount > 1 ? "s" : ""} open.`);
   }
 
+  const insightsCriticalCount = insightsSnapshot?.criticalCount ?? 0;
   if (insightsSnapshot?.summary) {
     parts.push(insightsSnapshot.summary);
-  } else if (insightsSnapshot?.criticalCount > 0) {
+  } else if (insightsCriticalCount > 0) {
     parts.push(
-      `${insightsSnapshot.criticalCount} critical insight${insightsSnapshot.criticalCount > 1 ? "s" : ""} flagged by AI analysis.`
+      `${insightsCriticalCount} critical insight${insightsCriticalCount > 1 ? "s" : ""} flagged by AI analysis.`
     );
   }
 
@@ -320,10 +372,10 @@ function ActivityFeed({
   latestReadings,
   operatingAlerts,
 }: {
-  workOrders: any[];
-  equipmentHealth: any[];
-  latestReadings: any[];
-  operatingAlerts: any[];
+  workOrders: DashboardWorkOrder[];
+  equipmentHealth: DashboardEquipment[];
+  latestReadings: DashboardReading[];
+  operatingAlerts: DashboardOperatingAlert[];
 }) {
   const items: ActivityItem[] = [];
 
@@ -592,11 +644,11 @@ export default function BridgeDashboard() {
           criticalEquipment={criticalEquipment}
           criticalWorkOrders={criticalWorkOrders}
           operatingAlerts={operatingAlerts}
-          stcwSummary={stcwSummary}
+          stcwSummary={stcwSummary ?? undefined}
         />
 
         <AISummary
-          insightsSnapshot={insightsSnapshot}
+          insightsSnapshot={insightsSnapshot ?? undefined}
           criticalEquipmentCount={criticalEquipmentCount}
           openWorkOrderCount={openWOs}
           fleetHealth={fleetHealth}

@@ -1,9 +1,18 @@
-export async function loadRandomForest(_modelPath: string): Promise<any> {
+export type RandomForestModel = unknown;
+export interface RandomForestFeatures {
+  equipmentId?: string;
+  features: Record<string, number>;
+  label?: string | number;
+  metadata?: Record<string, unknown>;
+}
+export type RandomForestParams = Record<string, unknown>;
+
+export async function loadRandomForest(_modelPath: string): Promise<RandomForestModel | null> {
   return null;
 }
 
 export interface RandomForestPrediction {
-  prediction: any;
+  prediction: string;
   probability: number;
   confidence?: number;
   failureRisk: number;
@@ -11,9 +20,9 @@ export interface RandomForestPrediction {
 }
 
 export function predictWithRandomForest(
-  _model: any,
-  _features: any,
-  _params?: any
+  _model: RandomForestModel,
+  _features: RandomForestFeatures,
+  _params?: RandomForestParams
 ): RandomForestPrediction {
   return {
     prediction: "healthy",

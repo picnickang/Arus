@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, RequestHandler, Response } from "express";
 import type { AuthenticatedRequest } from "../middleware/auth";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
@@ -22,11 +22,44 @@ function getUserId(req: Request): string {
   return (req as AuthenticatedRequest).user?.id || (req.headers["x-user-id"] as string) || "system";
 }
 
-type Row = Record<string, any>;
-function unwrapRows(r: unknown): Row[] {
-  if (Array.isArray(r)) return r;
+interface ServiceRequestRow {
+  id: string;
+  request_number: string;
+  title: string;
+  description: string | null;
+  urgency: string | null;
+  estimated_cost: number | string | null;
+  requested_by: string | null;
+  status: string;
+  rejection_reason: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  converted_at: string | null;
+  work_order_id: string;
+  service_order_id: string | null;
+  previous_wo_status: string | null;
+  service_details: string | null;
+  special_requirements: string | null;
+  wo_number?: string;
+  wo_description?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface WorkOrderRow {
+  id: string;
+  wo_number: string;
+  status: string;
+  description: string | null;
+  equipment_id: string | null;
+  vessel_id: string | null;
+  org_id: string;
+}
+
+function unwrapRows<T = Record<string, unknown>>(r: unknown): T[] {
+  if (Array.isArray(r)) return r as T[];
   if (r && typeof r === "object" && "rows" in r) {
-    return ((r as { rows: Row[] }).rows) ?? [];
+    return ((r as { rows: T[] }).rows) ?? [];
   }
   return [];
 }
@@ -34,8 +67,8 @@ function unwrapRows(r: unknown): Row[] {
 export function registerServiceRequestRoutes(
   app: Express,
   rateLimiters: {
-    writeOperationRateLimit: any;
-    generalApiRateLimit: any;
+    writeOperationRateLimit: RequestHandler;
+    generalApiRateLimit: RequestHandler;
   }
 ) {
   const { writeOperationRateLimit, generalApiRateLimit } = rateLimiters;
@@ -137,7 +170,7 @@ export function registerServiceRequestRoutes(
         WHERE sr.id = ${req.params.id} AND sr.org_id = ${orgId}
       `
         )
-        .then(unwrapRows);
+        .then(unwrapRows<ServiceRequestRow>);
 
       if (!row) {
         return sendNotFound(res, "Service Request");
@@ -162,7 +195,7 @@ export function registerServiceRequestRoutes(
         WHERE id = ${req.params.id} AND org_id = ${orgId}
       `
         )
-        .then(unwrapRows);
+        .then(unwrapRows<ServiceRequestRow>);
 
       if (!sr) {
         return sendNotFound(res, "Service Request");
@@ -216,7 +249,7 @@ export function registerServiceRequestRoutes(
         RETURNING *
       `
         )
-        .then(unwrapRows);
+        .then(unwrapRows<ServiceRequestRow>);
 
       res.json(updated);
     })
@@ -242,7 +275,7 @@ export function registerServiceRequestRoutes(
         WHERE id = ${workOrderId} AND org_id = ${orgId}
       `
           )
-          .then(unwrapRows);
+          .then(unwrapRows<ServiceRequestRow>);
 
         if (!wo) {
           return sendNotFound(res, "Work Order");
@@ -264,7 +297,7 @@ export function registerServiceRequestRoutes(
         LIMIT 1
       `
           )
-          .then(unwrapRows);
+          .then(unwrapRows<ServiceRequestRow>);
 
         if (existingActive) {
           return res.status(409).json({
@@ -280,7 +313,7 @@ export function registerServiceRequestRoutes(
 
         const previousWoStatus = wo.status;
 
-        let newSr: any;
+        let newSr: ServiceRequestRow | undefined;
         const MAX_RETRIES = 3;
         for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
           try {
@@ -295,7 +328,7 @@ export function registerServiceRequestRoutes(
             WHERE org_id = ${orgId}
           `
               )
-              .then(unwrapRows);
+              .then(unwrapRows<{ next_num: number | string | null }>);
             const requestNumber = `SR-${String(seqResult?.next_num || 1).padStart(4, "0")}`;
 
             const [inserted] = await db
@@ -328,13 +361,14 @@ export function registerServiceRequestRoutes(
             RETURNING *
           `
               )
-              .then(unwrapRows);
+              .then(unwrapRows<ServiceRequestRow>);
             newSr = inserted;
             break;
-          } catch (err: any) {
+          } catch (err) {
+            const pgErr = err as { code?: string; constraint?: string };
             if (
-              err.code === "23505" &&
-              err.constraint?.includes("service_requests") &&
+              pgErr.code === "23505" &&
+              pgErr.constraint?.includes("service_requests") &&
               attempt < MAX_RETRIES - 1
             ) {
               logger.warn(`SR number collision on attempt ${attempt + 1}, retrying...`);
@@ -400,7 +434,7 @@ export function registerServiceRequestRoutes(
         WHERE id = ${req.params.id} AND org_id = ${orgId}
       `
         )
-        .then(unwrapRows);
+        .then(unwrapRows<ServiceRequestRow>);
 
       if (!sr) {
         return sendNotFound(res, "Service Request");
@@ -419,7 +453,7 @@ export function registerServiceRequestRoutes(
         RETURNING *
       `
         )
-        .then(unwrapRows);
+        .then(unwrapRows<ServiceRequestRow>);
 
       res.json(updated);
     })
@@ -442,7 +476,7 @@ export function registerServiceRequestRoutes(
         WHERE id = ${req.params.id} AND org_id = ${orgId}
       `
         )
-        .then(unwrapRows);
+        .then(unwrapRows<ServiceRequestRow>);
 
       if (!sr) {
         return sendNotFound(res, "Service Request");
@@ -461,7 +495,7 @@ export function registerServiceRequestRoutes(
         RETURNING *
       `
         )
-        .then(unwrapRows);
+        .then(unwrapRows<ServiceRequestRow>);
 
       domainEventBus.emit(
         "service_request.approved",
@@ -499,7 +533,7 @@ export function registerServiceRequestRoutes(
         WHERE id = ${req.params.id} AND org_id = ${orgId}
       `
         )
-        .then(unwrapRows);
+        .then(unwrapRows<ServiceRequestRow>);
 
       if (!sr) {
         return sendNotFound(res, "Service Request");
@@ -525,7 +559,7 @@ export function registerServiceRequestRoutes(
         RETURNING *
       `
         )
-        .then(unwrapRows);
+        .then(unwrapRows<ServiceRequestRow>);
 
       const [otherActiveSr] = await db
         .execute(
@@ -537,7 +571,7 @@ export function registerServiceRequestRoutes(
         LIMIT 1
       `
         )
-        .then(unwrapRows);
+        .then(unwrapRows<ServiceRequestRow>);
 
       if (!otherActiveSr) {
         const restoreStatus = sr.previous_wo_status || "open";
@@ -600,7 +634,7 @@ export function registerServiceRequestRoutes(
         WHERE sr.id = ${req.params.id} AND sr.org_id = ${orgId}
       `
           )
-          .then(unwrapRows);
+          .then(unwrapRows<ServiceRequestRow>);
 
         if (!sr) {
           return sendNotFound(res, "Service Request");
@@ -619,7 +653,7 @@ export function registerServiceRequestRoutes(
         WHERE id = ${sr.work_order_id} AND org_id = ${orgId}
       `
           )
-          .then(unwrapRows);
+          .then(unwrapRows<ServiceRequestRow>);
 
         if (!wo) {
           return sendNotFound(res, "Work Order");
@@ -649,8 +683,8 @@ export function registerServiceRequestRoutes(
         const newSo = await createServiceOrderFromWorkOrder(db, {
           orgId,
           workOrderId: sr.work_order_id,
-          woNumber: sr.wo_number,
-          woDescription: sr.wo_description,
+          woNumber: sr.wo_number ?? "",
+          woDescription: sr.wo_description ?? null,
           serviceProviderId,
           scope: scope || sr.description || sr.wo_description || null,
           estimatedCost: estimatedCost

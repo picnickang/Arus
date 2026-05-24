@@ -72,7 +72,7 @@ export function usePdmPackData() {
     refetchOnWindowFocus: false,
   });
 
-  const bearingAnalysisMutation = useCustomMutation<any, any>({
+  const bearingAnalysisMutation = useCustomMutation<BearingFormData, { analysis: AnalysisResult }>({
     mutationFn: (async (data: BearingFormData) => {
       const series = data.series
         .split(",")
@@ -93,7 +93,7 @@ export function usePdmPackData() {
     onSuccess: (data: { analysis: AnalysisResult }) => setBearingAnalysisResult(data.analysis),
   });
 
-  const pumpAnalysisMutation = useCustomMutation<any, any>({
+  const pumpAnalysisMutation = useCustomMutation<z.infer<typeof pumpFormSchema>, { analysis: AnalysisResult }>({
     mutationFn: (async (data: z.infer<typeof pumpFormSchema>) => {
       const processedData: Record<string, string | boolean | number[]> = {
         vesselName: data.vesselName,

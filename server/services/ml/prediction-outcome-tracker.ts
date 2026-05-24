@@ -80,9 +80,31 @@ const DEFAULT_CONFIG: TrackerConfig = {
 // Main Service
 // ============================================================================
 
+interface TrackerWorkOrder {
+  createdAt: string | Date | null;
+  type?: string | null;
+  priority?: number | null;
+  equipmentId?: string | null;
+}
+
+interface TrackerAlert {
+  createdAt: string | Date | null;
+  equipmentId?: string | null;
+  alertType?: string | null;
+}
+
 interface OutcomeTrackerDeps {
-  getWorkOrders: (equipmentId?: string, orgId?: string) => Promise<any[]>;
-  getAlertNotifications: (acknowledged?: boolean, orgId?: string) => Promise<any[]>;
+  getWorkOrders: (equipmentId?: string, orgId?: string) => Promise<TrackerWorkOrder[]>;
+  getAlertNotifications: (acknowledged?: boolean, orgId?: string) => Promise<TrackerAlert[]>;
+}
+
+interface EligiblePrediction {
+  id: number;
+  equipmentId: string;
+  modelId: string;
+  failureProbability?: number | null;
+  predictedFailureDate: string | Date;
+  riskLevel?: string | null;
 }
 
 export class PredictionOutcomeTracker {
@@ -205,7 +227,7 @@ export class PredictionOutcomeTracker {
   // Private: Data fetching
   // ===========================================================================
 
-  private async getEligiblePredictions(orgId: string): Promise<any[]> {
+  private async getEligiblePredictions(orgId: string): Promise<EligiblePrediction[]> {
     const { failurePredictions } = await import("@shared/schema");
     const { eq, and, lte, sql } = await import("drizzle-orm");
 
@@ -277,7 +299,7 @@ export class PredictionOutcomeTracker {
    * 2. Alert notifications with critical/high severity
    * 3. Equipment status changes to "critical" or "down"
    */
-  private async determineOutcome(prediction: any, orgId: string): Promise<PredictionOutcome> {
+  private async determineOutcome(prediction: EligiblePrediction, orgId: string): Promise<PredictionOutcome> {
     const predictedDate = new Date(prediction.predictedFailureDate);
     const windowStart = new Date(
       predictedDate.getTime() - this.config.matchWindowDays * 24 * 60 * 60 * 1000
@@ -294,7 +316,8 @@ export class PredictionOutcomeTracker {
     try {
       // Check work orders (most reliable signal)
       const workOrders = await this.deps.getWorkOrders(prediction.equipmentId, orgId);
-      const relevantWOs = (workOrders || []).filter((wo: any) => {
+      const relevantWOs = (workOrders || []).filter((wo: TrackerWorkOrder) => {
+        if (!wo.createdAt) return false;
         const woDate = new Date(wo.createdAt);
         return (
           woDate >= windowStart &&
@@ -314,7 +337,8 @@ export class PredictionOutcomeTracker {
       try {
         // Check alerts
         const alerts = await this.deps.getAlertNotifications(false, orgId);
-        const relevantAlerts = (alerts || []).filter((alert: any) => {
+        const relevantAlerts = (alerts || []).filter((alert: TrackerAlert) => {
+          if (!alert.createdAt) return false;
           const alertDate = new Date(alert.createdAt);
           // alert_notifications has no `severity` column; alertType is the
           // severity discriminator. Treat critical/high alertTypes as failure

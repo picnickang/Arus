@@ -145,12 +145,16 @@ export interface IEquipmentStorage {
     vesselId: string,
     orgId?: string
   ): Promise<{
-    vessel: any;
+    vessel: Record<string, unknown> | null;
     ageYears: number;
     operatingConditions: string[];
     environmentalFactors: string[];
-    maintenanceHistory: any[];
+    maintenanceHistory: Record<string, unknown>[];
     fleetPosition?: { lat: number; lng: number };
   }>;
-  getMaintenanceHistory(equipmentId: string, days?: number, orgId?: string): Promise<any[]>;
+  getMaintenanceHistory(
+    equipmentId: string,
+    days?: number,
+    orgId?: string
+  ): Promise<Record<string, unknown>[]>;
 }

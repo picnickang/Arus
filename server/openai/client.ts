@@ -72,10 +72,11 @@ export function calculateDynamicTokens(
 /**
  * Determine appropriate retry strategy based on error type
  */
-export function analyzeErrorType(error: any): ErrorAnalysisResult {
-  const errorMessage = error?.message?.toLowerCase() || "";
-  const errorCode = error?.code?.toLowerCase() || "";
-  const errorType = error?.type?.toLowerCase() || "";
+export function analyzeErrorType(error: unknown): ErrorAnalysisResult {
+  const err = (error ?? {}) as { message?: unknown; code?: unknown; type?: unknown };
+  const errorMessage = typeof err.message === "string" ? err.message.toLowerCase() : "";
+  const errorCode = typeof err.code === "string" ? err.code.toLowerCase() : "";
+  const errorType = typeof err.type === "string" ? err.type.toLowerCase() : "";
 
   if (
     errorMessage.includes("rate limit") ||
@@ -165,12 +166,13 @@ export async function retryWithBackoff<T>(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
-    } catch (error: any) {
-      lastError = error;
+    } catch (error: unknown) {
+      lastError = error instanceof Error ? error : new Error(String(error));
       const errorAnalysis = analyzeErrorType(error);
+      const errMsg = error instanceof Error ? error.message : String(error);
 
       if (!errorAnalysis.shouldRetry) {
-        logger.error(`Non-retryable error: ${errorAnalysis.recommendation}`, undefined, error?.message);
+        logger.error(`Non-retryable error: ${errorAnalysis.recommendation}`, undefined, errMsg);
         throw error;
       }
 
@@ -187,7 +189,7 @@ export async function retryWithBackoff<T>(
       logger.warn(
         `OpenAI request failed (attempt ${attempt + 1}/${maxRetries + 1}): ${errorAnalysis.recommendation}. ` +
           `Retrying in ${Math.round(delay)}ms...`,
-        { details: error?.message }
+        { details: errMsg }
       );
 
       await new Promise((resolve) => setTimeout(resolve, delay));
@@ -200,18 +202,21 @@ export async function retryWithBackoff<T>(
 /**
  * Wrapper for OpenAI API calls with model fallback capability
  */
+type ChatCreateParams = Parameters<OpenAI["chat"]["completions"]["create"]>[0];
+type ChatCreateResult = Awaited<ReturnType<OpenAI["chat"]["completions"]["create"]>>;
+
 export async function callWithModelFallback(
   openai: OpenAI,
   params: {
     model: string;
-    messages: any[];
-    response_format?: any;
+    messages: ChatCreateParams["messages"];
+    response_format?: ChatCreateParams["response_format"];
     max_completion_tokens?: number;
   }
-): Promise<any> {
+): Promise<ChatCreateResult> {
   try {
-    return await retryWithBackoff(() => openai.chat.completions.create(params));
-  } catch (error: any) {
+    return await retryWithBackoff(() => openai.chat.completions.create(params as ChatCreateParams) as Promise<ChatCreateResult>);
+  } catch (error: unknown) {
     const errorAnalysis = analyzeErrorType(error);
 
     if (errorAnalysis.fallbackModel && params.model !== errorAnalysis.fallbackModel) {
@@ -221,7 +226,7 @@ export async function callWithModelFallback(
         openai.chat.completions.create({
           ...params,
           model: errorAnalysis.fallbackModel!,
-        })
+        } as ChatCreateParams) as Promise<ChatCreateResult>
       );
     }
 

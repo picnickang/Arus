@@ -6,8 +6,13 @@
  */
 
 import type { IStorage } from "../storage/interfaces/storage.types";
+import type { telemetryBatchWriter as TelemetryBatchWriter } from "../telemetry-batch-writer";
 import { cryptoRandom } from "@shared/crypto-random";
 import { createLogger } from "../lib/structured-logger";
+
+type BatchWriter = typeof TelemetryBatchWriter;
+type BatchWriterStats = ReturnType<BatchWriter["getStats"]>;
+type CreateTelemetryReadingInput = Parameters<IStorage["createTelemetryReading"]>[0];
 const logger = createLogger("VesselSimulator:StressTest");
 
 export interface StressTestConfig {
@@ -24,7 +29,7 @@ export interface StressTestResult {
   durationMs: number;
   actualMsgPerSec: number;
   targetMsgPerSec: number;
-  batchWriterStats?: any;
+  batchWriterStats?: BatchWriterStats;
   errors: number;
   dropped: number;
 }
@@ -72,7 +77,7 @@ export class TelemetryStressTest {
     config: StressTestConfig,
     endTime: number,
     intervalMs: number,
-    batchWriter: any
+    batchWriter: BatchWriter
   ): Promise<{ messageCount: number; errors: number }> {
     let messageCount = 0;
     let errors = 0;
@@ -111,13 +116,15 @@ export class TelemetryStressTest {
     while (Date.now() < endTime && this.isRunning) {
       try {
         const msg = generateTelemetryMessage({ config, messageCount });
-        await this.storage.createTelemetryReading({
+        const reading: CreateTelemetryReadingInput = {
           equipmentId: msg.equipmentId,
           sensorType: msg.sensorType,
           value: msg.value,
-          timestamp: msg.timestamp,
-          ...({ metadata: msg.metadata, orgId: (msg as any).orgId } as any),
-        });
+          ts: msg.timestamp,
+          orgId: msg.orgId,
+          unit: msg.unit,
+        };
+        await this.storage.createTelemetryReading(reading);
         messageCount++;
       } catch {
         errors++;

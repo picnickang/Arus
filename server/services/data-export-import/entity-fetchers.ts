@@ -24,30 +24,31 @@ import {
 } from "../../repositories";
 import type { ExportOptions } from "./types";
 
-type EntityFetcher = (orgId: string, options: ExportOptions) => Promise<any[]>;
+export type EntityRow = Record<string, unknown>;
+type EntityFetcher = (orgId: string, options: ExportOptions) => Promise<EntityRow[]>;
 
-async function fetchCrewCertifications(orgId: string): Promise<any[]> {
+async function fetchCrewCertifications(orgId: string): Promise<EntityRow[]> {
   const crewMembers = await dbCrewStorage.getCrew(orgId);
-  const certs: any[] = [];
+  const certs: EntityRow[] = [];
   for (const member of crewMembers) {
     const memberCerts = await dbCrewExtensionsStorage.getCrewCertifications(member.id);
-    certs.push(...memberCerts);
+    certs.push(...(memberCerts as unknown as EntityRow[]));
   }
   return certs;
 }
 
-async function fetchAlertNotifications(orgId: string): Promise<any[]> {
+async function fetchAlertNotifications(orgId: string): Promise<EntityRow[]> {
   const allAlerts = await dbAlertStorage.getAlertNotifications(undefined);
   const equipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
   const equipmentIds = new Set(equipment.map((e) => e.id));
-  return allAlerts.filter((a) => equipmentIds.has(a.equipmentId));
+  return allAlerts.filter((a) => equipmentIds.has(a.equipmentId)) as unknown as EntityRow[];
 }
 
-async function fetchPdmScoreLogs(orgId: string): Promise<any[]> {
+async function fetchPdmScoreLogs(orgId: string): Promise<EntityRow[]> {
   const allScores = await dbDevicesStorage.getPdmScores();
   const equip = await dbEquipmentStorage.getEquipmentRegistry(orgId);
   const eqIds = new Set(equip.map((e) => e.id));
-  return allScores.filter((s) => eqIds.has(s.equipmentId));
+  return allScores.filter((s) => eqIds.has(s.equipmentId)) as unknown as EntityRow[];
 }
 
 const entityFetchers: Record<string, EntityFetcher> = {
@@ -65,7 +66,8 @@ const entityFetchers: Record<string, EntityFetcher> = {
   sensor_configurations: (orgId) => dbSensorsStorage.getSensorConfigurations(undefined, orgId),
   alert_configurations: (orgId) => dbAlertStorage.getAlertConfigurations(undefined, orgId),
   maintenance_schedules: (orgId) => dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId),
-  work_orders: (orgId) => workOrderService.getWorkOrdersWithDetails(undefined, orgId),
+  work_orders: (orgId) =>
+    workOrderService.getWorkOrdersWithDetails(undefined, orgId) as unknown as Promise<EntityRow[]>,
   work_order_completions: (orgId) => dbWorkOrderStorage.getWorkOrderCompletions({ orgId }),
   maintenance_records: () => dbMaintenanceStorage.getMaintenanceRecords(undefined),
   alert_notifications: (orgId) => fetchAlertNotifications(orgId),
@@ -94,7 +96,7 @@ export async function fetchEntityData(
   entityName: string,
   orgId: string,
   options: ExportOptions
-): Promise<any[]> {
+): Promise<EntityRow[]> {
   const fetcher = entityFetchers[entityName];
   if (!fetcher) {
     logger.warn(`[DataExport] Unknown entity: ${entityName}`);

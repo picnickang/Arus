@@ -15,12 +15,14 @@ import type { IdMappings } from "./types";
 /**
  * Convert date strings back to Date objects, handling nulls and edge cases
  */
-export function convertDates(record: any): any {
+export type MutableRecord = Record<string, unknown>;
+
+export function convertDates<T extends MutableRecord>(record: T): T {
   for (const field of DATE_FIELDS) {
     const value = record[field];
 
     if (value === null || value === undefined || value === "") {
-      record[field] = null;
+      (record as MutableRecord)[field] = null;
       continue;
     }
 
@@ -32,12 +34,12 @@ export function convertDates(record: any): any {
       try {
         const date = new Date(value);
         if (!Number.isNaN(date.getTime())) {
-          record[field] = date;
+          (record as MutableRecord)[field] = date;
         } else {
-          record[field] = null;
+          (record as MutableRecord)[field] = null;
         }
       } catch {
-        record[field] = null;
+        (record as MutableRecord)[field] = null;
       }
     }
   }
@@ -48,17 +50,21 @@ export function convertDates(record: any): any {
 /**
  * Remap orgId from source to target organization
  */
-export function remapOrgId(record: any, sourceOrgId: string, targetOrgId: string): any {
+export function remapOrgId<T extends MutableRecord>(
+  record: T,
+  sourceOrgId: string,
+  targetOrgId: string
+): T {
   if (sourceOrgId === targetOrgId) {
     return record;
   }
 
   if (record.orgId === sourceOrgId) {
-    record.orgId = targetOrgId;
+    (record as MutableRecord).orgId = targetOrgId;
   }
 
   if (record.org_id === sourceOrgId) {
-    record.org_id = targetOrgId;
+    (record as MutableRecord).org_id = targetOrgId;
   }
 
   return record;
@@ -67,7 +73,11 @@ export function remapOrgId(record: any, sourceOrgId: string, targetOrgId: string
 /**
  * Remap foreign key references using ID mappings from previously imported entities
  */
-export function remapForeignKeys(entityName: string, record: any, idMappings: IdMappings): any {
+export function remapForeignKeys<T extends MutableRecord>(
+  entityName: string,
+  record: T,
+  idMappings: IdMappings
+): T {
   const entityFks = FK_MAPPINGS[entityName];
   if (!entityFks) {
     return record;
@@ -75,16 +85,16 @@ export function remapForeignKeys(entityName: string, record: any, idMappings: Id
 
   for (const [fieldName, mappingSource] of Object.entries(entityFks)) {
     const oldId = record[fieldName];
-    if (oldId && idMappings[mappingSource]) {
+    if (typeof oldId === "string" && oldId && idMappings[mappingSource]) {
       const newId = idMappings[mappingSource].get(oldId);
       if (newId) {
         logger.info(`[DataImport] FK remap ${entityName}.${fieldName}: ${oldId} → ${newId}`);
-        record[fieldName] = newId;
+        (record as MutableRecord)[fieldName] = newId;
       } else {
         logger.info(`[DataImport] FK remap ${entityName}.${fieldName}: ${oldId} → NULL (not in export)`);
-        record[fieldName] = null;
+        (record as MutableRecord)[fieldName] = null;
         if (fieldName === "vesselId") {
-          record.vesselName = null;
+          (record as MutableRecord).vesselName = null;
         }
       }
     }

@@ -17,7 +17,19 @@ import { db } from "../db-config";
 import { sql } from "drizzle-orm";
 import type { WorkOrder, EquipmentTelemetry } from "@shared/schema";
 
-export async function getVesselEquipment(vesselId: string): Promise<any[]> {
+type EquipmentRow = Awaited<ReturnType<typeof dbEquipmentStorage.getEquipmentRegistry>>[number];
+type WorkOrderRow = Awaited<ReturnType<typeof workOrderService.getWorkOrdersWithDetails>>[number];
+type MaintenanceScheduleRow = Awaited<
+  ReturnType<typeof dbMaintenanceStorage.getMaintenanceSchedules>
+>[number];
+type AlertNotificationRow = Awaited<
+  ReturnType<typeof dbAlertStorage.getAlertNotifications>
+>[number];
+type CrewCertificationRow = Awaited<
+  ReturnType<typeof dbCrewExtensionsStorage.getCrewCertifications>
+>[number];
+
+export async function getVesselEquipment(vesselId: string): Promise<EquipmentRow[]> {
   const allEquipment = await dbEquipmentStorage.getEquipmentRegistry();
   return allEquipment.filter((e) => e.vesselId === vesselId);
 }
@@ -29,7 +41,7 @@ export async function getVesselWorkOrders(
 ): Promise<WorkOrder[]> {
   const allOrders = await workOrderService.getWorkOrdersWithDetails();
   return allOrders.filter(
-    (wo: any) =>
+    (wo: WorkOrderRow) =>
       wo.vesselId === vesselId && wo.createdAt != null && wo.createdAt >= start && wo.createdAt <= end
   );
 }
@@ -48,18 +60,24 @@ export async function getVesselTelemetry(
   );
 }
 
-export async function getVesselMaintenanceSchedules(vesselId: string): Promise<any[]> {
+export async function getVesselMaintenanceSchedules(
+  vesselId: string
+): Promise<MaintenanceScheduleRow[]> {
   const allSchedules = await dbMaintenanceStorage.getMaintenanceSchedules();
   return allSchedules.filter((s) => s.vesselId === vesselId);
 }
 
-export async function getVesselAlerts(vesselId: string, start: Date, end: Date): Promise<any[]> {
+export async function getVesselAlerts(
+  vesselId: string,
+  start: Date,
+  end: Date
+): Promise<AlertNotificationRow[]> {
   const equipment = await getVesselEquipment(vesselId);
   const equipmentIds = equipment.map((e) => e.id);
 
   const allAlerts = await dbAlertStorage.getAlertNotifications();
   return allAlerts.filter(
-    (a: any) =>
+    (a: AlertNotificationRow) =>
       equipmentIds.includes(a.equipmentId) &&
       a.createdAt != null &&
       a.createdAt >= start &&
@@ -67,12 +85,16 @@ export async function getVesselAlerts(vesselId: string, start: Date, end: Date):
   );
 }
 
-export async function getCrewCertifications(crewIds: string[]): Promise<any[]> {
+export async function getCrewCertifications(crewIds: string[]): Promise<CrewCertificationRow[]> {
   const allCerts = await dbCrewExtensionsStorage.getCrewCertifications();
-  return allCerts.filter((cert: any) => crewIds.includes(cert.crewId));
+  return allCerts.filter((cert: CrewCertificationRow) => crewIds.includes(cert.crewId));
 }
 
-export async function getCrewRestSheets(vesselId: string, start: Date, end: Date): Promise<any[]> {
+export async function getCrewRestSheets(
+  vesselId: string,
+  start: Date,
+  end: Date
+): Promise<unknown[]> {
   const restData = await dbStcwStorage.getCrewRestRange(
     vesselId,
     start.toISOString().split("T")[0],
@@ -81,7 +103,7 @@ export async function getCrewRestSheets(vesselId: string, start: Date, end: Date
   return (restData as object as { map?: (fn: (r: { sheet: unknown }) => unknown) => unknown[] }).map?.((r) => r.sheet) ?? [];
 }
 
-export async function getComplianceLogs(start: Date, end: Date): Promise<any[]> {
+export async function getComplianceLogs(start: Date, end: Date): Promise<unknown[]> {
   const result = await db.execute(
     sql`SELECT * FROM compliance_audit_log WHERE created_at >= ${start.toISOString()}::timestamp AND created_at <= ${end.toISOString()}::timestamp ORDER BY created_at DESC`
   );

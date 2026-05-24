@@ -373,8 +373,8 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
         },
       };
 
-      const cacheStats = registry.getCacheStats();
-      const cachedModels = registry.listCachedModels();
+      const cacheStats = registry.getCacheStats?.() ?? { size: 0, hits: 0, misses: 0 };
+      const cachedModels = registry.listCachedModels?.() ?? [];
 
       const mlModels = await dbMlAnalyticsStorage.getMlModels(orgId);
       const modelCounts = {

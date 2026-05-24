@@ -65,14 +65,14 @@ router.post("/trends/analyze/:equipmentId/:sensorType", async (req, res) => {
       },
       message: "Enhanced trends analysis completed successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error(`[Beast Mode API] Error in enhanced trends analysis:`, undefined, error);
-    if (error.message && error.message.includes("Insufficient data")) {
+    if ((error instanceof Error ? error.message : String(error)) && (error instanceof Error ? error.message : String(error)).includes("Insufficient data")) {
       return res
         .status(400)
         .json({
           success: false,
-          error: error.message,
+          error: (error instanceof Error ? error.message : String(error)),
           hint: "Equipment needs at least 10 telemetry data points for statistical analysis",
         });
     }
@@ -133,7 +133,7 @@ router.post("/trends/fleet-analyze", async (req, res) => {
       },
       message: "Fleet trends analysis completed successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error(`[Beast Mode API] Error in fleet trends analysis:`, undefined, error);
     res.status(500).json({ success: false, error: "Failed to perform fleet trends analysis" });
   }
@@ -192,14 +192,14 @@ router.get("/trends/correlations/:equipmentId", async (req, res) => {
       },
       message: "Sensor correlation analysis completed successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error(`[Beast Mode API] Error in correlation analysis:`, undefined, error);
-    if (error.message && error.message.includes("Insufficient data")) {
+    if ((error instanceof Error ? error.message : String(error)) && (error instanceof Error ? error.message : String(error)).includes("Insufficient data")) {
       return res
         .status(400)
         .json({
           success: false,
-          error: error.message,
+          error: (error instanceof Error ? error.message : String(error)),
           hint: "Equipment needs data from multiple sensors for correlation analysis",
         });
     }
@@ -271,14 +271,14 @@ router.get("/trends/forecast/:equipmentId/:sensorType", async (req, res) => {
       },
       message: "Sensor value forecasting completed successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error(`[Beast Mode API] Error in forecasting:`, undefined, error);
-    if (error.message && error.message.includes("Insufficient data")) {
+    if ((error instanceof Error ? error.message : String(error)) && (error instanceof Error ? error.message : String(error)).includes("Insufficient data")) {
       return res
         .status(400)
         .json({
           success: false,
-          error: error.message,
+          error: (error instanceof Error ? error.message : String(error)),
           hint: "Equipment needs sufficient historical data for reliable forecasting",
         });
     }

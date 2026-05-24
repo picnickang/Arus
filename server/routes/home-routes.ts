@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, RequestHandler, Response } from "express";
 import type { AuthenticatedRequest } from "../middleware/auth";
 import { withErrorHandling } from "../lib/route-utils";
 import { validateResponse } from "../lib/api-helpers";
@@ -26,7 +26,7 @@ function safeCall<T>(fn: (() => Promise<T>) | undefined): Promise<T | null> {
 
 export function registerHomeRoutes(
   app: Express,
-  deps: { generalApiRateLimit: any; requireOrgId: any }
+  deps: { generalApiRateLimit: RequestHandler; requireOrgId: RequestHandler }
 ) {
   const { generalApiRateLimit, requireOrgId } = deps;
 

@@ -162,7 +162,7 @@ export function StartRunDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  datasets: any[];
+  datasets: Array<{ id: string; name: string; status?: string | null }>;
 }) {
   const mutation = useStartTrainingRun();
   const { toast } = useToast();
@@ -208,7 +208,7 @@ export function StartRunDialog({
                 className={inputCls}
               >
                 <option value="">Select a dataset</option>
-                {datasets.map((d: any) => (
+                {datasets.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name} ({d.status})
                   </option>
@@ -287,7 +287,7 @@ export function PromoteDialog({
 }: {
   runId: string | null;
   onClose: () => void;
-  models: any[];
+  models: Array<{ id: string; name: string; type?: string | null }>;
 }) {
   const mutation = usePromoteRun();
   const { toast } = useToast();
@@ -330,7 +330,7 @@ export function PromoteDialog({
                   <SelectValue placeholder="Select model" />
                 </SelectTrigger>
                 <SelectContent>
-                  {models.map((m: any) => (
+                  {models.map((m) => (
                     <SelectItem key={m.id} value={m.id}>
                       {m.name} ({m.type})
                     </SelectItem>

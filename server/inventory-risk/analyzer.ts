@@ -7,13 +7,44 @@ import type { PartRiskScore, InventoryRiskSummary, EquipmentPartsRisk } from "./
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("InventoryRisk:Analyzer");
 
+export interface InventoryRiskPart {
+  id: string;
+  partNumber: string;
+  partName: string;
+  category?: string | null;
+  quantityOnHand: number;
+  quantityReserved: number;
+  minStockLevel: number | null;
+  maxStockLevel: number | null;
+  leadTimeDays?: number | null;
+  supplierName?: string | null;
+  unitCost: number;
+  isActive?: boolean | null;
+}
+
+export interface InventoryRiskEquipment {
+  id: string;
+  name: string;
+  type: string;
+}
+
+export interface InventoryRiskWorkOrderPart {
+  workOrderId: string;
+  partId: string;
+}
+
+export interface InventoryRiskWorkOrder {
+  id: string;
+  equipmentId?: string | null;
+}
+
 export interface InventoryRiskDeps {
-  getPartsInventory(orgId: string, includeInactive?: boolean): Promise<any[]>;
-  getEquipment(orgId: string, equipmentId: string): Promise<any>;
-  getWorkOrderPartsByEquipment(orgId: string, equipmentId: string): Promise<any[]>;
-  getPartById(orgId: string, partId: string): Promise<any>;
-  getWorkOrderPartsByPartId(orgId: string, partId: string): Promise<any[]>;
-  getWorkOrder(orgId: string, workOrderId: string): Promise<any>;
+  getPartsInventory(orgId: string, includeInactive?: boolean): Promise<InventoryRiskPart[]>;
+  getEquipment(orgId: string, equipmentId: string): Promise<InventoryRiskEquipment | undefined | null>;
+  getWorkOrderPartsByEquipment(orgId: string, equipmentId: string): Promise<InventoryRiskWorkOrderPart[]>;
+  getPartById(orgId: string, partId: string): Promise<InventoryRiskPart | undefined | null>;
+  getWorkOrderPartsByPartId(orgId: string, partId: string): Promise<InventoryRiskWorkOrderPart[]>;
+  getWorkOrder(orgId: string, workOrderId: string): Promise<InventoryRiskWorkOrder | undefined | null>;
 }
 import {
   calculateSupplierRisk,
@@ -66,7 +97,7 @@ export class InventoryRiskAnalyzer {
     const parts = await Promise.all(
       uniquePartIds.map((partId) => this.storage.getPartById(orgId, partId))
     );
-    const activeParts = parts.filter((p) => p?.isActive);
+    const activeParts = parts.filter((p): p is InventoryRiskPart => Boolean(p?.isActive));
 
     const partRisks = await Promise.all(activeParts.map((p) => this.calculatePartRisk(orgId, p)));
     return this.buildEquipmentRisk(equipment, partRisks);
@@ -86,9 +117,11 @@ export class InventoryRiskAnalyzer {
       .sort((a, b) => b.overallRisk - a.overallRisk);
   }
 
-  private async calculatePartRisk(orgId: string, part: any): Promise<PartRiskScore> {
+  private async calculatePartRisk(orgId: string, part: InventoryRiskPart): Promise<PartRiskScore> {
+    const minStock = part.minStockLevel ?? 0;
+    const maxStock = part.maxStockLevel ?? 0;
     const availableQuantity = part.quantityOnHand - part.quantityReserved;
-    const stockRatio = part.minStockLevel > 0 ? availableQuantity / part.minStockLevel : 1;
+    const stockRatio = minStock > 0 ? availableQuantity / minStock : 1;
     const stockoutRisk = Math.max(0, Math.min(100, (1 - stockRatio) * 100));
     const leadTimeRisk = Math.min(100, (part.leadTimeDays || 7) * 3);
     const supplierDependency = part.supplierName ? 70 : 20;
@@ -108,19 +141,19 @@ export class InventoryRiskAnalyzer {
       partId: part.id,
       partNumber: part.partNumber,
       partName: part.partName,
-      category: part.category,
+      category: part.category ?? "",
       quantityOnHand: part.quantityOnHand,
       quantityReserved: part.quantityReserved,
       availableQuantity,
-      minStockLevel: part.minStockLevel,
-      maxStockLevel: part.maxStockLevel,
+      minStockLevel: minStock,
+      maxStockLevel: maxStock,
       stockoutRisk,
       leadTimeDays: part.leadTimeDays || 7,
-      supplierName: part.supplierName,
+      supplierName: part.supplierName ?? null,
       supplierDependency,
       unitCost: part.unitCost,
       totalValue,
-      reorderCost: part.unitCost * (part.maxStockLevel - availableQuantity),
+      reorderCost: part.unitCost * (maxStock - availableQuantity),
       criticalEquipment,
       equipmentCount: criticalEquipment.length,
       overallRisk: Math.round(overallRisk),
@@ -153,7 +186,7 @@ export class InventoryRiskAnalyzer {
     }
   }
 
-  private buildEquipmentRisk(equipment: any, partRisks: PartRiskScore[]): EquipmentPartsRisk {
+  private buildEquipmentRisk(equipment: InventoryRiskEquipment, partRisks: PartRiskScore[]): EquipmentPartsRisk {
     const criticalParts = partRisks.filter(
       (p) => p.riskCategory === "critical" || p.riskCategory === "high"
     ).length;
@@ -197,7 +230,7 @@ export class InventoryRiskAnalyzer {
     };
   }
 
-  private createEmptyEquipmentRisk(equipment: any): EquipmentPartsRisk {
+  private createEmptyEquipmentRisk(equipment: InventoryRiskEquipment): EquipmentPartsRisk {
     return {
       equipmentId: equipment.id,
       equipmentName: equipment.name,
