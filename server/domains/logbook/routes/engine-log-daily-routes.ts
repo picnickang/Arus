@@ -66,7 +66,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
       const filters: EngineLogFilters = listQuerySchema.parse(req.query);
 
       const entries = await engineLogStorage.getEngineLogDaily(orgId, filters);
-      res.json(entries);
+      return res.json(entries);
     })
   );
 
@@ -84,7 +84,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
         return sendNotFound(res, "Engine log entry");
       }
 
-      res.json(entry);
+      return res.json(entry);
     })
   );
 
@@ -102,7 +102,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
         return sendNotFound(res, "Engine log entry");
       }
 
-      res.json(complete);
+      return res.json(complete);
     })
   );
 
@@ -124,7 +124,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
       }
 
       const complete = await engineLogStorage.getEngineLogComplete(entry.id, orgId);
-      res.json(complete);
+      return res.json(complete);
     })
   );
 
@@ -157,6 +157,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
       } as CreateEngineLogInput);
 
       sendCreated(res, entry);
+      return undefined;
     })
   );
 
@@ -176,7 +177,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
         body as UpdateEngineLogInput,
         orgId
       );
-      res.json(entry);
+      return res.json(entry);
     })
   );
 
@@ -196,7 +197,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
       }
 
       const entry = await engineLogStorage.signEngineLogDaily(id, parsed.data, orgId);
-      res.json(entry);
+      return res.json(entry);
     })
   );
 
@@ -228,7 +229,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
 
       try {
         const locked = await engineLogStorage.lockEngineLogDaily(id, parsed.data, orgId);
-        res.json(locked);
+        return res.json(locked);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
         if (message.includes("already locked")) {
@@ -246,7 +247,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
       const orgId = req.orgId;
       const { id } = idParamSchema.parse(req.params);
       const unlocked = await engineLogStorage.unlockEngineLogDaily(id, orgId);
-      res.json(unlocked);
+      return res.json(unlocked);
     })
   );
 
@@ -261,7 +262,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
         startDate: from,
         endDate: to,
       });
-      res.json(entries);
+      return res.json(entries);
     })
   );
 
@@ -287,7 +288,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
         } as CreateEngineLogInput);
       }
 
-      res.json(entry);
+      return res.json(entry);
     })
   );
 

@@ -66,7 +66,7 @@ export function registerAlertSettingsRoutes(
     withErrorHandling("get alert settings", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
       const settings = await alertSettingsService.getSettings(orgId);
-      res.json(settings);
+      return res.json(settings);
     })
   );
 
@@ -77,7 +77,7 @@ export function registerAlertSettingsRoutes(
       const orgId = getOrgId(req);
       const data = updateSettingsSchema.parse(req.body);
       const settings = await alertSettingsService.updateSettings(orgId, data);
-      res.json(settings);
+      return res.json(settings);
     })
   );
 
@@ -87,7 +87,7 @@ export function registerAlertSettingsRoutes(
     withErrorHandling("test email connection", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
       const result = await alertSettingsService.testEmailConnection(orgId);
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -98,7 +98,7 @@ export function registerAlertSettingsRoutes(
       const orgId = getOrgId(req);
       const { email } = testEmailSchema.parse(req.body);
       const result = await alertSettingsService.sendTestEmail(orgId, email);
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -108,7 +108,7 @@ export function registerAlertSettingsRoutes(
     withErrorHandling("get vessel settings", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
       const settings = await alertSettingsService.getAllVesselSettings(orgId);
-      res.json(settings);
+      return res.json(settings);
     })
   );
 
@@ -122,7 +122,7 @@ export function registerAlertSettingsRoutes(
       if (!settings) {
         return sendNotFound(res, "Vessel settings");
       }
-      res.json(settings);
+      return res.json(settings);
     })
   );
 
@@ -138,7 +138,7 @@ export function registerAlertSettingsRoutes(
         vesselId,
         data
       );
-      res.json(settings);
+      return res.json(settings);
     })
   );
 
@@ -149,7 +149,7 @@ export function registerAlertSettingsRoutes(
       const orgId = getOrgId(req);
       const { vesselId } = vesselIdParamSchema.parse(req.params);
       await alertSettingsService.deleteVesselSettings(orgId, vesselId);
-      res.status(204).send();
+      return res.status(204).send();
     })
   );
 
@@ -160,7 +160,7 @@ export function registerAlertSettingsRoutes(
       const orgId = getOrgId(req);
       const { category } = categoryQuerySchema.parse(req.query);
       const thresholds = await alertSettingsService.getThresholds(orgId, category);
-      res.json(thresholds);
+      return res.json(thresholds);
     })
   );
 
@@ -176,7 +176,7 @@ export function registerAlertSettingsRoutes(
         });
       }
       const threshold = await alertSettingsService.updateThreshold(orgId, data.key, data);
-      res.status(201).json(threshold);
+      return res.status(201).json(threshold);
     })
   );
 
@@ -188,7 +188,7 @@ export function registerAlertSettingsRoutes(
       const data = insertAlertThresholdSchema.partial().parse(req.body);
       const { key } = keyParamSchema.parse(req.params);
       const threshold = await alertSettingsService.updateThreshold(orgId, key, data);
-      res.json(threshold);
+      return res.json(threshold);
     })
   );
 
@@ -199,7 +199,7 @@ export function registerAlertSettingsRoutes(
       const orgId = getOrgId(req);
       const { key } = keyParamSchema.parse(req.params);
       await alertSettingsService.deleteThreshold(orgId, key);
-      res.status(204).send();
+      return res.status(204).send();
     })
   );
 
@@ -214,7 +214,7 @@ export function registerAlertSettingsRoutes(
         startDate: query.startDate ? new Date(query.startDate) : undefined,
         endDate: query.endDate ? new Date(query.endDate) : undefined,
       });
-      res.json(logs);
+      return res.json(logs);
     })
   );
 
@@ -225,7 +225,7 @@ export function registerAlertSettingsRoutes(
       const orgId = getOrgId(req);
       const { vesselId } = vesselIdQuerySchema.parse(req.query);
       const settings = await alertSettingsService.getCrewAlertSettings(orgId, vesselId);
-      res.json(settings ?? {});
+      return res.json(settings ?? {});
     })
   );
 
@@ -235,7 +235,7 @@ export function registerAlertSettingsRoutes(
     withErrorHandling("get all crew alert settings", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
       const settings = await alertSettingsService.getAllCrewAlertSettings(orgId);
-      res.json(settings);
+      return res.json(settings);
     })
   );
 
@@ -247,7 +247,7 @@ export function registerAlertSettingsRoutes(
       const vesselId = vesselIdQuerySchema.parse(req.query).vesselId ?? null;
       const data = insertCrewAlertSettingsSchema.partial().parse(req.body);
       const settings = await alertSettingsService.updateCrewAlertSettings(orgId, vesselId, data);
-      res.json(settings);
+      return res.json(settings);
     })
   );
 
@@ -263,7 +263,7 @@ export function registerAlertSettingsRoutes(
         vesselId,
         now: new Date(),
       });
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -296,7 +296,7 @@ export function registerAlertSettingsRoutes(
     withErrorHandling("get email templates", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
       const templates = await emailTemplatesService.getTemplates(orgId);
-      res.json(templates);
+      return res.json(templates);
     })
   );
 
@@ -305,7 +305,7 @@ export function registerAlertSettingsRoutes(
     generalApiRateLimit,
     withErrorHandling("get email template placeholders", async (_req: Request, res: Response) => {
       const placeholders = emailTemplatesService.getPlaceholders();
-      res.json(placeholders);
+      return res.json(placeholders);
     })
   );
 
@@ -314,7 +314,7 @@ export function registerAlertSettingsRoutes(
     generalApiRateLimit,
     withErrorHandling("get default email templates", async (_req: Request, res: Response) => {
       const defaults = emailTemplatesService.getDefaultTemplates();
-      res.json(defaults);
+      return res.json(defaults);
     })
   );
 
@@ -328,7 +328,7 @@ export function registerAlertSettingsRoutes(
         orgId,
         body as Parameters<typeof emailTemplatesService.updateTemplates>[1]
       );
-      res.json(templates);
+      return res.json(templates);
     })
   );
 
@@ -342,7 +342,7 @@ export function registerAlertSettingsRoutes(
         return res.status(400).json({ message: "Invalid template type" });
       }
       const templates = await emailTemplatesService.resetTemplate(orgId, parsedParams.data.type);
-      res.json(templates);
+      return res.json(templates);
     })
   );
 
@@ -359,7 +359,7 @@ export function registerAlertSettingsRoutes(
         template as Parameters<typeof emailTemplatesService.generatePreview>[0],
         type as Parameters<typeof emailTemplatesService.generatePreview>[1]
       );
-      res.json(preview);
+      return res.json(preview);
     })
   );
 

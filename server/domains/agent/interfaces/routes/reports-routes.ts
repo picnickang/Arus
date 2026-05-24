@@ -42,8 +42,9 @@ export function registerReportsRoutes(app: Express) {
       res.setHeader("Content-Disposition", `attachment; filename="${artifact.fileName}"`);
       const fileStream = fs.createReadStream(artifact.filePath);
       fileStream.pipe(res);
+      return undefined;
     } catch (error: unknown) {
-      res.status(500).json({ error: error instanceof Error ? error.message : "Download failed" });
+      return res.status(500).json({ error: error instanceof Error ? error.message : "Download failed" });
     }
   });
 }

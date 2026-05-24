@@ -73,9 +73,9 @@ export function registerFindingsRoutes(app: Express, deps: FindingsRouteDeps) {
         };
 
         const result = await findingsService.getFindings(orgId, filter, pagination);
-        res.json(result);
+        return res.json(result);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -88,9 +88,9 @@ export function registerFindingsRoutes(app: Express, deps: FindingsRouteDeps) {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
         const summary = await findingsService.getSummary(orgId);
-        res.json(summary);
+        return res.json(summary);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );

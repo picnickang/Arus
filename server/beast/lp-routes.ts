@@ -48,7 +48,7 @@ router.post("/lp/optimize", async (req, res) => {
     const constraints = optimizationConstraintsSchema.parse(req.body);
     const optimizer = new LinearProgrammingOptimizer(orgId);
     const result = await optimizer.optimizeMaintenanceSchedule(constraints);
-    res.json({
+    return res.json({
       success: result.success,
       optimizationId: result.optimizationId,
       result,
@@ -57,7 +57,7 @@ router.post("/lp/optimize", async (req, res) => {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     logger.error("[Beast Mode API] Error running LP optimization:", undefined, error);
-    res
+    return res
       .status(500)
       .json({ success: false, error: message || "Failed to run maintenance optimization" });
   }
@@ -82,7 +82,7 @@ router.get("/lp/results/:resultId", async (req, res) => {
       totalSchedules?: number;
       optimizationScore?: number;
     };
-    res.json({
+    return res.json({
       success: true,
       resultId,
       data: optimizationData,
@@ -100,7 +100,7 @@ router.get("/lp/results/:resultId", async (req, res) => {
           resultId: req.params.resultId,
         });
     }
-    res
+    return res
       .status(500)
       .json({
         success: false,

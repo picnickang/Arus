@@ -81,7 +81,7 @@ export function registerKbAskRoute(
         documentId: r.documentId || r.id,
       }));
 
-      res.json({
+      return res.json({
         answer,
         sources,
         query,

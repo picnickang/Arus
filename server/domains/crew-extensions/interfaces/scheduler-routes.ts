@@ -94,7 +94,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         vessels,
         mode: mode || "dry_run",
       });
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -127,7 +127,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           },
         };
       });
-      res.json(transformed);
+      return res.json(transformed);
     })
   );
 
@@ -141,7 +141,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         return sendNotFound(res, "Scheduler run");
       }
       const assignments = await dbSchedulerStorage.getScheduleAssignmentsByRun(id);
-      res.json({ ...run, assignments });
+      return res.json({ ...run, assignments });
     })
   );
 
@@ -152,7 +152,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       const orgId = req.orgId!;
       const { id } = idParamSchema.parse(req.params);
       const result = await applySchedule(id, orgId);
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -163,7 +163,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       const orgId = req.orgId!;
       const { id } = idParamSchema.parse(req.params);
       const result = await cancelScheduleRun(id, orgId);
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -175,7 +175,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       async (req: AuthenticatedRequest, res: Response) => {
         const orgId = req.orgId!;
         const result = await clearSchedulerRunHistory(orgId);
-        res.json(result);
+        return res.json(result);
       }
     )
   );
@@ -208,7 +208,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         });
       }
       const result = await previewScheduleCompliance(orgId, assignments);
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -228,13 +228,13 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         const result = await generateHoRFromSchedule(id);
 
         if (result.success) {
-          res.json({
+          return res.json({
             ...result,
             success: true,
             message: `Generated ${result.sheetsCreated} rest sheets with ${result.daysCreated} days`,
           });
         } else {
-          res.status(400).json({ ...result, success: false, errors: result.errors });
+          return res.status(400).json({ ...result, success: false, errors: result.errors });
         }
       }
     )
@@ -338,7 +338,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           affectedIds: { crewId: v.crewId, assignmentId },
         }));
 
-        res.json(frontendViolations);
+        return res.json(frontendViolations);
       }
     )
   );
@@ -462,7 +462,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         badgeCode: s.availabilityTag,
       }));
 
-      res.json(frontendSuggestions);
+      return res.json(frontendSuggestions);
     })
   );
 
@@ -509,7 +509,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         orgId
       );
 
-      res.json({
+      return res.json({
         success: true,
         assignment: {
           id: updated.id,
@@ -596,7 +596,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         }
       }
 
-      res.json({
+      return res.json({
         success: true,
         publishedCount,
         message: `Published ${publishedCount} assignments`,
@@ -618,7 +618,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         vessels,
         fillUnassignedOnly: fillUnassignedOnly !== false,
       });
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -644,7 +644,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           skipCollisions: skipCollisions !== false,
           vesselIds: vesselIds && Array.isArray(vesselIds) ? vesselIds : undefined,
         });
-        res.json(result);
+        return res.json(result);
       }
     )
   );
@@ -664,7 +664,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         }
 
         const result = await revertGeneratedSchedule({ orgId, runId });
-        res.json(result);
+        return res.json(result);
       }
     )
   );
@@ -717,10 +717,10 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
 
         try {
           const result = await canAssignCrew(crewId, proposedAssignment, existingDrafts);
-          res.json(result);
+          return res.json(result);
         } catch (error) {
           logger.error("Failed to check assignment compliance:", undefined, error);
-          res.json({
+          return res.json({
             canAssign: true,
             violations: [],
             projectedRestHours: 24,
@@ -780,14 +780,14 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
 
         try {
           const result = projectComplianceFromAssignments(assignments);
-          res.json({
+          return res.json({
             isCompliant: result.isCompliant,
             violations: result.violations,
             summary: result.summary,
           });
         } catch (error) {
           logger.error("Failed to project bulk compliance:", undefined, error);
-          res.json({
+          return res.json({
             isCompliant: true,
             violations: [],
             summary: {
@@ -858,7 +858,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         const view = await crewExtensionsAppService.getSchedulePlannerView(
           filter as Parameters<typeof crewExtensionsAppService.getSchedulePlannerView>[0],
         );
-        res.json(view);
+        return res.json(view);
       }
     )
   );
@@ -883,7 +883,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           });
         }
         await crewExtensionsAppService.refreshSchedulePlannerView(orgId, userId);
-        res.json({ success: true, refreshedAt: new Date().toISOString() });
+        return res.json({ success: true, refreshedAt: new Date().toISOString() });
       }
     )
   );
@@ -929,7 +929,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           userId
         );
 
-        res.json({
+        return res.json({
           previewId: preview.previewId,
           expiresAt: preview.expiresAt.toISOString(),
           proposedAssignments: preview.proposedAssignments,
@@ -963,7 +963,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           });
         }
 
-        res.json({
+        return res.json({
           previewId: preview.previewId,
           createdAt: preview.createdAt.toISOString(),
           expiresAt: preview.expiresAt.toISOString(),
@@ -1014,7 +1014,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           userId
         );
 
-        res.json({
+        return res.json({
           success: true,
           runId: result.runId,
           assignmentsCreated: result.assignmentsCreated,
@@ -1039,7 +1039,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         }
         const deleted = await scheduleSimulationService.discard(previewId, orgId, "manual", userId);
 
-        res.json({
+        return res.json({
           success: deleted,
           message: deleted
             ? "Simulation preview discarded"

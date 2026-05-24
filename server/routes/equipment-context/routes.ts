@@ -55,7 +55,7 @@ export function registerEquipmentContextRoutes(app: Express) {
         dataCompleteness: context.metadata.dataCompleteness,
       });
 
-      res.json(context);
+      return res.json(context);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;
@@ -64,7 +64,7 @@ export function registerEquipmentContextRoutes(app: Express) {
         stack: errorStack,
         equipmentId: req.params.equipmentId,
       });
-      res
+      return res
         .status(500)
         .json({ error: "Failed to generate equipment context", details: errorMessage });
     }

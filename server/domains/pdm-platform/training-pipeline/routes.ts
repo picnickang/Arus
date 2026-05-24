@@ -56,10 +56,10 @@ router.post("/datasets", async (req: Request, res: Response) => {
       timeRangeEnd: parsed.data.timeRangeEnd ? new Date(parsed.data.timeRangeEnd) : undefined,
     };
     const result = await service.createDataset(data);
-    res.status(201).json(result);
+    return res.status(201).json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -68,10 +68,10 @@ router.get("/datasets", async (req: Request, res: Response) => {
     const orgId = DEFAULT_ORG_ID;
     const { status } = statusQuerySchema.parse(req.query);
     const result = await service.listDatasets(orgId, status);
-    res.json(result);
+    return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -83,10 +83,10 @@ router.get("/datasets/:id", async (req: Request, res: Response) => {
     if (!result) {
       return res.status(404).json({ error: "Dataset not found" });
     }
-    res.json(result);
+    return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -105,13 +105,13 @@ router.post("/runs", async (req: Request, res: Response) => {
       hyperparameters,
       initiatedBy
     );
-    res.status(201).json(result);
+    return res.status(201).json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     if ((message).includes("not found")) {
       return res.status(404).json({ error: message });
     }
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -120,10 +120,10 @@ router.get("/runs", async (req: Request, res: Response) => {
     const orgId = DEFAULT_ORG_ID;
     const { status, datasetId } = runsListQuerySchema.parse(req.query);
     const result = await service.listRuns(orgId, { status, datasetId });
-    res.json(result);
+    return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -135,10 +135,10 @@ router.get("/runs/:id", async (req: Request, res: Response) => {
     if (!result) {
       return res.status(404).json({ error: "Training run not found" });
     }
-    res.json(result);
+    return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -158,13 +158,13 @@ router.post("/runs/:id/promote", async (req: Request, res: Response) => {
       version,
       changelog
     );
-    res.status(201).json(result);
+    return res.status(201).json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     if ((message).includes("not found") || (message).includes("not completed")) {
       return res.status(400).json({ error: message });
     }
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -176,10 +176,10 @@ router.get("/artifacts", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "modelVersionId query param required" });
     }
     const result = await service.listArtifacts(orgId, modelVersionId);
-    res.json(result);
+    return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 

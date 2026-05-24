@@ -176,7 +176,7 @@ export function registerSchedulingRoutes(
         }
       }
 
-      res.json({
+      return res.json({
         engine,
         scheduled,
         unfilled,

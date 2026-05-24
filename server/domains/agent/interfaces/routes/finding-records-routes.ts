@@ -75,9 +75,9 @@ export function registerFindingRecordsRoutes(app: Express, deps: FindingRecordsR
         filter.limit = Math.min(q.limit ?? 50, 200);
         filter.offset = Math.max(q.offset ?? 0, 0);
         const findings = await findingService.list(orgId, filter);
-        res.json(findings);
+        return res.json(findings);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -96,9 +96,9 @@ export function registerFindingRecordsRoutes(app: Express, deps: FindingRecordsR
             .json({ error: "Invalid finding data", details: parsed.error.flatten().fieldErrors });
         }
         const finding = await findingService.create({ ...parsed.data, orgId });
-        res.status(201).json(finding);
+        return res.status(201).json(finding);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -115,9 +115,9 @@ export function registerFindingRecordsRoutes(app: Express, deps: FindingRecordsR
         if (!finding) {
           return res.status(404).json({ error: "Finding not found" });
         }
-        res.json(finding);
+        return res.json(finding);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -142,7 +142,7 @@ export function registerFindingRecordsRoutes(app: Express, deps: FindingRecordsR
           updateData.recommendedAction = recommendedAction;
         }
         const finding = await findingService.update(id, orgId, updateData);
-        res.json(finding);
+        return res.json(finding);
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : "Unknown error";
         const statusCode = msg.includes("not found")
@@ -150,7 +150,7 @@ export function registerFindingRecordsRoutes(app: Express, deps: FindingRecordsR
           : msg.includes("Cannot transition")
             ? 400
             : 500;
-        res.status(statusCode).json({ error: msg });
+        return res.status(statusCode).json({ error: msg });
       }
     }
   );

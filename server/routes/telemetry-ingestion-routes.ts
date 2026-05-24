@@ -13,7 +13,7 @@ telemetryIngestionRouter.get(
   "/archive/status",
   withErrorHandling("get archive status", async (_req, res) => {
     const metrics = await rawTelemetryArchiveAdapter.getMetrics();
-    res.json(metrics);
+    return res.json(metrics);
   })
 );
 
@@ -22,7 +22,7 @@ telemetryIngestionRouter.get(
   withErrorHandling("get pending archives", async (req, res) => {
     const limit = Number(req.query.limit) || 100;
     const archives = await rawTelemetryArchiveAdapter.getPendingArchives(limit);
-    res.json({ archives, count: archives.length });
+    return res.json({ archives, count: archives.length });
   })
 );
 
@@ -31,7 +31,7 @@ telemetryIngestionRouter.get(
   withErrorHandling("get failed archives", async (req, res) => {
     const limit = Number(req.query.limit) || 100;
     const archives = await rawTelemetryArchiveAdapter.getFailedArchives(limit);
-    res.json({ archives, count: archives.length });
+    return res.json({ archives, count: archives.length });
   })
 );
 
@@ -39,7 +39,7 @@ telemetryIngestionRouter.post(
   "/archive/:id/retry",
   withErrorHandling("retry archive", async (req, res) => {
     await rawTelemetryArchiveAdapter.retryFailed(req.params.id);
-    res.json({ success: true, archiveId: req.params.id });
+    return res.json({ success: true, archiveId: req.params.id });
   })
 );
 
@@ -48,7 +48,7 @@ telemetryIngestionRouter.post(
   withErrorHandling("prune archives", async (req, res) => {
     const retentionDays = Number(req.query.retentionDays) || 30;
     const removed = await rawTelemetryArchiveAdapter.pruneOldArchives(retentionDays);
-    res.json({ success: true, removed });
+    return res.json({ success: true, removed });
   })
 );
 
@@ -57,7 +57,7 @@ telemetryIngestionRouter.get(
   withErrorHandling("get heartbeat status", async (req, res) => {
     const orgId = DEFAULT_ORG_ID;
     const metrics = await equipmentHeartbeatAdapter.getMetricsByOrg(orgId);
-    res.json(metrics);
+    return res.json(metrics);
   })
 );
 
@@ -67,7 +67,7 @@ telemetryIngestionRouter.get(
     const orgId = DEFAULT_ORG_ID;
     const thresholdMs = req.query.thresholdMs ? Number(req.query.thresholdMs) : undefined;
     const equipment = await equipmentHeartbeatAdapter.getOnlineEquipment(orgId, thresholdMs);
-    res.json({ equipment, count: equipment.length });
+    return res.json({ equipment, count: equipment.length });
   })
 );
 
@@ -77,7 +77,7 @@ telemetryIngestionRouter.get(
     const orgId = DEFAULT_ORG_ID;
     const thresholdMs = req.query.thresholdMs ? Number(req.query.thresholdMs) : undefined;
     const equipment = await equipmentHeartbeatAdapter.getOfflineEquipment(orgId, thresholdMs);
-    res.json({ equipment, count: equipment.length });
+    return res.json({ equipment, count: equipment.length });
   })
 );
 
@@ -88,7 +88,7 @@ telemetryIngestionRouter.get(
     if (!heartbeat) {
       return res.status(404).json({ message: "Equipment heartbeat not found" });
     }
-    res.json(heartbeat);
+    return res.json(heartbeat);
   })
 );
 
@@ -96,7 +96,7 @@ telemetryIngestionRouter.post(
   "/heartbeat/update-status",
   withErrorHandling("update online status", async (_req, res) => {
     const result = await equipmentHeartbeatAdapter.updateOnlineStatus();
-    res.json({ success: true, ...result });
+    return res.json({ success: true, ...result });
   })
 );
 
@@ -105,7 +105,7 @@ telemetryIngestionRouter.get(
   withErrorHandling("get batch status", async (req, res) => {
     const orgId = DEFAULT_ORG_ID;
     const metrics = await telemetryBatchAckAdapter.getMetrics(orgId);
-    res.json(metrics);
+    return res.json(metrics);
   })
 );
 
@@ -121,7 +121,7 @@ telemetryIngestionRouter.get(
       deviceId,
       source,
     });
-    res.json({ batches, count: batches.length });
+    return res.json({ batches, count: batches.length });
   })
 );
 
@@ -131,7 +131,7 @@ telemetryIngestionRouter.get(
     const orgId = DEFAULT_ORG_ID;
     const limit = Number(req.query.limit) || 100;
     const batches = await telemetryBatchAckAdapter.getUnacknowledgedBatches(orgId, limit);
-    res.json({ batches, count: batches.length });
+    return res.json({ batches, count: batches.length });
   })
 );
 
@@ -141,7 +141,7 @@ telemetryIngestionRouter.get(
     const orgId = DEFAULT_ORG_ID;
     const limit = Number(req.query.limit) || 100;
     const batches = await telemetryBatchAckAdapter.getFailedBatches(orgId, limit);
-    res.json({ batches, count: batches.length });
+    return res.json({ batches, count: batches.length });
   })
 );
 
@@ -152,7 +152,7 @@ telemetryIngestionRouter.get(
     if (!batch) {
       return res.status(404).json({ message: "Batch not found" });
     }
-    res.json(batch);
+    return res.json(batch);
   })
 );
 
@@ -160,7 +160,7 @@ telemetryIngestionRouter.post(
   "/batch/:batchId/retry",
   withErrorHandling("retry batch", async (req, res) => {
     await telemetryBatchAckAdapter.retryBatch(req.params.batchId);
-    res.json({ success: true, batchId: req.params.batchId });
+    return res.json({ success: true, batchId: req.params.batchId });
   })
 );
 
@@ -169,7 +169,7 @@ telemetryIngestionRouter.post(
   withErrorHandling("prune batches", async (req, res) => {
     const retentionDays = Number(req.query.retentionDays) || 7;
     const removed = await telemetryBatchAckAdapter.pruneOldBatches(retentionDays);
-    res.json({ success: true, removed });
+    return res.json({ success: true, removed });
   })
 );
 
@@ -178,7 +178,7 @@ telemetryIngestionRouter.get(
   withErrorHandling("list schemas", async (req, res) => {
     const protocol = req.query.protocol as string | undefined;
     const schemas = await schemaRegistryAdapter.listSchemas(protocol);
-    res.json({ schemas, count: schemas.length });
+    return res.json({ schemas, count: schemas.length });
   })
 );
 
@@ -192,7 +192,7 @@ telemetryIngestionRouter.get(
     if (!schema) {
       return res.status(404).json({ message: "Schema not found" });
     }
-    res.json(schema);
+    return res.json(schema);
   })
 );
 
@@ -200,7 +200,7 @@ telemetryIngestionRouter.post(
   "/schema",
   withErrorHandling("register schema", async (req, res) => {
     const schema = await schemaRegistryAdapter.registerSchema(req.body);
-    res.status(201).json(schema);
+    return res.status(201).json(schema);
   })
 );
 
@@ -208,7 +208,7 @@ telemetryIngestionRouter.post(
   "/schema/:protocol/:version/deprecate",
   withErrorHandling("deprecate schema", async (req, res) => {
     await schemaRegistryAdapter.deprecateSchema(req.params.protocol, Number(req.params.version));
-    res.json({ success: true });
+    return res.json({ success: true });
   })
 );
 
@@ -216,7 +216,7 @@ telemetryIngestionRouter.post(
   "/schema/:protocol/:version/activate",
   withErrorHandling("activate schema", async (req, res) => {
     await schemaRegistryAdapter.activateSchema(req.params.protocol, Number(req.params.version));
-    res.json({ success: true });
+    return res.json({ success: true });
   })
 );
 
@@ -225,7 +225,7 @@ telemetryIngestionRouter.post(
   withErrorHandling("validate payload", async (req, res) => {
     const { protocol, version, payload } = req.body;
     const result = await schemaRegistryAdapter.validatePayload(protocol, version, payload);
-    res.json(result);
+    return res.json(result);
   })
 );
 
@@ -233,7 +233,7 @@ telemetryIngestionRouter.post(
   "/schema/seed-defaults",
   withErrorHandling("seed default schemas", async (_req, res) => {
     await schemaRegistryAdapter.seedDefaultSchemas();
-    res.json({ success: true, message: "Default schemas seeded" });
+    return res.json({ success: true, message: "Default schemas seeded" });
   })
 );
 

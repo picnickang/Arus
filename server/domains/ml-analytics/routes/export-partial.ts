@@ -76,7 +76,7 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
         return res.send(csvData);
       }
 
-      res.json(exportData);
+      return res.json(exportData);
     })
   );
 
@@ -138,7 +138,7 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
         return res.send(csvData);
       }
 
-      res.json(exportData);
+      return res.json(exportData);
     })
   );
 
@@ -183,7 +183,7 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
         return res.send(csvData);
       }
 
-      res.json(exportData);
+      return res.json(exportData);
     })
   );
 }

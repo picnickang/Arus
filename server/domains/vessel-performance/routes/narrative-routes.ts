@@ -24,7 +24,7 @@ export function registerNarrativeRoutes(app: Express, config: VesselPerformanceR
       const summary = await narrativeService.generate(input);
 
       res.setHeader("Cache-Control", "public, max-age=300");
-      res.json(summary);
+      return res.json(summary);
     })
   );
 }

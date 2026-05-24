@@ -117,10 +117,10 @@ router.get("/systems", requireOrgId, async (req: Request, res: Response) => {
     }
     q = sql`${q} ORDER BY v.name`;
     const result = await db.execute(q);
-    res.json(getRows(result));
+    return res.json(getRows(result));
   } catch (err) {
     logger.error(MODULE, "Error listing DP systems", { error: err });
-    res.status(500).json({ error: "Failed to list DP systems" });
+    return res.status(500).json({ error: "Failed to list DP systems" });
   }
 });
 
@@ -135,9 +135,9 @@ router.get("/systems/:id", requireOrgId, async (req: Request, res: Response) => 
     if (!system) {
       return res.status(404).json({ error: "DP system not found" });
     }
-    res.json(system);
+    return res.json(system);
   } catch (err) {
-    res.status(500).json({ error: "Failed to get DP system" });
+    return res.status(500).json({ error: "Failed to get DP system" });
   }
 });
 
@@ -169,13 +169,13 @@ router.post("/systems", requireOrgId, async (req: Request, res: Response) => {
       WHERE id = ${data.vesselId} AND org_id = ${getOrgId(req)}
     `);
 
-    res.status(201).json(getFirstRow(result));
+    return res.status(201).json(getFirstRow(result));
   } catch (err) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: "Validation failed", details: err.flatten() });
     }
     logger.error(MODULE, "Error creating DP system", { error: err });
-    res.status(500).json({ error: "Failed to create DP system" });
+    return res.status(500).json({ error: "Failed to create DP system" });
   }
 });
 
@@ -191,9 +191,9 @@ router.get("/incidents", requireOrgId, async (req: Request, res: Response) => {
     }
     q = sql`${q} ORDER BY di.incident_date DESC LIMIT 100`;
     const result = await db.execute(q);
-    res.json(getRows(result));
+    return res.json(getRows(result));
   } catch (err) {
-    res.status(500).json({ error: "Failed to list DP incidents" });
+    return res.status(500).json({ error: "Failed to list DP incidents" });
   }
 });
 
@@ -216,12 +216,12 @@ router.post("/incidents", requireOrgId, async (req: Request, res: Response) => {
         ${data.reportedBy || null}
       ) RETURNING *
     `);
-    res.status(201).json(getFirstRow(result));
+    return res.status(201).json(getFirstRow(result));
   } catch (err) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: "Validation failed", details: err.flatten() });
     }
-    res.status(500).json({ error: "Failed to create DP incident" });
+    return res.status(500).json({ error: "Failed to create DP incident" });
   }
 });
 
@@ -239,12 +239,12 @@ router.post("/daily-checks", requireOrgId, async (req: Request, res: Response) =
         ${data.notes || null}
       ) RETURNING *
     `);
-    res.status(201).json(getFirstRow(result));
+    return res.status(201).json(getFirstRow(result));
   } catch (err) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: "Validation failed", details: err.flatten() });
     }
-    res.status(500).json({ error: "Failed to create DP check" });
+    return res.status(500).json({ error: "Failed to create DP check" });
   }
 });
 
@@ -264,9 +264,9 @@ router.get("/daily-checks", requireOrgId, async (req: Request, res: Response) =>
         AND check_date >= ${fromDate} AND check_date <= ${toDate}
       ORDER BY check_date DESC, watch_period
     `);
-    res.json(getRows(result));
+    return res.json(getRows(result));
   } catch (err) {
-    res.status(500).json({ error: "Failed to list DP checks" });
+    return res.status(500).json({ error: "Failed to list DP checks" });
   }
 });
 
@@ -296,7 +296,7 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
       WHERE org_id = ${oid} AND status = 'open'
     `);
 
-    res.json({
+    return res.json({
       vessels: systems,
       totalVesselsWithDp: systems.length,
       operational: systems.filter((s) => s.dp_status === "operational").length,
@@ -313,7 +313,7 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
       openIncidents: Number(getFirstRow(openIncidents)?.count || 0),
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to get DP summary" });
+    return res.status(500).json({ error: "Failed to get DP summary" });
   }
 });
 

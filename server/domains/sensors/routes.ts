@@ -160,10 +160,10 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
     summary.dataQualityScore =
       summary.total > 0 ? Math.round((summary.calibrated / summary.total) * 100) : 0;
 
-    res.json(summary);
+    return res.json(summary);
   } catch (err) {
     logger.error("SensorCalibration", "Error getting calibration summary", err);
-    res.status(500).json({ error: "Failed to get calibration summary" });
+    return res.status(500).json({ error: "Failed to get calibration summary" });
   }
 });
 
@@ -184,10 +184,10 @@ router.get("/overdue", requireOrgId, async (req: Request, res: Response) => {
 
     const sensors = rowsOf<SensorRow>(result);
 
-    res.json(sensors);
+    return res.json(sensors);
   } catch (err) {
     logger.error("SensorCalibration", "Error listing overdue calibrations", err);
-    res.status(500).json({ error: "Failed to list overdue calibrations" });
+    return res.status(500).json({ error: "Failed to list overdue calibrations" });
   }
 });
 
@@ -222,10 +222,10 @@ router.get("/", requireOrgId, async (req: Request, res: Response) => {
     const result = await db.execute(query);
     const sensors = rowsOf<SensorRow>(result);
 
-    res.json(sensors);
+    return res.json(sensors);
   } catch (err) {
     logger.error("SensorCalibration", "Error listing sensors", err);
-    res.status(500).json({ error: "Failed to list sensors" });
+    return res.status(500).json({ error: "Failed to list sensors" });
   }
 });
 
@@ -256,10 +256,10 @@ router.get("/:id", requireOrgId, async (req: Request, res: Response) => {
 
     const history = rowsOf<Record<string, unknown>>(historyResult);
 
-    res.json({ ...sensor, calibrationHistory: history });
+    return res.json({ ...sensor, calibrationHistory: history });
   } catch (err) {
     logger.error("SensorCalibration", "Error getting sensor detail", err);
-    res.status(500).json({ error: "Failed to get sensor" });
+    return res.status(500).json({ error: "Failed to get sensor" });
   }
 });
 
@@ -306,13 +306,13 @@ router.post("/", requireOrgId, async (req: Request, res: Response) => {
     `);
 
     const sensor = rowsOf<SensorRow>(result)[0];
-    res.status(201).json(sensor);
+    return res.status(201).json(sensor);
   } catch (err) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: "Validation failed", details: err.flatten() });
     }
     logger.error("SensorCalibration", "Error creating sensor", err);
-    res.status(500).json({ error: "Failed to create sensor" });
+    return res.status(500).json({ error: "Failed to create sensor" });
   }
 });
 
@@ -375,7 +375,7 @@ router.post("/:id/calibrate", requireOrgId, async (req: Request, res: Response) 
       nextDue: nextDue.toISOString(),
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       sensorTag: sensor.sensor_tag,
       calibrationStatus: newStatus,
@@ -386,7 +386,7 @@ router.post("/:id/calibrate", requireOrgId, async (req: Request, res: Response) 
       return res.status(400).json({ error: "Validation failed", details: err.flatten() });
     }
     logger.error("SensorCalibration", "Error recording calibration", err);
-    res.status(500).json({ error: "Failed to record calibration" });
+    return res.status(500).json({ error: "Failed to record calibration" });
   }
 });
 
@@ -403,10 +403,10 @@ router.delete("/:id", requireOrgId, async (req: Request, res: Response) => {
       WHERE id = ${sensorId} AND org_id = ${orgId}
     `);
 
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (err) {
     logger.error("SensorCalibration", "Error decommissioning sensor", err);
-    res.status(500).json({ error: "Failed to decommission sensor" });
+    return res.status(500).json({ error: "Failed to decommission sensor" });
   }
 });
 

@@ -57,10 +57,10 @@ router.get("/", async (req, res) => {
     }
 
     const bundles = await query;
-    res.json(bundles);
+    return res.json(bundles);
   } catch (error) {
     logger.error("[SensorBundles] Error fetching bundles:", undefined, error);
-    res.status(500).json({
+    return res.status(500).json({
       error: "Failed to fetch sensor bundles",
       message: error instanceof Error ? error.message : String(error),
     });
@@ -111,10 +111,10 @@ router.get("/:id", async (req, res) => {
       });
     }
 
-    res.json(bundle);
+    return res.json(bundle);
   } catch (error) {
     logger.error(`[SensorBundles] Error fetching bundle ${req.params.id}:`, undefined, error);
-    res.status(500).json({
+    return res.status(500).json({
       error: "Failed to fetch sensor bundle",
       message: error instanceof Error ? error.message : String(error),
     });
@@ -165,7 +165,7 @@ router.post("/", async (req, res) => {
       })
       .returning();
 
-    res.status(201).json(newBundle);
+    return res.status(201).json(newBundle);
   } catch (error) {
     logger.error("[SensorBundles] Error creating bundle:", undefined, error);
     if (error instanceof z.ZodError) {
@@ -174,7 +174,7 @@ router.post("/", async (req, res) => {
         details: error.errors,
       });
     }
-    res.status(500).json({
+    return res.status(500).json({
       error: "Failed to create sensor bundle",
       message: error instanceof Error ? error.message : String(error),
     });
@@ -245,7 +245,7 @@ router.put("/:id", async (req, res) => {
       .where(eq(sensorBundles.id, id))
       .returning();
 
-    res.json(updatedBundle);
+    return res.json(updatedBundle);
   } catch (error) {
     logger.error(`[SensorBundles] Error updating bundle ${req.params.id}:`, undefined, error);
     if (error instanceof z.ZodError) {
@@ -254,7 +254,7 @@ router.put("/:id", async (req, res) => {
         details: error.errors,
       });
     }
-    res.status(500).json({
+    return res.status(500).json({
       error: "Failed to update sensor bundle",
       message: error instanceof Error ? error.message : String(error),
     });
@@ -292,10 +292,10 @@ router.delete("/:id", async (req, res) => {
     // Delete bundle
     await db.delete(sensorBundles).where(eq(sensorBundles.id, id));
 
-    res.status(204).send();
+    return res.status(204).send();
   } catch (error) {
     logger.error(`[SensorBundles] Error deleting bundle ${req.params.id}:`, undefined, error);
-    res.status(500).json({
+    return res.status(500).json({
       error: "Failed to delete sensor bundle",
       message: error instanceof Error ? error.message : String(error),
     });
@@ -429,10 +429,10 @@ router.post("/apply/:equipmentId", async (req, res) => {
       };
     });
 
-    res.status(201).json(result);
+    return res.status(201).json(result);
   } catch (error) {
     logger.error(`[SensorBundles] Error applying bundle to equipment ${req.params.equipmentId}:`, undefined, error);
-    res.status(500).json({
+    return res.status(500).json({
       error: "Failed to apply sensor bundle",
       message: error instanceof Error ? error.message : String(error),
     });

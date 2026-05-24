@@ -64,7 +64,7 @@ export function enhancedErrorHandler(err: Error, req: Request, res: Response, ne
   }
 
   const isDevelopment = process.env.NODE_ENV === "development";
-  res
+  return res
     .status(500)
     .json({
       error: {

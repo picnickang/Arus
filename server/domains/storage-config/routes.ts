@@ -19,7 +19,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
       const { storageConfigService } = await import("../../storage-config");
       const { kind } = req.query;
       const configs = await storageConfigService.list(kind as string);
-      res.json(configs);
+      return res.json(configs);
     })
   );
 
@@ -31,7 +31,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
       const { insertStorageConfigSchema } = await import("@shared/schema");
       const validatedData = insertStorageConfigSchema.parse(req.body);
       await storageConfigService.upsert(validatedData);
-      res.json({ success: true });
+      return res.json({ success: true });
     })
   );
 
@@ -53,7 +53,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
       const { insertStorageConfigSchema } = await import("@shared/schema");
       const validatedData = insertStorageConfigSchema.parse(req.body);
       const result = await storageConfigService.test(validatedData);
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -63,7 +63,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
     withErrorHandling("get current operational database", async (req: Request, res: Response) => {
       const { opsDbService } = await import("../../storage-config");
       const current = await opsDbService.getCurrent();
-      res.json(current);
+      return res.json(current);
     })
   );
 
@@ -77,7 +77,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
         return res.status(400).json({ error: "URL is required" });
       }
       await opsDbService.stage(url);
-      res.json({ success: true });
+      return res.json({ success: true });
     })
   );
 
@@ -87,7 +87,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
     withErrorHandling("get staged operational database", async (req: Request, res: Response) => {
       const { opsDbService } = await import("../../storage-config");
       const staged = await opsDbService.getStaged();
-      res.json(staged);
+      return res.json(staged);
     })
   );
 
@@ -101,7 +101,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
         return res.status(400).json({ error: "URL is required" });
       }
       const result = await opsDbService.test(url);
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -134,7 +134,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
         });
       }
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      res.json({ uploadURL });
+      return res.json({ uploadURL });
     })
   );
 
@@ -147,6 +147,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
       try {
         const objectFile = await objectStorageService.getObjectEntityFile(req.path);
         objectStorageService.downloadObject(objectFile, res);
+        return undefined;
       } catch (error) {
         if (error instanceof ObjectNotFoundError) {
           return res.sendStatus(404);
@@ -167,7 +168,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
       const privateDir = objectStorageService.getPrivateObjectDir();
       const isReplit = objectStorageService.isReplitEnvironment();
 
-      res.json({
+      return res.json({
         configured,
         publicObjectSearchPaths: publicPaths,
         privateObjectDir: privateDir,

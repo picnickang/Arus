@@ -94,7 +94,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
       const { spn, fmi, manufacturer } = validation.data;
       const definitions = await dbDtcStorage.getDtcDefinitions(spn, fmi, manufacturer);
 
-      res.json(definitions);
+      return res.json(definitions);
     })
   );
 
@@ -105,7 +105,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
       const orgId = DEFAULT_ORG_ID;
 
       const activeDtcs = await dbDtcStorage.getActiveDtcs(id, orgId);
-      res.json(activeDtcs);
+      return res.json(activeDtcs);
     })
   );
 
@@ -125,7 +125,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
 
       const filters = validation.data;
       const history = await dbDtcStorage.getDtcHistory(id, orgId, filters);
-      res.json(history);
+      return res.json(history);
     })
   );
 
@@ -182,7 +182,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
         flatDtcs = flatDtcs.filter((dtc) => (dtc.definition as { severity?: number } | undefined)?.severity === severity);
       }
 
-      res.json(flatDtcs);
+      return res.json(flatDtcs);
     })
   );
 
@@ -218,7 +218,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
       const dtcService = await getDtcService();
       const stats = await dtcService.getDtcDashboardStats(orgId);
 
-      res.json(stats);
+      return res.json(stats);
     })
   );
 
@@ -315,7 +315,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
       const dtcService = await getDtcService();
       const impact = await dtcService.calculateDtcFinancialImpact(vesselId, orgId);
 
-      res.json(impact);
+      return res.json(impact);
     })
   );
 
@@ -328,7 +328,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
       const dtcService = await getDtcService();
       const summary = await dtcService.getDtcSummaryForReports(id, orgId);
 
-      res.json(summary);
+      return res.json(summary);
     })
   );
 
@@ -352,7 +352,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
       const dtcService = await getDtcService();
       const telemetry = await dtcService.correlateDtcWithTelemetry(dtc, orgId, timeWindow);
 
-      res.json({
+      return res.json({
         dtc: {
           spn: dtc.spn,
           fmi: dtc.fmi,

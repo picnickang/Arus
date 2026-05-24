@@ -49,7 +49,7 @@ export function registerAlertsRoutes(
       const ackParam =
         acknowledged === "true" ? true : acknowledged === "false" ? false : undefined;
       const notifications = await alertsService.listNotifications(ackParam, orgId);
-      res.json(notifications);
+      return res.json(notifications);
     })
   );
 
@@ -64,7 +64,7 @@ export function registerAlertsRoutes(
         req.user?.id,
         wsServerInstance
       );
-      res.status(201).json(notification);
+      return res.status(201).json(notification);
     })
   );
 
@@ -77,7 +77,7 @@ export function registerAlertsRoutes(
     withErrorHandling("fetch alert configurations", async (req: Request, res: Response) => {
       const { equipmentId } = ackQuerySchema.parse(req.query);
       const configurations = await alertsService.listConfigurations(equipmentId as string);
-      res.json(configurations);
+      return res.json(configurations);
     })
   );
 
@@ -88,7 +88,7 @@ export function registerAlertsRoutes(
     withErrorHandling("create alert configuration", async (req: Request, res: Response) => {
       const configData = insertAlertConfigSchema.parse(req.body);
       const configuration = await alertsService.createConfiguration(configData, req.user?.id);
-      res.status(201).json(configuration);
+      return res.status(201).json(configuration);
     })
   );
 
@@ -104,7 +104,7 @@ export function registerAlertsRoutes(
         configData,
         req.user?.id
       );
-      res.json(configuration);
+      return res.json(configuration);
     })
   );
 
@@ -115,7 +115,7 @@ export function registerAlertsRoutes(
     withErrorHandling("delete alert configuration", async (req: Request, res: Response) => {
       const { id } = idParamSchema.parse(req.params);
       await alertsService.deleteConfiguration(id, req.user?.id);
-      res.status(204).send();
+      return res.status(204).send();
     })
   );
 
@@ -131,7 +131,7 @@ export function registerAlertsRoutes(
       const ackParam =
         acknowledged === "true" ? true : acknowledged === "false" ? false : undefined;
       const notifications = await alertsService.listNotifications(ackParam, orgId);
-      res.json(notifications);
+      return res.json(notifications);
     })
   );
 
@@ -146,7 +146,7 @@ export function registerAlertsRoutes(
         req.user?.id,
         wsServerInstance
       );
-      res.status(201).json(notification);
+      return res.status(201).json(notification);
     })
   );
 
@@ -168,7 +168,7 @@ export function registerAlertsRoutes(
         wsServerInstance
       );
 
-      res.json(notification);
+      return res.json(notification);
     })
   );
 
@@ -188,7 +188,7 @@ export function registerAlertsRoutes(
       });
 
       const result = await alertsService.addComment(commentData, req.user?.id);
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -199,7 +199,7 @@ export function registerAlertsRoutes(
     withErrorHandling("get comments", async (req: Request, res: Response) => {
       const { id } = idParamSchema.parse(req.params);
       const comments = await alertsService.getComments(id);
-      res.json(comments);
+      return res.json(comments);
     })
   );
 
@@ -216,7 +216,7 @@ export function registerAlertsRoutes(
         req.user?.id,
         wsServerInstance
       );
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -227,7 +227,7 @@ export function registerAlertsRoutes(
     withErrorHandling("get suppressions", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
       const suppressions = await alertsService.listSuppressions(orgId);
-      res.json(suppressions);
+      return res.json(suppressions);
     })
   );
 
@@ -238,7 +238,7 @@ export function registerAlertsRoutes(
     withErrorHandling("remove suppression", async (req: Request, res: Response) => {
       const { id } = idParamSchema.parse(req.params);
       await alertsService.deleteSuppression(id, req.user?.id);
-      res.json({ message: "Suppression removed" });
+      return res.json({ message: "Suppression removed" });
     })
   );
 
@@ -279,7 +279,7 @@ export function registerAlertsRoutes(
           req.user?.id
         );
 
-        res.json(workOrder);
+        return res.json(workOrder);
       } catch (error) {
         if (error instanceof Error && error.message === "Alert not found") {
           return sendNotFound(res, "Alert");
@@ -295,7 +295,7 @@ export function registerAlertsRoutes(
     criticalOperationRateLimit,
     withErrorHandling("clear alerts", async (req: Request, res: Response) => {
       await alertsService.deleteAllNotifications(req.user?.id, wsServerInstance);
-      res.json({ message: "All alerts and notifications cleared successfully" });
+      return res.json({ message: "All alerts and notifications cleared successfully" });
     })
   );
 }

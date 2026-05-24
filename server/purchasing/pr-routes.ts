@@ -36,10 +36,10 @@ prRouter.post("/purchase-requests", async (req: Request, res: Response) => {
     }
 
     const pr = await service.createDraftPR(orgId, requestedBy, vesselId, notes, workOrderId);
-    res.status(201).json(pr);
+    return res.status(201).json(pr);
   } catch (error) {
     logger.error("[Purchasing] Error creating PR:", undefined, error);
-    res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: (error as Error).message });
   }
 });
 
@@ -64,10 +64,10 @@ prRouter.get("/purchase-requests", async (req: Request, res: Response) => {
     }
 
     const prs = await service.listPRs(filters);
-    res.json(prs);
+    return res.json(prs);
   } catch (error) {
     logger.error("[Purchasing] Error listing PRs:", undefined, error);
-    res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: (error as Error).message });
   }
 });
 
@@ -80,10 +80,10 @@ prRouter.get("/purchase-requests/:id", async (req: Request, res: Response) => {
     if (!pr) {
       return res.status(404).json({ error: "Purchase request not found" });
     }
-    res.json(pr);
+    return res.json(pr);
   } catch (error) {
     logger.error("[Purchasing] Error getting PR:", undefined, error);
-    res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: (error as Error).message });
   }
 });
 
@@ -132,10 +132,10 @@ prRouter.patch("/purchase-requests/:id", async (req: Request, res: Response) => 
     }
 
     const pr = await service.updatePRDraft(req.params.id, orgId, updates as object as Parameters<typeof service.updatePRDraft>[2], userId);
-    res.json(pr);
+    return res.json(pr);
   } catch (error) {
     logger.error("[Purchasing] Error updating PR:", undefined, error);
-    res.status(400).json({ error: (error as Error).message });
+    return res.status(400).json({ error: (error as Error).message });
   }
 });
 
@@ -168,10 +168,10 @@ prRouter.post("/purchase-requests/:id/auto-save", async (req: Request, res: Resp
     const pr = await updatePRDraft(req.params.id, orgId, updates as object as Parameters<typeof updatePRDraft>[2], userId, {
       isAutoSave: true,
     });
-    res.json({ success: true, lastSavedAt: pr?.lastDraftSaveAt });
+    return res.json({ success: true, lastSavedAt: pr?.lastDraftSaveAt });
   } catch (error) {
     logger.error("[Purchasing] Error auto-saving PR:", undefined, error);
-    res.status(400).json({ error: (error as Error).message });
+    return res.status(400).json({ error: (error as Error).message });
   }
 });
 
@@ -194,10 +194,10 @@ prRouter.post("/purchase-requests/:id/items", async (req: Request, res: Response
       userId
     );
 
-    res.status(201).json(result);
+    return res.status(201).json(result);
   } catch (error) {
     logger.error("[Purchasing] Error adding item to PR:", undefined, error);
-    res.status(400).json({ error: (error as Error).message });
+    return res.status(400).json({ error: (error as Error).message });
   }
 });
 
@@ -212,10 +212,10 @@ prRouter.delete("/purchase-requests/:id/items/:itemId", async (req: Request, res
     if (!removed) {
       return res.status(404).json({ error: "Item not found" });
     }
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (error) {
     logger.error("[Purchasing] Error removing item from PR:", undefined, error);
-    res.status(400).json({ error: (error as Error).message });
+    return res.status(400).json({ error: (error as Error).message });
   }
 });
 
@@ -226,10 +226,10 @@ prRouter.post("/purchase-requests/:id/send", async (req: Request, res: Response)
     const userId = req.headers["x-user-id"] as string | undefined;
 
     const result = await service.sendPR(req.params.id, orgId, userId);
-    res.json(result);
+    return res.json(result);
   } catch (error) {
     logger.error("[Purchasing] Error sending PR:", undefined, error);
-    res.status(400).json({ error: (error as Error).message });
+    return res.status(400).json({ error: (error as Error).message });
   }
 });
 
@@ -240,10 +240,10 @@ prRouter.post("/purchase-requests/:id/cancel", async (req: Request, res: Respons
     const userId = req.headers["x-user-id"] as string | undefined;
 
     const pr = await service.cancelPR(req.params.id, orgId, userId);
-    res.json(pr);
+    return res.json(pr);
   } catch (error) {
     logger.error("[Purchasing] Error cancelling PR:", undefined, error);
-    res.status(400).json({ error: (error as Error).message });
+    return res.status(400).json({ error: (error as Error).message });
   }
 });
 
@@ -254,10 +254,10 @@ prRouter.post("/purchase-requests/:id/close", async (req: Request, res: Response
     const userId = req.headers["x-user-id"] as string | undefined;
 
     const pr = await service.closePR(req.params.id, orgId, userId);
-    res.json(pr);
+    return res.json(pr);
   } catch (error) {
     logger.error("[Purchasing] Error closing PR:", undefined, error);
-    res.status(400).json({ error: (error as Error).message });
+    return res.status(400).json({ error: (error as Error).message });
   }
 });
 
@@ -317,10 +317,10 @@ prRouter.delete("/purchase-requests/:id", async (req: Request, res: Response) =>
       .delete(purchaseRequests)
       .where(and(eq(purchaseRequests.id, req.params.id), eq(purchaseRequests.orgId, orgId)));
 
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (error) {
     logger.error("[Purchasing] Error deleting PR:", undefined, error);
-    res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: (error as Error).message });
   }
 });
 
@@ -340,10 +340,10 @@ prRouter.patch("/purchase-requests/:id/status", async (req: Request, res: Respon
     if (!result.success) {
       return res.status(400).json({ error: result.error });
     }
-    res.json(result.pr);
+    return res.json(result.pr);
   } catch (error) {
     logger.error("[Purchasing] Error updating PR status:", undefined, error);
-    res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: (error as Error).message });
   }
 });
 
@@ -369,10 +369,10 @@ prRouter.post(
         fulfilledBy: userId || "system",
       });
 
-      res.json(result);
+      return res.json(result);
     } catch (error) {
       logger.error("[Purchasing] Error fulfilling item:", undefined, error);
-      res.status(400).json({ error: (error as Error).message });
+      return res.status(400).json({ error: (error as Error).message });
     }
   }
 );
@@ -386,10 +386,10 @@ prRouter.delete(
 
       const { deleteAllPurchaseRequestsByWorkOrder } = await import("./fulfillment-service");
       const result = await deleteAllPurchaseRequestsByWorkOrder(req.params.workOrderId, orgId);
-      res.json(result);
+      return res.json(result);
     } catch (error) {
       logger.error("[Purchasing] Error bulk deleting PRs:", undefined, error);
-      res.status(500).json({ error: (error as Error).message });
+      return res.status(500).json({ error: (error as Error).message });
     }
   }
 );

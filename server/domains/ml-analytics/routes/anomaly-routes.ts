@@ -26,7 +26,7 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
         severity as string
       );
       const { normalizeAnomalyDetections } = await import("../../../analytics-data-normalizer.js");
-      res.json(normalizeAnomalyDetections(detections));
+      return res.json(normalizeAnomalyDetections(detections));
     })
   );
 
@@ -42,7 +42,7 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
         return sendNotFound(res, "Anomaly detection");
       }
       const { normalizeAnomalyDetection } = await import("../../../analytics-data-normalizer.js");
-      res.json(normalizeAnomalyDetection(detection));
+      return res.json(normalizeAnomalyDetection(detection));
     })
   );
 
@@ -77,7 +77,7 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
       }
 
       const { normalizeAnomalyDetection } = await import("../../../analytics-data-normalizer.js");
-      res.status(201).json(normalizeAnomalyDetection(detection));
+      return res.status(201).json(normalizeAnomalyDetection(detection));
     })
   );
 
@@ -95,7 +95,7 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
         orgId
       );
       const { normalizeAnomalyDetection } = await import("../../../analytics-data-normalizer.js");
-      res.json(normalizeAnomalyDetection(detection));
+      return res.json(normalizeAnomalyDetection(detection));
     })
   );
 }

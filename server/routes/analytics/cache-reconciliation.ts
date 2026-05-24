@@ -25,13 +25,14 @@ export function mountCacheReconciliationRoutes(router: Router) {
         throw new Error("Invalid cache scope");
       }
       await invalidator(orgId);
-      res.json({
+      return res.json({
         success: true,
         message: `Cache invalidated for scope: ${scope}`,
         metadata: { orgId, timestamp: new Date(), version: "1.0" },
       });
     } catch (error) {
       handleError(res, error, "Cache Invalidation");
+      return undefined;
     }
   });
 
@@ -43,13 +44,14 @@ export function mountCacheReconciliationRoutes(router: Router) {
       }
       const { dataReconciliationService } = await import("../../services/data-reconciliation.js");
       const report = await dataReconciliationService.runReconciliation(orgId);
-      res.json({
+      return res.json({
         success: true,
         report,
         metadata: { orgId, timestamp: new Date(), version: "1.0" },
       });
     } catch (error) {
       handleError(res, error, "Data Reconciliation");
+      return undefined;
     }
   });
 
@@ -61,9 +63,10 @@ export function mountCacheReconciliationRoutes(router: Router) {
     try {
       const { dataReconciliationService } = await import("../../services/data-reconciliation.js");
       const status = dataReconciliationService.getStatus();
-      res.json({ ...status, metadata: { orgId, timestamp: new Date(), version: "1.0" } });
+      return res.json({ ...status, metadata: { orgId, timestamp: new Date(), version: "1.0" } });
     } catch (error) {
       handleError(res, error, "Reconciliation Status");
+      return undefined;
     }
   });
 
@@ -113,7 +116,7 @@ export function mountCacheReconciliationRoutes(router: Router) {
           });
         }
       });
-      res.json({
+      return res.json({
         timestamp: report.endTime,
         duration: report.duration,
         totalChecks: report.recordsScanned,
@@ -124,6 +127,7 @@ export function mountCacheReconciliationRoutes(router: Router) {
       });
     } catch (error) {
       handleError(res, error, "Latest Reconciliation Report");
+      return undefined;
     }
   });
 }

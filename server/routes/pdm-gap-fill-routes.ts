@@ -56,7 +56,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
         });
       }
 
-      res.json({
+      return res.json({
         success: true,
         method: result.method,
         dataPoints: result.dataPointCount,
@@ -91,7 +91,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
         });
       }
 
-      res.json(report);
+      return res.json(report);
     })
   );
 
@@ -110,7 +110,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
 
       const report = await tracker.evaluatePredictions(orgId);
 
-      res.json(report);
+      return res.json(report);
     })
   );
 
@@ -129,7 +129,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
         includeAcknowledged,
       });
 
-      res.json(report);
+      return res.json(report);
     })
   );
 
@@ -144,7 +144,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
 
       const result = await aggregator.runScheduledAggregation(orgId, lookbackHours);
 
-      res.json({
+      return res.json({
         success: true,
         results: result,
       });
@@ -173,7 +173,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
         bucket
       );
 
-      res.json({
+      return res.json({
         equipmentId,
         sensorType,
         startDate: startDate.toISOString(),
@@ -211,7 +211,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
 
       const result = await gate.evaluate(orgId, modelId, testData, predictFn);
 
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -245,7 +245,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
           initiatedBy: (req as AuthenticatedRequest).user?.id,
         });
 
-        res.status(202).json({
+        return res.status(202).json({
           success: true,
           jobId,
           message: `Training job enqueued for ${modelType} model(s)`,
@@ -254,7 +254,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
       } catch (error) {
         logger.warn(LOG_CTX, "Job queue unavailable, falling back to synchronous training", error);
 
-        res.status(200).json({
+        return res.status(200).json({
           success: true,
           message: "Training will run synchronously (job queue not available)",
           fallback: true,
@@ -287,9 +287,9 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
           return res.status(404).json({ message: "Training job not found" });
         }
 
-        res.json(status);
+        return res.json(status);
       } catch (error) {
-        res.status(500).json({ message: "Job queue not available" });
+        return res.status(500).json({ message: "Job queue not available" });
       }
     })
   );
@@ -309,9 +309,9 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
         const queue = new MlTrainingJobQueue(boss, db);
         const jobs = await queue.getRecentJobs(orgId);
 
-        res.json({ jobs, count: jobs.length });
+        return res.json({ jobs, count: jobs.length });
       } catch {
-        res.json({ jobs: [], count: 0, note: "Job queue not available" });
+        return res.json({ jobs: [], count: 0, note: "Job queue not available" });
       }
     })
   );
@@ -337,7 +337,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
         }
       }
 
-      res.json({
+      return res.json({
         recentRuns,
         manifest,
         retentionDays: Number(process.env.TELEMETRY_WAREHOUSE_RETENTION_DAYS ?? 0) || 0,
@@ -358,7 +358,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
         ? body.orgIds.filter((v): v is string => typeof v === "string")
         : undefined;
       const summary = await runTelemetryWarehouseExport({ date, orgIds });
-      res.json(summary);
+      return res.json(summary);
     }),
   );
 

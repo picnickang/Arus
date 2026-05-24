@@ -49,13 +49,13 @@ router.post("/api/import/amos", requireOrgId, async (req: Request, res: Response
     });
 
     const status = result.success ? 200 : 207;
-    res.status(status).json({
+    return res.status(status).json({
       success: result.success,
       data: result,
     });
   } catch (err) {
     logger.error("AMOS import failed", { error: err });
-    res.status(500).json({
+    return res.status(500).json({
       error: "Import failed",
       message: err instanceof Error ? err.message : String(err),
     });
@@ -84,7 +84,7 @@ router.post("/api/import/amos/preview", requireOrgId, async (req: Request, res: 
       delimiter,
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         ...result,
@@ -93,7 +93,7 @@ router.post("/api/import/amos/preview", requireOrgId, async (req: Request, res: 
     });
   } catch (err) {
     logger.error("AMOS preview failed", { error: err });
-    res.status(500).json({
+    return res.status(500).json({
       error: "Preview failed",
       message: err instanceof Error ? err.message : String(err),
     });
@@ -140,7 +140,7 @@ router.get("/api/import/amos/mappings", requireOrgId, async (_req: Request, res:
     },
   };
 
-  res.json({ success: true, data: mappings });
+  return res.json({ success: true, data: mappings });
 });
 
 export { router as amosImportRouter };

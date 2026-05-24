@@ -91,10 +91,10 @@ router.post("/", requireOrgId, importLimit, async (req: Request, res: Response) 
       syncRunningHours,
     });
 
-    res.status(result.success ? 200 : 207).json({ success: result.success, data: result });
+    return res.status(result.success ? 200 : 207).json({ success: result.success, data: result });
   } catch (err) {
     logger.error("SHIPMATE import failed", { error: err });
-    res
+    return res
       .status(500)
       .json({ error: "Import failed", message: err instanceof Error ? err.message : String(err) });
   }
@@ -122,7 +122,7 @@ router.post("/preview", requireOrgId, importLimit, async (req: Request, res: Res
       delimiter,
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         ...result,
@@ -135,7 +135,7 @@ router.post("/preview", requireOrgId, importLimit, async (req: Request, res: Res
     });
   } catch (err) {
     logger.error("SHIPMATE preview failed", { error: err });
-    res
+    return res
       .status(500)
       .json({ error: "Preview failed", message: err instanceof Error ? err.message : String(err) });
   }
@@ -157,7 +157,7 @@ router.get("/modules", requireOrgId, async (_req: Request, res: Response) => {
     };
   });
 
-  res.json({ success: true, data: { source: "SHIPMATE (SBN Technologics)", modules } });
+  return res.json({ success: true, data: { source: "SHIPMATE (SBN Technologics)", modules } });
 });
 
 function getModuleDescription(m: ShipmateModuleType): string {

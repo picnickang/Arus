@@ -137,7 +137,7 @@ export function registerRagRoutes(
         duration: Date.now() - startTime,
       });
 
-      res.json(response);
+      return res.json(response);
     })
   );
 
@@ -156,7 +156,7 @@ export function registerRagRoutes(
         title,
       });
 
-      res.status(201).json(conversation);
+      return res.status(201).json(conversation);
     })
   );
 
@@ -176,7 +176,7 @@ export function registerRagRoutes(
         activeOnly: true,
       });
 
-      res.json(conversations);
+      return res.json(conversations);
     })
   );
 
@@ -199,7 +199,7 @@ export function registerRagRoutes(
       }
 
       const messages = await conversationService.getMessages(id, 100);
-      res.json({ conversation, messages });
+      return res.json({ conversation, messages });
     })
   );
 
@@ -213,7 +213,7 @@ export function registerRagRoutes(
       const conversationService = getConversationService();
       const messages = await conversationService.getMessages(id, limit);
 
-      res.json(messages);
+      return res.json(messages);
     })
   );
 
@@ -231,7 +231,7 @@ export function registerRagRoutes(
         return res.status(404).json({ message: "Conversation not found" });
       }
 
-      res.json(updated);
+      return res.json(updated);
     })
   );
 
@@ -248,7 +248,7 @@ export function registerRagRoutes(
         return res.status(404).json({ message: "Conversation not found" });
       }
 
-      res.status(204).send();
+      return res.status(204).send();
     })
   );
 
@@ -268,7 +268,7 @@ export function registerRagRoutes(
         ...parsed,
       });
 
-      res.status(201).json({ success: true });
+      return res.status(201).json({ success: true });
     })
   );
 
@@ -281,7 +281,7 @@ export function registerRagRoutes(
       const feedbackService = getFeedbackService();
       const stats = await feedbackService.getOrgStats(orgId);
 
-      res.json(stats);
+      return res.json(stats);
     })
   );
 
@@ -294,7 +294,7 @@ export function registerRagRoutes(
       const cache = getSemanticCache();
       const stats = await cache.getStats(orgId);
 
-      res.json(stats);
+      return res.json(stats);
     })
   );
 
@@ -305,7 +305,7 @@ export function registerRagRoutes(
       const cache = getSemanticCache();
       const cleaned = await cache.cleanup();
 
-      res.json({ cleanedEntries: cleaned });
+      return res.json({ cleanedEntries: cleaned });
     })
   );
 
@@ -319,7 +319,7 @@ export function registerRagRoutes(
       const cache = getSemanticCache();
       const invalidated = await cache.invalidate(orgId, query as string | undefined);
 
-      res.json({ invalidatedEntries: invalidated });
+      return res.json({ invalidatedEntries: invalidated });
     })
   );
 
@@ -353,7 +353,7 @@ export function registerRagRoutes(
               userAgent: req.get("user-agent"),
               reason: "Invalid or expired streaming token",
             });
-            res.status(401).json({ error: "Invalid or expired streaming token" });
+            return res.status(401).json({ error: "Invalid or expired streaming token" });
             return;
           }
           orgId = tokenPayload.orgId;
@@ -365,7 +365,7 @@ export function registerRagRoutes(
             (req.query.userId as string) || (req.headers["x-user-id"] as string) || undefined;
           logger.warn("[RAG Stream] Using dev-mode auth fallback — NOT for production");
         } else {
-          res
+          return res
             .status(401)
             .json({
               error:
@@ -391,13 +391,13 @@ export function registerRagRoutes(
         query = sanitizeResult.sanitized;
 
         if (!query) {
-          res.status(400).json({ error: "Query is required" });
+          return res.status(400).json({ error: "Query is required" });
           return;
         }
 
         const apiKey = await getOpenAIApiKey();
         if (!apiKey) {
-          res.status(503).json({ error: "OpenAI API key not configured" });
+          return res.status(503).json({ error: "OpenAI API key not configured" });
           return;
         }
 
@@ -437,7 +437,7 @@ export function registerRagRoutes(
         // Accumulate full response for persistence
         let fullResponse = "";
 
-        await streamingService.streamResponse(
+        return await streamingService.streamResponse(
           { query, relevantChunks, conversationHistory },
           res,
           async (chunk) => {
@@ -480,11 +480,11 @@ export function registerRagRoutes(
         logger.error("[RAG Stream] Error:", error);
         const message = error instanceof Error ? error.message : "Streaming failed";
         if (!res.headersSent) {
-          res.status(500).json({ error: message });
+          return res.status(500).json({ error: message });
         } else {
           // Send error event through SSE
           res.write(`data: ${JSON.stringify({ type: "error", error: message })}\n\n`);
-          res.end();
+          return res.end();
         }
       }
     }
@@ -510,7 +510,7 @@ export function registerRagRoutes(
         5
       );
 
-      res.json({ success: true, suggestions });
+      return res.json({ success: true, suggestions });
     })
   );
 
@@ -555,7 +555,7 @@ export function registerRagRoutes(
 
       res.setHeader("Content-Type", result.mimeType);
       res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
-      res.send(result.data);
+      return res.send(result.data);
     })
   );
 
@@ -568,7 +568,7 @@ export function registerRagRoutes(
 
       const analytics = await analyticsAggregator.getSummary(orgId);
 
-      res.json({ success: true, analytics });
+      return res.json({ success: true, analytics });
     })
   );
 
@@ -597,7 +597,7 @@ export function registerRagRoutes(
 
       const result = await comparisonService.compare(parsed, orgId);
 
-      res.json({ success: true, result });
+      return res.json({ success: true, result });
     })
   );
 
@@ -611,7 +611,7 @@ export function registerRagRoutes(
 
       const alerts = confidenceDetector.getAlerts(orgId, includeAcknowledged);
 
-      res.json({ success: true, alerts });
+      return res.json({ success: true, alerts });
     })
   );
 
@@ -627,7 +627,7 @@ export function registerRagRoutes(
         return res.status(404).json({ error: "Alert not found" });
       }
 
-      res.json({ success: true });
+      return res.json({ success: true });
     })
   );
 

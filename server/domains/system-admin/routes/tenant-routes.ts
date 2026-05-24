@@ -98,10 +98,10 @@ export function registerTenantRoutes(
         const rows: TenantRow[] = Array.isArray(result)
           ? (result as TenantRow[])
           : ((result as PgExecResult).rows as TenantRow[] | undefined) ?? [];
-        res.json({ tenants: rows });
+        return res.json({ tenants: rows });
       } catch (err: unknown) {
         logger.error("List tenants failed", undefined, err);
-        res
+        return res
           .status(500)
           .json({ error: "Failed to list tenants", code: "TENANT_LIST_FAILED" });
       }
@@ -146,10 +146,10 @@ export function registerTenantRoutes(
           );
         });
         logger.info("Provisioned tenant", { orgId: t.id });
-        res.status(201).json({ orgId: t.id, status: "provisioned" });
+        return res.status(201).json({ orgId: t.id, status: "provisioned" });
       } catch (err: unknown) {
         logger.error("Provision tenant failed", undefined, err);
-        res.status(500).json({
+        return res.status(500).json({
           error: "Failed to provision tenant",
           code: "TENANT_PROVISION_FAILED",
         });
@@ -176,10 +176,10 @@ export function registerTenantRoutes(
               SET suspended_at = now(), suspension_reason = ${parsed.data.reason}
               WHERE id = ${req.params.orgId}`
         );
-        res.json({ orgId: req.params.orgId, suspended: true });
+        return res.json({ orgId: req.params.orgId, suspended: true });
       } catch (err: unknown) {
         logger.error("Suspend tenant failed", undefined, err);
-        res
+        return res
           .status(500)
           .json({ error: "Failed to suspend tenant", code: "TENANT_SUSPEND_FAILED" });
       }
@@ -198,10 +198,10 @@ export function registerTenantRoutes(
               SET suspended_at = NULL, suspension_reason = NULL
               WHERE id = ${req.params.orgId}`
         );
-        res.json({ orgId: req.params.orgId, suspended: false });
+        return res.json({ orgId: req.params.orgId, suspended: false });
       } catch (err: unknown) {
         logger.error("Unsuspend tenant failed", undefined, err);
-        res.status(500).json({
+        return res.status(500).json({
           error: "Failed to unsuspend tenant",
           code: "TENANT_UNSUSPEND_FAILED",
         });
@@ -264,10 +264,10 @@ export function registerTenantRoutes(
           requestedBy: adminId,
           certificateId: result.certificate.certificateId,
         });
-        res.json({ status: "deleted", ...result });
+        return res.json({ status: "deleted", ...result });
       } catch (err: unknown) {
         logger.error("Delete tenant failed", undefined, err);
-        res.status(500).json({
+        return res.status(500).json({
           error: "Failed to delete tenant",
           code: "TENANT_DELETE_FAILED",
           message: err instanceof Error ? err.message : undefined,

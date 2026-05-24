@@ -88,7 +88,7 @@ export function registerPermissionRoutes(app: Express) {
       };
       const mapped = mapCompiledToContract(compiled, orgRoles, mapperLogger);
 
-      res.json(
+      return res.json(
         validateResponse(
           permissionsMeResponseSchema,
           { ...mapped, isDevMode: false },
@@ -103,7 +103,7 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     withErrorHandling("list permission resources", async (_req: Request, res: Response) => {
       const resources = await permissionRepository.listResources();
-      res.json(
+      return res.json(
         validateResponse(
           permissionResourcesResponseSchema,
           resources,
@@ -118,7 +118,7 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     withErrorHandling("list permission actions", async (_req: Request, res: Response) => {
       const actions = await permissionRepository.listActions();
-      res.json(
+      return res.json(
         validateResponse(
           permissionActionsResponseSchema,
           actions,
@@ -132,7 +132,7 @@ export function registerPermissionRoutes(app: Express) {
     "/api/permissions/registry",
     requireOrgId,
     withErrorHandling("get permission registry", async (_req: Request, res: Response) => {
-      res.json(
+      return res.json(
         validateResponse(
           permissionRegistryResponseSchema,
           {
@@ -152,7 +152,7 @@ export function registerPermissionRoutes(app: Express) {
     withErrorHandling("list roles", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const roles = await permissionRepository.listRoles(orgId);
-      res.json(validateResponse(roleListResponseSchema, roles, "GET /api/permissions/roles"));
+      return res.json(validateResponse(roleListResponseSchema, roles, "GET /api/permissions/roles"));
     })
   );
 
@@ -166,7 +166,7 @@ export function registerPermissionRoutes(app: Express) {
       if (!role) {
         return res.status(404).json({ message: "Role not found" });
       }
-      res.json(
+      return res.json(
         validateResponse(roleGetResponseSchema, role, "GET /api/permissions/roles/:id")
       );
     })
@@ -226,7 +226,7 @@ export function registerPermissionRoutes(app: Express) {
 
       permissionService.invalidateOrgPermissionCache(orgId);
 
-      res.json(updated);
+      return res.json(updated);
     })
   );
 
@@ -264,7 +264,7 @@ export function registerPermissionRoutes(app: Express) {
 
       permissionService.invalidateOrgPermissionCache(orgId);
 
-      res.json(updated);
+      return res.json(updated);
     })
   );
 
@@ -307,6 +307,7 @@ export function registerPermissionRoutes(app: Express) {
       permissionService.invalidateOrgPermissionCache(orgId);
 
       sendDeleted(res);
+      return undefined;
     })
   );
 
@@ -316,7 +317,7 @@ export function registerPermissionRoutes(app: Express) {
     withErrorHandling("get role permission grants", async (req: Request, res: Response) => {
       const { id } = idParamSchema.parse(req.params);
       const grants = await permissionRepository.getPermissionGrantsForRole(id);
-      res.json(
+      return res.json(
         validateResponse(
           roleGrantsResponseSchema,
           grants,
@@ -366,7 +367,7 @@ export function registerPermissionRoutes(app: Express) {
 
       permissionService.invalidateOrgPermissionCache(orgId);
 
-      res.json({ success: true, message: `Updated ${grantsArray.length} permission grants` });
+      return res.json({ success: true, message: `Updated ${grantsArray.length} permission grants` });
     })
   );
 
@@ -375,7 +376,7 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     withErrorHandling("list role templates", async (_req: Request, res: Response) => {
       const templates = await permissionRepository.listRoleTemplates();
-      res.json(
+      return res.json(
         validateResponse(
           roleTemplatesResponseSchema,
           templates,
@@ -419,7 +420,7 @@ export function registerPermissionRoutes(app: Express) {
         userId,
         orgId
       );
-      res.json(
+      return res.json(
         validateResponse(
           userRoleAssignmentsResponseSchema,
           assignments,
@@ -495,7 +496,7 @@ export function registerPermissionRoutes(app: Express) {
     withErrorHandling("list users with role assignments", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const usersWithRoles = await permissionRepository.listUsersWithRoles(orgId);
-      res.json(
+      return res.json(
         validateResponse(
           usersWithRolesResponseSchema,
           usersWithRoles,
@@ -512,7 +513,7 @@ export function registerPermissionRoutes(app: Express) {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { limit } = auditQuerySchema.parse(req.query);
       const auditLog = await permissionRepository.getPermissionAuditLog(orgId, limit);
-      res.json(
+      return res.json(
         validateResponse(
           permissionAuditResponseSchema,
           auditLog,
@@ -527,7 +528,7 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     withErrorHandling("seed permission resources", async (_req: Request, res: Response) => {
       await permissionRepository.seedResourcesAndActions();
-      res.json({ success: true, message: "Permission resources seeded" });
+      return res.json({ success: true, message: "Permission resources seeded" });
     })
   );
 
@@ -536,7 +537,7 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     withErrorHandling("seed default role templates", async (_req: Request, res: Response) => {
       const result = await permissionRepository.seedDefaultRoleTemplates();
-      res.json({
+      return res.json({
         success: true,
         message: `Role templates seeded: ${result.created} created, ${result.skipped} skipped`,
         ...result,
@@ -564,7 +565,7 @@ export function registerPermissionRoutes(app: Express) {
         JSON.stringify({ templatesCreated: templatesResult.created })
       );
 
-      res.json({
+      return res.json({
         success: true,
         message: "Permission system initialized",
         templates: templatesResult,

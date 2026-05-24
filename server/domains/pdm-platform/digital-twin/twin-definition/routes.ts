@@ -10,10 +10,10 @@ router.get("/templates", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
     const result = await adapter.listTemplates(orgId);
-    res.json(result);
+    return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -24,10 +24,10 @@ router.get("/templates/:templateId", async (req: Request, res: Response) => {
     if (!result) {
       return res.status(404).json({ error: "Template not found" });
     }
-    res.json(result);
+    return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -39,10 +39,10 @@ router.post("/templates", async (req: Request, res: Response) => {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
     }
     const result = await adapter.createTemplate(parsed.data);
-    res.status(201).json(result);
+    return res.status(201).json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -50,10 +50,10 @@ router.get("/twins", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
     const result = await adapter.listTwins(orgId);
-    res.json(result);
+    return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -64,10 +64,10 @@ router.get("/twins/:twinId", async (req: Request, res: Response) => {
     if (!result) {
       return res.status(404).json({ error: "Twin not found" });
     }
-    res.json(result);
+    return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -79,10 +79,10 @@ router.post("/twins", async (req: Request, res: Response) => {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
     }
     const result = await adapter.createTwin(parsed.data);
-    res.status(201).json(result);
+    return res.status(201).json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 

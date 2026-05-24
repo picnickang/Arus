@@ -70,9 +70,9 @@ router.get("/", requireOrgId, async (req: Request, res: Response) => {
     }
     q = sql`${q} ORDER BY vi.inspection_date DESC`;
     const result = await db.execute(q);
-    res.json(getRows(result));
+    return res.json(getRows(result));
   } catch (err) {
-    res.status(500).json({ error: "Failed to list inspections" });
+    return res.status(500).json({ error: "Failed to list inspections" });
   }
 });
 
@@ -109,12 +109,12 @@ router.post("/", requireOrgId, async (req: Request, res: Response) => {
       `);
     }
 
-    res.status(201).json(inspection);
+    return res.status(201).json(inspection);
   } catch (err) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: "Validation failed", details: err.flatten() });
     }
-    res.status(500).json({ error: "Failed to create inspection" });
+    return res.status(500).json({ error: "Failed to create inspection" });
   }
 });
 
@@ -149,12 +149,12 @@ router.post("/:inspectionId/findings", requireOrgId, async (req: Request, res: R
       WHERE id = ${inspectionId} AND org_id = ${getOrgId(req)}
     `);
 
-    res.status(201).json(getFirstRow(result));
+    return res.status(201).json(getFirstRow(result));
   } catch (err) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: "Validation failed", details: err.flatten() });
     }
-    res.status(500).json({ error: "Failed to add finding" });
+    return res.status(500).json({ error: "Failed to add finding" });
   }
 });
 
@@ -165,9 +165,9 @@ router.get("/:inspectionId/findings", requireOrgId, async (req: Request, res: Re
       WHERE inspection_id = ${req.params.inspectionId} AND org_id = ${getOrgId(req)}
       ORDER BY finding_number
     `);
-    res.json(getRows(result));
+    return res.json(getRows(result));
   } catch (err) {
-    res.status(500).json({ error: "Failed to list findings" });
+    return res.status(500).json({ error: "Failed to list findings" });
   }
 });
 
@@ -209,9 +209,9 @@ router.patch(
       `);
       }
 
-      res.json({ success: true, allFindingsClosed: openCount === 0 });
+      return res.json({ success: true, allFindingsClosed: openCount === 0 });
     } catch (err) {
-      res.status(500).json({ error: "Failed to close finding" });
+      return res.status(500).json({ error: "Failed to close finding" });
     }
   }
 );
@@ -242,7 +242,7 @@ router.get("/fleet-readiness", requireOrgId, async (req: Request, res: Response)
 
     const vessels = getRows(result);
 
-    res.json({
+    return res.json({
       totalVessels: vessels.length,
       vettedAndValid: vessels.filter((v) => v.vetting_status === "valid").length,
       needsVetting: vessels.filter(
@@ -252,7 +252,7 @@ router.get("/fleet-readiness", requireOrgId, async (req: Request, res: Response)
       vessels,
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to get fleet readiness" });
+    return res.status(500).json({ error: "Failed to get fleet readiness" });
   }
 });
 

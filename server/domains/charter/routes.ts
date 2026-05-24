@@ -106,9 +106,9 @@ router.get("/", requireOrgId, async (req: Request, res: Response) => {
     }
     q = sql`${q} ORDER BY cp.commencement_date DESC`;
     const result = await db.execute(q);
-    res.json(getRows(result));
+    return res.json(getRows(result));
   } catch (err) {
-    res.status(500).json({ error: "Failed to list charters" });
+    return res.status(500).json({ error: "Failed to list charters" });
   }
 });
 
@@ -140,13 +140,13 @@ router.post("/", requireOrgId, async (req: Request, res: Response) => {
       WHERE id = ${data.vesselId} AND org_id = ${getOrgId(req)}
     `);
 
-    res.status(201).json(charter);
+    return res.status(201).json(charter);
   } catch (err) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: "Validation failed", details: err.flatten() });
     }
     logger.error(MODULE, "Error creating charter", { error: err });
-    res.status(500).json({ error: "Failed to create charter" });
+    return res.status(500).json({ error: "Failed to create charter" });
   }
 });
 
@@ -206,12 +206,12 @@ router.post("/kpi", requireOrgId, async (req: Request, res: Response) => {
       RETURNING *
     `);
 
-    res.status(201).json(getFirstRow(result));
+    return res.status(201).json(getFirstRow(result));
   } catch (err) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: "Validation failed", details: err.flatten() });
     }
-    res.status(500).json({ error: "Failed to log KPI" });
+    return res.status(500).json({ error: "Failed to log KPI" });
   }
 });
 
@@ -252,7 +252,7 @@ router.get("/:charterId/performance", requireOrgId, async (req: Request, res: Re
         ? dpEntries.reduce((s, k) => s + (k.dp_uptime_pct ?? 0), 0) / dpEntries.length
         : null;
 
-    res.json({
+    return res.json({
       charter,
       period: { days, from: cutoff, to: new Date() },
       kpiSummary: {
@@ -283,7 +283,7 @@ router.get("/:charterId/performance", requireOrgId, async (req: Request, res: Re
       dailyKpis: kpis,
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to get charter performance" });
+    return res.status(500).json({ error: "Failed to get charter performance" });
   }
 });
 
@@ -317,7 +317,7 @@ router.get("/fleet-overview", requireOrgId, async (req: Request, res: Response) 
     };
     const charters = getRows(result) as FleetCharterRow[];
 
-    res.json({
+    return res.json({
       activeCharters: charters.length,
       charters: charters.map((c) => ({
         ...c,
@@ -328,7 +328,7 @@ router.get("/fleet-overview", requireOrgId, async (req: Request, res: Response) 
       })),
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to get fleet charter overview" });
+    return res.status(500).json({ error: "Failed to get fleet charter overview" });
   }
 });
 

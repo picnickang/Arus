@@ -168,7 +168,7 @@ export async function registerKnowledgeBaseRoutes(
           uploadedBy: userId,
         });
 
-        res.status(202).json({
+        return res.status(202).json({
           success: true,
           jobId,
           documentId,
@@ -177,7 +177,7 @@ export async function registerKnowledgeBaseRoutes(
       } catch (error) {
         logger.error("[KB Upload Async] Failed:", undefined, error);
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
-        res.status(500).json({ error: "Document upload failed", details: errorMessage });
+        return res.status(500).json({ error: "Document upload failed", details: errorMessage });
       }
     }
   );
@@ -228,7 +228,7 @@ export async function registerKnowledgeBaseRoutes(
 
       void quotaService.incrementUsage(orgId, "storage_bytes", req.file.size);
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         docId: result.docId,
         chunksCreated: result.chunksCreated,
@@ -237,7 +237,7 @@ export async function registerKnowledgeBaseRoutes(
     } catch (error) {
       logger.error("[KB Upload Sync] Failed:", undefined, error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      res.status(500).json({ error: "Document upload failed", details: errorMessage });
+      return res.status(500).json({ error: "Document upload failed", details: errorMessage });
     }
   });
 
@@ -261,7 +261,7 @@ export async function registerKnowledgeBaseRoutes(
       }
 
       // Return minimal safe information
-      res.json({
+      return res.json({
         jobId,
         state: job.state,
         documentId: jobData.documentId,
@@ -274,7 +274,7 @@ export async function registerKnowledgeBaseRoutes(
     } catch (error) {
       logger.error("[KB Job Status] Failed:", undefined, error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      res.status(500).json({ error: "Failed to get job status", details: errorMessage });
+      return res.status(500).json({ error: "Failed to get job status", details: errorMessage });
     }
   });
 
@@ -294,7 +294,7 @@ export async function registerKnowledgeBaseRoutes(
         openAiKey: process.env.OPENAI_API_KEY,
       });
 
-      res.json({
+      return res.json({
         query: validatedQuery.q,
         results,
         count: results.length,
@@ -305,7 +305,7 @@ export async function registerKnowledgeBaseRoutes(
       }
       logger.error("[KB Search] Failed:", undefined, error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      res.status(500).json({ error: "Search failed", details: errorMessage });
+      return res.status(500).json({ error: "Search failed", details: errorMessage });
     }
   });
 
@@ -332,7 +332,7 @@ export async function registerKnowledgeBaseRoutes(
         documents = documents.filter((doc) => doc.equipmentId === equipmentId);
       }
 
-      res.json({
+      return res.json({
         documents,
         count: documents.length,
         ...(equipmentId && { equipmentId }),
@@ -340,7 +340,7 @@ export async function registerKnowledgeBaseRoutes(
     } catch (error) {
       logger.error("[KB List] Failed:", undefined, error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      res.status(500).json({ error: "Failed to list documents", details: errorMessage });
+      return res.status(500).json({ error: "Failed to list documents", details: errorMessage });
     }
   });
 
@@ -366,7 +366,7 @@ export async function registerKnowledgeBaseRoutes(
         void quotaService.incrementUsage(orgId, "storage_bytes", -freed);
       }
 
-      res.status(204).send();
+      return res.status(204).send();
     } catch (error) {
       logger.error("[KB Delete] Failed:", undefined, error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -375,7 +375,7 @@ export async function registerKnowledgeBaseRoutes(
         return res.status(404).json({ error: errorMessage });
       }
 
-      res.status(500).json({ error: "Failed to delete document", details: errorMessage });
+      return res.status(500).json({ error: "Failed to delete document", details: errorMessage });
     }
   });
 
@@ -385,11 +385,11 @@ export async function registerKnowledgeBaseRoutes(
       const orgId = req.orgId;
       const stats = await (getKnowledgeBaseStats as object as (orgId: string) => Promise<unknown>)(orgId);
 
-      res.json(stats);
+      return res.json(stats);
     } catch (error) {
       logger.error("[KB Stats] Failed:", undefined, error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      res.status(500).json({ error: "Failed to get stats", details: errorMessage });
+      return res.status(500).json({ error: "Failed to get stats", details: errorMessage });
     }
   });
 
@@ -400,14 +400,14 @@ export async function registerKnowledgeBaseRoutes(
       const { id } = req.params;
 
       const versions = await getDocumentVersionHistory(id, orgId);
-      res.json({ documentId: id, versions, count: versions.length });
+      return res.json({ documentId: id, versions, count: versions.length });
     } catch (error) {
       logger.error("[KB Versions] Failed:", undefined, error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       if (errorMessage.includes("not found")) {
         return res.status(404).json({ error: errorMessage });
       }
-      res.status(500).json({ error: "Failed to get version history", details: errorMessage });
+      return res.status(500).json({ error: "Failed to get version history", details: errorMessage });
     }
   });
 
@@ -428,7 +428,7 @@ export async function registerKnowledgeBaseRoutes(
       }
 
       const result = await updateDocumentVersion(id, orgId, userId, changeType, changeNotes);
-      res.json({
+      return res.json({
         success: true,
         document: result.doc,
         versionRecord: result.version,
@@ -439,7 +439,7 @@ export async function registerKnowledgeBaseRoutes(
       if (errorMessage.includes("not found")) {
         return res.status(404).json({ error: errorMessage });
       }
-      res.status(500).json({ error: "Failed to update version", details: errorMessage });
+      return res.status(500).json({ error: "Failed to update version", details: errorMessage });
     }
   });
 
@@ -463,14 +463,14 @@ export async function registerKnowledgeBaseRoutes(
       }
 
       const updated = await updateDocumentVisibility(id, orgId, visibility, allowedRoles);
-      res.json({ success: true, document: updated });
+      return res.json({ success: true, document: updated });
     } catch (error) {
       logger.error("[KB Visibility Update] Failed:", undefined, error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       if (errorMessage.includes("not found")) {
         return res.status(404).json({ error: errorMessage });
       }
-      res.status(500).json({ error: "Failed to update visibility", details: errorMessage });
+      return res.status(500).json({ error: "Failed to update visibility", details: errorMessage });
     }
   });
 

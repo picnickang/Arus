@@ -25,7 +25,7 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
         orgId as string | undefined,
         scope as string | undefined
       );
-      res.json(snapshots);
+      return res.json(snapshots);
     })
   );
 
@@ -43,7 +43,7 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
         return sendNotFound(res, `Insight snapshots for org: ${orgId}, scope: ${scope}`);
       }
 
-      res.json(snapshot);
+      return res.json(snapshot);
     })
   );
 
@@ -57,7 +57,7 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
       void scope;
       const jobId = await triggerInsightsGeneration(orgId);
 
-      res.status(202).json({
+      return res.status(202).json({
         message: "Insights generation job scheduled successfully",
         jobId,
         orgId,
@@ -73,7 +73,7 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
     withErrorHandling("get insights job statistics", async (req, res) => {
       const { getInsightsJobStats } = await import("../../insights-scheduler");
       const stats = getInsightsJobStats();
-      res.json(stats);
+      return res.json(stats);
     })
   );
 
@@ -86,7 +86,7 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
         orgId as string | undefined,
         scope as string | undefined
       );
-      res.json(reports);
+      return res.json(reports);
     })
   );
 
@@ -104,7 +104,7 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
         return sendNotFound(res, "Equipment or prediction");
       }
 
-      res.json(insight);
+      return res.json(insight);
     })
   );
 
@@ -162,7 +162,7 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
         durationMs: duration,
       });
 
-      res.json({
+      return res.json({
         orgId,
         vesselId: vesselId || null,
         vessels: fleetInsights,

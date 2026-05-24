@@ -26,7 +26,7 @@ router.post("/refresh/:twinId", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "twinId is required" });
     }
     const result = await updateService.refreshOneTwin(orgId, twinId);
-    res.json({
+    return res.json({
       success: true,
       twinId,
       healthScore: result.state.healthScore,
@@ -38,7 +38,7 @@ router.post("/refresh/:twinId", async (req: Request, res: Response) => {
     if (message.includes("not found")) {
       return res.status(404).json({ error: message });
     }
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -46,10 +46,10 @@ router.post("/refresh-all", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
     const result = await updateService.refreshAllActiveTwins(orgId);
-    res.json(result);
+    return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -57,10 +57,10 @@ router.get("/freshness", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
     const freshness = await updateService.getFreshnessStatus(orgId);
-    res.json(freshness);
+    return res.json(freshness);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -72,10 +72,10 @@ router.get("/freshness/:twinId", async (req: Request, res: Response) => {
     if (!freshness) {
       return res.status(404).json({ error: "Twin not found or not active" });
     }
-    res.json(freshness);
+    return res.json(freshness);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 

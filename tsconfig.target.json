@@ -16,7 +16,7 @@
     "noUncheckedIndexedAccess": false,
     "exactOptionalPropertyTypes": false,
     "noImplicitOverride": false,
-    "noImplicitReturns": false,
+    "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": false,
     "noPropertyAccessFromIndexSignature": false,
     "useUnknownInCatchVariables": "default (true under strict)",

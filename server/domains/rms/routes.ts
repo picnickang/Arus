@@ -69,10 +69,10 @@ router.get("/fleet-positions", requireOrgId, async (req: Request, res: Response)
       ORDER BY v.id, vtl.timestamp DESC
     `);
 
-    res.json(getRows(result));
+    return res.json(getRows(result));
   } catch (err) {
     logger.error(MODULE, "Error fetching fleet positions", { error: err });
-    res.status(500).json({ error: "Failed to fetch fleet positions" });
+    return res.status(500).json({ error: "Failed to fetch fleet positions" });
   }
 });
 
@@ -93,9 +93,9 @@ router.get("/vessel-track/:vesselId", requireOrgId, async (req: Request, res: Re
       ORDER BY timestamp ASC
     `);
 
-    res.json(getRows(result));
+    return res.json(getRows(result));
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch vessel track" });
+    return res.status(500).json({ error: "Failed to fetch vessel track" });
   }
 });
 
@@ -140,9 +140,9 @@ router.get("/consumption/hourly/:vesselId", requireOrgId, async (req: Request, r
       ORDER BY hour ASC
     `);
 
-    res.json(getRows(result));
+    return res.json(getRows(result));
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch hourly consumption" });
+    return res.status(500).json({ error: "Failed to fetch hourly consumption" });
   }
 });
 
@@ -208,9 +208,9 @@ router.get("/consumption/daily/:vesselId", requireOrgId, async (req: Request, re
         trackByDay[new Date(d.day as string | number | Date).toISOString()]?.est_distance_nm ?? null,
     }));
 
-    res.json(dailyData);
+    return res.json(dailyData);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch daily consumption" });
+    return res.status(500).json({ error: "Failed to fetch daily consumption" });
   }
 });
 
@@ -232,9 +232,9 @@ router.get("/bunkering", requireOrgId, async (req: Request, res: Response) => {
     q = sql`${q} ORDER BY be.started_at DESC LIMIT 200`;
 
     const result = await db.execute(q);
-    res.json(getRows(result));
+    return res.json(getRows(result));
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch bunkering events" });
+    return res.status(500).json({ error: "Failed to fetch bunkering events" });
   }
 });
 
@@ -252,9 +252,9 @@ router.get("/tanks/:vesselId", requireOrgId, async (req: Request, res: Response)
       ORDER BY sensor_type, ts DESC
     `);
 
-    res.json(getRows(result));
+    return res.json(getRows(result));
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch tank levels" });
+    return res.status(500).json({ error: "Failed to fetch tank levels" });
   }
 });
 
@@ -285,13 +285,13 @@ router.get("/rob/:vesselId", requireOrgId, async (req: Request, res: Response) =
     const avgConsumption = getFirstRow(consumptionResult)?.avg_consumption_kg_per_h ?? 0;
     const tanks = getRows(tankResult);
 
-    res.json({
+    return res.json({
       tanks,
       avgConsumptionKgPerH: parseFloat(String(avgConsumption)) || 0,
       estimatedAt: new Date().toISOString(),
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to calculate ROB" });
+    return res.status(500).json({ error: "Failed to calculate ROB" });
   }
 });
 
@@ -321,9 +321,9 @@ router.get("/alerts/configs", requireOrgId, async (req: Request, res: Response) 
     q = sql`${q} ORDER BY ac.name`;
 
     const result = await db.execute(q);
-    res.json(getRows(result));
+    return res.json(getRows(result));
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch alert configs" });
+    return res.status(500).json({ error: "Failed to fetch alert configs" });
   }
 });
 
@@ -338,12 +338,12 @@ router.post("/alerts/configs", requireOrgId, async (req: Request, res: Response)
         ${JSON.stringify(data.config)}, ${data.notifyEmail}, ${data.notifyInApp}, ${data.cooldownMinutes}
       ) RETURNING *
     `);
-    res.status(201).json(getFirstRow(result));
+    return res.status(201).json(getFirstRow(result));
   } catch (err) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: "Validation failed", details: err.flatten() });
     }
-    res.status(500).json({ error: "Failed to create alert config" });
+    return res.status(500).json({ error: "Failed to create alert config" });
   }
 });
 
@@ -373,9 +373,9 @@ router.patch("/alerts/configs/:id", requireOrgId, async (req: Request, res: Resp
       RETURNING *
     `);
 
-    res.json(getFirstRow(result));
+    return res.json(getFirstRow(result));
   } catch (err) {
-    res.status(500).json({ error: "Failed to update alert config" });
+    return res.status(500).json({ error: "Failed to update alert config" });
   }
 });
 
@@ -389,9 +389,9 @@ router.delete("/alerts/configs/:id", requireOrgId, async (req: Request, res: Res
     if (!deleted) {
       return res.status(404).json({ error: "Alert config not found" });
     }
-    res.json({ success: true, deletedId: deleted.id });
+    return res.json({ success: true, deletedId: deleted.id });
   } catch (err) {
-    res.status(500).json({ error: "Failed to delete alert config" });
+    return res.status(500).json({ error: "Failed to delete alert config" });
   }
 });
 
@@ -419,9 +419,9 @@ router.get("/alerts", requireOrgId, async (req: Request, res: Response) => {
     q = sql`${q} ORDER BY al.created_at DESC LIMIT 200`;
 
     const result = await db.execute(q);
-    res.json(getRows(result));
+    return res.json(getRows(result));
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch alerts" });
+    return res.status(500).json({ error: "Failed to fetch alerts" });
   }
 });
 
@@ -441,9 +441,9 @@ router.patch("/alerts/:id/acknowledge", requireOrgId, async (req: Request, res: 
     if (!row) {
       return res.status(404).json({ error: "Alert not found" });
     }
-    res.json(row);
+    return res.json(row);
   } catch (err) {
-    res.status(500).json({ error: "Failed to acknowledge alert" });
+    return res.status(500).json({ error: "Failed to acknowledge alert" });
   }
 });
 
@@ -479,7 +479,7 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
     const bunkering = getFirstRow(bunkeringResult) || {};
     const efms = getFirstRow(efmsResult) || {};
 
-    res.json({
+    return res.json({
       alerts: {
         total24h: parseInt(String(alerts.total ?? 0)) || 0,
         unacknowledged: parseInt(String(alerts.unacknowledged ?? 0)) || 0,
@@ -496,7 +496,7 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch RMS summary" });
+    return res.status(500).json({ error: "Failed to fetch RMS summary" });
   }
 });
 

@@ -60,7 +60,7 @@ telemetryDlqRouter.get(
             }
           ).listAsync({ limit, offset, source })
         : dlq.list({ limit, offset, source });
-    res.json({ entries, count: entries.length });
+    return res.json({ entries, count: entries.length });
   })
 );
 
@@ -77,7 +77,7 @@ telemetryDlqRouter.get(
       return res.status(404).json({ message: "Entry not found" });
     }
 
-    res.json(entry);
+    return res.json(entry);
   })
 );
 
@@ -99,13 +99,13 @@ telemetryDlqRouter.post(
 
     if (result.success) {
       logger.info("TelemetryDLQRoutes", "Entry replayed successfully", { entryId: req.params.id });
-      res.json(result);
+      return res.json(result);
     } else {
       logger.warn("TelemetryDLQRoutes", "Entry replay failed", {
         entryId: req.params.id,
         error: result.error,
       });
-      res.status(400).json(result);
+      return res.status(400).json(result);
     }
   })
 );
@@ -134,7 +134,7 @@ telemetryDlqRouter.post(
 
     logger.info("TelemetryDLQRoutes", "Replay all completed", { successCount, failureCount });
 
-    res.json({
+    return res.json({
       total: results.length,
       successCount,
       failureCount,
@@ -160,7 +160,7 @@ telemetryDlqRouter.delete(
       await (dlq as { deleteAsync: (id: string) => Promise<unknown> }).deleteAsync(req.params.id);
     }
 
-    res.json({ success: true, entryId: req.params.id, message: "Entry removed" });
+    return res.json({ success: true, entryId: req.params.id, message: "Entry removed" });
   })
 );
 
@@ -174,7 +174,7 @@ telemetryDlqRouter.post(
         : dlq.prune();
 
     logger.info("TelemetryDLQRoutes", "DLQ pruned", { removedCount: removed });
-    res.json({ success: true, removed });
+    return res.json({ success: true, removed });
   })
 );
 

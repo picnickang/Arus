@@ -84,13 +84,13 @@ router.get("/model/lineage", async (req, res, next) => {
 
     const records = await getLineageRecords(filters);
 
-    res.json({
+    return res.json({
       success: true,
       count: records.length,
       records,
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -110,12 +110,12 @@ router.get("/model/lineage/:modelId", async (req, res, next) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       record,
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -128,12 +128,12 @@ router.get("/model/compare", async (req, res, next) => {
     const query = compareSchema.parse(req.query);
     const comparison = await compareModels(query.model1, query.model2, DEFAULT_ORG_ID);
 
-    res.json({
+    return res.json({
       success: true,
       comparison,
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -161,12 +161,12 @@ router.post("/model/promote", async (req, res, next) => {
       promotedBy: body.promotedBy,
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: `Model ${body.modelId} promoted to ${body.stage}`,
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -192,12 +192,12 @@ router.get("/provenance/events", async (req, res, next) => {
 
     const result = await getProvenanceEvents(filters);
 
-    res.json({
+    return res.json({
       success: true,
       ...result,
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -215,12 +215,12 @@ router.post("/provenance/verify", async (req, res, next) => {
       body.to ? new Date(body.to) : undefined
     );
 
-    res.json({
+    return res.json({
       success: true,
       verification: result,
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -229,7 +229,7 @@ router.post("/provenance/verify", async (req, res, next) => {
  * Health check for governance subsystem
  */
 router.get("/health", async (_req, res) => {
-  res.json({
+  return res.json({
     success: true,
     status: "healthy",
     lineageFile: process.env.LINEAGE_FILE ?? "./checkpoints/lineage.jsonl",

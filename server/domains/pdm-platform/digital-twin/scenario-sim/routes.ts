@@ -29,13 +29,13 @@ router.post("/run", async (req: Request, res: Response) => {
     }
     const { twinId, name, parameters } = parsed.data;
     const result = await service.runScenario(orgId, twinId, name, parameters);
-    res.status(201).json(result);
+    return res.status(201).json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (message.includes("not found")) {
       return res.status(404).json({ error: message });
     }
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -43,10 +43,10 @@ router.get("/twins/:twinId", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
     const result = await scenarioAdapter.listScenarios(orgId, req.params.twinId);
-    res.json(result);
+    return res.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -57,10 +57,10 @@ router.get("/:scenarioId", async (req: Request, res: Response) => {
     if (!result) {
       return res.status(404).json({ error: "Scenario not found" });
     }
-    res.json(result);
+    return res.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 

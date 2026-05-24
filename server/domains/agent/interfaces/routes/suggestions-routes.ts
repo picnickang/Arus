@@ -83,9 +83,9 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
           entityId: entityId || null,
           context: (context ?? null) as Parameters<typeof agentRepo.suggestions.create>[0]["context"],
         });
-        res.status(201).json(suggestion);
+        return res.status(201).json(suggestion);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -101,9 +101,9 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
         if (triggerType) {
           suggestions = suggestions.filter((s) => s.triggerType === triggerType);
         }
-        res.json(suggestions);
+        return res.json(suggestions);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -115,9 +115,9 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
         const pending = await agentRepo.suggestions.list(orgId, "pending");
-        res.json({ count: pending.length });
+        return res.json({ count: pending.length });
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -148,9 +148,9 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
           }
         } catch {}
 
-        res.json({ generated: newSuggestions.length, suggestions: newSuggestions });
+        return res.json({ generated: newSuggestions.length, suggestions: newSuggestions });
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -182,9 +182,9 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
           id,
           allowedUpdates as Parameters<typeof agentRepo.suggestions.update>[1]
         );
-        res.json(suggestion);
+        return res.json(suggestion);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -214,12 +214,12 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
           },
           "dismissed"
         );
-        res.json(suggestion);
+        return res.json(suggestion);
       } catch (error: unknown) {
         if (error instanceof Error && error.message.includes("not found")) {
           return res.status(404).json({ error: error.message });
         }
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -249,12 +249,12 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
           },
           "acted"
         );
-        res.json(suggestion);
+        return res.json(suggestion);
       } catch (error: unknown) {
         if (error instanceof Error && error.message.includes("not found")) {
           return res.status(404).json({ error: error.message });
         }
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -284,12 +284,12 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
           },
           "deferred"
         );
-        res.json(suggestion);
+        return res.json(suggestion);
       } catch (error: unknown) {
         if (error instanceof Error && error.message.includes("not found")) {
           return res.status(404).json({ error: error.message });
         }
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -302,9 +302,9 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
         const orgId = (req as AuthenticatedRequest).orgId;
         const { days } = effectivenessQuerySchema.parse(req.query);
         const summary = await outcomeService.getEffectiveness(orgId, Math.min(days ?? 30, 365));
-        res.json(summary);
+        return res.json(summary);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -317,9 +317,9 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
         const orgId = (req as AuthenticatedRequest).orgId;
         const all = await agentRepo.suggestions.list(orgId, undefined, 200);
         const history = all.filter((s) => s.status !== "pending");
-        res.json(history);
+        return res.json(history);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -332,7 +332,7 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
         const orgId = (req as AuthenticatedRequest).orgId;
         const userId = (req as AuthenticatedRequest).user?.id;
         const prefs = await agentRepo.suggestions.getPreferences(orgId, userId);
-        res.json(
+        return res.json(
           prefs || {
             maintenance: true,
             predictions: true,
@@ -343,7 +343,7 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
           }
         );
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -357,12 +357,12 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
         const userId = (req as AuthenticatedRequest).user?.id;
         const parsed = preferencesBodySchema.parse(req.body);
         const prefs = await agentRepo.suggestions.savePreferences(orgId, parsed, userId);
-        res.json(prefs);
+        return res.json(prefs);
       } catch (error: unknown) {
         if (error instanceof z.ZodError) {
           return res.status(400).json({ error: "Invalid preferences", details: error.errors });
         }
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );

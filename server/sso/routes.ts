@@ -128,7 +128,7 @@ export function createSsoRouter(opts: MountSsoOptions): Router {
     const relayState = typeof req.query.next === "string" ? req.query.next : "/";
     const url = new URL(saml.entryPoint);
     url.searchParams.set("RelayState", relayState);
-    res.redirect(302, url.toString());
+    return res.redirect(302, url.toString());
   });
 
   // SAML — assertion consumer service
@@ -153,9 +153,9 @@ export function createSsoRouter(opts: MountSsoOptions): Router {
 
       res.cookie(sessionCookie, issued.sessionToken, buildSessionCookieOptions());
       const target = sanitizeRedirect(body.RelayState || issued.redirectTo);
-      res.redirect(302, target);
+      return res.redirect(302, target);
     } catch (err) {
-      res.status(401).json({
+      return res.status(401).json({
         error: "saml_assertion_invalid",
         detail: err instanceof Error ? err.message : "unknown",
       });
@@ -175,9 +175,9 @@ export function createSsoRouter(opts: MountSsoOptions): Router {
         nonce: begin.nonce,
         orgId: req.params.orgId,
       });
-      res.redirect(302, begin.url);
+      return res.redirect(302, begin.url);
     } catch (err) {
-      res.status(500).json({
+      return res.status(500).json({
         error: "oidc_init_failed",
         detail: err instanceof Error ? err.message : "unknown",
       });
@@ -222,10 +222,10 @@ export function createSsoRouter(opts: MountSsoOptions): Router {
 
       clearPkceCookie(res);
       res.cookie(sessionCookie, issued.sessionToken, buildSessionCookieOptions());
-      res.redirect(302, sanitizeRedirect(issued.redirectTo));
+      return res.redirect(302, sanitizeRedirect(issued.redirectTo));
     } catch (err) {
       clearPkceCookie(res);
-      res.status(401).json({
+      return res.status(401).json({
         error: "oidc_callback_failed",
         detail: err instanceof Error ? err.message : "unknown",
       });

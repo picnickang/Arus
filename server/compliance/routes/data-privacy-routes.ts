@@ -103,7 +103,7 @@ router.post(
           metadata: { exportId: result.exportId, duration: result.duration },
           retentionRequired: true,
         });
-        res.json({
+        return res.json({
           success: true,
           data: {
             exportId: result.exportId,
@@ -114,11 +114,11 @@ router.post(
           },
         });
       } else {
-        res.status(500).json({ success: false, error: result.error, exportId: result.exportId });
+        return res.status(500).json({ success: false, error: result.error, exportId: result.exportId });
       }
     } catch (error) {
       logger.error("[Compliance] Anonymized export error:", undefined, error);
-      res
+      return res
         .status(500)
         .json({
           error: "Failed to create anonymized export",
@@ -155,10 +155,10 @@ router.get(
         performedByType: "user",
         retentionRequired: true,
       });
-      res.download(exportPath, `${exportId}.tar.gz`);
+      return res.download(exportPath, `${exportId}.tar.gz`);
     } catch (error) {
       logger.error("[Compliance] Export download error:", undefined, error);
-      res.status(500).json({ error: "Failed to download export" });
+      return res.status(500).json({ error: "Failed to download export" });
     }
   }
 );
@@ -191,13 +191,13 @@ router.get(
         level,
         { preserveIds: true, preserveTimestamps: true, preserveTechnicalData: false }
       );
-      res.json({
+      return res.json({
         success: true,
         data: { original: sampleRecord, anonymized, anonymizationResult: result, level },
       });
     } catch (error) {
       logger.error("[Compliance] Anonymization preview error:", undefined, error);
-      res.status(500).json({ error: "Failed to preview anonymization" });
+      return res.status(500).json({ error: "Failed to preview anonymization" });
     }
   }
 );
@@ -231,10 +231,10 @@ router.get(
         performedByType: "user",
         metadata: { filters, count: requests.length },
       });
-      res.json({ success: true, data: requests, count: requests.length });
+      return res.json({ success: true, data: requests, count: requests.length });
     } catch (error) {
       logger.error("[Compliance] DSAR list error:", undefined, error);
-      res.status(500).json({ error: "Failed to retrieve DSAR requests" });
+      return res.status(500).json({ error: "Failed to retrieve DSAR requests" });
     }
   }
 );
@@ -255,10 +255,10 @@ router.get(
       if (!request) {
         return res.status(404).json({ error: "DSAR request not found" });
       }
-      res.json({ success: true, data: request });
+      return res.json({ success: true, data: request });
     } catch (error) {
       logger.error("[Compliance] DSAR get error:", undefined, error);
-      res.status(500).json({ error: "Failed to retrieve DSAR request" });
+      return res.status(500).json({ error: "Failed to retrieve DSAR request" });
     }
   }
 );
@@ -292,7 +292,7 @@ router.post(
         performedByType: "user",
         retentionRequired: true,
       });
-      res
+      return res
         .status(201)
         .json({
           success: true,
@@ -301,7 +301,7 @@ router.post(
         });
     } catch (error) {
       logger.error("[Compliance] DSAR create error:", undefined, error);
-      res.status(500).json({ error: "Failed to create DSAR request" });
+      return res.status(500).json({ error: "Failed to create DSAR request" });
     }
   }
 );
@@ -346,14 +346,14 @@ router.post(
         performedByType: "user",
         retentionRequired: true,
       });
-      res.json({
+      return res.json({
         success: true,
         data: request,
         message: "DSAR request acknowledged and in progress",
       });
     } catch (error) {
       logger.error("[Compliance] DSAR acknowledge error:", undefined, error);
-      res.status(500).json({ error: "Failed to acknowledge DSAR request" });
+      return res.status(500).json({ error: "Failed to acknowledge DSAR request" });
     }
   }
 );
@@ -406,7 +406,7 @@ router.post(
         },
         retentionRequired: true,
       });
-      res.json({
+      return res.json({
         success: true,
         data: {
           dsarId: id,
@@ -424,7 +424,7 @@ router.post(
       });
     } catch (error) {
       logger.error("[Compliance] DSAR data collection error:", undefined, error);
-      res.status(500).json({ error: "Failed to collect data for DSAR" });
+      return res.status(500).json({ error: "Failed to collect data for DSAR" });
     }
   }
 );
@@ -475,10 +475,10 @@ router.post(
         metadata: { result, reason },
         retentionRequired: true,
       });
-      res.json({ success: true, data: result });
+      return res.json({ success: true, data: result });
     } catch (error) {
       logger.error("[Compliance] DSAR erasure error:", undefined, error);
-      res.status(500).json({ error: "Failed to execute data erasure" });
+      return res.status(500).json({ error: "Failed to execute data erasure" });
     }
   }
 );
@@ -513,10 +513,10 @@ router.post(
         performedByType: "user",
         retentionRequired: true,
       });
-      res.json({ success: true, data: request, message: "DSAR request completed" });
+      return res.json({ success: true, data: request, message: "DSAR request completed" });
     } catch (error) {
       logger.error("[Compliance] DSAR complete error:", undefined, error);
-      res.status(500).json({ error: "Failed to complete DSAR request" });
+      return res.status(500).json({ error: "Failed to complete DSAR request" });
     }
   }
 );
@@ -551,10 +551,10 @@ router.post(
         performedByType: "user",
         retentionRequired: true,
       });
-      res.json({ success: true, data: request, message: "DSAR request rejected" });
+      return res.json({ success: true, data: request, message: "DSAR request rejected" });
     } catch (error) {
       logger.error("[Compliance] DSAR reject error:", undefined, error);
-      res.status(500).json({ error: "Failed to reject DSAR request" });
+      return res.status(500).json({ error: "Failed to reject DSAR request" });
     }
   }
 );
@@ -600,10 +600,10 @@ router.get(
       }
       stats.avgCompletionDays =
         completedCount > 0 ? Math.round((completedDays / completedCount) * 10) / 10 : 0;
-      res.json({ success: true, data: stats });
+      return res.json({ success: true, data: stats });
     } catch (error) {
       logger.error("[Compliance] DSAR statistics error:", undefined, error);
-      res.status(500).json({ error: "Failed to retrieve DSAR statistics" });
+      return res.status(500).json({ error: "Failed to retrieve DSAR statistics" });
     }
   }
 );

@@ -65,7 +65,7 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
       const filters: DeckLogFilters = listQuerySchema.parse(req.query);
 
       const entries = await deckLogStorage.getDeckLogDaily(orgId, filters);
-      res.json(entries);
+      return res.json(entries);
     })
   );
 
@@ -80,7 +80,7 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
         return sendNotFound(res, "Deck log entry");
       }
 
-      res.json(entry);
+      return res.json(entry);
     })
   );
 
@@ -95,7 +95,7 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
         return sendNotFound(res, "Deck log entry");
       }
 
-      res.json(complete);
+      return res.json(complete);
     })
   );
 
@@ -117,7 +117,7 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
       }
 
       const complete = await deckLogStorage.getDeckLogComplete(entry.id, orgId);
-      res.json(complete);
+      return res.json(complete);
     })
   );
 
@@ -146,6 +146,7 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
       } as CreateDeckLogInput);
 
       sendCreated(res, entry);
+      return undefined;
     })
   );
 
@@ -157,7 +158,7 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
       const { id } = idParamSchema.parse(req.params);
       const body = updateBodySchema.parse(req.body);
       const entry = await deckLogStorage.updateDeckLogDaily(id, body as UpdateDeckLogInput, orgId);
-      res.json(entry);
+      return res.json(entry);
     })
   );
 
@@ -174,7 +175,7 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
 
       const entry = await deckLogStorage.signDeckLogDaily(id, parsed.data, orgId);
 
-      res.json(entry);
+      return res.json(entry);
     })
   );
 
@@ -201,7 +202,7 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
       }
 
       const locked = await deckLogStorage.lockDeckLogDaily(id, parsed.data, orgId);
-      res.json(locked);
+      return res.json(locked);
     })
   );
 
@@ -212,7 +213,7 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
       const orgId = req.orgId;
       const { id } = idParamSchema.parse(req.params);
       const unlocked = await deckLogStorage.unlockDeckLogDaily(id, orgId);
-      res.json(unlocked);
+      return res.json(unlocked);
     })
   );
 
@@ -227,7 +228,7 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
         startDate: from,
         endDate: to,
       });
-      res.json(entries);
+      return res.json(entries);
     })
   );
 
@@ -253,7 +254,7 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
         } as CreateDeckLogInput);
       }
 
-      res.json(entry);
+      return res.json(entry);
     })
   );
 

@@ -70,9 +70,9 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
         filter.limit = Math.min(q.limit ?? 50, 200);
         filter.offset = Math.max(q.offset ?? 0, 0);
         const tasks = await taskService.list(orgId, filter);
-        res.json(tasks);
+        return res.json(tasks);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -91,9 +91,9 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
             .json({ error: "Invalid task data", details: parsed.error.flatten().fieldErrors });
         }
         const task = await taskService.create({ ...parsed.data, orgId });
-        res.status(201).json(task);
+        return res.status(201).json(task);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -106,9 +106,9 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
         const counts = await taskService.countByStatus(orgId);
-        res.json(counts);
+        return res.json(counts);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -125,9 +125,9 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
         if (!task) {
           return res.status(404).json({ error: "Task not found" });
         }
-        res.json(task);
+        return res.json(task);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -158,7 +158,7 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
         }
         if (outcome !== undefined) updateData.outcome = outcome;
         const task = await taskService.update(id, orgId, updateData);
-        res.json(task);
+        return res.json(task);
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : "Unknown error";
         const statusCode = msg.includes("not found")
@@ -166,7 +166,7 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
           : msg.includes("Cannot transition")
             ? 400
             : 500;
-        res.status(statusCode).json({ error: msg });
+        return res.status(statusCode).json({ error: msg });
       }
     }
   );

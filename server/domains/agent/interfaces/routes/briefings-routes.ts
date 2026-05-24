@@ -23,9 +23,9 @@ export function registerBriefingsRoutes(app: Express, deps: BriefingsRouteDeps) 
         if (!briefing) {
           return res.json(null);
         }
-        res.json(briefing);
+        return res.json(briefing);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -50,9 +50,9 @@ export function registerBriefingsRoutes(app: Express, deps: BriefingsRouteDeps) 
         }
 
         const briefings = await (await getBriefingService()).list(orgId, limit);
-        res.json(briefings);
+        return res.json(briefings);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -65,9 +65,9 @@ export function registerBriefingsRoutes(app: Express, deps: BriefingsRouteDeps) 
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
         const briefing = await (await getBriefingService()).generate(orgId);
-        res.json(briefing);
+        return res.json(briefing);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );

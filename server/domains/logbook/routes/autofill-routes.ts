@@ -66,7 +66,7 @@ export function registerAutofillRoutes(app: Express, rateLimit: RateLimiters) {
         }),
       ]);
 
-      res.json({
+      return res.json({
         success: true,
         mainEngine: mainEngineResult,
         generators: generatorResult,
@@ -80,7 +80,7 @@ export function registerAutofillRoutes(app: Express, rateLimit: RateLimiters) {
       const orgId = req.orgId;
 
       const summary = await getAnomalySummary(req.params.id, orgId);
-      res.json(summary);
+      return res.json(summary);
     })
   );
 
@@ -103,7 +103,7 @@ export function registerAutofillRoutes(app: Express, rateLimit: RateLimiters) {
 
       const unsignedLogs = await getUnsignedLogs(orgId, { vesselId, daysBack });
 
-      res.json(unsignedLogs);
+      return res.json(unsignedLogs);
     })
   );
 
@@ -157,7 +157,7 @@ export function registerAutofillRoutes(app: Express, rateLimit: RateLimiters) {
         `Sent ${sentCount}/${unsignedLogs.length} notifications for org ${orgId}`
       );
 
-      res.json({
+      return res.json({
         message: `Sent ${sentCount} of ${unsignedLogs.length} notifications`,
         logs: unsignedLogs,
         sent: sentCount,

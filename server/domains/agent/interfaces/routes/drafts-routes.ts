@@ -28,9 +28,9 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
         const orgId = (req as AuthenticatedRequest).orgId;
         const { status } = draftListQuerySchema.parse(req.query);
         const drafts = await agentRepo.drafts.list(orgId, status);
-        res.json(drafts);
+        return res.json(drafts);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -107,9 +107,9 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
           { orgId, userId }
         );
 
-        res.json({ draft: updated, resultId });
+        return res.json({ draft: updated, resultId });
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -159,9 +159,9 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
           { orgId, userId }
         );
 
-        res.json(updated);
+        return res.json(updated);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );

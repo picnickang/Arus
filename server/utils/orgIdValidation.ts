@@ -173,6 +173,7 @@ export function requireValidOrgId(
       }
 
       next();
+      return undefined;
     } catch (error) {
       if (error instanceof OrgIdValidationError) {
         return res.status(error.statusCode).json({

@@ -134,7 +134,7 @@ export function registerEquipmentRoutes(
           vesselId,
           manufacturer,
         });
-        res.json(result);
+        return res.json(result);
       } else {
         const cacheKey = `equipment:list:${orgId}`;
         const cached = getCached(cacheKey);
@@ -143,7 +143,7 @@ export function registerEquipmentRoutes(
         }
         const equipment = await equipmentService.listEquipment(orgId);
         setCache(cacheKey, equipment);
-        res.json(equipment);
+        return res.json(equipment);
       }
     })
   );
@@ -192,10 +192,10 @@ export function registerEquipmentRoutes(
           },
         };
         setCache(cacheKey, response);
-        res.json(response);
+        return res.json(response);
       } else {
         setCache(cacheKey, health);
-        res.json(health);
+        return res.json(health);
       }
     })
   );
@@ -208,7 +208,7 @@ export function registerEquipmentRoutes(
     withErrorHandling("fetch equipment with sensor issues", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const equipment = await equipmentService.getEquipmentWithSensorIssues(orgId);
-      res.json(equipment);
+      return res.json(equipment);
     })
   );
 
@@ -234,7 +234,7 @@ export function registerEquipmentRoutes(
         return;
       }
 
-      res.json(prediction);
+      return res.json(prediction);
     })
   );
 
@@ -253,7 +253,7 @@ export function registerEquipmentRoutes(
       const predictions = await rulEngine.calculateBatchRul(equipmentIds, orgId);
       const result = Object.fromEntries(predictions);
 
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -282,7 +282,7 @@ export function registerEquipmentRoutes(
         loadFactor: body.loadFactor,
       });
 
-      res.status(201).json({
+      return res.status(201).json({
         message: "Degradation recorded successfully",
         equipmentId,
         componentType: body.componentType,
@@ -305,7 +305,7 @@ export function registerEquipmentRoutes(
         return;
       }
 
-      res.json(equipment);
+      return res.json(equipment);
     })
   );
 
@@ -333,7 +333,7 @@ export function registerEquipmentRoutes(
       const equipment = await equipmentService.createEquipment(validationResult.data);
       invalidateCache(`equipment:`);
       void quotaService.incrementUsage(orgId, "equipment_count", 1);
-      res.status(201).json(equipment);
+      return res.status(201).json(equipment);
     })
   );
 
@@ -369,7 +369,7 @@ export function registerEquipmentRoutes(
           orgId
         );
         invalidateCache(`equipment:`);
-        res.json(equipment);
+        return res.json(equipment);
       } catch (error) {
         if (error instanceof Error && error.message.includes("not found")) {
           sendNotFound(res, "Equipment");
@@ -392,7 +392,7 @@ export function registerEquipmentRoutes(
 
       try {
         await equipmentService.disassociateVessel(id, orgId);
-        res.json({ message: "Equipment successfully disassociated from vessel" });
+        return res.json({ message: "Equipment successfully disassociated from vessel" });
       } catch (error) {
         if (error instanceof Error && error.message.includes("not found")) {
           sendNotFound(res, "Equipment");
@@ -416,7 +416,7 @@ export function registerEquipmentRoutes(
       try {
         await equipmentService.deleteEquipment(id, orgId);
         invalidateCache(`equipment:`);
-        res.status(204).send();
+        return res.status(204).send();
       } catch (error) {
         if (error instanceof Error && error.message.includes("not found")) {
           sendNotFound(res, "Equipment");
@@ -453,7 +453,7 @@ export function registerEquipmentRoutes(
           userId
         );
         invalidateCache(`equipment:`);
-        res.json(result);
+        return res.json(result);
       } catch (error) {
         if (error instanceof Error && error.message.includes("not found")) {
           sendNotFound(res, "Equipment");
@@ -494,7 +494,7 @@ export function registerEquipmentRoutes(
           userId
         );
         invalidateCache(`equipment:`);
-        res.json(result);
+        return res.json(result);
       } catch (error) {
         if (error instanceof Error && error.message.includes("not found")) {
           sendNotFound(res, "Decommissioned Equipment");
@@ -520,7 +520,7 @@ export function registerEquipmentRoutes(
 
       try {
         const history = await equipmentLifecycleService.getEquipmentHistory(equipmentId, orgId);
-        res.json(history);
+        return res.json(history);
       } catch (error) {
         if (error instanceof Error && error.message.includes("not found")) {
           sendNotFound(res, "Equipment");
@@ -544,10 +544,10 @@ export function registerEquipmentRoutes(
       if (withHistory) {
         const decommissioned =
           await equipmentLifecycleService.getDecommissionedEquipmentWithHistory(orgId);
-        res.json(decommissioned);
+        return res.json(decommissioned);
       } else {
         const decommissioned = await equipmentLifecycleService.getDecommissionedEquipment(orgId);
-        res.json(decommissioned);
+        return res.json(decommissioned);
       }
     })
   );
@@ -562,7 +562,7 @@ export function registerEquipmentRoutes(
       const orgId = (req as AuthenticatedRequest).orgId;
 
       const coverage = await equipmentService.getSensorCoverage(equipmentId, orgId);
-      res.json(coverage);
+      return res.json(coverage);
     })
   );
 
@@ -578,7 +578,7 @@ export function registerEquipmentRoutes(
         const orgId = (req as AuthenticatedRequest).orgId;
 
         const result = await equipmentService.setupSensors(equipmentId, orgId);
-        res.json(result);
+        return res.json(result);
       }
     )
   );
@@ -593,7 +593,7 @@ export function registerEquipmentRoutes(
       const orgId = (req as AuthenticatedRequest).orgId;
 
       const parts = await equipmentService.getCompatibleParts(equipmentId, orgId);
-      res.json(parts);
+      return res.json(parts);
     })
   );
 
@@ -607,7 +607,7 @@ export function registerEquipmentRoutes(
       const orgId = (req as AuthenticatedRequest).orgId;
 
       const parts = await equipmentService.getSuggestedParts(equipmentId, orgId);
-      res.json(parts);
+      return res.json(parts);
     })
   );
 }

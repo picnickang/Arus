@@ -180,10 +180,10 @@ export function registerExportCompleteRoutes(app: Express, config: MlAnalyticsCo
         "Content-Disposition",
         `attachment; filename="ml-pdm-export-${Date.now()}.json"`
       );
-      res.json(exportData);
+      return res.json(exportData);
     } catch (error) {
       logger.error("ExportComplete", "Failed to export ML/PDM data", error);
-      res.status(500).json({ message: "Failed to export ML/PDM data" });
+      return res.status(500).json({ message: "Failed to export ML/PDM data" });
     }
   });
 }

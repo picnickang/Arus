@@ -44,7 +44,7 @@ export function registerHubSyncRoutes(
     withErrorHandling("log replay request", async (req: Request, res: Response) => {
       const validatedData = insertReplayIncomingSchema.parse(req.body);
       const request = await hubSyncService.logReplayRequest(validatedData);
-      res.status(201).json(request);
+      return res.status(201).json(request);
     })
   );
 
@@ -62,7 +62,7 @@ export function registerHubSyncRoutes(
         validatedQuery.deviceId,
         validatedQuery.endpoint
       );
-      res.json(history);
+      return res.json(history);
     })
   );
 
@@ -77,12 +77,13 @@ export function registerHubSyncRoutes(
         token,
         new Date(expiresAt)
       );
-      res.status(201).json(lock);
+      return res.status(201).json(lock);
     } catch (error) {
       if (error instanceof Error && error.message.includes("already locked")) {
         return res.status(409).json({ error: error.message });
       }
       handleApiError(res, error, "acquire sheet lock");
+      return undefined;
     }
   });
 
@@ -92,7 +93,7 @@ export function registerHubSyncRoutes(
     withErrorHandling("release sheet lock", async (req: Request, res: Response) => {
       const { sheetKey, token } = sheetUnlockBodySchema.parse(req.body);
       await hubSyncService.releaseSheetLock(sheetKey, token);
-      res.json({ ok: true, message: "Sheet lock released successfully" });
+      return res.json({ ok: true, message: "Sheet lock released successfully" });
     })
   );
 
@@ -105,7 +106,7 @@ export function registerHubSyncRoutes(
       if (!lock) {
         return sendNotFound(res, "Sheet lock");
       }
-      res.json(lock);
+      return res.json(lock);
     })
   );
 
@@ -115,7 +116,7 @@ export function registerHubSyncRoutes(
     withErrorHandling("check sheet lock status", async (req: Request, res: Response) => {
       const { sheetKey } = sheetKeyParamSchema.parse(req.params);
       const isLocked = await hubSyncService.isSheetLocked(sheetKey);
-      res.json({ sheetKey, isLocked });
+      return res.json({ sheetKey, isLocked });
     })
   );
 
@@ -129,7 +130,7 @@ export function registerHubSyncRoutes(
       if (!version) {
         return sendNotFound(res, "Sheet version");
       }
-      res.json(version);
+      return res.json(version);
     })
   );
 
@@ -140,7 +141,7 @@ export function registerHubSyncRoutes(
       const { sheetKey } = sheetKeyParamSchema.parse(req.params);
       const { modifiedBy } = incrementVersionBodySchema.parse(req.body);
       const version = await hubSyncService.incrementSheetVersion(sheetKey, modifiedBy);
-      res.json(version);
+      return res.json(version);
     })
   );
 
@@ -150,7 +151,7 @@ export function registerHubSyncRoutes(
     withErrorHandling("set sheet version", async (req: Request, res: Response) => {
       const validatedData = insertSheetVersionSchema.parse(req.body);
       const version = await hubSyncService.setSheetVersion(validatedData);
-      res.json(version);
+      return res.json(version);
     })
   );
 
@@ -162,7 +163,7 @@ export function registerHubSyncRoutes(
     withErrorHandling("fetch optimizer configurations", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
       const configs = await hubSyncService.getOptimizerConfigurations(orgId);
-      res.json(configs);
+      return res.json(configs);
     })
   );
 
@@ -185,7 +186,7 @@ export function registerHubSyncRoutes(
           typeof hubSyncService.createOptimizerConfiguration
         >[0]
       );
-      res.status(201).json(config);
+      return res.status(201).json(config);
     })
   );
 
@@ -196,7 +197,7 @@ export function registerHubSyncRoutes(
       try {
         const { id } = idParamSchema.parse(req.params);
         await hubSyncService.deleteOptimizerConfiguration(id);
-        res.status(204).send();
+        return res.status(204).send();
       } catch (error) {
         if (error instanceof Error && error.message.includes("not found")) {
           return sendNotFound(res, "Optimizer configuration");
@@ -213,7 +214,7 @@ export function registerHubSyncRoutes(
     withErrorHandling("fetch optimization results", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
       const results = await hubSyncService.getOptimizationResults(orgId);
-      res.json(results);
+      return res.json(results);
     })
   );
 
@@ -237,7 +238,7 @@ export function registerHubSyncRoutes(
         timeHorizon,
         orgId
       );
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -248,7 +249,7 @@ export function registerHubSyncRoutes(
       try {
         const { id } = idParamSchema.parse(req.params);
         const result = await hubSyncService.cancelOptimization(id);
-        res.json({ message: "Optimization cancelled successfully", result });
+        return res.json({ message: "Optimization cancelled successfully", result });
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
         if (message.includes("not found")) {
@@ -258,6 +259,7 @@ export function registerHubSyncRoutes(
           return res.status(400).json({ message });
         }
         handleApiError(res, error, "cancel optimization");
+        return undefined;
       }
     }
   );
@@ -269,7 +271,7 @@ export function registerHubSyncRoutes(
       try {
         const { id } = idParamSchema.parse(req.params);
         const result = await hubSyncService.applyOptimizationToProduction(id);
-        res.json({ message: "Optimization applied to production successfully", result });
+        return res.json({ message: "Optimization applied to production successfully", result });
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
         if (message.includes("not found")) {
@@ -279,6 +281,7 @@ export function registerHubSyncRoutes(
           return res.status(400).json({ message });
         }
         handleApiError(res, error, "apply optimization to production");
+        return undefined;
       }
     }
   );
@@ -297,7 +300,7 @@ export function registerHubSyncRoutes(
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
 
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -307,7 +310,7 @@ export function registerHubSyncRoutes(
     withErrorHandling("delete optimization result", async (req: Request, res: Response) => {
       const { id } = idParamSchema.parse(req.params);
       await hubSyncService.deleteOptimizationResult(id);
-      res.status(204).send();
+      return res.status(204).send();
     })
   );
 
@@ -318,7 +321,7 @@ export function registerHubSyncRoutes(
     withErrorHandling("delete all optimization results", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
       const deletedCount = await hubSyncService.deleteAllOptimizationResults(orgId);
-      res.json({
+      return res.json({
         message: "All optimization results deleted successfully",
         deletedCount,
       });
@@ -332,7 +335,7 @@ export function registerHubSyncRoutes(
     withErrorHandling("get shift templates", async (req: Request, res: Response) => {
       const { orgId } = orgIdQuerySchema.parse(req.query);
       const templates = await hubSyncService.getShiftTemplates(orgId as string);
-      res.json(templates);
+      return res.json(templates);
     })
   );
 
@@ -344,7 +347,7 @@ export function registerHubSyncRoutes(
       const template = await hubSyncService.createShiftTemplate(
         body as Parameters<typeof hubSyncService.createShiftTemplate>[0]
       );
-      res.json(template);
+      return res.json(template);
     })
   );
 
@@ -354,7 +357,7 @@ export function registerHubSyncRoutes(
     withErrorHandling("delete shift template", async (req: Request, res: Response) => {
       const { id } = idParamSchema.parse(req.params);
       await hubSyncService.deleteShiftTemplate(id);
-      res.json({
+      return res.json({
         ok: true,
         message: "Shift template deleted successfully",
       });

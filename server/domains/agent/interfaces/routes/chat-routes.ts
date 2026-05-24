@@ -53,7 +53,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
           { orgId, userId }
         );
 
-        res.json({
+        return res.json({
           conversationId: result.conversationId,
           response: result.finalResponse,
           toolCalls: result.toolCalls,
@@ -62,7 +62,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
         });
       } catch (error: unknown) {
         logger.error("[Agent] Chat error:", undefined, error);
-        res.status(500).json({ error: error instanceof Error ? error.message : "Agent error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Agent error" });
       }
     }
   );
@@ -117,7 +117,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
           size: f.size,
         }));
 
-        res.json({
+        return res.json({
           conversationId: result.conversationId,
           response: result.finalResponse,
           toolCalls: result.toolCalls,
@@ -127,7 +127,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
         });
       } catch (error: unknown) {
         logger.error("[Agent] Multimodal chat error:", undefined, error);
-        res.status(500).json({ error: error instanceof Error ? error.message : "Agent error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Agent error" });
       }
     }
   );
@@ -193,7 +193,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
           void quotaService.incrementUsage(orgId, "storage_bytes", totalBytes);
         }
 
-        res.json({
+        return res.json({
           files: fileRefs.map((f) => ({
             fileId: f.fileId,
             filename: f.filename,
@@ -204,7 +204,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
         });
       } catch (error: unknown) {
         logger.error("[Agent] File upload error:", undefined, error);
-        res.status(500).json({ error: error instanceof Error ? error.message : "Upload failed" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Upload failed" });
       }
     }
   );
@@ -217,7 +217,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
         const orgId = (req as AuthenticatedRequest).orgId;
         const conversationId = req.params.id;
         const files = await listConversationFiles(conversationId, orgId);
-        res.json({
+        return res.json({
           files: files.map((f) => ({
             fileId: f.id,
             filename: f.filename,
@@ -226,7 +226,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
           })),
         });
       } catch (error: unknown) {
-        res
+        return res
           .status(500)
           .json({ error: error instanceof Error ? error.message : "Failed to list files" });
       }
@@ -266,18 +266,18 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
           userRole
         );
 
-        res.end();
+        return res.end();
       } catch (error: unknown) {
         logger.error("[Agent] Stream error:", undefined, error);
         if (!res.headersSent) {
-          res
+          return res
             .status(500)
             .json({ error: error instanceof Error ? error.message : "Agent stream error" });
         } else {
           res.write(
             `data: ${JSON.stringify({ type: "error", error: error instanceof Error ? error.message : "Unknown error" })}\n\n`
           );
-          res.end();
+          return res.end();
         }
       }
     }

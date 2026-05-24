@@ -55,7 +55,7 @@ export function registerModeRoutes(app: Express, config: VesselPerformanceRoutes
       }
 
       res.setHeader("Cache-Control", "public, max-age=60");
-      res.json({
+      return res.json({
         ...latestMode,
         timestamp: latestMode.timestamp.toISOString(),
         color: detector.getModeColor(latestMode.mode),

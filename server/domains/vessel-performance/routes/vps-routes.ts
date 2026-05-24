@@ -111,7 +111,7 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
       }
 
       res.setHeader("Cache-Control", "public, max-age=300");
-      res.json({
+      return res.json({
         actual: actualCurve,
         baseline: baselineCurve,
         metadata: {
@@ -159,7 +159,7 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
         : vessels.length;
 
       res.setHeader("Cache-Control", "public, max-age=300");
-      res.json({
+      return res.json({
         loadDistribution: loadBenchmarks,
         powerSTW: powerSTWBenchmarks,
         vesselCount,

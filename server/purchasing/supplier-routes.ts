@@ -17,10 +17,10 @@ supplierLinkRouter.get("/parts/:partId/suppliers", async (req: Request, res: Res
     const orgId = DEFAULT_ORG_ID;
 
     const suppliers = await service.getPartSuppliers(req.params.partId, orgId);
-    res.json(suppliers);
+    return res.json(suppliers);
   } catch (error) {
     logger.error("[Purchasing] Error getting part suppliers:", undefined, error);
-    res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: (error as Error).message });
   }
 });
 
@@ -43,10 +43,10 @@ supplierLinkRouter.post("/parts/:partId/suppliers", async (req: Request, res: Re
       leadTimeDays,
       notes,
     });
-    res.status(201).json(link);
+    return res.status(201).json(link);
   } catch (error) {
     logger.error("[Purchasing] Error linking supplier to part:", undefined, error);
-    res.status(400).json({ error: (error as Error).message });
+    return res.status(400).json({ error: (error as Error).message });
   }
 });
 
@@ -66,10 +66,10 @@ supplierLinkRouter.delete(
         return res.status(404).json({ error: "Link not found" });
       }
 
-      res.json({ success: true });
+      return res.json({ success: true });
     } catch (error) {
       logger.error("[Purchasing] Error unlinking supplier from part:", undefined, error);
-      res.status(400).json({ error: (error as Error).message });
+      return res.status(400).json({ error: (error as Error).message });
     }
   }
 );

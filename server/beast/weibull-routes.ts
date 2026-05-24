@@ -23,7 +23,7 @@ router.post("/weibull/analyze/:equipmentId", async (req, res) => {
     }
     const analyzer = new WeibullRULAnalyzer();
     const prediction = await analyzer.analyzeEquipmentRUL(equipmentId, orgId);
-    res.json({
+    return res.json({
       success: true,
       prediction: {
         equipmentId: prediction.equipmentId,
@@ -40,7 +40,7 @@ router.post("/weibull/analyze/:equipmentId", async (req, res) => {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     logger.error(`[Beast Mode API] Error analyzing RUL for ${req.params.equipmentId}:`, undefined, error);
-    res
+    return res
       .status(400)
       .json({ success: false, error: message, equipmentId: req.params.equipmentId });
   }
@@ -64,7 +64,7 @@ router.get("/weibull/history/:equipmentId", async (req, res) => {
     }
     const analyzer = new WeibullRULAnalyzer();
     const history = await analyzer.getRULHistory(equipmentId, orgId, limit);
-    res.json({
+    return res.json({
       success: true,
       equipmentId,
       orgId,
@@ -91,7 +91,7 @@ router.get("/weibull/history/:equipmentId", async (req, res) => {
     });
   } catch (error) {
     logger.error(`[Beast Mode API] Error getting Weibull history for ${req.params.equipmentId}:`, undefined, error);
-    res
+    return res
       .status(500)
       .json({
         success: false,
@@ -154,7 +154,7 @@ router.post("/weibull/batch-analyze", async (req, res) => {
         .length,
       urgentAction: results.success.filter((r) => r.maintenanceRecommendation === "urgent").length,
     };
-    res.json({
+    return res.json({
       success: true,
       orgId,
       summary,
@@ -171,7 +171,7 @@ router.post("/weibull/batch-analyze", async (req, res) => {
     });
   } catch (error: unknown) {
     logger.error(`[Beast Mode API] Error in batch Weibull RUL analysis:`, undefined, error);
-    res.status(500).json({ success: false, error: "Failed to perform batch Weibull RUL analysis" });
+    return res.status(500).json({ success: false, error: "Failed to perform batch Weibull RUL analysis" });
   }
 });
 

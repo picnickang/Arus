@@ -218,7 +218,7 @@ router.post(
       // commits so failed inserts don't pollute the counter.
       void quotaService.incrementUsage(orgId, "storage_bytes", file.size);
 
-      res.status(201).json(row);
+      return res.status(201).json(row);
     } catch (error) {
       // Last-resort cleanup if anything above the DB insert threw unexpectedly.
       if (req.file?.path) {
@@ -226,7 +226,7 @@ router.post(
       }
       const message = error instanceof Error ? error.message : "Unknown error";
       logger.error("Upload failed", { error: message });
-      res.status(500).json({ error: message });
+      return res.status(500).json({ error: message });
     }
   }
 );
@@ -245,10 +245,10 @@ router.get("/vessels/:vesselId/3d-model", async (req: Request, res: Response) =>
     if (!row) return res.status(404).json({ error: "No 3D model attached" });
     // Do not leak storedPath.
     const { storedPath: _omit, ...safe } = row;
-    res.json(safe);
+    return res.json(safe);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -280,9 +280,10 @@ router.get("/vessels/3d-model/:modelId/binary", async (req: Request, res: Respon
     res.setHeader("Content-Length", String(row.sizeBytes));
     res.setHeader("Cache-Control", "private, max-age=300");
     fs.createReadStream(resolved).pipe(res);
+    return undefined;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -302,10 +303,10 @@ router.patch("/vessels/3d-model/:modelId/pins", requireRole("admin", "chief_engi
       .returning();
     if (!row) return res.status(404).json({ error: "Model not found" });
     const { storedPath: _omit, ...safe } = row;
-    res.json(safe);
+    return res.json(safe);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -326,10 +327,10 @@ router.get(
         )
         .orderBy(desc(vessel3dModels.createdAt));
       const safe = rows.map(({ storedPath: _omit, ...rest }) => rest);
-      res.json(safe);
+      return res.json(safe);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      res.status(500).json({ error: message });
+      return res.status(500).json({ error: message });
     }
   }
 );
@@ -355,10 +356,10 @@ router.post(
         .returning();
       if (!row) return res.status(404).json({ error: "Model not found" });
       const { storedPath: _omit, ...safe } = row;
-      res.json(safe);
+      return res.json(safe);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      res.status(500).json({ error: message });
+      return res.status(500).json({ error: message });
     }
   }
 );
@@ -414,10 +415,10 @@ router.delete(
         void quotaService.incrementUsage(orgId, "storage_bytes", -freed);
       }
 
-      res.status(204).send();
+      return res.status(204).send();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      res.status(500).json({ error: message });
+      return res.status(500).json({ error: message });
     }
   }
 );
@@ -439,10 +440,10 @@ router.get(
       }
       const maxHops = hopsParsed.data;
       const downstream = await failurePropagation(orgId, equipmentId, maxHops);
-      res.json({ equipmentId, downstream });
+      return res.json({ equipmentId, downstream });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      res.status(500).json({ error: message });
+      return res.status(500).json({ error: message });
     }
   }
 );

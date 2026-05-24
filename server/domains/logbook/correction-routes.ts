@@ -120,7 +120,7 @@ router.post("/corrections", requireOrgId, async (req: Request, res: Response) =>
       user: user.name,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       correction: correctionEntry,
       originalMarked: true,
       auditLogged: true,
@@ -130,7 +130,7 @@ router.post("/corrections", requireOrgId, async (req: Request, res: Response) =>
       return res.status(400).json({ error: "Validation failed", details: err.flatten() });
     }
     logger.error("LogbookCorrections", "Error creating correction", err);
-    res.status(500).json({ error: "Failed to create correction" });
+    return res.status(500).json({ error: "Failed to create correction" });
   }
 });
 
@@ -145,10 +145,10 @@ router.get("/:entryId/corrections", requireOrgId, async (req: Request, res: Resp
       ORDER BY created_at DESC
     `);
 
-    res.json(getRows(result));
+    return res.json(getRows(result));
   } catch (err) {
     logger.error("LogbookCorrections", "Error listing corrections", err);
-    res.status(500).json({ error: "Failed to list corrections" });
+    return res.status(500).json({ error: "Failed to list corrections" });
   }
 });
 
@@ -163,10 +163,10 @@ router.get("/:entryId/audit", requireOrgId, async (req: Request, res: Response) 
       ORDER BY created_at ASC
     `);
 
-    res.json(getRows(result));
+    return res.json(getRows(result));
   } catch (err) {
     logger.error("LogbookCorrections", "Error fetching audit trail", err);
-    res.status(500).json({ error: "Failed to fetch audit trail" });
+    return res.status(500).json({ error: "Failed to fetch audit trail" });
   }
 });
 
@@ -215,7 +215,7 @@ router.get("/psc-view", requireOrgId, async (req: Request, res: Response) => {
 
     const auditSummary = getRows(auditResult);
 
-    res.json({
+    return res.json({
       vessel_id: vesselId,
       period: { from: fromDate, to: toDate },
       totalEntries: entries.length,
@@ -226,7 +226,7 @@ router.get("/psc-view", requireOrgId, async (req: Request, res: Response) => {
     });
   } catch (err) {
     logger.error("LogbookCorrections", "Error generating PSC view", err);
-    res.status(500).json({ error: "Failed to generate PSC view" });
+    return res.status(500).json({ error: "Failed to generate PSC view" });
   }
 });
 
@@ -255,10 +255,10 @@ router.post("/:entryId/countersign", requireOrgId, async (req: Request, res: Res
       WHERE id = ${entryId} AND org_id = ${orgId}
     `);
 
-    res.json({ success: true, countersignedBy: user.name });
+    return res.json({ success: true, countersignedBy: user.name });
   } catch (err) {
     logger.error("LogbookCorrections", "Error countersigning entry", err);
-    res.status(500).json({ error: "Failed to countersign" });
+    return res.status(500).json({ error: "Failed to countersign" });
   }
 });
 

@@ -101,5 +101,6 @@ export function auditAdminAction(action: string) {
     };
 
     next();
+    return undefined;
   };
 }

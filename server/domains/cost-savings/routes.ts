@@ -45,7 +45,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
 
       const summary = await getSavingsSummary(orgId, startDate, endDate);
 
-      res.json(summary);
+      return res.json(summary);
     })
   );
 
@@ -58,7 +58,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
 
       const trend = await getMonthlySavingsTrend(orgId, validatedQuery.months);
 
-      res.json(trend);
+      return res.json(trend);
     })
   );
 
@@ -83,7 +83,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
         });
       }
 
-      res.json(calculation);
+      return res.json(calculation);
     })
   );
 
@@ -97,7 +97,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
 
       const result = await processWorkOrderCompletion(workOrderId, orgId);
 
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -121,7 +121,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
         .where(and(...conds))
         .orderBy(sql`${costSavings.calculatedAt} DESC`)
         .limit(validatedQuery.limit);
-      res.json(savings);
+      return res.json(savings);
     })
   );
 
@@ -184,7 +184,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
         .where(and(eq(costSavings.id, id), eq(costSavings.orgId, orgId)))
         .limit(1);
 
-      res.json(updated);
+      return res.json(updated);
     })
   );
 

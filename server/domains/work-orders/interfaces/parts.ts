@@ -59,7 +59,7 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
       const orgId = (req as AuthenticatedRequest).orgId;
       const { id } = idParamSchema.parse(req.params);
       const parts = await workOrderService.getWorkOrderParts(id, orgId);
-      res.json(parts);
+      return res.json(parts);
     })
   );
 
@@ -138,7 +138,7 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
         partId,
         body as Parameters<typeof workOrderService.updateWorkOrderPart>[1]
       );
-      res.json(updatedPart);
+      return res.json(updatedPart);
     })
   );
 
@@ -164,7 +164,7 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
     withErrorHandling("fetch work order parts costs", async (req: Request, res: Response) => {
       const { id } = idParamSchema.parse(req.params);
       const costs = await workOrderService.getPartsCostForWorkOrder(id);
-      res.json(costs);
+      return res.json(costs);
     })
   );
 
@@ -183,7 +183,7 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
         if (!stockStatus) {
           return res.status(404).json({ error: "Part not found" });
         }
-        res.json(stockStatus);
+        return res.json(stockStatus);
       }
     )
   );
@@ -230,7 +230,7 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
           newValue: JSON.stringify({ plannedEndDate: newEndDate.toISOString() }),
         } as Parameters<typeof dbInventoryStorage.addWorkOrderHistoryEntry>[0]);
 
-        res.json(updated);
+        return res.json(updated);
       }
     )
   );

@@ -217,7 +217,7 @@ export function registerWoSoBridgeRoutes(
         ORDER BY so.created_at DESC
       `);
 
-      res.json({
+      return res.json({
         workOrderId,
         serviceOrders: rows.rows || rows,
         count: (rows.rows || rows).length,
@@ -340,7 +340,7 @@ export function registerWoSoBridgeRoutes(
         return res.json({ workOrder: null, linked: false });
       }
 
-      res.json({ workOrder: row, linked: true });
+      return res.json({ workOrder: row, linked: true });
     })
   );
 
@@ -390,7 +390,7 @@ export function registerWoSoBridgeRoutes(
       }
 
       logger.info(`Linked service order ${serviceOrderId} to work order ${workOrderId}`);
-      res.json(so);
+      return res.json(so);
     })
   );
 
@@ -424,7 +424,7 @@ export function registerWoSoBridgeRoutes(
           orgId,
           so.work_order_id as string
         );
-        res.json(result);
+        return res.json(result);
       }
     )
   );
@@ -524,7 +524,7 @@ export function registerWoSoBridgeRoutes(
       logger.info(
         `Reverted service order ${so.so_number} back to service request ${sr.request_number}`
       );
-      res.json({ reverted: true, serviceRequest: restored });
+      return res.json({ reverted: true, serviceRequest: restored });
     })
   );
 }

@@ -56,9 +56,9 @@ export function registerSoftwareUpdatesRoutes(
           patchId: patch.id,
         });
 
-        res.json({ available: true, manifest, patchId: patch.id });
+        return res.json({ available: true, manifest, patchId: patch.id });
       } else {
-        res.json({ available: false });
+        return res.json({ available: false });
       }
     })
   );
@@ -74,7 +74,7 @@ export function registerSoftwareUpdatesRoutes(
       const orgId = DEFAULT_ORG_ID;
 
       const patches = await updateChecker.getAvailablePatches(orgId);
-      res.json(patches);
+      return res.json(patches);
     })
   );
 
@@ -93,7 +93,7 @@ export function registerSoftwareUpdatesRoutes(
         orgId,
         limit ? Number.parseInt(limit as string) : 50
       );
-      res.json(patches);
+      return res.json(patches);
     })
   );
 
@@ -110,7 +110,7 @@ export function registerSoftwareUpdatesRoutes(
 
       const patchPath = await updateChecker.downloadPatch(id, orgId);
 
-      res.json({
+      return res.json({
         success: true,
         patchId: id,
         path: patchPath,
@@ -178,7 +178,7 @@ export function registerSoftwareUpdatesRoutes(
           });
         }
 
-        res.json(result);
+        return res.json(result);
       } catch (error) {
         const { wsServer } = await import("../../websocket");
         wsServer.broadcastUpdateNotification({
@@ -192,6 +192,7 @@ export function registerSoftwareUpdatesRoutes(
           },
         });
         handleApiError(res, error, "apply patch");
+        return undefined;
       }
     }
   );
@@ -220,7 +221,7 @@ export function registerSoftwareUpdatesRoutes(
           },
         });
 
-        res.json({ success: true, backupId });
+        return res.json({ success: true, backupId });
       } catch (error) {
         const { wsServer } = await import("../../websocket");
         wsServer.broadcastUpdateNotification({
@@ -234,6 +235,7 @@ export function registerSoftwareUpdatesRoutes(
           },
         });
         handleApiError(res, error, "rollback patch");
+        return undefined;
       }
     }
   );
@@ -246,7 +248,7 @@ export function registerSoftwareUpdatesRoutes(
     withErrorHandling("list backups", async (req: Request, res: Response) => {
       const { patchApplicator } = await import("../../services/patch-applicator");
       const backups = patchApplicator.listBackups();
-      res.json(backups);
+      return res.json(backups);
     })
   );
 

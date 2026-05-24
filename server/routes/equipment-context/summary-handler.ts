@@ -114,7 +114,7 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
       });
     }
 
-    res.json({
+    return res.json({
       equipment: equipmentRecord,
       summary: {
         activeAlerts: alertCount,
@@ -141,6 +141,6 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
       equipmentId: req.params.equipmentId,
       orgId: DEFAULT_ORG_ID,
     });
-    res.status(500).json({ error: "Failed to generate equipment summary" });
+    return res.status(500).json({ error: "Failed to generate equipment summary" });
   }
 }

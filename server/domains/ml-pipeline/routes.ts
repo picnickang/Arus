@@ -85,7 +85,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
       const { performAcousticAnalysis } = await import("../../acoustic-monitoring");
       const analysis = performAcousticAnalysis(acousticData, sampleRate, equipmentType, rpm);
 
-      res.json(analysis);
+      return res.json(analysis);
     })
   );
 
@@ -104,7 +104,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
       const { analyzeAcoustic } = await import("../../acoustic-monitoring");
       const features = analyzeAcoustic(acousticData, sampleRate, rpm);
 
-      res.json(features);
+      return res.json(features);
     })
   );
 
@@ -142,7 +142,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
       };
 
       const result = await trainLSTMForFailurePrediction(config);
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -173,7 +173,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
         };
 
         const result = await trainRFForHealthClassification(config);
-        res.json(result);
+        return res.json(result);
       }
     )
   );
@@ -203,7 +203,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
       };
 
       const result = await trainXGBoostForHealthClassification(config);
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -219,7 +219,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
         const { retrainAllModels } = await import("../../ml-training-pipeline");
         const results = await retrainAllModels(orgId);
 
-        res.json({
+        return res.json({
           message: `Successfully trained ${results.length} models`,
           results,
         });
@@ -289,7 +289,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
         }
 
         await storePrediction(equipmentId, orgId, prediction);
-        res.json(prediction);
+        return res.json(prediction);
       }
     )
   );
@@ -309,7 +309,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
         const { evaluateRetrainingTriggers } = await import("../../ml-retraining-service");
         const triggers = await evaluateRetrainingTriggers();
 
-        res.json(triggers);
+        return res.json(triggers);
       }
     )
   );
@@ -326,7 +326,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
         const { determineOptimalTrainingWindow } = await import("../../adaptive-training-window");
         const windowConfig = await determineOptimalTrainingWindow(orgId, equipmentType);
 
-        res.json(windowConfig);
+        return res.json(windowConfig);
       }
     )
   );
@@ -409,7 +409,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
       const { default: client } = await import("prom-client");
       const metrics = await client.register.metrics();
       res.set("Content-Type", client.register.contentType);
-      res.send(metrics);
+      return res.send(metrics);
     })
   );
 
@@ -424,7 +424,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
       const query = rulModelsQuerySchema.parse(req.query);
       const orgId = query.orgId ?? req.orgId!;
       const models = await dbMlAnalyticsStorage.getRulModels(orgId);
-      res.json(models);
+      return res.json(models);
     })
   );
 
@@ -451,7 +451,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
         isActive: true,
       });
 
-      res.json({ fitResult, storedModel: model });
+      return res.json({ fitResult, storedModel: model });
     })
   );
 
@@ -472,7 +472,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
       const { predictRUL } = await import("../../rul");
       const prediction = predictRUL(currentAge, model.shapeK, model.scaleLambda, quantile);
 
-      res.json({
+      return res.json({
         prediction,
         model: { modelId: model.modelId, componentClass: model.componentClass },
       });

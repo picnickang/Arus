@@ -50,7 +50,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       settingsQuerySchema.parse(req.query);
 
       const settings = await dbNotificationsStorage.getNotificationSettings(orgId);
-      res.json(settings);
+      return res.json(settings);
     })
   );
 
@@ -66,7 +66,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
         return sendNotFound(res, "Notification setting");
       }
 
-      res.json(setting);
+      return res.json(setting);
     })
   );
 
@@ -101,7 +101,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
         body as Parameters<typeof dbNotificationsStorage.updateNotificationSettings>[1],
         orgId
       );
-      res.json(setting);
+      return res.json(setting);
     })
   );
 
@@ -133,7 +133,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
         undefined,
         orgId
       );
-      res.json(queue);
+      return res.json(queue);
     })
   );
 
@@ -170,7 +170,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       const { emailNotificationService } = await import(
         "../../services/email-notification-service"
       );
-      res.json(emailNotificationService.getStatus());
+      return res.json(emailNotificationService.getStatus());
     })
   );
 
@@ -182,7 +182,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
         "../../services/email-notification-service"
       );
       const processedCount = await emailNotificationService.processDigestQueue();
-      res.json({ success: true, processedCount });
+      return res.json({ success: true, processedCount });
     })
   );
 
@@ -195,7 +195,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       );
       const { maxAttempts } = retryQuerySchema.parse(req.query);
       const retryCount = await emailNotificationService.retryFailedNotifications(maxAttempts ?? 3);
-      res.json({ success: true, retryCount });
+      return res.json({ success: true, retryCount });
     })
   );
 
@@ -229,7 +229,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
         await emailNotificationService.retryFailedNotifications(1);
       }
 
-      res.json({
+      return res.json({
         success: true,
         queued: true,
         emailEnabled: status.enabled,

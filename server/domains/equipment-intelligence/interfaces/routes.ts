@@ -37,10 +37,10 @@ router.get("/overview", async (req, res) => {
       return;
     }
     const data = await useCase.getOverview(orgId);
-    res.json(data);
+    return res.json(data);
   } catch (error) {
     logger.error("Error fetching equipment intelligence overview:", error);
-    res.status(500).json({ error: "Failed to fetch equipment intelligence data" });
+    return res.status(500).json({ error: "Failed to fetch equipment intelligence data" });
   }
 });
 
@@ -51,10 +51,10 @@ router.get("/system-details", createAdminMiddleware(), async (req, res) => {
       return;
     }
     const systemDetails = await repository.getSystemDetails(orgId);
-    res.json(systemDetails);
+    return res.json(systemDetails);
   } catch (error) {
     logger.error("Error fetching system details:", error);
-    res.status(500).json({ error: "Failed to fetch system details" });
+    return res.status(500).json({ error: "Failed to fetch system details" });
   }
 });
 
@@ -73,10 +73,10 @@ router.get("/detail/:equipmentId", async (req, res) => {
     if (!data) {
       return res.status(404).json({ error: "Equipment not found" });
     }
-    res.json(data);
+    return res.json(data);
   } catch (error) {
     logger.error("Error fetching equipment detail:", error);
-    res.status(500).json({ error: "Failed to fetch equipment detail" });
+    return res.status(500).json({ error: "Failed to fetch equipment detail" });
   }
 });
 
@@ -99,14 +99,14 @@ router.get("/hub/:equipmentId", async (req, res) => {
     if (!data) {
       return res.status(404).json({ error: "Equipment not found" });
     }
-    res.json(data);
+    return res.json(data);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     logger.error(
       `Error fetching equipment hub: ${message}`,
       error instanceof Error ? error.stack : undefined
     );
-    res.status(500).json({ error: "Failed to fetch equipment hub data" });
+    return res.status(500).json({ error: "Failed to fetch equipment hub data" });
   }
 });
 
@@ -132,10 +132,10 @@ router.post("/diagnostics/:equipmentId/run", async (req, res) => {
     if (!result) {
       return res.status(404).json({ error: "Equipment not found" });
     }
-    res.json(result);
+    return res.json(result);
   } catch (error) {
     logger.error("Error running diagnostic:", error);
-    res.status(500).json({ error: "Failed to run diagnostic" });
+    return res.status(500).json({ error: "Failed to run diagnostic" });
   }
 });
 

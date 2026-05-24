@@ -83,16 +83,17 @@ export function createScheduledReportsRouter(
       });
     }
     next();
+    return undefined;
   };
 
   router.get("/schedules", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const orgId = req.orgId || DEFAULT_ORG_ID;
       const schedules = await schedulerService.getSchedulesByOrg(orgId);
-      res.json({ data: schedules });
+      return res.json({ data: schedules });
     } catch (error) {
       logger.error(LOG_CTX, "Failed to list schedules", String(error));
-      res.status(500).json({ error: "Failed to list schedules" });
+      return res.status(500).json({ error: "Failed to list schedules" });
     }
   });
 
@@ -105,10 +106,10 @@ export function createScheduledReportsRouter(
         return res.status(404).json({ error: "Schedule not found" });
       }
 
-      res.json({ data: schedule });
+      return res.json({ data: schedule });
     } catch (error) {
       logger.error(LOG_CTX, "Failed to get schedule", String(error));
-      res.status(500).json({ error: "Failed to get schedule" });
+      return res.status(500).json({ error: "Failed to get schedule" });
     }
   });
 
@@ -126,10 +127,10 @@ export function createScheduledReportsRouter(
       }
 
       const schedule = await schedulerService.createSchedule(orgId, validation.data, userId);
-      res.status(201).json({ data: schedule });
+      return res.status(201).json({ data: schedule });
     } catch (error) {
       logger.error(LOG_CTX, "Failed to create schedule", String(error));
-      res.status(500).json({ error: "Failed to create schedule" });
+      return res.status(500).json({ error: "Failed to create schedule" });
     }
   });
 
@@ -152,14 +153,14 @@ export function createScheduledReportsRouter(
         validation.data,
         userId
       );
-      res.json({ data: schedule });
+      return res.json({ data: schedule });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (message.includes("not found")) {
         return res.status(404).json({ error: "Schedule not found" });
       }
       logger.error(LOG_CTX, "Failed to update schedule", message);
-      res.status(500).json({ error: "Failed to update schedule" });
+      return res.status(500).json({ error: "Failed to update schedule" });
     }
   });
 
@@ -169,10 +170,10 @@ export function createScheduledReportsRouter(
       const userId = req.user?.id || "system";
 
       await schedulerService.deleteSchedule(idParamSchema.parse(req.params).id, orgId, userId);
-      res.status(204).send();
+      return res.status(204).send();
     } catch (error) {
       logger.error(LOG_CTX, "Failed to delete schedule", String(error));
-      res.status(500).json({ error: "Failed to delete schedule" });
+      return res.status(500).json({ error: "Failed to delete schedule" });
     }
   });
 
@@ -180,14 +181,14 @@ export function createScheduledReportsRouter(
     try {
       const orgId = req.orgId || DEFAULT_ORG_ID;
       await schedulerService.runScheduleNow(idParamSchema.parse(req.params).id, orgId);
-      res.json({ message: "Report generation started" });
+      return res.json({ message: "Report generation started" });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (message.includes("not found")) {
         return res.status(404).json({ error: "Schedule not found" });
       }
       logger.error(LOG_CTX, "Failed to run schedule", message);
-      res.status(500).json({ error: "Failed to run schedule" });
+      return res.status(500).json({ error: "Failed to run schedule" });
     }
   });
 
@@ -196,10 +197,10 @@ export function createScheduledReportsRouter(
       const orgId = req.orgId || DEFAULT_ORG_ID;
       const limit = limitQuerySchema.parse(req.query).limit ?? 10;
       const reports = await schedulerService.getReportHistory(idParamSchema.parse(req.params).id, orgId, limit);
-      res.json({ data: reports });
+      return res.json({ data: reports });
     } catch (error) {
       logger.error(LOG_CTX, "Failed to get report history", String(error));
-      res.status(500).json({ error: "Failed to get report history" });
+      return res.status(500).json({ error: "Failed to get report history" });
     }
   });
 
@@ -208,10 +209,10 @@ export function createScheduledReportsRouter(
       const orgId = req.orgId || DEFAULT_ORG_ID;
       const limit = limitQuerySchema.parse(req.query).limit ?? 50;
       const reports = await schedulerService.getAllReports(orgId, limit);
-      res.json({ data: reports });
+      return res.json({ data: reports });
     } catch (error) {
       logger.error(LOG_CTX, "Failed to list reports", String(error));
-      res.status(500).json({ error: "Failed to list reports" });
+      return res.status(500).json({ error: "Failed to list reports" });
     }
   });
 
@@ -237,15 +238,15 @@ export function createScheduledReportsRouter(
 
       res.setHeader("Content-Type", result.contentType);
       res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
-      res.send(result.content);
+      return res.send(result.content);
     } catch (error) {
       logger.error(LOG_CTX, "Failed to generate report", String(error));
-      res.status(500).json({ error: "Failed to generate report" });
+      return res.status(500).json({ error: "Failed to generate report" });
     }
   });
 
   router.get("/report-types", (req: AuthenticatedRequest, res: Response) => {
-    res.json({
+    return res.json({
       data: REPORT_TYPES.map((type) => ({
         id: type,
         name: type
@@ -312,10 +313,10 @@ export function createScheduledReportsRouter(
     try {
       const orgId = req.orgId || DEFAULT_ORG_ID;
       const settings = await getSettingsFromDb(orgId);
-      res.json({ data: settings });
+      return res.json({ data: settings });
     } catch (error) {
       logger.error(LOG_CTX, "Failed to get settings", String(error));
-      res.status(500).json({ error: "Failed to get settings" });
+      return res.status(500).json({ error: "Failed to get settings" });
     }
   });
 
@@ -358,10 +359,10 @@ export function createScheduledReportsRouter(
 
       const updatedSettings = await getSettingsFromDb(orgId);
       logger.info(LOG_CTX, "Settings updated", { orgId, updates });
-      res.json({ data: updatedSettings });
+      return res.json({ data: updatedSettings });
     } catch (error) {
       logger.error(LOG_CTX, "Failed to update settings", String(error));
-      res.status(500).json({ error: "Failed to update settings" });
+      return res.status(500).json({ error: "Failed to update settings" });
     }
   });
 

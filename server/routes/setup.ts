@@ -41,6 +41,7 @@ function localOnlyGuard(req: Request, res: Response, next: NextFunction) {
     });
   }
   next();
+  return undefined;
 }
 
 const getSetting = getSetupSetting;

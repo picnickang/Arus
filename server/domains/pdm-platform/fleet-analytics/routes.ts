@@ -19,10 +19,10 @@ router.post("/baselines/compute", async (req: Request, res: Response) => {
     }
     const { equipmentType } = parsed.data;
     const result = await fleetAnalytics.computeBaselines(orgId, equipmentType);
-    res.json(result);
+    return res.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -34,10 +34,10 @@ router.get("/baselines", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "equipmentType query param required" });
     }
     const result = await fleetAnalytics.getBaselines(orgId, equipmentType);
-    res.json(result);
+    return res.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -50,10 +50,10 @@ router.get("/compare", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "equipmentId and equipmentType required" });
     }
     const result = await fleetAnalytics.compareToFleet(orgId, equipmentId, equipmentType);
-    res.json(result);
+    return res.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 

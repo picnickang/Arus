@@ -24,6 +24,7 @@ export function requireAdminRole(req: Request, res: Response, next: NextFunction
   }
 
   next();
+  return undefined;
 }
 
 /**

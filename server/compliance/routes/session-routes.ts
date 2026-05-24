@@ -18,7 +18,7 @@ router.get("/sessions", requireComplianceAccess, async (req: Request, res: Respo
       return res.status(400).json({ error: "User ID required" });
     }
     const sessions = await sessionManagementService.getUserSessions(orgId, userId);
-    res.json({
+    return res.json({
       success: true,
       data: sessions.map((s) => ({
         id: s.id,
@@ -34,7 +34,7 @@ router.get("/sessions", requireComplianceAccess, async (req: Request, res: Respo
     });
   } catch (error) {
     logger.error("[Compliance] Get sessions error:", undefined, error);
-    res.status(500).json({ error: "Failed to get sessions" });
+    return res.status(500).json({ error: "Failed to get sessions" });
   }
 });
 
@@ -52,7 +52,7 @@ router.post("/sessions/validate", requireComplianceAccess, async (req: Request, 
       updateActivity: false,
       orgId,
     });
-    res.json({
+    return res.json({
       success: true,
       valid: result.valid,
       expired: result.expired,
@@ -62,7 +62,7 @@ router.post("/sessions/validate", requireComplianceAccess, async (req: Request, 
     });
   } catch (error) {
     logger.error("[Compliance] Validate session error:", undefined, error);
-    res.status(500).json({ error: "Failed to validate session" });
+    return res.status(500).json({ error: "Failed to validate session" });
   }
 });
 
@@ -74,10 +74,10 @@ router.post("/sessions/revoke", requireComplianceAccess, async (req: Request, re
       return res.status(400).json({ error: "Session ID required" });
     }
     await sessionManagementService.revokeSession(sessionId, adminId, reason || "Admin revocation");
-    res.json({ success: true, message: "Session revoked successfully" });
+    return res.json({ success: true, message: "Session revoked successfully" });
   } catch (error) {
     logger.error("[Compliance] Revoke session error:", undefined, error);
-    res.status(500).json({ error: "Failed to revoke session" });
+    return res.status(500).json({ error: "Failed to revoke session" });
   }
 });
 
@@ -101,10 +101,10 @@ router.post(
         adminId,
         reason || "Admin bulk revocation"
       );
-      res.json({ success: true, message: "All sessions revoked for user" });
+      return res.json({ success: true, message: "All sessions revoked for user" });
     } catch (error) {
       logger.error("[Compliance] Revoke all sessions error:", undefined, error);
-      res.status(500).json({ error: "Failed to revoke sessions" });
+      return res.status(500).json({ error: "Failed to revoke sessions" });
     }
   }
 );
@@ -112,10 +112,10 @@ router.post(
 router.post("/sessions/cleanup", requireComplianceAccess, async (req: Request, res: Response) => {
   try {
     const count = await sessionManagementService.cleanupExpiredSessions();
-    res.json({ success: true, message: `Cleaned up ${count} expired sessions`, count });
+    return res.json({ success: true, message: `Cleaned up ${count} expired sessions`, count });
   } catch (error) {
     logger.error("[Compliance] Session cleanup error:", undefined, error);
-    res.status(500).json({ error: "Failed to clean up sessions" });
+    return res.status(500).json({ error: "Failed to clean up sessions" });
   }
 });
 
@@ -129,10 +129,10 @@ router.get("/login-events", requireComplianceAccess, async (req: Request, res: R
       limit: Number.parseInt(req.query.limit as string) || 100,
       offset: Number.parseInt(req.query.offset as string) ?? 0,
     });
-    res.json({ success: true, data: events });
+    return res.json({ success: true, data: events });
   } catch (error) {
     logger.error("[Compliance] Login events error:", undefined, error);
-    res.status(500).json({ error: "Failed to get login events" });
+    return res.status(500).json({ error: "Failed to get login events" });
   }
 });
 
@@ -154,10 +154,10 @@ router.post(
         flagType || "manual_review",
         metadata
       );
-      res.json({ success: true, message: "Session flagged successfully" });
+      return res.json({ success: true, message: "Session flagged successfully" });
     } catch (error) {
       logger.error("[Compliance] Flag suspicious session error:", undefined, error);
-      res.status(500).json({ error: "Failed to flag session" });
+      return res.status(500).json({ error: "Failed to flag session" });
     }
   }
 );

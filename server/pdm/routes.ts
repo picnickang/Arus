@@ -120,10 +120,10 @@ router.get("/dashboard", async (req, res) => {
       dashboardData.riskQueue.resolved = filterRiskQueue(dashboardData.riskQueue.resolved, filters);
     }
 
-    res.json(validateResponse(pdmDashboardResponseSchema, dashboardData, "GET /api/pdm/dashboard"));
+    return res.json(validateResponse(pdmDashboardResponseSchema, dashboardData, "GET /api/pdm/dashboard"));
   } catch (error) {
     logger.error("Error fetching PdM dashboard data:", error);
-    res.status(500).json({ error: "Failed to fetch dashboard data" });
+    return res.status(500).json({ error: "Failed to fetch dashboard data" });
   }
 });
 
@@ -136,7 +136,7 @@ router.get("/filter-options", async (req, res) => {
       pdmPostgresRepository.getEquipmentTypes(orgId),
     ]);
 
-    res.json(
+    return res.json(
       validateResponse(
         pdmFilterOptionsResponseSchema,
         { vessels, equipmentTypes },
@@ -145,7 +145,7 @@ router.get("/filter-options", async (req, res) => {
     );
   } catch (error) {
     logger.error("Error fetching filter options:", error);
-    res.status(500).json({ error: "Failed to fetch filter options" });
+    return res.status(500).json({ error: "Failed to fetch filter options" });
   }
 });
 
@@ -157,12 +157,12 @@ router.get("/risk-queue/:status", async (req, res) => {
       return res.status(400).json({ error: "Invalid status. Must be new, active, or resolved." });
     }
     const items = await getRiskQueueUseCase.execute({ orgId, status: statusResult.data });
-    res.json(
+    return res.json(
       validateResponse(pdmRiskQueueResponseSchema, items, "GET /api/pdm/risk-queue/:status")
     );
   } catch (error) {
     logger.error("Error fetching risk queue:", error);
-    res.status(500).json({ error: "Failed to fetch risk queue" });
+    return res.status(500).json({ error: "Failed to fetch risk queue" });
   }
 });
 
@@ -177,10 +177,10 @@ router.get("/asset/:equipmentId", async (req, res) => {
     if (!assetDetail) {
       return res.status(404).json({ error: "Asset not found" });
     }
-    res.json(assetDetail);
+    return res.json(assetDetail);
   } catch (error) {
     logger.error("Error fetching asset detail:", error);
-    res.status(500).json({ error: "Failed to fetch asset detail" });
+    return res.status(500).json({ error: "Failed to fetch asset detail" });
   }
 });
 
@@ -193,10 +193,10 @@ router.post("/risk/:itemId/acknowledge", async (req, res) => {
       return res.status(400).json({ error: "Item ID is required" });
     }
     await acknowledgeRiskUseCase.execute({ orgId, itemId, userId });
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (error) {
     logger.error("Error acknowledging risk item:", error);
-    res.status(500).json({ error: "Failed to acknowledge risk item" });
+    return res.status(500).json({ error: "Failed to acknowledge risk item" });
   }
 });
 
@@ -209,10 +209,10 @@ router.post("/risk/:itemId/create-work-order", async (req, res) => {
       return res.status(400).json({ error: "Item ID is required" });
     }
     const result = await createWorkOrderFromRiskUseCase.execute({ orgId, itemId, userId });
-    res.json({ success: true, workOrderId: result.workOrderId });
+    return res.json({ success: true, workOrderId: result.workOrderId });
   } catch (error) {
     logger.error("Error creating work order from risk:", error);
-    res.status(500).json({ error: "Failed to create work order" });
+    return res.status(500).json({ error: "Failed to create work order" });
   }
 });
 
@@ -243,10 +243,10 @@ router.get("/schedule", async (req, res) => {
       autoPopulate: filters.autoPopulate,
     });
 
-    res.json(result.data);
+    return res.json(result.data);
   } catch (error) {
     logger.error("Error fetching PdM schedule:", error);
-    res.status(500).json({ error: "Failed to fetch schedule" });
+    return res.status(500).json({ error: "Failed to fetch schedule" });
   }
 });
 
@@ -323,17 +323,17 @@ router.get("/export/schedule", async (req, res) => {
       const csv = [headers.join(","), ...rows].join("\n");
       res.setHeader("Content-Type", "text/csv");
       res.setHeader("Content-Disposition", "attachment; filename=pdm-schedule-export.csv");
-      res.send(csv);
+      return res.send(csv);
     } else if (format === "json") {
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Content-Disposition", "attachment; filename=pdm-schedule-export.json");
-      res.json(allTasks);
+      return res.json(allTasks);
     } else {
-      res.status(400).json({ error: "Invalid format. Supported: csv, json" });
+      return res.status(400).json({ error: "Invalid format. Supported: csv, json" });
     }
   } catch (error) {
     logger.error("Error exporting schedule:", error);
-    res.status(500).json({ error: "Failed to export schedule" });
+    return res.status(500).json({ error: "Failed to export schedule" });
   }
 });
 
@@ -393,17 +393,17 @@ router.get("/export/risk-queue", async (req, res) => {
       const csv = [headers.join(","), ...rows].join("\n");
       res.setHeader("Content-Type", "text/csv");
       res.setHeader("Content-Disposition", "attachment; filename=risk-queue-export.csv");
-      res.send(csv);
+      return res.send(csv);
     } else if (format === "json") {
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Content-Disposition", "attachment; filename=risk-queue-export.json");
-      res.json(allItems);
+      return res.json(allItems);
     } else {
-      res.status(400).json({ error: "Invalid format. Supported: csv, json" });
+      return res.status(400).json({ error: "Invalid format. Supported: csv, json" });
     }
   } catch (error) {
     logger.error("Error exporting risk queue:", error);
-    res.status(500).json({ error: "Failed to export risk queue" });
+    return res.status(500).json({ error: "Failed to export risk queue" });
   }
 });
 
@@ -448,15 +448,15 @@ router.get("/export/kpis", async (req, res) => {
       const csv = [headers.join(","), ...rows].join("\n");
       res.setHeader("Content-Type", "text/csv");
       res.setHeader("Content-Disposition", "attachment; filename=kpis-export.csv");
-      res.send(csv);
+      return res.send(csv);
     } else {
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Content-Disposition", "attachment; filename=kpis-export.json");
-      res.json(kpis);
+      return res.json(kpis);
     }
   } catch (error) {
     logger.error("Error exporting KPIs:", error);
-    res.status(500).json({ error: "Failed to export KPIs" });
+    return res.status(500).json({ error: "Failed to export KPIs" });
   }
 });
 
@@ -607,7 +607,7 @@ router.get("/equipment/:equipmentId/fleet-failure-pattern", async (req, res) => 
     const hasMore = rows.length > limit;
     const pageRows = hasMore ? rows.slice(0, limit) : rows;
 
-    res.json({
+    return res.json({
       equipmentId,
       equipmentType: target.type,
       vesselId: target.vesselId,
@@ -632,7 +632,7 @@ router.get("/equipment/:equipmentId/fleet-failure-pattern", async (req, res) => 
     });
   } catch (error) {
     logger.error("Error fetching fleet failure pattern:", error);
-    res.status(500).json({ error: "Failed to fetch fleet failure pattern" });
+    return res.status(500).json({ error: "Failed to fetch fleet failure pattern" });
   }
 });
 
@@ -670,10 +670,10 @@ router.get("/equipment/:equipmentId/telemetry", async (req, res) => {
       status: r.status,
     }));
 
-    res.json(formatted);
+    return res.json(formatted);
   } catch (error) {
     logger.error("Error fetching equipment telemetry:", error);
-    res.status(500).json({ error: "Failed to fetch telemetry data" });
+    return res.status(500).json({ error: "Failed to fetch telemetry data" });
   }
 });
 
@@ -683,15 +683,15 @@ router.get("/telemetry/trends", async (req, res) => {
     const hours = parseInt(req.query.hours as string) || 24;
 
     const trends = await telemetryStorage.getTelemetryTrends(equipmentId, hours);
-    res.json(trends);
+    return res.json(trends);
   } catch (error) {
     logger.error("Error fetching telemetry trends:", error);
-    res.status(500).json({ error: "Failed to fetch telemetry trends" });
+    return res.status(500).json({ error: "Failed to fetch telemetry trends" });
   }
 });
 
 router.get("/health", async (_req, res) => {
-  res.json({
+  return res.json({
     status: "operational",
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
@@ -717,20 +717,20 @@ router.get("/alerts", async (req, res) => {
       at: item.detectedAt,
       acknowledged: item.status === "resolved",
     }));
-    res.json(alerts);
+    return res.json(alerts);
   } catch (error) {
     logger.error("Error fetching PdM alerts:", error);
-    res.json([]);
+    return res.json([]);
   }
 });
 
 router.get("/baseline/:vesselId/:assetId", async (req, res) => {
   try {
     const { vesselId, assetId } = req.params;
-    res.json({ baselines: [], vesselId, assetId });
+    return res.json({ baselines: [], vesselId, assetId });
   } catch (error) {
     logger.error("Error fetching baselines:", error);
-    res.status(500).json({ error: "Failed to fetch baselines" });
+    return res.status(500).json({ error: "Failed to fetch baselines" });
   }
 });
 
@@ -759,7 +759,7 @@ router.post("/analyze/bearing", async (req, res) => {
     const worstZ = Math.max(...Object.values(scores).map(Math.abs));
     const severity = worstZ > 3 ? "high" : worstZ > 2 ? "warn" : "info";
 
-    res.json({
+    return res.json({
       analysis: {
         severity,
         worstZ,
@@ -776,7 +776,7 @@ router.post("/analyze/bearing", async (req, res) => {
     });
   } catch (error) {
     logger.error("Error analyzing bearing data:", error);
-    res.status(500).json({ error: "Failed to analyze bearing data" });
+    return res.status(500).json({ error: "Failed to analyze bearing data" });
   }
 });
 
@@ -810,7 +810,7 @@ router.post("/analyze/pump", async (req, res) => {
       Object.values(scores).length > 0 ? Math.max(...Object.values(scores).map(Math.abs)) : 0;
     const severity = worstZ > 3 ? "high" : worstZ > 2 ? "warn" : "info";
 
-    res.json({
+    return res.json({
       analysis: {
         severity,
         worstZ,
@@ -821,7 +821,7 @@ router.post("/analyze/pump", async (req, res) => {
     });
   } catch (error) {
     logger.error("Error analyzing pump data:", error);
-    res.status(500).json({ error: "Failed to analyze pump data" });
+    return res.status(500).json({ error: "Failed to analyze pump data" });
   }
 });
 

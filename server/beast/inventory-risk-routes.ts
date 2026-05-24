@@ -50,7 +50,7 @@ router.post("/inventory/analyze", async (req, res) => {
       orgId,
       includeInactive || false
     );
-    res.json({
+    return res.json({
       success: true,
       data: riskSummary,
       metadata: {
@@ -62,7 +62,7 @@ router.post("/inventory/analyze", async (req, res) => {
     });
   } catch (error) {
     logger.error(`[Beast Mode API] Inventory risk analysis error:`, undefined, error);
-    res
+    return res
       .status(500)
       .json({
         success: false,
@@ -108,14 +108,14 @@ router.get("/inventory/equipment/:equipmentId", async (req, res) => {
           error: `Equipment ${equipmentId} not found or no parts history available`,
         });
     }
-    res.json({
+    return res.json({
       success: true,
       data: equipmentRisk,
       metadata: { analysisDate: new Date().toISOString(), podVersion: "1.0", orgId, equipmentId },
     });
   } catch (error) {
     logger.error(`[Beast Mode API] Equipment parts risk analysis error:`, undefined, error);
-    res
+    return res
       .status(500)
       .json({
         success: false,
@@ -151,14 +151,14 @@ router.get("/inventory/critical", async (req, res) => {
     }
     logger.info(`[Beast Mode API] Critical parts analysis for org: ${orgId}, threshold: ${riskThreshold}`);
     const criticalParts = await getInventoryRiskAnalyzer().getCriticalParts(orgId, riskThreshold);
-    res.json({
+    return res.json({
       success: true,
       data: { criticalParts, riskThreshold, criticalCount: criticalParts.length },
       metadata: { analysisDate: new Date().toISOString(), podVersion: "1.0", orgId, riskThreshold },
     });
   } catch (error) {
     logger.error(`[Beast Mode API] Critical parts analysis error:`, undefined, error);
-    res
+    return res
       .status(500)
       .json({
         success: false,

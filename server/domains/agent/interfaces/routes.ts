@@ -118,6 +118,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       return res.status(403).json({ error: "Admin access required" });
     }
     next();
+    return undefined;
   };
 
   const requireMaintenanceRole: RoleMiddleware = (req, res, next) => {
@@ -127,6 +128,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       return res.status(403).json({ error: "Maintenance role required" });
     }
     next();
+    return undefined;
   };
 
   registerChatRoutes(app, { orchestrator, upload, rateLimit });

@@ -1,0 +1,151 @@
+ENTER PERSISTENT STRICT-MODE HARDENING MODE.
+
+Current state:
+- default npx tsc --noEmit = clean
+- explicit-any = 0
+- unsound casts = 0
+- 1 documented justified import-boundary cast remains intentionally
+- strict-mode target exposes ~4,802 errors
+
+Mission:
+Reduce strict-mode TypeScript errors to 0 safely and autonomously.
+
+Source config:
+tsconfig.target.json
+
+IMPORTANT:
+Do NOT weaken the current working build.
+Do NOT disable strict flags permanently.
+Do NOT stop after one lane, one commit, one merge, or one flag.
+
+Continue automatically until:
+1. strict-mode errors = 0
+OR
+2. a true unsafe architectural blocker requires human intervention.
+
+==================================================
+STRICT FLAG EXECUTION ORDER
+==================================================
+
+Work ONE flag at a time in this exact order:
+
+1. noImplicitReturns
+2. noPropertyAccessFromIndexSignature
+3. noUncheckedIndexedAccess
+4. exactOptionalPropertyTypes
+5. remaining strict-target errors
+
+Do NOT enable all strict flags globally at once.
+
+Use either:
+- temporary tsconfig overlays
+OR
+- dedicated strict-check commands
+
+==================================================
+LANE STRATEGY
+==================================================
+
+For the active flag:
+1. collect all errors
+2. cluster by directory/file
+3. choose the safest high-density lane
+4. fix only that lane
+5. validate
+6. commit/merge
+7. continue immediately
+
+Prefer:
+- local narrowing
+- helper guards
+- DTO refinement
+- safer optional handling
+- explicit return paths
+- typed adapters
+- generic constraints
+- wrapper functions
+
+Avoid:
+- broad rewrites
+- global utility churn
+- unsafe casts
+- fake optional defaults
+- semantic behavior changes
+
+==================================================
+HARD RULES
+==================================================
+
+NEVER:
+- introduce explicit any
+- use as any
+- add ts-ignore
+- add eslint-disable
+- weaken runtime safety
+- bypass validation
+- hide undefined behavior instead of fixing it
+
+PRESERVE:
+- runtime semantics
+- API contracts
+- domain boundaries
+- realtime/event behavior
+- repository behavior
+- ML workflow behavior
+- import/export behavior
+
+==================================================
+VALIDATION AFTER EVERY LANE
+==================================================
+
+Run:
+- npx tsc --noEmit
+- strict-check for the active flag
+- scoped eslint for touched files
+- explicit-any baseline check
+- cast count check
+- architect/code review if diff exists
+
+If validation fails:
+- repair automatically
+- retry up to 3 times
+- if still failing, revert lane and choose a safer target
+
+==================================================
+HIGH-RISK AREAS
+==================================================
+
+Use extreme caution in:
+- shared/**
+- websocket/realtime systems
+- auth/security
+- external integrations
+- ORM/repository generics
+- orchestration/runtime loaders
+- ML prediction pipelines
+
+Prefer wrapper narrowing over shared contract rewrites.
+
+==================================================
+CONTINUATION DIRECTIVE
+==================================================
+
+After every successful lane:
+- commit/merge
+- immediately continue
+- do not enter idle/reporting state
+
+==================================================
+FINAL REPORT ONLY WHEN STOPPING
+==================================================
+
+Provide:
+- initial strict errors → final strict errors
+- per-flag completion summary
+- files changed
+- blockers, if any
+- remaining high-risk unresolved areas
+- default tsc result
+- explicit-any result
+- cast result
+- architectural risk assessment

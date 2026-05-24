@@ -102,9 +102,9 @@ router.get("/", requireOrgId, async (req: Request, res: Response) => {
     q = sql`${q} ORDER BY oo.start_time DESC LIMIT 200`;
 
     const result = await db.execute(q);
-    res.json(getRows(result));
+    return res.json(getRows(result));
   } catch (err) {
-    res.status(500).json({ error: "Failed to list operations" });
+    return res.status(500).json({ error: "Failed to list operations" });
   }
 });
 
@@ -147,12 +147,12 @@ router.post("/", requireOrgId, async (req: Request, res: Response) => {
       ) RETURNING *
     `);
 
-    res.status(201).json(getFirstRow(result));
+    return res.status(201).json(getFirstRow(result));
   } catch (err) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: "Validation failed", details: err.flatten() });
     }
-    res.status(500).json({ error: "Failed to create operation" });
+    return res.status(500).json({ error: "Failed to create operation" });
   }
 });
 
@@ -180,12 +180,12 @@ router.patch("/:id/complete", requireOrgId, async (req: Request, res: Response) 
       RETURNING *
     `);
 
-    res.json(getFirstRow(result));
+    return res.json(getFirstRow(result));
   } catch (err) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: "Validation failed", details: err.flatten() });
     }
-    res.status(500).json({ error: "Failed to complete operation" });
+    return res.status(500).json({ error: "Failed to complete operation" });
   }
 });
 
@@ -216,7 +216,7 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
 
     const ops = getRows(result);
 
-    res.json({
+    return res.json({
       vesselId,
       period: { days: d, from: cutoff, to: new Date() },
       totalOperations: ops.reduce((s, o) => s + Number(o.count), 0),
@@ -241,7 +241,7 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
       byType: ops,
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to get operations summary" });
+    return res.status(500).json({ error: "Failed to get operations summary" });
   }
 });
 

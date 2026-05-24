@@ -102,7 +102,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
       const peakValue = Math.max(...data.map(Math.abs));
       const crestFactor = peakValue / rmsValue;
 
-      res.json({
+      return res.json({
         equipmentId,
         sensorId,
         analysis: {
@@ -158,7 +158,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
         });
       }
 
-      res.json({
+      return res.json({
         equipmentId,
         severity,
         metrics: {
@@ -209,7 +209,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
         D: "Unacceptable - damage may occur",
       };
 
-      res.json({
+      return res.json({
         equipmentId,
         machineClass,
         rmsVelocity,
@@ -270,7 +270,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
         });
       }
 
-      res.json({
+      return res.json({
         equipmentId,
         bearingSpec,
         faultFrequencies,
@@ -299,7 +299,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
       const bsf = (Pd / (2 * Bd)) * fr * (1 - Math.pow((Bd / Pd) * Math.cos(theta), 2));
       const ftf = (fr / 2) * (1 - (Bd / Pd) * Math.cos(theta));
 
-      res.json({
+      return res.json({
         input: { ballCount: n, ballDiameter: Bd, pitchDiameter: Pd, contactAngle, shaftRpm: rpm },
         frequencies: {
           BPFO: Math.round(bpfo * 100) / 100,
@@ -334,7 +334,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
       const skewness =
         data.reduce((a: number, b: number) => a + Math.pow((b - mean) / std, 3), 0) / n;
 
-      res.json({
+      return res.json({
         features: {
           mean,
           std,
@@ -369,7 +369,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
         recommendation: "Continue normal monitoring",
       };
 
-      res.json(analysis);
+      return res.json(analysis);
     })
   );
 
@@ -383,7 +383,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
       const { equipmentId, hours } = acousticHistoryQuerySchema.parse(req.query);
       void equipmentId;
       void hours;
-      res.json([]);
+      return res.json([]);
     })
   );
 }

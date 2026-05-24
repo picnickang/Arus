@@ -43,7 +43,7 @@ export function registerCIIRoutes(app: Express, config: VesselPerformanceRoutesC
       }
 
       res.setHeader("Cache-Control", "public, max-age=3600");
-      res.json(rating);
+      return res.json(rating);
     })
   );
 
@@ -57,7 +57,7 @@ export function registerCIIRoutes(app: Express, config: VesselPerformanceRoutesC
       const trend = await ciiService.getCIITrend(vesselId, orgId);
 
       res.setHeader("Cache-Control", "public, max-age=3600");
-      res.json({ vesselId, trend, monthsAvailable: trend.length });
+      return res.json({ vesselId, trend, monthsAvailable: trend.length });
     })
   );
 }

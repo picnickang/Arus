@@ -172,7 +172,7 @@ export function registerDataExportRoutes(app: Express, deps: DataExportDependenc
           conflictResolution: body.conflictResolution || "upsert",
         });
 
-        res.json(result);
+        return res.json(result);
       } finally {
         await fs.unlink(req.file.path).catch(() => undefined);
       }

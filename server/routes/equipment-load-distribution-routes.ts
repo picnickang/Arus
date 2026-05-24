@@ -48,7 +48,7 @@ router.get("/:id/load-distribution", async (req, res) => {
     ).length;
 
     res.setHeader("Cache-Control", "public, max-age=300");
-    res.json({
+    return res.json({
       bins: loadDistribution,
       metadata: {
         equipmentId,
@@ -64,7 +64,7 @@ router.get("/:id/load-distribution", async (req, res) => {
     });
   } catch (error) {
     logger.error("Failed to compute load distribution:", undefined, error);
-    res.status(500).json({ message: "Failed to compute load distribution" });
+    return res.status(500).json({ message: "Failed to compute load distribution" });
   }
 });
 

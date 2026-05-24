@@ -55,7 +55,7 @@ export function registerLlmAnalysisRoutes(
       }
 
       const analysis = await analyzeEquipmentHealth(telemetryData, equipmentId, equipmentType);
-      res.json(analysis);
+      return res.json(analysis);
     })
   );
 
@@ -78,7 +78,7 @@ export function registerLlmAnalysisRoutes(
       }
 
       const fleetAnalysis = await analyzeFleetHealth(equipmentHealth, telemetryTrends);
-      res.json(fleetAnalysis);
+      return res.json(fleetAnalysis);
     })
   );
 
@@ -102,7 +102,7 @@ export function registerLlmAnalysisRoutes(
         equipmentType
       );
 
-      res.json(recommendations);
+      return res.json(recommendations);
     })
   );
 
@@ -165,7 +165,7 @@ export function registerLlmAnalysisRoutes(
         }
       }
 
-      res.json({
+      return res.json({
         equipment: {
           device,
           health: equipmentHealthData,
@@ -265,7 +265,7 @@ export function registerLlmAnalysisRoutes(
         analysisTimestamp: new Date().toISOString(),
       };
 
-      res.json({
+      return res.json({
         success: true,
         intelligence,
       });

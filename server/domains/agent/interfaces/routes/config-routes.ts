@@ -39,7 +39,7 @@ export function registerConfigRoutes(app: Express, deps: ConfigRouteDeps) {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
         const config = await agentRepo.config.get(orgId);
-        res.json(
+        return res.json(
           config || {
             defaultModel: "gpt-4o-mini",
             maxIterationsPerRun: 10,
@@ -56,7 +56,7 @@ export function registerConfigRoutes(app: Express, deps: ConfigRouteDeps) {
           }
         );
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -106,9 +106,9 @@ export function registerConfigRoutes(app: Express, deps: ConfigRouteDeps) {
           { orgId, userId: (req as AuthenticatedRequest).user?.id }
         );
 
-        res.json(config);
+        return res.json(config);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -138,9 +138,9 @@ export function registerConfigRoutes(app: Express, deps: ConfigRouteDeps) {
           autoTriggerThreshold: 0.85,
         };
         const config = await agentRepo.config.upsert(defaults);
-        res.json(config);
+        return res.json(config);
       } catch (error: unknown) {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );

@@ -20,9 +20,9 @@ pipelineRouter.get("/purchase-requests/:id/pipeline", async (req: Request, res: 
       return res.status(404).json({ error: "Purchase request not found" });
     }
 
-    res.json(pipeline);
+    return res.json(pipeline);
   } catch (error) {
     logger.error("[Purchasing Pipeline] Error:", undefined, error);
-    res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: (error as Error).message });
   }
 });

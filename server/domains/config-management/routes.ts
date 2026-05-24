@@ -65,7 +65,7 @@ export function registerConfigManagementRoutes(
         });
       }
 
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -89,7 +89,7 @@ export function registerConfigManagementRoutes(
         }
       }
 
-      res.json({ config: sanitized });
+      return res.json({ config: sanitized });
     })
   );
 
@@ -111,7 +111,7 @@ export function registerConfigManagementRoutes(
       const sensitiveKeys = ["PASSWORD", "SECRET", "KEY", "TOKEN", "PRIVATE"];
       const isSensitive = sensitiveKeys.some((s) => key.includes(s));
 
-      res.json({
+      return res.json({
         key,
         value: isSensitive ? "***REDACTED***" : value,
         isCritical,
@@ -154,7 +154,7 @@ export function registerConfigManagementRoutes(
         });
       }
 
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -187,7 +187,7 @@ export function registerConfigManagementRoutes(
         });
       }
 
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -211,7 +211,7 @@ export function registerConfigManagementRoutes(
         .orderBy(sql`${configAuditLog.changedAt} DESC`)
         .limit(limit ? Number.parseInt(limit as string) : 100);
 
-      res.json(auditLogs);
+      return res.json(auditLogs);
     })
   );
 

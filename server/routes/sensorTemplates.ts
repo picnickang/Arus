@@ -60,10 +60,10 @@ router.get("/", async (req, res) => {
       );
     }
 
-    res.json(filtered);
+    return res.json(filtered);
   } catch (error) {
     logger.error("[SensorTemplates] Error fetching templates:", undefined, error);
-    res.status(500).json({
+    return res.status(500).json({
       error: "Failed to fetch sensor templates",
       message: error instanceof Error ? error.message : String(error),
     });
@@ -95,10 +95,10 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ error: "Sensor template not found" });
     }
 
-    res.json(template);
+    return res.json(template);
   } catch (error) {
     logger.error(`[SensorTemplates] Error fetching template ${req.params.id}:`, undefined, error);
-    res.status(500).json({
+    return res.status(500).json({
       error: "Failed to fetch sensor template",
       message: error instanceof Error ? error.message : String(error),
     });
@@ -146,7 +146,7 @@ router.post("/", async (req, res) => {
       })
       .returning();
 
-    res.status(201).json(newTemplate);
+    return res.status(201).json(newTemplate);
   } catch (error) {
     logger.error("[SensorTemplates] Error creating template:", undefined, error);
     if (error instanceof z.ZodError) {
@@ -155,7 +155,7 @@ router.post("/", async (req, res) => {
         details: error.errors,
       });
     }
-    res.status(500).json({
+    return res.status(500).json({
       error: "Failed to create sensor template",
       message: error instanceof Error ? error.message : String(error),
     });
@@ -217,7 +217,7 @@ router.put("/:id", async (req, res) => {
       .where(eq(sensorTemplates.id, id))
       .returning();
 
-    res.json(updatedTemplate);
+    return res.json(updatedTemplate);
   } catch (error) {
     logger.error(`[SensorTemplates] Error updating template ${req.params.id}:`, undefined, error);
     if (error instanceof z.ZodError) {
@@ -226,7 +226,7 @@ router.put("/:id", async (req, res) => {
         details: error.errors,
       });
     }
-    res.status(500).json({
+    return res.status(500).json({
       error: "Failed to update sensor template",
       message: error instanceof Error ? error.message : String(error),
     });
@@ -290,10 +290,10 @@ router.delete("/:id", async (req, res) => {
     // Delete template
     await db.delete(sensorTemplates).where(eq(sensorTemplates.id, id));
 
-    res.status(204).send();
+    return res.status(204).send();
   } catch (error) {
     logger.error(`[SensorTemplates] Error deleting template ${req.params.id}:`, undefined, error);
-    res.status(500).json({
+    return res.status(500).json({
       error: "Failed to delete sensor template",
       message: error instanceof Error ? error.message : String(error),
     });
@@ -375,10 +375,10 @@ router.post("/:id/copy", async (req, res) => {
       })
       .returning();
 
-    res.status(201).json(newTemplate);
+    return res.status(201).json(newTemplate);
   } catch (error) {
     logger.error(`[SensorTemplates] Error copying template ${req.params.id}:`, undefined, error);
-    res.status(500).json({
+    return res.status(500).json({
       error: "Failed to copy sensor template",
       message: error instanceof Error ? error.message : String(error),
     });

@@ -88,7 +88,7 @@ router.get("/", async (req: Request, res: Response) => {
   };
 
   const orders = await repo.listServiceOrders(orgId, filters);
-  res.json(orders);
+  return res.json(orders);
 });
 
 // ── GET /:id ───────────────────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ router.get("/:id", async (req: Request, res: Response) => {
   if (!order) {
     return res.status(404).json({ error: "Service order not found" });
   }
-  res.json(order);
+  return res.json(order);
 });
 
 // ── POST / ─────────────────────────────────────────────────────────────────────
@@ -129,7 +129,7 @@ router.post("/", async (req: Request, res: Response) => {
       tx as { insert: typeof db.insert }
     );
   });
-  res.status(201).json(order);
+  return res.status(201).json(order);
 });
 
 // ── PATCH /:id ─────────────────────────────────────────────────────────────────
@@ -163,7 +163,7 @@ router.patch("/:id", async (req: Request, res: Response) => {
     await triggerProcurementAggregation(existing.workOrderId, orgId, existing.status as string, newStatus as string);
   }
 
-  res.json(updated);
+  return res.json(updated);
 });
 
 // ── PATCH /:id/revise-cost — Improvement #8 ───────────────────────────────────
@@ -218,7 +218,7 @@ router.patch("/:id/revise-cost", async (req: Request, res: Response) => {
     }
   );
 
-  res.json(updated);
+  return res.json(updated);
 });
 
 // ── POST /:id/send ─────────────────────────────────────────────────────────────
@@ -278,7 +278,7 @@ router.post("/:id/send", async (req: Request, res: Response) => {
     }
   }
 
-  res.json({ ...updated, emailQueued });
+  return res.json({ ...updated, emailQueued });
 });
 
 // ── POST /:id/confirm ──────────────────────────────────────────────────────────
@@ -302,7 +302,7 @@ router.post("/:id/confirm", async (req: Request, res: Response) => {
     "confirmed",
     req.body.userId
   );
-  res.json(updated);
+  return res.json(updated);
 });
 
 // ── POST /:id/start ────────────────────────────────────────────────────────────
@@ -326,7 +326,7 @@ router.post("/:id/start", async (req: Request, res: Response) => {
     "in_progress",
     req.body.userId
   );
-  res.json(updated);
+  return res.json(updated);
 });
 
 // ── POST /:id/complete ─────────────────────────────────────────────────────────
@@ -366,7 +366,7 @@ router.post("/:id/complete", async (req: Request, res: Response) => {
     }
   }
 
-  res.json(updated);
+  return res.json(updated);
 });
 
 // ── POST /:id/cancel ───────────────────────────────────────────────────────────
@@ -392,7 +392,7 @@ router.post("/:id/cancel", async (req: Request, res: Response) => {
     { reason: req.body.reason }
   );
   await triggerProcurementAggregation(existing.workOrderId, orgId, existing.status, "cancelled");
-  res.json(updated);
+  return res.json(updated);
 });
 
 // ── GET /:id/events ────────────────────────────────────────────────────────────
@@ -400,7 +400,7 @@ router.get("/:id/events", async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
 
   const events = await repo.getServiceOrderEvents(req.params.id, orgId);
-  res.json(events);
+  return res.json(events);
 });
 
 // ── DELETE /:id ────────────────────────────────────────────────────────────────
@@ -428,7 +428,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
     return res.status(status).json({ error: result.error });
   }
 
-  res.json({ success: true });
+  return res.json({ success: true });
 });
 
 // ── DELETE /bulk/by-work-order/:workOrderId ────────────────────────────────────
@@ -436,7 +436,7 @@ router.delete("/bulk/by-work-order/:workOrderId", async (req: Request, res: Resp
   const orgId = getOrgId(req);
 
   const result = await repo.deleteAllServiceOrdersByWorkOrder(req.params.workOrderId, orgId);
-  res.json(result);
+  return res.json(result);
 });
 
 export default router;

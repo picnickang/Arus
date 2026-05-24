@@ -50,7 +50,7 @@ export function registerObjectStorageRoutes(app: Express): void {
       // Extract object path from the presigned URL for later reference
       const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
 
-      res.json({
+      return res.json({
         uploadURL,
         objectPath,
         // Echo back the metadata for client convenience
@@ -58,7 +58,7 @@ export function registerObjectStorageRoutes(app: Express): void {
       });
     } catch (error) {
       console.error("Error generating upload URL:", error);
-      res.status(500).json({ error: "Failed to generate upload URL" });
+      return res.status(500).json({ error: "Failed to generate upload URL" });
     }
   });
 
@@ -74,6 +74,7 @@ export function registerObjectStorageRoutes(app: Express): void {
     try {
       const objectFile = await objectStorageService.getObjectEntityFile(req.path);
       await objectStorageService.downloadObject(objectFile, res);
+      return undefined;
     } catch (error) {
       console.error("Error serving object:", error);
       if (error instanceof ObjectNotFoundError) {

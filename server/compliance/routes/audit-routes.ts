@@ -82,14 +82,14 @@ router.get("/audit", requireComplianceAccess, async (req: Request, res: Response
       limit: query.limit,
       offset: query.offset,
     });
-    res.json({
+    return res.json({
       success: true,
       data: events,
       pagination: { limit: query.limit, offset: query.offset, count: events.length },
     });
   } catch (error) {
     logger.error("[Compliance] Audit query error:", undefined, error);
-    res
+    return res
       .status(500)
       .json({
         error: "Failed to query audit trail",
@@ -126,7 +126,7 @@ router.post("/audit", requireComplianceAccess, async (req: Request, res: Respons
           : undefined,
       },
     } as object as Parameters<typeof auditService.logEvent>[0]);
-    res
+    return res
       .status(201)
       .json({
         success: true,
@@ -138,7 +138,7 @@ router.post("/audit", requireComplianceAccess, async (req: Request, res: Respons
       });
   } catch (error) {
     logger.error("[Compliance] Log event error:", undefined, error);
-    res
+    return res
       .status(500)
       .json({
         error: "Failed to log audit event",
@@ -159,10 +159,10 @@ router.post("/audit/verify", requireComplianceAccess, async (req: Request, res: 
       query.startDate ? new Date(query.startDate) : undefined,
       query.endDate ? new Date(query.endDate) : undefined
     );
-    res.json({ success: true, data: result });
+    return res.json({ success: true, data: result });
   } catch (error) {
     logger.error("[Compliance] Chain verification error:", undefined, error);
-    res
+    return res
       .status(500)
       .json({
         error: "Failed to verify audit chain",
@@ -183,10 +183,10 @@ router.get("/audit/stats", requireComplianceAccess, async (req: Request, res: Re
       query.startDate ? new Date(query.startDate) : undefined,
       query.endDate ? new Date(query.endDate) : undefined
     );
-    res.json({ success: true, data: stats });
+    return res.json({ success: true, data: stats });
   } catch (error) {
     logger.error("[Compliance] Stats error:", undefined, error);
-    res
+    return res
       .status(500)
       .json({
         error: "Failed to get audit statistics",
@@ -215,7 +215,7 @@ router.get(
         limit: query.limit,
         offset: query.offset,
       });
-      res.json({
+      return res.json({
         success: true,
         data: events,
         entity: { type: entityType, id: entityId },
@@ -223,7 +223,7 @@ router.get(
       });
     } catch (error) {
       logger.error("[Compliance] Entity audit query error:", undefined, error);
-      res
+      return res
         .status(500)
         .json({
           error: "Failed to query entity audit history",
@@ -271,7 +271,7 @@ router.get("/reports/ism", requireComplianceAccess, async (req: Request, res: Re
     const predictionsOverridden = mlEvents.filter(
       (e) => e.eventType === "prediction_overridden"
     ).length;
-    res.json({
+    return res.json({
       success: true,
       report: {
         type: "ISM_CODE_COMPLIANCE",
@@ -309,7 +309,7 @@ router.get("/reports/ism", requireComplianceAccess, async (req: Request, res: Re
     });
   } catch (error) {
     logger.error("[Compliance] ISM report error:", undefined, error);
-    res
+    return res
       .status(500)
       .json({
         error: "Failed to generate ISM compliance report",
@@ -347,7 +347,7 @@ router.get("/reports/cyber", requireComplianceAccess, async (req: Request, res: 
     const loginAttempts = authEvents.filter((e) => e.eventType === "login").length;
     const failedLogins = authEvents.filter((e) => e.eventType === "login_failed").length;
     const securityIncidents = securityEvents.length;
-    res.json({
+    return res.json({
       success: true,
       report: {
         type: "IMO_2021_CYBERSECURITY",
@@ -387,7 +387,7 @@ router.get("/reports/cyber", requireComplianceAccess, async (req: Request, res: 
     });
   } catch (error) {
     logger.error("[Compliance] Cyber report error:", undefined, error);
-    res
+    return res
       .status(500)
       .json({
         error: "Failed to generate cybersecurity compliance report",

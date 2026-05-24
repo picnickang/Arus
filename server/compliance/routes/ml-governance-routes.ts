@@ -51,10 +51,10 @@ router.get(
         fromDate: fromDate ? new Date(fromDate as string) : undefined,
         toDate: toDate ? new Date(toDate as string) : undefined,
       });
-      res.json({ success: true, data: overrides, count: overrides.length });
+      return res.json({ success: true, data: overrides, count: overrides.length });
     } catch (error) {
       logger.error("[Compliance] Get engineer overrides error:", undefined, error);
-      res.status(500).json({ error: "Failed to retrieve engineer overrides" });
+      return res.status(500).json({ error: "Failed to retrieve engineer overrides" });
     }
   }
 );
@@ -74,10 +74,10 @@ router.get(
       if (!override) {
         return res.status(404).json({ error: "Engineer override not found" });
       }
-      res.json({ success: true, data: override });
+      return res.json({ success: true, data: override });
     } catch (error) {
       logger.error("[Compliance] Get engineer override error:", undefined, error);
-      res.status(500).json({ error: "Failed to retrieve engineer override" });
+      return res.status(500).json({ error: "Failed to retrieve engineer override" });
     }
   }
 );
@@ -129,7 +129,7 @@ router.post(
         performedByType: "user",
         retentionRequired: true,
       });
-      res
+      return res
         .status(201)
         .json({
           success: true,
@@ -141,7 +141,7 @@ router.post(
         return res.status(400).json({ error: "Validation failed", details: error.errors });
       }
       logger.error("[Compliance] Create engineer override error:", undefined, error);
-      res.status(500).json({ error: "Failed to create engineer override" });
+      return res.status(500).json({ error: "Failed to create engineer override" });
     }
   }
 );
@@ -217,7 +217,7 @@ router.patch(
         performedByType: "user",
         retentionRequired: true,
       });
-      res.json({
+      return res.json({
         success: true,
         data: override,
         message: "Engineer override outcome updated and logged to provenance chain",
@@ -227,7 +227,7 @@ router.patch(
         return res.status(400).json({ error: "Validation failed", details: error.errors });
       }
       logger.error("[Compliance] Update engineer override outcome error:", undefined, error);
-      res.status(500).json({ error: "Failed to update engineer override outcome" });
+      return res.status(500).json({ error: "Failed to update engineer override outcome" });
     }
   }
 );
@@ -257,10 +257,10 @@ router.get(
             const maybe = overrides as { events?: unknown };
             return Array.isArray(maybe?.events) ? maybe.events : [];
           })();
-      res.json({ success: true, data: overridesArr, count: overridesArr.length });
+      return res.json({ success: true, data: overridesArr, count: overridesArr.length });
     } catch (error) {
       logger.error("[Compliance] Get provenance overrides error:", undefined, error);
-      res.status(500).json({ error: "Failed to retrieve provenance records" });
+      return res.status(500).json({ error: "Failed to retrieve provenance records" });
     }
   }
 );
@@ -290,10 +290,10 @@ router.get(
         }
         stats.byRiskLevel[o.originalRiskLevel] = (stats.byRiskLevel[o.originalRiskLevel] ?? 0) + 1;
       }
-      res.json({ success: true, data: stats });
+      return res.json({ success: true, data: stats });
     } catch (error) {
       logger.error("[Compliance] ML governance statistics error:", undefined, error);
-      res.status(500).json({ error: "Failed to retrieve ML governance statistics" });
+      return res.status(500).json({ error: "Failed to retrieve ML governance statistics" });
     }
   }
 );

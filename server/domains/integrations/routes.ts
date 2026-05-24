@@ -74,7 +74,7 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
 
       res.setHeader("ETag", etag);
       res.setHeader("Cache-Control", "private, max-age=30");
-      res.json(metrics);
+      return res.json(metrics);
     })
   );
 
@@ -156,7 +156,7 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
       summaryCache.set(cacheKey, summary);
 
       res.setHeader("Cache-Control", "private, max-age=60");
-      res.json(summary);
+      return res.json(summary);
     })
   );
 
@@ -169,7 +169,7 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
       const fmccService = getFMCCService();
       const status = fmccService.getStatus();
 
-      res.json({
+      return res.json({
         ok: true,
         fmcc: status,
         description: "Aquametro FMCC (Fuel Mass Consumption Computer) integration status",
@@ -259,7 +259,7 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
 
       const result = await fmccService.getCumulativeFuelCounters(vesselId, periodStart, periodEnd);
 
-      res.json({
+      return res.json({
         ok: result.success,
         vesselId,
         period: {
@@ -296,7 +296,7 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
       const summary = await getFleetSTCWSummary(orgId, lookbackDays);
 
       res.setHeader("Cache-Control", "private, max-age=300");
-      res.json(summary);
+      return res.json(summary);
     })
   );
 
@@ -312,7 +312,7 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
       const summary = await getVesselSTCWSummary(orgId, vesselId, lookbackDays);
 
       res.setHeader("Cache-Control", "private, max-age=300");
-      res.json(summary);
+      return res.json(summary);
     })
   );
 

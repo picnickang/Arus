@@ -54,7 +54,7 @@ export function registerMaintenanceRoutes(
     withErrorHandling("fetch maintenance schedules", async (req: Request, res: Response) => {
       const { equipmentId, status } = schedulesListQuerySchema.parse(req.query);
       const schedules = await maintenanceService.listSchedules(equipmentId, status);
-      res.json(schedules);
+      return res.json(schedules);
     })
   );
 
@@ -69,7 +69,7 @@ export function registerMaintenanceRoutes(
         const { daysAhead } = upcomingQuerySchema.parse(req.query);
 
         const schedules = await maintenanceService.getUpcomingSchedules(orgId, daysAhead ?? 30);
-        res.json(schedules);
+        return res.json(schedules);
       }
     )
   );
@@ -87,7 +87,7 @@ export function registerMaintenanceRoutes(
         return sendNotFound(res, "Maintenance schedule");
       }
 
-      res.json(schedule);
+      return res.json(schedule);
     })
   );
 
@@ -121,7 +121,7 @@ export function registerMaintenanceRoutes(
         (req as AuthenticatedRequest).user?.id
       );
 
-      res.json(schedule);
+      return res.json(schedule);
     })
   );
 
@@ -161,6 +161,7 @@ export function registerMaintenanceRoutes(
       );
 
       sendCreated(res, schedule);
+      return undefined;
     })
   );
 
@@ -177,7 +178,7 @@ export function registerMaintenanceRoutes(
         equipmentType,
         isActive === undefined ? undefined : isActive === "true"
       );
-      res.json(templates);
+      return res.json(templates);
     })
   );
 
@@ -194,7 +195,7 @@ export function registerMaintenanceRoutes(
         return sendNotFound(res, "Maintenance template");
       }
 
-      res.json(template);
+      return res.json(template);
     })
   );
 
@@ -229,7 +230,7 @@ export function registerMaintenanceRoutes(
         (req as AuthenticatedRequest).user?.id
       );
 
-      res.json(template);
+      return res.json(template);
     })
   );
 

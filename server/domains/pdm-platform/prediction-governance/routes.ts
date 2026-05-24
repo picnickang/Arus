@@ -29,10 +29,10 @@ router.get("/predictions", async (req: Request, res: Response) => {
       limit,
       offset,
     });
-    res.json(predictions);
+    return res.json(predictions);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -48,10 +48,10 @@ router.get("/predictions/:id", async (req: Request, res: Response) => {
     if (!details) {
       return res.status(404).json({ error: "Prediction not found" });
     }
-    res.json(details);
+    return res.json(details);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -72,10 +72,10 @@ router.patch("/predictions/:id/review", async (req: Request, res: Response) => {
     if (!result) {
       return res.status(404).json({ error: "Prediction not found" });
     }
-    res.json(result);
+    return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -92,10 +92,10 @@ router.patch("/predictions/:id/approve", async (req: Request, res: Response) => 
     if (!result) {
       return res.status(404).json({ error: "Prediction not found" });
     }
-    res.json(result);
+    return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -121,10 +121,10 @@ router.patch("/predictions/:id/suppress", async (req: Request, res: Response) =>
     if (!result) {
       return res.status(404).json({ error: "Prediction not found" });
     }
-    res.json(result);
+    return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -132,10 +132,10 @@ router.post("/predictions/expire-stale", async (req: Request, res: Response) => 
   try {
     const orgId = DEFAULT_ORG_ID;
     const result = await service.expireStale(orgId);
-    res.json(result);
+    return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 });
 

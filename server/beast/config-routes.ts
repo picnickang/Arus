@@ -34,7 +34,7 @@ router.get("/config", async (req, res) => {
   try {
     const orgId = DEFAULT_ORG_ID;
     const configs = await beastModeManager.getAllFeatureConfigs(orgId);
-    res.json({
+    return res.json({
       success: true,
       orgId,
       features: configs,
@@ -42,7 +42,7 @@ router.get("/config", async (req, res) => {
     });
   } catch (error) {
     logger.error("[Beast Mode API] Error getting configs:", undefined, error);
-    res.status(500).json({ success: false, error: "Failed to retrieve Beast Mode configurations" });
+    return res.status(500).json({ success: false, error: "Failed to retrieve Beast Mode configurations" });
   }
 });
 
@@ -67,10 +67,10 @@ router.get("/config/:feature", async (req, res) => {
         });
     }
     const config = await beastModeManager.getFeatureConfig(orgId, feature);
-    res.json({ success: true, feature, config, orgId });
+    return res.json({ success: true, feature, config, orgId });
   } catch (error) {
     logger.error(`[Beast Mode API] Error getting config for ${req.params.feature}:`, undefined, error);
-    res
+    return res
       .status(500)
       .json({
         success: false,
@@ -119,7 +119,7 @@ router.post("/config/:feature/toggle", async (req, res) => {
     }
 
     if (result) {
-      res.json({
+      return res.json({
         success: true,
         feature,
         enabled,
@@ -127,7 +127,7 @@ router.post("/config/:feature/toggle", async (req, res) => {
         message: `Feature ${feature} ${enabled ? "enabled" : "disabled"} successfully`,
       });
     } else {
-      res
+      return res
         .status(500)
         .json({
           success: false,
@@ -136,7 +136,7 @@ router.post("/config/:feature/toggle", async (req, res) => {
     }
   } catch (error) {
     logger.error(`[Beast Mode API] Error toggling ${req.params.feature}:`, undefined, error);
-    res
+    return res
       .status(500)
       .json({ success: false, error: `Failed to toggle feature ${req.params.feature}` });
   }
@@ -149,7 +149,7 @@ router.get("/health", async (req, res) => {
     const enabledFeatures = Object.entries(configs)
       .filter(([_, config]: [string, { enabled: boolean }]) => config.enabled)
       .map(([feature, _]) => feature);
-    res.json({
+    return res.json({
       success: true,
       status: "Beast Mode system operational",
       database: "connected",
@@ -161,7 +161,7 @@ router.get("/health", async (req, res) => {
     });
   } catch (error) {
     logger.error("[Beast Mode API] Health check failed:", undefined, error);
-    res
+    return res
       .status(500)
       .json({
         success: false,

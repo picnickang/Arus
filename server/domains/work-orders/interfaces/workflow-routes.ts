@@ -63,6 +63,7 @@ export function registerWorkOrderWorkflowRoutes(
       });
 
       sendCreated(res, result);
+      return undefined;
     })
   );
 
@@ -113,7 +114,7 @@ export function registerWorkOrderWorkflowRoutes(
         return res.status(400).json({ error: result.error });
       }
 
-      res.json(result);
+      return res.json(result);
     })
   );
 
@@ -140,7 +141,7 @@ export function registerWorkOrderWorkflowRoutes(
         return res.status(400).json({ error: result.error });
       }
 
-      res.json({ cancelled: result.cancelled, savingsVoided: result.savingsVoided });
+      return res.json({ cancelled: result.cancelled, savingsVoided: result.savingsVoided });
     })
   );
 
@@ -153,7 +154,7 @@ export function registerWorkOrderWorkflowRoutes(
       const workOrderId = req.params.id;
 
       const isPredictive = await service.woRepo.isPredictive(workOrderId, orgId);
-      res.json({ workOrderId, isPredictive });
+      return res.json({ workOrderId, isPredictive });
     })
   );
 }

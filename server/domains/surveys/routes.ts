@@ -112,10 +112,10 @@ export function registerSurveyRoutes(
             sql`SELECT * FROM class_surveys WHERE org_id = ${orgId} ORDER BY due_date ASC`
           );
         }
-        res.json(result?.rows ?? []);
+        return res.json(result?.rows ?? []);
       } catch (error) {
         if (error instanceof Error && error.message.includes("does not exist")) {
-          res.json([]);
+          return res.json([]);
         } else {
           throw error;
         }
@@ -149,6 +149,7 @@ export function registerSurveyRoutes(
           RETURNING *
         `);
         sendCreated(res, result?.rows?.[0] ?? {});
+        return undefined;
       } catch (error) {
         if (error instanceof Error && error.message.includes("does not exist")) {
           return res
@@ -190,7 +191,7 @@ export function registerSurveyRoutes(
           FROM class_surveys
           WHERE org_id = ${orgId}
         `);
-        res.json(
+        return res.json(
           result?.rows?.[0] ?? {
             overdue_count: 0,
             upcoming_count: 0,
@@ -230,7 +231,7 @@ export function registerSurveyRoutes(
         if (!survey) {
           return sendNotFound(res, "Survey");
         }
-        res.json(survey);
+        return res.json(survey);
       } catch (error) {
         if (error instanceof Error && error.message.includes("does not exist")) {
           return sendNotFound(res, "Survey");
@@ -275,7 +276,7 @@ export function registerSurveyRoutes(
         if (!survey) {
           return sendNotFound(res, "Survey");
         }
-        res.json(survey);
+        return res.json(survey);
       } catch (error) {
         if (error instanceof Error && error.message.includes("does not exist")) {
           return res.status(503).json({ message: "Survey tracking table not yet created." });

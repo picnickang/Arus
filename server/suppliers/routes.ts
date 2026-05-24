@@ -30,10 +30,10 @@ router.post("/suppliers", async (req: Request, res: Response) => {
     }
 
     const supplier = await repo.createSupplier(parsed.data);
-    res.status(201).json(supplier);
+    return res.status(201).json(supplier);
   } catch (error) {
     logger.error("[Suppliers] Error creating supplier:", undefined, error);
-    res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: (error as Error).message });
   }
 });
 
@@ -68,10 +68,10 @@ router.get("/suppliers", async (req: Request, res: Response) => {
     };
 
     const suppliers = await repo.listSuppliers(filters);
-    res.json(suppliers);
+    return res.json(suppliers);
   } catch (error) {
     logger.error("[Suppliers] Error listing suppliers:", undefined, error);
-    res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: (error as Error).message });
   }
 });
 
@@ -80,10 +80,10 @@ router.get("/suppliers/stats", async (req: Request, res: Response) => {
     const orgId = DEFAULT_ORG_ID;
 
     const suppliers = await repo.getSuppliersWithOrderStats(orgId);
-    res.json(suppliers);
+    return res.json(suppliers);
   } catch (error) {
     logger.error("[Suppliers] Error getting supplier stats:", undefined, error);
-    res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: (error as Error).message });
   }
 });
 
@@ -92,10 +92,10 @@ router.get("/suppliers/preferred", async (req: Request, res: Response) => {
     const orgId = DEFAULT_ORG_ID;
 
     const suppliers = await repo.getPreferredSuppliers(orgId);
-    res.json(suppliers);
+    return res.json(suppliers);
   } catch (error) {
     logger.error("[Suppliers] Error getting preferred suppliers:", undefined, error);
-    res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: (error as Error).message });
   }
 });
 
@@ -108,10 +108,10 @@ router.get("/suppliers/:id", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Supplier not found" });
     }
 
-    res.json(supplier);
+    return res.json(supplier);
   } catch (error) {
     logger.error("[Suppliers] Error getting supplier:", undefined, error);
-    res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: (error as Error).message });
   }
 });
 
@@ -137,10 +137,10 @@ router.patch("/suppliers/:id", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Supplier not found" });
     }
 
-    res.json(supplier);
+    return res.json(supplier);
   } catch (error) {
     logger.error("[Suppliers] Error updating supplier:", undefined, error);
-    res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: (error as Error).message });
   }
 });
 
@@ -153,10 +153,10 @@ router.delete("/suppliers/:id", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Supplier not found" });
     }
 
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (error) {
     logger.error("[Suppliers] Error deleting supplier:", undefined, error);
-    res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: (error as Error).message });
   }
 });
 

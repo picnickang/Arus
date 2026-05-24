@@ -111,7 +111,7 @@ export function registerCertificateRoutes(
       const orgId = (req as AuthenticatedRequest).orgId;
       const { vesselId } = z.object({ vesselId: z.string().optional() }).parse(req.query);
       const summary = await certificateService.getSummary(orgId, vesselId);
-      res.json(summary);
+      return res.json(summary);
     })
   );
 
@@ -124,7 +124,7 @@ export function registerCertificateRoutes(
       const { days: daysRaw } = z.object({ days: z.coerce.number().optional() }).parse(req.query);
       const days = Math.min(Math.max(daysRaw || 90, 1), 365);
       const certs = await certificateService.getExpiring(orgId, days);
-      res.json(certs);
+      return res.json(certs);
     })
   );
 
@@ -146,7 +146,7 @@ export function registerCertificateRoutes(
         type,
         status,
       });
-      res.json(certs);
+      return res.json(certs);
     })
   );
 
@@ -161,7 +161,7 @@ export function registerCertificateRoutes(
       if (!cert) {
         return res.status(404).json({ error: "Certificate not found" });
       }
-      res.json(cert);
+      return res.json(cert);
     })
   );
 
@@ -176,7 +176,7 @@ export function registerCertificateRoutes(
         { ...data, orgId },
         (req as AuthenticatedRequest).user?.id
       );
-      res.status(201).json(cert);
+      return res.status(201).json(cert);
     })
   );
 
@@ -197,7 +197,7 @@ export function registerCertificateRoutes(
       if (!updated) {
         return res.status(404).json({ error: "Certificate not found" });
       }
-      res.json(updated);
+      return res.json(updated);
     })
   );
 
@@ -218,7 +218,7 @@ export function registerCertificateRoutes(
       if (!result) {
         return res.status(404).json({ error: "Certificate not found" });
       }
-      res.status(201).json(result);
+      return res.status(201).json(result);
     })
   );
 
@@ -242,7 +242,7 @@ export function registerCertificateRoutes(
       if (!updated) {
         return res.status(404).json({ error: "Certificate not found" });
       }
-      res.json(updated);
+      return res.json(updated);
     })
   );
 
@@ -262,7 +262,7 @@ export function registerCertificateRoutes(
       if (!updated) {
         return res.status(404).json({ error: "Certificate not found" });
       }
-      res.status(201).json(updated);
+      return res.status(201).json(updated);
     })
   );
 
@@ -276,7 +276,7 @@ export function registerCertificateRoutes(
       if (!deleted) {
         return res.status(404).json({ error: "Certificate not found" });
       }
-      res.json({ success: true });
+      return res.json({ success: true });
     })
   );
 }

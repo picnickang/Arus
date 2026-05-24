@@ -31,7 +31,7 @@ router.post("/trends/analyze/:equipmentId/:sensorType", async (req, res) => {
       sensorType,
       hours
     );
-    res.json({
+    return res.json({
       success: true,
       equipmentId,
       sensorType,
@@ -76,7 +76,7 @@ router.post("/trends/analyze/:equipmentId/:sensorType", async (req, res) => {
           hint: "Equipment needs at least 10 telemetry data points for statistical analysis",
         });
     }
-    res.status(500).json({ success: false, error: "Failed to perform enhanced trends analysis" });
+    return res.status(500).json({ success: false, error: "Failed to perform enhanced trends analysis" });
   }
 });
 
@@ -119,7 +119,7 @@ router.post("/trends/fleet-analyze", async (req, res) => {
       equipmentIds,
       hours
     );
-    res.json({
+    return res.json({
       success: true,
       fleetId: fleetAnalysis.fleetId,
       equipmentCount: fleetAnalysis.equipmentCount,
@@ -135,7 +135,7 @@ router.post("/trends/fleet-analyze", async (req, res) => {
     });
   } catch (error: unknown) {
     logger.error(`[Beast Mode API] Error in fleet trends analysis:`, undefined, error);
-    res.status(500).json({ success: false, error: "Failed to perform fleet trends analysis" });
+    return res.status(500).json({ success: false, error: "Failed to perform fleet trends analysis" });
   }
 });
 
@@ -172,7 +172,7 @@ router.get("/trends/correlations/:equipmentId", async (req, res) => {
       hours,
       minCorrelation
     );
-    res.json({
+    return res.json({
       success: true,
       equipmentId,
       orgId,
@@ -203,7 +203,7 @@ router.get("/trends/correlations/:equipmentId", async (req, res) => {
           hint: "Equipment needs data from multiple sensors for correlation analysis",
         });
     }
-    res.status(500).json({ success: false, error: "Failed to perform correlation analysis" });
+    return res.status(500).json({ success: false, error: "Failed to perform correlation analysis" });
   }
 });
 
@@ -244,7 +244,7 @@ router.get("/trends/forecast/:equipmentId/:sensorType", async (req, res) => {
       ...analysis.forecasting,
       predictions: analysis.forecasting.predictions.slice(0, forecastHours),
     };
-    res.json({
+    return res.json({
       success: true,
       equipmentId,
       sensorType,
@@ -282,7 +282,7 @@ router.get("/trends/forecast/:equipmentId/:sensorType", async (req, res) => {
           hint: "Equipment needs sufficient historical data for reliable forecasting",
         });
     }
-    res.status(500).json({ success: false, error: "Failed to perform sensor forecasting" });
+    return res.status(500).json({ success: false, error: "Failed to perform sensor forecasting" });
   }
 });
 

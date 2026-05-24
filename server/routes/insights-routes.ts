@@ -68,10 +68,10 @@ export function registerInsightsRoutes(app: Express) {
           : null,
       }));
 
-      res.json(insights);
+      return res.json(insights);
     } catch (error) {
       logger.error("Failed to fetch insights", { error });
-      res.status(500).json({ error: "Failed to fetch insights" });
+      return res.status(500).json({ error: "Failed to fetch insights" });
     }
   });
 
@@ -92,10 +92,10 @@ export function registerInsightsRoutes(app: Express) {
         .where(and(...conditions))
         .orderBy(sql`${insightSnapshots.createdAt} DESC`)
         .limit(100);
-      res.json(snapshots);
+      return res.json(snapshots);
     } catch (error) {
       logger.error("Failed to fetch insight snapshots", { error });
-      res.status(500).json({ error: "Failed to fetch insight snapshots" });
+      return res.status(500).json({ error: "Failed to fetch insight snapshots" });
     }
   });
 
@@ -111,10 +111,10 @@ export function registerInsightsRoutes(app: Express) {
         .orderBy(sql`${insightSnapshots.createdAt} DESC`)
         .limit(1);
       // Return null if no snapshot found - frontend handles empty state
-      res.json(snapshot || null);
+      return res.json(snapshot || null);
     } catch (error) {
       logger.error("Failed to fetch latest insight snapshot", { error });
-      res.status(500).json({ error: "Failed to fetch latest insight snapshot" });
+      return res.status(500).json({ error: "Failed to fetch latest insight snapshot" });
     }
   });
 
@@ -155,10 +155,10 @@ export function registerInsightsRoutes(app: Express) {
           : null,
       };
 
-      res.json(insight);
+      return res.json(insight);
     } catch (error) {
       logger.error("Failed to fetch insight", { error });
-      res.status(500).json({ error: "Failed to fetch insight" });
+      return res.status(500).json({ error: "Failed to fetch insight" });
     }
   });
 
@@ -180,7 +180,7 @@ export function registerInsightsRoutes(app: Express) {
 
       const insightIds = await InsightEngine.evaluateAndStoreInsights(equipmentId, orgId, vesselId);
 
-      res.json({
+      return res.json({
         success: true,
         equipmentId,
         insightsCreated: insightIds.length,
@@ -188,7 +188,7 @@ export function registerInsightsRoutes(app: Express) {
       });
     } catch (error) {
       logger.error("Failed to evaluate equipment", { error });
-      res.status(500).json({ error: "Failed to evaluate equipment" });
+      return res.status(500).json({ error: "Failed to evaluate equipment" });
     }
   });
 
@@ -212,10 +212,10 @@ export function registerInsightsRoutes(app: Express) {
         return res.status(403).json({ error: "Insight not found or access denied" });
       }
 
-      res.json(updated);
+      return res.json(updated);
     } catch (error) {
       logger.error("Failed to acknowledge insight", { error });
-      res.status(500).json({ error: "Failed to acknowledge insight" });
+      return res.status(500).json({ error: "Failed to acknowledge insight" });
     }
   });
 
@@ -241,10 +241,10 @@ export function registerInsightsRoutes(app: Express) {
         return res.status(403).json({ error: "Insight not found or access denied" });
       }
 
-      res.json(updated);
+      return res.json(updated);
     } catch (error) {
       logger.error("Failed to resolve insight", { error });
-      res.status(500).json({ error: "Failed to resolve insight" });
+      return res.status(500).json({ error: "Failed to resolve insight" });
     }
   });
 
@@ -305,10 +305,10 @@ export function registerInsightsRoutes(app: Express) {
         }
       });
 
-      res.json(summary);
+      return res.json(summary);
     } catch (error) {
       logger.error("Failed to fetch insight stats", { error });
-      res.status(500).json({ error: "Failed to fetch insight stats" });
+      return res.status(500).json({ error: "Failed to fetch insight stats" });
     }
   });
 

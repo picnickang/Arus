@@ -77,10 +77,10 @@ router.get("/connections", requireOrgId, async (req: Request, res: Response) => 
     }
     q = sql`${q} ORDER BY v.name, e.name`;
     const result = await db.execute(q);
-    res.json(getRows(result));
+    return res.json(getRows(result));
   } catch (err) {
     logger.error(MODULE, "Error listing EFMS connections", { error: err });
-    res.status(500).json({ error: "Failed to list EFMS connections" });
+    return res.status(500).json({ error: "Failed to list EFMS connections" });
   }
 });
 
@@ -97,9 +97,9 @@ router.get("/connections/:id", requireOrgId, async (req: Request, res: Response)
     if (!conn) {
       return res.status(404).json({ error: "EFMS connection not found" });
     }
-    res.json(conn);
+    return res.json(conn);
   } catch (err) {
-    res.status(500).json({ error: "Failed to get EFMS connection" });
+    return res.status(500).json({ error: "Failed to get EFMS connection" });
   }
 });
 
@@ -122,13 +122,13 @@ router.post("/connections", requireOrgId, async (req: Request, res: Response) =>
       vesselId: data.vesselId,
       protocol: data.protocol,
     });
-    res.status(201).json(getFirstRow(result));
+    return res.status(201).json(getFirstRow(result));
   } catch (err) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: "Validation failed", details: err.flatten() });
     }
     logger.error(MODULE, "Error creating EFMS connection", { error: err });
-    res.status(500).json({ error: "Failed to create EFMS connection" });
+    return res.status(500).json({ error: "Failed to create EFMS connection" });
   }
 });
 
@@ -160,12 +160,12 @@ router.patch("/connections/:id", requireOrgId, async (req: Request, res: Respons
       RETURNING *
     `);
 
-    res.json(getFirstRow(result));
+    return res.json(getFirstRow(result));
   } catch (err) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: "Validation failed", details: err.flatten() });
     }
-    res.status(500).json({ error: "Failed to update EFMS connection" });
+    return res.status(500).json({ error: "Failed to update EFMS connection" });
   }
 });
 
@@ -180,9 +180,9 @@ router.delete("/connections/:id", requireOrgId, async (req: Request, res: Respon
     if (!deleted) {
       return res.status(404).json({ error: "EFMS connection not found" });
     }
-    res.json({ success: true, deletedId: deleted.id });
+    return res.json({ success: true, deletedId: deleted.id });
   } catch (err) {
-    res.status(500).json({ error: "Failed to delete EFMS connection" });
+    return res.status(500).json({ error: "Failed to delete EFMS connection" });
   }
 });
 
@@ -202,7 +202,7 @@ router.get("/status", requireOrgId, async (req: Request, res: Response) => {
 
     const connections = getRows(result);
 
-    res.json({
+    return res.json({
       totalConnections: connections.length,
       polling: connections.filter((c) => c.status === "polling").length,
       connected: connections.filter((c) => c.status === "connected").length,
@@ -212,7 +212,7 @@ router.get("/status", requireOrgId, async (req: Request, res: Response) => {
       connections,
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to get EFMS status" });
+    return res.status(500).json({ error: "Failed to get EFMS status" });
   }
 });
 

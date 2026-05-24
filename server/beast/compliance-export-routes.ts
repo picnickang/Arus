@@ -85,10 +85,10 @@ router.post("/compliance/equipment-pdf", async (req, res) => {
       "Content-Disposition",
       `attachment; filename="equipment-compliance-${Date.now()}.pdf"`
     );
-    res.send(Buffer.from(pdfData));
+    return res.send(Buffer.from(pdfData));
   } catch (error) {
     logger.error(`[Beast Mode API] Equipment compliance PDF error:`, undefined, error);
-    res
+    return res
       .status(500)
       .json({
         success: false,
@@ -138,10 +138,10 @@ router.post("/compliance/maintenance-pdf", async (req, res) => {
       "Content-Disposition",
       `attachment; filename="maintenance-compliance-${vesselId}-${Date.now()}.pdf"`
     );
-    res.send(Buffer.from(pdfData));
+    return res.send(Buffer.from(pdfData));
   } catch (error) {
     logger.error(`[Beast Mode API] Maintenance compliance PDF error:`, undefined, error);
-    res
+    return res
       .status(500)
       .json({
         success: false,
@@ -192,10 +192,10 @@ router.post("/compliance/regulatory-pdf", async (req, res) => {
       "Content-Disposition",
       `attachment; filename="${regulatoryFramework.toLowerCase()}-compliance-${Date.now()}.pdf"`
     );
-    res.send(Buffer.from(pdfData));
+    return res.send(Buffer.from(pdfData));
   } catch (error) {
     logger.error(`[Beast Mode API] Regulatory compliance PDF error:`, undefined, error);
-    res
+    return res
       .status(500)
       .json({
         success: false,
@@ -232,10 +232,10 @@ router.post("/compliance/fleet-pdf", async (req, res) => {
       "Content-Disposition",
       `attachment; filename="fleet-compliance-overview-${Date.now()}.pdf"`
     );
-    res.send(Buffer.from(pdfData));
+    return res.send(Buffer.from(pdfData));
   } catch (error) {
     logger.error(`[Beast Mode API] Fleet compliance PDF error:`, undefined, error);
-    res
+    return res
       .status(500)
       .json({
         success: false,
@@ -291,10 +291,10 @@ router.post("/compliance/equipment-excel", async (req, res) => {
       "Content-Disposition",
       `attachment; filename="equipment-compliance-${Date.now()}.xlsx"`
     );
-    res.send(excelData);
+    return res.send(excelData);
   } catch (error) {
     logger.error(`[Beast Mode API] Equipment compliance Excel error:`, undefined, error);
-    res
+    return res
       .status(500)
       .json({
         success: false,
@@ -354,10 +354,10 @@ router.post("/compliance/maintenance-excel", async (req, res) => {
       "Content-Disposition",
       `attachment; filename="maintenance-compliance-${vesselId}-${Date.now()}.xlsx"`
     );
-    res.send(excelData);
+    return res.send(excelData);
   } catch (error) {
     logger.error(`[Beast Mode API] Maintenance compliance Excel error:`, undefined, error);
-    res
+    return res
       .status(500)
       .json({
         success: false,
@@ -410,10 +410,10 @@ router.post("/compliance/regulatory-excel", async (req, res) => {
       "Content-Disposition",
       `attachment; filename="${regulatoryFramework.toLowerCase()}-compliance-${Date.now()}.xlsx"`
     );
-    res.send(excelData);
+    return res.send(excelData);
   } catch (error) {
     logger.error(`[Beast Mode API] Regulatory compliance Excel error:`, undefined, error);
-    res
+    return res
       .status(500)
       .json({
         success: false,
@@ -455,10 +455,10 @@ router.post("/compliance/fleet-excel", async (req, res) => {
       "Content-Disposition",
       `attachment; filename="fleet-compliance-overview-${Date.now()}.xlsx"`
     );
-    res.send(excelData);
+    return res.send(excelData);
   } catch (error) {
     logger.error(`[Beast Mode API] Fleet compliance Excel error:`, undefined, error);
-    res
+    return res
       .status(500)
       .json({
         success: false,

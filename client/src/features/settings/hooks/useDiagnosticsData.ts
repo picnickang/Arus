@@ -186,6 +186,8 @@ export function useDiagnosticsData() {
       case "fail":
       case "unhealthy":
         return XCircle;
+      default:
+        return undefined;
     }
   };
 

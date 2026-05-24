@@ -31,7 +31,7 @@ router.post("/vibration/analyze/:equipmentId", async (req, res) => {
           equipmentId,
         });
     }
-    res.json({
+    return res.json({
       success: true,
       equipmentId,
       analysis: {
@@ -51,7 +51,7 @@ router.post("/vibration/analyze/:equipmentId", async (req, res) => {
     });
   } catch (error) {
     logger.error(`[Beast Mode API] Error analyzing vibration for ${req.params.equipmentId}:`, undefined, error);
-    res
+    return res
       .status(500)
       .json({
         success: false,
@@ -78,7 +78,7 @@ router.get("/vibration/history/:equipmentId", async (req, res) => {
         });
     }
     const history = await vibrationAnalyzer.getAnalysisHistory(equipmentId, orgId, limit);
-    res.json({
+    return res.json({
       success: true,
       equipmentId,
       orgId,
@@ -97,7 +97,7 @@ router.get("/vibration/history/:equipmentId", async (req, res) => {
     });
   } catch (error) {
     logger.error(`[Beast Mode API] Error getting vibration history for ${req.params.equipmentId}:`, undefined, error);
-    res
+    return res
       .status(500)
       .json({
         success: false,
@@ -146,7 +146,7 @@ router.post("/vibration/batch-analyze", async (req, res) => {
           ? Math.round(results.reduce((sum, r) => sum + (r.healthScore ?? 0), 0) / results.length)
           : 0,
     };
-    res.json({
+    return res.json({
       success: true,
       orgId,
       summary,
@@ -164,7 +164,7 @@ router.post("/vibration/batch-analyze", async (req, res) => {
     });
   } catch (error) {
     logger.error(`[Beast Mode API] Error in batch vibration analysis:`, undefined, error);
-    res.status(500).json({ success: false, error: "Failed to perform batch vibration analysis" });
+    return res.status(500).json({ success: false, error: "Failed to perform batch vibration analysis" });
   }
 });
 

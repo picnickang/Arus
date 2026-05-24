@@ -103,10 +103,10 @@ router.get("/", requireOrgId, generalLimit, async (req, res) => {
         po.totalQty > 0 ? Math.round(((po.receivedQty - po.rejectedQty) / po.totalQty) * 100) : 0,
     }));
 
-    res.json(enriched);
+    return res.json(enriched);
   } catch (err) {
     logger.error("Error listing POs:", undefined, err);
-    res.status(500).json({ error: "Failed to list purchase orders" });
+    return res.status(500).json({ error: "Failed to list purchase orders" });
   }
 });
 
@@ -161,10 +161,10 @@ router.get("/:id", requireOrgId, generalLimit, async (req, res) => {
       .leftJoin(parts, eq(purchaseOrderItems.partId, parts.id))
       .where(eq(purchaseOrderItems.poId, id));
 
-    res.json({ ...po, items });
+    return res.json({ ...po, items });
   } catch (err) {
     logger.error("Error getting PO:", undefined, err);
-    res.status(500).json({ error: "Failed to get purchase order" });
+    return res.status(500).json({ error: "Failed to get purchase order" });
   }
 });
 
@@ -246,10 +246,10 @@ router.post("/:id/receive", requireOrgId, writeLimit, async (req, res) => {
       });
     }
 
-    res.json({ success: true, status: allReceived ? "received" : po.status });
+    return res.json({ success: true, status: allReceived ? "received" : po.status });
   } catch (err) {
     logger.error("Error receiving PO items:", undefined, err);
-    res.status(500).json({ error: "Failed to receive items" });
+    return res.status(500).json({ error: "Failed to receive items" });
   }
 });
 
@@ -327,10 +327,10 @@ router.post("/:id/reject-items", requireOrgId, writeLimit, async (req, res) => {
       details: { rejections: parsed.data.items },
     });
 
-    res.json({ success: true, rejections: results });
+    return res.json({ success: true, rejections: results });
   } catch (err) {
     logger.error("Error rejecting PO items:", undefined, err);
-    res.status(500).json({ error: "Failed to reject items" });
+    return res.status(500).json({ error: "Failed to reject items" });
   }
 });
 
@@ -409,10 +409,10 @@ router.patch("/:id/items/:itemId", requireOrgId, writeLimit, async (req, res) =>
       details: { itemId, oldUnitPrice: existing.unitPrice, newUnitPrice: parsed.data.unitPrice },
     });
 
-    res.json(updated);
+    return res.json(updated);
   } catch (err) {
     logger.error("Error updating PO item price:", undefined, err);
-    res.status(500).json({ error: "Failed to update item price" });
+    return res.status(500).json({ error: "Failed to update item price" });
   }
 });
 
@@ -524,10 +524,10 @@ router.post("/:id/fulfill-pr", requireOrgId, writeLimit, async (req, res) => {
       }
     }
 
-    res.json({ success: true, prId, results });
+    return res.json({ success: true, prId, results });
   } catch (err) {
     logger.error("Error fulfilling PR from PO:", undefined, err);
-    res.status(500).json({ error: "Failed to fulfill PR" });
+    return res.status(500).json({ error: "Failed to fulfill PR" });
   }
 });
 
@@ -543,10 +543,10 @@ router.get("/:id/events", requireOrgId, generalLimit, async (req, res) => {
       .where(and(eq(purchaseOrderEvents.poId, id), eq(purchaseOrderEvents.orgId, orgId)))
       .orderBy(sql`${purchaseOrderEvents.createdAt} DESC`);
 
-    res.json(events);
+    return res.json(events);
   } catch (err) {
     logger.error("Error getting PO events:", undefined, err);
-    res.status(500).json({ error: "Failed to get events" });
+    return res.status(500).json({ error: "Failed to get events" });
   }
 });
 

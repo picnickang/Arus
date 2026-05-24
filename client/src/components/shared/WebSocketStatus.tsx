@@ -33,6 +33,7 @@ export function WebSocketStatus({
       // Show disconnection status
       setShowStatus(true);
     }
+    return undefined;
   }, [isConnected, isConnecting, connectionCount, hasBeenConnected]);
 
   // Don't show anything on initial load if never connected
