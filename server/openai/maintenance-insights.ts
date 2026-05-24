@@ -14,7 +14,7 @@ const logger = createLogger("Openai:MaintenanceInsights");
 export async function generateMaintenanceRecommendations(
   alertType: string,
   equipmentId: string,
-  sensorData: any,
+  sensorData: unknown,
   equipmentType?: string
 ): Promise<MaintenanceInsight> {
   try {

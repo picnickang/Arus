@@ -11,7 +11,7 @@ import type { ComplianceBundle, InsertComplianceBundle } from "@shared/schema";
  */
 export async function saveComplianceBundle(
   complianceBundle: InsertComplianceBundle,
-  storage: any
+  storage: { createComplianceBundle: (b: ComplianceBundle) => Promise<ComplianceBundle> }
 ): Promise<ComplianceBundle> {
   const reportsDir = join(process.cwd(), "compliance-reports");
   if (!existsSync(reportsDir)) {

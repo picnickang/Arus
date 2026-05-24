@@ -21,7 +21,7 @@ export async function convertToClassificationFeatures(
 ): Promise<ClassificationFeatures> {
   const equipment = await dbEquipmentStorage.getEquipment(orgId, equipmentId);
 
-  const telemetryData: any[] = [];
+  const telemetryData: Array<Record<string, unknown>> = [];
   for (const dataPoint of timeSeriesData) {
     for (const [sensorType, value] of Object.entries((dataPoint as { features?: Record<string, number> }).features ?? {})) {
       telemetryData.push({

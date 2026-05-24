@@ -7,7 +7,9 @@ import {
 } from "@/components/ui/card";
 import { Loader2, TrendingUp } from "lucide-react";
 
-export function TrendsTab({ o }: { o: any }) {
+type OptimizationData = ReturnType<typeof import("@/features/maintenance").useOptimizationData>;
+
+export function TrendsTab({ o }: { o: OptimizationData }) {
   return (
     <Card>
       <CardHeader>

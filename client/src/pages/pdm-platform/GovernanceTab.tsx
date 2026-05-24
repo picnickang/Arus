@@ -170,7 +170,7 @@ export function GovernanceTab({
       )}
 
       <div className="grid gap-3">
-        {predictionsList.map((p: any) => (
+        {predictionsList.map((p) => (
           <Card
             key={p.id}
             className={`cursor-pointer transition-colors ${selectedPredictionId === p.id ? "ring-2 ring-primary" : ""}`}
@@ -209,7 +209,9 @@ export function GovernanceTab({
                         data-testid={`link-model-${p.id}`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          onSwitchToModels(p.modelVersionId);
+                          if (p.modelVersionId) {
+                            onSwitchToModels(p.modelVersionId);
+                          }
                         }}
                       >
                         Model: {p.modelVersionId.slice(0, 8)}

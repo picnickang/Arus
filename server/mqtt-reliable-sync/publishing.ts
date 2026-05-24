@@ -21,7 +21,7 @@ interface PublishContext {
   queueDir: string;
   qosLevel: 0 | 1 | 2;
   vesselId: string;
-  emit: (event: string, data: any) => boolean;
+  emit: (event: string, data: unknown) => boolean;
 }
 
 /**

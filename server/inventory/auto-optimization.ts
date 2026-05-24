@@ -126,7 +126,7 @@ export async function autoOptimizeInventory(
   partNumbers: string[],
   daysHistory: number,
   storage: InventoryStorage
-): Promise<any[]> {
+): Promise<unknown[]> {
   // Load all data in parallel
   const [usageHistory, costs, currentStock] = await Promise.all([
     loadPartUsageHistory(orgId, partNumbers, daysHistory, storage),

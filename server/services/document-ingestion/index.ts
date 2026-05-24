@@ -64,10 +64,11 @@ export async function ingestDocument(
         mimeType,
         success: true,
       });
-    } catch (validationError: any) {
+    } catch (validationError: unknown) {
+      const vmsg = validationError instanceof Error ? validationError.message : String(validationError);
       if (
-        validationError.message.includes("File validation failed") ||
-        validationError.message.includes("quarantined")
+        vmsg.includes("File validation failed") ||
+        vmsg.includes("quarantined")
       ) {
         throw validationError;
       }

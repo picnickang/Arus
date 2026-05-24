@@ -85,7 +85,7 @@ export class EquipmentRepository extends TenantScopedRepository {
    * Update equipment
    * Validates ownership before update
    */
-  async update(equipmentId: string, data: Partial<any>) {
+  async update(equipmentId: string, data: Record<string, unknown>) {
     const { equipment } = await import("@shared/schema");
 
     const existing = await this.getById(equipmentId);
@@ -192,7 +192,7 @@ export class EquipmentRepository extends TenantScopedRepository {
       throw new Error("Equipment not found");
     }
 
-    const orConditions: any[] = [];
+    const orConditions: import("drizzle-orm").SQL[] = [];
 
     if (target.vesselId) {
       orConditions.push(eq(equipment.vesselId, target.vesselId));

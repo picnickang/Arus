@@ -179,7 +179,7 @@ export class DigitalTwinService extends EventEmitter {
     try {
       const physicsModel = twin.physicsModel as PhysicsModel;
       const initialState = twin.currentState as TwinState;
-      const results: any[] = [];
+      const results: Array<Record<string, unknown>> = [];
       const totalSteps = Math.floor((scenario.duration * 60) / scenario.timeStep);
       let currentStep = 0;
       while (currentStep < totalSteps) {
@@ -445,7 +445,7 @@ export class DigitalTwinService extends EventEmitter {
     }
   }
 
-  getHealthStatus(): { status: string; features: string[]; stats: any } {
+  getHealthStatus(): { status: string; features: string[]; stats: Record<string, unknown> } {
     return {
       status: "operational",
       features: [

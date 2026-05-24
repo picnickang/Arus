@@ -26,7 +26,7 @@ export async function hasRelatedOpenWorkOrder(
 export async function createWorkOrderFromDtc(
   dtc: DtcWithDefinition,
   orgId: string
-): Promise<any | null> {
+): Promise<unknown | null> {
   if (!dtc.definition || dtc.definition.severity > 2) {
     return null;
   }

@@ -1,7 +1,7 @@
 export interface PreprocessingParams {
   scaler?: { mean: number[]; std: number[] };
   featureNames?: string[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export async function loadPreprocessingParams(

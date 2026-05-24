@@ -11,7 +11,7 @@ import { normalizeFeatures } from "./normalization.js";
 export async function predictWithLSTM(
   model: TrainedLSTMModel,
   recentData: TimeSeriesFeatures[],
-  _preprocParams?: any
+  _preprocParams?: unknown
 ): Promise<LSTMPrediction> {
   if (recentData.length < model.config.sequenceLength) {
     throw new Error(`Insufficient data: need at least ${model.config.sequenceLength} time steps`);

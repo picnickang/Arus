@@ -134,7 +134,7 @@ function buildTelemetrySummary(
 export async function analyzeFleetHealth(
   equipmentHealthData: EquipmentHealth[],
   telemetryData: EquipmentTelemetry[] | TelemetryTrend[],
-  storageInstance?: any
+  storageInstance?: unknown
 ): Promise<FleetAnalysis> {
   try {
     logger.info(`[Fleet Analysis] Starting enriched analysis with ${equipmentHealthData.length} equipment units and ${telemetryData.length} telemetry records`);

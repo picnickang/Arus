@@ -33,7 +33,7 @@ import {
 } from "./database";
 
 export class MLAnalyticsService extends EventEmitter {
-  private models: Map<string, any> = new Map();
+  private models: Map<string, unknown> = new Map();
   private enabled: boolean = true;
   private aiEnhancementEnabled: boolean = Boolean(process.env.OPENAI_API_KEY);
 
@@ -176,7 +176,7 @@ export class MLAnalyticsService extends EventEmitter {
     }
   }
 
-  getHealthStatus(): { status: string; features: string[]; stats: any } {
+  getHealthStatus(): { status: string; features: string[]; stats: Record<string, unknown> } {
     return {
       status: "operational",
       features: [

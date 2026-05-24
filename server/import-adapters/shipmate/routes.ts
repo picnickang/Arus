@@ -14,7 +14,12 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { shipmateImport } from "./import-service";
-type ShipmateModuleType = any;
+type ShipmateModuleType =
+  | "pms_equipment"
+  | "pms_jobs"
+  | "sps_stores"
+  | "cms_crew_certs"
+  | "cms_rest_hours";
 import { getShipmateMapping } from "./field-mapping";
 import { requireOrgId, type AuthenticatedRequest } from "../../middleware/auth";
 import { RateLimiters } from "../../lib/rate-limit-factory";

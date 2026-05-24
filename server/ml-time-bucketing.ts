@@ -6,7 +6,7 @@ export interface TelemetryBucket {
 }
 
 export function bucketTelemetry(
-  _data: any[],
+  _data: unknown[],
   _options?: number | { bucketSizeMs?: number; aggregationMethod?: string }
 ): TelemetryBucket[] {
   return [];

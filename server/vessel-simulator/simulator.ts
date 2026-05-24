@@ -109,7 +109,7 @@ export class VesselSimulator {
    */
   private generateDataPoint(
     t: number,
-    preset: { maxRpm: number; maxTorque: number; pattern: import("../vessel-simulator-types").VesselOperationalPattern; seaState: number },
+    preset: { maxRpm: number; maxTorque: number; pattern: string; seaState: number },
     signals: string[],
     config: SimulationConfig,
     state: { oilTemp: number; coolantTemp: number; faultDrift: number },
@@ -244,7 +244,7 @@ export class VesselSimulator {
               sensorType,
               value: typeof value === "number" ? value : 0,
               unit,
-              ...({ deviceId: config.deviceId, metadata: { simulated: true, vesselType: config.vesselType } } as any),
+              ...({ deviceId: config.deviceId, metadata: { simulated: true, vesselType: config.vesselType } } as object as Record<string, unknown>),
             });
             totalRecords++;
           }

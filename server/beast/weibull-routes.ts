@@ -69,7 +69,16 @@ router.get("/weibull/history/:equipmentId", async (req, res) => {
       equipmentId,
       orgId,
       count: history.length,
-      history: history.map((pred) => ({
+      history: (history as Array<{
+        id: string;
+        createdAt: string | Date;
+        currentAge: number;
+        predictedRUL: number;
+        reliability: number;
+        recommendation: string;
+        failureProb30d: number;
+        failureProb90d: number;
+      }>).map((pred) => ({
         id: pred.id,
         timestamp: pred.createdAt,
         currentAge: pred.currentAge,

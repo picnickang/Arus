@@ -42,7 +42,7 @@ export async function buildVesselHealthContext(
 
   let intelligence;
   if (options.includeIntelligence || options.includePredictions) {
-    const tasks: Promise<any>[] = [];
+    const tasks: Promise<unknown>[] = [];
 
     if (options.includeIntelligence) {
       tasks.push(

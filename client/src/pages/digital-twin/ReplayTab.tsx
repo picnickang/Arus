@@ -61,7 +61,15 @@ export function ReplayTab() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {timeline.map((evt: any, i: number) => (
+              {(timeline as Array<{
+                id?: string;
+                eventType?: string;
+                type?: string;
+                timestamp: string | number | Date;
+                source?: string;
+                description?: string;
+                payload?: unknown;
+              }>).map((evt, i) => (
                 <div
                   key={evt.id || i}
                   className="flex items-start gap-3 border-l-2 pl-4 pb-3"
@@ -87,11 +95,11 @@ export function ReplayTab() {
                         <span className="text-xs text-muted-foreground">via {evt.source}</span>
                       )}
                     </div>
-                    {evt.payload && (
+                    {evt.payload != null && (
                       <pre className="text-xs mt-1 text-muted-foreground overflow-hidden text-ellipsis">
                         {typeof evt.payload === "string"
                           ? evt.payload
-                          : JSON.stringify(evt.payload, null, 2).slice(0, 200)}
+                          : (JSON.stringify(evt.payload, null, 2) ?? "").slice(0, 200)}
                       </pre>
                     )}
                   </div>

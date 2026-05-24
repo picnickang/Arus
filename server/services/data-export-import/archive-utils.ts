@@ -58,19 +58,20 @@ export async function extractArchive(archivePath: string, extractPath: string): 
     cwd: extractPath,
     preservePaths: false,
     strict: true,
-    filter: (entryPath: string, entry: any) => {
+    filter: (entryPath, entry) => {
+      const e = entry as unknown as { type?: string; size?: number };
       const resolvedPath = path.resolve(extractPath, entryPath);
       if (!isWithinDirectory(resolvedPath, normalizedExtractPath)) {
         logger.error(`[DataImport] Path traversal attempt blocked: ${entryPath}`);
         return false;
       }
 
-      if (entry?.type === "SymbolicLink" || entry?.type === "Link") {
+      if (e?.type === "SymbolicLink" || e?.type === "Link") {
         logger.error(`[DataImport] Link entry blocked: ${entryPath}`);
         return false;
       }
 
-      const size = Number(entry?.size ?? 0);
+      const size = Number(e?.size ?? 0);
       if (Number.isFinite(size) && size > 0) {
         extractedBytes += size;
         if (extractedBytes > maxBytes) {

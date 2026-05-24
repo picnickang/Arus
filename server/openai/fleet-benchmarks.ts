@@ -78,7 +78,7 @@ export function calculateFleetBenchmarks(
 
 function buildEquipmentComparisons(
   equipmentHealthData: EquipmentHealth[],
-  rankedEquipment: any[],
+  rankedEquipment: Array<{ id: string }>,
   fleetAvgHealth: number
 ): CrossEquipmentComparison[] {
   return equipmentHealthData.map((equipment) => {

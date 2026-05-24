@@ -20,7 +20,9 @@ import { formatDecimal } from "@/lib/formatters";
 import { formatDurationMs } from "@/features/maintenance";
 import { StatusBadge } from "./StatusBadge";
 
-export function RunsTab({ o }: { o: any }) {
+type OptimizationData = ReturnType<typeof import("@/features/maintenance").useOptimizationData>;
+
+export function RunsTab({ o }: { o: OptimizationData }) {
   return (
     <Card>
       <CardHeader>
@@ -42,7 +44,7 @@ export function RunsTab({ o }: { o: any }) {
                     `Delete all ${o.filteredResults.length} optimization result(s)? This cannot be undone.`
                   )
                 ) {
-                  o.clearAllOptimizationsMutation.mutate();
+                  o.clearAllOptimizationsMutation.mutate(undefined);
                 }
               }}
               disabled={o.clearAllOptimizationsMutation.isPending}
@@ -69,10 +71,8 @@ export function RunsTab({ o }: { o: any }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {o.filteredResults.map((result: { id: string; configurationId: string; runStatus: string; costSavings: number; executionTimeMs: number; startTime: string; totalSchedules: number; optimizationScore?: number; conflictsResolved?: number; appliedToProduction?: boolean }) => {
-              const config = o.configurations?.find(
-                (c: { id: string; name: string }) => c.id === result.configurationId
-              );
+            {o.filteredResults.map((result) => {
+              const config = o.configurations?.find((c) => c.id === result.configurationId);
               return (
                 <Card key={result.id} className="border-l-4 border-l-green-500">
                   <CardContent className="p-4">

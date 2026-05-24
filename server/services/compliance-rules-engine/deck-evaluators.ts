@@ -64,7 +64,8 @@ export async function evaluateDeckMissingHourly(
   }
 
   const validEntries = deckLogComplete.hourly.filter(
-    (h: any) => h.course !== null || h.windDirection !== null || h.seaState !== null
+    (h: Record<string, unknown>) =>
+      h.course !== null || h.windDirection !== null || h.seaState !== null
   );
 
   if (validEntries.length < minHourlyEntries) {

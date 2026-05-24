@@ -33,8 +33,12 @@ const TAURI_CORE = "@tauri-apps/api/core";
 const TAURI_UPDATER = "@tauri-apps/plugin-updater";
 const TAURI_PROCESS = "@tauri-apps/plugin-process";
 
-function dynamicImport(mod: string): Promise<any> {
-  return new Function("m", "return import(m)")(mod).catch(() => null);
+type TauriModule = Record<string, unknown>;
+
+function dynamicImport(mod: string): Promise<TauriModule | null> {
+  return (
+    new Function("m", "return import(m)")(mod) as Promise<TauriModule>
+  ).catch(() => null);
 }
 
 async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
@@ -45,9 +49,16 @@ async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Prom
   return ((core.invoke as (c: string, a?: Record<string, unknown>) => unknown)(cmd, args)) as Promise<T>;
 }
 
+interface TauriUpdate {
+  version: string;
+  date?: string | null;
+  body?: string | null;
+  downloadAndInstall: () => Promise<void>;
+}
+
 interface CachedUpdate {
   info: UpdateInfo;
-  raw: any;
+  raw: TauriUpdate;
 }
 
 let _updateCache: CachedUpdate | null = null;
@@ -85,7 +96,7 @@ export function getDesktopAPI(): DesktopAPI | undefined {
           return null;
         }
 
-        const update = await updater.check();
+        const update = (await (updater.check as () => Promise<TauriUpdate | null>)()) as TauriUpdate | null;
         if (!update) {
           _updateCache = null;
           return null;
@@ -111,14 +122,16 @@ export function getDesktopAPI(): DesktopAPI | undefined {
           return;
         }
 
-        const update = _updateCache?.raw ?? (await updater.check());
+        const update =
+          _updateCache?.raw ??
+          ((await (updater.check as () => Promise<TauriUpdate | null>)()) as TauriUpdate | null);
         _updateCache = null;
 
         if (update) {
           await update.downloadAndInstall();
           const process = await dynamicImport(TAURI_PROCESS);
           if (process) {
-            await process.relaunch();
+            await (process.relaunch as () => Promise<void>)();
           }
         }
       } catch (err) {

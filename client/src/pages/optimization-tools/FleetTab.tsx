@@ -17,7 +17,9 @@ interface FleetStats {
   totalCrew: number;
 }
 
-export function FleetTab({ o, fleetStats }: { o: any; fleetStats: FleetStats }) {
+type OptimizationData = ReturnType<typeof import("@/features/maintenance").useOptimizationData>;
+
+export function FleetTab({ o, fleetStats }: { o: OptimizationData; fleetStats: FleetStats }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card>
@@ -62,7 +64,7 @@ export function FleetTab({ o, fleetStats }: { o: any; fleetStats: FleetStats }) 
             <div className="space-y-3">
               <Button
                 className="w-full"
-                onClick={() => o.fleetOptimizationMutation.mutate()}
+                onClick={() => o.fleetOptimizationMutation.mutate(undefined)}
                 disabled={
                   o.fleetOptimizationMutation.isPending || !o.configurations?.length
                 }
@@ -78,7 +80,7 @@ export function FleetTab({ o, fleetStats }: { o: any; fleetStats: FleetStats }) 
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => o.crewSchedulingMutation.mutate()}
+                onClick={() => o.crewSchedulingMutation.mutate(undefined)}
                 disabled={o.crewSchedulingMutation.isPending}
                 data-testid="button-crew-scheduling"
               >
@@ -92,7 +94,7 @@ export function FleetTab({ o, fleetStats }: { o: any; fleetStats: FleetStats }) 
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => o.maintenanceSchedulingMutation.mutate()}
+                onClick={() => o.maintenanceSchedulingMutation.mutate(undefined)}
                 disabled={o.maintenanceSchedulingMutation.isPending}
                 data-testid="button-maintenance-scheduling"
               >

@@ -38,7 +38,7 @@ export const VESSEL_TYPE_PRESETS: Record<string, {
   fuelConsumption: number;
   maxRpm: number;
   maxTorque: number;
-  pattern: any;
+  pattern: "steady" | "harbor" | "dp" | string;
   seaState: number;
 }> = {
   CARGO: { name: "Cargo", speed: 12, rpm: 100, fuelConsumption: 100, maxRpm: 1800, maxTorque: 2500, pattern: "steady", seaState: 3 },

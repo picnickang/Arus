@@ -77,7 +77,7 @@ export async function updateSavingsValidation(
   id: string,
   validationStatus: "valid" | "disputed" | "voided",
   reason: string
-): Promise<any> {
+): Promise<unknown> {
   const url = `/api/cost-savings/${id}/validation`;
   return apiRequest("PATCH", url, { validationStatus, reason });
 }

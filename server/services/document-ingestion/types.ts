@@ -8,7 +8,7 @@ export interface DocumentMetadata {
   keywords?: string[];
   tableCount?: number;
   structuredDataExtracted?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export type SupportedFileType = "pdf" | "png" | "jpg" | "jpeg" | "docx" | "xlsx" | "txt" | "md";

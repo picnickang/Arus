@@ -128,7 +128,7 @@ export class VibrationAnalyzer {
         .orderBy(desc(vibrationAnalysis.createdAt))
         .limit(limit);
       return rows.map((row) => {
-        let faultBands: any = {};
+        let faultBands: Record<string, unknown> = {};
         try {
           faultBands = row.faultBands ? JSON.parse(row.faultBands as string) : {};
         } catch {

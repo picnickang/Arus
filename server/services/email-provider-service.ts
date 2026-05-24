@@ -91,7 +91,12 @@ class EmailProviderService {
     const decryptedKey = decryptSecret(apiKey);
 
     try {
-      const personalizations: any = {
+      const personalizations: {
+        to: Array<{ email: string }>;
+        cc?: Array<{ email: string }>;
+        bcc?: Array<{ email: string }>;
+        dynamic_template_data?: Record<string, unknown>;
+      } = {
         to: payload.to.map((email) => ({ email })),
       };
 

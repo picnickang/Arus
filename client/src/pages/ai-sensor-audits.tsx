@@ -340,7 +340,7 @@ export default function AISensorAudits() {
                   <div>
                     <h3 className="font-semibold mb-2">Feature Rankings</h3>
                     <div className="space-y-2">
-                      {selectedAudit.featureRankings.map((rankingRaw: any, i: number) => {
+                      {selectedAudit.featureRankings.map((rankingRaw: unknown, i: number) => {
                         const ranking = rankingRaw as { sensor: string; confidence: number };
                         return (
                         <div key={i} className="flex items-center justify-between">

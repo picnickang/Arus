@@ -17,7 +17,7 @@ interface SoftwareUpdatesDependencies {
   writeOperationRateLimit: RateLimitRequestHandler;
   criticalOperationRateLimit: RateLimitRequestHandler;
   requireAdminAuth: import("express").RequestHandler[];
-  auditAdminAction: (action: string) => any;
+  auditAdminAction: (action: string) => import("express").RequestHandler;
 }
 
 export function registerSoftwareUpdatesRoutes(

@@ -28,7 +28,9 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Plus } from "lucide-react";
 
-export function ConfigDialog({ o }: { o: any }) {
+type OptimizationData = ReturnType<typeof import("@/features/maintenance").useOptimizationData>;
+
+export function ConfigDialog({ o }: { o: OptimizationData }) {
   return (
     <Dialog open={o.configDialogOpen} onOpenChange={o.setConfigDialogOpen}>
       <DialogTrigger asChild>

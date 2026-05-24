@@ -78,7 +78,10 @@ router.get("/lp/results/:resultId", async (req, res) => {
     }
     logger.info(`[Beast Mode API] Retrieving optimization result ${resultId} for org ${orgId}`);
     const optimizer = new LinearProgrammingOptimizer(orgId);
-    const optimizationData = await optimizer.getOptimizationResults(resultId);
+    const optimizationData = (await optimizer.getOptimizationResults(resultId)) as {
+      totalSchedules?: number;
+      optimizationScore?: number;
+    };
     res.json({
       success: true,
       resultId,

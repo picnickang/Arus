@@ -18,15 +18,16 @@ export interface MLPredictionResult {
   dataStatusReason?: string;
 }
 
-export function isPrediction(x: any): x is MLPredictionResult {
+export function isPrediction(x: unknown): x is MLPredictionResult {
+  const o = x as { failureProbability?: unknown; confidence?: unknown; method?: unknown } | null;
   return (
-    x &&
-    typeof x === "object" &&
-    "failureProbability" in x &&
-    "confidence" in x &&
-    "method" in x &&
-    typeof x.failureProbability === "number" &&
-    typeof x.confidence === "number"
+    !!o &&
+    typeof o === "object" &&
+    "failureProbability" in o &&
+    "confidence" in o &&
+    "method" in o &&
+    typeof o.failureProbability === "number" &&
+    typeof o.confidence === "number"
   );
 }
 

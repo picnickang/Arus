@@ -4,6 +4,7 @@
  */
 
 import type { Express } from "express";
+import type { Server } from "node:http";
 import express from "express";
 import path from "node:path";
 import * as fs from "node:fs";
@@ -11,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Bootstrap:StaticServing");
 
-export async function configureStaticServing(app: Express, server: any): Promise<void> {
+export async function configureStaticServing(app: Express, server: Server): Promise<void> {
   const isEmbeddedMode = process.env.EMBEDDED_MODE === "true";
   const isDevelopmentEnv = app.get("env") === "development";
 

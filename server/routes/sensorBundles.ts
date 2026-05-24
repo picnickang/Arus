@@ -391,7 +391,7 @@ router.post("/apply/:equipmentId", async (req, res) => {
         }
 
         // Map template fields to sensor config fields
-        const fields = template.fields as Record<string, any>;
+        const fields = (template.fields ?? {}) as Record<string, number>;
 
         const [newSensor] = await tx
           .insert(sensorConfigurations)

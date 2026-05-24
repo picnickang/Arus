@@ -152,7 +152,7 @@ function RecentAlertsPanel({
   recentAlerts,
   getSeverityBadgeColor,
 }: {
-  recentAlerts: any[];
+  recentAlerts: import("@/features/maintenance/lib/pdmUtils").PdmAlert[];
   getSeverityBadgeColor: (s: string) => string;
 }) {
   const { resolve } = useEquipmentLookup();

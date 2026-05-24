@@ -73,7 +73,7 @@ export interface DomainRouterConfig {
   name: string;
   importPath: string;
   functionName: string;
-  getDeps: () => Record<string, any>;
+  getDeps: () => Record<string, unknown>;
   mountPath?: string;
   middlewareKeys?: string[];
 }
@@ -984,8 +984,10 @@ export async function registerAllDomainRouters(app: Express): Promise<void> {
       const deps = config.getDeps();
 
       if (config.mountPath) {
-        const middleware = (config.middlewareKeys ?? []).map((k) => deps[k]).filter(Boolean);
-        app.use(config.mountPath, ...middleware, target);
+        const middleware = (config.middlewareKeys ?? [])
+          .map((k) => deps[k])
+          .filter(Boolean) as import("express").RequestHandler[];
+        app.use(config.mountPath, ...middleware, target as import("express").RequestHandler);
       } else {
         if (typeof target !== "function") {
           logger.error(`[Domain Registry] ${config.name}: ${config.functionName} is not a function`);

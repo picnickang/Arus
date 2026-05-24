@@ -23,7 +23,9 @@ interface ComponentStatus {
   predictedFailureDays: number;
 }
 
-export function RulTab({ o }: { o: any }) {
+type OptimizationData = ReturnType<typeof import("@/features/maintenance").useOptimizationData>;
+
+export function RulTab({ o }: { o: OptimizationData }) {
   if (o.equipmentLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -33,7 +35,14 @@ export function RulTab({ o }: { o: any }) {
   }
   return (
     <div className="grid grid-cols-1 gap-6">
-      {o.rulQueries.map((query: any, index: number) => {
+      {o.rulQueries.map((query: { data?: {
+        riskLevel: string;
+        remainingDays: number;
+        healthIndex: number;
+        failureProbability: number;
+        componentStatus?: ComponentStatus[];
+        recommendations?: string[];
+      } }, index: number) => {
         const eq = o.equipment?.[index];
         const rulData = query.data;
         if (!eq || !rulData) {

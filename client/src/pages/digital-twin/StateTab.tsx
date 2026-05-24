@@ -34,8 +34,9 @@ export function StateTab() {
     try {
       await computeMutation.mutateAsync(twinId);
       toast({ title: "State computed successfully" });
-    } catch (e: any) {
-      toast({ title: e.message || "Failed to compute state", variant: "destructive" });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Failed to compute state";
+      toast({ title: message, variant: "destructive" });
     }
   };
 

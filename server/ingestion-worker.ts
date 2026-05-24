@@ -9,7 +9,7 @@ export async function stopIngestionWorker(): Promise<void> {
   // No-op
 }
 
-export function getWorkerStatus(): { running: boolean; stats: any } {
+export function getWorkerStatus(): { running: boolean; stats: { processed: number; errors: number } } {
   return { running: false, stats: { processed: 0, errors: 0 } };
 }
 

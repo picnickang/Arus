@@ -40,7 +40,9 @@ export function parseRecommendations(
 
         const urgency = determineUrgency(timePart);
 
-        const equipmentDossier = equipmentDossiers.find((d: any) => d.id === equipmentId);
+        const equipmentDossier = equipmentDossiers.find(
+          (d: { id?: string }) => d.id === equipmentId
+        );
         const linkedWorkOrderId =
           (equipmentDossier?.context.workOrderStats.openCount ?? 0) > 0
             ? `work-order-${equipmentId}`

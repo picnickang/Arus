@@ -11,7 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 
-export function RunDialog({ o }: { o: any }) {
+type OptimizationData = ReturnType<typeof import("@/features/maintenance").useOptimizationData>;
+
+export function RunDialog({ o }: { o: OptimizationData }) {
   return (
     <Dialog open={o.runDialogOpen} onOpenChange={o.setRunDialogOpen}>
       <DialogContent>
@@ -25,7 +27,7 @@ export function RunDialog({ o }: { o: any }) {
           <div>
             <Label>Configuration</Label>
             <p className="text-sm text-muted-foreground">
-              {o.configurations?.find((c: any) => c.id === o.selectedConfiguration)?.name}
+              {o.configurations?.find((c) => c.id === o.selectedConfiguration)?.name}
             </p>
           </div>
           <div>

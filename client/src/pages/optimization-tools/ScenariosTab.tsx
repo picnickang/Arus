@@ -10,7 +10,9 @@ import {
 import { Loader2, Play, Settings, Trash2 } from "lucide-react";
 import { formatPercent } from "@/lib/formatters";
 
-export function ScenariosTab({ o }: { o: any }) {
+type OptimizationData = ReturnType<typeof import("@/features/maintenance").useOptimizationData>;
+
+export function ScenariosTab({ o }: { o: OptimizationData }) {
   return (
     <Card>
       <CardHeader>
@@ -36,7 +38,15 @@ export function ScenariosTab({ o }: { o: any }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {o.filteredConfigurations.map((config: any) => (
+            {o.filteredConfigurations.map((config: {
+              id: string;
+              name: string;
+              enabled: boolean;
+              algorithmType: string;
+              maxSchedulingHorizon: number;
+              costWeightFactor: number;
+              conflictResolutionStrategy: string;
+            }) => (
               <Card key={config.id} className="border-l-4 border-l-blue-500">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">

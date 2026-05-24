@@ -73,9 +73,10 @@ export class WeibullRULAnalyzer {
       logger.info(`[Weibull RUL] Analysis completed for ${equipmentId}: RUL=${Math.round(predictedRUL)}h, Reliability=${(currentReliability * 100).toFixed(1)}%`);
 
       return prediction;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`[Weibull RUL] Error analyzing ${equipmentId}:`, undefined, error);
-      throw new Error(`Unable to perform RUL analysis: ${error.message}`);
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(`Unable to perform RUL analysis: ${msg}`);
     }
   }
 
@@ -111,7 +112,7 @@ export class WeibullRULAnalyzer {
     }
   }
 
-  async getRULHistory(equipmentId: string, orgId: string, limit: number = 50): Promise<any[]> {
+  async getRULHistory(equipmentId: string, orgId: string, limit: number = 50): Promise<unknown[]> {
     try {
       return await db
         .select()

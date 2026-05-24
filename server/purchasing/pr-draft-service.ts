@@ -183,7 +183,9 @@ async function findSubstitutionSuggestions(
       return [];
     }
 
-    const substituteIds = subs.map((s: any) => s.substitutePartId);
+    const substituteIds = subs.map(
+      (s) => (s as unknown as { substitutePartId: string }).substitutePartId
+    );
 
     // Fetch substitute parts with their current stock
     const suggestions: AddItemResult["substitutionSuggestions"] = [];

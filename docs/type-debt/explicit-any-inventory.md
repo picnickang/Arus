@@ -1,19 +1,19 @@
 # Explicit `any` Inventory
 
-_Generated: 2026-05-24T05:44:24.965Z_
+_Generated: 2026-05-24T10:24:43.267Z_
 
 Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit-any`. Regenerate with `node scripts/type-debt/classify-explicit-any.mjs`.
 
 ## Headline
 
-- **Total occurrences:** 139
-- **Distinct files:** 102
+- **Total occurrences:** 47
+- **Distinct files:** 23
 
 **Rough split (based on bucket heuristics — see per-bucket sections for caveats):**
 
-- ~46.8% mechanical (test mocks + external library gaps + generic inference fixes)
-- ~6.5% schema / generic redesign (dynamic JSON parses + legacy DTOs)
-- ~46.8% truly unsafe / residual (drives Phase 3 domain work)
+- ~38.3% mechanical (test mocks + external library gaps + generic inference fixes)
+- ~6.4% schema / generic redesign (dynamic JSON parses + legacy DTOs)
+- ~55.3% truly unsafe / residual (drives Phase 3 domain work)
 
 **Bucket totals:**
 
@@ -21,10 +21,10 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 |---|---:|---:|---:|
 | External library typing gaps | 0 | 0.0% | 0 |
 | Test mocks / stubs | 0 | 0.0% | 0 |
-| Legacy DTOs (route handlers, request/response shapes) | 3 | 2.2% | 3 |
-| Dynamic JSON payloads | 6 | 4.3% | 4 |
-| Generic inference failures | 65 | 46.8% | 58 |
-| Truly unsafe / untyped logic | 65 | 46.8% | 58 |
+| Legacy DTOs (route handlers, request/response shapes) | 0 | 0.0% | 0 |
+| Dynamic JSON payloads | 3 | 6.4% | 1 |
+| Generic inference failures | 18 | 38.3% | 11 |
+| Truly unsafe / untyped logic | 26 | 55.3% | 19 |
 
 ## External library typing gaps
 
@@ -46,21 +46,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** `any` on route-handler request bodies/queries, untyped DTO interfaces, and helper signatures that pass request-shaped data around without ever describing it. Most of these survived the wire-parses sweep because they live below the route registration layer.
 
-**Count.** 3 occurrences across 3 files (2.2% of all explicit `any`).
-
-**Top files:**
-
-| File | Count |
-|---|---:|
-| `server/domains/software-updates/routes.ts` | 1 |
-| `server/import-adapters/shipmate/routes.ts` | 1 |
-| `server/ml-routes/acoustic-routes.ts` | 1 |
-
-**Examples:**
-
-- `server/domains/software-updates/routes.ts:20` — `auditAdminAction: (action: string) => any;`
-- `server/import-adapters/shipmate/routes.ts:17` — `type ShipmateModuleType = any;`
-- `server/ml-routes/acoustic-routes.ts:31` — `const data: any = mlAcousticDataSchema.parse(req.body);`
+**Count.** 0 occurrences across 0 files (0.0% of all explicit `any`).
 
 **Recommended remediation.** Define the DTO once with Zod, derive the TS type via `z.infer`, and import the type at every helper. For handlers, use `AuthenticatedRequest` from `server/middleware/auth.ts` and parse `req.body`/`req.query`/`req.params` with the schema — same contract the wire-parses sweep enforced.
 
@@ -68,22 +54,19 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** `JSON.parse(...) as any`, `Record<string, any>`, drizzle `jsonb()` columns, OpenAI function-call arguments, Sentry/observability event payloads, telemetry attribute bags, anything that's genuinely heterogeneous at the boundary.
 
-**Count.** 6 occurrences across 4 files (4.3% of all explicit `any`).
+**Count.** 3 occurrences across 1 files (6.4% of all explicit `any`).
 
 **Top files:**
 
 | File | Count |
 |---|---:|
 | `server/shared/base-repository.ts` | 3 |
-| `client/src/components/ai-health/TrainingTab.tsx` | 1 |
-| `server/routes/domain-router-registry.ts` | 1 |
-| `server/routes/sensorBundles.ts` | 1 |
 
 **Examples:**
 
-- `client/src/components/ai-health/TrainingTab.tsx:493` — `const model = modelRow as Record<string, any>;`
-- `server/routes/domain-router-registry.ts:76` — `getDeps: () => Record<string, any>;`
-- `server/routes/sensorBundles.ts:394` — `const fields = template.fields as Record<string, any>;`
+- `server/shared/base-repository.ts:72` — `return (this.table as Record<string, any>)[name];`
+- `server/shared/base-repository.ts:75` — `private columns(): Record<string, any> {`
+- `server/shared/base-repository.ts:76` — `return this.table as Record<string, any>;`
 
 **Recommended remediation.** Stop trusting the payload. Parse once with `z.unknown().pipe(targetSchema)` or `JSON.parse` followed by a Zod parse. Inside the system, replace `any` with `unknown` so callers are forced to narrow. For drizzle `jsonb` columns, declare the column type as `jsonb().$type<MyShape>()` and store the Zod schema alongside.
 
@@ -91,7 +74,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** Functions whose signature uses `any` because the author couldn't get a generic to flow (callback params typed `(x: any)`, `Array<any>`, `Promise<any>`, return-type `any` on a helper that should have inferred).
 
-**Count.** 65 occurrences across 58 files (46.8% of all explicit `any`).
+**Count.** 18 occurrences across 11 files (38.3% of all explicit `any`).
 
 **Top files:**
 
@@ -101,18 +84,18 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 | `docs/examples/telemetry-service-with-logging.ts` | 2 |
 | `server/services/ml/prediction-outcome-tracker.ts` | 2 |
 | `artifacts/mockup-sandbox/src/components/mockups/home-layouts/SidebarSplit.tsx` | 1 |
-| `client/src/features/serviceOrders/pages/ServiceOrdersPage.tsx` | 1 |
-| `client/src/lib/api/finance.ts` | 1 |
-| `client/src/lib/desktop.ts` | 1 |
-| `client/src/lib/desktopFetch.ts` | 1 |
-| `client/src/pages/ai-sensor-audits.tsx` | 1 |
-| `client/src/pages/digital-twin/ReplayTab.tsx` | 1 |
+| `server/ml-prediction/model-loader.ts` | 1 |
+| `server/services/ml/model-evaluation-gate.ts` | 1 |
+| `server/services/ml/prediction-calibration.ts` | 1 |
+| `server/services/rag/semantic-cache.ts` | 1 |
+| `server/services/rag/streaming/index.ts` | 1 |
+| `server/services/rag/suggestions/index.ts` | 1 |
 
 **Examples:**
 
 - `artifacts/mockup-sandbox/src/components/mockups/home-layouts/SidebarSplit.tsx:48` — `const Button = ({ children, variant = 'default', size = 'default', className = '', ...props }: any) => {`
-- `client/src/features/serviceOrders/pages/ServiceOrdersPage.tsx:127` — `onSuccess: (res: any) => {`
-- `client/src/lib/api/finance.ts:80` — `): Promise<any> {`
+- `docs/examples/telemetry-service-with-logging.ts:49` — `const validReadings: any[] = [];`
+- `docs/examples/telemetry-service-with-logging.ts:50` — `const invalidReadings: any[] = [];`
 
 **Recommended remediation.** Reach for `Parameters<typeof fn>[n]` / `Awaited<ReturnType<typeof fn>>` / `infer` rather than `any`. For callbacks, type the higher-order function generically (`<T>(items: T[], cb: (x: T) => void)`) instead of widening the parameter. For Promise chains, type the resolution value, not the wrapper.
 
@@ -120,7 +103,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** Residual `any` that isn't explained by any of the above — typically deep cross-domain glue, dynamic property access on heterogeneous registries, or code that genuinely needs a domain redesign before it can be typed.
 
-**Count.** 65 occurrences across 58 files (46.8% of all explicit `any`).
+**Count.** 26 occurrences across 19 files (55.3% of all explicit `any`).
 
 **Top files:**
 
@@ -130,18 +113,18 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 | `docs/examples/telemetry-service-with-logging.ts` | 3 |
 | `server/services/ml/prediction-outcome-tracker.ts` | 2 |
 | `server/shared/base-repository.ts` | 2 |
-| `client/src/features/analytics/hooks/useReportsData.ts` | 1 |
-| `client/src/features/serviceOrders/pages/ServiceOrdersPage.tsx` | 1 |
-| `client/src/features/settings/hooks/useOrganizationData.ts` | 1 |
-| `client/src/lib/desktop.ts` | 1 |
-| `client/src/main.tsx` | 1 |
-| `client/src/pages/briefing.tsx` | 1 |
+| `server/beast/config-routes.ts` | 1 |
+| `server/compliance/report-generator.ts` | 1 |
+| `server/infrastructure/DualWriteAdapter.ts` | 1 |
+| `server/infrastructure/tenant-scoped/base.ts` | 1 |
+| `server/infrastructure/tenant-scoped/sensor-configuration.ts` | 1 |
+| `server/ml-prediction/model-loader.ts` | 1 |
 
 **Examples:**
 
-- `client/src/features/analytics/hooks/useReportsData.ts:14` — `const { data: equipmentHealth, isLoading: healthLoading } = useQuery<any[]>({`
-- `client/src/features/serviceOrders/pages/ServiceOrdersPage.tsx:324` — `serviceOrders={filteredOrders.map((o): any => ({`
-- `client/src/features/settings/hooks/useOrganizationData.ts:198` — `const result: any = await apiRequest("POST", \`/api/users/${userId}/reset-password\`);`
+- `docs/examples/telemetry-service-with-logging.ts:22` — `const orgId = (req as any).orgId;`
+- `docs/examples/telemetry-service-with-logging.ts:136` — `const orgId = (req as any).orgId;`
+- `docs/examples/telemetry-service-with-logging.ts:186` — `const orgId = (req as any).orgId;`
 
 **Recommended remediation.** Don't paper over with a cast. These are the call sites that should drive Phase 3 work (Result/Either, branded IDs, discriminated unions, shared API envelopes, typed domain errors). Capture the call site in the follow-up task list and resolve it as part of the domain redesign — not as a one-line edit.
 

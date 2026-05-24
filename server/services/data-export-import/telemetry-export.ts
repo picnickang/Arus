@@ -63,7 +63,7 @@ export async function exportTelemetryChunked(
     const equipmentIdSet = new Set(equipmentIds);
 
     for (const equipmentId of equipmentIds) {
-      let telemetry: any[] = [];
+      let telemetry: Awaited<ReturnType<typeof dbTelemetryStorage.getLatestTelemetryReadings>> = [];
 
       if (entityName === "equipment_telemetry") {
         telemetry = await dbTelemetryStorage.getLatestTelemetryReadings(equipmentId, 10000);

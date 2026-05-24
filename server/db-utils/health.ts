@@ -23,7 +23,7 @@ export async function getDatabaseHealth(): Promise<DatabaseHealth> {
     };
   }
 
-  let pool: any = null;
+  let pool: InstanceType<typeof Pool> | null = null;
   try {
     pool = new Pool({
       connectionString: DATABASE_URL,
@@ -69,7 +69,7 @@ export async function getDatabaseHealth(): Promise<DatabaseHealth> {
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       ok: false,
       engine: DATABASE_URL.includes("neon.tech") ? "neon" : "postgres",
@@ -77,7 +77,7 @@ export async function getDatabaseHealth(): Promise<DatabaseHealth> {
       connectionPool: { total: 0, idle: 0, waiting: 0 },
       tableCount: 0,
       telemetryRecords: 0,
-      detail: error?.message || String(error),
+      detail: error instanceof Error ? error.message : String(error),
     };
   } finally {
     if (pool) {

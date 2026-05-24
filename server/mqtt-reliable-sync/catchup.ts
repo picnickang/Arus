@@ -27,7 +27,7 @@ export async function publishCatchupMessages(
   entityType: string,
   since: Date,
   limit: number,
-  emit: (event: string, data: any) => boolean
+  emit: (event: string, data: unknown) => boolean
 ): Promise<void> {
   logger.info(
     "MqttReliableSync",
@@ -35,7 +35,7 @@ export async function publishCatchupMessages(
   );
 
   try {
-    const entityQueries: Record<string, () => Promise<any[]>> = {
+    const entityQueries: Record<string, () => Promise<unknown[]>> = {
       work_orders: () =>
         db.select().from(workOrders).where(gte(workOrders.updatedAt, since)).limit(limit),
       alerts: () =>

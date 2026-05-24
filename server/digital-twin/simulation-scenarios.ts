@@ -220,7 +220,7 @@ const analysisRecommendations: Record<
 };
 
 export function analyzeSimulationResults(
-  _results: any[],
+  _results: unknown[],
   scenario: SimulationScenario
 ): SimulationAnalysis {
   const analysis: SimulationAnalysis = {

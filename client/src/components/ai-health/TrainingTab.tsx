@@ -490,7 +490,18 @@ export default function TrainingTab() {
                     </TableHeader>
                     <TableBody>
                       {t.mlModels.map((modelRow) => {
-                        const model = modelRow as Record<string, any>;
+                        const model = modelRow as Record<string, unknown> & {
+                          id: string;
+                          name?: string;
+                          modelType?: string;
+                          status?: string;
+                          accuracy?: number | null;
+                          createdAt?: string | Date | null;
+                          hyperparameters?: { dataQualityTier?: string } | null;
+                          equipmentType?: string | null;
+                          targetEquipmentType?: string | null;
+                          performance?: { accuracy?: number } | null;
+                        };
                         const tier = model.hyperparameters?.dataQualityTier;
                         return (
                           <TableRow key={model.id}>
@@ -504,7 +515,7 @@ export default function TrainingTab() {
                                     : model.modelType}
                               </Badge>
                             </TableCell>
-                            <TableCell>{model.targetEquipmentType || "All"}</TableCell>
+                            <TableCell>{(model.targetEquipmentType as string | undefined) || "All"}</TableCell>
                             <TableCell>
                               {model.performance?.accuracy ? (
                                 <span className="text-sm">

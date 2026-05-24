@@ -170,14 +170,25 @@ function SinceLastVisit({
   );
 }
 
+interface MyTask {
+  id: string;
+  title?: string;
+  priority?: number;
+  dueDate?: string | null;
+  status?: string;
+  equipmentName?: string | null;
+  vesselName?: string | null;
+  equipment?: { name?: string | null } | null;
+}
+
 function MyTasks() {
-  const { data: myWorkOrders } = useQuery({
+  const { data: myWorkOrders } = useQuery<MyTask[]>({
     queryKey: ["/api/work-orders", { assignedToMe: "true", status: "open" }],
     refetchInterval: 60000,
   });
 
   const [, setLocation] = useLocation();
-  const tasks = Array.isArray(myWorkOrders) ? myWorkOrders.slice(0, 5) : [];
+  const tasks: MyTask[] = Array.isArray(myWorkOrders) ? myWorkOrders.slice(0, 5) : [];
 
   if (tasks.length === 0) {
     return null;
@@ -196,7 +207,7 @@ function MyTasks() {
         </button>
       </div>
       <div className="space-y-2">
-        {tasks.map((task: any) => (
+        {tasks.map((task) => (
           <button
             key={task.id}
             onClick={() => setLocation(`/maint?tab=work-orders&id=${task.id}`)}

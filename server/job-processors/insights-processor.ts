@@ -9,7 +9,7 @@ const logger = createLogger("JobProcessors:InsightsProcessor");
 export async function processInsightsSnapshotGeneration(data: {
   orgId: string;
   scope?: string;
-}): Promise<any> {
+}): Promise<unknown> {
   try {
     const { orgId, scope = "fleet" } = data;
 

@@ -75,7 +75,9 @@ export function calculatePerformanceMetrics(
   };
 }
 
-export function analyzeEquipmentHealth(equipment: any[]): HistoricalContext["equipmentHealth"] {
+export function analyzeEquipmentHealth(
+  equipment: Array<{ healthScore?: number | null } & Record<string, unknown>>
+): HistoricalContext["equipmentHealth"] {
   const health = { critical: 0, warning: 0, normal: 0, excellent: 0 };
 
   equipment.forEach((eq) => {

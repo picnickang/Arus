@@ -124,8 +124,9 @@ export default function ServiceOrdersPage() {
       return;
     }
     revertMutation.mutate(id, {
-      onSuccess: (res: any) => {
-        const srId = res?.serviceRequest?.id;
+      onSuccess: (res: unknown) => {
+        const srId = (res as { serviceRequest?: { id?: string } } | null | undefined)
+          ?.serviceRequest?.id;
         toast({
           title: "Service Order reverted",
           description: "The Service Request is back to Approved status.",
@@ -321,16 +322,16 @@ export default function ServiceOrdersPage() {
             {/* UX FIX #3: Conditional rendering based on view mode */}
             {viewMode === "calendar" ? (
               <ServiceOrderCalendar
-                serviceOrders={filteredOrders.map((o): any => ({
+                serviceOrders={filteredOrders.map((o) => ({
                   id: o.id,
                   soNumber: o.soNumber,
                   status: o.status,
-                  scheduledStartDate: o.scheduledStartDate,
-                  scheduledEndDate: o.scheduledEndDate,
+                  scheduledStartDate: o.scheduledStartDate ?? null,
+                  scheduledEndDate: o.scheduledEndDate ?? null,
                   serviceProviderName: o.serviceProviderName,
                   vesselName: o.vesselName,
                   equipmentName: o.equipmentName,
-                  estimatedDurationHours: o.estimatedDurationHours,
+                  estimatedDurationHours: o.estimatedDurationHours ?? undefined,
                 }))}
                 onSelect={(so) => {
                   const order = filteredOrders.find((o) => o.id === so.id);

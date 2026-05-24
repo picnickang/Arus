@@ -79,7 +79,7 @@ export async function persistOptimizationResults(
   }
 }
 
-export async function getOptimizationResults(resultId: string): Promise<any> {
+export async function getOptimizationResults(resultId: string): Promise<unknown> {
   try {
     const optimizationRecord = await db
       .select()

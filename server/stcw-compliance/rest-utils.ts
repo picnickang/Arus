@@ -38,13 +38,13 @@ export function restHoursInWindow(days: RestDay[], center: number): number {
   return windowSlice.reduce((sum, val) => sum + val, 0);
 }
 
-export function normalizeRestDays(rows: any[]): RestDay[] {
+export function normalizeRestDays(rows: Array<Record<string, unknown>>): RestDay[] {
   return rows.map((row) => {
-    const normalized: RestDay = { date: row.date };
+    const normalized: RestDay = { date: String(row.date ?? "") };
 
     for (let i = 0; i < 24; i++) {
       const key = `h${i}` as keyof RestDay;
-      normalized[key] = Number.parseInt(String(row[key] || row[String(i)] || 0)) || 0;
+      normalized[key] = Number.parseInt(String(row[key] ?? row[String(i)] ?? 0)) || 0;
     }
 
     return normalized;

@@ -6,8 +6,10 @@ const DEFAULT_URL = "http://localhost:5000";
 
 let _cachedUrl: string | null = null;
 
-function tauriImport(mod: string): Promise<any> {
-  return new Function("m", "return import(m)")(mod).catch(() => null);
+function tauriImport(mod: string): Promise<Record<string, unknown> | null> {
+  return (
+    new Function("m", "return import(m)")(mod) as Promise<Record<string, unknown>>
+  ).catch(() => null);
 }
 
 export async function resolveBackendUrl(): Promise<string> {

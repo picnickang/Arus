@@ -195,7 +195,10 @@ export function useOrganizationData() {
   };
   const handleResetPassword = async (userId: string) => {
     try {
-      const result: any = await apiRequest("POST", `/api/users/${userId}/reset-password`);
+      const result = await apiRequest<{ token: string; expiresIn: string }>(
+        "POST",
+        `/api/users/${userId}/reset-password`
+      );
       toast({
         title: "Password Reset Token Generated",
         description: `Token: ${result.token}\nExpires in: ${result.expiresIn}`,

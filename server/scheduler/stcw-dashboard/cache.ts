@@ -2,7 +2,7 @@
  * STCW Dashboard Cache - In-memory caching with bounded LRU eviction
  */
 
-const stcwCache = new Map<string, { data: any; timestamp: number }>();
+const stcwCache = new Map<string, { data: unknown; timestamp: number }>();
 const STCW_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const STCW_CACHE_MAX_SIZE = 30;
 
@@ -19,8 +19,9 @@ export function getFromCache<T>(key: string): T | null {
   return null;
 }
 
-export function setCache(key: string, data: any): void {
-  if (!data || (data.vessels && data.vessels.length === 0 && data.fleet?.totalVessels === 0)) {
+export function setCache(key: string, data: unknown): void {
+  const d = data as { vessels?: unknown[]; fleet?: { totalVessels?: number } } | null | undefined;
+  if (!d || (d.vessels && d.vessels.length === 0 && d.fleet?.totalVessels === 0)) {
     return;
   }
 

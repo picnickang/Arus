@@ -175,7 +175,7 @@ export class InventoryStorageAdapter implements InventoryStorage {
     const workOrderParts = await this.storage.getWorkOrderParts(workOrderId, orgId);
 
     // Map to simplified structure needed by inventory functions
-    return workOrderParts.map((wop: any) => ({
+    return workOrderParts.map((wop: { partNo?: string | null; quantityUsed?: number | null }) => ({
       partNo: wop.partNo ?? "",
       quantity: wop.quantityUsed ?? 0,
     }));

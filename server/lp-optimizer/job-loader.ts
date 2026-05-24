@@ -89,9 +89,11 @@ export async function getPendingMaintenanceJobs(orgId: string): Promise<Maintena
   }
 }
 
-export async function getPartsAvailability(orgId: string): Promise<any[]> {
+export async function getPartsAvailability(
+  orgId: string
+): Promise<import("./lp-formulation").LpPartRow[]> {
   try {
-    return (await dbInventoryStorage.getPartsInventory(undefined, orgId)) ?? [];
+    return ((await dbInventoryStorage.getPartsInventory(undefined, orgId)) ?? []) as unknown as import("./lp-formulation").LpPartRow[];
   } catch {
     return [];
   }

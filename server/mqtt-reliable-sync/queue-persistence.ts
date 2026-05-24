@@ -49,8 +49,8 @@ export async function loadPersistedQueue(queueDir: string): Promise<MqttMessage[
 
     // Clear the file after loading
     await fs.writeFile(queueFile, "");
-  } catch (error: any) {
-    if (error.code !== "ENOENT") {
+  } catch (error: unknown) {
+    if ((error as { code?: string } | null)?.code !== "ENOENT") {
       logger.error("MqttReliableSync", "Error loading persistent queue", error);
     }
     // File doesn't exist - this is fine for first run

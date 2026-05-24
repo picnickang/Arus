@@ -15,7 +15,7 @@ import {
 
 export function analyzeFailurePatterns(
   workOrders: WorkOrder[],
-  equipment: any[],
+  equipment: Array<{ id: string; name?: string; type?: string | null; equipmentType?: string | null }>,
   telemetry: EquipmentTelemetry[]
 ): VesselPattern[] {
   const patterns: VesselPattern[] = [];
@@ -50,7 +50,7 @@ export function analyzeFailurePatterns(
         lastObserved: new Date(orders[0].createdAt ?? 0),
         affectedEquipment: [equipmentId],
         correlatedMetrics,
-        recommendedActions: generateFailureRecommendations(eq?.type, orders.length, avgDaysBetween),
+        recommendedActions: generateFailureRecommendations(eq?.type ?? undefined, orders.length, avgDaysBetween),
       });
     }
   });

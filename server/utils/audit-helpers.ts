@@ -15,7 +15,14 @@ export interface AuditContext {
 }
 
 interface AuthenticatedRequest extends Request {
-  user?: any;
+  user?: {
+    id: string;
+    email: string;
+    name?: string;
+    role: string;
+    isActive: boolean;
+    orgId?: string;
+  };
 }
 
 /**

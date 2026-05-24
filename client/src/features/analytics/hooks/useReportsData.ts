@@ -11,9 +11,13 @@ export function useReportsData() {
   const [selectedStandard, setSelectedStandard] = useState<string>("ISM");
   const [reportType, setReportType] = useState<string>("fleet");
 
-  const { data: equipmentHealth, isLoading: healthLoading } = useQuery<any[]>({
+  const { data: equipmentHealth, isLoading: healthLoading } = useQuery<
+    Array<{ id: string; vessel: string; healthIndex?: number; predictedDueDays?: number }>
+  >({
     queryKey: ["/api/equipment/health"],
-    queryFn: fetchEquipmentHealth as object as () => Promise<unknown[]>,
+    queryFn: fetchEquipmentHealth as object as () => Promise<
+      Array<{ id: string; vessel: string; healthIndex?: number; predictedDueDays?: number }>
+    >,
   });
   const { data: workOrders, isLoading: ordersLoading } = useQuery({
     queryKey: ["/api/work-orders"],

@@ -242,13 +242,24 @@ function DocumentFilterBar({
   );
 }
 
+interface SemanticSearchResult {
+  chunkId: string;
+  docName: string;
+  similarity: number;
+  text?: string;
+}
+
+interface SemanticSearchPayload {
+  results?: SemanticSearchResult[];
+}
+
 function SemanticSearchResults({
   query,
   searchData,
   searching,
 }: {
   query: string;
-  searchData: any;
+  searchData: SemanticSearchPayload | undefined;
   searching: boolean;
 }) {
   const isQuestion = query.length >= 10 && (query.includes("?") || query.split(/\s+/).length > 4);
@@ -265,9 +276,9 @@ function SemanticSearchResults({
         </span>
         {searching && <Loader2 className="h-3 w-3 animate-spin" />}
       </div>
-      {searchData?.results?.length > 0 && (
+      {(searchData?.results?.length ?? 0) > 0 && (
         <div className="p-3 space-y-2 max-h-60 overflow-y-auto">
-          {searchData.results.slice(0, 5).map((result: any) => (
+          {searchData!.results!.slice(0, 5).map((result) => (
             <div
               key={result.chunkId}
               className="p-3 rounded border-l-2 border-sky-500 bg-card text-sm"
@@ -281,7 +292,7 @@ function SemanticSearchResults({
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {result.text?.slice(0, 200)}
-                {result.text?.length > 200 ? "..." : ""}
+                {(result.text?.length ?? 0) > 200 ? "..." : ""}
               </p>
             </div>
           ))}
