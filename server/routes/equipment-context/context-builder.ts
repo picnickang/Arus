@@ -12,7 +12,14 @@ import {
 import { searchKnowledgeBase as defaultSearchKnowledgeBase } from "../../vector-search-service";
 import { logger } from "../../utils/logger.js";
 
-const searchKnowledgeBase = defaultSearchKnowledgeBase as unknown as SearchKnowledgeBaseFn;
+const searchKnowledgeBase: SearchKnowledgeBaseFn = async ({ query, limit }) => {
+  const results = await defaultSearchKnowledgeBase(query, { limit });
+  return results.map((r) => ({
+    docId: r.docId,
+    text: r.text ?? r.content,
+    score: r.score,
+  }));
+};
 
 const pickStr = (obj: object, key: string): string | null => {
   if (key in obj) {

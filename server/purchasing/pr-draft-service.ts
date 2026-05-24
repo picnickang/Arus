@@ -167,15 +167,24 @@ async function findSubstitutionSuggestions(
   orgId: string
 ): Promise<AddItemResult["substitutionSuggestions"]> {
   try {
-    // Get all substitution relationships for this part
+    // The substitutions table is keyed by part number (text), not part UUID.
+    // Resolve the requested part's partNo, then look up alternates.
+    const [requestedPart] = await db
+      .select({ partNo: parts.partNo })
+      .from(parts)
+      .where(and(eq(parts.id, partId), eq(parts.orgId, orgId)));
+
+    if (!requestedPart) {
+      return [];
+    }
+
     const subs = await db
-      .select()
+      .select({ alternatePartNo: partSubstitutions.alternatePartNo })
       .from(partSubstitutions)
       .where(
         and(
           eq(partSubstitutions.orgId, orgId),
-          // Either this part is the original or the substitute
-          eq((partSubstitutions as object as Record<string, never>)["originalPartId"], partId)
+          eq(partSubstitutions.primaryPartNo, requestedPart.partNo)
         )
       );
 
@@ -183,13 +192,11 @@ async function findSubstitutionSuggestions(
       return [];
     }
 
-    const substituteIds = subs.map(
-      (s) => (s as unknown as { substitutePartId: string }).substitutePartId
-    );
+    const alternateNos = subs.map((s) => s.alternatePartNo);
 
     // Fetch substitute parts with their current stock
     const suggestions: AddItemResult["substitutionSuggestions"] = [];
-    for (const substituteId of substituteIds) {
+    for (const alternateNo of alternateNos) {
       const [subPart] = await db
         .select({
           id: parts.id,
@@ -197,7 +204,7 @@ async function findSubstitutionSuggestions(
           name: parts.name,
         })
         .from(parts)
-        .where(and(eq(parts.id, substituteId), eq(parts.orgId, orgId)));
+        .where(and(eq(parts.partNo, alternateNo), eq(parts.orgId, orgId)));
 
       if (!subPart) {
         continue;
@@ -206,7 +213,7 @@ async function findSubstitutionSuggestions(
       const subInventoryRows = await db
         .select({ quantityOnHand: stock.quantityOnHand, quantityReserved: stock.quantityReserved })
         .from(stock)
-        .where(and(eq(stock.partId, substituteId), eq(stock.orgId, orgId)));
+        .where(and(eq(stock.partId, subPart.id), eq(stock.orgId, orgId)));
 
       const subOnHand = subInventoryRows.reduce((s, r) => s + (r.quantityOnHand ?? 0), 0);
       const subReserved = subInventoryRows.reduce((s, r) => s + (r.quantityReserved ?? 0), 0);

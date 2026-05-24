@@ -211,35 +211,15 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
         });
       }
 
-      const realtimeData = await (
-        fmccService as unknown as {
-          getRealTimeFuelData: (vesselId: string) => Promise<{
-            success: boolean;
-            source?: string;
-            error?: string;
-            data?: {
-              foFlowRate?: unknown;
-              doFlowRate?: unknown;
-              foDensity?: unknown;
-              timestamp?: unknown;
-            };
-          }>;
-        }
-      ).getRealTimeFuelData(vesselId);
-
-      res.json({
-        ok: realtimeData.success,
-        status: realtimeData.success ? "connected" : "error",
-        source: realtimeData.source,
-        data: realtimeData.data
-          ? {
-              foFlowRate: realtimeData.data.foFlowRate,
-              doFlowRate: realtimeData.data.doFlowRate,
-              foDensity: realtimeData.data.foDensity,
-              timestamp: realtimeData.data.timestamp,
-            }
-          : null,
-        error: realtimeData.error,
+      // NOTE: `getRealTimeFuelData` is not implemented on the FMCC service
+      // (only `getCumulativeFuelCounters` exists). The diagnostic endpoint is
+      // retained for API compatibility and reports unimplemented until the
+      // realtime poll is wired up.
+      void vesselId;
+      return res.status(501).json({
+        ok: false,
+        status: "unimplemented",
+        message: "Realtime FMCC fuel data is not implemented in this build",
       });
     })
   );
@@ -344,17 +324,17 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
       const { days = "30" } = stcwDaysQuerySchema.parse(req.query);
       const lookbackDays = Number.parseInt(days, 10) || 30;
 
-      const stcwMod = (await import("../../scheduler/stcw-dashboard")) as unknown as {
-        getCrewSTCWSummary: (
-          orgId: string,
-          crewId: string,
-          lookbackDays: number,
-        ) => Promise<unknown>;
-      };
-      const summary = await stcwMod.getCrewSTCWSummary(orgId, crewId, lookbackDays);
-
-      res.setHeader("Cache-Control", "private, max-age=300");
-      res.json(summary);
+      // NOTE: `getCrewSTCWSummary` is not exported by the stcw-dashboard
+      // module (only fleet/vessel summaries exist). The endpoint is retained
+      // for API compatibility and reports unimplemented.
+      void orgId;
+      void crewId;
+      void lookbackDays;
+      return res.status(501).json({
+        ok: false,
+        status: "unimplemented",
+        message: "Per-crew STCW summary is not implemented in this build",
+      });
     })
   );
 

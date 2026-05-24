@@ -29,11 +29,11 @@ const router = Router();
 router.post("/ml/acoustic-analysis", async (req: AuthenticatedRequest, res: Response) => {
   try {
     const parsed = mlAcousticDataSchema.parse(req.body);
-    const { dataPoints, samplingRate, equipmentType } = parsed as unknown as {
-      dataPoints: number[];
-      samplingRate: number;
-      equipmentType: string;
-    };
+    const dataPoints: number[] = parsed.data;
+    const samplingRate: number = parsed.sampleRate;
+    const equipmentTypeMeta = parsed.metadata?.equipmentType;
+    const equipmentType: string =
+      typeof equipmentTypeMeta === "string" ? equipmentTypeMeta : "unknown";
 
     const nextPowerOf2 = Math.pow(2, Math.ceil(Math.log2(dataPoints.length)));
     const paddedSignal = [...dataPoints];

@@ -377,15 +377,13 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
     "/api/acoustic/history",
     requireOrgId,
     withErrorHandling("fetch acoustic history", async (req: Request, res: Response) => {
+      // NOTE: `getAcousticHistory` is not implemented on dbSensorsStorage.
+      // The endpoint is preserved for API compatibility and returns an empty
+      // history array until the persistence layer is wired up.
       const { equipmentId, hours } = acousticHistoryQuerySchema.parse(req.query);
-      const sensors = dbSensorsStorage as unknown as {
-        getAcousticHistory?: (eq: string, hours: number) => Promise<unknown>;
-      };
-      const history = await sensors.getAcousticHistory?.(
-        equipmentId as string,
-        hours ?? 24
-      );
-      res.json(history ?? []);
+      void equipmentId;
+      void hours;
+      res.json([]);
     })
   );
 }

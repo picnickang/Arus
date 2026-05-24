@@ -346,14 +346,10 @@ export function registerAutofillLogsRoutes(app: Express, deps: AutofillLogsDepen
         conditions.push(lte(conditionLogSummary.periodEnd, new Date(endDate)));
       }
 
-      if (periodType) {
-        conditions.push(
-          eq(
-            (conditionLogSummary as unknown as Record<string, import("drizzle-orm/pg-core").PgColumn>).periodType,
-            periodType
-          )
-        );
-      }
+      // NOTE: conditionLogSummary has no `periodType` column in the current
+      // schema (only periodStart/periodEnd). The query param is accepted for
+      // API compatibility but cannot be applied as a filter and is ignored.
+      void periodType;
 
       let query = db
         .select()

@@ -23,7 +23,14 @@ const woPartParamSchema = z.object({
 });
 const partOnlyParamSchema = z.object({ partId: z.string().min(1) });
 
-const partBodySchema = z.record(z.unknown());
+const partBodySchema = z
+  .object({
+    partId: z.string().min(1),
+    quantity: z.number().positive(),
+    usedBy: z.string().min(1),
+    notes: z.string().optional(),
+  })
+  .passthrough();
 
 const bulkPartsBodySchema = z.object({
   parts: z
@@ -74,7 +81,7 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
 
       const part = await workOrderService.addBulkPartsAndReserveInventory(
         id,
-        [partData] as unknown as Parameters<typeof workOrderService.addBulkPartsAndReserveInventory>[1],
+        [partData] as Parameters<typeof workOrderService.addBulkPartsAndReserveInventory>[1],
         orgId
       );
       sendCreated(res, part);

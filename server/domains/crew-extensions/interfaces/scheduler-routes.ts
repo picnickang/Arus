@@ -34,6 +34,7 @@ import {
   simulateSchedule,
   applySimulatedSchedule,
   revertGeneratedSchedule,
+  type SimulationResult,
 } from "../../../scheduler/scheduler-controller.js";
 import { previewScheduleCompliance } from "../../../scheduler/compliance-preview.js";
 import { generateHoRFromSchedule } from "../../../scheduler/hor-generator.js";
@@ -63,7 +64,16 @@ const simulateBodySchema = z.object({
   fillUnassignedOnly: z.boolean().optional(),
 });
 const applyDraftBodySchema = z.object({
-  simulationResult: z.object({ proposed: z.unknown() }).passthrough().optional(),
+  simulationResult: z
+    .custom<SimulationResult>(
+      (v) =>
+        typeof v === "object" &&
+        v !== null &&
+        "proposed" in v &&
+        Array.isArray((v as { proposed: unknown }).proposed),
+      { message: "simulationResult must include a proposed assignments array" }
+    )
+    .optional(),
   skipCollisions: z.boolean().optional(),
   vesselIds: z.array(z.string()).optional(),
 });
@@ -630,7 +640,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
 
         const result = await applySimulatedSchedule({
           orgId,
-          simulationResult: simulationResult as unknown as Parameters<typeof applySimulatedSchedule>[0]["simulationResult"],
+          simulationResult,
           skipCollisions: skipCollisions !== false,
           vesselIds: vesselIds && Array.isArray(vesselIds) ? vesselIds : undefined,
         });

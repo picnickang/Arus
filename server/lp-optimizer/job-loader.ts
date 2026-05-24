@@ -93,7 +93,8 @@ export async function getPartsAvailability(
   orgId: string
 ): Promise<import("./lp-formulation").LpPartRow[]> {
   try {
-    return ((await dbInventoryStorage.getPartsInventory(undefined, orgId)) ?? []) as unknown as import("./lp-formulation").LpPartRow[];
+    const rows = (await dbInventoryStorage.getPartsInventory(undefined, orgId)) ?? [];
+    return rows.map((r) => ({ id: r.id, quantity: r.quantityOnHand }));
   } catch {
     return [];
   }
