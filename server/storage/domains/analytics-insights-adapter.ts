@@ -52,7 +52,7 @@ export interface AnalyticsDependencies {
     orgId?: string
   ): Promise<EquipmentTelemetry[]>;
   getEquipmentRegistry(orgId: string): Promise<Equipment[]>;
-  getMetricsHistory(orgId: string, days: number): Promise<any[]>;
+  getMetricsHistory(orgId: string, days: number): Promise<Array<Record<string, unknown>>>;
   getVessels(orgId: string): Promise<Vessel[]>;
   getEquipment(id: string): Promise<Equipment | undefined>;
 }
@@ -129,7 +129,11 @@ export abstract class BaseAnalyticsInsightsAdapter {
     const riskAlerts = Math.max(pdmRiskAlerts, telemetryRiskAlerts);
 
     const history = await this.deps.getMetricsHistory(orgId, 7);
-    const weekOldMetrics = history.length > 0 ? history[history.length - 1] : undefined;
+    const weekOldMetrics = (
+      history.length > 0 ? history[history.length - 1] : undefined
+    ) as
+      | { activeDevices?: number; fleetHealth?: number; openWorkOrders?: number; riskAlerts?: number }
+      | undefined;
 
     return {
       activeDevices,

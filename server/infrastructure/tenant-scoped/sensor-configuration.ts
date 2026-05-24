@@ -78,7 +78,7 @@ export class SensorConfigurationRepository extends TenantScopedRepository {
    * Update sensor configuration
    * Validates ownership before update
    */
-  async update(equipmentId: string, sensorType: string, data: Partial<any>) {
+  async update(equipmentId: string, sensorType: string, data: Record<string, unknown>) {
     const { sensorConfigurations } = await import("@shared/schema");
 
     const existing = await this.getByEquipmentAndType(equipmentId, sensorType);

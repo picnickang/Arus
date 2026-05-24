@@ -19,7 +19,24 @@ export async function generateComplianceReport(
     equipmentIds: string[];
     standardCodes: string[];
   },
-  storage: any,
+  storage: {
+    getEquipment: (
+      orgId: string,
+      id: string
+    ) => Promise<Parameters<typeof assessCompliance>[0] | undefined>;
+    getTelemetryByPeriod: (
+      equipmentIds: string[],
+      start: Date,
+      end: Date,
+      orgId: string
+    ) => Promise<Parameters<typeof assessCompliance>[2]>;
+    getAlertsByPeriod: (
+      equipmentIds: string[],
+      start: Date,
+      end: Date,
+      orgId: string
+    ) => Promise<Parameters<typeof assessCompliance>[3]>;
+  },
   orgId: string
 ): Promise<ComplianceReport> {
   const standards = MARITIME_STANDARDS.filter((std) => config.standardCodes.includes(std.code));

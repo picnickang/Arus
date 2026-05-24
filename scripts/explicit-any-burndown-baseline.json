@@ -1,32 +1,23 @@
 {
   "_comment": "Explicit-`any` burndown baseline. Total must monotonically decrease. Regenerate the inventory (`node scripts/type-debt/classify-explicit-any.mjs`) then run `node scripts/check-explicit-any-burndown.mjs --write-baseline`.",
-  "generatedAt": "2026-05-24T10:24:43.457Z",
-  "total": 47,
+  "generatedAt": "2026-05-24T11:11:36.092Z",
+  "total": 23,
   "summary": {
     "byBucket": {
       "External library typing gaps": 0,
       "Test mocks / stubs": 0,
       "Legacy DTOs (route handlers, request/response shapes)": 0,
       "Dynamic JSON payloads": 3,
-      "Generic inference failures": 18,
-      "Truly unsafe / untyped logic": 26
+      "Generic inference failures": 9,
+      "Truly unsafe / untyped logic": 11
     },
     "byTopFiles": {
-      "server/services/ml/ml-training-job-queue.ts": 10,
+      "server/services/ml/ml-training-job-queue.ts": 8,
       "server/shared/base-repository.ts": 5,
-      "docs/examples/telemetry-service-with-logging.ts": 5,
       "server/services/ml/prediction-outcome-tracker.ts": 4,
       "server/ml-prediction/model-loader.ts": 2,
-      "artifacts/mockup-sandbox/src/components/mockups/home-layouts/SidebarSplit.tsx": 1,
-      "server/services/ml/model-evaluation-gate.ts": 1,
-      "server/services/ml/prediction-calibration.ts": 1,
-      "server/services/rag/semantic-cache.ts": 1,
-      "server/services/rag/streaming/index.ts": 1,
-      "server/services/rag/suggestions/index.ts": 1,
-      "server/beast/config-routes.ts": 1,
-      "server/compliance/report-generator.ts": 1,
-      "server/infrastructure/DualWriteAdapter.ts": 1,
-      "server/infrastructure/tenant-scoped/base.ts": 1
+      "server/services/ml/model-evaluation-gate.ts": 2,
+      "server/services/ml/prediction-calibration.ts": 2
     }
   }
 }

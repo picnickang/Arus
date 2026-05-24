@@ -12,7 +12,7 @@ export interface SearchResult {
   text?: string;
 }
 
-export async function searchSimilarChunks(_opts: any): Promise<SearchResult[]> {
+export async function searchSimilarChunks(_opts: unknown): Promise<SearchResult[]> {
   return [];
 }
 

@@ -17,7 +17,7 @@ export function parseCSV(content: string): StormGeoCSVRow[] {
 
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(",").map((v) => v.trim());
-    const row: any = {};
+    const row: Record<string, string | number> = {};
     headers.forEach((header, index) => {
       const value = values[index];
       if (value !== "" && value !== undefined) {
@@ -26,7 +26,7 @@ export function parseCSV(content: string): StormGeoCSVRow[] {
       }
     });
     if (row.timestamp) {
-      rows.push(row as StormGeoCSVRow);
+      rows.push(row as unknown as StormGeoCSVRow);
     }
   }
   return rows;

@@ -100,7 +100,7 @@ export class SemanticCache {
         query_text: string;
         response: string;
         source_chunk_ids: string[] | null;
-        citations: any;
+        citations: unknown;
         model_used: string | null;
         hit_count: number;
         created_at: Date;
@@ -271,7 +271,17 @@ export class SemanticCache {
     };
   }
 
-  private toEntry(row: any): SemanticCacheEntry {
+  private toEntry(row: {
+    queryHash: string;
+    queryText: string;
+    response: string;
+    citations: unknown;
+    sourceChunkIds?: string[] | null;
+    modelUsed?: string | null;
+    hitCount: number;
+    createdAt: Date;
+    expiresAt?: Date | null;
+  }): SemanticCacheEntry {
     return {
       queryHash: row.queryHash,
       queryText: row.queryText,

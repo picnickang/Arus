@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-24T10:24:43.267Z",
+  "generatedAt": "2026-05-24T11:11:35.924Z",
   "rule": "@typescript-eslint/no-explicit-any",
-  "total": 47,
-  "totalFiles": 23,
+  "total": 23,
+  "totalFiles": 6,
   "buckets": {
     "external_lib_gaps": {
       "label": "External library typing gaps",
@@ -40,7 +40,7 @@
       "remediation": "Stop trusting the payload. Parse once with `z.unknown().pipe(targetSchema)` or `JSON.parse` followed by a Zod parse. Inside the system, replace `any` with `unknown` so callers are forced to narrow. For drizzle `jsonb` columns, declare the column type as `jsonb().$type<MyShape>()` and store the Zod schema alongside.",
       "count": 3,
       "files": 1,
-      "percent": 6.4,
+      "percent": 13,
       "topFiles": [
         {
           "file": "server/shared/base-repository.ts",
@@ -69,25 +69,17 @@
       "label": "Generic inference failures",
       "definition": "Functions whose signature uses `any` because the author couldn't get a generic to flow (callback params typed `(x: any)`, `Array<any>`, `Promise<any>`, return-type `any` on a helper that should have inferred).",
       "remediation": "Reach for `Parameters<typeof fn>[n]` / `Awaited<ReturnType<typeof fn>>` / `infer` rather than `any`. For callbacks, type the higher-order function generically (`<T>(items: T[], cb: (x: T) => void)`) instead of widening the parameter. For Promise chains, type the resolution value, not the wrapper.",
-      "count": 18,
-      "files": 11,
-      "percent": 38.3,
+      "count": 9,
+      "files": 5,
+      "percent": 39.1,
       "topFiles": [
         {
           "file": "server/services/ml/ml-training-job-queue.ts",
-          "count": 6
-        },
-        {
-          "file": "docs/examples/telemetry-service-with-logging.ts",
-          "count": 2
+          "count": 4
         },
         {
           "file": "server/services/ml/prediction-outcome-tracker.ts",
           "count": 2
-        },
-        {
-          "file": "artifacts/mockup-sandbox/src/components/mockups/home-layouts/SidebarSplit.tsx",
-          "count": 1
         },
         {
           "file": "server/ml-prediction/model-loader.ts",
@@ -100,35 +92,23 @@
         {
           "file": "server/services/ml/prediction-calibration.ts",
           "count": 1
-        },
-        {
-          "file": "server/services/rag/semantic-cache.ts",
-          "count": 1
-        },
-        {
-          "file": "server/services/rag/streaming/index.ts",
-          "count": 1
-        },
-        {
-          "file": "server/services/rag/suggestions/index.ts",
-          "count": 1
         }
       ],
       "examples": [
         {
-          "file": "artifacts/mockup-sandbox/src/components/mockups/home-layouts/SidebarSplit.tsx",
-          "line": 48,
-          "snippet": "const Button = ({ children, variant = 'default', size = 'default', className = '', ...props }: any) => {"
+          "file": "server/ml-prediction/model-loader.ts",
+          "line": 26,
+          "snippet": "): Promise<any> {"
         },
         {
-          "file": "docs/examples/telemetry-service-with-logging.ts",
-          "line": 49,
-          "snippet": "const validReadings: any[] = [];"
+          "file": "server/services/ml/ml-training-job-queue.ts",
+          "line": 75,
+          "snippet": "constructor(pgBoss: any, db: any, wsServer?: any, storage?: any) {"
         },
         {
-          "file": "docs/examples/telemetry-service-with-logging.ts",
-          "line": 50,
-          "snippet": "const invalidReadings: any[] = [];"
+          "file": "server/services/ml/ml-training-job-queue.ts",
+          "line": 75,
+          "snippet": "constructor(pgBoss: any, db: any, wsServer?: any, storage?: any) {"
         }
       ]
     },
@@ -136,17 +116,13 @@
       "label": "Truly unsafe / untyped logic",
       "definition": "Residual `any` that isn't explained by any of the above — typically deep cross-domain glue, dynamic property access on heterogeneous registries, or code that genuinely needs a domain redesign before it can be typed.",
       "remediation": "Don't paper over with a cast. These are the call sites that should drive Phase 3 work (Result/Either, branded IDs, discriminated unions, shared API envelopes, typed domain errors). Capture the call site in the follow-up task list and resolve it as part of the domain redesign — not as a one-line edit.",
-      "count": 26,
-      "files": 19,
-      "percent": 55.3,
+      "count": 11,
+      "files": 6,
+      "percent": 47.8,
       "topFiles": [
         {
           "file": "server/services/ml/ml-training-job-queue.ts",
           "count": 4
-        },
-        {
-          "file": "docs/examples/telemetry-service-with-logging.ts",
-          "count": 3
         },
         {
           "file": "server/services/ml/prediction-outcome-tracker.ts",
@@ -157,45 +133,33 @@
           "count": 2
         },
         {
-          "file": "server/beast/config-routes.ts",
-          "count": 1
-        },
-        {
-          "file": "server/compliance/report-generator.ts",
-          "count": 1
-        },
-        {
-          "file": "server/infrastructure/DualWriteAdapter.ts",
-          "count": 1
-        },
-        {
-          "file": "server/infrastructure/tenant-scoped/base.ts",
-          "count": 1
-        },
-        {
-          "file": "server/infrastructure/tenant-scoped/sensor-configuration.ts",
-          "count": 1
-        },
-        {
           "file": "server/ml-prediction/model-loader.ts",
+          "count": 1
+        },
+        {
+          "file": "server/services/ml/model-evaluation-gate.ts",
+          "count": 1
+        },
+        {
+          "file": "server/services/ml/prediction-calibration.ts",
           "count": 1
         }
       ],
       "examples": [
         {
-          "file": "docs/examples/telemetry-service-with-logging.ts",
-          "line": 22,
-          "snippet": "const orgId = (req as any).orgId;"
+          "file": "server/ml-prediction/model-loader.ts",
+          "line": 69,
+          "snippet": "circuitBreaker: any,"
         },
         {
-          "file": "docs/examples/telemetry-service-with-logging.ts",
-          "line": 136,
-          "snippet": "const orgId = (req as any).orgId;"
+          "file": "server/services/ml/ml-training-job-queue.ts",
+          "line": 69,
+          "snippet": "private boss: any;"
         },
         {
-          "file": "docs/examples/telemetry-service-with-logging.ts",
-          "line": 186,
-          "snippet": "const orgId = (req as any).orgId;"
+          "file": "server/services/ml/ml-training-job-queue.ts",
+          "line": 70,
+          "snippet": "private db: any;"
         }
       ]
     }

@@ -204,7 +204,7 @@ export class DualWriteAdapter {
  */
 export const ConsistencyChecks = {
   /** Check array length matches */
-  arrayLength: <T extends any[]>(a: T, b: T): boolean => a.length === b.length,
+  arrayLength: <T extends unknown[]>(a: T, b: T): boolean => a.length === b.length,
 
   /** Check object by ID */
   objectById: <T extends { id: string }>(a: T | undefined, b: T | undefined): boolean => {

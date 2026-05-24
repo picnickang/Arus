@@ -1,19 +1,19 @@
 # Explicit `any` Inventory
 
-_Generated: 2026-05-24T10:24:43.267Z_
+_Generated: 2026-05-24T11:11:35.924Z_
 
 Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit-any`. Regenerate with `node scripts/type-debt/classify-explicit-any.mjs`.
 
 ## Headline
 
-- **Total occurrences:** 47
-- **Distinct files:** 23
+- **Total occurrences:** 23
+- **Distinct files:** 6
 
 **Rough split (based on bucket heuristics — see per-bucket sections for caveats):**
 
-- ~38.3% mechanical (test mocks + external library gaps + generic inference fixes)
-- ~6.4% schema / generic redesign (dynamic JSON parses + legacy DTOs)
-- ~55.3% truly unsafe / residual (drives Phase 3 domain work)
+- ~39.1% mechanical (test mocks + external library gaps + generic inference fixes)
+- ~13.0% schema / generic redesign (dynamic JSON parses + legacy DTOs)
+- ~47.8% truly unsafe / residual (drives Phase 3 domain work)
 
 **Bucket totals:**
 
@@ -22,9 +22,9 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 | External library typing gaps | 0 | 0.0% | 0 |
 | Test mocks / stubs | 0 | 0.0% | 0 |
 | Legacy DTOs (route handlers, request/response shapes) | 0 | 0.0% | 0 |
-| Dynamic JSON payloads | 3 | 6.4% | 1 |
-| Generic inference failures | 18 | 38.3% | 11 |
-| Truly unsafe / untyped logic | 26 | 55.3% | 19 |
+| Dynamic JSON payloads | 3 | 13.0% | 1 |
+| Generic inference failures | 9 | 39.1% | 5 |
+| Truly unsafe / untyped logic | 11 | 47.8% | 6 |
 
 ## External library typing gaps
 
@@ -54,7 +54,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** `JSON.parse(...) as any`, `Record<string, any>`, drizzle `jsonb()` columns, OpenAI function-call arguments, Sentry/observability event payloads, telemetry attribute bags, anything that's genuinely heterogeneous at the boundary.
 
-**Count.** 3 occurrences across 1 files (6.4% of all explicit `any`).
+**Count.** 3 occurrences across 1 files (13.0% of all explicit `any`).
 
 **Top files:**
 
@@ -74,28 +74,23 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** Functions whose signature uses `any` because the author couldn't get a generic to flow (callback params typed `(x: any)`, `Array<any>`, `Promise<any>`, return-type `any` on a helper that should have inferred).
 
-**Count.** 18 occurrences across 11 files (38.3% of all explicit `any`).
+**Count.** 9 occurrences across 5 files (39.1% of all explicit `any`).
 
 **Top files:**
 
 | File | Count |
 |---|---:|
-| `server/services/ml/ml-training-job-queue.ts` | 6 |
-| `docs/examples/telemetry-service-with-logging.ts` | 2 |
+| `server/services/ml/ml-training-job-queue.ts` | 4 |
 | `server/services/ml/prediction-outcome-tracker.ts` | 2 |
-| `artifacts/mockup-sandbox/src/components/mockups/home-layouts/SidebarSplit.tsx` | 1 |
 | `server/ml-prediction/model-loader.ts` | 1 |
 | `server/services/ml/model-evaluation-gate.ts` | 1 |
 | `server/services/ml/prediction-calibration.ts` | 1 |
-| `server/services/rag/semantic-cache.ts` | 1 |
-| `server/services/rag/streaming/index.ts` | 1 |
-| `server/services/rag/suggestions/index.ts` | 1 |
 
 **Examples:**
 
-- `artifacts/mockup-sandbox/src/components/mockups/home-layouts/SidebarSplit.tsx:48` — `const Button = ({ children, variant = 'default', size = 'default', className = '', ...props }: any) => {`
-- `docs/examples/telemetry-service-with-logging.ts:49` — `const validReadings: any[] = [];`
-- `docs/examples/telemetry-service-with-logging.ts:50` — `const invalidReadings: any[] = [];`
+- `server/ml-prediction/model-loader.ts:26` — `): Promise<any> {`
+- `server/services/ml/ml-training-job-queue.ts:75` — `constructor(pgBoss: any, db: any, wsServer?: any, storage?: any) {`
+- `server/services/ml/ml-training-job-queue.ts:75` — `constructor(pgBoss: any, db: any, wsServer?: any, storage?: any) {`
 
 **Recommended remediation.** Reach for `Parameters<typeof fn>[n]` / `Awaited<ReturnType<typeof fn>>` / `infer` rather than `any`. For callbacks, type the higher-order function generically (`<T>(items: T[], cb: (x: T) => void)`) instead of widening the parameter. For Promise chains, type the resolution value, not the wrapper.
 
@@ -103,28 +98,24 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** Residual `any` that isn't explained by any of the above — typically deep cross-domain glue, dynamic property access on heterogeneous registries, or code that genuinely needs a domain redesign before it can be typed.
 
-**Count.** 26 occurrences across 19 files (55.3% of all explicit `any`).
+**Count.** 11 occurrences across 6 files (47.8% of all explicit `any`).
 
 **Top files:**
 
 | File | Count |
 |---|---:|
 | `server/services/ml/ml-training-job-queue.ts` | 4 |
-| `docs/examples/telemetry-service-with-logging.ts` | 3 |
 | `server/services/ml/prediction-outcome-tracker.ts` | 2 |
 | `server/shared/base-repository.ts` | 2 |
-| `server/beast/config-routes.ts` | 1 |
-| `server/compliance/report-generator.ts` | 1 |
-| `server/infrastructure/DualWriteAdapter.ts` | 1 |
-| `server/infrastructure/tenant-scoped/base.ts` | 1 |
-| `server/infrastructure/tenant-scoped/sensor-configuration.ts` | 1 |
 | `server/ml-prediction/model-loader.ts` | 1 |
+| `server/services/ml/model-evaluation-gate.ts` | 1 |
+| `server/services/ml/prediction-calibration.ts` | 1 |
 
 **Examples:**
 
-- `docs/examples/telemetry-service-with-logging.ts:22` — `const orgId = (req as any).orgId;`
-- `docs/examples/telemetry-service-with-logging.ts:136` — `const orgId = (req as any).orgId;`
-- `docs/examples/telemetry-service-with-logging.ts:186` — `const orgId = (req as any).orgId;`
+- `server/ml-prediction/model-loader.ts:69` — `circuitBreaker: any,`
+- `server/services/ml/ml-training-job-queue.ts:69` — `private boss: any;`
+- `server/services/ml/ml-training-job-queue.ts:70` — `private db: any;`
 
 **Recommended remediation.** Don't paper over with a cast. These are the call sites that should drive Phase 3 work (Result/Either, branded IDs, discriminated unions, shared API envelopes, typed domain errors). Capture the call site in the follow-up task list and resolve it as part of the domain redesign — not as a one-line edit.
 

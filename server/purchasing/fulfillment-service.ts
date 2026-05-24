@@ -226,7 +226,7 @@ export async function updatePRStatus(
   orgId: string,
   newStatus: PRStatus,
   userId?: string
-): Promise<{ success: boolean; pr?: any; error?: string }> {
+): Promise<{ success: boolean; pr?: Awaited<ReturnType<typeof repository.getPurchaseRequestById>>; error?: string }> {
   const pr = await repository.getPurchaseRequestById(prId, orgId);
   if (!pr) {
     return { success: false, error: "Purchase request not found" };

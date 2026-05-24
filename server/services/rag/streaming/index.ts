@@ -142,12 +142,12 @@ export class StreamingService {
       (ragMetrics as object as { recordQueryLatency: (sec: number) => void }).recordQueryLatency(latencyMs / 1000);
 
       res.end();
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error("[StreamingService] Error during streaming:", undefined, error);
 
       const errorChunk: StreamChunk = {
         type: "error",
-        error: error?.message || "Streaming failed",
+        error: error instanceof Error ? error.message : "Streaming failed",
       };
       this.sendSSE(res, errorChunk);
       onChunk?.(errorChunk);

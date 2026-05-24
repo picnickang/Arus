@@ -147,7 +147,7 @@ router.get("/health", async (req, res) => {
     const orgId = DEFAULT_ORG_ID;
     const configs = await beastModeManager.getAllFeatureConfigs(orgId);
     const enabledFeatures = Object.entries(configs)
-      .filter(([_, config]: [string, any]) => config.enabled)
+      .filter(([_, config]: [string, { enabled: boolean }]) => config.enabled)
       .map(([feature, _]) => feature);
     res.json({
       success: true,

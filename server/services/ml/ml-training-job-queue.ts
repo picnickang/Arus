@@ -91,8 +91,8 @@ export class MlTrainingJobQueue {
     await this.boss.work(
       QUEUE_NAME,
       { teamSize: 1, teamConcurrency: 1 }, // Only 1 training job at a time
-      async (job: any) => {
-        return this.processTrainingJob(job);
+      async (job: unknown) => {
+        return this.processTrainingJob(job as { id: string; data: MlTrainingJobData });
       }
     );
 
@@ -180,8 +180,11 @@ export class MlTrainingJobQueue {
   // Private: Job processing
   // ===========================================================================
 
-  private async processTrainingJob(job: any): Promise<MlTrainingJobResult> {
-    const data = job.data as MlTrainingJobData;
+  private async processTrainingJob(job: {
+    id: string;
+    data: MlTrainingJobData;
+  }): Promise<MlTrainingJobResult> {
+    const data = job.data;
     const startTime = Date.now();
 
     logger.info(LOG_CTX, `Processing training job ${job.id}: ${data.modelType}`, {

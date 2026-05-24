@@ -7,7 +7,7 @@ export interface DataIssue {
   code: string;
   message: string;
   severity: "low" | "medium" | "high" | "critical";
-  reference?: any;
+  reference?: unknown;
   resolvedAt?: Date;
 }
 

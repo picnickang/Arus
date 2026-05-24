@@ -58,7 +58,7 @@ export abstract class TenantScopedRepository {
    */
   protected orgWhere<T extends PgTable>(
     table: T,
-    additionalWhere?: any,
+    additionalWhere?: import("drizzle-orm").SQL | undefined,
     orgIdColumn: string = "orgId"
   ) {
     if (!(table as object as Record<string, unknown>)[orgIdColumn]) {

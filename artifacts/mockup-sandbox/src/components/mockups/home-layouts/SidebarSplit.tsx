@@ -45,7 +45,7 @@ const Badge = ({ children, variant = 'default', className = '' }: { children: Re
   );
 };
 
-const Button = ({ children, variant = 'default', size = 'default', className = '', ...props }: any) => {
+const Button = ({ children, variant = 'default', size = 'default', className = '', ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'; size?: 'default' | 'sm' | 'lg' | 'icon' }) => {
   const variants = {
     default: "bg-cyan-600 text-white hover:bg-cyan-700",
     destructive: "bg-red-600 text-white hover:bg-red-700",

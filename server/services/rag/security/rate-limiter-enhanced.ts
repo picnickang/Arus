@@ -23,7 +23,7 @@ interface RateLimitResult {
 export class EnhancedRateLimiter {
   private config: RagSecurityConfig["rateLimiting"];
   private memoryStore: Map<string, RateLimitEntry> = new Map();
-  private redis: any = null;
+  private redis: import("ioredis").Redis | null = null;
   private redisAvailable: boolean = false;
 
   constructor(config: RagSecurityConfig["rateLimiting"]) {
@@ -78,17 +78,24 @@ export class EnhancedRateLimiter {
       const windowKey = `${key}:${windowStart}`;
 
       // Use Redis transaction for atomic operations
-      const multi = this.redis.multi();
+      if (!this.redis) {
+        throw new Error("Redis client not initialized");
+      }
+      const redis = this.redis;
+      const multi = redis.multi();
       multi.incr(windowKey);
       multi.pttl(windowKey);
 
       const results = await multi.exec();
+      if (!results) {
+        throw new Error("Redis multi.exec() returned null");
+      }
       const count = results[0][1] as number;
       const ttl = results[1][1] as number;
 
       // Set expiry on first request
       if (count === 1) {
-        await this.redis.pexpire(windowKey, windowMs);
+        await redis.pexpire(windowKey, windowMs);
       }
 
       const allowed = count <= this.config.requestsPerMinute;

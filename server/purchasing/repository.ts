@@ -308,7 +308,7 @@ export async function generateRequestNumber(orgId: string): Promise<string> {
  * Sequence-based PO number generation (used inside transactions).
  * Called from pr-send-service.ts to generate PO numbers atomically.
  */
-export async function generatePONumber(orgId: string, tx?: any): Promise<string> {
+export async function generatePONumber(orgId: string, tx?: { execute: typeof db.execute }): Promise<string> {
   const year = new Date().getFullYear();
   const seqName = `po_number_seq_${year}`;
   const executor = tx ?? db;

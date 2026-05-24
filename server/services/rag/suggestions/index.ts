@@ -98,11 +98,13 @@ No explanation, just the JSON array.`,
       }
 
       const parsed = JSON.parse(jsonMatch[0]);
-      return parsed.map((item: any, index: number) => ({
-        question: item.question,
-        category: item.category || "general",
-        relevance: 1 - index * 0.1,
-      }));
+      return (parsed as Array<{ question: string; category?: Suggestion["category"] }>).map(
+        (item, index) => ({
+          question: item.question,
+          category: item.category || "general",
+          relevance: 1 - index * 0.1,
+        })
+      );
     } catch (parseError) {
       logger.error("[SuggestionEngine] Failed to parse LLM response:", undefined, parseError);
       return this.generateFallbackSuggestions(context, count);

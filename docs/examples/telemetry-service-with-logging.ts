@@ -4,6 +4,16 @@
  */
 
 import type { Request, Response } from "express";
+import type { AuthenticatedRequest } from "../../server/middleware/auth";
+
+type TelemetryReadingInput = {
+  sensorType: string;
+  value: number;
+  threshold?: number | null;
+  unit?: string | null;
+  status?: string;
+  timestamp?: Date | string | number;
+};
 import { eq, and, desc, gte } from "drizzle-orm";
 import { db } from "../../server/db";
 import { equipmentTelemetry, equipment } from "../../shared/schema";
@@ -18,8 +28,11 @@ import {
  * Telemetry batch ingestion endpoint with comprehensive logging
  */
 export async function ingestTelemetryBatch(req: Request, res: Response) {
-  const { equipmentId, readings } = req.body;
-  const orgId = (req as any).orgId;
+  const { equipmentId, readings } = req.body as {
+    equipmentId: string;
+    readings: TelemetryReadingInput[];
+  };
+  const orgId = (req as AuthenticatedRequest).orgId;
 
   const context = createMarinePdMContext(req, {
     equipmentId,
@@ -46,8 +59,8 @@ export async function ingestTelemetryBatch(req: Request, res: Response) {
     context.equipmentType = equipmentRecord.type || "unknown";
 
     // Validate and process readings
-    const validReadings: any[] = [];
-    const invalidReadings: any[] = [];
+    const validReadings: Array<Record<string, unknown>> = [];
+    const invalidReadings: TelemetryReadingInput[] = [];
 
     for (const reading of readings) {
       // Data quality validation
@@ -133,7 +146,7 @@ export async function ingestTelemetryBatch(req: Request, res: Response) {
 export async function getEquipmentTelemetry(req: Request, res: Response) {
   const { equipmentId } = req.params;
   const { sensorType, limit = 100 } = req.query;
-  const orgId = (req as any).orgId;
+  const orgId = (req as AuthenticatedRequest).orgId;
 
   const context = createMarinePdMContext(req, {
     equipmentId,
@@ -183,7 +196,7 @@ export async function getEquipmentTelemetry(req: Request, res: Response) {
  * Recent critical alerts endpoint with logging
  */
 export async function getRecentCriticalAlerts(req: Request, res: Response) {
-  const orgId = (req as any).orgId;
+  const orgId = (req as AuthenticatedRequest).orgId;
   const { hours = 24 } = req.query;
 
   const context = createMarinePdMContext(req, {
