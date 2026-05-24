@@ -10,9 +10,11 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Search, X } from "lucide-react";
-import { MARITIME_RANKS } from "@/features/crew";
+import { MARITIME_RANKS, useUnifiedCrewData } from "@/features/crew";
 
-export function RosterFilters({ d }: { d: any }) {
+type UnifiedCrewData = ReturnType<typeof useUnifiedCrewData>;
+
+export function RosterFilters({ d }: { d: UnifiedCrewData }) {
   return (
     <Card>
       <CardHeader>
@@ -37,8 +39,8 @@ export function RosterFilters({ d }: { d: any }) {
             <SelectContent>
               <SelectItem value="all">All Vessels</SelectItem>
               {d.vessels
-                .filter((v: any) => v.active)
-                .map((v: any) => (
+                .filter((v) => v.active)
+                .map((v) => (
                   <SelectItem key={v.id} value={v.id}>
                     {v.name}
                   </SelectItem>

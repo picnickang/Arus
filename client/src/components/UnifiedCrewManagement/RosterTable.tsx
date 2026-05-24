@@ -33,10 +33,26 @@ import {
 import { format } from "date-fns";
 import {
   formatRank,
+  useUnifiedCrewData,
   type SortField,
   type EmploymentHistoryRecord,
+  type CrewListItem,
 } from "@/features/crew";
 import type { LifecycleAction } from "./LifecycleDialog";
+
+type UnifiedCrewData = ReturnType<typeof useUnifiedCrewData>;
+type DisplayCrewMember = {
+  id: string;
+  name: string;
+  rank: string;
+  vesselId?: string | null;
+  active?: boolean;
+  onDuty?: boolean;
+  skills?: string[];
+  maxHours7d?: number;
+  minRestH?: number;
+  employmentPeriods?: EmploymentHistoryRecord[];
+};
 
 export function RosterTable({
   d,
@@ -45,10 +61,10 @@ export function RosterTable({
   displayCrew,
   openLifecycle,
 }: {
-  d: any;
+  d: UnifiedCrewData;
   isFormerView: boolean;
   formerLoading: boolean;
-  displayCrew: any[];
+  displayCrew: DisplayCrewMember[];
   openLifecycle: (action: LifecycleAction, crewId: string, crewName: string) => void;
 }) {
   const getSortIcon = (field: SortField) => {
@@ -153,7 +169,7 @@ export function RosterTable({
                   </TableCell>
                 </TableRow>
               ) : (
-                displayCrew.map((member: any) => (
+                displayCrew.map((member) => (
                   <TableRow key={member.id} data-testid={`row-crew-${member.id}`}>
                     <TableCell
                       className="font-medium"
@@ -169,7 +185,7 @@ export function RosterTable({
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <ShipWheel className="h-3 w-3 text-muted-foreground" />
-                            <span>{d.getVesselName(member.vesselId) || "Unassigned"}</span>
+                            <span>{d.getVesselName(member.vesselId ?? "") || "Unassigned"}</span>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -179,7 +195,7 @@ export function RosterTable({
                                 {skill}
                               </Badge>
                             ))}
-                            {member.skills?.length > 2 && (
+                            {(member.skills?.length ?? 0) > 2 && member.skills && (
                               <Badge variant="secondary" className="text-xs">
                                 +{member.skills.length - 2}
                               </Badge>
@@ -207,7 +223,7 @@ export function RosterTable({
                       <>
                         <TableCell>
                           <div className="flex flex-col gap-1">
-                            {member.employmentPeriods?.length > 0 ? (
+                            {member.employmentPeriods && member.employmentPeriods.length > 0 ? (
                               member.employmentPeriods.map(
                                 (period: EmploymentHistoryRecord) => (
                                   <div
@@ -265,14 +281,14 @@ export function RosterTable({
                           {!isFormerView && (
                             <>
                               <DropdownMenuItem
-                                onClick={() => d.handleViewProfile(member)}
+                                onClick={() => d.handleViewProfile(member as CrewListItem)}
                                 data-testid={`action-view-${member.id}`}
                               >
                                 <Eye className="h-4 w-4 mr-2" />
                                 View Profile
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => d.handleEditCrew(member)}
+                                onClick={() => d.handleEditCrew(member as CrewListItem)}
                                 data-testid={`action-edit-${member.id}`}
                               >
                                 <Edit className="h-4 w-4 mr-2" />
@@ -306,7 +322,7 @@ export function RosterTable({
                           {isFormerView && (
                             <>
                               <DropdownMenuItem
-                                onClick={() => d.handleViewProfile(member)}
+                                onClick={() => d.handleViewProfile(member as CrewListItem)}
                                 data-testid={`action-view-${member.id}`}
                               >
                                 <Eye className="h-4 w-4 mr-2" />

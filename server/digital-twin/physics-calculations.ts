@@ -68,7 +68,7 @@ export function validateStateConsistency(state: TwinState): TwinState {
 }
 
 export function calculateTwinAccuracy(
-  telemetryData: Record<string, any>,
+  telemetryData: { speed?: number; engine_temperature?: number } & Record<string, unknown>,
   twinState: TwinState
 ): number {
   let accuracySum = 0;
@@ -95,7 +95,13 @@ export function calculateTwinAccuracy(
 
 export function assimilateTelemetryData(
   currentState: TwinState,
-  telemetryData: Record<string, any>
+  telemetryData: {
+    position?: { latitude: number; longitude: number };
+    speed?: number;
+    heading?: number;
+    engine_temperature?: number;
+    engine_rpm?: number;
+  } & Record<string, unknown>
 ): TwinState {
   const updatedState = { ...currentState };
   if (telemetryData.position) {

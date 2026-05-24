@@ -1,32 +1,32 @@
 {
   "_comment": "Explicit-`any` burndown baseline. Total must monotonically decrease. Regenerate the inventory (`node scripts/type-debt/classify-explicit-any.mjs`) then run `node scripts/check-explicit-any-burndown.mjs --write-baseline`.",
-  "generatedAt": "2026-05-24T00:51:14.720Z",
-  "total": 363,
+  "generatedAt": "2026-05-24T05:44:25.151Z",
+  "total": 139,
   "summary": {
     "byBucket": {
       "External library typing gaps": 0,
       "Test mocks / stubs": 0,
-      "Legacy DTOs (route handlers, request/response shapes)": 14,
-      "Dynamic JSON payloads": 15,
-      "Generic inference failures": 224,
-      "Truly unsafe / untyped logic": 110
+      "Legacy DTOs (route handlers, request/response shapes)": 3,
+      "Dynamic JSON payloads": 6,
+      "Generic inference failures": 65,
+      "Truly unsafe / untyped logic": 65
     },
     "byTopFiles": {
       "server/services/ml/ml-training-job-queue.ts": 10,
-      "server/scheduler/scheduler-controller.ts": 5,
-      "server/bootstrap/services.ts": 4,
-      "server/bootstrap/shutdown.ts": 4,
-      "server/report-context/compliance-builder.ts": 4,
-      "server/report-context/knowledge-citations.ts": 4,
-      "server/weibull-rul/data-extraction.ts": 4,
-      "server/shared/base-repository.ts": 3,
-      "client/src/components/work-orders/QuickWorkOrderSheet.tsx": 3,
-      "client/src/pages/admin/tenants.tsx": 3,
-      "client/src/pages/copilot-admin.tsx": 3,
-      "docs/examples/telemetry-service-with-logging.ts": 3,
-      "server/analytics-data-normalizer/twin-normalizer.ts": 3,
-      "server/crew-scheduler-ortools/constraint-scheduler.ts": 3,
-      "server/dtc-integration/service.ts": 3
+      "server/shared/base-repository.ts": 5,
+      "docs/examples/telemetry-service-with-logging.ts": 5,
+      "server/services/ml/prediction-outcome-tracker.ts": 4,
+      "client/src/features/serviceOrders/pages/ServiceOrdersPage.tsx": 2,
+      "client/src/lib/desktop.ts": 2,
+      "server/domains/software-updates/routes.ts": 1,
+      "server/import-adapters/shipmate/routes.ts": 1,
+      "server/ml-routes/acoustic-routes.ts": 1,
+      "client/src/components/ai-health/TrainingTab.tsx": 1,
+      "server/routes/domain-router-registry.ts": 1,
+      "server/routes/sensorBundles.ts": 1,
+      "artifacts/mockup-sandbox/src/components/mockups/home-layouts/SidebarSplit.tsx": 1,
+      "client/src/lib/api/finance.ts": 1,
+      "client/src/lib/desktopFetch.ts": 1
     }
   }
 }

@@ -83,8 +83,9 @@ export async function summarizeDocument(
       `[Summarizer] Generated summary: ${result.summary.length} chars in ${result.durationMs}ms`
     );
     return result;
-  } catch (error: any) {
-    logger.error("[Summarizer] Failed to generate summary:", error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error("[Summarizer] Failed to generate summary:", message);
     return null;
   }
 }
@@ -119,8 +120,9 @@ export async function generateKeywords(
       .map((k) => k.trim().toLowerCase())
       .filter((k) => k.length > 0)
       .slice(0, maxKeywords);
-  } catch (error: any) {
-    logger.error("[Summarizer] Failed to extract keywords:", error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error("[Summarizer] Failed to extract keywords:", message);
     return [];
   }
 }

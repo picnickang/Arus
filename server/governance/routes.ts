@@ -13,7 +13,14 @@ import type { DeploymentStage, ModelFamily } from "./types.js";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 interface AuthenticatedRequest extends Request {
-  user?: any;
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+    isActive: boolean;
+    name?: string;
+    orgId?: string;
+  } & Record<string, unknown>;
 }
 
 const router = Router();

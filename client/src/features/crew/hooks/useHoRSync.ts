@@ -110,8 +110,8 @@ export function useHoRSync(options: UseHoRSyncOptions = {}) {
         const result = response as CanAssignResult;
         setLastProjection(result);
         return result;
-      } catch (error: any) {
-        if (error.name === "AbortError") {
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === "AbortError") {
           return (
             lastProjection || {
               canAssign: true,
@@ -122,7 +122,8 @@ export function useHoRSync(options: UseHoRSyncOptions = {}) {
           );
         }
 
-        const message = error.message || "Failed to check assignment compliance";
+        const message =
+          (error instanceof Error && error.message) || "Failed to check assignment compliance";
         setProjectionError(message);
 
         return {
@@ -169,8 +170,9 @@ export function useHoRSync(options: UseHoRSyncOptions = {}) {
         );
 
         return response as ProjectionResult;
-      } catch (error: any) {
-        const message = error.message || "Failed to project compliance";
+      } catch (error: unknown) {
+        const message =
+          (error instanceof Error && error.message) || "Failed to project compliance";
         setProjectionError(message);
 
         return {

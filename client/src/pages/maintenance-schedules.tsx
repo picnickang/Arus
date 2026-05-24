@@ -227,7 +227,7 @@ export default function MaintenanceSchedules() {
               className="text-sm font-bold text-amber-700 dark:text-amber-300"
               data-testid="stat-in-progress"
             >
-              {m.schedules?.filter((s: any) => s.status === "in_progress").length || 0}
+              {m.schedules?.filter((s) => (s as { status?: string }).status === "in_progress").length || 0}
             </span>
           </div>
           <div className="hidden md:block h-4 w-px bg-border" />
@@ -238,7 +238,7 @@ export default function MaintenanceSchedules() {
               className="text-sm font-bold text-green-700 dark:text-green-300"
               data-testid="stat-completed"
             >
-              {m.schedules?.filter((s: any) => s.status === "completed").length || 0}
+              {m.schedules?.filter((s) => (s as { status?: string }).status === "completed").length || 0}
             </span>
           </div>
         </div>

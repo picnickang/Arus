@@ -227,13 +227,17 @@ export const invalidateDomain = {
  * Helper to get all query keys that should be invalidated after equipment mutation
  */
 export function getEquipmentMutationInvalidations(equipmentId?: string) {
-  const keys: any[] = [equipmentKeys.all, analyticsKeys.dashboard(), dtcKeys.dashboard()];
+  const keys: unknown[][] = [
+    [...equipmentKeys.all],
+    [...analyticsKeys.dashboard()],
+    [...dtcKeys.dashboard()],
+  ];
 
   if (equipmentId) {
     keys.push(
-      equipmentKeys.detail(equipmentId),
-      sensorKeys.byEquipment(equipmentId),
-      sensorKeys.status(equipmentId)
+      [...equipmentKeys.detail(equipmentId)],
+      [...sensorKeys.byEquipment(equipmentId)],
+      [...sensorKeys.status(equipmentId)]
     );
   }
 
@@ -244,13 +248,13 @@ export function getEquipmentMutationInvalidations(equipmentId?: string) {
  * Helper to get all query keys that should be invalidated after sensor mutation
  */
 export function getSensorMutationInvalidations(equipmentId?: string) {
-  const keys: any[] = [sensorKeys.all];
+  const keys: unknown[][] = [[...sensorKeys.all]];
 
   if (equipmentId) {
     keys.push(
-      sensorKeys.byEquipment(equipmentId),
-      sensorKeys.status(equipmentId),
-      equipmentKeys.sensorCoverage(equipmentId)
+      [...sensorKeys.byEquipment(equipmentId)],
+      [...sensorKeys.status(equipmentId)],
+      [...equipmentKeys.sensorCoverage(equipmentId)]
     );
   }
 

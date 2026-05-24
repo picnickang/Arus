@@ -38,11 +38,12 @@ export async function applyTelemetryRetention(): Promise<{
       deletedRecords,
       message: `Successfully deleted ${deletedRecords} telemetry records older than ${retentionDays} days`,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     return {
       success: false,
       deletedRecords: 0,
-      message: `Failed to apply retention policy: ${error?.message || String(error)}`,
+      message: `Failed to apply retention policy: ${message}`,
     };
   }
 }
@@ -88,10 +89,11 @@ export async function updateRetentionPolicy(
       success: true,
       message: `Retention policy updated: ${retentionDays} days retention, rollup ${rollupEnabled ? "enabled" : "disabled"}, compression ${compressionEnabled ? "enabled" : "disabled"}`,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      message: `Failed to update retention policy: ${error?.message || String(error)}`,
+      message: `Failed to update retention policy: ${message}`,
     };
   }
 }

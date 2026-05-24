@@ -30,9 +30,9 @@ export async function buildMaintenanceContext(
   const start = new Date(end.getTime() - timeframeDays * 24 * 60 * 60 * 1000);
 
   let vessels: SelectVessel[];
-  let equipment: any[];
+  let equipment: Awaited<ReturnType<typeof getVesselEquipment>>;
   let workOrders: WorkOrder[];
-  let schedules: any[];
+  let schedules: Awaited<ReturnType<typeof getVesselMaintenanceSchedules>>;
 
   if (vesselId) {
     const vessel = await vesselService.getVessel(vesselId);
@@ -48,7 +48,7 @@ export async function buildMaintenanceContext(
     equipment = await dbEquipmentStorage.getEquipmentRegistry();
     const allOrders = await workOrderService.getWorkOrdersWithDetails();
     workOrders = allOrders.filter(
-      (wo: any) => new Date(wo.createdAt) >= start && new Date(wo.createdAt) <= end
+      (wo) => !!wo.createdAt && new Date(wo.createdAt) >= start && new Date(wo.createdAt) <= end
     );
     schedules = await dbMaintenanceStorage.getMaintenanceSchedules();
   }

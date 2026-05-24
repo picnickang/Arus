@@ -37,11 +37,12 @@ router.post("/weibull/analyze/:equipmentId", async (req, res) => {
       },
       message: `RUL analysis: ${Math.round(prediction.predictedRUL)}h remaining, ${(prediction.reliability * 100).toFixed(1)}% reliable, ${prediction.maintenanceRecommendation} maintenance`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     logger.error(`[Beast Mode API] Error analyzing RUL for ${req.params.equipmentId}:`, undefined, error);
     res
       .status(400)
-      .json({ success: false, error: error.message, equipmentId: req.params.equipmentId });
+      .json({ success: false, error: message, equipmentId: req.params.equipmentId });
   }
 });
 
@@ -159,7 +160,7 @@ router.post("/weibull/batch-analyze", async (req, res) => {
       })),
       failed: results.failed,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error(`[Beast Mode API] Error in batch Weibull RUL analysis:`, undefined, error);
     res.status(500).json({ success: false, error: "Failed to perform batch Weibull RUL analysis" });
   }

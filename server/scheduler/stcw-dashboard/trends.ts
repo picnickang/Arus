@@ -20,10 +20,12 @@ interface TrendMetrics {
   crewWithData: number;
 }
 
+type RestDay = Parameters<typeof checkMonthCompliance>[0][number];
+
 function processSingleCrew(
   crewId: string,
   crewName: string,
-  days: any[],
+  days: RestDay[],
   startStr: string,
   dateStr: string,
   metrics: TrendMetrics
@@ -52,7 +54,7 @@ function processSingleCrew(
 }
 
 function collectMetricsForDate(
-  allVesselData: Array<{ crewData: Map<string, { crewName: string; days: any[] }> }>,
+  allVesselData: Array<{ crewData: Map<string, { crewName: string; days: RestDay[] }> }>,
   startStr: string,
   dateStr: string
 ): TrendMetrics {

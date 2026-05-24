@@ -179,8 +179,8 @@ export function configureMiddleware(app: Express): void {
     let capturedJsonResponse: Record<string, unknown> | undefined;
 
     const originalResJson = res.json;
-    res.json = function (bodyJson: any, ...args: any[]) {
-      capturedJsonResponse = bodyJson;
+    res.json = function (bodyJson: unknown, ...args: unknown[]) {
+      capturedJsonResponse = bodyJson as Record<string, unknown> | undefined;
       return (originalResJson as (...a: unknown[]) => unknown).apply(res, [bodyJson, ...args]) as ReturnType<typeof res.json>;
     };
 

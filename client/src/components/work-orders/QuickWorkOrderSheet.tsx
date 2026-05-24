@@ -38,31 +38,47 @@ export function QuickWorkOrderSheet({
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
 
-  const { data: equipmentRaw } = useQuery<any>({
+  interface EquipmentLite {
+    id: string;
+    name: string;
+    equipmentType?: string;
+  }
+  interface QuickWorkOrderPayload {
+    equipmentId: string;
+    description: string;
+    priority: "low" | "medium" | "high";
+    vesselId?: string;
+    photoBase64?: string;
+  }
+  interface QuickWorkOrderResponse {
+    workOrderNumber?: string;
+  }
+
+  const { data: equipmentRaw } = useQuery<EquipmentLite[] | unknown>({
     queryKey: ["/api/equipment", vesselId ? { vesselId } : {}],
     staleTime: 5 * 60 * 1000,
   });
-  const equipment: Array<{ id: string; name: string; equipmentType?: string }> = Array.isArray(
-    equipmentRaw
-  )
-    ? equipmentRaw
+  const equipment: EquipmentLite[] = Array.isArray(equipmentRaw)
+    ? (equipmentRaw as EquipmentLite[])
     : [];
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/work-orders/quick", data),
-    onSuccess: (data: any) => {
+    mutationFn: (data: QuickWorkOrderPayload) =>
+      apiRequest<QuickWorkOrderResponse>("POST", "/api/work-orders/quick", data),
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
       toast({
         title: "Work order created",
-        description: `${data.workOrderNumber} — ${priority} priority`,
+        description: `${data?.workOrderNumber ?? ""} — ${priority} priority`,
       });
       resetForm();
       onClose();
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       toast({
         title: "Failed to create work order",
-        description: err.message || "Check connectivity and try again",
+        description:
+          (err instanceof Error && err.message) || "Check connectivity and try again",
         variant: "destructive",
       });
     },

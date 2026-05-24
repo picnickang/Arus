@@ -84,9 +84,9 @@ async function getAdminEmails(orgId: string): Promise<string[]> {
     const users = await dbUserStorage.getUsers(orgId);
     if (users) {
       return users
-        .filter((u: any) => u.role === "admin" || u.role === "supervisor")
-        .map((u: any) => u.email)
-        .filter(Boolean);
+        .filter((u) => u.role === "admin" || u.role === "supervisor")
+        .map((u) => u.email)
+        .filter((e): e is string => Boolean(e));
     }
   } catch (error) {
     logger.error("Failed to get admin emails:", undefined, error);

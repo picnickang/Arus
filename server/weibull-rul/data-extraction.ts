@@ -61,7 +61,9 @@ export async function getEquipmentLifeData(
   }
 }
 
-export function extractDegradationFromWorkOrder(workOrder: any): number {
+export function extractDegradationFromWorkOrder(
+  workOrder: { priority?: string | number | null; description?: string | null }
+): number {
   const priorityWeight = {
     low: 0.2,
     normal: 0.4,
@@ -94,8 +96,16 @@ export function extractDegradationFromWorkOrder(workOrder: any): number {
   return Math.min(1, baseScore + severityBoost);
 }
 
-export function groupTelemetryByDay(telemetry: any[]): Map<string, any[]> {
-  const groups = new Map<string, any[]>();
+interface TelemetryDayReading {
+  ts?: Date | null;
+  sensorType?: string | null;
+  value?: number;
+}
+
+export function groupTelemetryByDay<T extends TelemetryDayReading>(
+  telemetry: T[]
+): Map<string, T[]> {
+  const groups = new Map<string, T[]>();
 
   telemetry.forEach((reading) => {
     const day = reading.ts?.toISOString().split("T")[0] || new Date().toISOString().split("T")[0];
@@ -108,7 +118,7 @@ export function groupTelemetryByDay(telemetry: any[]): Map<string, any[]> {
   return groups;
 }
 
-export function calculateDegradationMetric(dayData: any[]): number {
+export function calculateDegradationMetric(dayData: TelemetryDayReading[]): number {
   if (dayData.length === 0) {
     return 0;
   }
@@ -126,7 +136,7 @@ export function calculateDegradationMetric(dayData: any[]): number {
   for (const [sensorType, weight] of Object.entries(weights)) {
     const sensorData = dayData.filter((d) => d.sensorType === sensorType);
     if (sensorData.length > 0) {
-      const avgValue = sensorData.reduce((sum, d) => sum + d.value, 0) / sensorData.length;
+      const avgValue = sensorData.reduce((sum, d) => sum + (d.value ?? 0), 0) / sensorData.length;
       weightedSum += avgValue * weight;
       totalWeight += weight;
     }

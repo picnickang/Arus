@@ -29,7 +29,10 @@ export function shouldTriggerAlert(dtc: DtcWithDefinition): boolean {
   return false;
 }
 
-export async function createDtcAlert(dtc: DtcWithDefinition, orgId: string): Promise<any | null> {
+export async function createDtcAlert(
+  dtc: DtcWithDefinition,
+  orgId: string
+): Promise<Awaited<ReturnType<typeof dbAlertStorage.createAlertNotification>> | null> {
   if (!shouldTriggerAlert(dtc)) {
     return null;
   }
@@ -76,7 +79,7 @@ export async function correlateDtcWithTelemetry(
   dtc: DtcWithDefinition,
   orgId: string,
   timeWindowMinutes: number = 60
-): Promise<any[]> {
+): Promise<Awaited<ReturnType<typeof dbTelemetryStorage.getTelemetryHistory>>> {
   const sensorType = SPN_TO_SENSOR_MAP[dtc.spn];
   if (!sensorType) {
     return [];
@@ -93,8 +96,8 @@ export async function correlateDtcWithTelemetry(
       hoursWindow
     );
     return allTelemetry
-      .filter((t: any) => {
-        const timestamp = new Date(t.timestamp);
+      .filter((t) => {
+        const timestamp = new Date(t.ts);
         return timestamp >= startTime && timestamp <= endTime;
       })
       .slice(0, 100);

@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 interface PendingOperation {
   id: string;
   type: "create" | "update" | "delete";
-  payload: any;
+  payload: Record<string, unknown>;
   timestamp: number;
   retryCount: number;
 }

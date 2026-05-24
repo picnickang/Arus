@@ -48,7 +48,7 @@ export class TenantRepositoryFactory {
    * Create repositories from Express request
    * SINGLE-TENANT: Always uses default-org-id
    */
-  static fromRequest(req: any) {
+  static fromRequest(req: { orgId?: string }) {
     const orgId = req.orgId || "default-org-id";
 
     return {
@@ -64,10 +64,10 @@ export class TenantRepositoryFactory {
  * Dual-write adapter for gradual migration
  * Allows calling both old and new storage patterns during transition
  */
-export class DualWriteAdapter<TRepo extends TenantScopedRepository> {
+export class DualWriteAdapter<TRepo extends TenantScopedRepository, TLegacy = unknown> {
   constructor(
     private readonly orgId: string,
-    private readonly legacyStorage: any,
+    private readonly legacyStorage: TLegacy,
     private readonly repositoryFactory: (orgId: string) => TRepo
   ) {}
 
@@ -77,7 +77,7 @@ export class DualWriteAdapter<TRepo extends TenantScopedRepository> {
    */
   async dualRead<T>(
     repositoryFn: (repo: TRepo) => Promise<T>,
-    legacyFn: (storage: any, orgId: string) => Promise<T>,
+    legacyFn: (storage: TLegacy, orgId: string) => Promise<T>,
     errorMessage: string
   ): Promise<T> {
     try {
@@ -94,7 +94,7 @@ export class DualWriteAdapter<TRepo extends TenantScopedRepository> {
    */
   async dualWrite<T>(
     repositoryFn: (repo: TRepo) => Promise<T>,
-    legacyFn: (storage: any, orgId: string) => Promise<T>,
+    legacyFn: (storage: TLegacy, orgId: string) => Promise<T>,
     errorMessage: string
   ): Promise<T> {
     const repository = this.repositoryFactory(this.orgId);

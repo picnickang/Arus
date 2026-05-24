@@ -26,10 +26,10 @@ export async function buildComplianceContext(
   const start = new Date(end.getTime() - timeframeDays * 24 * 60 * 60 * 1000);
 
   let vessels: SelectVessel[];
-  let crew: any[];
-  let certifications: any[];
-  let restSheets: any[];
-  let complianceLogs: any[];
+  let crew: Awaited<ReturnType<typeof dbCrewStorage.getCrew>>;
+  let certifications: Awaited<ReturnType<typeof getCrewCertifications>>;
+  let restSheets: Awaited<ReturnType<typeof getCrewRestSheets>> | unknown[];
+  let complianceLogs: Awaited<ReturnType<typeof getComplianceLogs>>;
 
   if (vesselId) {
     const vessel = await vesselService.getVessel(vesselId);
@@ -82,7 +82,10 @@ export async function buildComplianceContext(
     metadata: {
       generatedAt: new Date(),
       audience: options.audience || "compliance",
-      priority: determinePriority(filteredOrders, complianceLogs),
+      priority: determinePriority(
+        filteredOrders,
+        complianceLogs as ReadonlyArray<Record<string, unknown>>
+      ),
     },
     knowledge,
     citations,

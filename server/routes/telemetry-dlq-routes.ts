@@ -129,8 +129,8 @@ telemetryDlqRouter.post(
 
     const results = await dlq.replayAll({ limit, source });
 
-    const successCount = results.filter((r: any) => r.success).length;
-    const failureCount = results.filter((r: any) => !r.success).length;
+    const successCount = results.filter((r) => r.success).length;
+    const failureCount = results.filter((r) => !r.success).length;
 
     logger.info("TelemetryDLQRoutes", "Replay all completed", { successCount, failureCount });
 

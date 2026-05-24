@@ -11,7 +11,7 @@ import {
   trainWithEarlyStopping,
   type EarlyStoppingConfig,
 } from "../ml-early-stopping.js";
-const prepareClassWeightsForTF: any = (labels: any[]) => {
+const prepareClassWeightsForTF = (labels: number[]): Record<number, number> => {
   const counts: Record<number, number> = {};
   for (const l of labels) counts[l] = (counts[l] ?? 0) + 1;
   const total = labels.length;
@@ -61,7 +61,7 @@ async function trainWithEarlyStoppingWrapper(
   config: LSTMConfig,
   classWeights?: { [key: number]: number },
   verbose: boolean = true
-): Promise<{ history: any; bestEpoch: number; finalF1: number; stoppedEarly: boolean }> {
+): Promise<{ history: Record<string, number[]>; bestEpoch: number; finalF1: number; stoppedEarly: boolean }> {
   const earlyStoppingConfig: EarlyStoppingConfig = {
     patience: config.earlyStoppingPatience || 10,
     minDelta: 0.001,
@@ -98,7 +98,7 @@ async function trainStandard(
   config: LSTMConfig,
   classWeights?: { [key: number]: number },
   verbose: boolean = true
-): Promise<{ history: any }> {
+): Promise<{ history: Record<string, number[]> }> {
   const fitResult = await model.fit(xTrain, yTrain, {
     epochs: config.epochs,
     batchSize: config.batchSize,
@@ -114,7 +114,7 @@ async function trainStandard(
     verbose: 0,
   });
 
-  return { history: fitResult.history };
+  return { history: fitResult.history as object as Record<string, number[]> };
 }
 
 function calculatePrecisionRecallF1(

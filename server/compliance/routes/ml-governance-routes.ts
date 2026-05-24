@@ -161,9 +161,17 @@ router.patch(
       if (!existingOverrideRaw) {
         return res.status(404).json({ error: "Engineer override not found" });
       }
-      const existingOverride: any = Array.isArray(existingOverrideRaw)
+      const existingOverride = (Array.isArray(existingOverrideRaw)
         ? existingOverrideRaw[0]
-        : existingOverrideRaw;
+        : existingOverrideRaw) as
+        | {
+            equipmentId: string;
+            overrideType: string;
+            engineerId: string;
+            engineerName: string;
+            outcomeStatus?: string;
+          }
+        | undefined;
       if (!existingOverride) {
         return res.status(404).json({ error: "Engineer override not found" });
       }

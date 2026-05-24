@@ -163,9 +163,9 @@ export class FleetStressTest {
                   equipmentId: reading.equipmentId,
                   sensorType: reading.sensorType,
                   value: reading.value,
-                  timestamp: reading.timestamp,
-                  ...({ metadata: reading.metadata, orgId: (reading as any).orgId } as any),
-                });
+                  ts: reading.timestamp,
+                  ...({ metadata: reading.metadata, orgId: reading.orgId } as object as { metadata: unknown; orgId: string }),
+                } as object as Parameters<typeof this.storage.createTelemetryReading>[0]);
               }
 
               latencies.push(Date.now() - msgStart);

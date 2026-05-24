@@ -168,7 +168,7 @@ export async function planAndMaybeExecute({
         }
       }
 
-      const assignmentRecords: InsertScheduleAssignment[] = scheduled.map((a): any => ({
+      const assignmentRecords: InsertScheduleAssignment[] = scheduled.map((a) => ({
         runId: run.id,
         orgId,
         date: a.date,
@@ -185,7 +185,7 @@ export async function planAndMaybeExecute({
     }
 
     // Always persist unfilled data for analysis
-    const unfilledRecords: InsertScheduleUnfilled[] = unfilled.map((u): any => ({
+    const unfilledRecords: InsertScheduleUnfilled[] = unfilled.map((u) => ({
       runId: run.id,
       orgId,
       day: u.day,
@@ -259,7 +259,7 @@ export async function planAndMaybeExecute({
 // Helper functions
 async function loadShiftTemplates(orgId: string, vessels?: string[]) {
   const allShifts = await dbCrewStorage.getShiftTemplates();
-  const orgShifts = allShifts.filter((s: any) => !s.orgId || s.orgId === orgId);
+  const orgShifts = allShifts.filter((s) => !s.orgId || s.orgId === orgId);
   if (!vessels || vessels.length === 0) {
     return orgShifts;
   }
@@ -303,7 +303,7 @@ async function loadCertifications(orgId: string) {
     crewId: string | undefined,
     orgId: string
   ) => Promise<Array<{ crewId: string; [k: string]: unknown }>>)("", orgId);
-  const certsMap: { [crewId: string]: any[] } = {};
+  const certsMap: { [crewId: string]: Array<{ crewId: string; [k: string]: unknown }> } = {};
   for (const cert of certsList) {
     (certsMap[cert.crewId] ||= []).push(cert);
   }
@@ -620,9 +620,15 @@ export async function clearSchedulerRunHistory(orgId: string): Promise<{ deleted
  */
 function planShiftsWithExplanations(
   daysArr: string[],
-  shifts: any[],
-  crew: any[],
-  leaves: any[],
+  shifts: Parameters<typeof planShifts>[1],
+  crew: Array<{
+    id: string;
+    name?: string;
+    rank?: string | null;
+    vesselId?: string | null;
+    skills?: string[];
+  }>,
+  leaves: Parameters<typeof planShifts>[3],
   existing: SelectCrewAssignment[]
 ): {
   scheduled: Array<{
@@ -647,8 +653,8 @@ function planShiftsWithExplanations(
     const crewMember = crew.find((c) => c.id === s.crewId);
     if (crewMember) {
       const reasons: string[] = [];
-      if (crewMember.skills?.length > 0) {
-        reasons.push(`Has ${crewMember.skills.length} relevant skills`);
+      if ((crewMember.skills?.length ?? 0) > 0) {
+        reasons.push(`Has ${crewMember.skills!.length} relevant skills`);
       }
       if (crewMember.vesselId === s.vesselId) {
         reasons.push("Currently assigned to this vessel");

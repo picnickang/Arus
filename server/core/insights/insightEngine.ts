@@ -22,15 +22,21 @@ export type InsightType =
 
 export type InsightSeverity = "critical" | "high" | "medium" | "low";
 
+type FailurePrediction = typeof failurePredictions.$inferSelect;
+type AlertNotification = typeof alertNotifications.$inferSelect;
+type EquipmentTelemetryRow = typeof equipmentTelemetry.$inferSelect;
+type PdmScoreLog = typeof pdmScoreLogs.$inferSelect & { score?: number };
+type SensorConfiguration = typeof sensorConfigurations.$inferSelect & { status?: string };
+
 export interface EquipmentHealthContext {
   equipmentId: string;
   orgId: string;
   vesselId?: string;
-  failurePrediction?: any;
-  recentAlerts: any[];
-  recentTelemetry: any[];
-  pdmScoreLog?: any;
-  sensorData: any[];
+  failurePrediction?: FailurePrediction;
+  recentAlerts: AlertNotification[];
+  recentTelemetry: EquipmentTelemetryRow[];
+  pdmScoreLog?: PdmScoreLog;
+  sensorData: SensorConfiguration[];
 }
 
 export interface GeneratedInsight {
@@ -188,6 +194,9 @@ export class InsightEngine {
     }
 
     const score = context.pdmScoreLog.score;
+    if (score == null) {
+      return insights;
+    }
 
     if (score >= this.PDM_CRITICAL_THRESHOLD) {
       insights.push({

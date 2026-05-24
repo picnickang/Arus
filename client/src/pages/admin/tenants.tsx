@@ -53,10 +53,10 @@ export default function AdminTenantsPage() {
       setNewName("");
       queryClient.invalidateQueries({ queryKey: ["/api/admin/tenants"] });
     },
-    onError: (e: any) =>
+    onError: (e: unknown) =>
       toast({
         title: "Provision failed",
-        description: String(e?.message ?? e),
+        description: String((e as { message?: unknown })?.message ?? e),
         variant: "destructive",
       }),
   });
@@ -78,17 +78,18 @@ export default function AdminTenantsPage() {
         confirm: "DELETE_TENANT",
         reason: "Admin-initiated deletion",
       }),
-    onSuccess: (res: any) => {
+    onSuccess: (res: unknown) => {
+      const certId = (res as { certificate?: { certificateId?: string } } | null)?.certificate?.certificateId;
       toast({
         title: "Tenant deleted",
-        description: `Certificate: ${res?.certificate?.certificateId ?? "(see logs)"}`,
+        description: `Certificate: ${certId ?? "(see logs)"}`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/tenants"] });
     },
-    onError: (e: any) =>
+    onError: (e: unknown) =>
       toast({
         title: "Delete failed",
-        description: String(e?.message ?? e),
+        description: String((e as { message?: unknown })?.message ?? e),
         variant: "destructive",
       }),
   });

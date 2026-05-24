@@ -30,7 +30,7 @@ export function UnifiedCrewManagement() {
     return <div className="p-6">Loading crew data...</div>;
   }
 
-  const activeCrewOnly = d.filteredAndSortedCrew.filter((c: any) => c.active);
+  const activeCrewOnly = d.filteredAndSortedCrew.filter((c) => c.active);
   const displayCrew = rosterView === "active" ? activeCrewOnly : formerCrew;
   const isFormerView = rosterView === "former";
 
@@ -48,7 +48,7 @@ export function UnifiedCrewManagement() {
           <TabsList>
             <TabsTrigger value="active" data-testid="tab-active-roster">
               <UserCheck className="h-4 w-4 mr-2" />
-              Active Roster ({d.crew.filter((c: any) => c.active).length})
+              Active Roster ({d.crew.filter((c) => c.active).length})
             </TabsTrigger>
             <TabsTrigger value="former" data-testid="tab-former-roster">
               <UserX className="h-4 w-4 mr-2" />

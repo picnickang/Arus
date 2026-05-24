@@ -345,8 +345,9 @@ export function DecisionSupportTab() {
       });
       setDecisionResult(result);
       toast({ title: "PdM decision support completed" });
-    } catch (error: any) {
-      toast({ title: "Decision support failed", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast({ title: "Decision support failed", description: message, variant: "destructive" });
     }
   };
 
@@ -366,8 +367,9 @@ export function DecisionSupportTab() {
       });
       setSyntheticResult(result);
       toast({ title: "Synthetic telemetry generated" });
-    } catch (error: any) {
-      toast({ title: "Synthetic telemetry failed", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast({ title: "Synthetic telemetry failed", description: message, variant: "destructive" });
     }
   };
 

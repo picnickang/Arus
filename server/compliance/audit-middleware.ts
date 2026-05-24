@@ -152,7 +152,7 @@ function parseEntityFromPath(path: string): { entityType: string; entityId?: str
 /**
  * Redact sensitive fields from objects
  */
-function redactSensitiveData(obj: any, sensitiveFields: string[]): any {
+function redactSensitiveData(obj: unknown, sensitiveFields: string[]): unknown {
   if (!obj || typeof obj !== "object") {
     return obj;
   }
@@ -162,7 +162,7 @@ function redactSensitiveData(obj: any, sensitiveFields: string[]): any {
   }
 
   const redacted: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(obj)) {
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
     const lowerKey = key.toLowerCase();
     if (sensitiveFields.some((field) => lowerKey.includes(field.toLowerCase()))) {
       redacted[key] = "[REDACTED]";
@@ -238,10 +238,10 @@ export function createAuditMiddleware(customConfig?: Partial<AuditMiddlewareConf
 
     // Store original json method to capture response
     const originalJson = res.json;
-    let responseBody: any;
+    let responseBody: unknown;
 
     if (config.logResponseBody) {
-      res.json = function (body: any) {
+      res.json = function (body: unknown) {
         responseBody = body;
         return originalJson.call(this, body);
       };
@@ -262,9 +262,14 @@ export function createAuditMiddleware(customConfig?: Partial<AuditMiddlewareConf
           eventCategory: getEventCategory(path),
           eventType: getEventType(req.method),
           entityType,
-          entityId: entityId || req.body?.id || responseBody?.id || responseBody?.data?.id || "new",
-          newState: requestBody,
-          changedFields: requestBody ? Object.keys(requestBody) : undefined,
+          entityId:
+            entityId ||
+            req.body?.id ||
+            (responseBody as { id?: string; data?: { id?: string } } | undefined)?.id ||
+            (responseBody as { data?: { id?: string } } | undefined)?.data?.id ||
+            "new",
+          newState: requestBody as Record<string, unknown> | undefined,
+          changedFields: requestBody ? Object.keys(requestBody as Record<string, unknown>) : undefined,
           performedBy: userId,
           performedByType: "user",
           performedByName: userName,
@@ -314,7 +319,9 @@ export function sensitiveOperationAudit(entityType: string) {
       eventType: getEventType(req.method),
       entityType,
       entityId: req.params.id || "unknown",
-      newState: redactSensitiveData(req.body, config.sensitiveFields),
+      newState: redactSensitiveData(req.body, config.sensitiveFields) as
+        | Record<string, unknown>
+        | undefined,
       performedBy: userId,
       performedByType: "user",
       performedByName: userName,

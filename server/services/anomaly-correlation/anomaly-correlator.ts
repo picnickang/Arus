@@ -208,15 +208,28 @@ function normalizeSensorType(sensorType: string): string {
 // Main Service
 // ============================================================================
 
+interface AnomalyStorage {
+  getAnomalyDetections: (
+    orgId: string,
+    equipmentId?: string,
+    severity?: string
+  ) => Promise<Array<Record<string, unknown>>>;
+  getEquipment?: (
+    orgId: string,
+    equipmentId: string
+  ) => Promise<{ name?: string; type?: string; vesselId?: string | null } | null>;
+  getVessel?: (vesselId: string, orgId: string) => Promise<{ name?: string } | null>;
+}
+
 export class AnomalyCorrelator {
-  private storage: any;
+  private storage: AnomalyStorage;
   private correlationWindowMs: number;
 
   /**
    * @param storage - Storage adapter
    * @param correlationWindowMinutes - Time window for grouping related anomalies (default 30 minutes)
    */
-  constructor(storage: any, correlationWindowMinutes = 30) {
+  constructor(storage: AnomalyStorage, correlationWindowMinutes = 30) {
     this.storage = storage;
     this.correlationWindowMs = correlationWindowMinutes * 60 * 1000;
   }
@@ -243,18 +256,33 @@ export class AnomalyCorrelator {
 
     let anomalies: RawAnomaly[] = rawAnomalies
       .slice(0, options?.maxAnomalies ?? 1000)
-      .map((a: any) => ({
-        id: a.id,
-        equipmentId: a.equipmentId,
-        sensorType: a.sensorType || a.anomalyType || "unknown",
-        severity: a.severity || "medium",
-        anomalyType: a.anomalyType || "unknown",
-        value: a.value,
-        threshold: a.threshold,
-        detectionTimestamp: new Date(a.detectionTimestamp || a.createdAt),
-        acknowledgedAt: a.acknowledgedAt ? new Date(a.acknowledgedAt) : null,
-        description: a.description,
-      }));
+      .map((raw: Record<string, unknown>) => {
+        const a = raw as {
+          id: number;
+          equipmentId: string;
+          sensorType?: string;
+          anomalyType?: string;
+          severity?: string;
+          value?: number;
+          threshold?: number;
+          detectionTimestamp?: string | Date;
+          createdAt?: string | Date;
+          acknowledgedAt?: string | Date | null;
+          description?: string;
+        };
+        return {
+          id: a.id,
+          equipmentId: a.equipmentId,
+          sensorType: a.sensorType || a.anomalyType || "unknown",
+          severity: a.severity || "medium",
+          anomalyType: a.anomalyType || "unknown",
+          value: a.value,
+          threshold: a.threshold,
+          detectionTimestamp: new Date(a.detectionTimestamp || a.createdAt || Date.now()),
+          acknowledgedAt: a.acknowledgedAt ? new Date(a.acknowledgedAt) : null,
+          description: a.description,
+        };
+      });
 
     if (!options?.includeAcknowledged) {
       anomalies = anomalies.filter((a) => !a.acknowledgedAt);
@@ -287,14 +315,14 @@ export class AnomalyCorrelator {
       let vesselName: string | null = null;
 
       try {
-        const equipment = await this.storage.getEquipment(orgId, equipmentId);
+        const equipment = await this.storage.getEquipment?.(orgId, equipmentId);
         if (equipment) {
           equipmentName = equipment.name || equipmentName;
           equipmentType = equipment.type || equipmentType;
           vesselId = equipment.vesselId || null;
           if (vesselId) {
             try {
-              const vessel = await this.storage.getVessel(vesselId, orgId);
+              const vessel = await this.storage.getVessel?.(vesselId, orgId);
               vesselName = vessel?.name || null;
             } catch {
               /* vessel lookup failed */

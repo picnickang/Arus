@@ -16,7 +16,7 @@ export interface IInventoryStorage {
     search?: string,
     sortBy?: string,
     sortOrder?: "asc" | "desc"
-  ): Promise<any[]>;
+  ): Promise<PartsInventory[]>;
   getPartsInventoryPaginated(
     orgId: string,
     options: {
@@ -30,7 +30,7 @@ export interface IInventoryStorage {
       sortBy?: string;
       sortOrder?: "asc" | "desc";
     }
-  ): Promise<{ items: any[]; total: number }>;
+  ): Promise<{ items: PartsInventory[]; total: number }>;
   getPartById(id: string, orgId?: string): Promise<PartsInventory | undefined>;
   createPart(part: InsertPartsInventory): Promise<PartsInventory>;
   updatePart(

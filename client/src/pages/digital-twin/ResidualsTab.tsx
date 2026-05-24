@@ -18,10 +18,29 @@ import {
 
 import { severityColor } from "./utils";
 
+interface ResidualRow {
+  id?: string;
+  sensorType?: string;
+  observed?: number;
+  expected?: number;
+  residual?: number;
+  zScore?: number;
+  severity?: string;
+}
+
+interface ResidualRanking {
+  twinId?: string;
+  sensorType?: string;
+  avgZScore?: number;
+  severity?: string;
+}
+
 export function ResidualsTab() {
   const [twinId, setTwinId] = useState("");
-  const { data: residuals, isLoading } = useTwinResiduals(twinId);
-  const { data: rankings, isLoading: rankingsLoading } = useResidualRankings();
+  const { data: residualsData, isLoading } = useTwinResiduals(twinId);
+  const residuals = (residualsData as ResidualRow[] | undefined) ?? [];
+  const { data: rankingsData, isLoading: rankingsLoading } = useResidualRankings();
+  const rankings = (rankingsData as ResidualRanking[] | undefined) ?? [];
   const computeMutation = useComputeResiduals();
   const { toast } = useToast();
 
@@ -32,8 +51,11 @@ export function ResidualsTab() {
     try {
       await computeMutation.mutateAsync(twinId);
       toast({ title: "Residuals computed" });
-    } catch (e: any) {
-      toast({ title: e.message || "Failed", variant: "destructive" });
+    } catch (e: unknown) {
+      toast({
+        title: (e instanceof Error && e.message) || "Failed",
+        variant: "destructive",
+      });
     }
   };
 
@@ -68,7 +90,7 @@ export function ResidualsTab() {
         </div>
       )}
 
-      {residuals?.length > 0 && (
+      {residuals.length > 0 && (
         <Card data-testid="card-residuals-table">
           <CardHeader>
             <CardTitle className="text-base">Residuals for Twin</CardTitle>
@@ -87,7 +109,7 @@ export function ResidualsTab() {
                   </tr>
                 </thead>
                 <tbody>
-                  {residuals.map((r: any, i: number) => (
+                  {residuals.map((r, i) => (
                     <tr key={r.id || i} className="border-b" data-testid={`row-residual-${i}`}>
                       <td className="py-2 capitalize">{r.sensorType?.replace(/_/g, " ")}</td>
                       <td className="py-2 text-right font-mono">{r.observed?.toFixed(2)}</td>
@@ -96,7 +118,7 @@ export function ResidualsTab() {
                       <td className="py-2 text-right font-mono">{r.zScore?.toFixed(2)}</td>
                       <td className="py-2">
                         <Badge
-                          variant={severityColor(r.severity) as "default" | "secondary" | "destructive" | "outline"}
+                          variant={severityColor(r.severity ?? "") as "default" | "secondary" | "destructive" | "outline"}
                           data-testid={`badge-severity-${i}`}
                         >
                           {r.severity}
@@ -115,9 +137,9 @@ export function ResidualsTab() {
         <h3 className="text-lg font-semibold mb-3">Residual Rankings (All Twins)</h3>
         {rankingsLoading ? (
           <Loader2 className="w-6 h-6 animate-spin" />
-        ) : rankings?.length > 0 ? (
+        ) : rankings.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {rankings.map((r: any, i: number) => (
+            {rankings.map((r, i) => (
               <Card key={i} data-testid={`card-ranking-${i}`}>
                 <CardContent className="pt-4">
                   <div className="flex justify-between items-center">
@@ -129,7 +151,7 @@ export function ResidualsTab() {
                     </div>
                     <div className="text-right">
                       <p className="font-mono text-sm">Avg Z: {r.avgZScore?.toFixed(2)}</p>
-                      <Badge variant={severityColor(r.severity) as "default" | "secondary" | "destructive" | "outline"}>{r.severity}</Badge>
+                      <Badge variant={severityColor(r.severity ?? "") as "default" | "secondary" | "destructive" | "outline"}>{r.severity}</Badge>
                     </div>
                   </div>
                 </CardContent>

@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-24T00:51:14.528Z",
+  "generatedAt": "2026-05-24T05:44:24.965Z",
   "rule": "@typescript-eslint/no-explicit-any",
-  "total": 363,
-  "totalFiles": 186,
+  "total": 139,
+  "totalFiles": 102,
   "buckets": {
     "external_lib_gaps": {
       "label": "External library typing gaps",
@@ -28,36 +28,12 @@
       "label": "Legacy DTOs (route handlers, request/response shapes)",
       "definition": "`any` on route-handler request bodies/queries, untyped DTO interfaces, and helper signatures that pass request-shaped data around without ever describing it. Most of these survived the wire-parses sweep because they live below the route registration layer.",
       "remediation": "Define the DTO once with Zod, derive the TS type via `z.infer`, and import the type at every helper. For handlers, use `AuthenticatedRequest` from `server/middleware/auth.ts` and parse `req.body`/`req.query`/`req.params` with the schema — same contract the wire-parses sweep enforced.",
-      "count": 14,
-      "files": 10,
-      "percent": 3.9,
+      "count": 3,
+      "files": 3,
+      "percent": 2.2,
       "topFiles": [
         {
-          "file": "server/routes/kb-routes.ts",
-          "count": 2
-        },
-        {
-          "file": "server/routes/telemetry-dlq-routes.ts",
-          "count": 2
-        },
-        {
-          "file": "server/storage/interfaces/domains/crew.types.ts",
-          "count": 2
-        },
-        {
-          "file": "server/storage/interfaces/domains/inventory.types.ts",
-          "count": 2
-        },
-        {
-          "file": "server/compliance/routes/ml-governance-routes.ts",
-          "count": 1
-        },
-        {
           "file": "server/domains/software-updates/routes.ts",
-          "count": 1
-        },
-        {
-          "file": "server/governance/routes.ts",
           "count": 1
         },
         {
@@ -67,27 +43,23 @@
         {
           "file": "server/ml-routes/acoustic-routes.ts",
           "count": 1
-        },
-        {
-          "file": "server/storage/interfaces/domains/analytics.types.ts",
-          "count": 1
         }
       ],
       "examples": [
-        {
-          "file": "server/compliance/routes/ml-governance-routes.ts",
-          "line": 164,
-          "snippet": "const existingOverride: any = Array.isArray(existingOverrideRaw)"
-        },
         {
           "file": "server/domains/software-updates/routes.ts",
           "line": 20,
           "snippet": "auditAdminAction: (action: string) => any;"
         },
         {
-          "file": "server/governance/routes.ts",
-          "line": 16,
-          "snippet": "user?: any;"
+          "file": "server/import-adapters/shipmate/routes.ts",
+          "line": 17,
+          "snippet": "type ShipmateModuleType = any;"
+        },
+        {
+          "file": "server/ml-routes/acoustic-routes.ts",
+          "line": 31,
+          "snippet": "const data: any = mlAcousticDataSchema.parse(req.body);"
         }
       ]
     },
@@ -95,48 +67,24 @@
       "label": "Dynamic JSON payloads",
       "definition": "`JSON.parse(...) as any`, `Record<string, any>`, drizzle `jsonb()` columns, OpenAI function-call arguments, Sentry/observability event payloads, telemetry attribute bags, anything that's genuinely heterogeneous at the boundary.",
       "remediation": "Stop trusting the payload. Parse once with `z.unknown().pipe(targetSchema)` or `JSON.parse` followed by a Zod parse. Inside the system, replace `any` with `unknown` so callers are forced to narrow. For drizzle `jsonb` columns, declare the column type as `jsonb().$type<MyShape>()` and store the Zod schema alongside.",
-      "count": 15,
-      "files": 11,
-      "percent": 4.1,
+      "count": 6,
+      "files": 4,
+      "percent": 4.3,
       "topFiles": [
         {
           "file": "server/shared/base-repository.ts",
           "count": 3
         },
         {
-          "file": "server/digital-twin/physics-calculations.ts",
-          "count": 2
-        },
-        {
-          "file": "server/routes/diagnostics/types.ts",
-          "count": 2
-        },
-        {
           "file": "client/src/components/ai-health/TrainingTab.tsx",
           "count": 1
         },
         {
-          "file": "client/src/features/crew/hooks/useSchedulePlannerData.ts",
-          "count": 1
-        },
-        {
-          "file": "client/src/pages/digital-twin/ScenariosTab.tsx",
-          "count": 1
-        },
-        {
-          "file": "server/cost-savings-engine/reporting.ts",
-          "count": 1
-        },
-        {
-          "file": "server/digital-twin/types.ts",
-          "count": 1
-        },
-        {
-          "file": "server/middleware/performance.ts",
-          "count": 1
-        },
-        {
           "file": "server/routes/domain-router-registry.ts",
+          "count": 1
+        },
+        {
+          "file": "server/routes/sensorBundles.ts",
           "count": 1
         }
       ],
@@ -147,14 +95,14 @@
           "snippet": "const model = modelRow as Record<string, any>;"
         },
         {
-          "file": "client/src/features/crew/hooks/useSchedulePlannerData.ts",
-          "line": 21,
-          "snippet": "payload: any;"
+          "file": "server/routes/domain-router-registry.ts",
+          "line": 76,
+          "snippet": "getDeps: () => Record<string, any>;"
         },
         {
-          "file": "client/src/pages/digital-twin/ScenariosTab.tsx",
-          "line": 155,
-          "snippet": "const results = s.results as Record<string, any> | null;"
+          "file": "server/routes/sensorBundles.ts",
+          "line": 394,
+          "snippet": "const fields = template.fields as Record<string, any>;"
         }
       ]
     },
@@ -162,49 +110,49 @@
       "label": "Generic inference failures",
       "definition": "Functions whose signature uses `any` because the author couldn't get a generic to flow (callback params typed `(x: any)`, `Array<any>`, `Promise<any>`, return-type `any` on a helper that should have inferred).",
       "remediation": "Reach for `Parameters<typeof fn>[n]` / `Awaited<ReturnType<typeof fn>>` / `infer` rather than `any`. For callbacks, type the higher-order function generically (`<T>(items: T[], cb: (x: T) => void)`) instead of widening the parameter. For Promise chains, type the resolution value, not the wrapper.",
-      "count": 224,
-      "files": 125,
-      "percent": 61.7,
+      "count": 65,
+      "files": 58,
+      "percent": 46.8,
       "topFiles": [
         {
           "file": "server/services/ml/ml-training-job-queue.ts",
           "count": 6
         },
         {
-          "file": "server/scheduler/scheduler-controller.ts",
-          "count": 5
+          "file": "docs/examples/telemetry-service-with-logging.ts",
+          "count": 2
         },
         {
-          "file": "server/bootstrap/services.ts",
-          "count": 4
+          "file": "server/services/ml/prediction-outcome-tracker.ts",
+          "count": 2
         },
         {
-          "file": "server/bootstrap/shutdown.ts",
-          "count": 4
+          "file": "artifacts/mockup-sandbox/src/components/mockups/home-layouts/SidebarSplit.tsx",
+          "count": 1
         },
         {
-          "file": "server/report-context/compliance-builder.ts",
-          "count": 4
+          "file": "client/src/features/serviceOrders/pages/ServiceOrdersPage.tsx",
+          "count": 1
         },
         {
-          "file": "server/report-context/knowledge-citations.ts",
-          "count": 4
+          "file": "client/src/lib/api/finance.ts",
+          "count": 1
         },
         {
-          "file": "server/weibull-rul/data-extraction.ts",
-          "count": 4
+          "file": "client/src/lib/desktop.ts",
+          "count": 1
         },
         {
-          "file": "client/src/components/work-orders/QuickWorkOrderSheet.tsx",
-          "count": 3
+          "file": "client/src/lib/desktopFetch.ts",
+          "count": 1
         },
         {
-          "file": "client/src/pages/admin/tenants.tsx",
-          "count": 3
+          "file": "client/src/pages/ai-sensor-audits.tsx",
+          "count": 1
         },
         {
-          "file": "client/src/pages/copilot-admin.tsx",
-          "count": 3
+          "file": "client/src/pages/digital-twin/ReplayTab.tsx",
+          "count": 1
         }
       ],
       "examples": [
@@ -214,14 +162,14 @@
           "snippet": "const Button = ({ children, variant = 'default', size = 'default', className = '', ...props }: any) => {"
         },
         {
-          "file": "client/src/components/ai-health/ReportsTab.tsx",
-          "line": 125,
-          "snippet": "{audiences.map((aud: any) => ("
+          "file": "client/src/features/serviceOrders/pages/ServiceOrdersPage.tsx",
+          "line": 127,
+          "snippet": "onSuccess: (res: any) => {"
         },
         {
-          "file": "client/src/components/ai-health/ReportsTab.tsx",
-          "line": 144,
-          "snippet": "{models.map((model: any) => ("
+          "file": "client/src/lib/api/finance.ts",
+          "line": 80,
+          "snippet": "): Promise<any> {"
         }
       ]
     },
@@ -229,9 +177,9 @@
       "label": "Truly unsafe / untyped logic",
       "definition": "Residual `any` that isn't explained by any of the above — typically deep cross-domain glue, dynamic property access on heterogeneous registries, or code that genuinely needs a domain redesign before it can be typed.",
       "remediation": "Don't paper over with a cast. These are the call sites that should drive Phase 3 work (Result/Either, branded IDs, discriminated unions, shared API envelopes, typed domain errors). Capture the call site in the follow-up task list and resolve it as part of the domain redesign — not as a one-line edit.",
-      "count": 110,
-      "files": 84,
-      "percent": 30.3,
+      "count": 65,
+      "files": 58,
+      "percent": 46.8,
       "topFiles": [
         {
           "file": "server/services/ml/ml-training-job-queue.ts",
@@ -242,53 +190,53 @@
           "count": 3
         },
         {
-          "file": "server/analytics-data-normalizer/twin-normalizer.ts",
-          "count": 3
-        },
-        {
-          "file": "server/crew-scheduler-ortools/constraint-scheduler.ts",
-          "count": 3
-        },
-        {
-          "file": "server/dtc-integration/service.ts",
-          "count": 3
-        },
-        {
-          "file": "server/governance/lineage.ts",
-          "count": 3
-        },
-        {
-          "file": "server/scheduler/compliance-preview.ts",
-          "count": 3
-        },
-        {
-          "file": "client/src/config/roles.ts",
+          "file": "server/services/ml/prediction-outcome-tracker.ts",
           "count": 2
         },
         {
-          "file": "server/core/insights/insightEngine.ts",
+          "file": "server/shared/base-repository.ts",
           "count": 2
         },
         {
-          "file": "server/dtc-integration/alert-handler.ts",
-          "count": 2
+          "file": "client/src/features/analytics/hooks/useReportsData.ts",
+          "count": 1
+        },
+        {
+          "file": "client/src/features/serviceOrders/pages/ServiceOrdersPage.tsx",
+          "count": 1
+        },
+        {
+          "file": "client/src/features/settings/hooks/useOrganizationData.ts",
+          "count": 1
+        },
+        {
+          "file": "client/src/lib/desktop.ts",
+          "count": 1
+        },
+        {
+          "file": "client/src/main.tsx",
+          "count": 1
+        },
+        {
+          "file": "client/src/pages/briefing.tsx",
+          "count": 1
         }
       ],
       "examples": [
         {
-          "file": "client/src/components/UnifiedCrewManagement/CrewFormDialog.tsx",
-          "line": 32,
-          "snippet": "d: any;"
+          "file": "client/src/features/analytics/hooks/useReportsData.ts",
+          "line": 14,
+          "snippet": "const { data: equipmentHealth, isLoading: healthLoading } = useQuery<any[]>({"
         },
         {
-          "file": "client/src/components/UnifiedCrewManagement/RosterFilters.tsx",
-          "line": 15,
-          "snippet": "export function RosterFilters({ d }: { d: any }) {"
+          "file": "client/src/features/serviceOrders/pages/ServiceOrdersPage.tsx",
+          "line": 324,
+          "snippet": "serviceOrders={filteredOrders.map((o): any => ({"
         },
         {
-          "file": "client/src/components/UnifiedCrewManagement/RosterTable.tsx",
-          "line": 48,
-          "snippet": "d: any;"
+          "file": "client/src/features/settings/hooks/useOrganizationData.ts",
+          "line": 198,
+          "snippet": "const result: any = await apiRequest(\"POST\", `/api/users/${userId}/reset-password`);"
         }
       ]
     }

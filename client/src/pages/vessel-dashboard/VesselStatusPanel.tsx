@@ -18,12 +18,17 @@ export function VesselStatusPanel({
   compatibleParts,
   onUninstall,
 }: {
-  vessel: any;
+  vessel: {
+    name?: string | null;
+    vesselClass?: string | null;
+    flag?: string | null;
+    onlineStatus?: string | null;
+  } & Record<string, unknown>;
   avgHealth: number;
   riskScore: number;
   riskLevel: string;
-  activeWorkOrders: any[];
-  vesselCrew: any[];
+  activeWorkOrders: Array<Record<string, unknown>>;
+  vesselCrew: Array<Record<string, unknown>>;
   equipment: VesselEquipment[];
   selectedAssignment: SlotAssignment | null;
   compatibleParts: Part[];

@@ -75,24 +75,31 @@ export function enrichContextWithRAG(context: ReportContext): ReportContext {
 
   if (context.knowledge) {
     if (context.knowledge.documents && context.knowledge.documents.length > 0) {
-      context.knowledge.documents.slice(0, 5).forEach((doc: any) => {
-        const docType = doc.docType || "document";
-        const excerpt = doc.content?.slice(0, 500) || doc.summary || "No content available";
+      (context.knowledge.documents as unknown as Array<Record<string, unknown>>).slice(0, 5).forEach((doc) => {
+        const docType = typeof doc.docType === "string" ? doc.docType : "document";
+        const content = typeof doc.content === "string" ? doc.content : (typeof doc.text === "string" ? doc.text : undefined);
+        const summary = typeof doc.summary === "string" ? doc.summary : undefined;
+        const title = typeof doc.title === "string" ? doc.title : (typeof doc.name === "string" ? doc.name : "Untitled");
+        const excerpt = content?.slice(0, 500) || summary || "No content available";
         knowledgeSnippets.push(
-          `KB Document [${docType.toUpperCase()}]: "${doc.title}" - ${excerpt}${excerpt.length >= 500 ? "..." : ""}`
+          `KB Document [${docType.toUpperCase()}]: "${title}" - ${excerpt}${excerpt.length >= 500 ? "..." : ""}`
         );
       });
     }
 
     if (context.knowledge.semanticMatches && context.knowledge.semanticMatches.length > 0) {
-      context.knowledge.semanticMatches.slice(0, 5).forEach((match: any) => {
-        const similarity = match.similarity
-          ? `(${(match.similarity * 100).toFixed(0)}% match)`
-          : "";
-        const docType = match.docType || "document";
-        const excerpt = match.content?.slice(0, 400) || match.summary || "No content available";
+      (context.knowledge.semanticMatches as unknown as Array<Record<string, unknown>>).slice(0, 5).forEach((match) => {
+        const sim = typeof match.similarity === "number"
+          ? match.similarity
+          : (typeof match.score === "number" ? match.score : undefined);
+        const similarity = sim != null ? `(${(sim * 100).toFixed(0)}% match)` : "";
+        const docType = typeof match.docType === "string" ? match.docType : "document";
+        const content = typeof match.content === "string" ? match.content : (typeof match.text === "string" ? match.text : undefined);
+        const summary = typeof match.summary === "string" ? match.summary : undefined;
+        const title = typeof match.title === "string" ? match.title : (typeof match.name === "string" ? match.name : "Untitled");
+        const excerpt = content?.slice(0, 400) || summary || "No content available";
         knowledgeSnippets.push(
-          `KB Reference [${docType.toUpperCase()}] ${similarity}: "${match.title}" - ${excerpt}${excerpt.length >= 400 ? "..." : ""}`
+          `KB Reference [${docType.toUpperCase()}] ${similarity}: "${title}" - ${excerpt}${excerpt.length >= 400 ? "..." : ""}`
         );
       });
     }

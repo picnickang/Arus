@@ -15,9 +15,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ResponsiveDialog } from "@/components/ResponsiveDialog";
-import { COMMON_SKILLS, formatRank } from "@/features/crew";
+import { COMMON_SKILLS, formatRank, useUnifiedCrewData } from "@/features/crew";
 
-export function SkillFormDialog({ d }: { d: any }) {
+type UnifiedCrewData = ReturnType<typeof useUnifiedCrewData>;
+
+export function SkillFormDialog({ d }: { d: UnifiedCrewData }) {
   return (
     <ResponsiveDialog
       open={d.isAddSkillDialogOpen}
@@ -51,7 +53,7 @@ export function SkillFormDialog({ d }: { d: any }) {
             <div className="bg-muted p-3 rounded-md">
               <p className="text-sm font-medium">Assigning skill to:</p>
               <p className="text-lg font-semibold">
-                {d.crew.find((c: any) => c.id === d.skillAssignmentCrewId)?.name || "Unknown"}
+                {d.crew.find((c) => c.id === d.skillAssignmentCrewId)?.name || "Unknown"}
               </p>
             </div>
           ) : (
@@ -68,7 +70,7 @@ export function SkillFormDialog({ d }: { d: any }) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {d.crew.map((member: any) => (
+                      {d.crew.map((member) => (
                         <SelectItem key={member.id} value={member.id}>
                           {member.name} ({formatRank(member.rank)})
                         </SelectItem>

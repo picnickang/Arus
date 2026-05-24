@@ -57,7 +57,7 @@ function renderEquipmentComplianceExcel(
   const workbook = createWorkbook();
   const counts = countByStatus(equipment);
 
-  const summaryData: any[][] = [
+  const summaryData: (string | number | boolean | Date | null | undefined)[][] = [
     ["MARITIME EQUIPMENT COMPLIANCE REPORT"],
     [],
     ["Report Details"],
@@ -86,7 +86,7 @@ function renderEquipmentComplianceExcel(
 
   addSheet(workbook, summaryData, "Summary");
 
-  const equipmentData: any[][] = [
+  const equipmentData: (string | number | boolean | Date | null | undefined)[][] = [
     ["EQUIPMENT STATUS"],
     [],
     ["ID", "Name", "Type", "Vessel", "Status", "Health Index", "Last Maintenance"],
@@ -106,7 +106,7 @@ function renderEquipmentComplianceExcel(
 
   addSheet(workbook, equipmentData, "Equipment");
 
-  const woData: any[][] = [
+  const woData: (string | number | boolean | Date | null | undefined)[][] = [
     ["MAINTENANCE RECORDS"],
     [],
     ["WO Number", "Equipment ID", "Type", "Priority", "Status", "Created", "Completed"],

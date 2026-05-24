@@ -80,8 +80,9 @@ function setupTwinRefreshSchedule(): void {
       if (result.refreshed > 0 || result.failed > 0) {
         logger.info(`[TwinRefresh] Refreshed ${result.refreshed}, failed ${result.failed}`);
       }
-    } catch (error: any) {
-      logger.error("[TwinRefresh] Scheduled refresh failed:", undefined, error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error("[TwinRefresh] Scheduled refresh failed:", undefined, message);
     }
   }, INTERVAL_MS);
   logger.info("✅ Twin refresh schedule configured (every 5 minutes)");
@@ -104,8 +105,9 @@ function setupPredictionExpirySchedule(): void {
       if (result.expiredCount > 0) {
         logger.info(`[PredictionExpiry] Expired ${result.expiredCount} stale predictions`);
       }
-    } catch (error: any) {
-      logger.error("[PredictionExpiry] Scheduled expiry failed:", undefined, error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error("[PredictionExpiry] Scheduled expiry failed:", undefined, message);
     }
   }, INTERVAL_MS);
   logger.info("✅ Prediction expiry schedule configured (every 15 minutes)");

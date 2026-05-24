@@ -72,7 +72,25 @@ export interface SimulationScenario {
     | "training"
     | "weather"
     | "route_planning";
-  parameters: Record<string, any>;
+  parameters: {
+    maintenance?: {
+      degradationRate?: number;
+      maintenanceAction?: string;
+      duration?: number;
+    };
+    failure?: {
+      component?: string;
+      failureTime?: number;
+    };
+    optimization?: {
+      targetSpeed?: number;
+    };
+    route?: {
+      waypoints?: Array<{ latitude: number; longitude: number }>;
+      speed?: number;
+    };
+    [key: string]: unknown;
+  };
   duration: number;
   timeStep: number;
   environmentalConditions: {

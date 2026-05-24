@@ -89,7 +89,8 @@ export class LinearProgrammingOptimizer {
       }
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errMessage = error instanceof Error ? error.message : String(error);
       logger.error(`[LP Optimizer] Error during optimization:`, undefined, error);
 
       const duration = Date.now() - startTime;
@@ -107,7 +108,7 @@ export class LinearProgrammingOptimizer {
         },
         constraints: {
           feasible: false,
-          violations: [`Optimization error: ${error.message}`],
+          violations: [`Optimization error: ${errMessage}`],
         },
         optimizationTime: duration,
         optimizationId: `error-${Date.now()}`,
@@ -118,7 +119,7 @@ export class LinearProgrammingOptimizer {
     }
   }
 
-  async getOptimizationResults(resultId: string): Promise<any> {
+  async getOptimizationResults(resultId: string): Promise<Awaited<ReturnType<typeof getResults>>> {
     return getResults(resultId);
   }
 }

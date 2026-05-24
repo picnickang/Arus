@@ -69,8 +69,10 @@ export function RunsTab({ o }: { o: any }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {o.filteredResults.map((result: any) => {
-              const config = o.configurations?.find((c: any) => c.id === result.configurationId);
+            {o.filteredResults.map((result: { id: string; configurationId: string; runStatus: string; costSavings: number; executionTimeMs: number; startTime: string; totalSchedules: number; optimizationScore?: number; conflictsResolved?: number; appliedToProduction?: boolean }) => {
+              const config = o.configurations?.find(
+                (c: { id: string; name: string }) => c.id === result.configurationId
+              );
               return (
                 <Card key={result.id} className="border-l-4 border-l-green-500">
                   <CardContent className="p-4">

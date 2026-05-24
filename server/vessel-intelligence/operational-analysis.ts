@@ -4,7 +4,7 @@
  * Operational patterns, cost analysis, and predictive indicators.
  */
 
-import type { EquipmentTelemetry, WorkOrder } from "@shared/schema";
+import type { EquipmentTelemetry, WorkOrder, Equipment } from "@shared/schema";
 import type { VesselLearnings } from "./types.js";
 import {
   calculateEfficiencyTrends,
@@ -15,7 +15,7 @@ import {
 
 export function analyzeOperationalPatterns(
   telemetry: EquipmentTelemetry[],
-  equipment: any[]
+  _equipment: Equipment[]
 ): VesselLearnings["operationalInsights"] {
   const hourlyLoad = new Map<number, number[]>();
   telemetry.forEach((t) => {
@@ -48,8 +48,9 @@ export function analyzeOperationalPatterns(
 }
 
 export function analyzeCosts(workOrders: WorkOrder[]): VesselLearnings["costAnalysis"] {
-  const calcCost = (wo: any): number =>
-    (Number(wo.estimatedCostPerHour ?? 0) || 0) * (Number(wo.estimatedHours ?? 0) || 0);
+  const calcCost = (wo: WorkOrder): number =>
+    (Number((wo as { estimatedCostPerHour?: unknown }).estimatedCostPerHour ?? 0) || 0) *
+    (Number((wo as { estimatedHours?: unknown }).estimatedHours ?? 0) || 0);
   const ordersWithCost = workOrders.filter((wo) => calcCost(wo) > 0);
   const totalCost = ordersWithCost.reduce((sum, wo) => sum + calcCost(wo), 0);
   const avgCost = ordersWithCost.length > 0 ? totalCost / ordersWithCost.length : 0;

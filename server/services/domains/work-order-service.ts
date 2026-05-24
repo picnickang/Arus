@@ -78,7 +78,7 @@ class WorkOrderService {
         .leftJoin(equipment, eq(workOrders.equipmentId, equipment.id))
         .leftJoin(vessels, eq(workOrders.vesselId, vessels.id));
 
-      const conditions: any[] = [];
+      const conditions: import("drizzle-orm").SQL[] = [];
       if (equipmentId) {
         conditions.push(eq(workOrders.equipmentId, equipmentId));
       }
@@ -111,13 +111,14 @@ class WorkOrderService {
       }
       if (filters?.search?.trim()) {
         const term = `%${filters.search.trim().toLowerCase()}%`;
-        conditions.push(
-          or(
-            ilike(workOrders.reason, term),
-            ilike(workOrders.description, term),
-            ilike(workOrders.woNumber, term)
-          )
+        const orClause = or(
+          ilike(workOrders.reason, term),
+          ilike(workOrders.description, term),
+          ilike(workOrders.woNumber, term)
         );
+        if (orClause) {
+          conditions.push(orClause);
+        }
       }
 
       const filtered =
@@ -149,7 +150,7 @@ class WorkOrderService {
     filters?: WorkOrderFilters
   ): Promise<WorkOrderPaginationResult> {
     try {
-      const conditions: any[] = [];
+      const conditions: import("drizzle-orm").SQL[] = [];
       if (equipmentId) {
         conditions.push(eq(workOrders.equipmentId, equipmentId));
       }
@@ -182,13 +183,14 @@ class WorkOrderService {
       }
       if (filters?.search?.trim()) {
         const term = `%${filters.search.trim().toLowerCase()}%`;
-        conditions.push(
-          or(
-            ilike(workOrders.reason, term),
-            ilike(workOrders.description, term),
-            ilike(workOrders.woNumber, term)
-          )
+        const orClause = or(
+          ilike(workOrders.reason, term),
+          ilike(workOrders.description, term),
+          ilike(workOrders.woNumber, term)
         );
+        if (orClause) {
+          conditions.push(orClause);
+        }
       }
 
       const countQuery = db
@@ -247,7 +249,9 @@ class WorkOrderService {
       }
 
       const postUpdateOrder = { ...existing, ...updates };
-      const finalUpdates: any = { ...updates };
+      const finalUpdates: Partial<InsertWorkOrder> & { vesselDowntimeStartedAt?: Date | null } = {
+        ...updates,
+      };
       const shouldTrackDowntime =
         postUpdateOrder.affectsVesselDowntime && postUpdateOrder.equipmentId;
 

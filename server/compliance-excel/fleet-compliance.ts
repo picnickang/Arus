@@ -41,7 +41,7 @@ function renderFleetOverviewExcel(
   const complianceRate =
     equipment.length > 0 ? ((counts.healthy / equipment.length) * 100).toFixed(1) : "N/A";
 
-  const summaryData: any[][] = [
+  const summaryData: (string | number | boolean | Date | null | undefined)[][] = [
     ["FLEET COMPLIANCE OVERVIEW"],
     [],
     ["Report Details"],
@@ -68,7 +68,7 @@ function renderFleetOverviewExcel(
 
   addSheet(workbook, summaryData, "Summary");
 
-  const equipmentData: any[][] = [
+  const equipmentData: (string | number | boolean | Date | null | undefined)[][] = [
     ["FLEET EQUIPMENT STATUS"],
     [],
     ["ID", "Name", "Type", "Vessel", "Status", "Health Index", "Risk Score", "Compliance Status"],
@@ -89,7 +89,7 @@ function renderFleetOverviewExcel(
 
   addSheet(workbook, equipmentData, "Equipment");
 
-  const woData: any[][] = [
+  const woData: (string | number | boolean | Date | null | undefined)[][] = [
     ["FLEET MAINTENANCE OVERVIEW"],
     [],
     [

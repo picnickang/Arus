@@ -170,12 +170,15 @@ export interface ICrewStorage {
 
   // Crew Rest Hours
   createCrewRestSheet(sheet: InsertCrewRestSheet): Promise<SelectCrewRestSheet>;
-  upsertCrewRestDay(sheetId: string, dayData: any): Promise<SelectCrewRestDay>;
+  upsertCrewRestDay(
+    sheetId: string,
+    dayData: Partial<SelectCrewRestDay> & { date: string }
+  ): Promise<SelectCrewRestDay>;
   getCrewRestMonth(
     crewId: string,
     year: number,
     month: string
-  ): Promise<{ sheet: SelectCrewRestSheet | null; days: any[] }>;
+  ): Promise<{ sheet: SelectCrewRestSheet | null; days: SelectCrewRestDay[] }>;
   getCrewRestRange(
     crewId: string,
     startDate: string,

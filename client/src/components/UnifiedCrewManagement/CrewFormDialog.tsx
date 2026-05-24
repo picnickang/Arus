@@ -22,14 +22,17 @@ import {
 } from "@/components/ui/collapsible";
 import { ResponsiveDialog } from "@/components/ResponsiveDialog";
 import { ChevronDown, ChevronRight, DollarSign, FileText, Phone, User } from "lucide-react";
-import { MARITIME_RANKS, capitalizeNames } from "@/features/crew";
+import { MARITIME_RANKS, capitalizeNames, useUnifiedCrewData } from "@/features/crew";
+import type { VesselListItem } from "@/features/crew";
+
+type UnifiedCrewData = ReturnType<typeof useUnifiedCrewData>;
 
 export function CrewFormDialog({
   d,
   contactSectionOpen,
   setContactSectionOpen,
 }: {
-  d: any;
+  d: UnifiedCrewData;
   contactSectionOpen: boolean;
   setContactSectionOpen: (v: boolean) => void;
 }) {
@@ -120,7 +123,7 @@ export function CrewFormDialog({
                   control={d.crewForm.control}
                   name="vesselId"
                   render={({ field }) => {
-                    const activeVessels = d.vessels.filter((v: any) => v.active);
+                    const activeVessels = d.vessels.filter((v) => v.active);
                     return (
                       <FormItem>
                         <FormLabel>Vessel (Optional)</FormLabel>
@@ -140,7 +143,7 @@ export function CrewFormDialog({
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="_unassigned">Unassigned</SelectItem>
-                            {activeVessels.map((v: any) => (
+                            {activeVessels.map((v: VesselListItem) => (
                               <SelectItem key={v.id} value={v.id}>
                                 {v.name}
                               </SelectItem>

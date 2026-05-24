@@ -239,7 +239,7 @@ async function processEmailBatch(): Promise<void> {
 }
 
 export async function getDeadLetterEmails(orgId?: string) {
-  const conditions: any[] = [eq(emailQueue.status, "dead_letter")];
+  const conditions: import("drizzle-orm").SQL[] = [eq(emailQueue.status, "dead_letter")];
   if (orgId) {
     conditions.push(eq(emailQueue.orgId, orgId));
   }
@@ -256,7 +256,7 @@ export async function getDeadLetterEmails(orgId?: string) {
  * SMTP was down / item got stale" (expired).
  */
 export async function getExpiredEmails(orgId?: string) {
-  const conditions: any[] = [eq(emailQueue.status, "expired")];
+  const conditions: import("drizzle-orm").SQL[] = [eq(emailQueue.status, "expired")];
   if (orgId) {
     conditions.push(eq(emailQueue.orgId, orgId));
   }

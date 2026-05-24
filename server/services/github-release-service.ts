@@ -123,7 +123,7 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
         })
         .on("error", reject);
 
-      function handleResponse(response: any) {
+      function handleResponse(response: import("node:http").IncomingMessage) {
         if (response.statusCode !== 200) {
           reject(new Error(`Failed to download: HTTP ${response.statusCode}`));
           return;
@@ -296,7 +296,7 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
         })
         .on("error", reject);
 
-      function handleResponse(response: any) {
+      function handleResponse(response: import("node:http").IncomingMessage) {
         if (response.statusCode !== 200) {
           reject(new Error(`HTTP ${response.statusCode}`));
           return;

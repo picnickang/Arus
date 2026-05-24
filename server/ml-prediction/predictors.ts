@@ -54,7 +54,7 @@ export async function predictFailureWithLSTM(
     const bucketed = bucketTelemetry(telemetry, { bucketSizeMs: 1000, aggregationMethod: "mean" });
     if (bucketed.length >= model.config.sequenceLength) {
       const sequenceBuckets = getLastNBuckets(bucketed, model.config.sequenceLength);
-      const timeSeriesFeatures: TimeSeriesFeatures[] = sequenceBuckets.map((bucket): any => {
+      const timeSeriesFeatures: TimeSeriesFeatures[] = sequenceBuckets.map((bucket) => {
         const features: Record<string, number> = {};
         for (const [sensorType, value] of bucket.sensors.entries()) {
           features[sensorType] = value;
@@ -65,7 +65,7 @@ export async function predictFailureWithLSTM(
           features,
           normalizedFeatures: {},
           label: 0,
-        };
+        } as object as TimeSeriesFeatures;
       });
       const preprocParams = await loadPreprocessingParams(modelPath);
       const { predictWithLSTM } = await import("../ml-lstm-model.js");
@@ -92,7 +92,7 @@ export async function predictHealthWithRandomForest(
   equipmentId: string,
   orgId: string
 ): Promise<MLPredictionResult | null> {
-  return withProtection<any>(
+  return withProtection<MLPredictionResult | null>(
     "ml_random_forest",
     equipmentId,
     orgId,
@@ -182,7 +182,7 @@ export async function predictHealthWithRandomForest(
       return {
         method: "ml_rf",
         failureProbability,
-        confidence: prediction.confidence,
+        confidence: prediction.confidence ?? 0,
         predictedFailureDate,
         remainingDays,
         healthScore: Math.round((1 - failureProbability) * 100),

@@ -83,7 +83,14 @@ export function TrainingPipelineTab() {
           )}
           {Array.isArray(datasets) && datasets.length > 0 && (
             <div className="space-y-2">
-              {datasetsList.map((d: any) => (
+              {datasetsList.map((d: {
+                id: string;
+                name: string;
+                sourceType: string;
+                rowCount?: number | null;
+                createdAt: string;
+                status: string;
+              }) => (
                 <div
                   key={d.id}
                   className="flex items-center justify-between p-3 rounded-lg border"
@@ -144,9 +151,19 @@ export function TrainingPipelineTab() {
           )}
           {Array.isArray(runs) && runs.length > 0 && (
             <div className="space-y-3">
-              {runs.map((r: any) => {
-                const metrics = r.metrics as Record<string, number> | null;
-                const hyperparams = r.hyperparameters as Record<string, unknown> | null;
+              {runs.map((r: {
+                id: string;
+                datasetId?: string;
+                startedAt?: string;
+                finishedAt?: string;
+                metrics?: Record<string, number> | null;
+                hyperparameters?: Record<string, unknown> | null;
+                status: string;
+                modelVersionId?: string | null;
+                errorMessage?: string | null;
+              }) => {
+                const metrics = r.metrics ?? null;
+                const hyperparams = r.hyperparameters ?? null;
                 return (
                   <Card key={r.id} data-testid={`card-run-${r.id}`}>
                     <CardContent className="p-4 space-y-3">
@@ -185,7 +202,9 @@ export function TrainingPipelineTab() {
                               data-testid={`button-artifacts-${r.id}`}
                               onClick={() =>
                                 setExpandedRunArtifact(
-                                  expandedRunArtifact === r.modelVersionId ? null : r.modelVersionId
+                                  expandedRunArtifact === r.modelVersionId
+                                    ? null
+                                    : r.modelVersionId ?? null
                                 )
                               }
                             >

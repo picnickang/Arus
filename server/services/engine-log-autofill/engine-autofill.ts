@@ -74,7 +74,7 @@ function createEmptySummary(vesselId: string, logDate: string): AutoFillSummary 
 
 function processHourlyAggregates(
   aggregates: Map<string, { avg: number; count: number }>,
-  existing: any,
+  existing: Record<string, unknown> | undefined,
   overwriteManual: boolean,
   dailyLogId: string,
   hour: number,
@@ -125,8 +125,8 @@ function processHourlyAggregates(
 
 async function processHours(
   hoursToProcess: number[],
-  allTelemetry: any[],
-  existingByHour: Map<number, any>,
+  allTelemetry: Awaited<ReturnType<typeof batchFetchTelemetry>>,
+  existingByHour: Map<number, Record<string, unknown>>,
   dailyLog: EngineLogDaily,
   orgId: string,
   overwriteManual: boolean,

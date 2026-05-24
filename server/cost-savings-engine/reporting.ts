@@ -132,7 +132,18 @@ export async function getMonthlySavingsTrend(
 
   const savings = allRecords.filter((s) => s.validationStatus === "valid");
 
-  const monthlyData: Record<string, any> = {};
+  const monthlyData: Record<
+    string,
+    {
+      month: string;
+      totalSavings: number;
+      laborSavings: number;
+      partsSavings: number;
+      downtimeSavings: number;
+      downtimePrevented: number;
+      savingsCount: number;
+    }
+  > = {};
 
   savings.forEach((s) => {
     if (!s.calculatedAt) {
@@ -161,5 +172,5 @@ export async function getMonthlySavingsTrend(
     monthlyData[monthKey].savingsCount += 1;
   });
 
-  return Object.values(monthlyData).sort((a: any, b: any) => a.month.localeCompare(b.month));
+  return Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month));
 }

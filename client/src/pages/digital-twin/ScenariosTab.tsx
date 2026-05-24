@@ -16,6 +16,21 @@ import {
 
 
 
+interface ScenarioResults {
+  riskLevel?: string;
+  projectedHealth?: number;
+  projectedRUL?: number;
+  summary?: string;
+  [key: string]: unknown;
+}
+
+interface Scenario {
+  id: string;
+  name: string;
+  createdAt: string | Date;
+  results?: ScenarioResults | null;
+}
+
 export function ScenariosTab() {
   const [twinId, setTwinId] = useState("");
   const [scenarioName, setScenarioName] = useState("");
@@ -41,8 +56,11 @@ export function ScenariosTab() {
         },
       });
       toast({ title: "Scenario completed" });
-    } catch (e: any) {
-      toast({ title: e.message || "Failed", variant: "destructive" });
+    } catch (e: unknown) {
+      toast({
+        title: (e instanceof Error && e.message) || "Failed",
+        variant: "destructive",
+      });
     }
   };
 
@@ -149,10 +167,10 @@ export function ScenariosTab() {
           <h3 className="text-lg font-semibold mb-3">Scenario History</h3>
           {isLoading ? (
             <Loader2 className="w-6 h-6 animate-spin" />
-          ) : scenarios?.length > 0 ? (
+          ) : (scenarios as Scenario[] | undefined)?.length ? (
             <div className="space-y-3">
-              {scenarios.map((s: any) => {
-                const results = s.results as Record<string, any> | null;
+              {(scenarios as Scenario[]).map((s) => {
+                const results = s.results ?? null;
                 return (
                   <Card key={s.id} data-testid={`card-scenario-${s.id}`}>
                     <CardContent className="pt-4">

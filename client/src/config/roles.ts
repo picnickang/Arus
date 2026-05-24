@@ -11,11 +11,12 @@ import {
   BarChart3,
   Settings,
   Gauge,
+  type LucideIcon,
 } from "lucide-react";
 
 export interface QuickActionDef {
   label: string;
-  icon: any;
+  icon: LucideIcon;
   href: string;
   variant?: "default" | "destructive" | "outline";
 }
@@ -24,7 +25,7 @@ export interface RoleConfig {
   id: string;
   label: string;
   description: string;
-  icon: any;
+  icon: LucideIcon;
   quickActions: QuickActionDef[];
   pinnedGroups: string[];
 }

@@ -29,7 +29,11 @@ export async function getAdaptiveWeights(
     const rfModels = await dbMlAnalyticsStorage.getMlModels(orgId, "random_forest", "active");
     const xgbModels = await dbMlAnalyticsStorage.getMlModels(orgId, "xgboost", "active");
 
-    const pickBest = (models: any[]) => {
+    type ModelRow = {
+      targetEquipmentType?: string | null;
+      performance?: { macroF1?: number; f1Score?: number; accuracy?: number } | null;
+    };
+    const pickBest = (models: ModelRow[]) => {
       return models
         .filter((m) => m.targetEquipmentType === equipmentType || m.targetEquipmentType == null)
         .sort((a, b) => {
@@ -41,15 +45,15 @@ export async function getAdaptiveWeights(
         })[0];
     };
 
-    const bestLstm = pickBest(lstmModels);
-    const bestRf = pickBest(rfModels);
-    const bestXgb = pickBest(xgbModels);
+    const bestLstm = pickBest(lstmModels as object as ModelRow[]);
+    const bestRf = pickBest(rfModels as object as ModelRow[]);
+    const bestXgb = pickBest(xgbModels as object as ModelRow[]);
 
     if (!bestLstm && !bestRf && !bestXgb) {
       return STATIC_WEIGHTS[equipmentType] ?? STATIC_WEIGHTS.default;
     }
 
-    const score = (model: any) => {
+    const score = (model: ModelRow | undefined) => {
       if (!model) {
         return 0;
       }

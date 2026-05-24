@@ -13,9 +13,25 @@ import type { ReportContext } from "./types.js";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("ReportContext:KnowledgeCitations");
 
+interface ReportEquipment {
+  id?: string | null;
+  type?: string | null;
+  name?: string | null;
+  system?: string | null;
+  criticality?: string | null;
+  orgId?: string | null;
+}
+
+interface LinkedKbDoc {
+  id: string;
+  name: string | null;
+  equipmentId: string | null;
+  summary: string | null;
+}
+
 export async function fetchKBKnowledge(
   orgId: string,
-  equipment: any[],
+  equipment: ReportEquipment[],
   reportType: string
 ): Promise<ReportContext["knowledge"]> {
   if (!db) {
@@ -53,8 +69,10 @@ export async function fetchKBKnowledge(
     const searchQuery = (searchQueryTemplates[reportType] ?? defaultQuery).trim();
 
     const orgEquipment = equipment.filter((e) => !e.orgId || e.orgId === orgId);
-    const equipmentIds = orgEquipment.map((e) => e.id).filter(Boolean);
-    let linkedDocuments: any[] = [];
+    const equipmentIds = orgEquipment
+      .map((e) => e.id)
+      .filter((id): id is string => typeof id === "string" && id.length > 0);
+    let linkedDocuments: LinkedKbDoc[] = [];
 
     if (equipmentIds.length > 0 && kbDocs) {
       try {
@@ -104,9 +122,15 @@ export async function fetchKBKnowledge(
   }
 }
 
+interface CitationRelatedItem {
+  id: string;
+  type?: string | null;
+  name?: string | null;
+}
+
 export function buildCitations(
   vessel: SelectVessel | undefined,
-  relatedItems: any[],
+  relatedItems: CitationRelatedItem[],
   workOrders: WorkOrder[]
 ): ReportContext["citations"] {
   const citations: ReportContext["citations"] = [];
@@ -145,7 +169,7 @@ export function buildCitations(
 
 export function determinePriority(
   workOrders: WorkOrder[],
-  alerts: any[]
+  alerts: ReadonlyArray<Record<string, unknown>>
 ): "low" | "medium" | "high" | "critical" {
   const criticalOrders = workOrders.filter((wo) => wo.priority <= 1).length;
   const urgentOrders = workOrders.filter((wo) => wo.priority === 2).length;

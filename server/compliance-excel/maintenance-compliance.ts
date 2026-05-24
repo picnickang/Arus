@@ -51,7 +51,7 @@ function renderMaintenanceComplianceExcel(
   const preventiveWOs = workOrders.filter((wo) => wo.maintenanceType === "preventive");
   const correctiveWOs = workOrders.filter((wo) => wo.maintenanceType === "corrective");
 
-  const summaryData: any[][] = [
+  const summaryData: (string | number | boolean | Date | null | undefined)[][] = [
     ["MAINTENANCE COMPLIANCE REPORT"],
     [],
     ["Vessel", options.vesselName],
@@ -78,7 +78,7 @@ function renderMaintenanceComplianceExcel(
   addSheet(workbook, summaryData, "Summary");
 
   if (options.includeWorkOrders) {
-    const woData: any[][] = [
+    const woData: (string | number | boolean | Date | null | undefined)[][] = [
       ["WORK ORDER DETAILS"],
       [],
       [
@@ -114,7 +114,7 @@ function renderMaintenanceComplianceExcel(
   }
 
   if (options.includeHealthMetrics) {
-    const healthData: any[][] = [
+    const healthData: (string | number | boolean | Date | null | undefined)[][] = [
       ["EQUIPMENT HEALTH METRICS"],
       [],
       ["Equipment ID", "Name", "Status", "Health Index", "Last Maintenance", "Critical Alerts"],

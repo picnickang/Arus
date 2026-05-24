@@ -98,8 +98,8 @@ const searchQuerySchema = z.object({
 export async function registerKnowledgeBaseRoutes(
   app: Express,
   rateLimits: {
-    generalApiRateLimit: any;
-    writeOperationRateLimit: any;
+    generalApiRateLimit: import("express").RequestHandler;
+    writeOperationRateLimit: import("express").RequestHandler;
   }
 ) {
   const { generalApiRateLimit, writeOperationRateLimit } = rateLimits;

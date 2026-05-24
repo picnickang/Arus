@@ -51,7 +51,7 @@ export function estimateWorkOrderDuration(description: string, priority: number)
 export function estimatePartsRequired(
   maintenanceType: string,
   equipmentType: string,
-  _inventory: any[]
+  _inventory: unknown[]
 ): MaintenanceJob["parts"] {
   const parts: MaintenanceJob["parts"] = [];
 
@@ -71,7 +71,7 @@ export function estimatePartsRequired(
 
 export function estimatePartsFromDescription(
   description: string,
-  _inventory: any[]
+  _inventory: unknown[]
 ): MaintenanceJob["parts"] {
   const parts: MaintenanceJob["parts"] = [];
   const desc = (description || "").toLowerCase();

@@ -34,8 +34,8 @@ const router = Router();
 const generalLimit = RateLimiters.general();
 const writeLimit = RateLimiters.write();
 
-function getOrgId(req: any): string {
-  return (req as AuthenticatedRequest).orgId as string;
+function getOrgId(req: AuthenticatedRequest): string {
+  return req.orgId as string;
 }
 
 function parseIntSafe(val: string | undefined, def: number, max?: number): number {
@@ -55,7 +55,7 @@ router.get("/", requireOrgId, generalLimit, async (req, res) => {
     const limit = parseIntSafe(req.query.limit as string, 50, 100);
     const offset = parseIntSafe(req.query.offset as string, 0);
 
-    const conditions: any[] = [eq(purchaseOrders.orgId, orgId)];
+    const conditions: import("drizzle-orm").SQL[] = [eq(purchaseOrders.orgId, orgId)];
     if (status) {
       conditions.push(eq(purchaseOrders.status, status));
     }

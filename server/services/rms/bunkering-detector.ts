@@ -20,9 +20,11 @@ interface ActiveBunkering {
   temperature?: number;
 }
 
-function getFirstRow(result: any): any | undefined {
-  const rows = Array.isArray(result) ? result : (result as { rows?: unknown[] })?.rows || [];
-  return rows[0];
+function getFirstRow(result: unknown): { id: string } | undefined {
+  const rows = Array.isArray(result)
+    ? (result as unknown[])
+    : ((result as { rows?: unknown[] })?.rows ?? []);
+  return rows[0] as { id: string } | undefined;
 }
 
 const BUNKER_FLOW_THRESHOLD_KG_PER_H = 500;

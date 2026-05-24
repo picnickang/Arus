@@ -109,7 +109,7 @@ export class VesselSimulator {
    */
   private generateDataPoint(
     t: number,
-    preset: { maxRpm: number; maxTorque: number; pattern: any; seaState: number },
+    preset: { maxRpm: number; maxTorque: number; pattern: import("../vessel-simulator-types").VesselOperationalPattern; seaState: number },
     signals: string[],
     config: SimulationConfig,
     state: { oilTemp: number; coolantTemp: number; faultDrift: number },

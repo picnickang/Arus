@@ -54,11 +54,12 @@ router.post("/lp/optimize", async (req, res) => {
       result,
       message: `Optimization completed in ${result.optimizationTime}ms - ${result.schedule.length} jobs scheduled`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     logger.error("[Beast Mode API] Error running LP optimization:", undefined, error);
     res
       .status(500)
-      .json({ success: false, error: error.message || "Failed to run maintenance optimization" });
+      .json({ success: false, error: message || "Failed to run maintenance optimization" });
   }
 });
 
@@ -84,9 +85,10 @@ router.get("/lp/results/:resultId", async (req, res) => {
       data: optimizationData,
       message: `Retrieved optimization with ${optimizationData.totalSchedules} scheduled jobs, score: ${optimizationData.optimizationScore}/100`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     logger.error(`[Beast Mode API] Error retrieving optimization result ${req.params.resultId}:`, undefined, error);
-    if (error.message.includes("not found")) {
+    if (message.includes("not found")) {
       return res
         .status(404)
         .json({

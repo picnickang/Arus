@@ -122,9 +122,9 @@ export default function ReportsTab() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {audiences.map((aud: any) => (
+                  {audiences.map((aud) => (
                     <SelectItem key={aud.id} value={aud.id}>
-                      {aud.name ?? aud.label}
+                      {(typeof aud.name === "string" ? aud.name : null) ?? aud.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -141,9 +141,9 @@ export default function ReportsTab() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {models.map((model: any) => (
+                  {models.map((model) => (
                     <SelectItem key={model.id} value={model.id}>
-                      {model.recommended && (
+                      {Boolean(model.recommended) && (
                         <Sparkles className="h-3 w-3 mr-1 inline text-yellow-500" />
                       )}
                       {model.name}

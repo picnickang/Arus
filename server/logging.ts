@@ -9,6 +9,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import type { Request, Response, NextFunction } from "express";
 import type { AuthenticatedRequest } from "./middleware/auth";
 import { AsyncLocalStorage } from "node:async_hooks";
 
@@ -332,7 +333,7 @@ export function trackError(error: Error, context: Partial<LogContext> = {}) {
  * Wraps request handlers in AsyncLocalStorage context for correlation tracking
  */
 export function loggingContextMiddleware() {
-  return (req: any, res: any, next: any) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     const correlationId = (req.headers["x-correlation-id"] as string) || generateCorrelationId();
     const requestId = (req as AuthenticatedRequest).requestId || `req_${Date.now()}_${randomUUID().slice(0, 7)}`;
     const orgId = (req as AuthenticatedRequest).orgId;

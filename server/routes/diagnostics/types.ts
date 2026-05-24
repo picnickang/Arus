@@ -19,14 +19,14 @@ export interface CheckResult {
   status: "pass" | "warn" | "fail";
   responseTimeMs?: number;
   message?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export interface ServiceStatus {
   name: string;
   status: "running" | "stopped" | "error";
   lastHealthCheck?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export interface SystemMetrics {

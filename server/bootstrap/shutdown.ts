@@ -5,19 +5,27 @@ const logger = createLogger("Bootstrap:Shutdown");
  * Connection draining and service cleanup
  */
 
-let isShuttingDown = false;
-const activeConnections = new Set<any>();
+import type { Socket } from "node:net";
 
-function withTimeout(p: Promise<any>, ms: number): Promise<any> {
+interface TrackedSocket {
+  on(event: "close", listener: () => void): unknown;
+  destroy(): void;
+}
+
+let isShuttingDown = false;
+const activeConnections = new Set<TrackedSocket>();
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
     p,
-    new Promise((_r, rej) => setTimeout(() => rej(new Error("timeout")), ms)),
+    new Promise<T>((_r, rej) => setTimeout(() => rej(new Error("timeout")), ms)),
   ]);
 }
 
-export function trackConnection(socket: any): void {
-  activeConnections.add(socket);
-  socket.on("close", () => activeConnections.delete(socket));
+export function trackConnection(socket: Socket | TrackedSocket): void {
+  const s = socket as TrackedSocket;
+  activeConnections.add(s);
+  s.on("close", () => activeConnections.delete(s));
 }
 
 export function isServerShuttingDown(): boolean {

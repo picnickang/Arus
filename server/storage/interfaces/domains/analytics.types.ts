@@ -35,7 +35,7 @@ export interface IAnalyticsStorage {
     metrics: Omit<DashboardMetrics, "trends">,
     equipmentStats: { total: number; healthy: number; warning: number; critical: number }
   ): Promise<void>;
-  getMetricsHistory(orgId: string, days?: number): Promise<any[]>;
+  getMetricsHistory(orgId: string, days?: number): Promise<Array<Record<string, unknown>>>;
 
   // Insights
   getInsightSnapshots(orgId?: string, scope?: string): Promise<InsightSnapshot[]>;

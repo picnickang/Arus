@@ -137,10 +137,17 @@ function getBucketTruncSQL(bucket: BucketSize): string {
 // Main Service
 // ============================================================================
 
-export class TelemetryAggregator {
-  private db: any;
+type AggregatorDb = {
+  execute: (q: import("drizzle-orm").SQLWrapper) => Promise<{
+    rows?: Array<Record<string, unknown>>;
+    rowCount?: number | null;
+  }>;
+};
 
-  constructor(db: any) {
+export class TelemetryAggregator {
+  private db: AggregatorDb;
+
+  constructor(db: AggregatorDb) {
     this.db = db;
   }
 
@@ -281,22 +288,40 @@ export class TelemetryAggregator {
         ORDER BY bucket_start ASC
       `);
 
-      return (rows?.rows ?? []).map((row: any) => ({
-        equipmentId: row.equipment_id,
-        sensorType: row.sensorType,
-        bucketStart: new Date(row.bucket_start),
-        bucketSize: row.bucket_size,
-        count: row.count,
-        min: row.min_value,
-        max: row.max_value,
-        avg: row.avg_value,
-        stddev: row.stddev_value,
-        p50: row.p50_value,
-        p95: row.p95_value,
-        p99: row.p99_value,
-        first: row.first_value,
-        last: row.last_value,
-      }));
+      return (rows?.rows ?? []).map((raw: Record<string, unknown>) => {
+        const row = raw as {
+          equipment_id: string;
+          sensorType: string;
+          bucket_start: string | Date;
+          bucket_size: BucketSize;
+          count: number;
+          min_value: number;
+          max_value: number;
+          avg_value: number;
+          stddev_value: number;
+          p50_value: number;
+          p95_value: number;
+          p99_value: number;
+          first_value: number;
+          last_value: number;
+        };
+        return {
+          equipmentId: row.equipment_id,
+          sensorType: row.sensorType,
+          bucketStart: new Date(row.bucket_start),
+          bucketSize: row.bucket_size,
+          count: row.count,
+          min: row.min_value,
+          max: row.max_value,
+          avg: row.avg_value,
+          stddev: row.stddev_value,
+          p50: row.p50_value,
+          p95: row.p95_value,
+          p99: row.p99_value,
+          first: row.first_value,
+          last: row.last_value,
+        };
+      });
     } catch (error) {
       logger.error(LOG_CTX, "Aggregated query failed, falling back to raw telemetry", error);
       // Fallback: return empty so caller can try raw query

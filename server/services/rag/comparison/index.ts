@@ -175,9 +175,14 @@ Focus on factual, specific differences. Be concise but thorough.`;
           documentTitle: doc.documentTitle,
           relevantExcerpts: doc.chunks.slice(0, 2).map((c) => `${c.content.substring(0, 200)}...`),
         })),
-        comparisonPoints: (parsed.comparisonPoints || []).map((point: any) => ({
+        comparisonPoints: (
+          (parsed.comparisonPoints || []) as Array<{
+            aspect: string;
+            documents: Array<{ documentTitle: string; value: string }>;
+          }>
+        ).map((point) => ({
           aspect: point.aspect,
-          documents: point.documents.map((d: any) => ({
+          documents: point.documents.map((d) => ({
             documentId:
               documents.find((doc) => doc.documentTitle === d.documentTitle)?.documentId || "",
             documentTitle: d.documentTitle,

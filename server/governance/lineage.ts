@@ -128,8 +128,8 @@ export async function getLineageRecords(filters?: {
     const rows = text.trim().split("\n").filter(Boolean).map((l: string) => JSON.parse(l));
 
     // Separate base records and deltas
-    const baseRecords = rows.filter((r: any) => !r.type) as LineageRecord[];
-    const deltas = rows.filter((r: any) => r.type) as LineageDelta[];
+    const baseRecords = rows.filter((r: { type?: unknown }) => !r.type) as LineageRecord[];
+    const deltas = rows.filter((r: { type?: unknown }) => r.type) as LineageDelta[];
 
     // Apply deltas to base records
     const recordMap = new Map<string, LineageRecord>();
@@ -229,9 +229,9 @@ export async function compareModels(
 ): Promise<{
   model1: LineageRecord | null;
   model2: LineageRecord | null;
-  datasetDiff: any;
-  hyperparameterDiff: any;
-  metricsDiff: any;
+  datasetDiff: Record<string, unknown> | null;
+  hyperparameterDiff: Record<string, unknown> | null;
+  metricsDiff: Record<string, unknown> | null;
 }> {
   const model1 = await getModelLineage(modelId1, orgId); // SECURITY: Pass orgId
   const model2 = await getModelLineage(modelId2, orgId); // SECURITY: Pass orgId

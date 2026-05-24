@@ -40,8 +40,10 @@ interface SchedulerConfig {
     vessel_mismatch: number;
   };
   rules: { max_nights_per_week: number };
-  perCrewPrefs: { [crewId: string]: any };
+  perCrewPrefs: { [crewId: string]: CrewPref };
 }
+
+type CrewPref = NonNullable<SchedulingPreferences["per_crew"]>[number];
 
 function initializeConfig(preferences?: SchedulingPreferences): SchedulerConfig {
   return {
@@ -59,8 +61,8 @@ function initializeConfig(preferences?: SchedulingPreferences): SchedulerConfig 
   };
 }
 
-function buildPerCrewPrefs(preferences?: SchedulingPreferences): { [crewId: string]: any } {
-  const perCrewPrefs: { [crewId: string]: any } = {};
+function buildPerCrewPrefs(preferences?: SchedulingPreferences): { [crewId: string]: CrewPref } {
+  const perCrewPrefs: { [crewId: string]: CrewPref } = {};
   preferences?.per_crew?.forEach((pref) => {
     if (pref.crew_id) {
       perCrewPrefs[pref.crew_id] = pref;

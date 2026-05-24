@@ -167,7 +167,7 @@ export function FleetTab({ o, fleetStats }: { o: any; fleetStats: FleetStats }) 
                 >
                   {o.formatCurrency(
                     o.optimizationResults?.reduce(
-                      (sum: number, r: any) => sum + (r.costSavings || 0),
+                      (sum: number, r: { costSavings?: number | null }) => sum + (r.costSavings || 0),
                       0
                     ) ?? 0
                   )}
@@ -179,7 +179,7 @@ export function FleetTab({ o, fleetStats }: { o: any; fleetStats: FleetStats }) 
                   className="text-2xl font-bold text-blue-600"
                   data-testid="text-completed-runs"
                 >
-                  {o.optimizationResults?.filter((r: any) => r.runStatus === "completed")
+                  {o.optimizationResults?.filter((r: { runStatus?: string }) => r.runStatus === "completed")
                     .length ?? 0}
                 </p>
                 <p className="text-sm text-muted-foreground">Completed Runs</p>

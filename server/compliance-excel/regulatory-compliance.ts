@@ -56,7 +56,7 @@ function renderRegulatoryExcel(
   const workbook = createWorkbook();
   const counts = countByStatus(equipment);
 
-  const summaryData: any[][] = [
+  const summaryData: (string | number | boolean | Date | null | undefined)[][] = [
     [`${framework} REGULATORY COMPLIANCE REPORT`],
     [],
     ["Report Details"],
@@ -76,7 +76,7 @@ function renderRegulatoryExcel(
 
   addSheet(workbook, summaryData, "Summary");
 
-  const matrixData: any[][] = [
+  const matrixData: (string | number | boolean | Date | null | undefined)[][] = [
     ["COMPLIANCE MATRIX"],
     [],
     ["Equipment ID", "Name", "Type", "Status", "Health Score", "Compliance Status"],
@@ -95,7 +95,7 @@ function renderRegulatoryExcel(
 
   addSheet(workbook, matrixData, "Compliance Matrix");
 
-  const woData: any[][] = [
+  const woData: (string | number | boolean | Date | null | undefined)[][] = [
     ["MAINTENANCE HISTORY"],
     [],
     ["WO Number", "Equipment", "Type", "Priority", "Status", "Created", "Description"],

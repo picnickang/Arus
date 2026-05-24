@@ -165,7 +165,7 @@ export class FeatureFlagManager {
    * previous state and a single warn is logged — the resolver simply
    * falls through to env defaults.
    */
-  public async refresh(db: any): Promise<void> {
+  public async refresh(db: { execute: (q: import("drizzle-orm").SQLWrapper) => Promise<unknown> }): Promise<void> {
     if (this.refreshPromise) return this.refreshPromise;
     this.refreshPromise = (async () => {
       try {
@@ -208,7 +208,7 @@ export class FeatureFlagManager {
    * stop function. If called more than once, the previous timer is
    * cleared first so callers cannot accidentally stack timers.
    */
-  public startAutoRefresh(db: any, intervalMs = 60_000): () => void {
+  public startAutoRefresh(db: { execute: (q: import("drizzle-orm").SQLWrapper) => Promise<unknown> }, intervalMs = 60_000): () => void {
     if (this.autoRefreshTimer) {
       clearInterval(this.autoRefreshTimer);
       this.autoRefreshTimer = null;

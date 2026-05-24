@@ -108,7 +108,7 @@ export class PartsRepository extends TenantScopedRepository {
    * Calculate urgency level for parts ordering
    */
   private calculateUrgency(
-    part: any,
+    part: { minStockQty?: number | null; criticality?: string | null },
     currentStock: number
   ): "critical" | "high" | "medium" | "low" {
     const minStock = part.minStockQty ?? 0;
@@ -156,7 +156,7 @@ export class PartsRepository extends TenantScopedRepository {
    * Update part
    * Validates ownership before update
    */
-  async update(id: string, data: Partial<any>) {
+  async update(id: string, data: Record<string, unknown>) {
     const { parts } = await import("@shared/schema");
 
     const existing = await this.getById(id);

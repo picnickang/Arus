@@ -24,7 +24,7 @@ export function enqueueMessage(
   maxQueueSize: number,
   metrics: MqttMetrics,
   queueDir: string,
-  emit: (event: string, data: any) => boolean
+  emit: (event: string, data: unknown) => boolean
 ): void {
   // Check queue size limit
   if (queue.length >= maxQueueSize) {
@@ -55,7 +55,7 @@ export async function flushMessageQueue(
   isConnected: boolean,
   maxQueueSize: number,
   metrics: MqttMetrics,
-  emit: (event: string, data: any) => boolean
+  emit: (event: string, data: unknown) => boolean
 ): Promise<void> {
   if (!client || !isConnected) {
     return;

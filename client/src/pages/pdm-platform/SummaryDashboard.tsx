@@ -9,15 +9,18 @@ export function SummaryDashboard() {
   const { data: allPredictions } = usePredictionGovernance();
   const { data: driftSummary } = useDriftSummary();
 
-  const modelsList = Array.isArray(models) ? models : [];
-  const deployedCount = modelsList.filter((m: any) => m.status === "deployed").length;
+  const modelsList: Array<{ status?: string }> = Array.isArray(models) ? models : [];
+  const deployedCount = modelsList.filter((m) => m.status === "deployed").length;
   const totalModels = modelsList.length;
   const pendingCount = Array.isArray(pendingPredictions) ? pendingPredictions.length : 0;
-  const allPredictionsList = Array.isArray(allPredictions) ? allPredictions : [];
+  const allPredictionsList: Array<{
+    predictionTimestamp?: string | Date | null;
+    createdAt?: string | Date | null;
+  }> = Array.isArray(allPredictions) ? allPredictions : [];
   const totalPredictions = allPredictionsList.length;
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const recentPredictions = allPredictionsList.filter((p: any) => {
+  const recentPredictions = allPredictionsList.filter((p) => {
     const ts = p.predictionTimestamp || p.createdAt;
     return ts && new Date(ts) >= sevenDaysAgo;
   }).length;

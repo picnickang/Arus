@@ -101,7 +101,15 @@ export function FleetAnalyticsTab() {
                   </tr>
                 </thead>
                 <tbody>
-                  {baselines.map((b: any) => (
+                  {baselines.map((b: {
+                    id: string;
+                    featureName: string;
+                    mean?: number;
+                    stddev?: number;
+                    p5?: number;
+                    p95?: number;
+                    sampleSize?: number;
+                  }) => (
                     <tr
                       key={b.id}
                       className="border-b"
@@ -137,7 +145,16 @@ export function FleetAnalyticsTab() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {comparison.map((c: any) => (
+              {comparison.map((c: {
+                featureName: string;
+                equipmentValue?: number;
+                fleetMean?: number;
+                fleetStddev?: number;
+                zScore?: number;
+                percentile?: number;
+                aboveFleetAvg?: boolean;
+                status: string;
+              }) => (
                 <div
                   key={c.featureName}
                   className="flex items-center justify-between p-3 rounded-lg border"

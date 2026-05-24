@@ -19,7 +19,10 @@ import {
 } from "./alert-handler";
 
 export class DtcIntegrationService {
-  async createWorkOrderFromDtc(dtc: DtcWithDefinition, orgId: string): Promise<any | null> {
+  async createWorkOrderFromDtc(
+    dtc: DtcWithDefinition,
+    orgId: string
+  ): Promise<Awaited<ReturnType<typeof createWorkOrderFromDtc>>> {
     return createWorkOrderFromDtc(dtc, orgId);
   }
 
@@ -39,7 +42,10 @@ export class DtcIntegrationService {
     return shouldTriggerAlert(dtc);
   }
 
-  async createDtcAlert(dtc: DtcWithDefinition, orgId: string): Promise<any | null> {
+  async createDtcAlert(
+    dtc: DtcWithDefinition,
+    orgId: string
+  ): Promise<Awaited<ReturnType<typeof createDtcAlert>>> {
     return createDtcAlert(dtc, orgId);
   }
 
@@ -47,7 +53,7 @@ export class DtcIntegrationService {
     dtc: DtcWithDefinition,
     orgId: string,
     timeWindowMinutes: number = 60
-  ): Promise<any[]> {
+  ): Promise<Awaited<ReturnType<typeof correlateDtcWithTelemetry>>> {
     return correlateDtcWithTelemetry(dtc, orgId, timeWindowMinutes);
   }
 

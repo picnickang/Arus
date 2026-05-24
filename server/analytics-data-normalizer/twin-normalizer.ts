@@ -4,9 +4,11 @@
 
 import type { DigitalTwin } from "@shared/schema";
 
+type MaintenanceForecast = ReturnType<typeof generateMaintenanceForecast>;
+
 export function normalizeDigitalTwin(
   twin: DigitalTwin
-): DigitalTwin & { maintenanceForecast?: any } {
+): DigitalTwin & { maintenanceForecast?: MaintenanceForecast } {
   const normalized = {
     ...twin,
     lastUpdate: twin.lastUpdate || new Date(),
@@ -37,8 +39,9 @@ export function normalizeDigitalTwin(
 }
 
 function generateMaintenanceForecast(twin: DigitalTwin) {
-  const currentState: any = twin.currentState ?? {};
-  const health = currentState.health ?? 100;
+  const currentState = (twin.currentState ?? {}) as Record<string, unknown>;
+  const healthRaw = currentState.health;
+  const health = typeof healthRaw === "number" ? healthRaw : 100;
 
   const now = new Date();
   return {
@@ -65,6 +68,6 @@ function generateMaintenanceForecast(twin: DigitalTwin) {
 
 export function normalizeDigitalTwins(
   twins: DigitalTwin[]
-): (DigitalTwin & { maintenanceForecast?: any })[] {
+): (DigitalTwin & { maintenanceForecast?: MaintenanceForecast })[] {
   return twins.map(normalizeDigitalTwin);
 }

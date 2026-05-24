@@ -126,9 +126,9 @@ export async function initializeDatabase(): Promise<void> {
       }
 
       return;
-    } catch (error: any) {
+    } catch (error: unknown) {
       const isLastAttempt = attempt === maxRetries;
-      logger.warn(`  Database initialization attempt ${attempt} failed:`, { details: error.message });
+      logger.warn(`  Database initialization attempt ${attempt} failed:`, { details: error instanceof Error ? error.message : String(error) });
 
       if (!isLastAttempt) {
         const delay = attempt * 5000;
@@ -176,8 +176,8 @@ export async function seedDevelopmentUser(): Promise<void> {
     } else {
       logger.info("✓ Development user already exists");
     }
-  } catch (error: any) {
-    logger.warn("⚠️  Could not seed development user:", { details: error.message });
+  } catch (error: unknown) {
+    logger.warn("⚠️  Could not seed development user:", { details: error instanceof Error ? error.message : String(error) });
   }
 }
 
@@ -225,8 +225,8 @@ export async function initializeJobQueue(): Promise<void> {
       );
       await withServiceTimeout(startIngestionWorker(), 10000, "Ingestion worker");
       logger.info("✓ Job queue initialized with 5 workers");
-    } catch (error: any) {
-      logger.warn("⚠️ Job queue initialization failed (non-fatal):", { details: error.message });
+    } catch (error: unknown) {
+      logger.warn("⚠️ Job queue initialization failed (non-fatal):", { details: error instanceof Error ? error.message : String(error) });
     }
   } else {
     logger.info("⚠ Skipping job queue initialization (no DATABASE_URL)");
@@ -291,7 +291,7 @@ export async function startSyncServices(isLocalMode: boolean): Promise<void> {
   logger.info("✓ Telemetry pruning service started");
 
   mqttReliableSync.start().catch((error: Error) => {
-    logger.warn("[MQTT Reliable Sync] Background start failed:", { details: error.message });
+    logger.warn("[MQTT Reliable Sync] Background start failed:", { details: error instanceof Error ? error.message : String(error) });
   });
   logger.info("✓ MQTT reliable sync starting in background");
 }
@@ -348,8 +348,8 @@ export async function initializePatchingSystem(isEmbedded: boolean): Promise<voi
 
     setupUpdateScheduler();
     logger.info("✓ Update scheduler configured");
-  } catch (error: any) {
-    logger.warn("⚠️  Update system initialization failed (non-critical):", { details: error.message });
+  } catch (error: unknown) {
+    logger.warn("⚠️  Update system initialization failed (non-critical):", { details: error instanceof Error ? error.message : String(error) });
     if (isEmbedded) {
       logger.info("ℹ️  Continuing without update system in embedded mode");
     } else {

@@ -432,8 +432,12 @@ function ConfigDialog({
       toast({ title: "Configuration saved" });
       onClose();
     },
-    onError: (err: any) => {
-      toast({ title: "Failed to save", description: err.message, variant: "destructive" });
+    onError: (err: unknown) => {
+      toast({
+        title: "Failed to save",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
     },
   });
 
@@ -824,10 +828,10 @@ export default function CopilotAdminPage() {
                       a.click();
                       URL.revokeObjectURL(url);
                       toast({ title: "Export downloaded" });
-                    } catch (err: any) {
+                    } catch (err: unknown) {
                       toast({
                         title: "Export failed",
-                        description: err.message,
+                        description: err instanceof Error ? err.message : String(err),
                         variant: "destructive",
                       });
                     }
@@ -845,12 +849,12 @@ export default function CopilotAdminPage() {
                         "Permanently delete ALL conversations, messages, tool calls, and drafts?"
                       )
                     ) {
-                      apiRequest("DELETE", "/api/agent/admin/conversations").then((data: any) => {
+                      apiRequest<{ purged?: number }>("DELETE", "/api/agent/admin/conversations").then((data) => {
                         queryClient.invalidateQueries({
                           queryKey: ["/api/agent/admin/conversations"],
                         });
                         queryClient.invalidateQueries({ queryKey: ["/api/agent/usage"] });
-                        toast({ title: `Purged ${data.purged || 0} conversations` });
+                        toast({ title: `Purged ${data?.purged || 0} conversations` });
                       });
                     }
                   }}

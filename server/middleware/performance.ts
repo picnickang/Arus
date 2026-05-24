@@ -164,7 +164,13 @@ export function getRoutePerformanceStats(): Record<
     p95Ms: number;
   }
 > {
-  const result: Record<string, any> = {};
+  const result: Record<string, {
+    count: number;
+    avgMs: number;
+    minMs: number;
+    maxMs: number;
+    p95Ms: number;
+  }> = {};
 
   routeStats.forEach((stats, route) => {
     const avgMs = stats.count > 0 ? stats.totalMs / stats.count : 0;
@@ -232,7 +238,8 @@ export function timeDbQuery<T>(queryName: string, queryFn: () => Promise<T>): Pr
     })
     .catch((error) => {
       const duration = Date.now() - start;
-      logger.error(`[PERF:DB] ${queryName} - ${duration}ms (error)`, undefined, error.message);
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error(`[PERF:DB] ${queryName} - ${duration}ms (error)`, undefined, message);
       throw error;
     });
 }

@@ -1,5 +1,9 @@
 import { dbCrewStorage } from "../repositories";
 import { checkMonthCompliance, type RestDay } from "../stcw-compliance";
+import type {
+  DayComplianceResult,
+  RollingComplianceResult,
+} from "../stcw-compliance/types";
 import {
   initializeRestHours,
   markWorkHoursForDay,
@@ -123,7 +127,7 @@ interface CrewDetail {
 function add24hViolation(
   crewId: string,
   crewName: string,
-  dayResult: any,
+  dayResult: DayComplianceResult,
   violations: ComplianceViolation[],
   detail: CrewDetail
 ): void {
@@ -152,11 +156,14 @@ function add24hViolation(
 function addSplitViolation(
   crewId: string,
   crewName: string,
-  dayResult: any,
+  dayResult: DayComplianceResult,
   violations: ComplianceViolation[],
   detail: CrewDetail
 ): void {
-  const longestChunk = Math.max(...dayResult.chunks.map((c: any) => c.end - c.start), 0);
+  const longestChunk = Math.max(
+    ...(dayResult.chunks ?? []).map((c: { start: number; end: number }) => c.end - c.start),
+    0
+  );
   violations.push({
     crewId,
     crewName,
@@ -172,7 +179,7 @@ function addSplitViolation(
 function add7dViolation(
   crewId: string,
   crewName: string,
-  rolling: any,
+  rolling: RollingComplianceResult,
   violations: ComplianceViolation[],
   detail: CrewDetail
 ): void {
