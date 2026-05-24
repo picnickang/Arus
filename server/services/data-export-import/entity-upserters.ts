@@ -40,13 +40,30 @@ const recordOrgId = (r: ImportRecord): string => asString(r.orgId);
 /**
  * Single adapter-boundary helper for import records.
  *
- * Import data arrives from a JSON export of the same schema, so the field
- * shape matches the target insert type — but TypeScript cannot statically
- * verify that the loose `Record<string, unknown>` payload conforms. We
- * isolate the necessary widening into this one helper rather than scatter
- * `as unknown as Parameters<typeof fn>[0]` across every call site. The
- * downstream storage layer (drizzle + Zod insert schemas via
- * `createInsertSchema`) performs the actual structural validation on write.
+ * JUSTIFIED BOUNDARY CAST — kept after the final cast review pass.
+ *
+ * Why this cannot be a typed mapper:
+ *   - This helper is generic over every entity in the export pipeline
+ *     (`organizations`, `vessels`, `equipment`, `work_orders`,
+ *     `maintenance_schedules`, `sensors`, `alert_configurations`,
+ *     `sensor_configurations`, `parts_inventory`, `equipment_telemetry` —
+ *     plus partial-update variants for each), so a per-entity Zod parse
+ *     would not fit a single helper signature.
+ *
+ * Why this cannot be runtime-validated here:
+ *   - Each call site already passes the record on to a storage method
+ *     whose insert path is governed by a `createInsertSchema(...)` Zod
+ *     schema (drizzle-zod). Structural validation happens at that
+ *     boundary; duplicating it here would silently re-throw the same
+ *     diagnostics one frame earlier.
+ *
+ * Why this is safe:
+ *   - Import data is the symmetric output of `entity-fetchers.ts` — same
+ *     codebase, same Drizzle schema, same field names. The pipeline is
+ *     export → JSONL → import within one deployment.
+ *   - A bad row throws on `createX(...)` inside the storage method and
+ *     is surfaced to the importer (caught and counted) without
+ *     corrupting state.
  */
 function asInsert<T>(record: ImportRecord): T {
   return record as unknown as T;

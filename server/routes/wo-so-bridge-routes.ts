@@ -137,10 +137,28 @@ export async function createServiceOrderFromWorkOrder(
     }
 
     logger.info(`Created service order ${soNumber} from work order ${workOrderId}`);
-    if (!inserted) {
+    if (!inserted || typeof inserted !== "object") {
       throw new Error("Service order insert returned no row");
     }
-    return inserted as unknown as CreatedServiceOrderRow;
+    const row = inserted as Record<string, unknown>;
+    if (
+      typeof row.id !== "string" ||
+      typeof row.so_number !== "string" ||
+      typeof row.status !== "string" ||
+      typeof row.org_id !== "string"
+    ) {
+      throw new Error("Service order RETURNING row has unexpected shape");
+    }
+    const workOrderIdCol = row.work_order_id;
+    const created: CreatedServiceOrderRow = {
+      ...row,
+      id: row.id,
+      so_number: row.so_number,
+      status: row.status,
+      org_id: row.org_id,
+      work_order_id: typeof workOrderIdCol === "string" ? workOrderIdCol : null,
+    };
+    return created;
   });
 
   return newSo;

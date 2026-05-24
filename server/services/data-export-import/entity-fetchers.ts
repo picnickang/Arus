@@ -30,16 +30,19 @@ type EntityFetcher = (orgId: string, options: ExportOptions) => Promise<EntityRo
 /**
  * Widen typed storage rows into the export-row shape.
  *
- * Drizzle row types (e.g. `WorkOrder`, `AlertNotification`) are structurally
- * `Record<string, unknown>`-compatible at runtime — every property value is a
- * JSON-serialisable scalar/object/array — but the compiler rejects direct
- * assignment because the typed shapes lack an index signature. This helper is
- * the single, justified boundary where we widen typed rows for the export
- * pipeline (JSONL serialiser + anonymisation service, which is generic over
- * `T extends Record<string, unknown>`).
+ * Drizzle row types (e.g. `WorkOrder`, `AlertNotification`) lack an index
+ * signature, so the compiler rejects direct assignment to
+ * `Record<string, unknown>`. We rebuild each row via
+ * `Object.fromEntries(Object.entries(...))` — TS infers the result as
+ * `{ [k: string]: T[keyof T] }`, which is structurally compatible with
+ * `EntityRow` without a cast.
+ *
+ * Downstream consumers (JSONL serialiser + anonymisation service) only ever
+ * read fields by key, so the shallow clone is both type-safe and runtime-
+ * safe (no aliasing of the underlying storage row).
  */
 function toRows<T extends object>(rows: readonly T[]): EntityRow[] {
-  return rows as unknown as EntityRow[];
+  return rows.map((r) => Object.fromEntries(Object.entries(r)));
 }
 
 async function fetchCrewCertifications(orgId: string): Promise<EntityRow[]> {

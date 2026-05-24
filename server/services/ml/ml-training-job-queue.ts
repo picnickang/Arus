@@ -76,19 +76,6 @@ export interface WsBroadcaster {
 
 type DbHandle = typeof DbInstance;
 
-// Raw pgboss.job row shape (column names are lower-case in the underlying
-// pg-boss schema — they are NOT camelCase like the typed JobWithMetadata
-// the SDK exposes via getJobById).
-interface PgBossJobRow {
-  id: string;
-  state: string;
-  data: MlTrainingJobData;
-  output: MlTrainingJobResult | null;
-  createdon: string | Date;
-  startedon: string | Date | null;
-  completedon: string | Date | null;
-}
-
 /**
  * pg-boss v10 reports states as
  *   'created' | 'retry' | 'active' | 'completed' | 'cancelled' | 'failed'
@@ -236,16 +223,43 @@ export class MlTrainingJobQueue {
         LIMIT ${safeLimit}`
       );
 
-      const rows = (result?.rows ?? []) as unknown as PgBossJobRow[];
-      return rows.map((row) => ({
-        jobId: row.id,
-        state: mapState(row.state),
-        data: row.data,
-        result: row.output ?? undefined,
-        createdAt: new Date(row.createdon),
-        startedAt: row.startedon ? new Date(row.startedon) : undefined,
-        completedAt: row.completedon ? new Date(row.completedon) : undefined,
-      }));
+      const rawRows = result?.rows ?? [];
+      return rawRows.flatMap((raw): MlJobStatus[] => {
+        if (!raw || typeof raw !== "object") {
+          return [];
+        }
+        const row = raw as Record<string, unknown>;
+        const id = row.id;
+        const state = row.state;
+        const createdon = row.createdon;
+        if (typeof id !== "string" || typeof state !== "string") {
+          return [];
+        }
+        if (!(typeof createdon === "string" || createdon instanceof Date)) {
+          return [];
+        }
+        const startedon = row.startedon;
+        const completedon = row.completedon;
+        const data = (row.data ?? {}) as MlTrainingJobData;
+        const output = (row.output ?? undefined) as MlTrainingJobResult | undefined;
+        return [
+          {
+            jobId: id,
+            state: mapState(state),
+            data,
+            result: output ?? undefined,
+            createdAt: new Date(createdon),
+            startedAt:
+              typeof startedon === "string" || startedon instanceof Date
+                ? new Date(startedon)
+                : undefined,
+            completedAt:
+              typeof completedon === "string" || completedon instanceof Date
+                ? new Date(completedon)
+                : undefined,
+          },
+        ];
+      });
     } catch {
       return [];
     }
