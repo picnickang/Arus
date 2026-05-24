@@ -26,9 +26,7 @@ import { db as dbInstance } from "../db";
 
 const LOG_CTX = "PdmGapFillRoutes";
 
-interface WsBroadcaster {
-  broadcast?: (...args: unknown[]) => void;
-}
+import type { WsBroadcaster } from "../services/ml/ml-training-job-queue";
 
 interface PdmGapFillDeps {
   db: typeof dbInstance;

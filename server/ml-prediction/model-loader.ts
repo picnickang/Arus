@@ -17,13 +17,30 @@ import { recordPrediction as recordProvenancePrediction } from "../governance/pr
 import { incrementPredCount } from "../governance/lineage.js";
 import { logger } from "../utils/logger.js";
 import { isPrediction, structuredLog } from "./types.js";
+import type { CB } from "../ml-circuit-breaker.js";
+import type { TrainedLSTMModel } from "../ml-lstm-model.js";
+import type { RandomForestModel } from "../ml-random-forest.js";
 
 const modelCache = createModelCache(6);
 
+type LoadedModel = TrainedLSTMModel | RandomForestModel | null;
+
+export async function getModel(
+  modelPath: string,
+  modelType: "lstm"
+): Promise<TrainedLSTMModel | null>;
+export async function getModel(
+  modelPath: string,
+  modelType: "random_forest"
+): Promise<RandomForestModel | null>;
 export async function getModel(
   modelPath: string,
   modelType: "lstm" | "random_forest"
-): Promise<any> {
+): Promise<LoadedModel>;
+export async function getModel(
+  modelPath: string,
+  modelType: "lstm" | "random_forest"
+): Promise<LoadedModel> {
   const cached = modelCache.get(modelPath);
   if (cached) {
     structuredLog({
@@ -66,7 +83,7 @@ export async function withProtection<T>(
   method: string,
   equipmentId: string,
   orgId: string,
-  circuitBreaker: any,
+  circuitBreaker: CB,
   fn: () => Promise<T>
 ): Promise<T | null> {
   const startTime = Date.now();

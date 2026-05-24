@@ -1,19 +1,19 @@
 # Explicit `any` Inventory
 
-_Generated: 2026-05-24T11:11:35.924Z_
+_Generated: 2026-05-24T13:52:43.379Z_
 
 Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit-any`. Regenerate with `node scripts/type-debt/classify-explicit-any.mjs`.
 
 ## Headline
 
-- **Total occurrences:** 23
-- **Distinct files:** 6
+- **Total occurrences:** 0
+- **Distinct files:** 0
 
 **Rough split (based on bucket heuristics — see per-bucket sections for caveats):**
 
-- ~39.1% mechanical (test mocks + external library gaps + generic inference fixes)
-- ~13.0% schema / generic redesign (dynamic JSON parses + legacy DTOs)
-- ~47.8% truly unsafe / residual (drives Phase 3 domain work)
+- ~0.0% mechanical (test mocks + external library gaps + generic inference fixes)
+- ~0.0% schema / generic redesign (dynamic JSON parses + legacy DTOs)
+- ~0.0% truly unsafe / residual (drives Phase 3 domain work)
 
 **Bucket totals:**
 
@@ -22,9 +22,9 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 | External library typing gaps | 0 | 0.0% | 0 |
 | Test mocks / stubs | 0 | 0.0% | 0 |
 | Legacy DTOs (route handlers, request/response shapes) | 0 | 0.0% | 0 |
-| Dynamic JSON payloads | 3 | 13.0% | 1 |
-| Generic inference failures | 9 | 39.1% | 5 |
-| Truly unsafe / untyped logic | 11 | 47.8% | 6 |
+| Dynamic JSON payloads | 0 | 0.0% | 0 |
+| Generic inference failures | 0 | 0.0% | 0 |
+| Truly unsafe / untyped logic | 0 | 0.0% | 0 |
 
 ## External library typing gaps
 
@@ -54,19 +54,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** `JSON.parse(...) as any`, `Record<string, any>`, drizzle `jsonb()` columns, OpenAI function-call arguments, Sentry/observability event payloads, telemetry attribute bags, anything that's genuinely heterogeneous at the boundary.
 
-**Count.** 3 occurrences across 1 files (13.0% of all explicit `any`).
-
-**Top files:**
-
-| File | Count |
-|---|---:|
-| `server/shared/base-repository.ts` | 3 |
-
-**Examples:**
-
-- `server/shared/base-repository.ts:72` — `return (this.table as Record<string, any>)[name];`
-- `server/shared/base-repository.ts:75` — `private columns(): Record<string, any> {`
-- `server/shared/base-repository.ts:76` — `return this.table as Record<string, any>;`
+**Count.** 0 occurrences across 0 files (0.0% of all explicit `any`).
 
 **Recommended remediation.** Stop trusting the payload. Parse once with `z.unknown().pipe(targetSchema)` or `JSON.parse` followed by a Zod parse. Inside the system, replace `any` with `unknown` so callers are forced to narrow. For drizzle `jsonb` columns, declare the column type as `jsonb().$type<MyShape>()` and store the Zod schema alongside.
 
@@ -74,23 +62,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** Functions whose signature uses `any` because the author couldn't get a generic to flow (callback params typed `(x: any)`, `Array<any>`, `Promise<any>`, return-type `any` on a helper that should have inferred).
 
-**Count.** 9 occurrences across 5 files (39.1% of all explicit `any`).
-
-**Top files:**
-
-| File | Count |
-|---|---:|
-| `server/services/ml/ml-training-job-queue.ts` | 4 |
-| `server/services/ml/prediction-outcome-tracker.ts` | 2 |
-| `server/ml-prediction/model-loader.ts` | 1 |
-| `server/services/ml/model-evaluation-gate.ts` | 1 |
-| `server/services/ml/prediction-calibration.ts` | 1 |
-
-**Examples:**
-
-- `server/ml-prediction/model-loader.ts:26` — `): Promise<any> {`
-- `server/services/ml/ml-training-job-queue.ts:75` — `constructor(pgBoss: any, db: any, wsServer?: any, storage?: any) {`
-- `server/services/ml/ml-training-job-queue.ts:75` — `constructor(pgBoss: any, db: any, wsServer?: any, storage?: any) {`
+**Count.** 0 occurrences across 0 files (0.0% of all explicit `any`).
 
 **Recommended remediation.** Reach for `Parameters<typeof fn>[n]` / `Awaited<ReturnType<typeof fn>>` / `infer` rather than `any`. For callbacks, type the higher-order function generically (`<T>(items: T[], cb: (x: T) => void)`) instead of widening the parameter. For Promise chains, type the resolution value, not the wrapper.
 
@@ -98,24 +70,7 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Definition.** Residual `any` that isn't explained by any of the above — typically deep cross-domain glue, dynamic property access on heterogeneous registries, or code that genuinely needs a domain redesign before it can be typed.
 
-**Count.** 11 occurrences across 6 files (47.8% of all explicit `any`).
-
-**Top files:**
-
-| File | Count |
-|---|---:|
-| `server/services/ml/ml-training-job-queue.ts` | 4 |
-| `server/services/ml/prediction-outcome-tracker.ts` | 2 |
-| `server/shared/base-repository.ts` | 2 |
-| `server/ml-prediction/model-loader.ts` | 1 |
-| `server/services/ml/model-evaluation-gate.ts` | 1 |
-| `server/services/ml/prediction-calibration.ts` | 1 |
-
-**Examples:**
-
-- `server/ml-prediction/model-loader.ts:69` — `circuitBreaker: any,`
-- `server/services/ml/ml-training-job-queue.ts:69` — `private boss: any;`
-- `server/services/ml/ml-training-job-queue.ts:70` — `private db: any;`
+**Count.** 0 occurrences across 0 files (0.0% of all explicit `any`).
 
 **Recommended remediation.** Don't paper over with a cast. These are the call sites that should drive Phase 3 work (Result/Either, branded IDs, discriminated unions, shared API envelopes, typed domain errors). Capture the call site in the follow-up task list and resolve it as part of the domain redesign — not as a one-line edit.
 

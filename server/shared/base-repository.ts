@@ -1,5 +1,5 @@
-import { eq, and, sql, ilike, desc, asc, SQL } from "drizzle-orm";
-import { PgTableWithColumns } from "drizzle-orm/pg-core";
+import { eq, and, sql, ilike, desc, asc, SQL, getTableColumns } from "drizzle-orm";
+import { PgColumn, PgTable } from "drizzle-orm/pg-core";
 import { db } from "../db.js";
 
 /**
@@ -52,7 +52,7 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
   protected updatedAtColumn: string | null;
 
   constructor(
-    protected table: PgTableWithColumns<any>,
+    protected table: PgTable,
     config: ColumnConfig = {}
   ) {
     this.orgIdColumn = config.orgIdColumn ?? "orgId";
@@ -68,12 +68,12 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
    * so this helper isolates the necessary unsafe access into one place
    * instead of scattering `this.columns()[col]` throughout.
    */
-  protected col(name: string): any {
-    return (this.table as Record<string, any>)[name];
+  protected col(name: string): PgColumn | undefined {
+    return this.columns()[name];
   }
 
-  private columns(): Record<string, any> {
-    return this.table as Record<string, any>;
+  private columns(): Record<string, PgColumn> {
+    return getTableColumns(this.table) as Record<string, PgColumn>;
   }
 
   private validateColumns(): void {

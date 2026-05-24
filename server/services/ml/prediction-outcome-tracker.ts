@@ -18,9 +18,11 @@
  */
 
 import { logger } from "../../utils/logger";
-import { cast } from "@shared/lib/type-cast";
+import type { db as DbInstance } from "../../db";
 
 const LOG_CTX = "PredictionOutcomeTracker";
+
+type DbHandle = typeof DbInstance;
 
 // ============================================================================
 // Types
@@ -101,23 +103,21 @@ interface OutcomeTrackerDeps {
 interface EligiblePrediction {
   id: number;
   equipmentId: string;
-  modelId: string;
+  modelId: string | null;
   failureProbability?: number | null;
-  predictedFailureDate: string | Date;
+  predictedFailureDate: string | Date | null;
   riskLevel?: string | null;
 }
 
 export class PredictionOutcomeTracker {
-  private db: any;
+  private db: DbHandle;
   private deps: OutcomeTrackerDeps;
   private config: TrackerConfig;
-  private storage: any;
 
-  constructor(db: any, deps: OutcomeTrackerDeps, config?: Partial<TrackerConfig>, storage?: any) {
+  constructor(db: DbHandle, deps: OutcomeTrackerDeps, config?: Partial<TrackerConfig>) {
     this.db = db;
     this.deps = deps;
     this.config = { ...DEFAULT_CONFIG, ...config };
-    this.storage = storage;
   }
 
   /**
@@ -138,7 +138,7 @@ export class PredictionOutcomeTracker {
 
     for (const prediction of eligiblePredictions) {
       // Skip if we already recorded the outcome for this prediction
-      const existing = await this.getExistingOutcome(prediction.id, orgId);
+      const existing = await this.getExistingOutcome(prediction, orgId);
       if (existing) {
         alreadyTracked++;
         outcomes.push(existing);
@@ -249,7 +249,7 @@ export class PredictionOutcomeTracker {
   }
 
   private async getExistingOutcome(
-    predictionId: number,
+    prediction: EligiblePrediction,
     orgId: string
   ): Promise<PredictionOutcome | null> {
     try {
@@ -261,7 +261,7 @@ export class PredictionOutcomeTracker {
         .from(predictionFeedback)
         .where(
           and(
-            eq(predictionFeedback.predictionId, cast<number>(predictionId.toString())),
+            eq(predictionFeedback.predictionId, prediction.id),
             eq(predictionFeedback.orgId, orgId),
             eq(predictionFeedback.feedbackType, "outcome_tracked")
           )
@@ -272,15 +272,17 @@ export class PredictionOutcomeTracker {
         return null;
       }
 
+      // predictionFeedback has no modelId/predictedFailureDate columns —
+      // reconstruct the outcome from the source prediction we already have.
       return {
-        predictionId,
-        equipmentId: existing.equipmentId,
-        modelId: existing.modelId,
-        predictedProbability: 0,
+        predictionId: prediction.id,
+        equipmentId: prediction.equipmentId,
+        modelId: prediction.modelId ?? null,
+        predictedProbability: prediction.failureProbability ?? 0,
         predictedFailureDate: null,
-        riskLevel: "",
+        riskLevel: prediction.riskLevel ?? "",
         actualOutcome: existing.rating === 1 ? "true_positive" : "true_negative",
-        outcomeRecordedAt: new Date(existing.submittedAt),
+        outcomeRecordedAt: existing.createdAt ? new Date(existing.createdAt) : new Date(),
       };
     } catch {
       return null;
@@ -300,6 +302,20 @@ export class PredictionOutcomeTracker {
    * 3. Equipment status changes to "critical" or "down"
    */
   private async determineOutcome(prediction: EligiblePrediction, orgId: string): Promise<PredictionOutcome> {
+    if (!prediction.predictedFailureDate) {
+      // Without a predicted date we can't bracket a verification window;
+      // surface as a true_negative so the row is still accounted for.
+      return {
+        predictionId: prediction.id,
+        equipmentId: prediction.equipmentId,
+        modelId: prediction.modelId,
+        predictedProbability: prediction.failureProbability ?? 0,
+        predictedFailureDate: null,
+        riskLevel: prediction.riskLevel || "unknown",
+        actualOutcome: "true_negative",
+        outcomeRecordedAt: new Date(),
+      };
+    }
     const predictedDate = new Date(prediction.predictedFailureDate);
     const windowStart = new Date(
       predictedDate.getTime() - this.config.matchWindowDays * 24 * 60 * 60 * 1000
@@ -391,19 +407,21 @@ export class PredictionOutcomeTracker {
     try {
       const { predictionFeedback } = await import("@shared/schema");
 
+      const wasCorrect =
+        outcome.actualOutcome === "true_positive" || outcome.actualOutcome === "true_negative";
+
       await this.db.insert(predictionFeedback).values({
         orgId,
-        predictionId: outcome.predictionId.toString(),
+        predictionId: outcome.predictionId,
+        predictionType: "failure_prediction",
         equipmentId: outcome.equipmentId,
-        modelId: outcome.modelId,
+        userId: "system",
         feedbackType: "outcome_tracked",
-        rating:
-          outcome.actualOutcome === "true_positive" || outcome.actualOutcome === "true_negative"
-            ? 1
-            : 0,
-        comment: `Auto-tracked: ${outcome.actualOutcome}`,
-        queryText: `Prediction ${outcome.predictionId}: prob=${outcome.predictedProbability.toFixed(3)}, outcome=${outcome.actualOutcome}`,
-        submittedAt: outcome.outcomeRecordedAt,
+        rating: wasCorrect ? 1 : 0,
+        isAccurate: wasCorrect,
+        comments: `Auto-tracked: ${outcome.actualOutcome} (prob=${outcome.predictedProbability.toFixed(3)})`,
+        feedbackStatus: "approved",
+        createdAt: outcome.outcomeRecordedAt,
       });
     } catch (error) {
       logger.warn(
@@ -464,40 +482,35 @@ export class PredictionOutcomeTracker {
     },
     evaluatedAt: Date
   ): Promise<void> {
-    try {
-      const { modelPerformanceValidations } = await import("@shared/schema");
+    // model_performance_validations rows are scoped per equipment + prediction
+    // (equipmentId is a NOT NULL FK). Aggregate per-model rollups would always
+    // violate the FK, so we log the rollup here for observability rather than
+    // attempting a doomed insert. Per-equipment rows are written by
+    // `recordOutcome` via the predictionFeedback table.
+    const precision =
+      cm.truePositive + cm.falsePositive > 0
+        ? cm.truePositive / (cm.truePositive + cm.falsePositive)
+        : 0;
+    const recall =
+      cm.truePositive + cm.falseNegative > 0
+        ? cm.truePositive / (cm.truePositive + cm.falseNegative)
+        : 0;
+    const f1Score = precision + recall > 0 ? (2 * (precision * recall)) / (precision + recall) : 0;
 
-      for (const [modelId, stats] of Object.entries(modelAccuracies)) {
-        if (modelId === "unknown" || stats.total < 5) {
-          continue;
-        }
-
-        const precision =
-          cm.truePositive + cm.falsePositive > 0
-            ? cm.truePositive / (cm.truePositive + cm.falsePositive)
-            : 0;
-        const recall =
-          cm.truePositive + cm.falseNegative > 0
-            ? cm.truePositive / (cm.truePositive + cm.falseNegative)
-            : 0;
-
-        await this.db
-          .insert(modelPerformanceValidations)
-          .values({
-            orgId,
-            modelId,
-            accuracy: stats.accuracy,
-            precision,
-            recall,
-            f1Score: precision + recall > 0 ? (2 * (precision * recall)) / (precision + recall) : 0,
-            wasCorrect: stats.accuracy >= this.config.retrainAccuracyThreshold,
-            validatedAt: evaluatedAt,
-            createdAt: evaluatedAt,
-          })
-          .onConflictDoNothing();
+    for (const [modelId, stats] of Object.entries(modelAccuracies)) {
+      if (modelId === "unknown" || stats.total < 5) {
+        continue;
       }
-    } catch (error) {
-      logger.warn(LOG_CTX, "Failed to record performance validations", error);
+      logger.info(LOG_CTX, "Model performance rollup", {
+        orgId,
+        modelId,
+        evaluatedAt: evaluatedAt.toISOString(),
+        accuracy: stats.accuracy,
+        precision,
+        recall,
+        f1Score,
+        totalSamples: stats.total,
+      });
     }
   }
 
@@ -522,7 +535,7 @@ export class PredictionOutcomeTracker {
       // Option B: Direct call to training pipeline
       try {
         const { retrainAllModels } = await import("../../ml-training-pipeline");
-        await retrainAllModels(this.storage, orgId);
+        await retrainAllModels(orgId);
         logger.info(LOG_CTX, "Retraining completed via direct call", { orgId });
       } catch (trainError) {
         logger.error(LOG_CTX, "Failed to trigger retraining", trainError);

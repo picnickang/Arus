@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-24T11:11:35.924Z",
+  "generatedAt": "2026-05-24T13:52:43.379Z",
   "rule": "@typescript-eslint/no-explicit-any",
-  "total": 23,
-  "totalFiles": 6,
+  "total": 0,
+  "totalFiles": 0,
   "buckets": {
     "external_lib_gaps": {
       "label": "External library typing gaps",
@@ -38,130 +38,31 @@
       "label": "Dynamic JSON payloads",
       "definition": "`JSON.parse(...) as any`, `Record<string, any>`, drizzle `jsonb()` columns, OpenAI function-call arguments, Sentry/observability event payloads, telemetry attribute bags, anything that's genuinely heterogeneous at the boundary.",
       "remediation": "Stop trusting the payload. Parse once with `z.unknown().pipe(targetSchema)` or `JSON.parse` followed by a Zod parse. Inside the system, replace `any` with `unknown` so callers are forced to narrow. For drizzle `jsonb` columns, declare the column type as `jsonb().$type<MyShape>()` and store the Zod schema alongside.",
-      "count": 3,
-      "files": 1,
-      "percent": 13,
-      "topFiles": [
-        {
-          "file": "server/shared/base-repository.ts",
-          "count": 3
-        }
-      ],
-      "examples": [
-        {
-          "file": "server/shared/base-repository.ts",
-          "line": 72,
-          "snippet": "return (this.table as Record<string, any>)[name];"
-        },
-        {
-          "file": "server/shared/base-repository.ts",
-          "line": 75,
-          "snippet": "private columns(): Record<string, any> {"
-        },
-        {
-          "file": "server/shared/base-repository.ts",
-          "line": 76,
-          "snippet": "return this.table as Record<string, any>;"
-        }
-      ]
+      "count": 0,
+      "files": 0,
+      "percent": 0,
+      "topFiles": [],
+      "examples": []
     },
     "generic_inference": {
       "label": "Generic inference failures",
       "definition": "Functions whose signature uses `any` because the author couldn't get a generic to flow (callback params typed `(x: any)`, `Array<any>`, `Promise<any>`, return-type `any` on a helper that should have inferred).",
       "remediation": "Reach for `Parameters<typeof fn>[n]` / `Awaited<ReturnType<typeof fn>>` / `infer` rather than `any`. For callbacks, type the higher-order function generically (`<T>(items: T[], cb: (x: T) => void)`) instead of widening the parameter. For Promise chains, type the resolution value, not the wrapper.",
-      "count": 9,
-      "files": 5,
-      "percent": 39.1,
-      "topFiles": [
-        {
-          "file": "server/services/ml/ml-training-job-queue.ts",
-          "count": 4
-        },
-        {
-          "file": "server/services/ml/prediction-outcome-tracker.ts",
-          "count": 2
-        },
-        {
-          "file": "server/ml-prediction/model-loader.ts",
-          "count": 1
-        },
-        {
-          "file": "server/services/ml/model-evaluation-gate.ts",
-          "count": 1
-        },
-        {
-          "file": "server/services/ml/prediction-calibration.ts",
-          "count": 1
-        }
-      ],
-      "examples": [
-        {
-          "file": "server/ml-prediction/model-loader.ts",
-          "line": 26,
-          "snippet": "): Promise<any> {"
-        },
-        {
-          "file": "server/services/ml/ml-training-job-queue.ts",
-          "line": 75,
-          "snippet": "constructor(pgBoss: any, db: any, wsServer?: any, storage?: any) {"
-        },
-        {
-          "file": "server/services/ml/ml-training-job-queue.ts",
-          "line": 75,
-          "snippet": "constructor(pgBoss: any, db: any, wsServer?: any, storage?: any) {"
-        }
-      ]
+      "count": 0,
+      "files": 0,
+      "percent": 0,
+      "topFiles": [],
+      "examples": []
     },
     "truly_unsafe": {
       "label": "Truly unsafe / untyped logic",
       "definition": "Residual `any` that isn't explained by any of the above — typically deep cross-domain glue, dynamic property access on heterogeneous registries, or code that genuinely needs a domain redesign before it can be typed.",
       "remediation": "Don't paper over with a cast. These are the call sites that should drive Phase 3 work (Result/Either, branded IDs, discriminated unions, shared API envelopes, typed domain errors). Capture the call site in the follow-up task list and resolve it as part of the domain redesign — not as a one-line edit.",
-      "count": 11,
-      "files": 6,
-      "percent": 47.8,
-      "topFiles": [
-        {
-          "file": "server/services/ml/ml-training-job-queue.ts",
-          "count": 4
-        },
-        {
-          "file": "server/services/ml/prediction-outcome-tracker.ts",
-          "count": 2
-        },
-        {
-          "file": "server/shared/base-repository.ts",
-          "count": 2
-        },
-        {
-          "file": "server/ml-prediction/model-loader.ts",
-          "count": 1
-        },
-        {
-          "file": "server/services/ml/model-evaluation-gate.ts",
-          "count": 1
-        },
-        {
-          "file": "server/services/ml/prediction-calibration.ts",
-          "count": 1
-        }
-      ],
-      "examples": [
-        {
-          "file": "server/ml-prediction/model-loader.ts",
-          "line": 69,
-          "snippet": "circuitBreaker: any,"
-        },
-        {
-          "file": "server/services/ml/ml-training-job-queue.ts",
-          "line": 69,
-          "snippet": "private boss: any;"
-        },
-        {
-          "file": "server/services/ml/ml-training-job-queue.ts",
-          "line": 70,
-          "snippet": "private db: any;"
-        }
-      ]
+      "count": 0,
+      "files": 0,
+      "percent": 0,
+      "topFiles": [],
+      "examples": []
     }
   }
 }

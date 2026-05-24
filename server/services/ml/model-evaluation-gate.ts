@@ -18,8 +18,11 @@
  */
 
 import { logger } from "../../utils/logger";
+import type { db as DbInstance } from "../../db";
 
 const LOG_CTX = "ModelEvaluationGate";
+
+type DbHandle = typeof DbInstance;
 
 // ============================================================================
 // Types
@@ -177,10 +180,10 @@ function computeAUROC(predictions: Array<{ predicted: number; actual: 0 | 1 }>):
 // ============================================================================
 
 export class ModelEvaluationGate {
-  private db: any;
+  private db: DbHandle;
   private config: GateConfig;
 
-  constructor(db: any, config?: Partial<GateConfig>) {
+  constructor(db: DbHandle, config?: Partial<GateConfig>) {
     this.db = db;
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
@@ -352,10 +355,13 @@ export class ModelEvaluationGate {
     excludeModelId: string
   ): Promise<EvaluationMetrics | null> {
     try {
-      const { modelPerformanceValidations, mlModels } = await import("@shared/schema");
+      const { modelPerformanceValidations } = await import("@shared/schema");
       const { eq, and, not, sql } = await import("drizzle-orm");
 
-      // Get the most recent deployed model that isn't the one being evaluated
+      // Get the most recent validation row for this org that isn't the model
+      // being evaluated. The aggregate metrics live in the jsonb
+      // `performanceMetrics` column (model_performance_validations is a per-
+      // equipment per-prediction table, not a per-model summary table).
       const [latestValidation] = await this.db
         .select()
         .from(modelPerformanceValidations)
@@ -365,24 +371,38 @@ export class ModelEvaluationGate {
             not(eq(modelPerformanceValidations.modelId, excludeModelId))
           )
         )
-        .orderBy(sql`${modelPerformanceValidations.validatedAt} DESC`)
+        .orderBy(sql`${modelPerformanceValidations.validatedAt} DESC NULLS LAST`)
         .limit(1);
 
       if (!latestValidation) {
         return null;
       }
 
-      return {
-        accuracy: latestValidation.accuracy ?? 0,
-        precision: latestValidation.precision ?? 0,
-        recall: latestValidation.recall ?? 0,
-        f1Score: latestValidation.f1Score ?? 0,
-        auroc: 0, // Not stored in current schema
-        brierScore: 0, // Not stored in current schema
-        sampleSize: 0,
-        evaluatedAt: new Date(latestValidation.validatedAt || latestValidation.createdAt),
+      const pm = (latestValidation.performanceMetrics ?? {}) as Record<string, unknown>;
+      const num = (key: string, fallback: number): number => {
+        const v = pm[key];
+        return typeof v === "number" && Number.isFinite(v) ? v : fallback;
       };
-    } catch {
+
+      const accuracy = latestValidation.accuracyScore ?? num("accuracy", 0);
+      const sampleSize = num("sampleSize", num("totalSamples", 0));
+
+      return {
+        accuracy,
+        precision: num("precision", 0),
+        recall: num("recall", 0),
+        f1Score: num("f1Score", 0),
+        auroc: num("auroc", 0),
+        brierScore: num("brierScore", 0),
+        sampleSize,
+        evaluatedAt: latestValidation.validatedAt
+          ? new Date(latestValidation.validatedAt)
+          : latestValidation.createdAt
+            ? new Date(latestValidation.createdAt)
+            : new Date(),
+      };
+    } catch (error) {
+      logger.warn(LOG_CTX, "Failed to read current model metrics", error);
       return null;
     }
   }
@@ -394,23 +414,19 @@ export class ModelEvaluationGate {
     approved: boolean,
     reason: string
   ): Promise<void> {
-    try {
-      const { modelPerformanceValidations } = await import("@shared/schema");
-
-      await this.db.insert(modelPerformanceValidations).values({
-        orgId,
-        modelId,
-        accuracy: metrics.accuracy,
-        precision: metrics.precision,
-        recall: metrics.recall,
-        f1Score: metrics.f1Score,
-        wasCorrect: approved,
-        validatedAt: metrics.evaluatedAt,
-        createdAt: new Date(),
-      });
-    } catch (error) {
-      logger.warn(LOG_CTX, "Failed to record evaluation result", error);
-    }
+    // model_performance_validations is keyed per equipment (FK NOT NULL).
+    // Gate evaluations are model-level aggregates with no equipment context,
+    // so a direct insert would always fail the equipment_id FK. Log the
+    // outcome here; per-equipment rows are written by the outcome tracker.
+    logger.info(LOG_CTX, "Gate evaluation recorded (not persisted to per-equipment table)", {
+      orgId,
+      modelId,
+      approved,
+      reason,
+      accuracy: metrics.accuracy,
+      f1Score: metrics.f1Score,
+      sampleSize: metrics.sampleSize,
+    });
   }
 }
 

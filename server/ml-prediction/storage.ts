@@ -175,7 +175,6 @@ async function computeAndStoreExplanation(
   orgId: string,
   storedPrediction: FailurePrediction | null
 ): Promise<Explanation | null> {
-  const model = await getModel(modelPath, modelType);
   const endDate = new Date();
   const startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
   const telemetry = sanitizeTelemetry(
@@ -188,6 +187,10 @@ async function computeAndStoreExplanation(
   );
 
   if (modelType === "lstm") {
+    const model = await getModel(modelPath, "lstm");
+    if (!model) {
+      return null;
+    }
     const timeSeriesFeatures = await buildTimeSeriesFeatures(telemetry, equipmentId);
     const { explainLSTMPrediction, storeFeatureImportances } = await import(
       "../ml-explainability-service.js"
@@ -212,6 +215,10 @@ async function computeAndStoreExplanation(
     return explanation;
   }
 
+  const model = await getModel(modelPath, "random_forest");
+  if (!model) {
+    return null;
+  }
   const features = buildClassificationFeatures(telemetry, equipmentId, equipmentType);
   const { explainRandomForestPrediction, storeFeatureImportances } = await import(
     "../ml-explainability-service.js"

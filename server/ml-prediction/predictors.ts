@@ -40,6 +40,9 @@ export async function predictFailureWithLSTM(
       return null;
     }
     const model = await getModel(modelPath, "lstm");
+    if (!model) {
+      return null;
+    }
     const endDate = new Date();
     const lookbackDays = (equipment as { lookbackDays?: number }).lookbackDays ?? DEFAULT_LOOKBACK_DAYS;
     const startDate = new Date(endDate.getTime() - lookbackDays * 24 * 60 * 60 * 1000);

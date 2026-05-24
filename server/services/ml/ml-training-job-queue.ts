@@ -21,11 +21,12 @@
  *   const status = await mlJobQueue.getJobStatus(jobId);
  */
 
+import PgBoss from "pg-boss";
+import type { db as DbInstance } from "../../db";
 import { logger } from "../../utils/logger";
 
 const LOG_CTX = "MlTrainingJobQueue";
 const QUEUE_NAME = "ml-training";
-const TRAINING_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes max
 
 // ============================================================================
 // Types
@@ -61,38 +62,98 @@ export interface MlJobStatus {
   progress?: number;
 }
 
+/**
+ * Narrow structural type for the only WebSocket method this service uses.
+ * Matches `server/websocket.ts` `broadcast(channel, data, orgId?)` signature.
+ */
+export interface WsBroadcaster {
+  broadcast: (
+    channel: string,
+    data: Record<string, unknown>,
+    orgId?: string
+  ) => void;
+}
+
+type DbHandle = typeof DbInstance;
+
+// Raw pgboss.job row shape (column names are lower-case in the underlying
+// pg-boss schema — they are NOT camelCase like the typed JobWithMetadata
+// the SDK exposes via getJobById).
+interface PgBossJobRow {
+  id: string;
+  state: string;
+  data: MlTrainingJobData;
+  output: MlTrainingJobResult | null;
+  createdon: string | Date;
+  startedon: string | Date | null;
+  completedon: string | Date | null;
+}
+
+/**
+ * pg-boss v10 reports states as
+ *   'created' | 'retry' | 'active' | 'completed' | 'cancelled' | 'failed'
+ * (see `node_modules/pg-boss/types.d.ts`). Map to the public MlJobStatus
+ * state union so external consumers keep a stable contract.
+ */
+function mapState(raw: string | undefined | null): MlJobStatus["state"] {
+  switch (raw) {
+    case "created":
+    case "retry":
+      return "pending";
+    case "active":
+      return "active";
+    case "completed":
+      return "completed";
+    case "cancelled":
+    case "failed":
+      return "failed";
+    case "expired":
+      return "expired";
+    default:
+      return "pending";
+  }
+}
+
 // ============================================================================
 // Main Service
 // ============================================================================
 
 export class MlTrainingJobQueue {
-  private boss: any;
-  private db: any;
-  private wsServer: any;
-  private storage: any;
+  private boss: PgBoss;
+  private db: DbHandle | undefined;
+  private wsServer: WsBroadcaster | undefined;
   private isWorkerRegistered = false;
 
-  constructor(pgBoss: any, db: any, wsServer?: any, storage?: any) {
+  constructor(pgBoss: PgBoss, db?: DbHandle, wsServer?: WsBroadcaster) {
     this.boss = pgBoss;
     this.db = db;
     this.wsServer = wsServer;
-    this.storage = storage;
   }
 
   /**
    * Register the worker that processes training jobs.
    * Call this once on server startup.
+   *
+   * pg-boss v10's `WorkHandler<T>` receives `Job<T>[]` — a batch — so we
+   * iterate even though `teamSize:1, teamConcurrency:1` means batches of
+   * one in practice.
    */
   async registerWorker(): Promise<void> {
     if (this.isWorkerRegistered) {
       return;
     }
 
-    await this.boss.work(
+    // pg-boss v10: concurrency is controlled by `batchSize` (max jobs per
+    // fetch). Keep training serialized by fetching one at a time.
+    await this.boss.work<MlTrainingJobData>(
       QUEUE_NAME,
-      { teamSize: 1, teamConcurrency: 1 }, // Only 1 training job at a time
-      async (job: unknown) => {
-        return this.processTrainingJob(job as { id: string; data: MlTrainingJobData });
+      { batchSize: 1 },
+      async (jobs) => {
+        const results: MlTrainingJobResult[] = [];
+        for (const job of jobs) {
+          results.push(await this.processTrainingJob(job));
+        }
+        return results.length === 1 ? results[0] : results;
       }
     );
 
@@ -101,14 +162,19 @@ export class MlTrainingJobQueue {
   }
 
   /**
-   * Enqueue a new training job. Returns immediately with a job ID.
+   * Enqueue a new training job. Returns the pg-boss job ID, or throws if
+   * pg-boss declines to accept the job (e.g. duplicate singleton key).
    */
   async enqueueTraining(data: MlTrainingJobData): Promise<string> {
     const jobId = await this.boss.send(QUEUE_NAME, data, {
-      expireInMinutes: 45,
+      expireInSeconds: 45 * 60,
       retryLimit: 1,
       priority: data.priority ?? 0,
     });
+
+    if (!jobId) {
+      throw new Error("pg-boss rejected the training job (no jobId returned)");
+    }
 
     logger.info(LOG_CTX, `Training job enqueued: ${jobId}`, {
       orgId: data.orgId,
@@ -120,32 +186,48 @@ export class MlTrainingJobQueue {
 
   /**
    * Get the status of a training job.
+   *
+   * pg-boss v10's `getJobById` requires both the queue name and the id, and
+   * returns `JobWithMetadata<T> | null` with camelCase metadata fields.
    */
   async getJobStatus(jobId: string): Promise<MlJobStatus | null> {
-    const job = await this.boss.getJobById(jobId);
+    const job = await this.boss.getJobById<MlTrainingJobData>(
+      QUEUE_NAME,
+      jobId,
+      { includeArchive: true }
+    );
     if (!job) {
       return null;
     }
 
+    const output = job.output as MlTrainingJobResult | null | undefined;
+
     return {
       jobId: job.id,
-      state: job.state,
+      state: mapState(job.state),
       data: job.data,
-      result: job.output,
-      createdAt: new Date(job.createdon),
-      startedAt: job.startedon ? new Date(job.startedon) : undefined,
-      completedAt: job.completedon ? new Date(job.completedon) : undefined,
+      result: output ?? undefined,
+      createdAt: new Date(job.createdOn),
+      startedAt: job.startedOn ? new Date(job.startedOn) : undefined,
+      completedAt: job.completedOn ? new Date(job.completedOn) : undefined,
     };
   }
 
   /**
    * Get all training jobs for an org (recent).
+   *
+   * Reads `pgboss.job` directly so we can org-scope without iterating the
+   * SDK. The raw pg-boss columns are lowercase (`createdon`, `startedon`,
+   * `completedon`) — distinct from the SDK-side camelCase metadata.
    */
   async getRecentJobs(orgId: string, limit = 20): Promise<MlJobStatus[]> {
+    if (!this.db) {
+      return [];
+    }
     try {
       const { sql } = await import("drizzle-orm");
       const safeLimit = Math.min(Math.max(1, Math.floor(limit)), 100);
-      const result = await this.db?.execute(
+      const result = await this.db.execute(
         sql`SELECT id, state, data, output, createdon, startedon, completedon
         FROM pgboss.job
         WHERE name = ${QUEUE_NAME}
@@ -154,19 +236,12 @@ export class MlTrainingJobQueue {
         LIMIT ${safeLimit}`
       );
 
-      return (result?.rows ?? []).map((row: {
-        id: string;
-        state: string;
-        data: MlTrainingJobData;
-        output: MlTrainingJobResult | null;
-        createdon: string | Date;
-        startedon: string | Date | null;
-        completedon: string | Date | null;
-      }) => ({
+      const rows = (result?.rows ?? []) as unknown as PgBossJobRow[];
+      return rows.map((row) => ({
         jobId: row.id,
-        state: row.state,
+        state: mapState(row.state),
         data: row.data,
-        result: row.output,
+        result: row.output ?? undefined,
         createdAt: new Date(row.createdon),
         startedAt: row.startedon ? new Date(row.startedon) : undefined,
         completedAt: row.completedon ? new Date(row.completedon) : undefined,
@@ -180,10 +255,9 @@ export class MlTrainingJobQueue {
   // Private: Job processing
   // ===========================================================================
 
-  private async processTrainingJob(job: {
-    id: string;
-    data: MlTrainingJobData;
-  }): Promise<MlTrainingJobResult> {
+  private async processTrainingJob(
+    job: PgBoss.Job<MlTrainingJobData>
+  ): Promise<MlTrainingJobResult> {
     const data = job.data;
     const startTime = Date.now();
 
@@ -233,7 +307,7 @@ export class MlTrainingJobQueue {
       // Optionally run evaluation gate before marking as successful
       const evaluationPassed = true;
       try {
-        const { ModelEvaluationGate } = await import("./model-evaluation-gate");
+        await import("./model-evaluation-gate");
         // Evaluation would run here if test data is available
         // For now, mark as passed — the gate can be wired in when test data infra exists
       } catch {
@@ -285,16 +359,20 @@ export class MlTrainingJobQueue {
     }
 
     try {
-      this.wsServer.broadcast?.({
-        type: "ml_training_complete",
-        orgId,
-        jobId,
-        modelType,
-        success,
-        durationMs,
-        error,
-        timestamp: new Date().toISOString(),
-      });
+      this.wsServer.broadcast(
+        "ml_training",
+        {
+          type: "ml_training_complete",
+          orgId,
+          jobId,
+          modelType,
+          success,
+          durationMs,
+          error,
+          timestamp: new Date().toISOString(),
+        },
+        orgId
+      );
     } catch {
       // WebSocket notification is best-effort
     }

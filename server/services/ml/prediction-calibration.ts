@@ -19,6 +19,9 @@
  */
 
 import { logger } from "../../utils/logger";
+import type { db as DbInstance } from "../../db";
+
+type DbHandle = typeof DbInstance;
 
 // ============================================================================
 // Types
@@ -291,9 +294,9 @@ function computeMCE(bins: CalibrationBin[]): number {
 const calibrationCache = new Map<string, CalibrationModel>();
 
 export class PredictionCalibrator {
-  private db: any;
+  private db: DbHandle;
 
-  constructor(db: any) {
+  constructor(db: DbHandle) {
     this.db = db;
   }
 
@@ -504,7 +507,9 @@ export class PredictionCalibrator {
         }
 
         const predictedDate = new Date(pred.predictedFailureDate);
-        const predictionDate = new Date(pred.predictionTimestamp || pred.createdAt);
+        // failure_predictions has no `createdAt`; `predictionTimestamp` has
+        // a defaultNow() so it is always populated.
+        void pred.predictionTimestamp;
 
         // Only use predictions whose window has already passed (we know the outcome)
         if (predictedDate > new Date()) {
