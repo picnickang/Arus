@@ -149,9 +149,9 @@ export async function evaluateCertificateExpiryAlerts(
   const certifications = await getCertificationsNearExpiry(ctx.orgId, ctx.vesselId, now, maxDays);
 
   const results: CrewAlertResult[] = [];
-  const settingsRecord = settings as unknown as CertificateAlertSettings;
+  const settingsRecord = (settings ?? {}) as Record<string, unknown>;
   for (const certRaw of certifications) {
-    const cert = certRaw as unknown as CertificateRow;
+    const cert = certRaw as CertificateRow;
     const daysUntilExpiry = differenceInDays(new Date(cert.expiresAt), now);
     const matchedThreshold = findMatchingThreshold(
       daysUntilExpiry,

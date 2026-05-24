@@ -5,9 +5,15 @@
  */
 
 import { db } from "../../db-config";
-import { sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte } from "drizzle-orm";
 import { vesselService } from "../../repositories";
-import type { ComplianceFinding, InsertComplianceFinding } from "@shared/schema";
+import {
+  complianceFindings,
+  complianceRules,
+  type ComplianceFinding,
+  type ComplianceRule,
+  type InsertComplianceFinding,
+} from "@shared/schema/compliance";
 import { emailNotificationService } from "../email-notification-service";
 import type { RuleContext, RuleEvaluator } from "./types.js";
 import { DEFAULT_DECK_RULES, DEFAULT_ENGINE_RULES } from "./default-rules.js";
@@ -45,15 +51,10 @@ interface FindingsFilter {
   endDate?: string | Date;
 }
 
-type ComplianceRuleRow = Record<string, unknown> & {
-  ruleCode: string;
-  ruleConfig?: unknown;
-  notifyOnTrigger?: boolean;
+type NewFindingInput = InsertComplianceFinding & {
+  title?: string;
+  description?: string;
 };
-
-type ComplianceFindingRow = ComplianceFinding;
-
-type NewFindingInput = InsertComplianceFinding & Record<string, unknown>;
 
 type NewRuleInput = {
   orgId: string;
@@ -63,43 +64,116 @@ type NewRuleInput = {
   ruleCode: string;
   description?: string | null;
   severity?: string;
+  ruleType?: string;
   enabled?: boolean | null;
-} & Record<string, unknown>;
+};
 
 async function getComplianceRules(
   orgId: string,
   filters?: RulesFilter
-): Promise<ComplianceRuleRow[]> {
-  const result = await db.execute(
-    sql`SELECT * FROM compliance_rules WHERE org_id = ${orgId} ${filters?.sourceType ? sql`AND source_type = ${filters.sourceType}` : sql``} ${filters?.category ? sql`AND category = ${filters.category}` : sql``} ${filters?.enabled !== undefined ? sql`AND enabled = ${filters.enabled}` : sql``} ORDER BY rule_name ASC`
-  );
-  return result.rows as unknown as ComplianceRuleRow[];
+): Promise<ComplianceRule[]> {
+  const conditions = [eq(complianceRules.orgId, orgId)];
+  if (filters?.sourceType) {
+    conditions.push(eq(complianceRules.sourceType, filters.sourceType));
+  }
+  if (filters?.category) {
+    conditions.push(eq(complianceRules.category, filters.category));
+  }
+  if (filters?.enabled !== undefined) {
+    conditions.push(eq(complianceRules.enabled, filters.enabled));
+  }
+  return db
+    .select()
+    .from(complianceRules)
+    .where(and(...conditions))
+    .orderBy(asc(complianceRules.ruleName));
+}
+
+function toDate(value: string | Date): Date {
+  return value instanceof Date ? value : new Date(value);
 }
 
 async function getComplianceFindings(
   orgId: string,
   filters?: FindingsFilter
-): Promise<ComplianceFindingRow[]> {
-  const result = await db.execute(
-    sql`SELECT * FROM compliance_findings WHERE org_id = ${orgId} ${filters?.vesselId ? sql`AND vessel_id = ${filters.vesselId}` : sql``} ${filters?.sourceType ? sql`AND source_type = ${filters.sourceType}` : sql``} ${filters?.severity ? sql`AND severity = ${filters.severity}` : sql``} ${filters?.status ? sql`AND status = ${filters.status}` : sql``} ${filters?.ruleCode ? sql`AND rule_code = ${filters.ruleCode}` : sql``} ${filters?.startDate ? sql`AND found_at >= ${filters.startDate}::timestamp` : sql``} ${filters?.endDate ? sql`AND found_at <= ${filters.endDate}::timestamp` : sql``} ORDER BY found_at DESC`
-  );
-  return result.rows as unknown as ComplianceFindingRow[];
+): Promise<ComplianceFinding[]> {
+  const conditions = [eq(complianceFindings.orgId, orgId)];
+  if (filters?.vesselId) {
+    conditions.push(eq(complianceFindings.vesselId, filters.vesselId));
+  }
+  if (filters?.sourceType) {
+    conditions.push(eq(complianceFindings.sourceType, filters.sourceType));
+  }
+  if (filters?.severity) {
+    conditions.push(eq(complianceFindings.severity, filters.severity));
+  }
+  if (filters?.status) {
+    conditions.push(eq(complianceFindings.status, filters.status));
+  }
+  if (filters?.ruleCode) {
+    conditions.push(eq(complianceFindings.ruleCode, filters.ruleCode));
+  }
+  if (filters?.startDate) {
+    conditions.push(gte(complianceFindings.foundAt, toDate(filters.startDate)));
+  }
+  if (filters?.endDate) {
+    conditions.push(lte(complianceFindings.foundAt, toDate(filters.endDate)));
+  }
+  return db
+    .select()
+    .from(complianceFindings)
+    .where(and(...conditions))
+    .orderBy(desc(complianceFindings.foundAt));
 }
 
 async function createComplianceFinding(data: NewFindingInput): Promise<ComplianceFinding> {
-  const title = (data as { title?: unknown }).title ?? data.message ?? null;
-  const description = (data as { description?: unknown }).description ?? data.message ?? null;
-  const result = await db.execute(
-    sql`INSERT INTO compliance_findings (org_id, vessel_id, source_type, severity, status, rule_code, title, description, found_at) VALUES (${data.orgId}, ${data.vesselId}, ${data.sourceType}, ${data.severity}, ${data.status || "open"}, ${data.ruleCode}, ${title}, ${description}, NOW()) RETURNING *`
-  );
-  return result.rows[0] as unknown as ComplianceFinding;
+  const [inserted] = await db
+    .insert(complianceFindings)
+    .values({
+      orgId: data.orgId,
+      vesselId: data.vesselId,
+      logDate: data.logDate,
+      sourceType: data.sourceType,
+      ruleCode: data.ruleCode,
+      ruleName: data.ruleName,
+      category: data.category,
+      severity: data.severity ?? "warning",
+      message: data.message,
+      status: data.status ?? "open",
+      context: data.context,
+      linkedDeckLogDayId: data.linkedDeckLogDayId,
+      linkedEngineLogDayId: data.linkedEngineLogDayId,
+      linkedEquipmentIds: data.linkedEquipmentIds,
+      linkedWorkOrderIds: data.linkedWorkOrderIds,
+      linkedCrewIds: data.linkedCrewIds,
+      linkedAlertIds: data.linkedAlertIds,
+    })
+    .returning();
+  if (!inserted) {
+    throw new Error("createComplianceFinding: insert returned no rows");
+  }
+  return inserted;
 }
 
-async function createComplianceRule(data: NewRuleInput): Promise<ComplianceRuleRow> {
-  const result = await db.execute(
-    sql`INSERT INTO compliance_rules (org_id, source_type, category, rule_name, rule_code, description, severity, enabled) VALUES (${data.orgId}, ${data.sourceType}, ${data.category}, ${data.ruleName}, ${data.ruleCode}, ${data.description}, ${data.severity}, ${data.enabled ?? true}) RETURNING *`
-  );
-  return result.rows[0] as unknown as ComplianceRuleRow;
+async function createComplianceRule(data: NewRuleInput): Promise<ComplianceRule> {
+  const [inserted] = await db
+    .insert(complianceRules)
+    .values({
+      orgId: data.orgId,
+      sourceType: data.sourceType,
+      category: data.category,
+      ruleName: data.ruleName,
+      ruleCode: data.ruleCode,
+      ruleType: data.ruleType ?? "system",
+      description: data.description ?? null,
+      severity: data.severity ?? "warning",
+      enabled: data.enabled ?? true,
+    })
+    .returning();
+  if (!inserted) {
+    throw new Error("createComplianceRule: insert returned no rows");
+  }
+  return inserted;
 }
 
 interface ResolutionPayload {
@@ -120,35 +194,56 @@ interface SuppressPayload {
 
 async function resolveComplianceFindingInDb(
   id: string,
-  _data: ResolutionPayload,
+  data: ResolutionPayload,
   orgId: string
 ): Promise<ComplianceFinding | undefined> {
-  const result = await db.execute(
-    sql`UPDATE compliance_findings SET status = 'resolved', resolved_at = NOW() WHERE id = ${id} AND org_id = ${orgId} RETURNING *`
-  );
-  return result.rows[0] as unknown as ComplianceFinding | undefined;
+  const [updated] = await db
+    .update(complianceFindings)
+    .set({
+      status: "resolved",
+      resolvedAt: new Date(),
+      resolvedByUserId: data.resolvedByUserId,
+      resolvedByUserName: data.resolvedByUserName,
+      resolutionNotes: data.resolutionNotes ?? null,
+    })
+    .where(and(eq(complianceFindings.id, id), eq(complianceFindings.orgId, orgId)))
+    .returning();
+  return updated;
 }
 
 async function acknowledgeComplianceFindingInDb(
   id: string,
-  _data: AcknowledgePayload,
+  data: AcknowledgePayload,
   orgId: string
 ): Promise<ComplianceFinding | undefined> {
-  const result = await db.execute(
-    sql`UPDATE compliance_findings SET status = 'acknowledged' WHERE id = ${id} AND org_id = ${orgId} RETURNING *`
-  );
-  return result.rows[0] as unknown as ComplianceFinding | undefined;
+  const [updated] = await db
+    .update(complianceFindings)
+    .set({
+      status: "acknowledged",
+      acknowledgedAt: new Date(),
+      acknowledgedByUserId: data.acknowledgedByUserId,
+      acknowledgedByUserName: data.acknowledgedByUserName,
+    })
+    .where(and(eq(complianceFindings.id, id), eq(complianceFindings.orgId, orgId)))
+    .returning();
+  return updated;
 }
 
 async function suppressComplianceFindingInDb(
   id: string,
-  _data: SuppressPayload,
+  data: SuppressPayload,
   orgId: string
 ): Promise<ComplianceFinding | undefined> {
-  const result = await db.execute(
-    sql`UPDATE compliance_findings SET status = 'suppressed' WHERE id = ${id} AND org_id = ${orgId} RETURNING *`
-  );
-  return result.rows[0] as unknown as ComplianceFinding | undefined;
+  const [updated] = await db
+    .update(complianceFindings)
+    .set({
+      status: "suppressed",
+      suppressedUntil: data.suppressedUntil,
+      suppressedReason: data.suppressedReason,
+    })
+    .where(and(eq(complianceFindings.id, id), eq(complianceFindings.orgId, orgId)))
+    .returning();
+  return updated;
 }
 
 export class ComplianceRulesEngine {
@@ -224,7 +319,7 @@ export class ComplianceRulesEngine {
         });
         const existingForDate = existingFindings.filter((f) => f.logDate === logDate);
 
-        const result = await evaluator(ctx, (rule.ruleConfig as Record<string, unknown>) ?? {});
+        const result = await evaluator(ctx, rule.ruleConfig ?? {});
 
         if (result.skipped) {
           logger.info(`[ComplianceRulesEngine] Rule ${rule.ruleCode} skipped: ${result.skipReason || "no log data"}`);

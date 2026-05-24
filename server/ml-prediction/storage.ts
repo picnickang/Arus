@@ -28,9 +28,11 @@ function calculateRiskLevel(failureProbability: number): RiskLevel {
 }
 
 function getOperatingMode(equipment: Equipment): string | null | undefined {
-  const record = equipment as unknown as Record<string, unknown>;
-  const mode = record.operatingMode;
-  return typeof mode === "string" ? mode : null;
+  if ("operatingMode" in equipment) {
+    const mode = (equipment as { operatingMode?: unknown }).operatingMode;
+    return typeof mode === "string" ? mode : null;
+  }
+  return null;
 }
 
 function emitRulUpdateSafe(

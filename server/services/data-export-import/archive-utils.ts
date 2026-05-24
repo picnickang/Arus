@@ -46,6 +46,8 @@ function maxExtractedBytes(): number {
  */
 export async function extractArchive(archivePath: string, extractPath: string): Promise<void> {
   const extract = await import("tar");
+  type TarFilterArgs = Parameters<NonNullable<Parameters<typeof extract.extract>[0]["filter"]>>;
+  type TarEntry = TarFilterArgs[1];
 
   fs.mkdirSync(extractPath, { recursive: true });
 
@@ -58,8 +60,8 @@ export async function extractArchive(archivePath: string, extractPath: string): 
     cwd: extractPath,
     preservePaths: false,
     strict: true,
-    filter: (entryPath, entry) => {
-      const e = entry as unknown as { type?: string; size?: number };
+    filter: (entryPath, entry: TarEntry) => {
+      const e = entry as { type?: string; size?: number };
       const resolvedPath = path.resolve(extractPath, entryPath);
       if (!isWithinDirectory(resolvedPath, normalizedExtractPath)) {
         logger.error(`[DataImport] Path traversal attempt blocked: ${entryPath}`);

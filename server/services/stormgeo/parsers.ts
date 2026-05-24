@@ -15,18 +15,63 @@ export function parseCSV(content: string): StormGeoCSVRow[] {
   const headers = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/\s+/g, "_"));
   const rows: StormGeoCSVRow[] = [];
 
+  const numericFields = new Set<keyof StormGeoCSVRow>([
+    "latitude",
+    "longitude",
+    "wind_speed",
+    "wind_direction",
+    "wave_height",
+    "swell_height",
+    "swell_direction",
+    "air_temp",
+    "sea_temp",
+    "pressure",
+    "visibility",
+    "current_speed",
+    "current_direction",
+    "recommended_speed",
+    "recommended_course",
+  ]);
+
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(",").map((v) => v.trim());
-    const row: Record<string, string | number> = {};
+    let timestamp: string | undefined;
+    const numeric: Partial<Record<keyof StormGeoCSVRow, number>> = {};
     headers.forEach((header, index) => {
       const value = values[index];
-      if (value !== "" && value !== undefined) {
+      if (value === "" || value === undefined) return;
+      if (header === "timestamp") {
+        timestamp = value;
+        return;
+      }
+      if (numericFields.has(header as keyof StormGeoCSVRow)) {
         const num = Number.parseFloat(value);
-        row[header] = Number.isNaN(num) ? value : num;
+        if (!Number.isNaN(num)) {
+          numeric[header as keyof StormGeoCSVRow] = num;
+        }
       }
     });
-    if (row.timestamp) {
-      rows.push(row as unknown as StormGeoCSVRow);
+    if (timestamp) {
+      const lat = numeric.latitude ?? 0;
+      const lon = numeric.longitude ?? 0;
+      rows.push({
+        timestamp,
+        latitude: lat,
+        longitude: lon,
+        wind_speed: numeric.wind_speed,
+        wind_direction: numeric.wind_direction,
+        wave_height: numeric.wave_height,
+        swell_height: numeric.swell_height,
+        swell_direction: numeric.swell_direction,
+        air_temp: numeric.air_temp,
+        sea_temp: numeric.sea_temp,
+        pressure: numeric.pressure,
+        visibility: numeric.visibility,
+        current_speed: numeric.current_speed,
+        current_direction: numeric.current_direction,
+        recommended_speed: numeric.recommended_speed,
+        recommended_course: numeric.recommended_course,
+      });
     }
   }
   return rows;

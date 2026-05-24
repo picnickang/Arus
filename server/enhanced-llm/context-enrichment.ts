@@ -75,11 +75,29 @@ export function enrichContextWithRAG(context: ReportContext): ReportContext {
 
   if (context.knowledge) {
     if (context.knowledge.documents && context.knowledge.documents.length > 0) {
-      (context.knowledge.documents as unknown as Array<Record<string, unknown>>).slice(0, 5).forEach((doc) => {
-        const docType = typeof doc.docType === "string" ? doc.docType : "document";
-        const content = typeof doc.content === "string" ? doc.content : (typeof doc.text === "string" ? doc.text : undefined);
-        const summary = typeof doc.summary === "string" ? doc.summary : undefined;
-        const title = typeof doc.title === "string" ? doc.title : (typeof doc.name === "string" ? doc.name : "Untitled");
+      context.knowledge.documents.slice(0, 5).forEach((doc) => {
+        const d = doc as {
+          docType?: unknown;
+          content?: unknown;
+          text?: unknown;
+          summary?: unknown;
+          title?: unknown;
+          name?: unknown;
+        };
+        const docType = typeof d.docType === "string" ? d.docType : "document";
+        const content =
+          typeof d.content === "string"
+            ? d.content
+            : typeof d.text === "string"
+              ? d.text
+              : undefined;
+        const summary = typeof d.summary === "string" ? d.summary : undefined;
+        const title =
+          typeof d.title === "string"
+            ? d.title
+            : typeof d.name === "string"
+              ? d.name
+              : "Untitled";
         const excerpt = content?.slice(0, 500) || summary || "No content available";
         knowledgeSnippets.push(
           `KB Document [${docType.toUpperCase()}]: "${title}" - ${excerpt}${excerpt.length >= 500 ? "..." : ""}`
@@ -88,15 +106,38 @@ export function enrichContextWithRAG(context: ReportContext): ReportContext {
     }
 
     if (context.knowledge.semanticMatches && context.knowledge.semanticMatches.length > 0) {
-      (context.knowledge.semanticMatches as unknown as Array<Record<string, unknown>>).slice(0, 5).forEach((match) => {
-        const sim = typeof match.similarity === "number"
-          ? match.similarity
-          : (typeof match.score === "number" ? match.score : undefined);
+      context.knowledge.semanticMatches.slice(0, 5).forEach((match) => {
+        const m = match as {
+          similarity?: unknown;
+          score?: unknown;
+          docType?: unknown;
+          content?: unknown;
+          text?: unknown;
+          summary?: unknown;
+          title?: unknown;
+          name?: unknown;
+        };
+        const sim =
+          typeof m.similarity === "number"
+            ? m.similarity
+            : typeof m.score === "number"
+              ? m.score
+              : undefined;
         const similarity = sim != null ? `(${(sim * 100).toFixed(0)}% match)` : "";
-        const docType = typeof match.docType === "string" ? match.docType : "document";
-        const content = typeof match.content === "string" ? match.content : (typeof match.text === "string" ? match.text : undefined);
-        const summary = typeof match.summary === "string" ? match.summary : undefined;
-        const title = typeof match.title === "string" ? match.title : (typeof match.name === "string" ? match.name : "Untitled");
+        const docType = typeof m.docType === "string" ? m.docType : "document";
+        const content =
+          typeof m.content === "string"
+            ? m.content
+            : typeof m.text === "string"
+              ? m.text
+              : undefined;
+        const summary = typeof m.summary === "string" ? m.summary : undefined;
+        const title =
+          typeof m.title === "string"
+            ? m.title
+            : typeof m.name === "string"
+              ? m.name
+              : "Untitled";
         const excerpt = content?.slice(0, 400) || summary || "No content available";
         knowledgeSnippets.push(
           `KB Reference [${docType.toUpperCase()}] ${similarity}: "${title}" - ${excerpt}${excerpt.length >= 400 ? "..." : ""}`

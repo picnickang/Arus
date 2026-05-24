@@ -23,12 +23,16 @@ export function useDevicesPage() {
   const { data: devices, isLoading, error } = useDevices();
 
   const stats = useMemo(() => {
-    const d = (devices ?? []) as unknown as Array<Device & { status?: string }>;
+    const d = devices ?? [];
+    const statusOf = (x: object): string | undefined =>
+      "status" in x && typeof (x as { status?: unknown }).status === "string"
+        ? (x as { status: string }).status
+        : undefined;
     return {
       total: d.length,
-      online: d.filter((x) => x.status === "Online").length,
-      warning: d.filter((x) => x.status === "Warning").length,
-      critical: d.filter((x) => x.status === "Critical").length,
+      online: d.filter((x) => statusOf(x) === "Online").length,
+      warning: d.filter((x) => statusOf(x) === "Warning").length,
+      critical: d.filter((x) => statusOf(x) === "Critical").length,
     };
   }, [devices]);
 
