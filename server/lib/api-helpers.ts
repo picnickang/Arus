@@ -134,7 +134,17 @@ export function validateResponse<T>(
     .join("; ")}`;
 
   if (process.env['NODE_ENV'] === "production") {
+    // P2 #25 — Tolerant in prod: log + counter, ship the payload
+    // anyway so live traffic isn't broken by a contract drift. Tests
+    // and dev keep the throw-on-mismatch behaviour below.
     logger.error(String(message));
+    void import("../observability/security-metrics")
+      .then(({ apiResponseValidationFailuresTotal }) => {
+        apiResponseValidationFailuresTotal.inc({ context });
+      })
+      .catch(() => {
+        /* metric infra unavailable — log already covers this case */
+      });
     return payload as T;
   }
   throw new Error(message);

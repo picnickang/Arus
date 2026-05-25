@@ -1,5 +1,20 @@
 import client from "prom-client";
 
+// ===== API CONTRACT / RESPONSE-VALIDATION METRICS =====
+/**
+ * P2 #25 — Production response-contract drift counter. Incremented by
+ * `validateResponse()` (server/lib/api-helpers.ts) every time a Zod
+ * outbound-schema check fails in production. Tolerant policy: traffic
+ * is NOT broken (the original payload is sent as-is), but the
+ * violation is both logged and counted so dashboards/alerts can
+ * detect silent drift between code and shipped contract.
+ */
+export const apiResponseValidationFailuresTotal = new client.Counter({
+  name: "arus_api_response_validation_failures_total",
+  help: "Outbound API responses that failed their Zod schema check (production tolerant mode)",
+  labelNames: ["context"],
+});
+
 // ===== SECURITY & TENANT ISOLATION METRICS =====
 export const tenantIsolationDeniedTotal = new client.Counter({
   name: "arus_tenant_isolation_denied_total",

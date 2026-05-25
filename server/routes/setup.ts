@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import express from "express";
 import bcrypt from "bcryptjs";
 import { createLogger } from "../lib/structured-logger";
+import { verifySetupToken } from "./setup-token";
 import {
   getSetupSetting,
   upsertSetupSetting,
@@ -17,13 +18,35 @@ function isLoopbackAddress(address: string): boolean {
   return normalized === "127.0.0.1" || normalized === "::1" || normalized === "localhost";
 }
 
+/** P2 #2 — see `./setup-token.ts` for the pure constant-time verifier. */
 function hasValidSetupToken(req: Request): boolean {
-  const configuredToken = process.env['SETUP_TOKEN'];
-  if (!configuredToken) {
-    return false;
-  }
-  const provided = req.headers["x-setup-token"];
-  return typeof provided === "string" && provided.length > 0 && provided === configuredToken;
+  return verifySetupToken(process.env['SETUP_TOKEN'], req.headers["x-setup-token"]);
+}
+
+/**
+ * P2 #2 — Best-effort audit trail for every remote setup-route hit
+ * (success and failure). Loopback/Tauri paths are not logged here
+ * because they are functionally the operator's own machine; failures
+ * from the wider network or with a presented X-Setup-Token always
+ * are. Audit is fire-and-forget structured-log only (avoids creating
+ * a DB dependency on a route that runs pre-setup).
+ */
+function auditSetupAttempt(
+  req: Request,
+  outcome: "allowed" | "denied",
+  reason: string
+): void {
+  logger.warn("Setup route access attempt", {
+    outcome,
+    reason,
+    path: req.path,
+    method: req.method,
+    remoteAddress: req.socket.remoteAddress ?? "unknown",
+    forwardedFor: req.headers["x-forwarded-for"] ?? null,
+    userAgent: req.headers["user-agent"] ?? null,
+    origin: req.headers.origin ?? null,
+    tokenPresented: typeof req.headers["x-setup-token"] === "string",
+  });
 }
 
 function localOnlyGuard(req: Request, res: Response, next: NextFunction) {
@@ -34,7 +57,15 @@ function localOnlyGuard(req: Request, res: Response, next: NextFunction) {
   const isTauriUserAgent = req.headers["user-agent"]?.includes("Tauri") || false;
   const isReplitDevelopment = !!process.env['REPL_ID'] && process.env['NODE_ENV'] !== "production";
 
-  if (!isLocal && !isTauriOrigin && !isTauriUserAgent && !isReplitDevelopment && !hasValidSetupToken(req)) {
+  if (isLocal || isTauriOrigin || isTauriUserAgent || isReplitDevelopment) {
+    next();
+    return undefined;
+  }
+
+  // Remote caller: audit every attempt and require a valid token.
+  const tokenOk = hasValidSetupToken(req);
+  auditSetupAttempt(req, tokenOk ? "allowed" : "denied", tokenOk ? "valid-setup-token" : "no-or-invalid-setup-token");
+  if (!tokenOk) {
     return res.status(403).json({
       error: "Setup is only available from localhost/Tauri, development Replit, or with X-Setup-Token",
       code: "SETUP_LOCAL_ONLY",

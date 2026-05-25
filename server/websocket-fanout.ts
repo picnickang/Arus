@@ -49,15 +49,26 @@ export const REPLAY_WINDOW_MS = 5 * 60 * 1000;
  *  that try to publish on the SYSTEM namespace get a warning + stack
  *  reference instead of a silent cross-tenant broadcast.
  *
- *  Default off (so legacy single-tenant + dev deploys keep working);
- *  set `WS_TENANT_STRICT_MODE=true` in production multi-server deploys
- *  to enforce per-tenant addressing. The env var is read at call time
- *  rather than module load so tests can toggle it. */
+ *  Defaults: ON in production (`NODE_ENV === "production"`) so multi-
+ *  tenant production deployments are safe by default; OFF in
+ *  development/test so single-tenant dev flows keep working. Operators
+ *  can always force the value explicitly via `WS_TENANT_STRICT_MODE`
+ *  (`true`/`false`). The env var is read at call time rather than at
+ *  module load so tests can toggle it. */
 export function isTenantStrictModeEnabled(): boolean {
   const raw = process.env['WS_TENANT_STRICT_MODE'];
-  if (!raw) return false;
-  const normalised = raw.trim().toLowerCase();
-  return normalised === "1" || normalised === "true" || normalised === "yes" || normalised === "on";
+  if (raw && raw.trim().length > 0) {
+    const normalised = raw.trim().toLowerCase();
+    if (normalised === "1" || normalised === "true" || normalised === "yes" || normalised === "on") {
+      return true;
+    }
+    if (normalised === "0" || normalised === "false" || normalised === "no" || normalised === "off") {
+      return false;
+    }
+  }
+  // Production-safe default: tenant-isolated fan-out unless explicitly
+  // disabled. Dev/test keep historical behaviour.
+  return process.env['NODE_ENV'] === "production";
 }
 
 export interface FanoutEvent {

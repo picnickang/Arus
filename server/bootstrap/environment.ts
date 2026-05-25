@@ -127,6 +127,54 @@ function validateSessionSecret(
   validateExistingSecret(sessionSecret, isProduction, isEmbedded, errors, warnings);
 }
 
+/**
+ * P2 #14 — Production encryption-key fail-fast.
+ *
+ * `server/lib/crypto-service.ts` enforces these constraints lazily on
+ * first encryption/decryption call. That works, but a process that
+ * boots and starts serving traffic before the first encrypt/decrypt
+ * will only crash much later, in a request handler. To make
+ * misconfiguration loud at startup we re-evaluate the same rules
+ * here and surface them as `errors` so `outputResults` refuses to
+ * start a cloud/production deployment. Dev/embedded/local-mode
+ * deployments continue to allow the documented dev fallbacks.
+ */
+function validateEncryptionKey(
+  isProduction: boolean,
+  isEmbedded: boolean,
+  localMode: boolean,
+  errors: string[],
+  warnings: string[]
+): void {
+  if (!isProduction || isEmbedded || localMode) {
+    return;
+  }
+  const MIN_KEY_STRENGTH = 32;
+  const dedicated = process.env['ENCRYPTION_KEY'];
+  if (dedicated) {
+    if (dedicated.length < MIN_KEY_STRENGTH) {
+      errors.push("ENCRYPTION_KEY must be at least 32 characters in production");
+      return;
+    }
+    logger.info("✓ Security: Dedicated ENCRYPTION_KEY configured");
+    return;
+  }
+  const sessionSecret = process.env['SESSION_SECRET'];
+  if (!sessionSecret) {
+    errors.push("Either ENCRYPTION_KEY or SESSION_SECRET must be set in production");
+    return;
+  }
+  if (sessionSecret.length < MIN_KEY_STRENGTH) {
+    errors.push(
+      "SESSION_SECRET must be at least 32 characters when used for encryption in production"
+    );
+    return;
+  }
+  warnings.push(
+    "ENCRYPTION_KEY not set in production — falling back to SESSION_SECRET-derived key (works, but a dedicated ENCRYPTION_KEY is recommended)"
+  );
+}
+
 function validateSyncConfig(localMode: boolean, isEmbedded: boolean, warnings: string[]): void {
   if (!localMode && !isEmbedded) {
     return;
@@ -203,6 +251,7 @@ export function validateEnvironment(): EnvironmentConfig {
 
   validateDatabase(localMode, isEmbedded, errors);
   validateSessionSecret(isEmbedded, localMode, isDevelopment, isProduction, errors, warnings);
+  validateEncryptionKey(isProduction, isEmbedded, localMode, errors, warnings);
   validateSyncConfig(localMode, isEmbedded, warnings);
   logOptionalServices(isReplit);
 
