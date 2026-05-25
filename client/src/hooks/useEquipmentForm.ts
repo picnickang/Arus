@@ -9,7 +9,7 @@ export function useEquipmentForm(
 ): UseFormReturn<InsertEquipment> {
   const { currentOrgId } = useOrganization();
 
-  return useForm<InsertEquipment>({
+  return useForm<InsertEquipment, unknown, InsertEquipment>({
     resolver: zodResolver(insertEquipmentSchema),
     defaultValues: {
       orgId: currentOrgId || "",
@@ -42,7 +42,7 @@ export function useEquipmentEditForm(
   equipment?: Equipment | null
 ): UseFormReturn<InsertEquipment> {
   const { currentOrgId } = useOrganization();
-  const form = useForm<InsertEquipment>({
+  const form = useForm<InsertEquipment, unknown, InsertEquipment>({
     resolver: zodResolver(insertEquipmentSchema),
     defaultValues: {
       orgId: currentOrgId || "",

@@ -65,7 +65,7 @@ export function WorkOrderCloneDialog({
   const { toast } = useToast();
   const _queryClient = useQueryClient();
 
-  const form = useForm<CloneFormValues>({
+  const form = useForm<CloneFormValues, unknown, CloneFormValues>({
     resolver: zodResolver(cloneFormSchema),
     defaultValues: {
       plannedStartDate: "",

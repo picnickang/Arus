@@ -55,7 +55,7 @@ export function useOrganizationData() {
     refetchInterval: 60000,
   });
 
-  const organizationForm = useForm<InsertOrganization>({
+  const organizationForm = useForm<InsertOrganization, unknown, InsertOrganization>({
     resolver: zodResolver(insertOrganizationSchema),
     defaultValues: {
       name: "",
@@ -66,7 +66,7 @@ export function useOrganizationData() {
       maxEquipment: 1000,
     },
   });
-  const userForm = useForm<InsertUser>({
+  const userForm = useForm<InsertUser, unknown, InsertUser>({
     resolver: zodResolver(insertUserSchema),
     defaultValues: { name: "", email: "", role: "viewer", isActive: true, orgId: selectedOrgId },
   });

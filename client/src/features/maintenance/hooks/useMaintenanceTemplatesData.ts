@@ -40,7 +40,7 @@ export function useMaintenanceTemplatesData() {
   });
   const filteredTemplates = allTemplates.filter((t) => t.equipmentType === selectedType);
 
-  const templateForm = useForm<TemplateFormData>({
+  const templateForm = useForm<TemplateFormData, unknown, TemplateFormData>({
     resolver: zodResolver(templateSchema),
     defaultValues: {
       equipmentType: "engine",
@@ -51,7 +51,7 @@ export function useMaintenanceTemplatesData() {
       priority: "medium",
     },
   });
-  const itemForm = useForm<ChecklistItemFormData>({
+  const itemForm = useForm<ChecklistItemFormData, unknown, ChecklistItemFormData>({
     resolver: zodResolver(checklistItemSchema),
     defaultValues: {
       stepNumber: 1,

@@ -101,7 +101,7 @@ export function useSoftwareUpdatesData() {
     successMessage: "Patch published successfully!",
   });
 
-  const publishForm = useForm<PublishPatchForm>({
+  const publishForm = useForm<PublishPatchForm, unknown, PublishPatchForm>({
     resolver: zodResolver(publishPatchSchema),
     defaultValues: {
       fromVersion: "",
@@ -213,7 +213,7 @@ export function useConfigurationTabData() {
   const [showPassword, setShowPassword] = useState(false);
   const [passwordSectionOpen, setPasswordSectionOpen] = useState(false);
 
-  const passwordForm = useForm<ChangePasswordForm>({
+  const passwordForm = useForm<ChangePasswordForm, unknown, ChangePasswordForm>({
     resolver: zodResolver(changePasswordSchema),
     defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
   });

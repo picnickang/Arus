@@ -46,7 +46,7 @@ export function AddItemDialog({ open, onOpenChange, onSubmit, isPending }: AddIt
   const { data: perfData } = useSupplierPerformance();
   const perfMap = new Map(perfData?.map((p) => [p.supplierId, p]) ?? []);
 
-  const form = useForm<PRItemFormData>({
+  const form = useForm<PRItemFormData, unknown, PRItemFormData>({
     resolver: zodResolver(itemSchema),
     defaultValues: { partId: "", supplierId: "", quantity: 1, uom: "", remarks: "" },
   });

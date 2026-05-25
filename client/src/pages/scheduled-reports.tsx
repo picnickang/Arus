@@ -173,7 +173,7 @@ export default function ScheduledReports() {
     };
   }, []);
 
-  const form = useForm<CreateScheduleForm>({
+  const form = useForm<CreateScheduleForm, unknown, CreateScheduleForm>({
     resolver: zodResolver(createScheduleFormSchema),
     defaultValues: {
       name: "",

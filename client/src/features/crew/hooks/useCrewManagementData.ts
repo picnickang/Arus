@@ -99,7 +99,7 @@ export function useCrewManagementData() {
     return MARITIME_RANKS; // Fallback to static list
   }, [availableRanks]);
 
-  const skillForm = useForm<SkillFormData>({
+  const skillForm = useForm<SkillFormData, unknown, SkillFormData>({
     resolver: zodResolver(skillFormSchema),
     defaultValues: {
       name: "",

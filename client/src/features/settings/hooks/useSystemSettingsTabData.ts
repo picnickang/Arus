@@ -38,7 +38,7 @@ export function useSystemSettingsTabData() {
     queryFn: adminQueryFn(systemSettingsKeys.all as object as Parameters<typeof adminQueryFn>[0]),
   });
 
-  const form = useForm<SystemSettingForm>({
+  const form = useForm<SystemSettingForm, unknown, SystemSettingForm>({
     resolver: zodResolver(systemSettingSchema),
     defaultValues: {
       orgId: "default-org-id",

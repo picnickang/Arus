@@ -55,7 +55,7 @@ export function useLaborRateData() {
     queryKey: ["/api/crew"],
   });
 
-  const newRateForm = useForm<LaborRateFormData>({
+  const newRateForm = useForm<LaborRateFormData, unknown, LaborRateFormData>({
     resolver: zodResolver(laborRateSchema),
     defaultValues: {
       currency: "USD",
@@ -65,8 +65,8 @@ export function useLaborRateData() {
       contractorRate: 125,
     },
   });
-  const updateRateForm = useForm<LaborRateFormData>({ resolver: zodResolver(laborRateSchema) });
-  const crewRateForm = useForm<CrewRateFormData>({
+  const updateRateForm = useForm<LaborRateFormData, unknown, LaborRateFormData>({ resolver: zodResolver(laborRateSchema) });
+  const crewRateForm = useForm<CrewRateFormData, unknown, CrewRateFormData>({
     resolver: zodResolver(crewRateUpdateSchema),
     defaultValues: { overtimeMultiplier: 1.5 },
   });

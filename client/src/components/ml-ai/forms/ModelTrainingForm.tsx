@@ -94,7 +94,7 @@ export function ModelTrainingForm({
 }: ModelTrainingFormProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
-  const form = useForm<TrainingConfig>({
+  const form = useForm<TrainingConfig, unknown, TrainingConfig>({
     resolver: zodResolver(trainingConfigSchema),
     defaultValues: {
       modelType: undefined,

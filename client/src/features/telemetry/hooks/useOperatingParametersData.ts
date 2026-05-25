@@ -115,7 +115,7 @@ export function useOperatingParametersData() {
     [parameters, selectedType, selectedManufacturer]
   );
 
-  const createForm = useForm<FormValues>({
+  const createForm = useForm<FormValues, unknown, FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       equipmentType: selectedType,
@@ -133,7 +133,7 @@ export function useOperatingParametersData() {
       isActive: true,
     },
   });
-  const editForm = useForm<FormValues>({ resolver: zodResolver(formSchema) });
+  const editForm = useForm<FormValues, unknown, FormValues>({ resolver: zodResolver(formSchema) });
 
   const createMutation = useCustomMutation<InsertOperatingParameter, void>({
     mutationFn: (data: InsertOperatingParameter) =>

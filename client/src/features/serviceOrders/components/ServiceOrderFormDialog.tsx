@@ -102,7 +102,7 @@ export function ServiceOrderFormDialog({
 
   const isLoadingData = loadingSuppliers || loadingWOs || loadingVessels;
 
-  const form = useForm<SOFormValues>({
+  const form = useForm<SOFormValues, unknown, SOFormValues>({
     resolver: zodResolver(soFormSchema),
     defaultValues: {
       serviceType: "service",

@@ -44,7 +44,7 @@ export function useUpdateSettingsData() {
     queryFn: adminQueryFn(["/api/admin/github/status"]),
   });
 
-  const form = useForm<UpdateSettingsForm>({
+  const form = useForm<UpdateSettingsForm, unknown, UpdateSettingsForm>({
     resolver: zodResolver(updateSettingsSchema),
     defaultValues: {
       autoUpdateEnabled: false,

@@ -94,7 +94,7 @@ export function SupplierForm({
   onCancel,
   isPending,
 }: SupplierFormProps) {
-  const form = useForm<SupplierFormData>({
+  const form = useForm<SupplierFormData, unknown, SupplierFormData>({
     resolver: zodResolver(supplierFormSchema),
     defaultValues: {
       name: supplier?.name ?? "",

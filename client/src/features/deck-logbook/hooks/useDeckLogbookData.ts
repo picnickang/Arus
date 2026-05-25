@@ -83,7 +83,7 @@ export function useDeckLogbookData() {
   const [activeTab, setActiveTab] = useState("hourly");
   const [newEventDialogOpen, setNewEventDialogOpen] = useState(false);
 
-  const eventForm = useForm<ManualEventFormValues>({
+  const eventForm = useForm<ManualEventFormValues, unknown, ManualEventFormValues>({
     resolver: zodResolver(manualEventFormSchema),
     defaultValues: createDefaultManualEventFormValues(),
   });

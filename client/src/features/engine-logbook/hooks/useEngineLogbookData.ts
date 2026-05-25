@@ -60,7 +60,7 @@ export function useEngineLogbookData() {
   const [activeTab, setActiveTab] = useState("hourly");
   const [newEventDialogOpen, setNewEventDialogOpen] = useState(false);
 
-  const eventForm = useForm<ManualEngineEventFormValues>({
+  const eventForm = useForm<ManualEngineEventFormValues, unknown, ManualEngineEventFormValues>({
     resolver: zodResolver(manualEngineEventFormSchema),
     defaultValues: createDefaultManualEventFormValues(),
   });

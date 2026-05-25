@@ -28,7 +28,7 @@ export function usePdmPackData() {
   const [bearingAnalysisResult, setBearingAnalysisResult] = useState<AnalysisResult | null>(null);
   const [pumpAnalysisResult, setPumpAnalysisResult] = useState<AnalysisResult | null>(null);
 
-  const bearingForm = useForm<BearingFormData>({
+  const bearingForm = useForm<BearingFormData, unknown, BearingFormData>({
     resolver: zodResolver(bearingFormSchema),
     defaultValues: createDefaultBearingFormValues(),
   });

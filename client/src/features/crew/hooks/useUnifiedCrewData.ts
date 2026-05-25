@@ -57,11 +57,11 @@ export function useUnifiedCrewData() {
     queryKey: ["/api/vessels"],
   });
 
-  const crewForm = useForm<CrewFormData>({
+  const crewForm = useForm<CrewFormData, unknown, CrewFormData>({
     resolver: zodResolver(crewFormSchema),
     defaultValues: createDefaultCrewFormValues(),
   });
-  const skillForm = useForm<SkillFormData>({
+  const skillForm = useForm<SkillFormData, unknown, SkillFormData>({
     resolver: zodResolver(skillFormSchema),
     defaultValues: createDefaultSkillFormValues(),
   });

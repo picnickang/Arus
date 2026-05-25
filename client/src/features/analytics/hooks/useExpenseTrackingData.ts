@@ -82,11 +82,11 @@ export function useExpenseTrackingData() {
   const { data: vessels = [] } = useQuery<VesselOption[]>({ queryKey: ["/api/vessels"] });
   const { data: equipment = [] } = useQuery<EquipmentOption[]>({ queryKey: ["/api/equipment"] });
 
-  const expenseForm = useForm<ExpenseFormData>({
+  const expenseForm = useForm<ExpenseFormData, unknown, ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
     defaultValues: { currency: "USD", expenseDate: new Date().toISOString().split("T")[0] },
   });
-  const downtimeForm = useForm<DowntimeFormData>({
+  const downtimeForm = useForm<DowntimeFormData, unknown, DowntimeFormData>({
     resolver: zodResolver(downtimeSchema),
     defaultValues: { hourlyLossRate: 500 },
   });

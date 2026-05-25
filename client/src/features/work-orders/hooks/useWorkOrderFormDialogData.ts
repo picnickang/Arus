@@ -93,7 +93,7 @@ export function useWorkOrderFormDialogData({
   const isEditMode = mode === "edit";
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
 
-  const form = useForm<WorkOrderFormData>({
+  const form = useForm<WorkOrderFormData, unknown, WorkOrderFormData>({
     resolver: zodResolver(workOrderFormSchema),
     defaultValues: {
       vesselId: "",

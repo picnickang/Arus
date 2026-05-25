@@ -32,7 +32,7 @@ export function useOptimizationData() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const configForm = useForm<OptimizerConfigForm>({
+  const configForm = useForm<OptimizerConfigForm, unknown, OptimizerConfigForm>({
     resolver: zodResolver(optimizerConfigSchema),
     defaultValues: createDefaultOptimizerFormValues(),
   });

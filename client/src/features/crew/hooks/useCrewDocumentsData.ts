@@ -81,7 +81,7 @@ export function useCrewDocumentsData(crewId: string) {
   const [selectedDoc, setSelectedDoc] = useState<CrewDocument | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  const form = useForm<DocumentFormData>({
+  const form = useForm<DocumentFormData, unknown, DocumentFormData>({
     resolver: zodResolver(documentFormSchema),
     defaultValues: {
       documentType: "passport",

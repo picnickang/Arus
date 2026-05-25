@@ -119,7 +119,7 @@ export function EquipmentDecommissionDialog({
     ? calculateDepreciation(equipment.purchaseValue, equipment.purchaseDate)
     : { bookValue: 0, depreciationYears: 0 };
 
-  const form = useForm<DecommissionFormData>({
+  const form = useForm<DecommissionFormData, unknown, DecommissionFormData>({
     resolver: zodResolver(decommissionFormSchema),
     defaultValues: {
       reason: "end_of_life",

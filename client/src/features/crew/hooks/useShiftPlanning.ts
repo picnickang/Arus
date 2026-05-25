@@ -185,7 +185,7 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
   const [isShiftDialogOpen, setIsShiftDialogOpen] = useState(false);
 
-  const shiftForm = useForm<ShiftFormData>({
+  const shiftForm = useForm<ShiftFormData, unknown, ShiftFormData>({
     resolver: zodResolver(shiftFormSchema),
     defaultValues: createDefaultShiftFormValues(),
   });

@@ -84,7 +84,7 @@ export function useStormGeoSettingsData(vesselId?: string) {
     },
   });
 
-  const form = useForm<SettingsFormValues>({
+  const form = useForm<SettingsFormValues, unknown, SettingsFormValues>({
     resolver: zodResolver(settingsFormSchema),
     defaultValues: {
       vesselId: vesselId || "__all__",

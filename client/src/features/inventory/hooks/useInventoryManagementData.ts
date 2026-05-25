@@ -101,7 +101,7 @@ export function useInventoryManagementData() {
     }
   }, [filters, location, searchParams, setLocation]);
 
-  const partForm = useForm<PartFormData>({
+  const partForm = useForm<PartFormData, unknown, PartFormData>({
     resolver: zodResolver(partFormSchema),
     defaultValues: {
       partNumber: "",
