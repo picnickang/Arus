@@ -5,8 +5,10 @@
 
 import { Router, Response } from "express";
 import path from "node:path";
+import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { AuthenticatedRequest } from "../middleware/auth.js";
+import { requireRole } from "../middleware/role-auth.js";
 import { dbMlAnalyticsStorage } from "../repositories.js";
 import { mlTrainConfigSchema } from "@shared/schema-runtime";
 import type { InsertMlModel } from "@shared/schema";
@@ -281,46 +283,178 @@ router.post("/ml/models/:id/accuracy", async (req: AuthenticatedRequest, res: Re
 // handle. The window is small (single-digit ms) and idempotent — a
 // retry lands at the same end state.
 
-router.post("/ml/models/:id/promote", async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const candidate = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
-    if (!candidate) return sendNotFound(res, "ML model");
-    if (candidate.status === "training") return sendBadRequest(res, "Cannot promote a training model");
-    if (candidate.status === "failed") return sendBadRequest(res, "Cannot promote a failed model");
-    if (!candidate.equipmentType) return sendBadRequest(res, "Model is missing equipmentType");
+// ============================================================================
+// LR-1D — Two-person rule for ML model promotion.
+//
+// Promotion swaps the active production model for a given (org, equipmentType)
+// and there is no surgical way to roll back a bad prediction outcome after
+// the fact. We therefore gate `/promote` behind:
+//   (1) a `requireRole("admin", "chief_engineer")` role check;
+//   (2) a separate proposer step (`/promote/request`) that mints a
+//       short-lived `approvalToken` bound to (orgId, modelId, proposerUserId);
+//   (3) the `/promote` call must include that token AND be made by a
+//       DIFFERENT authenticated user (the approver) with the same role.
+//
+// Tokens live in memory (single-instance launch posture). Multi-instance
+// deployments should replace `promotionApprovals` with a Redis-backed
+// store; the public contract — proposer step + token + distinct approver —
+// is unchanged. Token TTL: 10 minutes (PROMOTION_APPROVAL_TTL_MS).
+// ============================================================================
 
-    const all = await dbMlAnalyticsStorage.getMlModels(req.orgId);
-    const currentlyDeployed = all.filter(
-      (m) => m.status === "deployed" && m.equipmentType === candidate.equipmentType && m.id !== candidate.id
-    );
+interface PromotionApproval {
+  token: string;
+  orgId: string;
+  modelId: string;
+  proposerUserId: string;
+  expiresAt: number;
+}
 
-    for (const prev of currentlyDeployed) {
-      await dbMlAnalyticsStorage.updateMlModel(
-        prev.id,
-        { status: "archived", archivedOn: new Date() },
-        req.orgId
-      );
-    }
-    const promoted = await dbMlAnalyticsStorage.updateMlModel(
-      candidate.id,
-      { status: "deployed", deployedOn: new Date(), archivedOn: null },
-      req.orgId
-    );
-    structuredLog("info", `ML model promoted`, {
-      operation: "ml_model_promote",
-      metadata: {
-        modelId: candidate.id,
-        equipmentType: candidate.equipmentType,
-        replacedIds: currentlyDeployed.map((m) => m.id),
-      },
-    });
-    sendSuccess(res, { message: "Model promoted", model: promoted, replaced: currentlyDeployed.map((m) => m.id) });
-  } catch (error) {
-    handleError(error, res, "promote ML model");
+const PROMOTION_APPROVAL_TTL_MS = 10 * 60 * 1000;
+const promotionApprovals = new Map<string, PromotionApproval>();
+
+function pruneExpiredApprovals(now: number): void {
+  for (const [k, v] of promotionApprovals) {
+    if (v.expiresAt <= now) promotionApprovals.delete(k);
   }
+}
+
+function approvalKey(orgId: string, modelId: string, token: string): string {
+  return `${orgId}::${modelId}::${token}`;
+}
+
+router.post(
+  "/ml/models/:id/promote/request",
+  requireRole("admin", "chief_engineer"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const proposerId = req.user?.id;
+      if (!proposerId) return sendBadRequest(res, "Proposer identity required");
+
+      const modelId = req.params['id'] ?? '';
+      const candidate = await dbMlAnalyticsStorage.getMlModel(modelId, req.orgId);
+      if (!candidate) return sendNotFound(res, "ML model");
+      if (candidate.status === "training") return sendBadRequest(res, "Cannot request promotion of a training model");
+      if (candidate.status === "failed") return sendBadRequest(res, "Cannot request promotion of a failed model");
+      if (!candidate.equipmentType) return sendBadRequest(res, "Model is missing equipmentType");
+
+      pruneExpiredApprovals(Date.now());
+      const token = randomBytes(24).toString("base64url");
+      const approval: PromotionApproval = {
+        token,
+        orgId: req.orgId,
+        modelId,
+        proposerUserId: proposerId,
+        expiresAt: Date.now() + PROMOTION_APPROVAL_TTL_MS,
+      };
+      promotionApprovals.set(approvalKey(req.orgId, modelId, token), approval);
+
+      structuredLog("info", `ML model promotion requested`, {
+        operation: "ml_model_promote_request",
+        metadata: {
+          modelId,
+          equipmentType: candidate.equipmentType,
+          proposerUserId: proposerId,
+        },
+      });
+
+      sendSuccess(res, {
+        message: "Promotion request recorded; second-approver must call /ml/models/:id/promote with this token within 10 minutes.",
+        approvalToken: token,
+        expiresAt: new Date(approval.expiresAt).toISOString(),
+      });
+    } catch (error) {
+      handleError(error, res, "request ML model promotion");
+    }
+  },
+);
+
+const promoteBodySchema = z.object({
+  approvalToken: z.string().min(1, "approvalToken is required (issued by POST /ml/models/:id/promote/request)"),
 });
 
-router.post("/ml/models/:id/rollback", async (req: AuthenticatedRequest, res: Response) => {
+router.post(
+  "/ml/models/:id/promote",
+  requireRole("admin", "chief_engineer"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const approverId = req.user?.id;
+      if (!approverId) return sendBadRequest(res, "Approver identity required");
+
+      const parsed = promoteBodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return sendBadRequest(res, parsed.error.issues[0]?.message ?? "Invalid promotion request");
+      }
+
+      const modelId = req.params['id'] ?? '';
+      pruneExpiredApprovals(Date.now());
+      const key = approvalKey(req.orgId, modelId, parsed.data.approvalToken);
+      const approval = promotionApprovals.get(key);
+      if (!approval) {
+        return res.status(412).json({
+          code: "PROMOTION_APPROVAL_MISSING",
+          message: "No matching promotion request found (token expired, never issued, or wrong org/model).",
+          error: "PreconditionFailed",
+        });
+      }
+      if (approval.proposerUserId === approverId) {
+        return res.status(412).json({
+          code: "PROMOTION_SELF_APPROVAL_FORBIDDEN",
+          message: "Two-person rule: the user who requested the promotion cannot also approve it.",
+          error: "PreconditionFailed",
+        });
+      }
+
+      const candidate = await dbMlAnalyticsStorage.getMlModel(modelId, req.orgId);
+      if (!candidate) return sendNotFound(res, "ML model");
+      if (candidate.status === "training") return sendBadRequest(res, "Cannot promote a training model");
+      if (candidate.status === "failed") return sendBadRequest(res, "Cannot promote a failed model");
+      if (!candidate.equipmentType) return sendBadRequest(res, "Model is missing equipmentType");
+
+      const all = await dbMlAnalyticsStorage.getMlModels(req.orgId);
+      const currentlyDeployed = all.filter(
+        (m) => m.status === "deployed" && m.equipmentType === candidate.equipmentType && m.id !== candidate.id
+      );
+
+      for (const prev of currentlyDeployed) {
+        await dbMlAnalyticsStorage.updateMlModel(
+          prev.id,
+          { status: "archived", archivedOn: new Date() },
+          req.orgId
+        );
+      }
+      const promoted = await dbMlAnalyticsStorage.updateMlModel(
+        candidate.id,
+        { status: "deployed", deployedOn: new Date(), archivedOn: null },
+        req.orgId
+      );
+
+      // Consume the approval — single-use.
+      promotionApprovals.delete(key);
+
+      structuredLog("info", `ML model promoted`, {
+        operation: "ml_model_promote",
+        metadata: {
+          modelId: candidate.id,
+          equipmentType: candidate.equipmentType,
+          replacedIds: currentlyDeployed.map((m) => m.id),
+          proposerUserId: approval.proposerUserId,
+          approverUserId: approverId,
+        },
+      });
+      return sendSuccess(res, {
+        message: "Model promoted",
+        model: promoted,
+        replaced: currentlyDeployed.map((m) => m.id),
+        proposerUserId: approval.proposerUserId,
+        approverUserId: approverId,
+      });
+    } catch (error) {
+      handleError(error, res, "promote ML model");
+    }
+  },
+);
+
+router.post("/ml/models/:id/rollback", requireRole("admin", "chief_engineer"), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const current = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!current) return sendNotFound(res, "ML model");

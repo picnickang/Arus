@@ -60,6 +60,27 @@ jobs:
       - name: Route module import smoke check
         run: npx tsx scripts/check-route-imports.mjs
 
+      - name: LR-1B — Tenant-gate audit (requireOrgId)
+        run: npx tsx scripts/check-routes-require-orgid.ts
+
+      - name: LR-1A — Every migration has a matching .down.sql
+        run: |
+          set -e
+          missing=0
+          for up in migrations/[0-9]*.sql; do
+            case "$up" in *.down.sql) continue;; esac
+            down="${up%.sql}.down.sql"
+            if [ ! -f "$down" ]; then
+              echo "MISSING reverse migration: $down"
+              missing=$((missing+1))
+            fi
+          done
+          if [ "$missing" -gt 0 ]; then
+            echo "::error::$missing migration(s) missing .down.sql — see LR-1A"
+            exit 1
+          fi
+          echo "OK — every migration has a .down.sql"
+
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
@@ -110,6 +131,11 @@ jobs:
 
       - name: Run migrations
         run: npm run db:push
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
+
+      - name: LR-1A — Migration reversibility (up → down → up schema-diff)
+        run: bash scripts/check-migrations-reversible.sh
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 

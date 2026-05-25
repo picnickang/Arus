@@ -16,3 +16,10 @@ export * from "../../shared/schema";
 export type * from "../../shared/schema";
 export type * from "../../shared/schema-sqlite-vessel";
 export type * from "../../shared/schema-sqlite-sync";
+
+// LR-1D — the production `@shared/schema-runtime` barrel re-exports
+// Zod request validators from `shared/validation/*`. Mirror them here
+// so tests that import the route modules (e.g. ml model-routes,
+// promote two-person rule) get the real validators rather than
+// `undefined`.
+export { mlTrainConfigSchema } from "../../shared/validation/ml";

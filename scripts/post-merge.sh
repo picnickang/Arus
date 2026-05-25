@@ -1,7 +1,38 @@
 #!/bin/bash
+# ============================================================================
+# Post-merge hook — runs after the platform merges a task agent's branch.
+#
+# LR-1A: previously this script ran `drizzle-kit push --force` against the
+# live database. That bypassed the SQL migration journal, prevented
+# rollback, and made the in-DB schema diverge silently from what's
+# checked into `migrations/`. We now apply migrations explicitly through
+# the SQL migration runner introduced in LR-1A, which keeps an
+# `arus_migrations` tracker table and refuses to run unreversible
+# migrations in the reversibility CI check.
+#
+# If the application's Drizzle schema adds new columns/tables that are
+# NOT yet represented as a `migrations/NNNN_*.sql` file, the
+# `drizzle-kit generate` step here will produce one — the developer
+# must then commit the generated SQL (and its .down.sql) so the next
+# post-merge run applies it. The script intentionally does NOT call
+# `drizzle-kit push --force`; schema additions must go through a
+# reviewable, reversible migration.
+# ============================================================================
 set -e
+
 npm install
-npx drizzle-kit push --force
+
+# Generate any missing migrations from the Drizzle schema. This is a
+# no-op if the schema is already in sync. Drizzle writes new files into
+# migrations/ and updates migrations/meta/_journal.json; in CI the
+# expectation is that this produces no new files (the developer should
+# have committed them locally). Non-fatal so the apply step still runs.
+npx drizzle-kit generate || \
+  echo "[post-merge] drizzle-kit generate reported no changes or failed (non-fatal)"
+
+# Apply every NNNN_*.sql in migrations/ inside a transaction, tracking
+# state in arus_migrations. Idempotent — re-running applies nothing.
+node scripts/run-sql-migrations.mjs up
 
 # Push A1 — One-shot historical backfill into prediction_outcomes so
 # the first weekly retrain has labels to score against. Idempotent
