@@ -1,0 +1,242 @@
+Enter Minimal UX Simplification Mode.
+
+Goal:
+Simplify the ARUS pilot UI without redesigning the architecture or changing backend behavior.
+
+Reference the attached UI mockups/images as the target direction for:
+- layout
+- navigation hierarchy
+- visual density
+- admin/user separation
+- mobile responsiveness
+- dashboard simplification
+
+Match the structural direction of the mockups while preserving the existing architecture and workflows.
+
+This is NOT a full UI rewrite.
+This is a low-risk pilot usability pass focused on:
+- reducing cognitive overload
+- clarifying role separation
+- simplifying navigation
+- improving first-use comprehension
+
+Do NOT remove functionality.
+Do NOT change APIs.
+Do NOT rewrite core frontend architecture.
+
+==================================================
+PRIMARY UX OBJECTIVE
+==================================================
+
+The current UI exposes too many modules/options simultaneously.
+
+Implement a simpler role-oriented structure:
+
+ENTRY SPLIT:
+- Admin Login
+- User Login
+
+==================================================
+TEMPORARY PILOT ADMIN ACCOUNT
+==================================================
+
+For pilot/demo/testing purposes only:
+
+Create or ensure existence of:
+
+Username:
+admin
+
+Password:
+admin
+
+Privileges:
+full system administrator access
+
+Requirements:
+- clearly mark as DEVELOPMENT/PILOT ONLY
+- ensure it is disabled or blocked automatically in production builds
+- do NOT weaken production authentication/security flows
+- place behind environment gating:
+  NODE_ENV !== "production"
+  OR explicit DEV_ADMIN_ENABLED flag
+
+Do not hardcode insecure credentials into production runtime paths.
+
+==================================================
+ADMIN EXPERIENCE
+==================================================
+
+After login, Admin users should see ONLY the modules relevant to their role.
+
+Top-level navigation should be simplified into these categories:
+
+- Maintenance
+- System Admin
+- Crew Management
+- Logistics
+- AI Analytics
+
+Hide secondary/advanced tools behind sub-navigation instead of exposing everything at once.
+
+Role-aware filtering:
+- chief_engineer sees maintenance-heavy flows
+- fleet_manager sees fleet/logistics/analytics
+- system_admin sees admin/configuration
+- deck_officer sees operational/dashboard flows
+
+==================================================
+USER EXPERIENCE
+==================================================
+
+Non-admin users should see a drastically simplified interface:
+
+Primary areas:
+- Dashboard
+- Feedback / Flags
+
+The dashboard should emphasize:
+- assigned tasks
+- alerts
+- relevant vessel/equipment info
+- simple status visibility
+
+Do NOT expose administrative complexity to standard users.
+
+==================================================
+UX IMPROVEMENTS
+==================================================
+
+Add/improve:
+- loading states
+- empty states
+- error states
+- mobile responsiveness
+- clearer headings
+- simplified side navigation
+- reduced nesting depth
+- role-specific landing pages
+
+Prefer:
+- progressive disclosure
+- fewer simultaneous options
+- cleaner grouping
+- action-oriented labels
+
+Avoid:
+- giant dashboard walls
+- overly dense menus
+- exposing internal system structure
+- changing backend contracts
+
+==================================================
+MANDATORY ARCHITECTURE REQUIREMENTS
+==================================================
+
+Hexagonal modularity must be preserved.
+
+Do not place business logic directly inside React components.
+
+Follow this structure where applicable:
+
+- domain:
+  role/menu/navigation models and types
+
+- application:
+  role-to-navigation mapping
+  visibility rules
+  navigation orchestration
+
+- infrastructure:
+  adapters to auth/session/feature flags
+
+- interfaces:
+  React components
+  layouts
+  route views
+
+Frontend architecture rules:
+- Components render state; they do not decide policy.
+- Role visibility logic must live in typed application/navigation services.
+- Reusable navigation config must be centralized.
+- Avoid duplicated role checks scattered across components.
+- Preserve backend RBAC enforcement; UI visibility is usability only, not security.
+
+==================================================
+TECHNICAL CONSTRAINTS
+==================================================
+
+Preserve:
+- existing routes
+- backend APIs
+- RBAC/security behavior
+- TypeScript strict cleanliness
+- existing workflows
+
+Do NOT:
+- remove features
+- introduce new business logic
+- create a new design system
+- perform large component rewrites unless necessary
+
+Prefer:
+- navigation restructuring
+- layout simplification
+- conditional rendering
+- role-aware menus
+- wrapper components
+
+==================================================
+IMPLEMENTATION PROCESS
+==================================================
+
+Before coding:
+1. Inspect current frontend routing/navigation/auth structure.
+2. Identify the safest integration points.
+3. Produce a minimal module/file plan.
+4. Then implement incrementally.
+
+Prefer small isolated changes over sweeping rewrites.
+
+==================================================
+TESTING & VALIDATION
+==================================================
+
+Add/update:
+- Playwright smoke tests for:
+  - Admin login/navigation
+  - User login/navigation
+  - Role-based visibility
+- basic responsive/mobile checks where feasible
+
+Validation requirements:
+- npx tsc --noEmit
+- strict checks
+- eslint
+- relevant frontend tests
+- Playwright smoke
+- architect/code review
+
+Must remain:
+- explicit-any = 0
+- no as any
+- no ts-ignore
+- no eslint-disable
+- no unsafe casts
+- no broken routes
+- no removed functionality
+
+==================================================
+DELIVERABLE
+==================================================
+
+Return:
+- simplified navigation structure
+- hexagonal structure used
+- where role/navigation policy lives
+- changed files/modules
+- screenshots/previews matching the attached mockups
+- tests added
+- validation results
+- UX rationale
+- remaining UX limitations for future redesign
