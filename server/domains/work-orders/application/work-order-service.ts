@@ -8,6 +8,7 @@ import type {
 import { workOrderRepository } from "../repository";
 import { db } from "../../../db.js";
 import type { InsertWorkOrderCompletion, WorkOrderCompletion } from "@shared/schema";
+import { fireInventoryMovementProjections } from "../../../db/inventory/index.js";
 
 type WorkOrderPriority = "low" | "medium" | "high" | "critical";
 const VALID_PRIORITIES = new Set<WorkOrderPriority>(["low", "medium", "high", "critical"]);
@@ -144,16 +145,39 @@ export class WorkOrderApplicationService {
     orgId?: string,
     userId?: string,
   ): Promise<WorkOrderCompletion> {
-    const completion = await workOrderRepository.complete(workOrderId, completionData);
-
-    await this.deps.eventPublisher.publish({
-      type: "WORK_ORDER_COMPLETED",
-      workOrderId,
-      orgId: orgId || "default",
-      completedBy: userId,
-      timestamp: new Date(),
+    // Transactional-outbox: the completion write (work_orders update +
+    // work_order_completions insert + inventory_movements rows) and the
+    // outbox enqueue commit or roll back together. The in-process bus
+    // emit is deferred — `publisher.publish(event, tx)` returns a thunk
+    // we only invoke after `db.transaction(...)` resolves, so existing
+    // subscribers never observe an event from a tx that rolled back.
+    // Inventory-movement projections also fire only post-commit to keep
+    // the graph from leading relational truth (Task #81 invariant).
+    let postCommit: (() => void) | null = null;
+    const pendingProjections: Awaited<
+      ReturnType<typeof workOrderRepository.completeInTx>
+    >["pendingProjections"] = [];
+    const completion = await db.transaction(async (tx) => {
+      const r = await workOrderRepository.completeInTx(tx, workOrderId, completionData);
+      pendingProjections.push(...r.pendingProjections);
+      postCommit = await this.deps.eventPublisher.publish(
+        {
+          type: "WORK_ORDER_COMPLETED",
+          workOrderId,
+          orgId: orgId || completionData.orgId || "default",
+          completedBy: userId,
+          timestamp: new Date(),
+        },
+        tx
+      );
+      return r.completion;
     });
-
+    if (postCommit) {
+      (postCommit as () => void)();
+    }
+    if (pendingProjections.length > 0 && completionData.orgId) {
+      await fireInventoryMovementProjections(completionData.orgId, pendingProjections);
+    }
     return completion;
   }
 

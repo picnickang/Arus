@@ -11,6 +11,7 @@ import { db } from "../../db-config";
 import { parts, stock } from "@shared/schema-runtime";
 import type { Part, Stock, InsertPart, PartsInventory, InsertPartsInventory } from "@shared/schema";
 import type { PartFilters, AvailabilityResult } from "./types.js";
+import { stripUndefined } from "../../lib/strip-undefined";
 
 export function partAndStockToPartsInventory(
   part: Part,
@@ -101,9 +102,12 @@ export class DbPartsStorage {
   async updatePart(id: string, updates: Partial<InsertPart>, orgId?: string): Promise<Part> {
     this.validateOrgId(orgId, "updatePart");
     const conditions = orgId ? and(eq(parts.id, id), eq(parts.orgId, orgId)) : eq(parts.id, id);
+    // Drizzle's `.set({ col: undefined })` semantics are version-dependent;
+    // strip undefined keys to preserve falsy values (0, false, '') while
+    // never writing NULL for omitted partial-update fields.
     const [updated] = await db
       .update(parts)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...stripUndefined(updates), updatedAt: new Date() })
       .where(conditions)
       .returning();
     if (!updated) {

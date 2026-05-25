@@ -79,6 +79,21 @@ export class WorkOrderRepository {
     return workOrderService.completeWorkOrder(workOrderId, completion);
   }
 
+  /**
+   * Transactional variant: completes the work order on the caller's
+   * `tx` and returns the pending inventory-movement projections so the
+   * caller can fire them AFTER the outer transaction commits. Enables
+   * the application service to fuse the completion write and the
+   * domain-event outbox enqueue into a single atomic commit.
+   */
+  async completeInTx(
+    tx: Parameters<typeof workOrderService.completeWorkOrderInTx>[0],
+    workOrderId: string,
+    completion: InsertWorkOrderCompletion
+  ): Promise<Awaited<ReturnType<typeof workOrderService.completeWorkOrderInTx>>> {
+    return workOrderService.completeWorkOrderInTx(tx, workOrderId, completion);
+  }
+
   async getCompletions(filters: {
     equipmentId?: string | undefined;
     vesselId?: string | undefined;

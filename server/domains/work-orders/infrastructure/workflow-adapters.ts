@@ -226,7 +226,13 @@ export class LegacyCompletionAdapter implements ILegacyCompletionPort {
     orgId: string,
     userId?: string
   ): Promise<void> {
-    const { workOrderService } = await import("../../../services/domains/work-order-service");
+    // Route through the application service so the completion write
+    // (work_orders update + work_order_completions insert +
+    // inventory_movements) and the WORK_ORDER_COMPLETED outbox enqueue
+    // commit atomically. The legacy single-tx path remains via the
+    // app service's internal `completeWorkOrderInTx` helper, but the
+    // event publish is now part of the same db.transaction.
+    const { workOrderAppService } = await import("../application");
     const completionRecord = {
       workOrderId,
       orgId,
@@ -242,7 +248,7 @@ export class LegacyCompletionAdapter implements ILegacyCompletionPort {
       qualityCheckPassed: completionData.qualityCheckPassed,
       actualDurationHours: completionData.actualDurationHours,
     };
-    await workOrderService.completeWorkOrder(workOrderId, completionRecord);
+    await workOrderAppService.completeWorkOrder(workOrderId, completionRecord, orgId, userId);
   }
 
   async aggregateProcurementCosts(workOrderId: string, orgId: string): Promise<void> {

@@ -688,18 +688,26 @@ class WorkOrderService {
     });
   }
 
-  async completeWorkOrder(
+  /**
+   * Complete a work order on a caller-supplied transaction handle.
+   *
+   * Used by the application layer to fuse the completion write and the
+   * outbox enqueue into a single atomic commit (transactional-outbox).
+   * The caller is responsible for invoking
+   * `fireInventoryMovementProjections(orgId, pendingProjections)` AFTER
+   * the surrounding `db.transaction(...)` returns successfully — firing
+   * inside the transaction would let the graph lead relational truth
+   * on rollback.
+   */
+  async completeWorkOrderInTx(
+    tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
     workOrderId: string,
     completionData: InsertWorkOrderCompletion
-  ): Promise<WorkOrderCompletion> {
+  ): Promise<{ completion: WorkOrderCompletion; pendingProjections: PendingMovementProjection[] }> {
     const { workOrderCompletions } = await import("@shared/schema-runtime");
     const now = new Date();
-    // Task #81 — Capture inventoryMovement ids inside the transaction
-    // so we can project them into the knowledge graph AFTER commit.
-    // Same post-commit pattern used by dbInventoryStorage (avoids the
-    // graph leading relational truth on rollback).
     const pendingProjections: PendingMovementProjection[] = [];
-    const completion = await db.transaction(async (tx) => {
+    const completion = await (async () => {
       const completionDataExt = completionData as InsertWorkOrderCompletion & {
         downtimeCostPerHour?: number | null;
         totalCost?: number | null;
@@ -785,6 +793,24 @@ class WorkOrderService {
         }
       }
       return completion;
+    })();
+    return { completion, pendingProjections };
+  }
+
+  /**
+   * Convenience wrapper that opens its own transaction. Preserved for
+   * legacy callers (workflow adapters, repository facade) that do not
+   * thread a transaction handle.
+   */
+  async completeWorkOrder(
+    workOrderId: string,
+    completionData: InsertWorkOrderCompletion
+  ): Promise<WorkOrderCompletion> {
+    const pendingProjections: PendingMovementProjection[] = [];
+    const completion = await db.transaction(async (tx) => {
+      const r = await this.completeWorkOrderInTx(tx, workOrderId, completionData);
+      pendingProjections.push(...r.pendingProjections);
+      return r.completion;
     });
     // Task #81 — fire graph projections post-commit. Best-effort by
     // contract; logged at warn level inside the helper if the graph

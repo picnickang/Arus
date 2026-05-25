@@ -61,26 +61,32 @@ export const alertConfigurations = pgTable(
 
 // Alert notifications
 // Matches real DB: no vesselId, no severity columns.
-export const alertNotifications = pgTable("alert_notifications", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id")
-    .notNull()
-    .references(() => organizations.id),
-  equipmentId: varchar("equipment_id")
-    .notNull()
-    .references(() => equipment.id),
-  sensorType: text("sensor_type").notNull(),
-  alertType: text("alert_type").notNull(),
-  message: text("message").notNull(),
-  value: real("value").notNull(),
-  threshold: real("threshold").notNull(),
-  acknowledged: boolean("acknowledged").default(false),
-  acknowledgedAt: timestamp("acknowledged_at", { mode: "date" }),
-  acknowledgedBy: text("acknowledged_by"),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
-});
+export const alertNotifications = pgTable(
+  "alert_notifications",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    equipmentId: varchar("equipment_id")
+      .notNull()
+      .references(() => equipment.id),
+    sensorType: text("sensor_type").notNull(),
+    alertType: text("alert_type").notNull(),
+    message: text("message").notNull(),
+    value: real("value").notNull(),
+    threshold: real("threshold").notNull(),
+    acknowledged: boolean("acknowledged").default(false),
+    acknowledgedAt: timestamp("acknowledged_at", { mode: "date" }),
+    acknowledgedBy: text("acknowledged_by"),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+  },
+  (table) => ({
+    orgEquipmentTypeIdx: sql`CREATE INDEX IF NOT EXISTS idx_alert_notifications_org_equipment_type ON alert_notifications (org_id, equipment_id, alert_type)`,
+  })
+);
 
 // Alert suppressions
 // Real DB: equipment_id and sensor_type are NOT NULL plain text (no FK to equipment.id),

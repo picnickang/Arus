@@ -25,6 +25,7 @@ import type {
   Part,
 } from "@shared/schema";
 import type { StockFilters } from "./types.js";
+import { stripUndefined } from "../../lib/strip-undefined";
 
 export class DbStockStorage {
   private validateOrgId(orgId: string | undefined, method: string): void {
@@ -175,9 +176,11 @@ export class DbStockStorage {
     const conditions = orgId
       ? and(eq(suppliers.id, id), eq(suppliers.orgId, orgId))
       : eq(suppliers.id, id);
+    // Strip undefined to preserve falsy values (0, false, '') and avoid
+    // version-dependent Drizzle behaviour writing NULL for omitted keys.
     const [updated] = await db
       .update(suppliers)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...stripUndefined(updates), updatedAt: new Date() })
       .where(conditions)
       .returning();
     if (!updated) {
@@ -230,9 +233,11 @@ export class DbStockStorage {
   async updateStock(id: string, updates: WidenPartial<InsertStock>, orgId?: string): Promise<Stock> {
     this.validateOrgId(orgId, "updateStock");
     const conditions = orgId ? and(eq(stock.id, id), eq(stock.orgId, orgId)) : eq(stock.id, id);
+    // Strip undefined to preserve falsy values (0, false, '') and avoid
+    // version-dependent Drizzle behaviour writing NULL for omitted keys.
     const [updated] = await db
       .update(stock)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...stripUndefined(updates), updatedAt: new Date() })
       .where(conditions)
       .returning();
     if (!updated) {

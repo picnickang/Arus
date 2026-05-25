@@ -83,6 +83,7 @@ export const workOrders = pgTable(
     dueDateIdx: sql`CREATE INDEX IF NOT EXISTS idx_work_orders_due_date ON work_orders (planned_end_date)`,
     assignedCrewIdx: sql`CREATE INDEX IF NOT EXISTS idx_work_orders_assigned_crew ON work_orders (assigned_crew_id)`,
     orgStatusIdx: sql`CREATE INDEX IF NOT EXISTS idx_work_orders_org_status ON work_orders (org_id, status, created_at DESC)`,
+    orgVesselStatusIdx: sql`CREATE INDEX IF NOT EXISTS idx_work_orders_org_vessel_status ON work_orders (org_id, vessel_id, status)`,
   })
 );
 

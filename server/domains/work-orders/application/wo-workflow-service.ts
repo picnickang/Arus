@@ -131,8 +131,12 @@ export class WorkOrderWorkflowService {
       };
     }
 
+    // NOTE: WORK_ORDER_COMPLETED is now published transactionally
+    // inside `legacyCompletion.completeWorkOrder` via the application
+    // service's atomic outbox enqueue, so we no longer emit it here
+    // (doing so would double-publish). The status-changed event remains
+    // best-effort because it is not part of the completion contract.
     await this.events.emitStatusChanged(workOrderId, orgId, wo.status, "completed", userId);
-    await this.events.emitCompleted(workOrderId, orgId, userId, laborHours, structuredCompletionNotes);
 
     // Task #80 — capture a failure_history row when the closeout
     // carries a cause. Best-effort: the port itself swallows errors
