@@ -306,6 +306,11 @@ export const partFailureHistory = pgTable(
 );
 
 // Industry benchmarks
+// P2 #17 — tenant scoping: GLOBAL (intentional). No org_id column.
+// Benchmarks represent industry-wide reference values for an
+// equipment type and are shared read-only across all tenants. If a
+// tenant ever needs to override benchmarks privately, add a new
+// `tenant_benchmarks` table rather than back-filling org_id here.
 export const industryBenchmarks = pgTable(
   "industry_benchmarks",
   {

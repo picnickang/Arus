@@ -67,3 +67,30 @@ export function recordSuspiciousOrgId() {
 export function recordForbiddenOrgIdBlocked() {
   forbiddenOrgIdBlockedTotal.inc();
 }
+
+// ===== P2 #31 — USER-VISIBLE STUB OBSERVABILITY =====
+/**
+ * Counts every time a safe-degraded code path returns a stub/default
+ * value that a user can observe in a core workflow (scheduling buffer,
+ * compliance report, ERP import). The TODOs in the call sites remain;
+ * this counter just makes their frequency visible to operators so the
+ * "silently degraded" state stops being silent.
+ *
+ * Labels (kept low-cardinality):
+ *   workflow   — pdm_schedule | crew_compliance_report | amos_import
+ *   stub       — short identifier (e.g. telemetry_freshness_default,
+ *                hours_of_rest_unwired, crew_rotation_unwired,
+ *                maintenance_plan_unmapped)
+ */
+export const userVisibleStubInvokedTotal = new client.Counter({
+  name: "arus_user_visible_stub_invoked_total",
+  help: "Safe-degraded stub returned in a user-visible core workflow (P2 #31)",
+  labelNames: ["workflow", "stub"],
+});
+
+export function recordUserVisibleStub(
+  workflow: "pdm_schedule" | "crew_compliance_report" | "amos_import",
+  stub: string
+): void {
+  userVisibleStubInvokedTotal.inc({ workflow, stub });
+}

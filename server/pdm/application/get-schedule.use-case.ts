@@ -5,6 +5,7 @@ import type {
   ScheduleKpis,
   BlockReason,
 } from "../domain/types.js";
+import { recordUserVisibleStub } from "../../observability/security-metrics.js";
 
 export interface GetScheduleInput {
   orgId: string;
@@ -179,7 +180,12 @@ export function createGetScheduleUseCase(repository: PdmRepositoryPort): GetSche
         // TODO: Integrate with telemetry heartbeat service to get actual freshness state
         // For now, default to 'online' - when telemetry integration is added, this should
         // query equipment heartbeat status from repository.getTelemetryFreshness(alert.equipmentId)
+        // P2 #31 — defaulting to 'online' biases the scheduling buffer
+        // toward the optimistic end (no extra prep days). Operators see
+        // this in the scheduled task window, so emit a counter for
+        // visibility while the heartbeat wiring lands.
         const telemetryFreshness: TelemetryFreshness = "online";
+        recordUserVisibleStub("pdm_schedule", "telemetry_freshness_default");
 
         const bufferDays = computeBufferDays({
           confidence: alert.confidence,

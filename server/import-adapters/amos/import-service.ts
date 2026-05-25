@@ -35,6 +35,7 @@ import { db } from "../../db";
 import { eq, and } from "drizzle-orm";
 import { equipment, workOrders, parts, stock } from "@shared/schema";
 import { createLogger } from "../../lib/structured-logger";
+import { recordUserVisibleStub } from "../../observability/security-metrics.js";
 import { projectEquipment, retractInstalledOn } from "../../graph/projector";
 
 const logger = createLogger("amos-import");
@@ -595,7 +596,11 @@ class AmosImportService {
 
     // For now, store as a generic upsert
     // TODO: Map to maintenance_templates table when it exists with templateCode unique constraint
+    // P2 #31 — AMOS imports report "skipped" rows to the operator UI;
+    // emit a counter so the volume of unmapped maintenance-plan rows
+    // is visible while the templates-table mapping is pending.
     logger.info("Maintenance plan import (stub)", { templateCode: cleanData['templateCode'] });
+    recordUserVisibleStub("amos_import", "maintenance_plan_unmapped");
     return "skipped";
   }
 

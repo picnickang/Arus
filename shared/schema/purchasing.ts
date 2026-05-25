@@ -105,9 +105,13 @@ export const purchaseOrderItems = pgTable(
     orgId: varchar("org_id")
       .notNull()
       .references(() => organizations.id),
+    // P2 #16 — purchase_order_items are exclusive line-items of the
+    // parent purchase_orders row. Cascading delete keeps the two in
+    // lock-step (migration 0023). The part_id FK stays RESTRICT
+    // because parts are cross-aggregate reference data.
     poId: varchar("po_id")
       .notNull()
-      .references(() => purchaseOrders.id),
+      .references(() => purchaseOrders.id, { onDelete: "cascade" }),
     partId: varchar("part_id")
       .notNull()
       .references(() => parts.id),
@@ -199,9 +203,13 @@ export const purchaseRequestItems = pgTable(
     orgId: varchar("org_id")
       .notNull()
       .references(() => organizations.id),
+    // P2 #16 — purchase_request_items are exclusive line-items of
+    // the parent purchase_requests row. Cascading delete keeps the
+    // two in lock-step (migration 0023). part_id / supplier_id FKs
+    // stay RESTRICT because both are cross-aggregate reference data.
     prId: varchar("pr_id")
       .notNull()
-      .references(() => purchaseRequests.id),
+      .references(() => purchaseRequests.id, { onDelete: "cascade" }),
     partId: varchar("part_id")
       .notNull()
       .references(() => parts.id),

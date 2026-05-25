@@ -12,6 +12,7 @@ import type {
   CrewChange,
 } from "../domain/types.js";
 import { logger } from "../../../utils/logger.js";
+import { recordUserVisibleStub } from "../../../observability/security-metrics.js";
 
 const LOG_CTX = "CrewComplianceGenerator";
 
@@ -100,6 +101,10 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
     _vesselIds: string[] | null
   ): Promise<HoRViolation[]> {
     // TODO(arus-pdm): Wire to hours-of-rest tracking domain once it exposes a query.
+    // P2 #31 — empty array is observable by report consumers (compliance
+    // score skews to 100). Emit a counter so the always-zero state is
+    // visible until the HoR domain exposes a query port.
+    recordUserVisibleStub("crew_compliance_report", "hours_of_rest_unwired");
     return [];
   }
 
@@ -108,6 +113,8 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
     _vesselIds: string[] | null
   ): Promise<CrewChange[]> {
     // TODO(arus-pdm): Wire to crew rotation domain once it exposes a query.
+    // P2 #31 — same visibility counter for the crew-rotation stub.
+    recordUserVisibleStub("crew_compliance_report", "crew_rotation_unwired");
     return [];
   }
 

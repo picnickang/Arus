@@ -162,6 +162,11 @@ export const twinEvents = pgTable(
 // Equipment-pin coordinates live in metadata, not hardcoded — works for any
 // vessel owner's model. Files are stored on the application-owned filesystem
 // and served through the auth-checked GET route (never publicly addressable).
+//
+// P2 #17 — tenant scoping: TENANT-SCOPED. Every row carries orgId (notNull)
+// and the (orgId, vesselId) index is the primary lookup. Read/write paths
+// in server/domains/digital-twin/** filter by req.orgId; per the product
+// decision a vessel 3D model is private to the org that uploaded it.
 export const vessel3dModels = pgTable(
   "vessel_3d_models",
   {

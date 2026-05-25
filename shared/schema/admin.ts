@@ -614,6 +614,12 @@ export type InsertErrorLog = z.infer<typeof insertErrorLogSchema>;
 // ============================================================================
 // SOFTWARE PATCHES
 // ============================================================================
+//
+// P2 #17 — tenant scoping: TENANT-SCOPED. Every row carries org_id
+// (notNull) and the (org_id, version) index is the primary lookup.
+// Patch availability, applied status, and rollback state are scoped
+// per-org so an operator on tenant A cannot observe tenant B's
+// patch rollouts.
 
 export const softwarePatches = pgTable(
   "software_patches",
