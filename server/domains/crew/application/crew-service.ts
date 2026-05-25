@@ -170,7 +170,7 @@ export class CrewApplicationService {
     return this.deps.crewExtensionsStorage.updateCrewCertification(
       id,
       data,
-      orgId || (typeof data.orgId === "string" ? data.orgId : ""),
+      orgId || (typeof data['orgId'] === "string" ? data['orgId'] : ""),
     );
   }
 
@@ -207,7 +207,7 @@ export class CrewApplicationService {
     return this.deps.crewExtensionsStorage.updateCrewDocument(
       id,
       data,
-      orgId || (typeof data.orgId === "string" ? data.orgId : ""),
+      orgId || (typeof data['orgId'] === "string" ? data['orgId'] : ""),
     );
   }
 
@@ -283,7 +283,7 @@ export class CrewApplicationService {
     return this.deps.crewStorage.updateCrewLeave(
       id,
       data,
-      orgId || (typeof data.orgId === "string" ? data.orgId : ""),
+      orgId || (typeof data['orgId'] === "string" ? data['orgId'] : ""),
     );
   }
 

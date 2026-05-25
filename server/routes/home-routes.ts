@@ -37,7 +37,7 @@ export function registerHomeRoutes(
     withErrorHandling("get home attention summary", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
 
-      const sinceParam = (req.query.since as string) || (req.headers["x-last-visit"] as string);
+      const sinceParam = (req.query['since'] as string) || (req.headers["x-last-visit"] as string);
       const lastVisitTime = sinceParam ? new Date(sinceParam) : null;
 
       const [alerts, workOrders, equipmentList] = await Promise.allSettled([

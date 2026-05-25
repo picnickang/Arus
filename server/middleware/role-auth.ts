@@ -33,7 +33,7 @@ export function requireRole(...allowedRoles: CrewRole[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
     const user = (req as AuthenticatedRequest).user;
 
-    if (process.env.NODE_ENV === "development" && !user) {
+    if (process.env['NODE_ENV'] === "development" && !user) {
       logger.info("[DEV MODE] Role check bypassed - no user attached");
       return next();
     }

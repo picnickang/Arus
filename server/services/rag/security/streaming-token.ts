@@ -42,7 +42,7 @@ setInterval(() => {
 }, 60000);
 
 // Secret key for signing tokens (should be from env in production)
-const SECRET_KEY = process.env.RAG_STREAMING_SECRET || crypto.randomBytes(32).toString("hex");
+const SECRET_KEY = process.env['RAG_STREAMING_SECRET'] || crypto.randomBytes(32).toString("hex");
 
 export class StreamingTokenService {
   private config: RagSecurityConfig["auth"];

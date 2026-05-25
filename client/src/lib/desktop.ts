@@ -46,7 +46,7 @@ async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Prom
   if (!core) {
     throw new Error("Tauri core not available");
   }
-  return ((core.invoke as (c: string, a?: Record<string, unknown>) => unknown)(cmd, args)) as Promise<T>;
+  return ((core['invoke'] as (c: string, a?: Record<string, unknown>) => unknown)(cmd, args)) as Promise<T>;
 }
 
 interface TauriUpdate {
@@ -96,7 +96,7 @@ export function getDesktopAPI(): DesktopAPI | undefined {
           return null;
         }
 
-        const update = (await (updater.check as () => Promise<TauriUpdate | null>)()) as TauriUpdate | null;
+        const update = (await (updater['check'] as () => Promise<TauriUpdate | null>)()) as TauriUpdate | null;
         if (!update) {
           _updateCache = null;
           return null;
@@ -124,14 +124,14 @@ export function getDesktopAPI(): DesktopAPI | undefined {
 
         const update =
           _updateCache?.raw ??
-          ((await (updater.check as () => Promise<TauriUpdate | null>)()) as TauriUpdate | null);
+          ((await (updater['check'] as () => Promise<TauriUpdate | null>)()) as TauriUpdate | null);
         _updateCache = null;
 
         if (update) {
           await update.downloadAndInstall();
           const process = await dynamicImport(TAURI_PROCESS);
           if (process) {
-            await (process.relaunch as () => Promise<void>)();
+            await (process['relaunch'] as () => Promise<void>)();
           }
         }
       } catch (err) {

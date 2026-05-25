@@ -102,7 +102,7 @@ export async function compileUserPermissions(
   return compiled;
 }
 
-const DEV_MODE = process.env.NODE_ENV === "development";
+const DEV_MODE = process.env['NODE_ENV'] === "development";
 const DEV_USER_ID = "dev-user-id";
 const DEV_ADMIN_USER_ID = "dev-admin-user";
 

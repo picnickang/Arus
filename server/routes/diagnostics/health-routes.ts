@@ -15,7 +15,7 @@ export function registerHealthRoutes(router: Router) {
       const result: HealthCheckResult = {
         status: overallStatus,
         timestamp: new Date().toISOString(),
-        version: process.env.npm_package_version || "1.0",
+        version: process.env['npm_package_version'] || "1.0",
         uptime: Math.round((Date.now() - startTime) / 1000),
         checks,
       };

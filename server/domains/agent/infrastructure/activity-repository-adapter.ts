@@ -190,30 +190,30 @@ export class ActivityRepositoryAdapter implements ActivityPort {
 
     return runs.map((r) => {
       const output = r.output as Record<string, unknown> | null;
-      const toolCallCount = typeof output?.toolCallCount === "number" ? output.toolCallCount : 0;
+      const toolCallCount = typeof output?.['toolCallCount'] === "number" ? output['toolCallCount'] : 0;
       const response =
-        typeof output?.finalResponse === "string"
-          ? output.finalResponse
-          : typeof output?.response === "string"
-            ? output.response
+        typeof output?.['finalResponse'] === "string"
+          ? output['finalResponse']
+          : typeof output?.['response'] === "string"
+            ? output['response']
             : null;
 
       const linkedConversationId =
-        typeof output?.conversationId === "string" ? output.conversationId : null;
+        typeof output?.['conversationId'] === "string" ? output['conversationId'] : null;
 
-      const rawToolCalls = Array.isArray(output?.toolCalls) ? output.toolCalls : [];
+      const rawToolCalls = Array.isArray(output?.['toolCalls']) ? output['toolCalls'] : [];
       const toolEntries: ToolCallEntry[] = rawToolCalls.map((tc: Record<string, unknown>) => {
         let inputSummary: string | null = null;
-        if (tc.input) {
-          const inputStr = typeof tc.input === "string" ? tc.input : JSON.stringify(tc.input);
+        if (tc['input']) {
+          const inputStr = typeof tc['input'] === "string" ? tc['input'] : JSON.stringify(tc['input']);
           inputSummary = inputStr.length > 120 ? `${inputStr.slice(0, 117)}...` : inputStr;
         }
         return {
-          toolName: typeof tc.toolName === "string" ? tc.toolName : "unknown",
+          toolName: typeof tc['toolName'] === "string" ? tc['toolName'] : "unknown",
           inputSummary,
-          durationMs: typeof tc.durationMs === "number" ? tc.durationMs : null,
-          status: typeof tc.status === "string" ? tc.status : "unknown",
-          error: typeof tc.error === "string" ? tc.error : null,
+          durationMs: typeof tc['durationMs'] === "number" ? tc['durationMs'] : null,
+          status: typeof tc['status'] === "string" ? tc['status'] : "unknown",
+          error: typeof tc['error'] === "string" ? tc['error'] : null,
         };
       });
 

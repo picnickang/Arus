@@ -103,7 +103,7 @@ export const manualEngineEventFormSchema = z.object({
 export type ManualEngineEventFormValues = z.infer<typeof manualEngineEventFormSchema>;
 
 export function getEngineEventTypeConfig(eventType: string): EngineEventUIConfig {
-  return ENGINE_EVENT_TYPES_UI[eventType] || ENGINE_EVENT_TYPES_UI.CUSTOM;
+  return ENGINE_EVENT_TYPES_UI[eventType] || ENGINE_EVENT_TYPES_UI['CUSTOM'];
 }
 
 export function createDefaultManualEventFormValues(): Partial<ManualEngineEventFormValues> {

@@ -25,7 +25,7 @@ export function registerTasksRoutes(app: Express, rateLimit: RateLimitMiddleware
     requireOrgId,
     withErrorHandling("fetch work order tasks", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const tasks = await workOrderService.getWorkOrderTasks(req.params.id, orgId);
+      const tasks = await workOrderService.getWorkOrderTasks(req.params['id'], orgId);
       res.json(tasks);
     })
   );
@@ -36,7 +36,7 @@ export function registerTasksRoutes(app: Express, rateLimit: RateLimitMiddleware
     writeOperationRateLimit,
     withErrorHandling("create work order task", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const workOrderId = req.params.id;
+      const workOrderId = req.params['id'];
 
       const validation = validateBody(req, createTaskSchema);
       if (!validation.success) {

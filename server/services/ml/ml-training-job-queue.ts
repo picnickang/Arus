@@ -229,19 +229,19 @@ export class MlTrainingJobQueue {
           return [];
         }
         const row = raw as Record<string, unknown>;
-        const id = row.id;
-        const state = row.state;
-        const createdon = row.createdon;
+        const id = row['id'];
+        const state = row['state'];
+        const createdon = row['createdon'];
         if (typeof id !== "string" || typeof state !== "string") {
           return [];
         }
         if (!(typeof createdon === "string" || createdon instanceof Date)) {
           return [];
         }
-        const startedon = row.startedon;
-        const completedon = row.completedon;
-        const data = (row.data ?? {}) as MlTrainingJobData;
-        const output = (row.output ?? undefined) as MlTrainingJobResult | undefined;
+        const startedon = row['startedon'];
+        const completedon = row['completedon'];
+        const data = (row['data'] ?? {}) as MlTrainingJobData;
+        const output = (row['output'] ?? undefined) as MlTrainingJobResult | undefined;
         return [
           {
             jobId: id,
@@ -294,7 +294,7 @@ export class MlTrainingJobQueue {
           orgId: data.orgId,
           equipmentType,
           modelType: "lstm",
-          ...((data.config.lstmConfig as Record<string, unknown> | undefined) || {}),
+          ...((data.config['lstmConfig'] as Record<string, unknown> | undefined) || {}),
         });
       } else if (data.modelType === "random_forest") {
         const { trainRFForHealthClassification } = await import("../../ml-training-pipeline");
@@ -303,7 +303,7 @@ export class MlTrainingJobQueue {
           orgId: data.orgId,
           equipmentType,
           modelType: "random_forest",
-          ...((data.config.rfConfig as Record<string, unknown> | undefined) || {}),
+          ...((data.config['rfConfig'] as Record<string, unknown> | undefined) || {}),
         });
       } else if (data.modelType === "xgboost") {
         const { trainXGBoostForHealthClassification } = await import("../../ml-training-pipeline");
@@ -312,7 +312,7 @@ export class MlTrainingJobQueue {
           orgId: data.orgId,
           equipmentType,
           modelType: "xgboost",
-          ...((data.config.xgboostConfig as Record<string, unknown> | undefined) || {}),
+          ...((data.config['xgboostConfig'] as Record<string, unknown> | undefined) || {}),
         });
       }
 

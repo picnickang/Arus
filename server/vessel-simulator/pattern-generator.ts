@@ -40,7 +40,7 @@ export class OperationalPatternGenerator {
       typeof pattern === "string"
         ? pattern
         : ((pattern as { name?: string } | null | undefined)?.name ?? "transit");
-    const calculator = rpmPatterns[name] ?? rpmPatterns.transit;
+    const calculator = rpmPatterns[name] ?? rpmPatterns['transit'];
     const rpm = calculator(time);
     return PhysicsEngine.clamp(rpm, 600, maxRpm);
   }

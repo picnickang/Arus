@@ -14,7 +14,7 @@ import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Routes:InlineRoutes");
 
 export function registerInlineRoutes(app: Express): void {
-  if (process.env.NODE_ENV === "development") {
+  if (process.env['NODE_ENV'] === "development") {
     app.post(
       "/api/dev/telemetry/stress-test",
       generalApiRateLimit,

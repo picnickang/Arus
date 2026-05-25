@@ -253,7 +253,7 @@ router.get("/schedule", async (req, res) => {
 router.get("/export/schedule", async (req, res) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const format = (req.query.format as string) || "csv";
+    const format = (req.query['format'] as string) || "csv";
     const filters = scheduleFiltersSchema.parse(req.query);
 
     const result = await getScheduleUseCase.execute({
@@ -340,7 +340,7 @@ router.get("/export/schedule", async (req, res) => {
 router.get("/export/risk-queue", async (req, res) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const format = (req.query.format as string) || "csv";
+    const format = (req.query['format'] as string) || "csv";
     const filters = dashboardFiltersSchema.parse(req.query);
 
     const dashboardData = await getDashboardUseCase.execute({ orgId });
@@ -410,7 +410,7 @@ router.get("/export/risk-queue", async (req, res) => {
 router.get("/export/kpis", async (req, res) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const format = (req.query.format as string) || "json";
+    const format = (req.query['format'] as string) || "json";
 
     const dashboardData = await getDashboardUseCase.execute({ orgId });
     const kpis = dashboardData.kpis;
@@ -492,8 +492,8 @@ router.get("/equipment/:equipmentId/fleet-failure-pattern", async (req, res) => 
     if (!equipmentId) {
       return res.status(400).json({ error: "Equipment ID is required" });
     }
-    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 10, 1), 50);
-    const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+    const limit = Math.min(Math.max(parseInt(req.query['limit'] as string) || 10, 1), 50);
+    const offset = Math.max(parseInt(req.query['offset'] as string) || 0, 0);
 
     const orgId = (req as AuthenticatedRequest).orgId;
     if (!orgId) {
@@ -639,9 +639,9 @@ router.get("/equipment/:equipmentId/fleet-failure-pattern", async (req, res) => 
 router.get("/equipment/:equipmentId/telemetry", async (req, res) => {
   try {
     const equipmentId = req.params.equipmentId;
-    const limit = parseInt(req.query.limit as string) || 50;
-    const sensorType = req.query.sensorType as string;
-    const hours = parseInt(req.query.hours as string) || 24;
+    const limit = parseInt(req.query['limit'] as string) || 50;
+    const sensorType = req.query['sensorType'] as string;
+    const hours = parseInt(req.query['hours'] as string) || 24;
 
     if (!equipmentId) {
       return res.status(400).json({ error: "Equipment ID is required" });
@@ -679,8 +679,8 @@ router.get("/equipment/:equipmentId/telemetry", async (req, res) => {
 
 router.get("/telemetry/trends", async (req, res) => {
   try {
-    const equipmentId = req.query.equipmentId as string;
-    const hours = parseInt(req.query.hours as string) || 24;
+    const equipmentId = req.query['equipmentId'] as string;
+    const hours = parseInt(req.query['hours'] as string) || 24;
 
     const trends = await telemetryStorage.getTelemetryTrends(equipmentId, hours);
     return res.json(trends);

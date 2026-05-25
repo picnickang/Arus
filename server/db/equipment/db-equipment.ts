@@ -245,7 +245,7 @@ export class DatabaseEquipmentStorage {
       // delete if a column with that name exists at runtime.
       {
         const col = tableColumns(rawTelemetry)
-          .equipmentId;
+          ['equipmentId'];
         if (col) {
           await tx.delete(rawTelemetry).where(eq(col, id));
         }
@@ -259,7 +259,7 @@ export class DatabaseEquipmentStorage {
       // Cascade-delete path needs a real fix.
       {
         const col = tableColumns(twinSimulations)
-          .equipmentId;
+          ['equipmentId'];
         if (col) {
           await tx.delete(twinSimulations).where(eq(col, id));
         }
@@ -273,12 +273,12 @@ export class DatabaseEquipmentStorage {
       // probably this delete shouldn't exist at all. Guard at runtime.
       {
         const r = tableColumns(insightReports)
-          .equipmentId;
+          ['equipmentId'];
         if (r) {
           await tx.delete(insightReports).where(eq(r, id));
         }
         const s = tableColumns(insightSnapshots)
-          .equipmentId;
+          ['equipmentId'];
         if (s) {
           await tx.delete(insightSnapshots).where(eq(s, id));
         }
@@ -453,7 +453,7 @@ export class DatabaseEquipmentStorage {
     const sixMonthsFromNow = new Date();
     sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
     const col = tableColumns(equipmentLifecycle)
-      .estimatedEndOfLife;
+      ['estimatedEndOfLife'];
     if (!col) return [];
     return db.select().from(equipmentLifecycle).where(lte(col, sixMonthsFromNow));
   }
@@ -504,7 +504,7 @@ export class DatabaseEquipmentStorage {
   async getEquipmentForPart(partId: string, orgId: string): Promise<Equipment[]> {
     this.validateOrgId(orgId, "getEquipmentForPart");
     const compatibleParts = tableColumns(equipment)
-      .compatibleParts;
+      ['compatibleParts'];
     if (!compatibleParts) return [];
     return db
       .select()

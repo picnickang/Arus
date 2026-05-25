@@ -90,13 +90,13 @@ function toOpenAIMessages(params: LLMChatParams): unknown[] {
     // OpenAI wire shape, so we can pass arrays straight through.
     const base: Record<string, unknown> = { role: m.role, content: m.content };
     if (m.name) {
-      base.name = m.name;
+      base['name'] = m.name;
     }
     if (m.toolCallId) {
-      base.tool_call_id = m.toolCallId;
+      base['tool_call_id'] = m.toolCallId;
     }
     if (m.toolCalls && m.toolCalls.length > 0) {
-      base.tool_calls = m.toolCalls.map((tc) => ({
+      base['tool_calls'] = m.toolCalls.map((tc) => ({
         id: tc.id,
         type: tc.type,
         function: { name: tc.function.name, arguments: tc.function.arguments },
@@ -122,20 +122,20 @@ function buildOpenAIParams(params: LLMChatParams): Record<string, unknown> {
     messages: toOpenAIMessages(params),
   };
   if (params.maxCompletionTokens !== undefined) {
-    out.max_completion_tokens = params.maxCompletionTokens;
+    out['max_completion_tokens'] = params.maxCompletionTokens;
   }
   if (params.temperature !== undefined) {
-    out.temperature = params.temperature;
+    out['temperature'] = params.temperature;
   }
   if (params.jsonMode) {
-    out.response_format = { type: "json_object" };
+    out['response_format'] = { type: "json_object" };
   }
   if (params.tools && params.tools.length > 0) {
-    out.tools = params.tools;
+    out['tools'] = params.tools;
   }
   const tc = toOpenAIToolChoice(params.toolChoice);
   if (tc !== undefined) {
-    out.tool_choice = tc;
+    out['tool_choice'] = tc;
   }
   return out;
 }
@@ -247,9 +247,9 @@ export class OpenAIProvider implements LLMProviderPort {
       );
     } catch (error: unknown) {
       const analysis = analyzeErrorType(error);
-      if (analysis.fallbackModel && oaiParams.model !== analysis.fallbackModel) {
+      if (analysis.fallbackModel && oaiParams['model'] !== analysis.fallbackModel) {
         logger.warn(
-          `Streaming: falling back from ${oaiParams.model} to ${analysis.fallbackModel} due to: ${analysis.recommendation}`
+          `Streaming: falling back from ${oaiParams['model']} to ${analysis.fallbackModel} due to: ${analysis.recommendation}`
         );
         stream = await retryWithBackoff(() =>
           createClient.chat.completions.create({

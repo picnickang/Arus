@@ -19,7 +19,7 @@ export function registerUsageRoutes(app: Express, deps: UsageRouteDeps) {
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
-        const days = parseInt(req.query.days as string) || 30;
+        const days = parseInt(req.query['days'] as string) || 30;
         const stats = await safety.getUsageStats(orgId, days);
         res.json(stats);
       } catch (error: unknown) {

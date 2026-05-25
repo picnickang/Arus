@@ -21,7 +21,7 @@ const REPLIT_SIDECAR_ENDPOINT = "http://127.0.1:1106";
 
 // Environment detection
 function isReplitEnvironment(): boolean {
-  return !!(process.env.REPL_ID || process.env.REPL_SLUG || process.env.REPLIT_DB_URL);
+  return !!(process.env['REPL_ID'] || process.env['REPL_SLUG'] || process.env['REPLIT_DB_URL']);
 }
 
 // Lazy-initialized storage client
@@ -95,7 +95,7 @@ export class ObjectNotFoundError extends Error {
 export class ObjectStorageService {
   // Gets the public object search paths.
   getPublicObjectSearchPaths(): Array<string> {
-    const pathsStr = process.env.PUBLIC_OBJECT_SEARCH_PATHS || "";
+    const pathsStr = process.env['PUBLIC_OBJECT_SEARCH_PATHS'] || "";
     const paths = Array.from(
       new Set(
         pathsStr
@@ -113,7 +113,7 @@ export class ObjectStorageService {
 
   // Gets the private object directory.
   getPrivateObjectDir(): string {
-    const dir = process.env.PRIVATE_OBJECT_DIR || "";
+    const dir = process.env['PRIVATE_OBJECT_DIR'] || "";
     if (!dir) {
       logger.warn("PRIVATE_OBJECT_DIR not set. Private object storage features may be limited.");
       return "";
@@ -312,7 +312,7 @@ export class ObjectStorageService {
   // Check if object storage is properly configured
   async isConfigured(): Promise<boolean> {
     const client = await getObjectStorageClient();
-    return !!(client && (process.env.PUBLIC_OBJECT_SEARCH_PATHS || process.env.PRIVATE_OBJECT_DIR));
+    return !!(client && (process.env['PUBLIC_OBJECT_SEARCH_PATHS'] || process.env['PRIVATE_OBJECT_DIR']));
   }
 
   // Check if running in Replit environment

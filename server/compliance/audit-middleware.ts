@@ -318,7 +318,7 @@ export function sensitiveOperationAudit(entityType: string) {
       eventCategory: "security_event",
       eventType: getEventType(req.method),
       entityType,
-      entityId: req.params.id || "unknown",
+      entityId: req.params['id'] || "unknown",
       newState: redactSensitiveData(req.body, config.sensitiveFields) as
         | Record<string, unknown>
         | undefined,

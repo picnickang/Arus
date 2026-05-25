@@ -125,8 +125,8 @@ class RmsAlertService {
       `);
 
       const row = getFirstRow(result);
-      const hoursWithData = Number(row?.hours_with_data ?? 0);
-      const avgFlowKgPerH = Number(row?.avg_flow_kg_per_h ?? 0);
+      const hoursWithData = Number(row?.['hours_with_data'] ?? 0);
+      const avgFlowKgPerH = Number(row?.['avg_flow_kg_per_h'] ?? 0);
 
       if (hoursWithData < 1) {
         return;
@@ -374,7 +374,7 @@ class RmsAlertService {
       config.lastTriggeredAt = new Date();
 
       const row = getFirstRow(result);
-      const alertLogId = (row?.id as string | undefined) || "unknown";
+      const alertLogId = (row?.['id'] as string | undefined) || "unknown";
 
       domainEventBus.emit(
         "rms.alert_triggered",
@@ -414,7 +414,7 @@ class RmsAlertService {
         SELECT DISTINCT email FROM users WHERE org_id = ${orgId} AND email IS NOT NULL LIMIT 50
       `);
       const emails = getRows(result)
-        .map((r: Record<string, unknown>) => r.email as string)
+        .map((r: Record<string, unknown>) => r['email'] as string)
         .filter(Boolean);
       return emails.length > 0 ? emails : [orgId];
     } catch {
@@ -480,16 +480,16 @@ class RmsAlertService {
       `);
 
       const configs: AlertConfig[] = getRows(result).map((r) => ({
-        id: r.id as string,
-        vesselId: r.vessel_id as string,
-        orgId: r.org_id as string,
-        alertType: r.alert_type as string,
-        name: r.name as string,
-        config: (r.config ?? {}) as Record<string, unknown>,
-        cooldownMinutes: r.cooldown_minutes as number,
-        lastTriggeredAt: r.last_triggered_at as Date | null,
-        notifyEmail: r.notify_email as boolean,
-        notifyInApp: r.notify_in_app as boolean,
+        id: r['id'] as string,
+        vesselId: r['vessel_id'] as string,
+        orgId: r['org_id'] as string,
+        alertType: r['alert_type'] as string,
+        name: r['name'] as string,
+        config: (r['config'] ?? {}) as Record<string, unknown>,
+        cooldownMinutes: r['cooldown_minutes'] as number,
+        lastTriggeredAt: r['last_triggered_at'] as Date | null,
+        notifyEmail: r['notify_email'] as boolean,
+        notifyInApp: r['notify_in_app'] as boolean,
       }));
 
       this.configCache.set(cacheKey, { configs, loadedAt: Date.now() });

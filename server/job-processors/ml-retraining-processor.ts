@@ -241,8 +241,8 @@ async function uploadCandidateArtifacts(
       .limit(1);
     if (!row) return;
     const metrics = { ...((row.metrics ?? {}) as Record<string, unknown>) };
-    const artifactPath = metrics.artifactPath as string | undefined;
-    const nativeArtifactPath = metrics.nativeArtifactPath as string | undefined;
+    const artifactPath = metrics['artifactPath'] as string | undefined;
+    const nativeArtifactPath = metrics['nativeArtifactPath'] as string | undefined;
     // Already migrated (idempotent — covers re-runs).
     if (artifactPath?.startsWith(ARTIFACT_URI_SCHEME)) return;
     if (!artifactPath) return;
@@ -287,7 +287,7 @@ async function uploadCandidateArtifacts(
       orgId,
       modelId,
       backend: adapter.backend,
-      artifactPath: metrics.artifactPath,
+      artifactPath: metrics['artifactPath'],
     });
   } catch (err) {
     // Hard-failing here would block a promotion that the gate already

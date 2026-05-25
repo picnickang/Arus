@@ -21,10 +21,10 @@ export class FmccPollingService extends EventEmitter {
     super();
 
     this.config = {
-      enabled: process.env.FMCC_ENABLED === "true",
-      vesselId: config.vesselId || process.env.FMCC_VESSEL_ID || "default-vessel",
-      orgId: config.orgId || process.env.FMCC_ORG_ID || "default-org-id",
-      pollIntervalMs: Number.parseInt(process.env.FMCC_POLLING_INTERVAL_MS || "60000", 10),
+      enabled: process.env['FMCC_ENABLED'] === "true",
+      vesselId: config.vesselId || process.env['FMCC_VESSEL_ID'] || "default-vessel",
+      orgId: config.orgId || process.env['FMCC_ORG_ID'] || "default-org-id",
+      pollIntervalMs: Number.parseInt(process.env['FMCC_POLLING_INTERVAL_MS'] || "60000", 10),
       enableTrackLogging: config.enableTrackLogging ?? true,
       enableTelemetryLogging: config.enableTelemetryLogging ?? true,
       minPositionChangeNm: config.minPositionChangeNm ?? 0.05,

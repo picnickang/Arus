@@ -89,14 +89,14 @@ export class EquipmentOperationalContextAdapter implements OperationalContextPor
 
     const operatingMode =
       override?.operatingMode ??
-      (stringFrom(params.operatingMode) as NormalizedOperationalContext["operatingMode"] | null) ??
+      (stringFrom(params['operatingMode']) as NormalizedOperationalContext["operatingMode"] | null) ??
       "unknown";
-    const loadFactor = Math.max(0.05, Math.min(1.5, override?.loadFactor ?? numberFrom(params.loadFactor, 0.65)!));
+    const loadFactor = Math.max(0.05, Math.min(1.5, override?.loadFactor ?? numberFrom(params['loadFactor'], 0.65)!));
     const weatherSeverity = Math.max(
       0,
-      Math.min(1, override?.weatherSeverity ?? numberFrom(params.weatherSeverity, 0)!)
+      Math.min(1, override?.weatherSeverity ?? numberFrom(params['weatherSeverity'], 0)!)
     );
-    const seaState = Math.max(0, Math.min(12, override?.seaState ?? numberFrom(params.seaState, 2)!));
+    const seaState = Math.max(0, Math.min(12, override?.seaState ?? numberFrom(params['seaState'], 2)!));
 
     if (!equipmentContext?.operatingParameters && !override) {
       notes.push("No operating context was provided; using conservative vessel-default context.");
@@ -106,12 +106,12 @@ export class EquipmentOperationalContextAdapter implements OperationalContextPor
     }
 
     const contextInputs = [
-      override?.operatingMode ?? params.operatingMode,
-      override?.loadFactor ?? params.loadFactor,
-      override?.weatherSeverity ?? params.weatherSeverity,
-      override?.seaState ?? params.seaState,
-      override?.fuelBurnRate ?? params.fuelBurnRate,
-      override?.shaftPower ?? params.shaftPower,
+      override?.operatingMode ?? params['operatingMode'],
+      override?.loadFactor ?? params['loadFactor'],
+      override?.weatherSeverity ?? params['weatherSeverity'],
+      override?.seaState ?? params['seaState'],
+      override?.fuelBurnRate ?? params['fuelBurnRate'],
+      override?.shaftPower ?? params['shaftPower'],
     ].filter((value) => value !== undefined && value !== null).length;
 
     return {
@@ -119,11 +119,11 @@ export class EquipmentOperationalContextAdapter implements OperationalContextPor
       loadFactor,
       weatherSeverity,
       seaState,
-      speedOverGround: override?.speedOverGround ?? numberFrom(params.speedOverGround),
-      fuelBurnRate: override?.fuelBurnRate ?? numberFrom(params.fuelBurnRate),
-      shaftPower: override?.shaftPower ?? numberFrom(params.shaftPower),
-      cargoLoadPercent: override?.cargoLoadPercent ?? numberFrom(params.cargoLoadPercent),
-      routeSegment: override?.routeSegment ?? stringFrom(params.routeSegment),
+      speedOverGround: override?.speedOverGround ?? numberFrom(params['speedOverGround']),
+      fuelBurnRate: override?.fuelBurnRate ?? numberFrom(params['fuelBurnRate']),
+      shaftPower: override?.shaftPower ?? numberFrom(params['shaftPower']),
+      cargoLoadPercent: override?.cargoLoadPercent ?? numberFrom(params['cargoLoadPercent']),
+      routeSegment: override?.routeSegment ?? stringFrom(params['routeSegment']),
       contextConfidence: Math.max(0.25, Math.min(0.95, 0.25 + contextInputs * 0.11)),
       notes,
     };

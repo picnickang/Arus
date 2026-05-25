@@ -175,7 +175,7 @@ export function WorkOrderDetailDrawer({
   const calculatedLaborCost =
     assignedCrewRate && workOrder.laborHours ? assignedCrewRate * workOrder.laborHours : null;
 
-  const statusConfig = STATUS_CONFIG[workOrder.status] || STATUS_CONFIG.open;
+  const statusConfig = STATUS_CONFIG[workOrder.status] || STATUS_CONFIG['open'];
   const priorityConfig = PRIORITY_CONFIG[workOrder.priority] || PRIORITY_CONFIG[3];
 
   return (

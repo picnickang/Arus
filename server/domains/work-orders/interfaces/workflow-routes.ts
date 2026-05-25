@@ -74,7 +74,7 @@ export function registerWorkOrderWorkflowRoutes(
     withErrorHandling("complete work order with feedback", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
       const userId = getUserId(req);
-      const workOrderId = req.params.id;
+      const workOrderId = req.params['id'];
 
       const { completionNotes, actualHours, actualDowntimeHours, closeout, predictionFeedback } = req.body;
 
@@ -125,7 +125,7 @@ export function registerWorkOrderWorkflowRoutes(
     withErrorHandling("cancel work order", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
       const userId = getUserId(req);
-      const workOrderId = req.params.id;
+      const workOrderId = req.params['id'];
       const { reason } = req.body;
 
       if (!reason || reason.trim().length === 0) {
@@ -151,7 +151,7 @@ export function registerWorkOrderWorkflowRoutes(
     generalApiRateLimit,
     withErrorHandling("check if work order is predictive", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
-      const workOrderId = req.params.id;
+      const workOrderId = req.params['id'];
 
       const isPredictive = await service.woRepo.isPredictive(workOrderId, orgId);
       return res.json({ workOrderId, isPredictive });

@@ -79,7 +79,7 @@ export function registerAutofillRoutes(app: Express, rateLimit: RateLimiters) {
     withErrorHandling("get anomaly summary", async (req, res) => {
       const orgId = req.orgId;
 
-      const summary = await getAnomalySummary(req.params.id, orgId);
+      const summary = await getAnomalySummary(req.params['id'], orgId);
       return res.json(summary);
     })
   );
@@ -98,8 +98,8 @@ export function registerAutofillRoutes(app: Express, rateLimit: RateLimiters) {
     "/api/logbook/engine/unsigned",
     withErrorHandling("get unsigned logs", async (req, res) => {
       const orgId = req.orgId;
-      const vesselId = req.query.vesselId as string | undefined;
-      const daysBack = req.query.daysBack ? Number.parseInt(req.query.daysBack as string) : 7;
+      const vesselId = req.query['vesselId'] as string | undefined;
+      const daysBack = req.query['daysBack'] ? Number.parseInt(req.query['daysBack'] as string) : 7;
 
       const unsignedLogs = await getUnsignedLogs(orgId, { vesselId, daysBack });
 

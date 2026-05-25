@@ -22,7 +22,7 @@ export function registerAdminRoutes(app: Express, deps: AdminRouteDeps) {
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
-        const limit = parseInt(req.query.limit as string) || 100;
+        const limit = parseInt(req.query['limit'] as string) || 100;
         const conversations = await agentRepo.conversations.list(orgId, undefined, limit);
         res.json(conversations);
       } catch (error: unknown) {

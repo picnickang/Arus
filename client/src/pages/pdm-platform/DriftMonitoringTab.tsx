@@ -143,8 +143,8 @@ export function DriftMonitoringTab() {
                           {d.driftScore?.toFixed(2)}
                         </td>
                         <td className="p-2 text-center">
-                          <Badge variant={d.driftDetected ? "destructive" : "default"}>
-                            {d.driftDetected ? "DRIFT" : "OK"}
+                          <Badge variant={d['driftDetected'] ? "destructive" : "default"}>
+                            {d['driftDetected'] ? "DRIFT" : "OK"}
                           </Badge>
                         </td>
                       </tr>

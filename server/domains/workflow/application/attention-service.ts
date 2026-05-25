@@ -146,7 +146,7 @@ type SafeCallResult<T> = {
   error?: string;
 };
 
-const WORKFLOW_DATA_DIR = process.env.ARUS_WORKFLOW_DATA_DIR || path.resolve(process.cwd(), "data", "workflow");
+const WORKFLOW_DATA_DIR = process.env['ARUS_WORKFLOW_DATA_DIR'] || path.resolve(process.cwd(), "data", "workflow");
 const WORKFLOW_STATE_FILE = path.join(WORKFLOW_DATA_DIR, "attention-workflow-state.json");
 
 function emptyState(): WorkflowState {
@@ -278,19 +278,19 @@ function dateLabel(value: unknown): string {
 }
 
 function getEquipmentName(workOrder: RecordLike): string {
-  const direct = asString(workOrder.equipmentName) || asString(workOrder.equipmentId);
-  const equipment = workOrder.equipment;
+  const direct = asString(workOrder['equipmentName']) || asString(workOrder['equipmentId']);
+  const equipment = workOrder['equipment'];
   if (direct) {
     return direct;
   }
   if (isRecord(equipment)) {
-    return asString(equipment.name) || "Unassigned equipment";
+    return asString(equipment['name']) || "Unassigned equipment";
   }
   return "Unassigned equipment";
 }
 
 function workOrderTitle(workOrder: RecordLike): string {
-  return asString(workOrder.title) || asString(workOrder.description) || `Work order ${asString(workOrder.id) ?? "unknown"}`;
+  return asString(workOrder['title']) || asString(workOrder['description']) || `Work order ${asString(workOrder['id']) ?? "unknown"}`;
 }
 
 function isPartsBlocker(reason: string | null | undefined): boolean {
@@ -377,16 +377,16 @@ export class AttentionWorkflowService {
       }
     });
 
-    const openWorkOrders = workOrders.filter((wo) => isOpenStatus(wo.status));
-    const completedWorkOrders = workOrders.filter((wo) => isClosedStatus(wo.status));
-    const blockedWorkOrders = openWorkOrders.filter((wo) => Boolean(asString(wo.blockedReason)));
-    const waitingParts = blockedWorkOrders.filter((wo) => isPartsBlocker(asString(wo.blockedReason)));
-    const nonPartsBlocked = blockedWorkOrders.filter((wo) => !isPartsBlocker(asString(wo.blockedReason)));
-    const dueToday = openWorkOrders.filter((wo) => isDueToday(wo.dueDate, now));
-    const overdue = openWorkOrders.filter((wo) => isOverdue(wo.dueDate, wo.status, now));
-    const readyToClose = openWorkOrders.filter((wo) => isReadyToClose(wo.status));
+    const openWorkOrders = workOrders.filter((wo) => isOpenStatus(wo['status']));
+    const completedWorkOrders = workOrders.filter((wo) => isClosedStatus(wo['status']));
+    const blockedWorkOrders = openWorkOrders.filter((wo) => Boolean(asString(wo['blockedReason'])));
+    const waitingParts = blockedWorkOrders.filter((wo) => isPartsBlocker(asString(wo['blockedReason'])));
+    const nonPartsBlocked = blockedWorkOrders.filter((wo) => !isPartsBlocker(asString(wo['blockedReason'])));
+    const dueToday = openWorkOrders.filter((wo) => isDueToday(wo['dueDate'], now));
+    const overdue = openWorkOrders.filter((wo) => isOverdue(wo['dueDate'], wo['status'], now));
+    const readyToClose = openWorkOrders.filter((wo) => isReadyToClose(wo['status']));
     const highRiskEquipment = equipment.filter((eq) => {
-      const risk = String(eq.riskLevel ?? eq.risk ?? "").toLowerCase();
+      const risk = String(eq['riskLevel'] ?? eq['risk'] ?? "").toLowerCase();
       return risk === "high" || risk === "critical";
     });
 
@@ -410,13 +410,13 @@ export class AttentionWorkflowService {
     }
 
     highRiskEquipment.slice(0, 6).forEach((eq) => {
-      const id = asString(eq.id) ?? asString(eq.equipmentId) ?? asString(eq.name) ?? randomUUID();
-      const risk = String(eq.riskLevel ?? eq.risk ?? "high").toLowerCase();
+      const id = asString(eq['id']) ?? asString(eq['equipmentId']) ?? asString(eq['name']) ?? randomUUID();
+      const risk = String(eq['riskLevel'] ?? eq['risk'] ?? "high").toLowerCase();
       items.push({
         id: `equipment-risk-${id}`,
         type: "equipment",
         sourceId: id,
-        title: `${asString(eq.name) ?? "Equipment"} risk is ${risk}`,
+        title: `${asString(eq['name']) ?? "Equipment"} risk is ${risk}`,
         source: "Equipment intelligence",
         whyItMatters: "High-risk equipment should be converted into an inspection, maintenance, or deferment decision.",
         recommendedAction: "Review evidence and create an inspection work order where needed.",
@@ -430,7 +430,7 @@ export class AttentionWorkflowService {
     });
 
     overdue.slice(0, 8).forEach((wo) => {
-      const id = asString(wo.id) ?? randomUUID();
+      const id = asString(wo['id']) ?? randomUUID();
       items.push({
         id: `wo-overdue-${id}`,
         type: "work_order",
@@ -439,18 +439,18 @@ export class AttentionWorkflowService {
         source: getEquipmentName(wo),
         whyItMatters: "This work is overdue and may create safety, reliability, or audit exposure.",
         recommendedAction: "Escalate, assign an owner, complete, or defer with a reason.",
-        owner: asString(wo.assignedToName) || asString(wo.assignedCrewId) || "Chief Engineer",
-        due: dateLabel(wo.dueDate),
+        owner: asString(wo['assignedToName']) || asString(wo['assignedCrewId']) || "Chief Engineer",
+        due: dateLabel(wo['dueDate']),
         href: `/work-orders?id=${encodeURIComponent(id)}&workflow=overdue`,
         severity: "critical",
         queue: "overdue",
-        status: asString(wo.status) ?? null,
+        status: asString(wo['status']) ?? null,
       });
     });
 
     blockedWorkOrders.slice(0, 8).forEach((wo) => {
-      const id = asString(wo.id) ?? randomUUID();
-      const reason = asString(wo.blockedReason) ?? "Missing blocker reason";
+      const id = asString(wo['id']) ?? randomUUID();
+      const reason = asString(wo['blockedReason']) ?? "Missing blocker reason";
       const queue = blockerQueue(reason);
       const lastResolution = resolutionSummary(latestResolutions.get(id));
       if (lastResolution?.status === "unblocked") {
@@ -467,19 +467,19 @@ export class AttentionWorkflowService {
           queue === "waiting_parts"
             ? "Check stock, create purchase request, or update part ETA."
             : "Resolve blocker or update owner/ETA.",
-        owner: lastResolution?.owner || asString(wo.assignedToName) || asString(wo.assignedCrewId) || "Assigned owner",
-        due: lastResolution?.eta || dateLabel(wo.dueDate),
+        owner: lastResolution?.owner || asString(wo['assignedToName']) || asString(wo['assignedCrewId']) || "Assigned owner",
+        due: lastResolution?.eta || dateLabel(wo['dueDate']),
         href: `/work-orders?id=${encodeURIComponent(id)}&workflow=resolve-blocker`,
         severity: (lastResolution?.status as string | undefined) === "unblocked" ? "info" : "critical",
         queue,
-        status: asString(wo.status) ?? null,
+        status: asString(wo['status']) ?? null,
         blockerReason: reason,
         lastResolution,
       });
     });
 
     dueToday.slice(0, 8).forEach((wo) => {
-      const id = asString(wo.id) ?? randomUUID();
+      const id = asString(wo['id']) ?? randomUUID();
       if (items.some((item) => item.sourceId === id && item.type === "work_order")) {
         return;
       }
@@ -491,17 +491,17 @@ export class AttentionWorkflowService {
         source: getEquipmentName(wo),
         whyItMatters: "Due today and should be completed or deferred before handover.",
         recommendedAction: "Complete, assign, or defer with a reason.",
-        owner: asString(wo.assignedToName) || asString(wo.assignedCrewId) || "Assigned owner",
+        owner: asString(wo['assignedToName']) || asString(wo['assignedCrewId']) || "Assigned owner",
         due: "Today",
         href: `/work-orders?id=${encodeURIComponent(id)}&workflow=due-today`,
-        severity: severityForPriority(wo.priority),
+        severity: severityForPriority(wo['priority']),
         queue: "due_today",
-        status: asString(wo.status) ?? null,
+        status: asString(wo['status']) ?? null,
       });
     });
 
     readyToClose.slice(0, 8).forEach((wo) => {
-      const id = asString(wo.id) ?? randomUUID();
+      const id = asString(wo['id']) ?? randomUUID();
       if (items.some((item) => item.sourceId === id && item.type === "work_order")) {
         return;
       }
@@ -514,17 +514,17 @@ export class AttentionWorkflowService {
         whyItMatters: "The job appears ready for verification or supervisor closeout.",
         recommendedAction: "Review evidence, request corrections, or close the work order.",
         owner: "Supervisor",
-        due: dateLabel(wo.dueDate),
+        due: dateLabel(wo['dueDate']),
         href: `/work-orders?id=${encodeURIComponent(id)}&workflow=closeout`,
         severity: "info",
         queue: "ready_to_close",
-        status: asString(wo.status) ?? null,
+        status: asString(wo['status']) ?? null,
       });
     });
 
     lowStock.slice(0, 6).forEach((part) => {
-      const id = asString(part.id) ?? asString(part.partId) ?? randomUUID();
-      const name = asString(part.name) || asString(part.partName) || asString(part.partNo) || "Part";
+      const id = asString(part['id']) ?? asString(part['partId']) ?? randomUUID();
+      const name = asString(part['name']) || asString(part['partName']) || asString(part['partNo']) || "Part";
       const lastResolution = resolutionSummary(latestResolutions.get(id));
       if (lastResolution?.status === "unblocked") {
         return;

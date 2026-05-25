@@ -63,7 +63,7 @@ export class EquipmentRepository {
     }
     const existing = await dbSensorsStorage.getSensorConfigurations(orgId, equipmentId);
     const existingTypes = new Set(existing.map((s) => s.sensorType));
-    const sensorsToCreate = DEFAULT_SENSORS[equipment.type] || DEFAULT_SENSORS.default;
+    const sensorsToCreate = DEFAULT_SENSORS[equipment.type] || DEFAULT_SENSORS['default'];
     const created: import("@shared/schema/sensors").SensorConfiguration[] = [];
     for (const sensor of sensorsToCreate) {
       if (!existingTypes.has(sensor.type)) {

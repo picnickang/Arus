@@ -50,7 +50,7 @@ export async function getAdaptiveWeights(
     const bestXgb = pickBest(xgbModels as object as ModelRow[]);
 
     if (!bestLstm && !bestRf && !bestXgb) {
-      return STATIC_WEIGHTS[equipmentType] ?? STATIC_WEIGHTS.default;
+      return STATIC_WEIGHTS[equipmentType] ?? STATIC_WEIGHTS['default'];
     }
 
     const score = (model: ModelRow | undefined) => {
@@ -76,7 +76,7 @@ export async function getAdaptiveWeights(
 
     const totalWeight = lstmWeighted + rfWeighted + xgbWeighted;
     if (totalWeight === 0) {
-      return STATIC_WEIGHTS[equipmentType] ?? STATIC_WEIGHTS.default;
+      return STATIC_WEIGHTS[equipmentType] ?? STATIC_WEIGHTS['default'];
     }
 
     return {
@@ -86,7 +86,7 @@ export async function getAdaptiveWeights(
     };
   } catch (error) {
     logger.warn("MlEnsemble", "Adaptive weights failed, using static fallback", error);
-    return STATIC_WEIGHTS[equipmentType] ?? STATIC_WEIGHTS.default;
+    return STATIC_WEIGHTS[equipmentType] ?? STATIC_WEIGHTS['default'];
   }
 }
 
@@ -94,5 +94,5 @@ export async function getAdaptiveWeights(
  * @deprecated Use getAdaptiveWeights() for data-driven weights
  */
 export function getModelWeights(equipmentType: string): ModelWeights {
-  return STATIC_WEIGHTS[equipmentType] || STATIC_WEIGHTS.default;
+  return STATIC_WEIGHTS[equipmentType] || STATIC_WEIGHTS['default'];
 }

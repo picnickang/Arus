@@ -179,7 +179,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
         flatDtcs = allActiveDtcs;
       }
       if (severity) {
-        flatDtcs = flatDtcs.filter((dtc) => (dtc.definition as { severity?: number } | undefined)?.severity === severity);
+        flatDtcs = flatDtcs.filter((dtc) => (dtc['definition'] as { severity?: number } | undefined)?.severity === severity);
       }
 
       return res.json(flatDtcs);

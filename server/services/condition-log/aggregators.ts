@@ -130,8 +130,8 @@ export async function getMonitoredEquipment(vesselId: string) {
     .where(
       and(
         eq(equipment.vesselId, vesselId),
-        eq((equipment as object as Record<string, never>).status, "operational"),
-        sql`${(equipment as object as Record<string, never>).category} IN ('propulsion', 'auxiliary', 'deck_machinery')`
+        eq((equipment as object as Record<string, never>)['status'], "operational"),
+        sql`${(equipment as object as Record<string, never>)['category']} IN ('propulsion', 'auxiliary', 'deck_machinery')`
       )
     );
 }

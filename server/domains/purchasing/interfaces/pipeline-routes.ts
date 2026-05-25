@@ -15,7 +15,7 @@ pipelineRouter.get("/purchase-requests/:id/pipeline", async (req: Request, res: 
   try {
     const orgId = DEFAULT_ORG_ID;
 
-    const pipeline = await pipelineService.getPipeline(req.params.id, orgId);
+    const pipeline = await pipelineService.getPipeline(req.params['id'], orgId);
     if (!pipeline) {
       return res.status(404).json({ error: "Purchase request not found" });
     }

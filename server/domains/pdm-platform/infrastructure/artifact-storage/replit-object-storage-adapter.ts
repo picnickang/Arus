@@ -37,7 +37,7 @@ export class ReplitObjectStorageArtifactStorage implements ArtifactStoragePort {
   private readonly cacheDir: string;
 
   constructor(opts?: { cacheDir?: string }) {
-    const privateDir = process.env.PRIVATE_OBJECT_DIR;
+    const privateDir = process.env['PRIVATE_OBJECT_DIR'];
     if (!privateDir) {
       throw new Error(
         "PRIVATE_OBJECT_DIR is not set — Replit App Storage not provisioned. " +

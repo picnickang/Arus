@@ -7,8 +7,8 @@ import { fetchWithCacheFallback } from "../infrastructure/external-data-cache";
 // Paris MoU, Tokyo MoU, USCG PSC, Equasis, ClassNK, etc.
 // ---------------------------------------------------------------------------
 
-const REGULATORY_API_BASE = process.env.MARITIME_REGULATORY_API_URL || "";
-const REGULATORY_API_KEY = process.env.MARITIME_REGULATORY_API_KEY || "";
+const REGULATORY_API_BASE = process.env['MARITIME_REGULATORY_API_URL'] || "";
+const REGULATORY_API_KEY = process.env['MARITIME_REGULATORY_API_KEY'] || "";
 const REGULATORY_CACHE_TTL_SEC = 86400; // 24 hours — regulatory data changes slowly
 
 // ---------------------------------------------------------------------------
@@ -155,11 +155,11 @@ registerTool({
     }),
   requiresApproval: false,
   async execute(input, ctx) {
-    let imoNumber = input.imoNumber as string | undefined;
+    let imoNumber = input['imoNumber'] as string | undefined;
     let vesselName: string | undefined;
 
     // Resolve IMO from vessel record
-    if (!imoNumber && input.vesselId) {
+    if (!imoNumber && input['vesselId']) {
       const { vessels } = await import("@shared/schema");
       const { eq, and } = await import("drizzle-orm");
       const { db } = await import("../../../db");
@@ -167,10 +167,10 @@ registerTool({
       const [vessel] = await db
         .select()
         .from(vessels)
-        .where(and(eq(vessels.id, input.vesselId as string), eq(vessels.orgId, ctx.orgId)));
+        .where(and(eq(vessels.id, input['vesselId'] as string), eq(vessels.orgId, ctx.orgId)));
 
       if (!vessel) {
-        return { error: `Vessel ${input.vesselId} not found` };
+        return { error: `Vessel ${input['vesselId']} not found` };
       }
       if (!vessel.imo) {
         return { error: `No IMO number recorded for vessel ${vessel.name}` };
@@ -287,11 +287,11 @@ registerTool({
   }),
   requiresApproval: false,
   async execute(input, ctx) {
-    let flagState = input.flagState as string | undefined;
-    let vesselType = input.vesselType as string | undefined;
+    let flagState = input['flagState'] as string | undefined;
+    let vesselType = input['vesselType'] as string | undefined;
 
     // Resolve from vessel record
-    if (input.vesselId && (!flagState || !vesselType)) {
+    if (input['vesselId'] && (!flagState || !vesselType)) {
       const { vessels } = await import("@shared/schema");
       const { eq, and } = await import("drizzle-orm");
       const { db } = await import("../../../db");
@@ -299,7 +299,7 @@ registerTool({
       const [vessel] = await db
         .select()
         .from(vessels)
-        .where(and(eq(vessels.id, input.vesselId as string), eq(vessels.orgId, ctx.orgId)));
+        .where(and(eq(vessels.id, input['vesselId'] as string), eq(vessels.orgId, ctx.orgId)));
 
       if (vessel) {
         if (!flagState && vessel.flag) {

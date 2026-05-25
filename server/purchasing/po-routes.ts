@@ -50,10 +50,10 @@ function parseIntSafe(val: string | undefined, def: number, max?: number): numbe
 router.get("/", requireOrgId, generalLimit, async (req, res) => {
   try {
     const orgId = getOrgId(req);
-    const status = req.query.status as string | undefined;
-    const supplierId = req.query.supplierId as string | undefined;
-    const limit = parseIntSafe(req.query.limit as string, 50, 100);
-    const offset = parseIntSafe(req.query.offset as string, 0);
+    const status = req.query['status'] as string | undefined;
+    const supplierId = req.query['supplierId'] as string | undefined;
+    const limit = parseIntSafe(req.query['limit'] as string, 50, 100);
+    const offset = parseIntSafe(req.query['offset'] as string, 0);
 
     const conditions: import("drizzle-orm").SQL[] = [eq(purchaseOrders.orgId, orgId)];
     if (status) {

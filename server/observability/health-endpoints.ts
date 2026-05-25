@@ -4,7 +4,7 @@ import { trackPerformance } from "./performance-tracking";
 import { PERFORMANCE_THRESHOLDS } from "./core-metrics";
 
 export function healthzEndpoint(req: Request, res: Response) {
-  const isLocalMode = process.env.LOCAL_MODE === "true" || process.env.EMBEDDED_MODE === "true";
+  const isLocalMode = process.env['LOCAL_MODE'] === "true" || process.env['EMBEDDED_MODE'] === "true";
   const deploymentMode = isLocalMode ? "VESSEL" : "CLOUD";
   const databaseType = isLocalMode ? "SQLite" : "PostgreSQL";
 
@@ -12,10 +12,10 @@ export function healthzEndpoint(req: Request, res: Response) {
     status: "ok",
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    version: process.env.npm_package_version || "unknown",
+    version: process.env['npm_package_version'] || "unknown",
     deploymentMode,
     databaseType,
-    environment: process.env.NODE_ENV || "development",
+    environment: process.env['NODE_ENV'] || "development",
   });
 }
 
@@ -45,13 +45,13 @@ async function checkDatabase(ctx: HealthContext): Promise<void> {
     const { safeSql } = await import("../utils/safeSql");
     const { sql } = await import("drizzle-orm");
     await safeSql(db, sql`SELECT 1 as health_check`);
-    ctx.checks.database = {
+    ctx.checks['database'] = {
       status: "ok",
       type: ctx.databaseType,
       responseTimeMs: Date.now() - dbStart,
     };
   } catch (dbError) {
-    ctx.checks.database = {
+    ctx.checks['database'] = {
       status: "error",
       type: ctx.databaseType,
       responseTimeMs: Date.now() - dbStart,
@@ -69,7 +69,7 @@ async function checkRedis(ctx: HealthContext): Promise<void> {
     const analyticsHealthy = await analyticsCache.healthCheck();
 
     const redisOk = inventoryHealthy || analyticsHealthy;
-    ctx.checks.redis = {
+    ctx.checks['redis'] = {
       status: redisOk ? "ok" : cacheConfig.enabled ? "degraded" : "disabled",
       responseTimeMs: Date.now() - redisStart,
       inventoryCache: inventoryHealthy ? "connected" : "disconnected",
@@ -81,7 +81,7 @@ async function checkRedis(ctx: HealthContext): Promise<void> {
       degradeStatus(ctx);
     }
   } catch (redisError) {
-    ctx.checks.redis = {
+    ctx.checks['redis'] = {
       status: "error",
       responseTimeMs: Date.now() - redisStart,
       error: redisError instanceof Error ? redisError.message : "Unknown error",
@@ -95,7 +95,7 @@ async function checkJobQueue(ctx: HealthContext): Promise<void> {
     const { jobQueueService } = await import("../job-queue-service");
     const queueHealth = jobQueueService.getHealthStatus();
 
-    ctx.checks.jobQueue = {
+    ctx.checks['jobQueue'] = {
       status: queueHealth.status,
       initialized: queueHealth.initialized,
       workerStarted: queueHealth.workerStarted,
@@ -109,7 +109,7 @@ async function checkJobQueue(ctx: HealthContext): Promise<void> {
       degradeStatus(ctx);
     }
   } catch (queueError) {
-    ctx.checks.jobQueue = {
+    ctx.checks['jobQueue'] = {
       status: "error",
       error: queueError instanceof Error ? queueError.message : "Unknown error",
     };
@@ -123,7 +123,7 @@ async function checkErrorHandling(ctx: HealthContext): Promise<void> {
     const errorHealth = getErrorHandlingHealth();
     const openCircuits = errorHealth.circuitBreakers.filter((cb) => cb.state === "OPEN").length;
 
-    ctx.checks.errorHandling = {
+    ctx.checks['errorHandling'] = {
       status: errorHealth.status,
       circuitBreakers: errorHealth.circuitBreakers.length,
       openCircuits,
@@ -133,7 +133,7 @@ async function checkErrorHandling(ctx: HealthContext): Promise<void> {
       degradeStatus(ctx);
     }
   } catch {
-    ctx.checks.errorHandling = { status: "unknown" };
+    ctx.checks['errorHandling'] = { status: "unknown" };
   }
 }
 
@@ -143,7 +143,7 @@ function checkMemory(ctx: HealthContext): void {
   const heapTotalMB = Math.round(memUsage.heapTotal / 1024 / 1024);
   const memoryWarning = heapUsedMB > PERFORMANCE_THRESHOLDS.HIGH_MEMORY_MB;
 
-  ctx.checks.memory = {
+  ctx.checks['memory'] = {
     status: memoryWarning ? "warning" : "ok",
     heapUsedMB,
     heapTotalMB,
@@ -152,7 +152,7 @@ function checkMemory(ctx: HealthContext): void {
 }
 
 function addSchedulersCheck(ctx: HealthContext): void {
-  ctx.checks.schedulers = {
+  ctx.checks['schedulers'] = {
     status: "ok",
     uptime: process.uptime(),
     scheduledJobs: [
@@ -167,7 +167,7 @@ function addSchedulersCheck(ctx: HealthContext): void {
 
 export async function readyzEndpoint(req: Request, res: Response) {
   const start = Date.now();
-  const isLocalMode = process.env.LOCAL_MODE === "true" || process.env.EMBEDDED_MODE === "true";
+  const isLocalMode = process.env['LOCAL_MODE'] === "true" || process.env['EMBEDDED_MODE'] === "true";
   const deploymentMode = isLocalMode ? "VESSEL" : "CLOUD";
   const databaseType = isLocalMode ? "SQLite" : "PostgreSQL";
 
@@ -193,8 +193,8 @@ export async function readyzEndpoint(req: Request, res: Response) {
       timestamp: new Date().toISOString(),
       deploymentMode,
       databaseType,
-      environment: process.env.NODE_ENV || "development",
-      version: process.env.npm_package_version || "unknown",
+      environment: process.env['NODE_ENV'] || "development",
+      version: process.env['npm_package_version'] || "unknown",
       checks: ctx.checks,
       features: {
         cloudOnlyFeatures: deploymentMode === "CLOUD",

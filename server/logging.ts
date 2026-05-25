@@ -255,7 +255,7 @@ export function structuredLog(
     timestamp: new Date().toISOString(),
     level,
     service: "arus-api",
-    version: process.env.npm_package_version || "1.0",
+    version: process.env['npm_package_version'] || "1.0",
     ...enrichedContext,
   };
 
@@ -264,7 +264,7 @@ export function structuredLog(
     logEntry.metadata = redactSensitiveFields(logEntry.metadata);
   }
 
-  if (process.env.NODE_ENV === "production") {
+  if (process.env['NODE_ENV'] === "production") {
     // JSON logging for production (easier to parse by log aggregators)
     console.log(JSON.stringify({ message, ...logEntry }));
   } else {

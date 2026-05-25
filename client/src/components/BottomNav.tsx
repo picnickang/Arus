@@ -21,7 +21,7 @@ function getBottomNavItems(roleId: string | null): string[] {
       /* fall through */
     }
   }
-  return ROLE_DEFAULTS[roleId || "default"] || ROLE_DEFAULTS.default;
+  return ROLE_DEFAULTS[roleId || "default"] || ROLE_DEFAULTS['default'];
 }
 
 export function BottomNav() {

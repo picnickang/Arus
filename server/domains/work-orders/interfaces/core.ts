@@ -166,10 +166,10 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
         v == null ? undefined : new Date(v as string | number | Date);
       const processedBody = {
         ...rawBody,
-        scheduledDate: toDate(rawBody.scheduledDate),
-        completedDate: toDate(rawBody.completedDate),
-        plannedStartDate: toDate(rawBody.plannedStartDate),
-        plannedEndDate: toDate(rawBody.plannedEndDate),
+        scheduledDate: toDate(rawBody['scheduledDate']),
+        completedDate: toDate(rawBody['completedDate']),
+        plannedStartDate: toDate(rawBody['plannedStartDate']),
+        plannedEndDate: toDate(rawBody['plannedEndDate']),
       };
 
       const orderData = insertWorkOrderSchema.parse(processedBody);

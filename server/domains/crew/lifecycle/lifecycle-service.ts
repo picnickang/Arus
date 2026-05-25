@@ -162,25 +162,25 @@ export class CrewLifecycleService {
 
     const updateData: Record<string, unknown> = {};
     if (input.startDate) {
-      updateData.startDate = new Date(input.startDate);
+      updateData['startDate'] = new Date(input.startDate);
     }
     if (input.endDate) {
-      updateData.endDate = new Date(input.endDate);
+      updateData['endDate'] = new Date(input.endDate);
     }
     if (input.terminationType !== undefined) {
-      updateData.terminationType = input.terminationType;
+      updateData['terminationType'] = input.terminationType;
     }
     if (input.terminationNotes !== undefined) {
-      updateData.terminationNotes = input.terminationNotes;
+      updateData['terminationNotes'] = input.terminationNotes;
     }
     if (input.contractPenalty !== undefined) {
-      updateData.contractPenalty = input.contractPenalty;
+      updateData['contractPenalty'] = input.contractPenalty;
     }
     if (input.vesselId !== undefined) {
-      updateData.vesselId = input.vesselId;
+      updateData['vesselId'] = input.vesselId;
     }
     if (input.rank !== undefined) {
-      updateData.rank = input.rank;
+      updateData['rank'] = input.rank;
     }
 
     return crewLifecycleRepository.updateEmploymentHistory(id, orgId, updateData);

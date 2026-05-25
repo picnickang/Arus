@@ -44,9 +44,9 @@ telemetryDlqRouter.get(
   "/entries",
   withErrorHandling("list DLQ entries", async (req, res) => {
     const dlq = getBridgeDeadLetterQueue();
-    const limit = Number(req.query.limit) || 100;
-    const offset = Number(req.query.offset) || 0;
-    const source = req.query.source as string | undefined;
+    const limit = Number(req.query['limit']) || 100;
+    const offset = Number(req.query['offset']) || 0;
+    const source = req.query['source'] as string | undefined;
 
     const entries =
       "listAsync" in dlq
@@ -70,8 +70,8 @@ telemetryDlqRouter.get(
     const dlq = getBridgeDeadLetterQueue();
     const entry =
       "getAsync" in dlq
-        ? await (dlq as { getAsync: (id: string) => Promise<unknown> }).getAsync(req.params.id)
-        : dlq.get(req.params.id);
+        ? await (dlq as { getAsync: (id: string) => Promise<unknown> }).getAsync(req.params['id'])
+        : dlq.get(req.params['id']);
 
     if (!entry) {
       return res.status(404).json({ message: "Entry not found" });
@@ -95,14 +95,14 @@ telemetryDlqRouter.post(
       });
     }
 
-    const result = await dlq.replay(req.params.id);
+    const result = await dlq.replay(req.params['id']);
 
     if (result.success) {
-      logger.info("TelemetryDLQRoutes", "Entry replayed successfully", { entryId: req.params.id });
+      logger.info("TelemetryDLQRoutes", "Entry replayed successfully", { entryId: req.params['id'] });
       return res.json(result);
     } else {
       logger.warn("TelemetryDLQRoutes", "Entry replay failed", {
-        entryId: req.params.id,
+        entryId: req.params['id'],
         error: result.error,
       });
       return res.status(400).json(result);
@@ -124,8 +124,8 @@ telemetryDlqRouter.post(
       });
     }
 
-    const limit = Number(req.query.limit) || 100;
-    const source = req.query.source as string | undefined;
+    const limit = Number(req.query['limit']) || 100;
+    const source = req.query['source'] as string | undefined;
 
     const results = await dlq.replayAll({ limit, source });
 
@@ -149,18 +149,18 @@ telemetryDlqRouter.delete(
     const dlq = getBridgeDeadLetterQueue();
     const entry =
       "getAsync" in dlq
-        ? await (dlq as { getAsync: (id: string) => Promise<unknown> }).getAsync(req.params.id)
-        : dlq.get(req.params.id);
+        ? await (dlq as { getAsync: (id: string) => Promise<unknown> }).getAsync(req.params['id'])
+        : dlq.get(req.params['id']);
 
     if (!entry) {
       return res.status(404).json({ message: "Entry not found" });
     }
 
     if ("deleteAsync" in dlq) {
-      await (dlq as { deleteAsync: (id: string) => Promise<unknown> }).deleteAsync(req.params.id);
+      await (dlq as { deleteAsync: (id: string) => Promise<unknown> }).deleteAsync(req.params['id']);
     }
 
-    return res.json({ success: true, entryId: req.params.id, message: "Entry removed" });
+    return res.json({ success: true, entryId: req.params['id'], message: "Entry removed" });
   })
 );
 

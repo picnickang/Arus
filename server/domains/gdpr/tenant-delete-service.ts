@@ -161,7 +161,7 @@ export class TenantDeleteService {
   }
 
   private signCertificate(cert: DeletionCertificate): DeletionCertificate {
-    const secret = this.opts.signingSecret ?? process.env.SESSION_SECRET ?? "";
+    const secret = this.opts.signingSecret ?? process.env['SESSION_SECRET'] ?? "";
     if (!secret) {
       logger.warn("Signing certificate without SESSION_SECRET — signature will be empty.");
       return cert;

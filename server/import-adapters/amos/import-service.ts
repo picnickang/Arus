@@ -287,11 +287,11 @@ class AmosImportService {
     const children: Array<{ rowNum: number; data: Record<string, unknown> }> = [];
 
     for (const row of rows) {
-      const id = row.data.id as string;
+      const id = row.data['id'] as string;
       if (id) {
         idMap.set(id, row);
       }
-      const parentId = row.data.parentEquipmentId as string | undefined;
+      const parentId = row.data['parentEquipmentId'] as string | undefined;
       if (!parentId) {
         roots.push(row);
       } else {
@@ -300,17 +300,17 @@ class AmosImportService {
     }
 
     const sorted = [...roots];
-    const insertedIds = new Set(roots.map((r) => r.data.id as string));
+    const insertedIds = new Set(roots.map((r) => r.data['id'] as string));
     let remaining = [...children];
     let maxPasses = remaining.length + 1;
 
     while (remaining.length > 0 && maxPasses-- > 0) {
       const next: typeof remaining = [];
       for (const row of remaining) {
-        const parentId = row.data.parentEquipmentId as string;
+        const parentId = row.data['parentEquipmentId'] as string;
         if (insertedIds.has(parentId)) {
           sorted.push(row);
-          insertedIds.add(row.data.id as string);
+          insertedIds.add(row.data['id'] as string);
         } else {
           next.push(row);
         }
@@ -343,18 +343,18 @@ class AmosImportService {
     }
 
     if (Object.keys(specifications).length > 0) {
-      cleanData.specifications = specifications;
+      cleanData['specifications'] = specifications;
     }
 
-    cleanData.orgId = orgId;
-    if (vesselId && !cleanData.vesselId) {
-      cleanData.vesselId = vesselId;
+    cleanData['orgId'] = orgId;
+    if (vesselId && !cleanData['vesselId']) {
+      cleanData['vesselId'] = vesselId;
     }
-    if (!cleanData.type) {
-      cleanData.type = (cleanData.systemType as string) || "general";
+    if (!cleanData['type']) {
+      cleanData['type'] = (cleanData['systemType'] as string) || "general";
     }
 
-    const equipmentId = cleanData.id as string;
+    const equipmentId = cleanData['id'] as string;
     if (!equipmentId) {
       return "skipped";
     }
@@ -452,12 +452,12 @@ class AmosImportService {
       }
     }
 
-    cleanData.orgId = orgId;
-    if (vesselId && !cleanData.vesselId) {
-      cleanData.vesselId = vesselId;
+    cleanData['orgId'] = orgId;
+    if (vesselId && !cleanData['vesselId']) {
+      cleanData['vesselId'] = vesselId;
     }
 
-    const woNumber = cleanData.woNumber as string;
+    const woNumber = cleanData['woNumber'] as string;
     if (!woNumber) {
       return "skipped";
     }
@@ -479,7 +479,7 @@ class AmosImportService {
 
     await db.insert(workOrders).values({
       ...cleanData,
-      createdAt: cleanData.createdAt ?? new Date(),
+      createdAt: cleanData['createdAt'] ?? new Date(),
       updatedAt: new Date(),
     } as object as never);
     return "inserted";
@@ -502,8 +502,8 @@ class AmosImportService {
       }
     }
 
-    cleanData.orgId = orgId;
-    const partNo = cleanData.partNo as string;
+    cleanData['orgId'] = orgId;
+    const partNo = cleanData['partNo'] as string;
     if (!partNo) {
       return "skipped";
     }
@@ -537,7 +537,7 @@ class AmosImportService {
 
     // Upsert stock record if we have stock data
     if (Object.keys(stockData).length > 0) {
-      const location = (stockData.location as string) || "MAIN";
+      const location = (stockData['location'] as string) || "MAIN";
 
       const [existingStock] = await db
         .select({ id: stock.id })
@@ -549,9 +549,9 @@ class AmosImportService {
         await db
           .update(stock)
           .set({
-            quantityOnHand: (stockData.quantityOnHand as number) ?? 0,
-            unitCost: (stockData.unitCost as number) ?? 0,
-            binLocation: (stockData.binLocation as string) ?? null,
+            quantityOnHand: (stockData['quantityOnHand'] as number) ?? 0,
+            unitCost: (stockData['unitCost'] as number) ?? 0,
+            binLocation: (stockData['binLocation'] as string) ?? null,
             updatedAt: new Date(),
           })
           .where(eq(stock.id, existingStock.id));
@@ -561,9 +561,9 @@ class AmosImportService {
           partId,
           partNo,
           location,
-          quantityOnHand: (stockData.quantityOnHand as number) ?? 0,
-          unitCost: (stockData.unitCost as number) ?? 0,
-          binLocation: (stockData.binLocation as string) ?? null,
+          quantityOnHand: (stockData['quantityOnHand'] as number) ?? 0,
+          unitCost: (stockData['unitCost'] as number) ?? 0,
+          binLocation: (stockData['binLocation'] as string) ?? null,
           createdAt: new Date(),
           updatedAt: new Date(),
         } as object as never);
@@ -588,11 +588,11 @@ class AmosImportService {
       }
     }
 
-    cleanData.orgId = orgId;
+    cleanData['orgId'] = orgId;
 
     // For now, store as a generic upsert
     // TODO: Map to maintenance_templates table when it exists with templateCode unique constraint
-    logger.info("Maintenance plan import (stub)", { templateCode: cleanData.templateCode });
+    logger.info("Maintenance plan import (stub)", { templateCode: cleanData['templateCode'] });
     return "skipped";
   }
 
@@ -723,7 +723,7 @@ class AmosImportService {
     const bySystem = new Map<string, Record<string, unknown>[]>();
 
     for (const row of rows) {
-      const system = (row.systemType as string) || "General";
+      const system = (row['systemType'] as string) || "General";
       if (!bySystem.has(system)) {
         bySystem.set(system, []);
       }
@@ -735,14 +735,14 @@ class AmosImportService {
     for (const [system, items] of bySystem) {
       const lines = items.map((item) => {
         const parts = [
-          `- ${item.name}`,
-          item.manufacturer && `  Manufacturer: ${item.manufacturer}`,
-          item.model && `  Model: ${item.model}`,
-          item.serialNumber && `  Serial: ${item.serialNumber}`,
-          item.location && `  Location: ${item.location}`,
-          item.criticalityLevel && `  Criticality: ${item.criticalityLevel}`,
-          item.runningHours && `  Running Hours: ${item.runningHours}`,
-          item.description && `  Notes: ${item.description}`,
+          `- ${item['name']}`,
+          item['manufacturer'] && `  Manufacturer: ${item['manufacturer']}`,
+          item['model'] && `  Model: ${item['model']}`,
+          item['serialNumber'] && `  Serial: ${item['serialNumber']}`,
+          item['location'] && `  Location: ${item['location']}`,
+          item['criticalityLevel'] && `  Criticality: ${item['criticalityLevel']}`,
+          item['runningHours'] && `  Running Hours: ${item['runningHours']}`,
+          item['description'] && `  Notes: ${item['description']}`,
         ].filter(Boolean);
         return parts.join("\n");
       });
@@ -770,7 +770,7 @@ class AmosImportService {
     const byEquipment = new Map<string, Record<string, unknown>[]>();
 
     for (const row of rows) {
-      const eqId = (row.equipmentId as string) || "unknown";
+      const eqId = (row['equipmentId'] as string) || "unknown";
       if (!byEquipment.has(eqId)) {
         byEquipment.set(eqId, []);
       }
@@ -780,20 +780,20 @@ class AmosImportService {
     for (const [eqId, orders] of byEquipment) {
       // Sort by date descending
       orders.sort((a, b) => {
-        const da = a.completedAt ? new Date(a.completedAt as string).getTime() : 0;
-        const db = b.completedAt ? new Date(b.completedAt as string).getTime() : 0;
+        const da = a['completedAt'] ? new Date(a['completedAt'] as string).getTime() : 0;
+        const db = b['completedAt'] ? new Date(b['completedAt'] as string).getTime() : 0;
         return db - da;
       });
 
       const lines = orders.slice(0, 50).map((wo) => {
         const parts = [
-          `## ${wo.woNumber}: ${wo.title}`,
-          `Type: ${wo.maintenanceType || "N/A"} | Status: ${wo.status || "N/A"} | Priority: ${wo.priority || "N/A"}`,
-          wo.description && `Description: ${wo.description}`,
-          wo.completedAt && `Completed: ${new Date(wo.completedAt as string).toLocaleDateString()}`,
-          wo.actualHours && `Hours: ${wo.actualHours}`,
-          wo.notes && `Notes: ${wo.notes}`,
-          wo.assignedTo && `Performed by: ${wo.assignedTo}`,
+          `## ${wo['woNumber']}: ${wo['title']}`,
+          `Type: ${wo['maintenanceType'] || "N/A"} | Status: ${wo['status'] || "N/A"} | Priority: ${wo['priority'] || "N/A"}`,
+          wo['description'] && `Description: ${wo['description']}`,
+          wo['completedAt'] && `Completed: ${new Date(wo['completedAt'] as string).toLocaleDateString()}`,
+          wo['actualHours'] && `Hours: ${wo['actualHours']}`,
+          wo['notes'] && `Notes: ${wo['notes']}`,
+          wo['assignedTo'] && `Performed by: ${wo['assignedTo']}`,
         ].filter(Boolean);
         return parts.join("\n");
       });
@@ -806,8 +806,8 @@ class AmosImportService {
           equipmentId: eqId,
           workOrderCount: orders.length,
           dateRange: {
-            earliest: orders[orders.length - 1]?.createdAt,
-            latest: orders[0]?.createdAt,
+            earliest: orders[orders.length - 1]?.['createdAt'],
+            latest: orders[0]?.['createdAt'],
           },
         },
       });
@@ -816,7 +816,7 @@ class AmosImportService {
     // Also create a summary document
     const typeBreakdown = new Map<string, number>();
     for (const row of rows) {
-      const type = (row.maintenanceType as string) || "unknown";
+      const type = (row['maintenanceType'] as string) || "unknown";
       typeBreakdown.set(type, (typeBreakdown.get(type) || 0) + 1);
     }
 
@@ -844,7 +844,7 @@ class AmosImportService {
     const byCategory = new Map<string, Record<string, unknown>[]>();
 
     for (const row of rows) {
-      const cat = (row.category as string) || "General";
+      const cat = (row['category'] as string) || "General";
       if (!byCategory.has(cat)) {
         byCategory.set(cat, []);
       }
@@ -854,7 +854,7 @@ class AmosImportService {
     return [...byCategory.entries()].map(([category, items]) => {
       const lines = items.map(
         (part) =>
-          `- **${part.partNo}**: ${part.name}${part.manufacturer ? ` (${part.manufacturer})` : ""}${part.criticality ? ` [${part.criticality}]` : ""}`
+          `- **${part['partNo']}**: ${part['name']}${part['manufacturer'] ? ` (${part['manufacturer']})` : ""}${part['criticality'] ? ` [${part['criticality']}]` : ""}`
       );
 
       return {
@@ -873,26 +873,26 @@ class AmosImportService {
     rows: Record<string, unknown>[]
   ): Array<{ title: string; content: string; metadata: Record<string, unknown> }> {
     return rows.map((plan) => ({
-      title: `Maintenance Plan: ${plan.title || plan.templateCode}`,
+      title: `Maintenance Plan: ${plan['title'] || plan['templateCode']}`,
       content: [
-        `# Maintenance Plan: ${plan.title}`,
-        `Code: ${plan.templateCode}`,
-        `Equipment: ${plan.equipmentId || "N/A"}`,
-        plan.frequencyDays && `Interval: Every ${plan.frequencyDays} days`,
-        plan.frequencyHours && `Running Hour Interval: Every ${plan.frequencyHours} hours`,
-        plan.maintenanceType && `Type: ${plan.maintenanceType}`,
-        plan.estimatedHours && `Estimated Duration: ${plan.estimatedHours} hours`,
-        plan.description && `\nDescription:\n${plan.description}`,
-        plan._tasks && `\nTasks:\n${plan._tasks}`,
-        plan._requiredParts && `\nRequired Parts:\n${plan._requiredParts}`,
-        plan._requiredSkills && `\nRequired Skills:\n${plan._requiredSkills}`,
+        `# Maintenance Plan: ${plan['title']}`,
+        `Code: ${plan['templateCode']}`,
+        `Equipment: ${plan['equipmentId'] || "N/A"}`,
+        plan['frequencyDays'] && `Interval: Every ${plan['frequencyDays']} days`,
+        plan['frequencyHours'] && `Running Hour Interval: Every ${plan['frequencyHours']} hours`,
+        plan['maintenanceType'] && `Type: ${plan['maintenanceType']}`,
+        plan['estimatedHours'] && `Estimated Duration: ${plan['estimatedHours']} hours`,
+        plan['description'] && `\nDescription:\n${plan['description']}`,
+        plan['_tasks'] && `\nTasks:\n${plan['_tasks']}`,
+        plan['_requiredParts'] && `\nRequired Parts:\n${plan['_requiredParts']}`,
+        plan['_requiredSkills'] && `\nRequired Skills:\n${plan['_requiredSkills']}`,
       ]
         .filter(Boolean)
         .join("\n"),
       metadata: {
         entityType: "maintenance_plan",
-        templateCode: plan.templateCode,
-        equipmentId: plan.equipmentId,
+        templateCode: plan['templateCode'],
+        equipmentId: plan['equipmentId'],
       },
     }));
   }

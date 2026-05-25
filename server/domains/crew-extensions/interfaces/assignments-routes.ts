@@ -157,7 +157,7 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
         // Map status back to storage format
         const storageUpdates: Record<string, unknown> = {};
         if (validated.status) {
-          storageUpdates.status =
+          storageUpdates['status'] =
             validated.status === "confirmed"
               ? "scheduled"
               : validated.status === "published"
@@ -165,20 +165,20 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
                 : "pending";
         }
         if (validated.startDate) {
-          storageUpdates.start = new Date(validated.startDate);
-          storageUpdates.date = validated.startDate;
+          storageUpdates['start'] = new Date(validated.startDate);
+          storageUpdates['date'] = validated.startDate;
         }
         if (validated.endDate) {
-          storageUpdates.end = new Date(validated.endDate);
+          storageUpdates['end'] = new Date(validated.endDate);
         }
         if (validated.role) {
-          storageUpdates.role = validated.role;
+          storageUpdates['role'] = validated.role;
         }
         if (validated.crewId) {
-          storageUpdates.crewId = validated.crewId;
+          storageUpdates['crewId'] = validated.crewId;
         }
         if (validated.vesselId !== undefined) {
-          storageUpdates.vesselId = validated.vesselId;
+          storageUpdates['vesselId'] = validated.vesselId;
         }
 
         const assignment = await dbCrewStorage.updateCrewAssignment(id, storageUpdates, orgId);

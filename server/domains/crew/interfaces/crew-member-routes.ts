@@ -92,7 +92,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
     generalApiRateLimit,
     withErrorHandling("fetch crew member", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const crew = await crewService.getCrewById(req.params.id, orgId);
+      const crew = await crewService.getCrewById(req.params['id'], orgId);
 
       if (!crew) {
         sendNotFound(res, "Crew member");
@@ -120,7 +120,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
       }
       const crewData = insertCrewSchema.partial().parse(body);
       const orgId = (req as AuthenticatedRequest).orgId;
-      const crew = await crewService.updateCrew(req.params.id, crewData, req.user?.id, orgId);
+      const crew = await crewService.updateCrew(req.params['id'], crewData, req.user?.id, orgId);
       res.json(crew);
     })
   );
@@ -131,7 +131,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
     criticalOperationRateLimit,
     withErrorHandling("delete crew member", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      await crewService.deleteCrew(req.params.id, req.user?.id, orgId);
+      await crewService.deleteCrew(req.params['id'], req.user?.id, orgId);
       sendDeleted(res);
     })
   );

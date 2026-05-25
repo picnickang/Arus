@@ -166,7 +166,7 @@ export function registerRagRoutes(
     withErrorHandling("list RAG conversations", async (req, res) => {
       const orgId = DEFAULT_ORG_ID;
       const userId = (req.headers["x-user-id"] as string) || undefined;
-      const limit = parseInt(req.query.limit as string) || 20;
+      const limit = parseInt(req.query['limit'] as string) || 20;
 
       const conversationService = getConversationService();
       const conversations = await conversationService.listConversations({
@@ -208,7 +208,7 @@ export function registerRagRoutes(
     generalApiRateLimit,
     withErrorHandling("get conversation messages", async (req, res) => {
       const { id } = req.params;
-      const limit = parseInt(req.query.limit as string) || 100;
+      const limit = parseInt(req.query['limit'] as string) || 100;
 
       const conversationService = getConversationService();
       const messages = await conversationService.getMessages(id, limit);
@@ -344,7 +344,7 @@ export function registerRagRoutes(
         let orgId: string;
         let userId: string | undefined;
 
-        const streamingToken = req.query.token as string;
+        const streamingToken = req.query['token'] as string;
         if (streamingToken) {
           const tokenPayload = tokenService.validateToken(streamingToken);
           if (!tokenPayload) {
@@ -358,11 +358,11 @@ export function registerRagRoutes(
           }
           orgId = tokenPayload.orgId;
           userId = tokenPayload.userId;
-        } else if (config.auth.allowHeaderOrgId && process.env.NODE_ENV === "development") {
+        } else if (config.auth.allowHeaderOrgId && process.env['NODE_ENV'] === "development") {
           orgId =
             DEFAULT_ORG_ID;
           userId =
-            (req.query.userId as string) || (req.headers["x-user-id"] as string) || undefined;
+            (req.query['userId'] as string) || (req.headers["x-user-id"] as string) || undefined;
           logger.warn("[RAG Stream] Using dev-mode auth fallback — NOT for production");
         } else {
           return res
@@ -374,8 +374,8 @@ export function registerRagRoutes(
           return;
         }
 
-        let query = req.query.query as string;
-        const conversationId = req.query.conversationId as string | undefined;
+        let query = req.query['query'] as string;
+        const conversationId = req.query['conversationId'] as string | undefined;
 
         // Sanitize query
         const sanitizeResult = sanitizer.sanitize(query || "");
@@ -496,7 +496,7 @@ export function registerRagRoutes(
     generalApiRateLimit,
     withErrorHandling("get RAG suggestions", async (req, res) => {
       const orgId = DEFAULT_ORG_ID;
-      const conversationId = req.query.conversationId as string | undefined;
+      const conversationId = req.query['conversationId'] as string | undefined;
 
       const apiKey = await getOpenAIApiKey();
       if (apiKey && !suggestionEngine.isInitialized()) {
@@ -520,9 +520,9 @@ export function registerRagRoutes(
     generalApiRateLimit,
     withErrorHandling("export conversation", async (req, res) => {
       const { id } = req.params;
-      const format = (req.query.format as "pdf" | "markdown") || "markdown";
-      const includeCitations = req.query.includeCitations !== "false";
-      const includeTimestamps = req.query.includeTimestamps !== "false";
+      const format = (req.query['format'] as "pdf" | "markdown") || "markdown";
+      const includeCitations = req.query['includeCitations'] !== "false";
+      const includeTimestamps = req.query['includeTimestamps'] !== "false";
 
       const conversationService = getConversationService();
       const conversation = await conversationService.getConversation(id);
@@ -607,7 +607,7 @@ export function registerRagRoutes(
     generalApiRateLimit,
     withErrorHandling("get confidence alerts", async (req, res) => {
       const orgId = DEFAULT_ORG_ID;
-      const includeAcknowledged = req.query.includeAcknowledged === "true";
+      const includeAcknowledged = req.query['includeAcknowledged'] === "true";
 
       const alerts = confidenceDetector.getAlerts(orgId, includeAcknowledged);
 

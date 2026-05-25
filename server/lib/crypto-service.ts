@@ -30,9 +30,9 @@ function getEncryptionKey(): Buffer {
     return encryptionKeyCache;
   }
 
-  const isProduction = process.env.NODE_ENV === "production";
+  const isProduction = process.env['NODE_ENV'] === "production";
 
-  const dedicatedKey = process.env.ENCRYPTION_KEY;
+  const dedicatedKey = process.env['ENCRYPTION_KEY'];
   if (dedicatedKey) {
     if (dedicatedKey.length < MIN_KEY_STRENGTH) {
       if (isProduction) {
@@ -51,7 +51,7 @@ function getEncryptionKey(): Buffer {
     return encryptionKeyCache;
   }
 
-  const sessionSecret = process.env.SESSION_SECRET;
+  const sessionSecret = process.env['SESSION_SECRET'];
   if (!sessionSecret) {
     if (isProduction) {
       throw new Error("Either ENCRYPTION_KEY or SESSION_SECRET must be set in production");

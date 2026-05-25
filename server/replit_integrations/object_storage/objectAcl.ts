@@ -124,7 +124,7 @@ export async function getObjectAclPolicy(
   objectFile: File,
 ): Promise<ObjectAclPolicy | null> {
   const [metadata] = await objectFile.getMetadata();
-  const aclPolicy = (metadata?.metadata as Record<string, unknown> | undefined)?.[ACL_POLICY_METADATA_KEY];
+  const aclPolicy = (metadata?.['metadata'] as Record<string, unknown> | undefined)?.[ACL_POLICY_METADATA_KEY];
   if (!aclPolicy) {
     return null;
   }

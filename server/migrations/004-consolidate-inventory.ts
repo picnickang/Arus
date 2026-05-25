@@ -16,7 +16,7 @@ import { Pool } from "pg";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Migrations:004ConsolidateInventory");
 
-const DATABASE_URL = process.env.DATABASE_URL;
+const DATABASE_URL = process.env['DATABASE_URL'];
 if (!DATABASE_URL) {
   logger.error("DATABASE_URL not set");
   process.exit(1);

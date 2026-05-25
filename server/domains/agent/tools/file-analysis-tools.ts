@@ -46,8 +46,8 @@ registerTool({
   }),
   requiresApproval: false,
   async execute(input: Record<string, unknown>, ctx) {
-    const fileId = input.fileId as string;
-    const analysisType = (input.analysisType as string) || "general";
+    const fileId = input['fileId'] as string;
+    const analysisType = (input['analysisType'] as string) || "general";
 
     const record = await resolveFile(fileId, ctx.orgId);
     if (!record) {
@@ -74,7 +74,7 @@ registerTool({
         "You are a marine engineering specialist. Analyze this image in the context of marine vessel operations. Describe what you see, identify any equipment or components, assess their condition, and note anything relevant to maintenance or safety.",
     };
 
-    const structuredPrompt = `${prompts[analysisType] || prompts.general}
+    const structuredPrompt = `${prompts[analysisType] || prompts['general']}
 
 IMPORTANT: Return your analysis as a JSON object with these fields:
 {
@@ -117,12 +117,12 @@ Only include fields relevant to the analysis type. Return valid JSON only.`;
         fileId,
         filename: record.filename,
         analysisType,
-        conditionRating: structured.conditionRating || null,
-        identifiedComponents: structured.identifiedComponents || [],
-        visibleDamage: structured.visibleDamage || [],
-        recommendations: structured.recommendations || [],
-        urgencyLevel: structured.urgencyLevel || null,
-        summary: structured.summary || "",
+        conditionRating: structured['conditionRating'] || null,
+        identifiedComponents: structured['identifiedComponents'] || [],
+        visibleDamage: structured['visibleDamage'] || [],
+        recommendations: structured['recommendations'] || [],
+        urgencyLevel: structured['urgencyLevel'] || null,
+        summary: structured['summary'] || "",
         tokensUsed: response.usage.totalTokens,
       };
     } catch (err) {
@@ -156,8 +156,8 @@ registerTool({
   }),
   requiresApproval: false,
   async execute(input: Record<string, unknown>, ctx) {
-    const fileId = input.fileId as string;
-    const question = input.question as string | undefined;
+    const fileId = input['fileId'] as string;
+    const question = input['question'] as string | undefined;
 
     const record = await resolveFile(fileId, ctx.orgId);
     if (!record) {
@@ -229,7 +229,7 @@ registerTool({
       };
 
       if (question) {
-        result.question = question;
+        result['question'] = question;
 
         const qLower = question.toLowerCase();
         const matchingRows: Record<string, unknown>[] = [];
@@ -246,11 +246,11 @@ registerTool({
           }
         }
         if (matchingRows.length > 0) {
-          result.matchingRows = matchingRows;
-          result.matchCount = matchingRows.length;
+          result['matchingRows'] = matchingRows;
+          result['matchCount'] = matchingRows.length;
         }
 
-        result.instruction =
+        result['instruction'] =
           "Answer the user's question using the data provided. The sampleRows contain up to 200 rows of raw data, and matchingRows contains rows where any cell matches query terms.";
       }
 

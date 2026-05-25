@@ -443,7 +443,7 @@ export class ConfigManager {
 export const configManager = new ConfigManager();
 
 // Auto-watch for changes in development mode
-if (process.env.NODE_ENV === "development") {
+if (process.env['NODE_ENV'] === "development") {
   configManager.watchForChanges({
     orgId: "default-org-id",
     changedByName: "System (File Watcher)",

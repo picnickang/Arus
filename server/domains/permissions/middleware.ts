@@ -139,7 +139,7 @@ export async function attachUserPermissions(
 
 export function checkPermissionInDev(resource: string, action: ActionCode) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env['NODE_ENV'] === "development") {
       next();
       return;
     }

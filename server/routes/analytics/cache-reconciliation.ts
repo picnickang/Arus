@@ -102,7 +102,7 @@ export function mountCacheReconciliationRoutes(router: Router) {
         const frontendType = issueTypeMap[issue.type] ?? "unknown";
         const frontendSeverity =
           issue.severity === "low" ? "info" : issue.severity === "medium" ? "warning" : "critical";
-        const table = (issue.metadata?.table as string) || "unknown";
+        const table = (issue.metadata?.['table'] as string) || "unknown";
         const groupKey = `${frontendType}:${frontendSeverity}:${table}`;
         if (issueGroups.has(groupKey)) {
           issueGroups.get(groupKey)!.count++;

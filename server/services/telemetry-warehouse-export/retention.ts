@@ -25,7 +25,7 @@ import { loadManifest, pruneEntries, saveManifest } from "./manifest";
 const logger = createLogger("TelemetryWarehouseExport:Retention");
 
 export function resolveRetentionDays(): number {
-  const raw = process.env.TELEMETRY_WAREHOUSE_RETENTION_DAYS;
+  const raw = process.env['TELEMETRY_WAREHOUSE_RETENTION_DAYS'];
   if (raw === undefined || raw === "") return 0;
   const n = Number(raw);
   if (!Number.isFinite(n) || n < 0) {

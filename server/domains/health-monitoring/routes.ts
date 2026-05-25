@@ -32,7 +32,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
           storage: "available",
           cache: "available",
         },
-        version: process.env.APP_VERSION ?? "1.0",
+        version: process.env['APP_VERSION'] ?? "1.0",
       };
 
       res.json(health);
@@ -123,10 +123,10 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
           pgOffline: bridgeState.pgOffline,
         },
         configuration: {
-          batchIntervalMs: Number.parseInt(process.env.TELEMETRY_BATCH_INTERVAL_MS || "500", 10),
-          maxBufferSize: Number.parseInt(process.env.TELEMETRY_MAX_BUFFER_SIZE || "10000", 10),
-          evictionPercent: Number.parseFloat(process.env.TELEMETRY_EVICTION_PERCENT || "0.1"),
-          maxRetries: Number.parseInt(process.env.TELEMETRY_MAX_RETRIES || "3", 10),
+          batchIntervalMs: Number.parseInt(process.env['TELEMETRY_BATCH_INTERVAL_MS'] || "500", 10),
+          maxBufferSize: Number.parseInt(process.env['TELEMETRY_MAX_BUFFER_SIZE'] || "10000", 10),
+          evictionPercent: Number.parseFloat(process.env['TELEMETRY_EVICTION_PERCENT'] || "0.1"),
+          maxRetries: Number.parseInt(process.env['TELEMETRY_MAX_RETRIES'] || "3", 10),
         },
       });
     })
@@ -265,7 +265,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     requireOrgId,
     withErrorHandling("delete error log", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      await dbSystemAdminStorage.deleteErrorLog(req.params.id, orgId);
+      await dbSystemAdminStorage.deleteErrorLog(req.params['id'], orgId);
       res.status(204).send();
     })
   );
@@ -294,12 +294,12 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
 
       const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const recentLogs = (logs ?? []).filter((log: Record<string, unknown>) => {
-        const ts = log.createdAt || log.timestamp;
+        const ts = log['createdAt'] || log['timestamp'];
         return ts ? new Date(ts as string) >= last24h : false;
       });
 
       const getSeverity = (log: Record<string, unknown>) =>
-        ((log.level || log.severity || "") as string).toLowerCase();
+        ((log['level'] || log['severity'] || "") as string).toLowerCase();
       const summary = {
         totalErrors: recentLogs.length,
         byLevel: {

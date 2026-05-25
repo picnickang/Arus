@@ -35,7 +35,7 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
     withErrorHandling("fetch anomaly detection", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId } = req.query;
       const detection = await dbMlAnalyticsStorage.getAnomalyDetection(
-        Number.parseInt(req.params.id),
+        Number.parseInt(req.params['id']),
         orgId as string
       );
       if (!detection) {
@@ -90,7 +90,7 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
         return res.status(400).json({ message: "acknowledgedBy is required" });
       }
       const detection = await dbMlAnalyticsStorage.acknowledgeAnomaly(
-        Number.parseInt(req.params.id),
+        Number.parseInt(req.params['id']),
         acknowledgedBy,
         orgId
       );

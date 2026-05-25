@@ -258,8 +258,8 @@ export async function findSimilarFailures(
     `ORDER BY occurrences DESC LIMIT 10`;
   const res = await execCypher(orgId, cypher, "failureMode agtype, occurrences agtype");
   return res.rows.map((r) => ({
-    failureMode: agString(r.failureMode),
-    occurrences: agNumber(r.occurrences),
+    failureMode: agString(r['failureMode']),
+    occurrences: agNumber(r['occurrences']),
   }));
 }
 
@@ -278,8 +278,8 @@ export async function whatPartsForFailureMode(
     `ORDER BY occurrences DESC LIMIT 25`;
   const res = await execCypher(orgId, cypher, "partId agtype, occurrences agtype");
   return res.rows.map((r) => ({
-    partId: agString(r.partId),
-    occurrences: agNumber(r.occurrences),
+    partId: agString(r['partId']),
+    occurrences: agNumber(r['occurrences']),
   }));
 }
 
@@ -325,9 +325,9 @@ export async function crossClassPatterns(
     "failureMode agtype, occurrences agtype, vesselCount agtype"
   );
   return res.rows.map((r) => ({
-    failureMode: agString(r.failureMode),
-    occurrences: agNumber(r.occurrences),
-    vesselCount: agNumber(r.vesselCount),
+    failureMode: agString(r['failureMode']),
+    occurrences: agNumber(r['occurrences']),
+    vesselCount: agNumber(r['vesselCount']),
   }));
 }
 
@@ -348,7 +348,7 @@ export async function failurePropagation(
     `ORDER BY hops ASC LIMIT 50`;
   const res = await execCypher(orgId, cypher, "equipmentId agtype, hops agtype");
   return res.rows.map((r) => ({
-    equipmentId: agString(r.equipmentId),
-    hops: agNumber(r.hops),
+    equipmentId: agString(r['equipmentId']),
+    hops: agNumber(r['hops']),
   }));
 }

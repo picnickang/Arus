@@ -133,7 +133,7 @@ export function validateResponse<T>(
     .map((i) => `${i.path.join(".") || "<root>"}: ${i.message}`)
     .join("; ")}`;
 
-  if (process.env.NODE_ENV === "production") {
+  if (process.env['NODE_ENV'] === "production") {
     logger.error(String(message));
     return payload as T;
   }
@@ -224,7 +224,7 @@ export function parseDateRange(query: Record<string, unknown>): {
   startDate?: string;
   endDate?: string;
 } {
-  const startDate = typeof query.startDate === "string" ? query.startDate : undefined;
-  const endDate = typeof query.endDate === "string" ? query.endDate : undefined;
+  const startDate = typeof query['startDate'] === "string" ? query['startDate'] : undefined;
+  const endDate = typeof query['endDate'] === "string" ? query['endDate'] : undefined;
   return { startDate, endDate };
 }

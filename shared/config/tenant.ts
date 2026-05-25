@@ -31,7 +31,7 @@ export const TENANT_CONFIG = {
  * platform into SaaS mode.
  */
 export function requireTenantAuth(): boolean {
-  return process.env.REQUIRE_TENANT_AUTH === "true";
+  return process.env['REQUIRE_TENANT_AUTH'] === "true";
 }
 
 /**

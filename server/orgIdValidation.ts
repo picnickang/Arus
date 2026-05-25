@@ -12,7 +12,7 @@ const ORG_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 function suppliedOrgId(req: Request): string | undefined {
   const header = req.headers["x-org-id"];
   const headerValue = Array.isArray(header) ? header[0] : header;
-  const queryValue = typeof req.query.orgId === "string" ? req.query.orgId : undefined;
+  const queryValue = typeof req.query['orgId'] === "string" ? req.query['orgId'] : undefined;
   return headerValue ?? queryValue;
 }
 
@@ -20,7 +20,7 @@ function applyDefaultOrgContext(req: Request): void {
   (req as AuthenticatedRequest).orgId = DEFAULT_ORG_ID;
   req.headers["x-org-id"] = DEFAULT_ORG_ID;
   if (req.query) {
-    req.query.orgId = DEFAULT_ORG_ID;
+    req.query['orgId'] = DEFAULT_ORG_ID;
   }
 }
 

@@ -14,7 +14,7 @@
  */
 import { createRequire } from "node:module";
 
-const url = process.env.LOKI_URL;
+const url = process.env['LOKI_URL'];
 export const lokiEnabled = Boolean(url);
 
 // `createRequire` keeps `pino` out of the import graph when LOKI_URL is unset,
@@ -41,22 +41,22 @@ export function createLokiPinoTransport(): unknown | undefined {
       batching: true,
       interval: 5,
       labels: {
-        service: process.env.OTEL_SERVICE_NAME || "arus-server",
-        env: process.env.NODE_ENV || "development",
+        service: process.env['OTEL_SERVICE_NAME'] || "arus-server",
+        env: process.env['NODE_ENV'] || "development",
       },
-      basicAuth: process.env.LOKI_BASIC_AUTH
+      basicAuth: process.env['LOKI_BASIC_AUTH']
         ? (() => {
-            const idx = process.env.LOKI_BASIC_AUTH.indexOf(":");
+            const idx = process.env['LOKI_BASIC_AUTH'].indexOf(":");
             return idx > 0
               ? {
-                  username: process.env.LOKI_BASIC_AUTH.slice(0, idx),
-                  password: process.env.LOKI_BASIC_AUTH.slice(idx + 1),
+                  username: process.env['LOKI_BASIC_AUTH'].slice(0, idx),
+                  password: process.env['LOKI_BASIC_AUTH'].slice(idx + 1),
                 }
               : undefined;
           })()
         : undefined,
-      headers: process.env.LOKI_BEARER_TOKEN
-        ? { Authorization: `Bearer ${process.env.LOKI_BEARER_TOKEN}` }
+      headers: process.env['LOKI_BEARER_TOKEN']
+        ? { Authorization: `Bearer ${process.env['LOKI_BEARER_TOKEN']}` }
         : undefined,
     },
   });
@@ -78,7 +78,7 @@ export function createLokiPinoLogger(): unknown | undefined {
     if (!transport) {
       return undefined;
     }
-    return pino({ level: process.env.LOG_LEVEL || "info" }, transport);
+    return pino({ level: process.env['LOG_LEVEL'] || "info" }, transport);
   } catch (err) {
     console.warn("[loki] init failed; continuing without Loki transport", err);
     return undefined;

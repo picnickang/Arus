@@ -171,8 +171,8 @@ export class CacheClient {
   }
 }
 
-const cacheEnabled = process.env.ENABLE_INVENTORY_CACHE !== "false";
-const analyticsCacheEnabled = process.env.ENABLE_ANALYTICS_CACHE !== "false";
+const cacheEnabled = process.env['ENABLE_INVENTORY_CACHE'] !== "false";
+const analyticsCacheEnabled = process.env['ENABLE_ANALYTICS_CACHE'] !== "false";
 
 export const inventoryCache = new CacheClient({ ttl: 900, keyPrefix: "inventory" }, cacheEnabled);
 

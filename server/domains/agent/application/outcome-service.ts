@@ -58,9 +58,9 @@ export class OutcomeTrackingService implements OutcomeRecordPort {
       typeof existing.context === "object"
     ) {
       const ctx = existing.context as Record<string, unknown>;
-      const prediction = ctx.prediction as Record<string, unknown> | undefined;
-      if (prediction?.id) {
-        updateData.linkedPredictionId = prediction.id as string;
+      const prediction = ctx['prediction'] as Record<string, unknown> | undefined;
+      if (prediction?.['id']) {
+        updateData.linkedPredictionId = prediction['id'] as string;
       }
     }
 
@@ -83,13 +83,13 @@ export class OutcomeTrackingService implements OutcomeRecordPort {
     }
 
     const ctx = suggestion.context as Record<string, unknown> | null;
-    const prediction = (ctx?.prediction as Record<string, unknown>) || {};
-    const predictionId = prediction.id ? parseInt(String(prediction.id), 10) : 0;
+    const prediction = (ctx?.['prediction'] as Record<string, unknown>) || {};
+    const predictionId = prediction['id'] ? parseInt(String(prediction['id']), 10) : 0;
     if (!predictionId || isNaN(predictionId)) {
       return;
     }
 
-    const equipmentId = (suggestion.entityId || prediction.equipmentId || "") as string;
+    const equipmentId = (suggestion.entityId || prediction['equipmentId'] || "") as string;
     if (!equipmentId) {
       return;
     }

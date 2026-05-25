@@ -50,7 +50,7 @@ router.get("/weibull/history/:equipmentId", async (req, res) => {
   try {
     const { equipmentId } = req.params;
     const orgId = DEFAULT_ORG_ID;
-    const limit = Number.parseInt(req.query.limit as string) || 50;
+    const limit = Number.parseInt(req.query['limit'] as string) || 50;
     const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "weibull_rul");
     if (!isEnabled) {
       return res

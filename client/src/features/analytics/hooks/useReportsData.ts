@@ -123,13 +123,13 @@ export function useReportsData() {
     pdf.setFontSize(12);
     const summary = reportData.summary;
     if (reportData.type === "maintenance-compliance") {
-      pdf.text(`Total Maintenance Records: ${summary.totalMaintenanceRecords}`, 20, yPosition);
+      pdf.text(`Total Maintenance Records: ${summary['totalMaintenanceRecords']}`, 20, yPosition);
       yPosition += 10;
-      pdf.text(`Completed On Time: ${summary.completedOnTime}`, 20, yPosition);
+      pdf.text(`Completed On Time: ${summary['completedOnTime']}`, 20, yPosition);
       yPosition += 10;
-      pdf.text(`Overdue: ${summary.overdue}`, 20, yPosition);
+      pdf.text(`Overdue: ${summary['overdue']}`, 20, yPosition);
       yPosition += 10;
-      pdf.text(`Compliance Rate: ${summary.complianceRate}%`, 20, yPosition);
+      pdf.text(`Compliance Rate: ${summary['complianceRate']}%`, 20, yPosition);
       yPosition += 20;
       const maintenanceRecords = reportData.maintenanceRecords;
       if (maintenanceRecords && maintenanceRecords.length > 0) {
@@ -151,13 +151,13 @@ export function useReportsData() {
         });
       }
     } else if (reportData.type === "alert-response") {
-      pdf.text(`Total Alerts: ${summary.totalAlerts}`, 20, yPosition);
+      pdf.text(`Total Alerts: ${summary['totalAlerts']}`, 20, yPosition);
       yPosition += 10;
-      pdf.text(`Acknowledged: ${summary.acknowledgedAlerts}`, 20, yPosition);
+      pdf.text(`Acknowledged: ${summary['acknowledgedAlerts']}`, 20, yPosition);
       yPosition += 10;
-      pdf.text(`Critical Alerts: ${summary.criticalAlerts}`, 20, yPosition);
+      pdf.text(`Critical Alerts: ${summary['criticalAlerts']}`, 20, yPosition);
       yPosition += 10;
-      pdf.text(`Response Rate: ${summary.responseRate}%`, 20, yPosition);
+      pdf.text(`Response Rate: ${summary['responseRate']}%`, 20, yPosition);
       yPosition += 20;
       const alerts = reportData.alerts;
       if (alerts && alerts.length > 0) {

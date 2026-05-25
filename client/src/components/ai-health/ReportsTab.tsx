@@ -124,7 +124,7 @@ export default function ReportsTab() {
                 <SelectContent>
                   {audiences.map((aud) => (
                     <SelectItem key={aud.id} value={aud.id}>
-                      {(typeof aud.name === "string" ? aud.name : null) ?? aud.label}
+                      {(typeof aud['name'] === "string" ? aud['name'] : null) ?? aud.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -143,7 +143,7 @@ export default function ReportsTab() {
                 <SelectContent>
                   {models.map((model) => (
                     <SelectItem key={model.id} value={model.id}>
-                      {Boolean(model.recommended) && (
+                      {Boolean(model['recommended']) && (
                         <Sparkles className="h-3 w-3 mr-1 inline text-yellow-500" />
                       )}
                       {model.name}

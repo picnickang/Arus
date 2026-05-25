@@ -108,7 +108,7 @@ export class DatabaseTelemetryStorage {
       // SCHEMA GAP: equipmentTelemetry has no vesselId column. Filter is a
       // best-effort lookup against a column that may or may not exist at
       // runtime; bypass the column-type system so callers don't crash.
-      const vesselCol = tableColumns(equipmentTelemetry).vesselId;
+      const vesselCol = tableColumns(equipmentTelemetry)['vesselId'];
       if (vesselCol) {
         conditions.push(eq(vesselCol, vesselId as never));
       }
@@ -242,7 +242,7 @@ export class DatabaseTelemetryStorage {
     const e = await this.getHeartbeat(hb.deviceId);
     if (e) {
       const eRow = e as EdgeHeartbeat & { id?: string };
-      const idCol = tableColumns(edgeHeartbeats).id;
+      const idCol = tableColumns(edgeHeartbeats)['id'];
       const [u] = await db
         .update(edgeHeartbeats)
         .set({ ...heartbeat, ts: new Date() } as never)

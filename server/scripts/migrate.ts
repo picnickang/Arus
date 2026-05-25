@@ -19,10 +19,10 @@ const { Pool } = pg;
  * owned by db-config.ts and stays untouched).
  */
 export async function runBootMigrations(): Promise<void> {
-  if (!process.env.DATABASE_URL) {
+  if (!process.env['DATABASE_URL']) {
     throw new Error("runBootMigrations: DATABASE_URL is required");
   }
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool({ connectionString: process.env['DATABASE_URL'] });
   const db = drizzle(pool);
   try {
     await runMigrations(db, pool);
@@ -36,12 +36,12 @@ async function main() {
   const isStatus = args.includes("--status");
   const isDeploy = args.includes("--deploy");
 
-  if (!process.env.DATABASE_URL) {
+  if (!process.env['DATABASE_URL']) {
     logger.error("DATABASE_URL environment variable is required");
     process.exit(1);
   }
 
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool({ connectionString: process.env['DATABASE_URL'] });
   const db = drizzle(pool);
 
   if (isStatus) {

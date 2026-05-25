@@ -79,7 +79,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     generalApiRateLimit,
     withErrorHandling("get calibration report", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const modelId = req.query.modelId as string | undefined;
+      const modelId = req.query['modelId'] as string | undefined;
 
       const calibrator = new PredictionCalibrator(db);
 
@@ -119,8 +119,8 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     generalApiRateLimit,
     withErrorHandling("get correlated anomaly groups", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const equipmentId = req.query.equipmentId as string | undefined;
-      const includeAcknowledged = req.query.includeAcknowledged === "true";
+      const equipmentId = req.query['equipmentId'] as string | undefined;
+      const includeAcknowledged = req.query['includeAcknowledged'] === "true";
 
       const correlator = new AnomalyCorrelator(dbMlAnalyticsStorage);
 
@@ -158,11 +158,11 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
       const orgId = (req as AuthenticatedRequest).orgId;
       const { equipmentId, sensorType } = req.params;
       const startDate = new Date(
-        (req.query.startDate as string) || Date.now() - 24 * 60 * 60 * 1000
+        (req.query['startDate'] as string) || Date.now() - 24 * 60 * 60 * 1000
       );
-      const endDate = new Date((req.query.endDate as string) || Date.now());
+      const endDate = new Date((req.query['endDate'] as string) || Date.now());
       const aggregator = new TelemetryAggregator(db);
-      const bucket = req.query.bucket as Parameters<typeof aggregator.queryAggregated>[5];
+      const bucket = req.query['bucket'] as Parameters<typeof aggregator.queryAggregated>[5];
 
       const data = await aggregator.queryAggregated(
         orgId,
@@ -324,8 +324,8 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     ...requireAdminAuth,
     generalApiRateLimit,
     withErrorHandling("get telemetry warehouse status", async (req: Request, res: Response) => {
-      const limit = Math.max(1, Math.min(50, Number(req.query.limit) || 14));
-      const orgIdParam = typeof req.query.orgId === "string" ? req.query.orgId : undefined;
+      const limit = Math.max(1, Math.min(50, Number(req.query['limit']) || 14));
+      const orgIdParam = typeof req.query['orgId'] === "string" ? req.query['orgId'] : undefined;
       const recentRuns = await getWarehouseRecentRuns(limit);
 
       let manifest: Awaited<ReturnType<typeof loadWarehouseManifest>> | null = null;
@@ -340,7 +340,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
       return res.json({
         recentRuns,
         manifest,
-        retentionDays: Number(process.env.TELEMETRY_WAREHOUSE_RETENTION_DAYS ?? 0) || 0,
+        retentionDays: Number(process.env['TELEMETRY_WAREHOUSE_RETENTION_DAYS'] ?? 0) || 0,
       });
     }),
   );

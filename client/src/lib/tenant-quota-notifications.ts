@@ -65,17 +65,17 @@ export function parseQuotaExceeded(
     body && typeof body === "object" && !Array.isArray(body)
       ? (body as Record<string, unknown>)
       : undefined;
-  const code = bodyRecord?.code;
+  const code = bodyRecord?.['code'];
   const metricFromBody =
-    typeof bodyRecord?.metric === "string" ? (bodyRecord.metric as string) : undefined;
+    typeof bodyRecord?.['metric'] === "string" ? (bodyRecord['metric'] as string) : undefined;
 
   if (!headerMetric && code !== "TENANT_QUOTA_EXCEEDED") return null;
 
   const metric = headerMetric ?? metricFromBody ?? "quota";
   const retryHeader = res.headers.get("Retry-After");
   const retryFromBody =
-    typeof bodyRecord?.retryAfterSeconds === "number"
-      ? (bodyRecord.retryAfterSeconds as number)
+    typeof bodyRecord?.['retryAfterSeconds'] === "number"
+      ? (bodyRecord['retryAfterSeconds'] as number)
       : undefined;
   const retryAfterSeconds = retryHeader
     ? Number(retryHeader)
@@ -84,8 +84,8 @@ export function parseQuotaExceeded(
   return {
     metric,
     retryAfterSeconds: Number.isFinite(retryAfterSeconds) ? retryAfterSeconds : 60,
-    limit: typeof bodyRecord?.limit === "number" ? (bodyRecord.limit as number) : undefined,
-    used: typeof bodyRecord?.used === "number" ? (bodyRecord.used as number) : undefined,
+    limit: typeof bodyRecord?.['limit'] === "number" ? (bodyRecord['limit'] as number) : undefined,
+    used: typeof bodyRecord?.['used'] === "number" ? (bodyRecord['used'] as number) : undefined,
   };
 }
 

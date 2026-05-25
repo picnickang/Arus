@@ -10,7 +10,7 @@ const router = Router();
 router.get("/sessions", requireComplianceAccess, async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const userId = req.query.userId as string;
+    const userId = req.query['userId'] as string;
     if (!orgId) {
       return res.status(401).json({ error: "Organization ID required" });
     }
@@ -126,8 +126,8 @@ router.get("/login-events", requireComplianceAccess, async (req: Request, res: R
       return res.status(401).json({ error: "Organization ID required" });
     }
     const events = await sessionManagementService.getLoginEvents(orgId, {
-      limit: Number.parseInt(req.query.limit as string) || 100,
-      offset: Number.parseInt(req.query.offset as string) ?? 0,
+      limit: Number.parseInt(req.query['limit'] as string) || 100,
+      offset: Number.parseInt(req.query['offset'] as string) ?? 0,
     });
     return res.json({ success: true, data: events });
   } catch (error) {

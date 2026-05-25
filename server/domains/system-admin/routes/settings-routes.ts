@@ -193,11 +193,11 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
       res.status(200).json({
         success: true,
         equipmentId,
-        threshold: result.threshold,
-        sampleCount: result.sampleCount,
-        statistics: result.statistics,
-        calibratedAt: result.calibratedAt,
-        method: result.method,
+        threshold: result['threshold'],
+        sampleCount: result['sampleCount'],
+        statistics: result['statistics'],
+        calibratedAt: result['calibratedAt'],
+        method: result['method'],
       });
     })
   );

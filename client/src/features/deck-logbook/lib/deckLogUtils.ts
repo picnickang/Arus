@@ -92,7 +92,7 @@ export interface HourlyEntry {
 }
 
 export function getEventTypeConfig(eventType: string): DeckEventUIConfig {
-  return EVENT_TYPES_UI[eventType] || EVENT_TYPES_UI.CUSTOM;
+  return EVENT_TYPES_UI[eventType] || EVENT_TYPES_UI['CUSTOM'];
 }
 
 export function createDefaultManualEventFormValues(): Partial<ManualEventFormValues> {

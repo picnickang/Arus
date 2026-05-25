@@ -84,17 +84,17 @@ export class PurchaseEventRepositoryAdapter implements IPurchaseEventRepository 
         continue;
       }
 
-      if (details.poId && typeof details.poId === "string") {
-        poIds.add(details.poId);
+      if (details['poId'] && typeof details['poId'] === "string") {
+        poIds.add(details['poId']);
       }
-      if (Array.isArray(details.purchaseOrders)) {
-        for (const po of details.purchaseOrders) {
+      if (Array.isArray(details['purchaseOrders'])) {
+        for (const po of details['purchaseOrders']) {
           if (po && typeof po === "object") {
             const poObj = po as Record<string, unknown>;
-            if (typeof poObj.poId === "string") {
-              poIds.add(poObj.poId);
-            } else if (typeof poObj.id === "string") {
-              poIds.add(poObj.id);
+            if (typeof poObj['poId'] === "string") {
+              poIds.add(poObj['poId']);
+            } else if (typeof poObj['id'] === "string") {
+              poIds.add(poObj['id']);
             }
           }
         }
@@ -111,7 +111,7 @@ export class PurchaseEventRepositoryAdapter implements IPurchaseEventRepository 
 
       for (const evt of poCreationEvents) {
         const details = evt.details as Record<string, unknown> | null;
-        if (details?.prId === prId) {
+        if (details?.['prId'] === prId) {
           poIds.add(evt.poId);
         }
       }

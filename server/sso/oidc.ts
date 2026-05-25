@@ -76,13 +76,13 @@ export async function completeOidcAuthorization(
   });
   const rawClaims = typeof tokens.claims === "function" ? tokens.claims() : tokens.claims;
   const claims: Record<string, unknown> = (rawClaims || {}) as object as Record<string, unknown>;
-  const sub = String(claims.sub || "");
+  const sub = String(claims['sub'] || "");
   if (!sub) throw new Error("OIDC ID token missing sub");
   return {
     sub,
-    email: typeof claims.email === "string" ? claims.email : undefined,
-    emailVerified: typeof claims.email_verified === "boolean" ? claims.email_verified : undefined,
-    name: typeof claims.name === "string" ? claims.name : undefined,
+    email: typeof claims['email'] === "string" ? claims['email'] : undefined,
+    emailVerified: typeof claims['email_verified'] === "boolean" ? claims['email_verified'] : undefined,
+    name: typeof claims['name'] === "string" ? claims['name'] : undefined,
     raw: claims,
   };
 }

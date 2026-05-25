@@ -31,16 +31,16 @@ function detectEnvironment(): {
   isEmbedded: boolean;
 } {
   return {
-    isReplit: !!(process.env.REPL_ID || process.env.REPL_SLUG || process.env.REPLIT_DB_URL),
-    isDevelopment: !process.env.NODE_ENV || process.env.NODE_ENV === "development",
-    isProduction: process.env.NODE_ENV === "production",
-    localMode: process.env.LOCAL_MODE === "true",
-    isEmbedded: process.env.EMBEDDED_MODE === "true",
+    isReplit: !!(process.env['REPL_ID'] || process.env['REPL_SLUG'] || process.env['REPLIT_DB_URL']),
+    isDevelopment: !process.env['NODE_ENV'] || process.env['NODE_ENV'] === "development",
+    isProduction: process.env['NODE_ENV'] === "production",
+    localMode: process.env['LOCAL_MODE'] === "true",
+    isEmbedded: process.env['EMBEDDED_MODE'] === "true",
   };
 }
 
 function validateDatabase(localMode: boolean, isEmbedded: boolean, errors: string[]): void {
-  if (process.env.DATABASE_URL) {
+  if (process.env['DATABASE_URL']) {
     logger.info("✓ Database: PostgreSQL configured");
     return;
   }
@@ -100,17 +100,17 @@ function validateSessionSecret(
   errors: string[],
   warnings: string[]
 ): void {
-  const sessionSecret = process.env.SESSION_SECRET;
+  const sessionSecret = process.env['SESSION_SECRET'];
 
   if (!sessionSecret) {
     if (isEmbedded || localMode) {
-      process.env.SESSION_SECRET = generateEmbeddedSessionSecret();
+      process.env['SESSION_SECRET'] = generateEmbeddedSessionSecret();
       logger.info("✓ Security: Generated secure session secret for embedded mode");
       return;
     }
 
     if (isDevelopment) {
-      process.env.SESSION_SECRET = `dev-secret-key-${generateEmbeddedSessionSecret()}`;
+      process.env['SESSION_SECRET'] = `dev-secret-key-${generateEmbeddedSessionSecret()}`;
       warnings.push("SESSION_SECRET not set (using generated default for development only)");
       logger.warn("⚠ Security: Generated development session secret");
       return;
@@ -132,7 +132,7 @@ function validateSyncConfig(localMode: boolean, isEmbedded: boolean, warnings: s
     return;
   }
 
-  if (process.env.TURSO_SYNC_URL && process.env.TURSO_AUTH_TOKEN) {
+  if (process.env['TURSO_SYNC_URL'] && process.env['TURSO_AUTH_TOKEN']) {
     logger.info("✓ Sync: Turso cloud sync enabled");
     return;
   }
@@ -153,7 +153,7 @@ function logOptionalServices(isReplit: boolean): void {
     logger.info("ℹ Object Storage: Disabled (not in Replit environment)");
   }
 
-  if (process.env.OPENAI_API_KEY) {
+  if (process.env['OPENAI_API_KEY']) {
     logger.info("✓ AI Features: OpenAI API configured");
   } else {
     logger.info("ℹ AI Features: OpenAI API key not set (AI reports disabled)");
@@ -198,7 +198,7 @@ export function validateEnvironment(): EnvironmentConfig {
   const warnings: string[] = [];
 
   logger.info(`Environment: ${isReplit ? "Replit" : isEmbedded ? "Embedded (iOS/macOS)" : "External/Self-hosted"}`);
-  logger.info(`Node Environment: ${process.env.NODE_ENV || "development"}`);
+  logger.info(`Node Environment: ${process.env['NODE_ENV'] || "development"}`);
   logger.info(`Deployment Mode: ${localMode ? "VESSEL (Offline-First)" : "CLOUD (Online)"}`);
 
   validateDatabase(localMode, isEmbedded, errors);
@@ -209,7 +209,7 @@ export function validateEnvironment(): EnvironmentConfig {
   if (isProduction && isDevelopment) {
     errors.push("NODE_ENV is both production and development — configuration conflict");
   }
-  if (isProduction && !process.env.SESSION_SECRET) {
+  if (isProduction && !process.env['SESSION_SECRET']) {
     errors.push("Production deployment without SESSION_SECRET is insecure");
   }
   if (isDevelopment) {
@@ -224,9 +224,9 @@ export function validateEnvironment(): EnvironmentConfig {
     isProduction,
     isLocalMode: localMode,
     isEmbedded,
-    hasDatabase: !!process.env.DATABASE_URL || localMode || isEmbedded,
+    hasDatabase: !!process.env['DATABASE_URL'] || localMode || isEmbedded,
     hasObjectStorage: isReplit,
-    hasOpenAI: !!process.env.OPENAI_API_KEY,
-    hasSessionSecret: !!process.env.SESSION_SECRET,
+    hasOpenAI: !!process.env['OPENAI_API_KEY'],
+    hasSessionSecret: !!process.env['SESSION_SECRET'],
   };
 }

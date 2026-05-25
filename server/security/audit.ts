@@ -34,7 +34,7 @@ export function auditAdminAction(action: string) {
         userId: user.id,
         action,
         resourceType: "system",
-        resourceId: req.params.id || req.body.id || null,
+        resourceId: req.params['id'] || req.body.id || null,
         details: auditDetails,
         ipAddress: req.ip || req.socket.remoteAddress || null,
         userAgent: req.get("user-agent") || null,

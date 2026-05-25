@@ -10,7 +10,7 @@ import type { ProvenanceEvent, ProvenanceVerificationResult } from "./types.js";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Governance:Provenance");
 
-const PROV_FILE = process.env.PROVENANCE_FILE ?? "./checkpoints/provenance.jsonl";
+const PROV_FILE = process.env['PROVENANCE_FILE'] ?? "./checkpoints/provenance.jsonl";
 
 /**
  * Compute SHA-256 hash of a string

@@ -57,8 +57,8 @@ export function registerObservabilityRoutes(app: Express): void {
       const { getRecentSlowRequests, getRequestSpans, getRequestSpanSummary } = await import(
         "../utils/request-spans"
       );
-      const thresholdMs = Number.parseInt(req.query.thresholdMs as string) || 200;
-      const requestId = req.query.requestId as string | undefined;
+      const thresholdMs = Number.parseInt(req.query['thresholdMs'] as string) || 200;
+      const requestId = req.query['requestId'] as string | undefined;
 
       if (requestId) {
         const spans = getRequestSpans(requestId);

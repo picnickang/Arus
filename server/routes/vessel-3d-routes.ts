@@ -434,7 +434,7 @@ router.get(
       const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
       const { equipmentId } = req.params;
       const hopsParsed = z.coerce.number().int().min(1).max(5).default(3)
-        .safeParse(req.query.maxHops ?? 3);
+        .safeParse(req.query['maxHops'] ?? 3);
       if (!hopsParsed.success) {
         return res.status(400).json({ error: "maxHops must be an integer between 1 and 5" });
       }

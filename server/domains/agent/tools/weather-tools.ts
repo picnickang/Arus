@@ -25,8 +25,8 @@ const weatherRiskSchema = z.object({
 // (StormGlass, OpenWeatherMap maritime, WorldWeatherOnline, etc.)
 // ---------------------------------------------------------------------------
 
-const WEATHER_API_BASE = process.env.MARINE_WEATHER_API_URL || "https://api.stormglass.io/v2";
-const WEATHER_API_KEY = process.env.MARINE_WEATHER_API_KEY || "";
+const WEATHER_API_BASE = process.env['MARINE_WEATHER_API_URL'] || "https://api.stormglass.io/v2";
+const WEATHER_API_KEY = process.env['MARINE_WEATHER_API_KEY'] || "";
 const WEATHER_CACHE_TTL_SEC = 1800; // 30 minutes
 
 // ---------------------------------------------------------------------------
@@ -244,7 +244,7 @@ async function fetchMarineWeather(lat: number, lng: number): Promise<MarineWeath
   const pick = (obj: Record<string, unknown>, key: string): number | null => {
     const val = obj[key];
     if (val && typeof val === "object" && "sg" in (val as Record<string, unknown>)) {
-      return (val as Record<string, number>).sg ?? null;
+      return (val as Record<string, number>)['sg'] ?? null;
     }
     if (typeof val === "number") {
       return val;
@@ -284,7 +284,7 @@ async function fetchMarineWeather(lat: number, lng: number): Promise<MarineWeath
     forecastHours: hours.slice(1, 13).map((h: Record<string, unknown>) => {
       const ws = pick(h, "windSpeed");
       return {
-        time: h.time as string,
+        time: h['time'] as string,
         windSpeedKnots: ws != null ? Math.round(ws * 1.944) : null,
         waveHeightM: pick(h, "waveHeight"),
         description: null,
@@ -359,8 +359,8 @@ registerTool({
         `);
         const posRows = (posResult as { rows?: Array<Record<string, unknown>> }).rows || [];
         if (posRows.length > 0) {
-          lat = Number(posRows[0].latitude);
-          lng = Number(posRows[0].longitude);
+          lat = Number(posRows[0]['latitude']);
+          lng = Number(posRows[0]['longitude']);
         }
       } catch {
         // weather_cache may not exist in local/SQLite mode — fall through to error
@@ -478,7 +478,7 @@ registerTool({
       general: { maxWind: 30, maxWave: 3.0 },
     };
 
-    const t = thresholds[activity] || thresholds.general;
+    const t = thresholds[activity] || thresholds['general'];
     const windOk = wind <= t.maxWind;
     const waveOk = wave <= t.maxWave;
     const goNoGo = windOk && waveOk ? "GO" : "NO-GO";

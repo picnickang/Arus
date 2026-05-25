@@ -172,10 +172,10 @@ export class EmailTemplatesService {
     const updateData: Record<string, EmailTemplate | undefined> = {};
 
     if (data.purchaseOrder) {
-      updateData.purchaseOrderEmailTemplate = data.purchaseOrder;
+      updateData['purchaseOrderEmailTemplate'] = data.purchaseOrder;
     }
     if (data.serviceOrder) {
-      updateData.serviceOrderEmailTemplate = data.serviceOrder;
+      updateData['serviceOrderEmailTemplate'] = data.serviceOrder;
     }
 
     await alertSettingsRepository.upsertOrgSettings(orgId, updateData);
@@ -192,9 +192,9 @@ export class EmailTemplatesService {
     const updateData: Record<string, EmailTemplate> = {};
 
     if (type === "purchaseOrder") {
-      updateData.purchaseOrderEmailTemplate = defaults.purchaseOrder;
+      updateData['purchaseOrderEmailTemplate'] = defaults.purchaseOrder;
     } else {
-      updateData.serviceOrderEmailTemplate = defaults.serviceOrder;
+      updateData['serviceOrderEmailTemplate'] = defaults.serviceOrder;
     }
 
     await alertSettingsRepository.upsertOrgSettings(orgId, updateData);

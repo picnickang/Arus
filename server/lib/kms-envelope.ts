@@ -20,7 +20,7 @@ const ALGO = "aes-256-gcm";
 const IV_LEN = 16;
 const TAG_LEN = 16;
 
-export const kmsEnvelopeEnabled = Boolean(process.env.KMS_KEY_ID);
+export const kmsEnvelopeEnabled = Boolean(process.env['KMS_KEY_ID']);
 
 export interface KmsEnvelope {
   /** Base64 of the KMS-wrapped data key. */
@@ -46,9 +46,9 @@ async function getAdapter(): Promise<KmsAdapter> {
     "@aws-sdk/client-kms"
   );
   const client = new KMSClient({
-    region: process.env.AWS_REGION || process.env.KMS_REGION || "us-east-1",
+    region: process.env['AWS_REGION'] || process.env['KMS_REGION'] || "us-east-1",
   });
-  const keyId = process.env.KMS_KEY_ID;
+  const keyId = process.env['KMS_KEY_ID'];
   if (!keyId) throw new Error("KMS_KEY_ID required");
 
   cachedAdapter = {
@@ -85,7 +85,7 @@ export async function encryptWithEnvelope(plaintext: string): Promise<KmsEnvelop
       iv: iv.toString("base64"),
       authTag: tag.toString("base64"),
       ciphertext: ct.toString("base64"),
-      keyId: process.env.KMS_KEY_ID!,
+      keyId: process.env['KMS_KEY_ID']!,
     };
   } finally {
     // Best-effort zeroisation. JS strings/buffers from KMS are short-lived

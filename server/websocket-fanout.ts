@@ -54,7 +54,7 @@ export const REPLAY_WINDOW_MS = 5 * 60 * 1000;
  *  to enforce per-tenant addressing. The env var is read at call time
  *  rather than module load so tests can toggle it. */
 export function isTenantStrictModeEnabled(): boolean {
-  const raw = process.env.WS_TENANT_STRICT_MODE;
+  const raw = process.env['WS_TENANT_STRICT_MODE'];
   if (!raw) return false;
   const normalised = raw.trim().toLowerCase();
   return normalised === "1" || normalised === "true" || normalised === "yes" || normalised === "on";

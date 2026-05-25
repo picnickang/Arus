@@ -13,7 +13,7 @@ import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Bootstrap:StaticServing");
 
 export async function configureStaticServing(app: Express, server: Server): Promise<void> {
-  const isEmbeddedMode = process.env.EMBEDDED_MODE === "true";
+  const isEmbeddedMode = process.env['EMBEDDED_MODE'] === "true";
   const isDevelopmentEnv = app.get("env") === "development";
 
   if (!isEmbeddedMode && isDevelopmentEnv) {

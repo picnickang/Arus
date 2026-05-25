@@ -295,16 +295,16 @@ export class PdmPostgresRepository implements PdmRepositoryPort {
         if (row.confidenceInterval && typeof row.confidenceInterval === "object") {
           const ci = row.confidenceInterval as Record<string, unknown>;
           const lowHours =
-            typeof ci.low === "number"
-              ? ci.low
-              : typeof ci.lowHours === "number"
-                ? ci.lowHours
+            typeof ci['low'] === "number"
+              ? ci['low']
+              : typeof ci['lowHours'] === "number"
+                ? ci['lowHours']
                 : null;
           const highHours =
-            typeof ci.high === "number"
-              ? ci.high
-              : typeof ci.highHours === "number"
-                ? ci.highHours
+            typeof ci['high'] === "number"
+              ? ci['high']
+              : typeof ci['highHours'] === "number"
+                ? ci['highHours']
                 : null;
           if (lowHours !== null && highHours !== null) {
             rulConfidenceInterval = {

@@ -29,7 +29,7 @@ router.post("/:modelVersionId/compute", async (req: Request, res: Response) => {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
     }
     const { windowDays } = parsed.data;
-    const result = await monitoring.computeDrift(orgId, req.params.modelVersionId, windowDays);
+    const result = await monitoring.computeDrift(orgId, req.params['modelVersionId'], windowDays);
     return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -40,7 +40,7 @@ router.post("/:modelVersionId/compute", async (req: Request, res: Response) => {
 router.get("/:modelVersionId", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const result = await monitoring.getDrift(orgId, req.params.modelVersionId);
+    const result = await monitoring.getDrift(orgId, req.params['modelVersionId']);
     return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

@@ -35,7 +35,7 @@ export interface PythonShapResult {
  * the permutation path with telemetry rather than spawning failures.
  */
 export function isPythonShapEnabled(): boolean {
-  const flag = process.env.ML_PYTHON_SHAP;
+  const flag = process.env['ML_PYTHON_SHAP'];
   const explicitlyDisabled = flag === "0" || flag === "false";
   if (explicitlyDisabled) return false;
   return existsSync(SHAP_SCRIPT);

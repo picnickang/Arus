@@ -32,7 +32,7 @@ import {
 import { RESOURCES, ACTIONS, RESOURCE_CATEGORIES } from "../../config/permission-registry";
 import { z } from "zod";
 
-const DEV_MODE = process.env.NODE_ENV === "development";
+const DEV_MODE = process.env['NODE_ENV'] === "development";
 const DEV_ORG_ID = "default-org-id";
 const DEV_USER_ID = "dev-user-id";
 

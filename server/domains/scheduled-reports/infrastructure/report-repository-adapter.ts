@@ -167,22 +167,22 @@ export class ReportScheduleRepositoryAdapter implements IReportScheduleRepositor
       return val as string[];
     };
     return {
-      id: String(r.id),
-      orgId: String(r.org_id),
-      name: String(r.name),
-      reportType: r.report_type as ReportType,
-      frequency: r.frequency as ReportFrequency,
-      cronExpression: String(r.cron_expression),
-      timezone: String(r.timezone),
-      format: r.format as ReportFormat,
-      recipients: (parseJsonArray(r.recipients) ?? []) as string[],
-      vesselIds: parseJsonArray(r.vessel_ids),
-      enabled: Boolean(r.enabled),
-      lastRunAt: r.last_run_at ? new Date(r.last_run_at as string | number | Date) : null,
-      nextRunAt: r.next_run_at ? new Date(r.next_run_at as string | number | Date) : null,
-      createdBy: String(r.created_by),
-      createdAt: new Date(r.created_at as string | number | Date),
-      updatedAt: new Date(r.updated_at as string | number | Date),
+      id: String(r['id']),
+      orgId: String(r['org_id']),
+      name: String(r['name']),
+      reportType: r['report_type'] as ReportType,
+      frequency: r['frequency'] as ReportFrequency,
+      cronExpression: String(r['cron_expression']),
+      timezone: String(r['timezone']),
+      format: r['format'] as ReportFormat,
+      recipients: (parseJsonArray(r['recipients']) ?? []) as string[],
+      vesselIds: parseJsonArray(r['vessel_ids']),
+      enabled: Boolean(r['enabled']),
+      lastRunAt: r['last_run_at'] ? new Date(r['last_run_at'] as string | number | Date) : null,
+      nextRunAt: r['next_run_at'] ? new Date(r['next_run_at'] as string | number | Date) : null,
+      createdBy: String(r['created_by']),
+      createdAt: new Date(r['created_at'] as string | number | Date),
+      updatedAt: new Date(r['updated_at'] as string | number | Date),
     };
   }
 
@@ -301,23 +301,23 @@ export class GeneratedReportRepositoryAdapter implements IGeneratedReportReposit
   private mapRowToReport(row: unknown): GeneratedReport {
     const r = row as Record<string, unknown>;
     return {
-      id: String(r.id),
-      scheduleId: String(r.schedule_id),
-      orgId: String(r.org_id),
-      reportType: r.report_type as ReportType,
-      format: r.format as ReportFormat,
-      filename: String(r.filename),
-      filePath: String(r.file_path),
-      fileSize: Number(r.file_size),
-      status: r.status as ReportStatus,
-      generatedAt: new Date(r.generated_at as string | number | Date),
-      deliveredAt: r.delivered_at ? new Date(r.delivered_at as string | number | Date) : null,
-      expiresAt: new Date(r.expires_at as string | number | Date),
+      id: String(r['id']),
+      scheduleId: String(r['schedule_id']),
+      orgId: String(r['org_id']),
+      reportType: r['report_type'] as ReportType,
+      format: r['format'] as ReportFormat,
+      filename: String(r['filename']),
+      filePath: String(r['file_path']),
+      fileSize: Number(r['file_size']),
+      status: r['status'] as ReportStatus,
+      generatedAt: new Date(r['generated_at'] as string | number | Date),
+      deliveredAt: r['delivered_at'] ? new Date(r['delivered_at'] as string | number | Date) : null,
+      expiresAt: new Date(r['expires_at'] as string | number | Date),
       metadata:
-        typeof r.metadata === "string"
-          ? (JSON.parse(r.metadata) as Record<string, unknown>)
-          : ((r.metadata ?? {}) as Record<string, unknown>),
-      errorMessage: (r.error_message as string | null) ?? null,
+        typeof r['metadata'] === "string"
+          ? (JSON.parse(r['metadata']) as Record<string, unknown>)
+          : ((r['metadata'] ?? {}) as Record<string, unknown>),
+      errorMessage: (r['error_message'] as string | null) ?? null,
     };
   }
 }

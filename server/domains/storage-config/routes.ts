@@ -40,7 +40,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
     "/api/storage/config/:id",
     withErrorHandling("delete storage configuration", async (req: Request, res: Response) => {
       const { storageConfigService } = await import("../../storage-config");
-      await storageConfigService.delete(req.params.id);
+      await storageConfigService.delete(req.params['id']);
       sendDeleted(res);
     })
   );
@@ -111,7 +111,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
     withErrorHandling("search for public object", async (req: Request, res: Response) => {
       const { ObjectStorageService } = await import("../../objectStorage");
       const objectStorageService = new ObjectStorageService();
-      const filePath = req.params.filePath;
+      const filePath = req.params['filePath'];
       const file = await objectStorageService.searchPublicObject(filePath);
       if (!file) {
         return sendNotFound(res, "File");

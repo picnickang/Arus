@@ -31,7 +31,7 @@ const logger = createLogger("MlStaleModelProcessor");
  *  the env (e.g. `14d`) doesn't silently disable detection by yielding
  *  NaN — the lt(deployedOn, NaN-date) query would match no rows. */
 function resolveThresholdDays(): number {
-  const raw = process.env.PDM_STALE_MODEL_DAYS;
+  const raw = process.env['PDM_STALE_MODEL_DAYS'];
   if (raw === undefined || raw === "") return 14;
   const n = Number(raw);
   if (!Number.isFinite(n) || n <= 0) {

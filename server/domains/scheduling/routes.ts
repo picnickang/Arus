@@ -121,7 +121,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
           const s2Bag: Record<string, unknown> = s2 as object as Record<string, unknown>;
           if (
             s1.scheduledDate === s2.scheduledDate &&
-            s1Bag.assignedCrewId === s2Bag.assignedCrewId
+            s1Bag['assignedCrewId'] === s2Bag['assignedCrewId']
           ) {
             conflicts.push({
               schedule1: s1,
@@ -398,7 +398,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
           ...s,
           optimizedScore: (index % 10) * 10 + 5,
           suggestedDate: s.scheduledDate,
-          suggestedCrew: bag.assignedCrewId,
+          suggestedCrew: bag['assignedCrewId'],
         };
       });
 

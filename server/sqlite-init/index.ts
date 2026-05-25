@@ -69,7 +69,7 @@ export async function initializeSqliteDatabase(): Promise<void> {
 
 async function getTableColumns(client: LibsqlClient, tableName: string): Promise<string[]> {
   const result = await client.execute(`PRAGMA table_info(${tableName})`);
-  return result.rows.map((r) => String(r.name));
+  return result.rows.map((r) => String(r['name']));
 }
 
 async function safeRenameColumn(
@@ -393,7 +393,7 @@ async function verifyInventorySchema(client: LibsqlClient): Promise<void> {
     const orphaned = await client.execute(
       "SELECT COUNT(*) as cnt FROM purchase_order_items WHERE org_id = '' OR org_id IS NULL"
     );
-    const count = Number(orphaned.rows[0]?.cnt ?? 0);
+    const count = Number(orphaned.rows[0]?.['cnt'] ?? 0);
     if (count > 0) {
       logger.warn(`⚠ ${count} purchase_order_items rows have empty org_id — tenant isolation incomplete`);
     }

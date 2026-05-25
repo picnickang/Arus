@@ -242,7 +242,7 @@ export async function updatePRStatus(
 
   const updateData: Record<string, unknown> = { status: newStatus };
   if (newStatus === "closed") {
-    updateData.closedAt = new Date();
+    updateData['closedAt'] = new Date();
   }
 
   const updatedPR = await repository.updatePurchaseRequest(prId, orgId, updateData as object as Parameters<typeof repository.updatePurchaseRequest>[2]);

@@ -60,7 +60,7 @@ function setPkceCookie(res: Response, payload: object): void {
   res.cookie(PKCE_COOKIE, value, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env['NODE_ENV'] === "production",
     maxAge: 10 * 60 * 1000,
     path: "/",
   });
@@ -80,17 +80,17 @@ function readPkceCookie(req: Request): {
       unknown
     >;
     if (
-      typeof parsed.state !== "string" ||
-      typeof parsed.codeVerifier !== "string" ||
-      typeof parsed.nonce !== "string" ||
-      typeof parsed.orgId !== "string"
+      typeof parsed['state'] !== "string" ||
+      typeof parsed['codeVerifier'] !== "string" ||
+      typeof parsed['nonce'] !== "string" ||
+      typeof parsed['orgId'] !== "string"
     )
       return null;
     return {
-      state: parsed.state,
-      codeVerifier: parsed.codeVerifier,
-      nonce: parsed.nonce,
-      orgId: parsed.orgId,
+      state: parsed['state'],
+      codeVerifier: parsed['codeVerifier'],
+      nonce: parsed['nonce'],
+      orgId: parsed['orgId'],
     };
   } catch {
     return null;
@@ -110,7 +110,7 @@ function buildSessionCookieOptions(): {
   return {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env['NODE_ENV'] === "production",
     path: "/",
   };
 }
@@ -125,7 +125,7 @@ export function createSsoRouter(opts: MountSsoOptions): Router {
     if (!cfg || !cfg.enabled) return res.status(404).json({ error: "sso_not_configured" });
     const saml = cfg.config as SsoSamlConfig;
     // RelayState carries our intended post-login target.
-    const relayState = typeof req.query.next === "string" ? req.query.next : "/";
+    const relayState = typeof req.query['next'] === "string" ? req.query['next'] : "/";
     const url = new URL(saml.entryPoint);
     url.searchParams.set("RelayState", relayState);
     return res.redirect(302, url.toString());

@@ -76,8 +76,8 @@ export function bandwidthAwareMiddleware(req: Request, res: Response, next: Next
     return next();
   }
 
-  if (!req.query.pageSize) {
-    (req.query as Record<string, unknown>).pageSize = "10";
+  if (!req.query['pageSize']) {
+    (req.query as Record<string, unknown>)['pageSize'] = "10";
   }
 
   const originalJson = res.json.bind(res);

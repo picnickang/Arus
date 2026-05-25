@@ -85,10 +85,10 @@ export class VesselIntelligenceService {
     ).length;
 
     const maintenanceHistory = {
-      scheduled: workOrders.filter((wo) => (wo as Record<string, unknown>).workOrderType === "scheduled").length,
-      unscheduled: workOrders.filter((wo) => (wo as Record<string, unknown>).workOrderType === "unscheduled").length,
+      scheduled: workOrders.filter((wo) => (wo as Record<string, unknown>)['workOrderType'] === "scheduled").length,
+      unscheduled: workOrders.filter((wo) => (wo as Record<string, unknown>)['workOrderType'] === "unscheduled").length,
       emergency: workOrders.filter((wo) => (wo.priority as unknown) === "critical").length,
-      preventive: workOrders.filter((wo) => (wo as Record<string, unknown>).workOrderType === "preventive").length,
+      preventive: workOrders.filter((wo) => (wo as Record<string, unknown>)['workOrderType'] === "preventive").length,
     };
 
     const performanceMetrics = calculatePerformanceMetrics(workOrders, vesselAge);

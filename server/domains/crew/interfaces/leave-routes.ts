@@ -46,7 +46,7 @@ export function registerLeaveRoutes({ app, rateLimit }: CrewRouteDeps): void {
     writeOperationRateLimit,
     withErrorHandling("update leave record", async (req, res) => {
       const leaveData = insertCrewLeaveSchema.partial().parse(req.body);
-      const leave = await crewService.updateLeave(req.params.id, leaveData, req.user?.id);
+      const leave = await crewService.updateLeave(req.params['id'], leaveData, req.user?.id);
       res.json(leave);
     })
   );
@@ -56,7 +56,7 @@ export function registerLeaveRoutes({ app, rateLimit }: CrewRouteDeps): void {
     requireOrgId,
     criticalOperationRateLimit,
     withErrorHandling("delete leave record", async (req, res) => {
-      await crewService.deleteLeave(req.params.id, req.user?.id);
+      await crewService.deleteLeave(req.params['id'], req.user?.id);
       sendDeleted(res);
     })
   );

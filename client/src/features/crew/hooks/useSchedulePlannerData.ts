@@ -262,12 +262,12 @@ export function useSchedulePlannerData() {
             body: JSON.stringify(op.payload),
           });
         } else if (op.type === "update") {
-          await apiRequest(`/api/crew-extensions/assignments/${op.payload.id}`, {
+          await apiRequest(`/api/crew-extensions/assignments/${op.payload['id']}`, {
             method: "PATCH",
-            body: JSON.stringify(op.payload.data),
+            body: JSON.stringify(op.payload['data']),
           });
         } else if (op.type === "delete") {
-          await apiRequest(`/api/crew-extensions/assignments/${op.payload.id}`, {
+          await apiRequest(`/api/crew-extensions/assignments/${op.payload['id']}`, {
             method: "DELETE",
           });
         }

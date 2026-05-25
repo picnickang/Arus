@@ -185,7 +185,7 @@ export function useWorkOrdersPageData() {
       predictionFeedback?: Record<string, unknown>;
     }) => {
       const order = workOrders?.find((wo) => wo.id === orderId);
-      const closeout = predictionFeedback?.closeout as
+      const closeout = predictionFeedback?.['closeout'] as
         | {
             workPerformed?: string;
             causeFound?: string;
@@ -210,7 +210,7 @@ export function useWorkOrdersPageData() {
       await apiRequest("POST", `/api/work-orders/${orderId}/complete-with-feedback`, {
         actualHours,
         actualDowntimeHours: typeof closeout?.downtimeHours === "number" ? closeout.downtimeHours : undefined,
-        completionNotes: predictionFeedback?.notes,
+        completionNotes: predictionFeedback?.['notes'],
         closeout,
         predictionFeedback: sanitizedPredictionFeedback,
       });

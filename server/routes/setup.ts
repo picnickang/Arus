@@ -18,7 +18,7 @@ function isLoopbackAddress(address: string): boolean {
 }
 
 function hasValidSetupToken(req: Request): boolean {
-  const configuredToken = process.env.SETUP_TOKEN;
+  const configuredToken = process.env['SETUP_TOKEN'];
   if (!configuredToken) {
     return false;
   }
@@ -32,7 +32,7 @@ function localOnlyGuard(req: Request, res: Response, next: NextFunction) {
   const origin = req.headers.origin || "";
   const isTauriOrigin = origin === "tauri://localhost" || origin === "https://tauri.localhost";
   const isTauriUserAgent = req.headers["user-agent"]?.includes("Tauri") || false;
-  const isReplitDevelopment = !!process.env.REPL_ID && process.env.NODE_ENV !== "production";
+  const isReplitDevelopment = !!process.env['REPL_ID'] && process.env['NODE_ENV'] !== "production";
 
   if (!isLocal && !isTauriOrigin && !isTauriUserAgent && !isReplitDevelopment && !hasValidSetupToken(req)) {
     return res.status(403).json({

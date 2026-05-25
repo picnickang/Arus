@@ -51,7 +51,7 @@ export function configureArtifactBackendSettingPort(port: ArtifactBackendSetting
 const VALID: readonly ArtifactBackend[] = ["local", "replit-object-storage"] as const;
 
 function defaultBackend(): ArtifactBackend {
-  return process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID && process.env.PRIVATE_OBJECT_DIR
+  return process.env['DEFAULT_OBJECT_STORAGE_BUCKET_ID'] && process.env['PRIVATE_OBJECT_DIR']
     ? "replit-object-storage"
     : "local";
 }

@@ -24,8 +24,8 @@ export function EquipmentHealthTab({
       </TabsContent>
     );
   }
-  const healthIndex = (equipment.health.healthIndex as number | undefined) || 0;
-  const predictedDueDays = equipment.health.predictedDueDays as number | undefined;
+  const healthIndex = (equipment.health['healthIndex'] as number | undefined) || 0;
+  const predictedDueDays = equipment.health['predictedDueDays'] as number | undefined;
   const statusColor =
     equipment.health.status === "healthy"
       ? "text-green-600"

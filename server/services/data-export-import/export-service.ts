@@ -62,7 +62,7 @@ export async function exportOrg(
 
     const manifest: ExportManifest = {
       exportVersion: CURRENT_EXPORT_VERSION,
-      appVersion: process.env.npm_package_version || "1.0",
+      appVersion: process.env['npm_package_version'] || "1.0",
       schemaVersion: CURRENT_SCHEMA_VERSION,
       exportedAt: new Date().toISOString(),
       exportedBy,

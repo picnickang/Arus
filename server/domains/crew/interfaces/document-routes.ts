@@ -43,12 +43,12 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
       const { crewId } = crewIdParamSchema.parse(req.params);
       const body: Record<string, unknown> = { ...rawBodySchema.parse(req.body ?? {}) };
 
-      if (body.issuedAt && typeof body.issuedAt === "string") {
-        body.issuedAt = new Date(body.issuedAt);
+      if (body['issuedAt'] && typeof body['issuedAt'] === "string") {
+        body['issuedAt'] = new Date(body['issuedAt']);
       }
 
-      if (body.expiresAt && typeof body.expiresAt === "string") {
-        body.expiresAt = new Date(body.expiresAt);
+      if (body['expiresAt'] && typeof body['expiresAt'] === "string") {
+        body['expiresAt'] = new Date(body['expiresAt']);
       }
 
       const docData = insertCrewDocumentSchema.parse({
@@ -69,12 +69,12 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
       const { id } = idParamSchema.parse(req.params);
       const body: Record<string, unknown> = { ...rawBodySchema.parse(req.body ?? {}) };
 
-      if (body.issuedAt && typeof body.issuedAt === "string") {
-        body.issuedAt = new Date(body.issuedAt);
+      if (body['issuedAt'] && typeof body['issuedAt'] === "string") {
+        body['issuedAt'] = new Date(body['issuedAt']);
       }
 
-      if (body.expiresAt && typeof body.expiresAt === "string") {
-        body.expiresAt = new Date(body.expiresAt);
+      if (body['expiresAt'] && typeof body['expiresAt'] === "string") {
+        body['expiresAt'] = new Date(body['expiresAt']);
       }
 
       const docData = insertCrewDocumentSchema.partial().parse(body);
@@ -122,11 +122,11 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
             ...doc,
             crewMemberName: crewMember?.name || "Unknown",
             crewMemberRank: crewMember?.rank || "Unknown",
-            daysUntilExpiry: typeof doc.expiresAt === "string" || doc.expiresAt instanceof Date
-              ? Math.ceil((new Date(doc.expiresAt as string | Date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+            daysUntilExpiry: typeof doc['expiresAt'] === "string" || doc['expiresAt'] instanceof Date
+              ? Math.ceil((new Date(doc['expiresAt'] as string | Date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
               : null,
-            urgencyLevel: typeof doc.expiresAt === "string" || doc.expiresAt instanceof Date
-              ? getExpiryUrgencyLevel(doc.expiresAt as string | Date)
+            urgencyLevel: typeof doc['expiresAt'] === "string" || doc['expiresAt'] instanceof Date
+              ? getExpiryUrgencyLevel(doc['expiresAt'] as string | Date)
               : null,
           };
         })

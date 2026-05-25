@@ -20,7 +20,7 @@ export interface WarehouseStorageTarget {
  * malformed — the job processor catches and logs.
  */
 export function resolveWarehouseStorageTarget(): WarehouseStorageTarget {
-  const privateDir = process.env.PRIVATE_OBJECT_DIR;
+  const privateDir = process.env['PRIVATE_OBJECT_DIR'];
   if (!privateDir) {
     throw new Error(
       "PRIVATE_OBJECT_DIR is not set — Replit App Storage not provisioned. " +

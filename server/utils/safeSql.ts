@@ -108,7 +108,7 @@ export async function safeRawSql(
   }
 
   // SQLite/Vessel mode: skip (raw SQL commands like SET LOCAL don't work in SQLite)
-  if (skipMessage || process.env.NODE_ENV === "development") {
+  if (skipMessage || process.env['NODE_ENV'] === "development") {
     logger.info(`[SafeSQL] Raw SQL skipped in SQLite mode: ${skipMessage || rawSqlString.substring(0, 50)}`);
   }
 }

@@ -137,13 +137,13 @@ export class VibrationAnalyzer {
         return {
           ...row,
           timestamp: row.createdAt ?? new Date(),
-          dominantFrequency: Number(faultBands.dominantFreq ?? 0),
-          dominantMagnitude: Number(faultBands.dominantMagnitude ?? 0),
-          anomalyScore: Number(faultBands.anomalyScore ?? 0),
-          anomalyType: String(faultBands.anomalyType ?? "normal"),
-          healthScore: Number(faultBands.healthScore ?? 100),
-          isAnomalous: Boolean(faultBands.isAnomalous ?? false),
-          confidence: Number(faultBands.confidence ?? 0),
+          dominantFrequency: Number(faultBands['dominantFreq'] ?? 0),
+          dominantMagnitude: Number(faultBands['dominantMagnitude'] ?? 0),
+          anomalyScore: Number(faultBands['anomalyScore'] ?? 0),
+          anomalyType: String(faultBands['anomalyType'] ?? "normal"),
+          healthScore: Number(faultBands['healthScore'] ?? 100),
+          isAnomalous: Boolean(faultBands['isAnomalous'] ?? false),
+          confidence: Number(faultBands['confidence'] ?? 0),
         };
       });
     } catch (error) {

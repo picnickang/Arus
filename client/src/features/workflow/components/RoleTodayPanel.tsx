@@ -50,7 +50,7 @@ export function RoleTodayPanel({ roleId }: { roleId: string | null }) {
   const readyToClose = handover.readyForCloseout ?? 0;
   const blocked = handover.blockedJobs ?? 0;
   const waitingParts = handover.waitingOnParts ?? 0;
-  const actions = ROLE_PRIMARY_ACTIONS[roleKey] ?? ROLE_PRIMARY_ACTIONS.default;
+  const actions = ROLE_PRIMARY_ACTIONS[roleKey] ?? ROLE_PRIMARY_ACTIONS['default'];
 
   return (
     <Card className="mb-6" data-testid="role-today-panel">
@@ -59,7 +59,7 @@ export function RoleTodayPanel({ roleId }: { roleId: string | null }) {
           <div>
             <CardTitle className="flex items-center gap-2 text-lg">
               <ShipWheel className="h-5 w-5 text-primary" />
-              {ROLE_TITLES[roleKey] ?? ROLE_TITLES.default}
+              {ROLE_TITLES[roleKey] ?? ROLE_TITLES['default']}
             </CardTitle>
             <CardDescription>Start with risk, blockers, closeout, and handover before opening modules.</CardDescription>
           </div>

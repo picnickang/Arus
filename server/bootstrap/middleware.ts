@@ -18,13 +18,13 @@ import { performanceMiddleware } from "../middleware/performance";
 import { isPublicApiPath, isSensitiveApiPath } from "./public-api-paths";
 
 export function configureMiddleware(app: Express): void {
-  const isDevelopment = process.env.NODE_ENV === "development";
-  const isProduction = process.env.NODE_ENV === "production";
-  const isReplit = !!process.env.REPL_ID || !!process.env.REPL_SLUG;
+  const isDevelopment = process.env['NODE_ENV'] === "development";
+  const isProduction = process.env['NODE_ENV'] === "production";
+  const isReplit = !!process.env['REPL_ID'] || !!process.env['REPL_SLUG'];
 
   const isVesselMode =
-    process.env.DEPLOYMENT_MODE === "vessel" || process.env.DEPLOYMENT_MODE === "desktop";
-  const configuredTrustProxy = process.env.TRUST_PROXY_HOPS;
+    process.env['DEPLOYMENT_MODE'] === "vessel" || process.env['DEPLOYMENT_MODE'] === "desktop";
+  const configuredTrustProxy = process.env['TRUST_PROXY_HOPS'];
   const trustProxy = configuredTrustProxy
     ? Number.parseInt(configuredTrustProxy, 10)
     : isVesselMode
@@ -109,7 +109,7 @@ export function configureMiddleware(app: Express): void {
       "https://*.replit.co",
       "https://*.replit.co:*",
     ];
-    const configuredOrigins = process.env.ALLOWED_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean);
+    const configuredOrigins = process.env['ALLOWED_ORIGINS']?.split(",").map((o) => o.trim()).filter(Boolean);
     const allowedOrigins = configuredOrigins?.length
       ? configuredOrigins
       : isProduction

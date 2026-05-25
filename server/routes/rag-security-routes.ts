@@ -77,7 +77,7 @@ function requireAdminAuth(req: Request, res: Response, next: NextFunction): void
   const session = (req as AuthenticatedRequest).session;
 
   // In development, allow with dev user
-  if (process.env.NODE_ENV === "development") {
+  if (process.env['NODE_ENV'] === "development") {
     if (session?.userId === "dev-user-id" || DEFAULT_ORG_ID) {
       return next();
     }
@@ -232,8 +232,8 @@ export function registerRagSecurityRoutes(app: Express): void {
     withErrorHandling("get RAG audit logs", async (req: Request, res: Response) => {
       const { auditLogger } = getRagSecurityServices();
 
-      const limit = parseInt(req.query.limit as string) || 100;
-      const eventType = req.query.eventType as string;
+      const limit = parseInt(req.query['limit'] as string) || 100;
+      const eventType = req.query['eventType'] as string;
       const orgId = DEFAULT_ORG_ID;
 
       const events = auditLogger.getEvents({

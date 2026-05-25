@@ -30,7 +30,7 @@ const router = Router();
 router.get("/", async (req, res) => {
   try {
     const { kind, equipmentType } = req.query;
-    const orgId = res.locals.orgId; // From authentication middleware
+    const orgId = res.locals['orgId']; // From authentication middleware
 
     // Build base query: system templates (orgId = null) + org-specific templates
     const query = db
@@ -77,7 +77,7 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const orgId = res.locals.orgId;
+    const orgId = res.locals['orgId'];
 
     // Fetch template (must be either system template or belong to org)
     const [template] = await db
@@ -111,7 +111,7 @@ router.get("/:id", async (req, res) => {
  */
 router.post("/", async (req, res) => {
   try {
-    const orgId = res.locals.orgId;
+    const orgId = res.locals['orgId'];
 
     // Validate request body
     const validatedData = insertSensorTemplateSchema.parse(req.body);
@@ -142,7 +142,7 @@ router.post("/", async (req, res) => {
         ...validatedData,
         orgId, // Set to current org
         isSystemDefault: false, // User templates are never system defaults
-        createdBy: res.locals.userId || "unknown",
+        createdBy: res.locals['userId'] || "unknown",
       })
       .returning();
 
@@ -174,7 +174,7 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const orgId = res.locals.orgId;
+    const orgId = res.locals['orgId'];
 
     // Check template exists and belongs to org (not system template)
     const [existing] = await db
@@ -240,7 +240,7 @@ router.put("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const orgId = res.locals.orgId;
+    const orgId = res.locals['orgId'];
 
     // Check template exists and belongs to org (not system template)
     const [existing] = await db
@@ -317,7 +317,7 @@ router.delete("/:id", async (req, res) => {
 router.post("/:id/copy", async (req, res) => {
   try {
     const { id } = req.params;
-    const orgId = res.locals.orgId;
+    const orgId = res.locals['orgId'];
 
     // Fetch source template (must be either system template or belong to org)
     const [sourceTemplate] = await db
@@ -371,7 +371,7 @@ router.post("/:id/copy", async (req, res) => {
         notes: sourceTemplate.notes,
         orgId, // Set to current org
         isSystemDefault: false, // Always false for copies
-        createdBy: res.locals.userId || "unknown",
+        createdBy: res.locals['userId'] || "unknown",
       })
       .returning();
 

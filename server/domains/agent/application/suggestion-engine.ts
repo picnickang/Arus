@@ -353,21 +353,21 @@ export class SuggestionEngine {
       const lowStockRows = (lowStockResult as { rows?: Array<Record<string, unknown>> }).rows || [];
 
       for (const part of lowStockRows) {
-        const dedupKey = `low_stock:${part.id as string}`;
+        const dedupKey = `low_stock:${part['id'] as string}`;
         if (pendingKeys.has(dedupKey)) {
           continue;
         }
-        const severity = Number(part.quantity_on_hand) === 0 ? "critical" : "info";
+        const severity = Number(part['quantity_on_hand']) === 0 ? "critical" : "info";
         if (!meetsMinSeverity(severity, minSeverity)) {
           continue;
         }
         const sug = await this.repo.suggestions.create({
           orgId,
           triggerType: "low_stock",
-          title: `Low stock: ${part.part_name}`,
-          summary: `Current stock ${part.quantity_on_hand} is at or below minimum level ${part.min_stock_level}. Reorder recommended.`,
+          title: `Low stock: ${part['part_name']}`,
+          summary: `Current stock ${part['quantity_on_hand']} is at or below minimum level ${part['min_stock_level']}. Reorder recommended.`,
           entityType: "inventory",
-          entityId: part.id as string,
+          entityId: part['id'] as string,
           severity,
           status: "pending",
           context: { part },

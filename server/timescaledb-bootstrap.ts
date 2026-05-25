@@ -58,7 +58,7 @@ interface HypertableStatus {
 }
 
 function isTimescaleEnabled(): boolean {
-  return process.env.TIMESCALEDB_ENABLED === "true";
+  return process.env['TIMESCALEDB_ENABLED'] === "true";
 }
 
 async function extensionInstalled(pg: Pool): Promise<boolean> {

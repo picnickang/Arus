@@ -143,37 +143,37 @@ export function CertificateFormDialog({
         issueDate: form.issueDate,
       };
       if (form.certificateNumber) {
-        payload.certificateNumber = form.certificateNumber;
+        payload['certificateNumber'] = form.certificateNumber;
       }
       if (form.issuingAuthorityType) {
-        payload.issuingAuthorityType = form.issuingAuthorityType;
+        payload['issuingAuthorityType'] = form.issuingAuthorityType;
       }
       if (form.expiryDate) {
-        payload.expiryDate = form.expiryDate;
+        payload['expiryDate'] = form.expiryDate;
       }
       if (form.equipmentId) {
-        payload.equipmentId = form.equipmentId;
+        payload['equipmentId'] = form.equipmentId;
       }
       if (form.notes) {
-        payload.notes = form.notes;
+        payload['notes'] = form.notes;
       }
       createMutation.mutate(payload);
     } else {
       const payload: Record<string, unknown> = {};
       if (editStatus) {
-        payload.status = editStatus;
+        payload['status'] = editStatus;
       }
       if (form.certificateNumber) {
-        payload.certificateNumber = form.certificateNumber;
+        payload['certificateNumber'] = form.certificateNumber;
       }
       if (form.expiryDate) {
-        payload.expiryDate = form.expiryDate;
+        payload['expiryDate'] = form.expiryDate;
       }
       if (editNextSurveyDue) {
-        payload.nextSurveyDue = editNextSurveyDue;
+        payload['nextSurveyDue'] = editNextSurveyDue;
       }
       if (form.notes !== undefined) {
-        payload.notes = form.notes;
+        payload['notes'] = form.notes;
       }
       updateMutation.mutate(payload);
     }

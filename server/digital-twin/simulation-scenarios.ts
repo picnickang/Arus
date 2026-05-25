@@ -60,7 +60,7 @@ export function simulateFailureScenario(
       state.speed = Math.max(0, state.speed * 0.4);
     },
     cooling_pump: () => {
-      const coolingPump = state.machinery.pumps.COOLING_PUMP_01;
+      const coolingPump = state.machinery.pumps['COOLING_PUMP_01'];
       if (coolingPump) {
         coolingPump.status = "failed";
         coolingPump.flow = 0;

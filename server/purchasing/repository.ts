@@ -265,10 +265,10 @@ export async function updateEmailStatus(
     lastAttemptAt: new Date(),
   };
   if (status === "sent") {
-    updateData.sentAt = new Date();
+    updateData['sentAt'] = new Date();
   }
   if (errorMessage) {
-    updateData.errorMessage = errorMessage;
+    updateData['errorMessage'] = errorMessage;
   }
 
   const [result] = await db

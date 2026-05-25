@@ -124,7 +124,7 @@ export async function queueOperation(
 ): Promise<string> {
   const db = await getDB();
 
-  const shouldDedupe = operationType !== "create" || payload.__allowOfflineCreateDedupe === true;
+  const shouldDedupe = operationType !== "create" || payload['__allowOfflineCreateDedupe'] === true;
   const existingOps = shouldDedupe
     ? await db.getAllFromIndex("pendingOperations", "by-entity", [
         entityType,
@@ -450,15 +450,15 @@ export async function queueApiOperation(
   const operationType = MUTATION_TO_OPERATION[verb] || "update";
   const routeEntityId = url.split("?")[0].split("/").filter(Boolean).slice(-1)[0];
   const clientMutationId =
-    (payload?.clientMutationId as string | undefined) ||
-    (payload?.__clientMutationId as string | undefined) ||
+    (payload?.['clientMutationId'] as string | undefined) ||
+    (payload?.['__clientMutationId'] as string | undefined) ||
     (operationType === "create" ? generateClientMutationId(entityType) : undefined);
   const entityId =
     operationType === "create"
       ? `client:${clientMutationId}`
-      : (payload?.id as string | undefined) ||
-        (payload?.workOrderId as string | undefined) ||
-        (payload?.equipmentId as string | undefined) ||
+      : (payload?.['id'] as string | undefined) ||
+        (payload?.['workOrderId'] as string | undefined) ||
+        (payload?.['equipmentId'] as string | undefined) ||
         routeEntityId ||
         "pending";
 

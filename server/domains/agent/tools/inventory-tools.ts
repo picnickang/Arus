@@ -28,8 +28,8 @@ registerTool({
       const rows = (result as { rows?: Array<Record<string, unknown>> }).rows || [];
       const row = rows[0] || {};
       return {
-        totalParts: Number(row.total_parts || 0),
-        lowStockCount: Number(row.low_stock_count || 0),
+        totalParts: Number(row['total_parts'] || 0),
+        lowStockCount: Number(row['low_stock_count'] || 0),
       };
     } catch (err) {
       logger.warn("[Agent] Inventory query failed:", { details: err instanceof Error ? err.message : "unknown" });

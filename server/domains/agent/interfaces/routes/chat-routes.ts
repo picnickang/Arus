@@ -142,7 +142,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
         const userId = (req as AuthenticatedRequest).user?.id;
-        const conversationId = req.params.id;
+        const conversationId = req.params['id'];
 
         const existing = await agentRepo.conversations.get(conversationId, orgId);
         if (!existing) {
@@ -215,7 +215,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
-        const conversationId = req.params.id;
+        const conversationId = req.params['id'];
         const files = await listConversationFiles(conversationId, orgId);
         return res.json({
           files: files.map((f) => ({
@@ -241,8 +241,8 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
         const orgId = (req as AuthenticatedRequest).orgId;
         const userId = (req as AuthenticatedRequest).user?.id;
         const userRole = (req as AuthenticatedRequest).user?.role;
-        const message = req.query.message as string;
-        const conversationId = req.query.conversationId as string | undefined;
+        const message = req.query['message'] as string;
+        const conversationId = req.query['conversationId'] as string | undefined;
 
         if (!message) {
           return res.status(400).json({ error: "Message query parameter is required" });

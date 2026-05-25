@@ -3,7 +3,7 @@
  * Modular initialization using server/bootstrap/ modules
  */
 
-process.env.TF_CPP_MIN_LOG_LEVEL = "2";
+process.env['TF_CPP_MIN_LOG_LEVEL'] = "2";
 
 // Wave 2.1: OpenTelemetry MUST init before any other app module so its
 // auto-instrumentation hooks Node's module loader (Express, http, pg,
@@ -153,7 +153,7 @@ if (!isInitDbMode && !isHealthCheckMode) {
       server = await registerRoutes(app);
       logger.info("✓ Routes registered");
 
-      const port = Number.parseInt(process.env.PORT || "5000", 10);
+      const port = Number.parseInt(process.env['PORT'] || "5000", 10);
       server.listen(port, "0.0.0.0", () => {
         logger.info(`✅ Server listening on port ${port} (initialization continuing in background...)`);
       });
@@ -180,7 +180,7 @@ if (!isInitDbMode && !isHealthCheckMode) {
         logger.error("⚠️ Database initialization failed:", undefined, dbError instanceof Error ? dbError.message : String(dbError));
         logger.info("   Frontend available, API will return 503 until database reconnects");
 
-        if (process.env.EMBEDDED_MODE !== "true" && process.env.LOCAL_MODE !== "true") {
+        if (process.env['EMBEDDED_MODE'] !== "true" && process.env['LOCAL_MODE'] !== "true") {
           throw dbError;
         }
       }
@@ -238,7 +238,7 @@ if (!isInitDbMode && !isHealthCheckMode) {
         });
       }
 
-      const isEmbedded = process.env.EMBEDDED_MODE === "true";
+      const isEmbedded = process.env['EMBEDDED_MODE'] === "true";
 
       try {
         await initializeBackgroundJobs(isEmbedded);
@@ -288,7 +288,7 @@ if (!isInitDbMode && !isHealthCheckMode) {
         server.close();
       }
 
-      if (process.env.EMBEDDED_MODE === "true" || process.env.LOCAL_MODE === "true") {
+      if (process.env['EMBEDDED_MODE'] === "true" || process.env['LOCAL_MODE'] === "true") {
         logger.error("⚠️ Embedded/local mode: Starting with degraded functionality");
         markStartupComplete();
       } else {

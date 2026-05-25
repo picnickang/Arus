@@ -56,7 +56,7 @@ const logger = createLogger("Middleware:DbContext");
 // explicit flag opts in so single-tenant deployments don't pay the
 // per-request transaction cost.
 const ENABLE_PG_RLS_CONTEXT =
-  process.env.ENABLE_PG_RLS_CONTEXT === "true" || requireTenantAuth();
+  process.env['ENABLE_PG_RLS_CONTEXT'] === "true" || requireTenantAuth();
 
 const ORG_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 

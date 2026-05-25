@@ -136,7 +136,7 @@ router.post("/", requireOrgId, async (req: Request, res: Response) => {
     const charter = getFirstRow(result);
     await db.execute(sql`
       UPDATE vessels SET charter_status = 'on_charter',
-        current_charter_id = ${charter?.id}
+        current_charter_id = ${charter?.['id']}
       WHERE id = ${data.vesselId} AND org_id = ${getOrgId(req)}
     `);
 
@@ -218,7 +218,7 @@ router.post("/kpi", requireOrgId, async (req: Request, res: Response) => {
 router.get("/:charterId/performance", requireOrgId, async (req: Request, res: Response) => {
   try {
     const { charterId } = req.params;
-    const days = Number(req.query.days) || 30;
+    const days = Number(req.query['days']) || 30;
 
     const charterResult = await db.execute(sql`
       SELECT cp.*, v.name as vessel_name

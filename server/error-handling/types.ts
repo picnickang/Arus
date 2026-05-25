@@ -16,11 +16,11 @@ export const ERROR_HANDLING_CONFIG = {
 };
 
 function getDeploymentContext(): Record<string, unknown> {
-  const isLocalMode = process.env.LOCAL_MODE === "true" || process.env.EMBEDDED_MODE === "true";
+  const isLocalMode = process.env['LOCAL_MODE'] === "true" || process.env['EMBEDDED_MODE'] === "true";
   return {
     deploymentMode: isLocalMode ? "VESSEL" : "CLOUD",
     databaseType: isLocalMode ? "SQLite" : "PostgreSQL",
-    environment: process.env.NODE_ENV || "development",
+    environment: process.env['NODE_ENV'] || "development",
   };
 }
 

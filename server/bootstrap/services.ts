@@ -12,7 +12,7 @@ const logger = createLogger("Bootstrap:Services");
  */
 
 export async function initializeLocalDatabase(): Promise<void> {
-  if (process.env.LOCAL_MODE === "true") {
+  if (process.env['LOCAL_MODE'] === "true") {
     const { initializeLocalDatabase: initLocal } = await import("../db-config");
     await initLocal();
   }
@@ -30,14 +30,14 @@ export async function initializeLocalDatabase(): Promise<void> {
  * doesn't surface as a runtime "column does not exist" much later.
  */
 export async function runMigrationsOnBoot(): Promise<void> {
-  if (process.env.MIGRATE_ON_BOOT !== "true") {
+  if (process.env['MIGRATE_ON_BOOT'] !== "true") {
     return;
   }
-  if (process.env.LOCAL_MODE === "true" || process.env.EMBEDDED_MODE === "true") {
+  if (process.env['LOCAL_MODE'] === "true" || process.env['EMBEDDED_MODE'] === "true") {
     logger.info("ℹ MIGRATE_ON_BOOT skipped (local/embedded mode uses SQLite)");
     return;
   }
-  if (!process.env.DATABASE_URL) {
+  if (!process.env['DATABASE_URL']) {
     logger.warn("⚠ MIGRATE_ON_BOOT requested but DATABASE_URL missing — skipping");
     return;
   }
@@ -91,7 +91,7 @@ export async function initializeDatabase(): Promise<void> {
         const { createDatabaseIndexes, analyzeDatabasePerformance } = await import("../db-indexes");
         await withServiceTimeout(createDatabaseIndexes(), 60000, "Create database indexes");
 
-        if (process.env.NODE_ENV === "development") {
+        if (process.env['NODE_ENV'] === "development") {
           await withServiceTimeout(
             analyzeDatabasePerformance(),
             30000,
@@ -136,7 +136,7 @@ export async function initializeDatabase(): Promise<void> {
         await new Promise((resolve) => setTimeout(resolve, delay));
       } else {
         logger.error("Database initialization failed after all retries:", undefined, error);
-        if (process.env.EMBEDDED_MODE === "true" || process.env.LOCAL_MODE === "true") {
+        if (process.env['EMBEDDED_MODE'] === "true" || process.env['LOCAL_MODE'] === "true") {
           logger.error("Embedded/local mode: Continuing despite initialization error");
           return;
         }
@@ -147,7 +147,7 @@ export async function initializeDatabase(): Promise<void> {
 }
 
 export async function seedDevelopmentUser(): Promise<void> {
-  if (process.env.NODE_ENV !== "development") {
+  if (process.env['NODE_ENV'] !== "development") {
     return;
   }
 
@@ -216,10 +216,10 @@ export async function initializeJobQueue(): Promise<void> {
     logger.info("  ℹ /tmp/kb-uploads directory already exists");
   }
 
-  if (process.env.DATABASE_URL) {
+  if (process.env['DATABASE_URL']) {
     try {
       await withServiceTimeout(
-        jobQueueService.initialize(process.env.DATABASE_URL),
+        jobQueueService.initialize(process.env['DATABASE_URL']),
         15000,
         "Job queue"
       );
@@ -245,7 +245,7 @@ export async function initializeMLServices(): Promise<void> {
 }
 
 export async function applyTimescaleOptimizations(isLocalMode: boolean): Promise<void> {
-  if (isLocalMode || !process.env.DATABASE_URL) {
+  if (isLocalMode || !process.env['DATABASE_URL']) {
     return;
   }
 
@@ -266,7 +266,7 @@ export async function applyTimescaleOptimizations(isLocalMode: boolean): Promise
  * deployments without it.
  */
 export async function applyGraphBootstrap(): Promise<void> {
-  if (!process.env.DATABASE_URL) return;
+  if (!process.env['DATABASE_URL']) return;
   try {
     const { runGraphBootstrap } = await import("../graph-bootstrap");
     await runGraphBootstrap();
@@ -304,7 +304,7 @@ export async function initializeTelemetryBatchWriter(): Promise<void> {
 }
 
 export async function initializeAutoReplanPolicy(): Promise<void> {
-  if (process.env.ENABLE_AUTO_REPLAN === "false") {
+  if (process.env['ENABLE_AUTO_REPLAN'] === "false") {
     logger.info("ℹ️  Auto-replan policy disabled");
     return;
   }
@@ -318,7 +318,7 @@ export async function initializeAutoReplanPolicy(): Promise<void> {
 }
 
 export async function initializeFmccPolling(): Promise<void> {
-  if (process.env.FMCC_ENABLED !== "true") {
+  if (process.env['FMCC_ENABLED'] !== "true") {
     logger.info("ℹ️  FMCC polling disabled (FMCC_ENABLED != true)");
     return;
   }
@@ -330,7 +330,7 @@ export async function initializeFmccPolling(): Promise<void> {
 }
 
 export async function initializePatchingSystem(isEmbedded: boolean): Promise<void> {
-  if (process.env.ENABLE_UPDATE_SYSTEM === "false") {
+  if (process.env['ENABLE_UPDATE_SYSTEM'] === "false") {
     logger.info("ℹ️  Update system disabled");
     return;
   }

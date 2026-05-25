@@ -48,7 +48,7 @@ export async function ensemblePredict(
 
   const weights = ensembleConfig.useAdaptiveWeights
     ? await getAdaptiveWeights(orgId, equipmentType)
-    : STATIC_WEIGHTS.default;
+    : STATIC_WEIGHTS['default'];
 
   logger.debug(
     "MlEnsemble",

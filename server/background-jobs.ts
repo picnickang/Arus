@@ -36,7 +36,7 @@ const logger = createLogger("BackgroundJobs");
  */
 function extractOrgId(data: unknown): string | undefined {
   if (!data || typeof data !== "object") return undefined;
-  const candidate = (data as Record<string, unknown>).orgId;
+  const candidate = (data as Record<string, unknown>)['orgId'];
   if (typeof candidate === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(candidate)) {
     return candidate;
   }
@@ -212,7 +212,7 @@ class BackgroundJobQueue {
   }
 
   private async initialize(): Promise<void> {
-    const connectionString = process.env.DATABASE_URL;
+    const connectionString = process.env['DATABASE_URL'];
     if (!connectionString) {
       this.fallback = true;
       logger.warn(

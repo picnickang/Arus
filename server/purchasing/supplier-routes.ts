@@ -16,7 +16,7 @@ supplierLinkRouter.get("/parts/:partId/suppliers", async (req: Request, res: Res
   try {
     const orgId = DEFAULT_ORG_ID;
 
-    const suppliers = await service.getPartSuppliers(req.params.partId, orgId);
+    const suppliers = await service.getPartSuppliers(req.params['partId'], orgId);
     return res.json(suppliers);
   } catch (error) {
     logger.error("[Purchasing] Error getting part suppliers:", undefined, error);
@@ -35,7 +35,7 @@ supplierLinkRouter.post("/parts/:partId/suppliers", async (req: Request, res: Re
 
     const link = await service.linkSupplierToPart({
       orgId,
-      partId: req.params.partId,
+      partId: req.params['partId'],
       supplierId,
       isPrimary,
       supplierPartNumber,
@@ -57,8 +57,8 @@ supplierLinkRouter.delete(
       const orgId = DEFAULT_ORG_ID;
 
       const removed = await service.unlinkSupplierFromPart(
-        req.params.partId,
-        req.params.supplierId,
+        req.params['partId'],
+        req.params['supplierId'],
         orgId
       );
 

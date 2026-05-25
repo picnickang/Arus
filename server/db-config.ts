@@ -30,7 +30,7 @@ function detectDatabaseType(url: string): "neon" | "standard" {
 }
 
 // Detect Replit environment
-const isReplitEnvironment = !!process.env.REPL_ID || !!process.env.REPL_SLUG;
+const isReplitEnvironment = !!process.env['REPL_ID'] || !!process.env['REPL_SLUG'];
 
 /**
  * Database Configuration for Dual-Mode Deployment
@@ -69,10 +69,10 @@ neonConfig.wsProxy = (host) => `${host}`; // Use direct connection
  * If EMBEDDED_MODE=true and no DATABASE_URL, automatically switch to local mode
  * This must run BEFORE importing runtimeEnv to ensure proper initialization order
  */
-const isEmbedded = process.env.EMBEDDED_MODE === "true";
-if (isEmbedded && !process.env.DATABASE_URL && process.env.LOCAL_MODE !== "true") {
+const isEmbedded = process.env['EMBEDDED_MODE'] === "true";
+if (isEmbedded && !process.env['DATABASE_URL'] && process.env['LOCAL_MODE'] !== "true") {
   logger.warn("⚠️ [DB Config] Embedded mode: DATABASE_URL missing, auto-switching to local SQLite mode");
-  process.env.LOCAL_MODE = "true";
+  process.env['LOCAL_MODE'] = "true";
 }
 
 /**
@@ -97,20 +97,20 @@ export let connectionMode: "http" | "websocket" | "standard" | "sqlite" = "sqlit
 
 if (!isLocalMode) {
   // Validate DATABASE_URL exists for cloud mode
-  if (!process.env.DATABASE_URL) {
+  if (!process.env['DATABASE_URL']) {
     logger.error("ERROR: DATABASE_URL environment variable is required for cloud mode");
     logger.error("Hint: Set EMBEDDED_MODE=true to use local SQLite instead");
     process.exit(1);
   }
 
-  const dbType = detectDatabaseType(process.env.DATABASE_URL);
+  const dbType = detectDatabaseType(process.env['DATABASE_URL']);
 
   if (dbType === "standard") {
     // Use standard node-postgres for non-Neon databases (Replit, AWS RDS, etc.)
     logger.info("ℹ️ Standard PostgreSQL detected: Using node-postgres driver");
 
     pgPool = new PgPool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: process.env['DATABASE_URL'],
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
@@ -135,7 +135,7 @@ if (!isLocalMode) {
     // Use HTTP driver in Replit for Neon - WebSocket connections are killed by Replit's proxy after ~20s
     logger.info("ℹ️ Replit + Neon detected: Using Neon HTTP driver (WebSocket proxy incompatible)");
 
-    const sql = neon(process.env.DATABASE_URL);
+    const sql = neon(process.env['DATABASE_URL']);
     cloudDatabase = drizzlePgHttp(sql, { schema });
     connectionMode = "http";
 
@@ -144,7 +144,7 @@ if (!isLocalMode) {
     // Use WebSocket driver for Neon in production/desktop - supports transactions
     logger.info("ℹ️ Neon detected: Using Neon WebSocket driver (full transaction support)");
 
-    const connectionUrl = new URL(process.env.DATABASE_URL);
+    const connectionUrl = new URL(process.env['DATABASE_URL']);
     if (!connectionUrl.searchParams.has("connect_timeout")) {
       connectionUrl.searchParams.set("connect_timeout", "15");
     }
@@ -197,8 +197,8 @@ async function initializeLocalDatabase() {
   const localDbPath = path.join(dataDir, "vessel-local.db");
 
   // Validate Turso configuration for sync
-  const hasSyncUrl = !!process.env.TURSO_SYNC_URL;
-  const hasAuthToken = !!process.env.TURSO_AUTH_TOKEN;
+  const hasSyncUrl = !!process.env['TURSO_SYNC_URL'];
+  const hasAuthToken = !!process.env['TURSO_AUTH_TOKEN'];
 
   if (hasSyncUrl && hasAuthToken) {
     logger.info("✓ Turso Sync: Enabled (Managed by Sync Manager)");
@@ -207,10 +207,10 @@ async function initializeLocalDatabase() {
     // IMPORTANT: syncInterval set to 0 - Sync Manager controls all sync operations
     localClient = createClient({
       url: `file:${localDbPath}`,
-      syncUrl: process.env.TURSO_SYNC_URL,
-      authToken: process.env.TURSO_AUTH_TOKEN,
+      syncUrl: process.env['TURSO_SYNC_URL'],
+      authToken: process.env['TURSO_AUTH_TOKEN'],
       syncInterval: 0, // Disable auto-sync - Sync Manager controls sync timing
-      encryptionKey: process.env.LOCAL_DB_KEY, // Optional encryption at rest
+      encryptionKey: process.env['LOCAL_DB_KEY'], // Optional encryption at rest
     });
     libsqlClient = localClient;
   } else {
@@ -412,7 +412,7 @@ if (!isLocalMode && requireTenantAuthFromEnv() && !supportsPinnedConnection) {
 }
 
 function requireTenantAuthFromEnv(): boolean {
-  return process.env.REQUIRE_TENANT_AUTH === "true";
+  return process.env['REQUIRE_TENANT_AUTH'] === "true";
 }
 
 // Mode-aware table exports for storage layer

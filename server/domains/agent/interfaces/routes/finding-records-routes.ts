@@ -133,13 +133,13 @@ export function registerFindingRecordsRoutes(app: Express, deps: FindingRecordsR
         const { status, severity, recommendedAction } = updateSchema.parse(req.body);
         const updateData: Record<string, unknown> = {};
         if (status && (FINDING_STATUSES as readonly string[]).includes(status)) {
-          updateData.status = status;
+          updateData['status'] = status;
         }
         if (severity && (FINDING_SEVERITIES as readonly string[]).includes(severity)) {
-          updateData.severity = severity;
+          updateData['severity'] = severity;
         }
         if (recommendedAction !== undefined) {
-          updateData.recommendedAction = recommendedAction;
+          updateData['recommendedAction'] = recommendedAction;
         }
         const finding = await findingService.update(id, orgId, updateData);
         return res.json(finding);

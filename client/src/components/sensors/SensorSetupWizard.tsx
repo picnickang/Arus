@@ -546,16 +546,16 @@ function ThresholdStep({
                     <div>
                       <span className="text-muted-foreground">Warning Low:</span>
                       <span className="ml-2 font-medium">
-                        {String(template.fields?.warn_low ?? template.fields?.warnLo ?? "—")}
+                        {String(template.fields?.['warn_low'] ?? template.fields?.['warnLo'] ?? "—")}
                       </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Warning High:</span>
                       <span className="ml-2 font-medium">
                         {String(
-                          template.fields?.warn_high ??
-                            template.fields?.warnHi ??
-                            template.fields?.warn_rms ??
+                          template.fields?.['warn_high'] ??
+                            template.fields?.['warnHi'] ??
+                            template.fields?.['warn_rms'] ??
                             "—"
                         )}
                       </span>
@@ -563,16 +563,16 @@ function ThresholdStep({
                     <div>
                       <span className="text-muted-foreground">Critical Low:</span>
                       <span className="ml-2 font-medium">
-                        {String(template.fields?.crit_low ?? template.fields?.critLo ?? "—")}
+                        {String(template.fields?.['crit_low'] ?? template.fields?.['critLo'] ?? "—")}
                       </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Critical High:</span>
                       <span className="ml-2 font-medium">
                         {String(
-                          template.fields?.crit_high ??
-                            template.fields?.critHi ??
-                            template.fields?.crit_rms ??
+                          template.fields?.['crit_high'] ??
+                            template.fields?.['critHi'] ??
+                            template.fields?.['crit_rms'] ??
                             "—"
                         )}
                       </span>

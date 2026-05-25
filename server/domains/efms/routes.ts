@@ -91,7 +91,7 @@ router.get("/connections/:id", requireOrgId, async (req: Request, res: Response)
       FROM efms_connections ec
       LEFT JOIN vessels v ON ec.vessel_id = v.id
       LEFT JOIN equipment e ON ec.equipment_id = e.id
-      WHERE ec.id = ${req.params.id} AND ec.org_id = ${getOrgId(req)}
+      WHERE ec.id = ${req.params['id']} AND ec.org_id = ${getOrgId(req)}
     `);
     const conn = getFirstRow(result);
     if (!conn) {
@@ -137,7 +137,7 @@ router.patch("/connections/:id", requireOrgId, async (req: Request, res: Respons
     const data = updateConnectionSchema.parse(req.body);
 
     const existing = await db.execute(sql`
-      SELECT id FROM efms_connections WHERE id = ${req.params.id} AND org_id = ${getOrgId(req)}
+      SELECT id FROM efms_connections WHERE id = ${req.params['id']} AND org_id = ${getOrgId(req)}
     `);
     if (!getFirstRow(existing)) {
       return res.status(404).json({ error: "EFMS connection not found" });
@@ -156,7 +156,7 @@ router.patch("/connections/:id", requireOrgId, async (req: Request, res: Respons
         poll_interval_ms = COALESCE(${data.pollIntervalMs ?? null}, poll_interval_ms),
         status = COALESCE(${data.status ?? null}, status),
         updated_at = NOW()
-      WHERE id = ${req.params.id} AND org_id = ${getOrgId(req)}
+      WHERE id = ${req.params['id']} AND org_id = ${getOrgId(req)}
       RETURNING *
     `);
 
@@ -173,14 +173,14 @@ router.delete("/connections/:id", requireOrgId, async (req: Request, res: Respon
   try {
     const result = await db.execute(sql`
       DELETE FROM efms_connections
-      WHERE id = ${req.params.id} AND org_id = ${getOrgId(req)}
+      WHERE id = ${req.params['id']} AND org_id = ${getOrgId(req)}
       RETURNING id
     `);
     const deleted = getFirstRow(result);
     if (!deleted) {
       return res.status(404).json({ error: "EFMS connection not found" });
     }
-    return res.json({ success: true, deletedId: deleted.id });
+    return res.json({ success: true, deletedId: deleted['id'] });
   } catch (err) {
     return res.status(500).json({ error: "Failed to delete EFMS connection" });
   }
@@ -204,11 +204,11 @@ router.get("/status", requireOrgId, async (req: Request, res: Response) => {
 
     return res.json({
       totalConnections: connections.length,
-      polling: connections.filter((c) => c.status === "polling").length,
-      connected: connections.filter((c) => c.status === "connected").length,
-      configured: connections.filter((c) => c.status === "configured").length,
-      error: connections.filter((c) => c.status === "error").length,
-      disabled: connections.filter((c) => c.status === "disabled").length,
+      polling: connections.filter((c) => c['status'] === "polling").length,
+      connected: connections.filter((c) => c['status'] === "connected").length,
+      configured: connections.filter((c) => c['status'] === "configured").length,
+      error: connections.filter((c) => c['status'] === "error").length,
+      disabled: connections.filter((c) => c['status'] === "disabled").length,
       connections,
     });
   } catch (err) {

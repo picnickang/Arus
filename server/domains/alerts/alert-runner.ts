@@ -262,7 +262,7 @@ async function processAlert(
   alert: CrewAlertResult,
   result: AlertRunResult
 ): Promise<void> {
-  const vesselId = (alert.metadata?.vesselId as string) || ctx.vesselId;
+  const vesselId = (alert.metadata?.['vesselId'] as string) || ctx.vesselId;
   const recipients = await getAlertRecipients(ctx.orgId, vesselId, alert.alertType);
 
   if (recipients.length === 0) {
@@ -273,7 +273,7 @@ async function processAlert(
   }
 
   const entityId =
-    (alert.metadata?.crewId as string) || (alert.metadata?.equipmentId as string) || alert.entityId;
+    (alert.metadata?.['crewId'] as string) || (alert.metadata?.['equipmentId'] as string) || alert.entityId;
 
   const claim = await claimAlertSlot(
     ctx.orgId,

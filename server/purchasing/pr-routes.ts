@@ -50,17 +50,17 @@ prRouter.get("/purchase-requests", async (req: Request, res: Response) => {
 
     const filters: PRListFilters = {
       orgId,
-      status: req.query.status as PRStatus | undefined,
-      vesselId: req.query.vesselId as string | undefined,
-      requestedBy: req.query.requestedBy as string | undefined,
-      limit: req.query.limit ? Number.parseInt(req.query.limit as string, 10) : 50,
-      offset: req.query.offset ? Number.parseInt(req.query.offset as string, 10) : 0,
+      status: req.query['status'] as PRStatus | undefined,
+      vesselId: req.query['vesselId'] as string | undefined,
+      requestedBy: req.query['requestedBy'] as string | undefined,
+      limit: req.query['limit'] ? Number.parseInt(req.query['limit'] as string, 10) : 50,
+      offset: req.query['offset'] ? Number.parseInt(req.query['offset'] as string, 10) : 0,
     };
-    if (req.query.fromDate) {
-      filters.fromDate = new Date(req.query.fromDate as string);
+    if (req.query['fromDate']) {
+      filters.fromDate = new Date(req.query['fromDate'] as string);
     }
-    if (req.query.toDate) {
-      filters.toDate = new Date(req.query.toDate as string);
+    if (req.query['toDate']) {
+      filters.toDate = new Date(req.query['toDate'] as string);
     }
 
     const prs = await service.listPRs(filters);
@@ -76,7 +76,7 @@ prRouter.get("/purchase-requests/:id", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
 
-    const pr = await service.getPR(req.params.id, orgId);
+    const pr = await service.getPR(req.params['id'], orgId);
     if (!pr) {
       return res.status(404).json({ error: "Purchase request not found" });
     }
@@ -93,7 +93,7 @@ prRouter.patch("/purchase-requests/:id", async (req: Request, res: Response) => 
     const orgId = DEFAULT_ORG_ID;
     const userId = req.headers["x-user-id"] as string | undefined;
 
-    const existingPR = await service.getPR(req.params.id, orgId);
+    const existingPR = await service.getPR(req.params['id'], orgId);
     if (!existingPR) {
       return res.status(404).json({ error: "Purchase request not found" });
     }
@@ -119,19 +119,19 @@ prRouter.patch("/purchase-requests/:id", async (req: Request, res: Response) => 
     const { requiredByDate, deliveryLocation, notes, vesselId } = req.body;
     const updates: Record<string, unknown> = {};
     if (requiredByDate !== undefined) {
-      updates.requiredByDate = new Date(requiredByDate);
+      updates['requiredByDate'] = new Date(requiredByDate);
     }
     if (deliveryLocation !== undefined) {
-      updates.deliveryLocation = deliveryLocation;
+      updates['deliveryLocation'] = deliveryLocation;
     }
     if (notes !== undefined) {
-      updates.notes = notes;
+      updates['notes'] = notes;
     }
     if (vesselId !== undefined) {
-      updates.vesselId = vesselId;
+      updates['vesselId'] = vesselId;
     }
 
-    const pr = await service.updatePRDraft(req.params.id, orgId, updates as object as Parameters<typeof service.updatePRDraft>[2], userId);
+    const pr = await service.updatePRDraft(req.params['id'], orgId, updates as object as Parameters<typeof service.updatePRDraft>[2], userId);
     return res.json(pr);
   } catch (error) {
     logger.error("[Purchasing] Error updating PR:", undefined, error);
@@ -153,19 +153,19 @@ prRouter.post("/purchase-requests/:id/auto-save", async (req: Request, res: Resp
     const { notes, vesselId, requiredByDate, deliveryLocation } = req.body;
     const updates: Record<string, unknown> = {};
     if (notes !== undefined) {
-      updates.notes = notes;
+      updates['notes'] = notes;
     }
     if (vesselId !== undefined) {
-      updates.vesselId = vesselId;
+      updates['vesselId'] = vesselId;
     }
     if (requiredByDate !== undefined) {
-      updates.requiredByDate = new Date(requiredByDate);
+      updates['requiredByDate'] = new Date(requiredByDate);
     }
     if (deliveryLocation !== undefined) {
-      updates.deliveryLocation = deliveryLocation;
+      updates['deliveryLocation'] = deliveryLocation;
     }
 
-    const pr = await updatePRDraft(req.params.id, orgId, updates as object as Parameters<typeof updatePRDraft>[2], userId, {
+    const pr = await updatePRDraft(req.params['id'], orgId, updates as object as Parameters<typeof updatePRDraft>[2], userId, {
       isAutoSave: true,
     });
     return res.json({ success: true, lastSavedAt: pr?.lastDraftSaveAt });
@@ -188,7 +188,7 @@ prRouter.post("/purchase-requests/:id/items", async (req: Request, res: Response
 
     // Improvement #9: result now includes substitution suggestions when out of stock
     const result = await service.addItemToPR(
-      req.params.id,
+      req.params['id'],
       orgId,
       { partId, supplierId, quantity, uom, remarks },
       userId
@@ -207,7 +207,7 @@ prRouter.delete("/purchase-requests/:id/items/:itemId", async (req: Request, res
     const orgId = DEFAULT_ORG_ID;
     const userId = req.headers["x-user-id"] as string | undefined;
 
-    const removed = await service.removeItemFromPR(req.params.id, req.params.itemId, orgId, userId);
+    const removed = await service.removeItemFromPR(req.params['id'], req.params['itemId'], orgId, userId);
 
     if (!removed) {
       return res.status(404).json({ error: "Item not found" });
@@ -225,7 +225,7 @@ prRouter.post("/purchase-requests/:id/send", async (req: Request, res: Response)
     const orgId = DEFAULT_ORG_ID;
     const userId = req.headers["x-user-id"] as string | undefined;
 
-    const result = await service.sendPR(req.params.id, orgId, userId);
+    const result = await service.sendPR(req.params['id'], orgId, userId);
     return res.json(result);
   } catch (error) {
     logger.error("[Purchasing] Error sending PR:", undefined, error);
@@ -239,7 +239,7 @@ prRouter.post("/purchase-requests/:id/cancel", async (req: Request, res: Respons
     const orgId = DEFAULT_ORG_ID;
     const userId = req.headers["x-user-id"] as string | undefined;
 
-    const pr = await service.cancelPR(req.params.id, orgId, userId);
+    const pr = await service.cancelPR(req.params['id'], orgId, userId);
     return res.json(pr);
   } catch (error) {
     logger.error("[Purchasing] Error cancelling PR:", undefined, error);
@@ -253,7 +253,7 @@ prRouter.post("/purchase-requests/:id/close", async (req: Request, res: Response
     const orgId = DEFAULT_ORG_ID;
     const userId = req.headers["x-user-id"] as string | undefined;
 
-    const pr = await service.closePR(req.params.id, orgId, userId);
+    const pr = await service.closePR(req.params['id'], orgId, userId);
     return res.json(pr);
   } catch (error) {
     logger.error("[Purchasing] Error closing PR:", undefined, error);
@@ -274,7 +274,7 @@ prRouter.delete("/purchase-requests/:id", async (req: Request, res: Response) =>
 
     // Improvement #18: single fetch — no join needed for status + permission check
     const { getPurchaseRequestById } = await import("./repository");
-    const existingPR = await getPurchaseRequestById(req.params.id, orgId);
+    const existingPR = await getPurchaseRequestById(req.params['id'], orgId);
     if (!existingPR) {
       return res.status(404).json({ error: "Purchase request not found" });
     }
@@ -306,16 +306,16 @@ prRouter.delete("/purchase-requests/:id", async (req: Request, res: Response) =>
     await db
       .delete(purchaseRequestEvents)
       .where(
-        and(eq(purchaseRequestEvents.prId, req.params.id), eq(purchaseRequestEvents.orgId, orgId))
+        and(eq(purchaseRequestEvents.prId, req.params['id']), eq(purchaseRequestEvents.orgId, orgId))
       );
     await db
       .delete(purchaseRequestItems)
       .where(
-        and(eq(purchaseRequestItems.prId, req.params.id), eq(purchaseRequestItems.orgId, orgId))
+        and(eq(purchaseRequestItems.prId, req.params['id']), eq(purchaseRequestItems.orgId, orgId))
       );
     await db
       .delete(purchaseRequests)
-      .where(and(eq(purchaseRequests.id, req.params.id), eq(purchaseRequests.orgId, orgId)));
+      .where(and(eq(purchaseRequests.id, req.params['id']), eq(purchaseRequests.orgId, orgId)));
 
     return res.json({ success: true });
   } catch (error) {
@@ -336,7 +336,7 @@ prRouter.patch("/purchase-requests/:id/status", async (req: Request, res: Respon
     }
 
     const { updatePRStatus } = await import("./fulfillment-service");
-    const result = await updatePRStatus(req.params.id, orgId, newStatus, userId);
+    const result = await updatePRStatus(req.params['id'], orgId, newStatus, userId);
     if (!result.success) {
       return res.status(400).json({ error: result.error });
     }
@@ -362,8 +362,8 @@ prRouter.post(
 
       const { fulfillItem } = await import("./fulfillment-service");
       const result = await fulfillItem({
-        prId: req.params.id,
-        itemId: req.params.itemId,
+        prId: req.params['id'],
+        itemId: req.params['itemId'],
         orgId,
         quantityToFulfill,
         fulfilledBy: userId || "system",
@@ -385,7 +385,7 @@ prRouter.delete(
       const orgId = DEFAULT_ORG_ID;
 
       const { deleteAllPurchaseRequestsByWorkOrder } = await import("./fulfillment-service");
-      const result = await deleteAllPurchaseRequestsByWorkOrder(req.params.workOrderId, orgId);
+      const result = await deleteAllPurchaseRequestsByWorkOrder(req.params['workOrderId'], orgId);
       return res.json(result);
     } catch (error) {
       logger.error("[Purchasing] Error bulk deleting PRs:", undefined, error);

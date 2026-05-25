@@ -16,7 +16,7 @@ export async function requireAuthentication(req: Request, res: Response, next: N
       return next();
     }
 
-    if (process.env.NODE_ENV === "development") {
+    if (process.env['NODE_ENV'] === "development") {
       // Push B1: dev mock user carries the legacy DEFAULT_ORG_ID so
       // unmigrated dev workflows keep working. In REQUIRE_TENANT_AUTH
       // mode this still works because the dev user does have an orgId

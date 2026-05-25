@@ -22,9 +22,9 @@ import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Middleware:Performance");
 
 // Environment configuration
-const PERF_DEBUG = process.env.PERF_DEBUG === "true";
+const PERF_DEBUG = process.env['PERF_DEBUG'] === "true";
 const SLOW_REQUEST_THRESHOLD_MS = Number.parseInt(
-  process.env.SLOW_REQUEST_THRESHOLD_MS || "200",
+  process.env['SLOW_REQUEST_THRESHOLD_MS'] || "200",
   10
 );
 

@@ -155,7 +155,7 @@ export async function validateHMAC(req: Request, res: Response, next: NextFuncti
 
     let isValid = signaturesMatch(expectedSignature, providedSignature);
 
-    if (!isValid && process.env.ALLOW_LEGACY_HMAC === "true") {
+    if (!isValid && process.env['ALLOW_LEGACY_HMAC'] === "true") {
       const legacySignature = signPayload(device.hmacKey, JSON.stringify(req.body ?? {}));
       isValid = signaturesMatch(legacySignature, providedSignature);
       if (isValid) {

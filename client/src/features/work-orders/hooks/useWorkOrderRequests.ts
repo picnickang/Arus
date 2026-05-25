@@ -27,24 +27,24 @@ export function useWorkOrderRequests(workOrderId: string) {
   const createServiceOrderMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => {
       const payload = {
-        serviceProviderId: data.serviceProviderId,
-        scheduledStartDate: data.scheduledStartDate ?? data.requestedStartDate,
-        scheduledEndDate: data.scheduledEndDate ?? data.requestedEndDate,
-        scope: data.symptomDescription || data.scope,
+        serviceProviderId: data['serviceProviderId'],
+        scheduledStartDate: data['scheduledStartDate'] ?? data['requestedStartDate'],
+        scheduledEndDate: data['scheduledEndDate'] ?? data['requestedEndDate'],
+        scope: data['symptomDescription'] || data['scope'],
         serviceDetails: {
-          equipmentIds: data.equipmentIds,
-          severity: data.severity,
-          assistanceTags: data.assistanceTags,
-          probableCause: data.probableCause,
-          actionTakenSoFar: data.actionTakenSoFar,
-          isRecurringDefect: data.isRecurringDefect,
-          mocRequired: data.mocRequired,
-          mocNumber: data.mocNumber,
-          certificateItems: data.certificateItems,
+          equipmentIds: data['equipmentIds'],
+          severity: data['severity'],
+          assistanceTags: data['assistanceTags'],
+          probableCause: data['probableCause'],
+          actionTakenSoFar: data['actionTakenSoFar'],
+          isRecurringDefect: data['isRecurringDefect'],
+          mocRequired: data['mocRequired'],
+          mocNumber: data['mocNumber'],
+          certificateItems: data['certificateItems'],
         },
-        estimatedDurationHours: data.estimatedDurationHours,
-        quotedAmount: data.quotedAmount,
-        specialRequirements: data.specialRequirements ?? data.notes,
+        estimatedDurationHours: data['estimatedDurationHours'],
+        quotedAmount: data['quotedAmount'],
+        specialRequirements: data['specialRequirements'] ?? data['notes'],
       };
       return apiRequest("POST", `/api/work-orders/${workOrderId}/service-orders`, payload);
     },
@@ -139,9 +139,9 @@ export function useWorkOrderRequests(workOrderId: string) {
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       toast({
         title: "Item Fulfilled",
-        description: data.inventoryUpdated
-          ? `Fulfilled ${data.quantityFulfilled} units. Stock updated to ${data.newStockLevel}.`
-          : `Fulfilled ${data.quantityFulfilled} units.`,
+        description: data['inventoryUpdated']
+          ? `Fulfilled ${data['quantityFulfilled']} units. Stock updated to ${data['newStockLevel']}.`
+          : `Fulfilled ${data['quantityFulfilled']} units.`,
       });
     },
     onError: (err) =>
@@ -165,49 +165,49 @@ export function useWorkOrderRequests(workOrderId: string) {
     mutationFn: async ({ soId, data }: { soId: string; data: Record<string, unknown> }) => {
       const payload: Record<string, unknown> = {};
 
-      if (data.serviceProviderId) {
-        payload.serviceProviderId = data.serviceProviderId;
+      if (data['serviceProviderId']) {
+        payload['serviceProviderId'] = data['serviceProviderId'];
       }
-      if (data.requestedStartDate) {
-        payload.scheduledStartDate = data.requestedStartDate;
+      if (data['requestedStartDate']) {
+        payload['scheduledStartDate'] = data['requestedStartDate'];
       }
-      if (data.requestedEndDate) {
-        payload.scheduledEndDate = data.requestedEndDate;
+      if (data['requestedEndDate']) {
+        payload['scheduledEndDate'] = data['requestedEndDate'];
       }
-      if (data.symptomDescription || data.scope) {
-        payload.scope = data.symptomDescription || data.scope;
+      if (data['symptomDescription'] || data['scope']) {
+        payload['scope'] = data['symptomDescription'] || data['scope'];
       }
-      if (data.estimatedDurationHours) {
-        payload.estimatedDurationHours = data.estimatedDurationHours;
+      if (data['estimatedDurationHours']) {
+        payload['estimatedDurationHours'] = data['estimatedDurationHours'];
       }
-      if (data.quotedAmount) {
-        payload.quotedAmount = data.quotedAmount;
+      if (data['quotedAmount']) {
+        payload['quotedAmount'] = data['quotedAmount'];
       }
-      if (data.notes) {
-        payload.specialRequirements = data.notes;
+      if (data['notes']) {
+        payload['specialRequirements'] = data['notes'];
       }
 
       if (
-        data.equipmentIds ||
-        data.severity ||
-        data.assistanceTags ||
-        data.probableCause ||
-        data.actionTakenSoFar ||
-        data.isRecurringDefect !== undefined ||
-        data.mocRequired !== undefined ||
-        data.mocNumber ||
-        data.certificateItems
+        data['equipmentIds'] ||
+        data['severity'] ||
+        data['assistanceTags'] ||
+        data['probableCause'] ||
+        data['actionTakenSoFar'] ||
+        data['isRecurringDefect'] !== undefined ||
+        data['mocRequired'] !== undefined ||
+        data['mocNumber'] ||
+        data['certificateItems']
       ) {
-        payload.serviceDetails = {
-          equipmentIds: data.equipmentIds,
-          severity: data.severity,
-          assistanceTags: data.assistanceTags,
-          probableCause: data.probableCause,
-          actionTakenSoFar: data.actionTakenSoFar,
-          isRecurringDefect: data.isRecurringDefect,
-          mocRequired: data.mocRequired,
-          mocNumber: data.mocNumber,
-          certificateItems: data.certificateItems,
+        payload['serviceDetails'] = {
+          equipmentIds: data['equipmentIds'],
+          severity: data['severity'],
+          assistanceTags: data['assistanceTags'],
+          probableCause: data['probableCause'],
+          actionTakenSoFar: data['actionTakenSoFar'],
+          isRecurringDefect: data['isRecurringDefect'],
+          mocRequired: data['mocRequired'],
+          mocNumber: data['mocNumber'],
+          certificateItems: data['certificateItems'],
         };
       }
 

@@ -17,10 +17,10 @@ export async function generateScenarios(
   const scenarios: EnhancedAnalysisOutput["scenarios"] = [];
 
   const criticalItems = (
-    context.data.workOrders?.filter((wo) => (wo as Record<string, unknown>).priority === "critical") ?? []
+    context.data.workOrders?.filter((wo) => (wo as Record<string, unknown>)['priority'] === "critical") ?? []
   ).length;
   const urgentItems = (
-    context.data.workOrders?.filter((wo) => (wo as Record<string, unknown>).priority === "urgent") ?? []
+    context.data.workOrders?.filter((wo) => (wo as Record<string, unknown>)['priority'] === "urgent") ?? []
   ).length;
 
   if (criticalItems > 0) {
@@ -74,13 +74,13 @@ export async function calculateROI(
   const avgCost =
     workOrders.reduce((sum, wo) => {
       const woRec = wo as Record<string, unknown>;
-      const cost = Number(woRec.estimatedCostPerHour ?? 0) || 0;
-      const hours = Number(woRec.estimatedHours ?? 0) || 0;
+      const cost = Number(woRec['estimatedCostPerHour'] ?? 0) || 0;
+      const hours = Number(woRec['estimatedHours'] ?? 0) || 0;
       return sum + cost * hours;
     }, 0) / Math.max(workOrders.length, 1);
 
   const criticalCount = workOrders.filter(
-    (wo) => (wo as Record<string, unknown>).priority === "critical"
+    (wo) => (wo as Record<string, unknown>)['priority'] === "critical"
   ).length;
   const preventiveCost = avgCost * 0.3;
   const failureCost = avgCost * 3;
@@ -128,10 +128,10 @@ export function generateFallbackAnalysis(context: ReportContext): string {
 
   if (context.data.workOrders) {
     const critical = context.data.workOrders.filter(
-      (wo) => (wo as Record<string, unknown>).priority === "critical"
+      (wo) => (wo as Record<string, unknown>)['priority'] === "critical"
     ).length;
     const urgent = context.data.workOrders.filter(
-      (wo) => (wo as Record<string, unknown>).priority === "urgent"
+      (wo) => (wo as Record<string, unknown>)['priority'] === "urgent"
     ).length;
 
     parts.push(

@@ -152,11 +152,11 @@ export class TelemetryBatchWriter extends EventEmitter {
     super();
 
     this.config = {
-      batchIntervalMs: Number.parseInt(process.env.TELEMETRY_BATCH_INTERVAL_MS || "500", 10),
-      maxBufferSize: Number.parseInt(process.env.TELEMETRY_MAX_BUFFER_SIZE || "10000", 10),
-      evictionPercent: Number.parseFloat(process.env.TELEMETRY_EVICTION_PERCENT || "0.1"),
+      batchIntervalMs: Number.parseInt(process.env['TELEMETRY_BATCH_INTERVAL_MS'] || "500", 10),
+      maxBufferSize: Number.parseInt(process.env['TELEMETRY_MAX_BUFFER_SIZE'] || "10000", 10),
+      evictionPercent: Number.parseFloat(process.env['TELEMETRY_EVICTION_PERCENT'] || "0.1"),
       flushOnShutdown: true,
-      maxRetries: Number.parseInt(process.env.TELEMETRY_MAX_RETRIES || "3", 10),
+      maxRetries: Number.parseInt(process.env['TELEMETRY_MAX_RETRIES'] || "3", 10),
       ...config,
     };
 
@@ -539,7 +539,7 @@ export class TelemetryBatchWriter extends EventEmitter {
    * @throws Error if source is not 'sqlite-bridge' in production
    */
   async writeBatch(readings: TelemetryBatchReading[], options: { source: string }): Promise<void> {
-    const isProduction = process.env.NODE_ENV === "production";
+    const isProduction = process.env['NODE_ENV'] === "production";
 
     if (isProduction && options.source !== "sqlite-bridge") {
       throw new Error(

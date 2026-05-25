@@ -123,7 +123,7 @@ export class IngestTelemetryBatch {
 
     const uniqueReadings: TelemetryBatchReading[] = [];
     for (const reading of readings) {
-      const idempotencyKey = reading.metadata?.idempotencyKey as string | undefined;
+      const idempotencyKey = reading.metadata?.['idempotencyKey'] as string | undefined;
       if (idempotencyKey) {
         const exists = await this.config.persistence.checkIdempotency(idempotencyKey);
         if (exists) {
@@ -154,7 +154,7 @@ export class IngestTelemetryBatch {
       this.config.metrics.incBatchCommitted(uniqueReadings.length);
 
       for (const reading of uniqueReadings) {
-        const key = reading.metadata?.idempotencyKey as string | undefined;
+        const key = reading.metadata?.['idempotencyKey'] as string | undefined;
         if (key) {
           await this.config.persistence.markIdempotent(key).catch(() => {});
         }

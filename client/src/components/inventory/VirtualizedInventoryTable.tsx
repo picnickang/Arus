@@ -138,7 +138,7 @@ function getStatusBadge(status: string) {
     unknown: { variant: "outline", label: "Unknown", icon: Package },
   };
 
-  const config = statusConfig[status] || statusConfig.unknown;
+  const config = statusConfig[status] || statusConfig['unknown'];
   const Icon = config.icon;
 
   return (

@@ -37,7 +37,7 @@ export interface WebOnnxScore {
 }
 
 export function isWebOnnxEnabled(): boolean {
-  return import.meta.env?.VITE_PDM_ONNX_WEB === "1";
+  return import.meta.env?.['VITE_PDM_ONNX_WEB'] === "1";
 }
 
 type OrtWebModule = typeof import("onnxruntime-web");

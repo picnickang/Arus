@@ -73,22 +73,22 @@ export function useDigitalTwinData() {
     ctx.stroke();
     ctx.strokeRect(centerX - 80, centerY - 60, 160, 30);
     ctx.strokeRect(centerX - 50, centerY - 90, 100, 30);
-    if (selectedTwinData?.currentState?.machinery) {
-      const machinery = selectedTwinData.currentState.machinery as {
+    if (selectedTwinData?.currentState?.['machinery']) {
+      const machinery = selectedTwinData.currentState['machinery'] as {
         engines?: Record<string, { temperature?: number }>;
         generators?: Record<string, { voltage?: number }>;
       };
-      ctx.fillStyle = (machinery.engines?.MAIN_ENGINE_01?.temperature ?? 0) > 100 ? "#ef4444" : "#22c55e";
+      ctx.fillStyle = (machinery.engines?.['MAIN_ENGINE_01']?.temperature ?? 0) > 100 ? "#ef4444" : "#22c55e";
       ctx.fillRect(centerX - 20, centerY - 10, 40, 20);
-      ctx.fillStyle = (machinery.generators?.GEN_01?.voltage ?? 0) > 0 ? "#22c55e" : "#ef4444";
+      ctx.fillStyle = (machinery.generators?.['GEN_01']?.voltage ?? 0) > 0 ? "#22c55e" : "#ef4444";
       ctx.fillRect(centerX + 40, centerY - 40, 20, 15);
     }
     ctx.fillStyle = "#e2e8f0";
     ctx.font = "14px system-ui";
     ctx.fillText("Main Engine", centerX - 30, centerY + 15);
     ctx.fillText("Generator", centerX + 45, centerY - 20);
-    ctx.fillText(`Speed: ${selectedTwinData?.currentState?.speed || 0} knots`, 20, 30);
-    ctx.fillText(`Heading: ${selectedTwinData?.currentState?.heading || 0}°`, 20, 50);
+    ctx.fillText(`Speed: ${selectedTwinData?.currentState?.['speed'] || 0} knots`, 20, 30);
+    ctx.fillText(`Heading: ${selectedTwinData?.currentState?.['heading'] || 0}°`, 20, 50);
   }, [selectedTwinData]);
 
   useEffect(() => {

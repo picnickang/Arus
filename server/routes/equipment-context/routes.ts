@@ -62,7 +62,7 @@ export function registerEquipmentContextRoutes(app: Express) {
       logger.error("Failed to generate equipment context", {
         error: errorMessage,
         stack: errorStack,
-        equipmentId: req.params.equipmentId,
+        equipmentId: req.params['equipmentId'],
       });
       return res
         .status(500)

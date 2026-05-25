@@ -88,7 +88,7 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("process sync events", async (req: Request, res: Response) => {
-      const limit = Number.parseInt(req.query.limit as string) || 100;
+      const limit = Number.parseInt(req.query['limit'] as string) || 100;
       const processed = await processPendingEvents(limit);
 
       res.json({

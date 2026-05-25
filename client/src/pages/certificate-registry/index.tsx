@@ -37,13 +37,13 @@ export default function CertificateRegistryPage() {
 
   const queryParams: Record<string, string> = {};
   if (vesselFilter !== "all") {
-    queryParams.vesselId = vesselFilter;
+    queryParams['vesselId'] = vesselFilter;
   }
   if (typeFilter !== "all") {
-    queryParams.type = typeFilter;
+    queryParams['type'] = typeFilter;
   }
   if (statusFilter !== "all") {
-    queryParams.status = statusFilter;
+    queryParams['status'] = statusFilter;
   }
 
   const { data: certificates = [], isLoading: isLoadingCerts } = useQuery<VesselCertificate[]>({

@@ -44,7 +44,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
         const settings = await dbSystemAdminStorage.getSettings();
         const dbKey = settings?.openaiApiKey || null;
         const envKey =
-          process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY || null;
+          process.env['OPENAI_API_KEY'] || process.env['AI_INTEGRATIONS_OPENAI_API_KEY'] || null;
         const effectiveKey = dbKey || envKey;
 
         const source = dbKey ? "user_configured" : envKey ? "environment" : null;
@@ -78,7 +78,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
         const settings = await dbSystemAdminStorage.getSettings();
         const dbKey = settings?.openaiApiKey || null;
         const envKey =
-          process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY || null;
+          process.env['OPENAI_API_KEY'] || process.env['AI_INTEGRATIONS_OPENAI_API_KEY'] || null;
         const source = dbKey ? "user_configured" : envKey ? "environment" : null;
         const rawMessage = error instanceof Error ? error.message : String(error ?? "");
         const errorMessage = rawMessage.toLowerCase();
@@ -145,13 +145,13 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     })
   );
 
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env['NODE_ENV'] !== "production") {
     app.get(
       "/api/dev/debug",
       requireOrgId,
       withErrorHandling("fetch debug info", async (_req: Request, res: Response) => {
         const debug = {
-          environment: process.env.NODE_ENV,
+          environment: process.env['NODE_ENV'],
           timestamp: new Date().toISOString(),
           nodeVersion: process.version,
           platform: process.platform,
@@ -175,9 +175,9 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
       requireOrgId,
       withErrorHandling("fetch config", async (_req: Request, res: Response) => {
         const configData = {
-          database: process.env.DATABASE_URL ? "postgresql" : "sqlite",
-          redis: !!process.env.REDIS_URL,
-          environment: process.env.NODE_ENV,
+          database: process.env['DATABASE_URL'] ? "postgresql" : "sqlite",
+          redis: !!process.env['REDIS_URL'],
+          environment: process.env['NODE_ENV'],
         };
         res.json(configData);
       })

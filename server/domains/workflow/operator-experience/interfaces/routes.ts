@@ -181,7 +181,7 @@ export function createOperatorExperienceRouter(service: OperatorExperienceServic
   router.get(
     "/events",
     withErrorHandling("list operator experience events", async (req: Request, res: Response) => {
-      const limit = Math.max(1, Math.min(Number(req.query.limit ?? 25), 100));
+      const limit = Math.max(1, Math.min(Number(req.query['limit'] ?? 25), 100));
       const events = await service.listRecentEvents(getOrgId(req), limit);
       res.json(validateResponse(z.array(recordedEventSchema), events, "GET /api/operator-experience/events"));
     })

@@ -200,7 +200,7 @@ function WorkOrderRow({
   onEdit,
   onDelete,
 }: WorkOrderRowProps) {
-  const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.open;
+  const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG['open'];
   const priorityConfig = PRIORITY_CONFIG[order.priority] || PRIORITY_CONFIG[3];
   const StatusIcon = statusConfig.icon;
 

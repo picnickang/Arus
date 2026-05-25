@@ -152,7 +152,7 @@ async function resolveUpgradeOrg(
 ): Promise<UpgradeAuthResult | UpgradeAuthRejection> {
   const tenantAuth = requireTenantAuth();
 
-  if (process.env.NODE_ENV === "development" && !tenantAuth) {
+  if (process.env['NODE_ENV'] === "development" && !tenantAuth) {
     return { ok: true, orgId: DEFAULT_ORG_ID, userId: "dev-admin-user" };
   }
 

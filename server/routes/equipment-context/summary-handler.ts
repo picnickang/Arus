@@ -138,7 +138,7 @@ export async function handleEquipmentSummary(req: Request, res: Response) {
     logger.error("Failed to generate equipment summary", {
       message: err.message,
       stack: err.stack,
-      equipmentId: req.params.equipmentId,
+      equipmentId: req.params['equipmentId'],
       orgId: DEFAULT_ORG_ID,
     });
     return res.status(500).json({ error: "Failed to generate equipment summary" });

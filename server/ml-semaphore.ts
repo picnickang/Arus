@@ -63,7 +63,7 @@ function createSemaphore(maxConcurrent: number): InferenceSemaphore {
   };
 }
 
-const parsedLimit = Number.parseInt(process.env.ML_INFERENCE_CONCURRENCY ?? "4", 10);
+const parsedLimit = Number.parseInt(process.env['ML_INFERENCE_CONCURRENCY'] ?? "4", 10);
 const concurrency = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 4;
 
 export const inferenceSemaphore: InferenceSemaphore = createSemaphore(concurrency);

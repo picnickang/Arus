@@ -395,12 +395,12 @@ export function initReverseSyncEventBusBridge(): void {
       if (!domainEventType) {
         return;
       }
-      const nested = data.data as Record<string, unknown> | undefined;
-      const orgId = (data.orgId as string) || (nested?.orgId as string);
+      const nested = data['data'] as Record<string, unknown> | undefined;
+      const orgId = (data['orgId'] as string) || (nested?.['orgId'] as string);
       if (!orgId) {
         return;
       }
-      const aggregateId = (data.id as string) || "unknown";
+      const aggregateId = (data['id'] as string) || "unknown";
       const envelope = createDomainEvent(
         domainEventType,
         orgId,
@@ -420,7 +420,7 @@ export function initReverseSyncEventBusBridge(): void {
 
 function initLoggingMiddleware(): void {
   domainEventBus.use((eventType) => {
-    if (process.env.NODE_ENV === "development" && process.env.DEBUG_EVENTS === "true") {
+    if (process.env['NODE_ENV'] === "development" && process.env['DEBUG_EVENTS'] === "true") {
       logger.info(`[DomainEventBus] ${eventType}`);
     }
   });

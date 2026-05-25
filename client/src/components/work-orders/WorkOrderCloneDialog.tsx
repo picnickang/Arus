@@ -87,11 +87,11 @@ export function WorkOrderCloneDialog({
       };
 
       if (values.plannedStartDate) {
-        payload.plannedStartDate = new Date(values.plannedStartDate).toISOString();
+        payload['plannedStartDate'] = new Date(values.plannedStartDate).toISOString();
       }
 
       if (values.plannedEndDate) {
-        payload.plannedEndDate = new Date(values.plannedEndDate).toISOString();
+        payload['plannedEndDate'] = new Date(values.plannedEndDate).toISOString();
       }
 
       return apiRequest<WorkOrder>("POST", `/api/work-orders/${workOrder.id}/clone`, payload);

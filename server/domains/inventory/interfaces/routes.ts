@@ -432,16 +432,16 @@ export function registerInventoryRoutes(
       const body = updateStockBodySchema.parse(req.body);
       const updateData: Record<string, number> = {};
       if (body.quantityOnHand !== undefined) {
-        updateData.quantityOnHand = body.quantityOnHand;
+        updateData['quantityOnHand'] = body.quantityOnHand;
       }
       if (body.quantityReserved !== undefined) {
-        updateData.quantityReserved = body.quantityReserved;
+        updateData['quantityReserved'] = body.quantityReserved;
       }
       if (body.minStockLevel !== undefined) {
-        updateData.minStockLevel = body.minStockLevel;
+        updateData['minStockLevel'] = body.minStockLevel;
       }
       if (body.maxStockLevel !== undefined) {
-        updateData.maxStockLevel = body.maxStockLevel;
+        updateData['maxStockLevel'] = body.maxStockLevel;
       }
 
       const item = await inventoryService.updatePartStock(id, updateData, req.user?.id);

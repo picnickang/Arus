@@ -35,7 +35,7 @@ const asString = (v: unknown): string =>
   typeof v === "string" ? v : v == null ? "" : String(v);
 
 const recordId = (r: ImportRecord): string => asString(r.id);
-const recordOrgId = (r: ImportRecord): string => asString(r.orgId);
+const recordOrgId = (r: ImportRecord): string => asString(r['orgId']);
 
 /**
  * Single adapter-boundary helper for import records.
@@ -167,7 +167,7 @@ async function upsertEquipment(
     record.id = crypto.randomUUID();
     await dbEquipmentStorage.createEquipment(asInsert<InsertEquipment>(record));
     logger.info(
-      `[DataImport] Created equipment: ${oldId} → ${record.id} (vesselId: ${asString(record.vesselId)})`
+      `[DataImport] Created equipment: ${oldId} → ${record.id} (vesselId: ${asString(record['vesselId'])})`
     );
     return record.id;
   }
@@ -197,7 +197,7 @@ async function upsertWorkOrder(
   if (isRemapping) {
     const oldId = recordId(record);
     record.id = crypto.randomUUID();
-    record.woNumber = `WO-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+    record['woNumber'] = `WO-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
     await workOrderService.createWorkOrder(asInsert<InsertWorkOrder>(record));
     logger.info(`[DataImport] Created work_order: ${oldId} → ${record.id}`);
     return record.id;
@@ -314,14 +314,14 @@ async function upsertPartsInventory(record: ImportRecord): Promise<string | unde
 }
 
 async function upsertTelemetry(record: ImportRecord): Promise<string | undefined> {
-  const ts = record.ts;
-  const status = record.status;
+  const ts = record['ts'];
+  const status = record['status'];
   const reading: InsertTelemetry = {
     orgId: recordOrgId(record),
-    equipmentId: asString(record.equipmentId),
-    sensorType: asString(record.sensorType),
-    value: typeof record.value === "number" ? record.value : Number(record.value),
-    unit: typeof record.unit === "string" ? record.unit : undefined,
+    equipmentId: asString(record['equipmentId']),
+    sensorType: asString(record['sensorType']),
+    value: typeof record['value'] === "number" ? record['value'] : Number(record['value']),
+    unit: typeof record['unit'] === "string" ? record['unit'] : undefined,
     ts: typeof ts === "string" || typeof ts === "number" ? new Date(ts) : undefined,
     ...(typeof status === "string" ? { status } : {}),
   };

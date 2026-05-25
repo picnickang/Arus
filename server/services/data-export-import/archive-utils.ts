@@ -37,7 +37,7 @@ function isWithinDirectory(candidatePath: string, basePath: string): boolean {
 }
 
 function maxExtractedBytes(): number {
-  const configured = Number.parseInt(process.env.MAX_IMPORT_EXTRACTED_BYTES ?? "", 10);
+  const configured = Number.parseInt(process.env['MAX_IMPORT_EXTRACTED_BYTES'] ?? "", 10);
   return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_MAX_EXTRACTED_BYTES;
 }
 

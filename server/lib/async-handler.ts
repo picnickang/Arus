@@ -111,7 +111,7 @@ function logError(
 
   if (statusCode >= 500) {
     logger.error(`[ERROR] ${context.method || "?"} ${context.path || "?"}: ${context.operation || "Operation failed"}`, undefined, error);
-  } else if (process.env.NODE_ENV === "development") {
+  } else if (process.env['NODE_ENV'] === "development") {
     logger.warn(`[WARN] ${context.method || "?"} ${context.path || "?"}: ${getErrorMessage(error)}`);
   }
 }

@@ -7,7 +7,7 @@ import pg from "pg";
 const { Pool } = pg;
 type Pool = InstanceType<typeof pg.Pool>;
 
-const DATABASE_URL = process.env.DATABASE_URL;
+const DATABASE_URL = process.env['DATABASE_URL'];
 
 export async function enableTimescaleDB(): Promise<{ success: boolean; message: string }> {
   let pool: Pool | null = null;

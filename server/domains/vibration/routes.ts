@@ -141,7 +141,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
         default: { warning: 4.5, critical: 7.1 },
       };
 
-      const limits = thresholds[equipmentType] || thresholds.default;
+      const limits = thresholds[equipmentType] || thresholds['default'];
       let severity = "normal";
       if (rmsValue > limits.critical) {
         severity = "critical";
@@ -192,7 +192,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
         class4: { A: 2.8, B: 7.1, C: 18, D: 45 },
       };
 
-      const limits = isoLimits[machineClass] || isoLimits.class2;
+      const limits = isoLimits[machineClass] || isoLimits['class2'];
       let zone = "A";
       if (rmsVelocity > limits.D) {
         zone = "D";

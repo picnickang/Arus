@@ -107,21 +107,21 @@ export async function readTelemetryFromSink(
         ? ((payload as { readings: unknown[] }).readings as Record<string, unknown>[])
         : [payload as Record<string, unknown>];
       for (const r of readings) {
-        const equipmentId = String(r.equipmentId ?? "");
+        const equipmentId = String(r['equipmentId'] ?? "");
         if (equipmentId !== opts.equipmentId) continue;
-        const sensorType = String(r.sensorType ?? "");
+        const sensorType = String(r['sensorType'] ?? "");
         if (opts.sensorType && sensorType !== opts.sensorType) continue;
         rows.push({
-          id: r.id != null ? String(r.id) : undefined,
+          id: r['id'] != null ? String(r['id']) : undefined,
           equipmentId,
           sensorType,
           value:
-            typeof r.value === "number"
-              ? r.value
-              : r.value != null
-                ? Number(r.value)
+            typeof r['value'] === "number"
+              ? r['value']
+              : r['value'] != null
+                ? Number(r['value'])
                 : null,
-          ts: String(r.ts ?? r.occurredAt ?? new Date().toISOString()),
+          ts: String(r['ts'] ?? r['occurredAt'] ?? new Date().toISOString()),
           orgId: opts.orgId,
         });
         if (rows.length >= limit) break;
@@ -132,5 +132,5 @@ export async function readTelemetryFromSink(
 }
 
 export function analyticsReadMode(): "sink" | "oltp" {
-  return process.env.EVENT_SPINE_ANALYTICS_READ === "sink" ? "sink" : "oltp";
+  return process.env['EVENT_SPINE_ANALYTICS_READ'] === "sink" ? "sink" : "oltp";
 }

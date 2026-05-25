@@ -22,10 +22,10 @@ export function registerCIIRoutes(app: Express, config: VesselPerformanceRoutesC
       const ciiService = await getCIIService();
 
       const now = new Date();
-      const startDate = req.query.startDate
-        ? new Date(req.query.startDate as string)
+      const startDate = req.query['startDate']
+        ? new Date(req.query['startDate'] as string)
         : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : now;
+      const endDate = req.query['endDate'] ? new Date(req.query['endDate'] as string) : now;
 
       const rating = await ciiService.calculateCIIFromTelemetry(
         vesselId,

@@ -6,7 +6,7 @@ const logger = createLogger("Bootstrap:Schedulers");
  */
 
 export async function initializeSchedulers(isEmbedded: boolean): Promise<void> {
-  const enableSchedulers = process.env.ENABLE_SCHEDULERS !== "false" && !isEmbedded;
+  const enableSchedulers = process.env['ENABLE_SCHEDULERS'] !== "false" && !isEmbedded;
 
   if (!enableSchedulers) {
     logger.info("ℹ️  Schedulers disabled (embedded/standalone mode)");
@@ -114,7 +114,7 @@ function setupPredictionExpirySchedule(): void {
 }
 
 export async function initializeBackgroundJobs(isEmbedded: boolean): Promise<void> {
-  const enableBackgroundJobs = process.env.ENABLE_BACKGROUND_JOBS !== "false" && !isEmbedded;
+  const enableBackgroundJobs = process.env['ENABLE_BACKGROUND_JOBS'] !== "false" && !isEmbedded;
 
   if (isEmbedded) {
     logger.info("ℹ️  Embedded mode: Background jobs and schedulers disabled for stability");

@@ -207,8 +207,8 @@ export async function getEquipmentFinancialSummary(orgId: string): Promise<{
   for (const event of decommissionEvents) {
     if (event.saleDetails && typeof event.saleDetails === "object") {
       const saleDetails = event.saleDetails as Record<string, unknown>;
-      if (typeof saleDetails.salePrice === "number") {
-        totalCapitalRecovered += saleDetails.salePrice;
+      if (typeof saleDetails['salePrice'] === "number") {
+        totalCapitalRecovered += saleDetails['salePrice'];
       }
     }
   }

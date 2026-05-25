@@ -8,7 +8,7 @@
  * via W3C traceparent propagation, joining the spans emitted by
  * server/otel.ts on the same trace.
  */
-const endpoint = import.meta.env.VITE_OTEL_EXPORTER_OTLP_ENDPOINT as string | undefined;
+const endpoint = import.meta.env['VITE_OTEL_EXPORTER_OTLP_ENDPOINT'] as string | undefined;
 
 let initialised = false;
 

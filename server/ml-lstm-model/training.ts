@@ -107,7 +107,7 @@ async function trainStandard(
     callbacks: {
       onEpochEnd: (epoch, logs) => {
         if (verbose) {
-          logger.info(`[LSTM] Epoch ${epoch + 1}/${config.epochs} - Loss: ${logs?.loss.toFixed(4)}`);
+          logger.info(`[LSTM] Epoch ${epoch + 1}/${config.epochs} - Loss: ${logs?.['loss'].toFixed(4)}`);
         }
       },
     },
@@ -236,11 +236,11 @@ export async function trainLSTMModel(
   }
 
   const lastEpoch = useEarlyStopping ? bestEpoch : config.epochs - 1;
-  const loss = Array.isArray(history.loss) ? history.loss[lastEpoch] : 0;
-  const accuracy = Array.isArray(history.acc)
-    ? history.acc[lastEpoch]
-    : Array.isArray(history.val_acc)
-      ? history.val_acc[lastEpoch]
+  const loss = Array.isArray(history['loss']) ? history['loss'][lastEpoch] : 0;
+  const accuracy = Array.isArray(history['acc'])
+    ? history['acc'][lastEpoch]
+    : Array.isArray(history['val_acc'])
+      ? history['val_acc'][lastEpoch]
       : 0;
 
   const valPred = model.predict(xVal) as tf.Tensor;

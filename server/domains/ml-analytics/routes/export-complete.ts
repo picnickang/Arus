@@ -51,12 +51,12 @@ export function registerExportCompleteRoutes(app: Express, config: MlAnalyticsCo
 
       const enrichedModels = mlModels.map((model) => {
         const hyperparams = (model.hyperparameters ?? {}) as Record<string, unknown>;
-        if (hyperparams.dataQualityTier) {
+        if (hyperparams['dataQualityTier']) {
           return model;
         }
-        if (hyperparams.lookbackDays) {
+        if (hyperparams['lookbackDays']) {
           const { tier, confidenceMultiplier } = adaptiveTrainingWindow.calculateTierFromLookbackDays(
-            Number(hyperparams.lookbackDays),
+            Number(hyperparams['lookbackDays']),
           );
           return {
             ...model,
@@ -140,23 +140,23 @@ export function registerExportCompleteRoutes(app: Express, config: MlAnalyticsCo
           ].join(","),
           ...enrichedModels.map((m) => {
             const mr = m as Record<string, unknown>;
-            const perf = (mr.performanceMetrics ?? {}) as Record<string, unknown>;
-            const hyper = (mr.hyperparameters ?? {}) as Record<string, unknown>;
+            const perf = (mr['performanceMetrics'] ?? {}) as Record<string, unknown>;
+            const hyper = (mr['hyperparameters'] ?? {}) as Record<string, unknown>;
             return [
               escapeCsv(m.id),
               escapeCsv(m.name),
-              escapeCsv(mr.type as string | undefined),
+              escapeCsv(mr['type'] as string | undefined),
               escapeCsv(m.equipmentType || "all"),
               escapeCsv(m.status),
               escapeCsv(m.version),
-              escapeCsv(perf.accuracy),
-              escapeCsv(perf.precision),
-              escapeCsv(perf.recall),
-              escapeCsv(perf.f1Score),
-              escapeCsv(hyper.dataQualityTier),
-              escapeCsv(hyper.confidenceMultiplier),
-              escapeCsv(hyper.lookbackDays),
-              escapeCsv(hyper.isLegacyEnriched),
+              escapeCsv(perf['accuracy']),
+              escapeCsv(perf['precision']),
+              escapeCsv(perf['recall']),
+              escapeCsv(perf['f1Score']),
+              escapeCsv(hyper['dataQualityTier']),
+              escapeCsv(hyper['confidenceMultiplier']),
+              escapeCsv(hyper['lookbackDays']),
+              escapeCsv(hyper['isLegacyEnriched']),
               escapeCsv(m.deployedOn),
               escapeCsv(m.createdAt),
             ].join(",");

@@ -32,8 +32,8 @@ export function isDeferredToolLoadingEnabled(
  */
 export function getActivatedToolsFromMetadata(conversation: AgentConversation): string[] {
   const meta = conversation.metadata as Record<string, unknown> | null;
-  if (meta && Array.isArray(meta.activatedTools)) {
-    return meta.activatedTools as string[];
+  if (meta && Array.isArray(meta['activatedTools'])) {
+    return meta['activatedTools'] as string[];
   }
   return [];
 }
@@ -51,14 +51,14 @@ export function expandActivatedToolsFromDiscovery(
   input: Record<string, unknown>,
   enabledTools?: string[] | null
 ): void {
-  const categories = toolResult.categories as Record<string, { name: string }[]> | undefined;
+  const categories = toolResult['categories'] as Record<string, { name: string }[]> | undefined;
   if (!categories) {
     return;
   }
 
   const enabledSet =
     Array.isArray(enabledTools) && enabledTools.length > 0 ? new Set(enabledTools) : null;
-  const requestedCategory = input.category as string | undefined;
+  const requestedCategory = input['category'] as string | undefined;
   for (const [cat, tools] of Object.entries(categories)) {
     if (requestedCategory && cat !== requestedCategory) {
       continue;
@@ -82,8 +82,8 @@ export function expandActivatedToolsFromDiscovery(
         filtered[cat] = allowed;
       }
     }
-    toolResult.categories = filtered;
-    toolResult.totalTools = Object.values(filtered).reduce((sum, arr) => sum + arr.length, 0);
+    toolResult['categories'] = filtered;
+    toolResult['totalTools'] = Object.values(filtered).reduce((sum, arr) => sum + arr.length, 0);
   }
 }
 

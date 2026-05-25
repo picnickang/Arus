@@ -149,7 +149,7 @@ export async function getCurrentEquipmentAge(equipmentId: string, orgId: string)
   try {
     const equipmentInfo = await dbEquipmentStorage.getEquipment(orgId, equipmentId);
 
-    const commDateRaw = (equipmentInfo as Record<string, unknown> | undefined)?.commissioningDate;
+    const commDateRaw = (equipmentInfo as Record<string, unknown> | undefined)?.['commissioningDate'];
     if (commDateRaw) {
       const commissioningDate = new Date(commDateRaw as string | number | Date);
       const now = new Date();

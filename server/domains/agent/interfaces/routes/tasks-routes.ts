@@ -151,12 +151,12 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
           return res.json(task);
         }
         const updateData: Record<string, unknown> = {};
-        if (title) updateData.title = title;
-        if (description !== undefined) updateData.description = description;
+        if (title) updateData['title'] = title;
+        if (description !== undefined) updateData['description'] = description;
         if (priority && (TASK_PRIORITIES as readonly string[]).includes(priority)) {
-          updateData.priority = priority;
+          updateData['priority'] = priority;
         }
-        if (outcome !== undefined) updateData.outcome = outcome;
+        if (outcome !== undefined) updateData['outcome'] = outcome;
         const task = await taskService.update(id, orgId, updateData);
         return res.json(task);
       } catch (error: unknown) {

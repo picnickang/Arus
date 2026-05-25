@@ -214,7 +214,7 @@ export function formulateLinearProgram(
 }
 
 export function relaxConstraints(lpProblem: LpProblem): LpProblem {
-  const partsBudget = lpProblem.constraints.parts_budget;
+  const partsBudget = lpProblem.constraints['parts_budget'];
   if (partsBudget && typeof partsBudget.max === "number") {
     partsBudget.max *= 1.2;
   }

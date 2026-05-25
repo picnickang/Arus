@@ -295,7 +295,7 @@ export default function Vessel3DTwin({
       const colour = healthToColor(healthByEquipmentId[pin.equipmentId], highlighted.has(pin.equipmentId));
       const sprite = makePinSprite(colour);
       sprite.position.set(pin.x, pin.y, pin.z);
-      sprite.userData.equipmentId = pin.equipmentId;
+      sprite.userData['equipmentId'] = pin.equipmentId;
       group.add(sprite);
     }
   }, [pins, healthByEquipmentId, highlightedEquipmentIds]);

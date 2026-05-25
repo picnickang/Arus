@@ -86,7 +86,7 @@ export class DatabaseGdprStorage {
   }
   async getDataSubjectRequestsByEmail(email: string): Promise<DataSubjectRequest[]> {
     const col = tableColumns(dataSubjectRequests)
-      .subjectEmail;
+      ['subjectEmail'];
     if (!col) return [];
     return db
       .select()
@@ -226,23 +226,23 @@ export class DatabaseGdprStorage {
         const users = await db.execute(
           sql`SELECT id, email, name, role FROM users WHERE email = ${identifier} AND org_id = ${orgId}`
         );
-        result.users = users.rows ?? [];
+        result['users'] = users.rows ?? [];
       } else if (identifierType === "userId") {
         const users = await db.execute(
           sql`SELECT id, email, name, role FROM users WHERE id = ${identifier} AND org_id = ${orgId}`
         );
-        result.users = users.rows ?? [];
+        result['users'] = users.rows ?? [];
       }
       if (identifierType === "crewId") {
         const crew = await db.execute(
           sql`SELECT id, name, email, rank, department FROM crew_members WHERE id = ${identifier} AND org_id = ${orgId}`
         );
-        result.crewMembers = crew.rows ?? [];
+        result['crewMembers'] = crew.rows ?? [];
       } else {
         const crew = await db.execute(
           sql`SELECT id, name, email, rank, department FROM crew_members WHERE email = ${identifier} AND org_id = ${orgId}`
         );
-        result.crewMembers = crew.rows ?? [];
+        result['crewMembers'] = crew.rows ?? [];
       }
     } catch {
       /* tables may not exist */
@@ -286,7 +286,7 @@ export class DatabaseGdprStorage {
     }
     if (isActive !== undefined) {
       const col = tableColumns(engineerOverrides)
-        .isActive;
+        ['isActive'];
       if (col) conditions.push(eq(col, isActive));
     }
     const query = conditions.length > 0
@@ -321,7 +321,7 @@ export class DatabaseGdprStorage {
   }
   async getActiveOverridesForEquipment(equipmentId: string): Promise<EngineerOverride[]> {
     const isActiveCol = tableColumns(engineerOverrides)
-      .isActive;
+      ['isActive'];
     const c: SQL[] = [eq(engineerOverrides.equipmentId, equipmentId)];
     if (isActiveCol) c.push(eq(isActiveCol, true));
     return db

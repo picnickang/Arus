@@ -169,7 +169,7 @@ router.get(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const level = (req.query.level as AnonymizationLevel) || "full";
+      const level = (req.query['level'] as AnonymizationLevel) || "full";
       const sampleRecord = {
         id: "sample-123",
         name: "John Doe",

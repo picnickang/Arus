@@ -394,28 +394,28 @@ export class DigitalTwinService extends EventEmitter {
       const { predictFuelConsumption } = await import("../digital-twin-fuel-calc.js");
       const specs = (twin.specifications as Record<string, number | undefined>) ?? {};
       const characteristics = {
-        displacement: specs.displacement ?? 1000,
-        length: specs.length ?? 50,
-        beam: specs.beam ?? 10,
-        draft: specs.draft ?? 4,
-        enginePower: specs.enginePower ?? 500,
-        specificFuelConsumption: specs.specificFuelConsumption ?? 210,
-        hullCondition: specs.hullCondition ?? 0.85,
-        propellerEfficiency: specs.propellerEfficiency ?? 0.65,
+        displacement: specs['displacement'] ?? 1000,
+        length: specs['length'] ?? 50,
+        beam: specs['beam'] ?? 10,
+        draft: specs['draft'] ?? 4,
+        enginePower: specs['enginePower'] ?? 500,
+        specificFuelConsumption: specs['specificFuelConsumption'] ?? 210,
+        hullCondition: specs['hullCondition'] ?? 0.85,
+        propellerEfficiency: specs['propellerEfficiency'] ?? 0.65,
       };
       const state = {
-        speed: telemetryData.speed ?? 10,
-        engineRpm: telemetryData.engineRpm ?? 1500,
-        engineLoad: telemetryData.engineLoad ?? 60,
-        fuelRate: telemetryData.fuelRate,
-        propellerPitch: telemetryData.propellerPitch,
-        trim: telemetryData.trim,
+        speed: telemetryData['speed'] ?? 10,
+        engineRpm: telemetryData['engineRpm'] ?? 1500,
+        engineLoad: telemetryData['engineLoad'] ?? 60,
+        fuelRate: telemetryData['fuelRate'],
+        propellerPitch: telemetryData['propellerPitch'],
+        trim: telemetryData['trim'],
       };
       const conditions = {
-        windSpeed: telemetryData.windSpeed,
-        windDirection: telemetryData.windDirection,
-        waveHeight: telemetryData.waveHeight,
-        seaState: telemetryData.seaState,
+        windSpeed: telemetryData['windSpeed'],
+        windDirection: telemetryData['windDirection'],
+        waveHeight: telemetryData['waveHeight'],
+        seaState: telemetryData['seaState'],
       };
       const daysInService = twin.lastUpdate
         ? Math.floor((Date.now() - new Date(twin.lastUpdate).getTime()) / 86400000)
@@ -424,7 +424,7 @@ export class DigitalTwinService extends EventEmitter {
       const updatedState = {
         ...((twin.currentState as Record<string, unknown>) ?? {}),
         fuel: {
-          ...(((twin.currentState as Record<string, unknown>)?.fuel as Record<string, unknown>) ?? {}),
+          ...(((twin.currentState as Record<string, unknown>)?.['fuel'] as Record<string, unknown>) ?? {}),
           predictedRate: prediction.predictedFuelRate,
           efficiency: prediction.efficiency,
           confidence: prediction.confidence,

@@ -238,25 +238,25 @@ export function useDeckLogbookData() {
             continue;
           }
           const fields = (data as { fields: Record<string, unknown> }).fields;
-          const seaStateIndex = fields.seaState as number | undefined;
+          const seaStateIndex = fields['seaState'] as number | undefined;
           const updatedEntry = {
             ...existingEntry,
-            windDirection: (fields.windDirection as string) || existingEntry.windDirection,
+            windDirection: (fields['windDirection'] as string) || existingEntry.windDirection,
             windForce:
-              fields.windForceBeaufort === undefined
+              fields['windForceBeaufort'] === undefined
                 ? existingEntry.windForce
-                : String(fields.windForceBeaufort),
+                : String(fields['windForceBeaufort']),
             seaState:
               seaStateIndex !== undefined && seaStateIndex >= 0 && seaStateIndex < SEA_STATES.length
                 ? SEA_STATES[seaStateIndex]
                 : existingEntry.seaState,
-            barometer: (fields.barometer as number) || existingEntry.barometer,
-            airTemp: (fields.airTemperature as number) || existingEntry.airTemp,
-            seaTemp: (fields.seaTemperature as number) || existingEntry.seaTemp,
+            barometer: (fields['barometer'] as number) || existingEntry.barometer,
+            airTemp: (fields['airTemperature'] as number) || existingEntry.airTemp,
+            seaTemp: (fields['seaTemperature'] as number) || existingEntry.seaTemp,
             visibility:
-              fields.visibility === undefined
+              fields['visibility'] === undefined
                 ? existingEntry.visibility
-                : VISIBILITY_CODES.find((v) => v.includes(String(fields.visibility))) ||
+                : VISIBILITY_CODES.find((v) => v.includes(String(fields['visibility']))) ||
                   existingEntry.visibility,
           };
           const updatedEntryUnknown: unknown = updatedEntry;

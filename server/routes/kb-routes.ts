@@ -223,7 +223,7 @@ export async function registerKnowledgeBaseRoutes(
         fileType,
         uploadedBy: userId,
         equipmentId,
-        openAiKey: process.env.OPENAI_API_KEY,
+        openAiKey: process.env['OPENAI_API_KEY'],
       });
 
       void quotaService.incrementUsage(orgId, "storage_bytes", req.file.size);
@@ -291,7 +291,7 @@ export async function registerKnowledgeBaseRoutes(
         query: validatedQuery.q,
         limit: validatedQuery.limit,
         threshold: validatedQuery.threshold,
-        openAiKey: process.env.OPENAI_API_KEY,
+        openAiKey: process.env['OPENAI_API_KEY'],
       });
 
       return res.json({
@@ -315,7 +315,7 @@ export async function registerKnowledgeBaseRoutes(
       const orgId = req.orgId;
       const userId = req.user?.id || null;
       const userRoles = ((req.user as { roles?: string[] } | undefined)?.roles) || [];
-      const equipmentId = req.query.equipmentId as string | undefined;
+      const equipmentId = req.query['equipmentId'] as string | undefined;
 
       // Validate equipmentId belongs to org if provided (security: prevent cross-tenant probing)
       if (equipmentId && !(await validateEquipmentOwnership(equipmentId, orgId))) {

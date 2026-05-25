@@ -73,7 +73,7 @@ export async function ingestDocument(
         throw validationError;
       }
       // If security services aren't initialized, continue without validation in dev
-      if (process.env.NODE_ENV === "development") {
+      if (process.env['NODE_ENV'] === "development") {
         logger.warn(`[DocIngestion] Skipping file validation (security services not available)`);
       } else {
         throw new Error("File validation unavailable");
@@ -105,17 +105,17 @@ export async function ingestDocument(
       const semanticChunks = semanticChunker.chunk(extractedText);
       if (semanticChunks.length > 0) {
         textChunks = semanticChunks.map((c) => c.content);
-        metadata.chunkingMethod = "semantic";
+        metadata['chunkingMethod'] = "semantic";
         logger.info(`[DocIngestion] Created ${textChunks.length} semantic chunks`);
       } else {
         textChunks = chunkText(extractedText);
-        metadata.chunkingMethod = "basic";
+        metadata['chunkingMethod'] = "basic";
         logger.info(`[DocIngestion] Created ${textChunks.length} basic chunks`);
       }
     } catch (chunkError) {
       logger.warn(`[DocIngestion] Semantic chunking failed, using basic: ${chunkError}`);
       textChunks = chunkText(extractedText);
-      metadata.chunkingMethod = "basic";
+      metadata['chunkingMethod'] = "basic";
       logger.info(`[DocIngestion] Created ${textChunks.length} basic chunks (fallback)`);
     }
 

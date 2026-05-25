@@ -778,7 +778,7 @@ export class AgentOrchestrator {
   ): Promise<void> {
     try {
       const meta = (conversation.metadata as Record<string, unknown>) || {};
-      const existing = Array.isArray(meta.activatedTools) ? (meta.activatedTools as string[]) : [];
+      const existing = Array.isArray(meta['activatedTools']) ? (meta['activatedTools'] as string[]) : [];
       const merged = [...new Set([...existing, ...activatedTools])];
       await this.repo.conversations.update(conversation.id, {
         metadata: { ...meta, activatedTools: merged },

@@ -124,7 +124,7 @@ export function createHeaders(includeContentType: boolean = false): Record<strin
 
   const sessionToken = getApiSessionToken();
   if (sessionToken) {
-    headers.Authorization = `Bearer ${sessionToken}`;
+    headers['Authorization'] = `Bearer ${sessionToken}`;
   }
 
   return headers;
@@ -262,7 +262,7 @@ export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryF
       url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
     } else {
       url = queryKey.join("/");
-      if (process.env.NODE_ENV === "development") {
+      if (process.env['NODE_ENV'] === "development") {
         console.warn(
           `[QueryClient] Legacy queryKey format detected: ${url}. Use array segments for proper cache invalidation.`
         );

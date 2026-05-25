@@ -143,8 +143,8 @@ router.get("/trends/correlations/:equipmentId", async (req, res) => {
   try {
     const orgId = DEFAULT_ORG_ID;
     const { equipmentId } = req.params;
-    const hours = Number.parseInt(req.query.hours as string) || 168;
-    const minCorrelation = Number.parseFloat(req.query.minCorrelation as string) || 0.5;
+    const hours = Number.parseInt(req.query['hours'] as string) || 168;
+    const minCorrelation = Number.parseFloat(req.query['minCorrelation'] as string) || 0.5;
     if (hours < 1 || hours > 8760) {
       return res.status(400).json({ success: false, error: "Hours must be between 1 and 8760" });
     }
@@ -211,8 +211,8 @@ router.get("/trends/forecast/:equipmentId/:sensorType", async (req, res) => {
   try {
     const orgId = DEFAULT_ORG_ID;
     const { equipmentId, sensorType } = req.params;
-    const hours = Number.parseInt(req.query.hours as string) || 168;
-    const forecastHours = Number.parseInt(req.query.forecastHours as string) || 24;
+    const hours = Number.parseInt(req.query['hours'] as string) || 168;
+    const forecastHours = Number.parseInt(req.query['forecastHours'] as string) || 24;
     if (hours < 1 || hours > 8760) {
       return res.status(400).json({ success: false, error: "Hours must be between 1 and 8760" });
     }

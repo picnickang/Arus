@@ -17,8 +17,8 @@ export class EmailSender {
   }
 
   private initialize(): void {
-    this.sendGridApiKey = process.env.SENDGRID_API_KEY || null;
-    this.fromEmail = process.env.EMAIL_FROM || "noreply@arus-marine.com";
+    this.sendGridApiKey = process.env['SENDGRID_API_KEY'] || null;
+    this.fromEmail = process.env['EMAIL_FROM'] || "noreply@arus-marine.com";
     this.emailEnabled = !!this.sendGridApiKey;
 
     if (this.emailEnabled) {

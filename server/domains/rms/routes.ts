@@ -198,14 +198,14 @@ router.get("/consumption/daily/:vesselId", requireOrgId, async (req: Request, re
 
     const trackByDay: Record<string, Row> = {};
     for (const t of getRows(trackResult)) {
-      trackByDay[new Date(t.day as string | number | Date).toISOString()] = t;
+      trackByDay[new Date(t['day'] as string | number | Date).toISOString()] = t;
     }
 
     const dailyData = getRows(result).map((d) => ({
       ...d,
-      avg_sog: trackByDay[new Date(d.day as string | number | Date).toISOString()]?.avg_sog ?? null,
+      avg_sog: trackByDay[new Date(d['day'] as string | number | Date).toISOString()]?.['avg_sog'] ?? null,
       est_distance_nm:
-        trackByDay[new Date(d.day as string | number | Date).toISOString()]?.est_distance_nm ?? null,
+        trackByDay[new Date(d['day'] as string | number | Date).toISOString()]?.['est_distance_nm'] ?? null,
     }));
 
     return res.json(dailyData);
@@ -282,7 +282,7 @@ router.get("/rob/:vesselId", requireOrgId, async (req: Request, res: Response) =
         AND ts >= ${new Date(Date.now() - 24 * 60 * 60 * 1000)}
     `);
 
-    const avgConsumption = getFirstRow(consumptionResult)?.avg_consumption_kg_per_h ?? 0;
+    const avgConsumption = getFirstRow(consumptionResult)?.['avg_consumption_kg_per_h'] ?? 0;
     const tanks = getRows(tankResult);
 
     return res.json({
@@ -389,7 +389,7 @@ router.delete("/alerts/configs/:id", requireOrgId, async (req: Request, res: Res
     if (!deleted) {
       return res.status(404).json({ error: "Alert config not found" });
     }
-    return res.json({ success: true, deletedId: deleted.id });
+    return res.json({ success: true, deletedId: deleted['id'] });
   } catch (err) {
     return res.status(500).json({ error: "Failed to delete alert config" });
   }
@@ -481,18 +481,18 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
 
     return res.json({
       alerts: {
-        total24h: parseInt(String(alerts.total ?? 0)) || 0,
-        unacknowledged: parseInt(String(alerts.unacknowledged ?? 0)) || 0,
-        critical: parseInt(String(alerts.critical ?? 0)) || 0,
+        total24h: parseInt(String(alerts['total'] ?? 0)) || 0,
+        unacknowledged: parseInt(String(alerts['unacknowledged'] ?? 0)) || 0,
+        critical: parseInt(String(alerts['critical'] ?? 0)) || 0,
       },
       bunkering: {
-        last30Days: parseInt(String(bunkering.total ?? 0)) || 0,
-        active: parseInt(String(bunkering.active ?? 0)) || 0,
+        last30Days: parseInt(String(bunkering['total'] ?? 0)) || 0,
+        active: parseInt(String(bunkering['active'] ?? 0)) || 0,
       },
       efmsConnections: {
-        total: parseInt(String(efms.total ?? 0)) || 0,
-        polling: parseInt(String(efms.polling ?? 0)) || 0,
-        error: parseInt(String(efms.error ?? 0)) || 0,
+        total: parseInt(String(efms['total'] ?? 0)) || 0,
+        polling: parseInt(String(efms['polling'] ?? 0)) || 0,
+        error: parseInt(String(efms['error'] ?? 0)) || 0,
       },
     });
   } catch (err) {

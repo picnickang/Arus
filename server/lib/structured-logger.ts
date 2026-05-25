@@ -102,11 +102,11 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 
 /** Get minimum log level from environment */
 function getMinLevel(): LogLevel {
-  const envLevel = process.env.LOG_LEVEL?.toLowerCase();
+  const envLevel = process.env['LOG_LEVEL']?.toLowerCase();
   if (envLevel && envLevel in LOG_LEVELS) {
     return envLevel as LogLevel;
   }
-  return process.env.NODE_ENV === "production" ? "info" : "debug";
+  return process.env['NODE_ENV'] === "production" ? "info" : "debug";
 }
 
 /** Check if log should be output based on level */
@@ -129,7 +129,7 @@ function formatError(error: unknown): LogEntry["error"] | undefined {
     return {
       name: error.name,
       message: error.message,
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+      stack: process.env['NODE_ENV'] === "development" ? error.stack : undefined,
     };
   }
 
@@ -163,11 +163,11 @@ export function outputLog(entry: LogEntry): void {
   // accidentally (or maliciously) passes e.g. `correlationId` in `context`.
   const meta: Record<string, unknown> = {};
   if (context) Object.assign(meta, context);
-  if (correlationId) meta.correlationId = correlationId;
-  if (requestId) meta.requestId = requestId;
-  if (orgId) meta.orgId = orgId;
-  if (userId) meta.userId = userId;
-  if (error) meta.error = error;
+  if (correlationId) meta['correlationId'] = correlationId;
+  if (requestId) meta['requestId'] = requestId;
+  if (orgId) meta['orgId'] = orgId;
+  if (userId) meta['userId'] = userId;
+  if (error) meta['error'] = error;
 
   if (Object.keys(meta).length > 0) {
     logFn(`${prefix} ${message}`, meta);

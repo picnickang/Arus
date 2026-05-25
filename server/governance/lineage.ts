@@ -10,7 +10,7 @@ import type { LineageRecord, LineageDelta, ModelFamily, DeploymentStage } from "
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Governance:Lineage");
 
-const LINEAGE_FILE = process.env.LINEAGE_FILE ?? "./checkpoints/lineage.jsonl";
+const LINEAGE_FILE = process.env['LINEAGE_FILE'] ?? "./checkpoints/lineage.jsonl";
 
 /**
  * Compute SHA-256 hash of a file

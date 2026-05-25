@@ -40,7 +40,7 @@ export function normalizeDigitalTwin(
 
 function generateMaintenanceForecast(twin: DigitalTwin) {
   const currentState = (twin.currentState ?? {}) as Record<string, unknown>;
-  const healthRaw = currentState.health;
+  const healthRaw = currentState['health'];
   const health = typeof healthRaw === "number" ? healthRaw : 100;
 
   const now = new Date();

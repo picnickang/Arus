@@ -58,9 +58,9 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
 
   constructor(envOverride?: string) {
     this.envOverride = envOverride;
-    const rawMode = (process.env.PDM_ONNX_MODE ?? "live").toLowerCase();
+    const rawMode = (process.env['PDM_ONNX_MODE'] ?? "live").toLowerCase();
     this.mode = rawMode === "shadow" || rawMode === "canary" ? rawMode : "live";
-    const pct = Number(process.env.PDM_ONNX_CANARY_PERCENT ?? "0");
+    const pct = Number(process.env['PDM_ONNX_CANARY_PERCENT'] ?? "0");
     this.canaryPercent = Number.isFinite(pct) ? Math.min(100, Math.max(0, pct)) : 0;
   }
 
@@ -227,13 +227,13 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
  *  collapses to pure heuristic when no deployed artifact exists, so
  *  this is safe to wire unconditionally. */
 export function resolveInferenceRunner(): InferenceRunnerPort {
-  const envOverride = process.env.PDM_ONNX_MODEL_PATH?.trim() || undefined;
-  const mode = process.env.PDM_ONNX_MODE ?? "live";
+  const envOverride = process.env['PDM_ONNX_MODEL_PATH']?.trim() || undefined;
+  const mode = process.env['PDM_ONNX_MODE'] ?? "live";
   if (envOverride) {
     logger.info("ONNX runner active (registry + env override)", {
       envOverride,
       mode,
-      canaryPercent: process.env.PDM_ONNX_CANARY_PERCENT ?? "0",
+      canaryPercent: process.env['PDM_ONNX_CANARY_PERCENT'] ?? "0",
     });
   } else {
     logger.info("ONNX runner active (registry-backed)", { mode });

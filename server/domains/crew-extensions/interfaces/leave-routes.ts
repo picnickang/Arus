@@ -49,7 +49,7 @@ export function registerLeaveRoutes(app: Express, config: CrewExtensionsRoutesCo
     withErrorHandling("update crew leave", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const leaveData = insertCrewLeaveSchema.partial().parse(req.body);
-      const leave = await dbCrewStorage.updateCrewLeave(req.params.id, leaveData, orgId);
+      const leave = await dbCrewStorage.updateCrewLeave(req.params['id'], leaveData, orgId);
       res.json(leave);
     })
   );
@@ -58,7 +58,7 @@ export function registerLeaveRoutes(app: Express, config: CrewExtensionsRoutesCo
     "/api/crew/leave/:id",
     withErrorHandling("delete crew leave", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      await dbCrewStorage.deleteCrewLeave(req.params.id, orgId);
+      await dbCrewStorage.deleteCrewLeave(req.params['id'], orgId);
       res.json({ success: true });
     })
   );

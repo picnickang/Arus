@@ -44,7 +44,7 @@ export function registerSkillsRoutes({ app, rateLimit }: CrewRouteDeps): void {
     criticalOperationRateLimit,
     withErrorHandling("delete skill", async (req, res) => {
       const authReq = req as AuthenticatedRequest;
-      await crewService.deleteSkill(authReq.params.id, authReq.orgId);
+      await crewService.deleteSkill(authReq.params['id'], authReq.orgId);
       sendDeleted(res);
     })
   );
@@ -84,7 +84,7 @@ export function registerSkillsRoutes({ app, rateLimit }: CrewRouteDeps): void {
     "/api/crew/:id/skills",
     generalApiRateLimit,
     withErrorHandling("fetch crew skills", async (req, res) => {
-      const skills = await crewService.getCrewSkills(req.params.id);
+      const skills = await crewService.getCrewSkills(req.params['id']);
       res.json(skills);
     })
   );

@@ -29,7 +29,7 @@ export async function createFullBackup(): Promise<BackupResult> {
 
     logger.info(`🗄️  Starting full database backup: ${filename}`);
 
-    const dbUrl = new URL(process.env.DATABASE_URL!);
+    const dbUrl = new URL(process.env['DATABASE_URL']!);
 
     const pgDumpArgs = [
       "--verbose",
@@ -123,7 +123,7 @@ export async function createSchemaBackup(): Promise<BackupResult> {
 
     logger.info(`📋 Starting schema backup: ${filename}`);
 
-    const dbUrl = new URL(process.env.DATABASE_URL!);
+    const dbUrl = new URL(process.env['DATABASE_URL']!);
 
     const pgDumpArgs = [
       "--verbose",

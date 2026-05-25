@@ -303,7 +303,7 @@ export async function checkAndScheduleAutomaticMaintenance(
 ): Promise<void> {
   const settings = (await dbSystemAdminStorage.getSettings()) as Record<string, unknown>;
 
-  if (!settings.autoScheduleMaintenance) {
+  if (!settings['autoScheduleMaintenance']) {
     return;
   }
 
@@ -312,7 +312,7 @@ export async function checkAndScheduleAutomaticMaintenance(
     return;
   }
 
-  const autoScheduleThreshold = (settings.autoScheduleThreshold as number | undefined) || 60;
+  const autoScheduleThreshold = (settings['autoScheduleThreshold'] as number | undefined) || 60;
   if (healthScore >= autoScheduleThreshold) {
     return;
   }

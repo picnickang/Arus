@@ -27,10 +27,10 @@ export function createDraftExecutor(deps: DraftExecutorDeps) {
     }
 
     if (draftType === "report_share") {
-      const recipients = data.recipients as string[];
-      const subject = data.subject as string;
-      const bodyText = (data.message as string) || "Please find the attached ARUS report.";
-      const reportArtifact = getReportArtifact(data.reportId as string);
+      const recipients = data['recipients'] as string[];
+      const subject = data['subject'] as string;
+      const bodyText = (data['message'] as string) || "Please find the attached ARUS report.";
+      const reportArtifact = getReportArtifact(data['reportId'] as string);
 
       if (!reportArtifact || !fs.existsSync(reportArtifact.filePath)) {
         return { error: "Report artifact not found or file no longer available." };
@@ -67,7 +67,7 @@ export function createDraftExecutor(deps: DraftExecutorDeps) {
       }
 
       return {
-        resultId: data.reportId as string,
+        resultId: data['reportId'] as string,
         partialFailures: sendErrors.length > 0 ? sendErrors : undefined,
       };
     }

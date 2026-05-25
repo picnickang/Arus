@@ -17,7 +17,7 @@ function isLoopbackAddress(address: string): boolean {
 }
 
 function hasValidSetupToken(req: Request): boolean {
-  const configuredToken = process.env.SETUP_TOKEN;
+  const configuredToken = process.env['SETUP_TOKEN'];
   if (!configuredToken) {
     return false;
   }
@@ -30,7 +30,7 @@ function isLocalhostOrTauri(req: Request): boolean {
   const origin = req.headers.origin || "";
   const isTauriOrigin = origin === "tauri://localhost" || origin === "https://tauri.localhost";
   const isTauriUserAgent = req.headers["user-agent"]?.includes("Tauri") || false;
-  const isReplitDevelopment = !!process.env.REPL_ID && process.env.NODE_ENV !== "production";
+  const isReplitDevelopment = !!process.env['REPL_ID'] && process.env['NODE_ENV'] !== "production";
   return (
     isLoopbackAddress(socketAddress) ||
     isTauriOrigin ||
@@ -124,12 +124,12 @@ async function getAdminCredential(): Promise<{ hash?: string; legacyPlaintext?: 
     return { hash: databaseHash };
   }
 
-  if (process.env.ADMIN_TOKEN_HASH) {
-    return { hash: process.env.ADMIN_TOKEN_HASH };
+  if (process.env['ADMIN_TOKEN_HASH']) {
+    return { hash: process.env['ADMIN_TOKEN_HASH'] };
   }
 
-  if (process.env.ADMIN_TOKEN) {
-    return { legacyPlaintext: process.env.ADMIN_TOKEN };
+  if (process.env['ADMIN_TOKEN']) {
+    return { legacyPlaintext: process.env['ADMIN_TOKEN'] };
   }
 
   return {};
@@ -149,8 +149,8 @@ async function mirrorAdminHashToEnv(hash: string): Promise<void> {
     : `ADMIN_TOKEN_HASH=${quoteEnvValue(hash)}\n`;
 
   await atomicWriteEnv(envPath, finalContent);
-  process.env.ADMIN_TOKEN_HASH = hash;
-  delete process.env.ADMIN_TOKEN;
+  process.env['ADMIN_TOKEN_HASH'] = hash;
+  delete process.env['ADMIN_TOKEN'];
 }
 
 async function persistAdminHash(hash: string): Promise<void> {
@@ -159,8 +159,8 @@ async function persistAdminHash(hash: string): Promise<void> {
     await mirrorAdminHashToEnv(hash);
   } catch (error) {
     logger.warn("AdminAuth", "Admin hash saved to database, but .env mirror failed", error);
-    process.env.ADMIN_TOKEN_HASH = hash;
-    delete process.env.ADMIN_TOKEN;
+    process.env['ADMIN_TOKEN_HASH'] = hash;
+    delete process.env['ADMIN_TOKEN'];
   }
 }
 

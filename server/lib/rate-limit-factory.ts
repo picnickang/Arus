@@ -100,8 +100,8 @@ interface RateLimitConfig {
  * Centralized factory eliminates duplication across 7+ files
  */
 export function createRateLimiter(config: RateLimitConfig) {
-  const isDevelopment = process.env.NODE_ENV === "development";
-  const isEmbedded = process.env.EMBEDDED_MODE === "true";
+  const isDevelopment = process.env['NODE_ENV'] === "development";
+  const isEmbedded = process.env['EMBEDDED_MODE'] === "true";
   const relaxLimits = isDevelopment || isEmbedded;
 
   const effectiveMax = relaxLimits

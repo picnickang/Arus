@@ -91,8 +91,8 @@ export function useEquipmentPageData() {
   const healthMap = useMemo(() => {
     const map = new Map<string, EquipmentHealth>();
     healthData.forEach((h) => {
-      if (h.id) {
-        map.set(h.id as string, h);
+      if (h['id']) {
+        map.set(h['id'] as string, h);
       }
     });
     return map;
@@ -166,7 +166,7 @@ export function useEquipmentPageData() {
     const avgHealth =
       healthData.length > 0
         ? Math.round(
-            healthData.reduce((sum, h) => sum + ((h.healthIndex as number) || 0), 0) / healthData.length
+            healthData.reduce((sum, h) => sum + ((h['healthIndex'] as number) || 0), 0) / healthData.length
           )
         : 0;
     return { total, healthy, warning, critical, noData, avgHealth };

@@ -139,7 +139,7 @@ export function ModelRegistryTab({
         </Card>
       )}
 
-      {selectedModelId && deployment != null && !(deployment as Record<string, unknown>).message && (
+      {selectedModelId && deployment != null && !(deployment as Record<string, unknown>)['message'] && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Active Deployment</CardTitle>
@@ -148,20 +148,20 @@ export function ModelRegistryTab({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
               <div>
                 <span className="text-muted-foreground">Target:</span>{" "}
-                {String((deployment as Record<string, unknown>).deploymentTarget ?? "")}
+                {String((deployment as Record<string, unknown>)['deploymentTarget'] ?? "")}
               </div>
               <div>
                 <span className="text-muted-foreground">Status:</span>{" "}
-                <Badge>{String((deployment as Record<string, unknown>).deploymentStatus ?? "")}</Badge>
+                <Badge>{String((deployment as Record<string, unknown>)['deploymentStatus'] ?? "")}</Badge>
               </div>
               <div>
                 <span className="text-muted-foreground">Traffic:</span>{" "}
-                {String((deployment as Record<string, unknown>).trafficPercentage ?? 0)}%
+                {String((deployment as Record<string, unknown>)['trafficPercentage'] ?? 0)}%
               </div>
               <div>
                 <span className="text-muted-foreground">Deployed:</span>{" "}
                 {new Date(
-                  (deployment as Record<string, unknown>).deployedOn as string | number | Date
+                  (deployment as Record<string, unknown>)['deployedOn'] as string | number | Date
                 ).toLocaleDateString()}
               </div>
             </div>

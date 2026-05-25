@@ -30,7 +30,7 @@ const router = Router();
 router.get("/", async (req, res) => {
   try {
     const { equipmentType } = req.query;
-    const orgId = res.locals.orgId; // From authentication middleware
+    const orgId = res.locals['orgId']; // From authentication middleware
 
     // Build query to get both system bundles (orgId = null) and org-specific bundles
     let query = db
@@ -74,7 +74,7 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const orgId = res.locals.orgId;
+    const orgId = res.locals['orgId'];
 
     // Fetch bundle (must be either system bundle or belong to org)
     const [bundle] = await db
@@ -127,7 +127,7 @@ router.get("/:id", async (req, res) => {
  */
 router.post("/", async (req, res) => {
   try {
-    const orgId = res.locals.orgId;
+    const orgId = res.locals['orgId'];
 
     // Validate request body
     const validatedData = insertSensorBundleSchema.parse(req.body);
@@ -161,7 +161,7 @@ router.post("/", async (req, res) => {
         ...validatedData,
         orgId, // Set to current org
         isSystemDefault: false, // User bundles are never system defaults
-        createdBy: res.locals.userId || "unknown",
+        createdBy: res.locals['userId'] || "unknown",
       })
       .returning();
 
@@ -188,7 +188,7 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const orgId = res.locals.orgId;
+    const orgId = res.locals['orgId'];
 
     // Check bundle exists and belongs to org (not system bundle)
     const [existing] = await db
@@ -268,7 +268,7 @@ router.put("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const orgId = res.locals.orgId;
+    const orgId = res.locals['orgId'];
 
     // Check bundle exists and belongs to org (not system bundle)
     const [existing] = await db
@@ -312,7 +312,7 @@ router.post("/apply/:equipmentId", async (req, res) => {
   try {
     const { equipmentId } = req.params;
     const { bundleId } = req.body;
-    const orgId = res.locals.orgId;
+    const orgId = res.locals['orgId'];
 
     if (!bundleId) {
       return res.status(400).json({ error: "bundleId is required" });
@@ -401,18 +401,18 @@ router.post("/apply/:equipmentId", async (req, res) => {
             sensorType: template.kind,
             enabled: true,
             sampleRateHz:
-              fields.sample_rate_hz ?? (fields.sample_rate_sec ? 1 / fields.sample_rate_sec : 1),
-            gain: fields.gain ?? 1,
-            offset: fields.offset ?? 0,
-            deadband: fields.deadband ?? 0,
-            minValid: fields.min_valid ?? null,
-            maxValid: fields.max_valid ?? null,
-            warnLo: fields.warn_low ?? fields.warnLo ?? null,
-            warnHi: fields.warn_high ?? fields.warnHi ?? fields.warn_rms ?? null,
-            critLo: fields.crit_low ?? fields.critLo ?? null,
-            critHi: fields.crit_high ?? fields.critHi ?? fields.crit_rms ?? null,
-            hysteresis: fields.hysteresis ?? 0,
-            emaAlpha: fields.ema_alpha ?? 0.1,
+              fields['sample_rate_hz'] ?? (fields['sample_rate_sec'] ? 1 / fields['sample_rate_sec'] : 1),
+            gain: fields['gain'] ?? 1,
+            offset: fields['offset'] ?? 0,
+            deadband: fields['deadband'] ?? 0,
+            minValid: fields['min_valid'] ?? null,
+            maxValid: fields['max_valid'] ?? null,
+            warnLo: fields['warn_low'] ?? fields['warnLo'] ?? null,
+            warnHi: fields['warn_high'] ?? fields['warnHi'] ?? fields['warn_rms'] ?? null,
+            critLo: fields['crit_low'] ?? fields['critLo'] ?? null,
+            critHi: fields['crit_high'] ?? fields['critHi'] ?? fields['crit_rms'] ?? null,
+            hysteresis: fields['hysteresis'] ?? 0,
+            emaAlpha: fields['ema_alpha'] ?? 0.1,
             targetUnit: template.unit,
             notes: template.notes ?? `Auto-created from bundle: ${bundle.name}`,
           })

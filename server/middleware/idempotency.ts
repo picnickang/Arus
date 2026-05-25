@@ -44,7 +44,7 @@ export function idempotencyMiddleware(options?: { required?: boolean }) {
     // header.
     let idempotencyKey = req.headers["idempotency-key"] as string | undefined;
     if (!idempotencyKey && req.body && typeof req.body === "object" && !Array.isArray(req.body)) {
-      const fromBody = (req.body as Record<string, unknown>).clientMutationId;
+      const fromBody = (req.body as Record<string, unknown>)['clientMutationId'];
       if (typeof fromBody === "string" && fromBody.length > 0 && fromBody.length <= 128) {
         idempotencyKey = fromBody;
       }

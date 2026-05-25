@@ -110,7 +110,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       );
       const transformed = runs.map((run) => {
         const bag = run as Record<string, unknown>;
-        const completedAt = bag.completedAt as string | Date | null | undefined;
+        const completedAt = bag['completedAt'] as string | Date | null | undefined;
         return {
           id: run.id,
           orgId: run.orgId,
@@ -119,10 +119,10 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           toDate: run.endDate ? new Date(run.endDate).toISOString() : null,
           createdAt: run.createdAt ? new Date(run.createdAt).toISOString() : null,
           appliedAt: completedAt ? new Date(completedAt).toISOString() : null,
-          generatedByRunId: (bag.generatedByRunId as string | null | undefined) ?? null,
+          generatedByRunId: (bag['generatedByRunId'] as string | null | undefined) ?? null,
           stats: {
-            proposed: (bag.totalAssignments as number | undefined) ?? 0,
-            unfilled: (bag.unfilledCount as number | undefined) ?? 0,
+            proposed: (bag['totalAssignments'] as number | undefined) ?? 0,
+            unfilled: (bag['unfilledCount'] as number | undefined) ?? 0,
             collisions: 0,
           },
         };

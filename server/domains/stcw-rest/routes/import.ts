@@ -33,7 +33,7 @@ function parseRestCsv(csvText: string): RestDay[] {
     if (!row || typeof row !== "object") {
       continue;
     }
-    const date = (row.date ?? row.Date ?? "").toString().trim();
+    const date = (row['date'] ?? row['Date'] ?? "").toString().trim();
     if (!date) {
       continue;
     }

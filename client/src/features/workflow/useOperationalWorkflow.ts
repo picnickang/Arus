@@ -32,19 +32,19 @@ function normalizeWorkOrders(data: unknown): WorkOrderRecord[] {
   return data
     .filter((item): item is Record<string, unknown> => item !== null && typeof item === "object")
     .map((item) => ({
-      id: typeof item.id === "string" || typeof item.id === "number" ? item.id : String(Math.random()),
-      title: typeof item.title === "string" ? item.title : undefined,
-      status: typeof item.status === "string" ? item.status : undefined,
+      id: typeof item['id'] === "string" || typeof item['id'] === "number" ? item['id'] : String(Math.random()),
+      title: typeof item['title'] === "string" ? item['title'] : undefined,
+      status: typeof item['status'] === "string" ? item['status'] : undefined,
       priority:
-        typeof item.priority === "number" || typeof item.priority === "string" ? item.priority : null,
-      dueDate: typeof item.dueDate === "string" ? item.dueDate : null,
-      blockedReason: typeof item.blockedReason === "string" ? item.blockedReason : null,
-      assignedCrewId: typeof item.assignedCrewId === "string" ? item.assignedCrewId : null,
-      assignedToName: typeof item.assignedToName === "string" ? item.assignedToName : null,
-      equipmentName: typeof item.equipmentName === "string" ? item.equipmentName : null,
+        typeof item['priority'] === "number" || typeof item['priority'] === "string" ? item['priority'] : null,
+      dueDate: typeof item['dueDate'] === "string" ? item['dueDate'] : null,
+      blockedReason: typeof item['blockedReason'] === "string" ? item['blockedReason'] : null,
+      assignedCrewId: typeof item['assignedCrewId'] === "string" ? item['assignedCrewId'] : null,
+      assignedToName: typeof item['assignedToName'] === "string" ? item['assignedToName'] : null,
+      equipmentName: typeof item['equipmentName'] === "string" ? item['equipmentName'] : null,
       equipment:
-        item.equipment && typeof item.equipment === "object"
-          ? { name: typeof (item.equipment as { name?: unknown }).name === "string" ? (item.equipment as { name: string }).name : null }
+        item['equipment'] && typeof item['equipment'] === "object"
+          ? { name: typeof (item['equipment'] as { name?: unknown }).name === "string" ? (item['equipment'] as { name: string }).name : null }
           : null,
     }));
 }

@@ -43,7 +43,7 @@ export function sendValidatedResponse<T>(
         error: {
           code: "RESPONSE_VALIDATION_ERROR",
           message: "Response failed DTO validation",
-          details: process.env.NODE_ENV === "development" ? error : undefined,
+          details: process.env['NODE_ENV'] === "development" ? error : undefined,
         },
         metadata: { timestamp: new Date(), version: "1.0" },
       });
@@ -68,7 +68,7 @@ export function handleError(res: Response, error: unknown, operation: string) {
       error: {
         code: "INTERNAL_ERROR",
         message: error instanceof Error ? error.message : "An unexpected error occurred",
-        details: process.env.NODE_ENV === "development" ? error : undefined,
+        details: process.env['NODE_ENV'] === "development" ? error : undefined,
       },
       metadata: { timestamp: new Date(), version: "1.0" },
     });

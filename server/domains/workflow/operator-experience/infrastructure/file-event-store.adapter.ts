@@ -4,7 +4,7 @@ import path from "node:path";
 import type { OperatorExperienceEventPort } from "../domain/ports.js";
 import type { OperatorExperienceEvent, RecordedOperatorExperienceEvent } from "../domain/types.js";
 
-const DATA_DIR = process.env.ARUS_OPERATOR_EXPERIENCE_DATA_DIR || path.resolve(process.cwd(), "data", "operator-experience");
+const DATA_DIR = process.env['ARUS_OPERATOR_EXPERIENCE_DATA_DIR'] || path.resolve(process.cwd(), "data", "operator-experience");
 const EVENTS_FILE = path.join(DATA_DIR, "events.jsonl");
 
 export class FileOperatorExperienceEventStore implements OperatorExperienceEventPort {

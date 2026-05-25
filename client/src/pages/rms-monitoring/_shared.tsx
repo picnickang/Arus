@@ -132,5 +132,5 @@ export function SeverityBadge({ severity }: { severity: string }) {
     warning: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
     info: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
   };
-  return <Badge className={colors[severity] || colors.info}>{severity}</Badge>;
+  return <Badge className={colors[severity] || colors['info']}>{severity}</Badge>;
 }

@@ -31,7 +31,7 @@ export function enhancedErrorHandler(err: Error, req: Request, res: Response, ne
         code: err.code,
         requestId,
         timestamp: new Date().toISOString(),
-        ...(process.env.NODE_ENV === "development" && { context: err.context }),
+        ...(process.env['NODE_ENV'] === "development" && { context: err.context }),
       },
     });
   }
@@ -63,7 +63,7 @@ export function enhancedErrorHandler(err: Error, req: Request, res: Response, ne
       });
   }
 
-  const isDevelopment = process.env.NODE_ENV === "development";
+  const isDevelopment = process.env['NODE_ENV'] === "development";
   return res
     .status(500)
     .json({

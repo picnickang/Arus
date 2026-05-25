@@ -173,10 +173,10 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
         }
         const allowedUpdates: Record<string, unknown> = {};
         if (body.status) {
-          allowedUpdates.status = body.status;
+          allowedUpdates['status'] = body.status;
         }
         if (body.actedOn !== undefined) {
-          allowedUpdates.actedOn = body.actedOn;
+          allowedUpdates['actedOn'] = body.actedOn;
         }
         const suggestion = await agentRepo.suggestions.update(
           id,

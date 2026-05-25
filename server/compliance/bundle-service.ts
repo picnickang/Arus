@@ -33,7 +33,7 @@ export async function saveComplianceBundle(
     description: complianceBundle.description || null,
     generatedAt: new Date(),
     filePath: htmlPath,
-    metadata: (complianceBundle as Record<string, unknown>).metadata ?? null,
+    metadata: (complianceBundle as Record<string, unknown>)['metadata'] ?? null,
     createdAt: new Date(),
     fileFormat: complianceBundle.fileFormat || null,
     status: complianceBundle.status || null,

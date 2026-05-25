@@ -36,7 +36,7 @@ const AGE_SCHEMA = "ag_catalog";
 const AGE_LIBRARY = "age";
 
 export function isGraphEnabled(): boolean {
-  return process.env.GRAPH_ENABLED === "true";
+  return process.env['GRAPH_ENABLED'] === "true";
 }
 
 /** True iff the AGE extension was successfully installed/verified at boot. */

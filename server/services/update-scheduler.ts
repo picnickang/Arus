@@ -247,7 +247,7 @@ export function setupUpdateScheduler(): void {
   }
 
   // Get check interval from environment or use default (6 hours)
-  const checkIntervalHours = Number.parseInt(process.env.UPDATE_CHECK_INTERVAL_HOURS || "6", 10);
+  const checkIntervalHours = Number.parseInt(process.env['UPDATE_CHECK_INTERVAL_HOURS'] || "6", 10);
 
   // Schedule update checks
   // Default: every 6 hours at minute 0 (00:00, 06:00, 12:00, 18:00)
@@ -260,7 +260,7 @@ export function setupUpdateScheduler(): void {
   logger.info(`🔄 Update scheduler configured (checking every ${checkIntervalHours} hours)`);
 
   // Run initial check 5 minutes after startup (if enabled)
-  if (process.env.UPDATE_CHECK_ON_STARTUP !== "false") {
+  if (process.env['UPDATE_CHECK_ON_STARTUP'] !== "false") {
     setTimeout(
       async () => {
         logger.info("[UpdateScheduler] Running initial update check...");

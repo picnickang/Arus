@@ -189,8 +189,8 @@ export async function updateServiceOrderStatus(
     updates.actualEndDate = now;
   } else if (status === "cancelled") {
     updates.cancelledAt = now;
-    if (details?.reason) {
-      updates.cancellationReason = details.reason as string;
+    if (details?.['reason']) {
+      updates.cancellationReason = details['reason'] as string;
     }
   }
 

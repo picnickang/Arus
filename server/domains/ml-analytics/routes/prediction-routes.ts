@@ -35,7 +35,7 @@ export function registerPredictionRoutes(app: Express, config: MlAnalyticsConfig
     withErrorHandling("fetch failure prediction", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId } = req.query;
       const prediction = await dbMlAnalyticsStorage.getFailurePrediction(
-        Number.parseInt(req.params.id),
+        Number.parseInt(req.params['id']),
         orgId as string
       );
       if (!prediction) {

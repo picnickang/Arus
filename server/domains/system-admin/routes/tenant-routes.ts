@@ -174,9 +174,9 @@ export function registerTenantRoutes(
         await db.execute(
           sql`UPDATE organizations
               SET suspended_at = now(), suspension_reason = ${parsed.data.reason}
-              WHERE id = ${req.params.orgId}`
+              WHERE id = ${req.params['orgId']}`
         );
-        return res.json({ orgId: req.params.orgId, suspended: true });
+        return res.json({ orgId: req.params['orgId'], suspended: true });
       } catch (err: unknown) {
         logger.error("Suspend tenant failed", undefined, err);
         return res
@@ -196,9 +196,9 @@ export function registerTenantRoutes(
         await db.execute(
           sql`UPDATE organizations
               SET suspended_at = NULL, suspension_reason = NULL
-              WHERE id = ${req.params.orgId}`
+              WHERE id = ${req.params['orgId']}`
         );
-        return res.json({ orgId: req.params.orgId, suspended: false });
+        return res.json({ orgId: req.params['orgId'], suspended: false });
       } catch (err: unknown) {
         logger.error("Unsuspend tenant failed", undefined, err);
         return res.status(500).json({
@@ -230,10 +230,10 @@ export function registerTenantRoutes(
         // certificate without an explicit signing secret — the dev
         // fallback would silently produce non-verifiable certs.
         const signingSecret =
-          process.env.GDPR_DELETION_HMAC_SECRET ??
-          process.env.SESSION_SECRET;
+          process.env['GDPR_DELETION_HMAC_SECRET'] ??
+          process.env['SESSION_SECRET'];
         if (!signingSecret) {
-          if (process.env.NODE_ENV === "production") {
+          if (process.env['NODE_ENV'] === "production") {
             logger.error(
               "Tenant delete refused: GDPR_DELETION_HMAC_SECRET (or SESSION_SECRET) is not configured"
             );
@@ -256,11 +256,11 @@ export function registerTenantRoutes(
             signingSecret ?? "dev-only-fallback-secret-do-not-use-in-prod",
         });
         const result = await service.execute(
-          req.params.orgId,
+          req.params['orgId'],
           parsed.data.reason
         );
         logger.warn("Tenant deleted", {
-          orgId: req.params.orgId,
+          orgId: req.params['orgId'],
           requestedBy: adminId,
           certificateId: result.certificate.certificateId,
         });

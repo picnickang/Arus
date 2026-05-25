@@ -35,7 +35,7 @@ export const ROLE_COLORS: Record<string, string> = {
 };
 
 export function getRoleColor(role: string): string {
-  return ROLE_COLORS[role] || ROLE_COLORS.default;
+  return ROLE_COLORS[role] || ROLE_COLORS['default'];
 }
 
 export function getStatusBadge(status: ScheduleAssignment["status"]) {

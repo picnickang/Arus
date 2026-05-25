@@ -76,7 +76,7 @@ export function registerInventoryOptimizationRoutes(
       return cacheMiddleware({
         ttl: 900,
         keyGenerator: (r: Request) =>
-          `substitutions:${r.params.partNo}:${(r as AuthenticatedRequest).orgId}`,
+          `substitutions:${r.params['partNo']}:${(r as AuthenticatedRequest).orgId}`,
       })(req, res, next);
     },
     withErrorHandling("find part substitutions", async (req, res) => {

@@ -178,7 +178,7 @@ export class DbSettingsStorage {
       updatedAt: new Date(),
     };
     if (errorMessage !== undefined) {
-      updates.errorMessage = errorMessage;
+      updates['errorMessage'] = errorMessage;
     }
     const [updated] = await db
       .update(integrationConfigs)
@@ -327,10 +327,10 @@ export class DbSettingsStorage {
       updatedAt: new Date(),
     };
     if (message !== undefined) {
-      updates.message = message;
+      updates['message'] = message;
     }
     if (responseTime !== undefined) {
-      updates.responseTime = responseTime;
+      updates['responseTime'] = responseTime;
     }
     const [updated] = await db
       .update(systemHealthChecks)

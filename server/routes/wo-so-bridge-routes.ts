@@ -142,20 +142,20 @@ export async function createServiceOrderFromWorkOrder(
     }
     const row = inserted as Record<string, unknown>;
     if (
-      typeof row.id !== "string" ||
-      typeof row.so_number !== "string" ||
-      typeof row.status !== "string" ||
-      typeof row.org_id !== "string"
+      typeof row['id'] !== "string" ||
+      typeof row['so_number'] !== "string" ||
+      typeof row['status'] !== "string" ||
+      typeof row['org_id'] !== "string"
     ) {
       throw new Error("Service order RETURNING row has unexpected shape");
     }
-    const workOrderIdCol = row.work_order_id;
+    const workOrderIdCol = row['work_order_id'];
     const created: CreatedServiceOrderRow = {
       ...row,
-      id: row.id,
-      so_number: row.so_number,
-      status: row.status,
-      org_id: row.org_id,
+      id: row['id'],
+      so_number: row['so_number'],
+      status: row['status'],
+      org_id: row['org_id'],
       work_order_id: typeof workOrderIdCol === "string" ? workOrderIdCol : null,
     };
     return created;
@@ -179,7 +179,7 @@ export function registerWoSoBridgeRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch work order service orders", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
-      const workOrderId = req.params.id;
+      const workOrderId = req.params['id'];
 
       const rows = await defaultDb.execute(sql`
         SELECT
@@ -234,7 +234,7 @@ export function registerWoSoBridgeRoutes(
       "create service order from work order",
       async (req: Request, res: Response) => {
         const orgId = getOrgId(req);
-        const workOrderId = req.params.id;
+        const workOrderId = req.params['id'];
 
         const [wo] = await defaultDb
           .execute(
@@ -264,7 +264,7 @@ export function registerWoSoBridgeRoutes(
 
         if (pendingSr) {
           return res.status(409).json({
-            error: `This work order has an active service request (${pendingSr.request_number}, status: ${pendingSr.status}). Complete the SR workflow before creating a service order directly.`,
+            error: `This work order has an active service request (${pendingSr['request_number']}, status: ${pendingSr['status']}). Complete the SR workflow before creating a service order directly.`,
           });
         }
 
@@ -287,8 +287,8 @@ export function registerWoSoBridgeRoutes(
         const newSo = await createServiceOrderFromWorkOrder(defaultDb, {
           orgId,
           workOrderId,
-          woNumber: (wo.wo_number as string),
-          woDescription: (wo.description as string | null | undefined),
+          woNumber: (wo['wo_number'] as string),
+          woDescription: (wo['description'] as string | null | undefined),
           serviceProviderId,
           scope,
           estimatedCost: estimatedCost ? Number(estimatedCost) : null,
@@ -311,7 +311,7 @@ export function registerWoSoBridgeRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch service order work order", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
-      const serviceOrderId = req.params.id;
+      const serviceOrderId = req.params['id'];
 
       const [row] = await defaultDb
         .execute(
@@ -351,7 +351,7 @@ export function registerWoSoBridgeRoutes(
     writeOperationRateLimit,
     withErrorHandling("link service order to work order", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
-      const serviceOrderId = req.params.id;
+      const serviceOrderId = req.params['id'];
       const { workOrderId } = req.body;
 
       if (!workOrderId) {
@@ -377,7 +377,7 @@ export function registerWoSoBridgeRoutes(
         UPDATE service_orders
         SET
           work_order_id = ${workOrderId},
-          work_order_number = ${wo.wo_number},
+          work_order_number = ${wo['wo_number']},
           updated_at = NOW()
         WHERE id = ${serviceOrderId} AND org_id = ${orgId}
         RETURNING *
@@ -403,7 +403,7 @@ export function registerWoSoBridgeRoutes(
       "sync work order status from service order",
       async (req: Request, res: Response) => {
         const orgId = getOrgId(req);
-        const serviceOrderId = req.params.id;
+        const serviceOrderId = req.params['id'];
 
         const [so] = await defaultDb
           .execute(
@@ -415,14 +415,14 @@ export function registerWoSoBridgeRoutes(
           )
           .then((r) => r.rows || r);
 
-        if (!so || !so.work_order_id) {
+        if (!so || !so['work_order_id']) {
           return res.json({ synced: false, reason: "No linked work order" });
         }
 
         const result = await syncWorkOrderFromServiceOrders(
           defaultDb,
           orgId,
-          so.work_order_id as string
+          so['work_order_id'] as string
         );
         return res.json(result);
       }
@@ -436,7 +436,7 @@ export function registerWoSoBridgeRoutes(
     writeOperationRateLimit,
     withErrorHandling("revert service order to request", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
-      const serviceOrderId = req.params.id;
+      const serviceOrderId = req.params['id'];
 
       const [so] = await defaultDb
         .execute(
@@ -453,9 +453,9 @@ export function registerWoSoBridgeRoutes(
       }
 
       const REVERTIBLE: string[] = ["draft", "sent", "confirmed"];
-      if (!REVERTIBLE.includes(so.status as string)) {
+      if (!REVERTIBLE.includes(so['status'] as string)) {
         return res.status(400).json({
-          error: `Cannot revert a service order in '${so.status}' status. Only draft, sent, or confirmed orders can be reverted.`,
+          error: `Cannot revert a service order in '${so['status']}' status. Only draft, sent, or confirmed orders can be reverted.`,
         });
       }
 
@@ -485,11 +485,11 @@ export function registerWoSoBridgeRoutes(
               service_order_id = NULL,
               converted_at = NULL,
               updated_at = NOW()
-          WHERE id = ${sr.id} AND org_id = ${orgId}
+          WHERE id = ${sr['id']} AND org_id = ${orgId}
         `);
 
-        if (so.work_order_id) {
-          const previous = (sr.previous_wo_status as string | null) || "open";
+        if (so['work_order_id']) {
+          const previous = (sr['previous_wo_status'] as string | null) || "open";
           await tx.execute(sql`
             UPDATE work_orders
             SET status = CASE
@@ -497,7 +497,7 @@ export function registerWoSoBridgeRoutes(
                   ELSE status
                 END,
                 updated_at = NOW()
-            WHERE id = ${so.work_order_id} AND org_id = ${orgId}
+            WHERE id = ${so['work_order_id']} AND org_id = ${orgId}
           `);
         }
 
@@ -514,7 +514,7 @@ export function registerWoSoBridgeRoutes(
           .execute(
             sql`
               SELECT * FROM service_requests
-              WHERE id = ${sr.id} AND org_id = ${orgId}
+              WHERE id = ${sr['id']} AND org_id = ${orgId}
             `
           )
           .then((r) => r.rows || r);
@@ -522,7 +522,7 @@ export function registerWoSoBridgeRoutes(
       });
 
       logger.info(
-        `Reverted service order ${so.so_number} back to service request ${sr.request_number}`
+        `Reverted service order ${so['so_number']} back to service request ${sr['request_number']}`
       );
       return res.json({ reverted: true, serviceRequest: restored });
     })

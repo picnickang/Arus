@@ -64,10 +64,10 @@ router.post("/corrections", requireOrgId, async (req: Request, res: Response) =>
         created_at, updated_at
       ) VALUES (
         ${orgId},
-        ${originalEntry.vessel_id},
-        ${originalEntry.log_type},
-        ${originalEntry.entry_date},
-        ${originalEntry.watch_period || null},
+        ${originalEntry['vessel_id']},
+        ${originalEntry['log_type']},
+        ${originalEntry['entry_date']},
+        ${originalEntry['watch_period'] || null},
         ${JSON.stringify(data.correctedFields)},
         ${data.originalEntryId},
         ${data.reason},
@@ -95,7 +95,7 @@ router.post("/corrections", requireOrgId, async (req: Request, res: Response) =>
         details, ip_address, user_agent
       ) VALUES (
         ${orgId},
-        ${originalEntry.vessel_id},
+        ${originalEntry['vessel_id']},
         ${data.originalEntryId},
         'corrected',
         ${user.id},
@@ -103,7 +103,7 @@ router.post("/corrections", requireOrgId, async (req: Request, res: Response) =>
         ${user.rank},
         ${JSON.stringify({
           originalEntryId: data.originalEntryId,
-          correctionEntryId: correctionEntry?.id,
+          correctionEntryId: correctionEntry?.['id'],
           reason: data.reason,
           correctedFields: Object.keys(data.correctedFields),
         })},
@@ -115,7 +115,7 @@ router.post("/corrections", requireOrgId, async (req: Request, res: Response) =>
     logger.info("LogbookCorrections", "Logbook correction created", {
       orgId,
       originalId: data.originalEntryId,
-      correctionId: correctionEntry?.id,
+      correctionId: correctionEntry?.['id'],
       reason: data.reason.substring(0, 100),
       user: user.name,
     });

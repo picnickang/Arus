@@ -15,7 +15,7 @@
  */
 import { TOTP, Secret } from "otpauth";
 
-const DEFAULT_ISSUER = process.env.MFA_TOTP_ISSUER || "ARUS";
+const DEFAULT_ISSUER = process.env['MFA_TOTP_ISSUER'] || "ARUS";
 const DEFAULT_WINDOW = 1;
 const DEFAULT_DIGITS = 6;
 const DEFAULT_PERIOD = 30;

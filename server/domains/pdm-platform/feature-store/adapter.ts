@@ -72,7 +72,7 @@ function round(v: number): number {
 }
 
 function allowPdmDemoFallbacks(): boolean {
-  return process.env.NODE_ENV !== "production" || process.env.ALLOW_PDM_DEMO_FALLBACKS === "true";
+  return process.env['NODE_ENV'] !== "production" || process.env['ALLOW_PDM_DEMO_FALLBACKS'] === "true";
 }
 
 export class FeatureStoreAdapter implements FeatureStorePort {

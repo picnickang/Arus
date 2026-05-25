@@ -99,10 +99,10 @@ function pickLegacyScheduleExtras(
   const record = data as Record<string, unknown>;
   return {
     estimatedDurationHours:
-      typeof record.estimatedDurationHours === "number"
-        ? record.estimatedDurationHours
+      typeof record['estimatedDurationHours'] === "number"
+        ? record['estimatedDurationHours']
         : undefined,
-    notes: typeof record.notes === "string" ? record.notes : undefined,
+    notes: typeof record['notes'] === "string" ? record['notes'] : undefined,
   };
 }
 
@@ -112,8 +112,8 @@ function pickLegacyTemplateExtras(
   const record = data as Record<string, unknown>;
   return {
     estimatedDurationHours:
-      typeof record.estimatedDurationHours === "number"
-        ? record.estimatedDurationHours
+      typeof record['estimatedDurationHours'] === "number"
+        ? record['estimatedDurationHours']
         : undefined,
   };
 }

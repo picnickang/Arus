@@ -201,7 +201,7 @@ export class DbStockStorage {
       conditions.push(eq(stock.partId, filters.partId));
     }
     if (filters?.vesselId) {
-      const col = tableColumns(stock).vesselId;
+      const col = tableColumns(stock)['vesselId'];
       if (col) conditions.push(eq(col, filters.vesselId));
     }
     if (filters?.location) {
@@ -247,8 +247,8 @@ export class DbStockStorage {
   async getPartSubstitutions(partId: string, orgId: string): Promise<PartSubstitution[]> {
     this.validateOrgId(orgId, "getPartSubstitutions");
     const cols = tableColumns(partSubstitutions);
-    const origCol = cols.originalPartId;
-    const subCol = cols.substitutePartId;
+    const origCol = cols['originalPartId'];
+    const subCol = cols['substitutePartId'];
     const subFilters: SQL[] = [];
     if (origCol) subFilters.push(eq(origCol, partId));
     if (subCol) subFilters.push(eq(subCol, partId));

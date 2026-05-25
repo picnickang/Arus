@@ -38,7 +38,7 @@ interface IntegrationsRoutesConfig {
 export function registerIntegrationsRoutes(app: Express, config: IntegrationsRoutesConfig): void {
   const { generalApiRateLimit, getFMCCService, updateFleetHealthScore } = config;
 
-  const DASHBOARD_TTL_MS = Number.parseInt(process.env.DASHBOARD_TTL_MS || "30000", 10);
+  const DASHBOARD_TTL_MS = Number.parseInt(process.env['DASHBOARD_TTL_MS'] || "30000", 10);
   const dashboardCache = new LRUCache<string, { data: unknown; etag: string }>({
     max: 200,
     ttl: DASHBOARD_TTL_MS,

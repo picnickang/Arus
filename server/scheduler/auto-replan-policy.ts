@@ -4,9 +4,9 @@ import { schedAutoReplanTriggers } from "../observability/scheduler-metrics";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Scheduler:AutoReplanPolicy");
 
-const RUL_DAYS_CRITICAL = Number(process.env.SCHED_RUL_DAYS_CRITICAL ?? 9);
-const RISK_REPLAN_LEVEL = (process.env.SCHED_RISK_REPLAN_LEVEL ?? "high").toLowerCase();
-const AUTO_REPLAN_DAYS = Number(process.env.SCHED_AUTO_REPLAN_DAYS ?? 7);
+const RUL_DAYS_CRITICAL = Number(process.env['SCHED_RUL_DAYS_CRITICAL'] ?? 9);
+const RISK_REPLAN_LEVEL = (process.env['SCHED_RISK_REPLAN_LEVEL'] ?? "high").toLowerCase();
+const AUTO_REPLAN_DAYS = Number(process.env['SCHED_AUTO_REPLAN_DAYS'] ?? 7);
 
 function riskToRank(r: string): number {
   const ranks: Record<string, number> = {

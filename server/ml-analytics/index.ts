@@ -35,7 +35,7 @@ import {
 export class MLAnalyticsService extends EventEmitter {
   private models: Map<string, unknown> = new Map();
   private enabled: boolean = true;
-  private aiEnhancementEnabled: boolean = Boolean(process.env.OPENAI_API_KEY);
+  private aiEnhancementEnabled: boolean = Boolean(process.env['OPENAI_API_KEY']);
 
   constructor() {
     super();

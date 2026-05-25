@@ -104,7 +104,7 @@ export async function convertToClassificationFeatures(
   };
 
   if (maintenanceAge !== undefined) {
-    features.maintenanceAge = maintenanceAge;
+    features['maintenanceAge'] = maintenanceAge;
   }
 
   return {

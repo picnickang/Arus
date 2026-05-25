@@ -37,7 +37,7 @@ router.get("/twin/:twinId", async (req: Request, res: Response) => {
     const orgId = DEFAULT_ORG_ID;
     const parsed = limitSchema.safeParse(req.query);
     const limit = parsed.success ? parsed.data.limit : undefined;
-    const result = await service.getResidualsByTwin(orgId, req.params.twinId, limit);
+    const result = await service.getResidualsByTwin(orgId, req.params['twinId'], limit);
     return res.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

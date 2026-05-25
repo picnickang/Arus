@@ -88,21 +88,21 @@ async function fetchRollups(db: unknown, orgId: string, dayStart: Date, dayEnd: 
 
   const rows = result?.rows ?? [];
   return rows.map((r) => ({
-    org_id: String(r.org_id),
-    equipment_id: String(r.equipment_id),
-    sensor_type: String(r.sensor_type),
-    bucket_start: r.bucket_start instanceof Date ? r.bucket_start : new Date(String(r.bucket_start)),
-    bucket_size: String(r.bucket_size),
-    count: Number(r.count ?? 0),
-    min_value: toNumberOrNull(r.min_value),
-    max_value: toNumberOrNull(r.max_value),
-    avg_value: toNumberOrNull(r.avg_value),
-    stddev_value: toNumberOrNull(r.stddev_value),
-    p50_value: toNumberOrNull(r.p50_value),
-    p95_value: toNumberOrNull(r.p95_value),
-    p99_value: toNumberOrNull(r.p99_value),
-    first_value: toNumberOrNull(r.first_value),
-    last_value: toNumberOrNull(r.last_value),
+    org_id: String(r['org_id']),
+    equipment_id: String(r['equipment_id']),
+    sensor_type: String(r['sensor_type']),
+    bucket_start: r['bucket_start'] instanceof Date ? r['bucket_start'] : new Date(String(r['bucket_start'])),
+    bucket_size: String(r['bucket_size']),
+    count: Number(r['count'] ?? 0),
+    min_value: toNumberOrNull(r['min_value']),
+    max_value: toNumberOrNull(r['max_value']),
+    avg_value: toNumberOrNull(r['avg_value']),
+    stddev_value: toNumberOrNull(r['stddev_value']),
+    p50_value: toNumberOrNull(r['p50_value']),
+    p95_value: toNumberOrNull(r['p95_value']),
+    p99_value: toNumberOrNull(r['p99_value']),
+    first_value: toNumberOrNull(r['first_value']),
+    last_value: toNumberOrNull(r['last_value']),
   }));
 }
 
@@ -145,7 +145,7 @@ export async function listOrgIdsWithRollups(
     ORDER BY org_id ASC
   `);
   return (result?.rows ?? [])
-    .map((r) => (typeof r.org_id === "string" ? r.org_id : String(r.org_id)))
+    .map((r) => (typeof r['org_id'] === "string" ? r['org_id'] : String(r['org_id'])))
     .filter((s) => s.length > 0);
 }
 

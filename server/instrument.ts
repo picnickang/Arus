@@ -13,7 +13,7 @@
  * without paying for full-fidelity OTel infra yet (per gap plan).
  */
 
-const dsn = process.env.SENTRY_DSN;
+const dsn = process.env['SENTRY_DSN'];
 
 if (dsn) {
   // Lazy require so that environments without the dep installed
@@ -25,7 +25,7 @@ if (dsn) {
 
   Sentry.init({
     dsn,
-    environment: process.env.NODE_ENV ?? "development",
+    environment: process.env['NODE_ENV'] ?? "development",
     // Prod-hardening: release identity for sourcemap symbolication and
     // cross-deploy error-rate diffs. Resolution order:
     //   1. SENTRY_RELEASE        — explicit operator override
@@ -33,16 +33,16 @@ if (dsn) {
     //   3. REPLIT_DEPLOYMENT_ID  — Replit deploy identifier
     //   4. npm_package_version   — last-resort fallback (coarse)
     release:
-      process.env.SENTRY_RELEASE ??
-      process.env.GIT_SHA ??
-      process.env.GIT_COMMIT ??
-      process.env.REPLIT_DEPLOYMENT_ID ??
-      process.env.npm_package_version,
-    tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0.1),
+      process.env['SENTRY_RELEASE'] ??
+      process.env['GIT_SHA'] ??
+      process.env['GIT_COMMIT'] ??
+      process.env['REPLIT_DEPLOYMENT_ID'] ??
+      process.env['npm_package_version'],
+    tracesSampleRate: Number(process.env['SENTRY_TRACES_SAMPLE_RATE'] ?? 0.1),
     // Profiles are off by default — opt in via env var. The CPU
     // profiler integration is shipped separately (@sentry/profiling-node)
     // and we haven't installed it, so leaving this 0 is intentional.
-    profilesSampleRate: Number(process.env.SENTRY_PROFILES_SAMPLE_RATE ?? 0),
+    profilesSampleRate: Number(process.env['SENTRY_PROFILES_SAMPLE_RATE'] ?? 0),
     // Defense in depth — the PII redactor in the LLM gateway
     // (Wave 3.6) handles outbound model traffic, but errors carry
     // their own free-text. Sentry's beforeSend hook lets us strip

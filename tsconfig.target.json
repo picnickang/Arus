@@ -18,7 +18,7 @@
     "noImplicitOverride": false,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": false,
-    "noPropertyAccessFromIndexSignature": false,
+    "noPropertyAccessFromIndexSignature": true,
     "useUnknownInCatchVariables": "default (true under strict)",
     "forceConsistentCasingInFileNames": false
   }

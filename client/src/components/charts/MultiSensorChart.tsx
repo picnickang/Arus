@@ -71,7 +71,7 @@ function mergeTimeSeriesData(sensors: SensorData[]): Record<string, number>[] {
     });
   });
 
-  return Object.values(merged).sort((a, b) => a.timestamp - b.timestamp);
+  return Object.values(merged).sort((a, b) => a['timestamp'] - b['timestamp']);
 }
 
 function getUniqueUnits(sensors: SensorData[]): string[] {

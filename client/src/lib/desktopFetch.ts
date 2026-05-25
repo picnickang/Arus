@@ -21,7 +21,7 @@ export async function resolveBackendUrl(): Promise<string> {
     try {
       const core = await tauriImport("@tauri-apps/api/core");
       if (core) {
-        const config = await ((core.invoke as (c: string) => unknown)("get_backend_config")) as { url: string; mode: string } | null;
+        const config = await ((core['invoke'] as (c: string) => unknown)("get_backend_config")) as { url: string; mode: string } | null;
         if (config?.url) {
           _cachedUrl = config.url;
           return _cachedUrl as string;

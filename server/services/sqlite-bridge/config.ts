@@ -6,15 +6,15 @@ export interface BridgeConfig {
 }
 
 export function loadBridgeConfig(): BridgeConfig {
-  const sqlitePath = process.env.ARUS_SQLITE_PATH;
+  const sqlitePath = process.env['ARUS_SQLITE_PATH'];
 
   if (!sqlitePath) {
     throw new Error("ARUS_SQLITE_PATH environment variable is required");
   }
 
-  const batchSize = parseInt(process.env.ARUS_BRIDGE_BATCH_SIZE || "2000", 10);
-  const pollIntervalMs = parseInt(process.env.ARUS_BRIDGE_POLL_MS || "500", 10);
-  const maxQueueDepth = parseInt(process.env.ARUS_BRIDGE_MAX_QUEUE || "5000", 10);
+  const batchSize = parseInt(process.env['ARUS_BRIDGE_BATCH_SIZE'] || "2000", 10);
+  const pollIntervalMs = parseInt(process.env['ARUS_BRIDGE_POLL_MS'] || "500", 10);
+  const maxQueueDepth = parseInt(process.env['ARUS_BRIDGE_MAX_QUEUE'] || "5000", 10);
 
   if (batchSize < 1 || batchSize > 10000) {
     throw new Error("ARUS_BRIDGE_BATCH_SIZE must be between 1 and 10000");

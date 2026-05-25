@@ -41,7 +41,7 @@ router.get("/suppliers", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
 
-    const typeParam = req.query.type as string | undefined;
+    const typeParam = req.query['type'] as string | undefined;
     let type: SupplierListFilters["type"] | undefined;
     if (typeParam) {
       if (typeParam.includes(",")) {
@@ -53,18 +53,18 @@ router.get("/suppliers", async (req: Request, res: Response) => {
 
     const filters: SupplierListFilters = {
       orgId,
-      search: req.query.search as string | undefined,
+      search: req.query['search'] as string | undefined,
       isActive:
-        req.query.isActive === "true" ? true : req.query.isActive === "false" ? false : undefined,
+        req.query['isActive'] === "true" ? true : req.query['isActive'] === "false" ? false : undefined,
       isPreferred:
-        req.query.isPreferred === "true"
+        req.query['isPreferred'] === "true"
           ? true
-          : req.query.isPreferred === "false"
+          : req.query['isPreferred'] === "false"
             ? false
             : undefined,
       type,
-      limit: req.query.limit ? Number.parseInt(req.query.limit as string, 10) : 50,
-      offset: req.query.offset ? Number.parseInt(req.query.offset as string, 10) : 0,
+      limit: req.query['limit'] ? Number.parseInt(req.query['limit'] as string, 10) : 50,
+      offset: req.query['offset'] ? Number.parseInt(req.query['offset'] as string, 10) : 0,
     };
 
     const suppliers = await repo.listSuppliers(filters);
@@ -103,7 +103,7 @@ router.get("/suppliers/:id", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
 
-    const supplier = await repo.getSupplierById(req.params.id, orgId);
+    const supplier = await repo.getSupplierById(req.params['id'], orgId);
     if (!supplier) {
       return res.status(404).json({ error: "Supplier not found" });
     }
@@ -127,12 +127,12 @@ router.patch("/suppliers/:id", async (req: Request, res: Response) => {
     const dataWithCode = parsed.data as { code?: string } & typeof parsed.data;
     if (dataWithCode.code) {
       const existing = await repo.getSupplierByCode(dataWithCode.code, orgId);
-      if (existing?.id !== req.params.id) {
+      if (existing?.id !== req.params['id']) {
         return res.status(409).json({ error: "Supplier code already exists" });
       }
     }
 
-    const supplier = await repo.updateSupplier(req.params.id, orgId, parsed.data);
+    const supplier = await repo.updateSupplier(req.params['id'], orgId, parsed.data);
     if (!supplier) {
       return res.status(404).json({ error: "Supplier not found" });
     }
@@ -148,7 +148,7 @@ router.delete("/suppliers/:id", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
 
-    const deleted = await repo.deleteSupplier(req.params.id, orgId);
+    const deleted = await repo.deleteSupplier(req.params['id'], orgId);
     if (!deleted) {
       return res.status(404).json({ error: "Supplier not found" });
     }

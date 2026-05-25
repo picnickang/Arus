@@ -133,7 +133,7 @@ export class ModelArtifactAdapter implements IModelArtifactStorage {
 }
 
 function allowPdmDemoFallbacks(): boolean {
-  return process.env.NODE_ENV !== "production" || process.env.ALLOW_PDM_DEMO_FALLBACKS === "true";
+  return process.env['NODE_ENV'] !== "production" || process.env['ALLOW_PDM_DEMO_FALLBACKS'] === "true";
 }
 
 export class StubTrainingRunner implements ITrainingRunnerPort {
@@ -147,8 +147,8 @@ export class StubTrainingRunner implements ITrainingRunnerPort {
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    const lr = (hyperparameters.learningRate as number) ?? 0.001;
-    const epochs = (hyperparameters.epochs as number) ?? 10;
+    const lr = (hyperparameters['learningRate'] as number) ?? 0.001;
+    const epochs = (hyperparameters['epochs'] as number) ?? 10;
 
     return {
       metrics: {
@@ -160,7 +160,7 @@ export class StubTrainingRunner implements ITrainingRunnerPort {
         trainingDurationMs: 500 + Math.floor(Math.random() * 2000),
       },
       artifactUri: `artifacts/demo-fallback/${datasetId}/${Date.now()}/model.bin`,
-      framework: (config.framework as string) ?? "demo-fallback-framework",
+      framework: (config['framework'] as string) ?? "demo-fallback-framework",
       format: "binary",
     };
   }

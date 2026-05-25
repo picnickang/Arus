@@ -72,9 +72,9 @@ export async function getEquipmentHealth(
   });
 
   Object.entries(vesselHealthCounts).forEach(([vesselId, counts]) => {
-    updateEquipmentHealthStatus("healthy", counts.healthy, vesselId);
-    updateEquipmentHealthStatus("warning", counts.warning, vesselId);
-    updateEquipmentHealthStatus("critical", counts.critical, vesselId);
+    updateEquipmentHealthStatus("healthy", counts['healthy'], vesselId);
+    updateEquipmentHealthStatus("warning", counts['warning'], vesselId);
+    updateEquipmentHealthStatus("critical", counts['critical'], vesselId);
   });
 
   return health;

@@ -17,7 +17,7 @@ export class AquametroFMCCServiceCore {
 
   constructor() {
     this.config = loadFMCCConfig();
-    this.useMockData = process.env.FMCC_USE_MOCK === "true" || process.env.NODE_ENV === "test";
+    this.useMockData = process.env['FMCC_USE_MOCK'] === "true" || process.env['NODE_ENV'] === "test";
 
     if (this.config.enabled) {
       if (this.config.protocol === "rest" && this.config.restConfig) {

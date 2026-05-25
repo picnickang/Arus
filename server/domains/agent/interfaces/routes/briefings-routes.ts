@@ -37,8 +37,8 @@ export function registerBriefingsRoutes(app: Express, deps: BriefingsRouteDeps) 
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
-        const dateStr = req.query.date as string | undefined;
-        const limit = parseInt(req.query.limit as string) || 30;
+        const dateStr = req.query['date'] as string | undefined;
+        const limit = parseInt(req.query['limit'] as string) || 30;
 
         if (dateStr) {
           const date = new Date(dateStr);

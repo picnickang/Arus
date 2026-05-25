@@ -232,8 +232,8 @@ router.get("/health", async (_req, res) => {
   return res.json({
     success: true,
     status: "healthy",
-    lineageFile: process.env.LINEAGE_FILE ?? "./checkpoints/lineage.jsonl",
-    provenanceFile: process.env.PROVENANCE_FILE ?? "./checkpoints/provenance.jsonl",
+    lineageFile: process.env['LINEAGE_FILE'] ?? "./checkpoints/lineage.jsonl",
+    provenanceFile: process.env['PROVENANCE_FILE'] ?? "./checkpoints/provenance.jsonl",
   });
 });
 
