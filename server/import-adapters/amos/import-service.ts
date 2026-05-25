@@ -532,6 +532,9 @@ class AmosImportService {
           updatedAt: new Date(),
         } as object as never)
         .returning({ id: parts.id });
+      if (!inserted) {
+        throw new Error("Failed to insert part during AMOS import");
+      }
       partId = inserted.id;
     }
 

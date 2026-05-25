@@ -54,13 +54,13 @@ export function computeRetentionCutoffDate(now: Date, retentionDays: number): st
 /** Extract `YYYY-MM-DD` from a `date=YYYY-MM-DD/...` segment, or null. */
 function extractPartitionDate(objectName: string): string | null {
   const m = objectName.match(/\/date=(\d{4}-\d{2}-\d{2})\//);
-  return m ? m[1] : null;
+  return m ? m[1] ?? null : null;
 }
 
 /** Extract orgId from a `orgId=<urlencoded>/date=...` path. */
 function extractOrgId(objectName: string): string | null {
   const m = objectName.match(/\/orgId=([^/]+)\/date=/);
-  return m ? decodeURIComponent(m[1]) : null;
+  return m && m[1] ? decodeURIComponent(m[1]) : null;
 }
 
 export interface RetentionResult {

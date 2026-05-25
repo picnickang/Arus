@@ -110,8 +110,8 @@ export class ScheduleSimulationService {
         complianceRate: summary.complianceRate,
         strategy,
         dateRange: {
-          from: fromDate.toISOString().split("T")[0],
-          to: toDate.toISOString().split("T")[0],
+          from: fromDate.toISOString().split("T")[0] ?? '',
+          to: toDate.toISOString().split("T")[0] ?? '',
         },
       },
     };

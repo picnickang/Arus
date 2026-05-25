@@ -264,7 +264,7 @@ export function registerServiceRequestRoutes(
       "create service request from work order",
       async (req: Request, res: Response) => {
         const orgId = getOrgId(req);
-        const workOrderId = req.params['id'];
+        const workOrderId = req.params['id'] ?? '';
         const userId = getUserId(req);
 
         const [wo] = await db

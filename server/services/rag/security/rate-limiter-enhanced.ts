@@ -90,8 +90,8 @@ export class EnhancedRateLimiter {
       if (!results) {
         throw new Error("Redis multi.exec() returned null");
       }
-      const count = results[0][1] as number;
-      const ttl = results[1][1] as number;
+      const count = results[0]![1] as number;
+      const ttl = results[1]![1] as number;
 
       // Set expiry on first request
       if (count === 1) {

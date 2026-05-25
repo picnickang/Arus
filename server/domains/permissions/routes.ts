@@ -63,7 +63,7 @@ export function registerPermissionRoutes(app: Express) {
         for (const resource of RESOURCES) {
           allPermissions[resource.code] = {};
           for (const action of resource.actions) {
-            allPermissions[resource.code][action] = true;
+            allPermissions[resource.code]![action] = true;
           }
         }
         return res.json(

@@ -73,6 +73,7 @@ export class InventorySupplierRepository {
    */
   async create(data: InsertPartsInventorySupplier): Promise<PartsInventorySupplier> {
     const [result] = await db.insert(partsInventorySuppliers).values(data).returning();
+    if (!result) throw new Error("Failed to create supplier link");
     return result;
   }
 

@@ -90,7 +90,7 @@ export async function computeInsights(
       }
 
       const latestReading = points.reduce(
-        (a, b) => (new Date(a.ts) > new Date(b.ts) ? a : b),
+        (a, b) => (a && new Date(a.ts) > new Date(b.ts) ? a : b),
         points[0]
       );
       const lastTsISO = latestReading ? new Date(latestReading.ts).toISOString() : null;

@@ -268,7 +268,7 @@ export default function ConditionMonitoringLogPage() {
                       return (
                         <div key={rating} className="flex items-center gap-3">
                           <Badge className={ConditionRatingColors[rating]}>
-                            <Icon className="h-3 w-3 mr-1" />
+                            {Icon ? <Icon className="h-3 w-3 mr-1" /> : null}
                             {rating.charAt(0).toUpperCase() + rating.slice(1)}
                           </Badge>
                           <div className="flex-1" />

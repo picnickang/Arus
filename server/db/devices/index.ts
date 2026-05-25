@@ -121,6 +121,7 @@ export class DatabaseDevicesStorage {
         set: { ...heartbeat, ts: new Date() } as never,
       })
       .returning();
+    if (!r[0]) throw new Error("Failed to upsert edge heartbeat");
     return r[0];
   }
   async getDevicesWithStatus(

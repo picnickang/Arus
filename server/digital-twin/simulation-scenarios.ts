@@ -162,7 +162,7 @@ export function simulateNormalOperation(
     engine.rpm = engine.load * 1800;
     const array = new Uint32Array(1);
     crypto.getRandomValues(array);
-    engine.temperature = 85 + engine.load * 30 + (array[0] / 0xffffffff) * 5;
+    engine.temperature = 85 + engine.load * 30 + ((array[0] ?? 0) / 0xffffffff) * 5;
   }
   state.fuel.consumptionRate = calculateFuelConsumption(state, physics) * 24;
   state.fuel.currentLevel = Math.max(

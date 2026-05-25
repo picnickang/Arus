@@ -102,7 +102,7 @@ export function FilterBar({
         <span className="text-xs text-muted-foreground whitespace-nowrap">Max</span>
         <Slider
           value={[maxTasksPerDay]}
-          onValueChange={(vals) => onMaxTasksChange(vals[0])}
+          onValueChange={(vals) => onMaxTasksChange(vals[0] ?? 1)}
           min={1}
           max={5}
           step={1}

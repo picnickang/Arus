@@ -516,7 +516,7 @@ function SupplierSelectCell({ item, onSupplierSelect }: SupplierSelectCellProps)
   useEffect(() => {
     if (!item.isCustom && suppliers.length > 0 && !item.selectedSupplierId) {
       const preferredSupplier = suppliers.find((s) => s.isPreferred);
-      const defaultSupplierId = preferredSupplier?.supplierId || suppliers[0].supplierId;
+      const defaultSupplierId = preferredSupplier?.supplierId || suppliers[0]?.supplierId;
       if (defaultSupplierId) {
         onSupplierSelect(defaultSupplierId);
       }

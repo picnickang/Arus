@@ -302,7 +302,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         const context: ConstraintCheckContext = {
           crewId: assignment.crewId,
           crewName: crewMember?.name || "Unknown",
-          date: assignment.date || shiftStart.toISOString().split("T")[0],
+          date: assignment.date || shiftStart.toISOString().split("T")[0] || '',
           shiftStart,
           shiftEnd,
           existingAssignments: crewAssignments.map((a) => ({
@@ -407,7 +407,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
                 constraint: { type: "leave", enforcement: "hard", description: "On leave" },
                 crewId: crew.id,
                 crewName: crew.name,
-                date: shiftStart.toISOString().split("T")[0],
+                date: shiftStart.toISOString().split("T")[0] ?? '',
                 description: "On approved leave during this period",
                 severity: "error",
               });

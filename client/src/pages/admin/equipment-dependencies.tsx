@@ -91,7 +91,7 @@ function parseCsv(text: string): { rows: CsvRow[]; errors: string[] } {
   const rows: CsvRow[] = [];
   const lines = text.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
-    const raw = lines[i].trim();
+    const raw = (lines[i] ?? "").trim();
     if (!raw || raw.startsWith("#")) continue;
     const parts = raw.split(",").map((p) => p.trim());
     // Skip header row.
@@ -431,7 +431,7 @@ export default function EquipmentDependenciesPage() {
     for (const id of ids) {
       const s = saved[id];
       merged[id] =
-        s && Number.isFinite(s.x) && Number.isFinite(s.y) ? s : fallback[id];
+        s && Number.isFinite(s.x) && Number.isFinite(s.y) ? s : (fallback[id] ?? { x: 0, y: 0 });
     }
     setNodePositions(merged);
     // Reset the save baseline so the merge itself doesn't trigger a write.

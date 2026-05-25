@@ -100,8 +100,8 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
 
       if (sortedActual.length > 0) {
         const medianIndex = Math.floor(sortedActual.length / 2),
-          refSpeed = sortedActual[medianIndex].x,
-          refPower = sortedActual[medianIndex].y;
+          refSpeed = sortedActual[medianIndex]!.x,
+          refPower = sortedActual[medianIndex]!.y;
         const minSpeed = Math.min(...sortedActual.map((p: { x: number }) => p.x)),
           maxSpeed = Math.max(...sortedActual.map((p: { x: number }) => p.x)),
           speedStep = (maxSpeed - minSpeed) / 20;

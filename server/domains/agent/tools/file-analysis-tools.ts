@@ -199,7 +199,7 @@ registerTool({
             min: sorted[0],
             max: sorted[sorted.length - 1],
             mean: Number((sum / numericVals.length).toFixed(4)),
-            median: Number(sorted[Math.floor(sorted.length / 2)].toFixed(4)),
+            median: Number(sorted[Math.floor(sorted.length / 2)]!.toFixed(4)),
             sum: Number(sum.toFixed(4)),
           };
         } else if (stringVals.length > 0) {

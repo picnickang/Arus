@@ -64,12 +64,10 @@ export async function getEquipmentHealth(
           ? "warning"
           : "critical";
 
-    let bucket = vesselHealthCounts[vesselIdKey];
-    if (!bucket) {
-      bucket = { healthy: 0, warning: 0, critical: 0 };
-      vesselHealthCounts[vesselIdKey] = bucket;
-    }
-    bucket[status]++;
+    const bucket: Record<string, number> =
+      vesselHealthCounts[vesselIdKey] ?? (vesselHealthCounts[vesselIdKey] = { healthy: 0, warning: 0, critical: 0 });
+    const key = status as 'healthy' | 'warning' | 'critical';
+    bucket[key] = (bucket[key] ?? 0) + 1;
     recordPdmScore(equipment.id, equipment.vessel ?? "", equipment.healthIndex);
   });
 

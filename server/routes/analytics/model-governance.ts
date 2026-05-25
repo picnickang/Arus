@@ -68,7 +68,7 @@ export function mountModelGovernanceRoutes(router: Router) {
       return;
     }
     try {
-      const { id } = req.params;
+      const id = req.params['id'] ?? '';
       const cacheKey = `${orgId}:ml-model:${id}`;
       const response = await cachedAnalytics(
         cacheKey,

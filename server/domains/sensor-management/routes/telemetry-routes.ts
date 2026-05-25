@@ -23,7 +23,7 @@ export function registerTelemetryRoutes(app: Express, config: SensorManagementCo
 
   app.get("/api/telemetry/history/:equipmentId/:sensorType", requireOrgId, async (req, res) => {
     try {
-      const { equipmentId, sensorType } = req.params;
+      const { equipmentId = '', sensorType = '' } = req.params;
       const hours = req.query['hours'] ? Number.parseInt(req.query['hours'] as string) : 24;
       // Push B3 analytics cutover: when EVENT_SPINE_ANALYTICS_READ=sink
       // the read goes to the NDJSON sink (warehouse path) instead of

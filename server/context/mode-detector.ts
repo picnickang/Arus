@@ -184,7 +184,7 @@ export class ModeDetector {
       mode: bestMode,
       confidence: Math.round(finalConfidence * 100) / 100,
       indicators: uniqueIndicators,
-      timestamp: telemetryPoints[telemetryPoints.length - 1].timestamp,
+      timestamp: telemetryPoints[telemetryPoints.length - 1]!.timestamp,
     };
   }
 

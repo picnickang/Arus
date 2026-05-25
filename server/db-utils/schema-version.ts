@@ -14,7 +14,7 @@ export async function getCurrentSchemaVersion(): Promise<number> {
       .from(dbSchemaVersion)
       .orderBy(sql`applied_at DESC`)
       .limit(1);
-    return versions.length > 0 ? versions[0].id : 0;
+    return versions[0]?.id ?? 0;
   } catch {
     return 0;
   }

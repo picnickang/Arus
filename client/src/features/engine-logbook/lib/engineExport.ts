@@ -78,7 +78,7 @@ export function exportEngineToPDF(data: ExportPDFData): void {
     ],
   ];
   summaryData.forEach((row) => {
-    doc.text(row[0], 14, yPos);
+    doc.text(row[0] ?? "", 14, yPos);
     yPos += 5;
   });
   yPos += 3;
@@ -161,7 +161,7 @@ export function exportEngineToExcel(data: ExportExcelData): void {
   XLSX.utils.book_append_sheet(wb, hourlySheet, "Hourly Readings");
 
   const genData = Array.from(generatorEntries.entries()).map(([key, entry]) => {
-    const [genNum, hour] = key.split("-");
+    const [genNum = "", hour = ""] = key.split("-");
     return {
       Generator: `DG${genNum}`,
       Hour: `${hour.padStart(2, "0")}:00`,

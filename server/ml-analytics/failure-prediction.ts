@@ -43,7 +43,7 @@ export function calculateDegradationMetrics(data: MlAnalyticsTelemetryReading[])
       if (!groups[reading.sensorType]) {
         groups[reading.sensorType] = [];
       }
-      groups[reading.sensorType].push(reading);
+      groups[reading.sensorType]!.push(reading);
       return groups;
     },
     {} as Record<string, MlAnalyticsTelemetryReading[]>

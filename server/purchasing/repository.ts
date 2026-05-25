@@ -67,7 +67,7 @@ export async function getPurchaseRequestWithItems(
   if (partIds.length > 0) {
     const partsCols = parts as object as Record<string, never>;
     const partRows = await db
-      .select({ id: parts.id, name: parts.name, partNumber: partsCols['partNumber'] })
+      .select({ id: parts.id, name: parts.name, partNumber: partsCols['partNumber']! })
       .from(parts)
       .where(inArray(parts.id, partIds));
     type PartRow = { id: string; name: string; partNumber: string };

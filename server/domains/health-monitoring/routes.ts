@@ -265,7 +265,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     requireOrgId,
     withErrorHandling("delete error log", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      await dbSystemAdminStorage.deleteErrorLog(req.params['id'], orgId);
+      await dbSystemAdminStorage.deleteErrorLog(req.params['id'] ?? '', orgId);
       res.status(204).send();
     })
   );

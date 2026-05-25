@@ -97,8 +97,8 @@ export async function getCrewRestSheets(
 ): Promise<unknown[]> {
   const restData = await dbStcwStorage.getCrewRestRange(
     vesselId,
-    start.toISOString().split("T")[0],
-    end.toISOString().split("T")[0]
+    start.toISOString().split("T")[0] ?? '',
+    end.toISOString().split("T")[0] ?? ''
   );
   return (restData as object as { map?: (fn: (r: { sheet: unknown }) => unknown) => unknown[] }).map?.((r) => r.sheet) ?? [];
 }

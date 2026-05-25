@@ -93,7 +93,7 @@ export async function setCachedExternal(
         fetchedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(externalDataCache.id, existing[0].id));
+      .where(eq(externalDataCache.id, existing[0]!.id));
   } else {
     await db.insert(externalDataCache).values({
       orgId,
@@ -202,7 +202,7 @@ async function recordFetchError(
         fetchError: errorMsg,
         updatedAt: new Date(),
       })
-      .where(eq(externalDataCache.id, existing[0].id));
+      .where(eq(externalDataCache.id, existing[0]!.id));
   }
 }
 

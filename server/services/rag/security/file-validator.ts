@@ -164,7 +164,7 @@ export class FileValidator {
     }
 
     // Check for Office Open XML (DOCX, XLSX) - they're ZIP files
-    if (buffer.subarray(0, 4).equals(MAGIC_BYTES["application/zip"])) {
+    if (buffer.subarray(0, 4).equals(MAGIC_BYTES["application/zip"]!)) {
       // These are actually ZIP files, we need to check content
       if (ext === ".docx") {
         return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";

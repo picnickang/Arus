@@ -123,7 +123,7 @@ const AnalysisResultsCard = ({
                     <div className="text-xs text-muted-foreground">
                       Value:{" "}
                       {Number.isFinite(result.features[feature])
-                        ? result.features[feature].toFixed(4)
+                        ? (result.features[feature] ?? 0).toFixed(4)
                         : "—"}
                     </div>
                   </div>

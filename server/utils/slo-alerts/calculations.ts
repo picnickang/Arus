@@ -23,7 +23,7 @@ export function calculatePercentile(samples: number[], percentile: number): numb
   }
   const sorted = [...samples].sort((a, b) => a - b);
   const index = Math.ceil((percentile / 100) * sorted.length) - 1;
-  return sorted[Math.max(0, index)];
+  return sorted[Math.max(0, index)] ?? 0;
 }
 
 export function getWindowBuckets(buckets: BucketData[], windowMinutes: number): BucketData[] {

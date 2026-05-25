@@ -12,6 +12,7 @@ import type { ReplayPort, TimelineEntry, TimelineQuery, AnomalyTimelineQuery } f
 export class ReplayAdapter implements ReplayPort {
   async logEvent(data: InsertTwinEvent): Promise<TwinEvent> {
     const [result] = await db.insert(twinEvents).values(data).returning();
+    if (!result) throw new Error("Failed to log twin event");
     return result;
   }
 

@@ -44,6 +44,7 @@ export class DatabaseGdprStorage {
   }
   async createDataSubjectRequest(request: InsertDataSubjectRequest): Promise<DataSubjectRequest> {
     const [n] = await db.insert(dataSubjectRequests).values(request).returning();
+    if (!n) throw new Error("Failed to create data subject request");
     return n;
   }
   async updateDataSubjectRequest(
@@ -300,6 +301,7 @@ export class DatabaseGdprStorage {
   }
   async createMlEngineerOverride(override: InsertEngineerOverride): Promise<EngineerOverride> {
     const [n] = await db.insert(engineerOverrides).values(override).returning();
+    if (!n) throw new Error("Failed to create engineer override");
     return n;
   }
   async updateMlEngineerOverride(

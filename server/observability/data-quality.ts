@@ -160,7 +160,7 @@ export class DataQualityMonitor {
   sweep(nowMs: number = Date.now()): void {
     for (const [key, st] of this.state) {
       if (!st.lastTsMs) continue;
-      const [vesselId, channel] = key.split("|");
+      const [vesselId = '', channel = ''] = key.split("|");
       const gapSec = (nowMs - st.lastTsMs) / 1000;
       dqChannelFreshnessSeconds.set({ channel, vessel_id: vesselId }, Math.max(0, gapSec));
       const rules = this.rules.get(channel);

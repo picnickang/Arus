@@ -94,7 +94,7 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
     "/api/insights/v2/equipment/:id",
     generalApiRateLimit,
     withErrorHandling("generate technician insight", async (req, res) => {
-      const { id } = req.params;
+      const id = req.params['id'] ?? '';
       const orgId = (req as AuthenticatedRequest).orgId;
 
       const { generateTechnicianInsight } = await import("../../insights-engine");

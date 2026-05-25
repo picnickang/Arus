@@ -209,8 +209,8 @@ function FulfillmentDialog({
                       className="h-8"
                       disabled={
                         !quantities[item.id] ||
-                        quantities[item.id] <= 0 ||
-                        quantities[item.id] > remaining ||
+                        (quantities[item.id] ?? 0) <= 0 ||
+                        (quantities[item.id] ?? 0) > remaining ||
                         isFulfilling
                       }
                       onClick={() => handleFulfill(item.id)}

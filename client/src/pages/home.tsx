@@ -259,7 +259,7 @@ export default function HomePage() {
     enabled: isVesselRole(),
     staleTime: 5 * 60 * 1000,
   });
-  const homeVesselId = isVesselRole() && vessels?.length ? vessels[0].id : undefined;
+  const homeVesselId = isVesselRole() && vessels?.length ? vessels[0]?.id : undefined;
 
   useEffect(() => {
     if (role) {

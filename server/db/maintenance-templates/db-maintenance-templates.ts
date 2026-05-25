@@ -458,7 +458,7 @@ export class DatabaseMaintenanceTemplatesStorage {
     }
     const ws = getWebSocketServer();
     if (toDelete.length > 0) {
-      ws?.broadcastMaintenanceScheduleChange("delete", { id: toDelete[0].id });
+      ws?.broadcastMaintenanceScheduleChange("delete", { id: toDelete[0]!.id });
     }
   }
 

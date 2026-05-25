@@ -40,7 +40,7 @@ interface MessageGeneratorContext {
 }
 
 function generateTelemetryMessage(ctx: MessageGeneratorContext) {
-  const sensorType = ctx.config.sensorTypes[ctx.messageCount % ctx.config.sensorTypes.length];
+  const sensorType = ctx.config.sensorTypes[ctx.messageCount % ctx.config.sensorTypes.length] ?? '';
   const value = 50 + cryptoRandom() * 50 + Math.sin(ctx.messageCount / 100) * 10;
   return {
     equipmentId: ctx.config.equipmentId,

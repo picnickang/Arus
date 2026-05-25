@@ -79,7 +79,7 @@ export function registerAutofillRoutes(app: Express, rateLimit: RateLimiters) {
     withErrorHandling("get anomaly summary", async (req, res) => {
       const orgId = req.orgId;
 
-      const summary = await getAnomalySummary(req.params['id'], orgId);
+      const summary = await getAnomalySummary(req.params['id'] ?? '', orgId);
       return res.json(summary);
     })
   );

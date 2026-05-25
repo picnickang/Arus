@@ -76,7 +76,7 @@ export class TwinStateService {
 
     for (const sensor of Object.keys(observedValues)) {
       if (!expectedValues[sensor]) {
-        expectedValues[sensor] = observedValues[sensor];
+        expectedValues[sensor] = observedValues[sensor] ?? 0;
       }
     }
 

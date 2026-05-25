@@ -51,7 +51,7 @@ export function registerMetricsRoutes(app: Express, deps: SystemAdminDependencie
     generalApiRateLimit,
     auditAdminAction("VIEW_LATEST_METRICS"),
     withErrorHandling("fetch latest performance metrics", async (req: Request, res: Response) => {
-      const { orgId, category } = req.params;
+      const { orgId = '', category = '' } = req.params;
       const metrics = await dbDigitalTwinStorage.getLatestMetricsByCategory(orgId, category);
       res.json(metrics);
     })
@@ -63,7 +63,7 @@ export function registerMetricsRoutes(app: Express, deps: SystemAdminDependencie
     generalApiRateLimit,
     auditAdminAction("VIEW_METRIC_TRENDS"),
     withErrorHandling("fetch metric trends", async (req: Request, res: Response) => {
-      const { orgId, metricName } = req.params;
+      const { orgId = '', metricName = '' } = req.params;
       const { hours } = req.query;
       const trends = await dbSystemAdminStorage.getMetricTrends(
         orgId,

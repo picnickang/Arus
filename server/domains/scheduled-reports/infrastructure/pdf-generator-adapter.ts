@@ -139,7 +139,7 @@ export class PdfGeneratorAdapter implements IPdfGeneratorAdapter {
       return;
     }
 
-    const headers = Object.keys(data[0]);
+    const headers = Object.keys(data[0] ?? {});
     const columnWidth = 500 / Math.min(headers.length, 5);
 
     doc.fontSize(8).font("Helvetica-Bold").fillColor("#333333");
@@ -258,7 +258,7 @@ export class PdfGeneratorAdapter implements IPdfGeneratorAdapter {
       if (section.type === "table" && Array.isArray(section.data)) {
         const tableData = section.data as Record<string, unknown>[];
         if (tableData.length > 0) {
-          const headers = Object.keys(tableData[0]);
+          const headers = Object.keys(tableData[0] ?? {});
           lines.push(headers.map((h) => `"${this.formatHeader(h)}"`).join(","));
 
           tableData.forEach((row) => {

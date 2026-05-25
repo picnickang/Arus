@@ -234,7 +234,7 @@ export function registerWoSoBridgeRoutes(
       "create service order from work order",
       async (req: Request, res: Response) => {
         const orgId = getOrgId(req);
-        const workOrderId = req.params['id'];
+        const workOrderId = req.params['id'] ?? '';
 
         const [wo] = await defaultDb
           .execute(

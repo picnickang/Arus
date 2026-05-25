@@ -181,7 +181,7 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
           storageUpdates['vesselId'] = validated.vesselId;
         }
 
-        const assignment = await dbCrewStorage.updateCrewAssignment(id, storageUpdates, orgId);
+        const assignment = await dbCrewStorage.updateCrewAssignment(id ?? '', storageUpdates, orgId);
 
         res.json({
           id: assignment.id,
@@ -206,7 +206,7 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
         const orgId = req.orgId!;
         const { id } = req.params;
 
-        await dbCrewStorage.deleteCrewAssignment(id, orgId);
+        await dbCrewStorage.deleteCrewAssignment(id ?? '', orgId);
         res.json({ success: true });
       }
     )

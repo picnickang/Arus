@@ -54,7 +54,7 @@ export async function analyzeEquipmentHealth(
 
     const formattedData =
       Array.isArray(telemetryData) && telemetryData.length > 0
-        ? "data" in telemetryData[0]
+        ? telemetryData[0] && "data" in telemetryData[0]
           ? (telemetryData as TelemetryTrend[]).map((trend: TelemetryTrend & {
               unit?: string;
               currentValue?: number;
@@ -146,7 +146,7 @@ export async function analyzeEquipmentHealth(
       summary: "Unable to complete AI analysis. Manual inspection recommended.",
       nextMaintenanceDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         .toISOString()
-        .split("T")[0],
+        .split("T")[0] ?? '',
       criticalAlerts: ["AI analysis service unavailable"],
     };
   }

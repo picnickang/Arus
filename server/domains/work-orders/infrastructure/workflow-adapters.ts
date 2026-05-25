@@ -46,6 +46,10 @@ export class WorkOrderWorkflowRepositoryAdapter implements IWorkOrderWorkflowRep
         id: workOrders.id,
       });
 
+    if (!row) {
+      throw new Error("Failed to create work order from quick capture");
+    }
+
     return {
       id: row.id,
       workOrderNumber: woNumber,

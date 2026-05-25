@@ -61,7 +61,7 @@ export function registerCompletionRoutes(app: Express, rateLimit: RateLimitMiddl
     "/api/work-order-completions/:id",
     requireOrgId,
     withErrorHandling("fetch work order completion", async (req: Request, res: Response) => {
-      const completion = await workOrderService.getWorkOrderCompletion(req.params['id']);
+      const completion = await workOrderService.getWorkOrderCompletion(req.params['id'] ?? '');
       if (!completion) {
         return sendNotFound(res, "Work order completion");
       }
@@ -73,7 +73,7 @@ export function registerCompletionRoutes(app: Express, rateLimit: RateLimitMiddl
     "/api/work-orders/:id/completions",
     requireOrgId,
     withErrorHandling("fetch work order completions", async (req: Request, res: Response) => {
-      const completions = await workOrderService.getWorkOrderCompletionsByWorkOrder(req.params['id']);
+      const completions = await workOrderService.getWorkOrderCompletionsByWorkOrder(req.params['id'] ?? '');
       res.json(completions);
     })
   );

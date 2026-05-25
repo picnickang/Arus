@@ -114,7 +114,7 @@ export default function EquipmentScanPage() {
   };
 
   useEffect(() => {
-    if (initialCode && matches.length === 1) {
+    if (initialCode && matches.length === 1 && matches[0]) {
       setLocation(`/equipment/${matches[0].id}`);
     }
   }, [initialCode, matches, setLocation]);

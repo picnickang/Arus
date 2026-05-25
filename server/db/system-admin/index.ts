@@ -177,7 +177,10 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
       .insert(errorLogs)
       .values({ ...log, timestamp: new Date() } as never)
       .returning();
-    return newLog;
+    if (!newLog) {
+      throw new Error("Failed to create error log");
+    }
+    return newLog as Record<string, unknown>;
   }
 
   async deleteErrorLog(id: string, orgId?: string): Promise<void> {

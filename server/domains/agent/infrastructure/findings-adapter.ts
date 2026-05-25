@@ -231,7 +231,7 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
           };
           const mappedStatuses = statusMap[filter.status] || [filter.status];
           if (mappedStatuses.length === 1) {
-            conditions.push(eq(agentFindings.status, mappedStatuses[0]));
+            conditions.push(eq(agentFindings.status, mappedStatuses[0]!));
           } else {
             conditions.push(
               sql`${agentFindings.status} IN (${sql.join(

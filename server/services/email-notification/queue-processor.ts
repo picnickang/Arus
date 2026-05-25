@@ -113,7 +113,7 @@ export async function processDigestQueue(): Promise<number> {
 
   for (const [, items] of itemsByRecipient) {
     if (items.length === 1) {
-      await processQueueItem(items[0]);
+      await processQueueItem(items[0]!);
       processedCount++;
       continue;
     }
@@ -133,7 +133,7 @@ export async function processDigestQueue(): Promise<number> {
     `;
 
     const result = await emailSender.sendEmail({
-      to: items[0].recipients as string[],
+      to: items[0]!.recipients as string[],
       subject: digestSubject,
       text: digestText,
       html: digestHtml,

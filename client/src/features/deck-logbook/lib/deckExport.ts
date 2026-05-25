@@ -115,7 +115,7 @@ export function exportDeckToPDF(data: ExportDeckPDFData): void {
     ],
   ];
   summaryData.forEach((row) => {
-    doc.text(row[0], 14, yPos);
+    doc.text(row[0] ?? "", 14, yPos);
     yPos += 5;
   });
   yPos += 3;

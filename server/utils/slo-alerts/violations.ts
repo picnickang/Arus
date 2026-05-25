@@ -154,7 +154,7 @@ function clearResolvedViolations(currentViolationKeys: Set<string>): void {
   for (const key of activeViolationKeys) {
     if (!currentViolationKeys.has(key)) {
       const [sloName, metric] = key.split(":");
-      clearViolationGauge(sloName, metric);
+      clearViolationGauge(sloName ?? '', metric ?? '');
     }
   }
 }

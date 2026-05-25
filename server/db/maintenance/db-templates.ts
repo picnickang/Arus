@@ -52,6 +52,7 @@ export class DbMaintenanceTemplates {
       .insert(maintenanceTemplates)
       .values({ id: randomUUID(), ...template, createdAt: new Date(), updatedAt: new Date() })
       .returning();
+    if (!n) throw new Error("Failed to create maintenance template");
     return n;
   }
   async updateMaintenanceTemplate(
@@ -99,6 +100,7 @@ export class DbMaintenanceTemplates {
         updatedAt: new Date(),
       })
       .returning();
+    if (!cloned) throw new Error("Failed to clone template");
     return cloned;
   }
 }

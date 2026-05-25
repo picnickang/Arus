@@ -46,12 +46,14 @@ export async function upsertCrewAlertSettings(
       .set({ ...data, updatedAt: new Date() })
       .where(eq(crewAlertSettings.id, existing.id))
       .returning();
+    if (!updated) throw new Error("Failed to update crew alert settings");
     return updated;
   }
   const [created] = await db
     .insert(crewAlertSettings)
     .values({ ...data, orgId, vesselId })
     .returning();
+  if (!created) throw new Error("Failed to create crew alert settings");
   return created;
 }
 

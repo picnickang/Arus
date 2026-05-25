@@ -38,7 +38,7 @@ export function InventoryPanel({
           ].map(([key, label]) => (
             <button
               key={key}
-              onClick={() => setTab(key)}
+              onClick={() => setTab(key ?? "all")}
               className={`px-2.5 py-1.5 text-[10px] font-semibold rounded-t-md border border-b-0 transition-colors min-h-[32px] ${
                 tab === key
                   ? "bg-sky-500/10 text-sky-400 border-sky-500/20"

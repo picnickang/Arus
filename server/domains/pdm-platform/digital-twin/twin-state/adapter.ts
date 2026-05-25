@@ -32,6 +32,9 @@ export class TwinStateAdapter implements TwinStatePort {
 
   async saveState(data: InsertAssetTwinState): Promise<AssetTwinState> {
     const [result] = await db.insert(assetTwinState).values(data).returning();
+    if (!result) {
+      throw new Error("Failed to save twin state");
+    }
     return result;
   }
 }

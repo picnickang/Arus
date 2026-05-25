@@ -114,7 +114,7 @@ function processHourlyAggregates(
       anomalies.push({
         field: targetField,
         value: aggregate.avg,
-        threshold: ENGINE_ANOMALY_THRESHOLDS[targetField],
+        threshold: ENGINE_ANOMALY_THRESHOLDS[targetField] ?? {},
         severity: anomalyCheck.severity!,
       });
     }

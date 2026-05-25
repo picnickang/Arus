@@ -38,6 +38,9 @@ export async function createDraftPR(
     status: "draft",
   });
 
+  if (!pr) {
+    throw new Error("Failed to create purchase request draft");
+  }
   await repo.createPREvent(orgId, pr.id, "created", requestedBy, { requestNumber, workOrderId });
   return pr;
 }

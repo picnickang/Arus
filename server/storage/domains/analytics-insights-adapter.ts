@@ -316,6 +316,7 @@ export class DatabaseAnalyticsInsightsAdapter extends BaseAnalyticsInsightsAdapt
       .insert(insightSnapshots)
       .values({ ...snapshot, orgId })
       .returning();
+    if (!created) throw new Error("Failed to create insight snapshot");
     return created;
   }
 
@@ -339,6 +340,7 @@ export class DatabaseAnalyticsInsightsAdapter extends BaseAnalyticsInsightsAdapt
       .insert(insightReports)
       .values({ ...report, orgId })
       .returning();
+    if (!created) throw new Error("Failed to create insight report");
     return created;
   }
 }

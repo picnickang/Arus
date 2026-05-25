@@ -42,7 +42,7 @@ const parseDate = (v: string): Date | null => {
     const m = v.match(fmt);
     if (m) {
       const d =
-        m[1].length === 4
+        m[1]!.length === 4
           ? new Date(`${m[1]}-${m[2]}-${m[3]}`)
           : new Date(`${m[3]}-${m[2]}-${m[1]}`);
       return isNaN(d.getTime()) ? null : d;

@@ -52,7 +52,7 @@ export class VesselSimulator {
   async simulate(config: SimulationConfig): Promise<SimulationResult> {
     logger.info(`[VesselSimulator] Starting simulation for ${config.vesselType} (${config.durationMinutes} min)`);
 
-    const basePreset = VESSEL_TYPE_PRESETS[config.vesselType] || VESSEL_TYPE_PRESETS['tug'];
+    const basePreset = VESSEL_TYPE_PRESETS[config.vesselType] || VESSEL_TYPE_PRESETS['tug']!;
     const preset = {
       ...basePreset,
       ...config.customPreset,

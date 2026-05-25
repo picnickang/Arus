@@ -12,6 +12,7 @@ export const xlsxExtractor: TextExtractor = {
 
       for (const sheetName of workbook.SheetNames) {
         const sheet = workbook.Sheets[sheetName];
+        if (!sheet) continue;
         const sheetData = XLSX.utils.sheet_to_csv(sheet, { blankrows: false });
 
         if (sheetData.trim()) {

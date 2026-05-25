@@ -128,7 +128,7 @@ export function exportToCSV(data: Record<string, unknown>[], options: ExportOpti
     return false; // Return false to indicate no data, let caller handle messaging
   }
 
-  const columns = options.columns || Object.keys(data[0]);
+  const columns = options.columns || Object.keys(data[0] ?? {});
   const headers = options.headers ?? {};
 
   const headerRow = columns

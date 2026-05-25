@@ -200,7 +200,7 @@ export class WebhookDeliveryService {
 
     if (this.deps.deadLetter) {
       try {
-        await this.deps.deadLetter(sub.id, event, attempts[attempts.length - 1]);
+        await this.deps.deadLetter(sub.id, event, attempts[attempts.length - 1]!);
       } catch (err) {
         logger.warn("deadLetter sink threw — swallowing", {
           err: err instanceof Error ? err.message : String(err),

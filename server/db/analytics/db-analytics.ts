@@ -656,6 +656,9 @@ export class DatabaseAnalyticsStorage {
         criticalEquipment: record.criticalEquipment,
       })
       .returning();
+    if (!n) {
+      throw new Error("Failed to create fleet metric record");
+    }
     return n;
   }
 

@@ -164,7 +164,7 @@ export class OperatorExperienceService {
     const lowestPillar = [...pillarScores].sort((a, b) => a.score - b.score)[0];
     const executiveSummary =
       signals.attentionItems > 0
-        ? `${role.label}: ${signals.attentionItems} attention item(s) are active. Prioritize ${nextActions[0]?.label.toLowerCase() ?? "the next operational action"}. Lowest UX pillar: ${lowestPillar.label}.`
+        ? `${role.label}: ${signals.attentionItems} attention item(s) are active. Prioritize ${nextActions[0]?.label.toLowerCase() ?? "the next operational action"}. Lowest UX pillar: ${lowestPillar?.label ?? "unknown"}.`
         : `${role.label}: no major attention backlog is visible. Keep the workflow simple, fast, and evidence-driven.`;
 
     return {

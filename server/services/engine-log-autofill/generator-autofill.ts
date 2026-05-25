@@ -182,7 +182,7 @@ export async function autoFillGeneratorsFromTelemetry(
 
   for (const generator of generators) {
     const genNumMatch = generator.name?.match(/(\d+)/);
-    const genNum = genNumMatch ? Number.parseInt(genNumMatch[1]) : 1;
+    const genNum = genNumMatch ? Number.parseInt(genNumMatch[1] ?? '1') : 1;
     if (!generatorNumbers.includes(genNum)) {
       continue;
     }

@@ -30,7 +30,7 @@ export async function getOpenAIApiKey(
   try {
     const settingsAccessor = getSettingsFn || (async () => dbSystemAdminStorage.getSettings());
     const settings = await settingsAccessor();
-    if (settings.openaiApiKey) {
+    if (settings?.openaiApiKey) {
       return settings.openaiApiKey;
     }
   } catch (error) {

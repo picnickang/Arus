@@ -313,6 +313,7 @@ export class RedisFanoutBus extends InProcessFanoutBus implements FanoutBus {
         const idx = fields.indexOf("p");
         if (idx === -1) continue;
         const serialised = fields[idx + 1];
+        if (!serialised) continue;
         try {
           const event = JSON.parse(serialised) as FanoutEvent;
           if (event.timestampMs < cutoff) continue;

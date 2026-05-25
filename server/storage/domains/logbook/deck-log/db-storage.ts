@@ -86,6 +86,7 @@ export class DbDeckLogStorage {
       .insert(deckLogDaily)
       .values({ ...entry, status: entry.status || "draft" })
       .returning();
+    if (!created) throw new Error("Failed to create deck log daily");
     return created;
   }
 

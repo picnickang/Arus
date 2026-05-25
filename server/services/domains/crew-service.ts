@@ -79,7 +79,7 @@ class CrewService {
       await tx.delete(crew).where(eq(crew.id, id));
       const wsServer = getWebSocketServer();
       if (crewToDelete.length > 0) {
-        wsServer?.broadcastCrewChange("delete", { id: crewToDelete[0].id });
+        wsServer?.broadcastCrewChange("delete", { id: crewToDelete[0]!.id });
       }
     });
   }

@@ -165,7 +165,7 @@ function BriefingSectionCard({ section }: { section: BriefingSection }) {
 export default function BriefingPage() {
   const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState<string>(() => {
-    return new Date().toISOString().split("T")[0];
+    return new Date().toISOString().split("T")[0] ?? "";
   });
 
   const isToday = selectedDate === new Date().toISOString().split("T")[0];
@@ -213,7 +213,7 @@ export default function BriefingPage() {
   const changeDate = (delta: number) => {
     const d = new Date(selectedDate);
     d.setDate(d.getDate() + delta);
-    setSelectedDate(d.toISOString().split("T")[0]);
+    setSelectedDate(d.toISOString().split("T")[0] ?? "");
   };
 
   const sections: BriefingSection[] = briefing?.sections

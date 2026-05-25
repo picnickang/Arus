@@ -42,7 +42,7 @@ router.post("/run", async (req: Request, res: Response) => {
 router.get("/twins/:twinId", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const result = await scenarioAdapter.listScenarios(orgId, req.params['twinId']);
+    const result = await scenarioAdapter.listScenarios(orgId, req.params['twinId'] ?? '');
     return res.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -53,7 +53,7 @@ router.get("/twins/:twinId", async (req: Request, res: Response) => {
 router.get("/:scenarioId", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const result = await scenarioAdapter.getScenario(orgId, req.params['scenarioId']);
+    const result = await scenarioAdapter.getScenario(orgId, req.params['scenarioId'] ?? '');
     if (!result) {
       return res.status(404).json({ error: "Scenario not found" });
     }

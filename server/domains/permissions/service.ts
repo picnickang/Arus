@@ -82,7 +82,7 @@ export async function compileUserPermissions(
       grantMatrix[grant.resourceCode] = {};
     }
     if (grant.isGranted) {
-      grantMatrix[grant.resourceCode][grant.actionCode] = {
+      grantMatrix[grant.resourceCode]![grant.actionCode] = {
         allowed: true,
         conditions: grant.condition || undefined,
       };
@@ -236,7 +236,7 @@ export async function getAllUserPermissions(
     result[resource.code] = {};
     for (const actionCode of resource.actions) {
       const grant = permissions.grants[resource.code]?.[actionCode];
-      result[resource.code][actionCode] = grant?.allowed ?? false;
+      result[resource.code]![actionCode] = grant?.allowed ?? false;
     }
   }
 

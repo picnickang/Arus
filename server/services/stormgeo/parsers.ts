@@ -12,7 +12,7 @@ export function parseCSV(content: string): StormGeoCSVRow[] {
     throw new Error("CSV file must have header and at least one data row");
   }
 
-  const headers = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/\s+/g, "_"));
+  const headers = lines[0]!.split(",").map((h) => h.trim().toLowerCase().replace(/\s+/g, "_"));
   const rows: StormGeoCSVRow[] = [];
 
   const numericFields = new Set<keyof StormGeoCSVRow>([
@@ -34,7 +34,7 @@ export function parseCSV(content: string): StormGeoCSVRow[] {
   ]);
 
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(",").map((v) => v.trim());
+    const values = lines[i]!.split(",").map((v) => v.trim());
     let timestamp: string | undefined;
     const numeric: Partial<Record<keyof StormGeoCSVRow, number>> = {};
     headers.forEach((header, index) => {

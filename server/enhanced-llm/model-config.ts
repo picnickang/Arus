@@ -43,15 +43,15 @@ export function getModelConfig(
   anthropicAvailable: boolean
 ): ModelConfig {
   if (preference && defaultModels[preference]) {
-    return defaultModels[preference];
+    return defaultModels[preference]!;
   }
 
   if (openaiAvailable) {
-    return defaultModels["gpt-4o"];
+    return defaultModels["gpt-4o"]!;
   }
 
   if (anthropicAvailable) {
-    return defaultModels["claude-3-5-sonnet"];
+    return defaultModels["claude-3-5-sonnet"]!;
   }
 
   throw new Error("No LLM providers available");

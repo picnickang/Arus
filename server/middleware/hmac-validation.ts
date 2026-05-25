@@ -83,7 +83,7 @@ function validateReplayHeaders(req: Request, equipmentId: string): { ok: true } 
 export async function validateHMAC(req: Request, res: Response, next: NextFunction) {
   try {
     const settings = await dbSystemAdminStorage.getSettings();
-    if (!settings.hmacRequired) {
+    if (!settings?.hmacRequired) {
       return next();
     }
 

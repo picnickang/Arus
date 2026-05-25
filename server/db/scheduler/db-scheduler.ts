@@ -41,6 +41,7 @@ export class DatabaseSchedulerStorage {
 
   async createSchedulerRun(run: InsertSchedulerRun): Promise<SchedulerRun> {
     const [n] = await db.insert(schedulerRuns).values(run).returning();
+    if (!n) throw new Error("Failed to create scheduler run");
     return n;
   }
 
@@ -147,6 +148,9 @@ export class DatabaseSchedulerStorage {
 
   async createDrydockWindow(window: InsertDrydockWindow): Promise<DrydockWindow> {
     const [n] = await db.insert(drydockWindow).values(window).returning();
+    if (!n) {
+      throw new Error("Failed to create drydock window");
+    }
     return n;
   }
 

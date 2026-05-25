@@ -106,6 +106,9 @@ export class DbWorkOrderCore {
         updatedAt: new Date(),
       })
       .returning();
+    if (!newOrder) {
+      throw new Error("Failed to create work order");
+    }
     broadcastChange("create", newOrder);
     return newOrder;
   }

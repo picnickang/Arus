@@ -88,7 +88,7 @@ export function prioritizeInformationNeed(
   const healthPenalty = definition.category === "system" ? sourceHealthPenalty(signals) : 0;
   const statusRank = Math.max(maxSignalSeverity, healthPenalty);
   const priorityRank = Math.max(PRIORITY_RANK[definition.basePriority], statusRank);
-  const primaryMetric = definition.sourceSignals.length > 0 ? metric(signals, definition.sourceSignals[0]) : null;
+  const primaryMetric = definition.sourceSignals.length > 0 ? metric(signals, definition.sourceSignals[0]!) : null;
   const status = statusFromRank(statusRank);
 
   return {

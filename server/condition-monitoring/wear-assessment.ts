@@ -94,7 +94,7 @@ function calculateEstimatedLife(wearSeverity: "normal" | "moderate" | "high" | "
     moderate: 2 * 365,
     normal: 5 * 365,
   };
-  return lifeMap[wearSeverity];
+  return lifeMap[wearSeverity] ?? 365;
 }
 
 export function assessWearCondition(wearAnalysis: WearParticleAnalysis): WearAssessment {

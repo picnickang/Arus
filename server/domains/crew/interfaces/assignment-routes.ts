@@ -44,7 +44,7 @@ export function registerAssignmentRoutes({ app, rateLimit }: CrewRouteDeps): voi
     withErrorHandling("update crew assignment", async (req, res) => {
       const assignmentData = insertCrewAssignmentSchema.partial().parse(req.body);
       const assignment = await crewService.updateAssignment(
-        req.params['id'],
+        req.params['id'] ?? '',
         assignmentData,
         req.orgId!,
         req.user?.id
@@ -58,7 +58,7 @@ export function registerAssignmentRoutes({ app, rateLimit }: CrewRouteDeps): voi
     requireOrgId,
     criticalOperationRateLimit,
     withErrorHandling("delete crew assignment", async (req, res) => {
-      await crewService.deleteAssignment(req.params['id'], req.user?.id);
+      await crewService.deleteAssignment(req.params['id'] ?? '', req.user?.id);
       sendDeleted(res);
     })
   );

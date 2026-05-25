@@ -24,6 +24,9 @@ export class DatabaseUserStorage {
       .insert(organizations)
       .values({ ...org, createdAt: new Date(), updatedAt: new Date() })
       .returning();
+    if (!result) {
+      throw new Error("Failed to create organization");
+    }
     return result;
   }
   async updateOrganization(id: string, org: Partial<InsertOrganization>): Promise<Organization> {
@@ -77,6 +80,9 @@ export class DatabaseUserStorage {
       .insert(users)
       .values({ ...user, createdAt: new Date(), updatedAt: new Date() })
       .returning();
+    if (!result) {
+      throw new Error("Failed to create user");
+    }
     return result;
   }
   async updateUser(id: string, user: Partial<InsertUser>, orgId?: string): Promise<User> {

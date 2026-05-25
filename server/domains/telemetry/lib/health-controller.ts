@@ -173,7 +173,7 @@ export function registerTelemetryHealthRoutes(app: Express): void {
 
   app.get("/api/telemetry/health/vessel/:vesselId", (req: Request, res: Response) => {
     try {
-      const { vesselId } = req.params;
+      const { vesselId = '' } = req.params;
       const health = telemetryHealthController.getVesselHealth(vesselId);
       res.json({
         timestamp: new Date().toISOString(),

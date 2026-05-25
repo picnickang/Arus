@@ -448,7 +448,7 @@ export async function queueApiOperation(
   const verb = method.toUpperCase();
   const entityType = classifyOfflineEntity(url);
   const operationType = MUTATION_TO_OPERATION[verb] || "update";
-  const routeEntityId = url.split("?")[0].split("/").filter(Boolean).slice(-1)[0];
+  const routeEntityId = (url.split("?")[0] ?? "").split("/").filter(Boolean).slice(-1)[0];
   const clientMutationId =
     (payload?.['clientMutationId'] as string | undefined) ||
     (payload?.['__clientMutationId'] as string | undefined) ||

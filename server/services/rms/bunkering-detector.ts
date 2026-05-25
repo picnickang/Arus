@@ -206,7 +206,7 @@ class BunkeringDetectorService {
     try {
       const endTime =
         active.readings.length > 0
-          ? active.readings[active.readings.length - 1].timestamp
+          ? active.readings[active.readings.length - 1]!.timestamp
           : new Date();
 
       const durationHours = (endTime.getTime() - active.startedAt.getTime()) / (1000 * 60 * 60);

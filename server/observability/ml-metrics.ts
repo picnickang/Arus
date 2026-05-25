@@ -139,8 +139,8 @@ export function computePsi(expected: number[], actual: number[]): number {
   const aSum = actual.reduce((s, v) => s + v, 0) || 1;
   let psi = 0;
   for (let i = 0; i < expected.length; i++) {
-    const e = Math.max(expected[i] / eSum, 1e-4);
-    const a = Math.max(actual[i] / aSum, 1e-4);
+    const e = Math.max((expected[i] ?? 0) / eSum, 1e-4);
+    const a = Math.max((actual[i] ?? 0) / aSum, 1e-4);
     psi += (a - e) * Math.log(a / e);
   }
   return psi;

@@ -41,8 +41,8 @@ export async function seedPdMTestCases(options: SeedOptions = {}) {
     return;
   }
 
-  const testVesselId = allVessels[0].id;
-  const testVesselName = allVessels[0].name;
+  const testVesselId = allVessels[0]!.id;
+  const testVesselName = allVessels[0]!.name;
   logger.info(`[SeedPdM] Using vessel: ${testVesselName} (${testVesselId})`);
 
   let vesselEquipment = await db

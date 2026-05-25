@@ -49,7 +49,7 @@ export function getToolCategorySummary(): Record<
     if (!grouped[tool.category]) {
       grouped[tool.category] = { tools: [] };
     }
-    grouped[tool.category].tools.push({
+    grouped[tool.category]!.tools.push({
       name: tool.name,
       description: tool.description,
       requiresApproval: tool.requiresApproval,
@@ -92,7 +92,7 @@ export function registerListAvailableToolsMeta(): void {
         if (!grouped[t.category]) {
           grouped[t.category] = [];
         }
-        grouped[t.category].push({
+        grouped[t.category]!.push({
           name: t.name,
           description: t.description,
           requiresApproval: t.requiresApproval,

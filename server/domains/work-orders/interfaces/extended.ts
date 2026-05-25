@@ -160,6 +160,9 @@ export function registerExtendedRoutes(app: Express, rateLimit: RateLimitMiddlew
 
       const createdItems = [];
       const skippedItems: Array<{ description?: string; reason: string }> = [];
+      if (!pr) {
+        throw new Error("Failed to create purchase request");
+      }
       for (const item of items) {
         if (item.partId) {
           const createdItem = await purchaseRepo.addPurchaseRequestItem({

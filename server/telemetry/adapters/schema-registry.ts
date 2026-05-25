@@ -62,6 +62,7 @@ export class TelemetrySchemaRegistryAdapter {
       schemaName: input.schemaName,
     });
 
+    if (!inserted) throw new Error("Failed to register schema");
     return inserted;
   }
 

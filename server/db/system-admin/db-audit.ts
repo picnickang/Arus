@@ -40,6 +40,9 @@ export class DbAuditStorage {
       .insert(adminAuditEvents)
       .values({ ...event, createdAt: new Date() })
       .returning();
+    if (!n) {
+      throw new Error("Failed to create admin audit event");
+    }
     return n;
   }
   async updateAdminAuditEvent(
@@ -88,6 +91,9 @@ export class DbAuditStorage {
 
   async createAdminSession(session: InsertAdminSession): Promise<AdminSession> {
     const [n] = await db.insert(adminSessions).values(session).returning();
+    if (!n) {
+      throw new Error("Failed to create admin session");
+    }
     return n;
   }
   async getAdminSession(sessionToken: string): Promise<AdminSession | undefined> {

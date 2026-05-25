@@ -16,6 +16,9 @@ export class DbWorkOrderCompletions {
       .insert(workOrderCompletions)
       .values({ id: randomUUID(), ...completion, createdAt: new Date(), updatedAt: new Date() } as never)
       .returning();
+    if (!newCompletion) {
+      throw new Error("Failed to create work order completion");
+    }
     return newCompletion;
   }
 

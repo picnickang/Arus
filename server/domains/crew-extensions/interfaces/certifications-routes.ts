@@ -38,7 +38,7 @@ export function registerCertificationsRoutes(app: Express, config: CrewExtension
     withErrorHandling("update crew certification", async (req: Request, res: Response) => {
       const certData = insertCrewCertificationSchema.partial().parse(req.body);
       const certification = await dbCrewExtensionsStorage.updateCrewCertification(
-        req.params['id'],
+        req.params['id'] ?? '',
         certData
       );
       res.json(certification);
@@ -49,7 +49,7 @@ export function registerCertificationsRoutes(app: Express, config: CrewExtension
     "/api/crew/certifications/:id",
     criticalOperationRateLimit,
     withErrorHandling("delete crew certification", async (req: Request, res: Response) => {
-      await dbCrewExtensionsStorage.deleteCrewCertification(req.params['id']);
+      await dbCrewExtensionsStorage.deleteCrewCertification(req.params['id'] ?? '');
       res.json({ success: true });
     })
   );

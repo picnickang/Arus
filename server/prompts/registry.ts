@@ -67,7 +67,7 @@ class PromptRegistry {
     let match: RegExpExecArray | null;
     INTERP_RE.lastIndex = 0;
     while ((match = INTERP_RE.exec(def.template)) !== null) {
-      referenced.add(match[1]);
+      referenced.add(match[1] ?? '');
     }
     const declared = new Set(def.variables);
     for (const v of referenced) {

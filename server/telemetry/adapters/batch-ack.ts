@@ -65,7 +65,7 @@ export class TelemetryBatchAckAdapter {
       return {
         batchId,
         status: "duplicate",
-        receivedAt: existing[0].receivedAt,
+        receivedAt: existing[0]!.receivedAt,
       };
     }
 

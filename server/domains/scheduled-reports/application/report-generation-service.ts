@@ -416,8 +416,8 @@ export class ReportGenerationService {
   }
 
   private generateFilename(schedule: Partial<ReportScheduleConfig>, generatedAt: Date): string {
-    const date = generatedAt.toISOString().split("T")[0];
-    const time = generatedAt.toISOString().split("T")[1].substring(0, 5).replace(":", "");
+    const date = generatedAt.toISOString().split("T")[0] ?? '';
+    const time = (generatedAt.toISOString().split("T")[1] ?? '').substring(0, 5).replace(":", "");
     const ext = schedule.format || "pdf";
     return `${schedule.reportType}_${date}_${time}.${ext}`;
   }

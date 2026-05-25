@@ -499,7 +499,7 @@ export class AgentOrchestrator {
     // --- Replace last user message with multipart content if provided ---
     if (contentParts) {
       for (let i = openaiMessages.length - 1; i >= 0; i--) {
-        if (openaiMessages[i].role === "user") {
+        if (openaiMessages[i]?.role === "user") {
           openaiMessages[i] = { role: "user", content: contentParts };
           break;
         }

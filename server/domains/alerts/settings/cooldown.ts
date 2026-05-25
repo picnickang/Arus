@@ -67,6 +67,7 @@ export async function recordAlertSent(
       })
       .where(eq(alertCooldown.id, existing.id))
       .returning();
+    if (!updated) throw new Error("Failed to update alert cooldown");
     return updated;
   }
   const [created] = await db
@@ -81,6 +82,7 @@ export async function recordAlertSent(
       alertCount: 1,
     })
     .returning();
+  if (!created) throw new Error("Failed to create alert cooldown");
   return created;
 }
 

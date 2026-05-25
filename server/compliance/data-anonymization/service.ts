@@ -404,7 +404,7 @@ export class DataAnonymizationService {
 
   private findLocalStart(s: string, atIdx: number): number {
     let i = atIdx - 1;
-    while (i >= 0 && /[a-zA-Z0-9._%+-]/.test(s[i])) {
+    while (i >= 0 && /[a-zA-Z0-9._%+-]/.test(s[i] ?? '')) {
       i--;
     }
     return i + 1;
@@ -412,7 +412,7 @@ export class DataAnonymizationService {
 
   private findDomainEnd(s: string, atIdx: number): number {
     let i = atIdx + 1;
-    while (i < s.length && /[a-zA-Z0-9.-]/.test(s[i])) {
+    while (i < s.length && /[a-zA-Z0-9.-]/.test(s[i] ?? '')) {
       i++;
     }
     return i;

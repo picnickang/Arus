@@ -248,7 +248,7 @@ export async function generateAIInsights(telemetryReading: EquipmentTelemetry): 
   const now = Date.now();
 
   const settings = await dbSystemAdminStorage.getSettings();
-  const throttleMs = (settings.aiInsightsThrottleMinutes || 2) * 60 * 1000;
+  const throttleMs = (settings?.aiInsightsThrottleMinutes || 2) * 60 * 1000;
 
   if (now - lastRun < throttleMs) {
     return;

@@ -64,7 +64,7 @@ export async function setupSensors(
         throw new Error("Equipment not found");
       }
 
-      const sensorsToCreate = DEFAULT_SENSORS[equipment.type] || DEFAULT_SENSORS['default'];
+      const sensorsToCreate = DEFAULT_SENSORS[equipment.type] || DEFAULT_SENSORS['default'] || [];
       const sensorRepo = TenantRepositoryFactory.sensorConfiguration(orgId);
       type CreatedSensor = Awaited<ReturnType<typeof sensorRepo.create>> & {
         sensorType: string;
@@ -102,7 +102,7 @@ export async function setupSensors(
         equipmentId,
         equipmentType: equipment.type,
         sensorsCreated: created.length,
-        sensorsSkipped: sensorsToCreate.length - created.length,
+        sensorsSkipped: (sensorsToCreate?.length ?? 0) - created.length,
         totalSensors: existing.length + created.length,
         sensors: created.map((s) => ({
           sensorType: s.sensorType,

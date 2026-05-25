@@ -159,7 +159,7 @@ export async function autoOptimizeInventory(
   }));
 
   // Use average costs across all parts
-  const firstPart = Object.keys(costs)[0];
+  const firstPart = Object.keys(costs)[0] ?? "";
   const costParams = {
     orderingCost: costs[firstPart]?.orderingCost ?? 75,
     holdingCostRate: costs[firstPart]?.holdingCostRate ?? 0.2,

@@ -63,10 +63,10 @@ export class RawTelemetryArchiveAdapter {
     if (existingDuplicate.length > 0) {
       logger.debug("RawArchive", "Duplicate payload detected", {
         payloadHash,
-        existingId: existingDuplicate[0].id,
+        existingId: existingDuplicate[0]!.id,
       });
       return {
-        archiveId: existingDuplicate[0].id,
+        archiveId: existingDuplicate[0]!.id,
         payloadHash,
         frameCount: payload.frames.length,
         isDuplicate: true,

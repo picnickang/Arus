@@ -256,11 +256,11 @@ export function registerTenantRoutes(
             signingSecret ?? "dev-only-fallback-secret-do-not-use-in-prod",
         });
         const result = await service.execute(
-          req.params['orgId'],
+          req.params['orgId'] ?? '',
           parsed.data.reason
         );
         logger.warn("Tenant deleted", {
-          orgId: req.params['orgId'],
+          orgId: req.params['orgId'] ?? '',
           requestedBy: adminId,
           certificateId: result.certificate.certificateId,
         });

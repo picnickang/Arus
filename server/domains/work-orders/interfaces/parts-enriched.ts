@@ -18,7 +18,7 @@ export function registerEnrichedPartsRoutes(app: Express) {
     requireOrgId,
     withErrorHandling("fetch enriched work order parts", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const parts = await getEnrichedWorkOrderParts(req.params['id'], orgId);
+      const parts = await getEnrichedWorkOrderParts(req.params['id'] ?? '', orgId);
       res.json(parts);
     })
   );
@@ -28,7 +28,7 @@ export function registerEnrichedPartsRoutes(app: Express) {
     requireOrgId,
     withErrorHandling("fetch out-of-stock suggestions", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const suggestions = await getOutOfStockSuggestions(req.params['id'], orgId);
+      const suggestions = await getOutOfStockSuggestions(req.params['id'] ?? '', orgId);
       res.json(suggestions);
     })
   );

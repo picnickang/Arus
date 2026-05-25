@@ -225,8 +225,8 @@ function processCrewCompliance(
     return;
   }
 
-  const startDate = new Date(sortedDates[0]);
-  const endDate = new Date(sortedDates[sortedDates.length - 1]);
+  const startDate = new Date(sortedDates[0]!);
+  const endDate = new Date(sortedDates[sortedDates.length - 1]!);
   const allDates = getDatesInRange(startDate, endDate);
 
   const restDays: RestDay[] = allDates.map((dateStr) => {

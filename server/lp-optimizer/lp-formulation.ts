@@ -297,7 +297,7 @@ function extractScheduleFromSolution(
       priority: job.priority,
     });
 
-    crewUtilization[crew.crewMember] += job.estimatedDuration / 60;
+    crewUtilization[crew.crewMember] = (crewUtilization[crew.crewMember] ?? 0) + job.estimatedDuration / 60;
     totalCost += laborCost + partsCost;
     partsUsedBudget += partsCost;
 

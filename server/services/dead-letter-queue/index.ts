@@ -57,7 +57,7 @@ export class DeadLetterQueue<T = unknown> extends EventEmitter {
     if (queue.length >= this.config.maxEntries) {
       const removed = repository.clearOldEntries(this.config.name, 1);
       if (removed === 0) {
-        repository.removeEntry(this.config.name, queue[0].id);
+        repository.removeEntry(this.config.name, queue[0]!.id);
       }
     }
 

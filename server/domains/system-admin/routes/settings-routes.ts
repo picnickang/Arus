@@ -98,7 +98,7 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
     generalApiRateLimit,
     auditAdminAction("VIEW_SYSTEM_SETTING"),
     withErrorHandling("fetch admin system setting", async (req: Request, res: Response) => {
-      const { orgId, category, key } = req.params;
+      const { orgId = '', category = '', key = '' } = req.params;
       const setting = await dbSystemAdminStorage.getAdminSystemSetting(orgId, category, key);
       if (!setting) {
         return sendNotFound(res, "System setting");

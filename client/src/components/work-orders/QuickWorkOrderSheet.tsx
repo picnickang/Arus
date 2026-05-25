@@ -103,7 +103,7 @@ export function QuickWorkOrderSheet({
 
     const reader = new FileReader();
     reader.onload = () => {
-      const base64 = (reader.result as string).split(",")[1];
+      const base64 = (reader.result as string).split(",")[1] ?? null;
       setPhotoBase64(base64);
     };
     reader.readAsDataURL(file);

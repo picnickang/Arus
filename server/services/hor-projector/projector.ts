@@ -127,7 +127,7 @@ export function getDatesInRange(start: Date, end: Date): string[] {
   endDate.setHours(0, 0, 0, 0);
 
   while (current <= endDate) {
-    dates.push(current.toISOString().split("T")[0]);
+    dates.push(current.toISOString().split("T")[0] ?? '');
     current.setDate(current.getDate() + 1);
   }
 
@@ -353,8 +353,8 @@ export function projectComplianceFromAssignments(
 
     const latestDate =
       projectedDays.length > 0
-        ? projectedDays[projectedDays.length - 1].date
-        : new Date().toISOString().split("T")[0];
+        ? projectedDays[projectedDays.length - 1]!.date
+        : new Date().toISOString().split("T")[0] ?? '';
 
     const weeklyWorkHours = calculateWeeklyWorkHours(projectedDays, latestDate as string);
     const last24hRestHours = calculateLast24hRest(projectedDays, latestDate as string);

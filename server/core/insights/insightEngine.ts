@@ -336,6 +336,9 @@ export class InsightEngine {
     };
 
     const [created] = await db.insert(actionableInsights).values(insightData).returning();
+    if (!created) {
+      throw new Error("Failed to create actionable insight");
+    }
 
     logger.info("InsightEngine", "Actionable insight created", {
       insightId: created.id,

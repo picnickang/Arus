@@ -15,7 +15,7 @@ import { handleEquipmentSummary } from "./summary-handler";
 export function registerEquipmentContextRoutes(app: Express) {
   app.get("/api/context/equipment/:equipmentId", generalApiRateLimit, async (req, res) => {
     try {
-      const { equipmentId } = req.params;
+      const equipmentId = req.params['equipmentId'] ?? '';
       const queryResult = contextQuerySchema.safeParse(req.query);
 
       if (!queryResult.success) {

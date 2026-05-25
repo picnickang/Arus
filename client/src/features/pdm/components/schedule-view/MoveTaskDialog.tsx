@@ -29,7 +29,7 @@ export function MoveTaskDialog({ task, isOpen, onClose, onConfirm }: MoveTaskDia
         typeof task.schedulingWindow.preferredDate === "string"
           ? task.schedulingWindow.preferredDate
           : task.schedulingWindow.preferredDate.toISOString().split("T")[0];
-      setSelectedDate(preferredDate);
+      setSelectedDate(preferredDate ?? "");
       setIsOverride(false);
     }
   }, [task, isOpen]);

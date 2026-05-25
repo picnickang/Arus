@@ -28,10 +28,12 @@ export function setCache(key: string, data: unknown): void {
   stcwCache.set(key, { data, timestamp: Date.now() });
 
   if (stcwCache.size > STCW_CACHE_MAX_SIZE) {
-    const oldestKey = Array.from(stcwCache.entries()).sort(
+    const oldestEntry = Array.from(stcwCache.entries()).sort(
       (a, b) => a[1].timestamp - b[1].timestamp
-    )[0][0];
-    stcwCache.delete(oldestKey);
+    )[0];
+    if (oldestEntry) {
+      stcwCache.delete(oldestEntry[0]);
+    }
   }
 }
 

@@ -32,7 +32,7 @@ router.post("/", async (req: Request, res: Response) => {
 router.get("/predictions/:predictionId/explanations", async (req: Request, res: Response) => {
   try {
     const orgId = (req as AuthenticatedRequest).orgId;
-    const predictionId = parseInt(req.params['predictionId']);
+    const predictionId = parseInt(req.params['predictionId'] ?? '');
     if (isNaN(predictionId)) {
       return res.status(400).json({ error: "Invalid predictionId" });
     }
@@ -47,7 +47,7 @@ router.get("/predictions/:predictionId/explanations", async (req: Request, res: 
 router.get("/predictions/:predictionId/lineage", async (req: Request, res: Response) => {
   try {
     const orgId = (req as AuthenticatedRequest).orgId;
-    const predictionId = parseInt(req.params['predictionId']);
+    const predictionId = parseInt(req.params['predictionId'] ?? '');
     if (isNaN(predictionId)) {
       return res.status(400).json({ error: "Invalid predictionId" });
     }

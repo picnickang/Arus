@@ -69,7 +69,7 @@ export class StormGeoIntegrationService {
 
       for (let i = 0; i < rows.length; i++) {
         try {
-          snapshots.push(csvRowToSnapshot(rows[i], orgId, vesselId, fileName));
+          snapshots.push(csvRowToSnapshot(rows[i]!, orgId, vesselId, fileName));
         } catch (error) {
           errors.push({
             row: i + 2,
@@ -133,7 +133,7 @@ export class StormGeoIntegrationService {
         try {
           snapshots.push(
             jsonWaypointToSnapshot(
-              data.waypoints[i],
+              data.waypoints[i]!,
               orgId,
               vesselId,
               fileName,

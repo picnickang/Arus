@@ -204,7 +204,7 @@ async function computeAndStoreExplanation(
     );
     if (storedPrediction) {
       const models = await dbMlAnalyticsStorage.getMlModels(orgId, "lstm");
-      const modelId = models.length > 0 ? models[0].id : undefined;
+      const modelId = models[0]?.id;
       if (modelId) {
         await storeFeatureImportances(orgId, explanation, {
           equipmentId,
@@ -228,7 +228,7 @@ async function computeAndStoreExplanation(
   const explanation = await explainRandomForestPrediction(model, features);
   if (storedPrediction) {
     const models = await dbMlAnalyticsStorage.getMlModels(orgId, "random_forest");
-    const modelId = models.length > 0 ? models[0].id : undefined;
+    const modelId = models[0]?.id;
     if (modelId) {
       await storeFeatureImportances(orgId, explanation, {
         equipmentId,

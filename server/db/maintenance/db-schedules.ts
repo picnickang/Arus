@@ -221,6 +221,7 @@ export class DbMaintenanceSchedules {
       .insert(maintenanceCosts)
       .values({ id: randomUUID(), ...cost, createdAt: new Date(), updatedAt: new Date() } as never)
       .returning();
+    if (!n) throw new Error("Failed to create maintenance cost");
     return n;
   }
 }

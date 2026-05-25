@@ -531,6 +531,10 @@ export class PdmPostgresRepository implements PdmRepositoryPort {
       })
       .returning({ id: workOrders.id });
 
+    if (!newWo) {
+      throw new Error("Failed to create work order from PdM alert");
+    }
+
     await db
       .update(failurePredictions)
       .set({ resolvedByWorkOrderId: newWo.id })

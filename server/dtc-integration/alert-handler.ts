@@ -146,10 +146,12 @@ export async function getDtcDashboardStats(orgId: string): Promise<DtcDashboardS
 
   dtcStatsCache.set(cacheKey, { data: result, timestamp: Date.now() });
   if (dtcStatsCache.size > 20) {
-    const oldestKey = Array.from(dtcStatsCache.entries()).sort(
+    const oldest = Array.from(dtcStatsCache.entries()).sort(
       (a, b) => a[1].timestamp - b[1].timestamp
-    )[0][0];
-    dtcStatsCache.delete(oldestKey);
+    )[0];
+    if (oldest) {
+      dtcStatsCache.delete(oldest[0]);
+    }
   }
 
   return result;

@@ -156,7 +156,8 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     generalApiRateLimit,
     withErrorHandling("query aggregated telemetry", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const { equipmentId, sensorType } = req.params;
+      const equipmentId = req.params['equipmentId'] ?? '';
+      const sensorType = req.params['sensorType'] ?? '';
       const startDate = new Date(
         (req.query['startDate'] as string) || Date.now() - 24 * 60 * 60 * 1000
       );
@@ -268,7 +269,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     generalApiRateLimit,
     withErrorHandling("get training job status", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const { jobId } = req.params;
+      const jobId = req.params['jobId'] ?? '';
 
       try {
         const boss = jobQueueService.getBoss();

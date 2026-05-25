@@ -123,6 +123,7 @@ export class CrewLifecycleRepository {
     data: InsertCrewEmploymentHistory
   ): Promise<SelectCrewEmploymentHistory> {
     const results = await db.insert(crewEmploymentHistory).values(data).returning();
+    if (!results[0]) throw new Error("Failed to create employment history");
     return results[0];
   }
 

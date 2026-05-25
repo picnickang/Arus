@@ -23,8 +23,8 @@ export async function saveLSTMModel(trainedModel: TrainedLSTMModel, path: string
   const means: Record<string, number> = {};
   const stds: Record<string, number> = {};
   trainedModel.featureNames.forEach((name, idx) => {
-    means[name] = trainedModel.normalizationParams.mean[idx];
-    stds[name] = trainedModel.normalizationParams.std[idx];
+    means[name] = trainedModel.normalizationParams.mean[idx] ?? 0;
+    stds[name] = trainedModel.normalizationParams.std[idx] ?? 1;
   });
 
   await savePreprocessingParams(path, {

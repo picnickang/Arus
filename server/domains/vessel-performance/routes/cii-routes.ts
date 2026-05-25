@@ -16,7 +16,7 @@ export function registerCIIRoutes(app: Express, config: VesselPerformanceRoutesC
   app.get(
     "/api/compliance/cii/:vesselId",
     withErrorHandling("calculate CII rating", async (req: Request, res: Response) => {
-      const { vesselId } = req.params,
+      const { vesselId = '' } = req.params,
         orgId = DEFAULT_ORG_ID;
 
       const ciiService = await getCIIService();
@@ -50,7 +50,7 @@ export function registerCIIRoutes(app: Express, config: VesselPerformanceRoutesC
   app.get(
     "/api/compliance/cii/:vesselId/trend",
     withErrorHandling("get CII trend", async (req: Request, res: Response) => {
-      const { vesselId } = req.params,
+      const { vesselId = '' } = req.params,
         orgId = DEFAULT_ORG_ID;
 
       const ciiService = await getCIIService();

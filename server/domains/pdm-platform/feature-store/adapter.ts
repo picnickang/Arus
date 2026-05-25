@@ -201,7 +201,7 @@ export class FeatureStoreAdapter implements FeatureStorePort {
     for (const key of Object.keys(bySensor)) {
       for (const candidate of candidates) {
         if (key.includes(candidate)) {
-          return bySensor[key];
+          return bySensor[key] ?? [];
         }
       }
     }

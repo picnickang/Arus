@@ -665,8 +665,8 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         id: r.id,
         title: r.description || "Work Order",
         status: r.status,
-        createdAt: r.createdAt ? new Date(r.createdAt).toISOString().split("T")[0] : "",
-        completedAt: r.completedAt ? new Date(r.completedAt).toISOString().split("T")[0] : null,
+        createdAt: r.createdAt ? new Date(r.createdAt).toISOString().split("T")[0] ?? "" : "",
+        completedAt: r.completedAt ? new Date(r.completedAt).toISOString().split("T")[0] ?? null : null,
       }));
     } catch {
       return [];

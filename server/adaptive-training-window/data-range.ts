@@ -55,8 +55,9 @@ export async function getEquipmentDataRange(
       )
       .execute();
 
-    if (result.length > 0 && result[0].oldestTimestamp) {
-      oldestDate = new Date(result[0].oldestTimestamp);
+    const first = result[0];
+    if (first?.oldestTimestamp) {
+      oldestDate = new Date(first.oldestTimestamp);
     }
   } catch (error) {
     logger.error("[Adaptive Training Window] Error fetching telemetry history:", undefined, error);

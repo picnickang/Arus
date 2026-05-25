@@ -78,7 +78,7 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
     "/api/sensor-states/:equipmentId/:sensorType",
     requireOrgId,
     withErrorHandling("fetch sensor state", async (req, res) => {
-      const { equipmentId, sensorType } = req.params;
+      const { equipmentId = '', sensorType = '' } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
       const state = await dbSensorsStorage.getSensorState(equipmentId, sensorType, orgId);
       if (!state) {

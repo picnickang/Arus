@@ -54,7 +54,7 @@ export function ModelRegistryTab({
           continue;
         }
       }
-      if (!selectedModelId && modelsList.length > 0) {
+      if (!selectedModelId && modelsList[0]) {
         setSelectedModelId(modelsList[0].id);
       }
     };

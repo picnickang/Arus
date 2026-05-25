@@ -68,7 +68,7 @@ export abstract class TenantScopedRepository {
       );
     }
 
-    const orgFilter = eq((table as object as Record<string, never>)[orgIdColumn], this.orgId);
+    const orgFilter = eq((table as object as Record<string, never>)[orgIdColumn]!, this.orgId);
     return additionalWhere ? and(orgFilter, additionalWhere) : orgFilter;
   }
 

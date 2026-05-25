@@ -50,7 +50,7 @@ export function registerAuditRoutes(app: Express, deps: SystemAdminDependencies)
     generalApiRateLimit,
     auditAdminAction("VIEW_USER_AUDIT_EVENTS"),
     withErrorHandling("fetch user audit events", async (req: Request, res: Response) => {
-      const { userId } = req.params;
+      const { userId = '' } = req.params;
       const { orgId } = req.query;
       const events = await dbSystemAdminStorage.getAuditEventsByUser(userId, orgId as string);
       res.json(events);
@@ -63,7 +63,7 @@ export function registerAuditRoutes(app: Express, deps: SystemAdminDependencies)
     generalApiRateLimit,
     auditAdminAction("VIEW_RESOURCE_AUDIT_EVENTS"),
     withErrorHandling("fetch resource audit events", async (req: Request, res: Response) => {
-      const { resourceType, resourceId } = req.params;
+      const { resourceType = '', resourceId = '' } = req.params;
       const { orgId } = req.query;
       const events = await dbSystemAdminStorage.getAuditEventsByResource(
         resourceType,

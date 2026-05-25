@@ -51,7 +51,7 @@ export function formatDate(value: Date | string | null): string {
   if (typeof value === "string") {
     return value.length >= 10 ? value.slice(0, 10) : value;
   }
-  return value.toISOString().split("T")[0];
+  return value.toISOString().split("T")[0] ?? '';
 }
 
 export function calculateTotalHours(assignments: ScheduleDayCell[]): number {

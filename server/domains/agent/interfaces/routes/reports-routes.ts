@@ -12,7 +12,7 @@ export function registerReportsRoutes(app: Express) {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      const { reportId } = req.params;
+      const reportId = req.params['reportId'] ?? '';
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(reportId)) {
         return res.status(400).json({ error: "Invalid report ID format" });

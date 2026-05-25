@@ -50,7 +50,7 @@ export async function listSuppliers(filters: SupplierListFilters) {
   if (filters.type) {
     const types = Array.isArray(filters.type) ? filters.type : [filters.type];
     if (types.length === 1) {
-      conditions.push(eq(suppliers.type, types[0]));
+      conditions.push(eq(suppliers.type, types[0]!));
     } else {
       conditions.push(or(...types.map((t) => eq(suppliers.type, t)))!);
     }

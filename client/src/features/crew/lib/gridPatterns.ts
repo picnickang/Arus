@@ -18,7 +18,7 @@ export function applyPatternToRows(
     if (dayIndices.includes(i)) {
       const newRow: DayRow = { date: r.date } as DayRow;
       for (let h = 0; h < 24; h++) {
-        (newRow as Record<string, number | string>)[`h${h}`] = pattern.pattern[h];
+        (newRow as Record<string, number | string>)[`h${h}`] = pattern.pattern[h] ?? 0;
       }
       return newRow;
     }
@@ -55,8 +55,9 @@ export function copyWeekData(rows: DayRow[], sourceWeek: number, targetWeeks: nu
   targetWeeks.forEach((weekNum) => {
     const targetStart = weekNum * 7;
     weekData.forEach((day, offset) => {
-      if (targetStart + offset < next.length) {
-        next[targetStart + offset] = { ...day, date: next[targetStart + offset].date };
+      const target = next[targetStart + offset];
+      if (target) {
+        next[targetStart + offset] = { ...day, date: target.date };
       }
     });
   });
@@ -67,7 +68,7 @@ export function applyRestPeriodToAllDays(rows: DayRow[], pattern: number[]): Day
   return rows.map((r) => {
     const newRow: DayRow = { date: r.date } as DayRow;
     for (let h = 0; h < 24; h++) {
-      (newRow as Record<string, number | string>)[`h${h}`] = pattern[h];
+      (newRow as Record<string, number | string>)[`h${h}`] = pattern[h] ?? 0;
     }
     return newRow;
   });

@@ -29,7 +29,7 @@ export function registerTwinRoutes(app: Express, _config: MlAnalyticsConfig) {
     "/api/analytics/digital-twins/:id",
     withErrorHandling("fetch digital twin", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId } = req.query;
-      const twin = await dbDigitalTwinStorage.getDigitalTwin(req.params['id'], orgId as string);
+      const twin = await dbDigitalTwinStorage.getDigitalTwin(req.params['id'] ?? '', orgId as string);
       if (!twin) {
         return sendNotFound(res, "Digital twin");
       }
@@ -54,7 +54,7 @@ export function registerTwinRoutes(app: Express, _config: MlAnalyticsConfig) {
   app.get(
     "/api/analytics/twin-simulations/:id",
     withErrorHandling("fetch twin simulation", async (req, res) => {
-      const simulation = await dbDigitalTwinStorage.getTwinSimulation(req.params['id']);
+      const simulation = await dbDigitalTwinStorage.getTwinSimulation(req.params['id'] ?? '');
       if (!simulation) {
         return sendNotFound(res, "Twin simulation");
       }

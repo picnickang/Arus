@@ -258,12 +258,13 @@ export async function runSqliteBridge(config: BridgeConfig): Promise<void> {
           bridgeCommitLatencyHistogram.observe(commitLatency);
 
           let oldestTs: number;
-          if (typeof oldestFrameTs === "number") {
-            oldestTs = oldestFrameTs;
-          } else if ((oldestFrameTs as unknown) instanceof Date) {
-            oldestTs = (oldestFrameTs as Date).getTime();
-          } else if (typeof oldestFrameTs === "string") {
-            oldestTs = Date.parse(oldestFrameTs);
+          const oldestFrameTsUnknown: unknown = oldestFrameTs;
+          if (typeof oldestFrameTsUnknown === "number") {
+            oldestTs = oldestFrameTsUnknown;
+          } else if (oldestFrameTsUnknown instanceof Date) {
+            oldestTs = oldestFrameTsUnknown.getTime();
+          } else if (typeof oldestFrameTsUnknown === "string") {
+            oldestTs = Date.parse(oldestFrameTsUnknown);
           } else {
             oldestTs = commitEnd;
           }

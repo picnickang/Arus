@@ -321,7 +321,7 @@ export function useHoursOfRestData(): UseHoursOfRestDataReturn {
     (dIdx: number, h: number) => {
       dragStartRef.current = JSON.parse(JSON.stringify(rows));
       dragStartPosRef.current = { row: dIdx, col: h };
-      const currentValue = (rows[dIdx][`h${h}` as keyof DayRow] as number) || 0;
+      const currentValue = (rows[dIdx]?.[`h${h}` as keyof DayRow] as number) || 0;
       const newValue = currentValue === 1 ? 0 : 1;
       paintValueRef.current = newValue;
       setIsDragging(true);
@@ -488,7 +488,7 @@ export function useHoursOfRestData(): UseHoursOfRestDataReturn {
             const sourceRow = rows[idx];
             const newRow = { date: targetRow.date } as Record<string, number | string>;
             for (let h = 0; h < 24; h++) {
-              newRow[`h${h}`] = (sourceRow[`h${h}` as keyof DayRow] as number) || 0;
+              newRow[`h${h}`] = (sourceRow?.[`h${h}` as keyof DayRow] as number) || 0;
             }
             return newRow as DayRow;
           }

@@ -20,7 +20,7 @@ router.get("/templates", async (req: Request, res: Response) => {
 router.get("/templates/:templateId", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const result = await adapter.getTemplate(orgId, req.params['templateId']);
+    const result = await adapter.getTemplate(orgId, req.params['templateId'] ?? '');
     if (!result) {
       return res.status(404).json({ error: "Template not found" });
     }
@@ -60,7 +60,7 @@ router.get("/twins", async (req: Request, res: Response) => {
 router.get("/twins/:twinId", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const result = await adapter.getTwin(orgId, req.params['twinId']);
+    const result = await adapter.getTwin(orgId, req.params['twinId'] ?? '');
     if (!result) {
       return res.status(404).json({ error: "Twin not found" });
     }

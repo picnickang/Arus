@@ -19,7 +19,7 @@ export async function processTelemetryProcessing(data: {
   try {
     const settings = await dbSystemAdminStorage.getSettings();
 
-    if (settings.llmEnabled) {
+    if (settings?.llmEnabled) {
       results.insights = await generateAIInsights(data.telemetryReading);
     }
   } catch (error) {

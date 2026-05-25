@@ -71,6 +71,7 @@ export class VibrationAnalyzer {
         .insert(vibrationAnalysis)
         .values(insertRow)
         .returning();
+      if (!savedAnalysis) throw new Error("Failed to save vibration analysis");
       logger.info(`[Vibration Analysis] Analysis completed for ${equipmentId}: ${anomalyDetection.isAnomalous ? "ANOMALY DETECTED" : "NORMAL"} (score: ${anomalyDetection.anomalyScore.toFixed(2)})`);
       return {
         ...savedAnalysis,

@@ -83,7 +83,7 @@ export function useInventoryManagementData() {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   useEffect(() => {
-    const basePath = location.split("?")[0];
+    const basePath = location.split("?")[0] ?? "";
     const currentParams = new URLSearchParams(searchParams);
     const tabParam = currentParams.get("tab");
 

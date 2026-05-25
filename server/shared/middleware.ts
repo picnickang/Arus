@@ -127,7 +127,7 @@ export function composeMiddleware(...middlewares: RequestHandler[]): RequestHand
         return next();
       }
 
-      const middleware = middlewares[index];
+      const middleware = middlewares[index]!;
       middleware(req, res, (err?: unknown) => {
         if (err) {
           return next(err);

@@ -975,6 +975,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       .insert(workOrderHistory)
       .values({ id: randomUUID(), ...entry, createdAt: new Date() })
       .returning();
+    if (!newEntry) throw new Error("Failed to add work order history entry");
     return newEntry;
   }
 

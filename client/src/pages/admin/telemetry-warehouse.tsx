@@ -101,8 +101,8 @@ function findGaps(entries: WarehouseExportEntry[]): string[] {
   const gaps: string[] = [];
   const oneDay = 24 * 60 * 60 * 1000;
   for (let i = 1; i < sorted.length; i++) {
-    const prev = new Date(`${sorted[i - 1].date}T00:00:00Z`).getTime();
-    const cur = new Date(`${sorted[i].date}T00:00:00Z`).getTime();
+    const prev = new Date(`${sorted[i - 1]!.date}T00:00:00Z`).getTime();
+    const cur = new Date(`${sorted[i]!.date}T00:00:00Z`).getTime();
     let cursor = prev + oneDay;
     while (cursor < cur) {
       gaps.push(new Date(cursor).toISOString().slice(0, 10));
