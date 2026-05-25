@@ -29,6 +29,8 @@ import { getPendingCount } from "@/lib/offline-sync";
 const HomePage = lazy(() => import("@/pages/home"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 const DesktopSetup = lazy(() => import("@/pages/desktop-setup"));
+const PortalLogin = lazy(() => import("@/pages/portal-login"));
+const FeedbackPage = lazy(() => import("@/pages/feedback"));
 
 const DevPerformanceOverlay = import.meta.env.DEV
   ? lazy(() =>
@@ -193,6 +195,8 @@ function Router() {
           <FocusModeProvider>
             <Switch>
               <Route path="/" component={HomePage} />
+              <Route path="/portal-login" component={PortalLogin} />
+              <Route path="/feedback" component={FeedbackPage} />
 
               {legacyRedirects.map(({ from, to }) => (
                 <Route key={from} path={from}>

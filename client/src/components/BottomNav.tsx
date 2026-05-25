@@ -2,36 +2,55 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { navigationCategories, getCategoryById, routeMigrations, type NavigationCategory } from "@/config/navigationConfig";
+import {
+  getPortalForRole,
+  getPrimaryCategoriesForRole,
+} from "@/application/navigation/role-navigation-policy";
+import { ROLE_STORAGE_KEY } from "@/config/roles";
 import { Home, MoreHorizontal, X } from "lucide-react";
 
-const ROLE_DEFAULTS: Record<string, string[]> = {
-  chief_engineer: ["operations", "maintenance", "fleet", "records"],
-  deck_officer: ["operations", "records", "crew", "fleet"],
-  fleet_manager: ["operations", "analytics", "fleet", "maintenance"],
-  system_admin: ["operations", "system", "analytics", "fleet"],
-  default: ["operations", "fleet", "maintenance", "crew"],
-};
-
-function getBottomNavItems(roleId: string | null): string[] {
+/**
+ * Per-user override of which category ids appear in the bottom nav.
+ * When set (via a future customisation UI), it wins over the
+ * role-policy default. When unset, the role-policy decides — see
+ * `client/src/application/navigation/role-navigation-policy.ts`.
+ */
+function readOverrideCategoryIds(): string[] | null {
   const stored = localStorage.getItem("arus-bottom-nav-items");
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch {
-      /* fall through */
+  if (!stored) return null;
+  try {
+    const parsed: unknown = JSON.parse(stored);
+    if (Array.isArray(parsed) && parsed.every((v): v is string => typeof v === "string")) {
+      return parsed;
     }
+  } catch {
+    /* fall through */
   }
-  return ROLE_DEFAULTS[roleId || "default"] || ROLE_DEFAULTS['default'] || [];
+  return null;
 }
 
 export function BottomNav() {
   const [location] = useLocation();
   const [showMore, setShowMore] = useState(false);
 
-  const roleId = localStorage.getItem("arus-user-role");
-  const visibleCategoryIds = getBottomNavItems(roleId);
+  const roleId = localStorage.getItem(ROLE_STORAGE_KEY);
+  const override = readOverrideCategoryIds();
+  const portal = getPortalForRole(roleId);
 
-  const visibleCategories = visibleCategoryIds.map((id) => getCategoryById(id)).filter(Boolean);
+  // Visibility policy lives in the application layer — this component
+  // only renders whatever the policy returns. See
+  // role-navigation-policy.ts for the role→category mapping.
+  const visibleCategories: NavigationCategory[] = override
+    ? override
+        .map((id) => getCategoryById(id))
+        .filter((c): c is NavigationCategory => c !== undefined)
+    : getPrimaryCategoriesForRole(roleId);
+
+  // In the simplified User Portal, the "More" sheet would leak the
+  // full 8-category admin surface and defeat the simplification —
+  // restrict it to the policy's visible categories.
+  const moreSheetCategories: NavigationCategory[] =
+    portal === "user" ? visibleCategories : navigationCategories;
 
   const currentPath = location.split("?")[0] ?? "";
 
@@ -69,7 +88,7 @@ export function BottomNav() {
             </div>
 
             <div className="grid grid-cols-4 gap-3 mb-4">
-              {navigationCategories.map((cat) => {
+              {moreSheetCategories.map((cat) => {
                 const Icon = cat.icon;
                 const active = isCategoryActive(cat);
                 return (
@@ -118,9 +137,6 @@ export function BottomNav() {
           </Link>
 
           {visibleCategories.map((cat) => {
-            if (!cat) {
-              return null;
-            }
             const Icon = cat.icon;
             const active = isCategoryActive(cat);
             return (

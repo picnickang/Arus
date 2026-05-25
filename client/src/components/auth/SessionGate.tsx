@@ -1,4 +1,5 @@
 import { FormEvent, ReactNode, useState } from "react";
+import { useLocation } from "wouter";
 import { Lock, ShipWheel } from "lucide-react";
 import { useAdminAccess } from "@/contexts/AdminAccessContext";
 import { Button } from "@/components/ui/button";
@@ -6,11 +7,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+/**
+ * Routes that must render even when the admin session is locked. The
+ * portal-login split is the entry point for an unauthenticated user
+ * (especially the User Portal path which doesn't need admin auth),
+ * so it would defeat the purpose to hide it behind this gate.
+ */
+const PUBLIC_PATHS = new Set<string>(["/portal-login"]);
+
 export function SessionGate({ children }: { children: ReactNode }) {
   const { isAdminUnlocked, unlockAdmin, isUnlocking, unlockError } = useAdminAccess();
+  const [location] = useLocation();
   const [password, setPassword] = useState("");
 
-  if (import.meta.env.DEV || isAdminUnlocked) {
+  const currentPath = location.split("?")[0] ?? "";
+
+  if (import.meta.env.DEV || isAdminUnlocked || PUBLIC_PATHS.has(currentPath)) {
     return <>{children}</>;
   }
 
