@@ -11,11 +11,16 @@ import { PendingApprovalsBanner } from "@/components/shared/PendingApprovalsBann
 import { QuickWorkOrderSheet } from "@/components/work-orders/QuickWorkOrderSheet";
 import { homePageGroups, type HomePageGroup } from "@/config/navigationConfig";
 import { trackPageVisit, getLastVisitTime, recordVisitTime } from "@/lib/pageTracking";
-import { ChevronRight, History, Plus } from "lucide-react";
+import { ChevronRight, History, Plus, Flag } from "lucide-react";
 import { ROLES, ROLE_STORAGE_KEY } from "@/config/roles";
 import { WorkflowCommandCenter } from "@/features/workflow/components/WorkflowCommandCenter";
 import { RoleTodayPanel } from "@/features/workflow/components/RoleTodayPanel";
 import type { RoleConfig } from "@/config/roles";
+import {
+  getPortalForRole,
+  getPrimaryCategoriesForRole,
+} from "@/application/navigation/role-navigation-policy";
+import { Button } from "@/components/ui/button";
 
 export { trackPageVisit };
 export type { RoleConfig };
@@ -250,6 +255,7 @@ export default function HomePage() {
     }
   });
   const [quickWoOpen, setQuickWoOpen] = useState(false);
+  const [, setLocation] = useLocation();
 
   const { attentionItems, sinceLastVisit } = useAttentionItems();
   const roleConfig = role ? ROLES[role] : null;
@@ -276,10 +282,63 @@ export default function HomePage() {
     return <RoleSelector onSelect={handleSelectRole} />;
   }
 
-  const pinnedGroupIds = roleConfig?.pinnedGroups ?? homePageGroups.map((g) => g.id);
+  const portal = getPortalForRole(role);
+
+  // User portal: drastically simplified surface per the pilot mockup —
+  // attention banner + tasks + a Feedback / Flags CTA. No 8-category
+  // grid, no admin workflow command center. All visibility policy
+  // comes from role-navigation-policy.ts.
+  if (portal === "user") {
+    return (
+      <div className="min-h-screen bg-background pb-20 md:pb-4">
+        <PageHeader
+          title="ARUS"
+          subtitle={roleConfig?.label ?? "User Portal"}
+          showHome={false}
+          showBack={true}
+          onBack={() => {
+            localStorage.removeItem(STORAGE_KEY);
+            setRole(null);
+          }}
+        />
+
+        <div className="px-4 lg:px-6 pt-2">
+          {attentionItems.length > 0 && <AttentionBanner items={attentionItems} className="mb-4" />}
+          <RoleTodayPanel roleId={role} />
+          {sinceLastVisit && <SinceLastVisit data={sinceLastVisit} />}
+          <MyTasks />
+
+          <div
+            className="mt-6 rounded-lg border border-dashed bg-card p-6 text-center"
+            data-testid="card-user-feedback-cta"
+          >
+            <Flag className="h-6 w-6 text-primary mx-auto mb-2" />
+            <h3 className="text-sm font-semibold mb-1">Spot something off?</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Submit feedback or flag a concern for the team.
+            </p>
+            <Button
+              onClick={() => setLocation("/feedback")}
+              data-testid="button-user-open-feedback"
+            >
+              Submit Feedback / Flag
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Admin portal: anchor the home-grid to the same 5 categories the
+  // BottomNav and policy surface, instead of the legacy 8-group dump.
+  const policyCategoryIds = getPrimaryCategoriesForRole(role).map((c) => c.id);
+  const pinnedGroupIds =
+    policyCategoryIds.length > 0
+      ? policyCategoryIds
+      : (roleConfig?.pinnedGroups ?? homePageGroups.map((g) => g.id));
   const pinnedGroups = pinnedGroupIds
     .map((id) => homePageGroups.find((g) => g.id === id))
-    .filter(Boolean) as HomePageGroup[];
+    .filter((g): g is HomePageGroup => g !== undefined);
   const otherGroups = homePageGroups.filter((g) => !pinnedGroupIds.includes(g.id));
 
   return (
