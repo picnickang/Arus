@@ -24,8 +24,8 @@ export interface ApplyResult {
   success: boolean;
   appliedFiles: string[];
   failedFiles: string[];
-  error?: string;
-  backupId?: string;
+  error?: string | undefined;
+  backupId?: string | undefined;
 }
 
 /**

@@ -28,9 +28,9 @@ type UpdateStatus =
 interface UpdateState {
   status: UpdateStatus;
   currentVersion: string;
-  availableVersion?: string;
-  releaseNotes?: string;
-  error?: string;
+  availableVersion?: string | undefined;
+  releaseNotes?: string | undefined;
+  error?: string | undefined;
 }
 
 export function DesktopUpdatePanel() {

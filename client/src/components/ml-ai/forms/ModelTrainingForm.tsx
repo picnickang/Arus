@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { useForm, type DefaultValues } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -103,7 +103,7 @@ export function ModelTrainingForm({
       dataWindow: undefined,
       ...defaultAdvanced,
       ...defaultValues,
-    },
+    } as DefaultValues<TrainingConfig>,
   });
 
   const selectedModelType = form.watch("modelType");

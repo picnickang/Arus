@@ -47,24 +47,24 @@ export const canaryTrafficSplit = new client.Counter({
 
 export interface ShadowCanaryOptions<T> {
   productionModelId: string;
-  candidateModelId?: string;
-  candidatePredict?: () => Promise<T>;
+  candidateModelId?: string | undefined;
+  candidatePredict?: (() => Promise<T>) | undefined;
   productionPredict: () => Promise<T>;
   /** Computes a non-negative distance between two predictions. */
-  divergence?: (production: T, candidate: T) => number;
+  divergence?: ((production: T, candidate: T) => number) | undefined;
   /** Divergence value above which we emit a warn. */
-  alertThreshold?: number;
+  alertThreshold?: number | undefined;
   /** When set in [0,100], routes that percentage of traffic to the candidate. */
-  canaryPercent?: number;
+  canaryPercent?: number | undefined;
   /** Override the RNG for tests. */
-  random?: () => number;
+  random?: (() => number) | undefined;
 }
 
 export interface ShadowCanaryResult<T> {
   result: T;
   servedBy: "production" | "candidate";
   candidateRan: boolean;
-  divergence?: number;
+  divergence?: number | undefined;
 }
 
 const DEFAULT_THRESHOLD = 0.25;

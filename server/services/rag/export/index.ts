@@ -20,15 +20,15 @@ export interface ExportConversation {
   id: string;
   title: string;
   createdAt: Date;
-  messages: ExportMessage[];
+  messages: Array<Omit<ExportMessage, "citations"> & { citations?: ExportMessage["citations"] | undefined }>;
 }
 
 export interface ExportOptions {
   format: "pdf" | "markdown";
   includeCitations: boolean;
   includeTimestamps: boolean;
-  headerText?: string;
-  footerText?: string;
+  headerText?: string | undefined;
+  footerText?: string | undefined;
 }
 
 const DEFAULT_OPTIONS: ExportOptions = {

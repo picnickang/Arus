@@ -16,7 +16,7 @@ const logger = createLogger("EventSpine:AnalyticsSinkReader");
  * pushes the same predicate down to the warehouse engine.
  */
 export interface SinkTelemetryRow {
-  id?: string;
+  id?: string | undefined;
   equipmentId: string;
   sensorType: string;
   value: number | null;

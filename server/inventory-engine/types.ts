@@ -15,11 +15,11 @@ export interface PartAvailability {
   maxStock: number;
   stockStatus: "adequate" | "low" | "critical" | "excess";
   leadTimeDays: number;
-  estimatedRestockDate?: Date;
+  estimatedRestockDate?: Date | undefined;
   locations: Array<{
     location: string;
     quantity: number;
-    binLocation?: string;
+    binLocation?: string | undefined;
   }>;
 }
 
@@ -30,7 +30,7 @@ export interface SupplierPerformance {
   qualityRating: number;
   averageLeadTime: number;
   totalOrders: number;
-  lastDeliveryDate?: Date;
+  lastDeliveryDate?: Date | undefined;
   performanceScore: number;
   status: "preferred" | "active" | "inactive" | "blacklisted";
 }
@@ -49,7 +49,7 @@ export interface CostPlanningResult {
       unitCost: number;
       totalCost: number;
       availability: "available" | "low_stock" | "out_of_stock" | "substitute_required";
-      leadTime?: number;
+      leadTime?: number | undefined;
     }>;
     laborHours: number;
     laborRate: number;

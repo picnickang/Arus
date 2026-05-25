@@ -125,7 +125,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
       const correlator = new AnomalyCorrelator(dbMlAnalyticsStorage);
 
       const report = await correlator.correlateAnomalies(orgId, {
-        equipmentId,
+        ...(equipmentId !== undefined && { equipmentId }),
         includeAcknowledged,
       });
 

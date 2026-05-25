@@ -111,10 +111,10 @@ export interface PdmDecisionRecommendation {
 
 export interface StandardizedPdmDecision {
   equipmentId: string;
-  equipmentName?: string | null;
-  equipmentType?: string | null;
+  equipmentName?: string | null | undefined;
+  equipmentType?: string | null | undefined;
   predictedStatus: PdmHealthStatus;
-  previousStatus?: PdmHealthStatus | null;
+  previousStatus?: PdmHealthStatus | null | undefined;
   predictedRulHours: number;
   probabilities: PdmProbabilities;
   confidence: number;
@@ -127,7 +127,7 @@ export interface StandardizedPdmDecision {
   performanceIndicators: PerformanceIndicators;
   recommendations: PdmDecisionRecommendation[];
   safetyReview: SafetyReview;
-  calibration?: PdmCalibrationSnapshot;
+  calibration?: PdmCalibrationSnapshot | undefined;
   lineage: {
     source: "pdm-decision-support";
     modelFamily: "heuristic-context-normalized";

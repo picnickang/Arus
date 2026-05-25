@@ -24,15 +24,15 @@ export interface AuditEvent {
   id: string;
   timestamp: Date;
   eventType: AuditEventType;
-  userId?: string;
-  orgId?: string;
-  ipAddress?: string;
-  userAgent?: string;
-  resourceId?: string;
-  resourceType?: string;
+  userId?: string | undefined;
+  orgId?: string | undefined;
+  ipAddress?: string | undefined;
+  userAgent?: string | undefined;
+  resourceId?: string | undefined;
+  resourceType?: string | undefined;
   details: Record<string, unknown>;
   success: boolean;
-  errorMessage?: string;
+  errorMessage?: string | undefined;
 }
 
 interface AuditLogStore {
@@ -63,12 +63,12 @@ export class RagAuditLogger {
    * Log a query event
    */
   logQuery(params: {
-    userId?: string;
-    orgId?: string;
-    ipAddress?: string;
+    userId?: string | undefined;
+    orgId?: string | undefined;
+    ipAddress?: string | undefined;
     query: string;
-    sanitized?: boolean;
-    blockedPatterns?: string[];
+    sanitized?: boolean | undefined;
+    blockedPatterns?: string[] | undefined;
   }): void {
     if (!this.config.enabled || !this.config.logQueries) {
       return;
@@ -94,12 +94,12 @@ export class RagAuditLogger {
    * Log a response event
    */
   logResponse(params: {
-    userId?: string;
-    orgId?: string;
+    userId?: string | undefined;
+    orgId?: string | undefined;
     conversationId: string;
     responseLength: number;
     chunksUsed: number;
-    confidence?: number;
+    confidence?: number | undefined;
     cached: boolean;
     duration: number;
   }): void {
@@ -128,10 +128,10 @@ export class RagAuditLogger {
    * Log document access
    */
   logDocumentAccess(params: {
-    userId?: string;
-    orgId?: string;
+    userId?: string | undefined;
+    orgId?: string | undefined;
     documentId: string;
-    documentName?: string;
+    documentName?: string | undefined;
     action: "view" | "download" | "search";
   }): void {
     if (!this.config.enabled || !this.config.logDocumentAccess) {
@@ -156,15 +156,15 @@ export class RagAuditLogger {
    * Log document upload
    */
   logDocumentUpload(params: {
-    userId?: string;
-    orgId?: string;
-    ipAddress?: string;
+    userId?: string | undefined;
+    orgId?: string | undefined;
+    ipAddress?: string | undefined;
     filename: string;
     fileSize: number;
-    mimeType?: string;
+    mimeType?: string | undefined;
     success: boolean;
-    errorMessage?: string;
-    quarantined?: boolean;
+    errorMessage?: string | undefined;
+    quarantined?: boolean | undefined;
   }): void {
     if (!this.config.enabled) {
       return;
@@ -190,9 +190,9 @@ export class RagAuditLogger {
    * Log rate limit exceeded
    */
   logRateLimitExceeded(params: {
-    userId?: string;
-    orgId?: string;
-    ipAddress?: string;
+    userId?: string | undefined;
+    orgId?: string | undefined;
+    ipAddress?: string | undefined;
     identifier: string;
     retryAfter: number;
   }): void {
@@ -223,10 +223,10 @@ export class RagAuditLogger {
    * Log authentication failure
    */
   logAuthFailure(params: {
-    ipAddress?: string;
-    userAgent?: string;
+    ipAddress?: string | undefined;
+    userAgent?: string | undefined;
     reason: string;
-    attemptedOrgId?: string;
+    attemptedOrgId?: string | undefined;
   }): void {
     if (!this.config.enabled) {
       return;
@@ -254,9 +254,9 @@ export class RagAuditLogger {
    * Log prompt injection attempt
    */
   logPromptInjectionAttempt(params: {
-    userId?: string;
-    orgId?: string;
-    ipAddress?: string;
+    userId?: string | undefined;
+    orgId?: string | undefined;
+    ipAddress?: string | undefined;
     blockedPatterns: string[];
     queryPreview: string;
   }): void {
@@ -287,9 +287,9 @@ export class RagAuditLogger {
    * Log file validation failure
    */
   logFileValidationFailure(params: {
-    userId?: string;
-    orgId?: string;
-    ipAddress?: string;
+    userId?: string | undefined;
+    orgId?: string | undefined;
+    ipAddress?: string | undefined;
     filename: string;
     errors: string[];
     warnings: string[];
@@ -354,12 +354,12 @@ export class RagAuditLogger {
    * Get recent audit events
    */
   getEvents(params: {
-    limit?: number;
-    eventType?: AuditEventType;
-    userId?: string;
-    orgId?: string;
-    startTime?: Date;
-    endTime?: Date;
+    limit?: number | undefined;
+    eventType?: AuditEventType | undefined;
+    userId?: string | undefined;
+    orgId?: string | undefined;
+    startTime?: Date | undefined;
+    endTime?: Date | undefined;
   }): AuditEvent[] {
     let filtered = [...auditStore.events];
 

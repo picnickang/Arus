@@ -29,7 +29,7 @@ export interface StressTestResult {
   durationMs: number;
   actualMsgPerSec: number;
   targetMsgPerSec: number;
-  batchWriterStats?: BatchWriterStats;
+  batchWriterStats?: BatchWriterStats | undefined;
   errors: number;
   dropped: number;
 }

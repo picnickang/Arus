@@ -23,9 +23,9 @@ export class DbWorkOrderCompletions {
   }
 
   async getWorkOrderCompletions(filters?: {
-    workOrderId?: string;
-    equipmentId?: string;
-    orgId?: string;
+    workOrderId?: string | undefined;
+    equipmentId?: string | undefined;
+    orgId?: string | undefined;
   }): Promise<WorkOrderCompletion[]> {
     const conditions: SQL[] = [];
     if (filters?.workOrderId) {

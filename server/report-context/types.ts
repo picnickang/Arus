@@ -10,24 +10,24 @@ import type { MLPredictionResult } from "../ml-prediction/index";
 export interface ReportContext {
   type: "health" | "fleet_summary" | "maintenance" | "compliance" | "custom";
   scope: {
-    vesselId?: string;
-    equipmentId?: string;
+    vesselId?: string | undefined;
+    equipmentId?: string | undefined;
     timeframe: { start: Date; end: Date };
     organizationId: string;
   };
   data: {
-    vessels?: SelectVessel[];
-    equipment?: unknown[];
-    workOrders?: WorkOrder[];
-    telemetry?: EquipmentTelemetry[];
-    maintenanceSchedules?: unknown[];
-    alerts?: unknown[];
-    crew?: unknown[];
-    compliance?: unknown[];
+    vessels?: SelectVessel[] | undefined;
+    equipment?: unknown[] | undefined;
+    workOrders?: WorkOrder[] | undefined;
+    telemetry?: EquipmentTelemetry[] | undefined;
+    maintenanceSchedules?: unknown[] | undefined;
+    alerts?: unknown[] | undefined;
+    crew?: unknown[] | undefined;
+    compliance?: unknown[] | undefined;
   };
   metadata: {
     generatedAt: Date;
-    requestedBy?: string;
+    requestedBy?: string | undefined;
     audience: "executive" | "technical" | "maintenance" | "compliance";
     priority: "low" | "medium" | "high" | "critical";
   };
@@ -43,13 +43,13 @@ export interface ReportContext {
       mlPrediction: MLPredictionResult;
     }>;
     knowledgeBase?: string[];
-  };
+  } | undefined;
   knowledge?: {
     documents: Array<{
       docId: string;
       name: string;
-      equipmentId?: string | null;
-      text?: string;
+      equipmentId?: string | null | undefined;
+      text?: string | undefined;
       relevance: number;
     }>;
     semanticMatches: Array<{
@@ -57,13 +57,13 @@ export interface ReportContext {
       text: string;
       score: number;
     }>;
-  };
+  } | undefined;
   citations?: {
     sourceType: string;
     sourceId: string;
     title: string;
     relevance: number;
-  }[];
+  }[] | undefined;
 }
 
 export interface ContextBuilderOptions {

@@ -8,24 +8,24 @@ import { ReactElement, cloneElement, Children, isValidElement } from "react";
 export interface ThresholdBand {
   min: number;
   max: number;
-  label?: string;
+  label?: string | undefined;
 }
 
 interface ChartWrapperProps {
   title: string;
-  description?: string;
-  isLoading?: boolean;
-  error?: string | null;
-  isEmpty?: boolean;
-  emptyMessage?: string;
+  description?: string | undefined;
+  isLoading?: boolean | undefined;
+  error?: string | null | undefined;
+  isEmpty?: boolean | undefined;
+  emptyMessage?: string | undefined;
   children: React.ReactNode;
-  className?: string;
-  actions?: React.ReactNode;
-  "data-testid"?: string;
-  optimalRange?: ThresholdBand;
-  criticalRange?: ThresholdBand;
-  warningRange?: ThresholdBand;
-  showBands?: boolean;
+  className?: string | undefined;
+  actions?: React.ReactNode | undefined;
+  "data-testid"?: string | undefined;
+  optimalRange?: ThresholdBand | undefined;
+  criticalRange?: ThresholdBand | undefined;
+  warningRange?: ThresholdBand | undefined;
+  showBands?: boolean | undefined;
 }
 
 export function ChartWrapper({
@@ -61,7 +61,7 @@ export function ChartWrapper({
                 y2={optimalRange.max}
                 fill="hsl(142, 76%, 36%)"
                 fillOpacity={0.1}
-                label={optimalRange.label}
+                {...(optimalRange.label !== undefined ? { label: optimalRange.label } : {})}
                 ifOverflow="extendDomain"
               />
             );
@@ -75,7 +75,7 @@ export function ChartWrapper({
                 y2={warningRange.max}
                 fill="hsl(38, 92%, 50%)"
                 fillOpacity={0.1}
-                label={warningRange.label}
+                {...(warningRange.label !== undefined ? { label: warningRange.label } : {})}
                 ifOverflow="extendDomain"
               />
             );
@@ -89,7 +89,7 @@ export function ChartWrapper({
                 y2={criticalRange.max}
                 fill="hsl(0, 84%, 60%)"
                 fillOpacity={0.1}
-                label={criticalRange.label}
+                {...(criticalRange.label !== undefined ? { label: criticalRange.label } : {})}
                 ifOverflow="extendDomain"
               />
             );

@@ -55,7 +55,7 @@ telemetryDlqRouter.get(
               listAsync: (o: {
                 limit: number;
                 offset: number;
-                source?: string;
+                source?: string | undefined;
               }) => Promise<unknown[]>;
             }
           ).listAsync({ limit, offset, source })

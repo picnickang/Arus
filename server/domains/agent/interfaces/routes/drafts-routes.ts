@@ -79,9 +79,9 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
 
         const updated = await agentRepo.drafts.update(draft.id, {
           status: "approved",
-          reviewedById: userId,
-          reviewNote: reviewNote,
-          resultId,
+          ...(userId !== undefined && { reviewedById: userId }),
+          ...(reviewNote !== undefined && { reviewNote }),
+          ...(resultId !== undefined && { resultId }),
         });
 
         await agentRepo.approvals.create({
@@ -89,9 +89,9 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
           draftId: draft.id,
           conversationId: draft.conversationId,
           action: "approved",
-          reviewedById: userId,
-          reviewNote: reviewNote,
-          resultId,
+          ...(userId !== undefined && { reviewedById: userId }),
+          ...(reviewNote !== undefined && { reviewNote }),
+          ...(resultId !== undefined && { resultId }),
         });
 
         await auditAction(
@@ -134,8 +134,8 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
 
         const updated = await agentRepo.drafts.update(draft.id, {
           status: "rejected",
-          reviewedById: userId,
-          reviewNote: reviewNote,
+          ...(userId !== undefined && { reviewedById: userId }),
+          ...(reviewNote !== undefined && { reviewNote }),
         });
 
         await agentRepo.approvals.create({
@@ -143,8 +143,8 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
           draftId: draft.id,
           conversationId: draft.conversationId,
           action: "rejected",
-          reviewedById: userId,
-          reviewNote: reviewNote,
+          ...(userId !== undefined && { reviewedById: userId }),
+          ...(reviewNote !== undefined && { reviewNote }),
         });
 
         await auditAction(

@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 /**
  * Work Order Service
  * Encapsulates complex work order business logic (downtime tracking, inventory, etc.)
@@ -240,7 +241,7 @@ class WorkOrderService {
 
   async updateWorkOrderWithDowntimeTracking(
     id: string,
-    updates: Partial<InsertWorkOrder>
+    updates: WidenPartial<InsertWorkOrder>
   ): Promise<WorkOrder> {
     const updatedOrder = await db.transaction(async (tx) => {
       const [existing] = await tx.select().from(workOrders).where(eq(workOrders.id, id)).limit(1);
@@ -249,17 +250,18 @@ class WorkOrderService {
       }
 
       const postUpdateOrder = { ...existing, ...updates };
-      const finalUpdates: Partial<InsertWorkOrder> & { vesselDowntimeStartedAt?: Date | null } = {
+      const finalUpdates: WidenPartial<InsertWorkOrder> & { vesselDowntimeStartedAt?: Date | null | undefined } = {
         ...updates,
       };
+      const equipmentIdForDowntime = postUpdateOrder.equipmentId;
       const shouldTrackDowntime =
-        postUpdateOrder.affectsVesselDowntime && postUpdateOrder.equipmentId;
+        postUpdateOrder.affectsVesselDowntime && equipmentIdForDowntime;
 
-      if (shouldTrackDowntime) {
+      if (shouldTrackDowntime && equipmentIdForDowntime) {
         const [equipmentResult] = await tx
           .select()
           .from(equipment)
-          .where(eq(equipment.id, postUpdateOrder.equipmentId))
+          .where(eq(equipment.id, equipmentIdForDowntime))
           .limit(1);
         if (equipmentResult?.vesselId) {
           const vesselId = equipmentResult.vesselId;
@@ -302,9 +304,12 @@ class WorkOrderService {
         }
       }
 
+      const finalUpdatesStripped = Object.fromEntries(
+        Object.entries(finalUpdates).filter(([, v]) => v !== undefined)
+      ) as Partial<InsertWorkOrder> & { vesselDowntimeStartedAt?: Date | null };
       const [result] = await tx
         .update(workOrders)
-        .set(finalUpdates)
+        .set(finalUpdatesStripped)
         .where(eq(workOrders.id, id))
         .returning();
       if (!result) {
@@ -792,11 +797,11 @@ class WorkOrderService {
   }
 
   async getWorkOrderCompletionAnalytics(filters?: {
-    equipmentId?: string;
-    vesselId?: string;
-    startDate?: Date;
-    endDate?: Date;
-    orgId?: string;
+    equipmentId?: string | undefined;
+    vesselId?: string | undefined;
+    startDate?: Date | undefined;
+    endDate?: Date | undefined;
+    orgId?: string | undefined;
   }): Promise<{
     totalCompletions: number;
     avgDurationVariance: number;

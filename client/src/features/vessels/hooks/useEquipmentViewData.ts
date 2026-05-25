@@ -137,7 +137,7 @@ export function useEquipmentViewData(
     enabled: !!equipment?.id && isOpen,
   });
   const { data: equipmentTelemetry = [] } = useQuery<TelemetryReading[]>({
-    queryKey: telemetryKeys.latest({ equipmentId: equipment?.id, limit: 20 }),
+    queryKey: telemetryKeys.latest({ ...(equipment?.id !== undefined && { equipmentId: equipment.id }), limit: 20 }),
     queryFn: () => apiRequest("GET", `/api/telemetry/latest?equipmentId=${equipment?.id}&limit=20`),
     enabled: !!equipment?.id && isOpen,
   });

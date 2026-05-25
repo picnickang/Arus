@@ -30,9 +30,9 @@ export class ConversationService {
 
   async createConversation(params: {
     orgId: string;
-    userId?: string;
-    title?: string;
-    context?: Record<string, unknown>;
+    userId?: string | undefined;
+    title?: string | undefined;
+    context?: Record<string, unknown> | undefined;
   }): Promise<RagConversation> {
     const [conversation] = await db
       .insert(ragConversations)
@@ -63,9 +63,9 @@ export class ConversationService {
 
   async listConversations(params: {
     orgId: string;
-    userId?: string;
-    limit?: number;
-    activeOnly?: boolean;
+    userId?: string | undefined;
+    limit?: number | undefined;
+    activeOnly?: boolean | undefined;
   }): Promise<RagConversation[]> {
     const conditions = [eq(ragConversations.orgId, params.orgId)];
 
@@ -86,7 +86,7 @@ export class ConversationService {
 
   async updateConversation(
     conversationId: string,
-    updates: Partial<Pick<RagConversation, "title" | "context" | "isActive">>
+    updates: { title?: string | null | undefined; context?: unknown; isActive?: boolean | undefined }
   ): Promise<RagConversation | null> {
     const [updated] = await db
       .update(ragConversations)
@@ -113,11 +113,11 @@ export class ConversationService {
     conversationId: string;
     role: "user" | "assistant" | "system";
     content: string;
-    sourceChunkIds?: string[];
-    citations?: Citation[];
-    tokenCount?: number;
-    modelUsed?: string;
-    latencyMs?: number;
+    sourceChunkIds?: string[] | undefined;
+    citations?: Citation[] | undefined;
+    tokenCount?: number | undefined;
+    modelUsed?: string | undefined;
+    latencyMs?: number | undefined;
   }): Promise<RagMessage> {
     const [message] = await db
       .insert(ragMessages)
@@ -189,10 +189,10 @@ export class ConversationService {
   }
 
   async getOrCreateConversation(params: {
-    conversationId?: string;
+    conversationId?: string | undefined;
     orgId: string;
-    userId?: string;
-    title?: string;
+    userId?: string | undefined;
+    title?: string | undefined;
   }): Promise<RagConversation> {
     if (params.conversationId) {
       const existing = await this.getConversation(params.conversationId);

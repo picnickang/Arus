@@ -363,9 +363,12 @@ export function registerEquipmentRoutes(
       }
 
       try {
+        const cleanedUpdate = Object.fromEntries(
+          Object.entries(validationResult.data).filter(([, v]) => v !== undefined)
+        ) as typeof validationResult.data;
         const equipment = await equipmentService.updateEquipment(
           id,
-          validationResult.data,
+          cleanedUpdate,
           orgId
         );
         invalidateCache(`equipment:`);

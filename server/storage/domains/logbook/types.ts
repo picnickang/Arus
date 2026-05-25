@@ -25,24 +25,24 @@ import type {
 } from "@shared/schema";
 
 export interface DeckLogFilters {
-  vesselId?: string;
-  startDate?: string;
-  endDate?: string;
-  status?: string;
+  vesselId?: string | undefined;
+  startDate?: string | undefined;
+  endDate?: string | undefined;
+  status?: string | undefined;
 }
 
 export interface EngineLogFilters {
-  vesselId?: string;
-  startDate?: string;
-  endDate?: string;
-  status?: string;
+  vesselId?: string | undefined;
+  startDate?: string | undefined;
+  endDate?: string | undefined;
+  status?: string | undefined;
 }
 
 export interface LogEventFilters {
-  eventType?: string;
-  source?: string;
-  startTime?: Date;
-  endTime?: Date;
+  eventType?: string | undefined;
+  source?: string | undefined;
+  startTime?: Date | undefined;
+  endTime?: Date | undefined;
 }
 
 export interface SignData {

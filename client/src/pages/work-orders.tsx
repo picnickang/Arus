@@ -231,7 +231,7 @@ export default function WorkOrders() {
         vessels={vessels}
         crew={allCrewMembers}
         onComplete={(id, feedback) => {
-          completeWorkOrderMutation.mutate({ orderId: id, predictionFeedback: feedback as object as Parameters<typeof completeWorkOrderMutation.mutate>[0]["predictionFeedback"] });
+          completeWorkOrderMutation.mutate({ orderId: id, ...(feedback !== undefined && { predictionFeedback: feedback as object as Record<string, unknown> }) });
           closeDrawer();
         }}
         onEdit={(_order) => {
@@ -272,7 +272,7 @@ export default function WorkOrders() {
               onComplete={(feedback) =>
                 completeWorkOrderMutation.mutate({
                   orderId: selectedOrder.id,
-                  predictionFeedback: feedback as object as Parameters<typeof completeWorkOrderMutation.mutate>[0]["predictionFeedback"],
+                  ...(feedback !== undefined && { predictionFeedback: feedback as object as Parameters<typeof completeWorkOrderMutation.mutate>[0]["predictionFeedback"] }),
                 })
               }
               isCompleting={completeWorkOrderMutation.isPending}

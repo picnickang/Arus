@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 import type {
   AlertConfiguration,
   InsertAlertConfiguration as InsertAlertConfig,
@@ -76,7 +77,7 @@ export class AlertsService {
    */
   async updateConfiguration(
     id: string,
-    config: Partial<InsertAlertConfig>,
+    config: WidenPartial<InsertAlertConfig>,
     userId?: string
   ): Promise<AlertConfiguration> {
     // Update configuration

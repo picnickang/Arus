@@ -76,7 +76,7 @@ export class CacheClient {
       const data = await redis.get(this.prefixKey(key));
       const result = data ? JSON.parse(data) : null;
 
-      const endpoint = key.split(":")[0];
+      const endpoint = key.split(":")[0] ?? "unknown";
       if (result) {
         cacheMetrics.hits.inc({ cache_type: this.keyPrefix, endpoint });
       } else {

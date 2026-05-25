@@ -3,8 +3,8 @@ const logger = createLogger("Services:DocumentIngestion:Embedder");
 import { generateEmbedding } from "../../embedding-service";
 
 export interface EmbedOptions {
-  openAiKey?: string;
-  orgId?: string;
+  openAiKey?: string | undefined;
+  orgId?: string | undefined;
 }
 
 export interface ChunkWithEmbedding {
@@ -24,7 +24,7 @@ export async function embedChunks(
     const chunk = chunks[i] ?? '';
     logger.info(`[DocIngestion:Embed] Processing chunk ${i + 1}/${chunks.length}`);
 
-    const embedFn = generateEmbedding as object as (text: string, opts?: { useOpenAIFallback?: boolean; openAiKey?: string; orgId?: string }) => Promise<number[]>;
+    const embedFn = generateEmbedding as object as (text: string, opts?: { useOpenAIFallback?: boolean | undefined; openAiKey?: string | undefined; orgId?: string | undefined }) => Promise<number[]>;
     const embedding = await embedFn(chunk, {
       useOpenAIFallback: !!openAiKey,
       openAiKey,

@@ -20,7 +20,7 @@ export interface DomainEventBase {
   aggregateId: string;
   aggregateType: "MaintenanceSchedule" | "MaintenanceTemplate";
   occurredAt: Date;
-  userId?: string;
+  userId?: string | undefined;
   orgId: string;
   version: number;
 }
@@ -98,7 +98,7 @@ export interface MaintenanceTemplateCreatedEvent extends DomainEventBase {
   aggregateType: "MaintenanceTemplate";
   payload: {
     name: string;
-    equipmentType?: string;
+    equipmentType?: string | undefined;
     maintenanceType: string;
   };
 }
@@ -118,7 +118,7 @@ export interface MaintenanceTemplateDeletedEvent extends DomainEventBase {
   aggregateType: "MaintenanceTemplate";
   payload: {
     name: string;
-    equipmentType?: string;
+    equipmentType?: string | undefined;
   };
 }
 

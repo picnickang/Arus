@@ -4,6 +4,7 @@
  */
 
 import cron, { type ScheduledTask } from "node-cron";
+import type { WidenPartial } from "../../../lib/widen-partial.js";
 import { isCloudMode, canUseCloudFeature } from "../../../config/runtimeEnv.js";
 import type {
   IReportScheduleRepository,
@@ -109,7 +110,7 @@ export class ReportSchedulerService {
   async updateSchedule(
     id: string,
     orgId: string,
-    input: Partial<ReportScheduleInput>,
+    input: WidenPartial<ReportScheduleInput>,
     updatedBy: string
   ): Promise<ReportScheduleConfig> {
     if (input.cronExpression && !cron.validate(input.cronExpression)) {

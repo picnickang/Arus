@@ -86,7 +86,7 @@ export function RoleTodayPanel({ roleId }: { roleId: string | null }) {
   );
 }
 
-function Metric({ icon: Icon, label, value, variant = "outline" }: { icon: ComponentType<{ className?: string }>; label: string; value: number; variant?: "outline" | "secondary" | "destructive" }) {
+function Metric({ icon: Icon, label, value, variant = "outline" }: { icon: ComponentType<{ className?: string | undefined }>; label: string; value: number; variant?: "outline" | "secondary" | "destructive" }) {
   return (
     <div className="rounded-lg border p-3">
       <div className="mb-2 flex items-center justify-between gap-2">

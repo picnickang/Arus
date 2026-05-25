@@ -157,7 +157,7 @@ export abstract class BaseAnalyticsInsightsAdapter {
       name: string;
       healthScore: number;
       status: string;
-      lastReading?: Date;
+      lastReading?: Date | undefined;
       riskFactors: string[];
     }[]
   > {

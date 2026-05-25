@@ -28,7 +28,11 @@ router.post("/run", async (req: Request, res: Response) => {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
     }
     const { twinId, name, parameters } = parsed.data;
-    const result = await service.runScenario(orgId, twinId, name, parameters);
+    const result = await service.runScenario(orgId, twinId, name, {
+      ...(parameters.loadPercent !== undefined && { loadPercent: parameters.loadPercent }),
+      ...(parameters.temperatureOffset !== undefined && { temperatureOffset: parameters.temperatureOffset }),
+      ...(parameters.maintenanceDelayDays !== undefined && { maintenanceDelayDays: parameters.maintenanceDelayDays }),
+    });
     return res.status(201).json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

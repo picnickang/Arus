@@ -27,9 +27,9 @@ export function loadFMCCConfig(): FMCCConfig {
   if (protocol === "rest") {
     config.restConfig = {
       baseUrl: process.env['FMCC_API_URL'] || process.env['FMCC_BASE_URL'] || "",
-      apiKey: process.env['FMCC_API_KEY'],
-      username: process.env['FMCC_USERNAME'],
-      password: process.env['FMCC_PASSWORD'],
+      ...(process.env['FMCC_API_KEY'] !== undefined && { apiKey: process.env['FMCC_API_KEY'] }),
+      ...(process.env['FMCC_USERNAME'] !== undefined && { username: process.env['FMCC_USERNAME'] }),
+      ...(process.env['FMCC_PASSWORD'] !== undefined && { password: process.env['FMCC_PASSWORD'] }),
       timeoutMs: Number.parseInt(process.env['FMCC_TIMEOUT_MS'] || "10000", 10),
     };
   } else if (protocol === "modbus") {

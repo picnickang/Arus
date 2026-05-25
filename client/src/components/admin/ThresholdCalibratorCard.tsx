@@ -34,12 +34,12 @@ interface Equipment {
 interface CalibrationResult {
   success: boolean;
   message: string;
-  equipmentId?: string;
-  equipmentType?: string;
-  percentile?: number;
-  calibratedThreshold?: number;
-  previousThreshold?: number;
-  samplesAnalyzed?: number;
+  equipmentId?: string | undefined;
+  equipmentType?: string | undefined;
+  percentile?: number | undefined;
+  calibratedThreshold?: number | undefined;
+  previousThreshold?: number | undefined;
+  samplesAnalyzed?: number | undefined;
 }
 
 export function ThresholdCalibratorCard() {

@@ -28,13 +28,13 @@ export function isValidStatusTransition(from: TaskStatus, to: TaskStatus): boole
 }
 
 export interface AgentTaskFilter {
-  status?: TaskStatus;
-  priority?: TaskPriority;
-  source?: TaskSource;
-  equipmentId?: string;
-  vesselId?: string;
-  limit?: number;
-  offset?: number;
+  status?: TaskStatus | undefined;
+  priority?: TaskPriority | undefined;
+  source?: TaskSource | undefined;
+  equipmentId?: string | undefined;
+  vesselId?: string | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
 }
 
 export interface AgentTaskRepositoryPort {

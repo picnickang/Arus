@@ -4,30 +4,30 @@
 
 export interface RestDay {
   date: string;
-  h0?: number;
-  h1?: number;
-  h2?: number;
-  h3?: number;
-  h4?: number;
-  h5?: number;
-  h6?: number;
-  h7?: number;
-  h8?: number;
-  h9?: number;
-  h10?: number;
-  h11?: number;
-  h12?: number;
-  h13?: number;
-  h14?: number;
-  h15?: number;
-  h16?: number;
-  h17?: number;
-  h18?: number;
-  h19?: number;
-  h20?: number;
-  h21?: number;
-  h22?: number;
-  h23?: number;
+  h0?: number | undefined;
+  h1?: number | undefined;
+  h2?: number | undefined;
+  h3?: number | undefined;
+  h4?: number | undefined;
+  h5?: number | undefined;
+  h6?: number | undefined;
+  h7?: number | undefined;
+  h8?: number | undefined;
+  h9?: number | undefined;
+  h10?: number | undefined;
+  h11?: number | undefined;
+  h12?: number | undefined;
+  h13?: number | undefined;
+  h14?: number | undefined;
+  h15?: number | undefined;
+  h16?: number | undefined;
+  h17?: number | undefined;
+  h18?: number | undefined;
+  h19?: number | undefined;
+  h20?: number | undefined;
+  h21?: number | undefined;
+  h22?: number | undefined;
+  h23?: number | undefined;
   [key: string]: string | number | undefined;
 }
 
@@ -69,7 +69,7 @@ export interface FatigueMetrics {
 
 export interface FatigueRiskResult {
   crewId: string;
-  crewName?: string;
+  crewName?: string | undefined;
   riskLevel: "low" | "medium" | "high" | "critical";
   score: number;
   metrics: FatigueMetrics;

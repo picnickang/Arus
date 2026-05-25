@@ -67,9 +67,9 @@ interface TenantUsage {
 }
 
 export interface BudgetLimits {
-  dailyTokens?: number;
-  monthlyTokens?: number;
-  softRatio?: number;
+  dailyTokens?: number | undefined;
+  monthlyTokens?: number | undefined;
+  softRatio?: number | undefined;
 }
 
 const DEFAULT_SOFT_RATIO = 0.8;

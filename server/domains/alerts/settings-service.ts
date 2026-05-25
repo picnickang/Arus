@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 /**
  * Alert Settings Service
  * Business logic for email and alert configuration
@@ -143,13 +144,13 @@ export class AlertSettingsService {
 
   async updateSettings(
     orgId: string,
-    data: Partial<InsertAlertSettings> & {
+    data: WidenPartial<InsertAlertSettings> & {
       apiKey?: string;
       smtpPassword?: string;
     }
   ): Promise<AlertSettingsPublic> {
     const { apiKey, smtpPassword, ...rest } = data;
-    const updateData: Partial<InsertAlertSettings> = { ...rest };
+    const updateData: WidenPartial<InsertAlertSettings> = { ...rest };
 
     if (apiKey) {
       updateData.apiKeyEncrypted = encryptSecret(apiKey);
@@ -286,7 +287,7 @@ export class AlertSettingsService {
   async updateVesselSettings(
     orgId: string,
     vesselId: string,
-    data: Partial<InsertAlertSettingsVessel>
+    data: WidenPartial<InsertAlertSettingsVessel>
   ): Promise<AlertSettingsVessel> {
     const settings = await alertSettingsRepository.upsertVesselSettings(orgId, vesselId, data);
     log("info", "Vessel alert settings updated", { orgId, vesselId });
@@ -305,7 +306,7 @@ export class AlertSettingsService {
   async updateThreshold(
     orgId: string,
     key: string,
-    data: Partial<InsertAlertThreshold>
+    data: WidenPartial<InsertAlertThreshold>
   ): Promise<AlertThreshold> {
     const threshold = await alertSettingsRepository.upsertThreshold(orgId, key, data);
     log("info", "Alert threshold updated", { orgId, key });
@@ -320,13 +321,13 @@ export class AlertSettingsService {
   async getEmailLogs(
     orgId: string,
     options?: {
-      vesselId?: string;
-      alertType?: string;
-      status?: string;
-      limit?: number;
-      offset?: number;
-      startDate?: Date;
-      endDate?: Date;
+      vesselId?: string | undefined;
+      alertType?: string | undefined;
+      status?: string | undefined;
+      limit?: number | undefined;
+      offset?: number | undefined;
+      startDate?: Date | undefined;
+      endDate?: Date | undefined;
     }
   ): Promise<AlertEmailLog[]> {
     return alertSettingsRepository.getEmailLogs(orgId, options);
@@ -344,7 +345,7 @@ export class AlertSettingsService {
   async updateCrewAlertSettings(
     orgId: string,
     vesselId: string | null,
-    data: Partial<InsertCrewAlertSettings>
+    data: WidenPartial<InsertCrewAlertSettings>
   ): Promise<CrewAlertSettings> {
     const settings = await alertSettingsRepository.upsertCrewAlertSettings(orgId, vesselId, data);
     log("info", "Crew alert settings updated", { orgId, vesselId: vesselId || "global" });

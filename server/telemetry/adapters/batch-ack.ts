@@ -178,7 +178,7 @@ export class TelemetryBatchAckAdapter {
 
   async getRecentBatches(
     orgId: string,
-    options: { limit?: number; deviceId?: string; source?: string } = {}
+    options: { limit?: number | undefined; deviceId?: string | undefined; source?: string | undefined } = {}
   ): Promise<TelemetryBatchAck[]> {
     const conditions = [eq(telemetryBatchAck.orgId, orgId)];
 

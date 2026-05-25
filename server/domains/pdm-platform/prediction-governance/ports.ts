@@ -2,9 +2,9 @@ import type { FailurePrediction } from "@shared/schema";
 
 export interface GovernanceListOptions {
   orgId: string;
-  reviewStatus?: string;
-  limit?: number;
-  offset?: number;
+  reviewStatus?: string | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
 }
 
 export interface GovernanceDetails extends FailurePrediction {

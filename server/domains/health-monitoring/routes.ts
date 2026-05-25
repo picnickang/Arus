@@ -240,10 +240,10 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
       const { level, source, dateFrom, dateTo, limit } = req.query;
       const logs = await dbSystemAdminStorage.getErrorLogs({
         orgId,
-        level: level as string,
-        source: source as string,
-        dateFrom: dateFrom ? new Date(dateFrom as string) : undefined,
-        dateTo: dateTo ? new Date(dateTo as string) : undefined,
+        ...(typeof level === "string" && { level }),
+        ...(typeof source === "string" && { source }),
+        ...(dateFrom && { dateFrom: new Date(dateFrom as string) }),
+        ...(dateTo && { dateTo: new Date(dateTo as string) }),
         limit: limit ? Number.parseInt(limit as string) : 100,
       });
       res.json(logs ?? []);

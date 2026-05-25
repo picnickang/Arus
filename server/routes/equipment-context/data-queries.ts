@@ -40,13 +40,13 @@ export interface ParallelQueryResults {
 }
 
 export interface KbSearchHit {
-  docId?: string;
-  text?: string;
-  score?: number;
+  docId?: string | undefined;
+  text?: string | undefined;
+  score?: number | undefined;
 }
 
 export type SearchKnowledgeBaseFn = (
-  args: { query: string; orgId: string; limit?: number },
+  args: { query: string; orgId: string; limit?: number | undefined },
 ) => Promise<KbSearchHit[]>;
 
 export interface KnowledgeQueryLogger {
@@ -225,7 +225,7 @@ export async function runParallelQueries(
 
 export interface KnowledgeData {
   relatedDocuments: Array<typeof kbDocs.$inferSelect>;
-  semanticMatches: Array<{ docId?: string; text?: string; score?: number }>;
+  semanticMatches: Array<{ docId?: string | undefined; text?: string | undefined; score?: number | undefined }>;
 }
 
 export async function fetchKnowledgeData(

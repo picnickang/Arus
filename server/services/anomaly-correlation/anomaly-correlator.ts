@@ -29,11 +29,11 @@ interface RawAnomaly {
   sensorType: string;
   severity: string;
   anomalyType: string;
-  value?: number;
-  threshold?: number;
+  value?: number | undefined;
+  threshold?: number | undefined;
   detectionTimestamp: Date;
-  acknowledgedAt?: Date | null;
-  description?: string;
+  acknowledgedAt?: Date | null | undefined;
+  description?: string | undefined;
 }
 
 export interface CorrelatedAnomalyGroup {

@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 import type { Part, PartsInventory, InsertPartsInventory, Equipment } from "@shared/schema";
 import { inventoryRepository } from "./repository";
 import { recordAndPublish } from "../../sync-events";
@@ -92,7 +93,7 @@ export class InventoryService {
    */
   async updateInventoryItem(
     id: string,
-    data: Partial<InsertPartsInventory>,
+    data: WidenPartial<InsertPartsInventory>,
     userId?: string,
     orgId?: string
   ): Promise<PartsInventory> {

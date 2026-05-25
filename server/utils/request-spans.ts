@@ -47,17 +47,17 @@ export interface Span {
   category: string;
   name: string;
   startTime: number;
-  endTime?: number;
-  durationMs?: number;
-  error?: boolean;
-  metadata?: Record<string, unknown>;
-  parentSpanId?: string;
+  endTime?: number | undefined;
+  durationMs?: number | undefined;
+  error?: boolean | undefined;
+  metadata?: Record<string, unknown> | undefined;
+  parentSpanId?: string | undefined;
 }
 
 export interface SpanContext {
   requestId: string;
   spans: Span[];
-  currentSpanId?: string;
+  currentSpanId?: string | undefined;
 }
 
 const requestSpans = new Map<string, SpanContext>();

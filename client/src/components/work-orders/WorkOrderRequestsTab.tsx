@@ -97,8 +97,8 @@ export function WorkOrderRequestsTab({
   };
 
   const handleCreatePurchaseRequest = (data: {
-    notes?: string;
-    items: Array<{ partId?: string; description: string; quantity: number; notes?: string }>;
+    notes?: string | undefined;
+    items: Array<{ partId?: string | undefined; description: string; quantity: number; notes?: string | undefined; supplierId?: string | undefined }>;
   }) => {
     createPurchaseRequest(data, {
       onSuccess: () => setPrDialogOpen(false),
@@ -299,17 +299,15 @@ export function WorkOrderRequestsTab({
         onOpenChange={handleSoDialogClose}
         onSubmit={handleCreateServiceOrder as object as Parameters<typeof EnhancedServiceRequestDialog>[0]["onSubmit"]}
         isPending={editingSO ? isUpdatingServiceOrder : isCreatingServiceOrder}
-        initialData={
-          editingSO
-            ? {
-                serviceProviderId: editingSO.serviceProviderId,
-                scope: editingSO.scope,
-                scheduledStartDate: editingSO.scheduledStartDate,
-                scheduledEndDate: editingSO.scheduledEndDate,
-                estimatedDurationHours: editingSO.estimatedDurationHours,
-              }
-            : undefined
-        }
+        {...(editingSO && {
+          initialData: {
+            ...(editingSO.serviceProviderId !== undefined && { serviceProviderId: editingSO.serviceProviderId }),
+            ...(editingSO.scope !== undefined && { scope: editingSO.scope }),
+            ...(editingSO.scheduledStartDate !== undefined && { scheduledStartDate: editingSO.scheduledStartDate }),
+            ...(editingSO.scheduledEndDate !== undefined && { scheduledEndDate: editingSO.scheduledEndDate }),
+            ...(editingSO.estimatedDurationHours !== undefined && { estimatedDurationHours: editingSO.estimatedDurationHours }),
+          },
+        })}
         isEditing={!!editingSO}
         defaultExpanded={requireAdvancedOptions}
       />

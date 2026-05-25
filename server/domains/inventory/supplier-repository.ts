@@ -8,7 +8,7 @@ import type {
 } from "@shared/schema";
 
 export interface SupplierLinkWithDetails extends PartsInventorySupplier {
-  supplier?: Supplier;
+  supplier?: Supplier | undefined;
 }
 
 /**

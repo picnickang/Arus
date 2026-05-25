@@ -20,8 +20,8 @@ export interface CrewFilters {
   departmentId?: string;
 }
 export interface CrewAssignmentFilters {
-  crewId?: string;
-  vesselId?: string;
-  startDate?: Date;
-  endDate?: Date;
+  crewId?: string | undefined;
+  vesselId?: string | undefined;
+  startDate?: Date | undefined;
+  endDate?: Date | undefined;
 }

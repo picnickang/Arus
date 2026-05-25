@@ -14,10 +14,10 @@ export type {
 } from "@shared/schema-runtime";
 
 export interface MaintenanceFilters {
-  equipmentId?: string;
-  vesselId?: string;
-  status?: string;
-  type?: string;
-  startDate?: Date;
-  endDate?: Date;
+  equipmentId?: string | undefined;
+  vesselId?: string | undefined;
+  status?: string | undefined;
+  type?: string | undefined;
+  startDate?: Date | undefined;
+  endDate?: Date | undefined;
 }

@@ -206,7 +206,7 @@ export async function findPartSubstitutions(
     return {
       ...avail,
       substitutionType: sub?.substitutionType ?? "unknown",
-      notes: sub?.notes ?? undefined,
+      ...(sub?.notes !== undefined && sub?.notes !== null ? { notes: sub.notes } : {}),
     };
   });
 }

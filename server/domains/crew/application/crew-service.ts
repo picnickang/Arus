@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../../lib/widen-partial";
 /**
  * Crew Application Service
  * Orchestrates use cases with dependency injection.
@@ -112,7 +113,7 @@ export class CrewApplicationService {
 
   async updateCrew(
     id: string,
-    data: Partial<InsertCrew>,
+    data: WidenPartial<InsertCrew>,
     userId?: string,
     orgId?: string
   ): Promise<SelectCrew> {
@@ -125,7 +126,7 @@ export class CrewApplicationService {
     const crew = await (
       this.deps.crewMemberRepository.updateCrew as (
         id: string,
-        data: Partial<InsertCrew>,
+        data: WidenPartial<InsertCrew>,
         orgId?: string,
       ) => Promise<SelectCrew>
     )(id, sanitizedData, orgId);
@@ -293,7 +294,10 @@ export class CrewApplicationService {
 
   // Assignments - delegated via port
   async listAssignments(orgId?: string, vesselId?: string, crewId?: string) {
-    return this.deps.crewStorage.getCrewAssignments(orgId, { vesselId, crewId });
+    return this.deps.crewStorage.getCrewAssignments(orgId, {
+      ...(vesselId !== undefined ? { vesselId } : {}),
+      ...(crewId !== undefined ? { crewId } : {}),
+    });
   }
 
   async createAssignment(data: Record<string, unknown>, userId?: string) {

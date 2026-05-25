@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../../lib/widen-partial";
 /**
  * Alert Settings - Organization Settings
  * CRUD operations for organization-level alert settings
@@ -25,7 +26,7 @@ export async function getOrgSettings(orgId: string): Promise<AlertSettings | und
 
 export async function upsertOrgSettings(
   orgId: string,
-  data: Partial<InsertAlertSettings>
+  data: WidenPartial<InsertAlertSettings>
 ): Promise<AlertSettings> {
   const existing = await getOrgSettings(orgId);
   if (existing) {
@@ -64,7 +65,7 @@ export async function getAllVesselSettings(orgId: string): Promise<AlertSettings
 export async function upsertVesselSettings(
   orgId: string,
   vesselId: string,
-  data: Partial<InsertAlertSettingsVessel>
+  data: WidenPartial<InsertAlertSettingsVessel>
 ): Promise<AlertSettingsVessel> {
   const existing = await getVesselSettings(orgId, vesselId);
   if (existing) {

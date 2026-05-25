@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
-import { useForm } from "react-hook-form";
+import { useForm, type DefaultValues } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -142,7 +142,7 @@ export function EquipmentDecommissionDialog({
       replacementEquipmentId: "",
       bookValueAtRemoval: depreciation.bookValue,
       residualValue: undefined,
-    },
+    } as DefaultValues<DecommissionFormData>,
   });
 
   const selectedReason = form.watch("reason");

@@ -54,13 +54,13 @@ export function InventoryBatchActions({
 
   const createPRMutation = useMutation({
     mutationFn: async (data: {
-      notes?: string;
+      notes?: string | undefined;
       items: Array<{
-        partId?: string;
+        partId?: string | undefined;
         description: string;
         quantity: number;
-        notes?: string;
-        supplierId?: string;
+        notes?: string | undefined;
+        supplierId?: string | undefined;
       }>;
     }) => {
       const pr = await createPR.mutateAsync({
@@ -75,7 +75,7 @@ export function InventoryBatchActions({
           quantity: item.quantity,
           uom: "ea",
           remarks: item.notes || item.description,
-          supplierId: item.supplierId,
+          ...(item.supplierId !== undefined && { supplierId: item.supplierId }),
         });
       }
 

@@ -41,24 +41,24 @@ export type ServiceOrderEventType =
   | "updated";
 
 export interface ServiceOrderWithDetails extends ServiceOrder {
-  workOrderNumber?: string;
-  workOrderDescription?: string;
-  serviceProviderName?: string;
-  serviceProviderEmail?: string;
-  vesselName?: string;
-  equipmentName?: string;
-  originatingRequestId?: string;
-  originatingRequestNumber?: string;
-  originatingRequestStatus?: string;
+  workOrderNumber?: string | undefined;
+  workOrderDescription?: string | undefined;
+  serviceProviderName?: string | undefined;
+  serviceProviderEmail?: string | undefined;
+  vesselName?: string | undefined;
+  equipmentName?: string | undefined;
+  originatingRequestId?: string | undefined;
+  originatingRequestNumber?: string | undefined;
+  originatingRequestStatus?: string | undefined;
 }
 
 export interface ServiceOrderListFilters {
-  status?: ServiceOrderStatus;
-  serviceProviderId?: string;
-  vesselId?: string;
-  workOrderId?: string;
-  dateFrom?: Date;
-  dateTo?: Date;
+  status?: ServiceOrderStatus | undefined;
+  serviceProviderId?: string | undefined;
+  vesselId?: string | undefined;
+  workOrderId?: string | undefined;
+  dateFrom?: Date | undefined;
+  dateTo?: Date | undefined;
 }
 
 export interface GenerateSoNumberResult {

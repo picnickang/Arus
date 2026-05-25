@@ -12,11 +12,11 @@ import type {
 } from "../types";
 
 export interface DashboardFilters {
-  vesselId?: string;
-  equipmentType?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  search?: string;
+  vesselId?: string | undefined;
+  equipmentType?: string | undefined;
+  dateFrom?: string | undefined;
+  dateTo?: string | undefined;
+  search?: string | undefined;
 }
 
 export function usePdmDashboard(filters?: DashboardFilters) {

@@ -50,8 +50,8 @@ export function inspectQuotaWarning(res: Response): void {
 export interface QuotaExceededInfo {
   metric: string;
   retryAfterSeconds: number;
-  limit?: number;
-  used?: number;
+  limit?: number | undefined;
+  used?: number | undefined;
 }
 
 export function parseQuotaExceeded(

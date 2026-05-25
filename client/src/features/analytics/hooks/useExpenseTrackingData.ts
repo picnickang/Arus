@@ -84,7 +84,7 @@ export function useExpenseTrackingData() {
 
   const expenseForm = useForm<ExpenseFormData, unknown, ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
-    defaultValues: { currency: "USD", expenseDate: new Date().toISOString().split("T")[0] },
+    defaultValues: { currency: "USD", expenseDate: new Date().toISOString().split("T")[0] ?? "" },
   });
   const downtimeForm = useForm<DowntimeFormData, unknown, DowntimeFormData>({
     resolver: zodResolver(downtimeSchema),

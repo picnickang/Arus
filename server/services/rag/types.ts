@@ -18,15 +18,15 @@ export interface Citation {
 export interface RagAnswerRequest {
   orgId: string;
   query: string;
-  conversationId?: string;
-  userId?: string;
-  userRoles?: string[];
-  maxSources?: number;
-  threshold?: number;
-  systemPrompt?: string;
-  temperature?: number;
-  maxTokens?: number;
-  modelOverride?: string;
+  conversationId?: string | undefined;
+  userId?: string | undefined;
+  userRoles?: string[] | undefined;
+  maxSources?: number | undefined;
+  threshold?: number | undefined;
+  systemPrompt?: string | undefined;
+  temperature?: number | undefined;
+  maxTokens?: number | undefined;
+  modelOverride?: string | undefined;
 }
 
 export interface RagAnswerResponse {
@@ -54,8 +54,8 @@ export interface ConversationContext {
 export interface QueryRewriteResult {
   originalQuery: string;
   rewrittenQuery: string;
-  expandedQueries?: string[];
-  intent?: string;
+  expandedQueries?: string[] | undefined;
+  intent?: string | undefined;
 }
 
 export interface SemanticCacheEntry {
@@ -67,18 +67,18 @@ export interface SemanticCacheEntry {
   modelUsed: string;
   hitCount: number;
   createdAt: Date;
-  expiresAt?: Date;
+  expiresAt?: Date | undefined;
 }
 
 export interface FeedbackInput {
   orgId: string;
-  messageId?: string;
-  chunkId?: string;
-  userId?: string;
+  messageId?: string | undefined;
+  chunkId?: string | undefined;
+  userId?: string | undefined;
   feedbackType: "helpful" | "not_helpful" | "inaccurate" | "missing_info" | "outdated";
-  rating?: number;
-  comment?: string;
-  queryText?: string;
+  rating?: number | undefined;
+  comment?: string | undefined;
+  queryText?: string | undefined;
 }
 
 export interface RagServiceConfig {

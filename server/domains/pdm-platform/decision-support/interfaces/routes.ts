@@ -181,9 +181,9 @@ export interface PdmDecisionSupportRouteService {
   evaluateEquipment(input: {
     orgId: string;
     equipmentId: string;
-    previousStatus?: PdmHealthStatus | null;
-    minSequenceLength?: number;
-    contextOverride?: z.infer<typeof operationalContextSchema>;
+    previousStatus?: PdmHealthStatus | null | undefined;
+    minSequenceLength?: number | undefined;
+    contextOverride?: z.infer<typeof operationalContextSchema> | undefined;
   }): Promise<StandardizedPdmDecision>;
   generateSyntheticTelemetry(input: z.infer<typeof syntheticTelemetrySchema>): SyntheticTelemetryResult;
   reviewRecommendation(input: z.infer<typeof safetyCheckSchema>): {

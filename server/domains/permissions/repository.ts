@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 /**
  * Permission Repository - Database Operations
  *
@@ -114,7 +115,7 @@ export async function createRole(data: InsertRole): Promise<Role> {
 export async function updateRole(
   id: string,
   orgId: string,
-  data: Partial<InsertRole>
+  data: WidenPartial<InsertRole>
 ): Promise<Role | undefined> {
   const [updated] = await db
     .update(roles)
@@ -203,7 +204,7 @@ export async function createRoleTemplate(_data: InsertRoleTemplate): Promise<Rol
 export async function createRoleFromTemplate(
   templateId: string,
   orgId: string,
-  overrides?: Partial<InsertRole>
+  overrides?: WidenPartial<InsertRole>
 ): Promise<Role> {
   const template = await getRoleTemplateById(templateId);
   if (!template) {

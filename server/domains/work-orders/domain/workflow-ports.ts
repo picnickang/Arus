@@ -61,18 +61,18 @@ export interface IPredictionFeedbackPort {
 }
 
 export interface LegacyCompletionData {
-  equipmentId?: string;
-  vesselId?: string | null;
-  completedAt?: Date;
-  completedBy?: string | null;
-  actualDowntimeHours?: number;
-  completionNotes?: string | null;
-  notes?: string | null;
+  equipmentId?: string | undefined;
+  vesselId?: string | null | undefined;
+  completedAt?: Date | undefined;
+  completedBy?: string | null | undefined;
+  actualDowntimeHours?: number | undefined;
+  completionNotes?: string | null | undefined;
+  notes?: string | null | undefined;
   partsUsed?: unknown;
-  partsCount?: number;
-  qualityCheckPassed?: boolean;
-  actualDurationHours?: number;
-  closeout?: WorkOrderCloseoutDetails;
+  partsCount?: number | undefined;
+  qualityCheckPassed?: boolean | undefined;
+  actualDurationHours?: number | undefined;
+  closeout?: WorkOrderCloseoutDetails | undefined;
 }
 
 export interface ILegacyCompletionPort {
@@ -92,10 +92,10 @@ export interface FailureHistoryRecordInput {
   /** Free-text cause from closeout — used as the canonical failureMode label. */
   cause: string;
   /** Optional severity hint; defaults to "medium" if not supplied. */
-  severity?: string;
-  notes?: string;
-  recordedBy?: string;
-  recordedAt?: Date;
+  severity?: string | undefined;
+  notes?: string | undefined;
+  recordedBy?: string | undefined;
+  recordedAt?: Date | undefined;
 }
 
 export interface IFailureHistoryPort {

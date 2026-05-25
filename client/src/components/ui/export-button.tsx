@@ -24,16 +24,16 @@ export type ExportFormat = "csv" | "json" | "pdf" | "pdf-table";
 export interface ExportButtonProps {
   data: Record<string, unknown>[] | Record<string, unknown> | unknown[];
   filename: string;
-  formats?: ExportFormat[];
-  csvOptions?: Partial<ExportOptions>;
-  pdfOptions?: Partial<PDFExportOptions>;
-  pdfSections?: PDFSection[];
-  pdfTableData?: PDFTableData;
-  variant?: "default" | "outline" | "ghost";
-  size?: "default" | "sm" | "lg" | "icon";
-  className?: string;
-  disabled?: boolean;
-  "data-testid"?: string;
+  formats?: ExportFormat[] | undefined;
+  csvOptions?: Partial<ExportOptions> | undefined;
+  pdfOptions?: Partial<PDFExportOptions> | undefined;
+  pdfSections?: PDFSection[] | undefined;
+  pdfTableData?: PDFTableData | undefined;
+  variant?: "default" | "outline" | "ghost" | undefined;
+  size?: "default" | "sm" | "lg" | "icon" | undefined;
+  className?: string | undefined;
+  disabled?: boolean | undefined;
+  "data-testid"?: string | undefined;
 }
 
 export function ExportButton({

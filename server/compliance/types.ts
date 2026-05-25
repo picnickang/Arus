@@ -38,13 +38,13 @@ export interface ComplianceAssessment {
     requirementId: string;
     status: "pass" | "fail" | "na";
     evidence: string;
-    measurementValue?: number;
-    comments?: string;
-    correctiveAction?: string;
+    measurementValue?: number | undefined;
+    comments?: string | undefined;
+    correctiveAction?: string | undefined;
   }>;
   nextAssessmentDate: Date;
-  certificateNumber?: string;
-  validUntil?: Date;
+  certificateNumber?: string | undefined;
+  validUntil?: Date | undefined;
 }
 
 export interface ComplianceReport {

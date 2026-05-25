@@ -1,5 +1,6 @@
 import type { Device, InsertDevice } from "@shared/schema";
 import { dbDevicesStorage } from "../../repositories";
+import type { WidenPartial } from "../../lib/widen-partial";
 
 export class DeviceRepository {
   async findAll(orgId?: string): Promise<Device[]> {
@@ -14,7 +15,7 @@ export class DeviceRepository {
     return dbDevicesStorage.createDevice(device);
   }
 
-  async update(id: string, data: Partial<InsertDevice>, orgId: string): Promise<Device> {
+  async update(id: string, data: WidenPartial<InsertDevice>, orgId: string): Promise<Device> {
     return dbDevicesStorage.updateDevice(id, data, orgId) as Promise<Device>;
   }
 

@@ -3,6 +3,7 @@
  * Part of IStorage modularization for improved maintainability
  */
 
+import type { WidenPartial } from "../../../lib/widen-partial";
 import type {
   Vessel as SelectVessel,
   InsertVessel,
@@ -25,7 +26,7 @@ export interface IVesselStorage {
   ): Promise<{ items: SelectVessel[]; total: number }>;
   getVessel(id: string, orgId?: string): Promise<SelectVessel | undefined>;
   createVessel(vessel: InsertVessel): Promise<SelectVessel>;
-  updateVessel(id: string, vessel: Partial<InsertVessel>): Promise<SelectVessel>;
+  updateVessel(id: string, vessel: WidenPartial<InsertVessel>, orgId?: string): Promise<SelectVessel>;
   deleteVessel(id: string, deleteEquipment?: boolean, orgId?: string): Promise<void>;
   resetVesselDowntime(id: string): Promise<SelectVessel>;
   resetVesselOperation(id: string): Promise<SelectVessel>;

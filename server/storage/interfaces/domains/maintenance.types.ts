@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../../lib/widen-partial";
 /**
  * Maintenance Storage Interface - Schedules, Records, Costs, Templates
  * Part of IStorage modularization for improved maintainability
@@ -35,7 +36,7 @@ export interface IMaintenanceStorage {
   createMaintenanceSchedule(schedule: InsertMaintenanceSchedule): Promise<MaintenanceSchedule>;
   updateMaintenanceSchedule(
     id: string,
-    schedule: Partial<InsertMaintenanceSchedule>
+    schedule: WidenPartial<InsertMaintenanceSchedule>
   ): Promise<MaintenanceSchedule>;
   deleteMaintenanceSchedule(id: string): Promise<void>;
   getUpcomingSchedules(days?: number): Promise<MaintenanceSchedule[]>;
@@ -54,7 +55,7 @@ export interface IMaintenanceStorage {
   createMaintenanceRecord(record: InsertMaintenanceRecord): Promise<MaintenanceRecord>;
   updateMaintenanceRecord(
     id: string,
-    record: Partial<InsertMaintenanceRecord>
+    record: WidenPartial<InsertMaintenanceRecord>
   ): Promise<MaintenanceRecord>;
   deleteMaintenanceRecord(id: string): Promise<void>;
 
@@ -78,7 +79,7 @@ export interface IMaintenanceStorage {
   // Labor Rates
   getLaborRates(orgId?: string): Promise<LaborRate[]>;
   createLaborRate(rate: InsertLaborRate): Promise<LaborRate>;
-  updateLaborRate(rateId: string, updateData: Partial<InsertLaborRate>): Promise<LaborRate>;
+  updateLaborRate(rateId: string, updateData: WidenPartial<InsertLaborRate>): Promise<LaborRate>;
   updateCrewRate(
     crewId: string,
     updateData: { currentRate: number; overtimeMultiplier: number; effectiveDate: Date }
@@ -102,7 +103,7 @@ export interface IMaintenanceStorage {
   createMaintenanceTemplate(template: InsertMaintenanceTemplate): Promise<MaintenanceTemplate>;
   updateMaintenanceTemplate(
     id: string,
-    template: Partial<InsertMaintenanceTemplate>,
+    template: WidenPartial<InsertMaintenanceTemplate>,
     orgId?: string
   ): Promise<MaintenanceTemplate>;
   deleteMaintenanceTemplate(id: string, orgId?: string): Promise<void>;
@@ -125,7 +126,7 @@ export interface IMaintenanceStorage {
   ): Promise<MaintenanceChecklistItem>;
   updateMaintenanceChecklistItem(
     id: string,
-    item: Partial<InsertMaintenanceChecklistItem>
+    item: WidenPartial<InsertMaintenanceChecklistItem>
   ): Promise<MaintenanceChecklistItem>;
   deleteMaintenanceChecklistItem(id: string): Promise<void>;
   bulkCreateChecklistItems(
@@ -145,7 +146,7 @@ export interface IMaintenanceStorage {
   ): Promise<MaintenanceChecklistCompletion>;
   updateMaintenanceChecklistCompletion(
     id: string,
-    completion: Partial<InsertMaintenanceChecklistCompletion>
+    completion: WidenPartial<InsertMaintenanceChecklistCompletion>
   ): Promise<MaintenanceChecklistCompletion>;
   completeChecklistItem(
     workOrderId: string,

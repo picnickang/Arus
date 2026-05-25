@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils";
 interface SupplierSelectOptionProps {
   supplierId: string;
   name: string;
-  code?: string;
-  performance?: SupplierPerformanceSummary;
+  code?: string | undefined;
+  performance?: SupplierPerformanceSummary | undefined;
 }
 
 function getScoreColor(score: number): string {

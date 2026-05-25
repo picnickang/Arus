@@ -6,13 +6,13 @@ interface LowStockPartRecord {
   partNumber: string;
   partName: string;
   category: string;
-  criticality?: string;
+  criticality?: string | undefined;
   quantityOnHand: number;
   minStockLevel: number;
   maxStockLevel: number;
-  supplierId?: string;
-  supplierName?: string;
-  leadTimeDays?: number;
+  supplierId?: string | undefined;
+  supplierName?: string | undefined;
+  leadTimeDays?: number | undefined;
   unitCost: number;
 }
 
@@ -26,8 +26,8 @@ export interface SmartReplenishmentSuggestion {
   minStockLevel: number;
   maxStockLevel: number;
   suggestedOrderQty: number;
-  supplierId?: string;
-  supplierName?: string;
+  supplierId?: string | undefined;
+  supplierName?: string | undefined;
   leadTimeDays: number;
   estimatedCost: number;
   upcomingWOCount: number;

@@ -58,7 +58,7 @@ export function AssignmentDrawer({
   onTabChange: (tab: "details" | "constraints" | "suggestions" | "compliance") => void;
   violations: ConstraintResult[];
   suggestions: AiSuggestion[];
-  fatigue?: FatigueResult;
+  fatigue?: FatigueResult | undefined;
   onApplySuggestion: (crewId: string) => void;
   onApplyChanges: () => void;
   isSaving: boolean;

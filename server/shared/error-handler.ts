@@ -127,7 +127,7 @@ export function mapStorageError(error: unknown, context: string): DomainError {
 
 export interface ErrorResponse {
   message: string;
-  code?: string;
+  code?: string | undefined;
   errors?: unknown;
 }
 

@@ -4,8 +4,8 @@ export interface EventSpineMessage {
   eventId: string;
   eventType: string;
   orgId: string;
-  aggregateId?: string;
-  aggregateType?: string;
+  aggregateId?: string | undefined;
+  aggregateType?: string | undefined;
   occurredAt: Date;
   payload: unknown;
 }

@@ -27,14 +27,14 @@ export class TenantQuotaExceededError extends Error {
   readonly code = "TENANT_QUOTA_EXCEEDED";
   readonly metric: string;
   readonly retryAfterSeconds: number;
-  readonly limit?: number;
-  readonly used?: number;
+  readonly limit?: number | undefined;
+  readonly used?: number | undefined;
 
   constructor(info: {
     metric: string;
     retryAfterSeconds: number;
-    limit?: number;
-    used?: number;
+    limit?: number | undefined;
+    used?: number | undefined;
   }) {
     super(formatQuotaExceededMessage(info));
     this.name = "TenantQuotaExceededError";
@@ -211,9 +211,9 @@ export async function apiRequest<T = unknown>(
     res = await fetch(resolveUrl(url), {
       method,
       headers: { ...createHeaders(includeContentType), ...(options?.headers ?? {}) },
-      body,
+      ...(body !== undefined ? { body } : {}),
       credentials: "include",
-      signal: options?.signal,
+      ...(options?.signal !== undefined ? { signal: options.signal } : {}),
     });
   } catch (error) {
     if (shouldQueueOffline && isNetworkFailure(error)) {
@@ -373,7 +373,7 @@ export async function replayQueuedApiRequests(): Promise<{
       const response = await fetch(resolveUrl(op.request.url), {
         method: op.request.method,
         headers: createHeaders(op.request.method !== "DELETE"),
-        body: op.request.method === "DELETE" ? undefined : JSON.stringify(payload),
+        ...(op.request.method !== "DELETE" ? { body: JSON.stringify(payload) } : {}),
         credentials: "include",
       });
 

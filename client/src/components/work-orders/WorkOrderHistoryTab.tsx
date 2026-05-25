@@ -30,7 +30,7 @@ interface WorkOrderHistoryResponse {
   inventoryMovements: InventoryMovement[];
 }
 
-type LucideIcon = React.ComponentType<{ className?: string }>;
+type LucideIcon = React.ComponentType<{ className?: string | undefined }>;
 const EVENT_TYPE_CONFIG: Record<string, { icon: LucideIcon; color: string; label: string }> = {
   created: { icon: Clock, color: "text-blue-500", label: "Created" },
   status_changed: { icon: ArrowRight, color: "text-purple-500", label: "Status Changed" },

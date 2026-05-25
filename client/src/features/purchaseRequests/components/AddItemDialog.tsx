@@ -55,9 +55,9 @@ export function AddItemDialog({ open, onOpenChange, onSubmit, isPending }: AddIt
     const sanitized: PRItemFormData = {
       partId: data.partId,
       quantity: data.quantity,
-      supplierId: data.supplierId && data.supplierId.trim() !== "" ? data.supplierId : undefined,
-      uom: data.uom && data.uom.trim() !== "" ? data.uom : undefined,
-      remarks: data.remarks && data.remarks.trim() !== "" ? data.remarks : undefined,
+      ...(data.supplierId && data.supplierId.trim() !== "" && { supplierId: data.supplierId }),
+      ...(data.uom && data.uom.trim() !== "" && { uom: data.uom }),
+      ...(data.remarks && data.remarks.trim() !== "" && { remarks: data.remarks }),
     };
     onSubmit(sanitized);
     form.reset();

@@ -83,7 +83,7 @@ async function importEntityFile(
 
 async function importTelemetryChunks(
   entity: string,
-  entityManifest: { chunked?: boolean; files?: string[] },
+  entityManifest: { chunked?: boolean | undefined; files?: string[] | undefined; count?: number; file?: string; chunkSize?: number | undefined },
   extractPath: string,
   targetOrgId: string,
   sourceOrgId: string,

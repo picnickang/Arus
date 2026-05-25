@@ -6,7 +6,20 @@ import { Check, ChevronDown, ChevronUp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-const Select = SelectPrimitive.Root;
+type RadixSelectProps = React.ComponentProps<typeof SelectPrimitive.Root>;
+type SelectProps = Omit<RadixSelectProps, "value" | "defaultValue"> & {
+  value?: string | undefined;
+  defaultValue?: string | undefined;
+};
+const Select = (props: SelectProps) => {
+  const { value, defaultValue, ...rest } = props;
+  const passthrough: RadixSelectProps = {
+    ...rest,
+    ...(value !== undefined ? { value } : {}),
+    ...(defaultValue !== undefined ? { defaultValue } : {}),
+  };
+  return <SelectPrimitive.Root {...passthrough} />;
+};
 
 const SelectGroup = SelectPrimitive.Group;
 

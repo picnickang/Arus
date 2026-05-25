@@ -97,10 +97,7 @@ export function getEventTypeConfig(eventType: string): DeckEventUIConfig {
 
 export function createDefaultManualEventFormValues(): Partial<ManualEventFormValues> {
   return {
-    eventType: undefined,
     summary: "",
     details: "",
-    positionLat: undefined,
-    positionLon: undefined,
   };
 }

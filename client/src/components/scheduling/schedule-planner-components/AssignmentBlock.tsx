@@ -45,12 +45,12 @@ export function AssignmentBlock({
   onClick: () => void;
   hardViolations: number;
   softViolations: number;
-  fatigueRisk?: FatigueRiskLevel;
-  isMobile?: boolean;
-  onPointerDragStart?: (e: React.PointerEvent, assignment: ScheduleAssignment) => void;
-  isDragging?: boolean;
-  dragCompliancePreview?: DragCompliancePreview | null;
-  isLongPressActive?: boolean;
+  fatigueRisk?: FatigueRiskLevel | undefined;
+  isMobile?: boolean | undefined;
+  onPointerDragStart?: ((e: React.PointerEvent, assignment: ScheduleAssignment) => void) | undefined;
+  isDragging?: boolean | undefined;
+  dragCompliancePreview?: DragCompliancePreview | null | undefined;
+  isLongPressActive?: boolean | undefined;
 }) {
   const leftPercent = (startOffset / totalDays) * 100;
   const widthPercent = (duration / totalDays) * 100;

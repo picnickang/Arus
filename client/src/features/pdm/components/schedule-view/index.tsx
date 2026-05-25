@@ -46,8 +46,8 @@ export function ScheduleView() {
 
   const filters: ScheduleFilters = useMemo(
     () => ({
-      vesselIds: vesselId !== "all" ? [vesselId] : undefined,
-      equipmentTypes: equipmentType !== "all" ? [equipmentType] : undefined,
+      ...(vesselId !== "all" && { vesselIds: [vesselId] }),
+      ...(equipmentType !== "all" && { equipmentTypes: [equipmentType] }),
       startDate: format(start, "yyyy-MM-dd"),
       endDate: format(end, "yyyy-MM-dd"),
       maxTasksPerVesselPerDay: maxTasksPerDay,

@@ -67,8 +67,8 @@ export function useWorkOrderRequests(workOrderId: string) {
 
   const createPurchaseRequestMutation = useMutation({
     mutationFn: (data: {
-      notes?: string;
-      items: Array<{ partId?: string; description: string; quantity: number; notes?: string }>;
+      notes?: string | undefined;
+      items: Array<{ partId?: string | undefined; description: string; quantity: number; notes?: string | undefined; supplierId?: string | undefined }>;
     }) => apiRequest("POST", `/api/work-orders/${workOrderId}/purchase-requests`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({

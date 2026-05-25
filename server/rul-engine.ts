@@ -14,8 +14,8 @@ export interface RulPrediction {
 }
 
 export interface DegradationSnapshot {
-  degradationMetric?: number;
-  vibrationLevel?: number;
+  degradationMetric?: number | undefined;
+  vibrationLevel?: number | undefined;
   [k: string]: unknown;
 }
 

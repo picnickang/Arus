@@ -162,14 +162,14 @@ export function useTrainingData() {
     const sequenceLength = Number.parseInt(
       (document.getElementById("lstm-sequence") as HTMLInputElement)?.value || "10"
     );
-    trainLSTM.mutate({ equipmentType: selectedEquipmentType || undefined, epochs, sequenceLength });
+    trainLSTM.mutate({ ...(selectedEquipmentType && { equipmentType: selectedEquipmentType }), epochs, sequenceLength });
   };
 
   const handleTrainRandomForest = () => {
     const numTrees = Number.parseInt(
       (document.getElementById("rf-trees") as HTMLInputElement)?.value || "50"
     );
-    trainRandomForest.mutate({ equipmentType: selectedEquipmentType || undefined, numTrees });
+    trainRandomForest.mutate({ ...(selectedEquipmentType && { equipmentType: selectedEquipmentType }), numTrees });
   };
 
   const exportData = (

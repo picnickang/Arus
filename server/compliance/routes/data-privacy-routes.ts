@@ -216,11 +216,11 @@ router.get(
       }
       const filters = dsarFilterSchema.parse(req.query);
       const requests = await dbGdprStorage.getDataSubjectRequestsFiltered(orgId, {
-        status: filters.status,
-        requestType: filters.requestType,
-        requesterEmail: filters.requesterEmail,
-        fromDate: filters.fromDate ? new Date(filters.fromDate) : undefined,
-        toDate: filters.toDate ? new Date(filters.toDate) : undefined,
+        ...(filters.status !== undefined && { status: filters.status }),
+        ...(filters.requestType !== undefined && { requestType: filters.requestType }),
+        ...(filters.requesterEmail !== undefined && { requesterEmail: filters.requesterEmail }),
+        ...(filters.fromDate !== undefined && { fromDate: new Date(filters.fromDate) }),
+        ...(filters.toDate !== undefined && { toDate: new Date(filters.toDate) }),
       });
       await auditService.logEvent({
         orgId,

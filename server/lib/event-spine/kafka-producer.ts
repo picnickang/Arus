@@ -12,15 +12,15 @@ export interface KafkaProducerOptions {
   /** Comma-separated `host:port` list (matches `EVENT_SPINE_BROKERS`). */
   brokers: string;
   /** Kafka topic prefix; final topic is `${topicPrefix}${eventType}`. */
-  topicPrefix?: string;
+  topicPrefix?: string | undefined;
   /** Kafka client id (defaults to `arus-event-spine`). */
-  clientId?: string;
+  clientId?: string | undefined;
   /** SASL config (optional). */
-  sasl?: KafkaSaslConfig;
+  sasl?: KafkaSaslConfig | undefined;
   /** Enable SSL (auto-on when sasl provided). */
-  ssl?: boolean;
+  ssl?: boolean | undefined;
   /** Connection timeout (ms). */
-  connectionTimeout?: number;
+  connectionTimeout?: number | undefined;
 }
 
 /**
@@ -60,10 +60,10 @@ export class KafkaEventSpineProducer implements EventSpineProducer {
     this.connecting = (async () => {
       const kafkajs = (await import("kafkajs")) as typeof import("kafkajs");
       const kafka = new kafkajs.Kafka({
-        clientId: this.opts.clientId,
+        ...(this.opts.clientId !== undefined ? { clientId: this.opts.clientId } : {}),
         brokers: this.opts.brokers.split(",").map((s) => s.trim()).filter(Boolean),
         ssl: this.opts.ssl ?? !!this.opts.sasl,
-        sasl: this.opts.sasl,
+        ...(this.opts.sasl !== undefined ? { sasl: this.opts.sasl } : {}),
         connectionTimeout: this.opts.connectionTimeout ?? 10_000,
       });
       const producer = kafka.producer({

@@ -26,11 +26,11 @@ export interface AcousticData {
   source: "file" | "paste";
   data: number[];
   sampleRate: number;
-  rpm?: number;
+  rpm?: number | undefined;
   metadata?: {
-    fileName?: string;
-    fileSize?: number;
-  };
+    fileName?: string | undefined;
+    fileSize?: number | undefined;
+  } | undefined;
 }
 
 export interface AnalysisResult {

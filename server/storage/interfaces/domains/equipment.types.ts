@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../../lib/widen-partial";
 /**
  * Equipment Storage Interface - Equipment Registry, Lifecycle, Operating Parameters
  * Part of IStorage modularization for improved maintainability
@@ -27,7 +28,7 @@ export interface IEquipmentStorage {
   createEquipment(equipment: InsertEquipment): Promise<Equipment>;
   updateEquipment(
     id: string,
-    equipment: Partial<InsertEquipment>,
+    equipment: WidenPartial<InsertEquipment>,
     orgId?: string
   ): Promise<Equipment>;
   deleteEquipment(id: string, orgId?: string): Promise<void>;
@@ -47,7 +48,7 @@ export interface IEquipmentStorage {
   upsertEquipmentLifecycle(lifecycle: InsertEquipmentLifecycle): Promise<EquipmentLifecycle>;
   updateEquipmentLifecycle(
     id: string,
-    lifecycle: Partial<InsertEquipmentLifecycle>
+    lifecycle: WidenPartial<InsertEquipmentLifecycle>
   ): Promise<EquipmentLifecycle>;
   getReplacementRecommendations(): Promise<EquipmentLifecycle[]>;
 
@@ -85,7 +86,7 @@ export interface IEquipmentStorage {
   createOperatingParameter(parameter: InsertOperatingParameter): Promise<OperatingParameter>;
   updateOperatingParameter(
     id: string,
-    parameter: Partial<InsertOperatingParameter>,
+    parameter: WidenPartial<InsertOperatingParameter>,
     orgId?: string
   ): Promise<OperatingParameter>;
   deleteOperatingParameter(id: string, orgId?: string): Promise<void>;
@@ -108,7 +109,7 @@ export interface IEquipmentStorage {
   ): Promise<OperatingConditionAlert>;
   updateOperatingConditionAlert(
     id: string,
-    alert: Partial<InsertOperatingConditionAlert>,
+    alert: WidenPartial<InsertOperatingConditionAlert>,
     orgId?: string
   ): Promise<OperatingConditionAlert>;
   acknowledgeOperatingConditionAlert(

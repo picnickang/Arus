@@ -49,11 +49,11 @@ type PartialChecklist = Partial<WorkOrderChecklist>;
 type PartialWorklog = Partial<WorkOrderWorklog>;
 type InsertCompletion = Omit<WorkOrderCompletion, "id">;
 type CompletionFilters = {
-  equipmentId?: string;
-  vesselId?: string;
-  startDate?: Date;
-  endDate?: Date;
-  orgId?: string;
+  equipmentId?: string | undefined;
+  vesselId?: string | undefined;
+  startDate?: Date | undefined;
+  endDate?: Date | undefined;
+  orgId?: string | undefined;
 };
 
 export class DatabaseWorkOrderStorage extends DbWorkOrderCore {

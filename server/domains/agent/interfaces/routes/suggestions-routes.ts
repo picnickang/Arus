@@ -356,7 +356,10 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
         const orgId = (req as AuthenticatedRequest).orgId;
         const userId = (req as AuthenticatedRequest).user?.id;
         const parsed = preferencesBodySchema.parse(req.body);
-        const prefs = await agentRepo.suggestions.savePreferences(orgId, parsed, userId);
+        const cleaned = Object.fromEntries(
+          Object.entries(parsed).filter(([, v]) => v !== undefined)
+        ) as Parameters<typeof agentRepo.suggestions.savePreferences>[1];
+        const prefs = await agentRepo.suggestions.savePreferences(orgId, cleaned, userId);
         return res.json(prefs);
       } catch (error: unknown) {
         if (error instanceof z.ZodError) {

@@ -14,8 +14,8 @@ export interface ToolContext {
   orgId: string;
   userId: string | undefined;
   conversationId: string;
-  userRole?: string;
-  knowledgeBase?: KnowledgeBasePort;
+  userRole?: string | undefined;
+  knowledgeBase?: KnowledgeBasePort | undefined;
 }
 
 export interface ToolExecutionDeps {
@@ -26,7 +26,7 @@ export interface ToolExecutionDeps {
 export interface ToolExecutionResult {
   toolResult: Record<string, unknown>;
   toolStatus: string;
-  toolError?: string;
+  toolError?: string | undefined;
   durationMs: number;
 }
 
@@ -219,9 +219,9 @@ export async function handleDraftApproval(
       createdById: userId,
     });
     await repo.drafts.update(draft.id, {
-      reviewedById: userId,
+      ...(userId !== undefined ? { reviewedById: userId } : {}),
       reviewNote: `Auto-approved (tier: ${permissionTier}, risk: ${tool.riskLevel})`,
-      ...(execResult.resultId ? { resultId: execResult.resultId } : {}),
+      ...(execResult.resultId !== undefined && { resultId: execResult.resultId }),
     });
     await repo.approvals.create({
       orgId,

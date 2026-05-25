@@ -119,7 +119,10 @@ router.get("/runs", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
     const { status, datasetId } = runsListQuerySchema.parse(req.query);
-    const result = await service.listRuns(orgId, { status, datasetId });
+    const result = await service.listRuns(orgId, {
+      ...(status !== undefined && { status }),
+      ...(datasetId !== undefined && { datasetId }),
+    });
     return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

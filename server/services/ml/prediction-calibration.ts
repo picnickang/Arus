@@ -44,8 +44,8 @@ interface IsotonicMapping {
 
 interface CalibrationModel {
   method: "platt" | "isotonic";
-  plattParams?: PlattParameters;
-  isotonicMapping?: IsotonicMapping;
+  plattParams?: PlattParameters | undefined;
+  isotonicMapping?: IsotonicMapping | undefined;
   dataPointCount: number;
   fittedAt: Date;
   metrics: {

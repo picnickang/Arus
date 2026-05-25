@@ -7,7 +7,7 @@ export interface DeadLetterEntry<T = unknown> {
   source: string;
   retryCount: number;
   createdAt: Date;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown> | undefined;
 }
 
 export interface ITelemetryPersistence {
@@ -24,11 +24,11 @@ export interface IDeadLetterQueue<T = unknown> {
     metadata?: Record<string, unknown>
   ): DeadLetterEntry<T>;
   get(id: string): DeadLetterEntry<T> | undefined;
-  list(options?: { limit?: number; offset?: number; source?: string }): DeadLetterEntry<T>[];
+  list(options?: { limit?: number | undefined; offset?: number | undefined; source?: string | undefined }): DeadLetterEntry<T>[];
   replay(id: string): Promise<{ success: boolean; entryId: string; error?: string }>;
   replayAll(options?: {
-    source?: string;
-    limit?: number;
+    source?: string | undefined;
+    limit?: number | undefined;
   }): Promise<{ success: boolean; entryId: string; error?: string }[]>;
   prune(): number;
   clear(): number;

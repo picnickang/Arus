@@ -2,8 +2,8 @@ export interface WorkOrderCreated {
   type: "WORK_ORDER_CREATED";
   workOrderId: string;
   orgId: string;
-  vesselId?: string;
-  equipmentId?: string;
+  vesselId?: string | undefined;
+  equipmentId?: string | undefined;
   priority: string;
   timestamp: Date;
 }
@@ -22,7 +22,7 @@ export interface WorkOrderStatusChanged {
   orgId: string;
   previousStatus: string;
   newStatus: string;
-  changedBy?: string;
+  changedBy?: string | undefined;
   timestamp: Date;
 }
 
@@ -31,7 +31,7 @@ export interface WorkOrderAssigned {
   workOrderId: string;
   orgId: string;
   assigneeId: string;
-  assignedBy?: string;
+  assignedBy?: string | undefined;
   timestamp: Date;
 }
 
@@ -39,9 +39,9 @@ export interface WorkOrderCompleted {
   type: "WORK_ORDER_COMPLETED";
   workOrderId: string;
   orgId: string;
-  completedBy?: string;
-  actualHours?: number;
-  completionNotes?: string;
+  completedBy?: string | undefined;
+  actualHours?: number | undefined;
+  completionNotes?: string | undefined;
   timestamp: Date;
 }
 
@@ -59,7 +59,7 @@ export interface WorkOrderTaskCompleted {
   workOrderId: string;
   orgId: string;
   taskId: string;
-  completedBy?: string;
+  completedBy?: string | undefined;
   timestamp: Date;
 }
 

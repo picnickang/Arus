@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../../lib/widen-partial";
 /**
  * Alerts Storage Interface - Alert Configurations, Notifications, Suppressions
  * Part of IStorage modularization for improved maintainability
@@ -27,7 +28,7 @@ export interface IAlertsStorage {
   createAlertConfiguration(config: InsertAlertConfig): Promise<AlertConfiguration>;
   updateAlertConfiguration(
     id: string,
-    config: Partial<InsertAlertConfig>
+    config: WidenPartial<InsertAlertConfig>
   ): Promise<AlertConfiguration>;
   deleteAlertConfiguration(id: string): Promise<void>;
 
@@ -68,7 +69,7 @@ export interface IAlertsStorage {
   createNotificationSetting(setting: InsertNotificationSetting): Promise<NotificationSetting>;
   updateNotificationSetting(
     id: string,
-    setting: Partial<InsertNotificationSetting>,
+    setting: WidenPartial<InsertNotificationSetting>,
     orgId: string
   ): Promise<NotificationSetting>;
   deleteNotificationSetting(id: string, orgId: string): Promise<void>;
@@ -82,7 +83,7 @@ export interface IAlertsStorage {
   createNotificationQueueItem(item: InsertNotificationQueueItem): Promise<NotificationQueueItem>;
   updateNotificationQueueItem(
     id: string,
-    item: Partial<InsertNotificationQueueItem>,
+    item: WidenPartial<InsertNotificationQueueItem>,
     orgId: string
   ): Promise<NotificationQueueItem>;
   markNotificationSent(id: string, orgId: string): Promise<NotificationQueueItem>;

@@ -39,12 +39,12 @@ export interface ReportScheduleInput {
   name: string;
   reportType: ReportType;
   frequency: ReportFrequency;
-  cronExpression?: string;
-  timezone?: string;
-  format?: ReportFormat;
+  cronExpression?: string | undefined;
+  timezone?: string | undefined;
+  format?: ReportFormat | undefined;
   recipients: string[];
-  vesselIds?: string[] | null;
-  enabled?: boolean;
+  vesselIds?: string[] | null | undefined;
+  enabled?: boolean | undefined;
 }
 
 export interface GeneratedReport {

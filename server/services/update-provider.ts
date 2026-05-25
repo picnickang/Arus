@@ -181,7 +181,7 @@ export function getProviderConfigFromEnv(): ProviderConfig {
     type: "custom",
     custom: {
       updateServerUrl: process.env['UPDATE_SERVER_URL'] || "https://updates.arus.io",
-      apiKey: process.env['UPDATE_SERVER_API_KEY'],
+      ...(process.env['UPDATE_SERVER_API_KEY'] !== undefined && { apiKey: process.env['UPDATE_SERVER_API_KEY'] }),
     },
   };
 }

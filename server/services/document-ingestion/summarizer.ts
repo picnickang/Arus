@@ -25,9 +25,9 @@ Document content:
 Provide a summary that captures the essential information a marine engineer or fleet operator would need.`;
 
 export interface SummarizationOptions {
-  maxContentLength?: number;
-  model?: string;
-  openAiKey?: string;
+  maxContentLength?: number | undefined;
+  model?: string | undefined;
+  openAiKey?: string | undefined;
 }
 
 export interface SummarizationResult {

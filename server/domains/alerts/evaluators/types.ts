@@ -17,6 +17,6 @@ export interface CrewAlertResult {
 
 export interface EvaluationContext {
   orgId: string;
-  vesselId?: string;
-  now?: Date;
+  vesselId?: string | undefined;
+  now?: Date | undefined;
 }

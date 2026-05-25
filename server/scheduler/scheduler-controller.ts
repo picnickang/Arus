@@ -28,13 +28,13 @@ import {
 
 interface PlanParams {
   orgId: string;
-  from?: string;
-  days?: number;
-  vessels?: string[];
-  mode?: "dry_run" | "execute" | "auto" | "simulate";
-  trigger?: string;
+  from?: string | undefined;
+  days?: number | undefined;
+  vessels?: string[] | undefined;
+  mode?: "dry_run" | "execute" | "auto" | "simulate" | undefined;
+  trigger?: string | undefined;
   triggerContext?: unknown;
-  fillUnassignedOnly?: boolean;
+  fillUnassignedOnly?: boolean | undefined;
 }
 
 export interface SimulatedAssignment {
@@ -52,7 +52,7 @@ export interface SimulatedAssignment {
   score: number;
   isNew: boolean;
   wouldCollide: boolean;
-  collidesWithId?: string;
+  collidesWithId?: string | undefined;
 }
 
 export interface SimulationResult {
@@ -338,10 +338,10 @@ export async function simulateSchedule({
   fillUnassignedOnly = true,
 }: {
   orgId: string;
-  from?: string;
-  days?: number;
-  vessels?: string[];
-  fillUnassignedOnly?: boolean;
+  from?: string | undefined;
+  days?: number | undefined;
+  vessels?: string[] | undefined;
+  fillUnassignedOnly?: boolean | undefined;
 }): Promise<SimulationResult> {
   const t0 = Date.now();
   const since = from ?? new Date().toISOString().slice(0, 10);
@@ -459,8 +459,8 @@ export async function applySimulatedSchedule({
 }: {
   orgId: string;
   simulationResult: SimulationResult;
-  skipCollisions?: boolean;
-  vesselIds?: string[];
+  skipCollisions?: boolean | undefined;
+  vesselIds?: string[] | undefined;
 }): Promise<{
   applied: number;
   skipped: number;
@@ -635,11 +635,11 @@ function planShiftsWithExplanations(
     date: string;
     shiftId: string;
     crewId: string;
-    vesselId?: string;
+    vesselId?: string | undefined;
     start: string;
     end: string;
-    role?: string;
-    score?: number;
+    role?: string | undefined;
+    score?: number | undefined;
   }>;
   unfilled: Array<{ day: string; shiftId: string; need: number; reason: string }>;
   explanations: Record<string, string>;

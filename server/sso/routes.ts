@@ -39,8 +39,8 @@ export interface SsoSessionIssuer {
     orgId: string;
     protocol: "saml" | "oidc";
     subject: string;
-    email?: string;
-    displayName?: string;
+    email?: string | undefined;
+    displayName?: string | undefined;
     attributes: Record<string, unknown>;
     req: Request;
   }): Promise<{ sessionToken: string; redirectTo: string } | null>;

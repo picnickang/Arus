@@ -27,11 +27,11 @@ export interface Position {
   latitude: number;
   longitude: number;
   timestamp: Date;
-  sog?: number;
-  cog?: number;
-  heading?: number;
+  sog?: number | undefined;
+  cog?: number | undefined;
+  heading?: number | undefined;
   source: string;
-  equipmentId?: string;
+  equipmentId?: string | undefined;
 }
 
 /**

@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 /**
  * Inventory - Database Storage Stock, Suppliers & Substitutions
  */
@@ -136,7 +137,7 @@ export class DbStockStorage {
       quantityReserved,
       availableQuantity,
       isOutOfStock: availableQuantity === 0,
-      preferredSupplier,
+      ...(preferredSupplier !== undefined && { preferredSupplier }),
       estimatedLeadTimeDays,
     };
   }
@@ -167,7 +168,7 @@ export class DbStockStorage {
 
   async updateSupplier(
     id: string,
-    updates: Partial<InsertSupplier>,
+    updates: WidenPartial<InsertSupplier>,
     orgId?: string
   ): Promise<Supplier> {
     this.validateOrgId(orgId, "updateSupplier");
@@ -226,7 +227,7 @@ export class DbStockStorage {
     return n;
   }
 
-  async updateStock(id: string, updates: Partial<InsertStock>, orgId?: string): Promise<Stock> {
+  async updateStock(id: string, updates: WidenPartial<InsertStock>, orgId?: string): Promise<Stock> {
     this.validateOrgId(orgId, "updateStock");
     const conditions = orgId ? and(eq(stock.id, id), eq(stock.orgId, orgId)) : eq(stock.id, id);
     const [updated] = await db

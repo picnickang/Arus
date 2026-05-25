@@ -39,19 +39,19 @@ interface FleetBenchmarksResponse {
 
 export interface EnrichedDataPoint {
   speed: number;
-  actualPower?: number;
-  baselinePower?: number;
-  fleetAvg?: number;
-  p25?: number;
-  p50?: number;
-  p75?: number;
-  baseline?: number;
+  actualPower?: number | undefined;
+  baselinePower?: number | undefined;
+  fleetAvg?: number | undefined;
+  p25?: number | undefined;
+  p50?: number | undefined;
+  p75?: number | undefined;
+  baseline?: number | undefined;
 }
 
 export interface UsePowerSTWDataProps {
   vesselId: string;
-  startDate?: Date;
-  endDate?: Date;
+  startDate?: Date | undefined;
+  endDate?: Date | undefined;
 }
 
 export interface UsePowerSTWDataReturn {
@@ -132,11 +132,10 @@ export function usePowerSTWData({
       }
     }
 
-    const combinedData: { speed: number; actualPower?: number; baselinePower?: number }[] =
+    const combinedData: { speed: number; actualPower?: number | undefined; baselinePower?: number | undefined }[] =
       data.actual.map((point) => ({
         speed: point.x,
         actualPower: point.y,
-        baselinePower: undefined,
       }));
 
     for (const baselinePoint of data.baseline) {
@@ -146,7 +145,6 @@ export function usePowerSTWData({
       } else {
         combinedData.push({
           speed: baselinePoint.x,
-          actualPower: undefined,
           baselinePower: baselinePoint.y,
         });
       }

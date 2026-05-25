@@ -24,10 +24,10 @@ export interface Assignment {
   date: string;
   shiftId: string;
   crewId: string;
-  vesselId?: string;
+  vesselId?: string | undefined;
   start: string;
   end: string;
-  role?: string;
+  role?: string | undefined;
 }
 
 export interface UnfilledShift {

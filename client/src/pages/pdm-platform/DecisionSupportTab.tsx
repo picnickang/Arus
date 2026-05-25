@@ -324,11 +324,14 @@ export function DecisionSupportTab() {
   const syntheticMutation = useGenerateSyntheticTelemetry();
   const { toast } = useToast();
 
+  const loadFactorNum = numberOrUndefined(loadFactor);
+  const weatherSeverityNum = numberOrUndefined(weatherSeverity);
+  const seaStateNum = numberOrUndefined(seaState);
   const contextOverride: OperationalContextOverride = {
-    operatingMode,
-    loadFactor: numberOrUndefined(loadFactor),
-    weatherSeverity: numberOrUndefined(weatherSeverity),
-    seaState: numberOrUndefined(seaState),
+    ...(operatingMode !== undefined && { operatingMode }),
+    ...(loadFactorNum !== undefined && { loadFactor: loadFactorNum }),
+    ...(weatherSeverityNum !== undefined && { weatherSeverity: weatherSeverityNum }),
+    ...(seaStateNum !== undefined && { seaState: seaStateNum }),
   };
 
   const runDecision = async () => {
@@ -362,8 +365,8 @@ export function DecisionSupportTab() {
         scenario,
         hours: 24,
         intervalMinutes: 15,
-        loadFactor: numberOrUndefined(loadFactor),
-        weatherSeverity: numberOrUndefined(weatherSeverity),
+        ...(loadFactorNum !== undefined && { loadFactor: loadFactorNum }),
+        ...(weatherSeverityNum !== undefined && { weatherSeverity: weatherSeverityNum }),
       });
       setSyntheticResult(result);
       toast({ title: "Synthetic telemetry generated" });

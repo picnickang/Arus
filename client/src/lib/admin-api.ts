@@ -44,7 +44,7 @@ export async function adminApiRequest<T = unknown>(
   const res = await fetch(url, {
     method,
     headers,
-    body: data ? JSON.stringify(data) : undefined,
+    ...(data ? { body: JSON.stringify(data) } : {}),
     credentials: "include",
   });
 

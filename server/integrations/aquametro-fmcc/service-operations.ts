@@ -249,7 +249,7 @@ export class AquametroFMCCService extends AquametroFMCCServiceCore {
       if (!flowResult.success) {
         return {
           success: false,
-          error: flowResult.error,
+          ...(flowResult.error !== undefined && { error: flowResult.error }),
           source: flowResult.source,
           responseTimeMs: Date.now() - startTime,
         };

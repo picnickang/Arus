@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../../lib/widen-partial";
 /**
  * Inventory Storage Interface - Parts, Inventory, Movements
  * Part of IStorage modularization for improved maintainability
@@ -35,7 +36,7 @@ export interface IInventoryStorage {
   createPart(part: InsertPartsInventory): Promise<PartsInventory>;
   updatePart(
     id: string,
-    part: Partial<InsertPartsInventory>,
+    part: WidenPartial<InsertPartsInventory>,
     orgId: string
   ): Promise<PartsInventory>;
   deletePart(id: string, orgId: string): Promise<void>;

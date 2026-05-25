@@ -68,7 +68,7 @@ export function createDraftExecutor(deps: DraftExecutorDeps) {
 
       return {
         resultId: data['reportId'] as string,
-        partialFailures: sendErrors.length > 0 ? sendErrors : undefined,
+        ...(sendErrors.length > 0 && { partialFailures: sendErrors }),
       };
     }
 

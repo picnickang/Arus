@@ -5,6 +5,7 @@ import {
   insertMaintenanceTemplateSchema,
 } from "@shared/schema-runtime";
 import { maintenanceService } from "../service";
+import { stripUndefined } from "../../../lib/strip-undefined";
 import {
   requireOrgId,
   requireOrgIdAndValidateBody,
@@ -113,7 +114,7 @@ export function registerMaintenanceRoutes(
     withErrorHandling("update maintenance schedule", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { id } = idParamSchema.parse(req.params);
-      const scheduleData = insertMaintenanceScheduleSchema.partial().parse(req.body);
+      const scheduleData = stripUndefined(insertMaintenanceScheduleSchema.partial().parse(req.body));
       const schedule = await maintenanceService.updateSchedule(
         id,
         scheduleData,
@@ -222,7 +223,7 @@ export function registerMaintenanceRoutes(
       const orgId = (req as AuthenticatedRequest).orgId;
       const { id } = idParamSchema.parse(req.params);
 
-      const templateData = insertMaintenanceTemplateSchema.partial().parse(req.body);
+      const templateData = stripUndefined(insertMaintenanceTemplateSchema.partial().parse(req.body));
       const template = await maintenanceService.updateTemplate(
         id,
         templateData,

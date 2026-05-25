@@ -37,11 +37,11 @@ export interface FatigueRiskResult {
 
 interface FatigueRiskBadgeProps {
   crewId: string;
-  crewName?: string;
-  compact?: boolean;
-  showScore?: boolean;
-  lookbackDays?: number;
-  className?: string;
+  crewName?: string | undefined;
+  compact?: boolean | undefined;
+  showScore?: boolean | undefined;
+  lookbackDays?: number | undefined;
+  className?: string | undefined;
 }
 
 // Default fallback config for unknown fatigue levels
@@ -181,8 +181,8 @@ export function FatigueRiskBadge({
 
 interface FatigueDetailsContentProps {
   data: FatigueRiskResult;
-  crewName?: string;
-  lookbackDays?: number;
+  crewName?: string | undefined;
+  lookbackDays?: number | undefined;
 }
 
 function FatigueDetailsContent({ data, crewName, lookbackDays = 14 }: FatigueDetailsContentProps) {

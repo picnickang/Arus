@@ -53,14 +53,17 @@ export function useWorkOrdersPageData() {
     dueDateTo: "",
   });
 
-  const filterVesselId = filters.vesselId !== "all" ? filters.vesselId : undefined;
-  const filterStatus = filters.status !== "all" ? filters.status : undefined;
+  const filterVesselId: string | undefined = filters.vesselId !== "all" ? filters.vesselId : undefined;
+  const filterStatus: string | undefined = filters.status !== "all" ? filters.status : undefined;
   const {
     data: workOrders,
     isLoading,
     error,
     refetch,
-  } = useWorkOrders({ vesselId: filterVesselId, status: filterStatus });
+  } = useWorkOrders({
+    ...(filterVesselId !== undefined ? { vesselId: filterVesselId } : {}),
+    ...(filterStatus !== undefined ? { status: filterStatus } : {}),
+  });
   const { data: vessels = [] } = useVessels();
   const { data: equipment = [] } = useEquipmentList();
   const { data: allCrewMembers = [] } = useCrewList();
@@ -175,14 +178,14 @@ export function useWorkOrdersPageData() {
   });
   const completeWorkOrderMutation = useCustomMutation<{
     orderId: string;
-    predictionFeedback?: Record<string, unknown>;
+    predictionFeedback?: Record<string, unknown> | undefined;
   }>({
     mutationFn: async ({
       orderId,
       predictionFeedback,
     }: {
       orderId: string;
-      predictionFeedback?: Record<string, unknown>;
+      predictionFeedback?: Record<string, unknown> | undefined;
     }) => {
       const order = workOrders?.find((wo) => wo.id === orderId);
       const closeout = predictionFeedback?.['closeout'] as
@@ -269,10 +272,13 @@ export function useWorkOrdersPageData() {
     if (formDialogMode === "create") {
       const { templateId, ...restData } = formData;
       const payload: InsertWorkOrder = { ...restData, orgId: getCurrentOrgId() ?? "" } as never;
-      createMutation.mutate({ payload, templateId });
+      createMutation.mutate({ payload, ...(templateId !== undefined ? { templateId } : {}) });
     } else if (selectedOrder) {
       const { templateId: _templateId, ...restData } = formData;
-      updateMutation.mutate({ id: selectedOrder.id, data: restData });
+      const cleaned = Object.fromEntries(
+        Object.entries(restData).filter(([, v]) => v !== undefined)
+      ) as Partial<WorkOrder>;
+      updateMutation.mutate({ id: selectedOrder.id, data: cleaned });
     }
   };
   const handleSort = (column: string) => {

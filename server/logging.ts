@@ -17,27 +17,27 @@ export interface LogContext {
   timestamp: string;
   level: "info" | "warn" | "error" | "debug";
   service: string;
-  version?: string;
-  requestId?: string;
-  correlationId?: string;
-  orgId?: string;
-  userId?: string;
-  operation?: string;
-  duration?: number;
-  statusCode?: number;
+  version?: string | undefined;
+  requestId?: string | undefined;
+  correlationId?: string | undefined;
+  orgId?: string | undefined;
+  userId?: string | undefined;
+  operation?: string | undefined;
+  duration?: number | undefined;
+  statusCode?: number | undefined;
   error?: {
     message: string;
-    stack?: string;
-    code?: string;
-  };
-  metadata?: Record<string, unknown>;
+    stack?: string | undefined;
+    code?: string | undefined;
+  } | undefined;
+  metadata?: Record<string, unknown> | undefined;
 }
 
 // Request-scoped context using AsyncLocalStorage (concurrency-safe)
 interface RequestContext {
   correlationId: string;
-  orgId?: string;
-  requestId?: string;
+  orgId?: string | undefined;
+  requestId?: string | undefined;
 }
 
 const asyncLocalStorage = new AsyncLocalStorage<RequestContext>();
@@ -285,8 +285,8 @@ export function structuredLog(
  */
 export function createScopedLogger(scope: {
   operation: string;
-  orgId?: string;
-  requestId?: string;
+  orgId?: string | undefined;
+  requestId?: string | undefined;
 }) {
   return {
     info: (message: string, metadata?: Record<string, unknown>) =>

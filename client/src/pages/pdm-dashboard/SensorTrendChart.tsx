@@ -15,9 +15,9 @@ export function SensorTrendChart({
   isLoading,
   sensorFilter,
 }: {
-  trends?: TelemetryTrend[];
+  trends?: TelemetryTrend[] | undefined;
   isLoading: boolean;
-  sensorFilter?: string;
+  sensorFilter?: string | undefined;
 }) {
   if (isLoading) {
     return <Skeleton className="h-[200px] w-full" />;

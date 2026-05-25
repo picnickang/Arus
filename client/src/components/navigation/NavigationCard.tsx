@@ -12,10 +12,10 @@ interface NavigationCardProps {
   name: string;
   href: string;
   icon: LucideIcon;
-  description?: string;
-  className?: string;
-  onAddToDock?: () => void;
-  isInDock?: boolean;
+  description?: string | undefined;
+  className?: string | undefined;
+  onAddToDock?: (() => void) | undefined;
+  isInDock?: boolean | undefined;
 }
 
 export function NavigationCard({
@@ -65,7 +65,7 @@ export function NavigationCard({
         <ContextMenuContent>
           <ContextMenuItem
             onClick={onAddToDock}
-            disabled={isInDock}
+            {...(isInDock !== undefined && { disabled: isInDock })}
             data-testid={`menu-add-dock-${name.toLowerCase().replace(/\s+/g, "-")}`}
           >
             {isInDock ? (

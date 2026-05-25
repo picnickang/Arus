@@ -108,11 +108,12 @@ export function useBundleStepData(
   }, [bundles.length, isLoading, wizardState.selectedBundleId, setWizardState]);
 
   const handleSelectBundle = (bundleId: string) => {
-    setWizardState((prev) => ({
-      ...prev,
-      selectedBundleId: bundleId,
-      customSensorSelections: bundleId === "custom" ? [] : undefined,
-    }));
+    setWizardState((prev) => {
+      const { customSensorSelections: _omit, ...rest } = prev;
+      return bundleId === "custom"
+        ? { ...rest, selectedBundleId: bundleId, customSensorSelections: [] }
+        : { ...rest, selectedBundleId: bundleId };
+    });
   };
   const handleToggleTemplate = (templateId: string, checked: boolean) => {
     setWizardState((prev) => {

@@ -12,8 +12,8 @@ export interface FileValidationResult {
   errors: string[];
   warnings: string[];
   quarantine: boolean;
-  detectedMimeType?: string;
-  sanitizedFilename?: string;
+  detectedMimeType?: string | undefined;
+  sanitizedFilename?: string | undefined;
 }
 
 // Magic bytes for common file types

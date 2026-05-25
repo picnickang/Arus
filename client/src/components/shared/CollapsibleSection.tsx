@@ -7,12 +7,12 @@ import { cn } from "@/lib/utils";
 
 interface CollapsibleSectionProps {
   title: string;
-  description?: string;
-  badge?: string;
-  summary?: string;
+  description?: string | undefined;
+  badge?: string | undefined;
+  summary?: string | undefined;
   children: React.ReactNode;
-  defaultExpanded?: boolean;
-  icon?: React.ReactNode;
+  defaultExpanded?: boolean | undefined;
+  icon?: React.ReactNode | undefined;
 }
 
 export function CollapsibleSection({

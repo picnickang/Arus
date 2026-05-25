@@ -51,7 +51,7 @@ function generateRecommendations(input: {
   rulHours: number;
   efficiencyLossPercent: number;
   minimumSequenceSatisfied: boolean;
-  equipmentName?: string | null;
+  equipmentName?: string | null | undefined;
 }): PdmDecisionRecommendation[] {
   const target = input.equipmentName ?? "equipment";
   const recommendations: PdmDecisionRecommendation[] = [];
@@ -125,9 +125,9 @@ export class PdmDecisionSupportService {
   async evaluateEquipment(input: {
     orgId: string;
     equipmentId: string;
-    previousStatus?: PdmHealthStatus | null;
-    minSequenceLength?: number;
-    contextOverride?: OperationalContextInput;
+    previousStatus?: PdmHealthStatus | null | undefined;
+    minSequenceLength?: number | undefined;
+    contextOverride?: OperationalContextInput | undefined;
   }): Promise<StandardizedPdmDecision> {
     const requiredSequenceLength = Math.max(3, Math.min(input.minSequenceLength ?? 8, 96));
     const [equipment, features] = await Promise.all([

@@ -75,7 +75,7 @@ export async function buildFleetSummaryContext(
 
       const predictions = (await Promise.all(predictionPromises)).filter((p) => p !== null);
       if (predictions.length > 0) {
-        intelligence.predictions = predictions as object as typeof intelligence.predictions;
+        intelligence.predictions = predictions;
       }
     }
   }

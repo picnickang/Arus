@@ -42,12 +42,12 @@ export interface EnhancedSchedulePlanResponse {
       violations: number;
     }>;
     rows_by_crew: { [crewId: string]: ComplianceRow[] };
-  };
+  } | undefined;
   summary: {
     totalShifts: number;
     scheduledAssignments: number;
     unfilledPositions: number;
-    coverage?: number;
+    coverage?: number | undefined;
   };
 }
 
@@ -103,16 +103,16 @@ interface PerCrewPreference {
   preferredShifts?: string[];
 }
 interface RawScheduleResponse {
-  engine?: string;
-  scheduled?: unknown[];
-  unfilled?: unknown[];
-  compliance?: EnhancedSchedulePlanResponse["compliance"];
+  engine?: string | undefined;
+  scheduled?: unknown[] | undefined;
+  unfilled?: unknown[] | undefined;
+  compliance?: EnhancedSchedulePlanResponse["compliance"] | undefined;
   summary?: {
-    totalShifts?: number;
-    scheduledAssignments?: number;
-    unfilledPositions?: number;
-    coverage?: number;
-  };
+    totalShifts?: number | undefined;
+    scheduledAssignments?: number | undefined;
+    unfilledPositions?: number | undefined;
+    coverage?: number | undefined;
+  } | undefined;
 }
 
 export function parseEnhancedScheduleResponse(
@@ -135,7 +135,7 @@ export function parseEnhancedScheduleResponse(
       totalShifts: Number(data.summary.totalShifts) || 0,
       scheduledAssignments: Number(data.summary.scheduledAssignments) || 0,
       unfilledPositions: Number(data.summary.unfilledPositions) || 0,
-      coverage: data.summary.coverage,
+      ...(data.summary.coverage !== undefined && { coverage: data.summary.coverage as number }),
     },
   };
 }

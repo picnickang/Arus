@@ -28,7 +28,7 @@ interface DashboardHeaderProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
   onExportCSV: () => void;
-  filterOptions?: FilterOptions;
+  filterOptions?: FilterOptions | undefined;
 }
 
 export function DashboardHeader({

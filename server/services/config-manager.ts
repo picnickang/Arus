@@ -176,11 +176,11 @@ export class ConfigManager {
    */
   async reloadConfig(auditInfo?: {
     orgId: string;
-    changedBy?: string;
-    changedByName?: string;
-    ipAddress?: string;
-    userAgent?: string;
-    autoReload?: boolean;
+    changedBy?: string | undefined;
+    changedByName?: string | undefined;
+    ipAddress?: string | undefined;
+    userAgent?: string | undefined;
+    autoReload?: boolean | undefined;
   }): Promise<ReloadResult> {
     try {
       const newConfig = this.loadEnvFile();
@@ -334,10 +334,10 @@ export class ConfigManager {
     value: string,
     auditInfo: {
       orgId: string;
-      changedBy?: string;
-      changedByName?: string;
-      ipAddress?: string;
-      userAgent?: string;
+      changedBy?: string | undefined;
+      changedByName?: string | undefined;
+      ipAddress?: string | undefined;
+      userAgent?: string | undefined;
     }
   ): Promise<ReloadResult> {
     try {
@@ -394,10 +394,10 @@ export class ConfigManager {
     key: string,
     auditInfo: {
       orgId: string;
-      changedBy?: string;
-      changedByName?: string;
-      ipAddress?: string;
-      userAgent?: string;
+      changedBy?: string | undefined;
+      changedByName?: string | undefined;
+      ipAddress?: string | undefined;
+      userAgent?: string | undefined;
     }
   ): Promise<ReloadResult> {
     try {

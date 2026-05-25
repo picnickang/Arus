@@ -11,6 +11,7 @@ import { isCloudMode, canUseCloudFeature } from "../../../config/runtimeEnv.js";
 import { DEFAULT_ORG_ID } from "../../../../shared/config/tenant.js";
 import { logger } from "../../../utils/logger.js";
 import { DbSettingsStorage } from "../../../db/system-admin/db-settings.js";
+import { stripUndefined } from "../../../lib/strip-undefined.js";
 
 const LOG_CTX = "ScheduledReportsRoutes";
 const SETTINGS_CATEGORY = "scheduled_reports";
@@ -126,7 +127,7 @@ export function createScheduledReportsRouter(
         });
       }
 
-      const schedule = await schedulerService.createSchedule(orgId, validation.data, userId);
+      const schedule = await schedulerService.createSchedule(orgId, stripUndefined(validation.data), userId);
       return res.status(201).json({ data: schedule });
     } catch (error) {
       logger.error(LOG_CTX, "Failed to create schedule", String(error));
@@ -150,7 +151,7 @@ export function createScheduledReportsRouter(
       const schedule = await schedulerService.updateSchedule(
         idParamSchema.parse(req.params).id,
         orgId,
-        validation.data,
+        stripUndefined(validation.data),
         userId
       );
       return res.json({ data: schedule });

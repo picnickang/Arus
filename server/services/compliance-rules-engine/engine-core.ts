@@ -62,10 +62,14 @@ type NewRuleInput = {
   category: string;
   ruleName: string;
   ruleCode: string;
-  description?: string | null;
-  severity?: string;
-  ruleType?: string;
-  enabled?: boolean | null;
+  description?: string | null | undefined;
+  severity?: string | undefined;
+  ruleType?: string | undefined;
+  enabled?: boolean | null | undefined;
+  notifyEmails?: string[] | null | undefined;
+  appliesTo?: string[] | null | undefined;
+  conditions?: unknown;
+  actions?: unknown;
 };
 
 async function getComplianceRules(
@@ -179,7 +183,7 @@ async function createComplianceRule(data: NewRuleInput): Promise<ComplianceRule>
 interface ResolutionPayload {
   resolvedByUserId: string;
   resolvedByUserName: string;
-  resolutionNotes?: string;
+  resolutionNotes?: string | undefined;
 }
 
 interface AcknowledgePayload {

@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../../lib/widen-partial";
 /**
  * Equipment Service - CRUD Operations
  */
@@ -142,7 +143,7 @@ export async function createEquipment(
 export async function updateEquipment(
   adapter: DualWriteAdapter,
   id: string,
-  data: Partial<InsertEquipment>,
+  data: WidenPartial<InsertEquipment>,
   orgId: string,
   userId?: string
 ): Promise<Equipment> {

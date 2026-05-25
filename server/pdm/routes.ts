@@ -235,11 +235,11 @@ router.get("/schedule", async (req, res) => {
 
     const result = await getScheduleUseCase.execute({
       orgId,
-      vesselIds: filters.vesselIds ? filters.vesselIds.split(",") : undefined,
-      equipmentTypes: filters.equipmentTypes ? filters.equipmentTypes.split(",") : undefined,
-      startDate: filters.startDate ? new Date(filters.startDate) : undefined,
-      endDate: filters.endDate ? new Date(filters.endDate) : undefined,
-      maxTasksPerVesselPerDay: filters.maxTasksPerVesselPerDay,
+      ...(filters.vesselIds && { vesselIds: filters.vesselIds.split(",") }),
+      ...(filters.equipmentTypes && { equipmentTypes: filters.equipmentTypes.split(",") }),
+      ...(filters.startDate && { startDate: new Date(filters.startDate) }),
+      ...(filters.endDate && { endDate: new Date(filters.endDate) }),
+      ...(filters.maxTasksPerVesselPerDay !== undefined && { maxTasksPerVesselPerDay: filters.maxTasksPerVesselPerDay }),
       autoPopulate: filters.autoPopulate,
     });
 
@@ -258,10 +258,10 @@ router.get("/export/schedule", async (req, res) => {
 
     const result = await getScheduleUseCase.execute({
       orgId,
-      vesselIds: filters.vesselIds ? filters.vesselIds.split(",") : undefined,
-      equipmentTypes: filters.equipmentTypes ? filters.equipmentTypes.split(",") : undefined,
-      startDate: filters.startDate ? new Date(filters.startDate) : undefined,
-      endDate: filters.endDate ? new Date(filters.endDate) : undefined,
+      ...(filters.vesselIds && { vesselIds: filters.vesselIds.split(",") }),
+      ...(filters.equipmentTypes && { equipmentTypes: filters.equipmentTypes.split(",") }),
+      ...(filters.startDate && { startDate: new Date(filters.startDate) }),
+      ...(filters.endDate && { endDate: new Date(filters.endDate) }),
     });
 
     const allTasks = [...result.data.scheduledTasks, ...result.data.blockedTasks];

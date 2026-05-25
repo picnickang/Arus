@@ -21,10 +21,10 @@ export interface ModelArtifacts {
 }
 
 export interface ModelPromotion {
-  promotedAt?: string;
-  promotedBy?: string;
+  promotedAt?: string | undefined;
+  promotedBy?: string | undefined;
   stage: DeploymentStage;
-  canary?: boolean;
+  canary?: boolean | undefined;
 }
 
 export interface LineageRecord {
@@ -78,70 +78,70 @@ export interface ProvenanceEvent {
     | "rul_prediction";
   ts: string;
   prevHash: string | null;
-  hash?: string;
+  hash?: string | undefined;
 
   // Prediction-specific fields
-  modelId?: string;
-  vesselId?: string;
-  equipmentId?: string;
-  profile?: string;
-  anomalyScore?: number;
-  contributors?: Array<{ sensor: string; weight: number }>;
-  rawSliceHash?: string;
-  engine?: "tfjs" | "onnx" | "xgboost" | "rf";
+  modelId?: string | undefined;
+  vesselId?: string | undefined;
+  equipmentId?: string | undefined;
+  profile?: string | undefined;
+  anomalyScore?: number | undefined;
+  contributors?: Array<{ sensor: string; weight: number }> | undefined;
+  rawSliceHash?: string | undefined;
+  engine?: "tfjs" | "onnx" | "xgboost" | "rf" | undefined;
 
   // RUL Prediction fields (ML Governance)
-  remainingDays?: number;
-  riskLevel?: string;
-  confidenceScore?: number;
-  dataStatus?: DataStatus;
-  dataStatusReason?: string;
-  predictionMethod?: string;
+  remainingDays?: number | undefined;
+  riskLevel?: string | undefined;
+  confidenceScore?: number | undefined;
+  dataStatus?: DataStatus | undefined;
+  dataStatusReason?: string | undefined;
+  predictionMethod?: string | undefined;
 
   // Alert-specific fields
-  alertId?: string;
-  severity?: string;
-  source?: "anomaly" | "rule" | "operator";
+  alertId?: string | undefined;
+  severity?: string | undefined;
+  source?: "anomaly" | "rule" | "operator" | undefined;
 
   // Work order fields
-  workOrderId?: string;
-  linkedAlertId?: string;
+  workOrderId?: string | undefined;
+  linkedAlertId?: string | undefined;
 
   // Training fields
-  checkpointHash?: string;
-  datasetHash?: string;
+  checkpointHash?: string | undefined;
+  datasetHash?: string | undefined;
 
   // Engineer override fields (ML Governance)
-  overrideId?: string;
-  predictionId?: string;
-  overrideType?: "defer" | "escalate" | "dismiss" | "modify";
-  originalRiskLevel?: string;
-  newRiskLevel?: string;
-  originalConfidence?: number;
-  justification?: string;
-  engineerId?: string;
-  engineerName?: string;
-  engineerCertifications?: string[];
-  originalPrediction?: Record<string, unknown>;
+  overrideId?: string | undefined;
+  predictionId?: string | undefined;
+  overrideType?: "defer" | "escalate" | "dismiss" | "modify" | undefined;
+  originalRiskLevel?: string | undefined;
+  newRiskLevel?: string | undefined;
+  originalConfidence?: number | undefined;
+  justification?: string | undefined;
+  engineerId?: string | undefined;
+  engineerName?: string | undefined;
+  engineerCertifications?: string[] | undefined;
+  originalPrediction?: Record<string, unknown> | undefined;
 
   // Override outcome fields (ML Governance lifecycle tracking)
-  outcomeStatus?: "pending" | "validated" | "failure_prevented" | "failure_occurred";
-  outcomeNotes?: string;
-  outcomeRecordedBy?: string;
+  outcomeStatus?: "pending" | "validated" | "failure_prevented" | "failure_occurred" | undefined;
+  outcomeNotes?: string | undefined;
+  outcomeRecordedBy?: string | undefined;
 
   // Common metadata
   orgId: string;
-  userId?: string;
+  userId?: string | undefined;
 }
 
 export interface ProvenanceVerificationResult {
   ok: boolean;
   totalEvents: number;
-  brokenAt?: number;
+  brokenAt?: number | undefined;
   errors?: Array<{
     index: number;
     eventId: string;
     reason: string;
-  }>;
-  lastHash?: string;
+  }> | undefined;
+  lastHash?: string | undefined;
 }

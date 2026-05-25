@@ -35,31 +35,31 @@ const QUEUE_NAME = "ml-training";
 export interface MlTrainingJobData {
   orgId: string;
   modelType: "lstm" | "random_forest" | "xgboost" | "all";
-  equipmentType?: string;
+  equipmentType?: string | undefined;
   config: Record<string, unknown>;
-  initiatedBy?: string;
-  priority?: number;
+  initiatedBy?: string | undefined;
+  priority?: number | undefined;
 }
 
 export interface MlTrainingJobResult {
-  modelId?: string;
+  modelId?: string | undefined;
   modelType: string;
   success: boolean;
-  metrics?: Record<string, number>;
-  error?: string;
+  metrics?: Record<string, number> | undefined;
+  error?: string | undefined;
   durationMs: number;
-  evaluationPassed?: boolean;
+  evaluationPassed?: boolean | undefined;
 }
 
 export interface MlJobStatus {
   jobId: string;
   state: "pending" | "active" | "completed" | "failed" | "expired";
   data: MlTrainingJobData;
-  result?: MlTrainingJobResult;
+  result?: MlTrainingJobResult | undefined;
   createdAt: Date;
-  startedAt?: Date;
-  completedAt?: Date;
-  progress?: number;
+  startedAt?: Date | undefined;
+  completedAt?: Date | undefined;
+  progress?: number | undefined;
 }
 
 /**

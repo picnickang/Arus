@@ -5,21 +5,21 @@
 import type { RestDay, MonthComplianceResult, FatigueRiskResult } from "../../stcw-compliance";
 
 export interface DraftAssignment {
-  id?: string;
+  id?: string | undefined;
   crewId: string;
-  crewName?: string;
-  vesselId?: string;
+  crewName?: string | undefined;
+  vesselId?: string | undefined;
   start: string | Date;
   end: string | Date;
-  shiftName?: string;
-  position?: string;
+  shiftName?: string | undefined;
+  position?: string | undefined;
 }
 
 export interface ProjectedRestDay extends RestDay {
   crewId: string;
   workHours: number;
   restHours: number;
-  isProjected?: number;
+  isProjected?: number | undefined;
 }
 
 export interface CrewProjection {
@@ -27,7 +27,7 @@ export interface CrewProjection {
   crewName: string;
   days: ProjectedRestDay[];
   compliance: MonthComplianceResult;
-  fatigue?: FatigueRiskResult;
+  fatigue?: FatigueRiskResult | undefined;
   violations: ProjectionViolation[];
   weeklyWorkHours: number;
   last24hRestHours: number;
@@ -35,7 +35,7 @@ export interface CrewProjection {
 
 export interface ProjectionViolation {
   crewId: string;
-  crewName?: string;
+  crewName?: string | undefined;
   date: string;
   rule:
     | "10h_24h"
@@ -46,8 +46,8 @@ export interface ProjectionViolation {
     | "vessel_roster_mismatch";
   severity: "warning" | "error";
   description: string;
-  currentValue?: number;
-  threshold?: number;
+  currentValue?: number | undefined;
+  threshold?: number | undefined;
 }
 
 export interface ProjectionResult {
@@ -67,7 +67,7 @@ export interface CanAssignResult {
   violations: ProjectionViolation[];
   projectedRestHours: number;
   projectedWeeklyWork: number;
-  fatigueRisk?: "low" | "medium" | "high" | "critical";
+  fatigueRisk?: "low" | "medium" | "high" | "critical" | undefined;
 }
 
 export interface RestHourFlags {

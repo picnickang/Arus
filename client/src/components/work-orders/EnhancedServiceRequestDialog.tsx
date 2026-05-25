@@ -66,26 +66,26 @@ interface EnhancedServiceRequestData {
   severity: string;
   assistanceTags: string[];
   symptomDescription: string;
-  probableCause?: string;
-  actionTakenSoFar?: string;
+  probableCause?: string | undefined;
+  actionTakenSoFar?: string | undefined;
   isRecurringDefect: boolean;
-  requestedStartDate?: Date;
-  requestedEndDate?: Date;
-  estimatedDurationHours?: number;
-  quotedAmount?: number;
-  notes?: string;
+  requestedStartDate?: Date | undefined;
+  requestedEndDate?: Date | undefined;
+  estimatedDurationHours?: number | undefined;
+  quotedAmount?: number | undefined;
+  notes?: string | undefined;
   mocRequired: boolean;
-  mocNumber?: string;
-  certificateItems?: Array<{ name: string; expiryDate?: string; remarks?: string }>;
-  scope?: string;
+  mocNumber?: string | undefined;
+  certificateItems?: Array<{ name: string; expiryDate?: string | undefined; remarks?: string | undefined }> | undefined;
+  scope?: string | undefined;
 }
 
 interface InitialServiceOrderData {
-  serviceProviderId?: string;
-  scope?: string;
-  scheduledStartDate?: string;
-  scheduledEndDate?: string;
-  estimatedDurationHours?: number;
+  serviceProviderId?: string | undefined;
+  scope?: string | undefined;
+  scheduledStartDate?: string | undefined;
+  scheduledEndDate?: string | undefined;
+  estimatedDurationHours?: number | undefined;
 }
 
 interface EnhancedServiceRequestDialogProps {

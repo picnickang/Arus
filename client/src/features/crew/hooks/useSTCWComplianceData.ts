@@ -105,14 +105,14 @@ export function useSTCWComplianceData({
     queryKey: ["/api/dashboard/stcw-summary", { days: lookbackDays }],
     staleTime: 300000,
     refetchInterval: 300000,
-    initialData: prefetchedSummary ?? undefined,
+    ...(prefetchedSummary ? { initialData: prefetchedSummary } : {}),
   });
 
   const { data: trends, isLoading: isLoadingTrends } = useQuery<TrendData>({
     queryKey: ["/api/dashboard/stcw-trends", { days: lookbackDays }],
     staleTime: 300000,
     refetchInterval: 300000,
-    initialData: prefetchedTrends ?? undefined,
+    ...(prefetchedTrends ? { initialData: prefetchedTrends } : {}),
   });
 
   const toggleVesselExpansion = useCallback((vesselId: string) => {

@@ -19,11 +19,11 @@ import type { RagAnswerRequest, RagAnswerResponse, FeedbackInput, RagServiceConf
 import { logger } from "../../utils/logger";
 
 export interface OrchestratorConfig {
-  enableQueryRewrite?: boolean;
-  enableCache?: boolean;
-  enableConversationContext?: boolean;
-  enableFeedbackReranking?: boolean;
-  ragConfig?: Partial<RagServiceConfig>;
+  enableQueryRewrite?: boolean | undefined;
+  enableCache?: boolean | undefined;
+  enableConversationContext?: boolean | undefined;
+  enableFeedbackReranking?: boolean | undefined;
+  ragConfig?: Partial<RagServiceConfig> | undefined;
 }
 
 export class RagOrchestrator {

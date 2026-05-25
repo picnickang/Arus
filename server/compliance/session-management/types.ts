@@ -44,11 +44,11 @@ export interface LoginEventInput {
 }
 
 export interface CreateSessionOptions {
-  ipAddress?: string;
-  userAgent?: string;
-  deviceFingerprint?: string;
-  geoLocation?: Record<string, unknown>;
-  mfaVerified?: boolean;
+  ipAddress?: string | undefined;
+  userAgent?: string | undefined;
+  deviceFingerprint?: string | undefined;
+  geoLocation?: Record<string, unknown> | undefined;
+  mfaVerified?: boolean | undefined;
 }
 
 export interface SuspiciousActivityResult {

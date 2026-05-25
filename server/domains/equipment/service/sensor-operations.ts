@@ -92,8 +92,8 @@ export async function setupSensors(
           const row = newSensor as CreatedSensor;
           created.push({
             sensorType: row.sensorType,
-            enabled: row.enabled,
-            isCritical: row.isCritical,
+            ...(row.enabled !== undefined && { enabled: row.enabled }),
+            ...(row.isCritical !== undefined && { isCritical: row.isCritical }),
           });
         }
       }

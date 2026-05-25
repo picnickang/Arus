@@ -29,10 +29,10 @@ interface OutOfStockDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   partInfo: PartStockStatus | null;
-  isLoading?: boolean;
+  isLoading?: boolean | undefined;
   workOrderId: string;
-  vesselId?: string;
-  quantityNeeded?: number;
+  vesselId?: string | undefined;
+  quantityNeeded?: number | undefined;
 }
 
 export function OutOfStockDialog({

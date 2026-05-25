@@ -68,7 +68,7 @@ export class DatabaseVesselStorage {
     if (!n) throw new Error("Failed to create vessel");
     return n;
   }
-  async updateVessel(id: string, updates: Partial<InsertVessel>, orgId?: string): Promise<Vessel> {
+  async updateVessel(id: string, updates: import("../../lib/widen-partial").WidenPartial<InsertVessel>, orgId?: string): Promise<Vessel> {
     this.validateOrgId(orgId, "updateVessel");
     const conditions = orgId
       ? and(eq(vessels.id, id), eq(vessels.orgId, orgId))

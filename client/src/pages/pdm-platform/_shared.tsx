@@ -61,7 +61,7 @@ export function TimestampBadge({
   timestamp,
 }: {
   label: string;
-  timestamp?: string | Date | null;
+  timestamp?: string | Date | null | undefined;
 }) {
   if (!timestamp) {
     return null;

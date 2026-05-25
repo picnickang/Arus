@@ -27,7 +27,7 @@ export interface IReportScheduleRepository {
   update(
     id: string,
     orgId: string,
-    input: Partial<ReportScheduleInput>
+    input: import("../../../lib/widen-partial").WidenPartial<ReportScheduleInput>
   ): Promise<ReportScheduleConfig>;
   delete(id: string, orgId: string): Promise<void>;
   findById(id: string, orgId: string): Promise<ReportScheduleConfig | null>;

@@ -4,11 +4,11 @@ import { AlertTriangle, RefreshCw, ArrowLeft, AlertCircle } from "lucide-react";
 import { useEffect, useMemo } from "react";
 
 export interface NormalizedError {
-  code?: string;
-  title?: string;
+  code?: string | undefined;
+  title?: string | undefined;
   message: string;
-  details?: string;
-  statusCode?: number;
+  details?: string | undefined;
+  statusCode?: number | undefined;
 }
 
 interface ErrorStateProps {

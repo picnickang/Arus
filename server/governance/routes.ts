@@ -74,12 +74,12 @@ router.get("/model/lineage", async (req, res, next) => {
 
     const filters = {
       orgId: DEFAULT_ORG_ID,
-      profile: query.profile,
-      family: query.family as ModelFamily | undefined,
-      stage: query.stage as DeploymentStage | undefined,
-      vesselId: query.vesselId,
-      from: query.from ? new Date(query.from) : undefined,
-      to: query.to ? new Date(query.to) : undefined,
+      ...(query.profile !== undefined && { profile: query.profile }),
+      ...(query.family !== undefined && { family: query.family as ModelFamily }),
+      ...(query.stage !== undefined && { stage: query.stage as DeploymentStage }),
+      ...(query.vesselId !== undefined && { vesselId: query.vesselId }),
+      ...(query.from !== undefined && { from: new Date(query.from) }),
+      ...(query.to !== undefined && { to: new Date(query.to) }),
     };
 
     const records = await getLineageRecords(filters);

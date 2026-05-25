@@ -20,13 +20,13 @@ export interface EnhancedAnalysisOutput {
     probability: number;
     impact: "low" | "medium" | "high" | "critical";
     recommendations: string[];
-  }[];
+  }[] | undefined;
   roi?: {
     estimatedSavings: number;
     investmentRequired: number;
     paybackPeriod: number;
     riskReduction: number;
-  };
+  } | undefined;
   citations: {
     source: string;
     relevance: number;
@@ -36,7 +36,7 @@ export interface EnhancedAnalysisOutput {
     model: string;
     provider: string;
     processingTime: number;
-    tokensUsed?: number;
+    tokensUsed?: number | undefined;
   };
 }
 

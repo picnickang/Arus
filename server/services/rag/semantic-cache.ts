@@ -21,10 +21,10 @@ const DEFAULT_TTL_SECONDS = 3600;
 const SEMANTIC_SIMILARITY_THRESHOLD = 0.95;
 
 export interface SemanticCacheConfig {
-  enabled?: boolean;
-  ttlSeconds?: number;
-  semanticThreshold?: number;
-  useSemanticLookup?: boolean;
+  enabled?: boolean | undefined;
+  ttlSeconds?: number | undefined;
+  semanticThreshold?: number | undefined;
+  useSemanticLookup?: boolean | undefined;
 }
 
 export class SemanticCache {

@@ -28,14 +28,14 @@ export interface PredictionScore {
   failureProbability: number;
   riskLevel: "low" | "medium" | "high" | "critical";
   remainingUsefulLife: number;
-  method?: "heuristic-baseline" | "model";
-  caveat?: string;
+  method?: "heuristic-baseline" | "model" | undefined;
+  caveat?: string | undefined;
 }
 
 export interface InferenceContext {
   orgId: string;
   equipmentId: string;
-  modelVersionId?: string;
+  modelVersionId?: string | undefined;
   features: FeatureVector | null;
 }
 

@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 /**
  * Crew - Database Storage Members
  */
@@ -63,7 +64,7 @@ export class DbCrewMembers {
     if (!newCrew) throw new Error("Failed to create crew member");
     return newCrew;
   }
-  async updateCrewMember(id: string, updates: Partial<InsertCrew>, orgId?: string): Promise<Crew> {
+  async updateCrewMember(id: string, updates: WidenPartial<InsertCrew>, orgId?: string): Promise<Crew> {
     this.validateOrgId(orgId, "updateCrewMember");
     const conditions = orgId ? and(eq(crew.id, id), eq(crew.orgId, orgId)) : eq(crew.id, id);
     const [updated] = await db
@@ -87,7 +88,7 @@ export class DbCrewMembers {
   async createCrew(crewData: InsertCrew): Promise<Crew> {
     return this.createCrewMember(crewData);
   }
-  async updateCrew(id: string, updates: Partial<InsertCrew>, orgId?: string): Promise<Crew> {
+  async updateCrew(id: string, updates: WidenPartial<InsertCrew>, orgId?: string): Promise<Crew> {
     return this.updateCrewMember(id, updates, orgId);
   }
 
@@ -107,7 +108,7 @@ export class DbCrewMembers {
   }
   async updateShiftTemplate(
     id: string,
-    updates: Partial<InsertShiftTemplate>,
+    updates: WidenPartial<InsertShiftTemplate>,
     orgId?: string
   ): Promise<ShiftTemplate> {
     this.validateOrgId(orgId, "updateShiftTemplate");

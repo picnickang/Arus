@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 import type {
   AlertConfiguration,
   InsertAlertConfiguration as InsertAlertConfig,
@@ -44,7 +45,7 @@ export class AlertsRepository {
    */
   async updateConfiguration(
     id: string,
-    config: Partial<InsertAlertConfig>
+    config: WidenPartial<InsertAlertConfig>
   ): Promise<AlertConfiguration> {
     return dbAlertStorage.updateAlertConfiguration(id, config);
   }

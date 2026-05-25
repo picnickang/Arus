@@ -18,8 +18,8 @@ export function useSensorTemplatesPage() {
     isLoading,
     error,
   } = useSensorTemplates({
-    kind: kindFilter !== "all" ? kindFilter : undefined,
-    equipmentType: equipmentTypeFilter !== "all" ? equipmentTypeFilter : undefined,
+    ...(kindFilter !== "all" && { kind: kindFilter }),
+    ...(equipmentTypeFilter !== "all" && { equipmentType: equipmentTypeFilter }),
   });
   const deleteMutation = useDeleteSensorTemplate({
     successMessage: "Template deleted successfully",

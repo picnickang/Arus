@@ -106,7 +106,7 @@ async function trainStandard(
     epochs: config.epochs,
     batchSize: config.batchSize,
     validationData: [xVal, yVal],
-    classWeight: classWeights,
+    ...(classWeights !== undefined ? { classWeight: classWeights } : {}),
     callbacks: {
       onEpochEnd: (epoch, logs) => {
         if (verbose) {

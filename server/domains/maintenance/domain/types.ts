@@ -11,79 +11,79 @@ export interface MaintenanceScheduleEntity {
   status: "scheduled" | "in_progress" | "completed" | "cancelled" | "overdue";
   priority: "low" | "medium" | "high" | "critical";
   maintenanceType: string;
-  description?: string;
-  estimatedDuration?: number;
-  assignedTo?: string;
-  completedAt?: Date;
-  completedBy?: string;
-  notes?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  description?: string | undefined;
+  estimatedDuration?: number | undefined;
+  assignedTo?: string | undefined;
+  completedAt?: Date | undefined;
+  completedBy?: string | undefined;
+  notes?: string | undefined;
+  createdAt?: Date | undefined;
+  updatedAt?: Date | undefined;
 }
 
 export interface MaintenanceTemplateEntity {
   id: string;
   orgId: string;
   name: string;
-  equipmentType?: string;
+  equipmentType?: string | undefined;
   maintenanceType: string;
-  description?: string;
-  estimatedDuration?: number;
-  requiredParts?: string[];
-  checklistItems?: string[];
-  intervalDays?: number;
-  intervalHours?: number;
+  description?: string | undefined;
+  estimatedDuration?: number | undefined;
+  requiredParts?: string[] | undefined;
+  checklistItems?: string[] | undefined;
+  intervalDays?: number | undefined;
+  intervalHours?: number | undefined;
   isActive: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: Date | undefined;
+  updatedAt?: Date | undefined;
 }
 
 export interface CreateScheduleCommand {
   orgId: string;
   equipmentId: string;
   scheduledDate: Date;
-  status?: string;
-  priority?: string;
+  status?: string | undefined;
+  priority?: string | undefined;
   maintenanceType: string;
-  description?: string;
-  estimatedDuration?: number;
-  assignedTo?: string;
+  description?: string | undefined;
+  estimatedDuration?: number | undefined;
+  assignedTo?: string | undefined;
 }
 
 export interface UpdateScheduleCommand {
-  scheduledDate?: Date;
-  status?: string;
-  priority?: string;
-  maintenanceType?: string;
-  description?: string;
-  estimatedDuration?: number;
-  assignedTo?: string;
-  notes?: string;
+  scheduledDate?: Date | undefined;
+  status?: string | undefined;
+  priority?: string | undefined;
+  maintenanceType?: string | undefined;
+  description?: string | undefined;
+  estimatedDuration?: number | undefined;
+  assignedTo?: string | undefined;
+  notes?: string | undefined;
 }
 
 export interface CreateTemplateCommand {
   orgId: string;
   name: string;
-  equipmentType?: string;
+  equipmentType?: string | undefined;
   maintenanceType: string;
-  description?: string;
-  estimatedDuration?: number;
-  requiredParts?: string[];
-  checklistItems?: string[];
-  intervalDays?: number;
-  intervalHours?: number;
-  isActive?: boolean;
+  description?: string | undefined;
+  estimatedDuration?: number | undefined;
+  requiredParts?: string[] | undefined;
+  checklistItems?: string[] | undefined;
+  intervalDays?: number | undefined;
+  intervalHours?: number | undefined;
+  isActive?: boolean | undefined;
 }
 
 export interface UpdateTemplateCommand {
-  name?: string;
-  equipmentType?: string;
-  maintenanceType?: string;
-  description?: string;
-  estimatedDuration?: number;
-  requiredParts?: string[];
-  checklistItems?: string[];
-  intervalDays?: number;
-  intervalHours?: number;
-  isActive?: boolean;
+  name?: string | undefined;
+  equipmentType?: string | undefined;
+  maintenanceType?: string | undefined;
+  description?: string | undefined;
+  estimatedDuration?: number | undefined;
+  requiredParts?: string[] | undefined;
+  checklistItems?: string[] | undefined;
+  intervalDays?: number | undefined;
+  intervalHours?: number | undefined;
+  isActive?: boolean | undefined;
 }

@@ -22,15 +22,15 @@ export interface PendingOperation {
   payload: Record<string, unknown>;
   createdAt: string;
   retryCount: number;
-  lastError?: string;
-  lastModifiedAt?: string;
-  clientMutationId?: string;
-  conflictPaused?: boolean;
+  lastError?: string | undefined;
+  lastModifiedAt?: string | undefined;
+  clientMutationId?: string | undefined;
+  conflictPaused?: boolean | undefined;
   request?: {
     method: string;
     url: string;
-    contentType?: string;
-  };
+    contentType?: string | undefined;
+  } | undefined;
 }
 
 export interface SyncConflict {

@@ -42,7 +42,7 @@ router.get("/timeline", async (req: Request, res: Response) => {
       twinId,
       startTime: new Date(startTime),
       endTime: new Date(endTime),
-      limit,
+      ...(limit !== undefined && { limit }),
     });
     return res.json(result);
   } catch (error) {
@@ -69,7 +69,7 @@ router.get("/timeline/anomaly", async (req: Request, res: Response) => {
       orgId,
       twinId,
       anomalyTimestamp: new Date(anomalyTimestamp),
-      windowMinutes,
+      ...(windowMinutes !== undefined && { windowMinutes }),
     });
     return res.json(result);
   } catch (error) {

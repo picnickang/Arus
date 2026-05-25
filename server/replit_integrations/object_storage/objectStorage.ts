@@ -227,12 +227,12 @@ export class ObjectStorageService {
     objectFile,
     requestedPermission,
   }: {
-    userId?: string;
+    userId?: string | undefined;
     objectFile: File;
-    requestedPermission?: ObjectPermission;
+    requestedPermission?: ObjectPermission | undefined;
   }): Promise<boolean> {
     return canAccessObject({
-      userId,
+      ...(userId !== undefined && { userId }),
       objectFile,
       requestedPermission: requestedPermission ?? ObjectPermission.READ,
     });

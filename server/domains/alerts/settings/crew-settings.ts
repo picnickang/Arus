@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../../lib/widen-partial";
 /**
  * Alert Settings - Crew Settings
  * Crew-specific alert configuration
@@ -37,7 +38,7 @@ export async function getAllCrewAlertSettings(orgId: string): Promise<CrewAlertS
 export async function upsertCrewAlertSettings(
   orgId: string,
   vesselId: string | null,
-  data: Partial<InsertCrewAlertSettings>
+  data: WidenPartial<InsertCrewAlertSettings>
 ): Promise<CrewAlertSettings> {
   const existing = await getCrewAlertSettings(orgId, vesselId || undefined);
   if (existing) {

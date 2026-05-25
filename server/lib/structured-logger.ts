@@ -21,10 +21,10 @@ export type LogLevel = "debug" | "info" | "warn" | "error";
  * `createLogger` to avoid relying on async storage propagation.
  */
 export type CorrelationProvider = () => {
-  correlationId?: string;
-  requestId?: string;
-  orgId?: string;
-  userId?: string;
+  correlationId?: string | undefined;
+  requestId?: string | undefined;
+  orgId?: string | undefined;
+  userId?: string | undefined;
 } | undefined;
 
 const defaultProvider: CorrelationProvider = () => defaultGetRequestContext();
@@ -38,16 +38,16 @@ interface LogEntry {
   level: LogLevel;
   domain: string;
   message: string;
-  correlationId?: string;
-  requestId?: string;
-  orgId?: string;
-  userId?: string;
-  context?: LogContext;
+  correlationId?: string | undefined;
+  requestId?: string | undefined;
+  orgId?: string | undefined;
+  userId?: string | undefined;
+  context?: LogContext | undefined;
   error?: {
     name: string;
     message: string;
-    stack?: string;
-  };
+    stack?: string | undefined;
+  } | undefined;
 }
 
 /**
@@ -58,10 +58,10 @@ interface LogEntry {
  * logging — observability must always be safer than the thing it observes.
  */
 function getCorrelationFields(provider: CorrelationProvider): {
-  correlationId?: string;
-  requestId?: string;
-  orgId?: string;
-  userId?: string;
+  correlationId?: string | undefined;
+  requestId?: string | undefined;
+  orgId?: string | undefined;
+  userId?: string | undefined;
 } {
   try {
     const ctx = provider();
@@ -69,10 +69,10 @@ function getCorrelationFields(provider: CorrelationProvider): {
       return {};
     }
     const fields: {
-      correlationId?: string;
-      requestId?: string;
-      orgId?: string;
-      userId?: string;
+      correlationId?: string | undefined;
+      requestId?: string | undefined;
+      orgId?: string | undefined;
+      userId?: string | undefined;
     } = {};
     if (ctx.correlationId) {
       fields.correlationId = ctx.correlationId;

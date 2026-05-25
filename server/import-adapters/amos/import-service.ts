@@ -47,11 +47,11 @@ export type ImportType = "equipment" | "work_orders" | "parts" | "maintenance_pl
 
 export interface ImportOptions {
   type: ImportType;
-  filename?: string;
-  dryRun?: boolean;
-  feedToRag?: boolean;
-  vesselId?: string;
-  delimiter?: string;
+  filename?: string | undefined;
+  dryRun?: boolean | undefined;
+  feedToRag?: boolean | undefined;
+  vesselId?: string | undefined;
+  delimiter?: string | undefined;
 }
 
 export interface ImportResult {

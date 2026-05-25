@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 /**
    * CANONICAL HOME — Inventory
    * ============================================================
@@ -194,8 +195,8 @@ export { DbStockStorage } from "./db-stock.js";
 
 // StockFilters used by DbStockStorage.getStock
 interface StockFilters {
-  search?: string;
-  location?: string;
+  search?: string | undefined;
+  location?: string | undefined;
 }
 
 async function allocateReservation(
@@ -308,7 +309,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
   async createSupplier(data: InsertSupplier) {
     return this.stockStorage.createSupplier(data);
   }
-  async updateSupplier(id: string, updates: Partial<InsertSupplier>, orgId?: string) {
+  async updateSupplier(id: string, updates: WidenPartial<InsertSupplier>, orgId?: string) {
     return this.stockStorage.updateSupplier(id, updates, orgId);
   }
   async deleteSupplier(id: string, orgId?: string) {
@@ -321,7 +322,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
   async createStock(data: InsertStock) {
     return this.stockStorage.createStock(data);
   }
-  async updateStock(id: string, updates: Partial<InsertStock>, orgId?: string) {
+  async updateStock(id: string, updates: WidenPartial<InsertStock>, orgId?: string) {
     return this.stockStorage.updateStock(id, updates, orgId);
   }
   async deleteStock(id: string, orgId?: string) {
@@ -377,12 +378,12 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
   private async partAndStockAsPartsInventory(
     orgId?: string,
     opts?: {
-      category?: string;
-      search?: string;
-      sortBy?: string;
-      sortOrder?: "asc" | "desc";
-      limit?: number;
-      offset?: number;
+      category?: string | undefined;
+      search?: string | undefined;
+      sortBy?: string | undefined;
+      sortOrder?: "asc" | "desc" | undefined;
+      limit?: number | undefined;
+      offset?: number | undefined;
     }
   ): Promise<PartsInventory[]> {
     const { partAndStockToPartsInventory } = await import("./db-parts.js");

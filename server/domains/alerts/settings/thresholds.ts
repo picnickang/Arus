@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../../lib/widen-partial";
 /**
  * Alert Settings - Thresholds
  * Threshold configuration and management
@@ -33,7 +34,7 @@ export async function getThresholdByKey(
 export async function upsertThreshold(
   orgId: string,
   key: string,
-  data: Partial<InsertAlertThreshold>
+  data: WidenPartial<InsertAlertThreshold>
 ): Promise<AlertThreshold> {
   const existing = await getThresholdByKey(orgId, key);
   if (existing) {

@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../../lib/widen-partial";
 /**
  * Sensor Storage Interface - Sensor Configurations, States, Templates, J1939, DTCs
  * Part of IStorage modularization for improved maintainability
@@ -41,13 +42,13 @@ export interface ISensorStorage {
   updateSensorConfiguration(
     equipmentId: string,
     sensorType: string,
-    config: Partial<InsertSensorConfiguration>,
+    config: WidenPartial<InsertSensorConfiguration>,
     orgId?: string
   ): Promise<SensorConfiguration>;
   deleteSensorConfiguration(equipmentId: string, sensorType: string, orgId?: string): Promise<void>;
   updateSensorConfigurationById(
     id: string,
-    config: Partial<InsertSensorConfiguration>,
+    config: WidenPartial<InsertSensorConfiguration>,
     orgId?: string
   ): Promise<SensorConfiguration>;
   deleteSensorConfigurationById(id: string, orgId?: string): Promise<void>;
@@ -67,7 +68,7 @@ export interface ISensorStorage {
   updateSensorTemplate(
     id: string,
     orgId: string,
-    data: Partial<InsertSensorTemplate>
+    data: WidenPartial<InsertSensorTemplate>
   ): Promise<SensorTemplate>;
   deleteSensorTemplate(id: string, orgId: string): Promise<void>;
 
@@ -77,7 +78,7 @@ export interface ISensorStorage {
   createJ1939Configuration(config: InsertJ1939Configuration): Promise<J1939Configuration>;
   updateJ1939Configuration(
     id: string,
-    config: Partial<InsertJ1939Configuration>,
+    config: WidenPartial<InsertJ1939Configuration>,
     orgId: string
   ): Promise<J1939Configuration>;
   deleteJ1939Configuration(id: string, orgId: string): Promise<void>;
@@ -96,23 +97,23 @@ export interface ISensorStorage {
   getActiveDtcs(
     equipmentId: string,
     orgId?: string
-  ): Promise<(DtcFault & { definition?: DtcDefinition })[]>;
+  ): Promise<(DtcFault & { definition?: DtcDefinition | undefined })[]>;
   getActiveDtcsBatch(
     equipmentIds: string[],
     orgId?: string
-  ): Promise<(DtcFault & { definition?: DtcDefinition })[]>;
+  ): Promise<(DtcFault & { definition?: DtcDefinition | undefined })[]>;
   getDtcHistory(
     equipmentId: string,
     orgId?: string,
     filters?: {
-      spn?: number;
-      fmi?: number;
-      severity?: number;
-      from?: Date;
-      to?: Date;
-      limit?: number;
+      spn?: number | undefined;
+      fmi?: number | undefined;
+      severity?: number | undefined;
+      from?: Date | undefined;
+      to?: Date | undefined;
+      limit?: number | undefined;
     }
-  ): Promise<(DtcFault & { definition?: DtcDefinition })[]>;
+  ): Promise<(DtcFault & { definition?: DtcDefinition | undefined })[]>;
   upsertDtcFault(fault: InsertDtcFault): Promise<DtcFault>;
   clearInactiveDtcs(
     deviceId: string,

@@ -7,8 +7,8 @@ export interface IngestBatchResult {
   readingsPersisted: number;
   duplicatesSkipped: number;
   failedToDeadLetter: number;
-  archiveId?: string;
-  batchId?: string;
+  archiveId?: string | undefined;
+  batchId?: string | undefined;
 }
 
 export interface ITelemetryIngestionPort {

@@ -190,7 +190,7 @@ export function mountHealthMetricsRoutes(router: Router) {
         cacheKey,
         async () => {
           const rawHealthData = await dbEquipmentStorage.getEquipmentHealth(orgId, {
-            equipmentId: equipmentId as string | undefined,
+            ...(typeof equipmentId === "string" && { equipmentId }),
           });
           const healthData = rawHealthData.filter((eq) => isValidUuid(eq.id));
           const [allWorkOrders, rawAlerts, vesselList] = await Promise.all([

@@ -376,9 +376,9 @@ function CreateServiceRequestDialog({
         workOrderId,
         data: {
           title: form.title,
-          description: form.description || undefined,
           urgency: form.urgency,
-          estimatedCost: form.estimatedCost ? parseFloat(form.estimatedCost) : undefined,
+          ...(form.description ? { description: form.description } : {}),
+          ...(form.estimatedCost ? { estimatedCost: parseFloat(form.estimatedCost) } : {}),
         },
       });
       toast({

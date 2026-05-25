@@ -113,7 +113,7 @@ export function useLaborRateData() {
       crewRateForm.reset({
         standardRate: crew.currentRate,
         overtimeMultiplier: crew.overtimeMultiplier,
-        effectiveDate: new Date().toISOString().split("T")[0],
+        effectiveDate: new Date().toISOString().split("T")[0] ?? "",
       });
     },
     [crewRateForm]

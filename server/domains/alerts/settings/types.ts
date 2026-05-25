@@ -5,9 +5,10 @@
 
 export interface ClaimResult {
   claimed: boolean;
-  cooldownId?: string;
-  reason?: string;
-  snapshot?: CooldownSnapshot;
+  cooldownId?: string | undefined;
+  reason?: string | undefined;
+  logId?: string | undefined;
+  snapshot?: CooldownSnapshot | undefined;
 }
 
 export interface CooldownSnapshot {
@@ -18,12 +19,12 @@ export interface CooldownSnapshot {
 }
 
 export interface EmailLogOptions {
-  vesselId?: string;
-  alertType?: string;
-  alertKey?: string;
-  status?: string;
-  limit?: number;
-  offset?: number;
-  startDate?: Date;
-  endDate?: Date;
+  vesselId?: string | undefined;
+  alertType?: string | undefined;
+  alertKey?: string | undefined;
+  status?: string | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
+  startDate?: Date | undefined;
+  endDate?: Date | undefined;
 }

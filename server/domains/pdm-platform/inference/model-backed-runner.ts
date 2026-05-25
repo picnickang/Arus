@@ -50,7 +50,7 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
   private readonly heuristic = new HeuristicInferenceRunner();
   private readonly mode: "live" | "shadow" | "canary";
   private readonly canaryPercent: number;
-  private readonly envOverride?: string;
+  private readonly envOverride?: string | undefined;
   /** Per-artifact ONNX adapter cache. Keyed by absolute artifact path. */
   private readonly adapters = new Map<string, OnnxInferenceAdapter>();
   /** Per-(orgId,modelVersionId) resolution cache. */

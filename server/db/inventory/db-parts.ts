@@ -227,7 +227,7 @@ export class DbPartsStorage {
 
   async updatePartsInventory(
     id: string,
-    updates: Partial<InsertPartsInventory>
+    updates: import("../../lib/widen-partial").WidenPartial<InsertPartsInventory>
   ): Promise<PartsInventory> {
     const partUpdates: Partial<InsertPart> = {};
     if (updates.partNumber !== undefined) {

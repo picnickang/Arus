@@ -142,9 +142,9 @@ export function registerCertificateRoutes(
         })
         .parse(req.query);
       const certs = await certificateService.listCertificates(orgId, {
-        vesselId,
-        type,
-        status,
+        ...(vesselId !== undefined && { vesselId }),
+        ...(type !== undefined && { type }),
+        ...(status !== undefined && { status }),
       });
       return res.json(certs);
     })

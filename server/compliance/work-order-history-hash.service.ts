@@ -41,9 +41,9 @@ interface VerificationResult {
     sequenceNumber: number;
     expectedHash: string;
     actualHash: string;
-  };
-  chainStartDate?: Date;
-  chainEndDate?: Date;
+  } | undefined;
+  chainStartDate?: Date | undefined;
+  chainEndDate?: Date | undefined;
 }
 
 class WorkOrderHistoryHashService {
@@ -365,9 +365,9 @@ class WorkOrderHistoryHashService {
     return {
       entryCount: stats?.count ?? 0,
       hasHashChain: stats?.hasHash ?? false,
-      firstEntry: stats?.firstEntry,
-      lastEntry: stats?.lastEntry,
-      latestSequence: stats?.latestSequence,
+      ...(stats?.firstEntry !== undefined && { firstEntry: stats.firstEntry }),
+      ...(stats?.lastEntry !== undefined && { lastEntry: stats.lastEntry }),
+      ...(stats?.latestSequence !== undefined && { latestSequence: stats.latestSequence }),
     };
   }
 }

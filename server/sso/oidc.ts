@@ -80,9 +80,9 @@ export async function completeOidcAuthorization(
   if (!sub) throw new Error("OIDC ID token missing sub");
   return {
     sub,
-    email: typeof claims['email'] === "string" ? claims['email'] : undefined,
-    emailVerified: typeof claims['email_verified'] === "boolean" ? claims['email_verified'] : undefined,
-    name: typeof claims['name'] === "string" ? claims['name'] : undefined,
+    ...(typeof claims['email'] === "string" && { email: claims['email'] }),
+    ...(typeof claims['email_verified'] === "boolean" && { emailVerified: claims['email_verified'] }),
+    ...(typeof claims['name'] === "string" && { name: claims['name'] }),
     raw: claims,
   };
 }

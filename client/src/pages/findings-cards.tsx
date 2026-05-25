@@ -214,8 +214,8 @@ export function EntityLink({
   entityType,
   entityId,
 }: {
-  entityType?: string | null;
-  entityId?: string | null;
+  entityType?: string | null | undefined;
+  entityId?: string | null | undefined;
 }) {
   if (!entityType || !entityId) {
     return null;

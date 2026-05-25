@@ -74,7 +74,7 @@ export interface TrendDataPoint {
 
 export interface STCWTrends {
   orgId: string;
-  vesselId?: string;
+  vesselId?: string | undefined;
   lookbackDays: number;
   calculatedAt: string;
   trends: TrendDataPoint[];

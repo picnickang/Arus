@@ -55,9 +55,9 @@ interface AlertData {
   message: string;
   value: number;
   threshold: number;
-  acknowledged?: boolean;
-  acknowledgedBy?: string;
-  acknowledgedAt?: string;
+  acknowledged?: boolean | undefined;
+  acknowledgedBy?: string | undefined;
+  acknowledgedAt?: string | undefined;
   createdAt: string;
 }
 

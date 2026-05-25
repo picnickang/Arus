@@ -58,9 +58,9 @@ export class ScheduleSimulationService {
       orgId,
       fromDate,
       toDate,
-      vesselIds: vessels,
-      crewIds,
       existingAssignments,
+      ...(vessels !== undefined && { vesselIds: vessels }),
+      ...(crewIds !== undefined && { crewIds }),
     });
 
     const compliance = await this.calculateCompliance(orgId, proposedAssignments);

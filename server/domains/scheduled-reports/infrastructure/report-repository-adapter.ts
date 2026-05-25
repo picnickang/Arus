@@ -67,16 +67,24 @@ export class ReportScheduleRepositoryAdapter implements IReportScheduleRepositor
   async update(
     id: string,
     orgId: string,
-    input: Partial<ReportScheduleInput>
+    input: import("../../../lib/widen-partial").WidenPartial<ReportScheduleInput>
   ): Promise<ReportScheduleConfig> {
     const existing = await this.findById(id, orgId);
     if (!existing) {
       throw new Error(`Schedule not found: ${id}`);
     }
 
-    const updated = {
+    const updated: ReportScheduleConfig = {
       ...existing,
-      ...input,
+      ...(input.name !== undefined ? { name: input.name } : {}),
+      ...(input.reportType !== undefined ? { reportType: input.reportType } : {}),
+      ...(input.frequency !== undefined ? { frequency: input.frequency } : {}),
+      ...(input.cronExpression !== undefined ? { cronExpression: input.cronExpression } : {}),
+      ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
+      ...(input.format !== undefined ? { format: input.format } : {}),
+      ...(input.recipients !== undefined ? { recipients: input.recipients } : {}),
+      ...(input.vesselIds !== undefined ? { vesselIds: input.vesselIds } : {}),
+      ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
       updatedAt: new Date(),
     };
 

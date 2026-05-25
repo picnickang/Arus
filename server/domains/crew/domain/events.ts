@@ -2,7 +2,7 @@ export interface CrewMemberCreated {
   type: "CREW_MEMBER_CREATED";
   crewMemberId: string;
   orgId: string;
-  vesselId?: string;
+  vesselId?: string | undefined;
   timestamp: Date;
 }
 
@@ -28,7 +28,7 @@ export interface CrewAssigned {
   vesselId: string;
   assignmentId: string;
   startDate: Date;
-  endDate?: Date;
+  endDate?: Date | undefined;
   timestamp: Date;
 }
 

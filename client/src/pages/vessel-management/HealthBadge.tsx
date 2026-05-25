@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Activity, AlertTriangle, Heart } from "lucide-react";
 import type { EquipmentHealth } from "./types";
 
-export function HealthBadge({ health }: { health?: EquipmentHealth }) {
+export function HealthBadge({ health }: { health?: EquipmentHealth | undefined }) {
   if (!health) {
     return (
       <Badge variant="outline" className="text-muted-foreground">

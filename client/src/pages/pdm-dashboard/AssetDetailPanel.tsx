@@ -166,7 +166,7 @@ export function AssetDetailPanel({
             <RulGauge
               rulDays={item.rulEstimateDays}
               confidence={item.confidence}
-              confidenceInterval={item.rulConfidenceInterval}
+              {...(item.rulConfidenceInterval !== undefined && { confidenceInterval: item.rulConfidenceInterval })}
             />
           </div>
 
@@ -195,7 +195,7 @@ export function AssetDetailPanel({
           <div>
             <p className="text-sm font-medium mb-2">Telemetry History</p>
             <EvidenceTimeSeriesChart
-              readings={telemetryReadings}
+              {...(telemetryReadings !== undefined && { readings: telemetryReadings })}
               isLoading={telemetryLoading}
               failureMode={item.failureMode}
             />

@@ -1,7 +1,7 @@
 export interface UpdateInfo {
   version: string;
-  date?: string;
-  body?: string;
+  date?: string | undefined;
+  body?: string | undefined;
 }
 
 export interface DesktopAPI {

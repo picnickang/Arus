@@ -17,21 +17,21 @@ export interface ICertificateRepository {
   findAll(
     orgId: string,
     filters?: {
-      vesselId?: string;
-      type?: string;
-      status?: string;
+      vesselId?: string | undefined;
+      type?: string | undefined;
+      status?: string | undefined;
     }
-  ): Promise<Array<CertificateEntity & { vesselName?: string }>>;
+  ): Promise<Array<CertificateEntity & { vesselName?: string | undefined }>>;
 
   findById(
     id: string,
     orgId: string
-  ): Promise<(CertificateEntity & { vesselName?: string }) | undefined>;
+  ): Promise<(CertificateEntity & { vesselName?: string | undefined }) | undefined>;
 
   findExpiring(
     orgId: string,
     days: number
-  ): Promise<Array<CertificateEntity & { vesselName?: string; daysUntilExpiry: number | null }>>;
+  ): Promise<Array<CertificateEntity & { vesselName?: string | undefined; daysUntilExpiry: number | null }>>;
 
   getSummary(orgId: string, vesselId?: string): Promise<CertificateSummary>;
 
@@ -66,7 +66,7 @@ export interface ICertificateEventRepository {
     orgId: string;
     certificateId: string;
     eventType: string;
-    userId?: string;
+    userId?: string | undefined;
     details?: unknown;
   }): Promise<CertificateEventEntity>;
 }

@@ -106,10 +106,10 @@ function InfoCard({
   value,
   subValue,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string | undefined }>;
   label: string;
   value: string;
-  subValue?: string;
+  subValue?: string | undefined;
 }) {
   return (
     <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">

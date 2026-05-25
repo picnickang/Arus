@@ -14,6 +14,17 @@ import {
   insertCrewAlertSettingsSchema,
 } from "@shared/schema";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
+
+function stripUndefined<T extends Record<string, unknown>>(
+  obj: T
+): { [K in keyof T]: Exclude<T[K], undefined> } {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (v !== undefined) out[k] = v;
+  }
+  return out as { [K in keyof T]: Exclude<T[K], undefined> };
+}
+
 import { logger } from "../../utils/logger.js";
 import type { AuthenticatedRequest } from "../../middleware/auth";
 
@@ -76,7 +87,7 @@ export function registerAlertSettingsRoutes(
     withErrorHandling("update alert settings", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
       const data = updateSettingsSchema.parse(req.body);
-      const settings = await alertSettingsService.updateSettings(orgId, data);
+      const settings = await alertSettingsService.updateSettings(orgId, stripUndefined(data));
       return res.json(settings);
     })
   );
@@ -136,7 +147,7 @@ export function registerAlertSettingsRoutes(
       const settings = await alertSettingsService.updateVesselSettings(
         orgId,
         vesselId,
-        data
+        stripUndefined(data)
       );
       return res.json(settings);
     })
@@ -175,7 +186,7 @@ export function registerAlertSettingsRoutes(
           message: "Threshold key and name are required",
         });
       }
-      const threshold = await alertSettingsService.updateThreshold(orgId, data.key, data);
+      const threshold = await alertSettingsService.updateThreshold(orgId, data.key, stripUndefined(data));
       return res.status(201).json(threshold);
     })
   );
@@ -187,7 +198,7 @@ export function registerAlertSettingsRoutes(
       const orgId = getOrgId(req);
       const data = insertAlertThresholdSchema.partial().parse(req.body);
       const { key } = keyParamSchema.parse(req.params);
-      const threshold = await alertSettingsService.updateThreshold(orgId, key, data);
+      const threshold = await alertSettingsService.updateThreshold(orgId, key, stripUndefined(data));
       return res.json(threshold);
     })
   );
@@ -246,7 +257,7 @@ export function registerAlertSettingsRoutes(
       const orgId = getOrgId(req);
       const vesselId = vesselIdQuerySchema.parse(req.query).vesselId ?? null;
       const data = insertCrewAlertSettingsSchema.partial().parse(req.body);
-      const settings = await alertSettingsService.updateCrewAlertSettings(orgId, vesselId, data);
+      const settings = await alertSettingsService.updateCrewAlertSettings(orgId, vesselId, stripUndefined(data));
       return res.json(settings);
     })
   );

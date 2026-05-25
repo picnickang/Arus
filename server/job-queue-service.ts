@@ -14,7 +14,7 @@ export interface DocumentIngestionJob {
   filePath: string;
   filename: string;
   mimeType: string;
-  uploadedBy?: string;
+  uploadedBy?: string | undefined;
 }
 
 export interface JobProgress {

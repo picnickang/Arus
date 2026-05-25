@@ -83,7 +83,7 @@ export interface AutoFillSummary {
   totalFieldsPopulated: number;
   totalAnomalies: number;
   results: AutoFillResult[];
-  fmccFuelData?: FMCCFuelResult;
+  fmccFuelData?: FMCCFuelResult | undefined;
   dataSource: "telemetry" | "fmcc" | "mixed";
 }
 
@@ -95,13 +95,13 @@ export interface AnomalyThreshold {
 }
 
 export interface AutoFillOptions {
-  hours?: number[];
-  overwriteManual?: boolean;
-  dryRun?: boolean;
+  hours?: number[] | undefined;
+  overwriteManual?: boolean | undefined;
+  dryRun?: boolean | undefined;
 }
 
 export interface GeneratorAutoFillOptions extends AutoFillOptions {
-  generatorNumbers?: number[];
+  generatorNumbers?: number[] | undefined;
 }
 
 export interface AnomalySummary {
@@ -114,7 +114,7 @@ export interface AnomalySummary {
 export interface UnsignedLogInfo {
   dailyLogId: string;
   vesselId: string;
-  vesselName?: string;
+  vesselName?: string | undefined;
   logDate: string;
   status: string;
   hoursWithData: number;

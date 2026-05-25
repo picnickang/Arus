@@ -12,17 +12,17 @@ export type EmailProvider = "sendgrid" | "smtp" | "ses";
 
 export interface EmailConfig {
   provider: EmailProvider;
-  sendgridApiKey?: string;
-  smtpHost?: string;
-  smtpPort?: number;
-  smtpUser?: string;
-  smtpPassword?: string;
-  smtpUseTls?: boolean;
-  sesAccessKeyId?: string;
-  sesSecretAccessKey?: string;
-  sesRegion?: string;
+  sendgridApiKey?: string | undefined;
+  smtpHost?: string | undefined;
+  smtpPort?: number | undefined;
+  smtpUser?: string | undefined;
+  smtpPassword?: string | undefined;
+  smtpUseTls?: boolean | undefined;
+  sesAccessKeyId?: string | undefined;
+  sesSecretAccessKey?: string | undefined;
+  sesRegion?: string | undefined;
   fromEmail: string;
-  fromName?: string;
+  fromName?: string | undefined;
 }
 
 export interface EmailPayload {

@@ -87,7 +87,7 @@ export interface AddItemResult {
     partNumber: string;
     partName: string;
     quantityOnHand: number;
-  }>;
+  }> | undefined;
   outOfStock: boolean;
 }
 

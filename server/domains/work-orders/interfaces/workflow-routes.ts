@@ -91,10 +91,10 @@ export function registerWorkOrderWorkflowRoutes(
         {
           workOrderId,
           orgId,
-          completionNotes,
-          actualHours,
-          actualDowntimeHours,
-          closeout,
+          ...(completionNotes !== undefined && { completionNotes }),
+          ...(actualHours !== undefined && { actualHours }),
+          ...(actualDowntimeHours !== undefined && { actualDowntimeHours }),
+          ...(closeout !== undefined && { closeout }),
           predictionFeedback: predictionFeedback
             ? {
                 workOrderId,

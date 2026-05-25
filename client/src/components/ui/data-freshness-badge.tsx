@@ -38,8 +38,8 @@ export function DataFreshnessBadge({
   className,
 }: DataFreshnessBadgeProps) {
   const freshness = getDataFreshness(lastUpdated, {
-    staleThresholdMs,
-    criticalThresholdMs,
+    ...(staleThresholdMs !== undefined && { staleThresholdMs }),
+    ...(criticalThresholdMs !== undefined && { criticalThresholdMs }),
   });
 
   if (freshness.level === "fresh") {

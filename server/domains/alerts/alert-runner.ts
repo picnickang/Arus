@@ -18,7 +18,7 @@ import { logger } from "../../utils/logger.js";
 
 interface AlertRunResult {
   orgId: string;
-  vesselId?: string;
+  vesselId?: string | undefined;
   timestamp: Date;
   alertsTriggered: number;
   alertsQueued: number;
@@ -103,9 +103,9 @@ async function claimAlertSlot(
 
     return {
       claimed: true,
-      cooldownId: claim.cooldownId,
       logId: logEntry.id,
-      snapshot: claim.snapshot,
+      ...(claim.cooldownId !== undefined && { cooldownId: claim.cooldownId }),
+      ...(claim.snapshot !== undefined && { snapshot: claim.snapshot }),
     };
   } catch (err) {
     log("warn", "Failed to claim alert slot, skipping", {

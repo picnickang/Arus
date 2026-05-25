@@ -93,7 +93,7 @@ export function QuickReorderButton({
         prId: pr.id,
         partId: data.partId,
         quantity: data.quantity,
-        supplierId: data.supplierId,
+        ...(data.supplierId !== undefined && { supplierId: data.supplierId }),
         uom: "ea",
         remarks: `Quick reorder: ${part.partName || part.partNumber}`,
       });
@@ -133,7 +133,7 @@ export function QuickReorderButton({
     handleCreatePR({
       partId: part.id,
       quantity,
-      supplierId: part.supplierId || undefined,
+      ...(part.supplierId && { supplierId: part.supplierId }),
       notes: `Quick reorder for ${part.partName || part.partNumber}. Available: ${availableQuantity}, target: ${maxStock}.`,
     });
   };

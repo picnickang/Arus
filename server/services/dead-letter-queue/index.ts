@@ -76,7 +76,7 @@ export class DeadLetterQueue<T = unknown> extends EventEmitter {
     return repository.getEntry(this.config.name, id) as DeadLetterEntry<T> | undefined;
   }
 
-  list(options: { limit?: number; offset?: number; source?: string } = {}): DeadLetterEntry<T>[] {
+  list(options: { limit?: number | undefined; offset?: number | undefined; source?: string | undefined } = {}): DeadLetterEntry<T>[] {
     return repository.listEntries(this.config.name, options) as DeadLetterEntry<T>[];
   }
 
@@ -117,7 +117,7 @@ export class DeadLetterQueue<T = unknown> extends EventEmitter {
     }
   }
 
-  async replayAll(options: { source?: string; limit?: number } = {}): Promise<ReplayResult[]> {
+  async replayAll(options: { source?: string | undefined; limit?: number | undefined } = {}): Promise<ReplayResult[]> {
     const entries = this.list({ source: options.source, limit: options.limit });
     const results: ReplayResult[] = [];
 

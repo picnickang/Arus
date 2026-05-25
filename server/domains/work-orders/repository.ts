@@ -80,10 +80,10 @@ export class WorkOrderRepository {
   }
 
   async getCompletions(filters: {
-    equipmentId?: string;
-    vesselId?: string;
-    startDate?: Date;
-    endDate?: Date;
+    equipmentId?: string | undefined;
+    vesselId?: string | undefined;
+    startDate?: Date | undefined;
+    endDate?: Date | undefined;
     orgId: string;
   }): Promise<WorkOrderCompletion[]> {
     return dbWorkOrderStorage.getWorkOrderCompletions(filters);
@@ -200,20 +200,20 @@ export class WorkOrderRepository {
   }
 
   async getWorkOrderCompletions(filters: {
-    equipmentId?: string;
-    vesselId?: string;
-    startDate?: Date;
-    endDate?: Date;
+    equipmentId?: string | undefined;
+    vesselId?: string | undefined;
+    startDate?: Date | undefined;
+    endDate?: Date | undefined;
     orgId: string;
   }): Promise<WorkOrderCompletion[]> {
     return dbWorkOrderStorage.getWorkOrderCompletions(filters);
   }
 
   async getWorkOrderCompletionAnalytics(filters: {
-    equipmentId?: string;
-    vesselId?: string;
-    startDate?: Date;
-    endDate?: Date;
+    equipmentId?: string | undefined;
+    vesselId?: string | undefined;
+    startDate?: Date | undefined;
+    endDate?: Date | undefined;
     orgId: string;
   }): Promise<Awaited<ReturnType<typeof workOrderService.getWorkOrderCompletionAnalytics>>> {
     return workOrderService.getWorkOrderCompletionAnalytics(filters);

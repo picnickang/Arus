@@ -16,7 +16,7 @@ export interface ConfidenceResult {
   score: number;
   level: "high" | "medium" | "low";
   factors: ConfidenceFactor[];
-  recommendation?: string;
+  recommendation?: string | undefined;
 }
 
 export interface ConfidenceFactor {
@@ -33,7 +33,7 @@ export interface LowConfidenceAlert {
   factors: ConfidenceFactor[];
   timestamp: Date;
   orgId: string;
-  conversationId?: string;
+  conversationId?: string | undefined;
   acknowledged: boolean;
 }
 

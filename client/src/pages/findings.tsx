@@ -218,7 +218,7 @@ function OutcomeDialog({
 }
 
 
-function SummaryStrip({ summary, isLoading }: { summary?: FindingsSummary; isLoading: boolean }) {
+function SummaryStrip({ summary, isLoading }: { summary?: FindingsSummary | undefined; isLoading: boolean }) {
   if (isLoading) {
     return (
       <div
@@ -466,8 +466,8 @@ export default function FindingsPage() {
       outcomeReason,
     }: {
       id: string;
-      outcome?: string;
-      outcomeReason?: string;
+      outcome?: string | undefined;
+      outcomeReason?: string | undefined;
     }) => apiRequest("POST", `/api/agent/suggestions/${id}/dismiss`, { outcome, outcomeReason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings"] });
@@ -489,8 +489,8 @@ export default function FindingsPage() {
       outcomeReason,
     }: {
       id: string;
-      outcome?: string;
-      outcomeReason?: string;
+      outcome?: string | undefined;
+      outcomeReason?: string | undefined;
     }) => apiRequest("POST", `/api/agent/suggestions/${id}/act`, { outcome, outcomeReason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings"] });
@@ -512,8 +512,8 @@ export default function FindingsPage() {
       outcomeReason,
     }: {
       id: string;
-      outcome?: string;
-      outcomeReason?: string;
+      outcome?: string | undefined;
+      outcomeReason?: string | undefined;
     }) => apiRequest("POST", `/api/agent/suggestions/${id}/defer`, { outcome, outcomeReason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings"] });

@@ -89,7 +89,7 @@ class RedisClientFactory {
       this.client = new Redis({
         host,
         port,
-        password,
+        ...(password !== undefined ? { password } : {}),
         connectTimeout: this.connectTimeout,
         maxRetriesPerRequest: 1,
         retryStrategy: () => null,

@@ -522,12 +522,12 @@ export default function EquipmentDependenciesPage() {
         id: d.id,
         source: d.upstreamEquipmentId,
         target: d.downstreamEquipmentId,
-        label: d.notes ?? undefined,
+        ...(d.notes != null ? { label: d.notes } : {}),
         markerEnd: { type: MarkerType.ArrowClosed },
         // Optimistic rows have a synthetic id — visually dim them so
         // the operator knows the server hasn't confirmed yet.
         animated: d.id.startsWith("optimistic-"),
-        style: d.id.startsWith("optimistic-") ? { opacity: 0.6 } : undefined,
+        ...(d.id.startsWith("optimistic-") ? { style: { opacity: 0.6 } } : {}),
         data: { dependencyId: d.id },
       })),
     [dependencies]

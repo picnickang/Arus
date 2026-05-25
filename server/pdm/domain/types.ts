@@ -133,13 +133,13 @@ export interface PdmScheduledTask {
   estimatedDowntimeHours: number;
   estimatedCost: number;
   status: ScheduledTaskStatus;
-  blockReason?: BlockReason;
-  blockDetails?: string;
+  blockReason?: BlockReason | undefined;
+  blockDetails?: string | undefined;
   recommendedActions: string[];
-  evidenceChips?: EvidenceChip[];
-  scheduledDate?: Date;
-  assignedCrewId?: string;
-  workOrderId?: string;
+  evidenceChips?: EvidenceChip[] | undefined;
+  scheduledDate?: Date | undefined;
+  assignedCrewId?: string | undefined;
+  workOrderId?: string | undefined;
   createdAt: Date;
 }
 

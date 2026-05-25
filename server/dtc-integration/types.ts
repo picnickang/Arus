@@ -5,7 +5,7 @@
 import type { DtcFault, DtcDefinition } from "@shared/schema";
 
 export interface DtcWithDefinition extends DtcFault {
-  definition?: DtcDefinition;
+  definition?: DtcDefinition | undefined;
 }
 
 export interface DtcSummary {

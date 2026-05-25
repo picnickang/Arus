@@ -10,7 +10,7 @@ export interface CertSummary {
   pendingRenewal: number;
 }
 
-export function SummaryCards({ summary }: { summary?: CertSummary }) {
+export function SummaryCards({ summary }: { summary?: CertSummary | undefined }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       <Card>

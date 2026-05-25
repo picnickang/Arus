@@ -15,10 +15,10 @@ import { DEFAULT_NOTIFICATION_SETTINGS } from "../../../shared/schema/scheduling
 
 interface ScheduleNotificationContext {
   orgId: string;
-  vesselId?: string;
-  crewId?: string;
-  crewEmail?: string;
-  adminEmails?: string[];
+  vesselId?: string | undefined;
+  crewId?: string | undefined;
+  crewEmail?: string | undefined;
+  adminEmails?: string[] | undefined;
 }
 
 interface AssignmentInfo {
@@ -26,10 +26,10 @@ interface AssignmentInfo {
   crewId: string;
   crewName: string;
   vesselId: string;
-  vesselName?: string;
+  vesselName?: string | undefined;
   startDate: string;
   endDate: string;
-  role?: string;
+  role?: string | undefined;
 }
 
 type NotificationEvent = keyof NotificationSettings;

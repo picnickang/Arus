@@ -105,10 +105,10 @@ export function EquipmentMultiSelect({
 
 interface DatePickerFieldProps {
   label: string;
-  value?: Date;
+  value?: Date | undefined;
   onChange: (date?: Date) => void;
   testId: string;
-  compact?: boolean;
+  compact?: boolean | undefined;
 }
 
 export function DatePickerField({ label, value, onChange, testId, compact }: DatePickerFieldProps) {

@@ -52,7 +52,7 @@ export class FMCCRestClient {
       const response = await fetch(`${this.config.baseUrl}${endpoint}`, {
         method,
         headers,
-        body: body ? JSON.stringify(body) : undefined,
+        ...(body !== undefined && { body: JSON.stringify(body) }),
         signal: this.abortController.signal,
       });
 
@@ -107,7 +107,7 @@ export class FMCCRestClient {
       foTemperature: data.fo_temperature ?? data.foTemperature ?? 0,
       doTemperature: data.do_temperature ?? data.doTemperature ?? 0,
       meterStatus: this.mapMeterStatus(data.status ?? ""),
-      errorCode: data.error_code,
+      ...(data.error_code !== undefined && { errorCode: data.error_code }),
     };
   }
 

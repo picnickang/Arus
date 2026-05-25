@@ -60,10 +60,10 @@ interface RunContext {
 interface LoopOptions {
   /** 'sync' = buffer response; 'stream' = push chunks via onChunk. */
   mode: "sync" | "stream";
-  onChunk?: (chunk: string) => void;
-  maxTokenBudget?: number;
+  onChunk?: ((chunk: string) => void) | undefined;
+  maxTokenBudget?: number | undefined;
   /** Runtime tool allowlist (schedules). Null = no extra restriction. */
-  runtimeAllowlist?: string[] | null;
+  runtimeAllowlist?: string[] | null | undefined;
   /**
    * For multimodal: if set, the last user message in `openaiMessages` is
    * replaced with these content parts before the first API call.
@@ -87,7 +87,7 @@ interface LoopResult {
 
 export class AgentOrchestrator {
   private safety: SafetyService;
-  private knowledgeBase?: KnowledgeBasePort;
+  private knowledgeBase?: KnowledgeBasePort | undefined;
 
   constructor(
     private repo: AgentRepositoryPort,
@@ -586,7 +586,7 @@ export class AgentOrchestrator {
             output: toolResult,
             status: toolStatus,
             durationMs,
-            error: toolError,
+            ...(toolError !== undefined && { error: toolError }),
           });
 
           await this.repo.toolCalls.create({
@@ -597,7 +597,7 @@ export class AgentOrchestrator {
             output: toolResult,
             status: toolStatus,
             durationMs,
-            error: toolError,
+            ...(toolError !== undefined && { error: toolError }),
           });
 
           // Expand activated tools from discovery

@@ -28,9 +28,9 @@ interface SOData {
 function buildSOPlaceholderData(
   so: SOData,
   serviceProvider: { name: string },
-  workOrder?: { woNumber?: string | null; description?: string | null },
-  equipment?: { name?: string | null },
-  vessel?: { name?: string | null }
+  workOrder?: { woNumber?: string | null | undefined; description?: string | null | undefined },
+  equipment?: { name?: string | null | undefined },
+  vessel?: { name?: string | null | undefined }
 ): Record<string, string> {
   const hasQuote = so.quotedAmount !== null && so.quotedAmount !== undefined;
 
@@ -74,9 +74,9 @@ export async function generateSOEmailHtmlWithTemplate(
   orgId: string,
   so: SOData,
   serviceProvider: { name: string },
-  workOrder?: { woNumber?: string | null; description?: string | null },
-  equipment?: { name?: string | null },
-  vessel?: { name?: string | null }
+  workOrder?: { woNumber?: string | null | undefined; description?: string | null | undefined },
+  equipment?: { name?: string | null | undefined },
+  vessel?: { name?: string | null | undefined }
 ): Promise<{ subject: string; body: string }> {
   const templates = await emailTemplatesService.getTemplates(orgId);
   const template = templates.serviceOrder;

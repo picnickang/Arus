@@ -24,6 +24,7 @@ import type {
   CalibrationCache,
   InsertCalibrationCache,
 } from "@shared/schema";
+import type { WidenPartial } from "../../../lib/widen-partial";
 
 /**
  * Device storage operations for edge devices, heartbeats, and transport
@@ -33,7 +34,7 @@ export interface IDeviceStorage {
   getDevices(orgId?: string): Promise<Device[]>;
   getDevice(id: string, orgId?: string): Promise<Device | undefined>;
   createDevice(device: InsertDevice): Promise<Device>;
-  updateDevice(id: string, device: Partial<InsertDevice>, orgId: string): Promise<Device>;
+  updateDevice(id: string, device: WidenPartial<InsertDevice>, orgId: string): Promise<Device>;
   deleteDevice(id: string, orgId: string): Promise<void>;
   getDevicesWithStatus(orgId?: string): Promise<DeviceWithStatus[]>;
 

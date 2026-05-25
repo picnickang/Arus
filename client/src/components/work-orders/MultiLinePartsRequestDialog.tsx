@@ -73,17 +73,17 @@ function mapPartFields(part: InventoryPartFromAPI) {
 
 interface PartItem {
   id: string;
-  inventoryItemId?: string;
-  partNumber?: string;
-  partName?: string;
+  inventoryItemId?: string | undefined;
+  partNumber?: string | undefined;
+  partName?: string | undefined;
   description: string;
   quantity: number;
   notes: string;
-  unitCost?: number;
-  quantityOnHand?: number;
+  unitCost?: number | undefined;
+  quantityOnHand?: number | undefined;
   isCustom: boolean;
-  selectedSupplierId?: string;
-  availableSuppliers?: SupplierLink[];
+  selectedSupplierId?: string | undefined;
+  availableSuppliers?: SupplierLink[] | undefined;
 }
 
 export interface SuggestedPart {
@@ -100,17 +100,17 @@ interface MultiLinePartsRequestDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: {
-    notes?: string;
+    notes?: string | undefined;
     items: Array<{
-      partId?: string;
+      partId?: string | undefined;
       description: string;
       quantity: number;
-      notes?: string;
-      supplierId?: string;
+      notes?: string | undefined;
+      supplierId?: string | undefined;
     }>;
   }) => void;
   isPending: boolean;
-  suggestions?: SuggestedPart[];
+  suggestions?: SuggestedPart[] | undefined;
 }
 
 export function MultiLinePartsRequestDialog({
@@ -262,7 +262,7 @@ export function MultiLinePartsRequestDialog({
             <PartSearchCombobox
               parts={inventoryParts}
               isLoading={partsLoading}
-              onSelect={addInventoryItem}
+              onSelect={addInventoryItem as Parameters<typeof PartSearchCombobox>[0]["onSelect"]}
             />
             <Button variant="outline" onClick={addCustomItem} data-testid="btn-add-custom-item">
               <Plus className="h-4 w-4 mr-1" />
@@ -407,16 +407,16 @@ interface PartSearchComboboxProps {
     id: string;
     partNumber: string;
     partName: string;
-    unitCost?: number;
-    quantityOnHand?: number;
+    unitCost?: number | undefined;
+    quantityOnHand?: number | undefined;
   }>;
   isLoading: boolean;
   onSelect: (part: {
     id: string;
     partNumber: string;
     partName: string;
-    unitCost?: number;
-    quantityOnHand?: number;
+    unitCost?: number | undefined;
+    quantityOnHand?: number | undefined;
   }) => void;
 }
 

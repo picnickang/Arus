@@ -315,8 +315,8 @@ export function PartsRequestCard({
               {canFulfill && (
                 <FulfillmentDialog
                   purchaseRequest={purchaseRequest}
-                  onFulfillItem={onFulfillItem}
-                  isFulfilling={isFulfilling}
+                  {...(onFulfillItem !== undefined && { onFulfillItem })}
+                  {...(isFulfilling !== undefined && { isFulfilling })}
                 />
               )}
               {canAdvanceStatus && (

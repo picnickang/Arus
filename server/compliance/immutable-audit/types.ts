@@ -64,20 +64,20 @@ export interface AuditEventInput {
   eventType: AuditEventType;
   entityType: string;
   entityId: string;
-  previousState?: Record<string, unknown>;
-  newState?: Record<string, unknown>;
-  changedFields?: string[];
+  previousState?: Record<string, unknown> | undefined;
+  newState?: Record<string, unknown> | undefined;
+  changedFields?: string[] | undefined;
   performedBy: string;
-  performedByType?: PerformerType;
-  performedByName?: string;
-  performedByRole?: string;
-  ipAddress?: string;
-  deviceId?: string;
-  vesselId?: string;
-  complianceStandard?: string;
-  retentionRequired?: boolean;
-  retentionExpiresAt?: Date;
-  metadata?: Record<string, unknown>;
+  performedByType?: PerformerType | undefined;
+  performedByName?: string | undefined;
+  performedByRole?: string | undefined;
+  ipAddress?: string | undefined;
+  deviceId?: string | undefined;
+  vesselId?: string | undefined;
+  complianceStandard?: string | undefined;
+  retentionRequired?: boolean | undefined;
+  retentionExpiresAt?: Date | undefined;
+  metadata?: Record<string, unknown> | undefined;
 }
 
 export interface AuditRecord {
@@ -87,24 +87,24 @@ export interface AuditRecord {
   eventType: AuditEventType;
   entityType: string;
   entityId: string;
-  previousState?: Record<string, unknown>;
-  newState?: Record<string, unknown>;
-  changedFields?: string[];
+  previousState?: Record<string, unknown> | undefined;
+  newState?: Record<string, unknown> | undefined;
+  changedFields?: string[] | undefined;
   performedBy: string;
   performedByType: PerformerType;
-  performedByName?: string;
-  performedByRole?: string;
-  ipAddress?: string;
-  deviceId?: string;
-  vesselId?: string;
+  performedByName?: string | undefined;
+  performedByRole?: string | undefined;
+  ipAddress?: string | undefined;
+  deviceId?: string | undefined;
+  vesselId?: string | undefined;
   eventTimestamp: Date;
   serverTimestamp: Date;
-  prevHash?: string;
+  prevHash?: string | undefined;
   hash: string;
-  complianceStandard?: string;
+  complianceStandard?: string | undefined;
   retentionRequired: boolean;
-  retentionExpiresAt?: Date;
-  metadata?: Record<string, unknown>;
+  retentionExpiresAt?: Date | undefined;
+  metadata?: Record<string, unknown> | undefined;
 }
 
 export interface ChainVerificationResult {
@@ -117,16 +117,16 @@ export interface ChainVerificationResult {
 
 export interface AuditQueryOptions {
   orgId: string;
-  startDate?: Date;
-  endDate?: Date;
-  entityType?: string;
-  entityId?: string;
-  eventCategory?: AuditEventCategory;
-  eventType?: AuditEventType;
-  performedBy?: string;
-  vesselId?: string;
-  limit?: number;
-  offset?: number;
+  startDate?: Date | undefined;
+  endDate?: Date | undefined;
+  entityType?: string | undefined;
+  entityId?: string | undefined;
+  eventCategory?: AuditEventCategory | undefined;
+  eventType?: AuditEventType | undefined;
+  performedBy?: string | undefined;
+  vesselId?: string | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
 }
 
 export interface AuditStats {

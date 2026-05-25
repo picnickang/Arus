@@ -79,14 +79,14 @@ export interface ShipmateImportOptions {
    * the org. If ambiguous or no match, import fails loudly.
    * Prefer passing `vesselId` directly when known.
    */
-  vesselName?: string;
+  vesselName?: string | undefined;
   /**
    * Explicit vessel ID. Bypasses name lookup. Recommended for UI flows
    * where the user picks from a dropdown.
    */
-  vesselId?: string;
-  filename?: string;
-  dryRun?: boolean;
+  vesselId?: string | undefined;
+  filename?: string | undefined;
+  dryRun?: boolean | undefined;
   feedToRag?: boolean;
   delimiter?: string;
   syncRunningHours?: boolean;

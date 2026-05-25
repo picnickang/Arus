@@ -210,20 +210,20 @@ export async function recordRulPrediction(params: {
  */
 export async function recordEngineerOverride(params: {
   overrideId: string;
-  predictionId?: string;
+  predictionId?: string | undefined;
   equipmentId: string;
-  vesselId?: string;
-  workOrderId?: string;
+  vesselId?: string | undefined;
+  workOrderId?: string | undefined;
   overrideType: "defer" | "escalate" | "dismiss" | "modify";
   originalRiskLevel: string;
-  newRiskLevel?: string;
-  originalConfidence?: number;
+  newRiskLevel?: string | undefined;
+  originalConfidence?: number | undefined;
   justification: string;
   engineerId: string;
   engineerName: string;
-  engineerCertifications?: string[];
-  originalPrediction?: Record<string, unknown>;
-  modelId?: string;
+  engineerCertifications?: string[] | undefined;
+  originalPrediction?: Record<string, unknown> | undefined;
+  modelId?: string | undefined;
   orgId: string;
 }): Promise<ProvenanceEvent> {
   logger.info(`[Provenance] Recording engineer override: ${params.overrideType} by ${params.engineerName}`);
@@ -247,10 +247,10 @@ export async function recordEngineerOverride(params: {
 export async function recordOverrideOutcome(params: {
   overrideId: string;
   equipmentId: string;
-  vesselId?: string;
+  vesselId?: string | undefined;
   originalOverrideType: "defer" | "escalate" | "dismiss" | "modify";
   outcomeStatus: "pending" | "validated" | "failure_prevented" | "failure_occurred";
-  outcomeNotes?: string;
+  outcomeNotes?: string | undefined;
   outcomeRecordedBy: string;
   engineerId: string;
   engineerName: string;
@@ -301,15 +301,15 @@ export async function getEngineerOverrides(filters?: {
  * Get provenance events with filters
  */
 export async function getProvenanceEvents(filters?: {
-  type?: ProvenanceEvent["type"];
-  vesselId?: string;
-  equipmentId?: string;
-  modelId?: string;
-  from?: Date;
-  to?: Date;
-  orgId?: string;
-  limit?: number;
-  offset?: number;
+  type?: ProvenanceEvent["type"] | undefined;
+  vesselId?: string | undefined;
+  equipmentId?: string | undefined;
+  modelId?: string | undefined;
+  from?: Date | undefined;
+  to?: Date | undefined;
+  orgId?: string | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
 }): Promise<{ events: ProvenanceEvent[]; total: number }> {
   try {
     const text = await fs.readFile(PROV_FILE, "utf8");

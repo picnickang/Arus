@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 /**
  * Maintenance Templates - Database Storage
  *
@@ -120,7 +121,7 @@ export class DatabaseMaintenanceTemplatesStorage {
 
   async updateMaintenanceTemplate(
     id: string,
-    template: Partial<InsertMaintenanceTemplate>,
+    template: WidenPartial<InsertMaintenanceTemplate>,
     orgId?: string
   ): Promise<MaintenanceTemplate> {
     const c = [eq(maintenanceTemplates.id, id)];
@@ -265,7 +266,7 @@ export class DatabaseMaintenanceTemplatesStorage {
 
   async updateChecklistItem(
     id: string,
-    item: Partial<InsertMaintenanceChecklistItem>,
+    item: WidenPartial<InsertMaintenanceChecklistItem>,
     _orgId?: string
   ): Promise<MaintenanceChecklistItem> {
     const [u] = await db
@@ -322,7 +323,7 @@ export class DatabaseMaintenanceTemplatesStorage {
   }
 
   async bulkUpdateChecklistItems(
-    updates: { id: string; data: Partial<InsertMaintenanceChecklistItem> }[]
+    updates: { id: string; data: WidenPartial<InsertMaintenanceChecklistItem> }[]
   ): Promise<MaintenanceChecklistItem[]> {
     const u: MaintenanceChecklistItem[] = [];
     for (const { id, data } of updates) {
@@ -431,7 +432,7 @@ export class DatabaseMaintenanceTemplatesStorage {
 
   async updateMaintenanceSchedule(
     id: string,
-    updates: Partial<InsertMaintenanceSchedule>
+    updates: WidenPartial<InsertMaintenanceSchedule>
   ): Promise<MaintenanceSchedule> {
     const [u] = await db
       .update(maintenanceSchedules)

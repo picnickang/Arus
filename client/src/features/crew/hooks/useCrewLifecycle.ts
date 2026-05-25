@@ -60,7 +60,7 @@ export function useRetireCrew() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ crewId, notes }: { crewId: string; notes?: string }) => {
+    mutationFn: async ({ crewId, notes }: { crewId: string; notes?: string | undefined }) => {
       return apiRequest("POST", `/api/crew/${crewId}/retire`, { notes });
     },
     onSuccess: (_data, variables) => {
@@ -91,8 +91,8 @@ export function useCancelContract() {
       applyPenalty,
     }: {
       crewId: string;
-      notes?: string;
-      applyPenalty?: boolean;
+      notes?: string | undefined;
+      applyPenalty?: boolean | undefined;
     }) => {
       return apiRequest("POST", `/api/crew/${crewId}/cancel`, { notes, applyPenalty });
     },
@@ -124,8 +124,8 @@ export function useReinstateCrew() {
       startDate,
     }: {
       crewId: string;
-      notes?: string;
-      startDate?: string;
+      notes?: string | undefined;
+      startDate?: string | undefined;
     }) => {
       return apiRequest("POST", `/api/crew/${crewId}/reinstate`, { notes, startDate });
     },

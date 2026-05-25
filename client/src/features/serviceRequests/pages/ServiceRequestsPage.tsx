@@ -79,10 +79,10 @@ function ConvertToSODialog({
     }
     onSubmit({
       serviceProviderId,
-      scope: scope || undefined,
-      estimatedCost: estimatedCost ? parseFloat(estimatedCost) : undefined,
-      scheduledStartDate: scheduledStartDate || undefined,
-      scheduledEndDate: scheduledEndDate || undefined,
+      ...(scope ? { scope } : {}),
+      ...(estimatedCost ? { estimatedCost: parseFloat(estimatedCost) } : {}),
+      ...(scheduledStartDate ? { scheduledStartDate } : {}),
+      ...(scheduledEndDate ? { scheduledEndDate } : {}),
     });
   };
 
@@ -229,7 +229,7 @@ function RejectDialog({ open, onOpenChange, srId: _srId, onSubmit, isPending }: 
 export function ServiceRequestsPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [filters, setFilters] = useState<SRFilters>({ status: undefined });
+  const [filters, setFilters] = useState<SRFilters>({});
   const [searchInput, setSearchInput] = useState("");
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -285,10 +285,10 @@ export function ServiceRequestsPage() {
   };
 
   const handleStatusChange = (value: string) =>
-    setFilters((prev) => ({
-      ...prev,
-      status: value === "all" ? undefined : (value as SRStatus | "actionable" | undefined),
-    }));
+    setFilters((prev) => {
+      const { status: _, ...rest } = prev;
+      return value === "all" ? rest : { ...rest, status: value as SRStatus | "actionable" };
+    });
 
   const handleReview = (id: string) => {
     reviewMutation.mutate(id, {
@@ -464,10 +464,10 @@ export function ServiceRequestsPage() {
         <Select
           value={filters.sortBy || "created"}
           onValueChange={(v: string) =>
-            setFilters((prev) => ({
-              ...prev,
-              sortBy: v === "created" ? undefined : (v as SRSortBy),
-            }))
+            setFilters((prev) => {
+              const { sortBy: _, ...rest } = prev;
+              return v === "created" ? rest : { ...rest, sortBy: v as SRSortBy };
+            })
           }
         >
           <SelectTrigger className="w-[160px]" data-testid="select-sort-sr">

@@ -128,6 +128,13 @@ export function updateViewStats(
 
   violationCounts.forEach((count, key) => {
     const [type, severity] = key.split(":");
-    schedulePlannerViolationCount.set({ org_id: orgId, violation_type: type, severity }, count);
+    schedulePlannerViolationCount.set(
+      {
+        org_id: orgId,
+        ...(type !== undefined && { violation_type: type }),
+        ...(severity !== undefined && { severity }),
+      },
+      count
+    );
   });
 }

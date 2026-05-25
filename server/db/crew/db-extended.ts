@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 /**
  * Crew - Database Storage Extended (Assignments, Certifications, Leave)
  */
@@ -72,7 +73,7 @@ export class DbCrewExtended {
   }
   async updateCrewAssignment(
     id: string,
-    updates: Partial<InsertCrewAssignment>,
+    updates: WidenPartial<InsertCrewAssignment>,
     orgId?: string
   ): Promise<CrewAssignment> {
     this.validateOrgId(orgId, "updateCrewAssignment");
@@ -172,7 +173,7 @@ export class DbCrewExtended {
   }
   async updateCrewCertification(
     id: string,
-    updates: Partial<InsertCrewCertification>,
+    updates: WidenPartial<InsertCrewCertification>,
     orgId?: string
   ): Promise<CrewCertification> {
     this.validateOrgId(orgId, "updateCrewCertification");
@@ -244,7 +245,7 @@ export class DbCrewExtended {
   }
   async updateCrewLeave(
     id: string,
-    updates: Partial<InsertCrewLeave>,
+    updates: WidenPartial<InsertCrewLeave>,
     orgId?: string
   ): Promise<CrewLeave> {
     this.validateOrgId(orgId, "updateCrewLeave");

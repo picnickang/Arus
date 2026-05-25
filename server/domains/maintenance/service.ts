@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 /**
  * Maintenance Service - Backward Compatibility Shim
  *
@@ -86,15 +87,15 @@ function templateEntityToSchema(entity: MaintenanceTemplateEntity): MaintenanceT
  * `notes`. These helpers narrow the legacy payload without `any` casts.
  */
 type LegacyScheduleExtras = {
-  estimatedDurationHours?: number;
-  notes?: string;
+  estimatedDurationHours?: number | undefined;
+  notes?: string | undefined;
 };
 type LegacyTemplateExtras = {
-  estimatedDurationHours?: number;
+  estimatedDurationHours?: number | undefined;
 };
 
 function pickLegacyScheduleExtras(
-  data: Partial<InsertMaintenanceSchedule>,
+  data: WidenPartial<InsertMaintenanceSchedule>,
 ): LegacyScheduleExtras {
   const record = data as Record<string, unknown>;
   return {
@@ -107,7 +108,7 @@ function pickLegacyScheduleExtras(
 }
 
 function pickLegacyTemplateExtras(
-  data: Partial<InsertMaintenanceTemplate>,
+  data: WidenPartial<InsertMaintenanceTemplate>,
 ): LegacyTemplateExtras {
   const record = data as Record<string, unknown>;
   return {
@@ -157,7 +158,7 @@ export class MaintenanceService {
 
   async updateSchedule(
     id: string,
-    data: Partial<InsertMaintenanceSchedule>,
+    data: WidenPartial<InsertMaintenanceSchedule>,
     orgId: string,
     userId?: string
   ): Promise<MaintenanceSchedule> {
@@ -244,7 +245,7 @@ export class MaintenanceService {
 
   async updateTemplate(
     id: string,
-    data: Partial<InsertMaintenanceTemplate>,
+    data: WidenPartial<InsertMaintenanceTemplate>,
     orgId: string,
     userId?: string
   ): Promise<MaintenanceTemplate> {

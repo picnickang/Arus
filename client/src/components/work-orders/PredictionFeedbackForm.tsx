@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 
 interface PredictionFeedback {
   outcome: "confirmed" | "partial" | "false_alarm";
-  notes?: string;
-  predictionId?: string | number | null;
+  notes?: string | undefined;
+  predictionId?: string | number | null | undefined;
 }
 
 interface PredictionFeedbackFormProps {
@@ -69,8 +69,8 @@ export function PredictionFeedbackForm({
     setSelected(outcome);
     onChange({
       outcome,
-      notes: notes || undefined,
-      predictionId,
+      ...(notes && { notes }),
+      ...(predictionId != null && { predictionId }),
     });
   };
 
@@ -79,8 +79,8 @@ export function PredictionFeedbackForm({
     if (selected) {
       onChange({
         outcome: selected,
-        notes: value || undefined,
-        predictionId,
+        ...(value && { notes: value }),
+        ...(predictionId != null && { predictionId }),
       });
     }
   };

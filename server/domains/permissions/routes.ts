@@ -9,6 +9,7 @@ import { permissionRepository } from "./repository";
 import { permissionService, compileUserPermissions } from "./service";
 import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";
 import { withErrorHandling, sendCreated, sendDeleted } from "../../lib/route-utils";
+import { stripUndefined } from "../../lib/strip-undefined";
 import { validateResponse } from "../../lib/api-helpers";
 import {
   permissionsMeResponseSchema,
@@ -210,7 +211,7 @@ export function registerPermissionRoutes(app: Express) {
       // Security: Strip orgId from body to prevent cross-tenant mutation
       const rawBody = z.record(z.unknown()).parse(req.body);
       const { orgId: _, ...bodyWithoutOrgId } = rawBody;
-      const data = insertRoleSchema.partial().parse(bodyWithoutOrgId);
+      const data = stripUndefined(insertRoleSchema.partial().parse(bodyWithoutOrgId));
       const updated = await permissionRepository.updateRole(id, orgId, data);
 
       const authReq = req as AuthenticatedRequest;
@@ -248,7 +249,7 @@ export function registerPermissionRoutes(app: Express) {
       // Security: Strip orgId from body to prevent cross-tenant mutation
       const rawBody = z.record(z.unknown()).parse(req.body);
       const { orgId: _, ...bodyWithoutOrgId } = rawBody;
-      const data = insertRoleSchema.partial().parse(bodyWithoutOrgId);
+      const data = stripUndefined(insertRoleSchema.partial().parse(bodyWithoutOrgId));
       const updated = await permissionRepository.updateRole(id, orgId, data);
 
       const authReq = req as AuthenticatedRequest;

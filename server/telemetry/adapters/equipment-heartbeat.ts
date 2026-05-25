@@ -25,10 +25,10 @@ const equipmentOfflineGauge = new client.Gauge({
 export interface HeartbeatUpdate {
   equipmentId: string;
   orgId: string;
-  signalType?: string;
-  value?: number;
-  protocol?: string;
-  source?: string;
+  signalType?: string | undefined;
+  value?: number | undefined;
+  protocol?: string | undefined;
+  source?: string | undefined;
 }
 
 export class EquipmentHeartbeatAdapter {

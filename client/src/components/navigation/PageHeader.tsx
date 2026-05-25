@@ -7,11 +7,11 @@ import type { ReactNode } from "react";
 
 interface PageHeaderProps {
   title: string;
-  subtitle?: string;
-  showBack?: boolean;
-  showHome?: boolean;
-  onBack?: () => void;
-  action?: ReactNode;
+  subtitle?: string | undefined;
+  showBack?: boolean | undefined;
+  showHome?: boolean | undefined;
+  onBack?: (() => void) | undefined;
+  action?: ReactNode | undefined;
 }
 
 export function PageHeader({

@@ -24,12 +24,12 @@ interface Supplier {
 
 interface SupplierMultiSelectProps {
   value: string[];
-  preferredSupplierId?: string;
+  preferredSupplierId?: string | undefined;
   onChange: (supplierIds: string[]) => void;
-  onPreferredChange?: (supplierId: string | undefined) => void;
-  disabled?: boolean;
-  placeholder?: string;
-  className?: string;
+  onPreferredChange?: ((supplierId: string | undefined) => void) | undefined;
+  disabled?: boolean | undefined;
+  placeholder?: string | undefined;
+  className?: string | undefined;
 }
 
 export function SupplierMultiSelect({

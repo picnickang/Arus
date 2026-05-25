@@ -205,13 +205,13 @@ export function registerInventoryRoutes(
       const { items, total } = await inventoryService.listPartsInventoryPaginated(orgId, {
         limit,
         offset,
-        search: query.search,
-        category: query.category,
-        criticality: query.criticality,
-        stockStatus: query.stockStatus,
-        supplier: query.supplier,
-        sortBy: query.sortBy,
-        sortOrder: query.sortOrder,
+        ...(query.search !== undefined && { search: query.search }),
+        ...(query.category !== undefined && { category: query.category }),
+        ...(query.criticality !== undefined && { criticality: query.criticality }),
+        ...(query.stockStatus !== undefined && { stockStatus: query.stockStatus }),
+        ...(query.supplier !== undefined && { supplier: query.supplier }),
+        ...(query.sortBy !== undefined && { sortBy: query.sortBy }),
+        ...(query.sortOrder !== undefined && { sortOrder: query.sortOrder }),
       });
 
       const transformedParts = items.map((part) => {

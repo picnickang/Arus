@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 /**
    * CANONICAL HOME — Crew
    * ============================================================
@@ -45,7 +46,7 @@ export class DatabaseCrewStorage extends DbCrewMembers {
   }
   async updateCrewAssignment(
     id: string,
-    updates: Partial<InsertCrewAssignment>,
+    updates: WidenPartial<InsertCrewAssignment>,
     orgId?: string
   ) {
     return this.extended.updateCrewAssignment(id, updates, orgId);
@@ -70,7 +71,7 @@ export class DatabaseCrewStorage extends DbCrewMembers {
   }
   async updateCrewCertification(
     id: string,
-    updates: Partial<InsertCrewCertification>,
+    updates: WidenPartial<InsertCrewCertification>,
     orgId?: string
   ) {
     return this.extended.updateCrewCertification(id, updates, orgId);
@@ -89,7 +90,7 @@ export class DatabaseCrewStorage extends DbCrewMembers {
   }
   async updateCrewLeave(
     id: string,
-    updates: Partial<InsertCrewLeave>,
+    updates: WidenPartial<InsertCrewLeave>,
     orgId?: string
   ) {
     return this.extended.updateCrewLeave(id, updates, orgId);

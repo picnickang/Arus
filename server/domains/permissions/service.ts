@@ -84,7 +84,7 @@ export async function compileUserPermissions(
     if (grant.isGranted) {
       grantMatrix[grant.resourceCode]![grant.actionCode] = {
         allowed: true,
-        conditions: grant.condition || undefined,
+        ...(grant.condition && { conditions: grant.condition }),
       };
     }
   }

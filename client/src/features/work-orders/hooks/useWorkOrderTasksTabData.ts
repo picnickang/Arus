@@ -86,7 +86,7 @@ export function useWorkOrderTasksTabData(workOrderId: string) {
     }: {
       itemId: string;
       passed: boolean | null;
-      notes?: string;
+      notes?: string | undefined;
     }) => {
       const user = getUserIdentity();
       return apiRequest("POST", `/api/maintenance-checklist/${workOrderId}/complete`, {

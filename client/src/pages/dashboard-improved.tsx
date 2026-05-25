@@ -26,8 +26,8 @@ function MetricCard({
   label: string;
   value: string | number;
   icon: React.ElementType;
-  status?: "healthy" | "warning" | "critical";
-  href?: string;
+  status?: "healthy" | "warning" | "critical" | undefined;
+  href?: string | undefined;
   testId: string;
 }) {
   const statusColors = {

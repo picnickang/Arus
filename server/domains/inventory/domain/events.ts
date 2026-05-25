@@ -21,7 +21,7 @@ interface BaseInventoryEvent {
   aggregateId: string;
   aggregateType: "Part" | "PartsInventory" | "StockMovement";
   occurredAt: Date;
-  userId?: string;
+  userId?: string | undefined;
   orgId: string;
   version: number;
 }

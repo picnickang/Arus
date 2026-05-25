@@ -16,8 +16,8 @@ interface ActiveBunkering {
   peakFlow: number;
   totalKg: number;
   fuelType: string;
-  density?: number;
-  temperature?: number;
+  density?: number | undefined;
+  temperature?: number | undefined;
 }
 
 function getFirstRow(result: unknown): { id: string } | undefined {

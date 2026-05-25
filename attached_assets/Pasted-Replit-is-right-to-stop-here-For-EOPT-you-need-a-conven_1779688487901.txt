@@ -1,0 +1,62 @@
+Replit is right to stop here. For EOPT, you need a convention.
+
+Use this decision:
+
+Internal server/logging contracts: allow prop?: T | undefined where callers naturally pass req.user?.id, req.ip, etc.
+
+Forms/Zod/API payloads: strip undefined before submit/write. Do not widen everything. Absence should mean omitted; null should mean intentional clear.
+
+Next prompt:
+
+Continue exactOptionalPropertyTypes hardening using this project convention:
+1. Internal server-only observability/logger/audit/context objects:
+Allow optional properties to explicitly accept undefined where values naturally come from optional request context.
+Use:
+prop?: T | undefined
+Only for internal-only contracts.
+2. Forms, Zod DTOs, API payloads, PATCH bodies, and domain service inputs:
+Do NOT globally widen to prop?: T | undefined.
+Prefer omitting undefined keys before submit/write.
+Use conditional spreads, omitUndefined helpers, or submit-time normalization.
+Use null only where the product semantics mean intentional clearing.
+3. UI wrapper components:
+Prefer fixing project-local wrappers to accept RHF/Radix undefined values safely.
+Avoid editing dozens of call sites if a wrapper-level fix preserves behavior.
+Mission:
+Continue reducing EOPT errors from current 702 to 0.
+Work by cluster:
+A. Internal logger/audit/observability contracts
+B. UI wrapper/RHF/Radix undefined alignment
+C. Forms/Zod submit normalization
+D. PATCH/domain DTO semantics
+E. long tail
+Rules:
+- Do not weaken default tsc.
+- No explicit any.
+- No as any.
+- No ts-ignore or eslint-disable.
+- Do not increase the one justified cast.
+- Preserve API behavior.
+- Do not use undefined to mean clear; use null only if already supported or explicitly modeled.
+Validation after every cluster:
+- npx tsc --noEmit
+- npx tsc --noEmit -p tsconfig.strict-check.json
+- npx tsc --noEmit -p tsconfig.strict-eopt.json
+- scoped eslint
+- explicit-any baseline remains 0
+- cast count remains 1
+- architect review if diff exists
+If validation passes:
+- commit/merge
+- immediately continue to next EOPT cluster.
+Stop only if:
+1. EOPT errors = 0
+2. an actual product/API semantic decision is required
+3. validation cannot be restored after 3 repair attempts
+Final report:
+- EOPT errors before → after
+- clusters completed
+- flag permanent status
+- files changed
+- API/DTO conventions applied
+- blockers if any

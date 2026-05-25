@@ -24,6 +24,7 @@ import {
   pdmScoreLogs as pdmScoreLogsTable,
 } from "@shared/schema-runtime";
 import { eq, sql } from "drizzle-orm";
+import type { WidenPartial } from "../../lib/widen-partial";
 import type {
   Device,
   InsertDevice,
@@ -51,7 +52,7 @@ export class DatabaseDevicesStorage {
   }
   async updateDevice(
     id: string,
-    data: Partial<InsertDevice>,
+    data: WidenPartial<InsertDevice>,
     orgId?: string
   ): Promise<Device | undefined> {
     const r = await db.update(devices).set(data).where(eq(devices.id, id)).returning();
@@ -126,7 +127,7 @@ export class DatabaseDevicesStorage {
   }
   async getDevicesWithStatus(
     orgId?: string
-  ): Promise<Array<Device & { status: string; lastHeartbeat?: EdgeHeartbeat }>> {
+  ): Promise<Array<Device & { status: string; lastHeartbeat?: EdgeHeartbeat | undefined }>> {
     const deviceList = await this.getDevices(orgId);
     const heartbeats = await this.getHeartbeatsByOrg(orgId);
     return deviceList.map((device) => {
@@ -167,7 +168,7 @@ export class MemDevicesStorage {
   }
   async updateDevice(
     id: string,
-    data: Partial<InsertDevice>,
+    data: WidenPartial<InsertDevice>,
     orgId?: string
   ): Promise<Device | undefined> {
     const d = await this.getDevice(id, orgId);

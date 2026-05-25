@@ -162,7 +162,7 @@ export function uninstallFetchInterceptor(): void {
 
   if (window.__devPerfOriginalFetch) {
     window.fetch = window.__devPerfOriginalFetch;
-    window.__devPerfOriginalFetch = undefined;
+    delete window.__devPerfOriginalFetch;
     window.__devPerfInterceptorInstalled = false;
   }
 }

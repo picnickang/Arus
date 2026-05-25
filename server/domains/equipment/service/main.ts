@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../../lib/widen-partial";
 /**
  * Equipment Service - Main Service Class
  */
@@ -53,7 +54,7 @@ export class EquipmentService {
 
   async updateEquipment(
     id: string,
-    data: Partial<InsertEquipment>,
+    data: WidenPartial<InsertEquipment>,
     orgId: string,
     userId?: string
   ): Promise<Equipment> {

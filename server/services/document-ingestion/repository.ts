@@ -20,8 +20,8 @@ export async function createDocument(params: {
   sizeBytes: number;
   numChunks: number;
   metadata: DocumentMetadata;
-  uploadedBy?: string;
-  equipmentId?: string;
+  uploadedBy?: string | undefined;
+  equipmentId?: string | undefined;
 }): Promise<KbDoc> {
   const [doc] = await db
     .insert(kbDocs)

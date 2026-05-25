@@ -17,7 +17,7 @@ export interface VesselRepositoryPort {
   findById(id: string, orgId?: string): Promise<Vessel | undefined>;
   findByName(name: string, orgId: string): Promise<Vessel | undefined>;
   create(data: InsertVessel): Promise<Vessel>;
-  update(id: string, updates: Partial<InsertVessel>, orgId?: string): Promise<Vessel>;
+  update(id: string, updates: import("../../../lib/widen-partial").WidenPartial<InsertVessel>, orgId?: string): Promise<Vessel>;
   delete(id: string, orgId?: string): Promise<void>;
   getFleetOverview(orgId?: string): Promise<FleetOverview>;
 }

@@ -19,13 +19,13 @@ export function isValidFindingStatusTransition(from: FindingStatus, to: FindingS
 }
 
 export interface AgentFindingFilter {
-  findingType?: FindingType;
-  severity?: FindingSeverityLevel;
-  status?: FindingStatus;
-  taskId?: string;
-  equipmentId?: string;
-  limit?: number;
-  offset?: number;
+  findingType?: FindingType | undefined;
+  severity?: FindingSeverityLevel | undefined;
+  status?: FindingStatus | undefined;
+  taskId?: string | undefined;
+  equipmentId?: string | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
 }
 
 export interface AgentFindingRepositoryPort {

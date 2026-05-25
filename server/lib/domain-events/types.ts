@@ -21,11 +21,11 @@ export interface BaseDomainEvent<T extends string = string> {
   aggregateId: string;
   aggregateType: string;
   occurredAt: Date;
-  userId?: string;
+  userId?: string | undefined;
   orgId: string;
   version: number;
-  correlationId?: string;
-  causationId?: string;
+  correlationId?: string | undefined;
+  causationId?: string | undefined;
 }
 
 export interface WorkOrderCreatedEvent extends BaseDomainEvent<"WorkOrderCreated"> {

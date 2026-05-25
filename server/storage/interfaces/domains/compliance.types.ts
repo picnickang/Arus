@@ -155,12 +155,12 @@ export interface IComplianceStorage {
   getEngineerOverrides(
     orgId: string,
     filters?: {
-      equipmentId?: string;
-      engineerId?: string;
-      overrideType?: string;
-      outcomeStatus?: string;
-      fromDate?: Date;
-      toDate?: Date;
+      equipmentId?: string | undefined;
+      engineerId?: string | undefined;
+      overrideType?: string | undefined;
+      outcomeStatus?: string | undefined;
+      fromDate?: Date | undefined;
+      toDate?: Date | undefined;
     }
   ): Promise<EngineerOverride[]>;
   getEngineerOverride(id: string, orgId: string): Promise<EngineerOverride | undefined>;

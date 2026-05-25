@@ -6,7 +6,7 @@ export interface DeadLetterEntry<T = unknown> {
   createdAt: Date;
   retryCount: number;
   lastRetryAt: Date | null;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown> | undefined;
 }
 
 export interface DeadLetterQueueConfig {
@@ -25,5 +25,5 @@ export interface DeadLetterQueueMetrics {
 export interface ReplayResult {
   success: boolean;
   entryId: string;
-  error?: string;
+  error?: string | undefined;
 }

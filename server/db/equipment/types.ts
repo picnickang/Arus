@@ -10,24 +10,24 @@ export type {
 } from "@shared/schema-runtime";
 
 export interface EquipmentHealthFilters {
-  vesselId?: string;
-  equipmentId?: string;
-  category?: string;
-  status?: string;
+  vesselId?: string | undefined;
+  equipmentId?: string | undefined;
+  category?: string | undefined;
+  status?: string | undefined;
 }
 export interface EquipmentHealth {
   id: string;
-  equipmentId?: string;
+  equipmentId?: string | undefined;
   name: string;
   type: string;
-  category?: string;
+  category?: string | undefined;
   status: string;
-  riskScore?: number;
-  lastReading?: Date;
-  alertCount?: number;
-  vesselId?: string;
-  vesselName?: string;
-  vessel?: string;
+  riskScore?: number | undefined;
+  lastReading?: Date | undefined;
+  alertCount?: number | undefined;
+  vesselId?: string | undefined;
+  vesselName?: string | undefined;
+  vessel?: string | undefined;
   healthIndex: number;
   predictedDueDays: number;
 }

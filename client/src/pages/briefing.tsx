@@ -73,7 +73,7 @@ function getSectionIcon(iconName?: string) {
   return SECTION_ICONS[iconName] || FileText;
 }
 
-function SeverityBadge({ severity }: { severity?: string }) {
+function SeverityBadge({ severity }: { severity?: string | undefined }) {
   if (!severity || severity === "info") {
     return null;
   }

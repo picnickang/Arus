@@ -11,12 +11,12 @@ export type SupplierType = "supplier" | "service_provider" | "both";
 
 export interface SupplierListFilters {
   orgId: string;
-  search?: string;
-  isActive?: boolean;
-  isPreferred?: boolean;
-  type?: SupplierType | SupplierType[];
-  limit?: number;
-  offset?: number;
+  search?: string | undefined;
+  isActive?: boolean | undefined;
+  isPreferred?: boolean | undefined;
+  type?: SupplierType | SupplierType[] | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
 }
 
 export interface SupplierPerformanceMetrics {

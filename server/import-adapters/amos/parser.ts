@@ -32,7 +32,7 @@ export interface ParseResult {
 
 export function parseAmosCSV(
   content: string,
-  options?: { delimiter?: string; encoding?: string }
+  options?: { delimiter?: string | undefined; encoding?: string | undefined }
 ): ParseResult {
   const warnings: string[] = [];
 

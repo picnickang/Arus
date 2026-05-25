@@ -80,15 +80,15 @@ export interface LLMChatParams {
   model: string;
   messages: LLMMessage[];
   /** Optional JSON-mode request (provider translates appropriately). */
-  jsonMode?: boolean;
-  maxCompletionTokens?: number;
-  temperature?: number;
+  jsonMode?: boolean | undefined;
+  maxCompletionTokens?: number | undefined;
+  temperature?: number | undefined;
   /** Tool/function-calling definitions. */
-  tools?: LLMToolDefinition[];
+  tools?: LLMToolDefinition[] | undefined;
   /** "auto" | "none" | { type: "function", function: { name } }. */
-  toolChoice?: "auto" | "none" | { type: "function"; function: { name: string } };
+  toolChoice?: "auto" | "none" | { type: "function"; function: { name: string } } | undefined;
   /** Free-form metadata propagated to the cost meter (e.g. caller name). */
-  meta?: LLMCallMeta;
+  meta?: LLMCallMeta | undefined;
 }
 
 /**
@@ -96,11 +96,11 @@ export interface LLMChatParams {
  */
 export interface LLMCallMeta {
   /** Logical caller, e.g. "equipment-analysis", "agent-orchestrator". */
-  caller?: string;
+  caller?: string | undefined;
   /** Organisation id for multi-tenant cost attribution. */
-  orgId?: string;
+  orgId?: string | undefined;
   /** Optional correlation id, request id, or conversation id. */
-  correlationId?: string;
+  correlationId?: string | undefined;
   /** Anything else useful for downstream telemetry. */
   [k: string]: unknown;
 }
@@ -129,13 +129,13 @@ export interface LLMStreamChunk {
   /** Tool call deltas, if the model is invoking tools. */
   toolCallDeltas?: Array<{
     index: number;
-    id?: string;
-    name?: string;
-    argumentsDelta?: string;
-  }>;
-  finishReason?: string | null;
+    id?: string | undefined;
+    name?: string | undefined;
+    argumentsDelta?: string | undefined;
+  }> | undefined;
+  finishReason?: string | null | undefined;
   /** Final usage snapshot, only emitted on the terminal chunk. */
-  usage?: LLMUsage;
+  usage?: LLMUsage | undefined;
   raw: unknown;
 }
 
@@ -180,7 +180,7 @@ export interface CostMeterEvent {
   usage: LLMUsage;
   latencyMs: number;
   streamed: boolean;
-  meta?: LLMCallMeta;
+  meta?: LLMCallMeta | undefined;
 }
 
 /**

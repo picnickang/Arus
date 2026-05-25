@@ -160,7 +160,7 @@ export function ResponsiveTable<T>({
                 item={item}
                 columns={columns}
                 keyExtractor={keyExtractor}
-                actions={actions}
+                {...(actions !== undefined && { actions })}
               />
             ))}
           </TableBody>
@@ -175,7 +175,7 @@ export function ResponsiveTable<T>({
             item={item}
             columns={columns}
             keyExtractor={keyExtractor}
-            actions={actions}
+            {...(actions !== undefined && { actions })}
           />
         ))}
       </div>

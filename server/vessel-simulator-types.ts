@@ -17,18 +17,18 @@ export interface SimulatedTelemetryPoint {
   oil_temp: number;
   coolant_temp: number;
   fuel_rate: number;
-  hyd_pressure?: number;
-  winch_tension?: number;
-  towline_tension?: number;
-  cargo_pump_pressure?: number;
-  cargo_pump_temp?: number;
-  gen_load?: number;
-  thruster_load?: number;
-  dp_status?: number;
+  hyd_pressure?: number | undefined;
+  winch_tension?: number | undefined;
+  towline_tension?: number | undefined;
+  cargo_pump_pressure?: number | undefined;
+  cargo_pump_temp?: number | undefined;
+  gen_load?: number | undefined;
+  thruster_load?: number | undefined;
+  dp_status?: number | undefined;
   imu_heave: number;
   imu_pitch: number;
   imu_roll: number;
-  ramp_hyd_pressure?: number;
+  ramp_hyd_pressure?: number | undefined;
 }
 
 export const VESSEL_TYPE_PRESETS: Record<string, {
@@ -53,12 +53,12 @@ export interface SimulationConfig {
   deviceId: string;
   orgId: string;
   durationMinutes: number;
-  samplingIntervalSeconds?: number;
-  signals?: string[];
-  customPreset?: Partial<typeof VESSEL_TYPE_PRESETS[string]>;
-  injectFault?: boolean;
-  faultStartMinute?: number;
-  faultSeverity?: number;
+  samplingIntervalSeconds?: number | undefined;
+  signals?: string[] | undefined;
+  customPreset?: Partial<typeof VESSEL_TYPE_PRESETS[string]> | undefined;
+  injectFault?: boolean | undefined;
+  faultStartMinute?: number | undefined;
+  faultSeverity?: number | undefined;
 }
 
 export interface SimulationResult {

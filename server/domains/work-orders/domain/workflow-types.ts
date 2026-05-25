@@ -44,18 +44,18 @@ export interface WorkOrderCloseoutDetails {
 export interface WorkOrderCompletionInput {
   workOrderId: string;
   orgId: string;
-  completionNotes?: string;
-  actualHours?: number;
-  actualDowntimeHours?: number;
-  closeout?: WorkOrderCloseoutDetails;
-  predictionFeedback?: CompletionPredictionFeedback;
+  completionNotes?: string | undefined;
+  actualHours?: number | undefined;
+  actualDowntimeHours?: number | undefined;
+  closeout?: WorkOrderCloseoutDetails | undefined;
+  predictionFeedback?: CompletionPredictionFeedback | undefined;
 }
 
 export interface WorkOrderCompletionResult {
   workOrderId: string;
   completed: boolean;
-  error?: string;
+  error?: string | undefined;
   savingsCalculated: boolean;
-  savingsValidationStatus?: string;
+  savingsValidationStatus?: string | undefined;
   predictionFeedbackRecorded: boolean;
 }

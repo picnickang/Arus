@@ -4,7 +4,7 @@ import type { TextExtractor, SupportedFileType } from "../types";
 
 interface TableData {
   rows: string[][];
-  headerRow?: string[];
+  headerRow?: string[] | undefined;
 }
 
 interface EnhancedExtractionResult {

@@ -101,7 +101,10 @@ export function registerAutofillRoutes(app: Express, rateLimit: RateLimiters) {
       const vesselId = req.query['vesselId'] as string | undefined;
       const daysBack = req.query['daysBack'] ? Number.parseInt(req.query['daysBack'] as string) : 7;
 
-      const unsignedLogs = await getUnsignedLogs(orgId, { vesselId, daysBack });
+      const unsignedLogs = await getUnsignedLogs(orgId, {
+        ...(vesselId !== undefined && { vesselId }),
+        daysBack,
+      });
 
       return res.json(unsignedLogs);
     })
@@ -127,7 +130,10 @@ export function registerAutofillRoutes(app: Express, rateLimit: RateLimiters) {
       const { vesselId, daysBack: parsedDaysBack } = parseResult.data;
       const daysBack = parsedDaysBack ?? 7;
 
-      const unsignedLogs = await getUnsignedLogs(orgId, { vesselId, daysBack });
+      const unsignedLogs = await getUnsignedLogs(orgId, {
+        ...(vesselId !== undefined && { vesselId }),
+        daysBack,
+      });
 
       if (unsignedLogs.length === 0) {
         return res.json({ message: "No unsigned logs found", sent: 0 });

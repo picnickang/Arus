@@ -22,7 +22,7 @@ export interface PdmCalibrationPort {
   getCalibrationSnapshot(input: {
     orgId: string;
     equipmentId: string;
-    equipmentType?: string | null;
+    equipmentType?: string | null | undefined;
   }): Promise<PdmCalibrationSnapshot | null>;
 }
 

@@ -15,7 +15,7 @@ export function SensorTimeSeriesChart({
   trends,
   isLoading,
 }: {
-  trends?: TelemetryTrend[];
+  trends?: TelemetryTrend[] | undefined;
   isLoading: boolean;
 }) {
   if (isLoading) {

@@ -26,7 +26,7 @@ export function ComplianceTab({
   fatigue,
 }: {
   assignment: ScheduleAssignment;
-  fatigue?: FatigueResult;
+  fatigue?: FatigueResult | undefined;
 }) {
   const getComplianceStatus = () => {
     if (!fatigue) {

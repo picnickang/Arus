@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 /**
  * Crew Extensions - Database Storage
  */
@@ -37,7 +38,7 @@ export class DbCrewExtensionsStorage {
   }
   async updateCrewCertification(
     id: string,
-    cert: Partial<InsertCrewCertification>
+    cert: WidenPartial<InsertCrewCertification>
   ): Promise<SelectCrewCertification> {
     const [u] = await db
       .update(crewCertification)
@@ -107,7 +108,7 @@ export class DbCrewExtensionsStorage {
       notice = 0;
     for (const cert of allCerts) {
       const expiryDate = new Date(cert.expiresAt!);
-      const needsUpdate: Partial<InsertCrewCertification> = { alertLastScannedAt: now };
+      const needsUpdate: WidenPartial<InsertCrewCertification> = { alertLastScannedAt: now };
       let needsFlag = false;
       if (expiryDate <= date90 && !cert.alertSent90) {
         needsUpdate.alertSent = true;
@@ -152,7 +153,7 @@ export class DbCrewExtensionsStorage {
   }
   async updateCrewDocument(
     id: string,
-    doc: Partial<InsertCrewDocument>
+    doc: WidenPartial<InsertCrewDocument>
   ): Promise<SelectCrewDocument> {
     const [u] = await db
       .update(crewDocuments)
@@ -225,7 +226,7 @@ export class DbCrewExtensionsStorage {
         continue;
       }
       const expiryDate = new Date(doc.expiresAt);
-      const needsUpdate: Partial<InsertCrewDocument> = { alertLastScannedAt: now };
+      const needsUpdate: WidenPartial<InsertCrewDocument> = { alertLastScannedAt: now };
       let needsFlag = false;
       if (expiryDate <= date90 && !doc.alertSent90) {
         needsUpdate.alertSent = true;
@@ -314,7 +315,7 @@ export class DbCrewExtensionsStorage {
     if (!n) throw new Error("createPortCall: insert returned no row");
     return n;
   }
-  async updatePortCall(id: string, portCallData: Partial<InsertPortCall>): Promise<SelectPortCall> {
+  async updatePortCall(id: string, portCallData: WidenPartial<InsertPortCall>): Promise<SelectPortCall> {
     const [u] = await db.update(portCall).set(portCallData).where(eq(portCall.id, id)).returning();
     if (!u) {
       throw new Error(`Port call ${id} not found`);
@@ -342,7 +343,7 @@ export class DbCrewExtensionsStorage {
   }
   async updateDrydockWindow(
     id: string,
-    drydockData: Partial<InsertDrydockWindow>
+    drydockData: WidenPartial<InsertDrydockWindow>
   ): Promise<SelectDrydockWindow> {
     const [u] = await db
       .update(drydockWindow)

@@ -32,11 +32,11 @@ const logger = createLogger("TelemetryWarehouseExport");
 
 export interface RunOptions {
   /** UTC date to export. Defaults to "yesterday" relative to `now`. */
-  date?: string;
+  date?: string | undefined;
   /** Limit to a specific list of orgIds (useful for back-fills). */
-  orgIds?: string[];
+  orgIds?: string[] | undefined;
   /** Override "now" for tests. */
-  now?: Date;
+  now?: Date | undefined;
 }
 
 export async function runTelemetryWarehouseExport(

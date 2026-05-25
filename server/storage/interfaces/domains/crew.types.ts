@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../../lib/widen-partial";
 /**
  * Crew Storage Interface - Crew Management, Skills, Certifications, Rest
  * Part of IStorage modularization for improved maintainability
@@ -34,7 +35,7 @@ export interface ICrewStorage {
   getCrew(orgId?: string, vesselId?: string): Promise<CrewWithSkills[]>;
   getCrewMember(id: string, orgId?: string): Promise<SelectCrew | undefined>;
   createCrew(crew: InsertCrew): Promise<SelectCrew>;
-  updateCrew(id: string, crew: Partial<InsertCrew>): Promise<SelectCrew>;
+  updateCrew(id: string, crew: WidenPartial<InsertCrew>): Promise<SelectCrew>;
   deleteCrew(id: string): Promise<void>;
 
   // Crew Skills
@@ -57,13 +58,13 @@ export interface ICrewStorage {
   // Skills
   getSkills(orgId?: string): Promise<SelectSkill[]>;
   createSkill(skill: InsertSkill): Promise<SelectSkill>;
-  updateSkill(id: string, skill: Partial<InsertSkill>): Promise<SelectSkill>;
+  updateSkill(id: string, skill: WidenPartial<InsertSkill>): Promise<SelectSkill>;
   deleteSkill(id: string): Promise<void>;
 
   // Crew Leave
   getCrewLeave(crewId?: string, startDate?: Date, endDate?: Date): Promise<SelectCrewLeave[]>;
   createCrewLeave(leave: InsertCrewLeave): Promise<SelectCrewLeave>;
-  updateCrewLeave(id: string, leave: Partial<InsertCrewLeave>): Promise<SelectCrewLeave>;
+  updateCrewLeave(id: string, leave: WidenPartial<InsertCrewLeave>): Promise<SelectCrewLeave>;
   deleteCrewLeave(id: string): Promise<void>;
 
   // Shift Templates
@@ -72,7 +73,7 @@ export interface ICrewStorage {
   createShiftTemplate(template: InsertShiftTemplate): Promise<SelectShiftTemplate>;
   updateShiftTemplate(
     id: string,
-    template: Partial<InsertShiftTemplate>
+    template: WidenPartial<InsertShiftTemplate>
   ): Promise<SelectShiftTemplate>;
   deleteShiftTemplate(id: string): Promise<void>;
 
@@ -85,7 +86,7 @@ export interface ICrewStorage {
   createCrewAssignment(assignment: InsertCrewAssignment): Promise<SelectCrewAssignment>;
   updateCrewAssignment(
     id: string,
-    assignment: Partial<InsertCrewAssignment>
+    assignment: WidenPartial<InsertCrewAssignment>
   ): Promise<SelectCrewAssignment>;
   deleteCrewAssignment(id: string): Promise<void>;
   createBulkCrewAssignments(assignments: InsertCrewAssignment[]): Promise<SelectCrewAssignment[]>;
@@ -101,7 +102,7 @@ export interface ICrewStorage {
   createCrewCertification(cert: InsertCrewCertification): Promise<SelectCrewCertification>;
   updateCrewCertification(
     id: string,
-    cert: Partial<InsertCrewCertification>
+    cert: WidenPartial<InsertCrewCertification>
   ): Promise<SelectCrewCertification>;
   deleteCrewCertification(id: string): Promise<void>;
   getCertificationsExpiring(
@@ -128,7 +129,7 @@ export interface ICrewStorage {
   getCrewDocuments(crewId: string): Promise<SelectCrewDocument[]>;
   getCrewDocumentById(id: string): Promise<SelectCrewDocument | undefined>;
   createCrewDocument(doc: InsertCrewDocument): Promise<SelectCrewDocument>;
-  updateCrewDocument(id: string, doc: Partial<InsertCrewDocument>): Promise<SelectCrewDocument>;
+  updateCrewDocument(id: string, doc: WidenPartial<InsertCrewDocument>): Promise<SelectCrewDocument>;
   deleteCrewDocument(id: string): Promise<void>;
   getDocumentsExpiring(
     orgId: string,

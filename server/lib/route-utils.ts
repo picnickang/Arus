@@ -15,8 +15,8 @@ import { z } from "zod";
  */
 export interface ErrorResponse {
   message: string;
-  error?: string;
-  errors?: z.ZodIssue[];
+  error?: string | undefined;
+  errors?: z.ZodIssue[] | undefined;
 }
 
 /**

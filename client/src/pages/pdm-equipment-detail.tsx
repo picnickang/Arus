@@ -199,7 +199,7 @@ export default function PdmEquipmentDetail() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="overview" className="space-y-6">
-            <OverviewTab equipmentId={equipmentId} equipment={equipment} healthData={healthData} />
+            <OverviewTab equipmentId={equipmentId} equipment={equipment} {...(healthData !== undefined && { healthData })} />
           </TabsContent>
           <TabsContent value="sensors" className="space-y-6">
             <SensorsTab equipmentId={equipmentId} />
@@ -434,13 +434,9 @@ function SensorsTab({ equipmentId }: { equipmentId: string }) {
       )}
       <BulkSelectionBar
         selectedCount={selectedSensorIds.length}
-        onDelete={isBulkOperationDisabled ? undefined : handleBulkDelete}
-        onEnable={
-          isBulkOperationDisabled ? undefined : () => enableMutation.mutate(selectedSensorIds)
-        }
-        onDisable={
-          isBulkOperationDisabled ? undefined : () => disableMutation.mutate(selectedSensorIds)
-        }
+        {...(!isBulkOperationDisabled && { onDelete: handleBulkDelete })}
+        {...(!isBulkOperationDisabled && { onEnable: () => enableMutation.mutate(selectedSensorIds) })}
+        {...(!isBulkOperationDisabled && { onDisable: () => disableMutation.mutate(selectedSensorIds) })}
         onClear={() => {}}
       />
       <ConfirmDialog

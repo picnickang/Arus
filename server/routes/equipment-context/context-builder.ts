@@ -13,7 +13,7 @@ import { searchKnowledgeBase as defaultSearchKnowledgeBase } from "../../vector-
 import { logger } from "../../utils/logger.js";
 
 const searchKnowledgeBase: SearchKnowledgeBaseFn = async ({ query, limit }) => {
-  const results = await defaultSearchKnowledgeBase(query, { limit });
+  const results = await defaultSearchKnowledgeBase(query, { ...(limit !== undefined && { limit }) });
   return results.map((r) => ({
     docId: r.docId,
     text: r.text ?? r.content,

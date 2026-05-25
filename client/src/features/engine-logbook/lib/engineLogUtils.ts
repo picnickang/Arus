@@ -108,11 +108,8 @@ export function getEngineEventTypeConfig(eventType: string): EngineEventUIConfig
 
 export function createDefaultManualEventFormValues(): Partial<ManualEngineEventFormValues> {
   return {
-    eventType: undefined,
     summary: "",
     details: "",
     equipmentId: "",
-    meRpm: undefined,
-    meLoad: undefined,
   };
 }

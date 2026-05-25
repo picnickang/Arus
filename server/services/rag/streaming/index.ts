@@ -24,10 +24,10 @@ export interface StreamingContext {
   relevantChunks: Array<{
     content: string;
     documentId: string;
-    documentTitle?: string;
+    documentTitle?: string | undefined;
     score: number;
   }>;
-  conversationHistory?: Array<{ role: string; content: string }>;
+  conversationHistory?: Array<{ role: string; content: string }> | undefined;
 }
 
 export interface StreamChunk {
@@ -159,7 +159,7 @@ export class StreamingService {
     res.write(`data: ${JSON.stringify(chunk)}\n\n`);
   }
 
-  private buildSystemPrompt(chunks: Array<{ content: string; documentTitle?: string }>): string {
+  private buildSystemPrompt(chunks: Array<{ content: string; documentTitle?: string | undefined }>): string {
     const contextText = chunks
       .map(
         (c, i) => `[Source ${i + 1}${c.documentTitle ? `: ${c.documentTitle}` : ""}]\n${c.content}`
@@ -202,7 +202,7 @@ If the documentation doesn't contain relevant information, say so clearly and pr
   private extractCitations(
     chunks: Array<{
       documentId: string;
-      documentTitle?: string;
+      documentTitle?: string | undefined;
       content: string;
     }>
   ): Array<{ documentId: string; documentTitle: string; excerpt: string }> {

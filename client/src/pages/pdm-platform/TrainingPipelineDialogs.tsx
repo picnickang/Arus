@@ -56,9 +56,9 @@ export function CreateDatasetDialog({
       await mutation.mutateAsync({
         name: form.name,
         sourceType: form.sourceType,
-        description: form.description || undefined,
-        labelColumn: form.labelColumn || undefined,
-        rowCount: form.rowCount ? parseInt(form.rowCount) : undefined,
+        ...(form.description && { description: form.description }),
+        ...(form.labelColumn && { labelColumn: form.labelColumn }),
+        ...(form.rowCount && { rowCount: parseInt(form.rowCount) }),
       });
       toast({ title: "Dataset created successfully" });
       onOpenChange(false);
@@ -302,7 +302,7 @@ export function PromoteDialog({
         runId,
         modelId: form.modelId,
         version: form.version,
-        changelog: form.changelog || undefined,
+        ...(form.changelog && { changelog: form.changelog }),
       });
       toast({ title: "Model version promoted successfully" });
       onClose();

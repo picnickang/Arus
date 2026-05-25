@@ -177,7 +177,7 @@ export function registerExtendedRoutes(app: Express, rateLimit: RateLimitMiddlew
           createdItems.push(createdItem);
         } else {
           skippedItems.push({
-            description: item.description,
+            ...(item.description !== undefined && { description: item.description }),
             reason: "partId is required for purchase request items",
           });
         }

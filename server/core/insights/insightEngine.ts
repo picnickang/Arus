@@ -31,11 +31,11 @@ type SensorConfiguration = typeof sensorConfigurations.$inferSelect & { status?:
 export interface EquipmentHealthContext {
   equipmentId: string;
   orgId: string;
-  vesselId?: string;
-  failurePrediction?: FailurePrediction;
+  vesselId?: string | undefined;
+  failurePrediction?: FailurePrediction | undefined;
   recentAlerts: AlertNotification[];
   recentTelemetry: EquipmentTelemetryRow[];
-  pdmScoreLog?: PdmScoreLog;
+  pdmScoreLog?: PdmScoreLog | undefined;
   sensorData: SensorConfiguration[];
 }
 

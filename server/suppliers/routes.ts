@@ -8,6 +8,7 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import * as repo from "./repository";
 import { insertSupplierSchema, updateSupplierSchema } from "@shared/schema";
+import { stripUndefined } from "../lib/strip-undefined";
 import type { SupplierListFilters } from "./types";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 import { createLogger } from "../lib/structured-logger";
@@ -132,7 +133,7 @@ router.patch("/suppliers/:id", async (req: Request, res: Response) => {
       }
     }
 
-    const supplier = await repo.updateSupplier(req.params['id'] ?? '', orgId, parsed.data);
+    const supplier = await repo.updateSupplier(req.params['id'] ?? '', orgId, stripUndefined(parsed.data));
     if (!supplier) {
       return res.status(404).json({ error: "Supplier not found" });
     }

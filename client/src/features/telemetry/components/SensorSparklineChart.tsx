@@ -19,12 +19,12 @@ export interface SensorSparklineChartProps {
   unit: string;
   status: "normal" | "warning" | "critical";
   hasAnomaly: boolean;
-  anomalyZScore?: number;
-  anomalyTimestamp?: string;
+  anomalyZScore?: number | undefined;
+  anomalyTimestamp?: string | undefined;
   data: Array<{ timestamp: string; value: number }>;
   lastUpdate: string;
-  onAcknowledge?: () => void;
-  onViewDetails?: () => void;
+  onAcknowledge?: (() => void) | undefined;
+  onViewDetails?: (() => void) | undefined;
 }
 
 export function SensorSparklineChart({

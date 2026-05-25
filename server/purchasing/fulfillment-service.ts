@@ -212,7 +212,7 @@ export async function fulfillItem(request: FulfillItemRequest): Promise<Fulfillm
     quantityFulfilled: newFulfilled,
     fulfillmentStatus,
     inventoryUpdated,
-    newStockLevel,
+    ...(newStockLevel !== undefined && { newStockLevel }),
   };
 }
 
@@ -252,7 +252,7 @@ export async function updatePRStatus(
     newStatus,
   });
 
-  return { success: true, pr: updatedPR };
+  return { success: true, ...(updatedPR !== undefined && { pr: updatedPR }) };
 }
 
 export async function checkAllItemsFulfilled(prId: string, orgId: string): Promise<boolean> {

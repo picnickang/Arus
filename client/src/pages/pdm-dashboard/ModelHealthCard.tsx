@@ -11,7 +11,7 @@ export function ModelHealthCard({
     activeModelsCount: number;
     driftAlertsCount: number;
     lastTrainingDate: string | Date | null;
-  };
+  } | undefined;
   isLoading: boolean;
 }) {
   if (isLoading || !health) {

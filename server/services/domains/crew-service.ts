@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 /**
  * Crew Service
  * Encapsulates crew management logic including WebSocket broadcasting and cascade deletes
@@ -52,7 +53,7 @@ class CrewService {
     wsServer?.broadcastCrewChange("create", newCrew);
     return newCrew;
   }
-  async updateCrew(id: string, crewData: Partial<InsertCrew>): Promise<SelectCrew> {
+  async updateCrew(id: string, crewData: WidenPartial<InsertCrew>): Promise<SelectCrew> {
     const updated = await dbCrewStorage.updateCrew(id, crewData);
     const wsServer = getWebSocketServer();
     wsServer?.broadcastCrewChange("update", updated);
@@ -104,7 +105,7 @@ class CrewService {
   async createCrewLeave(leaveData: InsertCrewLeave): Promise<SelectCrewLeave> {
     return dbCrewStorage.createCrewLeave(leaveData);
   }
-  async updateCrewLeave(id: string, leaveData: Partial<InsertCrewLeave>): Promise<SelectCrewLeave> {
+  async updateCrewLeave(id: string, leaveData: WidenPartial<InsertCrewLeave>): Promise<SelectCrewLeave> {
     return dbCrewStorage.updateCrewLeave(id, leaveData);
   }
   async deleteCrewLeave(id: string): Promise<void> {
@@ -128,7 +129,7 @@ class CrewService {
   }
   async updateCrewAssignment(
     id: string,
-    assignmentData: Partial<InsertCrewAssignment>
+    assignmentData: WidenPartial<InsertCrewAssignment>
   ): Promise<SelectCrewAssignment> {
     return dbCrewStorage.updateCrewAssignment(id, assignmentData);
   }

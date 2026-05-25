@@ -36,9 +36,9 @@ export const HttpErrors = {
 /** Standard error response format */
 interface ErrorResponse {
   message: string;
-  error?: string;
-  code?: string;
-  errors?: z.ZodIssue[];
+  error?: string | undefined;
+  code?: string | undefined;
+  errors?: z.ZodIssue[] | undefined;
 }
 
 /**
@@ -139,7 +139,7 @@ export function asyncHandler(handler: AsyncRouteHandler, operation?: string): Re
     try {
       await handler(req, res, next);
     } catch (error) {
-      logError(error, { operation, path: req.path, method: req.method });
+      logError(error, { ...(operation !== undefined && { operation }), path: req.path, method: req.method });
 
       const statusCode = getErrorStatusCode(error);
       const response = formatErrorResponse(error, operation);

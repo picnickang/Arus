@@ -172,7 +172,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function SeverityDot({ severity }: { severity?: string }) {
+function SeverityDot({ severity }: { severity?: string | undefined }) {
   const colors: Record<string, string> = {
     critical: "bg-red-500",
     high: "bg-red-500",

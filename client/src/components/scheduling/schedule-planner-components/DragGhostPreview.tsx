@@ -23,7 +23,7 @@ export function DragGhostPreview({
   crewName: string;
   canAssign: boolean;
   isLoading: boolean;
-  projectedRestHours?: number;
+  projectedRestHours?: number | undefined;
   position: { x: number; y: number };
 }) {
   return (

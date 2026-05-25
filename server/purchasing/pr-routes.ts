@@ -64,9 +64,9 @@ prRouter.get("/purchase-requests", async (req: Request, res: Response) => {
 
     const filters: PRListFilters = {
       orgId,
-      status: req.query['status'] as PRStatus | undefined,
-      vesselId: req.query['vesselId'] as string | undefined,
-      requestedBy: req.query['requestedBy'] as string | undefined,
+      ...(req.query['status'] !== undefined && { status: req.query['status'] as PRStatus }),
+      ...(req.query['vesselId'] !== undefined && { vesselId: req.query['vesselId'] as string }),
+      ...(req.query['requestedBy'] !== undefined && { requestedBy: req.query['requestedBy'] as string }),
       limit: req.query['limit'] ? Number.parseInt(req.query['limit'] as string, 10) : 50,
       offset: req.query['offset'] ? Number.parseInt(req.query['offset'] as string, 10) : 0,
     };

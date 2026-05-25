@@ -25,19 +25,19 @@ export interface StormGeoCSVRow {
   timestamp: string;
   latitude: number;
   longitude: number;
-  wind_speed?: number;
-  wind_direction?: number;
-  wave_height?: number;
-  swell_height?: number;
-  swell_direction?: number;
-  air_temp?: number;
-  sea_temp?: number;
-  pressure?: number;
-  visibility?: number;
-  current_speed?: number;
-  current_direction?: number;
-  recommended_speed?: number;
-  recommended_course?: number;
+  wind_speed?: number | undefined;
+  wind_direction?: number | undefined;
+  wave_height?: number | undefined;
+  swell_height?: number | undefined;
+  swell_direction?: number | undefined;
+  air_temp?: number | undefined;
+  sea_temp?: number | undefined;
+  pressure?: number | undefined;
+  visibility?: number | undefined;
+  current_speed?: number | undefined;
+  current_direction?: number | undefined;
+  recommended_speed?: number | undefined;
+  recommended_course?: number | undefined;
 }
 
 export interface StormGeoJSONFormat {

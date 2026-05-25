@@ -7,9 +7,9 @@ import { useCustomMutation } from "@/hooks/useCrudMutations";
 type ImportResult = {
   ok: boolean;
   inserted: number;
-  processed?: number;
+  processed?: number | undefined;
   message: string;
-  errors?: Array<{ message: string; line?: number }>;
+  errors?: Array<{ message: string; line?: number | undefined }> | undefined;
 };
 type RawTelemetry = {
   id: string;

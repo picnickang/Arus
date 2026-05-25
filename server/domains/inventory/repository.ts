@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 import type { Part, PartsInventory, InsertPartsInventory, Equipment } from "@shared/schema";
 // Push B4: inventory domain imports its data adapters directly from
 // `server/db/<domain>` — not from the legacy `server/repositories.ts`
@@ -50,7 +51,7 @@ export class InventoryRepository {
 
   async updateInventoryItem(
     id: string,
-    data: Partial<InsertPartsInventory>,
+    data: WidenPartial<InsertPartsInventory>,
     orgId?: string
   ): Promise<PartsInventory> {
     return dbInventoryStorage.updatePartsInventory(id, data);

@@ -67,9 +67,9 @@ export function KpiCardCompact({
 }: {
   title: string;
   value: string | number;
-  subtitle?: string;
-  badge?: { text: string; variant: "destructive" | "secondary" | "outline" };
-  variant?: "default" | "success" | "warning" | "danger" | "info";
+  subtitle?: string | undefined;
+  badge?: { text: string; variant: "destructive" | "secondary" | "outline" } | undefined;
+  variant?: "default" | "success" | "warning" | "danger" | "info" | undefined;
   testId: string;
 }) {
   const bgColor = {

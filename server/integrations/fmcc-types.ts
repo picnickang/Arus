@@ -20,57 +20,57 @@ export interface FmccSnapshot {
   source: "fmcc";
 
   fuel: {
-    totalFlowKgPerH?: number;
-    portEngineFlowKgPerH?: number;
-    stbdEngineFlowKgPerH?: number;
-    mainEngineFlowKgPerH?: number;
-    generatorFlowKgPerH?: number;
-    boilerFlowKgPerH?: number;
-    auxEngine1FlowKgPerH?: number;
-    auxEngine2FlowKgPerH?: number;
-    foDensity?: number;
-    doDensity?: number;
-    foTemperature?: number;
-    doTemperature?: number;
-    foCumulativeKg?: number;
-    doCumulativeKg?: number;
-    doFlowKgPerH?: number;
-    doCumulativeTodayKg?: number;
-    bunkerFlowKgPerH?: number;
-    bunkerCumulativeKg?: number;
+    totalFlowKgPerH?: number | undefined;
+    portEngineFlowKgPerH?: number | undefined;
+    stbdEngineFlowKgPerH?: number | undefined;
+    mainEngineFlowKgPerH?: number | undefined;
+    generatorFlowKgPerH?: number | undefined;
+    boilerFlowKgPerH?: number | undefined;
+    auxEngine1FlowKgPerH?: number | undefined;
+    auxEngine2FlowKgPerH?: number | undefined;
+    foDensity?: number | undefined;
+    doDensity?: number | undefined;
+    foTemperature?: number | undefined;
+    doTemperature?: number | undefined;
+    foCumulativeKg?: number | undefined;
+    doCumulativeKg?: number | undefined;
+    doFlowKgPerH?: number | undefined;
+    doCumulativeTodayKg?: number | undefined;
+    bunkerFlowKgPerH?: number | undefined;
+    bunkerCumulativeKg?: number | undefined;
   };
 
   engine?: {
-    rpm?: number;
-    loadPercent?: number;
-    runningHours?: number;
-    powerKw?: number;
+    rpm?: number | undefined;
+    loadPercent?: number | undefined;
+    runningHours?: number | undefined;
+    powerKw?: number | undefined;
   };
 
   shaft?: {
-    powerKw?: number;
-    torqueNm?: number;
-    rpmShaft?: number;
-    shaftGeneratorKw?: number;
+    powerKw?: number | undefined;
+    torqueNm?: number | undefined;
+    rpmShaft?: number | undefined;
+    shaftGeneratorKw?: number | undefined;
   };
 
   tanks?: {
-    foServiceLevelPct?: number;
-    foSettlingLevelPct?: number;
-    doServiceLevelPct?: number;
-    doSettlingLevelPct?: number;
-    foServiceVolumeM3?: number;
-    foSettlingVolumeM3?: number;
-    doServiceVolumeM3?: number;
-    doSettlingVolumeM3?: number;
+    foServiceLevelPct?: number | undefined;
+    foSettlingLevelPct?: number | undefined;
+    doServiceLevelPct?: number | undefined;
+    doSettlingLevelPct?: number | undefined;
+    foServiceVolumeM3?: number | undefined;
+    foSettlingVolumeM3?: number | undefined;
+    doServiceVolumeM3?: number | undefined;
+    doSettlingVolumeM3?: number | undefined;
   };
 
   navigation?: {
-    latDeg?: number;
-    lonDeg?: number;
-    speedOverGround?: number;
-    courseOverGround?: number;
-    heading?: number;
+    latDeg?: number | undefined;
+    lonDeg?: number | undefined;
+    speedOverGround?: number | undefined;
+    courseOverGround?: number | undefined;
+    heading?: number | undefined;
   };
 
   raw?: Record<string, unknown>;
@@ -480,60 +480,60 @@ export interface FmccRawPollData {
   navigation?: FmccRawPollData;
 
   // Fuel flow / density / temperature
-  totalFlowKgPerH?: number;
-  foFlowKgPerH?: number;
-  foNetFlowKgPerH?: number;
-  foReturnFlowKgPerH?: number;
-  foDensity?: number;
-  foTemperature?: number;
-  foCumulativeKg?: number;
-  doFlowKgPerH?: number;
-  doDensity?: number;
-  doTemperature?: number;
-  doCumulativeKg?: number;
-  mainEngineFlowKgPerH?: number;
-  generatorFlowKgPerH?: number;
-  portEngineFlowKgPerH?: number;
-  stbdEngineFlowKgPerH?: number;
-  boilerFlowKgPerH?: number;
-  auxEngine1FlowKgPerH?: number;
-  auxEngine2FlowKgPerH?: number;
-  bunkerFlowKgPerH?: number;
-  bunkerCumulativeKg?: number;
+  totalFlowKgPerH?: number | undefined;
+  foFlowKgPerH?: number | undefined;
+  foNetFlowKgPerH?: number | undefined;
+  foReturnFlowKgPerH?: number | undefined;
+  foDensity?: number | undefined;
+  foTemperature?: number | undefined;
+  foCumulativeKg?: number | undefined;
+  doFlowKgPerH?: number | undefined;
+  doDensity?: number | undefined;
+  doTemperature?: number | undefined;
+  doCumulativeKg?: number | undefined;
+  mainEngineFlowKgPerH?: number | undefined;
+  generatorFlowKgPerH?: number | undefined;
+  portEngineFlowKgPerH?: number | undefined;
+  stbdEngineFlowKgPerH?: number | undefined;
+  boilerFlowKgPerH?: number | undefined;
+  auxEngine1FlowKgPerH?: number | undefined;
+  auxEngine2FlowKgPerH?: number | undefined;
+  bunkerFlowKgPerH?: number | undefined;
+  bunkerCumulativeKg?: number | undefined;
 
   // Navigation
-  latDeg?: number;
-  lonDeg?: number;
-  speedOverGround?: number;
-  courseOverGround?: number;
-  heading?: number;
-  latitude?: number;
-  longitude?: number;
-  sog?: number;
-  cog?: number;
+  latDeg?: number | undefined;
+  lonDeg?: number | undefined;
+  speedOverGround?: number | undefined;
+  courseOverGround?: number | undefined;
+  heading?: number | undefined;
+  latitude?: number | undefined;
+  longitude?: number | undefined;
+  sog?: number | undefined;
+  cog?: number | undefined;
 
   // Engine
-  rpm?: number;
-  loadPercent?: number;
-  load?: number;
-  runningHours?: number;
-  powerKw?: number;
+  rpm?: number | undefined;
+  loadPercent?: number | undefined;
+  load?: number | undefined;
+  runningHours?: number | undefined;
+  powerKw?: number | undefined;
 
   // Shaft
-  torqueNm?: number;
-  rpmShaft?: number;
-  shaftGeneratorKw?: number;
-  shaftPowerKw?: number;
-  shaftTorqueNm?: number;
-  shaftRpm?: number;
+  torqueNm?: number | undefined;
+  rpmShaft?: number | undefined;
+  shaftGeneratorKw?: number | undefined;
+  shaftPowerKw?: number | undefined;
+  shaftTorqueNm?: number | undefined;
+  shaftRpm?: number | undefined;
 
   // Tanks
-  foServiceLevelPct?: number;
-  foSettlingLevelPct?: number;
-  doServiceLevelPct?: number;
-  doSettlingLevelPct?: number;
-  foServiceVolumeM3?: number;
-  foSettlingVolumeM3?: number;
-  doServiceVolumeM3?: number;
-  doSettlingVolumeM3?: number;
+  foServiceLevelPct?: number | undefined;
+  foSettlingLevelPct?: number | undefined;
+  doServiceLevelPct?: number | undefined;
+  doSettlingLevelPct?: number | undefined;
+  foServiceVolumeM3?: number | undefined;
+  foSettlingVolumeM3?: number | undefined;
+  doServiceVolumeM3?: number | undefined;
+  doSettlingVolumeM3?: number | undefined;
 }

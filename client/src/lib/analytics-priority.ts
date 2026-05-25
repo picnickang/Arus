@@ -12,10 +12,10 @@ export interface PriorityAlert {
   title: string;
   description: string;
   timestamp: Date;
-  financialImpact?: number;
-  equipmentId?: string;
-  equipmentName?: string;
-  actionUrl?: string;
+  financialImpact?: number | undefined;
+  equipmentId?: string | undefined;
+  equipmentName?: string | undefined;
+  actionUrl?: string | undefined;
   priorityScore: number;
 }
 
@@ -26,7 +26,7 @@ export interface PriorityAlert {
 export function calculatePriorityScore(alert: {
   severity: "critical" | "warning" | "info";
   timestamp: Date;
-  financialImpact?: number;
+  financialImpact?: number | undefined;
 }): number {
   // Severity weight (0-40 points)
   const severityWeight =

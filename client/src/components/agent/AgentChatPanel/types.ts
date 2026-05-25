@@ -3,17 +3,17 @@ export interface FileRef {
   filename: string;
   mimetype: string;
   size: number;
-  previewUrl?: string;
+  previewUrl?: string | undefined;
 }
 
 export interface ToolCallTrace {
   toolName: string;
   input: Record<string, unknown>;
-  result?: Record<string, unknown>;
+  result?: Record<string, unknown> | undefined;
   status: "running" | "success" | "error";
-  durationMs?: number;
-  error?: string;
-  _index?: number;
+  durationMs?: number | undefined;
+  error?: string | undefined;
+  _index?: number | undefined;
 }
 
 export interface DraftRecord {
@@ -30,10 +30,10 @@ export interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "tool";
   content: string | null;
-  toolCalls?: ToolCallTrace[];
+  toolCalls?: ToolCallTrace[] | undefined;
   createdAt: string;
-  inlineDraft?: DraftRecord;
-  attachments?: FileRef[];
+  inlineDraft?: DraftRecord | undefined;
+  attachments?: FileRef[] | undefined;
 }
 
 export interface Conversation {

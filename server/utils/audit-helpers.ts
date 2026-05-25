@@ -8,10 +8,10 @@ import { recordAndPublish } from "../sync-events";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 export interface AuditContext {
-  userId?: string;
-  orgId?: string;
-  ipAddress?: string;
-  userAgent?: string;
+  userId?: string | undefined;
+  orgId?: string | undefined;
+  ipAddress?: string | undefined;
+  userAgent?: string | undefined;
 }
 
 interface AuthenticatedRequest extends Request {

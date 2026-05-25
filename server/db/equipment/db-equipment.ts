@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 /**
  * Equipment - Database Storage
  */
@@ -135,7 +136,7 @@ export class DatabaseEquipmentStorage {
 
   async updateEquipment(
     id: string,
-    equipmentData: Partial<InsertEquipment>,
+    equipmentData: WidenPartial<InsertEquipment>,
     orgId?: string
   ): Promise<Equipment> {
     this.validateOrgId(orgId, "updateEquipment");
@@ -418,7 +419,7 @@ export class DatabaseEquipmentStorage {
   }
   async updateEquipmentLifecycle(
     id: string,
-    data: Partial<InsertEquipmentLifecycle>
+    data: WidenPartial<InsertEquipmentLifecycle>
   ): Promise<EquipmentLifecycle> {
     const [updated] = await db
       .update(equipmentLifecycle)
@@ -432,7 +433,7 @@ export class DatabaseEquipmentStorage {
   }
   async upsertEquipmentLifecycle(
     equipmentId: string,
-    data: Partial<InsertEquipmentLifecycle>
+    data: WidenPartial<InsertEquipmentLifecycle>
   ): Promise<EquipmentLifecycle> {
     const [existing] = await db
       .select()

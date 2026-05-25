@@ -37,15 +37,15 @@ export interface ConditionOfClass {
   dueDate: string;
   status: "open" | "closed" | "overdue";
   imposedDate: string;
-  closedDate?: string;
-  closedBy?: string;
+  closedDate?: string | undefined;
+  closedBy?: string | undefined;
 }
 
 export interface FlagStateEndorsement {
   flagState: string;
   endorsementNumber: string;
   issueDate: string;
-  expiryDate?: string;
+  expiryDate?: string | undefined;
 }
 
 export interface CreateCertificateCommand {
@@ -53,31 +53,31 @@ export interface CreateCertificateCommand {
   vesselId: string;
   certificateType: string;
   certificateName: string;
-  certificateNumber?: string;
+  certificateNumber?: string | undefined;
   issuingAuthority: string;
-  issuingAuthorityType?: string;
+  issuingAuthorityType?: string | undefined;
   issueDate: string;
-  expiryDate?: string;
-  nextSurveyDue?: string;
-  surveyWindowStart?: string;
-  surveyWindowEnd?: string;
-  equipmentId?: string;
-  surveyId?: string;
-  notes?: string;
-  documentUrl?: string;
+  expiryDate?: string | undefined;
+  nextSurveyDue?: string | undefined;
+  surveyWindowStart?: string | undefined;
+  surveyWindowEnd?: string | undefined;
+  equipmentId?: string | undefined;
+  surveyId?: string | undefined;
+  notes?: string | undefined;
+  documentUrl?: string | undefined;
 }
 
 export interface UpdateCertificateCommand {
-  status?: string;
-  certificateNumber?: string;
-  expiryDate?: string | null;
-  nextSurveyDue?: string | null;
-  lastSurveyDate?: string;
-  surveyWindowStart?: string | null;
-  surveyWindowEnd?: string | null;
-  surveyId?: string;
-  notes?: string;
-  documentUrl?: string | null;
+  status?: string | undefined;
+  certificateNumber?: string | undefined;
+  expiryDate?: string | null | undefined;
+  nextSurveyDue?: string | null | undefined;
+  lastSurveyDate?: string | undefined;
+  surveyWindowStart?: string | null | undefined;
+  surveyWindowEnd?: string | null | undefined;
+  surveyId?: string | undefined;
+  notes?: string | undefined;
+  documentUrl?: string | null | undefined;
 }
 
 export interface CertificateEventEntity {

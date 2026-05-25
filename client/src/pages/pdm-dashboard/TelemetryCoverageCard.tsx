@@ -17,7 +17,7 @@ export function TelemetryCoverageCard({
       vesselName: string;
       lastSeenAgo: string;
     }>;
-  };
+  } | undefined;
   isLoading: boolean;
 }) {
   if (isLoading || !coverage) {

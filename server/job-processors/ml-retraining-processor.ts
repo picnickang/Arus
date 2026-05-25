@@ -52,14 +52,14 @@ export interface RetrainAttempt {
   orgId: string;
   equipmentType: string;
   outcomesUsed: number;
-  candidateMae?: number;
-  productionMae?: number;
-  maeImprovementPct?: number;
-  candidatePsi?: number;
+  candidateMae?: number | undefined;
+  productionMae?: number | undefined;
+  maeImprovementPct?: number | undefined;
+  candidatePsi?: number | undefined;
   promoted: boolean;
-  skipped?: string;
-  artifactPath?: string;
-  trainerExitCode?: number;
+  skipped?: string | undefined;
+  artifactPath?: string | undefined;
+  trainerExitCode?: number | undefined;
 }
 
 export interface ModelRetrainJobResult {
@@ -79,8 +79,8 @@ export interface TrainerMetrics {
 
 export interface PromotionGateDecision {
   promote: boolean;
-  improvementPct?: number;
-  skipped?: string;
+  improvementPct?: number | undefined;
+  skipped?: string | undefined;
 }
 
 /** Push A1 — pure gate predicate, exported so the unit test can drive

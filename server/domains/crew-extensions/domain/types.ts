@@ -94,9 +94,9 @@ export interface SimulateScheduleCommand {
   orgId: string;
   from: string;
   days: number;
-  vessels?: string[];
-  crewIds?: string[];
-  strategy?: SimulationStrategy;
+  vessels?: string[] | undefined;
+  crewIds?: string[] | undefined;
+  strategy?: SimulationStrategy | undefined;
 }
 
 export type SimulationStrategy = "balanced" | "minimize_changes" | "maximize_rest" | "fill_gaps";
@@ -158,6 +158,6 @@ export interface SimulationSummary {
 export interface CommitSimulationCommand {
   previewId: string;
   orgId: string;
-  userId?: string;
-  selectedAssignmentIds?: string[];
+  userId?: string | undefined;
+  selectedAssignmentIds?: string[] | undefined;
 }

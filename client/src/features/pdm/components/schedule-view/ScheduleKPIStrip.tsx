@@ -6,8 +6,8 @@ import type { ScheduleKpis } from "@/features/pdm";
 interface ScheduleKPIStripProps {
   kpis: ScheduleKpis | undefined;
   isLoading: boolean;
-  onScheduledClick?: () => void;
-  onUnassignedClick?: () => void;
+  onScheduledClick?: (() => void) | undefined;
+  onUnassignedClick?: (() => void) | undefined;
 }
 
 export function ScheduleKPIStrip({

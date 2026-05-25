@@ -53,7 +53,7 @@ export interface QuestionResult {
   containsScore: number;         // 0..1, fraction of expectedContains hit
   hallucinationFlag: boolean;    // true if any mustNotContain present
   latencyMs: number;
-  tokens?: { prompt: number; completion: number };
+  tokens?: { prompt: number; completion: number } | undefined;
   failures: string[];
 }
 

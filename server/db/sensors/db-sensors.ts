@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 /**
  * Sensors - Database Storage
  */
@@ -138,7 +139,7 @@ export class DbSensorsStorage {
   async updateSensorConfiguration(
     equipmentId: string,
     sensorType: string,
-    config: Partial<InsertSensorConfiguration>,
+    config: WidenPartial<InsertSensorConfiguration>,
     orgId?: string
   ): Promise<SensorConfiguration> {
     const c = [
@@ -174,7 +175,7 @@ export class DbSensorsStorage {
   }
   async updateSensorConfigurationById(
     id: string,
-    config: Partial<InsertSensorConfiguration>,
+    config: WidenPartial<InsertSensorConfiguration>,
     orgId?: string
   ): Promise<SensorConfiguration> {
     const c = [eq(sensorConfigurations.id, id)];
@@ -266,7 +267,7 @@ export class DbSensorsStorage {
   }
   async updateJ1939Configuration(
     id: string,
-    config: Partial<InsertJ1939Configuration>,
+    config: import("../../lib/widen-partial").WidenPartial<InsertJ1939Configuration>,
     orgId: string
   ): Promise<J1939Configuration> {
     const [r] = await db

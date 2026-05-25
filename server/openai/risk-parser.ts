@@ -76,7 +76,7 @@ export function parseRecommendations(
       riskScore,
       urgency,
       complianceRequirement: compliancePart,
-      linkedWorkOrderId,
+      ...(linkedWorkOrderId !== undefined && { linkedWorkOrderId }),
     });
 
     const businessImpact = determineBusinessImpact(impactPart);
@@ -91,8 +91,8 @@ export function parseRecommendations(
       resourceRequirement: compliancePart.includes("Class")
         ? "External survey required"
         : "Internal maintenance team",
-      linkedWorkOrderId,
-      complianceDeadline: timePart.includes("port") ? "Next port call" : undefined,
+      ...(linkedWorkOrderId !== undefined && { linkedWorkOrderId }),
+      ...(timePart.includes("port") && { complianceDeadline: "Next port call" }),
     });
   });
 

@@ -147,7 +147,7 @@ export function errorResponse(code: ErrorCode, message: string, details?: ErrorD
     error: {
       code,
       message,
-      details,
+      ...(details !== undefined && { details }),
       timestamp: new Date().toISOString(),
     },
   };

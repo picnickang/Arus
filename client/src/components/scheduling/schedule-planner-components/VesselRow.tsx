@@ -37,7 +37,7 @@ export function VesselRow({
   dragTargetVesselId,
   dragTargetDate,
 }: {
-  vessel: { id: string; name: string; type?: string };
+  vessel: { id: string; name: string; type?: string | undefined };
   assignments: ScheduleAssignment[];
   timelineDays: Date[];
   calculateBlockPosition: (a: ScheduleAssignment) => { startOffset: number; duration: number };
@@ -45,12 +45,12 @@ export function VesselRow({
   getCrewFatigue: (crewId: string) => FatigueResult | undefined;
   onAssignmentClick: (id: string) => void;
   onEmptyCellClick: (vesselId: string, vesselName: string, date: Date) => void;
-  isMobile?: boolean;
-  onPointerDragStart?: (e: React.PointerEvent, assignment: ScheduleAssignment) => void;
-  dragState?: DragState | null;
-  dragCompliancePreview?: DragCompliancePreview | null;
-  dragTargetVesselId?: string | null;
-  dragTargetDate?: Date | null;
+  isMobile?: boolean | undefined;
+  onPointerDragStart?: ((e: React.PointerEvent, assignment: ScheduleAssignment) => void) | undefined;
+  dragState?: DragState | null | undefined;
+  dragCompliancePreview?: DragCompliancePreview | null | undefined;
+  dragTargetVesselId?: string | null | undefined;
+  dragTargetDate?: Date | null | undefined;
 }) {
   const totalDays = timelineDays.length;
   const uniqueRoles = useMemo(() => {
@@ -152,7 +152,7 @@ export function VesselRow({
                         onClick={() => onAssignmentClick(assignment.id)}
                         hardViolations={summary.hard}
                         softViolations={summary.soft}
-                        fatigueRisk={fatigue?.riskLevel}
+                        {...(fatigue?.riskLevel !== undefined && { fatigueRisk: fatigue.riskLevel })}
                         isMobile={isMobile}
                         onPointerDragStart={onPointerDragStart}
                         isDragging={isBeingDragged}

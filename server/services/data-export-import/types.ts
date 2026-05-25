@@ -30,9 +30,9 @@ export interface ExportManifest {
 export interface EntityManifest {
   count: number;
   file: string;
-  chunked?: boolean;
-  chunkSize?: number;
-  files?: string[];
+  chunked?: boolean | undefined;
+  chunkSize?: number | undefined;
+  files?: string[] | undefined;
 }
 
 export interface ExportOptions {
@@ -40,8 +40,8 @@ export interface ExportOptions {
   telemetryDays: number;
   includeKnowledgeBase: boolean;
   includeAuditLogs: boolean;
-  anonymize?: AnonymizationLevel;
-  anonymizationConfig?: Partial<AnonymizationConfig>;
+  anonymize?: AnonymizationLevel | undefined;
+  anonymizationConfig?: Partial<AnonymizationConfig> | undefined;
 }
 
 export interface ExportResult {
@@ -70,13 +70,13 @@ export interface ImportOptions {
 }
 
 export interface EntityExportResult extends EntityManifest {
-  anonymizationResult?: AnonymizationResult;
+  anonymizationResult?: AnonymizationResult | undefined;
 }
 
 export interface ManifestValidation {
   valid: boolean;
-  error?: string;
-  warnings?: string[];
+  error?: string | undefined;
+  warnings?: string[] | undefined;
 }
 
 export interface IdMappings {

@@ -20,7 +20,7 @@ export interface SemanticChunk {
     sentenceCount: number;
     paragraphCount: number;
     hasHeading: boolean;
-    headingText?: string;
+    headingText?: string | undefined;
   };
 }
 

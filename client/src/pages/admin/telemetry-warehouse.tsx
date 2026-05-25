@@ -376,7 +376,7 @@ export default function AdminTelemetryWarehousePage() {
                   .filter(Boolean);
                 rerunMutation.mutate({
                   date: rerunDate,
-                  orgIds: orgIds.length > 0 ? orgIds : undefined,
+                  ...(orgIds.length > 0 && { orgIds }),
                 });
               }}
             >

@@ -28,9 +28,9 @@ export function TwinOverviewCard({
   onRefresh,
   isRefreshing,
 }: {
-  twin: { id: string; name: string; equipmentId?: string; status?: string };
-  freshness?: TwinFreshnessInfo;
-  onRefresh: (twinId: string) => void;
+  twin: { id: string; name: string; equipmentId?: string | undefined; status?: string | undefined };
+  freshness?: TwinFreshnessInfo | undefined;
+  onRefresh: (twinId: string) => void | Promise<void>;
   isRefreshing: boolean;
 }) {
   const { data: state } = useLatestTwinState(twin.id);

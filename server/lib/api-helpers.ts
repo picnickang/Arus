@@ -27,8 +27,8 @@ export interface PaginatedResponse<T> {
   pagination: {
     page: number;
     limit: number;
-    total?: number;
-    hasMore?: boolean;
+    total?: number | undefined;
+    hasMore?: boolean | undefined;
   };
 }
 
@@ -226,5 +226,8 @@ export function parseDateRange(query: Record<string, unknown>): {
 } {
   const startDate = typeof query['startDate'] === "string" ? query['startDate'] : undefined;
   const endDate = typeof query['endDate'] === "string" ? query['endDate'] : undefined;
-  return { startDate, endDate };
+  return {
+    ...(startDate !== undefined && { startDate }),
+    ...(endDate !== undefined && { endDate }),
+  };
 }

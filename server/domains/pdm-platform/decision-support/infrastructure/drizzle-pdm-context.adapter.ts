@@ -149,7 +149,7 @@ export class DrizzlePdmCalibrationAdapter implements PdmCalibrationPort {
   async getCalibrationSnapshot(input: {
     orgId: string;
     equipmentId: string;
-    equipmentType?: string | null;
+    equipmentType?: string | null | undefined;
   }): Promise<PdmCalibrationSnapshot | null> {
     const [row] = await db
       .select({

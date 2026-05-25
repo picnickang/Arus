@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 import type { Equipment, InsertEquipment } from "@shared/schema";
 import type { EquipmentHealth } from "../../db/equipment/types.js";
 // Push B4: the equipment domain owns its data access. It imports the
@@ -23,7 +24,7 @@ export class EquipmentRepository {
     return dbEquipmentStorage.createEquipment(data);
   }
 
-  async update(id: string, data: Partial<InsertEquipment>, orgId?: string): Promise<Equipment> {
+  async update(id: string, data: WidenPartial<InsertEquipment>, orgId?: string): Promise<Equipment> {
     return dbEquipmentStorage.updateEquipment(id, data, orgId || "");
   }
 
@@ -44,7 +45,7 @@ export class EquipmentRepository {
     if (!equipment) {
       throw new Error("Equipment not found");
     }
-    await this.update(equipmentId, { vesselId: null } as object as Partial<InsertEquipment>, orgId);
+    await this.update(equipmentId, { vesselId: null } as object as WidenPartial<InsertEquipment>, orgId);
   }
 
   async getSensorCoverage(equipmentId: string, orgId: string) {

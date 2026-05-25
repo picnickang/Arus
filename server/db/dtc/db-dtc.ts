@@ -73,7 +73,7 @@ export class DatabaseDtcStorage {
   async getActiveDtcs(
     equipmentId: string,
     orgId?: string
-  ): Promise<(DtcFault & { definition?: DtcDefinition })[]> {
+  ): Promise<(DtcFault & { definition?: DtcDefinition | undefined })[]> {
     const conditions = [eq(dtcFaults.equipmentId, equipmentId), eq(dtcFaults.active, true)];
     if (orgId) {
       conditions.push(eq(dtcFaults.orgId, orgId));
@@ -84,17 +84,17 @@ export class DatabaseDtcStorage {
       .where(and(...conditions))
       .orderBy(sql`${dtcFaults.lastSeen} DESC`);
     return Promise.all(
-      faults.map(async (fault) => ({
-        ...fault,
-        definition: await this.getDtcDefinition(fault.spn, fault.fmi, ""),
-      }))
+      faults.map(async (fault) => {
+        const definition = await this.getDtcDefinition(fault.spn, fault.fmi, "");
+        return { ...fault, ...(definition !== undefined ? { definition } : {}) };
+      })
     );
   }
 
   async getActiveDtcsBatch(
     equipmentIds: string[],
     orgId?: string
-  ): Promise<(DtcFault & { definition?: DtcDefinition })[]> {
+  ): Promise<(DtcFault & { definition?: DtcDefinition | undefined })[]> {
     if (equipmentIds.length === 0) {
       return [];
     }
@@ -128,14 +128,14 @@ export class DatabaseDtcStorage {
     equipmentId: string,
     orgId?: string,
     filters?: {
-      spn?: number;
-      fmi?: number;
-      severity?: number;
-      from?: Date;
-      to?: Date;
-      limit?: number;
+      spn?: number | undefined;
+      fmi?: number | undefined;
+      severity?: number | undefined;
+      from?: Date | undefined;
+      to?: Date | undefined;
+      limit?: number | undefined;
     }
-  ): Promise<(DtcFault & { definition?: DtcDefinition })[]> {
+  ): Promise<(DtcFault & { definition?: DtcDefinition | undefined })[]> {
     const conditions = [eq(dtcFaults.equipmentId, equipmentId)];
     if (orgId) {
       conditions.push(eq(dtcFaults.orgId, orgId));

@@ -110,7 +110,7 @@ export function useCertificationExpiryData({
 
   const confirmAcknowledge = useCallback(() => {
     if (selectedCert) {
-      acknowledgeMutation.mutate({ certId: selectedCert.id, notes: acknowledgeNotes || undefined });
+      acknowledgeMutation.mutate({ certId: selectedCert.id, ...(acknowledgeNotes && { notes: acknowledgeNotes }) });
     }
   }, [selectedCert, acknowledgeNotes, acknowledgeMutation]);
 

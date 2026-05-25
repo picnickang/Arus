@@ -40,7 +40,11 @@ import {
 
 export function SensorSetupWizard({ equipment, open, onClose, onSuccess }: SensorSetupWizardProps) {
   const { wizardState, setWizardState, progress, handleNext, handleBack, handleClose } =
-    useSensorWizardData({ equipment: equipment as object as Parameters<typeof useSensorWizardData>[0]["equipment"], onSuccess, onClose });
+    useSensorWizardData({
+      equipment: equipment as object as Parameters<typeof useSensorWizardData>[0]["equipment"],
+      onClose,
+      ...(onSuccess !== undefined && { onSuccess }),
+    });
 
   if (!equipment) {
     return null;
@@ -89,7 +93,7 @@ export function SensorSetupWizard({ equipment, open, onClose, onSuccess }: Senso
               equipment={equipment as object as Equipment}
               wizardState={wizardState}
               onBack={handleBack}
-              onSuccess={onSuccess}
+              {...(onSuccess !== undefined && { onSuccess })}
               onClose={handleClose}
               data-testid="wizard-step-3"
             />

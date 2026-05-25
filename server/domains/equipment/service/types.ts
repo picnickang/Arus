@@ -5,11 +5,11 @@
 export interface PaginationOptions {
   page: number;
   pageSize: number;
-  search?: string;
-  type?: string;
-  status?: "active" | "inactive";
-  vesselId?: string;
-  manufacturer?: string;
+  search?: string | undefined;
+  type?: string | undefined;
+  status?: "active" | "inactive" | undefined;
+  vesselId?: string | undefined;
+  manufacturer?: string | undefined;
 }
 
 export interface PaginatedResult<T> {

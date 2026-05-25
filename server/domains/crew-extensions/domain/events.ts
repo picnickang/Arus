@@ -21,7 +21,7 @@ interface BaseCrewExtensionsEvent {
   aggregateId: string;
   aggregateType: "SchedulerRun" | "ScheduleAssignment" | "SimulationPreview";
   occurredAt: Date;
-  userId?: string;
+  userId?: string | undefined;
   orgId: string;
   version: number;
 }

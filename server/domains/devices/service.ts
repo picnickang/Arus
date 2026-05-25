@@ -1,5 +1,6 @@
 import type { Device, InsertDevice } from "@shared/schema";
 import { deviceRepository } from "./repository";
+import type { WidenPartial } from "../../lib/widen-partial";
 import { recordAndPublish } from "../../sync-events";
 import { mqttReliableSync } from "../../mqtt-reliable-sync";
 import { logger } from "../../utils/logger.js";
@@ -37,9 +38,9 @@ export class DeviceService {
 
   async updateDevice(
     id: string,
-    data: Partial<InsertDevice>,
+    data: WidenPartial<InsertDevice>,
     orgId: string,
-    userId?: string
+    userId?: string | undefined
   ): Promise<Device> {
     // Update device with org validation (Phase 4 security fix)
     const device = await deviceRepository.update(id, data, orgId);

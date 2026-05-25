@@ -48,9 +48,9 @@ export interface WalCdcOptions {
   /** Postgres connection string with replication privileges. */
   connectionString: string;
   /** Logical replication slot name (created if missing). */
-  slotName?: string;
+  slotName?: string | undefined;
   /** Publication name (created if missing). */
-  publicationName?: string;
+  publicationName?: string | undefined;
   tables: WalCdcTableConfig[];
   /**
    * Optional enqueue override — defaults to the real
@@ -58,7 +58,7 @@ export interface WalCdcOptions {
    * stub here so they can assert against the WAL→outbox handler
    * without spinning up Postgres or mocking the module graph.
    */
-  enqueue?: (input: EnqueueOutboxInput) => Promise<void>;
+  enqueue?: ((input: EnqueueOutboxInput) => Promise<void>) | undefined;
 }
 
 type PgChange = {

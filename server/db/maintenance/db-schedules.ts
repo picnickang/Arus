@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 /**
  * Maintenance - Database Storage Schedules & Records
  */
@@ -84,7 +85,7 @@ export class DbMaintenanceSchedules {
   }
   async updateMaintenanceSchedule(
     id: string,
-    updates: Partial<InsertMaintenanceSchedule>,
+    updates: WidenPartial<InsertMaintenanceSchedule>,
     orgId?: string
   ): Promise<MaintenanceSchedule> {
     this.validateOrgId(orgId, "updateMaintenanceSchedule");
@@ -168,7 +169,7 @@ export class DbMaintenanceSchedules {
   }
   async updateMaintenanceRecord(
     id: string,
-    updates: Partial<InsertMaintenanceRecord>,
+    updates: WidenPartial<InsertMaintenanceRecord>,
     orgId?: string
   ): Promise<MaintenanceRecord> {
     this.validateOrgId(orgId, "updateMaintenanceRecord");

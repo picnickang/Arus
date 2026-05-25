@@ -22,10 +22,10 @@ export function registerCompletionRoutes(app: Express, rateLimit: RateLimitMiddl
       const orgId = (req as AuthenticatedRequest).orgId;
 
       const filters = {
-        equipmentId: equipmentId as string | undefined,
-        vesselId: vesselId as string | undefined,
-        startDate: startDate ? new Date(startDate as string) : undefined,
-        endDate: endDate ? new Date(endDate as string) : undefined,
+        ...(typeof equipmentId === "string" && { equipmentId }),
+        ...(typeof vesselId === "string" && { vesselId }),
+        ...(startDate && { startDate: new Date(startDate as string) }),
+        ...(endDate && { endDate: new Date(endDate as string) }),
         orgId,
       };
 
@@ -44,10 +44,10 @@ export function registerCompletionRoutes(app: Express, rateLimit: RateLimitMiddl
         const orgId = (req as AuthenticatedRequest).orgId;
 
         const filters = {
-          equipmentId: equipmentId as string | undefined,
-          vesselId: vesselId as string | undefined,
-          startDate: startDate ? new Date(startDate as string) : undefined,
-          endDate: endDate ? new Date(endDate as string) : undefined,
+          ...(typeof equipmentId === "string" && { equipmentId }),
+          ...(typeof vesselId === "string" && { vesselId }),
+          ...(startDate && { startDate: new Date(startDate as string) }),
+          ...(endDate && { endDate: new Date(endDate as string) }),
           orgId,
         };
 

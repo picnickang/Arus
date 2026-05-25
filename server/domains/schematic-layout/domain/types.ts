@@ -19,12 +19,12 @@ export interface SchematicLayout {
 
 export interface CreateZoneCommand {
   label: string;
-  order?: number;
+  order?: number | undefined;
 }
 
 export interface UpdateZoneCommand {
-  label?: string;
-  order?: number;
+  label?: string | undefined;
+  order?: number | undefined;
 }
 
 export interface CreateSlotCommand {
@@ -35,9 +35,9 @@ export interface CreateSlotCommand {
 }
 
 export interface UpdateSlotCommand {
-  label?: string;
-  category?: string;
-  typeMatch?: string[];
+  label?: string | undefined;
+  category?: string | undefined;
+  typeMatch?: string[] | undefined;
 }
 
 export interface MoveSlotCommand {

@@ -2,13 +2,13 @@ import { db } from "../../db-config";
 import { sql } from "drizzle-orm";
 
 interface ComplianceFindingFilters {
-  vesselId?: string;
-  sourceType?: string;
-  severity?: string;
-  status?: string;
-  ruleCode?: string;
-  startDate?: string | Date;
-  endDate?: string | Date;
+  vesselId?: string | undefined;
+  sourceType?: string | undefined;
+  severity?: string | undefined;
+  status?: string | undefined;
+  ruleCode?: string | undefined;
+  startDate?: string | Date | undefined;
+  endDate?: string | Date | undefined;
 }
 
 interface CreateComplianceFinding {
@@ -23,9 +23,9 @@ interface CreateComplianceFinding {
 }
 
 interface ComplianceRuleFilters {
-  sourceType?: string;
-  category?: string;
-  enabled?: boolean;
+  sourceType?: string | undefined;
+  category?: string | undefined;
+  enabled?: boolean | undefined;
 }
 
 interface CreateComplianceRule {

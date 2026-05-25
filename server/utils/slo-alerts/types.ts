@@ -21,7 +21,7 @@ export interface SLOViolation {
   route: string;
   timestamp: Date;
   severity: "warning" | "critical";
-  burnRate?: number;
+  burnRate?: number | undefined;
 }
 
 export interface BucketData {

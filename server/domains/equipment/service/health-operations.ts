@@ -20,7 +20,7 @@ function transformHealthMetrics(
     return {
       id: equipment.id,
       vessel: equipment.vesselId ?? "unknown",
-      vesselId: equipment.vesselId ?? undefined,
+      ...(equipment.vesselId != null && { vesselId: equipment.vesselId }),
       name: equipment.name,
       type: equipment.type,
       healthIndex,

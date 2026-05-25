@@ -18,10 +18,10 @@ export interface IngestDocumentParams {
   fileName: string;
   fileBuffer: Buffer;
   fileType: SupportedFileType;
-  documentId?: string;
-  uploadedBy?: string;
-  equipmentId?: string;
-  openAiKey?: string;
+  documentId?: string | undefined;
+  uploadedBy?: string | undefined;
+  equipmentId?: string | undefined;
+  openAiKey?: string | undefined;
 }
 
 export interface IngestDocumentResult {

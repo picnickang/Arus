@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 /**
  * StormGeo Integration Service - Main Class
  */
@@ -191,7 +192,7 @@ export class StormGeoIntegrationService {
     logDate: string,
     hour: number,
     orgId: string
-  ): Promise<{ fields: Partial<DeckLogHourly>; source: string; snapshotId?: string } | null> {
+  ): Promise<{ fields: WidenPartial<DeckLogHourly>; source: string; snapshotId?: string } | null> {
     const targetTime = new Date(`${logDate}T${hour.toString().padStart(2, "0")}:00:00Z`);
     const snapshot = await this.getWeatherForTime(vesselId, targetTime, orgId);
     if (snapshot) {

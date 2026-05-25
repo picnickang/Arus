@@ -30,16 +30,16 @@ export interface ModeDetectionResult {
 }
 
 export interface TelemetryWindow {
-  rpm?: number;
-  stw?: number; // speed through water (knots)
-  sog?: number; // speed over ground (knots)
-  heading?: number;
-  thrusterLoad?: number; // % load on thrusters
-  hydraulicPressure?: number; // bar
-  fuelRate?: number; // l/h
-  loadPercent?: number; // engine load %
-  latitude?: number;
-  longitude?: number;
+  rpm?: number | undefined;
+  stw?: number | undefined;
+  sog?: number | undefined;
+  heading?: number | undefined;
+  thrusterLoad?: number | undefined;
+  hydraulicPressure?: number | undefined;
+  fuelRate?: number | undefined;
+  loadPercent?: number | undefined;
+  latitude?: number | undefined;
+  longitude?: number | undefined;
   timestamp: Date;
 }
 

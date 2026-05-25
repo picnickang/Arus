@@ -16,16 +16,16 @@ export type {
 } from "@shared/schema-runtime";
 
 export interface PartFilters {
-  category?: string;
-  location?: string;
-  minStock?: number;
-  maxStock?: number;
-  equipmentId?: string;
+  category?: string | undefined;
+  location?: string | undefined;
+  minStock?: number | undefined;
+  maxStock?: number | undefined;
+  equipmentId?: string | undefined;
 }
 export interface StockFilters {
-  partId?: string;
-  vesselId?: string;
-  location?: string;
+  partId?: string | undefined;
+  vesselId?: string | undefined;
+  location?: string | undefined;
 }
 export interface AvailabilityResult {
   available: boolean;

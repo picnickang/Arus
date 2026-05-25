@@ -1,3 +1,4 @@
+import type { WidenPartial } from "../../lib/widen-partial";
 /**
  * Alerts - Database Storage
  */
@@ -65,7 +66,7 @@ export class DatabaseAlertStorage {
   }
   async updateAlertConfiguration(
     id: string,
-    updates: Partial<InsertAlertConfig>,
+    updates: WidenPartial<InsertAlertConfig>,
     orgId?: string
   ): Promise<AlertConfiguration> {
     this.validateOrgId(orgId, "updateAlertConfiguration");

@@ -207,10 +207,10 @@ async function initializeLocalDatabase() {
     // IMPORTANT: syncInterval set to 0 - Sync Manager controls all sync operations
     localClient = createClient({
       url: `file:${localDbPath}`,
-      syncUrl: process.env['TURSO_SYNC_URL'],
-      authToken: process.env['TURSO_AUTH_TOKEN'],
+      ...(process.env['TURSO_SYNC_URL'] !== undefined && { syncUrl: process.env['TURSO_SYNC_URL'] }),
+      ...(process.env['TURSO_AUTH_TOKEN'] !== undefined && { authToken: process.env['TURSO_AUTH_TOKEN'] }),
       syncInterval: 0, // Disable auto-sync - Sync Manager controls sync timing
-      encryptionKey: process.env['LOCAL_DB_KEY'], // Optional encryption at rest
+      ...(process.env['LOCAL_DB_KEY'] !== undefined && { encryptionKey: process.env['LOCAL_DB_KEY'] }),
     });
     libsqlClient = localClient;
   } else {

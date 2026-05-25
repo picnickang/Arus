@@ -38,16 +38,16 @@ export interface CreateSOParams {
   orgId: string;
   workOrderId: string;
   woNumber: string;
-  woDescription?: string | null;
+  woDescription?: string | null | undefined;
   serviceProviderId: string;
-  scope?: string | null;
-  estimatedCost?: number | null;
-  scheduledStartDate?: string | null;
-  scheduledEndDate?: string | null;
-  estimatedDurationHours?: number | null;
-  serviceDetails?: string | null;
-  specialRequirements?: string | null;
-  updateWorkOrderStatus?: boolean;
+  scope?: string | null | undefined;
+  estimatedCost?: number | null | undefined;
+  scheduledStartDate?: string | null | undefined;
+  scheduledEndDate?: string | null | undefined;
+  estimatedDurationHours?: number | null | undefined;
+  serviceDetails?: string | null | undefined;
+  specialRequirements?: string | null | undefined;
+  updateWorkOrderStatus?: boolean | undefined;
 }
 
 export interface CreatedServiceOrderRow {

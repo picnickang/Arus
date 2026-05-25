@@ -51,12 +51,12 @@ export interface InventoryMovementProjection {
   /** inventory_movements.id — the canonical source id for REQUIRES_PART edges. */
   movementId: string;
   partId: string;
-  workOrderId?: string | null;
+  workOrderId?: string | null | undefined;
   /** Failure mode (if known) this part consumption was tied to. */
-  failureMode?: string | null;
+  failureMode?: string | null | undefined;
   /** Canonical supplier of the part (pure fact, not counted). */
-  supplierId?: string | null;
-  partName?: string | null;
+  supplierId?: string | null | undefined;
+  partName?: string | null | undefined;
 }
 
 /** Best-effort wrapper — never throws. Used by live writers. */

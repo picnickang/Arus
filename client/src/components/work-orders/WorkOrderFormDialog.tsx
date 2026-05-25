@@ -45,11 +45,11 @@ interface WorkOrderFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mode: "create" | "edit";
-  workOrder?: WorkOrder | null;
+  workOrder?: WorkOrder | null | undefined;
   onSubmit: (data: WorkOrderFormData & { templateId?: string }) => void;
-  isSubmitting?: boolean;
-  defaultVesselId?: string;
-  defaultEquipmentId?: string;
+  isSubmitting?: boolean | undefined;
+  defaultVesselId?: string | undefined;
+  defaultEquipmentId?: string | undefined;
 }
 
 export function WorkOrderFormDialog({
@@ -74,10 +74,16 @@ export function WorkOrderFormDialog({
     filteredTemplates,
     applyTemplate,
     clearTemplate,
-  } = useWorkOrderFormDialogData({ open, mode, workOrder, defaultVesselId, defaultEquipmentId });
+  } = useWorkOrderFormDialogData({
+    open,
+    mode,
+    ...(workOrder !== undefined && { workOrder }),
+    ...(defaultVesselId !== undefined && { defaultVesselId }),
+    ...(defaultEquipmentId !== undefined && { defaultEquipmentId }),
+  });
 
   const handleSubmit = (data: WorkOrderFormData) =>
-    onSubmit({ ...data, templateId: selectedTemplateId || undefined });
+    onSubmit({ ...data, ...(selectedTemplateId && { templateId: selectedTemplateId }) });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

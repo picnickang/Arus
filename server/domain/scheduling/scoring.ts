@@ -3,15 +3,15 @@ import type { SchedulingPreferences, CrewSuggestion, ConstraintViolation } from 
 export interface ScoringContext {
   crewId: string;
   crewName: string;
-  rank?: string;
-  avatarUrl?: string;
-  vesselId?: string;
-  targetVesselId?: string;
+  rank?: string | undefined;
+  avatarUrl?: string | undefined;
+  vesselId?: string | undefined;
+  targetVesselId?: string | undefined;
   currentAssignmentCount: number;
   avgAssignmentCount: number;
   consecutiveDaysOnboard: number;
-  lastShiftEnd?: Date;
-  certExpiryDays?: number;
+  lastShiftEnd?: Date | undefined;
+  certExpiryDays?: number | undefined;
   fatigueRisk: "low" | "medium" | "high";
   constraints: ConstraintViolation[];
 }

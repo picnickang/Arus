@@ -32,8 +32,8 @@ export interface WebhookSubscription {
   /** Event types this subscription listens to. */
   events: readonly string[];
   /** Maximum delivery attempts before dead-lettering. */
-  maxAttempts?: number;
-  enabled?: boolean;
+  maxAttempts?: number | undefined;
+  enabled?: boolean | undefined;
 }
 
 export interface WebhookEvent<T = unknown> {
@@ -50,11 +50,11 @@ export interface WebhookDeliveryAttempt {
   attempt: number;
   url: string;
   /** HTTP status; undefined when the request never completed. */
-  statusCode?: number;
+  statusCode?: number | undefined;
   /** Latency in ms. */
   latencyMs: number;
   ok: boolean;
-  errorMessage?: string;
+  errorMessage?: string | undefined;
 }
 
 export interface DeliveryResult {

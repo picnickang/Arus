@@ -13,7 +13,7 @@ import { eq, inArray, sql } from "drizzle-orm";
 export interface ComparisonRequest {
   query: string;
   documentIds: string[];
-  maxChunksPerDoc?: number;
+  maxChunksPerDoc?: number | undefined;
 }
 
 export interface DocumentContent {

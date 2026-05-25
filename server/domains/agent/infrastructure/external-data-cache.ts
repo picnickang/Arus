@@ -53,7 +53,7 @@ export async function getCachedExternal<T = Record<string, unknown>>(
     ageSec,
     ageLabel: formatAge(ageSec),
     fromCache: true,
-    fetchError: row.fetchError ?? undefined,
+    ...(row.fetchError != null && { fetchError: row.fetchError }),
   };
 }
 

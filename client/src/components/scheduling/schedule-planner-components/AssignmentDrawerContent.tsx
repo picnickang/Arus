@@ -40,12 +40,12 @@ export function AssignmentDrawerContent({
   onTabChange: (tab: "details" | "constraints" | "suggestions" | "compliance") => void;
   violations: ConstraintResult[];
   suggestions: AiSuggestion[];
-  fatigue?: FatigueResult;
+  fatigue?: FatigueResult | undefined;
   onApplySuggestion: (crewId: string) => void;
   onApplyChanges: () => void;
   onClose: () => void;
   isSaving: boolean;
-  isSuggestionsLoading?: boolean;
+  isSuggestionsLoading?: boolean | undefined;
 }) {
   const hardCount = violations.filter((v) => v.severity === "HARD").length;
   const softCount = violations.filter((v) => v.severity === "SOFT").length;

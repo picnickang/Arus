@@ -35,9 +35,9 @@ Respond in JSON format:
 }`;
 
 export interface QueryRewriterConfig {
-  model?: string;
-  enabled?: boolean;
-  maxExpansions?: number;
+  model?: string | undefined;
+  enabled?: boolean | undefined;
+  maxExpansions?: number | undefined;
 }
 
 export class QueryRewriter {

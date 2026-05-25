@@ -15,7 +15,7 @@ const REGISTRY_FILE = join(REPORT_ARTIFACTS_DIR, "_registry.json");
 interface ReportArtifactMeta {
   reportId: string;
   orgId: string;
-  userId?: string;
+  userId?: string | undefined;
   fileName: string;
   filePath: string;
   format: string;

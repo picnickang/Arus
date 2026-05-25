@@ -36,10 +36,10 @@ interface VesselType {
 interface SimulationResult {
   success: boolean;
   message: string;
-  dataPointsGenerated?: number;
-  telemetryRecordsCreated?: number;
-  vesselType?: string;
-  duration?: string | number;
+  dataPointsGenerated?: number | undefined;
+  telemetryRecordsCreated?: number | undefined;
+  vesselType?: string | undefined;
+  duration?: string | number | undefined;
 }
 
 export function VesselSimulatorCard() {

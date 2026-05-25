@@ -53,13 +53,15 @@ export async function validateSamlAssertion(
   const nameId = String(p['nameID'] || p["nameID"] || "");
   if (!nameId) throw new Error("SAML profile missing nameID");
 
+  const email = typeof p['email'] === "string" ? p['email'] : (p['nameID'] as string | undefined);
+  const displayName =
+    (p['displayName'] as string | undefined) ||
+    (p['cn'] as string | undefined) ||
+    (p['givenName'] as string | undefined);
   return {
     nameId,
-    email: typeof p['email'] === "string" ? p['email'] : (p['nameID'] as string | undefined),
-    displayName:
-      (p['displayName'] as string | undefined) ||
-      (p['cn'] as string | undefined) ||
-      (p['givenName'] as string | undefined),
+    ...(email !== undefined && { email }),
+    ...(displayName !== undefined && { displayName }),
     attributes: p,
   };
 }

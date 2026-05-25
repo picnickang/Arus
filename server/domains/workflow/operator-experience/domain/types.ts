@@ -28,10 +28,10 @@ export interface RoleExperienceProfile {
 
 export interface OperatorExperienceInput {
   role: OperatorRole;
-  currentPath?: string;
-  deviceClass?: "mobile" | "tablet" | "desktop" | "unknown";
-  connectionState?: "online" | "offline" | "degraded" | "unknown";
-  statedGoal?: string;
+  currentPath?: string | undefined;
+  deviceClass?: "mobile" | "tablet" | "desktop" | "unknown" | undefined;
+  connectionState?: "online" | "offline" | "degraded" | "unknown" | undefined;
+  statedGoal?: string | undefined;
 }
 
 export interface OperatorExperienceSignalSnapshot {
@@ -99,8 +99,8 @@ export interface OperatorExperienceBrief {
   generatedAt: string;
   orgId: string;
   role: RoleExperienceProfile;
-  currentPath?: string;
-  statedGoal?: string;
+  currentPath?: string | undefined;
+  statedGoal?: string | undefined;
   executiveSummary: string;
   userQuestionsAnswered: Array<{
     question: string;
@@ -123,11 +123,11 @@ export interface OperatorExperienceEvent {
     | "workflow_completed"
     | "friction_reported"
     | "trust_signal_viewed";
-  role?: OperatorRole;
-  path?: string;
-  label?: string;
-  metadata?: Record<string, unknown>;
-  occurredAt?: string;
+  role?: OperatorRole | undefined;
+  path?: string | undefined;
+  label?: string | undefined;
+  metadata?: Record<string, unknown> | undefined;
+  occurredAt?: string | undefined;
 }
 
 export interface RecordedOperatorExperienceEvent extends OperatorExperienceEvent {

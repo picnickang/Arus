@@ -51,8 +51,8 @@ interface Suggestion {
   triggerType: string;
   title: string;
   summary: string;
-  entityType?: string;
-  entityId?: string;
+  entityType?: string | null | undefined;
+  entityId?: string | null | undefined;
   severity: string;
   status: string;
   actedOn?: boolean;
@@ -150,8 +150,8 @@ export function SuggestionBell() {
     }
     dismissMutation.mutate({
       id: dismissTargetId,
-      outcome: dismissOutcome,
-      outcomeReason: dismissReason || undefined,
+      ...(dismissOutcome !== undefined && { outcome: dismissOutcome }),
+      ...(dismissReason && { outcomeReason: dismissReason }),
     });
     setDismissDialogOpen(false);
     setDismissTargetId(null);
@@ -238,7 +238,7 @@ export function SuggestionBell() {
                       <SuggestionCard
                         key={suggestion.id}
                         suggestion={suggestion}
-                        onDismiss={canMutate ? () => openDismissDialog(suggestion.id) : undefined}
+                        {...(canMutate && { onDismiss: () => openDismissDialog(suggestion.id) })}
                         onOpenInAssistant={() => openInAssistant(suggestion)}
                       />
                     ))}

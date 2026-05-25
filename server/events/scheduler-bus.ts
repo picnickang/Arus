@@ -17,7 +17,7 @@ export interface RulUpdatedEvent {
   equipmentId: string;
   remainingDays: number;
   riskLevel: "low" | "medium" | "high" | "critical";
-  operatingMode?: string;
+  operatingMode?: string | undefined;
 }
 
 export interface AnomalyCreatedEvent {
@@ -26,7 +26,7 @@ export interface AnomalyCreatedEvent {
   equipmentId: string;
   severity: "low" | "medium" | "high" | "critical";
   anomalyType: string;
-  window?: { start: Date; end: Date };
+  window?: { start: Date; end: Date } | undefined;
 }
 
 export interface MaintenanceWindowEvent {
@@ -50,7 +50,7 @@ export interface SchedulerRunCompletedEvent {
   runId: string;
   assigned: number;
   unfilled: number;
-  objectiveValue?: number;
+  objectiveValue?: number | undefined;
 }
 
 export interface SchedulerRunFailedEvent {

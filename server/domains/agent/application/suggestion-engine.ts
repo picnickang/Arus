@@ -524,7 +524,7 @@ export class SuggestionEngine {
         ],
         meta: {
           caller: "agent-suggestion-summarizer",
-          orgId: suggestions[0]?.orgId,
+          ...(suggestions[0]?.orgId !== undefined && { orgId: suggestions[0].orgId }),
           suggestionCount: suggestions.length,
         },
       });

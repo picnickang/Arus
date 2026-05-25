@@ -57,7 +57,7 @@ export function incrementRetry(queueName: string, id: string): void {
 
 export function listEntries(
   queueName: string,
-  options: { limit?: number; offset?: number; source?: string } = {}
+  options: { limit?: number | undefined; offset?: number | undefined; source?: string | undefined } = {}
 ): DeadLetterEntry[] {
   let queue = getQueue(queueName);
 

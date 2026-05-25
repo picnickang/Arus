@@ -18,8 +18,8 @@ import { formatDecimal, formatPercent } from "@/lib/formatters";
 
 interface ComponentStatus {
   componentType: string;
-  healthScore?: number;
-  degradationMetric?: number;
+  healthScore?: number | undefined;
+  degradationMetric?: number | undefined;
   predictedFailureDays: number;
 }
 
@@ -40,9 +40,9 @@ export function RulTab({ o }: { o: OptimizationData }) {
         remainingDays: number;
         healthIndex: number;
         failureProbability: number;
-        componentStatus?: ComponentStatus[];
-        recommendations?: string[];
-      } }, index: number) => {
+        componentStatus?: ComponentStatus[] | undefined;
+        recommendations?: string[] | undefined;
+      } | undefined }, index: number) => {
         const eq = o.equipment?.[index];
         const rulData = query.data;
         if (!eq || !rulData) {

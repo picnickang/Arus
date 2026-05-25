@@ -96,7 +96,7 @@ export function FeatureStoreTab() {
                   </span>
                   <TimestampBadge
                     label="Computed"
-                    timestamp={features?.computedAt || features?.createdAt}
+                    {...((features?.computedAt || features?.createdAt) !== undefined && { timestamp: features?.computedAt || features?.createdAt })}
                   />
                 </CardDescription>
               </div>

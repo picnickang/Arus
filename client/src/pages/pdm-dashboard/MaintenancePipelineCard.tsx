@@ -11,7 +11,7 @@ export function MaintenancePipelineCard({
     openWorkOrdersCount: number;
     awaitingApprovalCount: number;
     inProgressCount: number;
-  };
+  } | undefined;
   isLoading: boolean;
 }) {
   if (isLoading || !pipeline) {

@@ -16,18 +16,18 @@ export interface TelemetryStreamData {
   unit: string;
   status: "normal" | "warning" | "critical";
   hasAnomaly: boolean;
-  anomalyZScore?: number;
-  anomalyTimestamp?: string;
+  anomalyZScore?: number | undefined;
+  anomalyTimestamp?: string | undefined;
   data: Array<{ timestamp: string; value: number }>;
   lastUpdate: string;
 }
 
 export interface UseTelemetryStreamsOptions {
-  vesselId?: string;
-  equipmentId?: string;
-  hours?: number;
-  refreshInterval?: number;
-  enabled?: boolean;
+  vesselId?: string | undefined;
+  equipmentId?: string | undefined;
+  hours?: number | undefined;
+  refreshInterval?: number | undefined;
+  enabled?: boolean | undefined;
 }
 
 export function useTelemetryStreams(options: UseTelemetryStreamsOptions = {}) {

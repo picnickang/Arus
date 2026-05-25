@@ -243,8 +243,8 @@ export interface PermissionCheckResult {
   allowed: boolean;
   resource: string;
   action: string;
-  reason?: string;
-  conditions?: string;
+  reason?: string | undefined;
+  conditions?: string | undefined;
 }
 
 // Compiled permission matrix for caching

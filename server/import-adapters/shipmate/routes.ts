@@ -82,13 +82,13 @@ router.post("/", requireOrgId, importLimit, async (req: Request, res: Response) 
 
     const result = await shipmateImport.importFile(orgId, content, {
       module: module as ShipmateModuleType,
-      vesselName,
-      vesselId,
-      filename,
+      ...(vesselName !== undefined ? { vesselName } : {}),
+      ...(vesselId !== undefined ? { vesselId } : {}),
+      ...(filename !== undefined ? { filename } : {}),
       dryRun: false,
-      feedToRag,
-      delimiter,
-      syncRunningHours,
+      ...(feedToRag !== undefined ? { feedToRag } : {}),
+      ...(delimiter !== undefined ? { delimiter } : {}),
+      ...(syncRunningHours !== undefined ? { syncRunningHours } : {}),
     });
 
     return res.status(result.success ? 200 : 207).json({ success: result.success, data: result });
@@ -115,11 +115,11 @@ router.post("/preview", requireOrgId, importLimit, async (req: Request, res: Res
 
     const result = await shipmateImport.importFile(orgId, content, {
       module: module as ShipmateModuleType,
-      vesselName,
-      filename,
+      ...(vesselName !== undefined ? { vesselName } : {}),
+      ...(filename !== undefined ? { filename } : {}),
       dryRun: true,
       feedToRag: false,
-      delimiter,
+      ...(delimiter !== undefined ? { delimiter } : {}),
     });
 
     return res.json({

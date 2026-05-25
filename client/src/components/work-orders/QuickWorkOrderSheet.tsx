@@ -18,8 +18,8 @@ import { Camera, Loader2, CheckCircle, Wrench } from "lucide-react";
 interface QuickWorkOrderSheetProps {
   open: boolean;
   onClose: () => void;
-  vesselId?: string;
-  defaultEquipmentId?: string;
+  vesselId?: string | undefined;
+  defaultEquipmentId?: string | undefined;
 }
 
 export function QuickWorkOrderSheet({
@@ -47,8 +47,8 @@ export function QuickWorkOrderSheet({
     equipmentId: string;
     description: string;
     priority: "low" | "medium" | "high";
-    vesselId?: string;
-    photoBase64?: string;
+    vesselId?: string | undefined;
+    photoBase64?: string | undefined;
   }
   interface QuickWorkOrderResponse {
     workOrderNumber?: string;
@@ -118,8 +118,8 @@ export function QuickWorkOrderSheet({
       equipmentId,
       description: description.trim(),
       priority,
-      vesselId,
-      photoBase64: photoBase64 || undefined,
+      ...(vesselId !== undefined && { vesselId }),
+      ...(photoBase64 && { photoBase64 }),
     });
   }, [equipmentId, description, priority, vesselId, photoBase64, createMutation]);
 

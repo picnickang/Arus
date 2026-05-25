@@ -33,9 +33,9 @@ export interface AttentionSourceHealth {
 
 export interface BlockerResolutionSummary {
   status: "updated" | "waiting" | "unblocked" | "deferred";
-  owner?: string;
-  eta?: string;
-  note?: string;
+  owner?: string | undefined;
+  eta?: string | undefined;
+  note?: string | undefined;
   savedAt: string;
 }
 
@@ -89,10 +89,10 @@ export interface HandoverRecord {
   id: string;
   orgId: string;
   note: string;
-  watchLabel?: string;
+  watchLabel?: string | undefined;
   generatedSummary: string;
   itemIds: string[];
-  authorId?: string;
+  authorId?: string | undefined;
   status: "draft" | "shared" | "acknowledged";
   savedAt: string;
 }
@@ -101,16 +101,16 @@ export interface BlockerResolutionRecord {
   id: string;
   orgId: string;
   itemId: string;
-  workOrderId?: string;
-  inventoryItemId?: string;
+  workOrderId?: string | undefined;
+  inventoryItemId?: string | undefined;
   blockerType: string;
   reason: string;
-  owner?: string;
-  eta?: string;
+  owner?: string | undefined;
+  eta?: string | undefined;
   status: "updated" | "waiting" | "unblocked" | "deferred";
-  note?: string;
+  note?: string | undefined;
   savedAt: string;
-  authorId?: string;
+  authorId?: string | undefined;
 }
 
 export interface IssueReportRecord {
@@ -118,18 +118,18 @@ export interface IssueReportRecord {
   orgId: string;
   severity: "critical" | "high" | "medium" | "low";
   summary: string;
-  vessel?: string;
-  equipment?: string;
-  location?: string;
-  impact?: string;
-  evidenceNote?: string;
-  owner?: string;
-  dueDate?: string;
+  vessel?: string | undefined;
+  equipment?: string | undefined;
+  location?: string | undefined;
+  impact?: string | undefined;
+  evidenceNote?: string | undefined;
+  owner?: string | undefined;
+  dueDate?: string | undefined;
   target: "work_order" | "finding" | "log_note" | "handover";
   suggestedHref: string;
   status: "draft" | "submitted";
   createdAt: string;
-  authorId?: string;
+  authorId?: string | undefined;
 }
 
 type WorkflowState = {

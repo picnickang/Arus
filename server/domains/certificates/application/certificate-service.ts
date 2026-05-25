@@ -99,7 +99,7 @@ export class CertificateApplicationService {
   async addCondition(
     id: string,
     orgId: string,
-    condition: { description: string; dueDate: string; imposedDate?: string },
+    condition: { description: string; dueDate: string; imposedDate?: string | undefined },
     userId?: string
   ) {
     const cert = await this.certificateRepo.findById(id, orgId);

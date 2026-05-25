@@ -424,9 +424,9 @@ export function createValidatedHandler<TBody, TQuery, TParams>(
     params?: TParams;
   } {
     return {
-      body: bodySchema ? bodySchema.parse(req.body) : undefined,
-      query: querySchema ? querySchema.parse(req.query) : undefined,
-      params: paramsSchema ? paramsSchema.parse(req.params) : undefined,
+      ...(bodySchema && { body: bodySchema.parse(req.body) }),
+      ...(querySchema && { query: querySchema.parse(req.query) }),
+      ...(paramsSchema && { params: paramsSchema.parse(req.params) }),
     };
   };
 }

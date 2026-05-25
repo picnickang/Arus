@@ -138,13 +138,13 @@ export interface IssueReportRecord {
 
 export interface WorkOrderRecord {
   id: string | number;
-  title?: string;
-  status?: string;
-  priority?: number | string | null;
-  dueDate?: string | null;
-  blockedReason?: string | null;
-  equipmentName?: string | null;
-  assignedCrewId?: string | null;
-  assignedToName?: string | null;
-  equipment?: { name?: string | null } | null;
+  title?: string | undefined;
+  status?: string | undefined;
+  priority?: number | string | null | undefined;
+  dueDate?: string | null | undefined;
+  blockedReason?: string | null | undefined;
+  equipmentName?: string | null | undefined;
+  assignedCrewId?: string | null | undefined;
+  assignedToName?: string | null | undefined;
+  equipment?: { name?: string | null | undefined } | null | undefined;
 }

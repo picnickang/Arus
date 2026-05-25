@@ -32,10 +32,10 @@ export interface ToolDefinition {
 
 export interface ToolContext {
   orgId: string;
-  userId?: string;
+  userId?: string | undefined;
   conversationId: string;
-  userRole?: string;
-  knowledgeBase?: import("./ports").KnowledgeBasePort;
+  userRole?: string | undefined;
+  knowledgeBase?: import("./ports").KnowledgeBasePort | undefined;
 }
 
 export interface ToolCallTrace {

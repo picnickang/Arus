@@ -230,11 +230,11 @@ interface TemplateChecklistItemProps {
   itemId: string;
   description: string;
   passed: boolean | null;
-  notes?: string;
-  completedByName?: string;
-  completedAt?: string;
-  isReadOnly?: boolean;
-  isPending?: boolean;
+  notes?: string | undefined;
+  completedByName?: string | undefined;
+  completedAt?: string | undefined;
+  isReadOnly?: boolean | undefined;
+  isPending?: boolean | undefined;
   onPass: (notes?: string) => void;
   onFail: (notes?: string) => void;
   onReset: () => void;
@@ -412,10 +412,10 @@ interface TaskItemProps {
   id: string;
   description: string;
   isCompleted: boolean;
-  completedByName?: string;
-  completedAt?: string;
-  isReadOnly?: boolean;
-  isPending?: boolean;
+  completedByName?: string | undefined;
+  completedAt?: string | undefined;
+  isReadOnly?: boolean | undefined;
+  isPending?: boolean | undefined;
   onToggle: (completed: boolean) => void;
   onDelete: () => void;
 }

@@ -38,7 +38,7 @@ export async function loadLstmPrediction(
 
     return {
       probability: lstmPred.failureProbability,
-      confidence: typeof lstmPred.confidence === "number" ? lstmPred.confidence : undefined,
+      ...(typeof lstmPred.confidence === "number" ? { confidence: lstmPred.confidence } : {}),
     };
   } catch (error) {
     logger.warn("MlEnsemble", "LSTM prediction failed", error);
@@ -73,7 +73,7 @@ export async function loadRfPrediction(
 
     return {
       probability: failureProb,
-      confidence: typeof rfPred.confidence === "number" ? rfPred.confidence : undefined,
+      ...(typeof rfPred.confidence === "number" ? { confidence: rfPred.confidence } : {}),
     };
   } catch (error) {
     logger.warn("MlEnsemble", "Random Forest prediction failed", error);
@@ -108,7 +108,7 @@ export async function loadXgbPrediction(
 
     return {
       probability: failureProb,
-      confidence: typeof xgbPred.confidence === "number" ? xgbPred.confidence : undefined,
+      ...(typeof xgbPred.confidence === "number" ? { confidence: xgbPred.confidence } : {}),
     };
   } catch (error) {
     logger.warn("MlEnsemble", "XGBoost prediction failed", error);

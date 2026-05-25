@@ -15,11 +15,11 @@ export interface SchedulingConstraint {
 export interface ConstraintViolation {
   constraint: SchedulingConstraint;
   crewId: string;
-  crewName?: string;
+  crewName?: string | undefined;
   date: string;
   description: string;
   severity: "error" | "warning";
-  details?: Record<string, unknown>;
+  details?: Record<string, unknown> | undefined;
 }
 
 export interface CrewAvailability {
@@ -39,8 +39,8 @@ export interface CrewAvailability {
 export interface CrewSuggestion {
   crewId: string;
   crewName: string;
-  rank?: string;
-  avatarUrl?: string;
+  rank?: string | undefined;
+  avatarUrl?: string | undefined;
   score: number;
   availability: "available" | "soft_conflict" | "hard_conflict" | "on_leave" | "requires_cert";
   availabilityTag: string;
