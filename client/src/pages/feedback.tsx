@@ -8,18 +8,21 @@
  * States rendered: idle, validating, submitting, success, error.
  */
 
-import { useState, type FormEvent } from "react";
-import { Flag, Loader2, CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
+import { Flag, Loader2, CheckCircle2, AlertTriangle, ArrowRight, Inbox } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SwitchPortalButton } from "@/components/navigation/SwitchPortalButton";
 import {
+  listSessionFeedback,
   submitFeedback,
   type FeedbackCategory,
   type FeedbackDraft,
+  type FeedbackOutboxEntry,
   type FeedbackSeverity,
   type FeedbackValidationError,
 } from "@/application/feedback/feedback-submission";
@@ -56,10 +59,66 @@ function errorFor(
   return errors.find((e) => e.field === field)?.message;
 }
 
+function FeedbackHistory({ entries }: { entries: FeedbackOutboxEntry[] }) {
+  if (entries.length === 0) {
+    return (
+      <div
+        className="mt-6 flex items-center gap-3 rounded-lg border bg-muted/40 px-4 py-3"
+        data-testid="empty-feedback-history"
+      >
+        <Inbox className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        <div>
+          <div className="text-sm font-medium">No submissions yet</div>
+          <div className="text-xs text-muted-foreground">
+            Anything you send in this session will appear here.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6" data-testid="list-feedback-history">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+        Submitted this session
+      </h3>
+      <ul className="space-y-2">
+        {entries.map((entry) => (
+          <li
+            key={entry.trackingId}
+            className="rounded-md border bg-card p-3"
+            data-testid={`feedback-entry-${entry.trackingId}`}
+          >
+            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              <code className="rounded bg-muted px-1.5 py-0.5">{entry.trackingId}</code>
+              <span>{new Date(entry.createdAt).toLocaleString()}</span>
+            </div>
+            <div className="mt-1 text-sm font-medium truncate">{entry.subject}</div>
+            <div className="mt-0.5 text-xs text-muted-foreground capitalize">
+              {entry.category} · {entry.severity} severity
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function FeedbackPage() {
   const [draft, setDraft] = useState<FeedbackDraft>(EMPTY_DRAFT);
   const [fieldErrors, setFieldErrors] = useState<FeedbackValidationError[]>([]);
   const [state, setState] = useState<SubmitState>({ kind: "idle" });
+  const [history, setHistory] = useState<FeedbackOutboxEntry[]>(() =>
+    listSessionFeedback(),
+  );
+
+  useEffect(() => {
+    // Refresh whenever we land back in idle (post-submit-another) so a
+    // freshly-submitted entry is reflected in the list.
+    if (state.kind === "idle" || state.kind === "success") {
+      setHistory(listSessionFeedback());
+    }
+  }, [state.kind]);
 
   function update<K extends keyof FeedbackDraft>(key: K, value: FeedbackDraft[K]) {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -96,6 +155,9 @@ export default function FeedbackPage() {
   if (state.kind === "success") {
     return (
       <div className="container mx-auto px-4 py-8 max-w-2xl" data-testid="page-feedback">
+        <div className="flex justify-end mb-3">
+          <SwitchPortalButton />
+        </div>
         <Card>
           <CardHeader className="text-center">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
@@ -148,6 +210,9 @@ export default function FeedbackPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl" data-testid="page-feedback">
+      <div className="flex justify-end mb-3">
+        <SwitchPortalButton />
+      </div>
       <Card>
         <CardHeader className="text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -267,6 +332,8 @@ export default function FeedbackPage() {
           </form>
         </CardContent>
       </Card>
+
+      <FeedbackHistory entries={history} />
     </div>
   );
 }

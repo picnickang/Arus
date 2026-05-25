@@ -11,7 +11,7 @@ import { PendingApprovalsBanner } from "@/components/shared/PendingApprovalsBann
 import { QuickWorkOrderSheet } from "@/components/work-orders/QuickWorkOrderSheet";
 import { homePageGroups, type HomePageGroup } from "@/config/navigationConfig";
 import { trackPageVisit, getLastVisitTime, recordVisitTime } from "@/lib/pageTracking";
-import { ChevronRight, History, Plus, Flag } from "lucide-react";
+import { ChevronRight, History, Plus, Flag, CheckCircle2, Bell } from "lucide-react";
 import { ROLES, ROLE_STORAGE_KEY } from "@/config/roles";
 import { WorkflowCommandCenter } from "@/features/workflow/components/WorkflowCommandCenter";
 import { RoleTodayPanel } from "@/features/workflow/components/RoleTodayPanel";
@@ -21,6 +21,7 @@ import {
   getPrimaryCategoriesForRole,
 } from "@/application/navigation/role-navigation-policy";
 import { Button } from "@/components/ui/button";
+import { SwitchPortalButton } from "@/components/navigation/SwitchPortalButton";
 
 export { trackPageVisit };
 export type { RoleConfig };
@@ -186,7 +187,17 @@ interface MyTask {
   equipment?: { name?: string | null } | null;
 }
 
-function MyTasks() {
+interface MyTasksProps {
+  /**
+   * Optional empty-state node to render when the user has no open
+   * work orders. When omitted, the section is hidden entirely
+   * (legacy admin-portal behaviour). The user portal passes a calmer
+   * "you're all caught up" affordance.
+   */
+  emptyState?: import("react").ReactNode;
+}
+
+function MyTasks({ emptyState }: MyTasksProps = {}) {
   const { data: myWorkOrders } = useQuery<MyTask[]>({
     queryKey: ["/api/work-orders", { assignedToMe: "true", status: "open" }],
     refetchInterval: 60000,
@@ -196,7 +207,7 @@ function MyTasks() {
   const tasks: MyTask[] = Array.isArray(myWorkOrders) ? myWorkOrders.slice(0, 5) : [];
 
   if (tasks.length === 0) {
-    return null;
+    return emptyState ? <>{emptyState}</> : null;
   }
 
   return (
@@ -303,10 +314,46 @@ export default function HomePage() {
         />
 
         <div className="px-4 lg:px-6 pt-2">
-          {attentionItems.length > 0 && <AttentionBanner items={attentionItems} className="mb-4" />}
+          <div className="flex justify-end mb-3">
+            <SwitchPortalButton />
+          </div>
+
+          {attentionItems.length > 0 ? (
+            <AttentionBanner items={attentionItems} className="mb-4" />
+          ) : (
+            <div
+              className="mb-4 flex items-center gap-3 rounded-lg border bg-muted/40 px-4 py-3"
+              data-testid="empty-attention"
+            >
+              <Bell className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <div>
+                <div className="text-sm font-medium">No active alerts</div>
+                <div className="text-xs text-muted-foreground">
+                  We'll surface anything urgent here.
+                </div>
+              </div>
+            </div>
+          )}
+
           <RoleTodayPanel roleId={role} />
           {sinceLastVisit && <SinceLastVisit data={sinceLastVisit} />}
-          <MyTasks />
+
+          <MyTasks
+            emptyState={
+              <div
+                className="mb-6 flex items-center gap-3 rounded-lg border bg-muted/40 px-4 py-3"
+                data-testid="empty-my-tasks"
+              >
+                <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                <div>
+                  <div className="text-sm font-medium">You're all caught up</div>
+                  <div className="text-xs text-muted-foreground">
+                    No open work orders assigned to you.
+                  </div>
+                </div>
+              </div>
+            }
+          />
 
           <div
             className="mt-6 rounded-lg border border-dashed bg-card p-6 text-center"
@@ -357,6 +404,10 @@ export default function HomePage() {
       <PendingApprovalsBanner />
 
       <div className="px-4 lg:px-6 pt-2">
+        <div className="flex justify-end mb-3">
+          <SwitchPortalButton />
+        </div>
+
         {attentionItems.length > 0 && <AttentionBanner items={attentionItems} className="mb-4" />}
 
         <RoleTodayPanel roleId={role} />

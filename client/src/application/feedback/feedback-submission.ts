@@ -56,6 +56,48 @@ export function validateFeedback(draft: FeedbackDraft): FeedbackValidationError[
 }
 
 /**
+ * Per-session outbox: list of drafts the user submitted during this
+ * tab's lifetime. Used by the Feedback page to render a "Submitted
+ * this session" history list. Persisted only to sessionStorage so it
+ * disappears with the tab — there is no real backend yet.
+ */
+export interface FeedbackOutboxEntry extends FeedbackDraft {
+  trackingId: string;
+  createdAt: string;
+}
+
+const FEEDBACK_OUTBOX_KEY = "arus-pilot-feedback-outbox";
+
+function isFeedbackOutboxEntry(value: unknown): value is FeedbackOutboxEntry {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Partial<Record<keyof FeedbackOutboxEntry, unknown>>;
+  return (
+    typeof v.trackingId === "string" &&
+    typeof v.createdAt === "string" &&
+    typeof v.subject === "string" &&
+    typeof v.description === "string" &&
+    (v.category === "bug" || v.category === "suggestion" || v.category === "flag") &&
+    (v.severity === "low" || v.severity === "medium" || v.severity === "high")
+  );
+}
+
+/**
+ * Read the session feedback outbox. Returns newest-first. Safe to
+ * call from SSR / private mode (returns []).
+ */
+export function listSessionFeedback(): FeedbackOutboxEntry[] {
+  try {
+    const raw = sessionStorage.getItem(FEEDBACK_OUTBOX_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isFeedbackOutboxEntry).slice().reverse();
+  } catch {
+    return [];
+  }
+}
+
+/**
  * In-memory tracking-id generator. Sufficient for the pilot — once a
  * real submission endpoint exists, the server should mint the id.
  */
@@ -90,16 +132,16 @@ export async function submitFeedback(
   const trackingId = mintLocalTrackingId();
 
   try {
-    const key = "arus-pilot-feedback-outbox";
-    const existing = sessionStorage.getItem(key);
+    const existing = sessionStorage.getItem(FEEDBACK_OUTBOX_KEY);
     const parsed: unknown = existing ? JSON.parse(existing) : [];
     // Defend against tampered/legacy session storage — only trust an
     // actual array, otherwise start fresh. Avoids a runtime crash on
     // `queue.push` if a previous version stored something else.
-    const queue: Array<FeedbackDraft & { trackingId: string; createdAt: string }> =
-      Array.isArray(parsed) ? parsed : [];
+    const queue: FeedbackOutboxEntry[] = Array.isArray(parsed)
+      ? parsed.filter(isFeedbackOutboxEntry)
+      : [];
     queue.push({ ...draft, trackingId, createdAt: new Date().toISOString() });
-    sessionStorage.setItem(key, JSON.stringify(queue));
+    sessionStorage.setItem(FEEDBACK_OUTBOX_KEY, JSON.stringify(queue));
   } catch {
     // Storage unavailable (private mode, SSR). Submission is still
     // considered successful from the form's perspective — the
