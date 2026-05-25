@@ -10,10 +10,32 @@
  */
 const endpoint = import.meta.env['VITE_OTEL_EXPORTER_OTLP_ENDPOINT'] as string | undefined;
 
+// P2 #24 — Observability warn-once on missing endpoint in production
+// builds, so an operator inspecting the console sees the gap rather
+// than having to grep the bundle for a missing env var.
+let warnedMissingEndpoint = false;
+function warnOnceMissingEndpoint(): void {
+  if (warnedMissingEndpoint) {
+    return;
+  }
+  warnedMissingEndpoint = true;
+  if (import.meta.env.PROD && !endpoint) {
+    console.warn(
+      "[otel] VITE_OTEL_EXPORTER_OTLP_ENDPOINT is not set in a production build — browser tracing is DISABLED.",
+    );
+  }
+}
+
 let initialised = false;
 
 export async function initBrowserOtel(): Promise<void> {
-  if (!endpoint || initialised) return;
+  if (!endpoint) {
+    warnOnceMissingEndpoint();
+    return;
+  }
+  if (initialised) {
+    return;
+  }
   initialised = true;
 
   try {
@@ -57,7 +79,6 @@ export async function initBrowserOtel(): Promise<void> {
     });
   } catch (err) {
     // Tracing is best-effort: never block app boot.
-    // eslint-disable-next-line no-console
     console.warn("[otel] browser init failed; continuing without tracing", err);
   }
 }

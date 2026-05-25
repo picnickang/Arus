@@ -15,6 +15,15 @@
 
 const dsn = process.env['SENTRY_DSN'];
 
+// P2 #24 — Observability warn-once. In production, missing telemetry
+// silently turns an error sink into /dev/null; surface the gap at
+// boot so it can't be discovered only via post-incident triage.
+if (!dsn && process.env['NODE_ENV'] === "production") {
+  console.warn(
+    "[instrument] SENTRY_DSN is not set in production — server errors will NOT be reported to Sentry.",
+  );
+}
+
 if (dsn) {
   // Lazy require so that environments without the dep installed
   // (unusual, but defensive) still boot. We can't use a dynamic

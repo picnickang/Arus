@@ -132,4 +132,14 @@ export class DbCrewMembers {
   async getCrewSkills(crewId: string): Promise<CrewSkill[]> {
     return db.select().from(crewSkill).where(eq(crewSkill.crewId, crewId));
   }
+
+  /**
+   * Bulk fetch crew skills for an entire organization in a single
+   * query. Eliminates the N+1 pattern where callers walked every
+   * crew member and issued one `getCrewSkills(crewId)` per row.
+   */
+  async getAllCrewSkills(orgId: string): Promise<CrewSkill[]> {
+    this.validateOrgId(orgId, "getAllCrewSkills");
+    return db.select().from(crewSkill).where(eq(crewSkill.orgId, orgId));
+  }
 }

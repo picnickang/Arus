@@ -20,6 +20,13 @@ import { createRequire } from "node:module";
 const endpoint = process.env['OTEL_EXPORTER_OTLP_ENDPOINT'];
 const enabled = Boolean(endpoint);
 
+// P2 #24 — Observability warn-once. Match instrument.ts for Sentry.
+if (!endpoint && process.env['NODE_ENV'] === "production") {
+  console.warn(
+    "[otel] OTEL_EXPORTER_OTLP_ENDPOINT is not set in production — distributed tracing is DISABLED.",
+  );
+}
+
 let started = false;
 
 // `createRequire` keeps the lazy-load behaviour (the SDK is not pulled in

@@ -29,15 +29,40 @@ export interface OidcUserSummary {
 
 type SecretResolver = (ref: string) => Promise<string>;
 
+/**
+ * P2 #21 — OIDC discovery and token-exchange go over the network via
+ * `openid-client`. Its v6 functional API does not expose an
+ * AbortSignal hook, so we race each call against a wall-clock
+ * deadline to ensure a stalled IdP cannot pin a request handler open
+ * indefinitely (the SSO routes inherit the express request limits but
+ * a leaked socket on the IdP side is not bounded by them).
+ */
+const OIDC_NETWORK_TIMEOUT_MS = 15_000;
+async function withTimeout<T>(op: Promise<T>, label: string): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`OIDC ${label} timed out after ${OIDC_NETWORK_TIMEOUT_MS}ms`)),
+      OIDC_NETWORK_TIMEOUT_MS,
+    );
+  });
+  try {
+    return await Promise.race([op, timeout]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+}
+
 async function loadConfig(cfg: SsoOidcConfig, secretResolver: SecretResolver) {
   const oidc = await import("openid-client");
   const clientSecret = await secretResolver(cfg.clientSecretRef);
   // v6 discovery: openid-client `discovery(url, clientId, clientSecret?)`
   const oidcMod = oidc as object as typeof oidc & { discovery: (url: URL, clientId: string, clientSecret?: string) => Promise<import("openid-client").Configuration> };
-  const config = await oidcMod.discovery(
-    new URL(cfg.discoveryUrl),
-    cfg.clientId,
-    clientSecret,
+  const config = await withTimeout(
+    oidcMod.discovery(new URL(cfg.discoveryUrl), cfg.clientId, clientSecret),
+    "discovery",
   );
   return { oidc: oidcMod, config };
 }
@@ -69,15 +94,20 @@ export async function completeOidcAuthorization(
   args: { callbackUrl: URL; codeVerifier: string; expectedState: string; expectedNonce: string },
 ): Promise<OidcUserSummary> {
   const { oidc, config } = await loadConfig(cfg, secretResolver);
-  const tokens = await oidc.authorizationCodeGrant(config, args.callbackUrl, {
-    pkceCodeVerifier: args.codeVerifier,
-    expectedState: args.expectedState,
-    expectedNonce: args.expectedNonce,
-  });
+  const tokens = await withTimeout(
+    oidc.authorizationCodeGrant(config, args.callbackUrl, {
+      pkceCodeVerifier: args.codeVerifier,
+      expectedState: args.expectedState,
+      expectedNonce: args.expectedNonce,
+    }),
+    "authorizationCodeGrant",
+  );
   const rawClaims = typeof tokens.claims === "function" ? tokens.claims() : tokens.claims;
   const claims: Record<string, unknown> = (rawClaims || {}) as object as Record<string, unknown>;
   const sub = String(claims['sub'] || "");
-  if (!sub) throw new Error("OIDC ID token missing sub");
+  if (!sub) {
+    throw new Error("OIDC ID token missing sub");
+  }
   return {
     sub,
     ...(typeof claims['email'] === "string" && { email: claims['email'] }),

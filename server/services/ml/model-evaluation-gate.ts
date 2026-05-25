@@ -45,6 +45,15 @@ interface EvaluationMetrics {
   evaluatedAt: Date;
 }
 
+interface PredictionFailureMetrics {
+  total: number;
+  succeeded: number;
+  failed: number;
+  errorRate: number;
+  /** Sample of failure messages, capped to avoid unbounded growth. */
+  sampleFailureMessages: string[];
+}
+
 interface GateResult {
   approved: boolean;
   newModelMetrics: EvaluationMetrics;
@@ -53,8 +62,10 @@ interface GateResult {
   details: {
     meetsAbsoluteThreshold: boolean;
     beatsCurrentModel: boolean;
+    withinFailureBudget: boolean;
     absoluteThresholds: Record<string, number>;
     improvements: Record<string, number>;
+    predictionFailures: PredictionFailureMetrics;
   };
 }
 
@@ -73,6 +84,13 @@ interface GateConfig {
   minTestSamples: number;
   /** Must be at least this much better than current model on F1 to justify deployment */
   minImprovementF1: number;
+  /**
+   * Maximum fraction of test samples that may fail inference (errors
+   * thrown by predictFn) before the candidate is rejected. Prior to
+   * this gate, silent per-sample skips could let a systematically
+   * broken model pass on the surviving subset.
+   */
+  maxFailureRate: number;
 }
 
 const DEFAULT_CONFIG: GateConfig = {
@@ -83,7 +101,10 @@ const DEFAULT_CONFIG: GateConfig = {
   maxBrierScore: 0.25,
   minTestSamples: 50,
   minImprovementF1: 0.0, // 0 = just needs to be no worse; set to e.g. 0.02 to require improvement
+  maxFailureRate: 0.1, // reject if >10% of test samples error during inference
 };
+
+const MAX_SAMPLE_FAILURE_MESSAGES = 5;
 
 // ============================================================================
 // Metric Computation
@@ -217,23 +238,45 @@ export class ModelEvaluationGate {
         details: {
           meetsAbsoluteThreshold: false,
           beatsCurrentModel: false,
+          withinFailureBudget: true,
           absoluteThresholds: this.getThresholds(),
           improvements: {},
+          predictionFailures: emptyFailureMetrics(testData.length),
         },
       };
     }
 
-    // 1. Generate predictions for the new model
+    // 1. Generate predictions for the new model. Per-sample failures
+    //    are tallied (not silently swallowed) so a candidate whose
+    //    inference path is systematically broken on a subset cannot
+    //    sneak through the gate on the surviving samples alone.
     const predictions: Array<{ predicted: number; actual: 0 | 1 }> = [];
+    let failed = 0;
+    const sampleFailureMessages: string[] = [];
 
     for (const dataPoint of testData) {
       try {
         const prob = await predictFn(dataPoint.features);
         predictions.push({ predicted: prob, actual: dataPoint.label });
       } catch (error) {
-        logger.warn(LOG_CTX, `Prediction failed for sample, skipping`, error);
+        failed++;
+        if (sampleFailureMessages.length < MAX_SAMPLE_FAILURE_MESSAGES) {
+          sampleFailureMessages.push(
+            error instanceof Error ? error.message : String(error)
+          );
+        }
+        logger.warn(LOG_CTX, `Prediction failed for sample`, error);
       }
     }
+
+    const failureMetrics: PredictionFailureMetrics = {
+      total: testData.length,
+      succeeded: predictions.length,
+      failed,
+      errorRate: testData.length > 0 ? failed / testData.length : 0,
+      sampleFailureMessages,
+    };
+    const withinFailureBudget = failureMetrics.errorRate <= this.config.maxFailureRate;
 
     if (predictions.length < this.config.minTestSamples) {
       return {
@@ -244,8 +287,32 @@ export class ModelEvaluationGate {
         details: {
           meetsAbsoluteThreshold: false,
           beatsCurrentModel: false,
+          withinFailureBudget,
           absoluteThresholds: this.getThresholds(),
           improvements: {},
+          predictionFailures: failureMetrics,
+        },
+      };
+    }
+
+    if (!withinFailureBudget) {
+      const reason =
+        `Prediction failure rate ${(failureMetrics.errorRate * 100).toFixed(1)}% ` +
+        `exceeds budget ${(this.config.maxFailureRate * 100).toFixed(1)}% ` +
+        `(${failed}/${testData.length} samples failed)`;
+      await this.recordEvaluation(orgId, newModelId, computeMetrics(predictions), false, reason);
+      return {
+        approved: false,
+        newModelMetrics: computeMetrics(predictions),
+        currentModelMetrics: null,
+        reason,
+        details: {
+          meetsAbsoluteThreshold: false,
+          beatsCurrentModel: false,
+          withinFailureBudget,
+          absoluteThresholds: this.getThresholds(),
+          improvements: {},
+          predictionFailures: failureMetrics,
         },
       };
     }
@@ -330,8 +397,10 @@ export class ModelEvaluationGate {
       details: {
         meetsAbsoluteThreshold,
         beatsCurrentModel,
+        withinFailureBudget,
         absoluteThresholds: this.getThresholds(),
         improvements,
+        predictionFailures: failureMetrics,
       },
     };
   }
@@ -428,6 +497,10 @@ export class ModelEvaluationGate {
       sampleSize: metrics.sampleSize,
     });
   }
+}
+
+function emptyFailureMetrics(total: number): PredictionFailureMetrics {
+  return { total, succeeded: 0, failed: 0, errorRate: 0, sampleFailureMessages: [] };
 }
 
 export default ModelEvaluationGate;

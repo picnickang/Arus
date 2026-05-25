@@ -535,26 +535,82 @@ export function registerRagRoutes(
 
       const convAny = conversation as { conversation?: Record<string, unknown> } & Record<string, unknown>;
       const convObj = (convAny.conversation ?? convAny) as { id: string; title?: string; createdAt: string | number | Date };
+
+      // P2 #10 — DoS / memory cap. PDF and Markdown export build the
+      // whole document in memory; an adversary (or just a runaway
+      // assistant) could stuff a single message with megabytes of
+      // text. Cap the total content byte-budget BEFORE handing data to
+      // the export service, and trim from the OLDEST messages first so
+      // the most recent context is preserved.
+      const MAX_EXPORT_CONTENT_BYTES = 2 * 1024 * 1024; // ≈2 MiB raw text
+      const rawMessages = messages.map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+        timestamp: new Date(m.createdAt),
+        citations: (m as { citations?: Array<{ documentId: string; documentTitle: string; excerpt: string }> }).citations,
+      }));
+      const trimmed: typeof rawMessages = [];
+      let runningBytes = 0;
+      let truncated = false;
+      const TRUNCATION_NOTICE = "\n\n[…content truncated to fit export size budget…]";
+      for (let i = rawMessages.length - 1; i >= 0; i--) {
+        const m = rawMessages[i];
+        if (!m) {
+          continue;
+        }
+        const size =
+          Buffer.byteLength(m.content, "utf-8") +
+          (m.citations?.reduce(
+            (a, c) => a + Buffer.byteLength(c.documentTitle + c.excerpt, "utf-8"),
+            0,
+          ) ?? 0);
+        if (runningBytes + size > MAX_EXPORT_CONTENT_BYTES) {
+          // Preserve newest-message context even when a single message
+          // is larger than the remaining budget: emit a truncated
+          // copy rather than dropping it entirely. Strip citations on
+          // the truncated message since the excerpt bytes already
+          // exceeded budget.
+          if (trimmed.length === 0) {
+            const remaining = Math.max(0, MAX_EXPORT_CONTENT_BYTES - runningBytes);
+            const sliceBytes = Math.max(0, remaining - Buffer.byteLength(TRUNCATION_NOTICE, "utf-8"));
+            const head = Buffer.from(m.content, "utf-8").subarray(0, sliceBytes).toString("utf-8");
+            trimmed.unshift({
+              role: m.role,
+              content: head + TRUNCATION_NOTICE,
+              timestamp: m.timestamp,
+              citations: undefined,
+            });
+          }
+          truncated = true;
+          break;
+        }
+        runningBytes += size;
+        trimmed.unshift(m);
+      }
       const exportData = {
         id: convObj.id,
         title: convObj.title || "Untitled Conversation",
         createdAt: new Date(convObj.createdAt),
-        messages: messages.map((m) => ({
-          role: m.role as "user" | "assistant",
-          content: m.content,
-          timestamp: new Date(m.createdAt),
-          citations: (m as { citations?: Array<{ documentId: string; documentTitle: string; excerpt: string }> }).citations,
-        })),
+        messages: trimmed,
       };
 
       const result = await exportService.exportConversation(exportData, {
         format,
         includeCitations,
         includeTimestamps,
+        ...(truncated
+          ? {
+              footerText: `Export truncated: omitted ${rawMessages.length - trimmed.length} older message(s) to stay within the ${MAX_EXPORT_CONTENT_BYTES} byte content budget.`,
+            }
+          : {}),
       });
 
       res.setHeader("Content-Type", result.mimeType);
       res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
+      if (truncated) {
+        res.setHeader("X-Export-Truncated", "true");
+        res.setHeader("X-Export-Omitted-Messages", String(rawMessages.length - trimmed.length));
+      }
       return res.send(result.data);
     })
   );

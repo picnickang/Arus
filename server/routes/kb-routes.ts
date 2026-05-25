@@ -11,6 +11,8 @@ import multer from "multer";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
+import fs from "node:fs";
+import fsPromises from "node:fs/promises";
 import { requireOrgId } from "../middleware/auth";
 import { enforceQuota } from "../middleware/tenant-quota";
 import { quotaService } from "../tenancy/quota-service";
@@ -49,11 +51,69 @@ async function validateEquipmentOwnership(
   return !!equip;
 }
 
+// P2 #12 — Harden the staging directory. Without this, /tmp/kb-uploads
+// inherits the system umask (typically 0022 → 0755) so any local user
+// could enumerate / replace in-flight uploads before the ingestion
+// worker picks them up. We create the dir 0700 + chown to the current
+// process owner; subsequent writes inherit the directory ACL.
+const KB_UPLOAD_DIR = "/tmp/kb-uploads";
+try {
+  fs.mkdirSync(KB_UPLOAD_DIR, { recursive: true, mode: 0o700 });
+  // mkdirSync's mode is masked by umask; chmod explicitly to be sure.
+  fs.chmodSync(KB_UPLOAD_DIR, 0o700);
+} catch (err) {
+  // Don't crash boot on permission errors — log + continue; uploads
+  // will surface a clear 500 with the underlying ENOENT/EACCES.
+  logger.warn(`[KB Upload] Failed to harden ${KB_UPLOAD_DIR}: ${(err as Error).message}`);
+}
+
+// Magic-byte signatures for the allowed mimetypes. Multer's
+// `fileFilter` only inspects the *client-supplied* `Content-Type`,
+// which is trivially spoofable. We re-verify the first bytes of the
+// payload before persisting / handing off to the ingestion worker.
+const MAGIC_BYTES: Record<string, ReadonlyArray<number>> = {
+  "application/pdf": [0x25, 0x50, 0x44, 0x46, 0x2d], // %PDF-
+  "image/png": [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+  "image/jpeg": [0xff, 0xd8, 0xff],
+};
+
+function bufferStartsWith(buf: Buffer, signature: ReadonlyArray<number>): boolean {
+  if (buf.length < signature.length) {
+    return false;
+  }
+  for (let i = 0; i < signature.length; i++) {
+    if (buf[i] !== signature[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function validateMagicBytesFromBuffer(buf: Buffer, mimetype: string): boolean {
+  const sig = MAGIC_BYTES[mimetype];
+  return !!sig && bufferStartsWith(buf, sig);
+}
+
+async function validateMagicBytesFromPath(filePath: string, mimetype: string): Promise<boolean> {
+  const sig = MAGIC_BYTES[mimetype];
+  if (!sig) {
+    return false;
+  }
+  const fh = await fsPromises.open(filePath, "r");
+  try {
+    const buf = Buffer.alloc(sig.length);
+    const { bytesRead } = await fh.read(buf, 0, sig.length, 0);
+    return bytesRead === sig.length && bufferStartsWith(buf, sig);
+  } finally {
+    await fh.close();
+  }
+}
+
 // Configure multer for disk storage (async processing)
 // NOSONAR: S5443 - /tmp used for temporary upload processing; files processed immediately
 const asyncUpload = multer({
   storage: multer.diskStorage({
-    destination: "/tmp/kb-uploads",
+    destination: KB_UPLOAD_DIR,
     filename: (req, file, cb) => {
       const uniqueName = `${Date.now()}-${randomUUID()}${path.extname(file.originalname)}`;
       cb(null, uniqueName);
@@ -120,10 +180,28 @@ export async function registerKnowledgeBaseRoutes(
     enforceQuota("storage_bytes"),
     asyncUpload.single("file"),
     async (req, res) => {
+      // Track the staged file so any failure path (magic-byte
+      // mismatch, validation throw, DB insert failure, enqueue
+      // failure) can deterministically clean it up. Multer disk
+      // storage has already persisted to /tmp/kb-uploads at this
+      // point and will NOT auto-cleanup on handler errors.
+      const stagedPath = req.file?.path;
+      let enqueuedSuccessfully = false;
       try {
         if (!req.file) {
           return res.status(400).json({ error: "No file uploaded" });
         }
+
+        // P2 #12 — magic-byte verification against declared mimetype.
+        // Reject + delete the staged file on mismatch (415).
+        const magicOk = await validateMagicBytesFromPath(req.file.path, req.file.mimetype);
+        if (!magicOk) {
+          return res
+            .status(415)
+            .json({ error: "File content does not match declared type" });
+        }
+        // Restrict the staged file itself to owner-only.
+        await fsPromises.chmod(req.file.path, 0o600).catch(() => {});
 
         const orgId = req.orgId;
         const userId = req.user?.id;
@@ -167,6 +245,8 @@ export async function registerKnowledgeBaseRoutes(
           mimeType: req.file.mimetype,
           uploadedBy: userId,
         });
+        // Hand-off complete — the ingestion worker now owns the file.
+        enqueuedSuccessfully = true;
 
         return res.status(202).json({
           success: true,
@@ -178,6 +258,15 @@ export async function registerKnowledgeBaseRoutes(
         logger.error("[KB Upload Async] Failed:", undefined, error);
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
         return res.status(500).json({ error: "Document upload failed", details: errorMessage });
+      } finally {
+        // P2 #12 — Deterministic staged-file cleanup. Multer disk
+        // storage does not auto-remove on handler errors / early
+        // returns, so we unlink whenever the file was not handed off
+        // to the ingestion worker (magic-byte mismatch, DB insert
+        // failure, enqueue failure, validation throw, etc.).
+        if (stagedPath && !enqueuedSuccessfully) {
+          await fsPromises.unlink(stagedPath).catch(() => {});
+        }
       }
     }
   );
@@ -198,6 +287,13 @@ export async function registerKnowledgeBaseRoutes(
         return res
           .status(400)
           .json({ error: "Invalid equipmentId or equipment does not belong to your organization" });
+      }
+
+      // P2 #12 — magic-byte verification on the in-memory buffer.
+      if (!validateMagicBytesFromBuffer(req.file.buffer, req.file.mimetype)) {
+        return res
+          .status(415)
+          .json({ error: "File content does not match declared type" });
       }
 
       // Determine file type from mimetype

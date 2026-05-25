@@ -267,19 +267,28 @@ async function loadShiftTemplates(orgId: string, vessels?: string[]) {
 }
 
 async function loadCrewWithSkills(orgId: string) {
-  const crew = await dbCrewStorage.getCrew(orgId);
-  return Promise.all(
-    crew.map(async (c) => {
-      const skills = await dbCrewStorage.getCrewSkills(c.id);
-      return { ...c, skills: skills.map((s) => s.skill) };
-    })
-  );
+  // Single-query bulk fetch + group-by-crewId avoids the prior
+  // N+1 (one getCrewSkills call per crew member).
+  const [crew, allSkills] = await Promise.all([
+    dbCrewStorage.getCrew(orgId),
+    dbCrewStorage.getAllCrewSkills(orgId),
+  ]);
+  const byCrewId = new Map<string, string[]>();
+  for (const s of allSkills) {
+    const arr = byCrewId.get(s.crewId);
+    if (arr) {
+      arr.push(s.skill);
+    } else {
+      byCrewId.set(s.crewId, [s.skill]);
+    }
+  }
+  return crew.map((c) => ({ ...c, skills: byCrewId.get(c.id) ?? [] }));
 }
 
 async function loadCrewLeaves(orgId: string) {
-  const crew = await dbCrewStorage.getCrew(orgId);
-  const allLeaves = await Promise.all(crew.map((c) => dbCrewStorage.getCrewLeave(c.id)));
-  return allLeaves.flat();
+  // Single org-scoped query replaces the per-crew Promise.all fan-out
+  // (the storage layer already supports filtering by orgId alone).
+  return dbCrewStorage.getCrewLeave(undefined, orgId);
 }
 
 async function loadPortCalls(orgId: string, vessels?: string[]) {
